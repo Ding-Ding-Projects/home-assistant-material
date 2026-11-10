@@ -58,6 +58,10 @@ class ToolsRouter extends HassRouterPage {
         tag: "tools-assist",
         load: () => import("./assist/tools-assist"),
       },
+      base64: {
+        tag: "tools-base64",
+        load: () => import("./base64/tools-base64"),
+      },
       debug: {
         tag: "tools-debug",
         load: () => import("./debug/tools-debug"),

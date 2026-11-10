@@ -28,6 +28,7 @@ Every release is also listed, with its build results, on the
 - Interface: page tools in the header of every settings page. Search this page (with the pattern
   workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow
   screen. Section tabs moved to a row under the header, and wide screens have a footer line.
+- Tools: a Base64 toolkit for text and files, with strict and lenient decoding and data URLs.
 - Home: large cards for a room's lights, the thermostat, the locks and what is playing.
 - Anything that destroys data is confirmed with two keys and a slide, not one button.
 - System: a card about the running system and its sections as a grid. Pages reached from Settings

@@ -83,7 +83,7 @@ build 32 image.
 | Rendered provider text | Designed | ReleaseNotes |
 | Notification centre and toasts | Designed | Notifications |
 | File converter | Designed | Converter |
-| Base64 toolkit | Designed | Base64 |
+| Base64 toolkit | Built and seen working in a running instance beside the board (`docs/screenshots/base64-toolkit.png`). A Base64 tab under Tools encodes text or a file, decodes it back, and writes data URLs, with the Standard, URL-safe and MIME alphabets, padding on or off, lines of 64 or 76 characters, and text read as UTF-8 or Latin-1. Each encoding is decoded again and compared, with a SHA-256 of both. Strict decoding stops at the first character that does not belong and says where; lenient decoding skips it. A file over 1 MB is encoded in pieces with pause and cancel, and saved as a file: a 3 MB file was encoded in four pieces and the saved text decoded to the same file outside the browser. Everything happens in the browser. | Base64 |
 | Minecraft server manager and world generator | Designed | Minecraft, WorldGen |
 | Local Ollama suite | Designed | Ollama |
 | External editor hand-off and publishing to a forge | Designed | Handoff |

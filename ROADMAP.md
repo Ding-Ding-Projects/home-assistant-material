@@ -153,7 +153,7 @@ matches its board, checked side by side.
 - [~] Offline help articles: 12 articles in the Help tool, searchable. No article per page yet
 - [ ] Rendered provider text
 - [ ] File converter
-- [ ] Base64 toolkit
+- [x] Base64 toolkit: encode, decode and data URLs for text and files, under Tools
 - [ ] Minecraft server manager and world generator
 - [ ] Local Ollama suite
 - [ ] External editor hand-off and publishing to a forge
