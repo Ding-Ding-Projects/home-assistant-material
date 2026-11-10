@@ -31,7 +31,9 @@ Written 9 November 2026 for whoever picks this up next.
 
 - Every push to `main` publishes a release. Pushes that touch only `design/`, `docs/` or Markdown
   files skip the builds.
-- Operating system builds take hours and are cancelled by a newer push that also rebuilds.
+- A build that has started always finishes. While it runs, only the newest waiting build of each
+  kind is kept; older waiting ones are dropped, so some releases carry notes and no images. The
+  newest push is always built. Operating system builds take hours.
 - Build versions are `<upstream version>.<workflow run number>`. The committed sources keep the
   upstream numbers; `scripts/ci/set-versions.py` stamps the build number inside the runner.
 - Integration translations are copied out of the upstream image for the pinned core release,

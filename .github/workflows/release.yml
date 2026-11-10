@@ -128,7 +128,7 @@ jobs:
     runs-on: ubuntu-24.04
     concurrency:
       group: heavy-frontend
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: write
     env:
@@ -226,7 +226,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     concurrency:
       group: heavy-core-${{ matrix.arch }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -338,7 +338,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     concurrency:
       group: heavy-supervisor-${{ matrix.arch }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -394,7 +394,7 @@ jobs:
     runs-on: ubuntu-24.04
     concurrency:
       group: heavy-container
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: write
