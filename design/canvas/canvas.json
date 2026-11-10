@@ -267,6 +267,60 @@
       "title": "Starting points for a blank editor",
       "expand": "fill",
       "page": "nav"
+    },
+    "SuperConfirm.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 570,
+      "title": "Two-key super confirmation",
+      "expand": "fill",
+      "page": "safety"
+    },
+    "Locks.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 650,
+      "title": "Toy lock wizard, six credential mixes",
+      "expand": "fill",
+      "page": "safety"
+    },
+    "Ladder.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 740,
+      "title": "Unlock prompt and the unlock ladder",
+      "expand": "fill",
+      "page": "safety"
+    },
+    "SupportTickets.dc.html": {
+      "x": 0,
+      "y": 860,
+      "w": 1200,
+      "h": 610,
+      "title": "Support Tickets recovery desk",
+      "expand": "fill",
+      "page": "safety"
+    },
+    "Authenticator.dc.html": {
+      "x": 1280,
+      "y": 860,
+      "w": 1200,
+      "h": 640,
+      "title": "Built-in authenticator",
+      "expand": "fill",
+      "page": "safety"
+    },
+    "QrPairing.dc.html": {
+      "x": 2560,
+      "y": 860,
+      "w": 1200,
+      "h": 580,
+      "title": "QR pairing for an authenticator",
+      "expand": "fill",
+      "page": "safety"
     }
   },
   "order": [
@@ -294,7 +348,13 @@
     "ContextMenu.dc.html",
     "GuidedForm.dc.html",
     "Extensions.dc.html",
-    "BlankEditor.dc.html"
+    "BlankEditor.dc.html",
+    "SuperConfirm.dc.html",
+    "Locks.dc.html",
+    "Ladder.dc.html",
+    "SupportTickets.dc.html",
+    "Authenticator.dc.html",
+    "QrPairing.dc.html"
   ],
   "notes": {
     "t-screens": {
@@ -328,6 +388,14 @@
       "kind": "title1",
       "maxW": 5040,
       "page": "nav"
+    },
+    "t-safety": {
+      "x": 0,
+      "y": -300,
+      "text": "Safety, locks and sign-in",
+      "kind": "title1",
+      "maxW": 3760,
+      "page": "safety"
     }
   },
   "designSystems": []

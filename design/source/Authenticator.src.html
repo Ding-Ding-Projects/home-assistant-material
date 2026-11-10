@@ -1,0 +1,21 @@
+@@HEAD:Authenticator@@
+@@SURF:Tools|Authenticator|640@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+<section class="col" aria-label="Codes" style="flex: 1 1 520px; gap: 8px">
+<div class="row" style="gap: 12px; margin-bottom: 8px"><div class="find grow"><span class="row grow" style="gap: 12px">@@I:Magnify@@<span class="bl">Search accounts</span></span><button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search">@@I:Regex@@</button></div><button class="btn fill">@@I:Plus@@Add account</button></div>
+<div class="card col" style="background: var(--pc); color: var(--on-pc); gap: 8px; padding: 24px"><div class="row" style="gap: 12px"><div class="col grow"><span class="ll">Front door lock</span><span class="bs">Home Assistant Material, this device</span></div><button class="ib" aria-label="Copy the code" style="background: var(--sl0); color: var(--on-pc)">@@I:ContentCopy@@</button></div><div class="row" style="gap: 20px"><span class="dl mono" style="letter-spacing: 4px">482 913</span><div class="col grow" style="gap: 6px"><div class="track" role="progressbar" aria-label="Seconds left" aria-valuemin="0" aria-valuemax="30" aria-valuenow="19" style="background: var(--sl0)"><b style="width: 63%"></b></div><span class="bs">19 seconds left. Next: 075 264</span></div></div></div>
+<div class="li" style="background: var(--sl2)"><span class="lead">@@I:Github@@</span><span class="col grow"><span class="ll">GitHub</span><span class="bs mu">sam, SHA-1, 6 digits, 30 seconds</span></span><span class="tl mono">119 406</span><span class="bs mu" style="width: 28px">19 s</span><button class="ib" aria-label="Copy the GitHub code">@@I:ContentCopy@@</button></div>
+<div class="li" style="background: var(--sl2)"><span class="lead">@@I:Nas@@</span><span class="col grow"><span class="ll">Home server</span><span class="bs mu">admin, SHA-256, 8 digits, 60 seconds</span></span><span class="tl mono">6031 7748</span><span class="bs mu" style="width: 28px">49 s</span><button class="ib" aria-label="Copy the Home server code">@@I:ContentCopy@@</button></div>
+<div class="note warn" style="margin-top: 8px">@@I:ClockAlertOutline@@<span class="bm grow">This device's clock is 41 seconds behind. Codes may be refused until the time is corrected.</span><button class="btn sm text" style="color: var(--on-errc)">Sync the clock</button></div>
+</section>
+<aside class="card col" aria-label="Add an account" style="flex: 1 1 360px; gap: 8px; background: var(--sl0); box-shadow: var(--e3)">
+<h2 class="tm" style="padding: 0 4px 8px">Add an account</h2>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Camera@@</span><span class="col grow"><span class="ll">Scan with the camera</span><span class="bs mu">Asks for the camera once</span></span></button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:ImageSearch@@</span><span class="col grow"><span class="ll">Read a QR picture</span><span class="bs mu">From a file or the clipboard</span></span></button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:LinkVariant@@</span><span class="col grow"><span class="ll">Paste a setup link</span><span class="bs mu mono">otpauth://totp/…</span></span></button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Keyboard@@</span><span class="col grow"><span class="ll">Type the secret</span><span class="bs mu">Base32, with algorithm, digits and period</span></span></button>
+<span class="bs mu" style="padding: 8px 4px 0">Secrets stay in the system's credential vault. They are never shown again, logged, exported or put in History.</span>
+</aside>
+</div>
+@@/SURF@@
+@@TAIL:1200,640@@

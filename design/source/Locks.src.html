@@ -1,0 +1,27 @@
+@@HEAD:Lock this element@@
+@@SURF:Home, Front door card|Lock this element|650@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+<div class="col" style="flex: 1 1 380px; gap: 16px">
+<span class="lm mu">The element being locked</span>
+<div class="card col" style="gap: 12px; background: var(--greenc); color: var(--green); box-shadow: 0 0 0 3px var(--sl0), 0 0 0 6px var(--p)"><div class="row" style="gap: 16px"><span class="sq" style="color: var(--green)">@@I:DoorClosedLock.l@@</span><div class="col grow"><span class="tl">Front door</span><span class="bm">Locked</span></div><button class="btn rs" style="background: var(--sl0)">Unlock</button></div></div>
+<span class="lm mu" style="margin-top: 8px">How it looks once locked</span>
+<div class="card col" style="gap: 12px"><div class="row" style="gap: 16px"><span class="sq">@@I:DoorClosedLock.l@@</span><div class="col grow"><span class="tl">Front door</span><span class="bm mu">Locked</span></div><button class="btn rs out" aria-label="Front door controls are locked. Open the unlock prompt.">@@I:Lock@@Locked</button></div></div>
+<span class="bs mu">A locked element still shows its state. Its controls do nothing until it is unlocked with its own credentials. There is no master key.</span>
+</div>
+<section class="card col" aria-label="Lock wizard" style="flex: 1 1 540px; gap: 16px; background: var(--sl0); box-shadow: var(--e3)">
+<div class="row" style="gap: 12px">@@I:Lock@@<h2 class="tm grow">Lock Front door, step 1 of 3</h2><button class="ib" aria-label="Close">@@I:Close@@</button></div>
+<p class="bm mu">Choose what opens this lock. This lock gets its own PIN, password and codes, kept in the system's credential vault.</p>
+<div role="radiogroup" aria-label="What opens this lock" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl2)"><span class="lead">@@I:Dialpad@@</span><span class="ll grow">PIN</span></button>
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl2)"><span class="lead">@@I:FormTextboxPassword@@</span><span class="ll grow">Password</span></button>
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl2)"><span class="lead">@@I:Dialpad@@</span><span class="ll grow">PIN and password</span></button>
+<button role="radio" aria-checked="true" class="li sel"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:ShieldKey@@</span><span class="col grow"><span class="ll">PIN and authenticator code</span><span class="bs">Chosen</span></span>@@I:CheckCircle@@</button>
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl2)"><span class="lead">@@I:ShieldKey@@</span><span class="ll grow">Password and authenticator code</span></button>
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl2)"><span class="lead">@@I:ShieldStar@@</span><span class="ll grow">Password, PIN and authenticator code</span></button>
+</div>
+<div class="note">@@I:Lifebuoy@@<span class="bm">Locked out later? The unlock prompt links to Support Tickets and to the waiting games.</span></div>
+<div class="row" style="gap: 8px"><button class="btn out">Cancel</button><span class="grow"></span><button class="btn fill">Next: set the PIN</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,650@@

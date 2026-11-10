@@ -1,0 +1,24 @@
+@@HEAD:Two-key confirmation@@
+@@SURF:Settings, System and updates|Erase history|570@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+<div class="col" style="flex: 1 1 380px; gap: 16px">
+<p class="bl mu">History holds every sensor reading and event since 3 March 2025.</p>
+@@LI:DatabaseOutline|Recorder database|2.1 GB, 14 million rows@@@@/LI@@
+<button class="btn err" style="align-self: flex-start">@@I:DeleteForever@@Erase all history…</button>
+<div class="note" style="margin-top: 8px">@@I:InformationOutline@@<span class="bm">Anything that destroys data asks this way, beside the button that started it. Nothing happens until both keys are turned and the slider reaches the end.</span></div>
+</div>
+<section class="dlg col" role="alertdialog" aria-label="Erase all history" style="flex: 1 1 520px; gap: 16px">
+<div class="row" style="gap: 16px"><span class="sq" style="background: var(--errc); color: var(--err)">@@I:DeleteForever.l@@</span><div class="col grow"><h2 class="hs">Erase all history?</h2><span class="bm mu">14 million rows, 2.1 GB, from 3 March 2025 to today. Devices, automations and settings are not touched.</span></div></div>
+<div class="row" style="gap: 12px; align-items: stretch">
+<button class="card col" aria-pressed="true" style="flex: 1; padding: 20px; gap: 8px; border-radius: 24px; background: var(--greenc); color: var(--green); align-items: center; text-align: center">@@I:KeyVariant.l@@<span class="ll">Key one turned</span><span class="bs">Hold Q, or press and hold here</span></button>
+<button class="card col" aria-pressed="false" style="flex: 1; padding: 20px; gap: 8px; border-radius: 24px; align-items: center; text-align: center; box-shadow: inset 0 0 0 2px var(--out)">@@I:KeyVariant.l@@<span class="ll">Turn key two</span><span class="bs mu">Hold P, or press and hold here</span></button>
+</div>
+<div class="col" style="gap: 8px; opacity: .45">
+<span class="lm mu">Then slide all the way to erase</span>
+<div class="slide" role="slider" tabindex="-1" aria-disabled="true" aria-label="Slide to erase" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="background: var(--sl2)"><span class="sq" style="width: 48px; height: 48px; border-radius: 24px; margin-left: 4px; background: var(--err); color: var(--sl0)">@@I:ChevronDoubleRight@@</span><span class="ll grow" style="text-align: center">Waiting for key two</span></div>
+</div>
+<div class="row" style="gap: 12px"><span class="bs mu grow">Both keys must be held at the same time. Escape also leaves.</span><button class="btn lg tonal">@@I:ExitRun@@Emergency exit</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,570@@
