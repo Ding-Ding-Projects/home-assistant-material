@@ -8,6 +8,7 @@ import { fireEvent } from "../common/dom/fire_event";
 import { stringCompare } from "../common/string/compare";
 import type { LocalizeFunc } from "../common/translations/localize";
 import "../components/ha-button";
+import "../components/ha-spinner";
 import type { ConfigEntry } from "../data/config_entries";
 import { subscribeConfigEntries } from "../data/config_entries";
 import { subscribeConfigFlowInProgress } from "../data/config_flow";
@@ -105,7 +106,7 @@ class OnboardingIntegrations extends SubscribeMixin(LitElement) {
 
   protected render() {
     if (!this._discoveredDomainsReceived) {
-      return nothing;
+      return html`<div class="loading"><ha-spinner></ha-spinner></div>`;
     }
     // Render discovered and existing entries together sorted by localized title.
     let uniqueDomains = new Set<string>();
@@ -145,15 +146,29 @@ class OnboardingIntegrations extends SubscribeMixin(LitElement) {
       domains = domains.slice(0, 11);
     }
 
+    const configured = new Set(this._entries.map((entry) => entry.domain));
+
     return html`
-      <h1>${this._localize("ui.panel.page-onboarding.integration.header")}</h1>
+      <h1>
+        ${this._localize("ui.panel.page-onboarding.integration.found_count", {
+          count: foundIntegrations,
+        })}
+      </h1>
       <p>${this._localize("ui.panel.page-onboarding.integration.intro")}</p>
-      <div class="badges">
+      <div class="badges" role="list">
         ${domains.map(
           ([domain, title]) =>
             html`<integration-badge
+              role="listitem"
+              row
               .domain=${domain}
               .title=${title}
+              .done=${configured.has(domain)}
+              .status=${this._localize(
+                configured.has(domain)
+                  ? "ui.panel.page-onboarding.integration.status_added"
+                  : "ui.panel.page-onboarding.integration.status_ready"
+              )}
               .darkOptimizedIcon=${this.hass.themes?.darkMode}
             ></integration-badge>`
         )}
@@ -200,16 +215,22 @@ class OnboardingIntegrations extends SubscribeMixin(LitElement) {
       onBoardingStyles,
       css`
         .badges {
-          margin-top: 24px;
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
-          row-gap: var(--ha-space-6);
+          margin-top: var(--ha-space-4);
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+        }
+        .loading {
+          display: flex;
+          justify-content: center;
+          padding: var(--ha-space-8) 0;
         }
         .more {
           display: flex;
           justify-content: center;
           align-items: center;
-          height: 100%;
+          padding: var(--ha-space-2);
+          color: var(--secondary-text-color);
         }
         .all-set-icon {
           font-size: 64px;

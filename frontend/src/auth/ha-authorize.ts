@@ -118,7 +118,7 @@ export class HaAuthorize extends provideLiteI18nMixin(
           box-sizing: border-box;
           border-radius: var(
             --ha-card-border-radius,
-            var(--ha-border-radius-lg)
+            var(--ha-border-radius-3xl)
           );
           border-width: var(--ha-card-border-width, 1px);
           border-style: solid;
@@ -128,7 +128,7 @@ export class HaAuthorize extends provideLiteI18nMixin(
           );
           color: var(--primary-text-color);
           position: relative;
-          padding: 16px;
+          padding: var(--ha-space-6) var(--ha-space-6) var(--ha-space-8);
         }
         .action {
           margin: 16px 0 8px;

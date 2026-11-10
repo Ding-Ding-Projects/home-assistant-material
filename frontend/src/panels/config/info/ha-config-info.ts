@@ -1,13 +1,26 @@
 import {
+  mdiCellphone,
+  mdiChip,
   mdiFileDocument,
+  mdiHandHeart,
   mdiHandsPray,
   mdiHelp,
+  mdiHome,
+  mdiHomeHeart,
   mdiKeyboard,
   mdiOpenInNew,
+  mdiPackageVariantClosed,
+  mdiScaleBalance,
+  mdiShieldHalfFull,
+  mdiSourceBranch,
+  mdiUpdate,
+  mdiViewDashboard,
 } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { styleMap } from "lit/directives/style-map";
+import type { LocalizeKeys } from "../../../common/translations/localize";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import "../../../components/ha-card";
 import "../../../components/ha-svg-icon";
@@ -60,11 +73,13 @@ const PAGES = [
   iconColor: string;
 }[];
 
+type UpdateStatus = "current" | "available" | undefined;
+
 @customElement("ha-config-info")
 class HaConfigInfo extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
@@ -80,143 +95,221 @@ class HaConfigInfo extends LitElement {
     const hass = this.hass;
     const customUiList: { name: string; url: string; version: string }[] =
       (window as any).CUSTOM_UI_LIST || [];
+    const coreStatus = this._updateStatus("update.home_assistant_core_update");
 
     return html`
       <hass-subpage
         .hass=${this.hass}
         .narrow=${this.narrow}
-        back-path="/config"
-        .header=${this.hass.localize("ui.panel.config.info.caption")}
+        back-path="/config/system"
+        .header=${this.hass.localize("ui.panel.config.info.material.title")}
       >
         <div class="content">
-          <section class="hero">
-            <span class="eyebrow"
-              >${this.hass.config.location_name || "Home Assistant Material"}</span
-            >
-            <span class="product">Home Assistant Material</span>
-            <h2>${MATERIAL_VERSION || hass.connection.haVersion}</h2>
-            <p>${this._builtText()}</p>
-            <p class="note">
-              ${this.hass.localize("ui.panel.config.info.material.read_from_build")}
-            </p>
-            <div class="hero-actions">
-              <a class="pill primary" href="/config/changelog"
-                >${this.hass.localize("ui.panel.config.changelog.title")}</a
-              >
-              <a class="pill" href="/config/updates"
-                >${this.hass.localize("ui.panel.config.info.material.updates")}</a
-              >
-              <a class="pill" href="/config/problem-log"
-                >${this.hass.localize("ui.panel.config.info.material.report")}</a
-              >
-            </div>
-          </section>
+          <div class="columns">
+            <div class="column">
+              <section class="hero">
+                <div class="hero-top">
+                  <span class="logo"
+                    ><ha-svg-icon .path=${mdiHomeHeart}></ha-svg-icon
+                  ></span>
+                  <div class="hero-names">
+                    <span class="eyebrow"
+                      >${hass.config.location_name || "Home Assistant Material"}</span
+                    >
+                    <span class="product">Home Assistant Material</span>
+                  </div>
+                  ${this._renderBadge(coreStatus, true)}
+                </div>
+                <h2>${MATERIAL_VERSION || hass.connection.haVersion}</h2>
+                <p>${this._builtText()}</p>
+                <p class="note">
+                  ${this.hass.localize("ui.panel.config.info.material.read_from_build")}
+                </p>
+              </section>
 
-          <ha-card outlined class="versions-card">
-            <ul class="versions">
-              <li>
-                <span class="version-label"
+              <ul class="components">
+                <li>
+                  <span class="tile"
+                    ><ha-svg-icon .path=${mdiPackageVariantClosed}></ha-svg-icon
+                  ></span>
+                  <span class="text">
+                    <span class="title"
+                      >${this.hass.localize(
+                        "ui.panel.config.info.installation_method"
+                      )}</span
+                    >
+                    <span class="sub">${this._installationMethod || "…"}</span>
+                  </span>
+                </li>
+                <li>
+                  <span class="tile"
+                    ><ha-svg-icon .path=${mdiHome}></ha-svg-icon
+                  ></span>
+                  <span class="text">
+                    <span class="title">Core</span>
+                    <span class="sub">${hass.connection.haVersion}</span>
+                  </span>
+                  ${this._renderBadge(coreStatus)}
+                </li>
+                ${
+                  this._hassioInfo
+                    ? html`
+                        <li>
+                          <span class="tile"
+                            ><ha-svg-icon
+                              .path=${mdiShieldHalfFull}
+                            ></ha-svg-icon
+                          ></span>
+                          <span class="text">
+                            <span class="title">Supervisor</span>
+                            <span class="sub"
+                              >${this._hassioInfo.supervisor}</span
+                            >
+                          </span>
+                          ${this._renderBadge(
+                            this._updateStatus(
+                              "update.home_assistant_supervisor_update"
+                            )
+                          )}
+                        </li>
+                      `
+                    : nothing
+                }
+                ${
+                  this._osInfo
+                    ? html`
+                        <li>
+                          <span class="tile"
+                            ><ha-svg-icon .path=${mdiChip}></ha-svg-icon
+                          ></span>
+                          <span class="text">
+                            <span class="title">Operating System</span>
+                            <span class="sub"
+                              >${
+                                this._osInfo.board
+                                  ? this.hass.localize(
+                                      "ui.panel.config.info.material.os_on_board",
+                                      {
+                                        version: this._osInfo.version,
+                                        board: this._osInfo.board,
+                                      }
+                                    )
+                                  : this._osInfo.version
+                              }</span
+                            >
+                          </span>
+                          ${this._renderBadge(
+                            this._updateStatus(
+                              "update.home_assistant_operating_system_update"
+                            )
+                          )}
+                        </li>
+                      `
+                    : nothing
+                }
+                <li>
+                  <span class="tile"
+                    ><ha-svg-icon .path=${mdiViewDashboard}></ha-svg-icon
+                  ></span>
+                  <span class="text">
+                    <span class="title"
+                      >${this.hass.localize(
+                        "ui.panel.config.info.frontend_version_label"
+                      )}</span
+                    >
+                    <span class="sub"
+                      >${JS_VERSION}${JS_TYPE !== "modern" ? ` · ${JS_TYPE}` : ""}</span
+                    >
+                  </span>
+                </li>
+                ${
+                  this.hass.auth.external?.config.appVersion
+                    ? html`
+                        <li>
+                          <span class="tile"
+                            ><ha-svg-icon .path=${mdiCellphone}></ha-svg-icon
+                          ></span>
+                          <span class="text">
+                            <span class="title"
+                              >${this.hass.localize(
+                                "ui.panel.config.info.external_app_version"
+                              )}</span
+                            >
+                            <span class="sub"
+                              >${this.hass.auth.external?.config.appVersion}</span
+                            >
+                          </span>
+                        </li>
+                      `
+                    : nothing
+                }
+              </ul>
+
+              <div class="actions">
+                <a class="pill primary" href="/config/updates"
+                  ><ha-svg-icon .path=${mdiUpdate}></ha-svg-icon
                   >${this.hass.localize(
-                    "ui.panel.config.info.installation_method"
-                  )}</span
+                    "ui.panel.config.info.material.check_updates"
+                  )}</a
                 >
-                <span class="version">${this._installationMethod || "…"}</span>
-              </li>
-              <li>
-                <span class="version-label">Core</span>
-                <span class="version">${hass.connection.haVersion}</span>
-              </li>
-              ${
-                this._hassioInfo
-                  ? html`
-                      <li>
-                        <span class="version-label">Supervisor</span>
-                        <span class="version"
-                          >${this._hassioInfo.supervisor}</span
-                        >
-                      </li>
-                    `
-                  : nothing
-              }
-              ${
-                this._osInfo
-                  ? html`
-                      <li>
-                        <span class="version-label">Operating System</span>
-                        <span class="version">${this._osInfo.version}</span>
-                      </li>
-                    `
-                  : nothing
-              }
-              <li>
-                <span class="version-label">
+                <a class="pill" href="/config/changelog"
+                  >${this.hass.localize("ui.panel.config.changelog.title")}</a
+                >
+                <a
+                  class="pill plain"
+                  href=${documentationUrl(this.hass, "/developers/license/")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >${this.hass.localize("ui.panel.config.info.items.license")}</a
+                >
+                <a class="pill plain" href="/config/problem-log"
+                  >${this.hass.localize("ui.panel.config.info.material.report")}</a
+                >
+              </div>
+            </div>
+
+            <div class="column">
+              <section class="card">
+                <h3>
+                  <ha-svg-icon .path=${mdiSourceBranch}></ha-svg-icon>
+                  ${this.hass.localize("ui.panel.config.info.material.source_title")}
+                </h3>
+                <p>
+                  ${this.hass.localize("ui.panel.config.info.material.source_text")}
+                </p>
+                <code class="address">${FEED_URL}</code>
+                <p class="note">
                   ${this.hass.localize(
-                    "ui.panel.config.info.frontend_version_label"
+                    this._hassioInfo
+                      ? "ui.panel.config.info.material.source_supervised"
+                      : "ui.panel.config.info.material.source_container"
                   )}
-                </span>
-                <span class="version">
-                  ${JS_VERSION}${JS_TYPE !== "modern" ? ` · ${JS_TYPE}` : ""}
-                </span>
-              </li>
-              ${
-                this.hass.auth.external?.config.appVersion
-                  ? html`
-                      <li>
-                        <span class="version-label"
-                          >${this.hass.localize(
-                            "ui.panel.config.info.external_app_version"
-                          )}</span
-                        >
-                        <span class="version"
-                          >${this.hass.auth.external?.config.appVersion}</span
-                        >
-                      </li>
-                    `
-                  : nothing
-              }
-            </ul>
-          </ha-card>
+                </p>
+              </section>
 
-          <section class="card">
-            <h3>
-              ${this.hass.localize("ui.panel.config.info.material.source_title")}
-            </h3>
-            <p>
-              ${this.hass.localize("ui.panel.config.info.material.source_text")}
-            </p>
-            <code class="address">${FEED_URL}</code>
-            <p class="note">
-              ${this.hass.localize(
-                this._hassioInfo
-                  ? "ui.panel.config.info.material.source_supervised"
-                  : "ui.panel.config.info.material.source_container"
-              )}
-            </p>
-          </section>
+              <section class="card free">
+                <h3>
+                  <ha-svg-icon .path=${mdiHandHeart}></ha-svg-icon>
+                  ${this.hass.localize("ui.panel.config.info.material.free_title")}
+                </h3>
+                <p>
+                  ${this.hass.localize("ui.panel.config.info.material.free_text")}
+                </p>
+              </section>
 
-          <section class="card free">
-            <h3>
-              ${this.hass.localize("ui.panel.config.info.material.free_title")}
-            </h3>
-            <p>
-              ${this.hass.localize("ui.panel.config.info.material.free_text")}
-            </p>
-          </section>
-
-          <section class="card">
-            <p>
-              ${this.hass.localize("ui.panel.config.info.material.independent")}
-            </p>
-          </section>
+              <section class="card independent">
+                <ha-svg-icon .path=${mdiScaleBalance}></ha-svg-icon>
+                <p>
+                  ${this.hass.localize("ui.panel.config.info.material.independent")}
+                </p>
+              </section>
+            </div>
+          </div>
 
           <ha-card outlined class="pages">
             <ha-list-base>
               <ha-list-item-button @click=${this._showShortcuts}>
-                <div
-                  slot="start"
-                  class="icon-background"
-                  style="background-color: #9e4dd1;"
-                >
+                <div slot="start" class="icon-background shortcuts">
                   <ha-svg-icon .path=${mdiKeyboard}></ha-svg-icon>
                 </div>
                 <span slot="headline"
@@ -234,7 +327,7 @@ class HaConfigInfo extends LitElement {
                     <div
                       slot="start"
                       class="icon-background"
-                      style=${`background-color: ${page.iconColor};`}
+                      style=${styleMap({ backgroundColor: page.iconColor })}
                     >
                       <ha-svg-icon .path=${page.iconPath}></ha-svg-icon>
                     </div>
@@ -274,6 +367,33 @@ class HaConfigInfo extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  /** Whether an update is waiting, read from the update entity when there is one. */
+  private _updateStatus(entityId: string): UpdateStatus {
+    const entityState = this.hass.states[entityId]?.state;
+    if (entityState === "on") {
+      return "available";
+    }
+    return entityState === "off" ? "current" : undefined;
+  }
+
+  private _renderBadge(
+    status: UpdateStatus,
+    hero = false
+  ): TemplateResult | typeof nothing {
+    if (!status) {
+      return nothing;
+    }
+    let key: LocalizeKeys = "ui.panel.config.info.material.update_available";
+    if (status === "current") {
+      key = hero
+        ? "ui.panel.config.info.material.up_to_date"
+        : "ui.panel.config.info.material.current";
+    }
+    return html`<span class="badge ${status}"
+      >${this.hass.localize(key)}</span
+    >`;
   }
 
   /** When this build was made, read from the build itself. */
@@ -342,25 +462,37 @@ class HaConfigInfo extends LitElement {
       haStyle,
       css`
         .content {
-          padding: 28px 20px 0;
-          max-width: 1040px;
+          box-sizing: border-box;
+          padding: var(--ha-space-4) var(--ha-space-5) 0;
+          max-width: 1100px;
           margin: 0 auto;
         }
 
-        ha-card,
+        :host([narrow]) .content {
+          padding: var(--ha-space-2) var(--ha-space-3) 0;
+        }
+
+        .columns {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 320px), 1fr)
+          );
+          align-items: start;
+          gap: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+        }
+
+        .column {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-4);
+          min-width: 0;
+        }
+
         .hero,
         .card {
           box-sizing: border-box;
-          max-width: 720px;
-          margin: 0 auto var(--ha-space-4);
-        }
-
-        ha-card {
-          padding: 16px;
-        }
-
-        .hero,
-        .card {
           padding: var(--ha-space-5) var(--ha-space-6);
           border-radius: var(--ha-border-radius-3xl);
           background: var(--card-background-color);
@@ -377,10 +509,36 @@ class HaConfigInfo extends LitElement {
           );
         }
 
+        .hero-top {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--ha-space-4);
+        }
+
+        .logo {
+          display: flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          width: 56px;
+          height: 56px;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
+          color: var(--primary-color);
+        }
+
+        .hero-names {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          min-width: 0;
+        }
+
         .eyebrow {
           font-family: var(--ha-font-family-heading, inherit);
           font-size: var(--ha-font-size-2xl);
           font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
         }
 
         .product {
@@ -394,6 +552,7 @@ class HaConfigInfo extends LitElement {
           font-weight: var(--ha-font-weight-medium);
           line-height: 1.05;
           letter-spacing: -0.02em;
+          overflow-wrap: anywhere;
         }
 
         .hero p,
@@ -407,16 +566,85 @@ class HaConfigInfo extends LitElement {
           color: var(--secondary-text-color);
         }
 
-        .hero-actions {
+        .badge {
+          flex: none;
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          white-space: nowrap;
+          background: color-mix(
+            in srgb,
+            var(--success-color) 28%,
+            var(--card-background-color)
+          );
+          color: var(--primary-text-color);
+        }
+
+        .badge.available {
+          background: color-mix(
+            in srgb,
+            var(--warning-color) 35%,
+            var(--card-background-color)
+          );
+        }
+
+        .components {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        .components li {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
+          padding: var(--ha-space-2) var(--ha-space-3);
+        }
+
+        .tile {
+          display: flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+
+        .text {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .title {
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .sub {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+          overflow-wrap: anywhere;
+        }
+
+        .actions {
           display: flex;
           flex-wrap: wrap;
+          align-items: center;
           gap: var(--ha-space-2);
-          margin-top: var(--ha-space-4);
         }
 
         .pill {
           display: inline-flex;
           align-items: center;
+          gap: var(--ha-space-2);
           min-height: var(--ha-space-10);
           padding: 0 var(--ha-space-5);
           border: 1px solid var(--outline-color);
@@ -432,12 +660,21 @@ class HaConfigInfo extends LitElement {
           color: var(--text-primary-color, #fff);
         }
 
+        .pill.plain {
+          border-color: transparent;
+          padding: 0 var(--ha-space-3);
+          color: var(--primary-color);
+        }
+
         .pill:focus-visible {
           outline: 3px solid var(--primary-color);
           outline-offset: 2px;
         }
 
         .card h3 {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
           margin: 0 0 var(--ha-space-2);
           font-size: var(--ha-font-size-l);
           font-weight: var(--ha-font-weight-medium);
@@ -451,6 +688,18 @@ class HaConfigInfo extends LitElement {
           );
         }
 
+        .card.independent {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--ha-space-3);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+
+        .card.independent ha-svg-icon {
+          flex: none;
+        }
+
         .address {
           display: block;
           margin: var(--ha-space-3) 0;
@@ -460,39 +709,6 @@ class HaConfigInfo extends LitElement {
           font-family: var(--ha-font-family-code);
           font-size: var(--ha-font-size-s);
           overflow-wrap: anywhere;
-        }
-
-        .versions {
-          display: flex;
-          flex-direction: column;
-          color: var(--secondary-text-color);
-          align-self: stretch;
-          justify-content: flex-start;
-          padding: 0 12px;
-          margin: 0;
-        }
-
-        .versions li {
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          font-size: var(--ha-font-size-m);
-          font-weight: var(--ha-font-weight-normal);
-          padding: 4px 0;
-        }
-
-        .version-label {
-          color: var(--primary-text-color);
-        }
-
-        .version {
-          color: var(--secondary-text-color);
-        }
-
-        .ha-version {
-          color: var(--primary-text-color);
-          font-size: var(--ha-font-size-l);
-          font-weight: var(--ha-font-weight-medium);
         }
 
         .pages {
@@ -513,6 +729,10 @@ class HaConfigInfo extends LitElement {
           width: 40px;
           height: 40px;
           border-radius: var(--ha-border-radius-circle);
+        }
+
+        .icon-background.shortcuts {
+          background-color: #9e4dd1;
         }
 
         .custom-ui {

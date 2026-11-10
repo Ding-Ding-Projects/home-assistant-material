@@ -59,6 +59,29 @@ import type { HomeAssistant, Route } from "../types";
 import "./hass-tabs-subpage";
 import type { PageNavigation } from "./hass-tabs-subpage";
 
+/**
+ * List page layout with a heading, a search row and a data table.
+ *
+ * Opt-in additions (a page that sets none of them looks and behaves as before):
+ *
+ * Slots
+ * - `heading-action`: a primary action, such as a "Create" button, shown at the
+ *   end of the page heading, level with the title. Shown on wide layouts only,
+ *   where the heading is shown; on narrow layouts use the `fab` slot.
+ * - `filter-chips`: filter chips shown on the search row next to the search
+ *   field. When it has content, the search field keeps a fixed width so the
+ *   chips sit beside it and the remaining tools stay at the end of the row.
+ *
+ * Properties
+ * - `footer-text` (`footerText`): a line of text under the list, such as a
+ *   count. Setting it reserves a footer row under the list.
+ * - `footer-select` (`footerSelect`): adds a "Select" button at the end of the
+ *   footer row that enters selection mode. Needs `selectable`.
+ * - `always-show-checkboxes` (`alwaysShowCheckboxes`): show the row checkboxes
+ *   all the time instead of only in selection mode. Needs `selectable`. The
+ *   selection bar then appears once `selected` is above zero, or after the
+ *   footer "Select" button is used, and the header selection chip is hidden.
+ */
 @customElement("hass-tabs-subpage-data-table")
 export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   // Unread, kept for callers that still pass it until they move to contexts
@@ -148,6 +171,27 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
    * it, the line gives the number of rows.
    */
   @property({ attribute: false }) public summary?: string;
+
+  /**
+   * A line under the list, such as a count. Reserves a footer row.
+   */
+  @property({ attribute: "footer-text" }) public footerText?: string;
+
+  /**
+   * Add a "Select" button to the footer row that enters selection mode.
+   * @type {Boolean}
+   */
+  @property({ attribute: "footer-select", type: Boolean })
+  public footerSelect = false;
+
+  /**
+   * Show the row checkboxes all the time, not only in selection mode.
+   * @type {Boolean}
+   */
+  @property({ attribute: "always-show-checkboxes", type: Boolean })
+  public alwaysShowCheckboxes = false;
+
+  @state() private _hasFilterChips = false;
 
   @state() private _pageTitle = "";
 
@@ -292,7 +336,24 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this._dataTable.clearSelection();
   }
 
+  private get _hasFooter(): boolean {
+    return !!this.footerText || (this.footerSelect && this.selectable);
+  }
+
+  private get _rowsSelectable(): boolean {
+    return this._selectMode || (this.selectable && this.alwaysShowCheckboxes);
+  }
+
+  private get _showSelectionBar(): boolean {
+    return (
+      this._selectMode ||
+      (this.selectable && this.alwaysShowCheckboxes && !!this.selected)
+    );
+  }
+
   protected willUpdate(changedProperties: PropertyValues) {
+    this.toggleAttribute("has-footer", this._hasFooter);
+
     if (
       changedProperties.has("tabs") ||
       changedProperties.has("_hassConfig") ||
@@ -363,7 +424,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       : nothing;
 
     const selectModeBtn =
-      this.selectable && !this._selectMode
+      this.selectable && !this._selectMode && !this.alwaysShowCheckboxes
         ? html`<ha-assist-chip
             class="has-dropdown select-mode-chip"
             .active=${this._selectMode}
@@ -514,15 +575,43 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
     const heading = this._pageTitle
       ? html`<div class="page-heading">
-          <h1>${this._pageTitle}</h1>
-          <p>
-            ${
-              this.summary ??
-              localize("ui.components.subpage-data-table.summary", {
-                count: this.data.length,
-              })
-            }
-          </p>
+          <div class="page-heading-text">
+            <h1>${this._pageTitle}</h1>
+            <p>
+              ${
+                this.summary ??
+                localize("ui.components.subpage-data-table.summary", {
+                  count: this.data.length,
+                })
+              }
+            </p>
+          </div>
+          <slot name="heading-action"></slot>
+        </div>`
+      : nothing;
+
+    const chipsSlot = html`<slot
+      name="filter-chips"
+      @slotchange=${this._chipsSlotChanged}
+    ></slot>`;
+
+    const footer = this._hasFooter
+      ? html`<div class="list-footer">
+          <span class="list-footer-text">${this.footerText}</span>
+          ${
+            this.footerSelect && this.selectable && !this._showSelectionBar
+              ? html`<ha-assist-chip
+                  class="footer-select"
+                  .label=${localize("ui.components.subpage-data-table.select")}
+                  @click=${this._enableSelectMode}
+                >
+                  <ha-svg-icon
+                    slot="icon"
+                    .path=${mdiFormatListChecks}
+                  ></ha-svg-icon>
+                </ha-assist-chip>`
+              : nothing
+          }
         </div>`
       : nothing;
 
@@ -540,7 +629,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         @page-title-changed=${this._pageTitleChanged}
       >
         ${
-          this._selectMode
+          this._showSelectionBar
             ? html`<div class="selection-bar" slot="toolbar">
                 <div class="selection-controls">
                   <ha-icon-button
@@ -658,7 +747,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .noDataText=${this.noDataText}
                   .loadError=${this.loadError}
                   .filter=${this.filter}
-                  .selectable=${this._selectMode}
+                  .selectable=${this._rowsSelectable}
                   .id=${this.id}
                   .clickable=${this.clickable}
                   .appendRow=${this.appendRow}
@@ -680,12 +769,21 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                             ${heading}
                             <slot name="top-header"></slot>
                             <slot name="header">
-                              <div class="table-header">
+                              <div
+                                class=${classMap({
+                                  "table-header": true,
+                                  "with-chips": this._hasFilterChips,
+                                })}
+                              >
                                 ${
                                   this.hasFilters && !this.showFilters
                                     ? html`${filterButton}`
                                     : nothing
-                                }${selectModeBtn}${searchBar}${groupByMenu}${sortByMenu}${settingsButton}${exportButton}
+                                }${selectModeBtn}${searchBar}${chipsSlot}${
+                                  this._hasFilterChips
+                                    ? html`<div class="chips-spacer"></div>`
+                                    : nothing
+                                }${groupByMenu}${sortByMenu}${settingsButton}${exportButton}
                               </div>
                             </slot>
                           </div>
@@ -700,13 +798,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                                 ? html`${filterButton}`
                                 : nothing
                             }
-                            ${selectModeBtn}
+                            ${selectModeBtn}${chipsSlot}
                             <div class="flex"></div>
                             ${groupByMenu}${sortByMenu}${settingsButton}
                           </div>
                         `
                   }
-                </ha-data-table>`
+                </ha-data-table>
+                ${footer}`
         }
         <div slot="fab"><slot name="fab"></slot></div>
       </hass-tabs-subpage>
@@ -962,6 +1061,12 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this._selectMode = true;
   }
 
+  private _chipsSlotChanged(ev: Event) {
+    this._hasFilterChips =
+      (ev.target as HTMLSlotElement).assignedNodes({ flatten: true }).length >
+      0;
+  }
+
   private _handleSelect(ev: HaDropdownSelectEvent) {
     const action = ev.detail.item.value;
 
@@ -1032,6 +1137,16 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
     .page-heading {
       padding: var(--ha-space-6) var(--ha-space-2) var(--ha-space-2);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--ha-space-4);
+    }
+    .page-heading-text {
+      flex: 1;
+      min-width: 0;
+    }
+    ::slotted([slot="heading-action"]) {
+      flex-shrink: 0;
     }
     .page-heading h1 {
       margin: 0;
@@ -1078,6 +1193,43 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       height: 100%;
       display: flex;
       flex-direction: column;
+    }
+    /* Footer row under the list, only when the page sets footer-text or
+       footer-select. The list gives up the row's height. */
+    :host([has-footer]) ha-data-table,
+    :host([has-footer]:not([narrow])) ha-data-table {
+      height: calc(100% - var(--list-footer-height, 56px));
+    }
+    .list-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-4);
+      box-sizing: border-box;
+      height: var(--list-footer-height, 56px);
+      padding-inline: var(--ha-space-4);
+      font-size: var(--ha-font-size-m);
+      color: var(--secondary-text-color);
+    }
+    :host(:not([narrow])) .list-footer {
+      margin-inline: var(--ha-space-8);
+      padding-inline: var(--ha-space-2);
+    }
+    .list-footer-text {
+      min-width: 0;
+    }
+    .footer-select {
+      flex-shrink: 0;
+    }
+    .table-header.with-chips ha-input-search {
+      flex: 0 1 320px;
+      min-width: 160px;
+    }
+    .chips-spacer {
+      flex: 1;
+    }
+    ::slotted([slot="filter-chips"]) {
+      flex-shrink: 0;
     }
     /* Last content row should keep the same padding above the fab as the fab
        has to the bottom (16px standard fab bottom padding) + the safe-area inset. */

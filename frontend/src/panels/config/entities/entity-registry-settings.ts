@@ -162,15 +162,28 @@ export class EntityRegistrySettings extends SubscribeMixin(LitElement) {
         >
           ${this.hass.localize("ui.dialogs.entity_registry.editor.delete")}
         </ha-button>
-        <ha-button
-          @click=${this._updateEntry}
-          .disabled=${!this._dirtyState?.isDirty || !!this._submitting}
-          .loading=${!!this._submitting}
-        >
-          ${this.hass.localize("ui.dialogs.entity_registry.editor.update")}
-        </ha-button>
+        <div class="end-buttons">
+          <ha-button
+            appearance="plain"
+            @click=${this._cancel}
+            .disabled=${!!this._submitting}
+          >
+            ${this.hass.localize("ui.common.cancel")}
+          </ha-button>
+          <ha-button
+            @click=${this._updateEntry}
+            .disabled=${!this._dirtyState?.isDirty || !!this._submitting}
+            .loading=${!!this._submitting}
+          >
+            ${this.hass.localize("ui.dialogs.entity_registry.editor.update")}
+          </ha-button>
+        </div>
       </div>
     `;
+  }
+
+  private _cancel() {
+    fireEvent(this, "close-dialog");
   }
 
   private _openDeviceSettings() {
@@ -305,6 +318,10 @@ export class EntityRegistrySettings extends SubscribeMixin(LitElement) {
           border-top: 1px solid var(--divider-color);
           position: sticky;
           bottom: 0px;
+        }
+        .end-buttons {
+          display: flex;
+          gap: var(--ha-space-2);
         }
         ha-alert ha-button {
           width: max-content;

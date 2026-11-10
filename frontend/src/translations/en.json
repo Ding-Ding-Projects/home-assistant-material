@@ -2284,6 +2284,15 @@
           "disabled_label": "Disabled",
           "enabled_cause": "Cannot change status. Disabled by {cause}.",
           "visible_label": "Visible",
+          "visibility_header": "Visibility",
+          "voice_header": "Voice assistants",
+          "voice_exposed": "Can control this entity",
+          "voice_none": "Not exposed to any voice assistant",
+          "voice_also_called": "Also called: {aliases}",
+          "advanced_header": "Advanced",
+          "unique_id": "Unique ID",
+          "copy_unique_id": "Copy unique ID",
+          "integration": "Integration",
           "hidden_cause": "Hidden by {cause}.",
           "device_disabled": "The device of this entity is disabled.",
           "entity_disabled": "This entity is disabled.",
@@ -4111,7 +4120,7 @@
           "current": "Current",
           "show_all_current": "Show all {count}",
           "show_fewer": "Show fewer",
-          "skipped_note": "Skipped updates stay listed under More.",
+          "skipped_note": "Skipped updates stay hidden unless you choose Show skipped updates in the menu.",
           "beta_off": "Beta versions are off.",
           "beta_on": "You are on the {channel} channel.",
           "backup_in_progress": {
@@ -4142,6 +4151,8 @@
           "system_health": "System health",
           "health_good": "Good",
           "health_checking": "Checking",
+          "health_unavailable": "Could not check",
+          "health_unavailable_hint": "The Supervisor did not answer. Open the details to see what is available",
           "health_problems": "{count} to look at",
           "health_good_hint": "All checks pass",
           "health_problems_hint": "Open the details to see which",
@@ -6311,6 +6322,8 @@
           "failed_get_logs": "Failed to get {provider} logs, {error}",
           "no_issues_search": "No issues found for search term ''{term}''",
           "no_issues_integration": "No issues found for {integration}",
+          "levels_hidden": "The Errors and Warnings filters are both off, so every entry is hidden.",
+          "show_all_levels": "Show errors and warnings",
           "integration_log_waiting": "[%key:ui::panel::config::integrations::config_entry::live_log::waiting%]",
           "integration_log_unsupported": "[%key:ui::panel::config::integrations::config_entry::live_log::unsupported%]",
           "no_matches_showing_all": "Nothing in the recent logs mentions ''{term}'', so all lines are shown.",
@@ -6674,9 +6687,15 @@
             "headers": {
               "icon": "Icon",
               "name": "Name",
-              "aliases": "Aliases",
-              "remove": "[%key:ui::common::remove%]"
+              "aliases": "Also called",
+              "remove": "[%key:ui::common::remove%]",
+              "expose_to": "Exposed to {assistant}"
             },
+            "summary": "Which entities each assistant may see and control. {count} {count, plural,\n  one {is}\n  other {are}\n} exposed.",
+            "footer_new_on": "Security devices such as locks, doors and alarms are not exposed until you choose to. Other supported new entities are exposed to Assist automatically.",
+            "footer_new_off": "New entities are not exposed until you choose to.",
+            "toggle_label": "Expose {name} to {assistant}",
+            "toggle_failed": "Could not change what is exposed",
             "aliases": "{count} aliases",
             "expose": "Expose",
             "unexpose": "Unexpose",
@@ -8293,7 +8312,20 @@
             "more_filters": "More filters",
             "clear_filters": "Clear filters",
             "no_match": "No scenes match your search and filters.",
-            "select_scenes": "Select scenes"
+            "select_scenes": "Select scenes",
+            "sort": "Sort",
+            "sort_name_asc": "Name, A to Z",
+            "sort_name_desc": "Name, Z to A",
+            "sort_area_asc": "Area, A to Z",
+            "sort_area_desc": "Area, Z to A",
+            "sort_state_desc": "Last activated, newest first",
+            "sort_state_asc": "Last activated, oldest first",
+            "group": "Group by",
+            "group_none": "No grouping",
+            "group_category": "Category",
+            "group_area": "Area",
+            "group_no_category": "No category",
+            "group_no_area": "No area"
           },
           "editor": {
             "review_mode": "Review Mode",
@@ -9257,6 +9289,9 @@
             },
             "no_devices_or_entities": "No devices or entities",
             "devices_without_subentry": "Devices that don't belong to a sub-entry",
+            "more_devices_hidden": "{count} not shown",
+            "show_all_devices": "Show all {count}",
+            "show_fewer_devices": "Show fewer",
             "copy": "Copy entry ID",
             "rename": "Rename",
             "configure": "Configure",
@@ -10041,6 +10076,13 @@
             "cancel_inclusion_exclusion": "Stop searching"
           },
           "dashboard": {
+            "hero_ready": "Ready, {devices}",
+            "hero_ready_named": "{name} is ready, {devices}",
+            "fact_firmware": "Controller firmware {version}.",
+            "fact_long_range": "Long Range is supported.",
+            "qr_title": "Add with a QR code",
+            "qr_description": "Scan the code on the box. A device with a SmartStart code joins by itself when it is powered on, with full security.",
+            "qr_action": "Scan a code",
             "network_card_title": "My network",
             "show_map": "Show map",
             "options_title": "Options",
@@ -10637,6 +10679,17 @@
         },
         "matter": {
           "panel": {
+            "fact_networks": "Devices use {networks}.",
+            "network_wifi": "Wi-Fi",
+            "network_thread": "Thread",
+            "network_ethernet": "Ethernet",
+            "add_card_title": "Add a Matter device",
+            "add_card_description": "Add a device with the setup code printed on it or its box. You can also scan the code with the companion app.",
+            "devices_card_title": "Devices",
+            "devices_empty": "No devices yet. Add a device to see it here.",
+            "show_all": "Show all {count}",
+            "show_fewer": "Show fewer",
+            "multi_home_note": "A Matter device can be in several homes at once. Removing it here leaves it working in the others.",
             "thread_panel": "Thread settings",
             "thread_panel_description": "Manage Thread network settings",
             "add_device": "Add device",
@@ -14061,8 +14114,10 @@
       },
       "profile": {
         "tabs": {
+          "general": "General",
           "security": "Security"
         },
+        "language_and_region": "Language and region",
         "is_owner": "You are an owner.",
         "user_preferences_header": "Appearance",
         "user_preferences_description": "Default dashboard and sidebar",
@@ -14232,7 +14287,7 @@
           "delete_failed": "Not all devices could be logged out"
         },
         "mfa": {
-          "header": "Multi-factor authentication modules",
+          "header": "Second step",
           "disable": "Disable",
           "enable": "Enable",
           "confirm_disable": "Are you sure you want to disable {name}?"
@@ -14249,7 +14304,7 @@
           "description": "Shows the full entity IDs when selecting entities from a menu list."
         },
         "refresh_tokens": {
-          "header": "Refresh tokens",
+          "header": "Where you are signed in",
           "description": "Each refresh token represents a login session. Refresh tokens will be automatically deleted when you log out. Unused refresh tokens will be automatically deleted after 90 days. The following refresh tokens are currently active for your account.",
           "ios_app": "iOS app",
           "android_app": "Android app",
@@ -14274,7 +14329,7 @@
           "current_token_tooltip": "Unable to delete current refresh token"
         },
         "long_lived_access_tokens": {
-          "header": "Long-lived access tokens",
+          "header": "Access tokens for scripts",
           "description": "Create long-lived access tokens to allow your scripts to interact with your Home Assistant instance. Each token will be valid for 10 years from creation. The following long-lived access tokens are currently active.",
           "learn_auth_requests": "Learn how to make authenticated requests.",
           "created": "Created {date}",
@@ -14487,6 +14542,15 @@
         "next": "Next",
         "finish": "Finish",
         "help": "Help",
+        "load_error": "Something went wrong loading onboarding, try refreshing",
+        "refresh": "Refresh",
+        "step_of": "Step {current} of {total}",
+        "progress_saved": "Saved. Close this window any time and setup resumes at this step.",
+        "steps": {
+          "user": "Your account",
+          "core_config": "Your home",
+          "integration": "Devices"
+        },
         "welcome": {
           "header": "Welcome!",
           "start": "Create my smart home",
@@ -14536,6 +14600,9 @@
         },
         "integration": {
           "header": "We found compatible devices!",
+          "found_count": "We found {count, plural,\n one {# integration}\n other {# integrations}\n}",
+          "status_added": "Added",
+          "status_ready": "Ready to add",
           "intro": "These are found on your local network. Some are already added, others may need extra configuration.",
           "more_integrations": "+{count} more",
           "finish": "Finish",

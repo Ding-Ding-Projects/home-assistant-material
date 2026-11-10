@@ -1,3 +1,4 @@
+import { mdiCheck } from "@mdi/js";
 import type { Auth } from "home-assistant-js-websocket";
 import {
   createConnection,
@@ -24,7 +25,10 @@ import {
   extractSearchParamsObject,
 } from "../common/url/search-params";
 import { subscribeOne } from "../common/util/subscribe-one";
+import "../components/ha-alert";
+import "../components/ha-button";
 import "../components/ha-card";
+import "../components/ha-svg-icon";
 import "../components/progress/ha-progress-bar";
 import type { AuthUrlSearchParams } from "../data/auth";
 import { hassUrl, redirectWithAuthCode } from "../data/auth";
@@ -93,6 +97,8 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   @state() private _loading = false;
 
+  @state() private _loadError = false;
+
   @state() private _init = false;
 
   @state() private _restoring?: "upload" | "cloud";
@@ -125,8 +131,12 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
   protected render() {
     return html`<ha-progress-bar .value=${this._progress}></ha-progress-bar>
       <ha-card>
-        <div class="card-content">${this._renderStep()}</div>
+        <div class="card-content">
+          ${this._loadError ? this._renderLoadError() : this._renderStepper()}
+          ${this._loadError ? nothing : this._renderStep()}
+        </div>
       </ha-card>
+      ${this._renderSavedNote()}
       ${
         this._init && !this._restoring
           ? html`<onboarding-welcome-links
@@ -148,6 +158,100 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
           >${this.localize("ui.panel.page-onboarding.help") || "Help"}</a
         >
       </div>`;
+  }
+
+  private _renderLoadError() {
+    return html`
+      <ha-alert alert-type="error">
+        ${
+          this.localize("ui.panel.page-onboarding.load_error") ||
+          "Something went wrong loading onboarding, try refreshing"
+        }
+      </ha-alert>
+      <div class="refresh">
+        <ha-button @click=${this._refresh}>
+          ${this.localize("ui.panel.page-onboarding.refresh") || "Refresh"}
+        </ha-button>
+      </div>
+    `;
+  }
+
+  private _refresh() {
+    location.reload();
+  }
+
+  private _stepSummary(step: OnboardingStep): string | undefined {
+    if (!step.done || !this.hass) {
+      return undefined;
+    }
+    if (step.step === "user") {
+      return this.hass.user?.name;
+    }
+    if (step.step === "core_config") {
+      return this.hass.config?.time_zone;
+    }
+    return undefined;
+  }
+
+  private _renderStepper() {
+    if (!this._steps || this._init || this._restoring) {
+      return nothing;
+    }
+    const steps = this._steps;
+    const current = steps.findIndex((step) => !step.done);
+    const currentNumber = current === -1 ? steps.length : current + 1;
+    return html`
+      <div class="stepper-header">
+        ${this.localize("ui.panel.page-onboarding.step_of", {
+          current: currentNumber,
+          total: steps.length,
+        })}
+      </div>
+      <ol class="stepper">
+        ${steps.map((step, index) => {
+          const stepState = step.done
+            ? "done"
+            : index === current
+              ? "current"
+              : "todo";
+          const summary = this._stepSummary(step);
+          return html`
+            <li
+              class="stepper-item ${stepState}"
+              aria-current=${stepState === "current" ? "step" : nothing}
+            >
+              <span class="marker" aria-hidden="true">
+                ${
+                  step.done
+                    ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
+                    : index + 1
+                }
+              </span>
+              <span class="step-text">
+                <span class="step-name">
+                  ${this.localize(`ui.panel.page-onboarding.steps.${step.step}`)}
+                </span>
+                ${summary ? html`<span class="summary">${summary}</span>` : nothing}
+              </span>
+            </li>
+          `;
+        })}
+      </ol>
+    `;
+  }
+
+  private _renderSavedNote() {
+    if (
+      this._restoring ||
+      this._init ||
+      this._loadError ||
+      !this._steps?.some((step) => step.done)
+    ) {
+      return nothing;
+    }
+    return html`<p class="saved-note">
+      ${this.localize("ui.panel.page-onboarding.progress_saved")}
+    </p>`;
   }
 
   private _renderStep() {
@@ -333,7 +437,8 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
       this._steps = steps;
     } catch (_err: any) {
-      alert("Something went wrong loading onboarding, try refreshing");
+      // Shown in the page, with a refresh button. Nothing else happens.
+      this._loadError = true;
     }
   }
 
@@ -507,6 +612,99 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
   static styles = css`
     .card-content {
       padding: 32px;
+    }
+    @media all and (max-width: 450px) {
+      .card-content {
+        padding: var(--ha-space-5);
+      }
+    }
+    ha-card {
+      border-radius: var(--ha-border-radius-3xl);
+    }
+    .refresh {
+      margin-top: var(--ha-space-4);
+      text-align: end;
+    }
+    .stepper-header {
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      margin-bottom: var(--ha-space-3);
+    }
+    .stepper {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: var(--ha-space-2);
+      margin: 0 0 var(--ha-space-6);
+      padding: 0;
+    }
+    .stepper-item {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-width: 0;
+      padding: var(--ha-space-2);
+      border-radius: var(--ha-border-radius-xl);
+      color: var(--secondary-text-color);
+    }
+    .stepper-item.current {
+      background: var(--secondary-background-color);
+      color: var(--primary-text-color);
+    }
+    .marker {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 28px;
+      height: 28px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      --mdc-icon-size: 18px;
+    }
+    .stepper-item.done .marker {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .stepper-item.current .marker {
+      background: var(--primary-text-color);
+      border-color: var(--primary-text-color);
+      color: var(--card-background-color);
+    }
+    .step-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .step-name {
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+    .summary {
+      font-size: var(--ha-font-size-xs, 12px);
+      color: var(--secondary-text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    @media all and (max-width: 450px) {
+      .stepper-item {
+        flex-direction: column;
+        text-align: center;
+      }
+      .summary {
+        display: none;
+      }
+    }
+    .saved-note {
+      margin: var(--ha-space-3) var(--ha-space-2) 0;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
     ha-progress-bar {
       --ha-progress-bar-border-radius: 0;

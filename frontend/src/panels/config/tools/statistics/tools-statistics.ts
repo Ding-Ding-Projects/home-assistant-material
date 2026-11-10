@@ -1,12 +1,10 @@
 import {
   mdiArrowDown,
   mdiArrowUp,
-  mdiClose,
   mdiDeleteClock,
-  mdiFormatListChecks,
+  mdiInformationOutline,
   mdiMenuDown,
   mdiSlopeUphill,
-  mdiTableCog,
   mdiUnfoldLessHorizontal,
   mdiUnfoldMoreHorizontal,
 } from "@mdi/js";
@@ -29,7 +27,6 @@ import { QueryParamsController } from "../../../../common/controllers/query-para
 import { transform } from "../../../../common/decorators/transform";
 import type {
   HASSDomCurrentTargetEvent,
-  HASSDomEvent,
   HASSDomTargetEvent,
 } from "../../../../common/dom/fire_event";
 import { fireEvent } from "../../../../common/dom/fire_event";
@@ -39,6 +36,8 @@ import {
   getDuplicatedDeviceNames,
 } from "../../../../common/entity/compute_device_name";
 import { computeEntityEntryName } from "../../../../common/entity/compute_entity_name_display";
+import { searchMatcher } from "../../../../common/regex/filter";
+import { stringCompare } from "../../../../common/string/compare";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 import {
   dataTableQueryParamConfig,
@@ -46,19 +45,21 @@ import {
   dataTableQueryStateFromUrl,
 } from "../../../../common/url/data-table-query-params";
 import "../../../../components/chips/ha-assist-chip";
-import "../../../../components/data-table/ha-data-table";
 import type {
   DataTableColumnContainer,
-  HaDataTable,
-  RowClickedEvent,
-  SelectionChangedEvent,
   SortingDirection,
 } from "../../../../components/data-table/ha-data-table";
-import { showDataTableSettingsDialog } from "../../../../components/data-table/show-dialog-data-table-settings";
+import "../../../../components/chips/ha-filter-chip";
+import type { HaFilterChip } from "../../../../components/chips/ha-filter-chip";
+import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
+import "../../../../components/ha-checkbox";
 import "../../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../../components/ha-dropdown";
 import "../../../../components/ha-dropdown-item";
+import "../../../../components/ha-icon-button";
+import "../../../../components/ha-spinner";
+import "../../../../components/ha-svg-icon";
 import "../../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../../components/input/ha-input-search";
 import type {
@@ -79,7 +80,6 @@ import {
   registriesContext,
   statesContext,
 } from "../../../../data/context";
-import { getAreaTableColumn } from "../../common/data-table-columns";
 import { KeyboardShortcutMixin } from "../../../../mixins/keyboard-shortcut-mixin";
 import { haStyle } from "../../../../resources/styles";
 import type {
@@ -108,6 +108,13 @@ const FIXABLE_ISSUES: StatisticsValidationResult["type"][] = [
   "mean_type_changed",
 ];
 
+// Problems where the statistic cannot be recorded at all are shown as errors,
+// the rest as warnings
+const ERROR_ISSUES: StatisticsValidationResult["type"][] = [
+  "no_state",
+  "entity_no_longer_recorded",
+];
+
 type StatisticData = StatisticsMetaData & {
   issues?: StatisticsValidationResult[];
   state?: HassEntity;
@@ -122,6 +129,12 @@ type DisplayedStatisticData = StatisticData & {
   issues_string?: string;
 };
 
+interface StatisticGroup {
+  id: string;
+  label: string;
+  rows: DisplayedStatisticData[];
+}
+
 @customElement("tools-statistics")
 class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -130,15 +143,15 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
 
   @state() private _loading = true;
 
-  @state() private filter = "";
+  @state() private _error?: string;
+
+  @state() private _filter = "";
+
+  @state() private _onlyProblems = false;
+
+  @state() private _source = "";
 
   @state() private _selected: string[] = [];
-
-  @state() private groupOrder?: string[];
-
-  @state() private columnOrder?: string[];
-
-  @state() private hiddenColumns?: string[];
 
   @state() private _sortColumn?: string;
 
@@ -146,7 +159,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
 
   @state() private _groupColumn?: string;
 
-  @state() private _selectMode = false;
+  @state() private _collapsedGroups: string[] = [];
 
   @state()
   @consume({ context: apiContext, subscribe: true })
@@ -174,12 +187,11 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
   @consume({ context: statesContext, subscribe: true })
   private _states!: ContextType<typeof statesContext>;
 
-  @query("ha-data-table", true) private _dataTable!: HaDataTable;
-
   @query("ha-input-search") private _searchInput!: HaInputSearch;
 
-  // Nothing is stored, so opening the page again without params, like from
-  // another tools tab, keeps what was picked and writes it back
+  // The search, sort and grouping are kept in the page address. Nothing is
+  // stored, so opening the page again without params, like from another tools
+  // tab, keeps what was picked and writes it back
   private _queryParams = new QueryParamsController(
     this,
     dataTableQueryParamConfig,
@@ -198,107 +210,34 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
     }
   }
 
-  private _displayData = memoizeOne(
-    (
-      data: StatisticData[],
-      localize: LocalizeFunc,
-      entities: HomeAssistantRegistries["entities"],
-      devices: HomeAssistantRegistries["devices"],
-      areas: HomeAssistantRegistries["areas"],
-      formatEntityName: HomeAssistantFormatters["formatEntityName"]
-    ): DisplayedStatisticData[] => {
-      const duplicatedDeviceNames = getDuplicatedDeviceNames(devices);
-
-      return data.map((item) => {
-        const entry = entities[item.statistic_id];
-        const device = entry?.device_id ? devices[entry.device_id] : undefined;
-        const areaId = entry?.area_id || device?.area_id;
-        const area = areaId ? areas[areaId] : undefined;
-
-        const entityName = entry ? computeEntityEntryName(entry) : undefined;
-        const deviceName = device ? computeDeviceName(device) : undefined;
-        const areaName = area ? computeAreaName(area) : undefined;
-        const deviceFullName = deviceName
-          ? duplicatedDeviceNames.has(deviceName) && areaName
-            ? `${deviceName} (${areaName})`
-            : deviceName
-          : undefined;
-
-        return {
-          ...item,
-          displayName:
-            entityName ||
-            deviceName ||
-            (item.state ? formatEntityName(item.state) : undefined) ||
-            item.name ||
-            item.statistic_id,
-          device: deviceName,
-          device_full: deviceFullName,
-          area: areaName,
-          issues_string: item.issues
-            ?.map(
-              (issue) =>
-                localize(
-                  `ui.panel.config.tools.tabs.statistics.issues.${issue.type}`,
-                  issue.data
-                ) || issue.type
-            )
-            .join(" "),
-        };
-      });
-    }
-  );
-
+  // The ways to sort and group, with the names they have in the address
   private _columns = memoizeOne(
-    (
-      localize: LocalizeFunc
-    ): DataTableColumnContainer<DisplayedStatisticData> => ({
+    (localize: LocalizeFunc): DataTableColumnContainer => ({
       displayName: {
         title: localize(
           "ui.panel.config.tools.tabs.statistics.data_table.name"
         ),
-        main: true,
         sortable: true,
-        filterable: true,
         urlName: "name",
-        flex: 2,
       },
-      device: {
-        title: localize("ui.panel.config.entities.picker.headers.device"),
-        sortable: true,
-        template: (entry) => entry.device || "",
-      },
-      device_full: {
-        title: localize("ui.panel.config.entities.picker.headers.device"),
-        filterable: true,
-        groupable: true,
-        urlName: "device",
-        hidden: true,
-      },
-      area: getAreaTableColumn(localize),
       statistic_id: {
         title: localize(
           "ui.panel.config.tools.tabs.statistics.data_table.statistic_id"
         ),
         sortable: true,
-        filterable: true,
-        hidden: this.narrow,
       },
       statistics_unit_of_measurement: {
         title: localize(
           "ui.panel.config.tools.tabs.statistics.data_table.statistics_unit"
         ),
         sortable: true,
-        filterable: true,
         urlName: "unit",
-        forceLTR: true,
       },
       source: {
         title: localize(
           "ui.panel.config.tools.tabs.statistics.data_table.source"
         ),
         sortable: true,
-        filterable: true,
         groupable: true,
         urlName: "source",
       },
@@ -307,377 +246,595 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
           "ui.panel.config.tools.tabs.statistics.data_table.issue"
         ),
         sortable: true,
-        filterable: true,
         groupable: true,
         urlName: "issue",
-        direction: "asc",
-        flex: 2,
-        template: (statistic) =>
-          html`${
-            statistic.issues_string ??
-            localize("ui.panel.config.tools.tabs.statistics.no_issue")
-          }`,
       },
-      fix: {
-        title: "",
-        label: localize("ui.panel.config.tools.tabs.statistics.fix_issue.fix"),
-        type: "icon",
-        template: (statistic) =>
-          html`${
-            statistic.issues
+      device_full: {
+        title: localize("ui.panel.config.entities.picker.headers.device"),
+        sortable: true,
+        groupable: true,
+        urlName: "device",
+      },
+    })
+  );
+
+  private _displayData = memoizeOne(
+    (
+      data: StatisticData[],
+      localize: LocalizeFunc,
+      entities: HomeAssistantRegistries["entities"],
+      devices: HomeAssistantRegistries["devices"],
+      areas: HomeAssistantRegistries["areas"],
+      formatEntityName: HomeAssistantFormatters["formatEntityName"],
+      language: string
+    ): DisplayedStatisticData[] => {
+      const duplicatedDeviceNames = getDuplicatedDeviceNames(devices);
+
+      return (
+        data
+          .map((item) => {
+            const entry = entities[item.statistic_id];
+            const device = entry?.device_id
+              ? devices[entry.device_id]
+              : undefined;
+            const areaId = entry?.area_id || device?.area_id;
+            const area = areaId ? areas[areaId] : undefined;
+
+            const entityName = entry
+              ? computeEntityEntryName(entry)
+              : undefined;
+            const deviceName = device ? computeDeviceName(device) : undefined;
+            const areaName = area ? computeAreaName(area) : undefined;
+
+            return {
+              ...item,
+              displayName:
+                entityName ||
+                deviceName ||
+                (item.state ? formatEntityName(item.state) : undefined) ||
+                item.name ||
+                item.statistic_id,
+              device: deviceName,
+              device_full: deviceName
+                ? duplicatedDeviceNames.has(deviceName) && areaName
+                  ? `${deviceName} (${areaName})`
+                  : deviceName
+                : undefined,
+              area: areaName,
+              issues_string: item.issues
+                ?.map(
+                  (issue) =>
+                    localize(
+                      `ui.panel.config.tools.tabs.statistics.issues.${issue.type}`,
+                      issue.data
+                    ) || issue.type
+                )
+                .join(" "),
+            };
+          })
+          // Statistics with a problem first, then by name, until a sort is
+          // picked
+          .sort((a, b) => {
+            const problems = Number(!!b.issues) - Number(!!a.issues);
+            return (
+              problems ||
+              stringCompare(a.statistic_id, b.statistic_id, language)
+            );
+          })
+      );
+    }
+  );
+
+  private _visibleRows = memoizeOne(
+    (
+      rows: DisplayedStatisticData[],
+      filter: string,
+      onlyProblems: boolean,
+      source: string,
+      sortColumn: string | undefined,
+      sortDirection: SortingDirection,
+      language: string
+    ): DisplayedStatisticData[] => {
+      const matches = searchMatcher(filter);
+      const filtered = rows.filter(
+        (row) =>
+          (!onlyProblems || !!row.issues) &&
+          (!source || row.source === source) &&
+          (!filter.trim() ||
+            [
+              row.statistic_id,
+              row.displayName,
+              row.device,
+              row.area,
+              row.statistics_unit_of_measurement,
+              row.source,
+              row.issues_string,
+            ].some((value) => !!value && matches(value)))
+      );
+      if (!sortColumn || !sortDirection) {
+        return filtered;
+      }
+      const factor = sortDirection === "desc" ? -1 : 1;
+      const key = sortColumn as keyof DisplayedStatisticData;
+      return [...filtered].sort(
+        (a, b) =>
+          factor *
+          stringCompare(String(a[key] ?? ""), String(b[key] ?? ""), language)
+      );
+    }
+  );
+
+  private _groups = memoizeOne(
+    (
+      rows: DisplayedStatisticData[],
+      groupColumn: string | undefined,
+      noIssueLabel: string,
+      language: string
+    ): StatisticGroup[] | undefined => {
+      if (!groupColumn) {
+        return undefined;
+      }
+      const key = groupColumn as keyof DisplayedStatisticData;
+      const groups = new Map<string, StatisticGroup>();
+      for (const row of rows) {
+        const value = row[key];
+        const label =
+          typeof value === "string" && value
+            ? value
+            : groupColumn === "issues_string"
+              ? noIssueLabel
+              : "—";
+        let group = groups.get(label);
+        if (!group) {
+          group = { id: label, label, rows: [] };
+          groups.set(label, group);
+        }
+        group.rows.push(row);
+      }
+      return [...groups.values()].sort((a, b) =>
+        stringCompare(a.label, b.label, language)
+      );
+    }
+  );
+
+  private _sources = memoizeOne((data: StatisticData[]): string[] =>
+    [...new Set(data.map((item) => item.source).filter(Boolean))].sort()
+  );
+
+  // Memoized, so render and the select buttons share one result
+  private _currentRows(): DisplayedStatisticData[] {
+    const rows = this._displayData(
+      this._data,
+      this._i18n.localize,
+      this._registries.entities,
+      this._registries.devices,
+      this._registries.areas,
+      this._formatEntityName,
+      this._i18n.locale.language
+    );
+    return this._visibleRows(
+      rows,
+      this._filter,
+      this._onlyProblems,
+      this._source,
+      this._sortColumn,
+      this._sortDirection,
+      this._i18n.locale.language
+    );
+  }
+
+  private _renderSortMenu(localize: LocalizeFunc) {
+    const columns = this._columns(localize);
+    return html`
+      <ha-dropdown @wa-select=${this._handleSortBy}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${localize("ui.components.subpage-data-table.sort_by", {
+            sortColumn: this._sortColumn
+              ? ` ${columns[this._sortColumn]?.title}`
+              : "",
+          })}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${Object.entries(columns).map(([id, column]) =>
+          column.sortable
+            ? html`
+                <ha-dropdown-item
+                  .value=${id}
+                  .selected=${id === this._sortColumn}
+                >
+                  ${
+                    this._sortColumn === id
+                      ? html`<ha-svg-icon
+                          slot="details"
+                          .path=${
+                            this._sortDirection === "desc"
+                              ? mdiArrowDown
+                              : mdiArrowUp
+                          }
+                        ></ha-svg-icon>`
+                      : nothing
+                  }
+                  ${column.title}
+                </ha-dropdown-item>
+              `
+            : nothing
+        )}
+      </ha-dropdown>
+    `;
+  }
+
+  private _renderGroupMenu(localize: LocalizeFunc) {
+    const columns = this._columns(localize);
+    return html`
+      <ha-dropdown @wa-select=${this._handleGroupBy}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${localize("ui.components.subpage-data-table.group_by", {
+            groupColumn: this._groupColumn
+              ? ` ${columns[this._groupColumn]?.title}`
+              : "",
+          })}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${Object.entries(columns).map(([id, column]) =>
+          column.groupable
+            ? html`
+                <ha-dropdown-item
+                  .value=${id}
+                  .selected=${id === this._groupColumn}
+                >
+                  ${column.title}
+                </ha-dropdown-item>
+              `
+            : nothing
+        )}
+        <ha-dropdown-item
+          value="none"
+          .selected=${this._groupColumn === undefined}
+        >
+          ${localize("ui.components.subpage-data-table.dont_group_by")}
+        </ha-dropdown-item>
+        <wa-divider></wa-divider>
+        <ha-dropdown-item
+          value="collapse_all"
+          .disabled=${this._groupColumn === undefined}
+        >
+          <ha-svg-icon
+            slot="icon"
+            .path=${mdiUnfoldLessHorizontal}
+          ></ha-svg-icon>
+          ${localize("ui.components.subpage-data-table.collapse_all_groups")}
+        </ha-dropdown-item>
+        <ha-dropdown-item
+          value="expand_all"
+          .disabled=${this._groupColumn === undefined}
+        >
+          <ha-svg-icon
+            slot="icon"
+            .path=${mdiUnfoldMoreHorizontal}
+          ></ha-svg-icon>
+          ${localize("ui.components.subpage-data-table.expand_all_groups")}
+        </ha-dropdown-item>
+      </ha-dropdown>
+    `;
+  }
+
+  private _renderGroup(group: StatisticGroup, localize: LocalizeFunc) {
+    const collapsed = this._collapsedGroups.includes(group.id);
+    return html`
+      <section class="group">
+        <button
+          type="button"
+          class="group-header"
+          aria-expanded=${collapsed ? "false" : "true"}
+          .groupId=${group.id}
+          @click=${this._toggleGroup}
+        >
+          <ha-svg-icon
+            class=${collapsed ? "chevron collapsed" : "chevron"}
+            .path=${mdiMenuDown}
+          ></ha-svg-icon>
+          <span class="group-label">${group.label}</span>
+          <span class="group-count">${group.rows.length}</span>
+        </button>
+        ${
+          collapsed
+            ? nothing
+            : html`<ul class="rows">
+                ${group.rows.map((row) => this._renderRow(row, localize))}
+              </ul>`
+        }
+      </section>
+    `;
+  }
+
+  protected render() {
+    const localize = this._i18n.localize;
+    const visible = this._currentRows();
+    const sources = this._sources(this._data);
+    const groups = this._groups(
+      visible,
+      this._groupColumn,
+      localize("ui.panel.config.tools.tabs.statistics.no_issue"),
+      this._i18n.locale.language
+    );
+
+    return html`
+      <div class="page">
+        <div class="toolbar">
+          <ha-input-search
+            .label=${localize(
+              "ui.panel.config.tools.tabs.statistics.search_statistics"
+            )}
+            .value=${this._filter}
+            @input=${this._handleSearchChange}
+            @blur=${this._flushUrl}
+          ></ha-input-search>
+          ${this._renderSortMenu(localize)} ${this._renderGroupMenu(localize)}
+          <ha-filter-chip
+            .label=${localize(
+              "ui.panel.config.tools.tabs.statistics.with_problems"
+            )}
+            .selected=${this._onlyProblems}
+            @click=${this._toggleProblems}
+          ></ha-filter-chip>
+          ${
+            sources.length > 1
+              ? html`<ha-dropdown @wa-select=${this._sourceSelected}>
+                  <ha-assist-chip
+                    slot="trigger"
+                    .label=${localize(
+                      "ui.panel.config.tools.tabs.statistics.source_filter",
+                      {
+                        source:
+                          this._source ||
+                          localize(
+                            "ui.panel.config.tools.tabs.statistics.source_any"
+                          ),
+                      }
+                    )}
+                  >
+                    <ha-svg-icon
+                      slot="trailing-icon"
+                      .path=${mdiMenuDown}
+                    ></ha-svg-icon>
+                  </ha-assist-chip>
+                  <ha-dropdown-item value="" .selected=${this._source === ""}>
+                    ${localize(
+                      "ui.panel.config.tools.tabs.statistics.source_any"
+                    )}
+                  </ha-dropdown-item>
+                  ${sources.map(
+                    (source) => html`
+                      <ha-dropdown-item
+                        .value=${source}
+                        .selected=${this._source === source}
+                      >
+                        ${source}
+                      </ha-dropdown-item>
+                    `
+                  )}
+                </ha-dropdown>`
+              : nothing
+          }
+        </div>
+
+        ${this._selected.length ? this._renderSelectionBar() : nothing}
+        ${
+          this._error
+            ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+            : nothing
+        }
+        ${
+          this._loading
+            ? html`<div class="state"><ha-spinner></ha-spinner></div>`
+            : !visible.length
+              ? html`<p class="state">
+                  ${localize(
+                    "ui.panel.config.tools.tabs.statistics.data_table.no_statistics"
+                  )}
+                </p>`
+              : html`
+                  <div class="headers" aria-hidden="true">
+                    <span class="check"></span>
+                    <span class="id">
+                      ${localize(
+                        "ui.panel.config.tools.tabs.statistics.data_table.name"
+                      )}
+                    </span>
+                    <span class="unit">
+                      ${localize(
+                        "ui.panel.config.tools.tabs.statistics.data_table.statistics_unit"
+                      )}
+                    </span>
+                    <span class="source">
+                      ${localize(
+                        "ui.panel.config.tools.tabs.statistics.data_table.source"
+                      )}
+                    </span>
+                    <span class="problem">
+                      ${localize(
+                        "ui.panel.config.tools.tabs.statistics.data_table.issue"
+                      )}
+                    </span>
+                    <span class="actions"></span>
+                  </div>
+                  ${
+                    groups
+                      ? groups.map((group) =>
+                          this._renderGroup(group, localize)
+                        )
+                      : html`<ul class="rows">
+                          ${visible.map((row) =>
+                            this._renderRow(row, localize)
+                          )}
+                        </ul>`
+                  }
+                `
+        }
+
+        <div class="tip">
+          <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
+          <span>
+            ${localize("ui.panel.config.tools.tabs.statistics.footer_tip")}
+          </span>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderSelectionBar() {
+    const localize = this._i18n.localize;
+    return html`
+      <div class="selection-bar">
+        <span>
+          ${localize("ui.components.subpage-data-table.selected", {
+            selected: this._selected.length,
+          })}
+        </span>
+        <div class="selection-actions">
+          <ha-button
+            appearance="plain"
+            size="small"
+            @click=${this._selectAllVisible}
+          >
+            ${localize("ui.components.subpage-data-table.select_all")}
+          </ha-button>
+          <ha-button
+            appearance="plain"
+            size="small"
+            @click=${this._selectAllProblems}
+          >
+            ${localize(
+              "ui.panel.config.tools.tabs.statistics.data_table.select_all_issues"
+            )}
+          </ha-button>
+          <ha-button appearance="plain" size="small" @click=${this._selectNone}>
+            ${localize("ui.components.subpage-data-table.select_none")}
+          </ha-button>
+          <ha-button
+            variant="danger"
+            appearance="filled"
+            size="small"
+            @click=${this._clearSelected}
+          >
+            ${localize("ui.panel.config.tools.tabs.statistics.delete_selected")}
+          </ha-button>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderRow(row: DisplayedStatisticData, localize: LocalizeFunc) {
+    const fixable = row.issues?.some((issue) =>
+      FIXABLE_ISSUES.includes(issue.type)
+    );
+    return html`
+      <li class="row">
+        <span class="check">
+          <ha-checkbox
+            .checked=${this._selected.includes(row.statistic_id)}
+            .value=${row.statistic_id}
+            aria-label=${row.displayName}
+            @change=${this._rowSelectionChanged}
+          ></ha-checkbox>
+        </span>
+        <span class="id">
+          <button
+            type="button"
+            class="statistic-id"
+            .disabled=${!(row.statistic_id in this._states)}
+            @click=${this._rowClicked}
+            .statisticId=${row.statistic_id}
+          >
+            ${row.statistic_id}
+          </button>
+          ${
+            row.displayName !== row.statistic_id
+              ? html`<span class="name">${row.displayName}</span>`
+              : nothing
+          }
+        </span>
+        <span class="unit">${row.statistics_unit_of_measurement || "—"}</span>
+        <span class="source">${row.source || "—"}</span>
+        <span class="problem">
+          ${
+            row.issues?.length
+              ? row.issues
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      (FIX_ISSUES_ORDER[a.type] ?? 99) -
+                      (FIX_ISSUES_ORDER[b.type] ?? 99)
+                  )
+                  .map(
+                    (issue) =>
+                      html`<span
+                        class="pill ${
+                          ERROR_ISSUES.includes(issue.type)
+                            ? "error"
+                            : "warning"
+                        }"
+                        >${
+                          localize(
+                            `ui.panel.config.tools.tabs.statistics.fix_issue.${issue.type}.title`
+                          ) || issue.type
+                        }</span
+                      >`
+                  )
+              : localize("ui.panel.config.tools.tabs.statistics.no_issue")
+          }
+        </span>
+        <span class="actions">
+          ${
+            row.issues
               ? html`<ha-button
+                  appearance="filled"
+                  size="small"
                   @click=${this._fixIssue}
-                  .data=${statistic.issues}
-                  appearance="plain"
-                  size="s"
+                  .data=${row.issues}
                 >
                   ${localize(
-                    statistic.issues.some((issue) =>
-                      FIXABLE_ISSUES.includes(issue.type)
-                    )
+                    fixable
                       ? "ui.panel.config.tools.tabs.statistics.fix_issue.fix"
                       : "ui.panel.config.tools.tabs.statistics.fix_issue.info"
                   )}
                 </ha-button>`
-              : "—"
-          }`,
-        minWidth: "113px",
-        maxWidth: "113px",
-        showNarrow: true,
-      },
-      clear_range: {
-        title: "",
-        label: localize(
-          "ui.panel.config.tools.tabs.statistics.clear_range.title"
-        ),
-        type: "icon-button",
-        showNarrow: true,
-        template: (statistic) => html`
+              : nothing
+          }
           <ha-icon-button
             .label=${localize(
               "ui.panel.config.tools.tabs.statistics.clear_range.title"
             )}
             .path=${mdiDeleteClock}
-            .statistic=${statistic}
+            .statistic=${row}
             @click=${this._showStatisticsClearRangeDialog}
           ></ha-icon-button>
-        `,
-      },
-      actions: {
-        title: "",
-        label: localize("ui.panel.config.tools.tabs.statistics.adjust_sum"),
-        type: "icon-button",
-        showNarrow: true,
-        template: (statistic) =>
-          statistic.has_sum
-            ? html`
-                <ha-icon-button
+          ${
+            row.has_sum
+              ? html`<ha-icon-button
                   .label=${localize(
                     "ui.panel.config.tools.tabs.statistics.adjust_sum"
                   )}
                   .path=${mdiSlopeUphill}
-                  .statistic=${statistic}
+                  .statistic=${row}
                   @click=${this._showStatisticsAdjustSumDialog}
-                ></ha-icon-button>
-              `
-            : nothing,
-      },
-    })
-  );
-
-  protected render() {
-    const columns = this._columns(this._i18n.localize);
-
-    const selectModeBtn = !this._selectMode
-      ? html`<ha-assist-chip
-          class="has-dropdown select-mode-chip"
-          .active=${this._selectMode}
-          @click=${this._enableSelectMode}
-          .title=${this._i18n.localize(
-            "ui.components.subpage-data-table.enter_selection_mode"
-          )}
-        >
-          <ha-svg-icon slot="icon" .path=${mdiFormatListChecks}></ha-svg-icon>
-        </ha-assist-chip> `
-      : nothing;
-
-    const searchBar = html`<ha-input-search
-      appearance="outlined"
-      .value=${this.filter}
-      @input=${this._handleSearchChange}
-      @blur=${this._flushUrl}
-    >
-    </ha-input-search>`;
-
-    const sortByMenu = Object.values(columns).find((col) => col.sortable)
-      ? html`
-          <ha-dropdown @wa-select=${this._handleSortBy}>
-            <ha-assist-chip
-              slot="trigger"
-              .label=${this._i18n.localize(
-                "ui.components.subpage-data-table.sort_by",
-                {
-                  sortColumn: this._sortColumn
-                    ? ` ${columns[this._sortColumn]?.title || columns[this._sortColumn]?.label}`
-                    : "",
-                }
-              )}
-            >
-              <ha-svg-icon
-                slot="trailing-icon"
-                .path=${mdiMenuDown}
-              ></ha-svg-icon>
-            </ha-assist-chip>
-            ${Object.entries(columns).map(([id, column]) =>
-              column.sortable
-                ? html`
-                    <ha-dropdown-item
-                      .value=${id}
-                      .selected=${id === this._sortColumn}
-                    >
-                      ${
-                        this._sortColumn === id
-                          ? html`
-                              <ha-svg-icon
-                                slot="details"
-                                .path=${
-                                  this._sortDirection === "desc"
-                                    ? mdiArrowDown
-                                    : mdiArrowUp
-                                }
-                              ></ha-svg-icon>
-                            `
-                          : nothing
-                      }
-                      ${column.title || column.label}
-                    </ha-dropdown-item>
-                  `
-                : nothing
-            )}
-          </ha-dropdown>
-        `
-      : nothing;
-
-    const groupByMenu = Object.values(columns).find((col) => col.groupable)
-      ? html`
-          <ha-dropdown @wa-select=${this._handleOverflowGroupBy}>
-            <ha-assist-chip
-              slot="trigger"
-              .label=${this._i18n.localize(
-                "ui.components.subpage-data-table.group_by",
-                {
-                  groupColumn: this._groupColumn
-                    ? ` ${columns[this._groupColumn].title || columns[this._groupColumn].label}`
-                    : "",
-                }
-              )}
-            >
-              <ha-svg-icon
-                slot="trailing-icon"
-                .path=${mdiMenuDown}
-              ></ha-svg-icon
-            ></ha-assist-chip>
-            ${Object.entries(columns).map(([id, column]) =>
-              column.groupable
-                ? html`
-                    <ha-dropdown-item
-                      .value=${id}
-                      .selected=${id === this._groupColumn}
-                    >
-                      ${column.title || column.label}
-                    </ha-dropdown-item>
-                  `
-                : nothing
-            )}
-            <ha-dropdown-item
-              value="none"
-              .selected=${this._groupColumn === undefined}
-            >
-              ${this._i18n.localize(
-                "ui.components.subpage-data-table.dont_group_by"
-              )}
-            </ha-dropdown-item>
-            <wa-divider></wa-divider>
-            <ha-dropdown-item
-              value="collapse_all"
-              @click=${this._collapseAllGroups}
-              .disabled=${this._groupColumn === undefined}
-            >
-              <ha-svg-icon
-                slot="icon"
-                .path=${mdiUnfoldLessHorizontal}
-              ></ha-svg-icon>
-              ${this._i18n.localize(
-                "ui.components.subpage-data-table.collapse_all_groups"
-              )}
-            </ha-dropdown-item>
-            <ha-dropdown-item
-              @click=${this._expandAllGroups}
-              .disabled=${this._groupColumn === undefined}
-            >
-              <ha-svg-icon
-                slot="icon"
-                .path=${mdiUnfoldMoreHorizontal}
-              ></ha-svg-icon>
-              ${this._i18n.localize(
-                "ui.components.subpage-data-table.expand_all_groups"
-              )}
-            </ha-dropdown-item>
-          </ha-dropdown>
-        `
-      : nothing;
-
-    const settingsButton = html`<ha-assist-chip
-      class="has-dropdown select-mode-chip"
-      @click=${this._openSettings}
-      .title=${this._i18n.localize("ui.components.subpage-data-table.settings")}
-    >
-      <ha-svg-icon slot="icon" .path=${mdiTableCog}></ha-svg-icon>
-    </ha-assist-chip>`;
-
-    return html`
-      <div class="table-with-toolbars">
-        ${
-          this._selectMode
-            ? html`<div class="selection-bar">
-                <div class="selection-controls">
-                  <ha-icon-button
-                    .path=${mdiClose}
-                    @click=${this._disableSelectMode}
-                    .label=${this._i18n.localize(
-                      "ui.components.subpage-data-table.exit_selection_mode"
-                    )}
-                  ></ha-icon-button>
-                  <ha-dropdown>
-                    <ha-assist-chip
-                      .label=${this._i18n.localize(
-                        "ui.components.subpage-data-table.select"
-                      )}
-                      slot="trigger"
-                    >
-                      <ha-svg-icon
-                        slot="icon"
-                        .path=${mdiFormatListChecks}
-                      ></ha-svg-icon>
-                      <ha-svg-icon
-                        slot="trailing-icon"
-                        .path=${mdiMenuDown}
-                      ></ha-svg-icon
-                    ></ha-assist-chip>
-                    <ha-dropdown-item @click=${this._selectAll}>
-                      ${this._i18n.localize(
-                        "ui.components.subpage-data-table.select_all"
-                      )}
-                    </ha-dropdown-item>
-                    <ha-dropdown-item @click=${this._selectAllIssues}>
-                      ${this._i18n.localize(
-                        "ui.panel.config.tools.tabs.statistics.data_table.select_all_issues"
-                      )}
-                    </ha-dropdown-item>
-                    <ha-dropdown-item @click=${this._selectNone}>
-                      ${this._i18n.localize(
-                        "ui.components.subpage-data-table.select_none"
-                      )}
-                    </ha-dropdown-item>
-                    <wa-divider></wa-divider>
-                    <ha-dropdown-item @click=${this._disableSelectMode}>
-                      ${this._i18n.localize(
-                        "ui.components.subpage-data-table.exit_selection_mode"
-                      )}
-                    </ha-dropdown-item>
-                  </ha-dropdown>
-                  <p>
-                    ${this._i18n.localize(
-                      "ui.components.subpage-data-table.selected",
-                      {
-                        selected: this._selected.length,
-                      }
-                    )}
-                  </p>
-                </div>
-                <div class="center-vertical">
-                  <slot name="selection-bar"></slot>
-                </div>
-                <ha-assist-chip
-                  .label=${this._i18n.localize(
-                    "ui.panel.config.tools.tabs.statistics.delete_selected"
-                  )}
-                  .disabled=${!this._selected.length}
-                  @click=${this._clearSelected}
-                >
-                </ha-assist-chip>
-              </div>`
-            : nothing
-        }
-        <div slot="toolbar-icon">
-          <slot name="toolbar-icon"></slot>
-        </div>
-        ${
-          this.narrow
-            ? html`
-                <div slot="header">
-                  <slot name="header">
-                    <div class="search-toolbar">${searchBar}</div>
-                  </slot>
-                </div>
-              `
-            : nothing
-        }
-        <ha-data-table
-          .narrow=${this.narrow}
-          .loading=${this._loading}
-          .columns=${columns}
-          .data=${this._displayData(
-            this._data,
-            this._i18n.localize,
-            this._registries.entities,
-            this._registries.devices,
-            this._registries.areas,
-            this._formatEntityName
-          )}
-          .noDataText=${this._i18n.localize(
-            "ui.panel.config.tools.tabs.statistics.data_table.no_statistics"
-          )}
-          .filter=${this.filter}
-          .selectable=${this._selectMode}
-          id="statistic_id"
-          clickable
-          .sortColumn=${this._sortColumn}
-          .sortDirection=${this._sortDirection}
-          .groupColumn=${this._groupColumn}
-          .groupOrder=${this.groupOrder}
-          .columnOrder=${this.columnOrder}
-          .hiddenColumns=${this.hiddenColumns}
-          @row-click=${this._rowClicked}
-          @selection-changed=${this._handleSelectionChanged}
-          @sorting-changed=${this._handleTableSortingChanged}
-        >
-          ${
-            !this.narrow
-              ? html`
-                  <div slot="header">
-                    <slot name="header">
-                      <div class="table-header">
-                        ${selectModeBtn}${searchBar}${groupByMenu}${sortByMenu}${settingsButton}
-                      </div>
-                    </slot>
-                  </div>
-                `
-              : html`<div slot="header"></div>
-                  <div slot="header-row" class="narrow-header-row">
-                    ${selectModeBtn}${groupByMenu}${sortByMenu}${settingsButton}
-                  </div>`
+                ></ha-icon-button>`
+              : nothing
           }
-        </ha-data-table>
-      </div>
+        </span>
+      </li>
     `;
   }
 
   private _handleSearchChange(ev: HASSDomTargetEvent<HaInputSearch>) {
-    if (this.filter === ev.target.value) {
+    if (this._filter === ev.target.value) {
       return;
     }
-    this.filter = ev.target.value ?? "";
+    this._filter = ev.target.value ?? "";
     this._writeUrl(true);
   }
 
@@ -693,7 +850,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       : undefined;
 
     if (linked) {
-      this.filter = linked.search;
+      this._filter = linked.search;
 
       if (linked.sorting) {
         this._sortColumn = linked.sorting.column;
@@ -716,28 +873,13 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
     this._queryParams.write(
       dataTableQueryParamsFromState(
         this._columns(this._i18n.localize),
-        this.filter,
+        this._filter,
         this._sortColumn,
         this._sortDirection,
         this._groupColumn
       ),
       debounced
     );
-  }
-
-  private _handleSelectionChanged(
-    ev: HASSDomEvent<SelectionChangedEvent>
-  ): void {
-    this._selected = ev.detail.value;
-  }
-
-  private _handleTableSortingChanged(
-    ev: CustomEvent<{ column: string; direction: SortingDirection }>
-  ) {
-    const { column, direction } = ev.detail;
-    this._sortColumn = column;
-    this._sortDirection = direction;
-    this._writeUrl();
   }
 
   private _handleSortBy(ev: HaDropdownSelectEvent) {
@@ -754,19 +896,25 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
     this._writeUrl();
   }
 
-  private _handleOverflowGroupBy = (ev: HaDropdownSelectEvent) => {
+  private _handleGroupBy(ev: HaDropdownSelectEvent) {
     const action = ev.detail.item.value;
-
     if (!action) {
       return;
     }
-
     switch (action) {
       case "collapse_all":
-        this._collapseAllGroups();
+        this._collapsedGroups =
+          this._groups(
+            this._currentRows(),
+            this._groupColumn,
+            this._i18n.localize(
+              "ui.panel.config.tools.tabs.statistics.no_issue"
+            ),
+            this._i18n.locale.language
+          )?.map((group) => group.id) ?? [];
         return;
       case "expand_all":
-        this._expandAllGroups();
+        this._collapsedGroups = [];
         return;
       case "none":
         this._setGroupColumn();
@@ -774,55 +922,49 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       default:
         this._setGroupColumn(action);
     }
-  };
+  }
 
   private _setGroupColumn(columnId?: string) {
     this._groupColumn = columnId;
+    this._collapsedGroups = [];
     this._writeUrl();
   }
 
-  private _openSettings() {
-    showDataTableSettingsDialog(this, {
-      columns: this._columns(this._i18n.localize),
-      hiddenColumns: this.hiddenColumns,
-      columnOrder: this.columnOrder,
-      onUpdate: (
-        columnOrder: string[] | undefined,
-        hiddenColumns: string[] | undefined
-      ) => {
-        this.columnOrder = columnOrder;
-        this.hiddenColumns = hiddenColumns;
-      },
-    });
+  private _toggleGroup(ev: HASSDomCurrentTargetEvent<HTMLElement>) {
+    const id = (ev.currentTarget as HTMLElement & { groupId: string }).groupId;
+    this._collapsedGroups = this._collapsedGroups.includes(id)
+      ? this._collapsedGroups.filter((item) => item !== id)
+      : [...this._collapsedGroups, id];
   }
 
-  private _collapseAllGroups() {
-    this._dataTable.collapseAllGroups();
+  private _toggleProblems(ev: Event) {
+    this._onlyProblems = (ev.currentTarget as HaFilterChip).selected;
   }
 
-  private _expandAllGroups() {
-    this._dataTable.expandAllGroups();
+  private _sourceSelected(ev: HaDropdownSelectEvent) {
+    this._source = ev.detail.item.value ?? "";
   }
 
-  private _enableSelectMode() {
-    this._selectMode = true;
+  private _rowSelectionChanged(ev: Event) {
+    const checkbox = ev.currentTarget as HTMLInputElement;
+    const id = checkbox.value;
+    this._selected = checkbox.checked
+      ? [...this._selected.filter((item) => item !== id), id]
+      : this._selected.filter((item) => item !== id);
   }
 
-  private _disableSelectMode() {
-    this._selectMode = false;
-    this._dataTable.clearSelection();
+  private _selectAllVisible() {
+    this._selected = this._currentRows().map((row) => row.statistic_id);
   }
 
-  private _selectAll() {
-    this._dataTable.selectAll();
+  private _selectAllProblems() {
+    this._selected = this._currentRows()
+      .filter((row) => row.issues)
+      .map((row) => row.statistic_id);
   }
 
   private _selectNone() {
-    this._dataTable.clearSelection();
-  }
-
-  private _selectAllIssues() {
-    this._dataTable.selectAll((statistic) => statistic.issues);
+    this._selected = [];
   }
 
   private _showStatisticsAdjustSumDialog(
@@ -847,14 +989,16 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
     });
   }
 
-  private _rowClicked(ev: HASSDomEvent<RowClickedEvent>) {
-    const id = ev.detail.id;
+  private _rowClicked(ev: HASSDomCurrentTargetEvent<HTMLElement>) {
+    const id = (ev.currentTarget as HTMLElement & { statisticId: string })
+      .statisticId;
     if (id in this._states) {
       fireEvent(this, "hass-more-info", { entityId: id });
     }
   }
 
   private async _validateStatistics() {
+    this._error = undefined;
     try {
       const [statisticIds, issues] = await Promise.all([
         getStatisticIds(this._api),
@@ -865,7 +1009,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
 
       const statsIds = new Set();
 
-      this._data = statisticIds.map((statistic) => {
+      const data: StatisticData[] = statisticIds.map((statistic) => {
         statsIds.add(statistic.statistic_id);
         return {
           ...statistic,
@@ -876,7 +1020,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
 
       Object.keys(issues).forEach((statisticId) => {
         if (!statsIds.has(statisticId)) {
-          this._data.push({
+          data.push({
             statistic_id: statisticId,
             statistics_unit_of_measurement: "",
             source: "",
@@ -888,6 +1032,14 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
           });
         }
       });
+      this._data = data;
+      // Drop selections of statistics that are gone
+      this._selected = this._selected.filter((id) => statsIds.has(id));
+    } catch (err) {
+      this._error = this._i18n.localize(
+        "ui.panel.config.tools.tabs.statistics.load_failed",
+        { error: err instanceof Error ? err.message : String(err) }
+      );
     } finally {
       this._loading = false;
     }
@@ -912,8 +1064,8 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       destructive: true,
       confirm: async () => {
         await clearStatistics(this._api, deletableIds);
+        this._selected = [];
         this._validateStatistics();
-        this._dataTable.clearSelection();
       },
     });
   };
@@ -923,7 +1075,7 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       HTMLElement & { data: StatisticsValidationResult[] }
     >
   ) => {
-    const issues = ev.currentTarget.data.sort(
+    const issues = [...ev.currentTarget.data].sort(
       (itemA, itemB) =>
         (FIX_ISSUES_ORDER[itemA.type] ?? 99) -
         (FIX_ISSUES_ORDER[itemB.type] ?? 99)
@@ -945,132 +1097,258 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
       css`
         :host {
           display: block;
-          height: 100%;
+          user-select: initial;
         }
 
-        .table-with-toolbars {
-          height: 100%;
+        .page {
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-2);
-        }
-        ha-data-table {
-          width: 100%;
-          flex-grow: 1;
-          --data-table-border-width: 0;
-          /* Same insets as the content padding of ha-top-app-bar-fixed */
-          --data-table-inset-right: var(--safe-area-inset-right, 0px);
-        }
-        :host([narrow]) ha-data-table {
-          --data-table-inset-left: var(--safe-area-inset-left, 0px);
+          gap: var(--ha-space-3);
+          padding: var(--ha-space-4);
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
         }
 
-        :host([narrow]) {
-          --expansion-panel-summary-padding: 0 16px;
-        }
-        .table-header {
+        .toolbar {
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
-          --mdc-shape-small: 0;
-          height: 56px;
-          width: 100%;
-          justify-content: space-between;
-          padding-left: calc(
-            var(--ha-space-4) + var(--data-table-inset-left, 0px)
-          );
-          padding-right: calc(
-            var(--ha-space-4) + var(--data-table-inset-right, 0px)
-          );
-          gap: var(--ha-space-4);
-          box-sizing: border-box;
-          border-bottom: 1px solid var(--divider-color);
-          overflow-x: auto;
-          scrollbar-width: none;
-          background: var(
-            --ha-panel-toolbar-background,
-            var(--ha-panel-background, var(--primary-background-color))
-          );
+          gap: var(--ha-space-3);
         }
-        ha-input-search {
+
+        .toolbar ha-input-search {
           flex: 1;
-        }
-        .search-toolbar {
-          display: flex;
-          align-items: center;
-          padding: 0 var(--ha-space-4);
-          color: var(--secondary-text-color);
-        }
-
-        .narrow-header-row {
-          display: flex;
-          align-items: center;
-          gap: var(--ha-space-4);
-          padding-left: calc(
-            var(--ha-space-4) + var(--data-table-inset-left, 0px)
-          );
-          padding-right: calc(
-            var(--ha-space-4) + var(--data-table-inset-right, 0px)
-          );
-          overflow-x: scroll;
-          scrollbar-width: none;
-        }
-
-        .selection-bar {
-          background: rgba(var(--rgb-primary-color), 0.1);
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: var(--ha-space-2) var(--ha-space-3);
-          box-sizing: border-box;
-          font-size: var(--ha-font-size-m);
-          --ha-assist-chip-container-color: var(--card-background-color);
-        }
-
-        .selection-controls {
-          display: flex;
-          align-items: center;
-          gap: var(--ha-space-2);
-        }
-
-        .selection-controls p {
-          margin-left: var(--ha-space-2);
-          margin-inline-start: var(--ha-space-2);
-          margin-inline-end: initial;
-        }
-
-        .center-vertical {
-          display: flex;
-          align-items: center;
-          gap: var(--ha-space-2);
-        }
-
-        .relative {
-          position: relative;
+          min-width: 220px;
+          max-width: 420px;
         }
 
         ha-assist-chip {
           --ha-assist-chip-container-shape: 10px;
           --ha-assist-chip-container-color: var(--card-background-color);
-        }
-
-        .select-mode-chip {
-          --ha-assist-chip-icon-label-space: 0;
           --ha-assist-chip-trailing-space: 8px;
         }
 
-        ha-dialog {
-          --mdc-dialog-min-width: 100vw;
-          --mdc-dialog-max-width: 100vw;
-          --mdc-dialog-min-height: 100%;
-          --mdc-dialog-max-height: 100%;
-          --vertical-align-dialog: flex-end;
-          --ha-dialog-border-radius: var(--ha-border-radius-square);
-          --dialog-content-padding: 0;
+        .selection-bar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
         }
 
-        ha-dropdown ha-assist-chip {
-          --ha-assist-chip-trailing-space: 8px;
+        .selection-actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-1);
+        }
+
+        .state {
+          display: flex;
+          justify-content: center;
+          margin: 0;
+          padding: var(--ha-space-8) var(--ha-space-4);
+          color: var(--secondary-text-color);
+          text-align: center;
+        }
+
+        .headers,
+        .row {
+          display: grid;
+          grid-template-columns:
+            40px minmax(0, 3fr) minmax(60px, 1fr) minmax(80px, 1.2fr)
+            minmax(0, 2.4fr) auto;
+          align-items: center;
+          gap: var(--ha-space-3);
+          padding: 0 var(--ha-space-4);
+        }
+
+        .headers {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .rows {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+        }
+
+        .row {
+          min-height: 64px;
+          padding-block: var(--ha-space-2);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
+          content-visibility: auto;
+          contain-intrinsic-size: auto 64px;
+        }
+
+        .group {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+        }
+
+        .group-header {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-1) var(--ha-space-2);
+          border: none;
+          background: none;
+          color: var(--primary-text-color);
+          font-family: inherit;
+          font-size: var(--ha-font-size-m);
+          font-weight: var(--ha-font-weight-medium);
+          text-align: start;
+          cursor: pointer;
+        }
+
+        .group-label {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .group-count {
+          padding: 0 var(--ha-space-2);
+          border-radius: var(--ha-border-radius-pill);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .chevron {
+          flex: none;
+          transition: transform 150ms ease;
+        }
+
+        .chevron.collapsed {
+          transform: rotate(-90deg);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .chevron {
+            transition: none;
+          }
+        }
+
+        .id {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .statistic-id {
+          padding: 0;
+          border: none;
+          background: none;
+          color: var(--primary-text-color);
+          font-family: var(--ha-font-family-code);
+          font-size: var(--ha-font-size-m);
+          font-weight: var(--ha-font-weight-bold);
+          text-align: start;
+          overflow-wrap: anywhere;
+          cursor: pointer;
+        }
+
+        .statistic-id:disabled {
+          cursor: default;
+        }
+
+        .name {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          overflow-wrap: anywhere;
+        }
+
+        .unit,
+        .source {
+          overflow-wrap: anywhere;
+        }
+
+        .problem {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-1);
+          min-width: 0;
+        }
+
+        .pill {
+          padding: 2px var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .pill.warning {
+          background: var(--ha-color-fill-warning-quiet-resting, #ffe08a);
+          color: var(--ha-color-on-warning-normal, #5c4300);
+        }
+
+        .pill.error {
+          background: var(--ha-color-fill-danger-quiet-resting, #f9d6d2);
+          color: var(--ha-color-on-danger-normal, #7a1a12);
+        }
+
+        .actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: var(--ha-space-1);
+        }
+
+        .tip {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+
+        .tip ha-svg-icon {
+          flex: none;
+        }
+
+        :host([narrow]) .headers {
+          display: none;
+        }
+
+        :host([narrow]) .row {
+          grid-template-columns: 40px minmax(0, 1fr) auto;
+          grid-template-areas:
+            "check id actions"
+            ". unit unit"
+            ". source source"
+            ". problem problem";
+          row-gap: var(--ha-space-1);
+        }
+
+        :host([narrow]) .check {
+          grid-area: check;
+        }
+        :host([narrow]) .id {
+          grid-area: id;
+        }
+        :host([narrow]) .unit {
+          grid-area: unit;
+        }
+        :host([narrow]) .source {
+          grid-area: source;
+        }
+        :host([narrow]) .problem {
+          grid-area: problem;
+        }
+        :host([narrow]) .actions {
+          grid-area: actions;
         }
       `,
     ];

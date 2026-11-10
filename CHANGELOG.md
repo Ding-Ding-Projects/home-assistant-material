@@ -8,6 +8,12 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Statistics and Scenes can be sorted and grouped again, and Statistics keeps its search,
+  sorting and grouping in the page address.
+- Sign-in, first-run setup, About, Profile, Helpers, the settings of one entity, and the
+  Zigbee, Z-Wave and Matter pages are started on their boards.
+- Nine defects found by review are fixed: People, Zones, Blueprints, Repairs, Logs, Updates
+  and the scene editor.
 - More pages on their boards: Integrations (status on each card, filter chips), an integration's
   own page, Devices (what needs attention, offline and low battery marked), one device,
   Entities (a live state column), Areas and one area, Labels, Scenes as cards and the scene

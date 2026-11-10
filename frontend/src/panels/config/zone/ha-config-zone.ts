@@ -414,10 +414,16 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
         ? html`
             <div class="empty">
               ${hass.localize("ui.panel.config.zone.no_zones_created_yet")}
-              <br />
-              <ha-button size="s" @click=${this._createZone}>
-                ${hass.localize("ui.panel.config.zone.create_zone")}</ha-button
-              >
+              ${
+                this.narrow
+                  ? nothing
+                  : html`<br />
+                      <ha-button size="s" @click=${this._createZone}>
+                        ${hass.localize(
+                          "ui.panel.config.zone.create_zone"
+                        )}</ha-button
+                      >`
+              }
             </div>
           `
         : html`
@@ -433,15 +439,19 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
                   : this._renderStateItem(item.stateObject)
               )}
             </ha-list>
-            <ha-button
-              class="add-zone"
-              appearance="filled"
-              variant="neutral"
-              @click=${this._createZone}
-            >
-              <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-              ${hass.localize("ui.panel.config.zone.add_zone")}
-            </ha-button>
+            ${
+              this.narrow
+                ? nothing
+                : html`<ha-button
+                    class="add-zone"
+                    appearance="filled"
+                    variant="neutral"
+                    @click=${this._createZone}
+                  >
+                    <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                    ${hass.localize("ui.panel.config.zone.add_zone")}
+                  </ha-button>`
+            }
           `;
 
     return html`
@@ -602,11 +612,17 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
       return nothing;
     }
     const pending = this._pendingEdits[selected.id];
+    // A key that is present in the draft wins even when its value is empty,
+    // so a cleared field stays cleared instead of snapping back
     const data = {
-      name: this._draft.name ?? selected.name,
-      icon: this._draft.icon ?? selected.icon,
-      radius: this._draft.radius ?? pending?.radius ?? selected.radius,
+      name: "name" in this._draft ? this._draft.name : selected.name,
+      icon: "icon" in this._draft ? this._draft.icon : selected.icon,
+      radius:
+        "radius" in this._draft
+          ? this._draft.radius
+          : (pending?.radius ?? selected.radius),
     };
+    const errors = this._formErrors(data);
     const dirty = Object.keys(this._draft).length > 0;
     const readOnly = !selected.editable && !selected.radiusEditable;
     return html`
@@ -615,6 +631,7 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
           .hass=${this.hass}
           .schema=${this._formSchema(selected.editable, selected.radiusEditable)}
           .data=${data}
+          .error=${errors}
           .computeLabel=${this._computeFormLabel}
           @value-changed=${this._formChanged}
         ></ha-form>
@@ -627,7 +644,12 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
             )}
           </p>
           <ha-button
-            .disabled=${readOnly || !dirty || this._saving}
+            .disabled=${
+              readOnly ||
+              !dirty ||
+              this._saving ||
+              Object.keys(errors).length > 0
+            }
             @click=${this._saveForm}
           >
             ${this.hass.localize("ui.common.save")}
@@ -637,6 +659,25 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
     `;
   }
 
+  // Name and radius are required; the icon is optional
+  private _formErrors(data: FormDraft): Record<string, string> {
+    const errors: Record<string, string> = {};
+    const message = this.hass.localize(
+      "ui.panel.config.zone.detail.required_error_msg"
+    );
+    if (!data.name?.trim()) {
+      errors.name = message;
+    }
+    if (
+      typeof data.radius !== "number" ||
+      Number.isNaN(data.radius) ||
+      data.radius < 1
+    ) {
+      errors.radius = message;
+    }
+    return errors;
+  }
+
   private _formChanged(ev: CustomEvent) {
     const selected = this._selection();
     if (!selected) {
@@ -644,8 +685,8 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
     }
     const value = ev.detail.value as FormDraft;
     const draft: FormDraft = {};
-    if (selected.editable && value.name !== selected.name) {
-      draft.name = value.name;
+    if (selected.editable && (value.name ?? "") !== selected.name) {
+      draft.name = value.name ?? "";
     }
     if (selected.editable && (value.icon || undefined) !== selected.icon) {
       draft.icon = value.icon || undefined;
@@ -664,16 +705,30 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
       return;
     }
     const draft = this._draft;
+    if (
+      Object.keys(
+        this._formErrors({
+          name: draft.name ?? selected.name,
+          radius: "radius" in draft ? draft.radius : selected.radius,
+        })
+      ).length
+    ) {
+      return;
+    }
     this._saving = true;
     try {
+      let saved = true;
       if (selected.entry) {
         await this._updateEntry(selected.entry, draft);
       } else if (draft.radius !== undefined) {
-        await this._saveEdit(selected.id, {
+        // _saveEdit reports its own failure with an alert; keep the draft then
+        saved = await this._saveEdit(selected.id, {
           radius: Math.round(draft.radius),
         });
       }
-      this._draft = {};
+      if (saved) {
+        this._draft = {};
+      }
     } catch (err: any) {
       showAlertDialog(this, {
         title: this.hass.localize("ui.panel.config.zone.can_not_edit"),
@@ -815,13 +870,16 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
   // produced and a failure only drops the values its own request carried
   private _saveQueue: Record<string, Promise<void>> = {};
 
-  private _saveEdit(id: string, pending: PendingEdit): Promise<void> {
+  private _saveEdit(id: string, pending: PendingEdit): Promise<boolean> {
     this._pendingEdits = {
       ...this._pendingEdits,
       [id]: { ...this._pendingEdits[id], ...pending },
     };
-    const save = (this._saveQueue[id] ?? Promise.resolve())
-      .then(() => this._performSave(id, pending))
+    const result = (this._saveQueue[id] ?? Promise.resolve()).then(() =>
+      this._performSave(id, pending)
+    );
+    const save = result
+      .then(() => undefined)
       .finally(() => {
         // Only the last save in the chain removes the queue entry
         if (this._saveQueue[id] === save) {
@@ -829,19 +887,23 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
         }
       });
     this._saveQueue[id] = save;
-    return save;
+    return result;
   }
 
-  private async _performSave(id: string, pending: PendingEdit) {
+  private async _performSave(
+    id: string,
+    pending: PendingEdit
+  ): Promise<boolean> {
     try {
       if (id === HOME_ZONE_ENTITY_ID) {
         await saveCoreConfig(this.hass, pending);
-        return;
+        return true;
       }
       const entry = this._storageItems!.find((item) => item.id === id);
       if (entry) {
         await this._updateEntry(entry, pending);
       }
+      return true;
     } catch (err: any) {
       // The saved values are the truth again for what this request changed;
       // a later edit of other values stays pending for its own save
@@ -850,6 +912,7 @@ export class HaConfigZone extends SubscribeMixin(LitElement) {
         title: this.hass.localize("ui.panel.config.zone.can_not_edit"),
         text: err.message,
       });
+      return false;
     }
   }
 

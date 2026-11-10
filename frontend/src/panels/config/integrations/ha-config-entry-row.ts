@@ -47,6 +47,7 @@ import {
   reloadConfigEntry,
   updateConfigEntry,
 } from "../../../data/config_entries";
+import type { DeviceRegistryEntry } from "../../../data/device/device_registry";
 import { groupDevicesByParent } from "../../../data/device/device_registry";
 import type { DiagnosticInfo } from "../../../data/diagnostics";
 import { getConfigEntryDiagnosticsDownloadUrl } from "../../../data/diagnostics";
@@ -79,6 +80,9 @@ import {
 import "./ha-config-sub-entry-row";
 import { offerMarketplaceUninstall } from "./offer-marketplace-uninstall";
 
+// How many devices an entry lists before the rest are folded away
+const DEVICES_SHOWN = 4;
+
 @customElement("ha-config-entry-row")
 export class HaConfigEntryRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -96,6 +100,8 @@ export class HaConfigEntryRow extends LitElement {
   @state() private _expanded = true;
 
   @state() private _devicesExpanded = true;
+
+  @state() private _showAllDevices = false;
 
   protected render() {
     const item = this.data.entry;
@@ -211,34 +217,56 @@ export class HaConfigEntryRow extends LitElement {
           }
         </div>
         ${
+          !item.disabled_by && item.state === "loaded"
+            ? html`<span slot="end" class="status-chip"
+                >${this.hass.localize(
+                  "ui.panel.config.integrations.config_entry.working"
+                )}</span
+              >`
+            : nothing
+        }
+        ${
           item.disabled_by === "user"
             ? html`<ha-button slot="end" @click=${this._handleEnable}>
                 ${this.hass.localize("ui.common.enable")}
               </ha-button>`
             : configPanel && !stateText
-              ? html`<ha-icon-button
-                  .path=${mdiCogOutline}
-                  .label=${this.hass.localize(
-                    "ui.panel.config.integrations.config_entry.configure"
-                  )}
+              ? html`<ha-button
                   slot="end"
-                  class="link"
+                  appearance="outlined"
+                  size="s"
                   href=${`/${configPanel}?config_entry=${item.entry_id}`}
                 >
-                </ha-icon-button>`
+                  ${this.hass.localize(
+                    "ui.panel.config.integrations.config_entry.configure"
+                  )}
+                </ha-button>`
               : item.supports_options
                 ? html`
-                    <ha-icon-button
+                    <ha-button
                       slot="end"
+                      appearance="outlined"
+                      size="s"
                       @click=${this._showOptions}
-                      .path=${mdiCogOutline}
-                      .label=${this.hass.localize(
+                    >
+                      ${this.hass.localize(
                         "ui.panel.config.integrations.config_entry.configure"
                       )}
-                    >
-                    </ha-icon-button>
+                    </ha-button>
                   `
                 : nothing
+        }
+        ${
+          this.diagnosticHandler && item.state === "loaded"
+            ? html`<ha-icon-button
+                slot="end"
+                .path=${mdiDownload}
+                .label=${this.hass.localize(
+                  "ui.panel.config.integrations.config_entry.download_diagnostics"
+                )}
+                @click=${this._downloadDiagnostics}
+              ></ha-icon-button>`
+            : nothing
         }
         <ha-dropdown slot="end" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
@@ -517,25 +545,80 @@ export class HaConfigEntryRow extends LitElement {
                     ></ha-config-sub-entry-row>
                   `
                 )}`
-              : html`
-                  ${groupDevicesByParent(ownDevices).map(
-                    ({ device, isChild, isLastChild }) =>
-                      html`<ha-config-entry-device-row
-                        .hass=${this.hass}
-                        .narrow=${this.narrow}
-                        .entry=${item}
-                        .device=${device}
-                        .entities=${entities}
-                        .isChild=${isChild}
-                        .isLastChild=${isLastChild}
-                      ></ha-config-entry-device-row>`
-                  )}
-                `
+              : this._renderDeviceList(ownDevices, entities)
             : nothing
         }
       </ha-list-base>
     </div>`;
   }
+
+  /** The first few devices, with the rest one press away. */
+  private _renderDeviceList(
+    ownDevices: DeviceRegistryEntry[],
+    entities: EntityRegistryEntry[]
+  ) {
+    const grouped = groupDevicesByParent(ownDevices);
+    const limited = grouped.length > DEVICES_SHOWN;
+    const visible =
+      limited && !this._showAllDevices
+        ? grouped.slice(0, DEVICES_SHOWN)
+        : grouped;
+
+    return html`
+      ${visible.map(
+        ({ device, isChild, isLastChild }) =>
+          html`<ha-config-entry-device-row
+            .hass=${this.hass}
+            .narrow=${this.narrow}
+            .entry=${this.data.entry}
+            .device=${device}
+            .entities=${entities}
+            .isChild=${isChild}
+            .isLastChild=${isLastChild}
+          ></ha-config-entry-device-row>`
+      )}
+      ${
+        limited
+          ? html`<div class="devices-footer">
+              <span class="devices-hidden"
+                >${
+                  this._showAllDevices
+                    ? nothing
+                    : this.hass.localize(
+                        "ui.panel.config.integrations.config_entry.more_devices_hidden",
+                        { count: grouped.length - DEVICES_SHOWN }
+                      )
+                }</span
+              >
+              <ha-button appearance="plain" @click=${this._toggleAllDevices}>
+                ${
+                  this._showAllDevices
+                    ? this.hass.localize(
+                        "ui.panel.config.integrations.config_entry.show_fewer_devices"
+                      )
+                    : this.hass.localize(
+                        "ui.panel.config.integrations.config_entry.show_all_devices",
+                        { count: grouped.length }
+                      )
+                }
+              </ha-button>
+            </div>`
+          : nothing
+      }
+    `;
+  }
+
+  private _toggleAllDevices() {
+    this._showAllDevices = !this._showAllDevices;
+  }
+
+  private _downloadDiagnostics = async () => {
+    const signedUrl = await getSignedPath(
+      this.hass,
+      getConfigEntryDiagnosticsDownloadUrl(this.data.entry.entry_id)
+    );
+    fileDownload(signedUrl.path);
+  };
 
   private _configPanel = memoizeOne(getConfigPanelPath);
 
@@ -908,6 +991,24 @@ export class HaConfigEntryRow extends LitElement {
       }
       ha-dropdown a {
         text-decoration: none;
+      }
+      .status-chip {
+        padding: var(--ha-space-1) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-pill);
+        background-color: var(--ha-color-fill-success-quiet-resting);
+        color: var(--ha-color-on-success-normal);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        white-space: nowrap;
+      }
+      .devices-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+        padding: 0 var(--ha-space-4) var(--ha-space-2);
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
       }
       .state-error {
         --state-message-color: var(--ha-color-on-danger-normal);

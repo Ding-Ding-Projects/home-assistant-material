@@ -290,8 +290,10 @@ class HaBlueprintOverview extends LitElement {
               ? html`<span style="color: var(--secondary-text-color);"
                   >${blueprint.usedByText}</span
                 >`
-              : html`<button
-                  style="all: unset; cursor: pointer; color: var(--primary-text-color);"
+              : html`<ha-button
+                  appearance="plain"
+                  size="s"
+                  class="usage-count"
                   title=${this.hass.localize(
                     `ui.panel.config.blueprint.overview.view_${blueprint.type}`
                   )}
@@ -299,7 +301,7 @@ class HaBlueprintOverview extends LitElement {
                   @click=${this._handleUsageClick}
                 >
                   ${blueprint.usedByText}
-                </button>`,
+                </ha-button>`,
       },
       use: {
         title: "",

@@ -58,6 +58,8 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
 
   @state() private _resolution?: HassioResolution;
 
+  @state() private _resolutionFailed = false;
+
   @state() private _setups?: IntegrationSetup[];
 
   private _getFilteredIssues = memoizeOne(
@@ -85,7 +87,9 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
         (resolution) => {
           this._resolution = resolution;
         },
-        () => undefined
+        () => {
+          this._resolutionFailed = true;
+        }
       );
     }
     fetchIntegrationSetups(this.hass).then(
@@ -266,10 +270,18 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
       return nothing;
     }
     const localize = this.hass.localize;
+    const failed = hasHassio && this._resolutionFailed && !this._resolution;
     const waiting =
-      (hasHealth && !this._healthDone) || (hasHassio && !this._resolution);
+      (hasHealth && !this._healthDone) ||
+      (hasHassio && !this._resolution && !failed);
     const problems = this._healthProblems();
-    const tone = problems ? "bad" : waiting ? "wait" : "good";
+    const tone = problems
+      ? "bad"
+      : waiting
+        ? "wait"
+        : failed
+          ? "unknown"
+          : "good";
     return html`
       <button
         class="tile health ${tone}"
@@ -287,7 +299,9 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
                 })
               : tone === "wait"
                 ? localize("ui.panel.config.repairs.health_checking")
-                : localize("ui.panel.config.repairs.health_good")
+                : tone === "unknown"
+                  ? localize("ui.panel.config.repairs.health_unavailable")
+                  : localize("ui.panel.config.repairs.health_good")
           }
         </span>
         <span class="tile-sub">
@@ -296,7 +310,9 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
               ? localize("ui.panel.config.repairs.health_good_hint")
               : tone === "bad"
                 ? localize("ui.panel.config.repairs.health_problems_hint")
-                : nothing
+                : tone === "unknown"
+                  ? localize("ui.panel.config.repairs.health_unavailable_hint")
+                  : nothing
           }
         </span>
       </button>

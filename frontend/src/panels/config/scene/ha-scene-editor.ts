@@ -649,15 +649,14 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
       ${
         TOGGLE_DOMAINS.includes(domain)
           ? html`<div class="toggle-row">
-              <span>
-                ${this.hass.localize("ui.panel.config.scene.editor.state_on")}
-              </span>
               <ha-switch
                 .checked=${isOn}
                 .disabled=${!editable}
                 .entityId=${entityId}
                 @change=${this._switchChanged}
-              ></ha-switch>
+              >
+                ${this.hass.localize("ui.panel.config.scene.editor.state_on")}
+              </ha-switch>
             </div>`
           : nothing
       }

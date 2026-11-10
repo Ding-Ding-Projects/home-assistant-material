@@ -9,6 +9,7 @@ import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/buttons/ha-call-service-button";
 import "../../../components/ha-alert";
+import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -56,6 +57,15 @@ export class SystemLogCard extends LitElement {
   public loaded = false;
 
   @state() private _items?: LoggedError[];
+
+  // Set when the person asks to see every level again from the empty state
+  @state() private _showAllLevels = false;
+
+  protected willUpdate(changedProps: PropertyValues<this>): void {
+    if (changedProps.has("levels")) {
+      this._showAllLevels = false;
+    }
+  }
 
   public async fetchData(): Promise<void> {
     this._items = undefined;
@@ -120,13 +130,15 @@ export class SystemLogCard extends LitElement {
   protected render() {
     const logFileDownloadUnavailableReason =
       getCoreLogFileDownloadUnavailableReason(this.hass);
+    const levelsHideAll =
+      !this._showAllLevels && !!this.levels && this.levels.length === 0;
     const filteredItems = this._items
       ? this._getFilteredItems(
           this.hass.localize,
           this._items,
           this.filter,
           this.integrations?.length ? this.integrationLoggers : undefined,
-          this.levels
+          this._showAllLevels ? undefined : this.levels
         )
       : [];
     const integrations = filteredItems.length
@@ -213,73 +225,89 @@ export class SystemLogCard extends LitElement {
                             ${this.hass.localize("ui.panel.config.logs.no_issues")}
                           </div>
                         `
-                      : filteredItems.length === 0 &&
-                          (this.filter || this.integrations?.length)
-                        ? html`<div class="card-content">
-                            ${
-                              this.filter
-                                ? this.hass.localize(
-                                    "ui.panel.config.logs.no_issues_search",
-                                    { term: this.filter }
-                                  )
-                                : this.hass.localize(
-                                    "ui.panel.config.logs.no_issues_integration",
-                                    {
-                                      integration: formatListWithAnds(
-                                        this.hass.locale,
-                                        this.integrations!.map((domain) =>
-                                          domainToName(
-                                            this.hass.localize,
-                                            domain
-                                          )
-                                        )
-                                      ),
-                                    }
-                                  )
-                            }
+                      : levelsHideAll
+                        ? html`<div class="card-content empty-content">
+                            <p class="levels-hidden">
+                              ${this.hass.localize(
+                                "ui.panel.config.logs.levels_hidden"
+                              )}
+                            </p>
+                            <ha-button
+                              appearance="plain"
+                              @click=${this._showEveryLevel}
+                            >
+                              ${this.hass.localize(
+                                "ui.panel.config.logs.show_all_levels"
+                              )}
+                            </ha-button>
                           </div>`
-                        : html`<ha-list
-                            >${filteredItems.map(
-                              (item, idx) => html`
-                                <ha-list-item
-                                  @click=${this._openLog}
-                                  .logItem=${item}
-                                  twoline
-                                >
-                                  ${item.message[0]}
-                                  <span slot="secondary" class="secondary">
-                                    ${this._timestamp(item)} –
-                                    ${html`(<span class=${item.level}
-                                        >${this.hass.localize(
-                                          `ui.panel.config.logs.level.${item.level}`
-                                        )}</span
-                                      >) `}
-                                    ${
-                                      integrations[idx]
-                                        ? `${domainToName(
-                                            this.hass!.localize,
-                                            integrations[idx]!
-                                          )}${
-                                            isCustomIntegrationError(item)
-                                              ? ` (${this.hass.localize(
-                                                  "ui.panel.config.logs.custom_integration"
-                                                )})`
-                                              : ""
-                                          }`
-                                        : item.source[0]
-                                    }
-                                    ${
-                                      item.count > 1
-                                        ? html`
-                                            - ${this._multipleMessages(item)}
-                                          `
-                                        : nothing
-                                    }
-                                  </span>
-                                </ha-list-item>
-                              `
-                            )}</ha-list
-                          >`
+                        : filteredItems.length === 0 &&
+                            (this.filter || this.integrations?.length)
+                          ? html`<div class="card-content">
+                              ${
+                                this.filter
+                                  ? this.hass.localize(
+                                      "ui.panel.config.logs.no_issues_search",
+                                      { term: this.filter }
+                                    )
+                                  : this.hass.localize(
+                                      "ui.panel.config.logs.no_issues_integration",
+                                      {
+                                        integration: formatListWithAnds(
+                                          this.hass.locale,
+                                          this.integrations!.map((domain) =>
+                                            domainToName(
+                                              this.hass.localize,
+                                              domain
+                                            )
+                                          )
+                                        ),
+                                      }
+                                    )
+                              }
+                            </div>`
+                          : html`<ha-list
+                              >${filteredItems.map(
+                                (item, idx) => html`
+                                  <ha-list-item
+                                    @click=${this._openLog}
+                                    .logItem=${item}
+                                    twoline
+                                  >
+                                    ${item.message[0]}
+                                    <span slot="secondary" class="secondary">
+                                      ${this._timestamp(item)} –
+                                      ${html`(<span class=${item.level}
+                                          >${this.hass.localize(
+                                            `ui.panel.config.logs.level.${item.level}`
+                                          )}</span
+                                        >) `}
+                                      ${
+                                        integrations[idx]
+                                          ? `${domainToName(
+                                              this.hass!.localize,
+                                              integrations[idx]!
+                                            )}${
+                                              isCustomIntegrationError(item)
+                                                ? ` (${this.hass.localize(
+                                                    "ui.panel.config.logs.custom_integration"
+                                                  )})`
+                                                : ""
+                                            }`
+                                          : item.source[0]
+                                      }
+                                      ${
+                                        item.count > 1
+                                          ? html`
+                                              - ${this._multipleMessages(item)}
+                                            `
+                                          : nothing
+                                      }
+                                    </span>
+                                  </ha-list-item>
+                                `
+                              )}</ha-list
+                            >`
                   }
 
                   <div class="card-actions">
@@ -294,6 +322,11 @@ export class SystemLogCard extends LitElement {
         </ha-card>
       </div>
     `;
+  }
+
+  private _showEveryLevel() {
+    this._showAllLevels = true;
+    this.dispatchEvent(new CustomEvent("show-all-levels"));
   }
 
   protected firstUpdated(changedProps: PropertyValues<this>): void {
@@ -403,6 +436,10 @@ export class SystemLogCard extends LitElement {
       border-top: 1px solid var(--divider-color);
       padding-top: 16px;
       padding-bottom: 16px;
+    }
+
+    .levels-hidden {
+      margin: 0 0 var(--ha-space-2);
     }
 
     .row-secondary {

@@ -43,6 +43,7 @@ import {
   rejectedItems,
 } from "../../../common/util/promise-all-settled-results";
 import "../../../components/chips/ha-assist-chip";
+import type { SortingChangedEvent } from "../../../components/data-table/ha-data-table";
 import "../../../components/ha-button";
 import "../../../components/ha-checkbox";
 import "../../../components/ha-dropdown";
@@ -129,6 +130,19 @@ type SceneItem = SceneEntity & {
   editable: boolean;
 };
 
+const SORT_COLUMNS = ["name", "area", "state"];
+
+const SORT_OPTIONS = [
+  "name_asc",
+  "name_desc",
+  "area_asc",
+  "area_desc",
+  "state_desc",
+  "state_asc",
+] as const;
+
+const GROUPINGS = ["none", "category", "area"] as const;
+
 // Keeps a scene on the same colour whatever else is on the page
 const tintOf = (entityId: string): number => {
   let hash = 0;
@@ -160,10 +174,22 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
 
   @state() private _filteredSceneEntityIds?: string[] | null;
 
-  // Only the search is kept here; the page lists its scenes by name
-  private _tableSettings = new DataTableSettingsController(this, {
-    search: "scene-table-search",
-  });
+  // The search is kept for the session, the sorting and grouping for good, as
+  // the table this page replaced did
+  private _tableSettings = new DataTableSettingsController(
+    this,
+    {
+      search: "scene-table-search",
+      sorting: "scene-table-sort",
+      grouping: "scene-table-grouping",
+    },
+    { defaultGrouping: "category" }
+  );
+
+  @state() private _sorting: SortingChangedEvent = {
+    column: "name",
+    direction: "asc",
+  };
 
   @state()
   private _filters: DataTableFilters = {};
@@ -260,6 +286,10 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   protected willUpdate(changedProps: PropertyValues) {
     super.willUpdate(changedProps);
     if (!this.hasUpdated) {
+      const stored = this._tableSettings.sorting;
+      if (stored && SORT_COLUMNS.includes(stored.column)) {
+        this._sorting = stored;
+      }
       this._filters = this._storageFilters;
       this._applyLink();
     }
@@ -400,9 +430,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
             !this.scenes.length
               ? this._renderEmpty()
               : scenes.length
-                ? html`<div class="grid">
-                    ${scenes.map((scene) => this._renderCard(scene))}
-                  </div>`
+                ? this._renderScenes(scenes)
                 : html`<div class="no-match">
                     <p>
                       ${this.hass.localize(
@@ -431,6 +459,163 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         </ha-button>
       </hass-tabs-subpage>
     `;
+  }
+
+  private _compare(a: SceneItem, b: SceneItem): number {
+    const language = this.hass.locale?.language;
+    const byName = (x: SceneItem, y: SceneItem) =>
+      x.name.localeCompare(y.name, language, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    const { column, direction } = this._sorting;
+    const sign = direction === "desc" ? -1 : 1;
+    let result = 0;
+    if (column === "area") {
+      // Scenes without an area go last either way
+      if (!a.area !== !b.area) {
+        return a.area ? -1 : 1;
+      }
+      result = (a.area ?? "").localeCompare(b.area ?? "", language, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    } else if (column === "state") {
+      const time = (scene: SceneItem) => {
+        const value = Date.parse(scene.state);
+        return Number.isNaN(value) ? undefined : value;
+      };
+      const ta = time(a);
+      const tb = time(b);
+      // Scenes never activated go last either way
+      if ((ta === undefined) !== (tb === undefined)) {
+        return ta === undefined ? 1 : -1;
+      }
+      result = (ta ?? 0) - (tb ?? 0);
+    }
+    return result ? result * sign : byName(a, b);
+  }
+
+  private get _grouping(): (typeof GROUPINGS)[number] {
+    const value = this._tableSettings.grouping;
+    return GROUPINGS.includes(value as any)
+      ? (value as (typeof GROUPINGS)[number])
+      : "none";
+  }
+
+  private _renderScenes(scenes: SceneItem[]) {
+    const sorted = [...scenes].sort((a, b) => this._compare(a, b));
+    const grouping = this._grouping;
+    if (grouping === "none") {
+      return html`<div class="grid">
+        ${sorted.map((scene) => this._renderCard(scene))}
+      </div>`;
+    }
+    const groups = new Map<string, SceneItem[]>();
+    for (const scene of sorted) {
+      const key = (grouping === "category" ? scene.category : scene.area) ?? "";
+      groups.set(key, [...(groups.get(key) ?? []), scene]);
+    }
+    const language = this.hass.locale?.language;
+    const keys = [...groups.keys()].sort((a, b) =>
+      !a || !b
+        ? Number(!a) - Number(!b)
+        : a.localeCompare(b, language, { numeric: true, sensitivity: "base" })
+    );
+    return keys.map(
+      (key) => html`
+        <section class="group">
+          <h2 class="group-title">
+            ${
+              key ||
+              this.hass.localize(
+                `ui.panel.config.scene.picker.group_no_${grouping}`
+              )
+            }
+            <span class="group-count">${groups.get(key)!.length}</span>
+          </h2>
+          <div class="grid">
+            ${groups.get(key)!.map((scene) => this._renderCard(scene))}
+          </div>
+        </section>
+      `
+    );
+  }
+
+  private _renderSortGroup() {
+    const localize = this.hass.localize;
+    const sortKey = `${this._sorting.column}_${this._sorting.direction}`;
+    const grouping = this._grouping;
+    return html`
+      <ha-dropdown @wa-select=${this._handleSort}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${localize("ui.panel.config.scene.picker.filter_value", {
+            name: localize("ui.panel.config.scene.picker.sort"),
+            value: localize(
+              `ui.panel.config.scene.picker.sort_${sortKey as (typeof SORT_OPTIONS)[number]}`
+            ),
+          })}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${SORT_OPTIONS.map(
+          (option) =>
+            html`<ha-dropdown-item
+              .value=${`sort_${option}`}
+              .selected=${option === sortKey}
+            >
+              ${localize(`ui.panel.config.scene.picker.sort_${option}`)}
+            </ha-dropdown-item>`
+        )}
+      </ha-dropdown>
+      <ha-dropdown @wa-select=${this._handleGroup}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${localize("ui.panel.config.scene.picker.filter_value", {
+            name: localize("ui.panel.config.scene.picker.group"),
+            value: localize(`ui.panel.config.scene.picker.group_${grouping}`),
+          })}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${GROUPINGS.map(
+          (option) =>
+            html`<ha-dropdown-item
+              .value=${`group_${option}`}
+              .selected=${option === grouping}
+            >
+              ${localize(`ui.panel.config.scene.picker.group_${option}`)}
+            </ha-dropdown-item>`
+        )}
+      </ha-dropdown>
+    `;
+  }
+
+  private _handleSort(ev: HaDropdownSelectEvent) {
+    const value = ev.detail.item.value;
+    if (!value?.startsWith("sort_")) {
+      return;
+    }
+    const [column, direction] = value.substring(5).split("_");
+    if (!SORT_COLUMNS.includes(column)) {
+      return;
+    }
+    const sorting = { column, direction } as SortingChangedEvent;
+    this._sorting = sorting;
+    this._tableSettings.sortingChanged({
+      detail: sorting,
+    } as HASSDomEvent<SortingChangedEvent>);
+  }
+
+  private _handleGroup(ev: HaDropdownSelectEvent) {
+    const value = ev.detail.item.value;
+    if (!value?.startsWith("group_")) {
+      return;
+    }
+    this._tableSettings.groupingChanged({
+      detail: { value: value.substring(6) },
+    } as unknown as HASSDomEvent<HASSDomEvents["grouping-changed"]>);
   }
 
   private _renderToolbar(searchLabel: string, filterCount: number) {
@@ -549,6 +734,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           : nothing
       }
       <span class="spacer"></span>
+      ${this._renderSortGroup()}
       <ha-icon-button
         .path=${mdiFormatListChecks}
         .label=${this.hass.localize(
@@ -1521,6 +1707,20 @@ ${rejected
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: var(--ha-space-4);
           padding-top: var(--ha-space-2);
+        }
+        .group {
+          padding-top: var(--ha-space-4);
+        }
+        .group-title {
+          margin: 0;
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--primary-text-color);
+        }
+        .group-count {
+          margin-inline-start: var(--ha-space-2);
+          font-weight: var(--ha-font-weight-normal);
+          color: var(--secondary-text-color);
         }
         .card {
           --card-tint: var(--ha-color-primary-60);

@@ -188,11 +188,8 @@ export class HaConfigPerson extends LitElement {
       <ha-card
         outlined
         class="person"
-        role="button"
-        tabindex="0"
         .entry=${person}
         @click=${this._openEditEntry}
-        @keydown=${this._cardKeydown}
       >
         <div class="top">
           <ha-person-badge
@@ -297,16 +294,6 @@ export class HaConfigPerson extends LitElement {
     ev.stopPropagation();
     const entry: Person = (ev.currentTarget! as any).entry;
     this._openDialog(entry);
-  }
-
-  private _cardKeydown(ev: KeyboardEvent) {
-    if (ev.target !== ev.currentTarget) {
-      return;
-    }
-    if (ev.key === "Enter" || ev.key === " ") {
-      ev.preventDefault();
-      this._openEditEntry(ev);
-    }
   }
 
   private _allowedUsers(users: User[], currentPerson?: Person) {
@@ -436,10 +423,6 @@ export class HaConfigPerson extends LitElement {
         border-radius: var(--ha-border-radius-3xl);
         background: var(--card-background-color);
         cursor: pointer;
-      }
-      .person:focus-visible {
-        outline: 3px solid var(--primary-color);
-        outline-offset: 2px;
       }
       .top {
         display: flex;

@@ -5,13 +5,18 @@ import {
   mdiCancel,
   mdiCog,
   mdiContentDuplicate,
+  mdiCounter,
   mdiDelete,
   mdiDotsVertical,
   mdiDownload,
+  mdiGoogleCirclesGroup,
   mdiMenuDown,
   mdiPlus,
   mdiProgressHelper,
+  mdiSigma,
   mdiTag,
+  mdiTimerOutline,
+  mdiToggleSwitchOutline,
   mdiTrashCan,
 } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
@@ -141,7 +146,8 @@ import {
   getAssistantsTableColumn,
 } from "../voice-assistants/expose/assistants-table-column";
 import { getAvailableAssistants } from "../voice-assistants/expose/available-assistants";
-import { isHelperDomain, type HelperDomain } from "./const";
+import { HELPER_DOMAINS, isHelperDomain, type HelperDomain } from "./const";
+import "./ha-helper-state-text";
 import { showHelperDetailDialog } from "./show-dialog-helper-detail";
 import { computeDomain } from "../../../common/entity/compute_domain";
 
@@ -157,6 +163,46 @@ function equalHelperEntity(
       a.attributes?.editable === b.attributes?.editable)
   );
 }
+
+// The kinds offered first in the "Create a helper" card. The last two are
+// config flows, so they are only offered when the instance has them.
+const QUICK_CREATE_KINDS: {
+  domain: string;
+  path: string;
+  nameKey: string;
+  descriptionKey: string;
+}[] = [
+  {
+    domain: "input_boolean",
+    path: mdiToggleSwitchOutline,
+    nameKey: "ui.panel.config.helpers.types.input_boolean",
+    descriptionKey: "ui.panel.config.helpers.picker.kinds.input_boolean",
+  },
+  {
+    domain: "counter",
+    path: mdiCounter,
+    nameKey: "ui.panel.config.helpers.types.counter",
+    descriptionKey: "ui.panel.config.helpers.picker.kinds.counter",
+  },
+  {
+    domain: "timer",
+    path: mdiTimerOutline,
+    nameKey: "ui.panel.config.helpers.types.timer",
+    descriptionKey: "ui.panel.config.helpers.picker.kinds.timer",
+  },
+  {
+    domain: "group",
+    path: mdiGoogleCirclesGroup,
+    nameKey: "ui.panel.config.helpers.picker.kinds.group_name",
+    descriptionKey: "ui.panel.config.helpers.picker.kinds.group",
+  },
+  {
+    domain: "template",
+    path: mdiSigma,
+    nameKey: "ui.panel.config.helpers.picker.kinds.template_name",
+    descriptionKey: "ui.panel.config.helpers.picker.kinds.template",
+  },
+];
 
 interface HelperItem {
   id: string;
@@ -243,6 +289,9 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
   @state() private _helperManifests?: Record<string, IntegrationManifest>;
 
   @state() private _diagnosticHandlers?: Record<string, boolean>;
+
+  // The kinds of helper that are set up through a config flow
+  @state() private _flowKinds?: string[];
 
   @state()
   private _filters: DataTableFiltersValues = {};
@@ -392,10 +441,6 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
               `
             : nothing,
       },
-      entity_id: getEntityIdTableColumn(localize),
-      category: getCategoryTableColumn(localize),
-      area: getAreaTableColumn(localize),
-      labels: getLabelsTableColumn(),
       localized_type: {
         title: localize("ui.panel.config.helpers.picker.headers.type"),
         sortable: true,
@@ -403,6 +448,20 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         groupable: true,
         urlName: "type",
       },
+      entity_id: getEntityIdTableColumn(localize),
+      state: {
+        title: localize("ui.panel.config.helpers.picker.headers.state"),
+        minWidth: "100px",
+        template: (helper) =>
+          helper.entity
+            ? html`<ha-helper-state-text
+                .entityId=${helper.entity_id}
+              ></ha-helper-state-text>`
+            : nothing,
+      },
+      category: getCategoryTableColumn(localize),
+      area: getAreaTableColumn(localize),
+      labels: getLabelsTableColumn(),
       editable: getEditableTableColumn(
         localize,
         localize("ui.panel.config.entities.picker.status.unmanageable")
@@ -701,9 +760,12 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
           "ui.panel.config.helpers.picker.search",
           { number: helpers.length }
         )}
-        .summary=${this.hass.localize("ui.panel.config.helpers.picker.summary", {
-          number: helpers.length,
-        })}
+        .summary=${this.hass.localize(
+          "ui.panel.config.helpers.picker.summary",
+          {
+            number: helpers.length,
+          }
+        )}
         selectable
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
@@ -742,6 +804,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         )}
         class=${this.narrow ? "narrow" : ""}
       >
+        ${this._renderCreateCard()}
         <ha-filter-floor-areas
           .type=${"entity"}
           .value=${this._filters["ha-filter-floor-areas"]}
@@ -895,6 +958,81 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         </ha-button>
       </hass-tabs-subpage-data-table>
     `;
+  }
+
+  /** The kinds people reach for most, one press from creating one. */
+  private _renderCreateCard() {
+    const flows = this._flowKinds;
+    const kinds = QUICK_CREATE_KINDS.filter(
+      (kind) => isHelperDomain(kind.domain) || flows?.includes(kind.domain)
+    );
+    const total = flows
+      ? new Set<string>([...HELPER_DOMAINS, ...flows]).size
+      : undefined;
+
+    return html`<section
+      slot="top-header"
+      class="create-card"
+      aria-labelledby="create-card-title"
+    >
+      <h2 id="create-card-title">
+        ${this.hass.localize("ui.panel.config.helpers.picker.create_title")}
+      </h2>
+      <ul class="kinds">
+        ${kinds.map(
+          (kind) =>
+            html`<li>
+              <button
+                type="button"
+                class="kind"
+                @click=${this._createKind}
+                data-domain=${kind.domain}
+              >
+                <span class="kind-icon">
+                  <ha-svg-icon .path=${kind.path}></ha-svg-icon>
+                </span>
+                <span class="kind-text">
+                  <span class="kind-name"
+                    >${this.hass.localize(kind.nameKey as LocalizeKeys)}</span
+                  >
+                  <span class="kind-description"
+                    >${this.hass.localize(kind.descriptionKey as LocalizeKeys)}</span
+                  >
+                </span>
+              </button>
+            </li>`
+        )}
+      </ul>
+      <ha-button appearance="plain" @click=${this._createHelper}>
+        ${
+          total === undefined
+            ? this.hass.localize(
+                "ui.panel.config.helpers.picker.see_all_kinds_unknown"
+              )
+            : this.hass.localize(
+                "ui.panel.config.helpers.picker.see_all_kinds",
+                {
+                  count: total,
+                }
+              )
+        }
+      </ha-button>
+    </section>`;
+  }
+
+  private async _createKind(ev: Event) {
+    const domain = (ev.currentTarget as HTMLElement).dataset.domain;
+    if (!domain) {
+      return;
+    }
+    if (isHelperDomain(domain)) {
+      showHelperDetailDialog(this, { domain });
+      return;
+    }
+    showConfigFlowDialog(this, {
+      startFlowHandler: domain,
+      manifest: await fetchIntegrationManifest(this.hass, domain),
+    });
   }
 
   private _filterExpanded(ev) {
@@ -1233,6 +1371,15 @@ ${rejected
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
     this._fetchEntitySources();
+
+    getConfigFlowHandlers(this.hass, "helper").then(
+      (flows) => {
+        this._flowKinds = flows;
+      },
+      () => {
+        // The card still offers the built-in kinds without the count
+      }
+    );
 
     if (isComponentLoaded(this.hass.config, "diagnostics")) {
       fetchDiagnosticHandlers(this.hass).then((infos) => {
@@ -1722,6 +1869,81 @@ ${rejected
         }
         ha-dropdown ha-assist-chip {
           --ha-assist-chip-trailing-space: 8px;
+        }
+        .create-card {
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--ha-space-3);
+          margin: 0 var(--ha-space-4) var(--ha-space-3);
+          padding: var(--ha-space-4);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
+        .create-card h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .kinds {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: var(--ha-space-2);
+          align-self: stretch;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .kind {
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          width: 100%;
+          min-height: 56px;
+          padding: var(--ha-space-2) var(--ha-space-3);
+          border: none;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color);
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
+        .kind:hover {
+          background: var(
+            --ha-color-fill-neutral-quiet-hover,
+            var(--divider-color)
+          );
+        }
+        .kind:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .kind-icon {
+          display: flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--card-background-color);
+          color: var(--secondary-text-color);
+        }
+        .kind-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .kind-name {
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .kind-description {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
         }
       `,
     ];

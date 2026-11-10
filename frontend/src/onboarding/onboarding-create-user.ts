@@ -6,6 +6,7 @@ import { customElement, query, state } from "lit/decorators";
 import { consume } from "../common/decorators/consume";
 import { fireEvent } from "../common/dom/fire_event";
 import { debounce } from "../common/util/debounce";
+import "../components/ha-alert";
 import "../components/ha-button";
 import "../components/ha-form/ha-form";
 import type { HaForm } from "../components/ha-form/ha-form";
