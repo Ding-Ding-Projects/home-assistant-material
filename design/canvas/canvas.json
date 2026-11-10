@@ -150,6 +150,60 @@
       "title": "Dim sum surprise",
       "expand": "fill",
       "page": "language"
+    },
+    "AppearanceType.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 860,
+      "title": "Edit appearance, type at Word depth",
+      "expand": "fill",
+      "page": "look"
+    },
+    "AppearanceLayers.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 860,
+      "title": "Edit appearance, layered fills",
+      "expand": "fill",
+      "page": "look"
+    },
+    "ColorPicker.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 740,
+      "title": "Infinite colour picker and translator",
+      "expand": "fill",
+      "page": "look"
+    },
+    "Fonts.dc.html": {
+      "x": 0,
+      "y": 980,
+      "w": 1200,
+      "h": 720,
+      "title": "Fonts and type scale",
+      "expand": "fill",
+      "page": "look"
+    },
+    "Accessibility.dc.html": {
+      "x": 1280,
+      "y": 980,
+      "w": 1200,
+      "h": 760,
+      "title": "Accessibility tools everywhere",
+      "expand": "fill",
+      "page": "look"
+    },
+    "Panels.dc.html": {
+      "x": 2560,
+      "y": 980,
+      "w": 1200,
+      "h": 760,
+      "title": "Resizable panels and folding filters",
+      "expand": "fill",
+      "page": "look"
     }
   },
   "order": [
@@ -164,7 +218,13 @@
     "Modes.dc.html",
     "Schedule.dc.html",
     "Identity.dc.html",
-    "DimSum.dc.html"
+    "DimSum.dc.html",
+    "AppearanceType.dc.html",
+    "AppearanceLayers.dc.html",
+    "ColorPicker.dc.html",
+    "Fonts.dc.html",
+    "Accessibility.dc.html",
+    "Panels.dc.html"
   ],
   "notes": {
     "t-screens": {
@@ -182,6 +242,14 @@
       "kind": "title1",
       "maxW": 5040,
       "page": "language"
+    },
+    "t-look": {
+      "x": 0,
+      "y": -300,
+      "text": "Material Design 3 and appearance",
+      "kind": "title1",
+      "maxW": 3760,
+      "page": "look"
     }
   },
   "designSystems": []

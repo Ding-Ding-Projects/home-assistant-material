@@ -1,0 +1,32 @@
+@@HEAD:Edit appearance, type@@
+@@SURF:Home, Living room card|Edit appearance|860@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: stretch; flex-wrap: wrap">
+<aside class="col" aria-label="The element being edited" style="flex: 1 1 380px; border-radius: 32px; background: var(--sl2); padding: 28px; gap: 16px; justify-content: center">
+<span class="lm mu">Editing: the title of the Living room card, at rest</span>
+<div class="card hero col" style="background: var(--pc); color: var(--on-pc); gap: 12px; padding: 28px">
+<div class="row" style="gap: 16px"><span class="sq">@@I:Lightbulb.l@@</span><div class="col grow"><span class="tl" style="font-weight: 700; letter-spacing: -.2px; box-shadow: 0 0 0 2px var(--p), 0 0 0 6px rgba(0,99,155,.18); border-radius: 6px; padding: 2px 6px; align-self: flex-start">Living room</span><span class="bm">3 lights, 2 on</span></div></div>
+<span class="dl">80%</span>
+</div>
+<span class="bs mu">The editor stays beside the element and never covers it. Closing it returns focus to the element.</span>
+</aside>
+<section class="card col" aria-label="Appearance editor" style="flex: 1 1 560px; gap: 16px; background: var(--sl0); box-shadow: var(--e3)">
+<div class="row" style="gap: 8px">@@I:DragHorizontalVariant@@<h2 class="tm grow">Title text</h2><button class="btn sm text">@@I:Undo.s@@Undo</button><button class="btn sm text">Reset element</button><button class="ib" aria-label="Close editor">@@I:Close@@</button></div>
+<div class="row" role="tablist" aria-label="Editor sections" style="gap: 4px"><button class="pt sel" role="tab" aria-selected="true">Type</button><button class="pt" role="tab" aria-selected="false">Paragraph</button><button class="pt" role="tab" aria-selected="false">Fill and layers</button><button class="pt" role="tab" aria-selected="false">Shape</button><button class="pt" role="tab" aria-selected="false">Effects</button></div>
+<div class="row" role="group" aria-label="State" style="gap: 8px; flex-wrap: wrap"><span class="lm mu">State</span><button class="chip sel" aria-pressed="true">Rest</button><button class="chip" aria-pressed="false">Hover</button><button class="chip" aria-pressed="false">Focus</button><button class="chip" aria-pressed="false">Pressed</button><button class="chip" aria-pressed="false">Selected</button><button class="chip" aria-pressed="false">Disabled</button></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px">
+<div class="col" style="gap: 6px; grid-column: span 2"><span class="lm mu">Font</span><button class="field" aria-haspopup="listbox"><span class="bl grow">Google Sans Flex</span><span class="bs mu">Bundled, 9 weights</span>@@I:MenuDown@@</button></div>
+<div class="col" style="gap: 6px"><span class="row lm mu">Weight<span class="grow"></span><button class="btn sm text" style="height: 16px; padding: 0">Reset</button></span><div class="field"><span class="bl grow">700 Bold</span><span class="tag p">Changed</span></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Size</span><div class="field"><span class="bl grow">22 px</span><button class="ib" style="width: 32px; height: 32px" aria-label="Smaller">@@I:Minus.s@@</button><button class="ib" style="width: 32px; height: 32px" aria-label="Larger">@@I:Plus.s@@</button></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Line height</span><div class="field"><span class="bl grow">28 px</span></div></div>
+<div class="col" style="gap: 6px"><span class="row lm mu">Letter spacing<span class="grow"></span><button class="btn sm text" style="height: 16px; padding: 0">Reset</button></span><div class="field"><span class="bl grow">-0.2 px</span><span class="tag p">Changed</span></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Width and optical size</span><div class="field"><span class="bl grow">100, automatic</span></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Colour</span><button class="field"><span style="width: 24px; height: 24px; border-radius: 8px; background: #004A76"></span><span class="bl grow">On primary container</span>@@I:Eyedropper.s@@</button></div>
+</div>
+<div class="row" role="group" aria-label="Character styles" style="gap: 4px; flex-wrap: wrap">
+<button class="ib t" aria-label="Bold" aria-pressed="true" style="background: var(--pc); color: var(--on-pc)">@@I:FormatBold@@</button><button class="ib t" aria-label="Italic" aria-pressed="false">@@I:FormatItalic@@</button><button class="ib t" aria-label="Underline" aria-pressed="false">@@I:FormatUnderline@@</button><button class="ib t" aria-label="Strikethrough" aria-pressed="false">@@I:FormatStrikethrough@@</button><button class="ib t" aria-label="Small capitals" aria-pressed="false">@@I:FormatLetterCase@@</button><button class="ib t" aria-label="Superscript" aria-pressed="false">@@I:FormatSuperscript@@</button><button class="ib t" aria-label="Subscript" aria-pressed="false">@@I:FormatSubscript@@</button><span class="grow"></span><button class="btn sm out">Number and ligature features</button>
+</div>
+<div class="row" style="gap: 8px"><span class="bs mu grow">2 changes on this element. Saved as you go, and listed in History.</span><button class="btn sm tonal">@@I:Lock.s@@Lock this look</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,860@@

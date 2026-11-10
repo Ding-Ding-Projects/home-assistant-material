@@ -1,0 +1,36 @@
+@@HEAD:Accessibility tools@@
+@@SURF:Everywhere, top bar|Accessibility tools|760@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: flex-start; flex-wrap: wrap">
+<section class="menu col" aria-label="Accessibility tools menu" style="flex: 1 1 440px; padding: 16px; gap: 4px; border-radius: 28px">
+<div class="row" style="gap: 12px; padding: 4px 12px 8px">@@I:HumanHandsup@@<h2 class="tm grow">Accessibility tools</h2><span class="kbd">Alt A</span></div>
+<div class="li"><span class="lead">@@I:FormatSize@@</span><span class="ll grow">Text size</span><button class="ib t" aria-label="Smaller text">@@I:Minus@@</button><span class="tm" style="width: 56px; text-align: center">125%</span><button class="ib t" aria-label="Larger text">@@I:Plus@@</button></div>
+<div class="li"><span class="lead">@@I:ContrastCircle@@</span><span class="ll grow">Contrast</span><div class="seg" role="group" aria-label="Contrast"><button aria-pressed="false">Standard</button><button class="sel" aria-pressed="true">More</button><button aria-pressed="false">Most</button></div></div>
+@@LI:MotionPauseOutline|Reduce motion|Following your device@@@@SW:on|Reduce motion@@@@/LI@@
+@@LI:SelectionEllipse|Always show focus|A thick ring on the focused control@@@@SW:on|Always show focus@@@@/LI@@
+@@LI:GestureTapButton|Larger targets|Every control at least 56 px@@@@SW:off|Larger targets@@@@/LI@@
+@@LI:AccountVoice|Read this page aloud|Skips passwords and codes@@<button class="btn sm tonal">@@I:Play.s@@Read</button>@@/LI@@
+@@LI:Keyboard|Keyboard help|Every shortcut on this page@@@@I:ChevronRight@@@@/LI@@
+<div class="div" style="margin: 8px 12px"></div>
+<button class="mi" style="color: var(--onv)">@@I:EyeOff@@<span class="bm grow">Hide this button…</span></button>
+<span class="bs mu" style="padding: 4px 12px">Your choices are kept even while the button is hidden.</span>
+</section>
+<section class="col" aria-label="Hiding the button asks first" style="flex: 1 1 420px; gap: 16px">
+<div class="dlg col" role="alertdialog" aria-label="Hide the accessibility button?" style="gap: 12px">
+<h2 class="hs">Hide the accessibility button?</h2>
+<p class="bl mu">Your text size, contrast and other choices stay as they are. To bring the button back, search settings for "accessibility", or reset appearance.</p>
+<div class="row" style="gap: 8px; justify-content: flex-end; margin-top: 8px"><button class="btn out" style="box-shadow: inset 0 0 0 1px var(--outv), 0 0 0 3px var(--sl0), 0 0 0 6px var(--p)">Cancel</button><button class="btn tonal">Hide it</button></div>
+<span class="bs mu">Cancel has focus when this opens.</span>
+</div>
+<div class="card col" style="gap: 12px">
+<span class="lm mu">The same page at Most contrast and 150% text</span>
+<div class="col" style="background: #000; color: #fff; border-radius: 20px; padding: 20px; gap: 8px; box-shadow: inset 0 0 0 2px #fff">
+<span style="font-size: 30px; line-height: 38px; font-weight: 600">Living room</span>
+<span style="font-size: 20px; line-height: 28px">3 lights, 2 on</span>
+<div class="row" style="gap: 12px; margin-top: 8px"><button class="btn lg" style="background: #FFE08B; color: #000; box-shadow: 0 0 0 3px #000, 0 0 0 6px #FFE08B; font-size: 20px">Turn off</button><button class="btn lg" style="box-shadow: inset 0 0 0 2px #fff; color: #fff; font-size: 20px">Dim</button></div>
+</div>
+<span class="bs mu">Nothing is cut off: layouts reflow from 100% to 200%.</span>
+</div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,760@@

@@ -1,0 +1,31 @@
+@@HEAD:Colour picker and translator@@
+@@SURF:Settings, Appearance|Any colour|740@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: stretch; flex-wrap: wrap">
+<section class="card col" aria-label="Pick a colour" style="flex: 1 1 480px; gap: 16px">
+<div role="slider" tabindex="0" aria-label="Saturation and lightness" aria-valuetext="Saturation 100 percent, lightness 61 percent" style="height: 280px; border-radius: 24px; position: relative; background: linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, #0094E8)"><span style="position: absolute; left: 84%; top: 32%; width: 28px; height: 28px; margin: -14px; border-radius: 14px; background: #00639B; box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.4)"></span></div>
+<div class="row" style="gap: 12px"><span class="lm mu" style="width: 48px">Hue</span><div role="slider" tabindex="0" aria-label="Hue" aria-valuemin="0" aria-valuemax="360" aria-valuenow="202" style="flex: 1; height: 24px; border-radius: 12px; position: relative; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)"><span style="position: absolute; left: 56%; top: -4px; width: 8px; height: 32px; margin-left: -4px; border-radius: 4px; background: #fff; box-shadow: 0 0 0 2px var(--on)"></span></div><span class="bm" style="width: 44px; text-align: right">202°</span></div>
+<div class="row" style="gap: 12px"><span class="lm mu" style="width: 48px">Alpha</span><div role="slider" tabindex="0" aria-label="Alpha" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" style="flex: 1; height: 24px; border-radius: 12px; position: relative; background: linear-gradient(to right, rgba(0,99,155,0), #00639B), repeating-conic-gradient(#DDD 0 25%, #FFF 0 50%) 0 0 / 12px 12px"><span style="position: absolute; left: 100%; top: -4px; width: 8px; height: 32px; margin-left: -8px; border-radius: 4px; background: #fff; box-shadow: 0 0 0 2px var(--on)"></span></div><span class="bm" style="width: 44px; text-align: right">100%</span></div>
+<div class="row" style="gap: 12px; flex-wrap: wrap">
+<button class="btn sm out">@@I:Eyedropper.s@@Pick from screen</button>
+<button class="btn sm out" style="background: conic-gradient(#D33,#DA2,#3A5,#28C,#84C,#D33); color: #fff; box-shadow: none">Animated rainbow</button>
+<span class="row bs mu" style="gap: 8px">Rainbow speed<span class="seg" role="group" aria-label="Rainbow speed" style="background: var(--sl0)"><button aria-pressed="false" style="height: 32px; padding: 0 12px">Slow</button><button class="sel" aria-pressed="true" style="height: 32px; padding: 0 12px">Medium</button><button aria-pressed="false" style="height: 32px; padding: 0 12px">Fast</button></span></span>
+</div>
+<span class="bs mu">With reduced motion on, the rainbow rests on a single hue.</span>
+</section>
+<section class="col" aria-label="Translate and check" style="flex: 1 1 440px; gap: 16px">
+<div class="row" style="gap: 16px"><span style="width: 88px; height: 88px; border-radius: 28px; background: #00639B; flex: none"></span><div class="col grow" style="gap: 2px"><span class="hs">Ocean blue</span><span class="bm mu">Nearest named colour: Sea blue</span><span class="row bs mu" style="gap: 8px"><span class="tag g">Inside sRGB</span><span class="tag">Display P3 ready</span></span></div></div>
+<div class="col" style="gap: 4px">
+<div class="li" style="min-height: 48px; background: var(--sl2)"><span class="lm mu" style="width: 72px">HEX</span><span class="bl mono grow">#00639B</span><button class="ib" style="width: 36px; height: 36px" aria-label="Copy HEX">@@I:ContentCopy.s@@</button></div>
+<div class="li" style="min-height: 48px"><span class="lm mu" style="width: 72px">RGB</span><span class="bl mono grow">rgb(0 99 155 / 100%)</span><button class="ib" style="width: 36px; height: 36px" aria-label="Copy RGB">@@I:ContentCopy.s@@</button></div>
+<div class="li" style="min-height: 48px; background: var(--sl2)"><span class="lm mu" style="width: 72px">HSL</span><span class="bl mono grow">hsl(202 100% 30%)</span><button class="ib" style="width: 36px; height: 36px" aria-label="Copy HSL">@@I:ContentCopy.s@@</button></div>
+<div class="li" style="min-height: 48px"><span class="lm mu" style="width: 72px">OKLCH</span><span class="bl mono grow">oklch(48.2% 0.117 242.6)</span><button class="ib" style="width: 36px; height: 36px" aria-label="Copy OKLCH">@@I:ContentCopy.s@@</button></div>
+<div class="li" style="min-height: 48px; background: var(--sl2)"><span class="lm mu" style="width: 72px">CIELAB</span><span class="bl mono grow">lab(40.1 -6.2 -37.4)</span><button class="ib" style="width: 36px; height: 36px" aria-label="Copy CIELAB">@@I:ContentCopy.s@@</button></div>
+<div class="li" style="min-height: 48px"><span class="lm mu" style="width: 72px">CMYK</span><span class="bl mono grow">100 36 0 39</span><span class="tag a">Approximate</span><button class="ib" style="width: 36px; height: 36px" aria-label="Copy CMYK">@@I:ContentCopy.s@@</button></div>
+</div>
+<div class="row" style="gap: 8px; flex-wrap: wrap"><button class="chip">HEX8</button><button class="chip">HSV</button><button class="chip">HWB</button><button class="chip">LCH</button><button class="chip">OKLab</button><button class="chip">Named</button></div>
+<div class="note ok">@@I:ContrastCircle@@<span class="bm grow">White text on this colour: 6.4 to 1. Good for all text sizes.</span></div>
+<div class="row" style="gap: 8px"><span class="grow"></span><button class="btn out">Cancel</button><button class="btn fill">Use this colour</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,740@@

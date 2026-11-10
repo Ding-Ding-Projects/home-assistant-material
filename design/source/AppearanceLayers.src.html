@@ -1,0 +1,30 @@
+@@HEAD:Edit appearance, fill and layers@@
+@@SURF:Home, Living room card|Edit appearance, fill and layers|860@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: stretch; flex-wrap: wrap">
+<aside class="col" aria-label="Live preview" style="flex: 1 1 400px; border-radius: 32px; background: var(--sl2); padding: 28px; gap: 16px; justify-content: center">
+<span class="lm mu">Editing: the background of the Living room card</span>
+<div class="card hero col" style="background: linear-gradient(160deg, #CEE5FF 0%, #EEDBFF 100%); color: var(--on-pc); gap: 12px; padding: 28px; box-shadow: 0 0 0 2px var(--p), 0 0 0 6px rgba(0,99,155,.18)">
+<div class="row" style="gap: 16px"><span class="sq">@@I:Lightbulb.l@@</span><div class="col grow"><span class="tl">Living room</span><span class="bm">3 lights, 2 on</span></div></div>
+<span class="dl">80%</span>
+</div>
+<div class="note" style="background: var(--sl0)">@@I:ContrastCircle@@<span class="bm">Text contrast on this background is 7.9 to 1. Passes.</span></div>
+</aside>
+<section class="card col" aria-label="Layers" style="flex: 1 1 560px; gap: 12px; background: var(--sl0); box-shadow: var(--e3)">
+<div class="row" style="gap: 8px">@@I:DragHorizontalVariant@@<h2 class="tm grow">Card background</h2><button class="btn sm text">@@I:Undo.s@@Undo</button><button class="ib" aria-label="Close editor">@@I:Close@@</button></div>
+<div class="row" style="gap: 8px"><span class="lm mu grow">Layers, top first. Nothing is flattened, every layer can be changed later.</span><button class="btn sm tonal">@@I:Plus.s@@Add layer</button></div>
+<div class="li" style="background: var(--sl2)">@@I:DragVertical@@<span class="lead" style="background: linear-gradient(160deg, transparent, #EEDBFF)"></span><span class="col grow"><span class="ll">Gradient</span><span class="bs mu">Linear 160°, clear to plum 100</span></span><span class="tag">Normal</span><span class="bm mu">100%</span><button class="ib" aria-label="Hide layer" aria-pressed="false">@@I:Eye@@</button></div>
+<div class="li sel">@@I:DragVertical@@<span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:ImageOutline@@</span><span class="col grow"><span class="ll">Picture, living-room.jpg</span><span class="bs">Fill, focal point left, masked to the card</span></span><span class="tag" style="background: var(--sl0)">Soft light</span><span class="bm">40%</span><button class="ib" aria-label="Hide layer" aria-pressed="false">@@I:Eye@@</button></div>
+<div class="li" style="background: var(--sl2)">@@I:DragVertical@@<span class="lead" style="background: var(--sl0)">@@I:TuneVertical@@</span><span class="col grow"><span class="ll">Adjustment on the picture</span><span class="bs mu">Brightness +8, saturation -20, blur 6 px</span></span><span class="tag">Clipped</span><button class="ib" aria-label="Show layer" aria-pressed="true">@@I:EyeOff@@</button></div>
+<div class="li" style="background: var(--sl2)">@@I:DragVertical@@<span class="lead" style="background: #CEE5FF"></span><span class="col grow"><span class="ll">Solid colour</span><span class="bs mu">Primary container, follows the theme</span></span><span class="tag">Normal</span><span class="bm mu">100%</span><button class="ib" aria-label="Hide layer" aria-pressed="false">@@I:Eye@@</button></div>
+<div class="div"></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="col" style="gap: 6px"><span class="lm mu">Blend</span><button class="field" aria-haspopup="listbox"><span class="bl grow">Soft light</span>@@I:MenuDown@@</button></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Opacity</span><div class="field"><div class="track grow" role="slider" tabindex="0" aria-label="Layer opacity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40"><b style="width: 40%"></b></div><span class="bm">40%</span></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Mask</span><button class="field" aria-haspopup="listbox"><span class="bl grow">Card shape</span>@@I:MenuDown@@</button></div>
+</div>
+<div class="row" style="gap: 8px; flex-wrap: wrap"><button class="btn sm out">@@I:Crop.s@@Crop and focal point</button><button class="btn sm out">@@I:TuneVertical.s@@Levels and curves</button><button class="btn sm out">@@I:Blur.s@@Filters</button><button class="btn sm out">@@I:SelectionEllipse.s@@Edit mask</button></div>
+<div class="row" style="gap: 8px"><span class="bs mu grow">Applies to Rest. Hover, Focus and Pressed can each have their own layers.</span><button class="btn sm text">Reset layers</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,860@@

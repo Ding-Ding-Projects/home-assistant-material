@@ -1,0 +1,31 @@
+@@HEAD:Panels and filters@@
+@@SURF:Settings, Devices and services|Devices|760@@
+<div class="col grow" style="padding: 8px 40px 40px; gap: 16px; position: relative">
+<div class="row" style="gap: 12px; flex-wrap: wrap">
+<button class="chip sel" aria-expanded="false" aria-controls="filters">@@I:FilterVariant.s@@Filters, 2 active@@I:ChevronDown.s@@</button>
+<span class="tag p">Area: Living room<button aria-label="Remove the Living room filter" style="margin-left: 6px">@@I:Close.s@@</button></span>
+<span class="tag p">Battery below 30%<button aria-label="Remove the battery filter" style="margin-left: 6px">@@I:Close.s@@</button></span>
+<span class="grow"></span>
+<button class="chip" aria-expanded="false" aria-controls="stats">@@I:ChartBox.s@@Statistics@@I:ChevronDown.s@@</button>
+</div>
+<span class="bs mu">Filters and statistics start folded. A folded filter always says how many filters are on.</span>
+<div class="col" style="gap: 4px; max-width: 620px">
+@@LI:MotionSensor|Hallway motion sensor|Battery 22%, last seen 2 minutes ago@@<span class="tag e">Low battery</span>@@/LI@@
+@@LI:DoorOpen|Balcony door sensor|Battery 18%, last seen 9 minutes ago@@<span class="tag e">Low battery</span>@@/LI@@
+@@LI:Remote|Sofa remote|Battery 27%, last seen 1 hour ago@@<span class="tag a">Getting low</span>@@/LI@@
+</div>
+<section class="menu col" role="dialog" aria-label="Hallway motion sensor details" style="position: absolute; right: 48px; top: 96px; width: 460px; min-height: 420px; padding: 0; border-radius: 28px; overflow: hidden">
+<div class="row" style="gap: 8px; padding: 12px 12px 12px 20px; background: var(--sl3); cursor: move">@@I:DragHorizontalVariant@@<h2 class="tm grow">Hallway motion sensor</h2><button class="ib" aria-label="Reset size and position">@@I:Restore@@</button><button class="ib" aria-label="Close panel">@@I:Close@@</button></div>
+<div class="col grow" style="padding: 20px; gap: 12px; overflow: auto">
+<div class="row" style="gap: 16px"><span class="dm">22%</span><div class="col"><span class="ll">Battery</span><span class="bs mu">CR2450, about 3 weeks left</span></div></div>
+<div class="track" role="img" aria-label="Battery 22 percent"><b style="width: 22%; background: var(--err)"></b></div>
+@@LI:MotionSensor|Motion|Clear for 2 minutes@@@@/LI@@
+@@LI:Thermometer|Temperature|20.9°@@@@/LI@@
+@@LI:Brightness6|Light level|14 lux@@@@/LI@@
+</div>
+<span aria-hidden="true" style="position: absolute; right: 6px; bottom: 6px; width: 18px; height: 18px; border-right: 3px solid var(--out); border-bottom: 3px solid var(--out); border-radius: 0 0 14px 0"></span>
+</section>
+<div class="note" style="max-width: 620px; margin-top: auto">@@I:ArrowExpandAll@@<span class="bm">Panels drag by their header and resize from any edge or corner, with the mouse or with Alt and the arrow keys. They stay inside the window, scroll when content does not fit, and remember their size and place for each page.</span></div>
+</div>
+@@/SURF@@
+@@TAIL:1200,760@@
