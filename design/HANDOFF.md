@@ -239,3 +239,18 @@ Open after this pass:
 - The audit counted 22 browser boxes; the code has 18 calls today. The board lists the 18.
 - The QR code on the locks board is a labelled place; the app draws it from the secret.
 - Cantonese copy on the new boards needs a native review.
+
+### The project page, redrawn (10 November 2026)
+
+The first project page was too thin. It is now an app-like page that carries every feature the
+project owes a project page (69, checked by a hand-written list in `docs/site/check_site.py`),
+each with its own article and its honest state in the product.
+
+- `docs/site/index.html`, `app.js`, `app.css` and `data.js` (written by `build_site.py`) are the
+  page. It runs in the browser only and requests nothing outside its own folder.
+- The four first boards on `15-site` are replaced by 14 boards drawn from the live page by
+  `source/pages/site_boards.py`: Home light and dark, Features, an article, Settings, Tools, the
+  palette, the element menu, the appearance editor, the pattern workbench, a lock's keypad, and
+  three phone boards (light, dark Settings, and English and Cantonese together).
+- Open: Cantonese covers the page's own labels and messages; the 69 articles are English, and the
+  page says so in Cantonese mode. The QR code for one-time codes is still to build.

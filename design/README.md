@@ -1,7 +1,7 @@
 # Design
 
 Design files for the Material Design 3 interface, kept in the repository so every canvas can be
-read back from here alone. 187 boards on 15 canvases, at most 15 boards on each.
+read back from here alone. 197 boards on 15 canvases, at most 15 boards on each.
 
 | Folder | Boards | What it holds |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ read back from here alone. 187 boards on 15 canvases, at most 15 boards on each.
 | `canvases/12-polish` | 10 | Polish pass: pattern workbench, element tools, lock wizard, unlock prompt and list of locks, phone and wide |
 | `canvases/13-polish` | 11 | Polish pass: personal settings, guided setup list and wizard, setup guidance, developer tools on the rail, media search |
 | `canvases/14-decisions` | 9 | The audit's decisions: phone bottom bar, open pages on a phone, picking by touch, replacing browser boxes, two-step confirmation, locks and workbench still to build, settings still to build |
-| `canvases/15-site` | 4 | The project page, wide and phone, light and dark; the live page is `docs/site/` |
+| `canvases/15-site` | 14 | The project page: every tab and tool, the palette, element menu, appearance editor, workbench and lock keypad, wide and phone, light and dark, drawn from the live page in `docs/site/` |
 
 In each canvas folder, `canvas.json` is the index (one entry per board with its frame and title)
 and every `*.dc.html` is one board, a self-contained page.
