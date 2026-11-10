@@ -1,0 +1,21 @@
+@@HEAD:Notifications@@
+@@SURF:Alerts|Notifications|700@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: stretch; flex-wrap: wrap">
+<section class="col" aria-label="Notification centre" style="flex: 2 1 560px; gap: 4px">
+<div class="row" style="gap: 12px; margin-bottom: 8px"><div class="find grow"><span class="row grow" style="gap: 12px">@@I:Magnify@@<span class="bl">Search notifications</span></span><button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search">@@I:Regex@@</button></div><button class="chip">@@I:CheckboxMultipleMarked.s@@Select</button><button class="btn sm text">Clear read</button></div>
+<div class="li" style="background: var(--errc); color: var(--on-errc)"><span class="lead" style="background: var(--sl0); color: var(--err)">@@I:AlertCircle@@</span><span class="col grow"><span class="ll">Robot vacuum could not sign in</span><span class="bs">21:02. The vacuum refused the pairing code. Stays until you act.</span></span><button class="btn sm" style="background: var(--sl0); color: var(--on)">Try another code</button></div>
+<div class="li" style="background: var(--amberc); color: var(--amber)"><span class="lead" style="background: var(--sl0); color: var(--amber)">@@I:BatteryAlert@@</span><span class="col grow"><span class="ll">2 batteries are low</span><span class="bs">20:40. Hallway motion sensor 22%, Balcony door sensor 18%.</span></span><button class="btn sm" style="background: var(--sl0); color: var(--on)">Show them</button></div>
+@@LI:Update|Update installed|20:15. Home Assistant Material 2026.11.1.42 is running.@@<button class="btn sm text">What changed</button>@@/LI@@
+@@LI:Check|4 devices added|19:58. Kitchen speaker, Living room TV, Hallway thermostat, Hue bridge.@@@@/LI@@
+@@LI:Export|Export finished|19:31. home-export.7z, 48 MB.@@<button class="btn sm text">Show file</button>@@/LI@@
+<span class="bs mu" style="padding: 8px 16px">Dismissed notifications are kept here for 30 days. Only real decisions use a dialog.</span>
+</section>
+<aside class="col" aria-label="Toasts in the bottom corner" style="flex: 1 1 340px; border-radius: 32px; background: var(--sl2); padding: 24px; gap: 12px; justify-content: flex-end">
+<span class="lm mu" style="margin-bottom: auto">Bottom corner of any screen. They stack, never overlap, and never take focus.</span>
+<div class="row" role="status" style="gap: 12px; background: var(--inv); color: var(--on-inv); border-radius: 20px; padding: 12px 12px 12px 20px"><span class="col grow"><span class="ll">Exporting, 62%</span><div class="track" role="progressbar" aria-label="Export progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" style="margin-top: 6px; background: rgba(255,255,255,.25)"><b style="width: 62%; background: var(--on-inv)"></b></div></span><button class="btn sm text" style="color: var(--on-inv)">Cancel</button></div>
+<div class="row" role="status" style="gap: 12px; background: var(--inv); color: var(--on-inv); border-radius: 20px; padding: 12px 12px 12px 20px">@@I:Check@@<span class="ll grow">Scene "Movie night" is on</span><button class="btn sm text" style="color: var(--on-inv)">Undo</button><button class="ib" aria-label="Dismiss" style="width: 40px; height: 40px; color: var(--on-inv)">@@I:Close@@</button></div>
+<span class="bs mu">Goes away after 6 seconds. Warnings and errors stay.</span>
+</aside>
+</div>
+@@/SURF@@
+@@TAIL:1200,700@@

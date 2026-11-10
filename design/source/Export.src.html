@@ -1,0 +1,24 @@
+@@HEAD:Export@@
+@@SURF:Settings, History and export|Export|700@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+<section class="col" aria-label="What to export" style="flex: 1 1 440px; gap: 4px">
+<p class="bl mu" style="padding: 0 0 12px">Everything you make here can leave with you, in every format that can carry it.</p>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" checked aria-label="Dashboards" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Dashboards</span><span class="bs mu">4 dashboards, 61 cards</span></span><span class="tag">YAML, JSON</span></label>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" checked aria-label="Automations and scenes" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Automations and scenes</span><span class="bs mu">18 automations, 6 scenes</span></span><span class="tag">YAML, JSON</span></label>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" checked aria-label="History of readings" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">History of readings</span><span class="bs mu">14 million rows, choose a date range</span></span><span class="tag">CSV, Parquet, SQLite</span></label>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" checked aria-label="Appearance and settings" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Appearance and settings</span><span class="bs mu">Theme, fonts, schedules, focus modes</span></span><span class="tag">JSON</span></label>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" aria-label="Locks and authenticator accounts" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Locks and authenticator accounts</span><span class="bs mu">Secrets. Only inside an encrypted archive.</span></span><span class="tag e">Sensitive</span></label>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" checked aria-label="Activity log" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Activity log and notifications</span><span class="bs mu">Last 10 days</span></span><span class="tag">CSV, JSON, Markdown</span></label>
+</section>
+<aside class="card col" aria-label="How to export" style="flex: 1 1 440px; gap: 14px">
+<div class="col" style="gap: 6px"><span class="lm mu">Readings format</span><div class="seg" role="group" aria-label="Readings format" style="background: var(--sl0)"><button class="sel" aria-pressed="true">CSV</button><button aria-pressed="false">Parquet</button><button aria-pressed="false">SQLite</button></div></div>
+<div class="note warn" style="padding: 12px">@@I:AlertCircle@@<span class="bm">CSV cannot carry units per column. Units go in a second header row. Parquet keeps them.</span></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Package as</span><div class="seg" role="group" aria-label="Package" style="background: var(--sl0)"><button aria-pressed="false">Loose files</button><button aria-pressed="false">ZIP</button><button class="sel" aria-pressed="true">7z</button></div></div>
+@@LI:FolderLock|Encrypt the archive and its file names|AES-256, you choose the password@@@@SW:on|Encrypt the archive and its file names@@@@/LI@@
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px"><div class="field" style="background: var(--sl0)"><span class="col grow"><span class="bs mu">Compression</span><span class="bm">Normal, LZMA2</span></span>@@I:MenuDown@@</div><div class="field" style="background: var(--sl0)"><span class="col grow"><span class="bs mu">Split into parts</span><span class="bm">No</span></span>@@I:MenuDown@@</div></div>
+<span class="bs mu">Text files: UTF-8, LF line endings, schema version 3. Paths inside the archive are relative. Can be imported back here.</span>
+<div class="row" style="gap: 8px"><button class="btn out">@@I:MicrosoftVisualStudioCode@@Open in VS Code</button><span class="grow"></span><button class="btn lg fill">@@I:Export@@Export 5 groups</button></div>
+</aside>
+</div>
+@@/SURF@@
+@@TAIL:1200,700@@

@@ -1,0 +1,30 @@
+@@HEAD:Bulk actions@@
+@@SURF:Settings, Devices and services|Entities|700@@
+<div class="col grow" style="padding: 8px 40px 40px; gap: 12px">
+<div class="row" style="gap: 12px; background: var(--inv); color: var(--on-inv); border-radius: 24px; padding: 8px 8px 8px 20px; flex-wrap: wrap">
+<span class="tm">4 selected</span><button class="btn sm text" style="color: var(--on-inv)">Select all 7 on this page</button><button class="btn sm text" style="color: var(--on-inv)">Select all 38 matches</button><button class="btn sm text" style="color: var(--on-inv)">Invert</button>
+<span class="grow"></span>
+<button class="btn sm" style="background: var(--sl0); color: var(--on)">@@I:HomeMapMarker.s@@Move to area</button><button class="btn sm" style="background: var(--sl0); color: var(--on)">@@I:LabelOutline.s@@Label</button><button class="btn sm" style="background: var(--sl0); color: var(--on)">@@I:EyeOff.s@@Hide</button><button class="btn sm" style="background: var(--sl0); color: var(--on)">@@I:Export.s@@Export</button><button class="btn sm" style="background: var(--errc); color: var(--on-errc)">@@I:Delete.s@@Remove</button><button class="ib" aria-label="Clear selection" style="color: var(--on-inv)">@@I:Close@@</button>
+</div>
+<div class="row" style="gap: 24px; align-items: flex-start; flex-wrap: wrap">
+<div class="col" role="listbox" aria-multiselectable="true" aria-label="Entities" style="flex: 2 1 560px; gap: 4px">
+<label class="li sel"><input type="checkbox" checked aria-label="Ceiling lights" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Ceiling lights</span><span class="bs mono">light.living_ceiling</span></span><span class="bm">Living room</span>@@SW:on|Ceiling lights@@</label>
+<label class="li sel"><input type="checkbox" checked aria-label="Shelf lights" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Shelf lights</span><span class="bs mono">light.living_shelf</span></span><span class="bm">Living room</span>@@SW:on|Shelf lights@@</label>
+<label class="li"><input type="checkbox" aria-label="Floor lamp" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Floor lamp</span><span class="bs mu mono">light.living_floor</span></span><span class="bm mu">Living room</span>@@SW:off|Floor lamp@@</label>
+<label class="li sel"><input type="checkbox" checked aria-label="Counter lights" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Counter lights</span><span class="bs mono">light.kitchen_counter</span></span><span class="bm">Kitchen</span>@@SW:on|Counter lights@@</label>
+<label class="li sel"><input type="checkbox" checked aria-label="Hue bridge status" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Hue bridge status</span><span class="bs mono">binary_sensor.hue_bridge</span></span><span class="bm">No area</span><span class="tag" style="background: var(--sl0)">Read only</span></label>
+<label class="li"><input type="checkbox" aria-label="Bedside lamps" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Bedside lamps</span><span class="bs mu mono">light.bedroom_bedside</span></span><span class="bm mu">Bedroom</span>@@SW:off|Bedside lamps@@</label>
+<span class="bs mu" style="padding: 8px 16px">Click, Shift click for a range, or Space and Shift with the arrow keys.</span>
+</div>
+<aside class="dlg col" role="dialog" aria-label="Review: move 4 entities to Living room" style="flex: 1 1 340px; gap: 12px; padding: 24px">
+<h2 class="tm">Move 4 entities to Living room</h2>
+<span class="row bm" style="gap: 12px; color: var(--green)">@@I:Check.s@@1 will move: Counter lights</span>
+<span class="row bm mu" style="gap: 12px">@@I:Minus.s@@2 already there: Ceiling lights, Shelf lights</span>
+<span class="row bm" style="gap: 12px; color: var(--err)">@@I:AlertCircle.s@@1 skipped: Hue bridge status follows its device's area</span>
+<div class="track" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><b style="width: 0"></b></div>
+<div class="row" style="gap: 8px"><span class="bs mu grow">One entry in History. Undo brings all of them back.</span><button class="btn out">Cancel</button><button class="btn fill">Move 1</button></div>
+</aside>
+</div>
+</div>
+@@/SURF@@
+@@TAIL:1200,700@@

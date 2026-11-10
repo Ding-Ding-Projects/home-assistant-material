@@ -321,6 +321,60 @@
       "title": "QR pairing for an authenticator",
       "expand": "fill",
       "page": "safety"
+    },
+    "History.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Local version history",
+      "expand": "fill",
+      "page": "records"
+    },
+    "Export.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Export everything, every format",
+      "expand": "fill",
+      "page": "records"
+    },
+    "Bulk.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Bulk actions on any list",
+      "expand": "fill",
+      "page": "records"
+    },
+    "Changelog.dc.html": {
+      "x": 0,
+      "y": 820,
+      "w": 1200,
+      "h": 700,
+      "title": "Changelog viewer with date range",
+      "expand": "fill",
+      "page": "records"
+    },
+    "Docs.dc.html": {
+      "x": 1280,
+      "y": 820,
+      "w": 1200,
+      "h": 700,
+      "title": "Offline help articles",
+      "expand": "fill",
+      "page": "records"
+    },
+    "Notifications.dc.html": {
+      "x": 2560,
+      "y": 820,
+      "w": 1200,
+      "h": 700,
+      "title": "Notification centre and toasts",
+      "expand": "fill",
+      "page": "records"
     }
   },
   "order": [
@@ -354,7 +408,13 @@
     "Ladder.dc.html",
     "SupportTickets.dc.html",
     "Authenticator.dc.html",
-    "QrPairing.dc.html"
+    "QrPairing.dc.html",
+    "History.dc.html",
+    "Export.dc.html",
+    "Bulk.dc.html",
+    "Changelog.dc.html",
+    "Docs.dc.html",
+    "Notifications.dc.html"
   ],
   "notes": {
     "t-screens": {
@@ -396,6 +456,14 @@
       "kind": "title1",
       "maxW": 3760,
       "page": "safety"
+    },
+    "t-records": {
+      "x": 0,
+      "y": -300,
+      "text": "Records, history and messages",
+      "kind": "title1",
+      "maxW": 3760,
+      "page": "records"
     }
   },
   "designSystems": []
