@@ -1,0 +1,42 @@
+@@HEAD:New tab catalog@@
+<div class="stage" style="min-height: 660px"><main class="pane">
+<header class="bar">
+<div class="row" role="tablist" aria-label="Open pages" style="gap: 4px; flex-wrap: wrap">
+<button class="pt" role="tab" aria-selected="false">Home</button><button class="pt" role="tab" aria-selected="false">Energy</button><button class="pt" role="tab" aria-selected="false">Map</button><button class="pt" role="tab" aria-selected="false">Media</button><button class="pt" role="tab" aria-selected="false">Tools</button><button class="pt" role="tab" aria-selected="false">Settings</button>
+<button class="pt sel" role="tab" aria-selected="true">New tab@@I:Close.s@@</button>
+<button class="ib" aria-label="New tab" style="width: 40px; height: 40px">@@I:Plus@@</button>
+</div>
+<span class="grow"></span>
+<button class="btn sm tonal">@@I:TabPlus.s@@Open every tab</button>
+</header>
+<div class="col grow" style="padding: 16px 48px 40px; gap: 24px">
+<div class="row" style="gap: 16px; flex-wrap: wrap; align-items: flex-end">
+<div class="col grow" style="gap: 4px; min-width: 280px"><h1 class="hl">Open a tab</h1><p class="bl mu">Every page, tool and setting can be a tab. Tabs you close stay closed until you open them here.</p></div>
+<div class="find" style="width: 360px"><span class="row grow" style="gap: 12px">@@I:Magnify@@<span class="bl">Find a page, tool or setting</span></span><button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search">@@I:Regex@@</button></div>
+</div>
+<section class="col" aria-label="Pages" style="gap: 12px"><h2 class="tm mu">Pages</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px">
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:ViewDashboard@@</span><span class="col grow"><span class="ll">Home</span><span class="bs mu">Open</span></span></button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:LightningBolt@@</span><span class="col grow"><span class="ll">Energy</span><span class="bs mu">Open</span></span></button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Map@@</span><span class="col grow"><span class="ll">Map</span><span class="bs mu">Open</span></span></button>
+<button class="li" style="background: var(--pc); color: var(--on-pc)"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:FormatListBulleted@@</span><span class="col grow"><span class="ll">Activity</span><span class="bs">Closed by you, open it</span></span>@@I:Plus@@</button>
+<button class="li" style="background: var(--pc); color: var(--on-pc)"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:History@@</span><span class="col grow"><span class="ll">History</span><span class="bs">New in this version</span></span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:PlayBoxMultiple@@</span><span class="col grow"><span class="ll">Media</span><span class="bs mu">Open</span></span></button>
+<button class="li" style="background: var(--pc); color: var(--on-pc)"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:Calendar@@</span><span class="col grow"><span class="ll">Calendar</span><span class="bs">Closed by you, open it</span></span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Cog@@</span><span class="col grow"><span class="ll">Settings</span><span class="bs mu">Open</span></span></button>
+</div></section>
+<section class="col" aria-label="Tools" style="gap: 12px"><h2 class="tm mu">Tools</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px">
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Regex@@</span><span class="ll grow">Pattern workbench</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:FileSwap@@</span><span class="ll grow">File converter</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:ShieldKey@@</span><span class="ll grow">Authenticator</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Draw@@</span><span class="ll grow">Drawing board</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:Puzzle@@</span><span class="ll grow">Extensions</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:BookOpenVariant@@</span><span class="ll grow">Help articles</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:History@@</span><span class="ll grow">Version history</span>@@I:Plus@@</button>
+<button class="li" style="background: var(--sl2)"><span class="lead">@@I:DotsHorizontal@@</span><span class="ll grow">All 14 tools</span>@@I:ChevronRight@@</button>
+</div></section>
+<span class="bs mu">A fresh install opens every page in order. An update opens only pages you have never been offered. Visiting a page from a menu never adds a tab by itself.</span>
+</div>
+</main></div>
+@@TAIL:1200,660@@

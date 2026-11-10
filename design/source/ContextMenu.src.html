@@ -1,0 +1,28 @@
+@@HEAD:Context menu@@
+@@SURF:Home, Rooms|Context menu on any element|720@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+<div class="col" style="flex: 1 1 420px; gap: 16px; position: relative">
+<span class="lm mu">Right-click, long press, or Shift F10 on anything</span>
+<div class="li sel" style="box-shadow: 0 0 0 3px var(--sl0), 0 0 0 6px var(--p)"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:Sofa@@</span><span class="col grow"><span class="ll">Living room</span><span class="bs">2 on, 21.4°</span></span>@@I:ChevronRight@@</div>
+<div class="li" style="background: var(--sl2)"><span class="lead">@@I:SilverwareForkKnife@@</span><span class="col grow"><span class="ll">Kitchen</span><span class="bs mu">2 on, 22.0°</span></span>@@I:ChevronRight@@</div>
+<div class="li" style="background: var(--sl2)"><span class="lead">@@I:Bed@@</span><span class="col grow"><span class="ll">Bedroom</span><span class="bs mu">All off, 19.8°</span></span>@@I:ChevronRight@@</div>
+<div class="note" style="margin-top: 16px">@@I:Keyboard@@<span class="bm">Each shortcut shown is the one that works right here. It comes from the same list that registers the keys, so the two cannot disagree.</span></div>
+</div>
+<section class="menu col" role="menu" aria-label="Living room" style="flex: 0 1 420px; border-radius: 24px">
+<div class="find" style="height: 44px; margin: 4px 4px 8px; padding-left: 12px; background: var(--sl3); box-shadow: inset 0 0 0 2px var(--p)">@@I:Magnify.s@@<span class="bm grow">Filter this menu</span><button class="ib" style="width: 32px; height: 32px" aria-label="Build a pattern filter">@@I:Regex.s@@</button></div>
+<button class="mi act" role="menuitem">@@I:Power@@<span class="bm grow">Turn off the lights</span><span class="kbd">Space</span></button>
+<button class="mi" role="menuitem">@@I:OpenInNew@@<span class="bm grow">Open room</span><span class="kbd">Enter</span></button>
+<button class="mi" role="menuitem">@@I:TabPlus@@<span class="bm grow">Open in a new tab</span><span class="kbd">Ctrl Enter</span></button>
+<button class="mi" role="menuitem">@@I:Pencil@@<span class="bm grow">Rename…</span><span class="kbd">F2</span></button>
+<div class="div" style="margin: 4px 12px"></div>
+<button class="mi" role="menuitem">@@I:Palette@@<span class="bm grow">Edit appearance…</span><span class="kbd">Ctrl Shift E</span></button>
+<button class="mi" role="menuitem">@@I:Lock@@<span class="bm grow">Lock this element…</span><span class="kbd">Ctrl Shift L</span></button>
+<button class="mi" role="menuitem">@@I:History@@<span class="bm grow">Show history</span></button>
+<button class="mi" role="menuitem">@@I:Export@@<span class="bm grow">Export…</span></button>
+<div class="div" style="margin: 4px 12px"></div>
+<button class="mi" role="menuitem" style="color: var(--err)">@@I:EyeOff@@<span class="bm grow">Hide from Home</span><span class="kbd">Delete</span></button>
+<span class="bs mu" style="padding: 8px 12px 4px">Focus starts in the filter. Arrows move, Enter chooses, Escape clears the filter and then closes.</span>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,720@@

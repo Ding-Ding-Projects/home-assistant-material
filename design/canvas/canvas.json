@@ -204,6 +204,69 @@
       "title": "Resizable panels and folding filters",
       "expand": "fill",
       "page": "look"
+    },
+    "Tabs.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 660,
+      "title": "Every tab open, and the New tab catalog",
+      "expand": "fill",
+      "page": "nav"
+    },
+    "CommandPalette.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 760,
+      "title": "Command palette with live controls",
+      "expand": "fill",
+      "page": "nav"
+    },
+    "Regex.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 690,
+      "title": "Pattern workbench on every search",
+      "expand": "fill",
+      "page": "nav"
+    },
+    "ContextMenu.dc.html": {
+      "x": 3840,
+      "y": 0,
+      "w": 1200,
+      "h": 720,
+      "title": "Context menu on every element",
+      "expand": "fill",
+      "page": "nav"
+    },
+    "GuidedForm.dc.html": {
+      "x": 0,
+      "y": 880,
+      "w": 1200,
+      "h": 830,
+      "title": "Guided forms and per-control help",
+      "expand": "fill",
+      "page": "nav"
+    },
+    "Extensions.dc.html": {
+      "x": 1280,
+      "y": 880,
+      "w": 1200,
+      "h": 720,
+      "title": "Extension manager and permission consent",
+      "expand": "fill",
+      "page": "nav"
+    },
+    "BlankEditor.dc.html": {
+      "x": 2560,
+      "y": 880,
+      "w": 1200,
+      "h": 680,
+      "title": "Starting points for a blank editor",
+      "expand": "fill",
+      "page": "nav"
     }
   },
   "order": [
@@ -224,7 +287,14 @@
     "ColorPicker.dc.html",
     "Fonts.dc.html",
     "Accessibility.dc.html",
-    "Panels.dc.html"
+    "Panels.dc.html",
+    "Tabs.dc.html",
+    "CommandPalette.dc.html",
+    "Regex.dc.html",
+    "ContextMenu.dc.html",
+    "GuidedForm.dc.html",
+    "Extensions.dc.html",
+    "BlankEditor.dc.html"
   ],
   "notes": {
     "t-screens": {
@@ -250,6 +320,14 @@
       "kind": "title1",
       "maxW": 3760,
       "page": "look"
+    },
+    "t-nav": {
+      "x": 0,
+      "y": -300,
+      "text": "Navigation, search and commands",
+      "kind": "title1",
+      "maxW": 5040,
+      "page": "nav"
     }
   },
   "designSystems": []
