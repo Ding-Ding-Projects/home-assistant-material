@@ -796,8 +796,10 @@ export class HaMediaPlayerBrowse extends LitElement {
                 <ha-input-search
                   class="search-input"
                   appearance="outlined"
-                  no-pattern-builder
                   .value=${this._searchQuery}
+                  .patternSamples=${(currentItem.children ?? []).map(
+                    (child) => child.title
+                  )}
                   .placeholder=${this._i18n.localize(
                     "ui.components.media-browser.search.search_placeholder",
                     { name: currentItem.title }
@@ -947,6 +949,20 @@ export class HaMediaPlayerBrowse extends LitElement {
       // Nothing to search; drop any stale results but keep the input.
       this._abortSearch();
       this._searchResults = undefined;
+      return;
+    }
+
+    // A media source searches its own library and cannot run a regular
+    // expression. A search written as /pattern/flags is tested here instead,
+    // against the titles in the open folder.
+    const byPattern = filterByRegexQuery(
+      this._currentItem?.children ?? [],
+      searchQuery,
+      (child) => [child.title]
+    );
+    if (byPattern) {
+      this._abortSearch();
+      this._searchResults = byPattern;
       return;
     }
 

@@ -11,7 +11,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | Container image for amd64 and arm64 | Done, publicly pullable | release notes |
 | Core, machine, landing page and supervisor images | Done, built in build 1 | release notes |
 | Update feed and updater pointed at this project | Done, feed live; an update between two builds is not yet observed | `docs/material-changes.md` |
-| Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox | Building; not yet booted on a device or in VirtualBox | release workflow |
+| Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox | Built. `haos_ova-18.5.33.ova` started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed the first-run setup on port 80, reached from a second device. `ovftool` needs `--skipManifestCheck` (see the README). Not yet booted in VirtualBox or on a Raspberry Pi | release workflow, README |
 | Operating system updates over the air | Wired; needs the two signing secrets | README |
 | `build.sh`, `build.bat`, `build-installer.bat`, dependency installers | Written; not yet run end to end | repository root |
 | Dedicated build application | Not started |  |
@@ -28,6 +28,7 @@ Published images have been pulled from the registry and run, not only built:
 | `2026.11.1.32` | The automation repositories integration is built in and answers (no custom integration); the release has the VirtualBox image and the Raspberry Pi 3, 4 and 5 images |
 | `2026.11.1.35` | Run the same way: the breadcrumb, the large title with its count, rows as cards and the export button are in it |
 | `2026.11.1.38` | Run the same way with a small demo home: the Home greeting and its sentence, the settings home grid with live counts, the compact rail, and the row of tools in an entity dialog are in it |
+| `2026.11.1.46` | Started on Windows 11 by `host.bat --detached` with nothing but its configuration folder: healthy, the first-run setup answers, and it was reached from a second device on the network. The features added after build 38 were not checked in it |
 | `2026.11.1.34` | Run with only its configuration folder mounted (`docs/screenshots/published-34-export.png`): the page tools, the tools panel and the footer are in it; a CSV export downloaded, a page locked and unlocked by a hold, a PIN was set and the wait after three wrong PINs was shown, and the help articles opened |
 
 The history manager page was checked with the frontend served from this repository on the

@@ -42,8 +42,10 @@ Each start pulls the image, starts the container, waits until it answers, and pr
 for this machine and for your network. If Docker is missing or not running, the pull fails, the
 port is taken, or nothing answers within five minutes, the script says so and exits with an
 error. Leaving the log view does not stop anything. `host.sh` has been run for real on Linux:
-pull, start, health, both addresses, the log view, stop and the failure paths. **`host.bat` has
-not been run on Windows yet.**
+pull, start, health, both addresses, the log view, stop and the failure paths. `host.bat
+--detached` has been run on Windows 11 with Docker Desktop: pull, start, health and both
+addresses, and the page answered from a second device on the network. Its menu, log view and
+stop have not been run on Windows yet.
 
 To use another port, set `HA_MATERIAL_PORT`. To move to a newer build, change the tag in
 `compose.yaml` or set `HA_MATERIAL_TAG`.
@@ -59,9 +61,39 @@ rebuilt the product attaches operating system images when its build jobs finish:
 | Raspberry Pi 4 and 400 | `haos_rpi4-64-<version>.img.xz` |
 | Raspberry Pi 3 | `haos_rpi3-64-<version>.img.xz` |
 | VirtualBox | `haos_ova-<version>.vdi.zip` |
+| VMware Workstation | `haos_ova-<version>.ova` |
 
 A release that changed only documentation or design files has no images; use the most recent
 release that lists them. Check the file against `SHA256SUMS.<board>` from the same release.
+
+The operating system serves the interface on port 80: open `http://<address of the machine>/`.
+Port 8123 redirects there.
+
+### VMware Workstation
+
+`haos_ova-18.5.33.ova` has been imported and started on VMware Workstation on Windows 11. It
+took an address from the network through its bridged adapter, finished its first start and
+showed the first-run setup. Check the file against `SHA256SUMS.ova` first, then:
+
+```
+ovftool --skipManifestCheck haos_ova-<version>.ova <folder>
+vmrun start <folder>\<name>\<name>.vmx nogui
+```
+
+`--skipManifestCheck` is needed: `ovftool` 9.1.1 refuses the file otherwise, saying the disk
+does not match the manifest, although both digests in the manifest are correct. The cause is
+not yet found. Give the machine 4 GB of memory in its `.vmx` file (`memsize = "4096"`) if you
+can; it is created with 2 GB.
+
+## Cloning on Windows
+
+Two files under `operating-system/` have a backslash in their names, which Windows cannot
+create, so a plain clone stops with "invalid path" and leaves the folder empty. Run
+`git restore --source=HEAD --staged --worktree :/` in the clone to check out everything else.
+Git then shows those two files as deleted: never commit with `git add -A` or `git commit -a`
+from such a clone, or the two files are removed for everyone. Stage files by name. Nothing
+outside the operating system build needs them; that build runs in a container from the
+committed source (`build-installer.bat`).
 
 ## Build
 

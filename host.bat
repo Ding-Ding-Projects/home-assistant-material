@@ -52,7 +52,9 @@ if %TRIES% geq 60 (
   call :fail "It did not answer within 5 minutes. Run host.bat --logs to see why."
   exit /b 1
 )
-timeout /t 5 /nobreak >nul
+rem Named by full path: started from a Git shell, a bare "timeout" finds a different program
+rem that fails at once, and Windows timeout.exe refuses to run without a console.
+"%SystemRoot%\System32\ping.exe" -n 6 127.0.0.1 >nul
 goto wait
 
 :ready

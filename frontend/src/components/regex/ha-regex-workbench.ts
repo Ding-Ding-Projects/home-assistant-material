@@ -354,6 +354,7 @@ export class HaRegexWorkbench extends LitElement {
     super.disconnectedCallback();
     window.clearTimeout(this._timer);
     window.removeEventListener("resize", this._place);
+    window.visualViewport?.removeEventListener("resize", this._place);
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -371,6 +372,19 @@ export class HaRegexWorkbench extends LitElement {
     const rect = this._anchor.getBoundingClientRect();
     const margin = 12;
     const width = Math.min(960, window.innerWidth - margin * 2);
+    // On a phone there is no useful room beside the field: the panel takes
+    // the visible screen, which shrinks while the keyboard is up.
+    const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+    if (window.innerWidth < 700 || visibleHeight < 600) {
+      this._placement = {
+        width: `${width}px`,
+        left: `${margin}px`,
+        top: `${(window.visualViewport?.offsetTop ?? 0) + margin}px`,
+        bottom: "auto",
+        "max-height": `${Math.max(240, visibleHeight - margin * 2)}px`,
+      };
+      return;
+    }
     const below = window.innerHeight - rect.bottom - margin * 2;
     const above = rect.top - margin * 2;
     const useBelow = below >= 420 || below >= above;
@@ -1729,8 +1743,11 @@ export class HaRegexWorkbench extends LitElement {
   private _toggled(ev: ToggleEvent) {
     if (ev.newState === "open") {
       window.addEventListener("resize", this._place);
+      // The keyboard changes the visible screen without resizing the window.
+      window.visualViewport?.addEventListener("resize", this._place);
     } else {
       window.removeEventListener("resize", this._place);
+      window.visualViewport?.removeEventListener("resize", this._place);
       cancelRegexEvaluations();
       this._notice = "";
     }
@@ -2793,6 +2810,16 @@ export class HaRegexWorkbench extends LitElement {
       min-width: 160px;
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
+    }
+    @media (max-width: 700px) {
+      .flags {
+        flex-basis: 100%;
+        margin-inline-start: 0;
+        justify-content: flex-start;
+      }
+      .origin {
+        flex-basis: 100%;
+      }
     }
   `;
 }

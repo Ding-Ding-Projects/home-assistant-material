@@ -101,8 +101,7 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "components/media-player/ha-media-player-browse.ts",
     searches:
-      "Titles in a media folder. The second field on this page sends its text to the media source",
-    external: "The media source searches its own library",
+      "Titles in a media folder. The second field on this page sends plain text to the media source and tests a pattern against the titles in the open folder",
   },
   {
     file: "panels/config/apps/app-view/log/supervisor-app-log-tab.ts",

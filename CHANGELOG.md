@@ -8,6 +8,16 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- The pattern workbench fits a phone: it takes the visible screen instead of the space under
+  the field, follows the keyboard, and its switches start at the left.
+- On a phone, resting a finger on an element opens its menu, where a right-click does on a
+  computer. Text fields keep the phone's own menu, and cards that act on a hold keep theirs.
+- The search of a media library has the pattern workbench. A pattern is tested against the
+  titles in the open folder; plain text still goes to the media source.
+- `host.bat` waits properly when it is started from a Git shell. It used to give up at once
+  and report a failure although the container had started. `compose.yaml` runs build 46.
+- The operating system image started on VMware Workstation; the README says how, and how to
+  clone this repository on Windows.
 - Locks on single elements: right-click anything and choose Lock this element. It stops taking
   clicks and keys and gets a dashed outline. The Lock tool lists the locked elements of the
   page and unlocks each one by a hold, or all of them with the PIN.

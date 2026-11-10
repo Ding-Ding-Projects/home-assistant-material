@@ -135,6 +135,12 @@ const matchesShortcut = (
   ev.shiftKey === !!shortcut.shift &&
   !ev.altKey;
 
+/** How long a finger rests on an element before its menu opens. */
+const TOUCH_HOLD_MS = 600;
+
+/** Components with a hold of their own, which this menu leaves alone. */
+const HOLDS_ITSELF = new Set(["ha-page-tool-panel", "ha-dialog-tools"]);
+
 /**
  * Appearance tools for every element.
  *
@@ -196,6 +202,16 @@ export class HaAppearanceTools extends LitElement {
     }
     this._listening = true;
     window.addEventListener("contextmenu", this._contextMenu, true);
+    window.addEventListener("touchstart", this._touchStart, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("touchmove", this._touchMove, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("touchend", this._touchEnd, true);
+    window.addEventListener("touchcancel", this._touchEnd, true);
     window.addEventListener("keydown", this._keydown, true);
     window.addEventListener("pointerdown", this._pointerDown, true);
     window.addEventListener("location-changed", this._scheduleScan);
@@ -223,6 +239,11 @@ export class HaAppearanceTools extends LitElement {
   public stop() {
     this._listening = false;
     window.removeEventListener("contextmenu", this._contextMenu, true);
+    window.removeEventListener("touchstart", this._touchStart, true);
+    window.removeEventListener("touchmove", this._touchMove, true);
+    window.removeEventListener("touchend", this._touchEnd, true);
+    window.removeEventListener("touchcancel", this._touchEnd, true);
+    window.clearTimeout(this._holdTimer);
     window.removeEventListener("keydown", this._keydown, true);
     window.removeEventListener("pointerdown", this._pointerDown, true);
     window.removeEventListener("location-changed", this._scheduleScan);
@@ -397,16 +418,7 @@ export class HaAppearanceTools extends LitElement {
     const fromPointer = ev.button === 2;
     // Shift with a right-click asks for the browser's menu. Text fields
     // keep theirs: it has paste and spelling.
-    if (
-      (fromPointer && ev.shiftKey) ||
-      (target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.localName === "textarea" ||
-          (target.localName === "input" &&
-            !["checkbox", "radio", "range", "button", "color"].includes(
-              (target as HTMLInputElement).type
-            ))))
-    ) {
+    if ((fromPointer && ev.shiftKey) || this._isTextField(target)) {
       return;
     }
     const chain = this._chainFrom(target);
@@ -414,6 +426,8 @@ export class HaAppearanceTools extends LitElement {
       return;
     }
     ev.preventDefault();
+    // A phone that sends this event on a long press needs no second menu.
+    window.clearTimeout(this._holdTimer);
     const rect = chain[0].getBoundingClientRect();
     this._openMenu(
       chain,
@@ -421,6 +435,93 @@ export class HaAppearanceTools extends LitElement {
         ? { x: ev.clientX, y: ev.clientY }
         : { x: rect.left + 12, y: rect.bottom }
     );
+  };
+
+  private _isTextField(target: Element | undefined): boolean {
+    return (
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.localName === "textarea" ||
+        (target.localName === "input" &&
+          !["checkbox", "radio", "range", "button", "color"].includes(
+            (target as HTMLInputElement).type
+          )))
+    );
+  }
+
+  // ---- Touch and hold ----
+  //
+  // Some phones send no "contextmenu" event for a long press, so a finger
+  // held still on an element opens the menu here.
+
+  private _holdTimer?: number;
+
+  private _holdPoint?: { x: number; y: number };
+
+  private _holdOpened = false;
+
+  private _touchStart = (ev: TouchEvent) => {
+    window.clearTimeout(this._holdTimer);
+    this._holdOpened = false;
+    const path = ev.composedPath();
+    if (ev.touches.length !== 1 || this._isOwn(path)) {
+      return;
+    }
+    const target = path.find(
+      (node): node is Element => node instanceof Element
+    );
+    // Text fields keep the phone's own menu, and anything that already acts
+    // on a hold keeps its hold.
+    if (
+      this._isTextField(target) ||
+      path.some(
+        (node) =>
+          node instanceof HTMLElement &&
+          (HOLDS_ITSELF.has(node.localName) ||
+            (node as HTMLElement & { actionHandler?: unknown })
+              .actionHandler !== undefined)
+      )
+    ) {
+      return;
+    }
+    const point = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+    this._holdPoint = point;
+    this._holdTimer = window.setTimeout(() => {
+      if (this._menu?.matches(":popover-open")) {
+        return;
+      }
+      const chain = this._chainFrom(target);
+      if (!chain.length) {
+        return;
+      }
+      this._holdOpened = true;
+      this._openMenu(chain, point);
+    }, TOUCH_HOLD_MS);
+  };
+
+  private _touchMove = (ev: TouchEvent) => {
+    const touch = ev.touches[0];
+    if (
+      !this._holdPoint ||
+      !touch ||
+      Math.hypot(
+        touch.clientX - this._holdPoint.x,
+        touch.clientY - this._holdPoint.y
+      ) > 10
+    ) {
+      window.clearTimeout(this._holdTimer);
+    }
+  };
+
+  private _touchEnd = (ev: TouchEvent) => {
+    window.clearTimeout(this._holdTimer);
+    if (this._holdOpened) {
+      // Lifting the finger must not press what is under it.
+      this._holdOpened = false;
+      if (ev.cancelable) {
+        ev.preventDefault();
+      }
+    }
   };
 
   private async _openMenu(
@@ -606,6 +707,10 @@ export class HaAppearanceTools extends LitElement {
   }
 
   private _pointerDown = (ev: PointerEvent) => {
+    // The finger that opened the menu by a hold is still down.
+    if (this._holdOpened) {
+      return;
+    }
     if (this._menuChain && !this._isOwn(ev.composedPath())) {
       this._closeMenu();
     }
