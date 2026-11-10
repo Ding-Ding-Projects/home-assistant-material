@@ -36,7 +36,8 @@ exactly what has been seen working and where.
 
 ## Shell and cross-cutting features
 
-- [~] Tokens: colour, type and shape are in; motion tokens and a dark theme check are not
+- [~] Tokens: colour, type and shape are in, and the new pages were checked in the dark scheme;
+      motion tokens are not
 - [x] Rail, floating pane and pill tabs; the rail is compact unless opened
 - [~] Top bar: search, edit appearance, language, accessibility and the user's picture. The
       language button opens the profile's language page; there are no language modes yet

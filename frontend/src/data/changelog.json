@@ -4,10 +4,15 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "What changed: this list inside the interface, under Settings, About, with a search, a range of days and the commit behind each entry. It ships with the build and opens without a connection."
+          "text": "Lists: the icon of each row sits on a small tile, and a device row names its maker and model under the device."
         },
         {
-          "text": "About: the version and build time of this project, where its updates come from, that it is free, and that it is independent of the Open Home Foundation. The links to merchandise and to the upstream issue tracker are gone; Report a problem opens this project's issues."
+          "text": "What changed: this list inside the interface, under Settings, About, with a search, a range of days and the commit behind each entry. It ships with the build and opens without a connection.",
+          "commit": "44c2e0c18599"
+        },
+        {
+          "text": "About: the version and build time of this project, where its updates come from, that it is free, and that it is independent of the Open Home Foundation. The links to merchandise and to the upstream issue tracker are gone; Report a problem opens this project's issues.",
+          "commit": "44c2e0c18599"
         },
         {
           "text": "Tabs: close the tabs that match a search, or the ones that do not, with counts and Undo.",

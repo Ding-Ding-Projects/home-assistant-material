@@ -2208,6 +2208,23 @@ export class HaDataTable extends LitElement {
         :host([row-cards]) .mdc-data-table__row:has(.group-header) {
           background: var(--primary-background-color);
         }
+        /* The icon of a row sits on a small tile. */
+        :host([row-cards]) .mdc-data-table__cell--icon {
+          position: relative;
+          color: var(--primary-text-color);
+        }
+        :host([row-cards]) .mdc-data-table__cell--icon::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 40px;
+          height: 40px;
+          transform: translate(-50%, -50%);
+          z-index: -1;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--primary-background-color);
+        }
 
         .mdc-data-table__table.auto-height .scroller {
           overflow-y: hidden !important;

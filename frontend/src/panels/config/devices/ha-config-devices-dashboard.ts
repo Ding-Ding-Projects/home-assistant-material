@@ -114,6 +114,12 @@ interface DeviceRowData extends DeviceRegistryEntry {
   label_entries: LabelRegistryEntry[];
 }
 
+/** Who made a device and which model it is, when either is known. */
+const makerLine = (manufacturer?: string, model?: string): string =>
+  [manufacturer, model]
+    .filter((part) => part && !part.startsWith("<"))
+    .join(", ");
+
 /** A battery at or under this many percent is called low. */
 const LOW_BATTERY = 15;
 
@@ -586,6 +592,15 @@ export class HaConfigDeviceDashboard extends LitElement {
         flex: 2,
         minWidth: "150px",
         extraTemplate: (device) => html`
+          ${
+            makerLine(device.manufacturer, device.model)
+              ? html`<div
+                  style="color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+                >
+                  ${makerLine(device.manufacturer, device.model)}
+                </div>`
+              : nothing
+          }
           ${
             device.parent_device_name
               ? html`<div style="color: var(--secondary-text-color);">

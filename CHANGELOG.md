@@ -8,6 +8,8 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Lists: the icon of each row sits on a small tile, and a device row names its maker and model
+  under the device.
 - What changed: this list inside the interface, under Settings, About, with a search, a range of
   days and the commit behind each entry. It ships with the build and opens without a connection.
 - About: the version and build time of this project, where its updates come from, that it is
