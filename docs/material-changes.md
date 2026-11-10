@@ -17,6 +17,17 @@ subfolder moves to a newer upstream release.
 The AppArmor profile URLs still point at upstream. The DNS, audio, CLI, multicast and
 observer images are unchanged upstream images.
 
+## Material Design 3 interface
+
+| File | Change |
+| --- | --- |
+| `frontend/src/resources/theme/color/core.globals.ts` | Primary and neutral colour scales replaced with the design's scales. |
+| `frontend/src/resources/theme/color/color.globals.ts` | Window, pane and card surface colours for light and dark; the sidebar uses the window colour and the header uses the pane colour. |
+| `frontend/src/layouts/home-assistant-main.ts` | Navigation rail width; the floating pane, drawn by a frame and reported to pages as safe area. |
+| `frontend/src/components/ha-sidebar.ts` | Collapsed sidebar is a navigation rail with a selection pill and labels; expanded rows use a pill selection. |
+| `frontend/src/components/ha-drawer.ts` | No rule between the rail and the pane. |
+| `frontend/src/components/ha-card.ts` | Cards are borderless with a 24 px radius. |
+
 ## Build-time stamping (not committed)
 
 `scripts/ci/set-versions.py` writes the build number into `core/homeassistant/const.py`,

@@ -474,9 +474,12 @@ jobs:
     needs: [prepare, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 350
+    # An operating system build takes hours. A newer push waits for the running
+    # build of the same board instead of cancelling it, so images do get finished
+    # while work continues. Only the newest waiting build is kept.
     concurrency:
       group: heavy-os-${{ matrix.board.id }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: read

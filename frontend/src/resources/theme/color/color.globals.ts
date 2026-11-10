@@ -13,9 +13,9 @@ export const colorStyles = css`
 
     /* main interface colors */
     --primary-color: var(--ha-color-primary-40);
-    --dark-primary-color: #0288d1;
-    --darker-primary-color: #016194;
-    --light-primary-color: #b3e5fc;
+    --dark-primary-color: #004a76;
+    --darker-primary-color: #003c61;
+    --light-primary-color: #cee5ff;
     --accent-color: #ff9800;
     --divider-color: rgba(0, 0, 0, 0.12);
     --outline-color: rgba(0, 0, 0, 0.12);
@@ -23,12 +23,12 @@ export const colorStyles = css`
     --shadow-color: rgba(0, 0, 0, 0.16);
 
     /* rgb */
-    --rgb-primary-color: 0, 154, 199;
+    --rgb-primary-color: 0, 99, 155;
     --rgb-accent-color: 255, 152, 0;
-    --rgb-primary-text-color: 33, 33, 33;
-    --rgb-secondary-text-color: 114, 114, 114;
+    --rgb-primary-text-color: 24, 28, 32;
+    --rgb-secondary-text-color: 90, 95, 102;
     --rgb-text-primary-color: 255, 255, 255;
-    --rgb-card-background-color: 255, 255, 255;
+    --rgb-card-background-color: 241, 244, 249;
 
     --rgb-warning-color: 255, 166, 0;
     --rgb-error-color: 219, 68, 55;
@@ -43,9 +43,12 @@ export const colorStyles = css`
     --info-color: #039be5;
 
     /* backgrounds */
-    --card-background-color: #ffffff;
-    --primary-background-color: #fafafa;
-    --secondary-background-color: #e5e5e5;
+    /* The window is the tinted ground behind the navigation rail. The pane is
+       the white surface pages sit on. Cards are tinted so they read on it. */
+    --ha-color-window: #eef1f6;
+    --card-background-color: #f1f4f9;
+    --primary-background-color: #ffffff;
+    --secondary-background-color: #e9edf3;
     --clear-background-color: #ffffff;
 
     /* for label-badge */
@@ -264,7 +267,7 @@ export const colorStyles = css`
 
     --state-icon-error-color: var(--error-state-color, var(--error-color));
     --sidebar-text-color: var(--primary-text-color);
-    --sidebar-background-color: var(--card-background-color);
+    --sidebar-background-color: var(--ha-color-window);
     --sidebar-selected-text-color: var(--primary-color);
     --sidebar-selected-icon-color: var(--primary-color);
     --sidebar-icon-color: rgba(var(--rgb-primary-text-color), 0.6);
@@ -295,7 +298,7 @@ export const colorStyles = css`
     --mdc-theme-text-icon-on-background: var(--secondary-text-color);
     --mdc-theme-error: var(--error-color);
     --app-header-text-color: var(--sidebar-text-color);
-    --app-header-background-color: var(--sidebar-background-color);
+    --app-header-background-color: var(--primary-background-color);
     --app-header-border-bottom: 1px solid var(--divider-color);
     --app-theme-color: var(--app-header-background-color);
     --mdc-checkbox-unchecked-color: rgba(var(--rgb-primary-text-color), 0.54);
@@ -340,12 +343,13 @@ export const colorStyles = css`
 
 export const darkColorStyles = css`
   html {
-    --primary-background-color: #111111;
-    --card-background-color: #1c1c1c;
-    --secondary-background-color: #282828;
-    --clear-background-color: #111111;
-    --primary-text-color: #e1e1e1;
-    --secondary-text-color: #9b9b9b;
+    --ha-color-window: #0b0f13;
+    --primary-background-color: #14181d;
+    --card-background-color: #1d2126;
+    --secondary-background-color: #272b31;
+    --clear-background-color: #14181d;
+    --primary-text-color: #e0e2e8;
+    --secondary-text-color: #a8adb5;
     --disabled-text-color: #6f6f6f;
     --divider-color: rgba(225, 225, 225, 0.12);
     --outline-color: rgba(225, 225, 225, 0.12);

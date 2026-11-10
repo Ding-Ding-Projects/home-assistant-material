@@ -67,6 +67,7 @@ export class HomeAssistantMain extends LitElement {
 
     return html`
       <ha-snowflakes .narrow=${this.narrow}></ha-snowflakes>
+      <div class="pane-frame" aria-hidden="true"></div>
       <ha-drawer
         .type=${sidebarNarrow ? "modal" : ""}
         .open=${sidebarNarrow ? this._drawerOpen : false}
@@ -187,10 +188,48 @@ export class HomeAssistantMain extends LitElement {
          accessibility tree with an empty panel subtree while the page paints
          normally, which breaks UI automation such as the companion app E2E. */
       isolation: isolate;
-      --ha-sidebar-width: calc(56px + var(--safe-area-inset-left, 0px));
-      --ha-top-app-bar-width: calc(100% - var(--ha-sidebar-width));
+      --ha-sidebar-width: calc(88px + var(--safe-area-inset-left, 0px));
+      --ha-top-app-bar-width: calc(
+        100% - var(--ha-sidebar-width) - var(--safe-area-inset-right, 0px)
+      );
       --safe-area-content-inset-left: 0px;
       --safe-area-content-inset-right: var(--safe-area-inset-right);
+      background-color: var(--ha-color-window);
+    }
+    /* The floating pane. Pages keep scrolling the window as before: the
+       pane is drawn by a frame that paints the window colour over the gap
+       around it, and the gap is reported to pages as safe area so nothing
+       sits under the frame. */
+    :host(:not([modal])) {
+      --ha-pane-gap: 12px;
+      --ha-pane-radius: var(--ha-border-radius-4xl);
+      --safe-area-inset-top: calc(
+        var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+          var(--ha-pane-gap)
+      );
+      --safe-area-inset-bottom: calc(
+        var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-pane-gap)
+      );
+      --safe-area-inset-right: calc(
+        var(--app-safe-area-inset-right, env(safe-area-inset-right, 0px)) +
+          var(--ha-pane-gap)
+      );
+    }
+    .pane-frame {
+      display: none;
+    }
+    :host(:not([modal])) .pane-frame {
+      display: block;
+      position: fixed;
+      z-index: 5;
+      inset-block: var(--ha-pane-gap);
+      inset-inline-start: var(--ha-sidebar-width);
+      inset-inline-end: var(--ha-pane-gap);
+      border-radius: var(--ha-pane-radius);
+      box-shadow: 0 0 0 100vmax var(--ha-color-window);
+      pointer-events: none;
+      transition: inset-inline-start var(--ha-animation-duration-normal) ease;
     }
     :host([expanded]) {
       --ha-sidebar-width: calc(256px + var(--safe-area-inset-left, 0px));
