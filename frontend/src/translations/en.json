@@ -10664,6 +10664,17 @@
           "integration_start_time": "Integration startup time"
         },
         "system_dashboard": {
+          "this_machine": "This system",
+          "product": "Home Assistant Material {version}",
+          "state_running": "{name}, running",
+          "state_starting": "{name}, starting up",
+          "state_safe": "{name}, in safe mode",
+          "state_recovery": "{name}, in recovery mode",
+          "fact_version": "Version {version}.",
+          "fact_integrations": "{count, plural,\n  one {# integration is loaded.}\n  other {# integrations are loaded.}\n}",
+          "fact_storage": "Storage is {percent}% used.",
+          "fact_time_zone": "Time zone {time_zone}.",
+          "restart_short": "Restart",
           "restart_homeassistant": "Restart Home Assistant"
         },
         "lorawan": {

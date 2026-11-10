@@ -131,10 +131,20 @@ class HaConfigNavigationList extends LitElement {
     }
     .grid {
       display: grid;
-      /* As many columns as fit, three at most. */
+      /* As many columns as fit, three at most unless the page says so. */
+      --_columns: var(--navigation-grid-columns, 3);
       grid-template-columns: repeat(
         auto-fill,
-        minmax(max(260px, calc((100% - 2 * var(--ha-space-2)) / 3)), 1fr)
+        minmax(
+          max(
+            260px,
+            calc(
+              (100% - (var(--_columns) - 1) * var(--ha-space-2)) /
+                var(--_columns)
+            )
+          ),
+          1fr
+        )
       );
       gap: var(--ha-space-2);
     }

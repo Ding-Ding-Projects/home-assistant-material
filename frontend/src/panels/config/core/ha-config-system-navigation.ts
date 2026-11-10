@@ -1,4 +1,4 @@
-import { mdiPower } from "@mdi/js";
+import { mdiPower, mdiServer } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -6,8 +6,9 @@ import { canShowPage } from "../../../common/config/can_show_page";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { blankBeforePercent } from "../../../common/translations/blank_before_percent";
-import "../../../components/ha-card";
+import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
+import "../../../components/ha-svg-icon";
 import type { BackupContent } from "../../../data/backup";
 import { fetchBackupInfo } from "../../../data/backup";
 import type { CloudStatus } from "../../../data/cloud";
@@ -29,7 +30,6 @@ import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import "../../../components/ha-config-navigation-list";
-import "../ha-config-section";
 import { configSections } from "../config-sections";
 
 @customElement("ha-config-system-navigation")
@@ -138,24 +138,83 @@ class HaConfigSystemNavigation extends LitElement {
           )}
           @click=${this._showRestartDialog}
         ></ha-icon-button>
-        <ha-config-section
-          .narrow=${this.narrow}
-          .isWide=${this.isWide}
-          full-width
-        >
-          <ha-card outlined>
-            <ha-config-navigation-list
-              .narrow=${this.narrow}
-              .pages=${pages}
-              has-secondary
-              .label=${this.hass.localize(
-                "ui.panel.config.dashboard.system.main"
+        <div class="page">
+          <section class="hero">
+            <ha-svg-icon .path=${mdiServer}></ha-svg-icon>
+            <div class="hero-text">
+              <span class="eyebrow"
+                >${this.hass.localize(
+                  "ui.panel.config.system_dashboard.this_machine"
+                )}</span
+              >
+              <h2>${this._heroTitle()}</h2>
+              <p>${this._heroFacts()}</p>
+            </div>
+            <ha-button @click=${this._showRestartDialog}>
+              <ha-svg-icon slot="start" .path=${mdiPower}></ha-svg-icon>
+              ${this.hass.localize(
+                "ui.panel.config.system_dashboard.restart_short"
               )}
-            ></ha-config-navigation-list>
-          </ha-card>
-        </ha-config-section>
+            </ha-button>
+          </section>
+          <ha-config-navigation-list
+            grid
+            .narrow=${this.narrow}
+            .pages=${pages}
+            has-secondary
+            .label=${this.hass.localize("ui.panel.config.dashboard.system.main")}
+          ></ha-config-navigation-list>
+        </div>
       </hass-subpage>
     `;
+  }
+
+  /** What is running, and whether it is running normally. */
+  private _heroTitle(): string {
+    const config = this.hass.config;
+    const name =
+      this._boardName ||
+      this.hass.localize("ui.panel.config.system_dashboard.product", {
+        version: config.version,
+      });
+    const key = config.recovery_mode
+      ? "recovery"
+      : config.safe_mode
+        ? "safe"
+        : config.state === "RUNNING"
+          ? "running"
+          : "starting";
+    return this.hass.localize(`ui.panel.config.system_dashboard.state_${key}`, {
+      name,
+    });
+  }
+
+  /** A line of facts the instance reports about itself; nothing estimated. */
+  private _heroFacts(): string {
+    const config = this.hass.config;
+    const facts = [
+      this._boardName
+        ? this.hass.localize("ui.panel.config.system_dashboard.fact_version", {
+            version: config.version,
+          })
+        : undefined,
+      this.hass.localize("ui.panel.config.system_dashboard.fact_integrations", {
+        count: config.components.filter((name) => !name.includes(".")).length,
+      }),
+      this._storageInfo
+        ? this.hass.localize("ui.panel.config.system_dashboard.fact_storage", {
+            percent: Math.round(
+              ((this._storageInfo.total - this._storageInfo.free) /
+                this._storageInfo.total) *
+                100
+            ),
+          })
+        : undefined,
+      this.hass.localize("ui.panel.config.system_dashboard.fact_time_zone", {
+        time_zone: config.time_zone,
+      }),
+    ].filter(Boolean);
+    return facts.join(" ");
   }
 
   protected firstUpdated(_changedProperties: PropertyValues<this>): void {
@@ -238,50 +297,48 @@ class HaConfigSystemNavigation extends LitElement {
     return [
       haStyle,
       css`
-        :host(:not([narrow])) ha-card {
-          margin-bottom: max(24px, var(--safe-area-inset-bottom));
+        .page {
+          box-sizing: border-box;
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         }
-
-        ha-config-section {
-          margin: auto;
-          margin-top: -32px;
-          max-width: 600px;
+        :host([narrow]) .page {
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
         }
-
-        ha-card {
-          overflow: hidden;
-          margin-bottom: 24px;
-          margin-bottom: max(24px, var(--safe-area-inset-bottom));
-        }
-
-        ha-card a {
-          text-decoration: none;
-          color: var(--primary-text-color);
-        }
-
-        .title {
-          font-size: var(--ha-font-size-l);
-          padding: 16px;
-          padding-bottom: 0;
-        }
-
-        .restart-section {
+        .hero {
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
-          flex-direction: column;
-          justify-content: center;
-          margin-bottom: 24px;
+          gap: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+          padding: var(--ha-space-5) var(--ha-space-6);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+          --mdc-icon-size: 28px;
         }
-
-        @media all and (max-width: 600px) {
-          ha-card {
-            border-width: 1px 0;
-            border-radius: var(--ha-border-radius-square);
-            box-shadow: unset;
-          }
-          ha-config-section {
-            margin-top: -42px;
-          }
+        .hero-text {
+          flex: 1;
+          min-width: 220px;
+        }
+        .eyebrow {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        h2 {
+          margin: var(--ha-space-1) 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .hero p {
+          margin: 0;
+          color: var(--secondary-text-color);
+          line-height: var(--ha-line-height-normal);
+        }
+        ha-config-navigation-list {
+          --navigation-grid-columns: 2;
         }
       `,
     ];

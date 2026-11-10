@@ -130,8 +130,10 @@ matches its board, checked side by side.
       entity settings, helpers, and the automation pages (15 boards)
 - [~] `04-settings`: settings home is drawn to its board; scenes, scripts, blueprints, areas,
       labels, zones, apps, app store and dashboards are not (15 boards)
-- [ ] `05-system`: voice assistants, voice pipeline, expose, tags, people, users, energy setup,
-      cloud, system, updates, repairs, logs, backups, analytics (15 boards)
+- [~] `05-system`: System is drawn to its board, with what the instance reports about itself
+      in place of the board's hardware figures. Voice assistants, voice pipeline, expose, tags,
+      people, users, energy setup, cloud, updates, repairs, logs, backups and analytics are not
+      redrawn (15 boards)
 - [ ] `06-tools`: network, storage, hardware, general, labs, AI ids, restart, and the developer
       tools (15 boards)
 - [ ] `07-protocols`: Zigbee, Z-Wave, Matter, Thread, Bluetooth, MQTT, infrared, LoRaWAN, serial,

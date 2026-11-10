@@ -1,7 +1,9 @@
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, eventOptions, property } from "lit/decorators";
+import type { ContextType } from "@lit/context";
+import { customElement, eventOptions, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { PageLockController } from "../common/locks/page-lock-controller";
@@ -13,6 +15,7 @@ import "../components/ha-menu-button";
 import "../components/page/ha-page-footer";
 import "../components/page/ha-page-lock-banner";
 import "../components/page/ha-page-tools";
+import { internationalizationContext } from "../data/context";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant } from "../types";
 
@@ -32,6 +35,16 @@ class HassSubpage extends LitElement {
 
   @property({ type: Boolean }) public scrollable = true;
 
+  /**
+   * Where the page sits, shown in small type above the title. Pages reached
+   * from Settings say so when nothing is given; an empty text shows none.
+   */
+  @property() public breadcrumb?: string;
+
+  @state()
+  @consume({ context: internationalizationContext, subscribe: true })
+  private _i18n?: ContextType<typeof internationalizationContext>;
+
   // @ts-ignore
   @restoreScroll(".content") private _savedScrollPos?: number;
 
@@ -40,6 +53,7 @@ class HassSubpage extends LitElement {
   protected render(): TemplateResult {
     const backPath = sanitizeNavigationPath(this.backPath);
     const locked = this._pageLock.locked;
+    const breadcrumb = this._breadcrumb(backPath);
 
     return html`
       <div class="toolbar ${classMap({ narrow: this.narrow })}">
@@ -56,7 +70,14 @@ class HassSubpage extends LitElement {
           }
 
           <div class="main-title">
-            <slot name="header">${this.header}</slot>
+            ${
+              breadcrumb && !this.narrow
+                ? html`<span class="breadcrumb">${breadcrumb}</span>`
+                : nothing
+            }
+            <span class="title-text"
+              ><slot name="header">${this.header}</slot></span
+            >
           </div>
           <ha-page-tools
             .compact=${this.narrow}
@@ -88,6 +109,23 @@ class HassSubpage extends LitElement {
         <slot name="fab"></slot>
       </div>
     `;
+  }
+
+  private _breadcrumb(backPath: string | undefined): string | undefined {
+    if (this.breadcrumb !== undefined) {
+      return this.breadcrumb || undefined;
+    }
+    if (!this._i18n || this.mainPage || !backPath?.startsWith("/config")) {
+      return undefined;
+    }
+    const localize = this._i18n.localize;
+    const parts = [
+      localize("panel.config"),
+      backPath.startsWith("/config/system")
+        ? localize("ui.panel.config.dashboard.system.main")
+        : undefined,
+    ].filter((part) => part && part !== this.header);
+    return parts.length ? parts.join(", ") : undefined;
   }
 
   @eventOptions({ passive: true })
@@ -164,15 +202,24 @@ class HassSubpage extends LitElement {
 
         .main-title {
           margin-inline-start: var(--ha-space-6);
-          line-height: var(--ha-line-height-normal);
+          line-height: var(--ha-line-height-condensed);
           min-width: 0;
           flex-grow: 1;
-          overflow-wrap: break-word;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .title-text {
           overflow: hidden;
           text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .breadcrumb {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .narrow .main-title {
           margin-inline-start: var(--ha-space-2);
