@@ -43,7 +43,8 @@ export class HaTabGroup extends TabGroup {
       TabGroup.styles,
       css`
         :host {
-          --track-width: 2px;
+          /* Tabs are pills: the active tab is filled, so there is no track. */
+          --track-width: 0px;
           --track-color: var(--ha-tab-track-color, var(--divider-color));
           --indicator-color: var(
             --ha-tab-indicator-color,
@@ -52,9 +53,9 @@ export class HaTabGroup extends TabGroup {
           --wa-color-neutral-on-quiet: var(--indicator-color);
         }
 
-        .tab-group-top ::slotted(ha-tab-group-tab[active]) {
-          border-block-end: solid var(--track-width) var(--indicator-color);
-          margin-block-end: calc(-1 * var(--track-width));
+        .tab-group-top .nav {
+          align-items: center;
+          gap: var(--ha-space-1);
         }
 
         .tab-group-start ::slotted(ha-tab-group-tab[active]) {

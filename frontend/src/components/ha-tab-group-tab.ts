@@ -26,6 +26,24 @@ export class HaTabGroupTab extends Tab {
           opacity: 1;
         }
 
+        .tab {
+          border-radius: var(--ha-border-radius-pill);
+          min-height: var(--ha-space-10);
+          padding-block: 0;
+          font-weight: var(--ha-font-weight-medium);
+          transition:
+            background-color var(--ha-animation-duration-fast) ease,
+            color var(--ha-animation-duration-fast) ease;
+        }
+
+        :host([active]:not([disabled])) .tab {
+          background-color: var(
+            --ha-tab-active-background-color,
+            var(--primary-text-color)
+          );
+          color: var(--ha-tab-active-on-color, var(--primary-background-color));
+        }
+
         @media (hover: hover) {
           :host(:hover:not([disabled]):not([active])) .tab {
             color: var(--wa-color-brand-on-quiet);

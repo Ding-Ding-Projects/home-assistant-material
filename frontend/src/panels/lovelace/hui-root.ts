@@ -1444,8 +1444,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           align-items: center;
           font-size: var(--ha-font-size-xl);
           padding: 0px 12px;
-          padding-right: calc(12px + var(--safe-area-inset-right, 0px));
-          font-weight: var(--ha-font-weight-normal);
+          padding-right: 12px;
+          font-weight: var(--ha-font-weight-medium);
           box-sizing: border-box;
         }
         .edit-mode .toolbar {
@@ -1486,10 +1486,10 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           );
           --ha-tab-active-text-color: var(--app-header-text-color, white);
           --ha-tab-track-color: transparent;
-          align-self: flex-end;
+          align-self: center;
           flex-grow: 1;
           min-width: 0;
-          height: 100%;
+          margin-inline-start: var(--ha-space-2);
         }
         ha-tab-group::part(nav) {
           padding: 0;

@@ -1,3 +1,4 @@
+import { googleSansFlexStyles } from "../google-sans-flex";
 import { fontStyles } from "../roboto";
 import { animationStyles } from "./animations.globals";
 import { colorDerivedVariables, colorStylesCollection } from "./color";
@@ -17,6 +18,7 @@ export const themeStyles = [
   semanticStyles.toString(),
   ...colorStylesCollection,
   fontStyles.toString(),
+  googleSansFlexStyles.toString(),
   waMainStyles.toString(),
   animationStyles.toString(),
 ].join("");

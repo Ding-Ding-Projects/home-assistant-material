@@ -27,6 +27,13 @@ observer images are unchanged upstream images.
 | `frontend/src/components/ha-sidebar.ts` | Collapsed sidebar is a navigation rail with a selection pill and labels; expanded rows use a pill selection. |
 | `frontend/src/components/ha-drawer.ts` | No rule between the rail and the pane. |
 | `frontend/src/components/ha-card.ts` | Cards are borderless with a 24 px radius. |
+| `frontend/src/components/ha-tab-group.ts`, `ha-tab-group-tab.ts` | Tabs are pills: the active tab is filled and there is no underline track. |
+| `frontend/src/panels/lovelace/hui-root.ts` | Header title weight; view tabs centred in the header. |
+| `frontend/src/resources/google-sans-flex.ts`, `theme/theme.ts`, `theme/typography.globals.ts` | Google Sans Flex is the interface typeface, loaded from vendored files; Roboto remains the fallback. Headings use the medium weight. |
+| `frontend/public/static/fonts/google-sans-flex/` | Vendored font files, licence and checksums, written by `scripts/vendor-fonts.sh`. |
+| `frontend/build-scripts/bundle.cjs`, `frontend/src/types.ts` | Build-time constants `__MATERIAL_BUILD__` and `__BUILD_TIME__`. |
+| `frontend/src/components/ha-sidebar.ts`, `frontend/src/translations/en.json` | Version and build time shown at the foot of the rail on the first screen. |
+| `frontend/src/state/quick-bar-mixin.ts`, `frontend/src/dialogs/shortcuts/dialog-shortcuts.ts` | The quick bar opens with Ctrl+Shift+F instead of Ctrl+K. |
 
 ## Build-time stamping (not committed)
 

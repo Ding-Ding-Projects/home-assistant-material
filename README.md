@@ -5,9 +5,10 @@ core, the supervisor and the operating system, with releases for Raspberry Pi, V
 Docker.
 
 **Status: early.** The build and update pipeline works and publishes real images. The redesigned
-interface exists as a complete design (48 boards in [`design/`](design/)) and is **not yet
-implemented**: today's images still show the upstream interface. See
-[`docs/feature-status.md`](docs/feature-status.md) for exactly what is and is not done.
+interface exists as a complete design (48 boards in [`design/`](design/)). The first part of it
+is built: colours, typeface, navigation rail, floating pane, cards and tabs. Most features on the
+boards are **not yet implemented**. See [`docs/feature-status.md`](docs/feature-status.md) for
+exactly what is and is not done.
 
 | I want to | Go to |
 | --- | --- |
@@ -106,6 +107,19 @@ that touches only `design/`, `docs/` or Markdown files publishes the release wit
 
 The workflow runs no tests and no lint, and each release says so. The release notes list the
 result of every build job and the end-to-end time.
+
+</details>
+
+<details>
+<summary><strong>Screenshots</strong></summary>
+
+Taken from the frontend's demo build of this repository, which runs the real interface against
+sample data. They show what is built so far: the colours, typeface, navigation rail, floating
+pane, cards and pill tabs.
+
+![The Home dashboard in the demo build: navigation rail, floating pane, tinted cards](docs/screenshots/home.png)
+![The Energy dashboard in the demo build, with pill tabs](docs/screenshots/energy.png)
+![The Map page in the demo build](docs/screenshots/map.png)
 
 </details>
 

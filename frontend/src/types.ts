@@ -35,6 +35,8 @@ declare global {
   var __DEMO__: boolean;
   var __BUILD__: "modern" | "legacy";
   var __VERSION__: string;
+  var __MATERIAL_BUILD__: string;
+  var __BUILD_TIME__: string;
   var __STATIC_PATH__: string;
   var __MAPLIBRE_WORKER_URL__: string;
   var __BACKWARDS_COMPAT__: boolean;

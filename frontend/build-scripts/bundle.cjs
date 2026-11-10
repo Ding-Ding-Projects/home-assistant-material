@@ -63,6 +63,15 @@ module.exports.definedVars = ({
   __DEV__: !isProdBuild,
   __BUILD__: JSON.stringify(latestBuild ? "modern" : "legacy"),
   __VERSION__: JSON.stringify(env.version()),
+  // Provenance shown on the first screen. Both values are fixed when the
+  // bundle is built, so they describe the running build and nothing else.
+  __MATERIAL_BUILD__: JSON.stringify(process.env.MATERIAL_BUILD || ""),
+  __BUILD_TIME__: JSON.stringify(
+    (process.env.SOURCE_DATE_EPOCH
+      ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
+      : new Date()
+    ).toISOString()
+  ),
   __DEMO__: false,
   __BACKWARDS_COMPAT__: false,
   __STATIC_PATH__: "/static/",

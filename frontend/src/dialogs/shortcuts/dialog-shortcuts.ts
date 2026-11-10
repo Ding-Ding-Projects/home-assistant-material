@@ -40,7 +40,7 @@ const _SHORTCUTS: Section[] = [
         textTranslationKey: "ui.dialogs.shortcuts.searching.on_any_page",
       },
       {
-        shortcut: [CTRL_CMD, "K"],
+        shortcut: [CTRL_CMD, "Shift", "F"],
         descriptionTranslationKey: "ui.dialogs.shortcuts.searching.search",
       },
       {

@@ -2842,6 +2842,9 @@
     },
     "sidebar": {
       "external_app_configuration": "App settings",
+      "provenance_version": "Version {version}",
+      "provenance_updated": "Updated {date} at {time}",
+      "provenance_unavailable": "Build time unavailable",
       "sidebar_toggle": "Sidebar toggle",
       "edit_sidebar": "Edit sidebar",
       "edit_subtitle": "Synced on all devices",

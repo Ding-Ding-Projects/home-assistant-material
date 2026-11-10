@@ -236,7 +236,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     // prettier-ignore
     return html`
       ${this._renderHeader()}
-      ${this._renderAllPanels(selectedPanel)}`;
+      ${this._renderAllPanels(selectedPanel)}
+      ${this._renderProvenance()}`;
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
@@ -586,6 +587,53 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     `;
   }
 
+  /**
+   * Version and build time of the running build, shown on the first screen.
+   * Both come from constants fixed at build time. A build without a usable
+   * time says so instead of showing another date.
+   */
+  private _renderProvenance() {
+    const version =
+      __MATERIAL_BUILD__ || this.hass.config?.version || __VERSION__;
+    const built = new Date(__BUILD_TIME__);
+    const language = this.hass.locale?.language || this.hass.language;
+    let date: string | undefined;
+    let time: string | undefined;
+    if (!Number.isNaN(built.getTime())) {
+      date = built.toLocaleDateString(language, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      time = built.toLocaleTimeString(language, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short",
+      });
+    }
+    const updated =
+      date && time
+        ? this.hass.localize("ui.sidebar.provenance_updated", { date, time })
+        : this.hass.localize("ui.sidebar.provenance_unavailable");
+    return html`
+      <div
+        class="provenance"
+        role="note"
+        aria-label=${`${this.hass.localize("ui.sidebar.provenance_version", {
+          version,
+        })}. ${updated}`}
+      >
+        <span class="version">${version}</span>
+        ${
+          date && time
+            ? html`<span>${date}</span><span>${time}</span>`
+            : html`<span>${updated}</span>`
+        }
+      </div>
+    `;
+  }
+
   private _renderExternalConfiguration() {
     if (!this.hass.auth.external?.config.hasSettingsScreen) {
       return nothing;
@@ -932,6 +980,30 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         .spacer {
           margin-top: auto;
           pointer-events: none;
+        }
+
+        .provenance {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          padding: var(--ha-space-1) var(--ha-space-1) var(--ha-space-2);
+          margin-left: var(--safe-area-inset-left, 0px);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-xs);
+          line-height: var(--ha-line-height-condensed);
+          text-align: center;
+          user-select: text;
+        }
+        .provenance span {
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .provenance .version {
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--primary-text-color);
         }
 
         .menu ha-icon-button {

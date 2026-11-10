@@ -3,7 +3,7 @@ import { extractDerivedVars, extractVar } from "../../common/style/derived-css-v
 
 export const typographyStyles = css`
   html {
-    --ha-font-family-body: Roboto, Noto, sans-serif;
+    --ha-font-family-body: "Google Sans Flex", Roboto, Noto, sans-serif;
     --ha-font-family-code: monospace;
     --ha-font-family-longform: ui-sans-serif, system-ui, sans-serif;
 
@@ -26,7 +26,7 @@ export const typographyStyles = css`
 
     --ha-font-family-heading: var(--ha-font-family-body);
     --ha-font-weight-body: var(--ha-font-weight-normal);
-    --ha-font-weight-heading: var(--ha-font-weight-bold);
+    --ha-font-weight-heading: var(--ha-font-weight-medium);
     --ha-font-weight-action: var(--ha-font-weight-medium);
 
     --ha-line-height-condensed: 1.2;

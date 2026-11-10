@@ -21,7 +21,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 
 | Feature | State | Where |
 | --- | --- | --- |
-| Material Design 3 shell: rail, pane, pill tabs, tokens | Designed | Main, Energy, Settings, Phone, Tokens |
+| Material Design 3 shell: rail, pane, pill tabs, tokens | Partly built: colour scales, surfaces, typeface, navigation rail, floating pane, borderless cards and pill tabs are in the frontend and seen working in its demo build (`docs/screenshots/`). Not built: the tab bar of open pages, the search field and accessibility button in the header, the redesigned Home, the dark theme check, the phone layout. | Main, Energy, Settings, Phone, Tokens |
 | Motion with a reduced-motion path | Designed | Settings, Accessibility |
 | Live charts | Designed | Energy |
 | First-run wizard | Designed | Onboarding |
@@ -38,7 +38,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | Accessibility tools | Designed | Accessibility |
 | Resizable panels, collapsible filters and statistics | Designed | Panels |
 | Tabs open by default and the New tab catalog | Designed | Tabs |
-| Command palette on Ctrl+Shift+F | Designed | CommandPalette |
+| Command palette on Ctrl+Shift+F | The existing quick bar is rebound to Ctrl+Shift+F. Not seen working: the demo build has no quick bar. The redesigned palette with live controls is not built. | CommandPalette |
 | Pattern workbench on every search | Designed | Regex |
 | Context menus with working shortcuts | Designed | ContextMenu |
 | Guided forms and per-control information buttons | Designed | GuidedForm |
@@ -64,7 +64,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | External editor hand-off and publishing to a forge | Designed | Handoff |
 | Drawing and annotation | Designed | Drawing |
 | Progress and recovery | Designed | Progress |
-| Version and updated-at on the first screen | Designed | Main, About |
+| Version and updated-at on the first screen | Built: version, date and time with seconds and time zone at the foot of the rail, from build-time constants. Seen in the demo build. | Main, About |
 | Free, with nothing to buy | Designed | About |
 
 ## Not applicable to this product

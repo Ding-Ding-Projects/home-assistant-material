@@ -108,7 +108,8 @@ export default <T extends Constructor<HassElement>>(superClass: T) =>
         e: { handler: (ev) => this._showQuickBar(ev, "entity") },
         m: { handler: (ev) => this._createMyLink(ev) },
         a: { handler: (ev) => this._showVoiceCommandDialog(ev) },
-        "$mod+k": {
+        // The command palette opens with Ctrl+Shift+F (Cmd+Shift+F on macOS).
+        "$mod+Shift+f": {
           handler: (ev) => this._toggleQuickBar(ev),
           allowWhenTextSelected: true,
           allowInInput: true,
@@ -119,7 +120,7 @@ export default <T extends Constructor<HassElement>>(superClass: T) =>
         KeyE: { handler: (ev) => this._showQuickBar(ev, "entity") },
         KeyM: { handler: (ev) => this._createMyLink(ev) },
         KeyA: { handler: (ev) => this._showVoiceCommandDialog(ev) },
-        "$mod+KeyK": {
+        "$mod+Shift+KeyF": {
           handler: (ev) => this._toggleQuickBar(ev),
           allowWhenTextSelected: true,
           allowInInput: true,

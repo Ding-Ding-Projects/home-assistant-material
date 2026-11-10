@@ -161,6 +161,7 @@ jobs:
       - name: Build
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          MATERIAL_BUILD: ${{ needs.prepare.outputs.core }}
         run: |
           if ! ./node_modules/.bin/gulp build-app; then
             echo "::warning::Build with downloaded translations failed. Building again with English only."
