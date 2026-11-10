@@ -1,0 +1,48 @@
+name: Project page
+
+# Publishes docs/site/ to GitHub Pages. The page is static: one HTML file, its images and the
+# typeface, with nothing loaded from other sites. Its source is design/source/pages/p_site.py.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish the project page
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: docs/site
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Package the page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/site
+
+      - name: Publish
+        id: deploy
+        uses: actions/deploy-pages@v4

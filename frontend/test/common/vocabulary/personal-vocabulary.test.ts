@@ -170,9 +170,21 @@ describe("buildVocabularyReplacer", () => {
 
   it("keeps case and leaves parts of longer words alone", () => {
     expect(replace("Light and lightning, highlight")).toBe(
-      "Light and lightning, highlight"
+      "Lamp and lightning, highlight"
     );
     expect(replace("Area: garden area")).toBe("Zone: garden area");
+  });
+
+  it("matches a capital first letter for a key spelled in small letters", () => {
+    expect(replace("Lights on, Living room")).toBe("Lamps on, Den");
+    expect(replace("LIGHT")).toBe("LIGHT");
+    const own = buildVocabularyReplacer({
+      push: "nudge",
+      Push: "Shove",
+      repo: "#store",
+    });
+    expect(own("Push, push")).toBe("Shove, nudge");
+    expect(own("Repo")).toBe("#store");
   });
 
   it("works next to punctuation", () => {

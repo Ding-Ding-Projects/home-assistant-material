@@ -204,6 +204,10 @@ const escapeForRegExp = (text: string) =>
  * Builds the function that rewrites one piece of interface text.
  *
  * The longest key wins, case matters, and a key only matches whole words.
+ * A key that starts with a small letter also matches the same words with a
+ * capital first letter, as at the start of a label, and its replacement
+ * then starts with a capital too; a key the file spells with a capital
+ * keeps its own entry.
  * Text that looks like an address, a path or an identifier is left alone:
  * a key touching `_`, `/`, `\` or `@`, or sitting inside `word.word`, is
  * not replaced.
@@ -211,7 +215,25 @@ const escapeForRegExp = (text: string) =>
 export const buildVocabularyReplacer = (
   entries: Record<string, string>
 ): ((text: string) => string) => {
-  const keys = Object.keys(entries).sort((a, b) => b.length - a.length);
+  const all: Record<string, string> = Object.create(null);
+  for (const [key, value] of Object.entries(entries)) {
+    all[key] = value;
+  }
+  for (const [key, value] of Object.entries(entries)) {
+    const first = key[0];
+    const upper = first.toLocaleUpperCase();
+    if (first === upper || first.toLocaleLowerCase() !== first) {
+      continue;
+    }
+    const capital = upper + key.slice(1);
+    if (!(capital in all)) {
+      const lead = value[0] ?? "";
+      const small =
+        lead.toLocaleLowerCase() === lead && lead.toLocaleUpperCase() !== lead;
+      all[capital] = small ? lead.toLocaleUpperCase() + value.slice(1) : value;
+    }
+  }
+  const keys = Object.keys(all).sort((a, b) => b.length - a.length);
   if (!keys.length) {
     return (text) => text;
   }
@@ -235,7 +257,7 @@ export const buildVocabularyReplacer = (
       ) {
         return match;
       }
-      return entries[match] ?? match;
+      return all[match] ?? match;
     });
   };
 };
