@@ -4,7 +4,11 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Notifications as a page, with a search and dismissing one, the selected ones or all. The notification drawer links to it."
+          "text": "Tools: a Colour tab that reads one colour in every notation, names the nearest named colour and says how well text reads on it."
+        },
+        {
+          "text": "Notifications as a page, with a search and dismissing one, the selected ones or all. The notification drawer links to it.",
+          "commit": "f97acba7048a"
         },
         {
           "text": "The rail has an Assist button at its top.",

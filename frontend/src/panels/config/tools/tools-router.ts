@@ -62,6 +62,10 @@ class ToolsRouter extends HassRouterPage {
         tag: "tools-base64",
         load: () => import("./base64/tools-base64"),
       },
+      colour: {
+        tag: "tools-colour",
+        load: () => import("./colour/tools-colour"),
+      },
       debug: {
         tag: "tools-debug",
         load: () => import("./debug/tools-debug"),

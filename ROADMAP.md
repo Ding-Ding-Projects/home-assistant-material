@@ -92,7 +92,8 @@ exactly what has been seen working and where.
 
 ## Appearance
 
-- [ ] Colour picker and translator
+- [~] Colour picker and translator: a Colour tab under Tools picks or reads a colour and writes
+      it nine ways; it is not yet the picker inside the appearance editor, and has no rainbow
 - [ ] Fonts and type scale
 - [ ] Appearance editor for type
 - [ ] Appearance editor for fill and layers: picture layers, masks, blend, per-state layers

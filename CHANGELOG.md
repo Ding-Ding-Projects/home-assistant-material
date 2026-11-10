@@ -8,6 +8,8 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Tools: a Colour tab that reads one colour in every notation, names the nearest named colour
+  and says how well text reads on it.
 - Notifications as a page, with a search and dismissing one, the selected ones or all. The
   notification drawer links to it.
 - The rail has an Assist button at its top.

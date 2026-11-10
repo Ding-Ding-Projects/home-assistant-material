@@ -60,6 +60,10 @@ const TOOLS_TABS = [
     panel: "base64",
     translationKey: "ui.panel.config.tools.tabs.base64.title",
   },
+  {
+    panel: "colour",
+    translationKey: "ui.panel.config.tools.tabs.colour.title",
+  },
 ] as const;
 
 @customElement("ha-panel-tools")
