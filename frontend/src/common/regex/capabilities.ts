@@ -42,7 +42,6 @@ export interface Capability {
 
 const compiles = (source: string, flags = ""): boolean => {
   try {
-    // eslint-disable-next-line no-new
     new RegExp(source, flags);
     return true;
   } catch (_err) {

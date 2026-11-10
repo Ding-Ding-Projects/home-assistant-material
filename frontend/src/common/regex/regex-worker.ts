@@ -70,14 +70,17 @@ const HARD_MATCH_LIMIT = 100000;
 const MAX_PARTS = 1000;
 const MAX_OUTPUT = 200000;
 
+// A literal with an unknown flag would stop the whole file from parsing, so
+// the flag is passed as a variable.
+const INDICES_FLAG = "d";
+
 const supportsIndices = (() => {
   try {
-    // A literal with an unknown flag would stop the whole file from parsing.
-    // eslint-disable-next-line prefer-regex-literals
-    return (
-      (new RegExp("", "d") as RegExp & { hasIndices?: boolean }).hasIndices ===
-      true
+    const probe: RegExp & { hasIndices?: boolean } = new RegExp(
+      "",
+      INDICES_FLAG
     );
+    return probe.hasIndices === true;
   } catch (_err) {
     return false;
   }
