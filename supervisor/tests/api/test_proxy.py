@@ -1,0 +1,963 @@
+"""Test Home Assistant proxy."""
+
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Awaitable, Callable, Coroutine, Generator
+from json import dumps
+import logging
+import re
+from typing import Any, cast
+from unittest.mock import AsyncMock, patch
+
+from aiohttp import ClientPayloadError, ClientWebSocketResponse, WSCloseCode, web
+from aiohttp.http_websocket import WSMessage, WSMsgType
+from aiohttp.test_utils import TestClient
+import pytest
+
+from supervisor.api.const import WEBSOCKETS
+from supervisor.api.proxy import APIProxy
+from supervisor.apps.app import App
+from supervisor.const import ATTR_ACCESS_TOKEN, CoreState
+from supervisor.coresys import CoreSys
+from supervisor.homeassistant.api import HomeAssistantAPI
+
+
+def id_generator() -> Generator[int]:
+    """Generate IDs for WS messages."""
+    i = 0
+    while True:
+        yield (i := i + 1)
+
+
+class MockHAClientWebSocket(ClientWebSocketResponse):
+    """Protocol for a wrapped ClientWebSocketResponse."""
+
+    client: TestClient
+    send_json_auto_id: Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
+
+
+class MockHAServerWebSocket:
+    """Mock of HA Websocket server."""
+
+    closed: bool = False
+    close_code: int | None = None
+
+    def __init__(self) -> None:
+        """Initialize object."""
+        self.outgoing: asyncio.Queue[WSMessage] = asyncio.Queue()
+        self.incoming: asyncio.Queue[WSMessage] = asyncio.Queue()
+        self._id_generator = id_generator()
+
+    async def receive(self) -> WSMessage:
+        """Receive next message."""
+        try:
+            return await self.outgoing.get()
+        except asyncio.QueueShutDown:
+            return WSMessage(WSMsgType.CLOSED, None, None)
+
+    def send_str(self, data: str) -> Awaitable[None]:
+        """Incoming string message."""
+        return self.incoming.put(WSMessage(WSMsgType.TEXT, data, None))
+
+    def send_bytes(self, data: bytes) -> Awaitable[None]:
+        """Incoming string message."""
+        return self.incoming.put(WSMessage(WSMsgType.BINARY, data, None))
+
+    def respond_json(self, data: dict[str, Any]) -> Awaitable[None]:
+        """Respond with JSON."""
+        return self.outgoing.put(
+            WSMessage(
+                WSMsgType.TEXT, dumps(data | {"id": next(self._id_generator)}), None
+            )
+        )
+
+    def respond_bytes(self, data: bytes) -> Awaitable[None]:
+        """Respond with binary."""
+        return self.outgoing.put(WSMessage(WSMsgType.BINARY, data, None))
+
+    async def close(self, code: int = WSCloseCode.OK) -> None:
+        """Close connection."""
+        self.closed = True
+        self.outgoing.shutdown(immediate=True)
+        self.close_code = code
+
+
+WebSocketGenerator = Callable[..., Coroutine[Any, Any, MockHAClientWebSocket]]
+
+
+@pytest.fixture(name="ha_ws_server")
+async def fixture_ha_ws_server() -> MockHAServerWebSocket:
+    """Mock HA WS server for testing."""
+    with patch.object(
+        APIProxy,
+        "_websocket_client",
+        return_value=(mock_server := MockHAServerWebSocket()),
+    ):
+        yield mock_server
+
+
+@pytest.fixture(name="proxy_ws_client")
+def fixture_proxy_ws_client(
+    api_client: TestClient, ha_ws_server: MockHAServerWebSocket
+) -> WebSocketGenerator:
+    """Websocket client fixture connected to websocket server."""
+
+    async def create_client(auth_token: str) -> MockHAClientWebSocket:
+        """Create a websocket client."""
+        websocket = await api_client.ws_connect("/core/websocket")
+        auth_resp = await websocket.receive_json()
+        assert auth_resp["type"] == "auth_required"
+        await websocket.send_json({"type": "auth", "access_token": auth_token})
+
+        auth_ok = await websocket.receive_json()
+        assert auth_ok["type"] == "auth_ok"
+
+        _id_generator = id_generator()
+
+        def _send_json_auto_id(data: dict[str, Any]) -> Coroutine[Any, Any, None]:
+            data["id"] = next(_id_generator)
+            return websocket.send_json(data)
+
+        # wrap in client
+        wrapped_websocket = cast(MockHAClientWebSocket, websocket)
+        wrapped_websocket.client = api_client
+        wrapped_websocket.send_json_auto_id = _send_json_auto_id
+        return wrapped_websocket
+
+    return create_client
+
+
+async def test_proxy_message(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test proxy a message to and from Home Assistant."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    await client.send_json_auto_id({"type": "hello"})
+    proxied_msg = await ha_ws_server.incoming.get()
+    assert proxied_msg.type == WSMsgType.TEXT
+    assert proxied_msg.data == '{"type": "hello", "id": 1}'
+
+    await ha_ws_server.respond_json({"world": "received"})
+    assert await client.receive_json() == {"world": "received", "id": 1}
+
+    assert await client.close()
+
+
+async def test_proxy_websocket_closed_on_api_stop(
+    api_client: TestClient,
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test proxied websockets are closed when the API stops."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+    assert len(api_client.server.app[WEBSOCKETS]) == 1
+
+    shutdown_task = asyncio.create_task(api_client.server.app.shutdown())
+    msg = await client.receive()
+    await shutdown_task
+
+    assert msg.type == WSMsgType.CLOSE
+    assert msg.data == WSCloseCode.GOING_AWAY
+    assert ha_ws_server.closed
+
+
+async def test_proxy_websocket_closed_on_api_stop_during_auth(
+    api_client: TestClient, coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test a websocket closed on API stop while authenticating logs no error."""
+    websocket = await api_client.ws_connect("/core/websocket")
+    assert (await websocket.receive_json())["type"] == "auth_required"
+    await coresys.core.set_state(CoreState.STOPPING)
+
+    shutdown_task = asyncio.create_task(api_client.server.app.shutdown())
+    msg = await websocket.receive()
+    await shutdown_task
+
+    assert msg.type == WSMsgType.CLOSE
+    assert msg.data == WSCloseCode.GOING_AWAY
+    assert "Unexpected message during authentication" not in caplog.text
+
+
+async def test_proxy_websocket_closed_when_stopping(
+    api_client: TestClient, coresys: CoreSys
+):
+    """Test websocket upgrades completing after API stop began are closed."""
+    await coresys.core.set_state(CoreState.STOPPING)
+
+    websocket = await api_client.ws_connect("/core/websocket")
+    msg = await websocket.receive()
+
+    assert msg.type == WSMsgType.CLOSE
+    assert msg.data == WSCloseCode.GOING_AWAY
+
+
+async def test_proxy_binary_message(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test proxy a binary message to and from Home Assistant."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    await client.send_bytes(b"hello world")
+    proxied_msg = await ha_ws_server.incoming.get()
+    assert proxied_msg.type == WSMsgType.BINARY
+    assert proxied_msg.data == b"hello world"
+
+    await ha_ws_server.respond_bytes(b"world received")
+    assert await client.receive_bytes() == b"world received"
+
+    assert await client.close()
+
+
+async def test_proxy_blocks_supervisor_api_command(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test the proxy blocks a supervisor/api command instead of tunneling it to Core.
+
+    Regression test for the confused-deputy chain described in
+    ws-supervisor-api-disclosure.md: an app with only `homeassistant_api: true` could
+    reach the full, unrestricted Supervisor API by sending a `supervisor/api` command
+    through this proxy, since Core executes it by calling back into the Supervisor
+    with its own, fully privileged token.
+    """
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        await client.send_json_auto_id(
+            {
+                "type": "supervisor/api",
+                "endpoint": "/addons/self/options",
+                "method": "post",
+                "data": {"boot": "auto"},
+            }
+        )
+        result = await client.receive_json()
+        assert (
+            "Blocked WebSocket message with disallowed or malformed command types: "
+            "['supervisor/api']" in caplog.text
+        )
+
+    assert result == {
+        "id": 1,
+        "type": "result",
+        "success": False,
+        "error": {"code": "unauthorized", "message": "Unauthorized"},
+    }
+    # The command must never have reached Home Assistant Core
+    assert ha_ws_server.incoming.empty()
+
+    assert await client.close()
+
+
+@pytest.mark.parametrize(
+    "command_type",
+    [
+        "supervisor/api",
+        "supervisor/event",
+        "supervisor/subscribe",
+        "hassio/update/core",
+    ],
+)
+async def test_proxy_blocks_denied_command_types(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+    command_type: str,
+):
+    """Test every Supervisor/Core-only command namespace is blocked, not just supervisor/api."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    await client.send_json_auto_id({"type": command_type})
+    result = await client.receive_json()
+
+    assert result["success"] is False
+    assert result["error"]["code"] == "unauthorized"
+    assert ha_ws_server.incoming.empty()
+
+    assert await client.close()
+
+
+async def test_proxy_allows_normal_commands_after_blocked_command(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test the connection stays usable after a denied command is rejected."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    await client.send_json_auto_id({"type": "supervisor/api", "endpoint": "/backups"})
+    denied = await client.receive_json()
+    assert denied["success"] is False
+
+    await client.send_json_auto_id({"type": "call_service", "domain": "light"})
+    proxied_msg = await ha_ws_server.incoming.get()
+    assert proxied_msg.type == WSMsgType.TEXT
+    assert '"type": "call_service"' in proxied_msg.data
+
+    assert await client.close()
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_id", "expected_types"),
+    [
+        pytest.param(
+            [
+                {"id": 1, "type": "call_service"},
+                {"id": 2, "type": "supervisor/api", "endpoint": "/backups"},
+            ],
+            None,
+            ["supervisor/api"],
+            id="batch_with_denied_command",
+        ),
+        pytest.param(
+            [
+                {"id": 1, "type": "hassio/update/core"},
+                {"id": 2, "type": "call_service"},
+                {"id": 3, "type": "supervisor/api"},
+            ],
+            None,
+            ["hassio/update/core", "supervisor/api"],
+            id="batch_with_multiple_denied_commands",
+        ),
+        pytest.param(
+            [{"id": 1, "type": "call_service"}, "supervisor/api"],
+            None,
+            [None],
+            id="batch_with_non_dict_element",
+        ),
+        pytest.param(
+            [[{"id": 1, "type": "supervisor/api"}]],
+            None,
+            [None],
+            id="nested_batch",
+        ),
+        pytest.param({"id": 1}, 1, [None], id="missing_type"),
+        pytest.param(
+            {"id": 1, "type": ["supervisor/api"]}, 1, [None], id="non_string_type"
+        ),
+        pytest.param("supervisor/api", None, [None], id="string"),
+        pytest.param("", None, [None], id="empty_string"),
+        pytest.param(1, None, [None], id="number"),
+        pytest.param(None, None, [None], id="null"),
+    ],
+)
+async def test_proxy_rejects_unverifiable_messages(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+    caplog: pytest.LogCaptureFixture,
+    message: Any,
+    expected_id: int | None,
+    expected_types: list[str | None],
+):
+    """Test messages that aren't verifiably allowed are rejected as a whole."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        await client.send_str(dumps(message))
+        result = await client.receive_json()
+
+    assert (
+        "Blocked WebSocket message with disallowed or malformed command types: "
+        f"{expected_types!r}" in caplog.text
+    )
+    assert result == {
+        "id": expected_id,
+        "type": "result",
+        "success": False,
+        "error": {"code": "unauthorized", "message": "Unauthorized"},
+    }
+    assert ha_ws_server.incoming.empty()
+
+    # Only a single result is sent, even for a batch, and the connection stays usable
+    await client.send_json_auto_id({"type": "ping"})
+    assert (await ha_ws_server.incoming.get()).data == '{"type": "ping", "id": 1}'
+    await ha_ws_server.respond_json({"type": "pong"})
+    assert await client.receive_json() == {"type": "pong", "id": 1}
+
+    assert await client.close()
+
+
+async def test_proxy_forwards_allowed_batch(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test a batch with only allowed commands is forwarded unchanged."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    message = dumps(
+        [
+            {"id": 1, "type": "call_service", "domain": "light"},
+            {"id": 2, "type": "subscribe_events"},
+        ]
+    )
+    await client.send_str(message)
+    proxied_msg = await ha_ws_server.incoming.get()
+    assert proxied_msg.type == WSMsgType.TEXT
+    assert proxied_msg.data == message
+
+    assert await client.close()
+
+
+async def test_proxy_closes_on_invalid_json(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test non-JSON text frames close the connection like Core does."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    await client.send_str("this is not JSON")
+    msg = await client.receive()
+
+    assert msg.type == WSMsgType.CLOSE
+    assert ha_ws_server.closed
+    assert ha_ws_server.incoming.empty()
+
+
+async def test_proxy_large_message(
+    proxy_ws_client: WebSocketGenerator,
+    ha_ws_server: MockHAServerWebSocket,
+    install_app_ssh: App,
+):
+    """Test too large message handled gracefully."""
+    install_app_ssh.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    client: MockHAClientWebSocket = await proxy_ws_client(
+        install_app_ssh.supervisor_token
+    )
+
+    # Test message over size limit of 4MB. Since aiohttp 3.14.1 the server
+    # rejects the oversized frame from its header and resets the connection
+    # before the full payload is sent, so the send itself may raise in
+    # addition to the CLOSE frame. See aio-libs/aiohttp#12817.
+    try:
+        await client.send_bytes(bytearray(1024 * 1024 * 4))
+    except ConnectionError:
+        pass
+    else:
+        msg = await client.receive()
+        assert msg.type == WSMsgType.CLOSE
+        assert msg.data == WSCloseCode.MESSAGE_TOO_BIG
+
+    assert ha_ws_server.closed
+
+
+@pytest.mark.parametrize("auth_token", ["abc123", "bad"])
+async def test_proxy_invalid_auth(
+    api_client: TestClient, install_app_example: App, auth_token: str
+):
+    """Test invalid access token or app with no access."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    websocket = await api_client.ws_connect("/core/websocket")
+    auth_resp = await websocket.receive_json()
+    assert auth_resp["type"] == "auth_required"
+    await websocket.send_json({"type": "auth", "access_token": auth_token})
+
+    auth_not_ok = await websocket.receive_json()
+    assert auth_not_ok["type"] == "auth_invalid"
+    assert auth_not_ok["message"] == "Invalid access"
+
+
+async def test_proxy_auth_abort_log(
+    api_client: TestClient,
+    install_app_example: App,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test WebSocket closed during authentication gets logged."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    websocket = await api_client.ws_connect("/core/websocket")
+    auth_resp = await websocket.receive_json()
+    assert auth_resp["type"] == "auth_required"
+    caplog.clear()
+    with caplog.at_level(logging.ERROR):
+        await websocket.close()
+        assert (
+            "Unexpected message during authentication for WebSocket API" in caplog.text
+        )
+
+
+async def test_websocket_transport_none(
+    coresys,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test WebSocket connection with transport None is handled gracefully."""
+    # Get the API proxy instance from coresys
+    api_proxy = APIProxy.__new__(APIProxy)
+    api_proxy.coresys = coresys
+
+    # Create a mock request with transport set to None to simulate connection loss
+    mock_request = AsyncMock(spec=web.Request)
+    mock_request.transport = None
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        # This should raise HTTPBadRequest, not AssertionError
+        with pytest.raises(web.HTTPBadRequest) as exc_info:
+            await api_proxy.websocket(mock_request)
+
+        # Verify the error reason
+        assert exc_info.value.reason == "Connection closed"
+
+        # Verify the warning was logged
+        assert "WebSocket connection lost before upgrade" in caplog.text
+
+
+@pytest.mark.parametrize("path", ["", "mock_path"])
+async def test_api_proxy_get_request(
+    api_client: TestClient,
+    install_app_example: App,
+    request: pytest.FixtureRequest,
+    path: str,
+):
+    """Test the API proxy request using patch for make_request."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    request.param = "local_example"
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        # Mock the response from make_request
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "application/json"
+        mock_response.read.return_value = b"mocked response"
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.get(
+            f"/core/api/{path}", headers={"Authorization": "Bearer abc123"}
+        )
+
+        assert make_request.call_args[0][0] == "get"
+        assert make_request.call_args[0][1] == f"api/{path}"
+
+        assert response.status == 200
+        assert await response.text() == "mocked response"
+        assert response.content_type == "application/json"
+
+
+@pytest.mark.parametrize(
+    "path", ["hassio_auth", "hassio_auth/password_reset", "hassio/app"]
+)
+async def test_api_proxy_blocks_core_hassio_endpoints(
+    api_client: TestClient,
+    install_app_example: App,
+    request: pytest.FixtureRequest,
+    path: str,
+):
+    """Test the proxy refuses to forward Core's Supervisor-only hassio endpoints.
+
+    These run as the Supervisor user on Core; an add-on must not reach them
+    through the proxy even if the security middleware blacklist is bypassed.
+    """
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    request.param = "local_example"
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        response = await api_client.post(
+            f"/core/api/{path}",
+            headers={"Authorization": "Bearer abc123"},
+            json={"username": "owner", "password": "attacker"},
+        )
+
+        assert response.status == 403
+        make_request.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "hassio%5Fauth/password_reset",  # single-encoded "_"
+        "hassio%255Fauth/password_reset",  # double-encoded "_"
+        "hassio%252Fapp",  # double-encoded "/"
+        "hassio%25255Fauth",  # triple-encoded "_"
+    ],
+)
+async def test_api_proxy_blocks_encoded_core_hassio_endpoints(
+    api_client: TestClient,
+    install_app_example: App,
+    request: pytest.FixtureRequest,
+    path: str,
+):
+    """Test the proxy deny check sees through percent-encoding.
+
+    The route capture is decoded once and the upstream client would decode
+    again, so the deny pattern must match the fully decoded path. The security
+    middleware blacklist is disabled here so the proxy's own guard is exercised.
+    """
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    request.param = "local_example"
+
+    with (
+        patch("supervisor.api.middleware.security.BLACKLIST", re.compile(r"(?!)")),
+        patch.object(HomeAssistantAPI, "make_request") as make_request,
+    ):
+        response = await api_client.post(
+            f"/core/api/{path}",
+            headers={"Authorization": "Bearer abc123"},
+            json={"username": "owner", "password": "attacker"},
+        )
+
+        assert response.status == 403
+        make_request.assert_not_called()
+
+
+async def test_api_proxy_forwards_raw_path(
+    api_client: TestClient,
+    install_app_example: App,
+    request: pytest.FixtureRequest,
+):
+    """Test the proxy forwards the path exactly as the app sent it.
+
+    Percent-encoded sequences must reach Core untouched: %2F must not become a
+    path separator and %255F must not collapse into "_" on the way.
+    """
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    request.param = "local_example"
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "application/json"
+        mock_response.read.return_value = b"{}"
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.get(
+            "/core/api/states/light.a%2Fb%255Fc%20d?x=1",
+            headers={"Authorization": "Bearer abc123"},
+        )
+
+        assert response.status == 200
+        assert make_request.call_args[0][1] == "api/states/light.a%2Fb%255Fc%20d"
+        assert make_request.call_args[1]["params"]["x"] == "1"
+
+
+@pytest.mark.parametrize(
+    "path", ["config/automation/config/test_id", "services/light/turn_on"]
+)
+async def test_api_proxy_post_request(
+    api_client: TestClient,
+    install_app_example: App,
+    request: pytest.FixtureRequest,
+    path: str,
+):
+    """Test the API proxy POST request."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    request.param = "local_example"
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        # Mock the response from make_request
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "application/json"
+        mock_response.read.return_value = b'{"result": "ok"}'
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.post(
+            f"/core/api/{path}",
+            headers={"Authorization": "Bearer abc123"},
+            json={"test": "data"},
+        )
+
+        assert make_request.call_args[0][0] == "post"
+        assert make_request.call_args[0][1] == f"api/{path}"
+
+        assert response.status == 200
+        assert await response.text() == '{"result": "ok"}'
+        assert response.content_type == "application/json"
+
+
+@pytest.mark.parametrize(
+    "path", ["config/automation/config/test_id", "states/light.test"]
+)
+async def test_api_proxy_delete_request(
+    api_client: TestClient,
+    install_app_example: App,
+    request: pytest.FixtureRequest,
+    path: str,
+):
+    """Test the API proxy DELETE request."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    request.param = "local_example"
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        # Mock the response from make_request
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "application/json"
+        mock_response.read.return_value = b'{"result": "ok"}'
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.delete(
+            f"/core/api/{path}", headers={"Authorization": "Bearer abc123"}
+        )
+
+        assert make_request.call_args[0][0] == "delete"
+        assert make_request.call_args[0][1] == f"api/{path}"
+
+        assert response.status == 200
+        assert await response.text() == '{"result": "ok"}'
+        assert response.content_type == "application/json"
+
+
+@pytest.mark.parametrize(
+    "auth",
+    [
+        pytest.param({}, id="no-token"),
+        pytest.param({"access_token": None}, id="null-token"),
+        pytest.param({"access_token": ""}, id="empty-token"),
+        pytest.param({"api_password": ""}, id="empty-password"),
+    ],
+)
+@pytest.mark.usefixtures("ha_ws_server")
+async def test_proxy_websocket_missing_token_denied(
+    api_client: TestClient, install_app_ssh: App, auth: dict[str, str | None]
+):
+    """Test the proxy rejects a missing or empty token."""
+    install_app_ssh.persist.pop(ATTR_ACCESS_TOKEN, None)
+    install_app_ssh.data["homeassistant_api"] = True
+
+    websocket = await api_client.ws_connect("/core/websocket")
+    assert (await websocket.receive_json())["type"] == "auth_required"
+    await websocket.send_json({"type": "auth"} | auth)
+
+    assert (await websocket.receive_json())["type"] == "auth_invalid"
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        pytest.param({}, id="no-token"),
+        pytest.param({"Authorization": "Bearer "}, id="empty-bearer"),
+        pytest.param({"X-HA-Access": ""}, id="empty-ha-access"),
+    ],
+)
+async def test_api_proxy_missing_token_denied(
+    api_client: TestClient, install_app_ssh: App, headers: dict[str, str]
+):
+    """Test the proxy rejects a missing or empty token."""
+    install_app_ssh.persist.pop(ATTR_ACCESS_TOKEN, None)
+    install_app_ssh.data["homeassistant_api"] = True
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        response = await api_client.get("/core/api/states", headers=headers)
+
+    assert response.status == 401
+    make_request.assert_not_called()
+
+
+async def test_api_proxy_multipart_content_type_preserved(
+    api_client: TestClient,
+    install_app_example: App,
+):
+    """Test multipart Content-Type keeps its boundary parameter when proxied."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        # Mock the response from make_request
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "application/json"
+        mock_response.read.return_value = b'{"result": "ok"}'
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        boundary = "d1b1a3a3f0a94a5c9e3a"
+        body = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="file"; filename="test.png"\r\n'
+            "Content-Type: image/png\r\n\r\n"
+            "fakepng\r\n"
+            f"--{boundary}--\r\n"
+        ).encode()
+
+        response = await api_client.post(
+            "/core/api/media_source/local_source/upload",
+            headers={
+                "Authorization": "Bearer abc123",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
+            data=body,
+        )
+
+        # The boundary parameter must survive the proxy — without it Core
+        # cannot parse the multipart body ("boundary missed for Content-Type").
+        assert (
+            make_request.call_args[1]["content_type"]
+            == f"multipart/form-data; boundary={boundary}"
+        )
+        assert response.status == 200
+
+
+async def test_api_proxy_mcp_headers_forwarded(
+    api_client: TestClient,
+    install_app_example: App,
+):
+    """Test that MCP headers are forwarded to Home Assistant."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        # Mock the response from make_request
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "application/json"
+        mock_response.read.return_value = b"mocked response"
+        mock_response.headers = {"Mcp-Session-Id": "test-session-123"}
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.get(
+            "/core/api/mcp",
+            headers={
+                "Authorization": "Bearer abc123",
+                "Accept": "text/event-stream",
+                "Last-Event-ID": "5",
+                "Mcp-Session-Id": "test-session-123",
+            },
+        )
+
+        # Verify headers were forwarded in the request
+        assert make_request.call_args[1]["headers"]["Accept"] == "text/event-stream"
+        assert make_request.call_args[1]["headers"]["Last-Event-ID"] == "5"
+        assert (
+            make_request.call_args[1]["headers"]["Mcp-Session-Id"] == "test-session-123"
+        )
+
+        # Verify response headers are preserved
+        assert response.status == 200
+        assert response.headers.get("Mcp-Session-Id") == "test-session-123"
+
+
+async def test_api_proxy_streaming_response(
+    api_client: TestClient,
+    install_app_example: App,
+):
+    """Test that streaming responses (text/event-stream) are handled properly."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    async def mock_content_iter():
+        """Mock async iterator for streaming content."""
+        yield b"data: event1\n\n"
+        yield b"data: event2\n\n"
+        yield b"data: event3\n\n"
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        # Mock the response from make_request
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "text/event-stream"
+        mock_response.headers = {
+            "Cache-Control": "no-cache",
+            "Mcp-Session-Id": "session-456",
+        }
+        mock_response.content = mock_content_iter()
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.get(
+            "/core/api/mcp",
+            headers={
+                "Authorization": "Bearer abc123",
+                "Accept": "text/event-stream",
+            },
+        )
+
+        # Verify it's a streaming response
+        assert response.status == 200
+        assert response.content_type == "text/event-stream"
+        assert response.headers.get("X-Accel-Buffering") == "no"
+        assert response.headers.get("Mcp-Session-Id") == "session-456"
+
+        # Read the streamed content
+        content = await response.read()
+        assert b"data: event1\n\n" in content
+        assert b"data: event2\n\n" in content
+        assert b"data: event3\n\n" in content
+
+
+async def test_api_proxy_streaming_response_client_payload_error(
+    api_client: TestClient,
+    install_app_example: App,
+):
+    """Test that client payload errors during streaming are handled gracefully."""
+    install_app_example.persist[ATTR_ACCESS_TOKEN] = "abc123"
+    install_app_example.data["homeassistant_api"] = True
+
+    async def mock_content_iter_error():
+        yield b"data: event1\n\n"
+        raise ClientPayloadError("boom")
+
+    with patch.object(HomeAssistantAPI, "make_request") as make_request:
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.content_type = "text/event-stream"
+        mock_response.headers = {
+            "Cache-Control": "no-cache",
+            "Mcp-Session-Id": "session-789",
+        }
+        mock_response.content = mock_content_iter_error()
+        make_request.return_value.__aenter__.return_value = mock_response
+
+        response = await api_client.get(
+            "/core/api/mcp",
+            headers={
+                "Authorization": "Bearer abc123",
+                "Accept": "text/event-stream",
+            },
+        )
+
+        assert response.status == 200
+        assert response.content_type == "text/event-stream"
+        assert response.headers.get("X-Accel-Buffering") == "no"
+        assert response.headers.get("Mcp-Session-Id") == "session-789"
+
+        content = await response.read()
+        assert b"data: event1\n\n" in content

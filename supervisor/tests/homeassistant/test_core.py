@@ -1,0 +1,1852 @@
+"""Test Home Assistant core."""
+
+import asyncio
+from datetime import datetime, timedelta
+from http import HTTPStatus
+from pathlib import Path
+from typing import Any
+from unittest.mock import ANY, AsyncMock, MagicMock, Mock, PropertyMock, call, patch
+
+import aiodocker
+from aiodocker.containers import DockerContainer
+from awesomeversion import AwesomeVersion
+from dbus_fast import DBusError
+import pytest
+from time_machine import travel
+
+from supervisor.const import CpuArch
+from supervisor.coresys import CoreSys
+from supervisor.dbus.const import DBUS_ERR_SYSTEMD_NO_SUCH_UNIT
+from supervisor.docker.homeassistant import DockerHomeAssistant
+from supervisor.docker.interface import DockerInterface
+from supervisor.docker.manager import DockerAPI
+from supervisor.exceptions import (
+    AudioUpdateError,
+    DBusFatalError,
+    DBusNotConnectedError,
+    DockerAPIError,
+    DockerContainerNotFoundError,
+    DockerContainerNotRunningError,
+    DockerError,
+    DockerStatsTimeoutError,
+    HomeAssistantCrashError,
+    HomeAssistantError,
+    HomeAssistantJobError,
+    HomeAssistantNotRunningError,
+    HomeAssistantSocketDirsError,
+    HomeAssistantStatsTimeoutError,
+    HomeAssistantUnknownError,
+    SupervisorUpdateError,
+)
+from supervisor.homeassistant.api import APIState
+from supervisor.homeassistant.const import LANDINGPAGE, WSEvent
+from supervisor.homeassistant.core import HomeAssistantCore, _format_bind_address
+from supervisor.homeassistant.module import HomeAssistant
+from supervisor.jobs.const import JobCondition
+from supervisor.resolution.const import ContextType, IssueType
+from supervisor.resolution.data import Issue
+from supervisor.updater import Updater
+
+from tests.common import AsyncIterator, load_json_fixture
+from tests.dbus_service_mocks.base import DBusServiceMock
+from tests.dbus_service_mocks.systemd import Systemd as SystemdService
+from tests.dbus_service_mocks.systemd_unit import SystemdUnit as SystemdUnitService
+
+
+async def test_update_fails_if_out_of_date(coresys: CoreSys):
+    """Test update of Home Assistant fails when supervisor or plugin is out of date."""
+    coresys.hardware.disk.get_disk_free_space = lambda x: 5000
+
+    with (
+        patch.object(
+            type(coresys.supervisor), "need_update", new=PropertyMock(return_value=True)
+        ),
+        pytest.raises(HomeAssistantJobError),
+    ):
+        await coresys.homeassistant.core.update()
+
+    with (
+        patch.object(
+            type(coresys.plugins.audio),
+            "need_update",
+            new=PropertyMock(return_value=True),
+        ),
+        patch.object(
+            type(coresys.plugins.audio), "update", side_effect=AudioUpdateError
+        ),
+        pytest.raises(HomeAssistantJobError),
+    ):
+        await coresys.homeassistant.core.update()
+
+
+async def test_install_landingpage_docker_ratelimit_error(
+    coresys: CoreSys, capture_exception: Mock, caplog: pytest.LogCaptureFixture
+):
+    """Test install landing page fails due to docker ratelimit error."""
+    coresys.security.force = True
+    coresys.docker.images.pull.side_effect = [
+        aiodocker.DockerError(HTTPStatus.TOO_MANY_REQUESTS, {"message": "ratelimit"}),
+        AsyncIterator([{}]),
+    ]
+
+    with (
+        patch.object(DockerHomeAssistant, "attach", side_effect=DockerError),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep") as sleep,
+    ):
+        await coresys.homeassistant.core.install_landingpage()
+        sleep.assert_awaited_once_with(30)
+
+    assert "Failed to install landingpage, retrying after 30sec" in caplog.text
+    capture_exception.assert_not_called()
+    assert (
+        Issue(IssueType.DOCKER_RATELIMIT, ContextType.SYSTEM)
+        in coresys.resolution.issues
+    )
+    assert "Unhandled exception:" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "err",
+    [
+        aiodocker.DockerError(HTTPStatus.INTERNAL_SERVER_ERROR, {"message": "fail"}),
+        aiodocker.DockerError(HTTPStatus.NOT_FOUND, {"message": "missing"}),
+    ],
+)
+async def test_install_landingpage_other_error(
+    coresys: CoreSys,
+    capture_exception: Mock,
+    caplog: pytest.LogCaptureFixture,
+    err: aiodocker.DockerError,
+):
+    """Test install landing page fails due to other error."""
+    coresys.docker.images.inspect.side_effect = [err, MagicMock()]
+
+    with (
+        patch.object(DockerHomeAssistant, "attach", side_effect=DockerError),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep") as sleep,
+    ):
+        await coresys.homeassistant.core.install_landingpage()
+        sleep.assert_awaited_once_with(30)
+
+    assert "Failed to install landingpage, retrying after 30sec" in caplog.text
+    capture_exception.assert_called_once_with(err)
+    assert "Unhandled exception:" not in caplog.text
+
+
+async def test_install_docker_ratelimit_error(
+    coresys: CoreSys, capture_exception: Mock, caplog: pytest.LogCaptureFixture
+):
+    """Test install fails due to docker ratelimit error."""
+    coresys.security.force = True
+    coresys.docker.images.pull.side_effect = [
+        aiodocker.DockerError(HTTPStatus.TOO_MANY_REQUESTS, {"message": "ratelimit"}),
+        AsyncIterator([{}]),
+    ]
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep") as sleep,
+    ):
+        await coresys.homeassistant.core.install()
+        sleep.assert_awaited_once_with(30)
+
+    assert "Error on Home Assistant installation. Retrying in 30sec" in caplog.text
+    capture_exception.assert_not_called()
+    assert (
+        Issue(IssueType.DOCKER_RATELIMIT, ContextType.SYSTEM)
+        in coresys.resolution.issues
+    )
+    assert "Unhandled exception:" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "err",
+    [
+        aiodocker.DockerError(HTTPStatus.INTERNAL_SERVER_ERROR, {"message": "fail"}),
+        aiodocker.DockerError(HTTPStatus.NOT_FOUND, {"message": "missing"}),
+    ],
+)
+async def test_install_other_error(
+    coresys: CoreSys,
+    capture_exception: Mock,
+    caplog: pytest.LogCaptureFixture,
+    err: aiodocker.DockerError,
+):
+    """Test install fails due to other error."""
+    coresys.docker.images.inspect.side_effect = [err, MagicMock()]
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep") as sleep,
+    ):
+        await coresys.homeassistant.core.install()
+        sleep.assert_awaited_once_with(30)
+
+    assert "Error on Home Assistant installation. Retrying in 30sec" in caplog.text
+    capture_exception.assert_called_once_with(err)
+    assert "Unhandled exception:" not in caplog.text
+
+
+async def test_install_supervisor_needs_update_auto_update_enabled(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test install proceeds with supervisor update first when auto-update is enabled."""
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch.object(
+            type(coresys.supervisor), "need_update", new=PropertyMock(return_value=True)
+        ),
+        patch.object(
+            type(coresys.updater), "auto_update", new=PropertyMock(return_value=True)
+        ),
+        patch.object(
+            coresys.supervisor, "update", AsyncMock(return_value=None)
+        ) as supervisor_update,
+        patch("supervisor.homeassistant.core.asyncio.sleep"),
+    ):
+        await coresys.homeassistant.core.install()
+        supervisor_update.assert_awaited_once()
+
+    assert (
+        "Supervisor has a pending update and must be updated before installing Home Assistant Core"
+        in caplog.text
+    )
+
+
+async def test_install_supervisor_needs_update_auto_update_disabled(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test install proceeds with core anyway when supervisor needs update but auto-update is disabled."""
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch.object(
+            type(coresys.supervisor), "need_update", new=PropertyMock(return_value=True)
+        ),
+        patch.object(
+            type(coresys.updater), "auto_update", new=PropertyMock(return_value=False)
+        ),
+        patch.object(coresys.supervisor, "update") as supervisor_update,
+        patch("supervisor.homeassistant.core.asyncio.sleep"),
+    ):
+        await coresys.homeassistant.core.install()
+        supervisor_update.assert_not_called()
+
+    assert "Supervisor has a pending update but auto-update is disabled" in caplog.text
+    assert "unknown issues may occur" in caplog.text
+
+
+async def test_install_supervisor_update_fails_retries(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test install retries after 30s when supervisor update fails."""
+    # Supervisor reports needing update on first pass, not on second
+    need_update_values = [True, False]
+    need_update_mock = PropertyMock(side_effect=need_update_values)
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch.object(type(coresys.supervisor), "need_update", new=need_update_mock),
+        patch.object(
+            type(coresys.updater), "auto_update", new=PropertyMock(return_value=True)
+        ),
+        patch.object(
+            coresys.supervisor,
+            "update",
+            side_effect=SupervisorUpdateError("update failed"),
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep") as sleep,
+    ):
+        await coresys.homeassistant.core.install()
+        sleep.assert_any_await(30)
+
+    assert "Supervisor update failed, retrying in 30sec" in caplog.text
+
+
+async def test_install_supervisor_update_shares_running_task(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test install awaits the shared task when a supervisor update is already running."""
+    # Supervisor reports needing update on first pass, not on second
+    need_update_values = [True, False]
+    need_update_mock = PropertyMock(side_effect=need_update_values)
+
+    async def _already_running_update() -> None:
+        """Simulate the shared, already-in-progress update completing successfully."""
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch.object(type(coresys.supervisor), "need_update", new=need_update_mock),
+        patch.object(
+            type(coresys.updater), "auto_update", new=PropertyMock(return_value=True)
+        ),
+        patch.object(
+            coresys.supervisor,
+            "update",
+            AsyncMock(
+                return_value=asyncio.get_event_loop().create_task(
+                    _already_running_update()
+                )
+            ),
+        ) as supervisor_update,
+        patch("supervisor.homeassistant.core.asyncio.sleep"),
+    ):
+        await coresys.homeassistant.core.install()
+        supervisor_update.assert_awaited_once()
+
+    assert (
+        "Supervisor has a pending update and must be updated before installing Home Assistant Core"
+        in caplog.text
+    )
+
+
+@pytest.mark.parametrize(
+    ("active_job", "expected_log"),
+    [
+        (None, "Home Assistant Core installation in progress"),
+        (MagicMock(progress=45.0), "Downloading Home Assistant Core image, 45%"),
+    ],
+)
+async def test_install_logs_progress_periodically(
+    coresys: CoreSys,
+    caplog: pytest.LogCaptureFixture,
+    active_job: MagicMock | None,
+    expected_log: str,
+):
+    """Test install logs progress periodically during image pull."""
+    coresys.security.force = True
+    coresys.docker.images.pull.return_value = AsyncIterator([{}])
+    original_wait_for = asyncio.wait_for
+
+    async def mock_wait_for(coro, *, timeout=None):
+        """Immediately timeout for the progress log wait, pass through others."""
+        if timeout == 15:
+            coro.close()
+            await asyncio.sleep(0)
+            raise TimeoutError
+        return await original_wait_for(coro, timeout=timeout)
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch("supervisor.homeassistant.core.asyncio.wait_for", new=mock_wait_for),
+        patch.object(
+            DockerHomeAssistant,
+            "active_job",
+            new=PropertyMock(return_value=active_job),
+        ),
+    ):
+        await coresys.homeassistant.core.install()
+
+    assert expected_log in caplog.text
+
+
+async def test_install_progress_log_does_not_block_till_done(coresys: CoreSys):
+    """Test a pending install's progress logger does not block block_till_done."""
+    with (
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(DockerHomeAssistant, "update", side_effect=asyncio.Event().wait),
+    ):
+        install_task = coresys.create_background_task(
+            coresys.homeassistant.core.install()
+        )
+        await asyncio.sleep(0)
+
+        async with asyncio.timeout(1):
+            await coresys.block_till_done()
+
+        install_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await install_task
+
+
+async def test_install_exposes_core_install_job_with_progress(
+    coresys: CoreSys, ha_ws_client: AsyncMock
+):
+    """Test initial Core install exposes a progress-reporting job for the landing page.
+
+    During the initial Core install the landing page frontend polls
+    ``/jobs/info`` and looks for a root job named ``home_assistant_core_install``
+    to render a download progress bar, reading the job's ``progress`` field
+    directly (see home-assistant/frontend#52359). This test guards that contract:
+    Supervisor must expose a non-internal ``home_assistant_core_install`` job
+    whose progress is driven by the underlying docker image pull (via
+    ``child_job_syncs``), so it reports intermediate progress rather than jumping
+    straight from 0 to 100.
+    """
+    coresys.security.force = True
+
+    logs = load_json_fixture("docker_pull_image_log_containerd_snapshot.json")
+    coresys.docker.images.pull.return_value = AsyncIterator(logs)
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+    ):
+        await coresys.homeassistant.core.install()
+
+    await asyncio.sleep(0)
+
+    # The job events the landing page would observe via /jobs/info for the
+    # install job. Receiving events at all proves the job is non-internal.
+    install_events = [
+        msg["data"]["data"]
+        for c in ha_ws_client.async_send_command.call_args_list
+        if (msg := c.args[0])["data"].get("event") == WSEvent.JOB
+        and msg["data"]["data"]["name"] == "home_assistant_core_install"
+    ]
+
+    assert install_events
+    # The landing page matches it as a root job (jobs[0]); it must not be nested.
+    assert all(event["parent_id"] is None for event in install_events)
+
+    # Progress is driven by the docker pull: starts at 0, reports intermediate
+    # values, and completes at 100 - not a bare 0 -> 100 jump.
+    progress = [event["progress"] for event in install_events]
+    assert progress[0] == 0
+    assert any(0 < value < 100 for value in progress)
+    assert progress[-1] == 100
+    assert install_events[-1]["done"] is True
+
+
+def _core_install_progress(ha_ws_client: AsyncMock) -> list[float]:
+    """Return the progress values reported for the Core install job over the WS."""
+    return [
+        msg["data"]["data"]["progress"]
+        for c in ha_ws_client.async_send_command.call_args_list
+        if (msg := c.args[0])["data"].get("event") == WSEvent.JOB
+        and msg["data"]["data"]["name"] == "home_assistant_core_install"
+    ]
+
+
+async def test_install_progress_excludes_supervisor_self_update(
+    coresys: CoreSys, ha_ws_client: AsyncMock
+):
+    """Test a Supervisor self-update pull does not count towards Core install progress.
+
+    When Supervisor needs updating first, that runs its own docker image pull
+    (a ``docker_interface_install`` job carrying the Supervisor container
+    reference). The Core install job's ``child_job_syncs`` is scoped to the Home
+    Assistant container, so the Supervisor pull must not move the Core install
+    progress.
+    """
+    coresys.security.force = True
+
+    logs = load_json_fixture("docker_pull_image_log_containerd_snapshot.json")
+    coresys.docker.images.pull.return_value = AsyncIterator(logs)
+
+    progress_after_self_update: list[float] = []
+
+    async def fake_supervisor_update(*args, **kwargs) -> None:
+        """Emulate a Supervisor self-update pulling its own image."""
+        child = coresys.jobs.new_job(
+            "docker_interface_install", reference="hassio_supervisor"
+        )
+        with child.start():
+            child.progress = 100
+        progress_after_self_update.append(coresys.jobs.current.progress)
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch.object(
+            type(coresys.supervisor),
+            "need_update",
+            new=PropertyMock(return_value=True),
+        ),
+        patch.object(
+            type(coresys.updater), "auto_update", new=PropertyMock(return_value=True)
+        ),
+        patch.object(coresys.supervisor, "update", new=fake_supervisor_update),
+    ):
+        await coresys.homeassistant.core.install()
+
+    await asyncio.sleep(0)
+
+    # The Supervisor self-update pull reached 100% but must not have moved the
+    # Core install job (it would be 100 here if the sync were not scoped).
+    assert progress_after_self_update == [0]
+    # The Core image pull afterwards still drives the job to completion.
+    assert _core_install_progress(ha_ws_client)[-1] == 100
+
+
+async def test_install_resets_progress_on_retry(
+    coresys: CoreSys, ha_ws_client: AsyncMock
+):
+    """Test a failed install attempt resets progress instead of overshooting.
+
+    The Core image pull runs in a retry loop. Docker resumes already-downloaded
+    layers, so a retry's fresh pull reports them immediately and would otherwise
+    push the synced progress straight to 100% if it stacked on top of the failed
+    attempt. The sync resets to the baseline on a re-triggered child, so the bar
+    restarts rather than overshooting.
+    """
+    coresys.security.force = True
+
+    partial_then_error = [
+        {
+            "status": "Pulling from home-assistant/odroid-n2-homeassistant",
+            "id": "1.2.3",
+        },
+        {"status": "Pulling fs layer", "progressDetail": {}, "id": "1578b14a573c"},
+        {
+            "status": "Downloading",
+            "progressDetail": {"current": 500, "total": 1000},
+            "id": "1578b14a573c",
+        },
+        aiodocker.DockerStreamError("failure", error_detail={"message": "failure"}),
+    ]
+    full = load_json_fixture("docker_pull_image_log_containerd_snapshot.json")
+    coresys.docker.images.pull.side_effect = [
+        AsyncIterator(partial_then_error),
+        AsyncIterator(full),
+    ]
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(
+            Updater,
+            "image_homeassistant",
+            new=PropertyMock(return_value="homeassistant"),
+        ),
+        patch.object(
+            Updater, "version_homeassistant", new=PropertyMock(return_value="2022.7.3")
+        ),
+        patch.object(
+            DockerInterface, "arch", new=PropertyMock(return_value=CpuArch.AMD64)
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep"),
+    ):
+        await coresys.homeassistant.core.install()
+
+    await asyncio.sleep(0)
+
+    progress = _core_install_progress(ha_ws_client)
+    first_nonzero = next(i for i, value in enumerate(progress) if value > 0)
+    # The first attempt moved the bar, then the retry reset it back to 0 before
+    # climbing to completion (rather than continuing from the failed progress).
+    assert 0 in progress[first_nonzero:]
+    assert progress[-1] == 100
+
+
+@pytest.mark.parametrize(
+    ("container_exc", "image_exc", "delete_calls"),
+    [
+        (aiodocker.DockerError(404, {"message": "missing"}), None, []),
+        (
+            None,
+            aiodocker.DockerError(404, {"message": "missing"}),
+            [call(force=True, v=True)],
+        ),
+        (None, None, [call(force=True, v=True)]),
+    ],
+)
+@pytest.mark.usefixtures("path_extern")
+async def test_start(
+    coresys: CoreSys,
+    container: DockerContainer,
+    container_exc: aiodocker.DockerError | None,
+    image_exc: aiodocker.DockerError | None,
+    delete_calls: list[call],
+):
+    """Test starting Home Assistant."""
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    coresys.docker.images.inspect.side_effect = image_exc
+    container.id = "123"
+    container.stop.side_effect = container_exc
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(DockerAPI, "run", return_value=container.show.return_value) as run,
+        patch.object(HomeAssistantCore, "_block_till_run") as block_till_run,
+    ):
+        await coresys.homeassistant.core.start()
+
+        block_till_run.assert_called_once()
+        run.assert_called_once()
+        assert (
+            run.call_args.args[0] == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+        )
+        assert run.call_args.kwargs["tag"] == AwesomeVersion("2023.7.0")
+        assert run.call_args.kwargs["name"] == "homeassistant"
+        assert run.call_args.kwargs["hostname"] == "homeassistant"
+
+    container.stop.assert_called_once_with(t=260)
+    assert container.delete.call_args_list == delete_calls
+
+
+@pytest.mark.usefixtures("path_extern")
+async def test_start_existing_container(coresys: CoreSys, container: DockerContainer):
+    """Test starting Home Assistant when container exists and is viable."""
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run") as block_till_run,
+    ):
+        await coresys.homeassistant.core.start()
+        block_till_run.assert_called_once()
+
+    container.start.assert_called_once()
+    container.stop.assert_not_called()
+    container.delete.assert_not_called()
+    coresys.docker.containers.create.assert_not_called()
+
+
+@pytest.mark.usefixtures("path_extern")
+@pytest.mark.parametrize("action", ["start", "restart"])
+async def test_existing_container_gets_run_dirs(
+    coresys: CoreSys, container: DockerContainer, tmp_run_dir: Path, action: str
+):
+    """Test Core's socket folders exist before an existing container starts."""
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+    run_dirs_at_start: list[bool] = []
+
+    def run_dirs_state() -> list[bool]:
+        return [
+            (tmp_run_dir / "core").is_dir(),
+            (tmp_run_dir / "supervisor" / "core").is_dir(),
+        ]
+
+    async def check_run_dirs(*args: Any, **kwargs: Any) -> None:
+        loop = asyncio.get_running_loop()
+        run_dirs_at_start.extend(await loop.run_in_executor(None, run_dirs_state))
+
+    getattr(container, action).side_effect = check_run_dirs
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2026.4.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+    ):
+        await getattr(coresys.homeassistant.core, action)()
+
+    getattr(container, action).assert_called_once()
+    assert run_dirs_at_start == [True, True]
+
+
+@pytest.mark.usefixtures("path_extern", "tmp_run_dir")
+@pytest.mark.parametrize("action", ["start", "restart"])
+async def test_socket_dirs_error_stops_start(
+    coresys: CoreSys, container: DockerContainer, action: str
+):
+    """Test Core is not started when its socket folders cannot be created."""
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2026.4.0")),
+        ),
+        patch.object(HomeAssistant, "ensure_run_dirs", side_effect=OSError("full")),
+        pytest.raises(HomeAssistantSocketDirsError),
+    ):
+        await getattr(coresys.homeassistant.core, action)()
+
+    getattr(container, action).assert_not_called()
+
+
+@pytest.mark.parametrize("exists", [True, False])
+async def test_stop(coresys: CoreSys, container: DockerContainer, exists: bool):
+    """Test stopping Home Assistant."""
+    if not exists:
+        container.stop.side_effect = aiodocker.DockerError(404, {"message": "missing"})
+
+    await coresys.homeassistant.core.stop()
+
+    container.stop.assert_called_once_with(t=260)
+    container.delete.assert_not_called()
+
+
+async def test_restart(coresys: CoreSys, container: DockerContainer):
+    """Test restarting Home Assistant."""
+    with patch.object(HomeAssistantCore, "_block_till_run") as block_till_run:
+        await coresys.homeassistant.core.restart()
+        block_till_run.assert_called_once()
+
+    container.restart.assert_called_once_with(t=260)
+    container.stop.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "get_error",
+    [
+        aiodocker.DockerError(404, {"message": "missing"}),
+        aiodocker.DockerError(500, {"message": "fail"}),
+        None,
+    ],
+)
+async def test_restart_failures(
+    coresys: CoreSys,
+    container: DockerContainer,
+    get_error: aiodocker.DockerError | None,
+):
+    """Test restart fails when container missing or can't be restarted."""
+    container.restart.side_effect = aiodocker.DockerError(500, {"message": "fail"})
+    if get_error:
+        coresys.docker.containers.get.side_effect = get_error
+
+    with pytest.raises(HomeAssistantError):
+        await coresys.homeassistant.core.restart()
+
+
+@pytest.mark.parametrize(
+    ("docker_error", "expected_error"),
+    [
+        (
+            DockerContainerNotFoundError(name="homeassistant"),
+            HomeAssistantNotRunningError,
+        ),
+        (
+            DockerContainerNotRunningError(name="homeassistant"),
+            HomeAssistantNotRunningError,
+        ),
+        (
+            DockerStatsTimeoutError(name="homeassistant"),
+            HomeAssistantStatsTimeoutError,
+        ),
+        (DockerAPIError(), HomeAssistantUnknownError),
+    ],
+)
+async def test_stats_failures(
+    coresys: CoreSys,
+    docker_error: DockerError,
+    expected_error: type[HomeAssistantError],
+):
+    """Test container stats errors are translated to Home Assistant-flavored errors."""
+    with (
+        patch.object(DockerAPI, "container_stats", AsyncMock(side_effect=docker_error)),
+        pytest.raises(expected_error),
+    ):
+        await coresys.homeassistant.core.stats()
+
+
+async def test_api_check_timeout(
+    coresys: CoreSys, container: DockerContainer, caplog: pytest.LogCaptureFixture
+):
+    """Test attempts to contact the API timeout."""
+    container.show.return_value["State"]["Status"] = "stopped"
+    container.show.return_value["State"]["Running"] = False
+    coresys.homeassistant.version = AwesomeVersion("2023.9.0")
+    coresys.homeassistant.api.get_api_state.return_value = None
+
+    async def mock_instance_start(*_):
+        container.show.return_value["State"]["Status"] = "running"
+        container.show.return_value["State"]["Running"] = True
+
+    with (
+        patch.object(DockerHomeAssistant, "start", new=mock_instance_start),
+        patch.object(DockerAPI, "container_is_initialized", return_value=True),
+        travel(datetime(2023, 10, 2, 0, 0, 0), tick=False) as traveller,
+    ):
+
+        async def mock_sleep(*args):
+            traveller.shift(timedelta(minutes=1))
+
+        with (
+            patch("supervisor.homeassistant.core.asyncio.sleep", new=mock_sleep),
+            pytest.raises(HomeAssistantCrashError),
+        ):
+            await coresys.homeassistant.core.start()
+
+    assert coresys.homeassistant.api.get_api_state.call_count == 10
+    assert (
+        "No Home Assistant Core response, assuming a fatal startup error" in caplog.text
+    )
+
+
+async def test_api_check_success(
+    coresys: CoreSys, container: DockerContainer, caplog: pytest.LogCaptureFixture
+):
+    """Test attempts to contact the API timeout."""
+    container.show.return_value["State"]["Status"] = "stopped"
+    container.show.return_value["State"]["Running"] = False
+    coresys.homeassistant.version = AwesomeVersion("2023.9.0")
+
+    async def mock_instance_start(*_):
+        container.show.return_value["State"]["Status"] = "running"
+        container.show.return_value["State"]["Running"] = True
+
+    with (
+        patch.object(DockerHomeAssistant, "start", new=mock_instance_start),
+        patch.object(DockerAPI, "container_is_initialized", return_value=True),
+        travel(datetime(2023, 10, 2, 0, 0, 0), tick=False) as traveller,
+    ):
+
+        async def mock_sleep(*args):
+            traveller.shift(timedelta(minutes=1))
+
+        with patch("supervisor.homeassistant.core.asyncio.sleep", new=mock_sleep):
+            await coresys.homeassistant.core.start()
+
+    assert coresys.homeassistant.api.get_api_state.call_count == 1
+    assert "Detect a running Home Assistant instance" in caplog.text
+
+
+async def test_api_check_database_migration(
+    coresys: CoreSys, container: DockerContainer, caplog: pytest.LogCaptureFixture
+):
+    """Test attempts to contact the API timeout."""
+    calls = []
+
+    def mock_api_state(*args):
+        calls.append(None)
+        if len(calls) > 50:
+            return APIState("RUNNING", False)
+        return APIState("NOT_RUNNING", True)
+
+    container.show.return_value["State"]["Status"] = "stopped"
+    container.show.return_value["State"]["Running"] = False
+    coresys.homeassistant.version = AwesomeVersion("2023.9.0")
+    coresys.homeassistant.api.get_api_state.side_effect = mock_api_state
+
+    async def mock_instance_start(*_):
+        container.show.return_value["State"]["Status"] = "running"
+        container.show.return_value["State"]["Running"] = True
+
+    with (
+        patch.object(DockerHomeAssistant, "start", new=mock_instance_start),
+        patch.object(DockerAPI, "container_is_initialized", return_value=True),
+        travel(datetime(2023, 10, 2, 0, 0, 0), tick=False) as traveller,
+    ):
+
+        async def mock_sleep(*args):
+            traveller.shift(timedelta(minutes=1))
+
+        with patch("supervisor.homeassistant.core.asyncio.sleep", new=mock_sleep):
+            await coresys.homeassistant.core.start()
+
+    assert coresys.homeassistant.api.get_api_state.call_count == 51
+    assert "Detect a running Home Assistant instance" in caplog.text
+
+
+async def test_core_loads_wrong_image_for_machine(
+    coresys: CoreSys, container: DockerContainer
+):
+    """Test core is loaded with wrong image for machine."""
+    coresys.homeassistant.set_image("ghcr.io/home-assistant/odroid-n2-homeassistant")
+    coresys.homeassistant.version = AwesomeVersion("2024.4.0")
+
+    with patch.object(
+        DockerAPI,
+        "pull_image",
+        return_value={
+            "Id": "abc123",
+            "Config": {"Labels": {"io.hass.version": "2024.4.0"}},
+        },
+    ) as pull_image:
+        container.show.return_value |= pull_image.return_value
+        await coresys.homeassistant.core.load()
+        pull_image.assert_called_once_with(
+            ANY,
+            "ghcr.io/home-assistant/qemux86-64-homeassistant",
+            "2024.4.0",
+            platform="linux/amd64",
+            auth=None,
+        )
+
+    container.delete.assert_called_once_with(force=True, v=True)
+    assert coresys.docker.images.delete.call_args_list[0] == call(
+        "ghcr.io/home-assistant/odroid-n2-homeassistant:latest",
+        force=True,
+    )
+    assert coresys.docker.images.delete.call_args_list[1] == call(
+        "ghcr.io/home-assistant/odroid-n2-homeassistant:2024.4.0",
+        force=True,
+    )
+    assert (
+        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+    )
+
+
+@pytest.mark.usefixtures("path_extern")
+async def test_load_preinstalled_landingpage_keeps_version(
+    coresys: CoreSys, container: DockerContainer
+):
+    """Test load keeps LANDINGPAGE when the landingpage image has a real version label.
+
+    Regression test: the landingpage image stamps a real Core version into its
+    io.hass.version label while keeping io.hass.type=landingpage. On a Supervisor
+    restart the persisted version (LANDINGPAGE) must not be overwritten with that
+    real version, otherwise the landingpage is mistaken for an installed Core and
+    Core never gets installed.
+    """
+    coresys.homeassistant.version = LANDINGPAGE
+    coresys.homeassistant.override_image = True
+    container.show.return_value["Config"] = {
+        "Labels": {
+            "io.hass.type": "landingpage",
+            "io.hass.version": "2026.06.3",
+        }
+    }
+
+    with patch.object(DockerHomeAssistant, "is_running", return_value=True):
+        await coresys.homeassistant.core.load()
+
+    assert coresys.homeassistant.version == LANDINGPAGE
+
+
+async def test_core_load_allows_image_override(
+    coresys: CoreSys, container: DockerContainer
+):
+    """Test core does not change image if user overrode it."""
+    coresys.homeassistant.set_image("ghcr.io/home-assistant/odroid-n2-homeassistant")
+    coresys.homeassistant.version = AwesomeVersion("2024.4.0")
+    container.show.return_value["Config"] = {"Labels": {"io.hass.version": "2024.4.0"}}
+
+    coresys.homeassistant.override_image = True
+    await coresys.homeassistant.core.load()
+
+    container.delete.assert_not_called()
+    coresys.docker.images.delete.assert_not_called()
+    coresys.docker.images.inspect.assert_not_called()
+    assert (
+        coresys.homeassistant.image == "ghcr.io/home-assistant/odroid-n2-homeassistant"
+    )
+
+
+async def test_install_landingpage_uses_overridden_image(coresys: CoreSys):
+    """Test landingpage install pulls the user-overridden image."""
+    coresys.homeassistant.set_image("myorg/qemux86-64-homeassistant")
+    coresys.homeassistant.override_image = True
+
+    with (
+        patch.object(DockerHomeAssistant, "attach", side_effect=DockerError),
+        patch.object(DockerHomeAssistant, "install") as install,
+    ):
+        await coresys.homeassistant.core.install_landingpage()
+
+    install.assert_called_once_with(LANDINGPAGE, image="myorg/qemux86-64-homeassistant")
+    assert coresys.homeassistant.image == "myorg/qemux86-64-homeassistant"
+    assert coresys.homeassistant.version == LANDINGPAGE
+
+
+async def test_install_uses_overridden_image(coresys: CoreSys):
+    """Test Core install after landingpage pulls the user-overridden image."""
+    coresys.homeassistant.set_image("myorg/qemux86-64-homeassistant")
+    coresys.homeassistant.override_image = True
+
+    with (
+        patch.object(HomeAssistantCore, "start"),
+        patch.object(DockerHomeAssistant, "cleanup"),
+        patch.object(DockerHomeAssistant, "update") as update,
+        patch.object(
+            Updater,
+            "version_homeassistant",
+            new=PropertyMock(return_value=AwesomeVersion("2022.7.3")),
+        ),
+    ):
+        await coresys.homeassistant.core.install()
+
+    update.assert_called_once_with(
+        AwesomeVersion("2022.7.3"), image="myorg/qemux86-64-homeassistant"
+    )
+    assert coresys.homeassistant.image == "myorg/qemux86-64-homeassistant"
+
+
+async def test_update_uses_overridden_image(coresys: CoreSys):
+    """Test Core update pulls the user-overridden image."""
+    coresys.jobs.ignore_conditions = [
+        JobCondition.FREE_SPACE,
+        JobCondition.HEALTHY,
+        JobCondition.INTERNET_HOST,
+        JobCondition.PLUGINS_UPDATED,
+        JobCondition.SUPERVISOR_UPDATED,
+    ]
+    coresys.homeassistant.set_image("myorg/qemux86-64-homeassistant")
+    coresys.homeassistant.override_image = True
+    coresys.homeassistant.version = AwesomeVersion("2022.7.2")
+
+    with (
+        patch.object(DockerHomeAssistant, "update") as update,
+        patch.object(DockerHomeAssistant, "is_running", return_value=False),
+        patch.object(DockerHomeAssistant, "exists", return_value=False),
+    ):
+        await coresys.homeassistant.core.update(AwesomeVersion("2022.7.3"))
+
+    update.assert_called_once_with(
+        AwesomeVersion("2022.7.3"), image="myorg/qemux86-64-homeassistant"
+    )
+    assert coresys.homeassistant.image == "myorg/qemux86-64-homeassistant"
+
+
+async def test_core_loads_wrong_image_for_architecture(
+    coresys: CoreSys, container: DockerContainer
+):
+    """Test core is loaded with wrong image for architecture."""
+    coresys.homeassistant.version = AwesomeVersion("2024.4.0")
+    coresys.docker.images.inspect.return_value = img_data = (
+        coresys.docker.images.inspect.return_value
+        | {
+            "Architecture": "arm64",
+            "Config": {"Labels": {"io.hass.version": "2024.4.0"}},
+        }
+    )
+    container.show.return_value |= img_data
+
+    with patch.object(
+        DockerAPI,
+        "pull_image",
+        return_value=img_data | {"Architecture": "amd64"},
+    ) as pull_image:
+        await coresys.homeassistant.core.load()
+        pull_image.assert_called_once_with(
+            ANY,
+            "ghcr.io/home-assistant/qemux86-64-homeassistant",
+            "2024.4.0",
+            platform="linux/amd64",
+            auth=None,
+        )
+
+    container.delete.assert_called_once_with(force=True, v=True)
+    assert coresys.docker.images.delete.call_args_list[0] == call(
+        "ghcr.io/home-assistant/qemux86-64-homeassistant:latest",
+        force=True,
+    )
+    assert coresys.docker.images.delete.call_args_list[1] == call(
+        "ghcr.io/home-assistant/qemux86-64-homeassistant:2024.4.0",
+        force=True,
+    )
+    assert (
+        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+    )
+
+
+def _lose_core_image(coresys: CoreSys) -> None:
+    """Make Docker report neither a Core container nor a Core image."""
+    not_found = aiodocker.DockerError(HTTPStatus.NOT_FOUND, {"message": "missing"})
+    coresys.docker.containers.container.return_value.show.side_effect = not_found
+    coresys.docker.images.inspect.side_effect = not_found
+    coresys.docker.images.list.return_value = []
+
+
+async def test_load_missing_image_reinstalls_stored_version(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test a lost image of an installed Core is reinstalled at the same version.
+
+    When the Docker storage is wiped (e.g. storage driver migration) the image
+    of the installed Core is gone. Supervisor must reinstall the version that
+    was installed before instead of jumping to the latest release, and it
+    must not install the landingpage in between.
+    """
+    coresys.homeassistant.version = AwesomeVersion("2026.2.3")
+    _lose_core_image(coresys)
+
+    with patch.object(
+        DockerAPI,
+        "pull_image",
+        return_value={
+            "Id": "abc123",
+            "Config": {"Labels": {"io.hass.version": "2026.2.3"}},
+        },
+    ) as pull_image:
+        await coresys.homeassistant.core.load()
+
+    pull_image.assert_called_once_with(
+        ANY,
+        "ghcr.io/home-assistant/qemux86-64-homeassistant",
+        "2026.2.3",
+        platform="linux/amd64",
+        auth=None,
+    )
+    coresys.docker.containers.create.assert_not_called()
+    assert coresys.homeassistant.version == AwesomeVersion("2026.2.3")
+    assert (
+        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+    )
+    assert "Reinstalling Home Assistant 2026.2.3" in caplog.text
+
+
+async def test_load_missing_image_reinstall_uses_overridden_image(coresys: CoreSys):
+    """Test reinstalling a lost Core image pulls the user-overridden image."""
+    coresys.homeassistant.version = AwesomeVersion("2026.2.3")
+    coresys.homeassistant.set_image("myorg/qemux86-64-homeassistant")
+    coresys.homeassistant.override_image = True
+    _lose_core_image(coresys)
+
+    with patch.object(
+        DockerAPI,
+        "pull_image",
+        return_value={
+            "Id": "abc123",
+            "Config": {"Labels": {"io.hass.version": "2026.2.3"}},
+        },
+    ) as pull_image:
+        await coresys.homeassistant.core.load()
+
+    pull_image.assert_called_once_with(
+        ANY,
+        "myorg/qemux86-64-homeassistant",
+        "2026.2.3",
+        platform="linux/amd64",
+        auth=None,
+    )
+    assert coresys.homeassistant.image == "myorg/qemux86-64-homeassistant"
+
+
+@pytest.mark.parametrize("stored_version", [None, LANDINGPAGE])
+@pytest.mark.usefixtures("path_extern")
+async def test_load_missing_image_fresh_install_uses_landingpage(
+    coresys: CoreSys, stored_version: AwesomeVersion | None
+):
+    """Test a new installation still goes through the landingpage."""
+    coresys.homeassistant.version = stored_version
+    _lose_core_image(coresys)
+
+    with (
+        patch.object(
+            DockerAPI,
+            "pull_image",
+            return_value={
+                "Id": "abc123",
+                "Config": {"Labels": {"io.hass.version": LANDINGPAGE}},
+            },
+        ) as pull_image,
+        patch.object(
+            DockerAPI,
+            "run",
+            return_value={
+                "Id": "abc123",
+                "Config": {"Labels": {"io.hass.type": "landingpage"}},
+                "State": {"Status": "running", "Running": True, "ExitCode": 0},
+            },
+        ),
+    ):
+        await coresys.homeassistant.core.load()
+
+    pull_image.assert_called_once_with(
+        ANY,
+        "ghcr.io/home-assistant/qemux86-64-homeassistant",
+        LANDINGPAGE,
+        platform="linux/amd64",
+        auth=None,
+    )
+    assert coresys.homeassistant.version == LANDINGPAGE
+
+
+@pytest.mark.usefixtures("path_extern")
+async def test_load_missing_image_falls_back_to_landingpage(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test load falls back to the landingpage if the stored version can't be pulled."""
+    coresys.homeassistant.version = AwesomeVersion("2026.2.3")
+    _lose_core_image(coresys)
+
+    with (
+        patch.object(
+            DockerAPI,
+            "pull_image",
+            side_effect=[
+                aiodocker.DockerError(HTTPStatus.NOT_FOUND, {"message": "missing"}),
+                {
+                    "Id": "abc123",
+                    "Config": {"Labels": {"io.hass.version": LANDINGPAGE}},
+                },
+            ],
+        ) as pull_image,
+        patch.object(
+            DockerAPI,
+            "run",
+            return_value={
+                "Id": "abc123",
+                "Config": {"Labels": {"io.hass.type": "landingpage"}},
+                "State": {"Status": "running", "Running": True, "ExitCode": 0},
+            },
+        ),
+    ):
+        await coresys.homeassistant.core.load()
+
+    assert [c.args[2] for c in pull_image.call_args_list] == ["2026.2.3", LANDINGPAGE]
+    assert coresys.homeassistant.version == LANDINGPAGE
+    assert (
+        "Could not reinstall Home Assistant 2026.2.3, installing latest version instead"
+        in caplog.text
+    )
+
+
+async def test_load_missing_image_reinstall_retries_on_ratelimit(
+    coresys: CoreSys, caplog: pytest.LogCaptureFixture
+):
+    """Test a registry rate limit retries the reinstall instead of falling back."""
+    coresys.homeassistant.version = AwesomeVersion("2026.2.3")
+    _lose_core_image(coresys)
+
+    with (
+        patch.object(
+            DockerAPI,
+            "pull_image",
+            side_effect=[
+                aiodocker.DockerError(
+                    HTTPStatus.TOO_MANY_REQUESTS, {"message": "ratelimit"}
+                ),
+                {
+                    "Id": "abc123",
+                    "Config": {"Labels": {"io.hass.version": "2026.2.3"}},
+                },
+            ],
+        ) as pull_image,
+        patch("supervisor.homeassistant.core.asyncio.sleep") as sleep,
+    ):
+        await coresys.homeassistant.core.load()
+        sleep.assert_awaited_once_with(30)
+
+    assert [c.args[2] for c in pull_image.call_args_list] == ["2026.2.3", "2026.2.3"]
+    assert coresys.homeassistant.version == AwesomeVersion("2026.2.3")
+    assert "Could not reinstall" not in caplog.text
+
+
+# ---- Core port reservation ----
+
+
+@pytest.mark.parametrize(
+    ("host", "expected"),
+    [
+        ("0.0.0.0", "0.0.0.0:8123"),
+        ("::", "[::]:8123"),
+        ("192.0.2.1", "192.0.2.1:8123"),
+        ("2001:db8::1", "[2001:db8::1]:8123"),
+    ],
+)
+def test_format_bind_address(host: str, expected: str) -> None:
+    """IPv6 addresses must be bracketed for systemd's Listen directive."""
+    assert _format_bind_address(host, 8123) == expected
+
+
+@pytest.fixture(name="held_port_reservation")
+async def fixture_held_port_reservation(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+) -> SystemdService:
+    """Take a real port reservation through the systemd mock and hand back the service."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_unit_service: SystemdUnitService = all_dbus_services["systemd_unit"]
+    # Fresh boot: neither unit exists during pre-cleanup, afterwards GetUnit
+    # finds the created socket unit and the linked unit mock tracks state
+    systemd_service.response_get_unit = [
+        DBusError(DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"),
+        DBusError(DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"),
+    ] + [SystemdService.response_get_unit] * 20
+    systemd_service.mock_systemd_unit = systemd_unit_service
+    coresys.homeassistant.http_server_host = None
+
+    await coresys.homeassistant.core.reserve_port()
+    assert coresys.homeassistant.core._port_reserved is True
+    systemd_service.StopUnit.calls.clear()
+    return systemd_service
+
+
+async def test_start_releases_held_port_reservation(
+    coresys: CoreSys,
+    container: DockerContainer,
+    held_port_reservation: SystemdService,
+):
+    """Starting Core releases the boot-time port reservation before the container runs.
+
+    Regression test for #7189: Core started through any path other than the
+    Supervisor boot flow (API, watchdog, restore) while the reservation was
+    still held came up unable to bind its port.
+    """
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    stop_calls_at_start: list[int] = []
+    container.start.side_effect = lambda: stop_calls_at_start.append(
+        len(held_port_reservation.StopUnit.calls)
+    )
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+    ):
+        await coresys.homeassistant.core.start()
+
+    container.start.assert_called_once()
+    # Both units were stopped, and before the container was started
+    assert ("homeassistant-core-port-reserve.socket", "replace") in (
+        held_port_reservation.StopUnit.calls
+    )
+    assert ("homeassistant-core-port-reserve.service", "replace") in (
+        held_port_reservation.StopUnit.calls
+    )
+    assert stop_calls_at_start == [2]
+    # Flag cleared: a later release is a no-op
+    held_port_reservation.StopUnit.calls.clear()
+    await coresys.homeassistant.core.release_port()
+    assert held_port_reservation.StopUnit.calls == []
+
+
+async def test_restart_releases_held_port_reservation(
+    coresys: CoreSys,
+    container: DockerContainer,
+    held_port_reservation: SystemdService,
+):
+    """Restarting Core releases the port reservation before the container restarts."""
+    stop_calls_at_restart: list[int] = []
+    container.restart.side_effect = lambda **_: stop_calls_at_restart.append(
+        len(held_port_reservation.StopUnit.calls)
+    )
+
+    with patch.object(HomeAssistantCore, "_block_till_run"):
+        await coresys.homeassistant.core.restart()
+
+    container.restart.assert_called_once_with(t=260)
+    assert stop_calls_at_restart == [2]
+
+
+async def test_start_without_reservation_skips_systemd(
+    coresys: CoreSys,
+    container: DockerContainer,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """Starting Core with no reservation held never touches systemd."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StopUnit.calls.clear()
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+    ):
+        await coresys.homeassistant.core.start()
+
+    container.start.assert_called_once()
+    assert systemd_service.StopUnit.calls == []
+
+
+async def test_start_waits_for_in_flight_port_reservation(
+    coresys: CoreSys,
+    container: DockerContainer,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """start() during reserve_port() waits for it, then releases before the container runs."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_unit_service: SystemdUnitService = all_dbus_services["systemd_unit"]
+    systemd_service.response_get_unit = [
+        DBusError(DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"),
+        DBusError(DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"),
+    ] + [SystemdService.response_get_unit] * 20
+    systemd_service.mock_systemd_unit = systemd_unit_service
+    systemd_service.StopUnit.calls.clear()
+    coresys.homeassistant.http_server_host = None
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    orig_start_transient_unit = coresys.dbus.systemd.start_transient_unit
+    unit_creation_entered = asyncio.Event()
+    unit_creation_release = asyncio.Event()
+
+    async def gated_start_transient_unit(*args, **kwargs):
+        unit_creation_entered.set()
+        await unit_creation_release.wait()
+        return await orig_start_transient_unit(*args, **kwargs)
+
+    stop_calls_at_start: list[int] = []
+    container.start.side_effect = lambda: stop_calls_at_start.append(
+        len(systemd_service.StopUnit.calls)
+    )
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+        patch.object(
+            coresys.dbus.systemd,
+            "start_transient_unit",
+            side_effect=gated_start_transient_unit,
+        ),
+    ):
+        reserve_task = asyncio.create_task(coresys.homeassistant.core.reserve_port())
+        await unit_creation_entered.wait()
+        start_task = asyncio.create_task(coresys.homeassistant.core.start())
+        for _ in range(10):
+            await asyncio.sleep(0)
+        # Core start must be parked behind the reservation, not racing it
+        container.start.assert_not_called()
+
+        unit_creation_release.set()
+        await reserve_task
+        await start_task
+
+    container.start.assert_called_once()
+    assert ("homeassistant-core-port-reserve.socket", "replace") in (
+        systemd_service.StopUnit.calls
+    )
+    assert stop_calls_at_start == [2]
+    assert coresys.homeassistant.core._port_reserved is False
+
+
+async def test_reserve_port_waits_for_in_flight_core_start(
+    coresys: CoreSys,
+    container: DockerContainer,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """reserve_port() during start() waits for the container and then skips the reservation."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StartTransientUnit.calls.clear()
+    coresys.homeassistant.http_server_host = None
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    container_start_entered = asyncio.Event()
+    container_start_release = asyncio.Event()
+
+    async def gated_container_start() -> None:
+        container_start_entered.set()
+        await container_start_release.wait()
+        container.show.return_value["State"]["Status"] = "running"
+        container.show.return_value["State"]["Running"] = True
+
+    container.start.side_effect = gated_container_start
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+    ):
+        start_task = asyncio.create_task(coresys.homeassistant.core.start())
+        await container_start_entered.wait()
+        reserve_task = asyncio.create_task(coresys.homeassistant.core.reserve_port())
+        for _ in range(10):
+            await asyncio.sleep(0)
+        # The reservation must be parked behind the container start
+        assert not reserve_task.done()
+        assert systemd_service.StartTransientUnit.calls == []
+
+        container_start_release.set()
+        await start_task
+        await reserve_task
+
+    container.start.assert_called_once()
+    assert systemd_service.StartTransientUnit.calls == []
+    assert coresys.homeassistant.core._port_reserved is False
+
+
+async def test_reserve_port_skipped_when_core_running(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """No reservation is made for a Core that is already running."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StartTransientUnit.calls.clear()
+
+    with patch.object(
+        coresys.homeassistant.core, "is_running", new=AsyncMock(return_value=True)
+    ):
+        await coresys.homeassistant.core.reserve_port()
+
+    assert systemd_service.StartTransientUnit.calls == []
+    assert coresys.homeassistant.core._port_reserved is False
+
+
+async def test_start_proceeds_when_port_release_not_confirmed(
+    coresys: CoreSys,
+    container: DockerContainer,
+    held_port_reservation: SystemdService,
+):
+    """Core is still started when the reservation release can't be confirmed.
+
+    The port is only Core's API/frontend bind, so a stuck unit must never
+    keep Core down; Core logs and retries the bind itself.
+    """
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+        patch.object(
+            coresys.homeassistant.core,
+            "_stop_port_reserve_units",
+            new=AsyncMock(return_value=False),
+        ),
+    ):
+        await coresys.homeassistant.core.start()
+
+    container.start.assert_called_once()
+    # Still flagged as held so the boot flow's final release retries
+    assert coresys.homeassistant.core._port_reserved is True
+
+
+async def test_release_port_resets_failed_unit(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """Releasing a unit that ended up FAILED (not cleanly INACTIVE) resets it.
+
+    Systemd keeps a FAILED unit around until it is explicitly reset, unlike a
+    unit that cleanly stops to INACTIVE and is garbage collected on its own.
+    """
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_unit_service: SystemdUnitService = all_dbus_services["systemd_unit"]
+
+    # Simulate a unit that is FAILED and stays that way: StopUnit's mock
+    # unconditionally flips a *linked* unit to INACTIVE, so leave it unlinked
+    # and set the state directly instead, matching a real FAILED unit that
+    # ignores a stop request. ResetFailedUnit is also a no-op when unlinked,
+    # so the unit never actually clears -- release can't be confirmed.
+    systemd_service.response_get_unit = SystemdService.response_get_unit
+    systemd_unit_service.active_state = "failed"
+
+    coresys.homeassistant.core._port_reserved = True
+    await coresys.homeassistant.core.release_port()
+
+    assert coresys.homeassistant.core._port_reserved is True
+    assert (
+        "homeassistant-core-port-reserve.socket",
+        "replace",
+    ) in systemd_service.StopUnit.calls
+    assert (
+        "homeassistant-core-port-reserve.socket",
+    ) in systemd_service.ResetFailedUnit.calls
+
+
+async def test_release_port_confirms_success_when_unit_goes_inactive(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """Releasing returns True once both units are confirmed INACTIVE."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_unit_service: SystemdUnitService = all_dbus_services["systemd_unit"]
+
+    systemd_service.response_get_unit = SystemdService.response_get_unit
+    systemd_service.mock_systemd_unit = systemd_unit_service
+    systemd_unit_service.active_state = "active"
+
+    coresys.homeassistant.core._port_reserved = True
+    await coresys.homeassistant.core.release_port()
+
+    assert coresys.homeassistant.core._port_reserved is False
+
+
+async def test_reserve_port_skips_when_dbus_not_connected(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """No reservation is attempted if systemd D-Bus is not connected."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StartTransientUnit.calls.clear()
+
+    with patch.object(coresys.dbus.systemd, "dbus", None):
+        coresys.homeassistant.http_server_host = ["0.0.0.0"]
+        await coresys.homeassistant.core.reserve_port()
+
+    assert coresys.homeassistant.core._port_reserved is False
+    assert systemd_service.StartTransientUnit.calls == []
+
+
+async def test_release_port_unconfirmed_when_dbus_not_connected(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """A held reservation stays flagged if systemd D-Bus can't be asked to release it."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StopUnit.calls.clear()
+
+    with patch.object(coresys.dbus.systemd, "dbus", None):
+        coresys.homeassistant.core._port_reserved = True
+        await coresys.homeassistant.core.release_port()
+
+    assert coresys.homeassistant.core._port_reserved is True
+    assert systemd_service.StopUnit.calls == []
+
+
+async def test_release_port_unconfirmed_when_unit_lookup_fails(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """Only NoSuchUnit proves a unit is gone; any other lookup error keeps the flag."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StopUnit.calls.clear()
+    coresys.homeassistant.core._port_reserved = True
+
+    with patch.object(
+        coresys.dbus.systemd,
+        "get_unit",
+        side_effect=DBusFatalError("busy", type_="org.freedesktop.DBus.Error.Failed"),
+    ):
+        await coresys.homeassistant.core.release_port()
+
+    assert coresys.homeassistant.core._port_reserved is True
+    assert systemd_service.StopUnit.calls == []
+
+
+async def test_reserve_port_flags_unconfirmed_stale_cleanup(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """Stale units whose cleanup can't be confirmed stay flagged for a later release."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StartTransientUnit.calls.clear()
+    coresys.homeassistant.http_server_host = ["0.0.0.0"]
+
+    with patch.object(
+        coresys.dbus.systemd,
+        "get_unit",
+        side_effect=DBusFatalError("busy", type_="org.freedesktop.DBus.Error.Failed"),
+    ):
+        await coresys.homeassistant.core.reserve_port()
+
+    assert systemd_service.StartTransientUnit.calls == []
+    assert coresys.homeassistant.core._port_reserved is True
+
+
+async def test_reserve_port_fails_when_unit_ends_up_failed(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """If the unit is created but ends up FAILED rather than ACTIVE, fail cleanly.
+
+    This can happen if the port turns out to already be bound by something
+    else outside Supervisor's knowledge: systemd creates the unit but it
+    immediately fails to actually claim the socket.
+    """
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_unit_service: SystemdUnitService = all_dbus_services["systemd_unit"]
+
+    # First two GetUnit calls are the pre-cleanup check (one per unit) on a
+    # clean/fresh boot -- neither exists yet. The next GetUnit call is the
+    # post-creation poll for the newly created socket unit, which ends up
+    # FAILED rather than ACTIVE. Leave mock_systemd_unit unlinked so
+    # StartTransientUnit's mock doesn't overwrite ActiveState back to
+    # "active" after we set it.
+    systemd_service.response_get_unit = [
+        DBusError(DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"),
+        DBusError(DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"),
+    ] + [SystemdService.response_get_unit] * 5
+    systemd_unit_service.active_state = "failed"
+    systemd_service.StartTransientUnit.calls.clear()
+
+    coresys.homeassistant.http_server_host = ["0.0.0.0"]
+    await coresys.homeassistant.core.reserve_port()
+
+    assert len(systemd_service.StartTransientUnit.calls) == 1
+    # Cleanup of the FAILED unit can't be confirmed either (unlinked mock
+    # never clears), so the port must stay flagged for release_port to retry
+    assert coresys.homeassistant.core._port_reserved is True
+
+
+async def test_reserve_port_handles_dbus_disconnect_mid_call(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """A mid-call D-Bus disconnect is treated as a non-fatal reservation failure.
+
+    DBusNotConnectedError is not a DBusError subclass -- it's raised directly
+    by the dbus_connected decorator when the bus drops after the initial
+    is_connected check passed -- so it must be caught via the broader
+    HassioError, or it would propagate and abort Supervisor startup.
+    """
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    # Pre-cleanup finds nothing on both units (clean/fresh boot); the
+    # disconnect happens on the create attempt itself.
+    systemd_service.response_get_unit = DBusError(
+        DBUS_ERR_SYSTEMD_NO_SUCH_UNIT, "no such unit"
+    )
+
+    with patch.object(
+        coresys.dbus.systemd,
+        "start_transient_unit",
+        side_effect=DBusNotConnectedError(),
+    ):
+        coresys.homeassistant.http_server_host = ["0.0.0.0"]
+        await coresys.homeassistant.core.reserve_port()
+
+    assert coresys.homeassistant.core._port_reserved is False
+
+
+async def test_release_port_handles_dbus_disconnect_mid_call(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """A mid-call D-Bus disconnect while stopping a unit does not propagate."""
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.response_get_unit = SystemdService.response_get_unit
+
+    # mock_systemd_unit is left unlinked, so the unit's ActiveState never
+    # actually moves off the "active" default -- shorten the wait so the
+    # test doesn't block for the real _PORT_RESERVE_TIMEOUT (10s).
+    with (
+        patch("supervisor.homeassistant.core._PORT_RESERVE_TIMEOUT", 0.01),
+        patch.object(
+            coresys.dbus.systemd,
+            "stop_unit",
+            side_effect=DBusNotConnectedError(),
+        ),
+    ):
+        coresys.homeassistant.core._port_reserved = True
+        await coresys.homeassistant.core.release_port()
+
+    assert coresys.homeassistant.core._port_reserved is True

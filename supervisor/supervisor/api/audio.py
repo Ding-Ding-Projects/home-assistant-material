@@ -1,0 +1,158 @@
+"""Init file for Supervisor Audio RESTful API."""
+
+import asyncio
+from collections.abc import Awaitable
+from dataclasses import asdict
+import logging
+from typing import Any
+
+from aiohttp import web
+import voluptuous as vol
+
+from ..const import (
+    ATTR_ACTIVE,
+    ATTR_APPLICATION,
+    ATTR_AUDIO,
+    ATTR_CARD,
+    ATTR_HOST,
+    ATTR_INDEX,
+    ATTR_INPUT,
+    ATTR_NAME,
+    ATTR_ONE_SHOT,
+    ATTR_OUTPUT,
+    ATTR_UPDATE_AVAILABLE,
+    ATTR_VERSION,
+    ATTR_VERSION_LATEST,
+    ATTR_VOLUME,
+)
+from ..coresys import CoreSysAttributes
+from ..exceptions import APIError
+from ..host.sound import StreamType
+from ..validate import version_tag
+from .utils import api_process, api_return_stats, api_validate, require_running_system
+
+_LOGGER: logging.Logger = logging.getLogger(__name__)
+
+SCHEMA_VERSION = vol.Schema({vol.Optional(ATTR_VERSION): version_tag})
+
+SCHEMA_VOLUME = vol.Schema(
+    {
+        vol.Required(ATTR_INDEX): vol.Coerce(int),
+        vol.Required(ATTR_VOLUME): vol.Coerce(float),
+    }
+)
+
+# pylint: disable=no-value-for-parameter
+SCHEMA_MUTE = vol.Schema(
+    {
+        vol.Required(ATTR_INDEX): vol.Coerce(int),
+        vol.Required(ATTR_ACTIVE): vol.Boolean(),
+    }
+)
+
+SCHEMA_DEFAULT = vol.Schema({vol.Required(ATTR_NAME): str})
+
+SCHEMA_PROFILE = vol.Schema(
+    {vol.Required(ATTR_CARD): str, vol.Required(ATTR_NAME): str}
+)
+
+
+class APIAudio(CoreSysAttributes):
+    """Handle RESTful API for Audio functions."""
+
+    @api_process
+    async def info(self, request: web.Request) -> dict[str, Any]:
+        """Return Audio information."""
+        return {
+            ATTR_VERSION: self.sys_plugins.audio.version,
+            ATTR_VERSION_LATEST: self.sys_plugins.audio.latest_version,
+            ATTR_UPDATE_AVAILABLE: self.sys_plugins.audio.need_update,
+            ATTR_HOST: str(self.sys_docker.network.audio),
+            ATTR_AUDIO: {
+                ATTR_CARD: [asdict(card) for card in self.sys_host.sound.cards],
+                ATTR_INPUT: [asdict(stream) for stream in self.sys_host.sound.inputs],
+                ATTR_OUTPUT: [asdict(stream) for stream in self.sys_host.sound.outputs],
+                ATTR_APPLICATION: [
+                    asdict(stream) for stream in self.sys_host.sound.applications
+                ],
+            },
+        }
+
+    @api_process
+    async def stats(self, request: web.Request) -> dict[str, Any]:
+        """Return resource information for v2 contract (always one-shot)."""
+        stats = await self.sys_plugins.audio.stats(one_shot=True)
+        return api_return_stats(stats, legacy=False)
+
+    @api_process
+    async def stats_v1(self, request: web.Request) -> dict[str, Any]:
+        """Return resource information."""
+        one_shot = ATTR_ONE_SHOT in request.query
+        stats = await self.sys_plugins.audio.stats(one_shot=one_shot)
+
+        return api_return_stats(stats, legacy=True)
+
+    @api_process
+    @require_running_system
+    async def update(self, request: web.Request) -> None:
+        """Update Audio plugin."""
+        body = await api_validate(SCHEMA_VERSION, request)
+        version = body.get(ATTR_VERSION, self.sys_plugins.audio.latest_version)
+
+        if version == self.sys_plugins.audio.version:
+            raise APIError(f"Version {version} is already in use")
+        await asyncio.shield(self.sys_plugins.audio.update(version))
+
+    @api_process
+    @require_running_system
+    def restart(self, request: web.Request) -> Awaitable[None]:
+        """Restart Audio plugin."""
+        return asyncio.shield(self.sys_plugins.audio.restart())
+
+    @api_process
+    def reload(self, request: web.Request) -> Awaitable[None]:
+        """Reload Audio information."""
+        return asyncio.shield(self.sys_host.sound.update())
+
+    @api_process
+    async def set_volume(self, request: web.Request) -> None:
+        """Set audio volume on stream."""
+        source: StreamType = StreamType(request.match_info["source"])
+        application: bool = request.path.endswith("application")
+        body = await api_validate(SCHEMA_VOLUME, request)
+
+        await asyncio.shield(
+            self.sys_host.sound.set_volume(
+                source, body[ATTR_INDEX], body[ATTR_VOLUME], application
+            )
+        )
+
+    @api_process
+    async def set_mute(self, request: web.Request) -> None:
+        """Mute audio volume on stream."""
+        source: StreamType = StreamType(request.match_info["source"])
+        application: bool = request.path.endswith("application")
+        body = await api_validate(SCHEMA_MUTE, request)
+
+        await asyncio.shield(
+            self.sys_host.sound.set_mute(
+                source, body[ATTR_INDEX], body[ATTR_ACTIVE], application
+            )
+        )
+
+    @api_process
+    async def set_default(self, request: web.Request) -> None:
+        """Set audio default stream."""
+        source: StreamType = StreamType(request.match_info["source"])
+        body = await api_validate(SCHEMA_DEFAULT, request)
+
+        await asyncio.shield(self.sys_host.sound.set_default(source, body[ATTR_NAME]))
+
+    @api_process
+    async def set_profile(self, request: web.Request) -> None:
+        """Set audio default sources."""
+        body = await api_validate(SCHEMA_PROFILE, request)
+
+        await asyncio.shield(
+            self.sys_host.sound.ativate_profile(body[ATTR_CARD], body[ATTR_NAME])
+        )

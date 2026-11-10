@@ -1,0 +1,576 @@
+"""Test NetworkInterface."""
+
+import logging
+from unittest.mock import Mock, PropertyMock, patch
+
+from dbus_fast import Variant
+from dbus_fast.aio.message_bus import MessageBus
+import pytest
+
+from supervisor.dbus.const import ConnectionFlags, ConnectionState, DeviceType
+from supervisor.dbus.network import NetworkManager
+from supervisor.dbus.network.interface import NetworkInterface
+from supervisor.dbus.network.setting import NetworkSetting
+from supervisor.exceptions import (
+    DBusError,
+    DBusFatalError,
+    DBusInterfaceMethodError,
+    DBusObjectError,
+    DBusParseError,
+    DBusServiceUnkownError,
+    HostNotSupportedError,
+)
+from supervisor.utils.dbus import DBus
+
+from tests.common import mock_dbus_services
+from tests.const import TEST_INTERFACE_ETH_NAME, TEST_INTERFACE_WLAN_NAME
+from tests.dbus_service_mocks.base import DBusServiceMock
+from tests.dbus_service_mocks.network_connection_settings import (
+    SETTINGS_1_FIXTURE,
+    ConnectionSettings as ConnectionSettingsService,
+)
+from tests.dbus_service_mocks.network_manager import (
+    NetworkManager as NetworkManagerService,
+)
+
+
+@pytest.fixture(name="network_manager_service")
+async def fixture_network_manager_service(
+    network_manager_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+) -> NetworkManagerService:
+    """Mock NetworkManager dbus service."""
+    return network_manager_services["network_manager"]
+
+
+async def test_network_manager(
+    network_manager_service: NetworkManagerService, dbus_session_bus: MessageBus
+):
+    """Test network manager update."""
+    network_manager = NetworkManager()
+
+    assert network_manager.connectivity_enabled is None
+
+    await network_manager.connect(dbus_session_bus)
+
+    assert TEST_INTERFACE_ETH_NAME in network_manager
+    assert network_manager.connectivity_enabled is True
+
+    network_manager_service.emit_properties_changed({"ConnectivityCheckEnabled": False})
+    await network_manager_service.ping()
+    assert network_manager.connectivity_enabled is False
+
+    network_manager_service.emit_properties_changed({}, ["ConnectivityCheckEnabled"])
+    await network_manager_service.ping()
+    await network_manager_service.ping()
+    assert network_manager.connectivity_enabled is True
+
+
+async def test_network_manager_version(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test if version validate work."""
+    # pylint: disable=protected-access
+    await network_manager._validate_version()
+    assert network_manager.version == "1.22.10"
+
+    network_manager_service.version = "1.13.9"
+    with pytest.raises(HostNotSupportedError):
+        await network_manager._validate_version()
+    assert network_manager.version == "1.13.9"
+    # pylint: enable=protected-access
+
+
+async def test_check_connectivity(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test connectivity check."""
+    network_manager_service.CheckConnectivity.calls.clear()
+
+    assert await network_manager.check_connectivity() == 4
+    assert network_manager_service.CheckConnectivity.calls == []
+
+    assert await network_manager.check_connectivity(force=True) == 4
+    assert network_manager_service.CheckConnectivity.calls == [()]
+
+
+async def test_activate_connection(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test activate connection."""
+    network_manager_service.ActivateConnection.calls.clear()
+    connection = await network_manager.activate_connection(
+        "/org/freedesktop/NetworkManager/Settings/1",
+        "/org/freedesktop/NetworkManager/Devices/1",
+    )
+    assert connection.state == ConnectionState.ACTIVATED
+    assert (
+        connection.settings.object_path == "/org/freedesktop/NetworkManager/Settings/1"
+    )
+    assert network_manager_service.ActivateConnection.calls == [
+        (
+            "/org/freedesktop/NetworkManager/Settings/1",
+            "/org/freedesktop/NetworkManager/Devices/1",
+            "/",
+        )
+    ]
+
+
+async def test_add_and_activate_connection(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test add and activate connection."""
+    network_manager_service.AddAndActivateConnection.calls.clear()
+
+    settings, connection = await network_manager.add_and_activate_connection(
+        SETTINGS_1_FIXTURE, "/org/freedesktop/NetworkManager/Devices/1"
+    )
+    assert settings.connection.uuid == "0c23631e-2118-355c-bbb0-8943229cb0d6"
+    assert settings.ipv4.method == "auto"
+    assert connection.state == ConnectionState.ACTIVATED
+    assert (
+        connection.settings.object_path == "/org/freedesktop/NetworkManager/Settings/1"
+    )
+    assert network_manager_service.AddAndActivateConnection.calls == [
+        (SETTINGS_1_FIXTURE, "/org/freedesktop/NetworkManager/Devices/1", "/")
+    ]
+
+
+async def test_deactivate_connection(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test deactivate connection."""
+    network_manager_service.DeactivateConnection.calls.clear()
+
+    await network_manager.deactivate_connection(
+        "/org/freedesktop/NetworkManager/ActiveConnection/1"
+    )
+
+    assert network_manager_service.DeactivateConnection.calls == [
+        ("/org/freedesktop/NetworkManager/ActiveConnection/1",)
+    ]
+
+
+async def test_find_connection_settings(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test finding stored connection settings for a device via enumeration."""
+    inet = network_manager.get(TEST_INTERFACE_ETH_NAME)
+
+    settings = await network_manager.find_connection_settings(inet)
+
+    assert settings is not None
+    assert settings.connection.uuid == "0c23631e-2118-355c-bbb0-8943229cb0d6"
+    settings.shutdown()
+
+
+async def test_find_connection_settings_skips_generated(
+    connection_settings_service: ConnectionSettingsService,
+    network_manager: NetworkManager,
+):
+    """Test a profile NetworkManager generated itself is not the device's own.
+
+    The in-memory auto-default ("Wired connection 1") names the device via
+    interface-name, so it would match, but it is a fallback rather than a
+    stored configuration.
+    """
+    connection_settings_service.flags = (
+        ConnectionFlags.UNSAVED | ConnectionFlags.NM_GENERATED
+    )
+    inet = network_manager.get(TEST_INTERFACE_ETH_NAME)
+
+    assert await network_manager.find_connection_settings(inet) is None
+
+
+async def test_find_connection_settings_no_match(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test finding stored connection settings when none match the device."""
+    inet = network_manager.get(TEST_INTERFACE_WLAN_NAME)
+
+    assert await network_manager.find_connection_settings(inet) is None
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        DBusObjectError("UnknownObject"),
+        DBusInterfaceMethodError("UnknownMethod"),
+    ],
+)
+async def test_find_connection_settings_vanished_profile(
+    network_manager_service: NetworkManagerService,
+    network_manager: NetworkManager,
+    error: Exception,
+):
+    """Test a profile vanishing between list_connections and connect is skipped.
+
+    `DBusObjectError`/`DBusInterfaceMethodError` derive from
+    `HassioNotSupportedError`, not `DBusError` - a race where another client
+    removes the profile right after `ListConnections` (e.g. `nmcli con
+    delete`, or a v1 destructive disable) surfaces as one of these instead,
+    and must be skipped rather than propagated.
+    """
+    inet = network_manager.get(TEST_INTERFACE_ETH_NAME)
+
+    with patch.object(NetworkSetting, "connect", side_effect=error):
+        assert await network_manager.find_connection_settings(inet) is None
+
+
+async def test_import_marked_connections_only_device_of_type(
+    network_manager: NetworkManager,
+    imported_wifi_settings_service: ConnectionSettingsService,
+):
+    """Test an inactive marked profile becomes the only wifi device's own."""
+    await network_manager.import_marked_connections()
+
+    settings = imported_wifi_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "Supervisor wlan0")
+    assert settings["match"]["path"] == Variant("as", ["platform.fe300000.mmcnr"])
+    assert "user" not in settings
+
+    wlan = await network_manager.find_connection_settings(
+        network_manager.get(TEST_INTERFACE_WLAN_NAME)
+    )
+    assert wlan is not None
+    assert wlan.object_path == imported_wifi_settings_service.object_path
+    wlan.shutdown()
+
+
+async def test_import_marked_connections_active_profile(
+    network_manager: NetworkManager,
+    connection_settings_service: ConnectionSettingsService,
+):
+    """Test an active marked profile becomes the own of the device it is active on."""
+    del connection_settings_service.settings["connection"]["interface-name"]
+    connection_settings_service.settings["user"] = {
+        "data": Variant("a{ss}", {"io.home-assistant.import": "supervisor"})
+    }
+    eth = network_manager.get(TEST_INTERFACE_ETH_NAME)
+    await eth.settings.reload()
+
+    await network_manager.import_marked_connections()
+
+    assert eth.settings.connection.id == "Supervisor eth0"
+    assert eth.settings.match.path == ["platform-ff3f0000.ethernet"]
+    assert eth.settings.user_data is None
+
+
+async def test_import_marked_connections_keeps_other_user_data(
+    network_manager: NetworkManager,
+    imported_wifi_settings_service: ConnectionSettingsService,
+):
+    """Test importing a profile only drops the marker from its user data."""
+    imported_wifi_settings_service.settings["user"]["data"].value["other"] = "kept"
+
+    await network_manager.import_marked_connections()
+
+    assert imported_wifi_settings_service.settings["user"] == {
+        "data": Variant("a{ss}", {"other": "kept"})
+    }
+
+
+async def test_import_marked_connections_device_unclear(
+    network_manager: NetworkManager,
+    imported_wifi_settings_service: ConnectionSettingsService,
+):
+    """Test a marked profile stays as it is while its device is unclear."""
+    other_wlan = Mock(type=DeviceType.WIRELESS, settings=None)
+    with patch.object(
+        NetworkManager,
+        "interfaces",
+        new_callable=PropertyMock,
+        return_value=network_manager.interfaces | {other_wlan},
+    ):
+        await network_manager.import_marked_connections()
+
+    settings = imported_wifi_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "my-network")
+    assert "match" not in settings
+    assert settings["user"] == {
+        "data": Variant("a{ss}", {"io.home-assistant.import": "supervisor"})
+    }
+
+
+async def test_import_marked_connections_device_in_use(
+    network_manager: NetworkManager,
+    connection_settings_service: ConnectionSettingsService,
+    imported_wifi_settings_service: ConnectionSettingsService,
+):
+    """Test an inactive marked profile stays as it is while its device is connected."""
+    # eth0 is the only ethernet device, connected on a profile that names no device
+    del connection_settings_service.settings["connection"]["interface-name"]
+    imported_wifi_settings_service.settings["connection"]["type"] = Variant(
+        "s", "802-3-ethernet"
+    )
+
+    await network_manager.import_marked_connections()
+
+    settings = imported_wifi_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "my-network")
+    assert "match" not in settings
+    assert "user" in settings
+
+
+async def test_import_marked_connections_replaces_generated_profile(
+    network_manager: NetworkManager,
+    network_manager_service: NetworkManagerService,
+    connection_settings_service: ConnectionSettingsService,
+    imported_wifi_settings_service: ConnectionSettingsService,
+):
+    """Test a marked profile takes its device over from NetworkManager's fallback."""
+    # eth0 is the only ethernet device, connected on the in-memory auto-default
+    connection_settings_service.flags = (
+        ConnectionFlags.UNSAVED | ConnectionFlags.NM_GENERATED
+    )
+    imported_wifi_settings_service.settings["connection"]["type"] = Variant(
+        "s", "802-3-ethernet"
+    )
+    eth = network_manager.get(TEST_INTERFACE_ETH_NAME)
+    await eth.settings.reload()
+    network_manager_service.ActivateConnection.calls.clear()
+
+    await network_manager.import_marked_connections()
+
+    settings = imported_wifi_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "Supervisor eth0")
+    assert settings["match"]["path"] == Variant("as", ["platform-ff3f0000.ethernet"])
+    assert "user" not in settings
+    assert network_manager_service.ActivateConnection.calls == [
+        (imported_wifi_settings_service.object_path, eth.object_path, "/")
+    ]
+
+
+async def test_import_marked_connections_device_has_own_profile(
+    network_manager: NetworkManager,
+    network_manager_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+    connection_settings_service: ConnectionSettingsService,
+    dbus_session_bus: MessageBus,
+):
+    """Test an active marked profile stays as it is next to the device's own."""
+    del connection_settings_service.settings["connection"]["interface-name"]
+    connection_settings_service.settings["user"] = {
+        "data": Variant("a{ss}", {"io.home-assistant.import": "supervisor"})
+    }
+    # Stored profile bound to eth0 by its path
+    own = await mock_dbus_services(
+        {"network_connection_settings": "/org/freedesktop/NetworkManager/Settings/2"},
+        dbus_session_bus,
+    )
+    network_manager_services["network_settings"].connections.append(
+        own["network_connection_settings"].object_path
+    )
+    eth = network_manager.get(TEST_INTERFACE_ETH_NAME)
+    await eth.settings.reload()
+
+    await network_manager.import_marked_connections()
+
+    settings = connection_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "Wired connection 1")
+    assert "match" not in settings
+    assert "user" in settings
+
+
+async def test_import_marked_connections_device_without_path(
+    network_manager: NetworkManager,
+    imported_wifi_settings_service: ConnectionSettingsService,
+):
+    """Test a profile is bound by interface name to a device without udev path."""
+    with patch.object(
+        NetworkInterface, "path", new_callable=PropertyMock, return_value=""
+    ):
+        await network_manager.import_marked_connections()
+
+    settings = imported_wifi_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "Supervisor wlan0")
+    assert settings["connection"]["interface-name"] == Variant("s", "wlan0")
+    assert "match" not in settings
+    assert "user" not in settings
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        {"connection": {"interface-name": Variant("s", "wlan1")}},
+        {"match": {"path": Variant("as", ["platform-other"])}},
+    ],
+)
+async def test_import_marked_connections_names_device(
+    network_manager: NetworkManager,
+    imported_wifi_settings_service: ConnectionSettingsService,
+    caplog: pytest.LogCaptureFixture,
+    binding: dict[str, dict[str, Variant]],
+):
+    """Test a marked profile that names a device is ignored."""
+    for section, values in binding.items():
+        imported_wifi_settings_service.settings.setdefault(section, {}).update(values)
+
+    await network_manager.import_marked_connections()
+
+    settings = imported_wifi_settings_service.settings
+    assert settings["connection"]["id"] == Variant("s", "my-network")
+    assert "user" in settings
+    assert "a profile marked for import can't name a device" in caplog.text
+
+
+@pytest.mark.parametrize("error", [DBusError("Failed"), DBusObjectError()])
+async def test_import_marked_connections_update_fails(
+    network_manager: NetworkManager,
+    imported_wifi_settings_service: ConnectionSettingsService,
+    caplog: pytest.LogCaptureFixture,
+    error: Exception,
+):
+    """Test a profile that can't be updated stays marked without failing the import."""
+    with patch.object(NetworkSetting, "update", side_effect=error):
+        await network_manager.import_marked_connections()
+
+    assert "Can't import network profile" in caplog.text
+    assert "user" in imported_wifi_settings_service.settings
+
+
+async def test_removed_devices_disconnect(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Test removed devices are disconnected."""
+    wlan = network_manager.get(TEST_INTERFACE_WLAN_NAME)
+    assert wlan.is_connected is True
+
+    network_manager_service.emit_properties_changed({"Devices": []})
+    await network_manager_service.ping()
+
+    assert TEST_INTERFACE_WLAN_NAME not in network_manager
+    assert wlan.is_connected is False
+
+
+async def test_handling_bad_devices(
+    network_manager_service: NetworkManagerService,
+    network_manager: NetworkManager,
+    caplog: pytest.LogCaptureFixture,
+    capture_exception: Mock,
+):
+    """Test handling of bad and disappearing devices."""
+    caplog.clear()
+    caplog.set_level(logging.INFO, "supervisor.dbus.network")
+
+    with patch.object(DBus, "init_proxy", side_effect=DBusFatalError()):
+        await network_manager.update(
+            {"Devices": [device := "/org/freedesktop/NetworkManager/Devices/100"]}
+        )
+        assert f"Can't process {device}" not in caplog.text
+
+    await network_manager.update()
+    with patch.object(DBus, "properties", new=PropertyMock(return_value=None)):
+        await network_manager.update(
+            {"Devices": [device := "/org/freedesktop/NetworkManager/Devices/101"]}
+        )
+        assert f"Can't process {device}" not in caplog.text
+
+    # Unparsable introspections shouldn't happen, this one is logged and captured
+    await network_manager.update()
+    with patch.object(DBus, "init_proxy", side_effect=(err := DBusParseError())):
+        await network_manager.update(
+            {"Devices": [device := "/org/freedesktop/NetworkManager/Devices/102"]}
+        )
+        assert f"Unknown error while processing {device}" in caplog.text
+        capture_exception.assert_called_once_with(err)
+
+    # We should be able to debug these situations if necessary
+    caplog.set_level(logging.DEBUG, "supervisor.dbus.network")
+    await network_manager.update()
+    with patch.object(DBus, "init_proxy", side_effect=DBusFatalError()):
+        await network_manager.update(
+            {"Devices": [device := "/org/freedesktop/NetworkManager/Devices/103"]}
+        )
+        assert f"Can't process {device}" in caplog.text
+
+    await network_manager.update()
+    with patch.object(DBus, "properties", new=PropertyMock(return_value=None)):
+        await network_manager.update(
+            {"Devices": [device := "/org/freedesktop/NetworkManager/Devices/104"]}
+        )
+        assert f"Can't process {device}" in caplog.text
+
+
+async def test_ignore_veth_only_changes(
+    network_manager_service: NetworkManagerService, network_manager: NetworkManager
+):
+    """Changes to list of devices is ignored unless it changes managed devices."""
+    assert network_manager.properties["Devices"] == [
+        "/org/freedesktop/NetworkManager/Devices/1",
+        "/org/freedesktop/NetworkManager/Devices/3",
+        "/org/freedesktop/NetworkManager/Devices/38",
+    ]
+    with patch.object(NetworkInterface, "connect") as connect:
+        network_manager_service.emit_properties_changed(
+            {
+                "Devices": [
+                    "/org/freedesktop/NetworkManager/Devices/1",
+                    "/org/freedesktop/NetworkManager/Devices/3",
+                    "/org/freedesktop/NetworkManager/Devices/35",
+                    "/org/freedesktop/NetworkManager/Devices/38",
+                ]
+            }
+        )
+        await network_manager_service.ping()
+        connect.assert_not_called()
+
+        network_manager_service.emit_properties_changed(
+            {"Devices": ["/org/freedesktop/NetworkManager/Devices/35"]}
+        )
+        await network_manager_service.ping()
+        connect.assert_called_once()
+
+
+async def test_network_manager_stopped(
+    network_manager_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+    network_manager: NetworkManager,
+    dbus_session_bus: MessageBus,
+    caplog: pytest.LogCaptureFixture,
+    capture_exception: Mock,
+):
+    """Test network manager stopped and dbus service no longer accessible."""
+    services = list(network_manager_services.values())
+    while services:
+        service = services.pop(0)
+        if isinstance(service, dict):
+            services.extend(service.values())
+        else:
+            dbus_session_bus.unexport(service.object_path, service)
+    await dbus_session_bus.release_name("org.freedesktop.NetworkManager")
+
+    assert network_manager.is_connected is True
+    await network_manager.update(
+        {
+            "Devices": [
+                "/org/freedesktop/NetworkManager/Devices/9",
+                "/org/freedesktop/NetworkManager/Devices/15",
+                "/org/freedesktop/NetworkManager/Devices/20",
+                "/org/freedesktop/NetworkManager/Devices/35",
+            ]
+        }
+    )
+
+    capture_exception.assert_called_once()
+    assert isinstance(capture_exception.call_args.args[0], DBusServiceUnkownError)
+    assert "NetworkManager not responding" in caplog.text
+
+
+async def test_primary_connection_update(
+    network_manager_service: NetworkManagerService,
+    network_manager: NetworkManager,
+):
+    """Test handling of primary connection change."""
+    interface = next(
+        (
+            intr
+            for intr in network_manager.interfaces
+            if intr.object_path == "/org/freedesktop/NetworkManager/Devices/1"
+        ),
+        None,
+    )
+    await network_manager.update({"PrimaryConnection": "/"})
+    assert interface.primary is False
+
+    await network_manager.update(
+        {"PrimaryConnection": "/org/freedesktop/NetworkManager/ActiveConnection/1"}
+    )
+    assert interface.primary is True

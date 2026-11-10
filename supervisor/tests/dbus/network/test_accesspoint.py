@@ -1,0 +1,62 @@
+"""Test NetworkWireless AP object."""
+
+from dataclasses import replace
+
+from dbus_fast.aio.message_bus import MessageBus
+import pytest
+
+from supervisor.dbus.network.accesspoint import NetworkWirelessAP
+
+from tests.common import mock_dbus_services
+from tests.dbus_service_mocks.network_access_point import (
+    AccessPoint as AccessPointService,
+)
+
+
+@pytest.fixture(name="access_point_service", autouse=True)
+async def fixture_access_point_service(
+    dbus_session_bus: MessageBus,
+) -> AccessPointService:
+    """Mock Access Point service."""
+    return (
+        await mock_dbus_services(
+            {
+                "network_access_point": "/org/freedesktop/NetworkManager/AccessPoint/43099"
+            },
+            dbus_session_bus,
+        )
+    )["network_access_point"]
+
+
+async def test_accesspoint(
+    access_point_service: AccessPointService, dbus_session_bus: MessageBus
+):
+    """Test accesspoint."""
+    wireless_ap = NetworkWirelessAP("/org/freedesktop/NetworkManager/AccessPoint/43099")
+
+    assert wireless_ap.mac is None
+    assert wireless_ap.mode is None
+
+    await wireless_ap.connect(dbus_session_bus)
+
+    assert wireless_ap.mac == "E4:57:40:A9:D7:DE"
+    assert wireless_ap.mode == 2
+    assert wireless_ap.strength == 47
+
+    # We don't listen for property changes on access points, too noisy
+    access_point_service.emit_properties_changed({"Strength": 74})
+    await access_point_service.ping()
+    assert wireless_ap.strength == 47
+
+
+async def test_accesspoint_non_utf8_ssid(
+    access_point_service: AccessPointService, dbus_session_bus: MessageBus
+):
+    """Test an SSID that is not valid UTF-8 is kept as bytes."""
+    access_point_service.fixture = replace(
+        access_point_service.fixture, Ssid=b"Caf\xe9"
+    )
+    wireless_ap = NetworkWirelessAP("/org/freedesktop/NetworkManager/AccessPoint/43099")
+    await wireless_ap.connect(dbus_session_bus)
+
+    assert wireless_ap.ssid == b"Caf\xe9"

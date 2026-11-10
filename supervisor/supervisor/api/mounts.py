@@ -1,0 +1,194 @@
+"""Inits file for supervisor mounts REST API."""
+
+from typing import Any, cast
+
+from aiohttp import web
+from awesomeversion import AwesomeVersion
+import voluptuous as vol
+
+from ..const import ATTR_NAME, ATTR_STATE, ATTR_TYPE, ATTR_UUID
+from ..coresys import CoreSysAttributes
+from ..exceptions import APIError, APINotFound
+from ..mounts.const import ATTR_DEFAULT_BACKUP_MOUNT, MountType, MountUsage
+from ..mounts.mount import Mount
+from ..mounts.validate import (
+    SCHEMA_BASE_MOUNT_CONFIG,
+    SCHEMA_MOUNT_CIFS,
+    SCHEMA_MOUNT_NFS,
+    MountData,
+    usage_specific_validation,
+)
+from .const import ATTR_DEVICE, ATTR_MOUNTS, ATTR_USER_PATH
+from .utils import api_process, api_validate, client_library_version
+
+# aiohasupervisor before 0.7.0 fails to parse a mount of unknown type, which
+# breaks the hassio integration in Core. Hide disk mounts from those clients.
+CLIENT_LIBRARY_DISK_MOUNT_MIN_VERSION = AwesomeVersion("0.7.0")
+
+SCHEMA_OPTIONS = vol.Schema(
+    {
+        vol.Optional(ATTR_DEFAULT_BACKUP_MOUNT): vol.Maybe(str),
+    }
+)
+
+
+def _device_identifier_required(config: dict[str, Any]) -> dict[str, Any]:
+    """Require at least one of device and uuid for a disk mount."""
+    if not config.get(ATTR_DEVICE) and not config.get(ATTR_UUID):
+        raise vol.Invalid("Disk mounts require either device or uuid")
+
+    return config
+
+
+# API input only; persisted mounts use mounts/validate.py. Both identifiers
+# may be supplied so a /host/disks partition can be posted back: uuid drives
+# resolution and device is checked for agreement. filesystem is omitted so
+# UDisks2 resolution always runs the mountable-device guard; REMOVE_EXTRA
+# drops a value echoed from GET /mounts.
+_SCHEMA_MOUNT_DISK = vol.All(
+    SCHEMA_BASE_MOUNT_CONFIG.extend(
+        {
+            vol.Required(ATTR_TYPE): vol.All(
+                MountType.DISK.value, vol.Coerce(MountType)
+            ),
+            vol.Optional(ATTR_DEVICE): str,
+            vol.Optional(ATTR_UUID): str,
+        }
+    ),
+    _device_identifier_required,
+)
+
+SCHEMA_MOUNT_CONFIG = vol.All(
+    vol.Any(SCHEMA_MOUNT_CIFS, SCHEMA_MOUNT_NFS, _SCHEMA_MOUNT_DISK),
+    usage_specific_validation,
+)
+
+
+class APIMounts(CoreSysAttributes):
+    """Handle REST API for mounting options."""
+
+    def _extract_mount(self, request: web.Request) -> Mount:
+        """Extract mount from request or raise."""
+        name = request.match_info["mount"]
+        if name not in self.sys_mounts:
+            raise APINotFound(f"No mount exists with name {name}")
+        return self.sys_mounts.get(name)
+
+    @api_process
+    async def info(self, request: web.Request) -> dict[str, Any]:
+        """Return MountManager info."""
+        client_version = client_library_version(request)
+        hide_disk = (
+            client_version is not None
+            and client_version < CLIENT_LIBRARY_DISK_MOUNT_MIN_VERSION
+        )
+
+        def visible(mount: Mount) -> bool:
+            return not (hide_disk and mount.type == MountType.DISK)
+
+        # A hidden default backup mount reads as local backups, which keeps
+        # the client's default consistent with the mounts it can see.
+        default = self.sys_mounts.default_backup_mount
+        return {
+            ATTR_DEFAULT_BACKUP_MOUNT: default.name
+            if default and visible(default)
+            else None,
+            ATTR_MOUNTS: [
+                mount.to_dict()
+                | {
+                    ATTR_STATE: mount.state,
+                    ATTR_USER_PATH: mount.container_where.as_posix()
+                    if mount.container_where
+                    else None,
+                }
+                for mount in self.sys_mounts.mounts
+                if visible(mount)
+            ],
+        }
+
+    @api_process
+    async def options(self, request: web.Request) -> None:
+        """Set Mount Manager options."""
+        body = await api_validate(SCHEMA_OPTIONS, request)
+
+        if ATTR_DEFAULT_BACKUP_MOUNT in body:
+            name: str | None = body[ATTR_DEFAULT_BACKUP_MOUNT]
+            if name is None:
+                self.sys_mounts.default_backup_mount = None
+            elif (mount := self.sys_mounts.get(name)).usage != MountUsage.BACKUP:
+                raise APIError(
+                    f"Mount {name} is not used for backups, cannot use it as default backup mount"
+                )
+            else:
+                self.sys_mounts.default_backup_mount = mount
+
+        await self.sys_mounts.save_data()
+
+    @api_process
+    async def create_mount(self, request: web.Request) -> None:
+        """Create a new mount in supervisor."""
+        body = cast(MountData, await api_validate(SCHEMA_MOUNT_CONFIG, request))
+
+        if body["name"] in self.sys_mounts:
+            raise APIError(f"A mount already exists with name {body['name']}")
+
+        mount = Mount.from_dict(self.coresys, body)
+        await self.sys_mounts.create_mount(mount)
+
+        # If it's a backup mount, reload backups
+        if mount.usage == MountUsage.BACKUP:
+            self.sys_create_task(self.sys_backups.reload())
+
+            # If there's no default backup mount, set it to the new mount
+            if not self.sys_mounts.default_backup_mount:
+                self.sys_mounts.default_backup_mount = mount
+
+        await self.sys_mounts.save_data()
+
+    @api_process
+    async def update_mount(self, request: web.Request) -> None:
+        """Update an existing mount in supervisor."""
+        current = self._extract_mount(request)
+        name_schema = vol.Schema(
+            {vol.Optional(ATTR_NAME, default=current.name): current.name},
+            extra=vol.ALLOW_EXTRA,
+        )
+        body = cast(
+            MountData,
+            await api_validate(vol.All(name_schema, SCHEMA_MOUNT_CONFIG), request),
+        )
+
+        mount = Mount.from_dict(self.coresys, body)
+        await self.sys_mounts.create_mount(mount)
+
+        # If it's a backup mount, reload backups
+        if mount.usage == MountUsage.BACKUP:
+            self.sys_create_task(self.sys_backups.reload())
+
+        # If this mount was the default backup mount and isn't for backups any more, remove it
+        elif self.sys_mounts.default_backup_mount == mount:
+            self.sys_mounts.default_backup_mount = None
+
+        await self.sys_mounts.save_data()
+
+    @api_process
+    async def delete_mount(self, request: web.Request) -> None:
+        """Delete an existing mount in supervisor."""
+        current = self._extract_mount(request)
+        mount = await self.sys_mounts.remove_mount(current.name)
+
+        # If it was a backup mount, reload backups
+        if mount.usage == MountUsage.BACKUP:
+            self.sys_create_task(self.sys_backups.reload())
+
+        await self.sys_mounts.save_data()
+
+    @api_process
+    async def reload_mount(self, request: web.Request) -> None:
+        """Reload an existing mount in supervisor."""
+        mount = self._extract_mount(request)
+        await self.sys_mounts.reload_mount(mount.name)
+
+        # If it's a backup mount, reload backups
+        if mount.usage == MountUsage.BACKUP:
+            self.sys_create_task(self.sys_backups.reload())

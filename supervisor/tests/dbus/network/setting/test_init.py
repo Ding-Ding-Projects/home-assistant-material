@@ -1,0 +1,306 @@
+"""Test Network Manager Connection object."""
+
+from unittest.mock import MagicMock, PropertyMock
+
+from awesomeversion import AwesomeVersion
+from dbus_fast import Variant
+from dbus_fast.aio.message_bus import MessageBus
+import pytest
+
+from supervisor.dbus.const import ConnectionFlags
+from supervisor.dbus.network import NetworkManager
+from supervisor.dbus.network.interface import NetworkInterface
+from supervisor.dbus.network.setting import NetworkSetting, _merge_settings_attribute
+from supervisor.dbus.network.setting.generate import get_connection_from_interface
+from supervisor.host.configuration import Ip6Setting
+from supervisor.host.const import InterfaceMethod
+from supervisor.host.network import Interface
+
+from tests.dbus_service_mocks.network_connection_settings import (
+    ConnectionSettings as ConnectionSettingsService,
+)
+from tests.dbus_service_mocks.network_device import (
+    ETHERNET_DEVICE_OBJECT_PATH,
+    WIRELESS_DEVICE_OBJECT_PATH,
+)
+
+pytestmark = pytest.mark.usefixtures("connection_settings_service")
+
+
+@pytest.fixture(name="dbus_interface")
+async def fixture_dbus_interface(
+    dbus_session_bus: MessageBus, device_object_path: str = ETHERNET_DEVICE_OBJECT_PATH
+) -> NetworkInterface:
+    """Get connected dbus interface."""
+    dbus_interface = NetworkInterface(device_object_path)
+    await dbus_interface.connect(dbus_session_bus)
+    return dbus_interface
+
+
+@pytest.mark.parametrize(
+    "dbus_interface",
+    [ETHERNET_DEVICE_OBJECT_PATH, WIRELESS_DEVICE_OBJECT_PATH],
+    indirect=True,
+)
+async def test_ethernet_update(
+    dbus_interface: NetworkInterface,
+    connection_settings_service: ConnectionSettingsService,
+    network_manager: NetworkManager,
+):
+    """Test network manager update."""
+    connection_settings_service.Update.calls.clear()
+
+    interface = Interface.from_dbus_interface(dbus_interface)
+    conn = get_connection_from_interface(
+        interface,
+        network_manager,
+        name=dbus_interface.settings.connection.id,
+        uuid=dbus_interface.settings.connection.uuid,
+    )
+
+    assert await dbus_interface.settings.update(conn) is True
+
+    assert len(connection_settings_service.Update.calls) == 1
+    settings = connection_settings_service.Update.calls[0][0]
+
+    assert settings["connection"]["id"] == Variant("s", "Supervisor eth0")
+    assert "interface-name" not in settings["connection"]
+    assert settings["connection"]["uuid"] == Variant(
+        "s", "0c23631e-2118-355c-bbb0-8943229cb0d6"
+    )
+    assert settings["connection"]["autoconnect"] == Variant("b", True)
+
+    assert settings["match"] == {"path": Variant("as", ["platform-ff3f0000.ethernet"])}
+
+    assert "ipv4" in settings
+    assert settings["ipv4"]["method"] == Variant("s", "auto")
+    assert "gateway" not in settings["ipv4"]
+    # Only DNS settings need to be preserved with auto
+    assert settings["ipv4"]["dns"] == Variant("au", [16951488])
+    assert "dns-data" not in settings["ipv4"]
+    assert "address-data" not in settings["ipv4"]
+    assert "addresses" not in settings["ipv4"]
+    assert len(settings["ipv4"]["route-data"].value) == 1
+    assert settings["ipv4"]["route-data"].value[0]["dest"] == Variant(
+        "s", "192.168.122.0"
+    )
+    assert settings["ipv4"]["route-data"].value[0]["prefix"] == Variant("u", 24)
+    assert settings["ipv4"]["route-data"].value[0]["next-hop"] == Variant(
+        "s", "10.10.10.1"
+    )
+    assert settings["ipv4"]["routes"] == Variant("aau", [[8038592, 24, 17435146, 0]])
+
+    assert "ipv6" in settings
+    assert settings["ipv6"]["method"] == Variant("s", "auto")
+    assert "gateway" not in settings["ipv6"]
+    # Only DNS settings need to be preserved with auto
+    assert settings["ipv6"]["dns"] == Variant(
+        "aay", [bytearray(b" \x01H`H`\x00\x00\x00\x00\x00\x00\x00\x00\x88\x88")]
+    )
+    assert "dns-data" not in settings["ipv6"]
+    assert "address-data" not in settings["ipv6"]
+    assert "addresses" not in settings["ipv6"]
+    assert settings["ipv6"]["addr-gen-mode"] == Variant("i", 0)
+
+    assert "proxy" in settings
+
+    assert "vlan" not in settings
+
+    if settings["connection"]["type"] == "802-3-ethernet":
+        assert "802-3-ethernet" in settings
+        assert settings["802-3-ethernet"]["auto-negotiate"] == Variant("b", False)
+
+        assert "802-11-wireless" not in settings
+        assert "802-11-wireless-security" not in settings
+
+    if settings["connection"]["type"] == "802-11-wireless":
+        assert "802-11-wireless" in settings
+        assert settings["802-11-wireless"]["ssid"] == Variant("ay", b"NETT")
+        assert "mode" not in settings["802-11-wireless"]
+        assert "powersave" not in settings["802-11-wireless"]
+
+        assert "802-11-wireless-security" not in settings
+
+    # Applying the same settings again does not change the profile
+    assert await dbus_interface.settings.update(conn) is False
+    assert len(connection_settings_service.Update.calls) == 2
+
+
+def test_merge_settings_attribute_empty_dict_clears_attribute():
+    """Test an empty dict for an attribute removes it instead of no-op merging."""
+    base_settings = {"802-11-wireless-security": {"key-mgmt": Variant("s", "wpa-psk")}}
+    _merge_settings_attribute(
+        base_settings, {"802-11-wireless-security": {}}, "802-11-wireless-security"
+    )
+    assert "802-11-wireless-security" not in base_settings
+
+
+def test_merge_settings_attribute_absent_leaves_base_untouched():
+    """Test omitting an attribute from new_settings leaves the base as-is."""
+    base_settings = {"802-11-wireless-security": {"key-mgmt": Variant("s", "wpa-psk")}}
+    _merge_settings_attribute(base_settings, {}, "802-11-wireless-security")
+    assert base_settings["802-11-wireless-security"] == {
+        "key-mgmt": Variant("s", "wpa-psk")
+    }
+
+
+async def test_ipv6_disabled_is_link_local(
+    dbus_interface: NetworkInterface, network_manager: NetworkManager
+):
+    """Test disabled equals link local for ipv6."""
+    interface = Interface.from_dbus_interface(dbus_interface)
+    interface.ipv4setting.method = InterfaceMethod.DISABLED
+    interface.ipv6setting.method = InterfaceMethod.DISABLED
+    conn = get_connection_from_interface(
+        interface,
+        network_manager,
+        name=dbus_interface.settings.connection.id,
+        uuid=dbus_interface.settings.connection.uuid,
+    )
+
+    assert conn["ipv4"]["method"] == Variant("s", "disabled")
+    assert conn["ipv6"]["method"] == Variant("s", "link-local")
+
+
+@pytest.mark.parametrize(
+    ("version", "addr_gen_mode"),
+    [
+        ("1.38.0", 1),
+        ("1.40.0", 3),
+    ],
+)
+async def test_ipv6_addr_gen_mode(
+    dbus_interface: NetworkInterface, version: str, addr_gen_mode: int
+):
+    """Test addr_gen_mode with various NetworkManager versions."""
+    interface = Interface.from_dbus_interface(dbus_interface)
+    interface.ipv6setting = Ip6Setting(InterfaceMethod.AUTO, [], None, None, [])
+
+    network_manager = MagicMock()
+    type(network_manager).version = PropertyMock(return_value=AwesomeVersion(version))
+    conn = get_connection_from_interface(
+        interface,
+        network_manager,
+        name=dbus_interface.settings.connection.id,
+        uuid=dbus_interface.settings.connection.uuid,
+    )
+
+    assert conn["ipv6"]["method"] == Variant("s", "auto")
+    assert conn["ipv6"]["addr-gen-mode"] == Variant("i", addr_gen_mode)
+
+
+async def test_watching_updated_signal(
+    connection_settings_service: ConnectionSettingsService, dbus_session_bus: MessageBus
+):
+    """Test get settings called on update signal."""
+    connection_settings_service.GetSettings.calls.clear()
+    settings = NetworkSetting("/org/freedesktop/NetworkManager/Settings/1")
+    await settings.connect(dbus_session_bus)
+
+    assert connection_settings_service.GetSettings.calls == [()]
+
+    connection_settings_service.Updated()
+    await connection_settings_service.ping()
+    await connection_settings_service.ping()
+    assert connection_settings_service.GetSettings.calls == [(), ()]
+
+
+@pytest.mark.parametrize(
+    ("section", "attribute", "data"),
+    [
+        pytest.param(
+            "connection",
+            "connection",
+            {"id": Variant("s", "Test"), "type": Variant("s", "802-3-ethernet")},
+            id="connection",
+        ),
+        pytest.param(
+            "802-11-wireless-security",
+            "wireless_security",
+            {"key-mgmt": Variant("s", "wpa-psk")},
+            id="wireless_security",
+        ),
+        pytest.param(
+            "802-11-wireless",
+            "wireless",
+            {"ssid": Variant("ay", b"TestSSID")},
+            id="wireless",
+        ),
+        pytest.param(
+            "802-3-ethernet",
+            "ethernet",
+            {"assigned-mac-address": Variant("s", "preserve")},
+            id="ethernet",
+        ),
+        pytest.param(
+            "vlan",
+            "vlan",
+            {"id": Variant("u", 10), "parent": Variant("s", "eth0")},
+            id="vlan",
+        ),
+        pytest.param("ipv4", "ipv4", {"method": Variant("s", "auto")}, id="ipv4"),
+        pytest.param("ipv6", "ipv6", {"method": Variant("s", "auto")}, id="ipv6"),
+        pytest.param(
+            "match",
+            "match",
+            {"path": Variant("as", ["platform-ff3f0000.ethernet"])},
+            id="match",
+        ),
+    ],
+)
+async def test_reload_clears_removed_section(
+    connection_settings_service: ConnectionSettingsService,
+    dbus_session_bus: MessageBus,
+    section: str,
+    attribute: str,
+    data: dict[str, Variant],
+):
+    """Test reload clears a section NetworkManager no longer reports."""
+    connection_settings_service.settings[section] = data
+    settings = NetworkSetting("/org/freedesktop/NetworkManager/Settings/1")
+    await settings.connect(dbus_session_bus)
+    assert getattr(settings, attribute) is not None
+
+    del connection_settings_service.settings[section]
+    await settings.reload()
+    assert getattr(settings, attribute) is None
+
+
+async def test_non_utf8_wireless_ssid(
+    connection_settings_service: ConnectionSettingsService, dbus_session_bus: MessageBus
+):
+    """Test a wireless profile whose SSID is not valid UTF-8 is kept as bytes."""
+    connection_settings_service.settings["802-11-wireless"] = {
+        "ssid": Variant("ay", b"Z\xfcrich")
+    }
+    settings = NetworkSetting("/org/freedesktop/NetworkManager/Settings/1")
+    await settings.connect(dbus_session_bus)
+
+    assert settings.wireless.ssid == b"Z\xfcrich"
+
+
+@pytest.mark.parametrize(
+    ("flags", "is_generated"),
+    [
+        pytest.param(0, False, id="stored"),
+        pytest.param(ConnectionFlags.UNSAVED, False, id="unsaved"),
+        pytest.param(
+            ConnectionFlags.UNSAVED | ConnectionFlags.NM_GENERATED,
+            True,
+            id="auto_default",
+        ),
+        pytest.param(ConnectionFlags.VOLATILE, True, id="volatile"),
+    ],
+)
+async def test_flags(
+    dbus_interface: NetworkInterface,
+    connection_settings_service: ConnectionSettingsService,
+    flags: int,
+    is_generated: bool,
+):
+    """Test connection profile flags are read from NetworkManager."""
+    connection_settings_service.flags = flags
+    await dbus_interface.settings.reload()
+
+    assert dbus_interface.settings.flags == ConnectionFlags(flags)
+    assert dbus_interface.settings.is_generated is is_generated

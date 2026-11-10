@@ -1,0 +1,113 @@
+"""Const for API."""
+
+from enum import StrEnum
+import weakref
+
+from aiohttp import web
+
+CONTENT_TYPE_BINARY = "application/octet-stream"
+CONTENT_TYPE_JSON = "application/json"
+CONTENT_TYPE_PNG = "image/png"
+CONTENT_TYPE_TAR = "application/tar"
+CONTENT_TYPE_TEXT = "text/plain"
+CONTENT_TYPE_URL = "application/x-www-form-urlencoded"
+CONTENT_TYPE_X_LOG = "text/x-log"
+
+COOKIE_INGRESS = "ingress_session"
+
+# User-Agent product name sent by aiohasupervisor, the Python client library
+CLIENT_LIBRARY_USER_AGENT = "AioHASupervisor"
+
+# Open proxied websockets, closed on API stop as they outlive aiohttp's
+# graceful shutdown timeout otherwise
+WEBSOCKETS = web.AppKey[weakref.WeakSet[web.WebSocketResponse]]("websockets")
+
+ATTR_ADDITIONAL_LOCATIONS = "additional_locations"
+ATTR_AGENT_VERSION = "agent_version"
+ATTR_APPARMOR_VERSION = "apparmor_version"
+ATTR_ATTRIBUTES = "attributes"
+ATTR_AVAILABLE_UPDATES = "available_updates"
+ATTR_BACKGROUND = "background"
+ATTR_BOOT_CONFIG = "boot_config"
+ATTR_BOOT_SLOT = "boot_slot"
+ATTR_BOOT_SLOTS = "boot_slots"
+ATTR_BOOT_TIMESTAMP = "boot_timestamp"
+ATTR_BOOTS = "boots"
+ATTR_BROADCAST_LLMNR = "broadcast_llmnr"
+ATTR_BROADCAST_MDNS = "broadcast_mdns"
+ATTR_BY_ID = "by_id"
+ATTR_CHILDREN = "children"
+ATTR_CONNECTION_BUS = "connection_bus"
+ATTR_DATA_DISK = "data_disk"
+ATTR_DEVICE = "device"
+ATTR_DEV_PATH = "dev_path"
+ATTR_DISKS = "disks"
+ATTR_DRIVES = "drives"
+ATTR_DT_SYNCHRONIZED = "dt_synchronized"
+ATTR_DT_UTC = "dt_utc"
+ATTR_EJECTABLE = "ejectable"
+ATTR_FALLBACK = "fallback"
+ATTR_FALLBACK_SERVERS = "fallback_servers"
+ATTR_FILESYSTEMS = "filesystems"
+ATTR_FORCE = "force"
+ATTR_IDENTIFIERS = "identifiers"
+ATTR_IS_ACTIVE = "is_active"
+ATTR_IS_OWNER = "is_owner"
+ATTR_JOBS = "jobs"
+ATTR_KEY = "key"
+ATTR_KEYS = "keys"
+ATTR_LABEL = "label"
+ATTR_LLMNR = "llmnr"
+ATTR_LLMNR_HOSTNAME = "llmnr_hostname"
+ATTR_LOCAL_ONLY = "local_only"
+ATTR_LOCATION_ATTRIBUTES = "location_attributes"
+ATTR_LOCATIONS = "locations"
+ATTR_MAX_DEPTH = "max_depth"
+ATTR_MDNS = "mdns"
+ATTR_MODEL = "model"
+ATTR_MOUNTABLE = "mountable"
+ATTR_MOUNTS = "mounts"
+ATTR_MOUNT_POINTS = "mount_points"
+ATTR_PANEL_PATH = "panel_path"
+ATTR_PARTITIONS = "partitions"
+ATTR_REMOVABLE = "removable"
+ATTR_REMOVE_CONFIG = "remove_config"
+ATTR_REVISION = "revision"
+ATTR_SAFE_MODE = "safe_mode"
+ATTR_SEAT = "seat"
+ATTR_SIGNED = "signed"
+ATTR_STARTUP_TIME = "startup_time"
+ATTR_STATUS = "status"
+ATTR_SUBSYSTEM = "subsystem"
+ATTR_SYSFS = "sysfs"
+ATTR_SYSTEM_HEALTH_LED = "system_health_led"
+ATTR_TIME_DETECTED = "time_detected"
+ATTR_UPDATE_TYPE = "update_type"
+ATTR_USAGE = "usage"
+ATTR_USE_NTP = "use_ntp"
+ATTR_USERS = "users"
+ATTR_USER_PATH = "user_path"
+ATTR_VENDOR = "vendor"
+ATTR_VIRTUALIZATION = "virtualization"
+
+
+class AppVersion(StrEnum):
+    """API version identifiers."""
+
+    V1 = "v1"
+    V2 = "v2"
+
+
+class BootSlot(StrEnum):
+    """Boot slots used by HAOS."""
+
+    A = "A"
+    B = "B"
+
+
+class DetectBlockingIO(StrEnum):
+    """Enable/Disable detection for blocking I/O in event loop."""
+
+    OFF = "off"
+    ON = "on"
+    ON_AT_STARTUP = "on-at-startup"

@@ -1,0 +1,152 @@
+"""Init file for Supervisor auth/SSO RESTful API."""
+
+import asyncio
+from collections.abc import Awaitable
+import logging
+from typing import Any, cast
+
+from aiohttp import BasicAuth, web
+from aiohttp.hdrs import AUTHORIZATION, WWW_AUTHENTICATE
+from aiohttp.web import FileField
+from aiohttp.web_exceptions import HTTPUnauthorized
+from multidict import MultiDictProxy
+import voluptuous as vol
+
+from ..apps.app import App
+from ..auth import LoginResult
+from ..const import (
+    ATTR_GROUP_IDS,
+    ATTR_NAME,
+    ATTR_PASSWORD,
+    ATTR_USERNAME,
+    REQUEST_FROM,
+)
+from ..coresys import CoreSysAttributes
+from ..exceptions import APIError, APIForbidden, AuthInvalidNonStringValueError
+from .const import (
+    ATTR_IS_ACTIVE,
+    ATTR_IS_OWNER,
+    ATTR_LOCAL_ONLY,
+    ATTR_USERS,
+    CONTENT_TYPE_JSON,
+    CONTENT_TYPE_URL,
+)
+from .utils import api_process, api_validate, json_loads
+
+_LOGGER: logging.Logger = logging.getLogger(__name__)
+
+SCHEMA_PASSWORD_RESET = vol.Schema(
+    {
+        vol.Required(ATTR_USERNAME): str,
+        vol.Required(ATTR_PASSWORD): str,
+    }
+)
+
+REALM_HEADER: dict[str, str] = {
+    WWW_AUTHENTICATE: 'Basic realm="Home Assistant Authentication"'
+}
+
+
+class APIAuth(CoreSysAttributes):
+    """Handle RESTful API for auth functions."""
+
+    def _process_basic(
+        self, request: web.Request, app: App
+    ) -> Awaitable[LoginResult | None]:
+        """Process login request with basic auth.
+
+        Return a coroutine.
+        """
+        try:
+            auth = BasicAuth.decode(request.headers[AUTHORIZATION])
+        except ValueError as err:
+            raise HTTPUnauthorized(headers=REALM_HEADER) from err
+        return self.sys_auth.check_login(app, auth.login, auth.password)
+
+    def _process_dict(
+        self,
+        request: web.Request,
+        app: App,
+        data: dict[str, Any] | MultiDictProxy[str | bytes | bytearray | FileField],
+    ) -> Awaitable[LoginResult | None]:
+        """Process login with dict data.
+
+        Return a coroutine.
+        """
+        username = data.get("username") or data.get("user")
+        password = data.get("password")
+
+        # Test that we did receive strings and not something else, raise if so
+        try:
+            _ = username.encode and password.encode  # type: ignore
+        except AttributeError:
+            raise AuthInvalidNonStringValueError(
+                _LOGGER.error, headers=REALM_HEADER
+            ) from None
+
+        return self.sys_auth.check_login(app, cast(str, username), cast(str, password))
+
+    @api_process
+    async def auth(self, request: web.Request) -> dict[str, Any]:
+        """Process login request, returning the group IDs of the user."""
+        app = request[REQUEST_FROM]
+
+        if not isinstance(app, App) or not app.access_auth_api:
+            raise APIForbidden("Can't use Home Assistant auth!")
+
+        # BasicAuth, other schemes may carry the app's own Supervisor token
+        auth_scheme = request.headers.get(AUTHORIZATION, "").partition(" ")[0]
+        if auth_scheme.lower() == "basic":
+            if (login := await self._process_basic(request, app)) is None:
+                raise HTTPUnauthorized(headers=REALM_HEADER)
+            return {ATTR_GROUP_IDS: login.group_ids}
+
+        # Json
+        if request.content_type == CONTENT_TYPE_JSON:
+            data = await request.json(loads=json_loads)
+            if not isinstance(data, dict):
+                raise APIError("Invalid json")
+            if (login := await self._process_dict(request, app, data)) is None:
+                raise HTTPUnauthorized
+            return {ATTR_GROUP_IDS: login.group_ids}
+
+        # URL encoded
+        if request.content_type == CONTENT_TYPE_URL:
+            data = await request.post()
+            if (login := await self._process_dict(request, app, data)) is None:
+                raise HTTPUnauthorized
+            return {ATTR_GROUP_IDS: login.group_ids}
+
+        # Advertise Basic authentication by default
+        raise HTTPUnauthorized(headers=REALM_HEADER)
+
+    @api_process
+    async def reset(self, request: web.Request) -> None:
+        """Process reset password request."""
+        body: dict[str, str] = await api_validate(SCHEMA_PASSWORD_RESET, request)
+        await asyncio.shield(
+            self.sys_auth.change_password(body[ATTR_USERNAME], body[ATTR_PASSWORD])
+        )
+
+    @api_process
+    async def cache(self, request: web.Request) -> None:
+        """Process cache reset request."""
+        await self.sys_auth.reset_data()
+
+    @api_process
+    async def list_users(self, request: web.Request) -> dict[str, list[dict[str, Any]]]:
+        """List users on the Home Assistant instance."""
+        return {
+            ATTR_USERS: [
+                {
+                    ATTR_USERNAME: user.username,
+                    ATTR_NAME: user.name,
+                    ATTR_IS_OWNER: user.is_owner,
+                    ATTR_IS_ACTIVE: user.is_active,
+                    ATTR_LOCAL_ONLY: user.local_only,
+                    ATTR_GROUP_IDS: user.group_ids,
+                }
+                for user in await self.sys_auth.list_users()
+                if user.username
+            ]
+        }
