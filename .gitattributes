@@ -4,3 +4,8 @@
 *.Dockerfile text eol=lf
 # Batch files must keep CRLF so cmd.exe parses labels correctly.
 *.bat text eol=crlf
+
+# Fonts and pictures are never text.
+*.woff2 binary
+*.png binary
+*.jpg binary

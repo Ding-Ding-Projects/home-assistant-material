@@ -31,6 +31,7 @@ observer images are unchanged upstream images.
 | `frontend/src/panels/lovelace/hui-root.ts` | Header title weight; view tabs centred in the header. |
 | `frontend/src/resources/google-sans-flex.ts`, `theme/theme.ts`, `theme/typography.globals.ts` | Google Sans Flex is the interface typeface, loaded from vendored files; Roboto remains the fallback. Headings use the medium weight. |
 | `frontend/public/static/fonts/google-sans-flex/` | Vendored font files, licence and checksums, written by `scripts/vendor-fonts.sh`. |
+| `frontend/.gitattributes` | Font files are marked binary, so line-ending conversion cannot alter them. |
 | `frontend/build-scripts/bundle.cjs`, `frontend/src/types.ts` | Build-time constants `__MATERIAL_BUILD__` and `__BUILD_TIME__`. |
 | `frontend/src/components/ha-sidebar.ts`, `frontend/src/translations/en.json` | Version and build time shown at the foot of the rail on the first screen. |
 | `frontend/src/state/quick-bar-mixin.ts`, `frontend/src/dialogs/shortcuts/dialog-shortcuts.ts` | The quick bar opens with Ctrl+Shift+F instead of Ctrl+K. |

@@ -12,3 +12,7 @@
 
 demo/public/api/camera_proxy_stream/* binary
 demo/public/api/media_player_proxy/* binary
+*.woff2 binary
+*.woff binary
+*.ttf binary
+*.otf binary
