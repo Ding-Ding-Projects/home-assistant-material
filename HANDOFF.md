@@ -125,5 +125,8 @@ which gives every settings page with a real server behind it:
   upstream numbers; `scripts/ci/set-versions.py` stamps the build number inside the runner.
 - Integration translations are copied out of the upstream image for the pinned core release,
   because upstream downloads them with a private token.
-- Operating system updates over the air stay off until the `RAUC_CERTIFICATE` and
-  `RAUC_PRIVATE_KEY` repository secrets exist.
+- The `RAUC_CERTIFICATE` and `RAUC_PRIVATE_KEY` repository secrets exist since 10 November
+  2026 (a self-signed certificate made for this project; the owner keeps the only copy of the
+  key outside the repository). Builds after 55 sign their operating system images with it and
+  offer them over the air. Systems installed from builds up to 55 need one fresh install
+  first. No such update has been observed yet.

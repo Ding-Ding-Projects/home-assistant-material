@@ -142,10 +142,15 @@ A system installed from this project updates from this project, not from upstrea
   `ghcr.io/ding-ding-projects`.
 - Every build has a version that sorts above the last one (`<core>.<build>`), so the update
   appears in Settings by itself.
-- Operating system updates over the air need two repository secrets, `RAUC_CERTIFICATE` and
-  `RAUC_PRIVATE_KEY`, holding one signing certificate and key in PEM form. Without them each
-  image is signed with a one-time key and the feed offers no operating system update, so nothing
-  fails halfway. Reflash to move to a newer operating system image in that case.
+- Operating system updates over the air are signed with one certificate and key held in the
+  repository secrets `RAUC_CERTIFICATE` and `RAUC_PRIVATE_KEY` (PEM form). They were set on
+  10 November 2026 with a self-signed certificate made for this project, so every build after
+  build 55 that finishes its operating system images offers them in the update feed.
+- Images from builds up to 55 were signed with one-time keys that no longer exist. A system
+  installed from one of them cannot take an operating system update; install it once more
+  from a newer image. Its core and supervisor still update by themselves.
+- In a copy of this repository without those two secrets, each image is signed with a one-time
+  key and the feed offers no operating system update, so nothing fails halfway.
 - Add-ons and the DNS, audio, CLI, multicast and observer images come from upstream unchanged.
 
 </details>

@@ -21,7 +21,8 @@ exactly what has been seen working and where.
 - [ ] Boot the VirtualBox image and complete first-run setup
 - [ ] Boot a Raspberry Pi image and complete first-run setup
 - [ ] Observe a core update from one build to the next through Settings
-- [ ] Add the operating system signing secrets and observe an over-the-air operating system update
+- [x] Add the operating system signing secrets (set 10 November 2026)
+- [ ] Observe an over-the-air operating system update between two builds signed with them
 - [ ] Run `build.bat --run` and `build-installer.bat` on Windows
 
 ## Hosting

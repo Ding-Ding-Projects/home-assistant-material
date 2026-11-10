@@ -12,7 +12,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | Core, machine, landing page and supervisor images | Done, built in build 1 | release notes |
 | Update feed and updater pointed at this project | Done, feed live; an update between two builds is not yet observed | `docs/material-changes.md` |
 | Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox | Built. `haos_ova-18.5.33.ova` started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed the first-run setup on port 80, reached from a second device. `ovftool` needs `--skipManifestCheck` (see the README). Not yet booted in VirtualBox or on a Raspberry Pi | release workflow, README |
-| Operating system updates over the air | Wired; needs the two signing secrets | README |
+| Operating system updates over the air | Wired, and the two signing secrets are set since 10 November 2026. Not yet observed: no build has finished its operating system images since, and no update between two such builds has been watched | README |
 | `build.sh`, `build.bat`, `build-installer.bat`, dependency installers | Written; not yet run end to end | repository root |
 | Dedicated build application | Not started |  |
 | Project website | Not started |  |
