@@ -1,0 +1,60 @@
+@@HEAD:Settings@@
+@@SHELL:Settings|Settings|980@@
+<div class="row grow" style="align-items: stretch; gap: 0; min-height: 0">
+<nav class="col" aria-label="Settings sections" style="width: 340px; flex: none; padding: 8px 12px 16px 28px; gap: 4px">
+<div class="find" style="margin-bottom: 12px"><span class="row grow" style="gap: 12px">@@I:Magnify@@<span class="bl">Search settings</span></span><button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search">@@I:Regex@@</button></div>
+<a class="li" href="#devices" style="color: var(--on)"><span class="lead">@@I:Devices@@</span><span class="col grow"><span class="ll">Devices and services</span><span class="bs mu">42 devices, 2 need attention</span></span></a>
+<a class="li" href="#automations" style="color: var(--on)"><span class="lead">@@I:Robot@@</span><span class="col grow"><span class="ll">Automations and scenes</span><span class="bs mu">18 running</span></span></a>
+<a class="li sel" href="#appearance"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:Palette@@</span><span class="col grow"><span class="ll">Appearance</span><span class="bs">Theme, colour, type, motion</span></span></a>
+<a class="li" href="#language" style="color: var(--on)"><span class="lead">@@I:Translate@@</span><span class="col grow"><span class="ll">Language and voice</span><span class="bs mu">English, playfulness 5</span></span></a>
+<a class="li" href="#access" style="color: var(--on)"><span class="lead">@@I:HumanHandsup@@</span><span class="col grow"><span class="ll">Accessibility</span><span class="bs mu">Tools menu is visible</span></span></a>
+<a class="li" href="#locks" style="color: var(--on)"><span class="lead">@@I:ShieldLock@@</span><span class="col grow"><span class="ll">Locks and sign-in</span><span class="bs mu">3 locked elements</span></span></a>
+<a class="li" href="#extensions" style="color: var(--on)"><span class="lead">@@I:Puzzle@@</span><span class="col grow"><span class="ll">Extensions</span><span class="bs mu">6 installed, 1 update</span></span></a>
+<a class="li" href="#history" style="color: var(--on)"><span class="lead">@@I:History@@</span><span class="col grow"><span class="ll">History and export</span><span class="bs mu">Last change 4 minutes ago</span></span></a>
+<a class="li" href="#system" style="color: var(--on)"><span class="lead">@@I:Update@@</span><span class="col grow"><span class="ll">System and updates</span><span class="bs mu">Up to date</span></span></a>
+</nav>
+<section class="col grow" aria-label="Appearance" style="background: var(--sl1); border-radius: 32px 0 0 0; padding: 32px 48px; gap: 24px">
+<div class="row" style="gap: 16px">
+<div class="col grow" style="gap: 4px"><h1 class="hl">Appearance</h1><p class="bl mu">Every value here is saved to your settings file and can follow a schedule.</p></div>
+<button class="btn out">@@I:CalendarClock@@Schedules</button>
+<button class="btn text">Reset all</button>
+</div>
+<div class="col" style="gap: 8px">
+<div class="card col" style="background: var(--sl0); gap: 16px; padding: 24px">
+<div class="row" style="gap: 16px"><div class="col grow"><div class="row" style="gap: 4px"><span class="tm">Theme</span>@@INFO:Theme@@</div><span class="bm mu">Follow system switches with your device at sunset and sunrise.</span></div>
+<div class="seg" role="group" aria-label="Theme"><button aria-pressed="false">@@I:WhiteBalanceSunny.s@@Light</button><button aria-pressed="false">@@I:WeatherNight.s@@Dark</button><button class="sel" aria-pressed="true">@@I:ThemeLightDark.s@@System</button></div></div>
+<span class="bs mu">From your settings file. Default: System.</span>
+</div>
+<div class="card col" style="background: var(--sl0); gap: 16px; padding: 24px">
+<div class="row" style="gap: 16px"><div class="col grow"><div class="row" style="gap: 4px"><span class="tm">Colour</span>@@INFO:Colour@@</div><span class="bm mu">One seed colour builds every surface, container and accent.</span></div>
+<div class="row" style="gap: 12px">
+<button aria-label="Ocean blue, selected" style="width: 48px; height: 48px; border-radius: 16px; background: #00639B; box-shadow: 0 0 0 3px var(--sl0), 0 0 0 5px #00639B"></button>
+<button aria-label="Fern green" style="width: 48px; height: 48px; border-radius: 24px; background: #2E6B3F"></button>
+<button aria-label="Plum" style="width: 48px; height: 48px; border-radius: 24px; background: #7A4E7E"></button>
+<button aria-label="Ember" style="width: 48px; height: 48px; border-radius: 24px; background: #9C4323"></button>
+<button aria-label="Animated rainbow" style="width: 48px; height: 48px; border-radius: 24px; background: conic-gradient(#D33,#DA2,#3A5,#28C,#84C,#D33)"></button>
+<button class="btn sm tonal">@@I:Eyedropper.s@@Any colour</button>
+</div></div>
+<span class="bs mu">From your settings file. Default: Ocean blue, #00639B.</span>
+</div>
+<div class="card col" style="background: var(--sl0); gap: 16px; padding: 24px">
+<div class="row" style="gap: 16px"><div class="col grow"><div class="row" style="gap: 4px"><span class="tm">Density</span>@@INFO:Density@@</div><span class="bm mu">Comfortable leaves room to tap. Compact fits more on a wall tablet.</span></div>
+<div class="seg" role="group" aria-label="Density"><button class="sel" aria-pressed="true">Comfortable</button><button aria-pressed="false">Compact</button></div></div>
+<span class="bs mu">Compiled-in default: Comfortable. You have not changed this.</span>
+</div>
+<div class="card col" style="background: var(--sl0); gap: 16px; padding: 24px">
+<div class="row" style="gap: 16px"><div class="col grow"><div class="row" style="gap: 4px"><span class="tm">Motion</span>@@INFO:Motion@@</div><span class="bm mu">Reduced keeps every state readable with no movement. Your device asks for reduced motion.</span></div>
+<div class="seg" role="group" aria-label="Motion"><button aria-pressed="false">Expressive</button><button aria-pressed="false">Standard</button><button class="sel" aria-pressed="true">Reduced</button></div></div>
+<span class="bs mu">From your device. Default: Expressive.</span>
+</div>
+</div>
+<div class="row" style="gap: 8px; flex-wrap: wrap">
+<a class="chip" href="#fonts">@@I:FormatFont.s@@Fonts and type scale</a>
+<a class="chip" href="#logo">@@I:ImageEdit.s@@Logo and name</a>
+<a class="chip" href="#elements">@@I:SelectionEllipseArrowInside.s@@Edit any element</a>
+<a class="chip" href="#export">@@I:Export.s@@Export appearance</a>
+</div>
+</section>
+</div>
+@@/SHELL:Home Assistant Material 2026.11.1.42, updated 9 November 2026 at 21:14:07 EST@@
+@@TAIL:1440,980@@

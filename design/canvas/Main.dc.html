@@ -2,265 +2,230 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Overview dashboard, light</title>
+<title>Home</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap">
 <style>
 body{margin:0}
-.m3{--p:#00668B;--on-p:#FFFFFF;--pc:#C4E7FF;--on-pc:#004C69;--s:#4E616D;--sc:#D1E5F4;--on-sc:#364955;--t:#605A7D;--tc:#E6DEFF;--on-tc:#484264;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#F6FAFE;--sl0:#FFFFFF;--sl1:#F0F4F8;--sl2:#EBEEF3;--sl3:#E5E8ED;--sl4:#DFE3E7;--on:#181C1F;--onv:#41484D;--out:#71787E;--outv:#C1C7CE;--inv:#2D3135;--on-inv:#EEF1F6;--amber:#6F5100;--amberc:#FFDF9E;--heat:#8F3A1C;--heatc:#FFDBCF;--green:#22633A;--greenc:#B1F1BB;--scrim:rgba(0,0,0,.4);--e1:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15);--e3:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15);font-family:'Roboto Flex',Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
-.m3.dark{--p:#7BD0FF;--on-p:#00354A;--pc:#004C69;--on-pc:#C4E7FF;--s:#B5C9D7;--sc:#364955;--on-sc:#D1E5F4;--t:#CAC1EA;--tc:#484264;--on-tc:#E6DEFF;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#101417;--sl0:#0B0F12;--sl1:#181C1F;--sl2:#1C2023;--sl3:#262A2E;--sl4:#313539;--on:#DFE3E7;--onv:#C1C7CE;--out:#8B9198;--outv:#41484D;--inv:#DFE3E7;--on-inv:#2D3135;--amber:#F5BF48;--amberc:#5C4300;--heat:#FFB59D;--heatc:#7D2C0E;--green:#96D5A1;--greenc:#12512A;--scrim:rgba(0,0,0,.6)}
-.m3 *{box-sizing:border-box}
-.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
-.m3 a{color:var(--p);text-decoration:none}
-.m3 a:hover{color:var(--on-pc)}
-.m3 input{font:inherit;color:inherit}
+.m3{--p:#00639B;--on-p:#FFFFFF;--pc:#CEE5FF;--on-pc:#004A76;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--t:#68587A;--tc:#EEDBFF;--on-tc:#4F4061;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--heat:#8C3A1D;--heatc:#FFDBCF;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e1:0 1px 2px rgba(0,0,0,.18),0 1px 3px 1px rgba(0,0,0,.08);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);font-family:'Google Sans Flex','Roboto Flex',Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--p:#98CBFF;--on-p:#003354;--pc:#004A76;--on-pc:#CEE5FF;--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--t:#D4BEE6;--tc:#4F4061;--on-tc:#EEDBFF;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--heat:#FFB59E;--heatc:#6F2609;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e1:0 1px 2px rgba(0,0,0,.5);--e3:0 6px 16px rgba(0,0,0,.6)}
+:where(.m3) *{box-sizing:border-box}
+:where(.m3) button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+:where(.m3) a{color:var(--p);text-decoration:none}
+:where(.m3) a:hover{color:var(--on-pc)}
+:where(.m3) input,:where(.m3) textarea{font:inherit;color:inherit}
+:where(.m3) h1,:where(.m3) h2,:where(.m3) h3,:where(.m3) p{margin:0}
 .ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
-.ic.s{width:18px;height:18px}
-.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none}
-.ib:hover{background:var(--sl3)}
-.disp{font-size:45px;line-height:52px;font-weight:400;margin:0}
-.hl{font-size:28px;line-height:36px;font-weight:400;margin:0}
-.tl{font-size:22px;line-height:28px;font-weight:400;margin:0}
-.tm{font-size:16px;line-height:24px;font-weight:500;letter-spacing:.15px;margin:0}
-.ll{font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;margin:0}
-.lm{font-size:12px;line-height:16px;font-weight:500;letter-spacing:.5px;margin:0}
-.bl{font-size:16px;line-height:24px;letter-spacing:.5px;margin:0}
-.bm{font-size:14px;line-height:20px;letter-spacing:.25px;margin:0}
-.bs{font-size:12px;line-height:16px;letter-spacing:.4px;color:var(--onv);margin:0}
+.ic.s{width:20px;height:20px}
+.ic.l{width:32px;height:32px}
+.dx{font-size:88px;line-height:92px;font-weight:500;letter-spacing:-2px}
+.dl{font-size:57px;line-height:64px;font-weight:500;letter-spacing:-.5px}
+.dm{font-size:45px;line-height:52px;font-weight:500}
+.hl{font-size:32px;line-height:40px;font-weight:500}
+.hs{font-size:24px;line-height:32px;font-weight:500}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:600;letter-spacing:.1px}
+.ll{font-size:14px;line-height:20px;font-weight:600;letter-spacing:.1px}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px}
+.bl{font-size:16px;line-height:24px}
+.bm{font-size:14px;line-height:20px}
+.bs{font-size:12px;line-height:16px;letter-spacing:.2px}
+.mu{color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
 .row{display:flex;align-items:center}
 .col{display:flex;flex-direction:column}
 .grow{flex:1;min-width:0}
-.tabs{display:flex;align-items:flex-end;gap:2px;height:48px;padding:8px 12px 0;background:var(--sl3);overflow:hidden}
-.tab{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:14px 14px 0 0;color:var(--onv);white-space:nowrap;flex:none}
-.tab.sel{background:var(--surf);color:var(--on)}
-.tab:hover{background:var(--sl2)}
-.tab.sel:hover{background:var(--surf)}
-.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 0 16px;background:var(--surf)}
-.ri{display:flex;flex-direction:column;align-items:center;gap:4px;width:80px;color:var(--onv)}
+.app{display:flex;padding:12px 12px 12px 0;gap:0}
+.rail{width:88px;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0 8px}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;width:72px;padding:4px 0;color:var(--onv)}
 .ri .pill{width:56px;height:32px;border-radius:16px;display:grid;place-items:center;position:relative}
-.ri:hover .pill{background:var(--sl3)}
+.ri:hover .pill{background:var(--sl4)}
 .ri.sel{color:var(--on)}
-.ri.sel .pill{background:var(--sc);color:var(--on-sc)}
-.fab{width:56px;height:56px;border-radius:16px;background:var(--pc);color:var(--on-pc);display:grid;place-items:center;box-shadow:var(--e1);flex:none}
-.badge{position:absolute;top:2px;right:10px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--sl0);font-size:11px;line-height:16px;font-weight:500;text-align:center}
-.search{display:flex;align-items:center;gap:12px;height:56px;padding:0 8px 0 16px;border-radius:28px;background:var(--sl3);color:var(--onv);min-width:0}
-.kbd{font-size:12px;line-height:16px;font-weight:500;padding:4px 8px;border-radius:8px;background:var(--sl0);color:var(--onv);white-space:nowrap;border:1px solid var(--outv)}
-.chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 16px;border-radius:8px;border:1px solid var(--outv);color:var(--onv);font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;flex:none}
-.chip.sel{background:var(--sc);border-color:var(--sc);color:var(--on-sc);padding-left:8px}
-.card{background:var(--sl1);border-radius:28px;padding:20px}
-.tile{display:flex;align-items:center;gap:12px;min-height:72px;padding:12px 16px 12px 12px;border-radius:20px;background:var(--sl1);width:100%}
-.tile:hover{background:var(--sl2)}
-.tile .disc{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;background:var(--sl4);color:var(--onv);flex:none}
-.tile.on{background:var(--sl0);box-shadow:var(--e1)}
-.tile.light.on .disc{background:var(--amberc);color:var(--amber)}
-.tile.heat.on .disc{background:var(--heatc);color:var(--heat)}
-.tile.ok.on .disc{background:var(--greenc);color:var(--green)}
-.tile.pri.on .disc{background:var(--pc);color:var(--on-pc)}
-.tile.ter.on .disc{background:var(--tc);color:var(--on-tc)}
-.sw{width:52px;height:32px;border-radius:16px;border:2px solid var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 6px;flex:none}
-.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out)}
-.sw.on{border-color:var(--p);background:var(--p);justify-content:flex-end;padding:0 2px}
-.sw.on i{width:24px;height:24px;background:var(--on-p)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 24px;border-radius:20px;font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;white-space:nowrap}
+.ri.sel .pill{background:var(--pc);color:var(--on-pc)}
+.badge{position:absolute;top:0;right:8px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--sl0);font-size:11px;line-height:16px;font-weight:600;text-align:center}
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--sl0);border-radius:32px;overflow:hidden}
+.bar{display:flex;align-items:center;gap:8px;min-height:72px;padding:12px 20px 12px 28px;flex-wrap:wrap}
+.pt{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:20px;color:var(--onv);font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.pt:hover{background:var(--sl2)}
+.pt.sel{background:var(--inv);color:var(--on-inv)}
+.find{display:flex;align-items:center;gap:12px;height:48px;padding:0 8px 0 16px;border-radius:24px;background:var(--sl2);color:var(--onv);min-width:0}
+.kbd{font-size:12px;line-height:16px;font-weight:600;padding:4px 8px;border-radius:8px;background:var(--sl0);color:var(--onv);white-space:nowrap;box-shadow:inset 0 0 0 1px var(--outv)}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none}
+.ib:hover{background:var(--sl2)}
+.ib.t{background:var(--sl2)}
+.ib.f{background:var(--p);color:var(--on-p)}
+.av{width:40px;height:40px;border-radius:20px;background:var(--tc);color:var(--on-tc);display:grid;place-items:center;font-size:14px;font-weight:600;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border-radius:24px;font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.btn.sm{height:40px;padding:0 16px;border-radius:20px}
+.btn.lg{height:56px;padding:0 28px;border-radius:28px;font-size:16px}
 .btn.fill{background:var(--p);color:var(--on-p)}
 .btn.tonal{background:var(--sc);color:var(--on-sc)}
-.btn.out{border:1px solid var(--outv);color:var(--p)}
+.btn.out{box-shadow:inset 0 0 0 1px var(--outv);color:var(--on)}
 .btn.text{color:var(--p);padding:0 12px}
-.sec{display:flex;align-items:center;gap:8px;height:40px;color:var(--onv)}
-.track{height:16px;border-radius:8px;background:var(--sc);position:relative;overflow:hidden}
-.track b{display:block;height:100%;border-radius:8px 2px 2px 8px;background:var(--p)}
-.li{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 16px;border-radius:16px;width:100%}
+.btn.err{background:var(--err);color:var(--sl0)}
+.btn.sq{border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.card{background:var(--sl2);border-radius:32px;padding:28px}
+.card.hero{border-radius:40px;padding:32px}
+.sq{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;flex:none;background:var(--sl0);color:var(--on)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.slide{height:56px;border-radius:28px;background:var(--sl0);display:flex;align-items:center;overflow:hidden;position:relative}
+.slide b{display:block;height:100%;background:var(--p);border-radius:28px 8px 8px 28px}
+.slide i{display:block;width:4px;height:40px;border-radius:2px;background:var(--p);margin-left:6px}
+.track{height:8px;border-radius:4px;background:var(--sl4);overflow:hidden}
+.track b{display:block;height:100%;border-radius:4px;background:var(--p)}
+.li{display:flex;align-items:center;gap:16px;min-height:64px;padding:8px 16px;border-radius:20px;width:100%}
 .li:hover{background:var(--sl2)}
-.li .lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
-.foot{padding:16px 24px 24px;color:var(--onv);font-size:12px;line-height:16px;letter-spacing:.4px}
-@media (prefers-reduced-motion:no-preference){.tile,.ri .pill,.chip,.sw,.sw i,.btn,.tab,.li{transition:background-color .2s cubic-bezier(.2,0,0,1),box-shadow .2s cubic-bezier(.2,0,0,1),width .2s cubic-bezier(.2,0,0,1)}}
+.li.sel{background:var(--pc);color:var(--on-pc)}
+.lead{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--sl3);color:var(--onv);flex:none}
+.field{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out)}
+.field.focus{box-shadow:inset 0 -3px 0 var(--p)}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:28px;background:var(--sl2);flex:none}
+.seg button{height:40px;padding:0 18px;border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:600;color:var(--onv)}
+.seg button.sel{background:var(--sl0);color:var(--on);box-shadow:var(--e1)}
+.dlg{background:var(--sl0);border-radius:36px;padding:32px;box-shadow:var(--e3)}
+.menu{background:var(--sl1);border-radius:20px;padding:8px;box-shadow:var(--e3);min-width:280px}
+.mi{display:flex;align-items:center;gap:12px;height:48px;padding:0 12px;border-radius:12px;width:100%}
+.mi:hover,.mi.act{background:var(--sl3)}
+.note{display:flex;gap:12px;padding:16px;border-radius:20px;background:var(--sl2);color:var(--onv)}
+.note.warn{background:var(--errc);color:var(--on-errc)}
+.note.ok{background:var(--greenc);color:var(--green)}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.a{background:var(--amberc);color:var(--amber)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.div{height:1px;background:var(--outv);opacity:.6}
+.foot{padding:12px 32px 20px;color:var(--onv);font-size:12px;line-height:16px}
+.stage{padding:12px;display:flex}
+@media (prefers-reduced-motion:no-preference){.ri .pill,.chip,.sw,.sw i,.btn,.pt,.li,.ib,.mi{transition:background-color .2s cubic-bezier(.2,0,0,1),box-shadow .2s cubic-bezier(.2,0,0,1),border-radius .35s cubic-bezier(.34,1.56,.64,1)}.btn:active{border-radius:12px}}
 </style>
 </helmet>
-<div class="m3" style="min-height: 1040px; display: flex; flex-direction: column">
-<div class="tabs" role="tablist" aria-label="Open pages">
-<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="8">
-<button class="tab {{tab.cls}}" role="tab" aria-selected="{{tab.sel}}">
-<svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>
-<span class="ll">{{tab.label}}</span>
-<sc-if value="{{tab.sel}}" hint-placeholder-val="{{false}}"><svg class="ic s" viewBox="0 0 24 24" role="img" aria-label="Close tab"><path d="{{i.Close}}"></path></svg></sc-if>
-</button>
-</sc-for>
-<button class="ib" style="width: 40px; height: 40px" aria-label="New tab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Plus}}"></path></svg></button>
-</div>
-<div style="display: flex; flex: 1; min-height: 0">
+<div class="m3">
+<div class="app" style="min-height: 900px">
 <nav class="rail" aria-label="Main">
-<button class="ib" aria-label="Expand navigation"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Menu}}"></path></svg></button>
-<button class="fab" aria-label="Ask Assist"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Microphone}}"></path></svg></button>
-<div class="col" style="gap: 12px; margin-top: 12px; flex: 1">
-<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
-<button class="ri {{n.cls}}">
-<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.icon}}"></path></svg></span>
-<span class="lm">{{n.label}}</span>
-</button>
-</sc-for>
-</div>
-<button class="ri">
-<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Bell}}"></path></svg><span class="badge">3</span></span>
-<span class="lm">Alerts</span>
-</button>
-<button class="ri">
-<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Cog}}"></path></svg></span>
-<span class="lm">Settings</span>
-</button>
+<button class="ib" aria-label="Expand navigation"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"></path></svg></button>
+<button class="ib f" aria-label="Ask Assist" style="margin: 4px 0 12px; border-radius: 16px; width: 56px; height: 56px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"></path></svg></button>
+<a class="ri sel" href="#home"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z"></path></svg></span><span class="lm">Home</span></a>
+<a class="ri" href="#energy"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 15H6L13 1V9H18L11 23V15Z"></path></svg></span><span class="lm">Energy</span></a>
+<a class="ri" href="#map"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15,19L9,16.89V5L15,7.11M20.5,3C20.44,3 20.39,3 20.34,3L15,5.1L9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21C3.55,21 3.61,21 3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3Z"></path></svg></span><span class="lm">Map</span></a>
+<a class="ri" href="#activity"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z"></path></svg></span><span class="lm">Activity</span></a>
+<a class="ri" href="#media"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4,6H2V20A2,2 0 0,0 4,22H18V20H4V6M20,2H8A2,2 0 0,0 6,4V16A2,2 0 0,0 8,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M12,14.5V5.5L18,10L12,14.5Z"></path></svg></span><span class="lm">Media</span></a>
+<a class="ri" href="#tools"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16H16V15H8V16H6V15H2V20H22V15H18V16M20 8H17V6C17 4.9 16.1 4 15 4H9C7.9 4 7 4.9 7 6V8H4C2.9 8 2 8.9 2 10V14H6V12H8V14H16V12H18V14H22V10C22 8.9 21.1 8 20 8M15 8H9V6H15V8Z"></path></svg></span><span class="lm">Tools</span></a>
+<span class="grow"></span>
+<a class="ri" href="#alerts"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21"></path></svg><span class="badge">3</span></span><span class="lm">Alerts</span></a>
+<a class="ri" href="#settings"><span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path></svg></span><span class="lm">Settings</span></a>
 </nav>
-<main class="grow col" style="background: var(--sl0); border-radius: 28px 0 0 0; padding: 0 0 0 0">
-<header class="row" style="gap: 16px; padding: 20px 24px 12px 32px; flex-wrap: wrap">
-<div class="col" style="flex: 0 1 auto; min-width: 160px">
-<h1 class="hl">Home</h1>
-<p class="bs">Monday 9 November, everything is running</p>
+<main class="pane">
+<header class="bar">
+<div class="row" role="tablist" aria-label="Open pages" style="gap: 4px; flex-wrap: wrap">
+<button class="pt sel" role="tab" aria-selected="true">Home<svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button>
+<button class="pt" role="tab" aria-selected="false">Energy</button>
+<button class="pt" role="tab" aria-selected="false">Map</button>
+<button class="pt" role="tab" aria-selected="false">Activity</button>
+<button class="pt" role="tab" aria-selected="false">Media</button>
+<button class="pt" role="tab" aria-selected="false">Tools</button>
+<button class="pt" role="tab" aria-selected="false">Settings</button>
+<button class="ib" aria-label="New tab" style="width: 40px; height: 40px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button>
 </div>
-<div class="search" style="flex: 1 1 360px; max-width: 720px; margin: 0 auto">
-<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Magnify}}"></path></svg>
-<span class="bl grow" style="color: var(--onv)">Search or run a command</span>
-<span class="kbd">Ctrl + Shift + F</span>
-<button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Regex}}"></path></svg></button>
-</div>
-<div class="row" style="gap: 4px">
-<button class="ib" aria-label="Edit dashboard"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Pencil}}"></path></svg></button>
-<button class="ib" aria-label="More options"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.DotsVertical}}"></path></svg></button>
-</div>
+<span class="grow"></span>
+<button class="find" style="width: 280px"><span class="row grow" style="gap: 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg><span class="bl">Search</span></span><span class="kbd">Ctrl Shift F</span></button>
+<button class="ib" aria-label="Accessibility tools"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5,1C5,3.7 6.56,6.16 9,7.32V22H11V15H13V22H15V7.31C17.44,6.16 19,3.7 19,1H17A5,5 0 0,1 12,6A5,5 0 0,1 7,1M12,1C10.89,1 10,1.89 10,3C10,4.11 10.89,5 12,5C13.11,5 14,4.11 14,3C14,1.89 13.11,1 12,1Z"></path></svg></button>
+<button class="av" aria-label="Account, Sam">S</button>
 </header>
-<div class="row" style="gap: 8px; padding: 4px 32px 16px; overflow-x: auto">
-<button class="chip sel"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Check}}"></path></svg>All rooms</button>
-<button class="chip">Living room</button>
-<button class="chip">Kitchen</button>
-<button class="chip">Bedroom</button>
-<button class="chip">Garage</button>
-<button class="chip">Outside</button>
+<div class="col grow" style="padding: 20px 48px 8px; gap: 32px">
+<div class="row" style="gap: 32px; flex-wrap: wrap; align-items: flex-end">
+<div class="col grow" style="gap: 8px; min-width: 320px">
+<h1 class="dl">Good evening, Sam</h1>
+<p class="bl mu">Five lights are on, it is 21.4° inside, and every door is locked.</p>
 </div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 0 32px 8px">
-<sc-for list="{{summary}}" as="s" hint-placeholder-count="4">
-<button class="card row" style="gap: 16px; background: {{s.bg}}; color: {{s.fg}}">
-<span style="width: 56px; height: 56px; border-radius: 20px; display: grid; place-items: center; background: var(--sl0); flex: none"><svg class="ic" style="width: 28px; height: 28px" viewBox="0 0 24 24" aria-hidden="true"><path d="{{s.icon}}"></path></svg></span>
-<span class="col">
-<span class="hl">{{s.value}}</span>
-<span class="ll">{{s.label}}</span>
-</span>
-</button>
-</sc-for>
+<div class="row" role="group" aria-label="Scenes" style="gap: 8px; flex-wrap: wrap">
+<button class="btn lg tonal"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 2.18L16.91 2.96L19.65 6.5L21.62 6.1L20.84 2.18M13.97 3.54L12 3.93L14.75 7.46L16.71 7.07L13.97 3.54M9.07 4.5L7.1 4.91L9.85 8.44L11.81 8.05L9.07 4.5M4.16 5.5L3.18 5.69A2 2 0 0 0 1.61 8.04L2 10L6.9 9.03L4.16 5.5M2 10V20C2 21.11 2.9 22 4 22H20C21.11 22 22 21.11 22 20V10H2Z"></path></svg>Movie night</button>
+<button class="btn lg out"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z"></path></svg>Good night</button>
+<button class="btn lg out"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M24 13L20 17V14H11V12H20V9L24 13M4 20V12H1L11 3L18 9.3V10H15.79L11 5.69L6 10.19V18H16V16H18V20H4Z"></path></svg>Leaving</button>
 </div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; padding: 16px 32px 8px; align-items: start">
-<section class="col" style="gap: 8px">
-<div class="sec"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Sofa}}"></path></svg><h2 class="tm grow">Living room</h2><span class="bs">21.4 °C</span></div>
-<div class="tile light on" style="flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 16px">
-<div class="row" style="gap: 12px">
-<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Lightbulb}}"></path></svg></span>
-<span class="col grow"><span class="ll">Ceiling lights</span><span class="bs">On, 80 percent, warm white</span></span>
-<button class="sw on" role="switch" aria-checked="true" aria-label="Ceiling lights"><i></i></button>
 </div>
-<div class="track" role="slider" aria-label="Ceiling lights brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80" tabindex="0" style="background: var(--amberc)"><b style="width: 80%; background: var(--amber)"></b></div>
-</div>
-<sc-for list="{{living}}" as="t" hint-placeholder-count="4">
-<div class="tile {{t.cls}}">
-<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
-<span class="col grow"><span class="ll">{{t.name}}</span><span class="bs">{{t.state}}</span></span>
-<sc-if value="{{t.toggle}}" hint-placeholder-val="{{true}}"><button class="sw {{t.sw}}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.name}}"><i></i></button></sc-if>
-</div>
-</sc-for>
-</section>
-<section class="col" style="gap: 8px">
-<div class="sec"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.SilverwareForkKnife}}"></path></svg><h2 class="tm grow">Kitchen</h2><span class="bs">22.0 °C</span></div>
-<sc-for list="{{kitchen}}" as="t" hint-placeholder-count="3">
-<div class="tile {{t.cls}}">
-<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
-<span class="col grow"><span class="ll">{{t.name}}</span><span class="bs">{{t.state}}</span></span>
-<sc-if value="{{t.toggle}}" hint-placeholder-val="{{true}}"><button class="sw {{t.sw}}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.name}}"><i></i></button></sc-if>
-</div>
-</sc-for>
-<div class="sec" style="margin-top: 8px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Bed}}"></path></svg><h2 class="tm grow">Bedroom</h2><span class="bs">19.8 °C</span></div>
-<sc-for list="{{bedroom}}" as="t" hint-placeholder-count="3">
-<div class="tile {{t.cls}}">
-<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
-<span class="col grow"><span class="ll">{{t.name}}</span><span class="bs">{{t.state}}</span></span>
-<sc-if value="{{t.toggle}}" hint-placeholder-val="{{true}}"><button class="sw {{t.sw}}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.name}}"><i></i></button></sc-if>
-</div>
-</sc-for>
-</section>
-<section class="col" style="gap: 16px">
-<div class="card" style="background: var(--pc); color: var(--on-pc)">
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px">
+<section class="card hero col" aria-label="Living room lights" style="grid-column: span 5; grid-row: span 2; background: var(--pc); color: var(--on-pc); gap: 24px; min-width: 0">
 <div class="row" style="gap: 16px">
-<svg class="ic" style="width: 56px; height: 56px" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.WeatherPartlyCloudy}}"></path></svg>
-<div class="col grow"><span class="disp">8°</span><span class="ll">Partly cloudy, feels like 5°</span></div>
+<span class="sq"><svg class="ic l" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z"></path></svg></span>
+<div class="col grow"><h2 class="tl">Living room</h2><span class="bm">3 lights, 2 on</span></div>
+<button class="sw on" role="switch" aria-checked="true" aria-label="Living room lights"><i></i></button>
 </div>
-<div class="row" style="gap: 8px; margin-top: 16px">
-<sc-for list="{{forecast}}" as="f" hint-placeholder-count="4">
-<div class="col" style="flex: 1; align-items: center; gap: 2px; padding: 8px 0; border-radius: 16px; background: var(--sl0); color: var(--on)"><span class="lm">{{f.day}}</span><span class="tm">{{f.hi}}</span><span class="bs">{{f.lo}}</span></div>
-</sc-for>
+<div class="col grow" style="justify-content: center">
+<span class="dx">80%</span>
+<span class="bl">Brightness, warm white</span>
 </div>
+<div class="slide" role="slider" tabindex="0" aria-label="Living room brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><b style="width: 80%"></b><i></i></div>
+<div class="row" style="gap: 8px; flex-wrap: wrap">
+<button class="chip sel" aria-pressed="true" style="background: var(--sl0); color: var(--on-pc)"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>Ceiling</button>
+<button class="chip sel" aria-pressed="true" style="background: var(--sl0); color: var(--on-pc)"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg>Shelf</button>
+<button class="chip" aria-pressed="false" style="box-shadow: inset 0 0 0 1px var(--on-pc); color: var(--on-pc)">Floor lamp</button>
 </div>
-<div class="card" style="background: var(--tc); color: var(--on-tc)">
-<div class="row" style="gap: 12px">
-<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Speaker}}"></path></svg>
-<div class="col grow"><span class="tm">Kitchen speaker</span><span class="bm">Playing, morning jazz radio</span></div>
+</section>
+<section class="card col" aria-label="Thermostat" style="grid-column: span 4; gap: 12px; min-width: 0">
+<div class="row" style="gap: 12px"><span class="ll mu grow">Thermostat</span><span class="tag a">Heating</span></div>
+<div class="row" style="gap: 16px">
+<span class="dl grow">21.5°</span>
+<button class="ib t" aria-label="Lower the target" style="background: var(--sl0)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,13H5V11H19V13Z"></path></svg></button>
+<button class="ib f" aria-label="Raise the target"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg></button>
 </div>
-<div class="track" role="progressbar" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="42" style="height: 8px; margin: 16px 0; background: var(--sl0)"><b style="width: 42%; background: var(--t)"></b></div>
+<span class="bm mu">Target 22°, reaching it in about 10 minutes</span>
+</section>
+<section class="card col" aria-label="Security" style="grid-column: span 3; gap: 12px; background: var(--greenc); color: var(--green); min-width: 0">
+<span class="sq" style="color: var(--green)"><svg class="ic l" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.1 14.8,9.5V11C15.4,11 16,11.6 16,12.3V15.8C16,16.4 15.4,17 14.7,17H9.2C8.6,17 8,16.4 8,15.7V12.2C8,11.6 8.6,11 9.2,11V9.5C9.2,8.1 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,9.5V11H13.5V9.5C13.5,8.7 12.8,8.2 12,8.2Z"></path></svg></span>
+<h2 class="tl" style="margin-top: 4px">All locked</h2>
+<span class="bm">3 doors, alarm armed</span>
+</section>
+<section class="card col" aria-label="Power right now" style="grid-column: span 4; gap: 8px; min-width: 0">
+<div class="row" style="gap: 12px"><span class="ll mu grow">Power right now</span><span class="row bs mu" style="gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: var(--green)"></span>Live</span></div>
+<span class="dm">2.4 kW</span>
+<svg viewBox="0 0 400 72" preserveAspectRatio="none" role="img" aria-label="Power use over the last hour, rising gently" style="display: block; width: 100%; height: 72px">
+<path d="M0,56 C30,54 50,44 80,46 S130,60 160,50 S210,26 240,32 S300,40 330,24 S380,18 392,16 L392,72 L0,72 Z" fill="#00639B" fill-opacity="0.12"></path>
+<path d="M0,56 C30,54 50,44 80,46 S130,60 160,50 S210,26 240,32 S300,40 330,24 S380,18 392,16" fill="none" stroke="#00639B" stroke-width="3" stroke-linecap="round"></path>
+<circle cx="392" cy="16" r="6" fill="#00639B"></circle>
+</svg>
+</section>
+<section class="card col" aria-label="Now playing" style="grid-column: span 3; gap: 12px; background: var(--tc); color: var(--on-tc); min-width: 0">
+<span class="ll">Kitchen speaker</span>
+<h2 class="tl grow">Morning jazz radio</h2>
 <div class="row" style="gap: 8px">
-<button aria-label="Pause" style="width: 72px; height: 56px; border-radius: 16px; background: var(--t); color: var(--sl0); display: grid; place-items: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Pause}}"></path></svg></button>
-<button aria-label="Next track" style="width: 56px; height: 56px; border-radius: 28px; background: var(--sl0); color: var(--on-tc); display: grid; place-items: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.SkipNext}}"></path></svg></button>
-</div>
-</div>
-<div class="card">
-<div class="row" style="gap: 12px"><div class="col grow"><span class="tm">Energy today</span><span class="bs">Updated a minute ago</span></div><span class="tl">6.8 kWh</span></div>
-<div class="row" role="img" aria-label="Hourly energy use today, peaking at 6 pm" style="gap: 6px; height: 96px; align-items: flex-end; margin-top: 16px">
-<sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
-<span style="flex: 1; height: {{b.h}}; border-radius: 6px 6px 2px 2px; background: {{b.c}}"></span>
-</sc-for>
-</div>
-<div class="row bs" style="justify-content: space-between; margin-top: 8px"><span>6 am</span><span>noon</span><span>6 pm</span></div>
+<button class="btn sq" aria-label="Pause" style="width: 72px; padding: 0; background: var(--t); color: var(--sl0)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14,19H18V5H14M6,19H10V5H6V19Z"></path></svg></button>
+<button class="ib" aria-label="Next" style="background: var(--sl0); color: var(--on-tc)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16,18H18V6H16M6,18L14.5,12L6,6V18Z"></path></svg></button>
 </div>
 </section>
 </div>
-<div class="foot grow" style="display: flex; align-items: flex-end">Home Assistant Material 2026.11.1, updated 9 November 2026</div>
+<section aria-label="Rooms" class="col" style="gap: 12px">
+<h2 class="tm mu">Rooms</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+<a class="li" href="#living-room" style="background: var(--sl2); color: var(--on)"><span class="lead"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z"></path></svg></span><span class="col grow"><span class="ll">Living room</span><span class="bs mu">2 on, 21.4°</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></a>
+<a class="li" href="#kitchen" style="background: var(--sl2); color: var(--on)"><span class="lead"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z"></path></svg></span><span class="col grow"><span class="ll">Kitchen</span><span class="bs mu">2 on, 22.0°</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></a>
+<a class="li" href="#bedroom" style="background: var(--sl2); color: var(--on)"><span class="lead"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,7H11V14H3V5H1V20H3V17H21V20H23V11A4,4 0 0,0 19,7M7,13A3,3 0 0,0 10,10A3,3 0 0,0 7,7A3,3 0 0,0 4,10A3,3 0 0,0 7,13Z"></path></svg></span><span class="col grow"><span class="ll">Bedroom</span><span class="bs mu">All off, 19.8°</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></a>
+<a class="li" href="#garage" style="background: var(--sl2); color: var(--on)"><span class="lead"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,20H17V11H7V20H5V9L12,5L19,9V20M8,12H16V14H8V12M8,15H16V17H8V15M16,18V20H8V18H16Z"></path></svg></span><span class="col grow"><span class="ll">Garage</span><span class="bs mu">Door closed</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></a>
+<a class="li" href="#outside" style="background: var(--sl2); color: var(--on)"><span class="lead"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11,21V16.74C10.53,16.91 10.03,17 9.5,17C7,17 5,15 5,12.5C5,11.23 5.5,10.09 6.36,9.27C6.13,8.73 6,8.13 6,7.5C6,5 8,3 10.5,3C12.06,3 13.44,3.8 14.25,5C14.33,5 14.41,5 14.5,5A5.5,5.5 0 0,1 20,10.5A5.5,5.5 0 0,1 14.5,16C14,16 13.5,15.93 13,15.79V21H11Z"></path></svg></span><span class="col grow"><span class="ll">Outside</span><span class="bs mu">1 on, 8° and cloudy</span></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"></path></svg></a>
+</div>
+</section>
+</div>
+<div class="foot">Home Assistant Material 2026.11.1.42, updated 9 November 2026 at 21:14:07 EST</div>
 </main>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
 renderVals() {
-const i = {Close:"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",Plus:"M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z",Menu:"M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z",Microphone:"M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z",Bell:"M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21",Cog:"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z",Magnify:"M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z",Regex:"M16,16.92C15.67,16.97 15.34,17 15,17C14.66,17 14.33,16.97 14,16.92V13.41L11.5,15.89C11,15.5 10.5,15 10.11,14.5L12.59,12H9.08C9.03,11.67 9,11.34 9,11C9,10.66 9.03,10.33 9.08,10H12.59L10.11,7.5C10.3,7.25 10.5,7 10.76,6.76V6.76C11,6.5 11.25,6.3 11.5,6.11L14,8.59V5.08C14.33,5.03 14.66,5 15,5C15.34,5 15.67,5.03 16,5.08V8.59L18.5,6.11C19,6.5 19.5,7 19.89,7.5L17.41,10H20.92C20.97,10.33 21,10.66 21,11C21,11.34 20.97,11.67 20.92,12H17.41L19.89,14.5C19.7,14.75 19.5,15 19.24,15.24V15.24C19,15.5 18.75,15.7 18.5,15.89L16,13.41V16.92H16V16.92M5,19A2,2 0 0,1 7,17A2,2 0 0,1 9,19A2,2 0 0,1 7,21A2,2 0 0,1 5,19H5Z",Pencil:"M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z",DotsVertical:"M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z",Check:"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",Sofa:"M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z",Lightbulb:"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z",SilverwareForkKnife:"M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z",Bed:"M19,7H11V14H3V5H1V20H3V17H21V20H23V11A4,4 0 0,0 19,7M7,13A3,3 0 0,0 10,10A3,3 0 0,0 7,7A3,3 0 0,0 4,10A3,3 0 0,0 7,13Z",WeatherPartlyCloudy:"M12.74,5.47C15.1,6.5 16.35,9.03 15.92,11.46C17.19,12.56 18,14.19 18,16V16.17C18.31,16.06 18.65,16 19,16A3,3 0 0,1 22,19A3,3 0 0,1 19,22H6A4,4 0 0,1 2,18A4,4 0 0,1 6,14H6.27C5,12.45 4.6,10.24 5.5,8.26C6.72,5.5 9.97,4.24 12.74,5.47M11.93,7.3C10.16,6.5 8.09,7.31 7.31,9.07C6.85,10.09 6.93,11.22 7.41,12.13C8.5,10.83 10.16,10 12,10C12.7,10 13.38,10.12 14,10.34C13.94,9.06 13.18,7.86 11.93,7.3M13.55,3.64C13,3.4 12.45,3.23 11.88,3.12L14.37,1.82L15.27,4.71C14.76,4.29 14.19,3.93 13.55,3.64M6.09,4.44C5.6,4.79 5.17,5.19 4.8,5.63L4.91,2.82L7.87,3.5C7.25,3.71 6.65,4.03 6.09,4.44M18,9.71C17.91,9.12 17.78,8.55 17.59,8L19.97,9.5L17.92,11.73C18.03,11.08 18.05,10.4 18,9.71M3.04,11.3C3.11,11.9 3.24,12.47 3.43,13L1.06,11.5L3.1,9.28C3,9.93 2.97,10.61 3.04,11.3M19,18H16V16A4,4 0 0,0 12,12A4,4 0 0,0 8,16H6A2,2 0 0,0 4,18A2,2 0 0,0 6,20H19A1,1 0 0,0 20,19A1,1 0 0,0 19,18Z",Speaker:"M12,12A3,3 0 0,0 9,15A3,3 0 0,0 12,18A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,20A5,5 0 0,1 7,15A5,5 0 0,1 12,10A5,5 0 0,1 17,15A5,5 0 0,1 12,20M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8C10.89,8 10,7.1 10,6C10,4.89 10.89,4 12,4M17,2H7C5.89,2 5,2.89 5,4V20A2,2 0 0,0 7,22H17A2,2 0 0,0 19,20V4C19,2.89 18.1,2 17,2Z",Pause:"M14,19H18V5H14M6,19H10V5H6V19Z",SkipNext:"M16,18H18V6H16M6,18L14.5,12L6,6V18Z",ViewDashboard:"M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z",LightningBolt:"M11 15H6L13 1V9H18L11 23V15Z",Map:"M15,19L9,16.89V5L15,7.11M20.5,3C20.44,3 20.39,3 20.34,3L15,5.1L9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21C3.55,21 3.61,21 3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3Z",FormatListBulleted:"M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z",History:"M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3",PlayBoxMultiple:"M4,6H2V20A2,2 0 0,0 4,22H18V20H4V6M20,2H8A2,2 0 0,0 6,4V16A2,2 0 0,0 8,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M12,14.5V5.5L18,10L12,14.5Z",Calendar:"M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z",Thermometer:"M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z",Lock:"M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z",Flash:"M7,2V13H10V22L17,10H13L17,2H7Z",Television:"M21,17H3V5H21M21,3H3A2,2 0 0,0 1,5V17A2,2 0 0,0 3,19H8V21H16V19H21A2,2 0 0,0 23,17V5A2,2 0 0,0 21,3Z",Blinds:"M3,2H21A1,1 0 0,1 22,3V5A1,1 0 0,1 21,6H20V13A1,1 0 0,1 19,14H13V16.17C14.17,16.58 15,17.69 15,19A3,3 0 0,1 12,22A3,3 0 0,1 9,19C9,17.69 9.83,16.58 11,16.17V14H5A1,1 0 0,1 4,13V6H3A1,1 0 0,1 2,5V3A1,1 0 0,1 3,2M12,18A1,1 0 0,0 11,19A1,1 0 0,0 12,20A1,1 0 0,0 13,19A1,1 0 0,0 12,18Z",Fan:"M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.25,16.75 10.69,15.71 10.89,14.79C10.4,14.59 9.97,14.27 9.65,13.87C5.96,15.85 2,15.07 2,11.5C2,7 5.56,6.89 6.74,9.26C7.24,10.25 8.29,10.68 9.22,10.87C9.41,10.39 9.73,9.97 10.14,9.65C8.15,5.96 8.94,2 12.5,2Z",RobotVacuum:"M12,2C14.65,2 17.19,3.06 19.07,4.93L17.65,6.35C16.15,4.85 14.12,4 12,4C9.88,4 7.84,4.84 6.35,6.35L4.93,4.93C6.81,3.06 9.35,2 12,2M3.66,6.5L5.11,7.94C4.39,9.17 4,10.57 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,10.57 19.61,9.17 18.88,7.94L20.34,6.5C21.42,8.12 22,10.04 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12C2,10.04 2.58,8.12 3.66,6.5M12,6A6,6 0 0,1 18,12C18,13.59 17.37,15.12 16.24,16.24L14.83,14.83C14.08,15.58 13.06,16 12,16C10.94,16 9.92,15.58 9.17,14.83L7.76,16.24C6.63,15.12 6,13.59 6,12A6,6 0 0,1 12,6M12,8A1,1 0 0,0 11,9A1,1 0 0,0 12,10A1,1 0 0,0 13,9A1,1 0 0,0 12,8Z",MotionSensor:"M10,0.2C9,0.2 8.2,1 8.2,2C8.2,3 9,3.8 10,3.8C11,3.8 11.8,3 11.8,2C11.8,1 11,0.2 10,0.2M15.67,1A7.33,7.33 0 0,0 23,8.33V7A6,6 0 0,1 17,1H15.67M18.33,1C18.33,3.58 20.42,5.67 23,5.67V4.33C21.16,4.33 19.67,2.84 19.67,1H18.33M21,1A2,2 0 0,0 23,3V1H21M7.92,4.03C7.75,4.03 7.58,4.06 7.42,4.11L2,5.8V11H3.8V7.33L5.91,6.67L2,22H3.8L6.67,13.89L9,17V22H10.8V15.59L8.31,11.05L9.04,8.18L10.12,10H15V8.2H11.38L9.38,4.87C9.08,4.37 8.54,4.03 7.92,4.03Z",DoorOpen:"M12,3C10.89,3 10,3.89 10,5H3V19H2V21H22V19H21V5C21,3.89 20.11,3 19,3H12M12,5H19V19H12V5M5,11H7V13H5V11Z"};
-const tab = (label, icon, sel) => ({ label, icon, sel: !!sel, cls: sel ? 'sel' : '' });
-const nav = (label, icon, sel) => ({ label, icon, cls: sel ? 'sel' : '' });
-const tile = (name, state, icon, kind, on, toggle) => ({ name, state, icon, on: !!on, toggle: toggle !== false, cls: kind + (on ? ' on' : ''), sw: on ? 'on' : '' });
-const hours = [18, 14, 22, 30, 26, 34, 40, 38, 52, 78, 96, 60];
-return {
-i,
-tabs: [tab('Overview', i.ViewDashboard, true), tab('Energy', i.LightningBolt), tab('Map', i.Map), tab('Activity', i.FormatListBulleted), tab('History', i.History), tab('Media', i.PlayBoxMultiple), tab('Calendar', i.Calendar), tab('Settings', i.Cog)],
-nav: [nav('Overview', i.ViewDashboard, true), nav('Energy', i.LightningBolt), nav('Map', i.Map), nav('Activity', i.FormatListBulleted), nav('History', i.History), nav('Media', i.PlayBoxMultiple), nav('Calendar', i.Calendar)],
-summary: [
-{ value: '5 on', label: 'Lights', icon: i.Lightbulb, bg: 'var(--amberc)', fg: 'var(--amber)' },
-{ value: '21.4 °C', label: 'Climate, heating', icon: i.Thermometer, bg: 'var(--heatc)', fg: 'var(--heat)' },
-{ value: 'Locked', label: 'Doors and alarm', icon: i.Lock, bg: 'var(--greenc)', fg: 'var(--green)' },
-{ value: '2.4 kW', label: 'Power right now', icon: i.Flash, bg: 'var(--pc)', fg: 'var(--on-pc)' }
-],
-living: [
-tile('Floor lamp', 'Off', i.Lightbulb, 'light', false),
-tile('Television', 'Playing, volume 24', i.Television, 'ter', true),
-tile('Thermostat', 'Heating to 21.5 °C', i.Thermometer, 'heat', true, false),
-tile('Window blinds', 'Open 60 percent', i.Blinds, 'pri', true, false)
-],
-kitchen: [
-tile('Counter lights', 'On, 100 percent', i.Lightbulb, 'light', true),
-tile('Extractor fan', 'Off', i.Fan, 'pri', false),
-tile('Robot vacuum', 'Docked, 100 percent charged', i.RobotVacuum, 'ok', true, false)
-],
-bedroom: [
-tile('Bedside lamps', 'Off', i.Lightbulb, 'light', false),
-tile('Motion', 'Clear for 2 hours', i.MotionSensor, 'pri', false, false),
-tile('Balcony door', 'Closed and locked', i.DoorOpen, 'ok', true, false)
-],
-forecast: [{ day: 'Tue', hi: '9°', lo: '3°' }, { day: 'Wed', hi: '7°', lo: '1°' }, { day: 'Thu', hi: '4°', lo: '-2°' }, { day: 'Fri', hi: '6°', lo: '0°' }],
-bars: hours.map((h, n) => ({ h: h + '%', c: n === 10 ? 'var(--p)' : 'var(--sc)' }))
-};
+return {};
 }
 }
 </script>

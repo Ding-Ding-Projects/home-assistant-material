@@ -1,0 +1,76 @@
+@@HEAD:Energy|dark@@
+@@SHELL:Energy|Energy|900@@
+<div class="col grow" style="padding: 20px 48px 8px; gap: 28px">
+<div class="row" style="gap: 24px; flex-wrap: wrap; align-items: flex-end">
+<div class="col grow" style="gap: 8px; min-width: 280px">
+<h1 class="dl">Energy</h1>
+<p class="bl mu">Solar is covering the whole house and sending the rest to the grid.</p>
+</div>
+<div class="seg" role="group" aria-label="Period">
+<button class="sel" aria-pressed="true">Today</button>
+<button aria-pressed="false">Week</button>
+<button aria-pressed="false">Month</button>
+<button aria-pressed="false">Year</button>
+</div>
+<button class="btn out">@@I:Export@@Export</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px">
+<section class="card hero col" aria-label="Home power, live" style="grid-column: span 8; gap: 16px; min-width: 0">
+<div class="row" style="gap: 16px; flex-wrap: wrap">
+<div class="col grow">
+<span class="row ll mu" style="gap: 8px"><span style="width: 10px; height: 10px; border-radius: 5px; background: var(--green); box-shadow: 0 0 0 4px rgba(155,214,164,.25)"></span>Live, updated 2 seconds ago</span>
+<span class="dx" style="margin-top: 4px">2.4 kW</span>
+</div>
+<div class="row" style="gap: 8px">
+<button class="chip sel" aria-pressed="true">@@I:Check.s@@Home use</button>
+<button class="chip sel" aria-pressed="true">@@I:Check.s@@Solar</button>
+<button class="chip" aria-pressed="false">Grid</button>
+<button class="ib" aria-label="Pause the live chart">@@I:Pause@@</button>
+</div>
+</div>
+<div style="position: relative">
+<svg viewBox="0 0 800 300" preserveAspectRatio="none" role="img" aria-label="Home use and solar production today. Solar peaks at 3.6 kilowatts around 1 pm. Home use is 2.4 kilowatts now. The pointer is at 2:40 pm, where home use was 1.9 kilowatts and solar 3.1." style="display: block; width: 100%; height: 300px">
+<defs>
+<linearGradient id="gu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#98CBFF" stop-opacity="0.34"></stop><stop offset="1" stop-color="#98CBFF" stop-opacity="0"></stop></linearGradient>
+<linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2C744" stop-opacity="0.26"></stop><stop offset="1" stop-color="#F2C744" stop-opacity="0"></stop></linearGradient>
+</defs>
+<g stroke="#42474E" stroke-width="1" stroke-dasharray="2 6"><line x1="0" y1="75" x2="800" y2="75"></line><line x1="0" y1="150" x2="800" y2="150"></line><line x1="0" y1="225" x2="800" y2="225"></line></g>
+<path d="M0,292 C90,292 150,280 210,230 S300,96 380,70 S470,58 530,112 S610,210 660,236 L660,300 L0,300 Z" fill="url(#gs)"></path>
+<path d="M0,292 C90,292 150,280 210,230 S300,96 380,70 S470,58 530,112 S610,210 660,236" fill="none" stroke="#F2C744" stroke-width="3" stroke-linecap="round"></path>
+<path d="M0,236 C50,230 90,224 130,202 S210,150 250,172 S330,214 380,186 S450,128 500,150 S590,176 660,132 L660,300 L0,300 Z" fill="url(#gu)"></path>
+<path d="M0,236 C50,230 90,224 130,202 S210,150 250,172 S330,214 380,186 S450,128 500,150 S590,176 660,132" fill="none" stroke="#98CBFF" stroke-width="4" stroke-linecap="round"></path>
+<line x1="500" y1="0" x2="500" y2="300" stroke="#8C9199" stroke-width="1"></line>
+<circle cx="500" cy="150" r="6" fill="#0B0F13" stroke="#98CBFF" stroke-width="3"></circle>
+<circle cx="500" cy="88" r="6" fill="#0B0F13" stroke="#F2C744" stroke-width="3"></circle>
+<circle cx="660" cy="132" r="16" fill="#98CBFF" fill-opacity="0.22"></circle>
+<circle cx="660" cy="132" r="7" fill="#98CBFF"></circle>
+</svg>
+<div class="menu" style="position: absolute; left: 46%; top: 4px; min-width: 0; padding: 12px 16px; transform: translateX(-100%)">
+<span class="lm mu">Today, 2:40 pm</span>
+<div class="row" style="gap: 16px; margin-top: 4px"><span class="tm" style="color: var(--p)">1.9 kW home</span><span class="tm" style="color: var(--amber)">3.1 kW solar</span></div>
+</div>
+<span class="tag p" style="position: absolute; right: 12%; top: 34%">2.4 kW now</span>
+</div>
+<div class="row bs mu" style="justify-content: space-between"><span>Midnight</span><span>6 am</span><span>Noon</span><span>6 pm</span><span>Midnight</span></div>
+<p class="bs mu">Drag across the chart, or use the left and right arrow keys, to read any moment. The chart stops moving when reduced motion is on.</p>
+</section>
+<div class="col" style="grid-column: span 4; gap: 16px; min-width: 0">
+<section class="card col" aria-label="Solar" style="gap: 4px; background: var(--amberc); color: var(--amber)">
+<div class="row" style="gap: 12px">@@I:SolarPower@@<span class="ll grow">Solar panels</span></div>
+<span class="dm">3.1 kW</span>
+<span class="bm">14.2 kWh produced today</span>
+</section>
+<section class="card col" aria-label="Grid" style="gap: 4px; background: var(--greenc); color: var(--green)">
+<div class="row" style="gap: 12px">@@I:TransmissionTower@@<span class="ll grow">Grid</span></div>
+<span class="dm">0.7 kW out</span>
+<span class="bm">5.6 kWh sent back today</span>
+</section>
+<section class="card col" aria-label="Self-sufficiency" style="gap: 12px">
+<div class="row"><span class="ll mu grow">Running on your own power</span><span class="tm">82%</span></div>
+<div class="track" role="img" aria-label="82 percent"><b style="width: 82%"></b></div>
+</section>
+</div>
+</div>
+</div>
+@@/SHELL:Home Assistant Material 2026.11.1.42, updated 9 November 2026 at 21:14:07 EST@@
+@@TAIL:1440,900@@

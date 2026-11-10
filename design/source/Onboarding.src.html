@@ -1,0 +1,41 @@
+@@HEAD:First-run setup@@
+<div class="stage" style="min-height: 900px">
+<main class="pane" style="flex-direction: row">
+<nav class="col" aria-label="Setup steps" style="width: 360px; flex: none; background: var(--pc); color: var(--on-pc); padding: 40px 32px; gap: 8px">
+<span class="sq" style="color: var(--on-pc)">@@I:HomeAssistant.l@@</span>
+<h1 class="hl" style="margin-top: 16px">Set up your home</h1>
+<p class="bm" style="margin-bottom: 20px">Each step does the real thing and shows what happened. You can leave and pick up where you stopped.</p>
+<div class="li" style="min-height: 56px"><span class="lead" style="background: var(--p); color: var(--on-p); border-radius: 20px">@@I:Check@@</span><span class="col grow"><span class="ll">Your account</span><span class="bs">Sam, owner</span></span></div>
+<div class="li" style="min-height: 56px"><span class="lead" style="background: var(--p); color: var(--on-p); border-radius: 20px">@@I:Check@@</span><span class="col grow"><span class="ll">Home location</span><span class="bs">Metric units, Toronto time</span></span></div>
+<div class="li" style="min-height: 56px; background: var(--sl0)"><span class="lead" style="background: var(--inv); color: var(--on-inv); border-radius: 20px"><span class="ll">3</span></span><span class="col grow"><span class="ll">Find devices</span><span class="bs">6 found on your network</span></span></div>
+<div class="li" style="min-height: 56px"><span class="lead" style="background: transparent; box-shadow: inset 0 0 0 2px var(--on-pc); color: var(--on-pc); border-radius: 20px"><span class="ll">4</span></span><span class="col grow"><span class="ll">Language and look</span><span class="bs">Optional</span></span></div>
+<div class="li" style="min-height: 56px"><span class="lead" style="background: transparent; box-shadow: inset 0 0 0 2px var(--on-pc); color: var(--on-pc); border-radius: 20px"><span class="ll">5</span></span><span class="col grow"><span class="ll">Backups</span><span class="bs">Optional</span></span></div>
+<span class="grow"></span>
+<div class="row bs" style="gap: 8px">@@I:RaspberryPi.s@@Raspberry Pi 5, Home Assistant Material 2026.11.1.42</div>
+</nav>
+<section class="col grow" aria-label="Find devices" style="padding: 40px 56px 32px; gap: 24px">
+<div class="col" style="gap: 8px">
+<span class="lm mu">Step 3 of 5</span>
+<h2 class="dm">We found 6 devices</h2>
+<p class="bl mu" style="max-width: 640px">Pick the ones to add now. Anything you skip stays listed under Settings, Devices.</p>
+</div>
+<div class="row" style="gap: 12px"><div class="track grow" role="progressbar" aria-label="Network scan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><b style="width: 100%; background: var(--green)"></b></div><span class="bs mu">Scan finished in 14 seconds</span><button class="btn sm text">Scan again</button></div>
+<div class="col" style="gap: 4px">
+<label class="li" style="background: var(--sl2)"><span class="lead" style="background: var(--amberc); color: var(--amber)">@@I:LightbulbGroup@@</span><span class="col grow"><span class="ll">Philips Hue bridge</span><span class="bs mu">192.168.1.24, 9 lights. Press the button on the bridge to pair.</span></span><span class="tag a">Needs a button press</span><input type="checkbox" checked aria-label="Add Philips Hue bridge" style="width: 24px; height: 24px; accent-color: #00639B"></label>
+<label class="li" style="background: var(--sl2)"><span class="lead">@@I:Speaker@@</span><span class="col grow"><span class="ll">Kitchen speaker</span><span class="bs mu">Google Cast, ready to add</span></span><span class="tag g">Added</span><input type="checkbox" checked aria-label="Add Kitchen speaker" style="width: 24px; height: 24px; accent-color: #00639B"></label>
+<label class="li" style="background: var(--sl2)"><span class="lead">@@I:Television@@</span><span class="col grow"><span class="ll">Living room TV</span><span class="bs mu">Android TV, ready to add</span></span><span class="tag g">Added</span><input type="checkbox" checked aria-label="Add Living room TV" style="width: 24px; height: 24px; accent-color: #00639B"></label>
+<label class="li" style="background: var(--sl2)"><span class="lead">@@I:Thermometer@@</span><span class="col grow"><span class="ll">Hallway thermostat</span><span class="bs mu">Matter over Thread, ready to add</span></span><input type="checkbox" checked aria-label="Add Hallway thermostat" style="width: 24px; height: 24px; accent-color: #00639B"></label>
+<label class="li" style="background: var(--sl2)"><span class="lead">@@I:Printer@@</span><span class="col grow"><span class="ll">Office printer</span><span class="bs mu">Reports ink levels only</span></span><input type="checkbox" aria-label="Add Office printer" style="width: 24px; height: 24px; accent-color: #00639B"></label>
+<label class="li" style="background: var(--errc); color: var(--on-errc)"><span class="lead" style="background: var(--sl0); color: var(--err)">@@I:RobotVacuum@@</span><span class="col grow"><span class="ll">Robot vacuum</span><span class="bs">Could not sign in: the vacuum refused the pairing code.</span></span><button class="btn sm out" style="background: var(--sl0)">Try another code</button></label>
+</div>
+<span class="grow"></span>
+<div class="row" style="gap: 12px">
+<button class="btn out">@@I:ArrowLeft@@Back</button>
+<span class="bs mu grow">Saved. Close this window any time and setup resumes at this step.</span>
+<button class="btn text">Skip this step</button>
+<button class="btn lg fill">Add 4 devices and continue</button>
+</div>
+</section>
+</main>
+</div>
+@@TAIL:1440,900@@

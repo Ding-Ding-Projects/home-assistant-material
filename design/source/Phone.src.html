@@ -1,0 +1,39 @@
+@@HEAD:Home on a phone@@
+<div class="col" style="width: 390px; height: 844px; background: var(--sl0); overflow: hidden">
+<header class="row" style="gap: 8px; padding: 12px 12px 4px 20px">
+<div class="row grow" role="tablist" aria-label="Open pages" style="gap: 4px; overflow: hidden">
+<button class="pt sel" role="tab" aria-selected="true">Home</button>
+<button class="pt" role="tab" aria-selected="false">Energy</button>
+<button class="pt" role="tab" aria-selected="false">Map</button>
+</div>
+<button class="ib" aria-label="Search and commands">@@I:Magnify@@</button>
+<button class="av" aria-label="Account, Sam">S</button>
+</header>
+<div class="col grow" style="padding: 12px 20px 0; gap: 16px; overflow: hidden">
+<div class="col" style="gap: 4px">
+<h1 class="hl">Good evening, Sam</h1>
+<p class="bm mu">Five lights on, 21.4° inside, doors locked.</p>
+</div>
+<section class="card hero col" aria-label="Living room lights" style="background: var(--pc); color: var(--on-pc); gap: 16px; padding: 24px; border-radius: 32px">
+<div class="row" style="gap: 12px"><div class="col grow"><h2 class="tl">Living room</h2><span class="bm">3 lights, 2 on</span></div>@@SW:on|Living room lights@@</div>
+<span class="dl">80%</span>
+<div class="slide" role="slider" tabindex="0" aria-label="Living room brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><b style="width: 80%"></b><i></i></div>
+</section>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<section class="card col" aria-label="Thermostat" style="padding: 20px; gap: 4px; border-radius: 28px"><span class="ll mu">Thermostat</span><span class="hl">21.5°</span><span class="bs mu">Heating to 22°</span></section>
+<section class="card col" aria-label="Security" style="padding: 20px; gap: 4px; border-radius: 28px; background: var(--greenc); color: var(--green)"><span class="ll">Security</span><span class="hs">All locked</span><span class="bs">Alarm armed</span></section>
+</div>
+<section class="col" aria-label="Rooms" style="gap: 8px">
+<a class="li" href="#kitchen" style="background: var(--sl2); color: var(--on)"><span class="lead">@@I:SilverwareForkKnife@@</span><span class="col grow"><span class="ll">Kitchen</span><span class="bs mu">2 on, 22.0°</span></span>@@I:ChevronRight@@</a>
+<a class="li" href="#bedroom" style="background: var(--sl2); color: var(--on)"><span class="lead">@@I:Bed@@</span><span class="col grow"><span class="ll">Bedroom</span><span class="bs mu">All off, 19.8°</span></span>@@I:ChevronRight@@</a>
+</section>
+</div>
+<nav class="row" aria-label="Main" style="height: 80px; background: var(--sl2); justify-content: space-around; padding: 0 8px; flex: none">
+<a class="ri sel" href="#home"><span class="pill" style="width: 64px">@@I:ViewDashboard@@</span><span class="lm">Home</span></a>
+<a class="ri" href="#energy"><span class="pill" style="width: 64px">@@I:LightningBolt@@</span><span class="lm">Energy</span></a>
+<a class="ri" href="#assist"><span class="pill" style="width: 64px">@@I:Microphone@@</span><span class="lm">Assist</span></a>
+<a class="ri" href="#alerts"><span class="pill" style="width: 64px">@@I:Bell@@<span class="badge" style="right: 12px">3</span></span><span class="lm">Alerts</span></a>
+<a class="ri" href="#more"><span class="pill" style="width: 64px">@@I:Menu@@</span><span class="lm">More</span></a>
+</nav>
+</div>
+@@TAIL:390,844@@
