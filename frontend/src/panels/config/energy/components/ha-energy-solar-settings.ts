@@ -208,6 +208,7 @@ export class EnergySolarSettings extends LitElement {
     if (
       !(await showConfirmationDialog(this, {
         title: this.hass.localize("ui.panel.config.energy.delete_source"),
+        destructive: true,
       }))
     ) {
       return;

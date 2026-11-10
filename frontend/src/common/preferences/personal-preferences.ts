@@ -39,6 +39,14 @@ export interface PersonalPreferences {
   lowStimulation: boolean;
   /** Dims everything except the control that has the keyboard focus. */
   focusSpotlight: boolean;
+  /** Silences action sounds between two times of day on chosen days. */
+  quietHours: boolean;
+  /** Start of quiet hours as "HH:MM", 24 hours. */
+  quietFrom: string;
+  /** End of quiet hours as "HH:MM", 24 hours. */
+  quietTo: string;
+  /** Days quiet hours start on, 0 is Sunday and 6 is Saturday. */
+  quietDays: number[];
 }
 
 export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
@@ -49,7 +57,31 @@ export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
   soundVolume: 40,
   lowStimulation: false,
   focusSpotlight: false,
+  quietHours: false,
+  quietFrom: "22:00",
+  quietTo: "07:00",
+  quietDays: [0, 1, 2, 3, 4, 5, 6],
 };
+
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const asTime = (value: unknown, fallback: string) =>
+  typeof value === "string" && TIME_PATTERN.test(value) ? value : fallback;
+
+const asDays = (value: unknown, fallback: number[]) =>
+  Array.isArray(value)
+    ? [
+        ...new Set(
+          value.filter(
+            (day): day is number =>
+              typeof day === "number" &&
+              Number.isInteger(day) &&
+              day >= 0 &&
+              day <= 6
+          )
+        ),
+      ].sort((a, b) => a - b)
+    : fallback;
 
 const clampInt = (
   value: unknown,
@@ -96,6 +128,10 @@ export const normalizePersonalPreferences = (
     ),
     lowStimulation: asBool(source.lowStimulation, d.lowStimulation),
     focusSpotlight: asBool(source.focusSpotlight, d.focusSpotlight),
+    quietHours: asBool(source.quietHours, d.quietHours),
+    quietFrom: asTime(source.quietFrom, d.quietFrom),
+    quietTo: asTime(source.quietTo, d.quietTo),
+    quietDays: asDays(source.quietDays, d.quietDays),
   };
 };
 

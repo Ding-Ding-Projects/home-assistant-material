@@ -15,6 +15,7 @@ import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
 import { DirtyStateProviderMixin } from "../../../../mixins/dirty-state-provider-mixin";
 import { haStyle, haStyleDialog } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import { showErrorToast } from "../../../../util/show-error-toast";
 import { downloadBackupFile } from "../helper/download_backup";
 import type { DownloadDecryptedBackupDialogParams } from "./show-dialog-download-decrypted-backup";
 
@@ -159,7 +160,11 @@ class DialogDownloadDecryptedBackup
           "ui.panel.config.backup.dialogs.download.decryption_not_supported"
         );
       } else {
-        alert(err.message);
+        showErrorToast(
+          this,
+          this.hass.localize("ui.replaced_dialogs.backup_download_failed"),
+          err.message
+        );
       }
     }
   }

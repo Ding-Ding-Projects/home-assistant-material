@@ -1,6 +1,7 @@
 import type { ContextType } from "@lit/context";
 import {
   mdiAlertCircleOutline,
+  mdiCheck,
   mdiCheckCircleOutline,
   mdiChevronLeft,
   mdiChevronRight,
@@ -8,9 +9,12 @@ import {
   mdiContentCopy,
   mdiContentSave,
   mdiDelete,
+  mdiDotsVertical,
   mdiDownload,
+  mdiMenuDown,
   mdiPlay,
   mdiPlus,
+  mdiTune,
   mdiUpload,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
@@ -80,6 +84,21 @@ const TABS = [
 ] as const;
 
 type WorkbenchTab = (typeof TABS)[number];
+
+/** Sections that stay in view on a phone; the rest sit under More. */
+const PRIMARY_TABS: readonly WorkbenchTab[] = ["build", "test", "replace"];
+
+const MORE_TABS: readonly WorkbenchTab[] = TABS.filter(
+  (tab) => !PRIMARY_TABS.includes(tab)
+);
+
+/** Below this window width the workbench takes the whole visible screen. */
+const NARROW_WIDTH = 700;
+
+/** A visible-screen shrink larger than this is taken as the keyboard. */
+const KEYBOARD_SHRINK = 150;
+
+type WorkbenchMenu = "" | "flags" | "tabs" | "footer";
 
 interface SavedPattern {
   name: string;
@@ -303,6 +322,15 @@ export class HaRegexWorkbench extends LitElement {
 
   @state() private _placement: Record<string, string> = {};
 
+  /** True below 700 px: flags in a sheet, three tabs and More. */
+  @state() private _narrow = window.innerWidth < NARROW_WIDTH;
+
+  /** True while the on-screen keyboard covers part of a phone. */
+  @state() private _keyboard = false;
+
+  /** Which popup menu or sheet is open inside the panel. */
+  @state() private _menu: WorkbenchMenu = "";
+
   @query("#panel") private _panel?: HTMLElement;
 
   @query("#pattern") private _patternInput?: HTMLTextAreaElement;
@@ -366,6 +394,16 @@ export class HaRegexWorkbench extends LitElement {
   // The panel opens under the field when there is room, and over it
   // otherwise, and never leaves the window.
   private _place = () => {
+    const narrow = window.innerWidth < NARROW_WIDTH;
+    if (narrow !== this._narrow) {
+      this._narrow = narrow;
+      this._menu = "";
+    }
+    const viewport = window.visualViewport;
+    this._keyboard =
+      narrow &&
+      !!viewport &&
+      window.innerHeight - viewport.height > KEYBOARD_SHRINK;
     if (!this._anchor) {
       return;
     }
@@ -375,7 +413,7 @@ export class HaRegexWorkbench extends LitElement {
     // On a phone there is no useful room beside the field: the panel takes
     // the visible screen, which shrinks while the keyboard is up.
     const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
-    if (window.innerWidth < 700 || visibleHeight < 600) {
+    if (narrow || visibleHeight < 600) {
       this._placement = {
         width: `${width}px`,
         left: `${margin}px`,
@@ -496,39 +534,30 @@ export class HaRegexWorkbench extends LitElement {
 
   protected render(): TemplateResult {
     const regex = this._mode === "regex";
+    const narrow = this._narrow;
     return html`
       <div
         id="panel"
+        class=${classMap({ narrow })}
         popover
         role="dialog"
         aria-label=${this._l("title")}
         style=${styleMap(this._placement)}
         @toggle=${this._toggled}
+        @keydown=${this._panelKeydown}
       >
         <div class="top">
-          <h2>${this._l("title")}</h2>
-          <div
-            class="segments"
-            role="radiogroup"
-            aria-label=${this._l("mode_label")}
-          >
-            <button
-              role="radio"
-              aria-checked=${regex ? "false" : "true"}
-              .mode=${"text"}
-              @click=${this._modeChanged}
-            >
-              ${this._l("mode_text")}
-            </button>
-            <button
-              role="radio"
-              aria-checked=${regex ? "true" : "false"}
-              .mode=${"regex"}
-              @click=${this._modeChanged}
-            >
-              ${this._l("mode_regex")}
-            </button>
+          <div class="heading">
+            <h2>${this._l("title")}</h2>
+            ${
+              this.fieldLabel
+                ? html`<p class="sub">
+                    ${this._l("opened_from", { field: this.fieldLabel })}
+                  </p>`
+                : nothing
+            }
           </div>
+          ${narrow ? nothing : this._renderModeSwitch()}
           <button
             class="icon"
             aria-label=${this._l("actions.cancel")}
@@ -538,43 +567,202 @@ export class HaRegexWorkbench extends LitElement {
             <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
           </button>
         </div>
-
+        ${
+          narrow
+            ? html`<div class="modebar">
+                ${this._renderModeSwitch()}
+                ${regex ? this._renderFlagsChip() : nothing}
+              </div>`
+            : nothing
+        }
         ${regex ? this._renderRegex() : this._renderPlain()}
+        ${narrow && this._keyboard ? nothing : this._renderFooter()}
+        ${this._renderOverlay()}
+      </div>
+    `;
+  }
 
-        <div class="footer">
-          <span class="origin" role="status" aria-live="polite">
-            ${
-              this._notice ||
-              (this.fieldLabel
-                ? this._l("opened_from", { field: this.fieldLabel })
-                : nothing)
-            }
-          </span>
-          ${
-            regex
+  private _renderModeSwitch() {
+    const regex = this._mode === "regex";
+    return html`
+      <div
+        class="segments"
+        role="radiogroup"
+        aria-label=${this._l("mode_label")}
+      >
+        <button
+          role="radio"
+          aria-checked=${regex ? "false" : "true"}
+          aria-label=${this._l("mode_text")}
+          .mode=${"text"}
+          @click=${this._modeChanged}
+        >
+          ${this._l("mode_text_short")}
+        </button>
+        <button
+          role="radio"
+          aria-checked=${regex ? "true" : "false"}
+          aria-label=${this._l("mode_regex")}
+          .mode=${"regex"}
+          @click=${this._modeChanged}
+        >
+          ${this._l("mode_regex_short")}
+        </button>
+      </div>
+    `;
+  }
+
+  /** The eight flags on a phone: one chip that shows the letters that are on. */
+  private _renderFlagsChip() {
+    const open = this._menu === "flags";
+    return html`
+      <button
+        id="flags-chip"
+        class="flags-chip"
+        aria-haspopup="dialog"
+        aria-expanded=${open ? "true" : "false"}
+        aria-label=${`${this._l("flags_label")}: ${
+          this._flags || this._l("flags_none")
+        }`}
+        @click=${this._toggleFlagsSheet}
+      >
+        <ha-svg-icon .path=${mdiTune}></ha-svg-icon>
+        <code>${this._flags || this._l("flags_none")}</code>
+        <ha-svg-icon .path=${mdiMenuDown}></ha-svg-icon>
+      </button>
+    `;
+  }
+
+  private _renderFooter() {
+    const regex = this._mode === "regex";
+    const narrow = this._narrow;
+    return html`
+      <div class="footer">
+        <span class="origin" role="status" aria-live="polite">
+          ${this._notice || this._l("footer_note")}
+        </span>
+        ${
+          regex && narrow
+            ? html`
+                <div class="more-wrap">
+                  <button
+                    id="footer-more"
+                    class="icon"
+                    aria-haspopup="menu"
+                    aria-expanded=${this._menu === "footer" ? "true" : "false"}
+                    aria-label=${this._l("more_actions")}
+                    title=${this._l("more_actions")}
+                    @click=${this._toggleFooterMenu}
+                  >
+                    <ha-svg-icon .path=${mdiDotsVertical}></ha-svg-icon>
+                  </button>
+                  ${
+                    this._menu === "footer"
+                      ? html`
+                          <div
+                            class="menu up"
+                            role="menu"
+                            @keydown=${this._menuKeydown}
+                          >
+                            <button
+                              role="menuitem"
+                              @click=${this._menuCopyPattern}
+                            >
+                              <ha-svg-icon
+                                .path=${mdiContentCopy}
+                              ></ha-svg-icon>
+                              ${this._l("actions.copy")}
+                            </button>
+                            <button role="menuitem" @click=${this._menuExport}>
+                              <ha-svg-icon .path=${mdiDownload}></ha-svg-icon>
+                              ${this._l("actions.export")}
+                            </button>
+                          </div>
+                        `
+                      : nothing
+                  }
+                </div>
+                <span class="spacer"></span>
+              `
+            : regex
               ? html`
-                  <button class="outlined" @click=${this._copyPattern}>
+                  <button class="text" @click=${this._copyPattern}>
                     <ha-svg-icon .path=${mdiContentCopy}></ha-svg-icon>
                     ${this._l("actions.copy")}
                   </button>
-                  <button class="outlined" @click=${this._export}>
+                  <button class="text" @click=${this._export}>
                     <ha-svg-icon .path=${mdiDownload}></ha-svg-icon>
                     ${this._l("actions.export")}
                   </button>
                 `
               : nothing
+        }
+        <button class=${narrow ? "text" : "outlined"} @click=${this.close}>
+          ${this._l("actions.cancel")}
+        </button>
+        <button
+          class="filled"
+          ?disabled=${regex && !this._usable}
+          @click=${this._apply}
+        >
+          ${
+            regex
+              ? this._l(narrow ? "actions.use_short" : "actions.use")
+              : this._l("actions.use_text")
           }
-          <button class="outlined" @click=${this.close}>
-            ${this._l("actions.cancel")}
-          </button>
-          <button
-            class="filled"
-            ?disabled=${regex && !this._usable}
-            @click=${this._apply}
-          >
-            ${this._l(regex ? "actions.use" : "actions.use_text")}
+        </button>
+      </div>
+    `;
+  }
+
+  /** The popups that sit over the panel: the flags sheet and the menu scrim. */
+  private _renderOverlay() {
+    if (!this._menu) {
+      return nothing;
+    }
+    if (this._menu !== "flags") {
+      return html`<div class="scrim clear" @click=${this._closeMenu}></div>`;
+    }
+    const unsupported = ALL_FLAGS.some(
+      (flag) => !(SUPPORTED_FLAGS as string[]).includes(flag)
+    );
+    return html`
+      <div class="scrim" @click=${this._closeMenu}></div>
+      <div class="sheet" role="dialog" aria-label=${this._l("flags_label")}>
+        <span class="handle" aria-hidden="true"></span>
+        <div class="sheet-head">
+          <h3>${this._l("flags_label")}</h3>
+          <button class="text" @click=${this._closeMenu}>
+            ${this._l("flags_done")}
           </button>
         </div>
+        <div class="flag-rows">
+          ${ALL_FLAGS.map((flag) => {
+            const supported = (SUPPORTED_FLAGS as string[]).includes(flag);
+            const on = this._flags.includes(flag);
+            return html`
+              <button
+                class="flag-row"
+                role="switch"
+                aria-checked=${on ? "true" : "false"}
+                ?disabled=${!supported}
+                .flag=${flag}
+                @click=${this._flagToggled}
+              >
+                <code>${flag}</code>
+                <span class="flag-name">${this._l(`flag.${flag}`)}</span>
+                <span class="track" aria-hidden="true">
+                  <span class="thumb"></span>
+                </span>
+              </button>
+            `;
+          })}
+        </div>
+        ${
+          unsupported
+            ? html`<p class="note">${this._l("flags_sheet_note")}</p>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -614,30 +802,7 @@ export class HaRegexWorkbench extends LitElement {
   private _renderRegex() {
     return html`
       <div class="pattern-area">
-        <div class="pattern-head">
-          <label class="label" for="pattern">${this._l("pattern_label")}</label>
-          <div class="flags" role="group" aria-label=${this._l("flags_label")}>
-            ${ALL_FLAGS.map((flag) => {
-              const supported = (SUPPORTED_FLAGS as string[]).includes(flag);
-              return html`
-                <button
-                  class="chip"
-                  aria-pressed=${this._flags.includes(flag) ? "true" : "false"}
-                  ?disabled=${!supported}
-                  title=${
-                    supported
-                      ? `${flag}: ${this._l(`flag.${flag}`)}`
-                      : this._l("flag_unsupported")
-                  }
-                  .flag=${flag}
-                  @click=${this._flagToggled}
-                >
-                  <code>${flag}</code> ${this._l(`flag.${flag}`)}
-                </button>
-              `;
-            })}
-          </div>
-        </div>
+        <label class="label" for="pattern">${this._l("pattern_label")}</label>
         <div class="editor">
           <pre
             aria-hidden="true"
@@ -650,35 +815,17 @@ export class HaRegexWorkbench extends LitElement {
             spellcheck="false"
             maxlength=${REGEX_LIMITS.pattern}
             aria-describedby="status"
+            aria-invalid=${this._patternProblem ? "true" : "false"}
             .value=${this._pattern}
             @input=${this._patternChanged}
+            @keydown=${this._applyOnEnter}
           ></textarea>
         </div>
         ${this._renderStatus()}
+        ${this._narrow ? nothing : this._renderFlagChips()}
       </div>
 
-      <div
-        class="tabs"
-        role="tablist"
-        aria-label=${this._l("tabs.label")}
-        @keydown=${this._tabKeydown}
-      >
-        ${TABS.map(
-          (tab) => html`
-            <button
-              role="tab"
-              id="tab-${tab}"
-              aria-selected=${this._tab === tab ? "true" : "false"}
-              aria-controls="tabpanel"
-              tabindex=${this._tab === tab ? "0" : "-1"}
-              .tab=${tab}
-              @click=${this._tabChanged}
-            >
-              ${this._l(`tabs.${tab}`)}
-            </button>
-          `
-        )}
-      </div>
+      ${this._renderTabs()}
 
       <div
         class="body"
@@ -707,6 +854,148 @@ export class HaRegexWorkbench extends LitElement {
     `;
   }
 
+  private get _patternProblem(): boolean {
+    return (
+      this._pattern.length > 0 &&
+      compileRegex(this._pattern, this._flags).error !== undefined
+    );
+  }
+
+  /** Where the first group problem starts, counted from character 1. */
+  private _groupProblem():
+    { kind: "unclosed" | "unopened"; position: number } | undefined {
+    const { tokens } = this._tokens;
+    const open: number[] = [];
+    let offset = 0;
+    for (const token of tokens) {
+      if (token.kind === "group_close") {
+        if (!open.length) {
+          return { kind: "unopened", position: offset + 1 };
+        }
+        open.pop();
+      } else if (token.text.startsWith("(") && !token.text.endsWith(")")) {
+        open.push(offset);
+      }
+      offset += token.text.length;
+    }
+    return open.length
+      ? { kind: "unclosed", position: open[open.length - 1] + 1 }
+      : undefined;
+  }
+
+  /** The eight flags as chips with their letter and name; they wrap. */
+  private _renderFlagChips() {
+    return html`
+      <div class="flags" role="group" aria-label=${this._l("flags_label")}>
+        ${ALL_FLAGS.map((flag) => {
+          const supported = (SUPPORTED_FLAGS as string[]).includes(flag);
+          const on = this._flags.includes(flag);
+          return html`
+            <button
+              class="chip"
+              aria-pressed=${on ? "true" : "false"}
+              ?disabled=${!supported}
+              title=${
+                supported
+                  ? `${flag}: ${this._l(`flag.${flag}`)}`
+                  : this._l("flag_unsupported")
+              }
+              .flag=${flag}
+              @click=${this._flagToggled}
+            >
+              ${on ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>` : nothing}
+              <code>${flag}</code> ${this._l(`flag.${flag}`)}
+            </button>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  /**
+   * The sections. Wide: all eight in one row that wraps. Phone: the first
+   * three and More, which names the chosen section when it is one of the
+   * rest.
+   */
+  private _renderTabs() {
+    const narrow = this._narrow;
+    const inMore = MORE_TABS.includes(this._tab);
+    const visible = narrow ? PRIMARY_TABS : TABS;
+    return html`
+      <div class="tabs-wrap">
+        <div
+          class="tabs"
+          role="tablist"
+          aria-label=${this._l("tabs.label")}
+          @keydown=${this._tabKeydown}
+        >
+          ${visible.map(
+            (tab) => html`
+              <button
+                role="tab"
+                id="tab-${tab}"
+                aria-selected=${this._tab === tab ? "true" : "false"}
+                aria-controls="tabpanel"
+                tabindex=${this._tab === tab ? "0" : "-1"}
+                .tab=${tab}
+                @click=${this._tabChanged}
+              >
+                ${this._l(`tabs.${tab}`)}
+              </button>
+            `
+          )}
+          ${
+            narrow
+              ? html`
+                  <button
+                    role="tab"
+                    id="tab-more"
+                    class="more-tab"
+                    aria-selected=${inMore ? "true" : "false"}
+                    aria-controls="tabpanel"
+                    aria-haspopup="menu"
+                    aria-expanded=${this._menu === "tabs" ? "true" : "false"}
+                    tabindex=${inMore ? "0" : "-1"}
+                    @click=${this._toggleTabsMenu}
+                  >
+                    <span class="more-name">
+                      ${inMore ? this._l(`tabs.${this._tab}`) : this._l("more")}
+                    </span>
+                    <ha-svg-icon .path=${mdiMenuDown}></ha-svg-icon>
+                  </button>
+                `
+              : nothing
+          }
+        </div>
+        ${
+          narrow && this._menu === "tabs"
+            ? html`
+                <div
+                  class="menu down"
+                  role="menu"
+                  aria-label=${this._l("more")}
+                  @keydown=${this._menuKeydown}
+                >
+                  ${MORE_TABS.map(
+                    (tab) => html`
+                      <button
+                        role="menuitemradio"
+                        aria-checked=${this._tab === tab ? "true" : "false"}
+                        .tab=${tab}
+                        @click=${this._pickMoreTab}
+                      >
+                        ${this._l(`tabs.${tab}`)}
+                      </button>
+                    `
+                  )}
+                </div>
+              `
+            : nothing
+        }
+      </div>
+    `;
+  }
+
   private _renderHighlightedPattern() {
     return this._tokens.tokens.map(
       (token) =>
@@ -726,9 +1015,14 @@ export class HaRegexWorkbench extends LitElement {
       if (check.error === "too_long") {
         message = this._l("status.too_long", { limit: REGEX_LIMITS.pattern });
       } else if (check.error) {
-        message = this._l("status.invalid", {
-          message: check.message ?? check.error,
-        });
+        // Name the character where a group problem starts when it is one;
+        // otherwise pass the engine's own words on.
+        const group = this._groupProblem();
+        message = group
+          ? this._l(`status.${group.kind}_group`, { position: group.position })
+          : this._l("status.invalid", {
+              message: check.message ?? check.error,
+            });
       } else if (this._outcome?.status === "timeout") {
         message = this._l("status.timeout", {
           limit: this._outcome.limitMs,
@@ -1750,6 +2044,7 @@ export class HaRegexWorkbench extends LitElement {
       window.visualViewport?.removeEventListener("resize", this._place);
       cancelRegexEvaluations();
       this._notice = "";
+      this._menu = "";
     }
   }
 
@@ -1805,26 +2100,142 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _tabKeydown(ev: KeyboardEvent) {
-    const index = TABS.indexOf(this._tab);
+    const order: (WorkbenchTab | "more")[] = this._narrow
+      ? [...PRIMARY_TABS, "more"]
+      : [...TABS];
+    const focused = (ev.target as HTMLElement).id?.replace("tab-", "") ?? "";
+    let index = order.indexOf(focused as WorkbenchTab | "more");
+    if (index < 0) {
+      index = Math.max(
+        0,
+        order.indexOf(MORE_TABS.includes(this._tab) ? "more" : this._tab)
+      );
+    }
+    if (focused === "more" && ev.key === "ArrowDown") {
+      ev.preventDefault();
+      this._openMenu("tabs");
+      return;
+    }
     const rtl = getComputedStyle(this).direction === "rtl";
     let next: number;
     if (ev.key === "Home") {
       next = 0;
     } else if (ev.key === "End") {
-      next = TABS.length - 1;
+      next = order.length - 1;
     } else if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
       const forward = (ev.key === "ArrowRight") !== rtl;
-      next = (index + (forward ? 1 : -1) + TABS.length) % TABS.length;
+      next = (index + (forward ? 1 : -1) + order.length) % order.length;
     } else {
       return;
     }
     ev.preventDefault();
-    this._tab = TABS[next];
+    const target = order[next];
+    if (target !== "more") {
+      this._tab = target;
+    }
     this.updateComplete.then(() =>
-      (this.renderRoot as ShadowRoot)
-        .getElementById(`tab-${this._tab}`)
-        ?.focus()
+      (this.renderRoot as ShadowRoot).getElementById(`tab-${target}`)?.focus()
     );
+  }
+
+  // ---- Popup menus and the flags sheet ----
+
+  private _openMenu(menu: WorkbenchMenu) {
+    this._menu = menu;
+    this.updateComplete.then(() => {
+      const selector =
+        menu === "flags"
+          ? ".flag-row:not([disabled])"
+          : '.menu [aria-checked="true"], .menu [role="menuitem"]';
+      (this.renderRoot as ShadowRoot)
+        .querySelector<HTMLElement>(selector)
+        ?.focus();
+    });
+  }
+
+  private _closeMenu() {
+    const menu = this._menu;
+    if (!menu) {
+      return;
+    }
+    this._menu = "";
+    const opener =
+      menu === "flags"
+        ? "flags-chip"
+        : menu === "tabs"
+          ? "tab-more"
+          : "footer-more";
+    this.updateComplete.then(() =>
+      (this.renderRoot as ShadowRoot).getElementById(opener)?.focus()
+    );
+  }
+
+  private _toggleMenu(menu: WorkbenchMenu) {
+    if (this._menu === menu) {
+      this._closeMenu();
+    } else {
+      this._openMenu(menu);
+    }
+  }
+
+  private _toggleFlagsSheet() {
+    this._toggleMenu("flags");
+  }
+
+  private _toggleTabsMenu() {
+    this._toggleMenu("tabs");
+  }
+
+  private _toggleFooterMenu() {
+    this._toggleMenu("footer");
+  }
+
+  private _pickMoreTab(ev: Event) {
+    this._tab = (ev.currentTarget as HTMLElement & { tab: WorkbenchTab }).tab;
+    this._closeMenu();
+  }
+
+  private _menuCopyPattern() {
+    this._closeMenu();
+    this._copyPattern();
+  }
+
+  private _menuExport() {
+    this._closeMenu();
+    this._export();
+  }
+
+  // Escape closes the open menu or sheet and not the whole workbench.
+  private _panelKeydown(ev: KeyboardEvent) {
+    if (ev.key === "Escape" && this._menu) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      this._closeMenu();
+    }
+  }
+
+  private _menuKeydown(ev: KeyboardEvent) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(ev.key)) {
+      return;
+    }
+    const items = Array.from(
+      (ev.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("button")
+    );
+    const index = items.indexOf(
+      (this.renderRoot as ShadowRoot).activeElement as HTMLElement
+    );
+    let next: number;
+    if (ev.key === "Home") {
+      next = 0;
+    } else if (ev.key === "End") {
+      next = items.length - 1;
+    } else {
+      next =
+        (index + (ev.key === "ArrowDown" ? 1 : -1) + items.length) %
+        items.length;
+    }
+    ev.preventDefault();
+    items[next]?.focus();
   }
 
   private _insertBlock(ev: Event) {
@@ -2167,7 +2578,7 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _applyOnEnter(ev: KeyboardEvent) {
-    if (ev.key === "Enter") {
+    if (ev.key === "Enter" && !ev.isComposing) {
       ev.preventDefault();
       this._apply();
     }
@@ -2281,8 +2692,16 @@ export class HaRegexWorkbench extends LitElement {
         var(--ha-space-6);
       flex-wrap: wrap;
     }
-    h2 {
+    .heading {
       flex: 1;
+      min-width: 0;
+    }
+    .sub {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
+    }
+    h2 {
       margin: 0;
       font-size: var(--ha-font-size-xl);
       font-weight: var(--ha-font-weight-medium);
@@ -2344,12 +2763,6 @@ export class HaRegexWorkbench extends LitElement {
       gap: var(--ha-space-2);
       padding: 0 var(--ha-space-6) var(--ha-space-2);
     }
-    .pattern-head {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-3);
-      flex-wrap: wrap;
-    }
     .label {
       font-size: var(--ha-font-size-s);
       font-weight: var(--ha-font-weight-medium);
@@ -2363,8 +2776,7 @@ export class HaRegexWorkbench extends LitElement {
       gap: var(--ha-space-2);
     }
     .flags {
-      margin-inline-start: auto;
-      justify-content: flex-end;
+      justify-content: flex-start;
     }
     .chip {
       display: inline-flex;
@@ -2395,6 +2807,9 @@ export class HaRegexWorkbench extends LitElement {
     .chip code {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
+    }
+    .chip ha-svg-icon {
+      --mdc-icon-size: 16px;
     }
     .editor {
       position: relative;
@@ -2480,13 +2895,15 @@ export class HaRegexWorkbench extends LitElement {
     .status.bad {
       color: var(--error-color);
     }
+    .tabs-wrap {
+      position: relative;
+      flex: none;
+    }
     .tabs {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--ha-space-1);
       padding: var(--ha-space-1) var(--ha-space-5);
-      overflow-x: auto;
-      scrollbar-width: none;
-      flex: none;
     }
     .tabs button {
       flex: none;
@@ -2811,18 +3228,233 @@ export class HaRegexWorkbench extends LitElement {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
     }
-    @media (max-width: 700px) {
-      h2 {
-        white-space: normal;
+    .text {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--ha-space-2);
+      min-height: var(--ha-space-10);
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--primary-color);
+      white-space: nowrap;
+      --mdc-icon-size: 18px;
+    }
+    .text:hover {
+      background-color: var(--card-background-color);
+    }
+    .spacer {
+      flex: 1;
+    }
+    .more-wrap {
+      position: relative;
+      display: flex;
+    }
+    .scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background-color: rgba(0, 0, 0, 0.32);
+    }
+    .scrim.clear {
+      background: none;
+    }
+    .menu {
+      position: absolute;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      min-width: 180px;
+      padding: var(--ha-space-2) 0;
+      border-radius: var(--ha-border-radius-xl);
+      background-color: var(--card-background-color);
+      box-shadow:
+        0 4px 8px 3px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    .menu.up {
+      inset-inline-start: 0;
+      bottom: calc(100% + var(--ha-space-1));
+    }
+    .menu.down {
+      inset-inline-end: var(--ha-space-4);
+      top: calc(100% - var(--ha-space-1));
+    }
+    .menu button {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      min-height: 48px;
+      padding: 0 var(--ha-space-4);
+      text-align: start;
+      white-space: nowrap;
+      --mdc-icon-size: 20px;
+    }
+    .menu button:hover {
+      background-color: var(--primary-background-color);
+    }
+    .menu button[aria-checked="true"] {
+      font-weight: var(--ha-font-weight-bold);
+      color: var(--primary-color);
+    }
+    .flags-chip {
+      display: inline-flex;
+      align-items: center;
+      flex: none;
+      gap: var(--ha-space-1);
+      min-height: var(--ha-space-10);
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg, 12px);
+      background-color: var(--ha-color-fill-primary-normal-resting);
+      color: var(--ha-color-on-primary-normal, var(--primary-text-color));
+      font-weight: var(--ha-font-weight-medium);
+      --mdc-icon-size: 20px;
+    }
+    .modebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-1) var(--ha-space-4) var(--ha-space-2);
+    }
+    .sheet {
+      position: absolute;
+      z-index: 3;
+      inset-inline: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      max-height: 90%;
+      padding: var(--ha-space-2) var(--ha-space-6) var(--ha-space-4);
+      border-radius: var(--ha-border-radius-4xl) var(--ha-border-radius-4xl) 0 0;
+      background-color: var(--primary-background-color);
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    .handle {
+      align-self: center;
+      width: 32px;
+      height: 4px;
+      border-radius: 2px;
+      background-color: var(--divider-color);
+    }
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    .sheet-head h3 {
+      margin: 0;
+    }
+    .flag-rows {
+      display: flex;
+      flex-direction: column;
+    }
+    .flag-row {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-4);
+      min-height: 48px;
+      text-align: start;
+    }
+    .flag-row code {
+      flex: none;
+      width: var(--ha-space-5);
+      color: var(--primary-color);
+      font-weight: var(--ha-font-weight-bold);
+    }
+    .flag-name {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .track {
+      position: relative;
+      flex: none;
+      width: 52px;
+      height: 32px;
+      box-sizing: border-box;
+      border-radius: 16px;
+      border: 2px solid var(--outline-hover-color);
+      background-color: var(--card-background-color);
+    }
+    .thumb {
+      position: absolute;
+      top: 6px;
+      inset-inline-start: 6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: var(--outline-hover-color);
+      transition: inset-inline-start 120ms ease;
+    }
+    .flag-row[aria-checked="true"] .track {
+      border-color: var(--primary-color);
+      background-color: var(--primary-color);
+    }
+    .flag-row[aria-checked="true"] .thumb {
+      inset-inline-start: 22px;
+      width: 24px;
+      height: 24px;
+      top: 2px;
+      background-color: var(--text-primary-color, #fff);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .thumb {
+        transition: none;
       }
-      .flags {
-        flex-basis: 100%;
-        margin-inline-start: 0;
-        justify-content: flex-start;
-      }
-      .origin {
-        flex-basis: 100%;
-      }
+    }
+    .more-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      max-width: 100%;
+    }
+    .more-tab ha-svg-icon {
+      flex: none;
+      --mdc-icon-size: 18px;
+    }
+    .more-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .narrow h2 {
+      white-space: normal;
+    }
+    .narrow .top {
+      padding: var(--ha-space-4) var(--ha-space-3) var(--ha-space-1)
+        var(--ha-space-4);
+    }
+    .narrow .pattern-area {
+      padding: 0 var(--ha-space-4) var(--ha-space-2);
+    }
+    .narrow .tabs {
+      gap: 0;
+      padding: var(--ha-space-1) var(--ha-space-3);
+    }
+    .narrow .tabs button {
+      padding: 0 var(--ha-space-3);
+      min-width: 0;
+    }
+    .narrow .body {
+      padding: var(--ha-space-3) var(--ha-space-4);
+    }
+    .narrow .footer {
+      padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-3);
+    }
+    .narrow .origin {
+      flex-basis: 100%;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .narrow .footer .filled {
+      padding: 0 var(--ha-space-4);
     }
   `;
 }

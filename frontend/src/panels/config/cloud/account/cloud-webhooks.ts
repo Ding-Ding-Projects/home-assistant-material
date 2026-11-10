@@ -15,6 +15,7 @@ import { fetchWebhooks, isActiveCloudWebhook } from "../../../../data/webhook";
 import "../../../../layouts/hass-subpage";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import { showErrorToast } from "../../../../util/show-error-toast";
 import { showManageCloudhookDialog } from "../dialog-manage-cloudhook/show-dialog-manage-cloudhook";
 import { cloudSubpageStyle } from "./cloud-subpage-style";
 
@@ -274,7 +275,11 @@ export class CloudWebhooks extends LitElement {
     try {
       updatedWebhook = await createCloudhook(this.hass!, webhookId);
     } catch (err: any) {
-      alert((err as WebhookError).message);
+      showErrorToast(
+        this,
+        this.hass!.localize("ui.replaced_dialogs.webhook_enable_failed"),
+        (err as WebhookError).message
+      );
       return;
     } finally {
       this._progress = this._progress.filter((wid) => wid !== webhookId);
@@ -300,10 +305,12 @@ export class CloudWebhooks extends LitElement {
     try {
       await deleteCloudhook(this.hass!, webhookId!);
     } catch (err: any) {
-      alert(
-        `${this.hass!.localize(
+      showErrorToast(
+        this,
+        this.hass!.localize(
           "ui.panel.config.cloud.account.webhooks.disable_hook_error_msg"
-        )} ${(err as WebhookError).message}`
+        ),
+        (err as WebhookError).message
       );
       return;
     } finally {

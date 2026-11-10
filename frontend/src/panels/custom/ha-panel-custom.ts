@@ -4,6 +4,7 @@ import { customElement, property } from "lit/decorators";
 import type { NavigateOptions } from "../../common/navigate";
 import { navigate } from "../../common/navigate";
 import { deepEqual } from "../../common/util/deep-equal";
+import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
 import type { CustomPanelInfo } from "../../data/panel_custom";
 import type { HomeAssistant, Route } from "../../types";
 import { createCustomPanelElement } from "../../util/custom-panel/create-custom-panel-element";
@@ -12,6 +13,7 @@ import {
   loadCustomPanel,
 } from "../../util/custom-panel/load-custom-panel";
 import { setCustomPanelProperties } from "../../util/custom-panel/set-custom-panel-properties";
+import { showErrorToast } from "../../util/show-error-toast";
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -157,7 +159,7 @@ export class HaPanelCustom extends ReactiveElement {
     }
   }
 
-  private _createPanel(panel: CustomPanelInfo) {
+  private async _createPanel(panel: CustomPanelInfo) {
     this.style.backgroundColor = "var(--primary-background-color)";
 
     const config = panel.config!._panel_custom;
@@ -194,22 +196,21 @@ export class HaPanelCustom extends ReactiveElement {
       !config.trust_external &&
       !["localhost", "127.0.0.1", location.hostname].includes(tempA.hostname)
     ) {
-      if (
-        !confirm(
-          `${this.hass.localize(
-            "ui.panel.custom.external_panel.question_trust",
-            { name: config.name, link: tempA.href }
-          )}
-
-           ${this.hass.localize(
-             "ui.panel.custom.external_panel.complete_access"
-           )}
-
-           (${this.hass.localize(
-             "ui.panel.custom.external_panel.hide_message"
-           )})`
-        )
-      ) {
+      const trusted = await showConfirmationDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.custom.external_panel.question_trust",
+          { name: config.name, link: tempA.href }
+        ),
+        text: `${this.hass.localize(
+          "ui.panel.custom.external_panel.complete_access"
+        )} (${this.hass.localize("ui.panel.custom.external_panel.hide_message")})`,
+        confirmText: this.hass.localize(
+          "ui.replaced_dialogs.custom_panel_load"
+        ),
+        dismissText: this.hass.localize("ui.common.cancel"),
+      });
+      // The panel may have been replaced or detached while the dialog was open.
+      if (!trusted || !this.isConnected || this.panel !== panel) {
         return;
       }
     }
@@ -235,7 +236,11 @@ export class HaPanelCustom extends ReactiveElement {
           this.appendChild(element);
         },
         () => {
-          alert(`Unable to load custom panel from ${tempA.href}`);
+          showErrorToast(
+            this,
+            this.hass.localize("ui.replaced_dialogs.custom_panel_load_failed"),
+            tempA.href
+          );
         }
       );
       return;

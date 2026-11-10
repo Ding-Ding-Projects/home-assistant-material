@@ -21,6 +21,7 @@ import {
   setExposeNewEntities,
 } from "../../../data/expose";
 import type { HomeAssistant } from "../../../types";
+import { showErrorToast } from "../../../util/show-error-toast";
 import { showSaveSuccessToast } from "../../../util/toast-saved-success";
 
 @customElement("cloud-google-pref")
@@ -296,10 +297,14 @@ export class CloudGooglePref extends LitElement {
       });
       fireEvent(this, "ha-refresh-cloud-status");
     } catch (err: any) {
-      alert(
-        `Unable to ${toggle.checked ? "enable" : "disable"} report state. ${
-          err.message
-        }`
+      showErrorToast(
+        this,
+        this.hass.localize(
+          toggle.checked
+            ? "ui.replaced_dialogs.google_report_state_enable_failed"
+            : "ui.replaced_dialogs.google_report_state_disable_failed"
+        ),
+        err.message
       );
       toggle.checked = !toggle.checked;
     }
@@ -314,10 +319,12 @@ export class CloudGooglePref extends LitElement {
       showSaveSuccessToast(this, this.hass);
       fireEvent(this, "ha-refresh-cloud-status");
     } catch (err: any) {
-      alert(
-        `${this.hass.localize(
+      showErrorToast(
+        this,
+        this.hass.localize(
           "ui.panel.config.cloud.account.google.enter_pin_error"
-        )} ${err.message}`
+        ),
+        err.message
       );
       input.value = this.cloudStatus!.prefs.google_secure_devices_pin || "";
     }

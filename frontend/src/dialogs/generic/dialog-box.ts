@@ -38,6 +38,11 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
 
   @state() private _validInput = true;
 
+  // A destructive confirmation has two steps: what will happen, then the guard.
+  @state() private _step: 1 | 2 = 1;
+
+  @state() private _typed = "";
+
   @query("ha-input, ha-textarea") private _textField?: HaInput | HaTextArea;
 
   private _closePromise?: Promise<void>;
@@ -55,6 +60,8 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
     this._params = params;
     this._validInput = true;
+    this._step = 1;
+    this._typed = "";
     this._open = true;
     this._initDirtyTracking(
       { type: "deep" },
@@ -85,8 +92,20 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
 
     const confirmPrompt = this._params.confirmation || !!this._params.prompt;
-    // Anything that destroys data is confirmed with two keys and a slider.
-    const twoKey = confirmPrompt && !!this._params.destructive;
+    // Anything that destroys data is confirmed in two steps: first what will
+    // happen, then the name of the thing typed, or two keys and a slider where
+    // there is no name to type.
+    const twoStep =
+      !!this._params.confirmation &&
+      !this._params.prompt &&
+      !!this._params.destructive;
+    const confirmName = this._params.confirmName;
+    const typed = twoStep && this._step === 2 && !!confirmName;
+    const twoKey =
+      confirmPrompt &&
+      !!this._params.destructive &&
+      (!twoStep || (this._step === 2 && !confirmName));
+    const typedMatches = typed && this._typed.trim() === confirmName!.trim();
     const dialogTitle =
       this._params.title ||
       (this._params.confirmation &&
@@ -136,7 +155,11 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
           }
         </ha-dialog-header>
         <div id="dialog-box-description">
-          ${this._params.text ? html` <p>${this._params.text}</p> ` : ""}
+          ${
+            this._params.text && !(twoStep && this._step === 2)
+              ? html` <p>${this._params.text}</p> `
+              : ""
+          }
           ${
             this._params.prompt && !this._params.multiline
               ? html`
@@ -186,6 +209,21 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
               : nothing
           }
           ${
+            typed
+              ? html`<ha-input
+                  class="typed"
+                  autofocus
+                  .label=${this.hass.localize("ui.dialogs.two_key.name_label")}
+                  .hint=${this.hass.localize("ui.dialogs.two_key.type_name", {
+                    name: confirmName,
+                  })}
+                  .value=${this._typed}
+                  .disabled=${this._loading}
+                  @input=${this._typedInput}
+                ></ha-input>`
+              : nothing
+          }
+          ${
             twoKey
               ? html`<ha-two-key-confirm
                   .disabled=${
@@ -203,50 +241,76 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
               ? html`
                   <ha-button
                     slot="secondaryAction"
-                    @click=${this._dismiss}
-                    ?autofocus=${!this._params.prompt && this._params.destructive}
+                    @click=${twoStep && this._step === 2 ? this._back : this._dismiss}
+                    ?autofocus=${!this._params.prompt && this._params.destructive && !typed}
                     ?disabled=${this._loading}
-                    appearance=${twoKey ? "filled" : "plain"}
+                    appearance=${twoKey && !twoStep ? "filled" : "plain"}
                   >
                     ${
-                      twoKey
-                        ? html`<ha-svg-icon
-                              slot="start"
-                              .path=${mdiExitRun}
-                            ></ha-svg-icon
-                            >${this.hass.localize("ui.dialogs.two_key.exit")}`
-                        : this._params.dismissText
-                          ? this._params.dismissText
-                          : this.hass.localize("ui.common.cancel")
+                      twoStep && this._step === 2
+                        ? this.hass.localize("ui.dialogs.two_key.back")
+                        : twoKey
+                          ? html`<ha-svg-icon
+                                slot="start"
+                                .path=${mdiExitRun}
+                              ></ha-svg-icon
+                              >${this.hass.localize("ui.dialogs.two_key.exit")}`
+                          : this._params.dismissText
+                            ? this._params.dismissText
+                            : this.hass.localize("ui.common.cancel")
                     }
                   </ha-button>
                 `
               : nothing
           }
           ${
-            twoKey
-              ? nothing
-              : html`<ha-button
+            twoStep && this._step === 1
+              ? html`<ha-button
                   slot="primaryAction"
-                  @click=${this._confirm}
-                  ?autofocus=${!this._params.prompt && !this._params.destructive}
-                  ?disabled=${
-                    this._loading ||
-                    (!!this._params.prompt && !this._validInput)
-                  }
-                  .loading=${this._loading}
-                  variant=${this._params.destructive ? "danger" : "brand"}
+                  @click=${this._next}
+                  appearance="tonal"
+                  variant="brand"
                 >
-                  ${
-                    this._params.confirmText
-                      ? this._params.confirmText
-                      : this.hass.localize("ui.common.ok")
-                  }
+                  ${this.hass.localize("ui.dialogs.two_key.continue")}
                 </ha-button>`
+              : twoKey
+                ? nothing
+                : html`<ha-button
+                    slot="primaryAction"
+                    @click=${this._confirm}
+                    ?autofocus=${!this._params.prompt && !this._params.destructive}
+                    ?disabled=${
+                      this._loading ||
+                      (!!this._params.prompt && !this._validInput) ||
+                      (typed && !typedMatches)
+                    }
+                    .loading=${this._loading}
+                    variant=${this._params.destructive ? "danger" : "brand"}
+                  >
+                    ${
+                      this._params.confirmText
+                        ? this._params.confirmText
+                        : this.hass.localize("ui.common.ok")
+                    }
+                  </ha-button>`
           }
         </ha-dialog-footer>
       </ha-dialog>
     `;
+  }
+
+  private _next(): void {
+    this._step = 2;
+    this._typed = "";
+  }
+
+  private _back(): void {
+    this._step = 1;
+    this._typed = "";
+  }
+
+  private _typedInput(ev: Event): void {
+    this._typed = (ev.target as HaInput).value ?? "";
   }
 
   private _cancel(): void {

@@ -51,3 +51,62 @@ export const anchorStyle = (
     "max-height": `${Math.max(240, viewportHeight - top - margin)}px`,
   };
 };
+
+/** The width up to which the lock surfaces become full-width sheets. */
+export const NARROW_QUERY = "(max-width: 600px)";
+
+export const isNarrow = (): boolean => window.matchMedia(NARROW_QUERY).matches;
+
+/** Calls back when the window crosses the narrow width; returns the way to stop. */
+export const onNarrowChange = (callback: (narrow: boolean) => void) => {
+  const query = window.matchMedia(NARROW_QUERY);
+  const listener = (ev: MediaQueryListEvent) => callback(ev.matches);
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+};
+
+/** Whether the main pointer is a finger. */
+export const isTouch = (): boolean =>
+  window.matchMedia("(pointer: coarse)").matches;
+
+/**
+ * Places a panel on the side of an element that has more room, with a short
+ * line joining the two. Falls back to under the element when neither side
+ * has room.
+ */
+export const besideStyle = (
+  anchor: Element | undefined,
+  width = 560
+): { panel: Record<string, string>; line?: Record<string, string> } => {
+  const margin = 8;
+  const gap = 24;
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = document.documentElement.clientHeight;
+  const rect = anchor?.getBoundingClientRect();
+  if (!rect) {
+    return { panel: anchorStyle(anchor, width) };
+  }
+  const right = viewportWidth - rect.right - margin;
+  const left = rect.left - margin;
+  const needed = width + gap;
+  if (right < needed && left < needed) {
+    return { panel: anchorStyle(anchor, width) };
+  }
+  const onRight = right >= left ? right >= needed : false;
+  const panelLeft = onRight ? rect.right + gap : rect.left - gap - width;
+  const top = Math.max(margin, Math.min(rect.top, viewportHeight * 0.4));
+  const lineTop = Math.min(rect.top + rect.height / 2, top + 40);
+  return {
+    panel: {
+      left: `${panelLeft}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      "max-height": `${Math.max(240, viewportHeight - top - margin)}px`,
+    },
+    line: {
+      left: `${onRight ? rect.right : panelLeft + width}px`,
+      top: `${lineTop}px`,
+      width: `${gap}px`,
+    },
+  };
+};

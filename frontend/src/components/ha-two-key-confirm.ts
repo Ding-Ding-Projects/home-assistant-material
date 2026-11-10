@@ -378,6 +378,28 @@ export class HaTwoKeyConfirm extends LitElement {
       line-height: var(--ha-line-height-normal);
       color: var(--secondary-text-color);
     }
+    /* The narrowest supported width is 320 px: keep both keys side by side. */
+    @media (max-width: 360px) {
+      .keys {
+        gap: var(--ha-space-2);
+      }
+      .key {
+        min-width: 0;
+        padding: var(--ha-space-3) var(--ha-space-2);
+        overflow-wrap: anywhere;
+        --mdc-icon-size: 24px;
+      }
+      .key span,
+      .slide-label,
+      .note {
+        font-size: var(--ha-font-size-xs, 0.75rem);
+      }
+      .slide-state {
+        padding-inline-start: 48px;
+        padding-inline-end: var(--ha-space-2);
+        text-align: center;
+      }
+    }
   `;
 }
 

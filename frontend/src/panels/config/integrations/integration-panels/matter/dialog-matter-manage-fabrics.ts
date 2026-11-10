@@ -123,6 +123,8 @@ class DialogMatterManageFabrics extends LitElement {
         { fabric: fabricName }
       ),
       warning: true,
+      destructive: true,
+      confirmName: fabricName,
     });
 
     if (!confirm) {

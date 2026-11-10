@@ -5,6 +5,8 @@ import type { HomeAssistant } from "../types";
 export interface GuidedSetupIntegration {
   domain: string;
   name: string;
+  /** One line from the integration's own manifest, when the backend sends it. */
+  description?: string;
   documentation: string;
   /** Entity domains (such as `sensor`) the integration can be added to. */
   entity_domains: string[];

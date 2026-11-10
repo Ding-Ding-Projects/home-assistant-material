@@ -22,7 +22,7 @@ class HaConfigSectionNetwork extends LitElement {
 
   @property({ attribute: false }) public route!: Route;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   protected render(): TemplateResult {
     return html`
@@ -91,9 +91,24 @@ class HaConfigSectionNetwork extends LitElement {
 
   static styles = css`
     .content {
-      padding: 28px 20px 0;
-      max-width: 1040px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: var(--ha-space-4);
+      padding: var(--ha-space-5) var(--ha-space-6) var(--ha-space-8);
+      max-width: 1200px;
       margin: 0 auto;
+    }
+    :host([narrow]) .content,
+    .content {
+      --network-gap: var(--ha-space-4);
+    }
+    @media (max-width: 800px) {
+      .content {
+        grid-template-columns: minmax(0, 1fr);
+        padding: var(--ha-space-3) var(--ha-space-3) var(--ha-space-6);
+      }
     }
     supervisor-hostname,
     supervisor-network,
@@ -102,9 +117,9 @@ class HaConfigSectionNetwork extends LitElement {
     ha-config-network,
     .discovery-card {
       display: block;
-      margin: 0 auto;
-      margin-bottom: 24px;
-      max-width: 600px;
+      min-width: 0;
+      max-width: none;
+      margin: 0;
     }
     .discovery-card ha-list-item-button::part(headline),
     .discovery-card ha-list-item-button::part(supporting-text) {

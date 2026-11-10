@@ -26,6 +26,10 @@ describe("normalizePersonalPreferences", () => {
       soundVolume: 80,
       lowStimulation: true,
       focusSpotlight: true,
+      quietHours: true,
+      quietFrom: "21:30",
+      quietTo: "06:15",
+      quietDays: [0, 4],
     };
     expect(normalizePersonalPreferences(stored)).toEqual(stored);
   });
@@ -50,6 +54,19 @@ describe("normalizePersonalPreferences", () => {
     expect(result.languageMode).toBe("english");
     expect(result.funnyEnglish).toBe(5);
     expect(result.soundEffects).toBe(true);
+  });
+});
+
+describe("quiet hours values", () => {
+  it("drops invalid times and days", () => {
+    const result = normalizePersonalPreferences({
+      quietFrom: "25:00",
+      quietTo: "7:00",
+      quietDays: [1, 1, 9, -1, 3, "x"] as unknown as number[],
+    });
+    expect(result.quietFrom).toBe("22:00");
+    expect(result.quietTo).toBe("07:00");
+    expect(result.quietDays).toEqual([1, 3]);
   });
 });
 

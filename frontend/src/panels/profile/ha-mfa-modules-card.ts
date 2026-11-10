@@ -59,6 +59,7 @@ class HaMfaModulesCard extends LitElement {
         text: this.hass.localize("ui.panel.profile.mfa.confirm_disable", {
           name: mfamodule.name,
         }),
+        destructive: true,
       }))
     ) {
       return;

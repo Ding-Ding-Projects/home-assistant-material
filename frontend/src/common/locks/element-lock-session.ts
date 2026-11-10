@@ -79,6 +79,18 @@ export const isUnlocked = (key: string, now = Date.now()): boolean => {
   return true;
 };
 
+/** Whole minutes left on a lock opened for a while, rounded up; undefined otherwise. */
+export const unlockMinutesLeft = (
+  key: string,
+  now = Date.now()
+): number | undefined => {
+  const unlock = unlocks.get(key);
+  if (!unlock || unlock.until === undefined || unlock.until <= now) {
+    return undefined;
+  }
+  return Math.max(1, Math.ceil((unlock.until - now) / 60000));
+};
+
 /** Opens a lock for the length of time its owner chose. */
 export const grantUnlock = (key: string, duration: LockDuration): void => {
   const previous = unlocks.get(key);

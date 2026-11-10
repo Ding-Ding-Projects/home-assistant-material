@@ -2,6 +2,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import {
   ACCESSIBILITY_STORAGE_KEY,
@@ -34,6 +35,9 @@ import {
 } from "../../../common/sound/action-sound";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
+import "../../../components/ha-dropdown";
+import "../../../components/ha-dropdown-item";
+import "../../../components/ha-icon-button";
 import "../../../components/ha-slider";
 import "../../../components/ha-switch";
 import "../../../components/ha-button-toggle-group";
@@ -41,6 +45,10 @@ import type { HaSlider } from "../../../components/ha-slider";
 import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import {
+  showAlertDialog,
+  showConfirmationDialog,
+} from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 
@@ -56,6 +64,8 @@ interface Row {
   reach: string;
   /** True when something in the app reads the setting now. */
   active: boolean;
+  /** The current value as words, for the reset-all listing. */
+  valueText: string;
   control: TemplateResult;
   isDefault: boolean;
   reset: () => void;
@@ -75,6 +85,8 @@ export class HaConfigSectionPersonal extends LitElement {
   @property({ type: Boolean }) public narrow = false;
 
   @state() private _filter = "";
+
+  @state() private _open = new Set<string>();
 
   @state() private _prefs: PersonalPreferences = getPersonalPreferences();
 
@@ -109,6 +121,90 @@ export class HaConfigSectionPersonal extends LitElement {
       values as any
     );
   }
+
+  private _onOff(value: boolean): string {
+    return this._t(value ? "on" : "off");
+  }
+
+  private _renderQuietHours(p: PersonalPreferences): TemplateResult {
+    const label = this._t("quiet_hours.label");
+    const dayName = (day: number) =>
+      new Date(2024, 0, 7 + day).toLocaleDateString(
+        this.hass.locale?.language,
+        { weekday: "short" }
+      );
+    return html`<ha-switch
+        .checked=${p.quietHours}
+        aria-label=${label}
+        @change=${this._quietSwitch}
+      ></ha-switch>
+      ${
+        p.quietHours
+          ? html`<div class="quiet">
+              <label
+                >${this._t("quiet_hours.from")}
+                <input
+                  type="time"
+                  .value=${p.quietFrom}
+                  data-key="quietFrom"
+                  @change=${this._quietTime}
+                />
+              </label>
+              <label
+                >${this._t("quiet_hours.to")}
+                <input
+                  type="time"
+                  .value=${p.quietTo}
+                  data-key="quietTo"
+                  @change=${this._quietTime}
+                />
+              </label>
+              <div
+                class="days"
+                role="group"
+                aria-label=${this._t("quiet_hours.days")}
+              >
+                ${[1, 2, 3, 4, 5, 6, 0].map(
+                  (day) =>
+                    html`<button
+                      type="button"
+                      class=${classMap({
+                        day: true,
+                        selected: p.quietDays.includes(day),
+                      })}
+                      aria-pressed=${p.quietDays.includes(day) ? "true" : "false"}
+                      data-day=${day}
+                      @click=${this._toggleQuietDay}
+                    >
+                      ${dayName(day)}
+                    </button>`
+                )}
+              </div>
+            </div>`
+          : nothing
+      }`;
+  }
+
+  private _quietSwitch = (ev: HASSDomTargetEvent<HaSwitch>) => {
+    this._change({ quietHours: ev.target.checked });
+  };
+
+  private _quietTime = (ev: Event) => {
+    const input = ev.target as HTMLInputElement;
+    if (input.value) {
+      this._change({ [input.dataset.key as string]: input.value });
+    }
+  };
+
+  private _toggleQuietDay = (ev: Event) => {
+    const day = Number((ev.currentTarget as HTMLElement).dataset.day);
+    const days = this._prefs.quietDays;
+    this._change({
+      quietDays: days.includes(day)
+        ? days.filter((item) => item !== day)
+        : [...days, day],
+    });
+  };
 
   private _rows(): Row[] {
     const p = this._prefs;
@@ -155,7 +251,8 @@ export class HaConfigSectionPersonal extends LitElement {
         description: this._t("language_mode.description"),
         defaultText: this._t("language_mode.default"),
         reach: this._t("language_mode.reach"),
-        active: true,
+        active: false,
+        valueText: this._t(`language_mode.${p.languageMode}`),
         isDefault: p.languageMode === d.languageMode,
         reset: () => this._change({ languageMode: d.languageMode }, "reset"),
         control: html`<ha-button-toggle-group
@@ -171,7 +268,8 @@ export class HaConfigSectionPersonal extends LitElement {
         description: this._t("funny_english.description"),
         defaultText: this._t("funny_english.default"),
         reach: this._t("funny_english.reach"),
-        active: true,
+        active: false,
+        valueText: String(p.funnyEnglish),
         isDefault: p.funnyEnglish === d.funnyEnglish,
         reset: () => this._change({ funnyEnglish: d.funnyEnglish }, "reset"),
         control: slider(
@@ -190,7 +288,8 @@ export class HaConfigSectionPersonal extends LitElement {
         description: this._t("funny_cantonese.description"),
         defaultText: this._t("funny_cantonese.default"),
         reach: this._t("funny_cantonese.reach"),
-        active: true,
+        active: false,
+        valueText: String(p.funnyCantonese),
         isDefault: p.funnyCantonese === d.funnyCantonese,
         reset: () =>
           this._change({ funnyCantonese: d.funnyCantonese }, "reset"),
@@ -213,6 +312,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("sound_effects.default"),
         reach: this._t("sound_effects.reach"),
         active: true,
+        valueText: this._onOff(p.soundEffects),
         isDefault: p.soundEffects === d.soundEffects,
         reset: () => this._change({ soundEffects: d.soundEffects }, "reset"),
         control: html`${toggle(
@@ -236,6 +336,34 @@ export class HaConfigSectionPersonal extends LitElement {
           }`,
       },
       {
+        id: "quiet_hours",
+        group: "sound",
+        label: this._t("quiet_hours.label"),
+        description: this._t("quiet_hours.description"),
+        defaultText: this._t("quiet_hours.default"),
+        reach: this._t("quiet_hours.reach"),
+        active: true,
+        valueText: p.quietHours
+          ? this._t("quiet_hours.value", {
+              from: p.quietFrom,
+              to: p.quietTo,
+            })
+          : this._onOff(false),
+        isDefault:
+          p.quietHours === d.quietHours &&
+          p.quietFrom === d.quietFrom &&
+          p.quietTo === d.quietTo &&
+          p.quietDays.join() === d.quietDays.join(),
+        reset: () =>
+          this._change({
+            quietHours: d.quietHours,
+            quietFrom: d.quietFrom,
+            quietTo: d.quietTo,
+            quietDays: d.quietDays,
+          }),
+        control: this._renderQuietHours(p),
+      },
+      {
         id: "sound_volume",
         group: "sound",
         label: this._t("sound_volume.label"),
@@ -243,6 +371,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("sound_volume.default"),
         reach: this._t("sound_volume.reach"),
         active: true,
+        valueText: String(p.soundVolume),
         isDefault: p.soundVolume === d.soundVolume,
         reset: () => this._change({ soundVolume: d.soundVolume }, "reset"),
         control: slider(
@@ -266,6 +395,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("reduce_motion.default"),
         reach: this._t("reduce_motion.reach"),
         active: true,
+        valueText: this._onOff(this._reduceMotion),
         isDefault: !this._reduceMotion,
         reset: () => this._setReduceMotion(false),
         control: toggle(
@@ -282,6 +412,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("low_stimulation.default"),
         reach: this._t("low_stimulation.reach"),
         active: true,
+        valueText: this._onOff(p.lowStimulation),
         isDefault: p.lowStimulation === d.lowStimulation,
         reset: () => this._change({ lowStimulation: d.lowStimulation }),
         control: toggle(
@@ -298,6 +429,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("focus_spotlight.default"),
         reach: this._t("focus_spotlight.reach"),
         active: true,
+        valueText: this._onOff(p.focusSpotlight),
         isDefault: p.focusSpotlight === d.focusSpotlight,
         reset: () => this._change({ focusSpotlight: d.focusSpotlight }),
         control: toggle(
@@ -314,7 +446,11 @@ export class HaConfigSectionPersonal extends LitElement {
     const rows = this._rows().filter((row) =>
       matches(row.label, row.description, row.reach, row.defaultText)
     );
+    const searching = this._filter.trim() !== "";
     const searchLabel = this._t("search");
+    const groups = GROUPS.filter((group) =>
+      rows.some((row) => row.group === group)
+    );
     return html`
       <hass-subpage
         back-path="/config"
@@ -322,7 +458,17 @@ export class HaConfigSectionPersonal extends LitElement {
         .narrow=${this.narrow}
         .header=${this._t("caption")}
       >
-        <div class="content">
+        <ha-dropdown slot="toolbar-icon" @wa-select=${this._handleMenu}>
+          <ha-icon-button
+            slot="trigger"
+            .label=${this._t("more")}
+            .path=${mdiDotsVertical}
+          ></ha-icon-button>
+          <ha-dropdown-item value="reset_all"
+            >${this._t("reset_all")}</ha-dropdown-item
+          >
+        </ha-dropdown>
+        <div class=${classMap({ content: true, narrow: this.narrow })}>
           <p class="intro">${this._t("intro")}</p>
           <ha-input-search
             class="search"
@@ -333,65 +479,126 @@ export class HaConfigSectionPersonal extends LitElement {
             @input=${this._filterChanged}
           ></ha-input-search>
           ${
-            rows.length
-              ? GROUPS.map((group) => this._renderGroup(group, rows))
-              : html`<p class="empty" role="status">
-                  ${this._t("search_empty")}
+            searching
+              ? html`<p class="count" role="status">
+                  ${this._t("search_count", { count: rows.length })}
                 </p>`
+              : nothing
           }
-          ${this._renderPreview()}
-          <div class="reset-all">
-            <ha-button
-              appearance="plain"
-              variant="danger"
-              @click=${this._resetAll}
-              >${this._t("reset_all")}</ha-button
-            >
-            <span class="hint">${this._t("reset_all_note")}</span>
+          <div class="layout">
+            <div class="pin">
+              ${
+                groups.length
+                  ? html`<nav
+                      class="groups"
+                      aria-label=${this._t("groups_label")}
+                    >
+                      ${groups.map(
+                        (group) =>
+                          html`<button
+                            type="button"
+                            class="group-link"
+                            data-group=${group}
+                            @click=${this._scrollToGroup}
+                          >
+                            ${this._t(
+                              `group.${group}.${this.narrow ? "chip" : "title"}`
+                            )}
+                          </button>`
+                      )}
+                    </nav>`
+                  : nothing
+              }
+              ${this._renderPreview()}
+            </div>
+            <div class="groups-list">
+              ${
+                rows.length
+                  ? GROUPS.map((group) =>
+                      this._renderGroup(group, rows, searching)
+                    )
+                  : html`<p class="empty" role="status">
+                      ${this._t("search_empty", { query: this._filter.trim() })}
+                    </p>`
+              }
+            </div>
           </div>
         </div>
       </hass-subpage>
     `;
   }
 
-  private _renderGroup(group: GroupId, rows: Row[]): TemplateResult | symbol {
+  private _renderGroup(
+    group: GroupId,
+    rows: Row[],
+    searching: boolean
+  ): TemplateResult | symbol {
     const inGroup = rows.filter((row) => row.group === group);
     if (!inGroup.length) {
       return nothing;
     }
     return html`
-      <ha-card .header=${this._t(`group.${group}.title`)}>
+      <ha-card
+        id=${`group-${group}`}
+        .header=${this._t(`group.${group}.title`)}
+      >
         <div class="card-content">
           <p class="group-note">${this._t(`group.${group}.note`)}</p>
-          ${inGroup.map((row) => this._renderRow(row))}
+          ${inGroup.map((row) => this._renderRow(row, searching))}
         </div>
       </ha-card>
     `;
   }
 
-  private _renderRow(row: Row): TemplateResult {
+  private _renderRow(row: Row, searching: boolean): TemplateResult {
+    const open = this._open.has(row.id);
     return html`
       <div class="row" id=${row.id}>
-        <div class="row-text">
-          <span class="row-label">${row.label}</span>
-          <span class="row-description">${row.description}</span>
-          <span class="row-default"
-            >${this._t("default_prefix")} ${row.defaultText}</span
+        <div class="row-main">
+          <button
+            type="button"
+            class="row-label"
+            aria-expanded=${open ? "true" : "false"}
+            aria-controls=${`${row.id}-details`}
+            aria-label=${this._t("row_details", { name: row.label })}
+            data-row=${row.id}
+            @click=${this._toggleRow}
           >
-          <span class=${classMap({ reach: true, inactive: !row.active })}
-            >${row.reach}</span
-          >
+            ${row.label}
+          </button>
+          <div class="row-control">${row.control}</div>
         </div>
-        <div class="row-control">${row.control}</div>
-        <ha-button
-          class="row-reset"
-          appearance="plain"
-          size="small"
-          .disabled=${row.isDefault}
-          aria-label=${`${this._t("reset")}: ${row.label}`}
-          @click=${row.reset}
-          >${this._t("reset")}</ha-button
-        >
+        <span class="row-description">
+          ${row.description}
+          ${
+            searching
+              ? html` <span class="group-tag"
+                  >${this._t(`group.${row.group}.title`)}</span
+                >`
+              : nothing
+          }
+        </span>
+        ${
+          open
+            ? html`<div class="row-details" id=${`${row.id}-details`}>
+                <span class=${classMap({ reach: true, inactive: !row.active })}
+                  >${row.reach}</span
+                >
+                <span class="row-default"
+                  >${this._t("default_prefix")} ${row.defaultText}</span
+                >
+                <ha-button
+                  class="row-reset"
+                  appearance="plain"
+                  size="small"
+                  .disabled=${row.isDefault}
+                  aria-label=${`${this._t("reset")}: ${row.label}`}
+                  @click=${row.reset}
+                  >${this._t("reset")}</ha-button
+                >
+              </div>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -407,8 +614,9 @@ export class HaConfigSectionPersonal extends LitElement {
           ? [show("yue", p.funnyCantonese)]
           : [show("en", p.funnyEnglish), show("yue", p.funnyCantonese)];
     return html`
-      <ha-card .header=${this._t("preview.title")}>
+      <ha-card class="preview-card" .header=${this._t("preview.title")}>
         <div class="card-content">
+          <span class="preview-only">${this._t("preview_only")}</span>
           <p class="group-note">${this._t("preview.note")}</p>
           <div class="preview" role="status" aria-live="polite">
             ${lines.map(
@@ -428,6 +636,60 @@ export class HaConfigSectionPersonal extends LitElement {
         </div>
       </ha-card>
     `;
+  }
+
+  private _toggleRow = (ev: Event) => {
+    const id = (ev.currentTarget as HTMLElement).dataset.row as string;
+    const open = new Set(this._open);
+    if (!open.delete(id)) {
+      open.add(id);
+    }
+    this._open = open;
+  };
+
+  private _scrollToGroup = (ev: Event) => {
+    const group = (ev.currentTarget as HTMLElement).dataset.group;
+    this.shadowRoot
+      ?.getElementById(`group-${group}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  private _handleMenu = (ev: CustomEvent<{ item: { value: string } }>) => {
+    if (ev.detail.item.value === "reset_all") {
+      this._confirmResetAll();
+    }
+  };
+
+  private async _confirmResetAll() {
+    const changing = this._rows().filter((row) => !row.isDefault);
+    if (!changing.length) {
+      await showAlertDialog(this, {
+        title: this._t("reset_all_title"),
+        text: this._t("reset_all_none"),
+      });
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._t("reset_all_title"),
+      text: html`<p>${this._t("reset_all_text")}</p>
+        <ul>
+          ${changing.map(
+            (row) =>
+              html`<li>
+                ${this._t("reset_all_line", {
+                  name: row.label,
+                  current: row.valueText,
+                  default: row.defaultText.replace(/\.$/, ""),
+                })}
+              </li>`
+          )}
+        </ul>`,
+      confirmText: this._t("reset_all"),
+      destructive: true,
+    });
+    if (confirmed) {
+      this._resetAll();
+    }
   }
 
   private _filterChanged(ev: Event): void {
@@ -471,7 +733,7 @@ export class HaConfigSectionPersonal extends LitElement {
   static styles: CSSResultGroup = css`
     .content {
       padding: var(--ha-space-4) var(--ha-space-4) var(--ha-space-8);
-      max-width: 760px;
+      max-width: 1100px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -480,28 +742,118 @@ export class HaConfigSectionPersonal extends LitElement {
     }
     .intro,
     .group-note,
-    .empty {
+    .empty,
+    .count {
       margin: 0;
       color: var(--secondary-text-color);
     }
-    .row {
+    .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: var(--ha-space-2) var(--ha-space-4);
-      padding: var(--ha-space-3) 0;
-      border-top: 1px solid var(--divider-color);
-      align-items: center;
+      grid-template-columns: 200px minmax(0, 1fr) 320px;
+      grid-template-areas: "nav list side";
+      gap: var(--ha-space-4);
+      align-items: start;
     }
-    .row-text {
+    .pin {
+      display: contents;
+    }
+    .groups {
+      grid-area: nav;
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-1);
+      position: sticky;
+      top: var(--ha-space-4);
+    }
+    .groups-list {
+      grid-area: list;
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-4);
       min-width: 0;
-      grid-column: 1 / -1;
+    }
+    .preview-card {
+      grid-area: side;
+      position: sticky;
+      top: var(--ha-space-4);
+    }
+    .group-link {
+      border: 0;
+      background: none;
+      font: inherit;
+      color: var(--primary-text-color);
+      text-align: start;
+      min-height: 44px;
+      padding: 0 var(--ha-space-3);
+      border-radius: 24px;
+      cursor: pointer;
+    }
+    .group-link:hover {
+      background: var(--secondary-background-color);
+    }
+    .group-link:focus-visible {
+      outline: 2px solid var(--primary-color);
+    }
+    .narrow .layout {
+      display: flex;
+      flex-direction: column;
+    }
+    .narrow .pin {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: var(--ha-space-2) 0;
+      background: var(--primary-background-color);
+    }
+    .narrow .groups {
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+      gap: var(--ha-space-2);
+    }
+    .narrow .group-link {
+      flex: none;
+      min-height: 36px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .narrow .preview-card {
+      position: static;
+    }
+    .row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-3) 0;
+      border-top: 1px solid var(--divider-color);
+    }
+    .row-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2) var(--ha-space-4);
     }
     .row-label {
+      border: 0;
+      background: none;
+      font: inherit;
+      padding: 0;
+      min-height: 44px;
+      text-align: start;
+      cursor: pointer;
       font-weight: var(--ha-font-weight-medium);
       color: var(--primary-text-color);
+      flex: 1 1 140px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .row-label:focus-visible {
+      outline: 2px solid var(--primary-color);
     }
     .row-description,
     .row-default,
@@ -510,8 +862,21 @@ export class HaConfigSectionPersonal extends LitElement {
       font-size: var(--ha-font-size-s);
       overflow-wrap: anywhere;
     }
+    .row-details {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--ha-space-1);
+    }
     .reach.inactive {
       color: var(--warning-color);
+    }
+    .group-tag {
+      display: inline-block;
+      padding: 0 var(--ha-space-2);
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+      font-size: var(--ha-font-size-xs, 12px);
     }
     .row-control {
       display: flex;
@@ -524,27 +889,78 @@ export class HaConfigSectionPersonal extends LitElement {
       min-width: 160px;
       flex: 1 1 160px;
     }
-    .row-reset {
-      justify-self: end;
+    .quiet {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2) var(--ha-space-4);
+      flex-basis: 100%;
+    }
+    .quiet label {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+    }
+    .quiet input {
+      min-height: 44px;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 0 var(--ha-space-2);
+    }
+    .days {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-1);
+    }
+    .day {
+      min-width: 44px;
+      min-height: 44px;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: none;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .day.selected {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: var(--text-primary-color);
+    }
+    .day:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
     }
     .silent {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
+    }
+    .preview-only {
+      display: inline-block;
+      margin-bottom: var(--ha-space-2);
+      padding: 0 var(--ha-space-2);
+      border-radius: 12px;
+      background: var(--warning-color);
+      color: var(--text-primary-color, #fff);
+      font-size: var(--ha-font-size-xs, 12px);
+      font-weight: var(--ha-font-weight-medium);
     }
     .preview p {
       margin: 0 0 var(--ha-space-2);
       font-size: var(--ha-font-size-l);
       overflow-wrap: anywhere;
     }
-    .reset-all {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ha-space-3);
-    }
-    .hint {
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
+    @media (max-width: 900px) {
+      .content:not(.narrow) .layout {
+        grid-template-columns: minmax(0, 1fr) 280px;
+        grid-template-areas: "list side";
+      }
+      .content:not(.narrow) .groups {
+        display: none;
+      }
     }
   `;
 }

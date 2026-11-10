@@ -605,6 +605,7 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
       text: this.hass.localize(
         "ui.panel.config.thread.confirm_reset_border_router_text"
       ),
+      destructive: true,
     });
     if (!confirm) {
       return;
@@ -702,6 +703,7 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
         "ui.panel.config.thread.confirm_delete_dataset_text"
       ),
       destructive: true,
+      confirmName: dataset.network_name || undefined,
       confirmText: this.hass.localize("ui.common.delete"),
     });
     if (!confirm) {

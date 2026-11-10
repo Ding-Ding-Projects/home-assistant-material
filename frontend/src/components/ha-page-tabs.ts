@@ -48,7 +48,7 @@ import type { HaInputSearch } from "./input/ha-input-search";
 import "./ha-svg-icon";
 import "./user/ha-user-badge";
 
-const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
+export const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
 
 declare global {
   interface HASSDomEvents {
@@ -58,12 +58,59 @@ declare global {
   }
 }
 
-interface PageTab {
+export interface PageTab {
   urlPath: string;
   title: string;
   icon?: string;
   iconPath?: string;
 }
+
+export const computePageTabs = memoizeOne(
+  (
+    panels: HomeAssistant["panels"],
+    defaultPanel: string,
+    isAdmin: boolean,
+    localize: HomeAssistant["localize"]
+  ): PageTab[] => {
+    if (!panels) {
+      return [];
+    }
+    const toTab = (panel: PanelInfo, title: string): PageTab => ({
+      urlPath: panel.url_path,
+      title,
+      icon: getPanelIcon(panel),
+      iconPath: getPanelIconPath(panel),
+    });
+    const tabs: PageTab[] = [];
+    Object.values(panels).forEach((panel) => {
+      if (
+        FIXED_PANELS.includes(panel.url_path) ||
+        SYSTEM_PANELS.includes(panel.url_path)
+      ) {
+        return;
+      }
+      const isDefault = panel.url_path === defaultPanel;
+      const title = getPanelTitle({ localize }, panel);
+      if (!isDefault && (!title || panel.show_in_sidebar === false)) {
+        return;
+      }
+      const tab = toTab(panel, title || panel.url_path);
+      if (isDefault) {
+        tabs.unshift(tab);
+      } else {
+        tabs.push(tab);
+      }
+    });
+    if (isAdmin && panels.config) {
+      tabs.push({
+        urlPath: "config",
+        title: localize("panel.config"),
+        iconPath: mdiCog,
+      });
+    }
+    return tabs;
+  }
+);
 
 /**
  * @element ha-page-tabs
@@ -101,52 +148,7 @@ export class HaPageTabs extends LitElement {
 
   @queryAll(".tab-button") private _tabButtons?: NodeListOf<HTMLButtonElement>;
 
-  private _computeTabs = memoizeOne(
-    (
-      panels: HomeAssistant["panels"],
-      defaultPanel: string,
-      isAdmin: boolean,
-      localize: HomeAssistant["localize"]
-    ): PageTab[] => {
-      if (!panels) {
-        return [];
-      }
-      const toTab = (panel: PanelInfo, title: string): PageTab => ({
-        urlPath: panel.url_path,
-        title,
-        icon: getPanelIcon(panel),
-        iconPath: getPanelIconPath(panel),
-      });
-      const tabs: PageTab[] = [];
-      Object.values(panels).forEach((panel) => {
-        if (
-          FIXED_PANELS.includes(panel.url_path) ||
-          SYSTEM_PANELS.includes(panel.url_path)
-        ) {
-          return;
-        }
-        const isDefault = panel.url_path === defaultPanel;
-        const title = getPanelTitle({ localize }, panel);
-        if (!isDefault && (!title || panel.show_in_sidebar === false)) {
-          return;
-        }
-        const tab = toTab(panel, title || panel.url_path);
-        if (isDefault) {
-          tabs.unshift(tab);
-        } else {
-          tabs.push(tab);
-        }
-      });
-      if (isAdmin && panels.config) {
-        tabs.push({
-          urlPath: "config",
-          title: localize("panel.config"),
-          iconPath: mdiCog,
-        });
-      }
-      return tabs;
-    }
-  );
+  private _computeTabs = computePageTabs;
 
   protected render(): TemplateResult | typeof nothing {
     if (!this.hass?.panels) {

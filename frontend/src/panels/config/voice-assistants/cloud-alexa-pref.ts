@@ -19,6 +19,7 @@ import {
   setExposeNewEntities,
 } from "../../../data/expose";
 import type { HomeAssistant } from "../../../types";
+import { showErrorToast } from "../../../util/show-error-toast";
 
 @customElement("cloud-alexa-pref")
 export class CloudAlexaPref extends LitElement {
@@ -242,8 +243,9 @@ export class CloudAlexaPref extends LitElement {
       });
       fireEvent(this, "ha-refresh-cloud-status");
     } catch (err: any) {
-      alert(
-        `${this.hass!.localize(
+      showErrorToast(
+        this,
+        this.hass!.localize(
           "ui.panel.config.cloud.account.alexa.state_reporting_error",
           {
             enable_disable: this.hass!.localize(
@@ -252,7 +254,8 @@ export class CloudAlexaPref extends LitElement {
                 : "ui.panel.config.cloud.account.alexa.disable"
             ),
           }
-        )} ${err.message}`
+        ),
+        err.message
       );
       toggle.checked = !toggle.checked;
     }

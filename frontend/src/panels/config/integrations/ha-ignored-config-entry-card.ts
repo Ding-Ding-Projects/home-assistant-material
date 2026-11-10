@@ -6,6 +6,7 @@ import { deleteConfigEntry } from "../../../data/config_entries";
 import type { IntegrationManifest } from "../../../data/integration";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
+import { showToast } from "../../../util/toast";
 import type { ConfigEntryExtended } from "./ha-config-integrations";
 import "./ha-integration-action-card";
 import "../../../components/ha-button";
@@ -60,11 +61,13 @@ export class HaIgnoredConfigEntryCard extends LitElement {
       confirm: async () => {
         const result = await deleteConfigEntry(this.hass, this.entry.entry_id);
         if (result.require_restart) {
-          alert(
-            this.hass.localize(
+          showToast(this, {
+            message: this.hass.localize(
               "ui.panel.config.integrations.config_entry.restart_confirm"
-            )
-          );
+            ),
+            duration: -1,
+            dismissable: true,
+          });
         }
         fireEvent(this, "change", undefined, {
           bubbles: false,

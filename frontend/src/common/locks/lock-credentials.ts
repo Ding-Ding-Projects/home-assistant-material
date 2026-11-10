@@ -79,7 +79,23 @@ export interface LockRecord {
   /** Epoch milliseconds before which nothing is tried. */
   blockedUntil: number;
   created: number;
+  /** The title of the page the lock was made on, written when it was made. */
+  page?: string;
+  /** Covers the interface when the app starts until this lock is opened. */
+  onStart?: boolean;
 }
+
+/** Longest page title kept next to a lock. */
+export const PAGE_TITLE_LIMIT = 120;
+
+/** Tidies a page title for the list of locks; undefined when nothing is left. */
+export const cleanPageTitle = (title: unknown): string | undefined => {
+  if (typeof title !== "string") {
+    return undefined;
+  }
+  const text = title.replace(/\s+/g, " ").trim().slice(0, PAGE_TITLE_LIMIT);
+  return text || undefined;
+};
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -275,6 +291,10 @@ export interface NewLockInput {
   password?: string;
   /** The base32 secret the user has set up in an authenticator. */
   totpSecret?: string;
+  /** The title of the page the lock is made on. */
+  page?: string;
+  /** Locked on start. On unless said otherwise. */
+  onStart?: boolean;
 }
 
 /** What is wrong with the input, or undefined when it can be used. */
@@ -330,7 +350,12 @@ export const createLockRecord = async (
     failures: 0,
     blockedUntil: 0,
     created: now,
+    onStart: input.onStart !== false,
   };
+  const page = cleanPageTitle(input.page);
+  if (page) {
+    record.page = page;
+  }
   if (factors.includes("pin")) {
     record.pin = await hashSecret(input.pin!);
   }
@@ -493,7 +518,13 @@ export const normalizeLockRecord = (raw: unknown): LockRecord | undefined => {
         : 0,
     created:
       Number.isFinite(value.created) && value.created! > 0 ? value.created! : 0,
+    // Locks made before this choice existed keep behaving as they did.
+    onStart: value.onStart === true,
   };
+  const page = cleanPageTitle(value.page);
+  if (page) {
+    record.page = page;
+  }
   if (factors.includes("pin")) {
     record.pin = normalizeSecret(value.pin);
     if (!record.pin) {

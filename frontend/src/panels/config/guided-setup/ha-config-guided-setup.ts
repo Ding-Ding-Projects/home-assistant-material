@@ -1,9 +1,11 @@
 import { mdiDelete, mdiPencil } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
+import { classMap } from "lit/directives/class-map";
 import { customElement, property, state } from "lit/decorators";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
+import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
@@ -25,6 +27,10 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./ha-guided-setup-wizard";
 
+/** The grid starts with this many integrations and grows on request. */
+const FIRST_VIEW = 9;
+const MORE_STEP = 30;
+
 @customElement("ha-config-guided-setup")
 class HaConfigGuidedSetup extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -40,6 +46,9 @@ class HaConfigGuidedSetup extends LitElement {
   @state() private _active?: GuidedSetupIntegration;
 
   @state() private _editing?: GuidedSetupEntry;
+
+  /** How many integrations the grid shows while the search is empty. */
+  @state() private _limit = FIRST_VIEW;
 
   protected firstUpdated(): void {
     this._load();
@@ -70,9 +79,9 @@ class HaConfigGuidedSetup extends LitElement {
 
   private _shown(): GuidedSetupIntegration[] {
     const matches = searchMatcher(this._filter);
-    return (this._catalog?.integrations ?? []).filter((item) =>
-      matches(item.name, item.domain)
-    );
+    return [...(this._catalog?.integrations ?? [])]
+      .filter((item) => matches(item.name, item.domain, item.description))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   private _integrationFor(
@@ -85,6 +94,16 @@ class HaConfigGuidedSetup extends LitElement {
 
   private _filterChanged(ev: Event): void {
     this._filter = (ev.target as HaInputSearch).value ?? "";
+  }
+
+  private _showMore(): void {
+    this._limit += MORE_STEP;
+  }
+
+  private _entryCount(domain: string): number {
+    return (this._catalog?.entries ?? []).filter(
+      (entry) => entry.domain === domain
+    ).length;
   }
 
   private _open(ev: Event): void {
@@ -181,20 +200,27 @@ class HaConfigGuidedSetup extends LitElement {
       </div>`;
     }
     const shown = this._shown();
-    const search = this._l("search");
+    const total = this._catalog.integrations.length;
+    const searching = this._filter.trim() !== "";
+    const visible = searching ? shown : shown.slice(0, this._limit);
+    const hidden = shown.length - visible.length;
+    const search = this._l("search_n", { count: total });
+    const entries = this._catalog.entries;
     return html`
-      <div class="content">
+      <div class=${classMap({ content: true, narrow: this.narrow })}>
         <p class="intro">${this._l("intro")}</p>
-        <h3>${this._l("your_setups")}</h3>
         ${
-          this._catalog.entries.length
-            ? html`<ul class="rows">
-                ${this._catalog.entries.map((entry) =>
-                  this._renderEntry(entry)
-                )}
-              </ul>`
-            : html`<p class="note">${this._l("no_entries")}</p>`
+          entries.length
+            ? html`<h3>
+                  ${this._l("your_setups_count", { count: entries.length })}
+                </h3>
+                ${this._renderEntries(entries)}`
+            : html`<div class="empty">
+                <h3>${this._l("no_entries")}</h3>
+                <p class="note">${this._l("no_entries_text")}</p>
+              </div>`
         }
+        <h3>${this._l("can_set_up")}</h3>
         <ha-input-search
           appearance="outlined"
           .placeholder=${search}
@@ -204,37 +230,83 @@ class HaConfigGuidedSetup extends LitElement {
           @input=${this._filterChanged}
         ></ha-input-search>
         ${
+          searching
+            ? html`<p class="note" role="status">
+                ${this._l("matches", { count: shown.length, total })}
+              </p>`
+            : nothing
+        }
+        ${
           shown.length
-            ? html`<ul class="rows">
-                ${shown.map((item) => this._renderIntegration(item))}
-              </ul>`
-            : html`<p class="note" role="status">${this._l("empty")}</p>`
+            ? html`<ul class="rows grid">
+                  ${visible.map((item) => this._renderIntegration(item))}
+                </ul>
+                ${
+                  hidden > 0
+                    ? html`<div class="more">
+                        <span class="note"
+                          >${this._l("more", { count: hidden })}</span
+                        >
+                        <ha-button appearance="plain" @click=${this._showMore}
+                          >${this._l("show_more")}</ha-button
+                        >
+                      </div>`
+                    : nothing
+                }`
+            : html`<p class="note" role="status">
+                ${this._l("empty", { query: this._filter.trim() })}
+              </p>`
         }
       </div>
     `;
   }
 
-  private _renderEntry(entry: GuidedSetupEntry): TemplateResult {
-    const name = this._integrationFor(entry)?.name ?? entry.domain;
-    return html`<li class="row">
-      <div class="text">
-        <span class="name">${name}</span>
-        <span class="detail">
-          ${
-            entry.entity_domain
-              ? this._l("works_with", {
-                  domains:
-                    this.hass.localize(
-                      `component.${entry.entity_domain}.title`
-                    ) || entry.entity_domain,
-                })
-              : this._l("domain_level")
-          }
-          ·
-          ${this._l("entry_summary", { count: Object.keys(entry.data).length })}
-        </span>
-      </div>
-      <ha-icon-button
+  private _entryDetail(entry: GuidedSetupEntry): string {
+    return `${
+      entry.entity_domain
+        ? this._l("works_with", {
+            domains:
+              this.hass.localize(`component.${entry.entity_domain}.title`) ||
+              entry.entity_domain,
+          })
+        : this._l("domain_level")
+    } · ${this._l("entry_summary", { count: Object.keys(entry.data).length })}`;
+  }
+
+  private _renderEntries(entries: GuidedSetupEntry[]): TemplateResult {
+    if (this.narrow) {
+      return html`<ul class="rows">
+        ${entries.map((entry) => this._renderEntry(entry))}
+      </ul>`;
+    }
+    return html`<table class="entries">
+      <thead>
+        <tr>
+          <th scope="col">${this._l("col_integration")}</th>
+          <th scope="col">${this._l("col_what")}</th>
+          <th scope="col">
+            <span class="sr-only">${this._l("col_actions")}</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entries.map((entry) => {
+          const name = this._integrationFor(entry)?.name ?? entry.domain;
+          return html`<tr>
+            <td>${name}</td>
+            <td class="detail">${this._entryDetail(entry)}</td>
+            <td class="actions">${this._renderEntryActions(entry, name)}</td>
+          </tr>`;
+        })}
+      </tbody>
+    </table>`;
+  }
+
+  private _renderEntryActions(
+    entry: GuidedSetupEntry,
+    name: string
+  ): TemplateResult {
+    return html`<ha-icon-button
         .path=${mdiPencil}
         .label=${`${this._l("edit")} ${name}`}
         data-entry=${entry.id}
@@ -245,7 +317,17 @@ class HaConfigGuidedSetup extends LitElement {
         .label=${`${this._l("remove")} ${name}`}
         data-entry=${entry.id}
         @click=${this._remove}
-      ></ha-icon-button>
+      ></ha-icon-button>`;
+  }
+
+  private _renderEntry(entry: GuidedSetupEntry): TemplateResult {
+    const name = this._integrationFor(entry)?.name ?? entry.domain;
+    return html`<li class="row">
+      <div class="text">
+        <span class="name">${name}</span>
+        <span class="detail">${this._entryDetail(entry)}</span>
+      </div>
+      ${this._renderEntryActions(entry, name)}
     </li>`;
   }
 
@@ -253,6 +335,7 @@ class HaConfigGuidedSetup extends LitElement {
     const domains = item.entity_domains.map(
       (domain) => this.hass.localize(`component.${domain}.title`) || domain
     );
+    const made = this._entryCount(item.domain);
     return html`<li>
       <button
         type="button"
@@ -264,19 +347,29 @@ class HaConfigGuidedSetup extends LitElement {
           <span class="name">${item.name}</span>
           <span class="detail">
             ${
-              domains.length
-                ? this._l("works_with", { domains: domains.join(", ") })
-                : nothing
-            }
-            ${
-              item.has_domain_schema
-                ? html`${domains.length ? " · " : nothing}${this._l(
-                    "domain_level"
-                  )}`
-                : nothing
+              item.description
+                ? item.description
+                : html`${
+                    domains.length
+                      ? this._l("works_with", { domains: domains.join(", ") })
+                      : nothing
+                  }${
+                    item.has_domain_schema
+                      ? html`${domains.length ? " · " : nothing}${this._l(
+                          "domain_level"
+                        )}`
+                      : nothing
+                  }`
             }
           </span>
         </span>
+        ${
+          made
+            ? html`<span class="tag"
+                >${this._l("made_tag", { count: made })}</span
+              >`
+            : nothing
+        }
       </button>
     </li>`;
   }
@@ -307,6 +400,54 @@ class HaConfigGuidedSetup extends LitElement {
         list-style: none;
         margin: 0;
         padding: 0;
+      }
+      .content:not(.narrow) .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: var(--ha-space-4);
+      }
+      .content:not(.narrow) {
+        max-width: 1100px;
+      }
+      .entries {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: var(--ha-space-4);
+      }
+      .entries th,
+      .entries td {
+        text-align: start;
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-bottom: 1px solid var(--divider-color);
+      }
+      .entries th {
+        color: var(--secondary-text-color);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .entries .actions {
+        text-align: end;
+        white-space: nowrap;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      .tag {
+        flex: none;
+        padding: 0 var(--ha-space-2);
+        border-radius: 12px;
+        background: var(--secondary-background-color);
+        font-size: var(--ha-font-size-xs, 12px);
+        color: var(--secondary-text-color);
+      }
+      .more {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-2) 0;
       }
       .row {
         display: flex;

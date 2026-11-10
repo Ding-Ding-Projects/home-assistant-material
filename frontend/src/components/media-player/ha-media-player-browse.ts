@@ -4,8 +4,10 @@ import { grid } from "@lit-labs/virtualizer/layouts/grid";
 
 import {
   mdiArrowUpRight,
+  mdiCheck,
   mdiFilterVariant,
   mdiKeyboard,
+  mdiMenuDown,
   mdiPlay,
   mdiPlus,
 } from "@mdi/js";
@@ -67,7 +69,9 @@ import type {
 } from "../../types";
 import { documentationUrlForVersion } from "../../util/documentation-url";
 import "../entity/ha-entity-picker";
+import "../chips/ha-filter-chip";
 import "../ha-alert";
+import "../ha-bottom-sheet";
 import "../ha-button";
 import "../ha-card";
 import "../ha-dropdown";
@@ -170,6 +174,11 @@ export class HaMediaPlayerBrowse extends LitElement {
   @state() private _searching = false;
 
   @state() private _mediaClassFilter: MediaClass[] = [];
+
+  /** True below 700 px: no Search button, kind chips, a sheet for kinds. */
+  @state() private _compactSearch = false;
+
+  @state() private _kindSheetOpen = false;
 
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
@@ -788,43 +797,223 @@ export class HaMediaPlayerBrowse extends LitElement {
     currentItem: MediaPlayerItem,
     mediaClassFilterOptions: MediaClass[]
   ): TemplateResult {
+    if (!currentItem.can_search) {
+      return html`<div class="search-row"></div>`;
+    }
+    const compact = this._compactSearch;
+    const hasKinds = mediaClassFilterOptions.length > 0;
     return html`
-      <div class="search-row">
+      <div class="search-block">
+        <div class="search-row">
+          <ha-input-search
+            class="search-input"
+            appearance="outlined"
+            enterkeyhint="search"
+            .value=${this._searchQuery}
+            .patternSamples=${(currentItem.children ?? []).map(
+              (child) => child.title
+            )}
+            .placeholder=${this._i18n.localize(
+              "ui.components.media-browser.search.search_placeholder",
+              { name: currentItem.title }
+            )}
+            @input=${this._handleSearchInput}
+            @keydown=${this._handleSearchKeydown}
+          ></ha-input-search>
+          ${
+            // A phone runs the search from the keyboard's search key.
+            compact
+              ? nothing
+              : html`
+                  <ha-button
+                    class="search-button"
+                    appearance="filled"
+                    .disabled=${!this._searchQuery.trim()}
+                    @click=${this._search}
+                  >
+                    ${this._i18n.localize("ui.common.search")}
+                  </ha-button>
+                `
+          }
+          ${
+            hasKinds
+              ? compact
+                ? this._renderKindButton()
+                : this._renderMediaClassFilter(mediaClassFilterOptions)
+              : nothing
+          }
+        </div>
         ${
-          currentItem.can_search
+          hasKinds && compact
             ? html`
-                <ha-input-search
-                  class="search-input"
-                  appearance="outlined"
-                  .value=${this._searchQuery}
-                  .patternSamples=${(currentItem.children ?? []).map(
-                    (child) => child.title
-                  )}
-                  .placeholder=${this._i18n.localize(
-                    "ui.components.media-browser.search.search_placeholder",
-                    { name: currentItem.title }
-                  )}
-                  @input=${this._handleSearchInput}
-                  @keydown=${this._handleSearchKeydown}
-                ></ha-input-search>
-                ${
-                  mediaClassFilterOptions.length
-                    ? this._renderMediaClassFilter(mediaClassFilterOptions)
-                    : nothing
-                }
-                <ha-button
-                  class="search-button"
-                  appearance="filled"
-                  .disabled=${!this._searchQuery.trim()}
-                  @click=${this._search}
-                >
-                  ${this._i18n.localize("ui.common.search")}
-                </ha-button>
+                ${this._renderKindChips(mediaClassFilterOptions)}
+                ${this._renderKindSheet(mediaClassFilterOptions)}
               `
             : nothing
         }
       </div>
     `;
+  }
+
+  /** What the kind filter reads as: All kinds, one kind, or a count. */
+  private _kindSummary(): string {
+    const selected = this._mediaClassFilter;
+    if (!selected.length) {
+      return this._i18n.localize(
+        "ui.components.media-browser.filter_all_kinds"
+      );
+    }
+    return selected.length === 1
+      ? this._localizeMediaClass(selected[0])
+      : this._i18n.localize("ui.components.media-browser.filter_kinds_count", {
+          count: selected.length,
+        });
+  }
+
+  /** The filter on a phone: one icon button that opens the sheet. */
+  private _renderKindButton(): TemplateResult {
+    const selectedCount = this._mediaClassFilter.length;
+    return html`
+      <div class="media-class-filter">
+        <ha-icon-button
+          class="filter-button ${classMap({ active: selectedCount > 0 })}"
+          .path=${mdiFilterVariant}
+          .label=${this._i18n.localize(
+            "ui.components.media-browser.filter_media_type"
+          )}
+          aria-haspopup="dialog"
+          aria-expanded=${this._kindSheetOpen ? "true" : "false"}
+          @click=${this._openKindSheet}
+        ></ha-icon-button>
+        ${
+          selectedCount
+            ? html`<div class="filter-badge">${selectedCount}</div>`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  /** Kind chips under the field, for a player that can tell the kinds. */
+  private _renderKindChips(options: MediaClass[]): TemplateResult {
+    return html`
+      <div
+        class="kind-chips"
+        role="group"
+        aria-label=${this._i18n.localize(
+          "ui.components.media-browser.filter_media_type"
+        )}
+      >
+        <ha-filter-chip
+          .selected=${!this._mediaClassFilter.length}
+          .label=${this._i18n.localize(
+            "ui.components.media-browser.filter_all"
+          )}
+          @click=${this._clearKinds}
+        ></ha-filter-chip>
+        ${options.map(
+          (mediaClass) => html`
+            <ha-filter-chip
+              .selected=${this._mediaClassFilter.includes(mediaClass)}
+              .label=${this._localizeMediaClass(mediaClass)}
+              .mediaClass=${mediaClass}
+              @click=${this._kindChipClicked}
+            ></ha-filter-chip>
+          `
+        )}
+      </div>
+    `;
+  }
+
+  /** The kinds as a sheet below 700 px. */
+  private _renderKindSheet(options: MediaClass[]): TemplateResult {
+    const none = !this._mediaClassFilter.length;
+    return html`
+      <ha-bottom-sheet
+        .open=${this._kindSheetOpen}
+        aria-labelledby="kind-sheet-title"
+        @closed=${this._kindSheetClosed}
+      >
+        <div class="kind-sheet">
+          <h2 id="kind-sheet-title">
+            ${this._i18n.localize("ui.components.media-browser.filter_show")}
+          </h2>
+          <button
+            class="kind-item"
+            role="menuitemcheckbox"
+            aria-checked=${none ? "true" : "false"}
+            @click=${this._clearKinds}
+          >
+            <span class="kind-name"
+              >${this._i18n.localize(
+                "ui.components.media-browser.filter_all_kinds"
+              )}</span
+            >
+            ${none ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>` : nothing}
+          </button>
+          ${options.map((mediaClass) => {
+            const selected = this._mediaClassFilter.includes(mediaClass);
+            return html`
+              <button
+                class="kind-item"
+                role="menuitemcheckbox"
+                aria-checked=${selected ? "true" : "false"}
+                .mediaClass=${mediaClass}
+                @click=${this._kindChipClicked}
+              >
+                <ha-svg-icon
+                  class="kind-icon"
+                  .path=${MediaClassBrowserSettings[mediaClass]?.icon ?? ""}
+                ></ha-svg-icon>
+                <span class="kind-name"
+                  >${this._localizeMediaClass(mediaClass)}</span
+                >
+                ${
+                  selected
+                    ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
+                    : nothing
+                }
+              </button>
+            `;
+          })}
+        </div>
+      </ha-bottom-sheet>
+    `;
+  }
+
+  private _openKindSheet(): void {
+    this._kindSheetOpen = true;
+  }
+
+  private _kindSheetClosed(): void {
+    this._kindSheetOpen = false;
+  }
+
+  private _clearKinds(): void {
+    this._mediaClassFilter = [];
+    this._rerunSearch();
+  }
+
+  private _kindChipClicked(ev: Event): void {
+    const mediaClass = (
+      ev.currentTarget as HTMLElement & { mediaClass: MediaClass }
+    ).mediaClass;
+    this._toggleKind(mediaClass);
+  }
+
+  private _toggleKind(mediaClass: MediaClass): void {
+    this._mediaClassFilter = this._mediaClassFilter.includes(mediaClass)
+      ? this._mediaClassFilter.filter((item) => item !== mediaClass)
+      : [...this._mediaClassFilter, mediaClass];
+    this._rerunSearch();
+  }
+
+  // Only refine results already on screen; before a search has run, the
+  // filter is just staged for the next Enter/search-button submission.
+  private _rerunSearch(): void {
+    if (this._searchResults !== undefined) {
+      this._search();
+    }
   }
 
   private _renderFilterRow(currentItem: MediaPlayerItem): TemplateResult {
@@ -844,24 +1033,35 @@ export class HaMediaPlayerBrowse extends LitElement {
     `;
   }
 
+  /** The filter in a wide window: a menu field that names what is shown. */
   private _renderMediaClassFilter(
     mediaClassFilterOptions: MediaClass[]
   ): TemplateResult {
-    const selectedCount = this._mediaClassFilter.length;
     return html`
       <div class="media-class-filter">
         <ha-dropdown
           placement="bottom-end"
           @wa-select=${this._toggleMediaClassFilter}
         >
-          <ha-icon-button
+          <button
             slot="trigger"
-            class="filter-button ${classMap({ active: selectedCount > 0 })}"
-            .path=${mdiFilterVariant}
-            .label=${this._i18n.localize(
+            class="kind-field ${classMap({
+              active: this._mediaClassFilter.length > 0,
+            })}"
+            aria-label=${this._i18n.localize(
               "ui.components.media-browser.filter_media_type"
             )}
-          ></ha-icon-button>
+          >
+            <span class="kind-field-text">
+              <span class="kind-field-label"
+                >${this._i18n.localize(
+                  "ui.components.media-browser.filter_show"
+                )}</span
+              >
+              <span class="kind-field-value">${this._kindSummary()}</span>
+            </span>
+            <ha-svg-icon .path=${mdiMenuDown}></ha-svg-icon>
+          </button>
           ${mediaClassFilterOptions.map((mediaClass) => {
             const selected = this._mediaClassFilter.includes(mediaClass);
             return html`
@@ -876,11 +1076,6 @@ export class HaMediaPlayerBrowse extends LitElement {
             `;
           })}
         </ha-dropdown>
-        ${
-          selectedCount
-            ? html`<div class="filter-badge">${selectedCount}</div>`
-            : nothing
-        }
       </div>
     `;
   }
@@ -894,17 +1089,7 @@ export class HaMediaPlayerBrowse extends LitElement {
 
   private _toggleMediaClassFilter(ev: HaDropdownSelectEvent<MediaClass>): void {
     ev.preventDefault(); // keep the dropdown open for multi-select
-    const value = ev.detail.item.value;
-    const action = (ev.detail.item as { action?: "add" | "remove" }).action;
-    this._mediaClassFilter =
-      action === "add"
-        ? [...this._mediaClassFilter, value]
-        : this._mediaClassFilter.filter((mediaClass) => mediaClass !== value);
-    // Only refine results already on screen; before a search has run, the
-    // filter is just staged for the next Enter/search-button submission.
-    if (this._searchResults !== undefined) {
-      this._search();
-    }
+    this._toggleKind(ev.detail.item.value);
   }
 
   private _handleSearchInput(ev: InputEvent): void {
@@ -1232,7 +1417,12 @@ export class HaMediaPlayerBrowse extends LitElement {
   }
 
   private _measureCard(): void {
-    this.narrow = (this.dialog ? window.innerWidth : this.offsetWidth) < 450;
+    const width = this.dialog ? window.innerWidth : this.offsetWidth;
+    this.narrow = width < 450;
+    this._compactSearch = width < 700;
+    if (!this._compactSearch) {
+      this._kindSheetOpen = false;
+    }
   }
 
   private async _attachResizeObserver(): Promise<void> {
@@ -1416,11 +1606,100 @@ export class HaMediaPlayerBrowse extends LitElement {
         .header.search-only {
           padding: 8px 16px;
         }
+        .search-block {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+          min-width: 0;
+        }
         .search-row {
           display: flex;
           align-items: center;
           justify-content: flex-end;
           gap: var(--ha-space-2);
+        }
+        .kind-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+        :host([narrow]) .kind-chips {
+          padding: 0 16px 8px;
+        }
+        .kind-field {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          min-width: 140px;
+          min-height: 48px;
+          padding: 0 var(--ha-space-3) 0 var(--ha-space-4);
+          border: none;
+          border-bottom: 2px solid var(--outline-color);
+          border-radius: var(--ha-border-radius-lg) var(--ha-border-radius-lg) 0
+            0;
+          background: var(--ha-color-fill-neutral-quiet-resting);
+          color: var(--primary-text-color);
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
+        .kind-field.active {
+          border-bottom-color: var(--primary-color);
+        }
+        .kind-field:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .kind-field-text {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .kind-field-label {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-xs);
+        }
+        .kind-sheet {
+          display: flex;
+          flex-direction: column;
+          padding: 0 var(--ha-space-4) var(--ha-space-4);
+        }
+        .kind-sheet h2 {
+          margin: 0 0 var(--ha-space-2);
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .kind-item {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
+          min-height: 48px;
+          padding: 0 var(--ha-space-2);
+          border: none;
+          border-radius: var(--ha-border-radius-lg);
+          background: none;
+          color: var(--primary-text-color);
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
+        .kind-item:hover {
+          background: var(--ha-color-fill-neutral-quiet-hover);
+        }
+        .kind-item:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: -2px;
+        }
+        .kind-item[aria-checked="true"] {
+          color: var(--primary-color);
+        }
+        .kind-icon {
+          flex: none;
+        }
+        .kind-name {
+          flex: 1;
+          min-width: 0;
         }
         .search-input {
           flex: 1;

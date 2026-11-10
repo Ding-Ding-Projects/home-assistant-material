@@ -55,7 +55,10 @@ import type {
 } from "../../../data/trace";
 import { getTracePath, loadTrace, loadTraces } from "../../../data/trace";
 import { TraceRunController } from "../../../data/trace-run-controller";
-import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
+import {
+  showAlertDialog,
+  showPromptDialog,
+} from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
@@ -643,12 +646,16 @@ export class HaAutomationTrace extends LitElement {
     );
   }
 
-  private _importTrace() {
-    const traceText = prompt(
-      this.hass.localize(
+  private async _importTrace() {
+    const traceText = await showPromptDialog(this, {
+      title: this.hass.localize("ui.replaced_dialogs.open_trace_title"),
+      text: this.hass.localize(
         "ui.panel.config.automation.trace.enter_downloaded_trace"
-      )
-    );
+      ),
+      inputLabel: this.hass.localize("ui.replaced_dialogs.trace_label"),
+      multiline: true,
+      confirmText: this.hass.localize("ui.replaced_dialogs.open"),
+    });
     if (!traceText) {
       return;
     }

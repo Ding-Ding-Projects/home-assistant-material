@@ -17,6 +17,7 @@ import {
 import { onboardAnalyticsStep } from "../data/onboarding";
 import type { HomeAssistant } from "../types";
 import { documentationUrl } from "../util/documentation-url";
+import { showErrorToast } from "../util/show-error-toast";
 import { onBoardingStyles } from "./styles";
 
 @customElement("onboarding-analytics")
@@ -140,7 +141,11 @@ class OnboardingAnalytics extends LitElement {
         type: "analytics",
       });
     } catch (err: any) {
-      alert(`Failed to save: ${err.message}`);
+      showErrorToast(
+        this,
+        this._localize("ui.replaced_dialogs.onboarding_save_failed"),
+        err.message
+      );
     }
   }
 

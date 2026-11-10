@@ -1,31 +1,41 @@
 /* eslint-disable lit/prefer-query-decorators -- the fields asked for depend on the step shown */
+import { mdiCheck, mdiClose, mdiLifebuoy, mdiTimerSand } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import {
   grantUnlock,
   isUnlocked,
 } from "../../common/locks/element-lock-session";
 import {
+  isLocked,
   readLocks,
+  tryPin,
+  UNLOCK_HOLD_MS,
   writeLocks,
   withUpdatedRecord,
 } from "../../common/locks/element-locks";
+import { lockPageName } from "../../common/locks/lock-where";
 import type {
   LockFactor,
   LockRecord,
 } from "../../common/locks/lock-credentials";
+import { waitForFailures } from "../../common/locks/lock-wait";
 import {
   checkFactor,
   finishAttempt,
   POLICY_FACTORS,
 } from "../../common/locks/lock-credentials";
+import "../ha-svg-icon";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
+import { openSupportDesk } from "../support/ha-support-desk";
 import "./ha-lock-pin-entry";
 import type { HaLockPinEntry } from "./ha-lock-pin-entry";
-import { anchorStyle, lockText } from "./lock-text";
+import { lockPanelStyles } from "./lock-panel-styles";
+import { anchorStyle, isNarrow, lockText, onNarrowChange } from "./lock-text";
 
 export interface LockPromptOptions {
   /** Opens the lock for its chosen time on success. On by default. */
@@ -34,6 +44,8 @@ export interface LockPromptOptions {
   onSuccess?: () => void;
   /** Where focus goes back to; the element itself when left out. */
   returnTo?: HTMLElement;
+  /** A title instead of "Unlock ...". */
+  title?: string;
 }
 
 /**
@@ -58,6 +70,15 @@ export class HaLockPrompt extends LitElement {
 
   @state() private _now = Date.now();
 
+  @state() private _narrow = isNarrow();
+
+  /** An older lock without a PIN is opened by holding its button. */
+  @state() private _holding = false;
+
+  private _holdTimer?: number;
+
+  private _stopNarrow?: () => void;
+
   private _timer?: number;
 
   private _returnTo?: HTMLElement;
@@ -75,12 +96,17 @@ export class HaLockPrompt extends LitElement {
     this._timer = window.setInterval(() => {
       this._now = Date.now();
     }, 1000);
+    this._stopNarrow = onNarrowChange((narrow) => {
+      this._narrow = narrow;
+    });
     window.addEventListener("keydown", this._escape, true);
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._stopNarrow?.();
     window.clearInterval(this._timer);
+    window.clearTimeout(this._holdTimer);
     window.removeEventListener("keydown", this._escape, true);
   }
 
@@ -117,58 +143,215 @@ export class HaLockPrompt extends LitElement {
   }
 
   private get _waitSeconds(): number {
-    const record = this._record;
-    return record
-      ? Math.max(0, Math.ceil((record.blockedUntil - this._now) / 1000))
-      : 0;
+    const blocked = this._record
+      ? this._record.blockedUntil
+      : readLocks().blockedUntil;
+    return Math.max(0, Math.ceil((blocked - this._now) / 1000));
   }
 
   protected render(): TemplateResult {
     const record = this._record;
-    const style = anchorStyle(this.anchor);
+    const factors = record ? POLICY_FACTORS[record.policy] : [];
+    const style =
+      this._narrow || !record
+        ? {}
+        : anchorStyle(this.anchor, factors[this._step] === "pin" ? 640 : 400);
     return html`
       <div
-        class="panel"
+        class=${classMap({
+          panel: true,
+          sheet: this._narrow,
+          bottom: this._narrow,
+        })}
         role="dialog"
         aria-modal="false"
         aria-labelledby="title"
         style=${styleMap(style)}
       >
-        <h2 id="title">
-          ${lockText("unlock_title", { name: record?.label ?? "" })}
-        </h2>
+        <header>
+          <div class="titles">
+            <h2 id="title">
+              ${
+                this.options.title ??
+                lockText("unlock_title", {
+                  name:
+                    record?.label ??
+                    lockPageName(readLocks(), this.lockKey) ??
+                    this.lockKey,
+                })
+              }
+            </h2>
+            ${
+              factors.length > 1
+                ? html`<p class="sub">
+                    ${lockText("wizard_step", {
+                      current: this._step + 1,
+                      total: factors.length,
+                    })}
+                  </p>`
+                : nothing
+            }
+          </div>
+          <button
+            type="button"
+            class="close"
+            aria-label=${lockText("close")}
+            @click=${this._close}
+          >
+            <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
+          </button>
+        </header>
         ${record ? this._renderSteps(record) : this._renderLegacy()}
-        <p class="note">${lockText("toy_note")}</p>
-        <p class="note">${lockText("recovery")}</p>
+        <button type="button" class="text forgot" @click=${this._forgot}>
+          <ha-svg-icon .path=${mdiLifebuoy}></ha-svg-icon>
+          ${lockText("forgot")}
+        </button>
         ${
-          record
-            ? nothing
-            : html`<button type="button" class="close" @click=${this._close}>
-                ${lockText("close")}
-              </button>`
+          record && (record.failures > 0 || this._message)
+            ? html`<p class="callout">
+                <ha-svg-icon .path=${mdiLifebuoy}></ha-svg-icon>
+                <span>${lockText("recovery")}</span>
+              </p>`
+            : nothing
         }
       </div>
     `;
   }
 
+  /** An older lock: opened with the one shared PIN, or by holding the button when there is none. */
   private _renderLegacy(): TemplateResult {
-    return html`<p>${lockText("legacy_lock")}</p>`;
+    const store = readLocks();
+    if (!isLocked(store, this.lockKey)) {
+      return html`<p>${lockText("legacy_lock")}</p>`;
+    }
+    const wait = this._waitSeconds;
+    const callout =
+      wait > 0
+        ? html`<p class="callout" role="status">
+            <ha-svg-icon .path=${mdiTimerSand}></ha-svg-icon>
+            <span>${lockText("wait", { seconds: wait })}</span>
+          </p>`
+        : this._message
+          ? html`<p class="callout error" role="alert">
+              <ha-svg-icon .path=${mdiTimerSand}></ha-svg-icon>
+              <span>${this._message}</span>
+            </p>`
+          : nothing;
+    if (store.pin) {
+      return html`${callout}
+        <ha-lock-pin-entry
+          .prompt=${lockText("legacy_pin_prompt")}
+          .submitLabel=${lockText("unlock")}
+          .disabled=${wait > 0}
+          @lock-pin-submit=${this._legacySubmitted}
+          @lock-pin-cancel=${this._close}
+        ></ha-lock-pin-entry>`;
+    }
+    return html`<p class="note">${lockText("legacy_hold_hint")}</p>
+      <div class="buttons">
+        <button type="button" class="text" @click=${this._close}>
+          ${lockText("cancel")}
+        </button>
+        <button
+          type="button"
+          class="primary hold"
+          @pointerdown=${this._holdStart}
+          @pointerup=${this._holdEnd}
+          @pointerleave=${this._holdEnd}
+          @pointercancel=${this._holdEnd}
+          @keydown=${this._holdKey}
+          @keyup=${this._holdEnd}
+          @blur=${this._holdEnd}
+        >
+          ${this._holding ? lockText("legacy_holding") : lockText("legacy_hold")}
+        </button>
+      </div>`;
+  }
+
+  private _holdKey(ev: KeyboardEvent): void {
+    if ((ev.key === "Enter" || ev.key === " ") && !ev.repeat) {
+      this._holdStart();
+    }
+  }
+
+  private _holdStart(): void {
+    if (this._holding) {
+      return;
+    }
+    this._holding = true;
+    this._holdTimer = window.setTimeout(() => {
+      this._holding = false;
+      this._finishLegacy();
+    }, UNLOCK_HOLD_MS);
+  }
+
+  private _holdEnd(): void {
+    window.clearTimeout(this._holdTimer);
+    this._holding = false;
+  }
+
+  private _legacySubmitted(ev: CustomEvent<{ value: string }>): void {
+    const result = tryPin(readLocks(), ev.detail.value, Date.now());
+    writeLocks(result.store);
+    if (result.outcome === "ok") {
+      this._finishLegacy();
+      return;
+    }
+    this._now = Date.now();
+    this._message =
+      result.outcome === "wait"
+        ? ""
+        : lockText("wrong", { count: result.store.failures });
+    this._panel?.querySelector<HaLockPinEntry>("ha-lock-pin-entry")?.clear();
+    this._focusFirst();
+  }
+
+  /** The shared PIN or the hold was right: open it for this page, as asked. */
+  private _finishLegacy(): void {
+    if (this.options.grant !== false && !isUnlocked(this.lockKey)) {
+      grantUnlock(this.lockKey, { kind: "surface" });
+    }
+    const done = this.options.onSuccess;
+    this._close();
+    done?.();
+  }
+
+  private _forgot(): void {
+    const anchor = this._returnTo ?? this.anchor;
+    this.remove();
+    openSupportDesk(anchor);
+  }
+
+  private _duration(ms: number): string {
+    return ms < 60000
+      ? lockText("seconds_value", { count: Math.round(ms / 1000) })
+      : lockText("minutes_value", { count: Math.round(ms / 60000) });
   }
 
   private _renderSteps(record: LockRecord): TemplateResult {
     const factors = POLICY_FACTORS[record.policy];
     const factor = factors[this._step];
     const wait = this._waitSeconds;
+    const last = this._step === factors.length - 1;
+    const nextWait = waitForFailures(record.failures + 1);
     return html`
       ${
         factors.length > 1
-          ? html`<ol class="steps">
+          ? html`<ol class="chips" aria-label=${lockText("steps_label")}>
               ${factors.map(
                 (item, index) =>
                   html`<li
                     aria-current=${index === this._step ? "step" : "false"}
                     class=${index < this._step ? "done" : ""}
                   >
+                    ${
+                      index < this._step
+                        ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon
+                            ><span class="visually-hidden"
+                              >${lockText("step_done")}</span
+                            >`
+                        : nothing
+                    }
                     ${lockText(`factor_${item}`)}
                   </li>`
               )}
@@ -176,58 +359,83 @@ export class HaLockPrompt extends LitElement {
           : nothing
       }
       ${
+        wait > 0
+          ? html`<p class="callout" role="status">
+              <ha-svg-icon .path=${mdiTimerSand}></ha-svg-icon>
+              <span>${lockText("wait", { seconds: wait })}</span>
+            </p>`
+          : this._message
+            ? html`<p class="callout error" role="alert">
+                <ha-svg-icon .path=${mdiTimerSand}></ha-svg-icon>
+                <span>${this._message}</span>
+              </p>`
+            : nothing
+      }
+      ${
         factor === "pin"
           ? html`<ha-lock-pin-entry
-              .submitLabel=${
-                this._step === factors.length - 1
-                  ? lockText("unlock")
-                  : lockText("next")
-              }
+              .submitLabel=${last ? lockText("unlock") : lockText("next")}
               .disabled=${this._busy || wait > 0}
               @lock-pin-submit=${this._pinSubmitted}
               @lock-pin-cancel=${this._close}
             ></ha-lock-pin-entry>`
           : html`<form @submit=${this._textSubmitted} novalidate>
+              <p>${lockText(`factor_${factor}_label`)}</p>
               <ha-input
                 name="value"
                 type=${factor === "password" ? "password" : "text"}
                 inputmode=${factor === "totp" ? "numeric" : "text"}
                 autocomplete="off"
                 maxlength=${factor === "totp" ? 6 : 200}
-                .label=${lockText(`factor_${factor}_label`)}
+                .label=${
+                  factor === "totp"
+                    ? lockText("factor_totp_field")
+                    : lockText(`factor_${factor}_label`)
+                }
                 ?disabled=${this._busy || wait > 0}
               ></ha-input>
+              ${
+                factor === "totp"
+                  ? html`<p class="note">${lockText("totp_code_hint")}</p>`
+                  : nothing
+              }
               <div class="buttons">
-                <button type="button" @click=${this._close}>
-                  ${lockText("cancel")}
+                <button
+                  type="button"
+                  class="text"
+                  @click=${this._step > 0 ? this._back : this._close}
+                >
+                  ${this._step > 0 ? lockText("back") : lockText("cancel")}
                 </button>
                 <button
                   type="submit"
                   class="primary"
                   ?disabled=${this._busy || wait > 0}
                 >
-                  ${
-                    this._step === factors.length - 1
-                      ? lockText("unlock")
-                      : lockText("next")
-                  }
+                  ${last ? lockText("submit") : lockText("next")}
                 </button>
               </div>
             </form>`
       }
       ${
-        wait > 0
-          ? html`<p class="error" role="status">
-              ${lockText("wait", { seconds: wait })}
+        record.failures > 0
+          ? html`<p class="note">
+              ${lockText("tries", { count: record.failures })}
+              ${
+                nextWait > 0
+                  ? lockText("wait_next", { wait: this._duration(nextWait) })
+                  : nothing
+              }
             </p>`
           : nothing
       }
-      ${
-        this._message
-          ? html`<p class="error" role="alert">${this._message}</p>`
-          : nothing
-      }
     `;
+  }
+
+  private _back(): void {
+    this._message = "";
+    this._step = Math.max(0, this._step - 1);
+    this._focusFirst();
   }
 
   private _pinSubmitted(ev: CustomEvent<{ value: string }>): void {
@@ -292,89 +500,33 @@ export class HaLockPrompt extends LitElement {
     }
   }
 
-  static styles: CSSResultGroup = css`
-    :host {
-      display: contents;
-    }
-    .panel {
-      position: fixed;
-      z-index: 1000;
-      box-sizing: border-box;
-      overflow: auto;
-      padding: var(--ha-space-4);
-      border-radius: var(--ha-border-radius-3xl);
-      background: var(--card-background-color, #fff);
-      color: var(--primary-text-color);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-      border: 1px solid var(--divider-color);
-      display: grid;
-      gap: var(--ha-space-2);
-    }
-    h2 {
-      margin: 0;
-      font-size: var(--ha-font-size-l, 1.1rem);
-      overflow-wrap: anywhere;
-    }
-    .note {
-      margin: 0;
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s, 0.85rem);
-    }
-    .error {
-      margin: 0;
-      color: var(--error-color);
-    }
-    .steps {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--ha-space-2);
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .steps li {
-      padding: 2px var(--ha-space-2);
-      border-radius: var(--ha-border-radius-pill);
-      border: 1px solid var(--divider-color);
-      color: var(--secondary-text-color);
-    }
-    .steps li[aria-current="step"] {
-      border-color: var(--primary-color);
-      color: var(--primary-text-color);
-      font-weight: 600;
-    }
-    .steps li.done {
-      text-decoration: line-through;
-    }
-    .buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--ha-space-2);
-      margin-top: var(--ha-space-2);
-    }
-    button {
-      min-height: 48px;
-      border: 1px solid var(--divider-color);
-      border-radius: var(--ha-border-radius-lg);
-      background: var(--secondary-background-color);
-      color: var(--primary-text-color);
-      font: inherit;
-      cursor: pointer;
-    }
-    button.primary {
-      background: var(--primary-color);
-      color: var(--text-primary-color, #fff);
-      border-color: var(--primary-color);
-    }
-    button:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-  `;
+  static styles: CSSResultGroup = [
+    lockPanelStyles,
+    css`
+      form {
+        display: grid;
+        gap: var(--ha-space-3);
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      .callout.error {
+        color: var(--error-color);
+      }
+      .buttons button.text {
+        justify-self: start;
+      }
+      button.forgot {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+      }
+    `,
+  ];
 }
 
 declare global {

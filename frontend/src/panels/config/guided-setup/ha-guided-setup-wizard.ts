@@ -1,7 +1,7 @@
 import { mdiOpenInNew } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
 import "../../../components/ha-alert";
@@ -10,6 +10,7 @@ import "../../../components/ha-form/ha-form";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-yaml-editor";
+import type { HaFormSchema } from "../../../components/ha-form/types";
 import type {
   GuidedSetupApply,
   GuidedSetupEntry,
@@ -25,6 +26,7 @@ import {
   validateGuidedSetup,
 } from "../../../data/guided_setup";
 import { haStyle } from "../../../resources/styles";
+import { restartCore } from "../../../data/supervisor/core";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 
 type Step = "about" | "options" | "review" | "done";
@@ -72,9 +74,23 @@ export class HaGuidedSetupWizard extends LitElement {
 
   @state() private _apply?: GuidedSetupApply;
 
+  @state() private _applyError?: string;
+
+  @query("ha-alert.errors") private _errorsAlert?: HTMLElement;
+
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("integration") || changed.has("entry")) {
       this._reset();
+    }
+  }
+
+  protected updated(changed: PropertyValues): void {
+    if (
+      changed.has("_errors") &&
+      this._errors.length &&
+      this._step === "options"
+    ) {
+      this._errorsAlert?.focus();
     }
   }
 
@@ -217,6 +233,61 @@ export class HaGuidedSetupWizard extends LitElement {
     return form.kinds.find((kind) => kind.name === this._kind)?.fields ?? [];
   }
 
+  /** Runs of short numeric fields sit side by side where there is room. */
+  private _drawnSchema(form: GuidedSetupForm): HaFormSchema[] {
+    const result: HaFormSchema[] = [];
+    let run: GuidedSetupField[] = [];
+    const flush = () => {
+      if (run.length > 1) {
+        result.push({
+          name: "",
+          type: "grid",
+          flatten: true,
+          column_min_width: "200px",
+          schema: run,
+        });
+      } else {
+        result.push(...run);
+      }
+      run = [];
+    };
+    for (const field of this._fields(form)) {
+      if (
+        !field.free_form &&
+        ["integer", "float"].includes(field.type as string)
+      ) {
+        run.push(field);
+      } else {
+        flush();
+        result.push(field);
+      }
+    }
+    flush();
+    return result;
+  }
+
+  private async _applyChange(): Promise<void> {
+    const apply = this._apply;
+    if (!apply) {
+      return;
+    }
+    this._busy = true;
+    this._applyError = undefined;
+    try {
+      if (apply.mode === "reload" && apply.service) {
+        const [domain, service] = apply.service.split(".");
+        await this.hass.callService(domain, service);
+      } else {
+        await restartCore(this.hass);
+      }
+      this._close();
+    } catch (err: any) {
+      this._applyError = err?.message ?? String(err);
+    } finally {
+      this._busy = false;
+    }
+  }
+
   private _pickKind(ev: Event): void {
     this._kind = (ev.currentTarget as HTMLElement).dataset.kind;
     this._data = {};
@@ -316,27 +387,21 @@ export class HaGuidedSetupWizard extends LitElement {
     return html`
       <div class="wizard">
         <h2>${title}</h2>
-        <ol
-          class="steps"
-          aria-label=${this._l("step_of", {
-            current: index + 1,
-            total: STEPS.length,
-          })}
-        >
+        <div class="segments" aria-hidden="true">
           ${STEPS.map(
             (step, position) =>
-              html`<li
+              html`<span
                 class=${classMap({
                   current: step === this._step,
                   done: position < index,
                 })}
-                aria-current=${step === this._step ? "step" : "false"}
-              >
-                <span class="number">${position + 1}</span>
-                <span class="name">${this._l(`step_${step}`)}</span>
-              </li>`
+              ></span>`
           )}
-        </ol>
+        </div>
+        <p class="step-name" role="status">
+          ${this._l("step_of", { current: index + 1, total: STEPS.length })},
+          ${this._l(`step_${this._step}`)}
+        </p>
         ${this._step === "about" ? this._renderAbout() : nothing}
         ${this._step === "options" ? this._renderOptions() : nothing}
         ${this._step === "review" ? this._renderReview() : nothing}
@@ -419,7 +484,7 @@ export class HaGuidedSetupWizard extends LitElement {
                 .hass=${this.hass}
                 .narrow=${this.narrow}
                 .data=${this._data}
-                .schema=${this._fields(form)}
+                .schema=${this._drawnSchema(form)}
                 .error=${this._fieldErrors()}
                 .computeLabel=${this._computeLabel}
                 .computeHelper=${this._computeHelper}
@@ -476,7 +541,12 @@ export class HaGuidedSetupWizard extends LitElement {
     if (!this._errors.length) {
       return nothing;
     }
-    return html`<ha-alert alert-type="error" .title=${this._l("errors_title")}>
+    return html`<ha-alert
+      class="errors"
+      tabindex="-1"
+      alert-type="error"
+      .title=${this._l("errors_title")}
+    >
       <ul>
         ${this._errors.map(
           (error) =>
@@ -499,7 +569,9 @@ export class HaGuidedSetupWizard extends LitElement {
     return html`
       <section>
         <h3>${this._l("review_title")}</h3>
-        <p>${this._l("review_text")}</p>
+        <p>
+          ${this._l("review_text", { file: `guided_setup/${this.integration.domain}.yaml` })}
+        </p>
         <pre class="yaml" tabindex="0">${this._yaml}</pre>
         <p class="note">${this._l("plain_text_note")}</p>
         <div class="actions">
@@ -516,6 +588,7 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private _renderDone(): TemplateResult {
     const apply = this._apply;
+    const reload = apply?.mode === "reload";
     return html`
       <section>
         <ha-alert alert-type="success" .title=${this._l("saved_title")}>
@@ -525,17 +598,32 @@ export class HaGuidedSetupWizard extends LitElement {
           apply
             ? html`<p role="status">
                 ${
-                  apply.mode === "reload"
-                    ? this._l("apply_reload", { service: apply.service ?? "" })
-                    : this._l("apply_restart")
+                  reload
+                    ? this._l("done_reload", { name: this.integration.name })
+                    : this._l("done_restart", { name: this.integration.name })
                 }
               </p>`
             : nothing
         }
+        ${
+          this._applyError
+            ? html`<ha-alert alert-type="error">${this._applyError}</ha-alert>`
+            : nothing
+        }
         <div class="actions">
-          <ha-button @click=${this._close}>
-            ${this._l("back_to_list")}
+          <ha-button appearance="plain" @click=${this._close}>
+            ${this._l("later")}
           </ha-button>
+          ${
+            apply
+              ? html`<ha-button
+                  @click=${this._applyChange}
+                  .disabled=${this._busy}
+                >
+                  ${reload ? this._l("reload_now") : this._l("restart_now")}
+                </ha-button>`
+              : nothing
+          }
         </div>
       </section>
     `;
@@ -584,41 +672,25 @@ export class HaGuidedSetupWizard extends LitElement {
       h3 {
         margin: var(--ha-space-4) 0 var(--ha-space-1);
       }
-      .steps {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--ha-space-2);
-        list-style: none;
-        margin: 0 0 var(--ha-space-4);
-        padding: 0;
+      .segments {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--ha-space-1);
       }
-      .steps li {
-        display: flex;
-        align-items: center;
-        gap: var(--ha-space-2);
-        color: var(--secondary-text-color);
+      .segments span {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--divider-color);
       }
-      .steps li.current {
-        color: var(--primary-text-color);
-        font-weight: var(--ha-font-weight-medium);
-      }
-      .steps .number {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 1px solid var(--divider-color);
-        font-size: var(--ha-font-size-s);
-      }
-      .steps li.current .number {
+      .segments span.done {
         background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: var(--text-primary-color);
       }
-      .steps li.done .number {
-        border-color: var(--primary-color);
+      .segments span.current {
+        background: color-mix(in srgb, var(--primary-color) 40%, transparent);
+      }
+      .step-name {
+        margin: var(--ha-space-2) 0 var(--ha-space-4);
+        font-weight: var(--ha-font-weight-medium);
       }
       .note {
         color: var(--secondary-text-color);

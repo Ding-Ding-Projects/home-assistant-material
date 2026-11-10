@@ -23,6 +23,8 @@ export interface ConfirmationDialogParams extends BaseDialogBoxParams {
   cancel?: () => void;
   destructive?: boolean;
   action?: () => Promise<void>;
+  /** Name the person must type in the second step of a destructive confirmation. */
+  confirmName?: string;
 }
 
 export interface PromptDialogParams extends BaseDialogBoxParams {

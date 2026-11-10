@@ -471,11 +471,11 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   private _renderFixedPanels(selectedPanel: string) {
     // prettier-ignore
     return html`
+      ${this._renderNotifications()}
       ${this._renderDeveloperTools()}
       ${this.hass.user?.is_admin
         ? this._renderConfiguration(selectedPanel)
         : this._renderExternalConfiguration()}
-      ${this._renderNotifications()}
       ${this._renderUserItem(selectedPanel)}
     `;
   }
@@ -527,9 +527,13 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         class=${classMap({ selected: this._inTools })}
         href="/config/tools"
         id="sidebar-developer-tools"
+        aria-label=${title}
       >
         <ha-svg-icon slot="start" .path=${mdiHammer}></ha-svg-icon>
-        <span class="item-text" slot="headline">${title}</span>
+        <span class="item-text item-short" slot="headline"
+          >${this.hass.localize("ui.sidebar.developer_tools_short")}</span
+        >
+        <span class="item-text item-full" slot="headline">${title}</span>
       </ha-list-item-button>
       ${
         !this.alwaysExpand
@@ -1029,6 +1033,13 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
           line-height: var(--ha-line-height-condensed);
           font-weight: var(--ha-font-weight-medium);
           padding: 0 var(--ha-space-1);
+        }
+        ha-list-item-button .item-full,
+        :host([expanded]) ha-list-item-button .item-short {
+          display: none;
+        }
+        :host([expanded]) ha-list-item-button .item-full {
+          display: block;
         }
         :host([expanded]) ha-list-item-button .item-text {
           text-align: start;

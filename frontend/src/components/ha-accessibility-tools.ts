@@ -424,6 +424,19 @@ export class HaAccessibilityTools extends LitElement {
     #panel:popover-open {
       display: flex;
     }
+    /* On a phone the panel is a sheet above the bottom bar. */
+    @media (max-width: 700px) {
+      #panel {
+        top: auto;
+        inset-inline: var(--ha-space-3);
+        bottom: calc(
+          var(--ha-phone-bar-height, 0px) + var(--ha-space-2) +
+            var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+        );
+        width: auto;
+        max-height: calc(100dvh - 140px);
+      }
+    }
     .header {
       display: flex;
       align-items: center;

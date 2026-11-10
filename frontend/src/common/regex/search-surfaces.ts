@@ -80,6 +80,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Entries of the menu that opens on any element",
   },
   {
+    file: "components/phone/ha-phone-bar.ts",
+    searches: "Open pages in the Pages sheet on a phone",
+  },
+  {
     file: "components/ha-page-tabs.ts",
     searches: "Pages in the New tab catalog",
   },

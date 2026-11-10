@@ -17,6 +17,7 @@ import { fetchDashboards } from "../../../data/lovelace/dashboard";
 import { getPanelTitleFromUrlPath, LOVELACE_PANEL } from "../../../data/panel";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
+import { showErrorToast } from "../../../util/show-error-toast";
 import { showToast } from "../../../util/toast";
 import { SECTIONS_VIEW_LAYOUT } from "../views/const";
 import { getViewType } from "../views/get-view-type";
@@ -145,8 +146,12 @@ export const addEntitiesToLovelaceView = async (
     const save = async (newConfig: LovelaceConfig): Promise<void> => {
       try {
         await saveConfig(hass!, viewUrlPath, newConfig);
-      } catch (_err: any) {
-        alert(hass.localize("ui.panel.lovelace.add_entities.saving_failed"));
+      } catch (err: any) {
+        showErrorToast(
+          element,
+          hass.localize("ui.panel.lovelace.add_entities.saving_failed"),
+          err?.message
+        );
         return;
       }
       const dashboardPath = viewUrlPath ?? LOVELACE_PANEL;

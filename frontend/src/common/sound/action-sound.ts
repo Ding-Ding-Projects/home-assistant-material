@@ -50,19 +50,82 @@ export const gainForVolume = (volume: number): number =>
   (Math.min(100, Math.max(0, volume)) / 100) * 0.25;
 
 /** Why a cue would be silent, or undefined when it would play. */
-export type SilenceReason = "off" | "low-stimulation" | "volume-zero";
+export type SilenceReason =
+  "off" | "low-stimulation" | "quiet-hours" | "volume-zero";
+
+const minutesOf = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+/**
+ * True when `now` falls inside quiet hours. A day in `quietDays` is the day
+ * the quiet period starts on, so 22:00 to 07:00 on Friday runs into Saturday.
+ */
+export const isQuietNow = (
+  preferences: Pick<
+    PersonalPreferences,
+    "quietHours" | "quietFrom" | "quietTo" | "quietDays"
+  >,
+  now: Date = new Date()
+): boolean => {
+  if (!preferences.quietHours) {
+    return false;
+  }
+  const from = minutesOf(preferences.quietFrom);
+  const to = minutesOf(preferences.quietTo);
+  if (from === to) {
+    return false;
+  }
+  const minute = now.getHours() * 60 + now.getMinutes();
+  const today = now.getDay();
+  const yesterday = (today + 6) % 7;
+  if (from < to) {
+    return (
+      preferences.quietDays.includes(today) && minute >= from && minute < to
+    );
+  }
+  return (
+    (preferences.quietDays.includes(today) && minute >= from) ||
+    (preferences.quietDays.includes(yesterday) && minute < to)
+  );
+};
 
 export const silenceReason = (
   preferences: Pick<
     PersonalPreferences,
     "soundEffects" | "soundVolume" | "lowStimulation"
-  >
+  > &
+    Partial<
+      Pick<
+        PersonalPreferences,
+        "quietHours" | "quietFrom" | "quietTo" | "quietDays"
+      >
+    >,
+  now: Date = new Date()
 ): SilenceReason | undefined => {
   if (!preferences.soundEffects) {
     return "off";
   }
   if (preferences.lowStimulation) {
     return "low-stimulation";
+  }
+  if (
+    preferences.quietHours &&
+    preferences.quietFrom &&
+    preferences.quietTo &&
+    preferences.quietDays &&
+    isQuietNow(
+      {
+        quietHours: preferences.quietHours,
+        quietFrom: preferences.quietFrom,
+        quietTo: preferences.quietTo,
+        quietDays: preferences.quietDays,
+      },
+      now
+    )
+  ) {
+    return "quiet-hours";
   }
   if (preferences.soundVolume <= 0) {
     return "volume-zero";

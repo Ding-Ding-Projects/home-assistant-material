@@ -257,13 +257,15 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
     }
 
     if (this.yamlEditor.hasComments) {
-      if (
-        !confirm(
-          this.hass.localize(
-            "ui.panel.lovelace.editor.raw_editor.confirm_unsaved_comments"
-          )
-        )
-      ) {
+      const saveWithoutComments = await showConfirmationDialog(this, {
+        text: this.hass.localize(
+          "ui.panel.lovelace.editor.raw_editor.confirm_unsaved_comments"
+        ),
+        confirmText: this.hass.localize("ui.replaced_dialogs.save_anyway"),
+        dismissText: this.hass.localize("ui.common.cancel"),
+      });
+      if (!saveWithoutComments) {
+        this._saving = false;
         return;
       }
     }

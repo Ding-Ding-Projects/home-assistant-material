@@ -8,6 +8,25 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- On a phone there is a bar at the bottom: Home, Search, Pages, Access and Menu. Pages opens
+  a sheet of the open pages with a search, New tab, and closing by button or swipe, with Undo.
+  A slim bar at the top switches between open pages.
+- The pattern workbench on a phone has three tabs and More, one chip for the flags, and a
+  footer that gets out of the way of the keyboard. On a wide screen the flags are named
+  chips and the tabs wrap.
+- Holding an element shows a ring and opens a sheet on a phone; on a wide screen the menu
+  sits beside the element and each tool has a one-letter shortcut.
+- The lock wizard has six steps with a progress line and a QR code for the one-time code. The
+  unlock prompt counts down a wait, and the list of locks filters, selects several and shows
+  the time left.
+- Personal settings are grouped, show what each control reaches, and gain quiet hours for
+  sounds. Guided setup lists what is set up first, and its last step offers one action:
+  reload or restart. The guidance note in setup dialogs opens as a sheet.
+- Fifteen of the browser's own blocking boxes are replaced by messages and dialogs of the
+  interface. Deleting an energy source, removing a Matter fabric, resetting a Thread border
+  router and turning off a second sign-in step ask twice.
+- Turning on a preview feature with its backup switch on no longer fails when automatic
+  backups are not set up. The backup is kept on this system.
 - Guided setup draws real fields for 223 of the 240 integrations it lists, up from 10: text,
   numbers, switches, choices, templates, durations and entity pickers, and a first step that
   asks which kind of item to add where an integration has several.

@@ -262,6 +262,7 @@ export class EnergyGridSettings extends LitElement {
     if (
       !(await showConfirmationDialog(this, {
         title: this.hass.localize("ui.panel.config.energy.delete_integration"),
+        destructive: true,
       }))
     ) {
       return;
@@ -324,6 +325,7 @@ export class EnergyGridSettings extends LitElement {
     if (
       !(await showConfirmationDialog(this, {
         title: this.hass.localize("ui.panel.config.energy.delete_source"),
+        destructive: true,
       }))
     ) {
       return;

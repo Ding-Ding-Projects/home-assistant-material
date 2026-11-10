@@ -32,6 +32,7 @@ import "../components/ha-accessibility-tools";
 import type { HaAccessibilityTools } from "../components/ha-accessibility-tools";
 import "../components/ha-drawer";
 import "../components/ha-page-tabs";
+import "../components/phone/ha-phone-bar";
 import "../components/page/ha-page-tool-panel";
 import type { HaPageToolPanel } from "../components/page/ha-page-tool-panel";
 import { narrowViewportContext } from "../data/context";
@@ -63,6 +64,9 @@ export class HomeAssistantMain extends LitElement {
   @state() private _externalSidebar = false;
 
   @state() private _drawerOpen = false;
+
+  /** Below 700 px the tab bar gives way to the bottom bar. */
+  @state() private _phone = false;
 
   @storage({
     key: DEBUG_SAFE_AREA_TOOL_STORAGE_KEY,
@@ -96,6 +100,9 @@ export class HomeAssistantMain extends LitElement {
     listenMediaQuery("(max-width: 870px)", (matches) => {
       this.narrow = matches;
     });
+    listenMediaQuery("(max-width: 700px)", (matches) => {
+      this._phone = matches;
+    });
   }
 
   protected render(): TemplateResult {
@@ -111,6 +118,14 @@ export class HomeAssistantMain extends LitElement {
       ${
         isPanelReady && !sidebarNarrow
           ? html`<ha-page-tabs .hass=${this.hass}></ha-page-tabs>`
+          : nothing
+      }
+      ${
+        isPanelReady && this._showPhoneBar
+          ? html`<ha-phone-bar
+              .hass=${this.hass}
+              .phone=${this._phone}
+            ></ha-phone-bar>`
           : nothing
       }
       <ha-drawer
@@ -337,10 +352,16 @@ export class HomeAssistantMain extends LitElement {
 
     this.toggleAttribute("expanded", this.hass.dockedSidebar === "docked");
 
+    this.toggleAttribute("phone", this._showPhoneBar);
+
     this.toggleAttribute(
       "modal",
       this._sidebarNarrow || this._externalSidebar || this.hass.kioskMode
     );
+  }
+
+  private get _showPhoneBar() {
+    return this._phone && !this._externalSidebar && !this.hass.kioskMode;
   }
 
   private get _sidebarNarrow() {
@@ -400,6 +421,20 @@ export class HomeAssistantMain extends LitElement {
       --safe-area-inset-right: calc(
         var(--app-safe-area-inset-right, env(safe-area-inset-right, 0px)) +
           var(--ha-pane-gap)
+      );
+    }
+    /* Below 700 px a slim top bar and a bottom bar replace the tab bar. Pages
+       are told about both so nothing sits under them. */
+    :host([phone]) {
+      --ha-phone-top-height: 48px;
+      --ha-phone-bar-height: 64px;
+      --safe-area-inset-top: calc(
+        var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+          var(--ha-phone-top-height)
+      );
+      --safe-area-inset-bottom: calc(
+        var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-phone-bar-height)
       );
     }
     .pane-frame {

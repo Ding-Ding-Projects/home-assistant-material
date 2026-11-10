@@ -187,6 +187,7 @@ export class EnergyHomeSettings extends LitElement {
     if (
       !(await showConfirmationDialog(this, {
         title: this._i18n.localize("ui.panel.config.energy.delete_source"),
+        destructive: true,
       }))
     ) {
       return;

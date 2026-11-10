@@ -2,6 +2,7 @@ import type { PropertyValues } from "lit";
 import { subscribeUser, userCollection } from "../data/ws-user";
 import type { Constructor } from "../types";
 import { clearState } from "../util/ha-pref-storage";
+import { showErrorToast } from "../util/show-error-toast";
 import type { HassBaseEl } from "./hass-base-mixin";
 
 declare global {
@@ -37,7 +38,11 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       } catch (err: any) {
         // eslint-disable-next-line
         console.error(err);
-        alert("Log out failed");
+        showErrorToast(
+          this,
+          this.hass!.localize("ui.replaced_dialogs.logout_failed"),
+          err?.message
+        );
       }
     }
   };

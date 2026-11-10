@@ -8,6 +8,7 @@ import { consume } from "../common/decorators/consume";
 import { fireEvent } from "../common/dom/fire_event";
 import { copyToClipboard } from "../common/util/copy-clipboard";
 import { haStyle } from "../resources/styles";
+import { showErrorToast } from "../util/show-error-toast";
 import { showToast } from "../util/toast";
 import "./ha-button";
 import "./ha-code-editor";
@@ -78,7 +79,12 @@ export class HaYamlEditor extends LitElement {
     } catch (err: any) {
       // eslint-disable-next-line no-console
       console.error(err, value);
-      alert(`There was an error converting to YAML: ${err}`);
+      showErrorToast(
+        this,
+        this._i18n?.localize("ui.replaced_dialogs.yaml_convert_failed") ??
+          "Could not convert to YAML",
+        String(err)
+      );
     }
   }
 

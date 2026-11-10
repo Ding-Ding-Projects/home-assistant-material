@@ -1,8 +1,10 @@
 import type { ContextType } from "@lit/context";
 import {
+  mdiClose,
   mdiContentCopy,
   mdiExportVariant,
   mdiFormatPaint,
+  mdiGestureTapHold,
   mdiHistory,
   mdiLock,
   mdiLockOutline,
@@ -14,6 +16,7 @@ import {
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, query, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import {
   canReadAloud,
@@ -99,9 +102,36 @@ interface MenuItem {
   id: string;
   icon: string;
   label: string;
+  /** The key combination that does this from anywhere, shown as a hint. */
   shortcut?: string;
+  /** One letter that runs this while the menu is open; never translated. */
+  letter?: string;
   run: () => void;
 }
+
+/**
+ * The letter that runs each tool while the menu is open. They are the same
+ * in every language, so a person's fingers learn them once.
+ */
+const MENU_LETTERS: Record<string, string> = {
+  edit: "a",
+  edit_kind: "k",
+  reset_element: "x",
+  reset_kind: "y",
+  read: "r",
+  copy: "c",
+  search: "s",
+  lock_element: "l",
+  page_export: "e",
+  page_history: "h",
+  page_lock: "p",
+};
+
+/** Below this window width the menu is a bottom sheet, not an anchored one. */
+const PHONE_WIDTH = 700;
+
+/** How far a swipe down on the sheet's top must go to close it. */
+const SWIPE_CLOSE_PX = 64;
 
 /**
  * The shortcuts of this tool. The menu shows them and the key handler reads
@@ -138,6 +168,15 @@ const matchesShortcut = (
 
 /** How long a finger rests on an element before its menu opens. */
 const TOUCH_HOLD_MS = 600;
+
+/** After this long a ring starts to fill, so a hold is seen as a hold. */
+const TOUCH_RING_MS = 150;
+
+/** A finger that moves farther than this is scrolling, not holding. */
+const TOUCH_MOVE_PX = 10;
+
+/** Where a menu was asked for: it decides where the focus goes. */
+type MenuSource = "pointer" | "keyboard" | "touch";
 
 /** Components with a hold of their own, which this menu leaves alone. */
 const HOLDS_ITSELF = new Set(["ha-page-tool-panel", "ha-dialog-tools"]);
@@ -176,6 +215,16 @@ export class HaAppearanceTools extends LitElement {
 
   @state() private _menuIndex = 0;
 
+  /** True while the menu is the bottom sheet of a phone. */
+  @state() private _menuPhone = false;
+
+  /** Where the dragged sheet is, while a finger pulls it down. */
+  @state() private _sheetOffset = 0;
+
+  @state() private _ringStyle: Record<string, string> = {};
+
+  @state() private _targetStyle: Record<string, string> = { display: "none" };
+
   @state() private _picking = false;
 
   @state() private _pickOutline: Record<string, string> = { display: "none" };
@@ -187,6 +236,12 @@ export class HaAppearanceTools extends LitElement {
   @query("#menu") private _menu?: HTMLElement;
 
   @query("#pick") private _pickBox?: HTMLElement;
+
+  @query("#ring") private _ring?: HTMLElement;
+
+  @query("#hold") private _holdHint?: HTMLElement;
+
+  @query("#target") private _targetBox?: HTMLElement;
 
   @query("#banner") private _banner?: HTMLElement;
 
@@ -250,7 +305,7 @@ export class HaAppearanceTools extends LitElement {
     window.removeEventListener("touchmove", this._touchMove, true);
     window.removeEventListener("touchend", this._touchEnd, true);
     window.removeEventListener("touchcancel", this._touchEnd, true);
-    window.clearTimeout(this._holdTimer);
+    this._cancelHold();
     window.removeEventListener("keydown", this._keydown, true);
     window.removeEventListener("pointerdown", this._pointerDown, true);
     window.removeEventListener("location-changed", this._scheduleScan);
@@ -441,13 +496,15 @@ export class HaAppearanceTools extends LitElement {
     }
     ev.preventDefault();
     // A phone that sends this event on a long press needs no second menu.
-    window.clearTimeout(this._holdTimer);
+    this._cancelHold();
     const rect = chain[0].getBoundingClientRect();
+    const atPointer = fromPointer || ev.clientX || ev.clientY;
     this._openMenu(
       chain,
-      fromPointer || ev.clientX || ev.clientY
+      atPointer
         ? { x: ev.clientX, y: ev.clientY }
-        : { x: rect.left + 12, y: rect.bottom }
+        : { x: rect.left + 12, y: rect.bottom },
+      atPointer ? "pointer" : "keyboard"
     );
   };
 
@@ -470,12 +527,46 @@ export class HaAppearanceTools extends LitElement {
 
   private _holdTimer?: number;
 
+  private _ringTimer?: number;
+
+  private _holdShown = false;
+
   private _holdPoint?: { x: number; y: number };
+
+  /** Stops a hold in progress and takes its ring and hint away. */
+  private _cancelHold() {
+    window.clearTimeout(this._holdTimer);
+    window.clearTimeout(this._ringTimer);
+    this._holdShown = false;
+    [this._ring, this._holdHint].forEach((box) => {
+      if (box?.matches(":popover-open")) {
+        box.hidePopover();
+      }
+    });
+  }
+
+  // The ring and the hint appear from the first 150 ms of a hold.
+  private async _showHold(point: { x: number; y: number }) {
+    this._holdShown = true;
+    this._ringStyle = {
+      left: `${point.x - 28}px`,
+      top: `${point.y - 28}px`,
+    };
+    await this.updateComplete;
+    if (!this._holdShown) {
+      return;
+    }
+    [this._ring, this._holdHint].forEach((box) => {
+      if (box && !box.matches(":popover-open")) {
+        box.showPopover();
+      }
+    });
+  }
 
   private _holdOpened = false;
 
   private _touchStart = (ev: TouchEvent) => {
-    window.clearTimeout(this._holdTimer);
+    this._cancelHold();
     this._holdOpened = false;
     const path = ev.composedPath();
     if (ev.touches.length !== 1 || this._isOwn(path)) {
@@ -500,7 +591,12 @@ export class HaAppearanceTools extends LitElement {
     }
     const point = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
     this._holdPoint = point;
+    this._ringTimer = window.setTimeout(
+      () => this._showHold(point),
+      TOUCH_RING_MS
+    );
     this._holdTimer = window.setTimeout(() => {
+      this._cancelHold();
       if (this._menu?.matches(":popover-open")) {
         return;
       }
@@ -509,7 +605,11 @@ export class HaAppearanceTools extends LitElement {
         return;
       }
       this._holdOpened = true;
-      this._openMenu(chain, point);
+      // One short buzz, where the phone allows it.
+      if ("vibrate" in navigator) {
+        navigator.vibrate(25);
+      }
+      this._openMenu(chain, point, "touch");
     }, TOUCH_HOLD_MS);
   };
 
@@ -521,14 +621,14 @@ export class HaAppearanceTools extends LitElement {
       Math.hypot(
         touch.clientX - this._holdPoint.x,
         touch.clientY - this._holdPoint.y
-      ) > 10
+      ) > TOUCH_MOVE_PX
     ) {
-      window.clearTimeout(this._holdTimer);
+      this._cancelHold();
     }
   };
 
   private _touchEnd = (ev: TouchEvent) => {
-    window.clearTimeout(this._holdTimer);
+    this._cancelHold();
     if (this._holdOpened) {
       // Lifting the finger must not press what is under it.
       this._holdOpened = false;
@@ -538,41 +638,115 @@ export class HaAppearanceTools extends LitElement {
     }
   };
 
+  private _menuPoint = { x: 0, y: 0 };
+
   private async _openMenu(
     chain: HTMLElement[],
-    point: { x: number; y: number }
+    point: { x: number; y: number },
+    source: MenuSource
   ) {
     this._moveNear(chain);
     this._menuChain = chain;
+    this._menuPoint = point;
     this._menuFilter = "";
     this._menuIndex = 0;
-    // The visible screen is smaller than the window while a phone's
-    // keyboard is up; the menu scrolls inside whatever is left.
-    const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
-    const offsetTop = window.visualViewport?.offsetTop ?? 0;
-    const width = Math.min(320, window.innerWidth - 16);
-    const height = Math.min(560, visibleHeight - 16);
-    this._menuPosition = {
-      left: `${Math.max(8, Math.min(point.x, window.innerWidth - width - 8))}px`,
-      top: `${offsetTop + Math.max(8, Math.min(point.y, visibleHeight - height - 8))}px`,
-      "max-height": `${height}px`,
-    };
+    this._sheetOffset = 0;
+    this._placeMenu();
+    window.visualViewport?.addEventListener("resize", this._placeMenu);
+    window.addEventListener("resize", this._placeMenu);
     await this.updateComplete;
     if (this._menu && !this._menu.matches(":popover-open")) {
       this._menu.showPopover();
     }
+    this._showTarget();
     await this._menuSearch?.updateComplete;
-    this._menuSearch?.focus();
+    // The search takes the focus when the menu was asked for with the
+    // keyboard. From a pointer or a finger it stays out, so a letter runs
+    // its tool and a phone's keyboard does not open over the sheet.
+    if (source === "keyboard") {
+      this._menuSearch?.focus();
+    } else {
+      this._menu?.focus();
+    }
+  }
+
+  // The menu sits beside the element on a wide screen, on its right edge
+  // and on its left when there is no room. On a phone it is a bottom sheet
+  // over the visible screen, which is what is left above the keyboard.
+  private _placeMenu = () => {
+    const chain = this._menuChain;
+    if (!chain) {
+      return;
+    }
+    const phone = window.innerWidth < PHONE_WIDTH;
+    this._menuPhone = phone;
+    const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+    const offsetTop = window.visualViewport?.offsetTop ?? 0;
+    if (phone) {
+      this._menuPosition = {
+        left: "0px",
+        top: `${offsetTop}px`,
+        width: "100%",
+        height: `${visibleHeight}px`,
+      };
+      this._targetStyle = { display: "none" };
+      return;
+    }
+    const width = Math.min(320, window.innerWidth - 16);
+    const height = Math.min(560, visibleHeight - 16);
+    const rect = chain[this._defaultIndex(chain)].getBoundingClientRect();
+    // A big element, such as a whole page, has no edge worth anchoring to.
+    const anchored =
+      rect.width > 0 &&
+      rect.width < window.innerWidth * 0.6 &&
+      rect.height < visibleHeight * 0.8;
+    let left = anchored ? rect.right + 8 : this._menuPoint.x;
+    if (anchored && left + width > window.innerWidth - 8) {
+      left = rect.left - width - 8;
+    }
+    const top = anchored ? rect.top : this._menuPoint.y;
+    this._menuPosition = {
+      left: `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`,
+      top: `${offsetTop + Math.max(8, Math.min(top, visibleHeight - height - 8))}px`,
+      "max-height": `${height}px`,
+    };
+    // The element keeps a 3 px outline while its menu is open.
+    this._targetStyle = anchored
+      ? {
+          left: `${rect.left}px`,
+          top: `${rect.top}px`,
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
+        }
+      : { display: "none" };
+  };
+
+  private _showTarget() {
+    if (
+      this._menuChain &&
+      !this._menuPhone &&
+      this._targetStyle.display !== "none" &&
+      this._targetBox &&
+      !this._targetBox.matches(":popover-open")
+    ) {
+      this._targetBox.showPopover();
+    }
   }
 
   private _closeMenu() {
     if (this._menu?.matches(":popover-open")) {
       this._menu.hidePopover();
     }
+    if (this._targetBox?.matches(":popover-open")) {
+      this._targetBox.hidePopover();
+    }
+    window.visualViewport?.removeEventListener("resize", this._placeMenu);
+    window.removeEventListener("resize", this._placeMenu);
     this._menuChain = undefined;
+    this._sheetOffset = 0;
   }
 
-  private _menuItems(): MenuItem[] {
+  private _menuItems(filtered = true): MenuItem[] {
     const chain = this._menuChain;
     if (!chain?.length) {
       return [];
@@ -681,8 +855,20 @@ export class HaAppearanceTools extends LitElement {
         }
       );
     }
+    items.forEach((item) => {
+      item.letter = MENU_LETTERS[item.id];
+    });
+    if (!filtered) {
+      return items;
+    }
     const matches = searchMatcher(this._menuFilter);
     return items.filter((item) => matches(item.label));
+  }
+
+  /** The element the menu is about: the one a person most likely means. */
+  private get _menuElement(): HTMLElement | undefined {
+    const chain = this._menuChain;
+    return chain?.length ? chain[this._defaultIndex(chain)] : undefined;
   }
 
   private _runItem(item: MenuItem | undefined) {
@@ -711,8 +897,60 @@ export class HaAppearanceTools extends LitElement {
       } else {
         this._closeMenu();
       }
+    } else if (
+      ev.key.length === 1 &&
+      !ev.ctrlKey &&
+      !ev.metaKey &&
+      !ev.altKey &&
+      !(this._menuSearch && ev.composedPath().includes(this._menuSearch))
+    ) {
+      // A letter runs its tool when the search is not what is being typed in.
+      const letter = ev.key.toLowerCase();
+      const item = this._menuItems(false).find(
+        (entry) => entry.letter === letter
+      );
+      if (item) {
+        ev.preventDefault();
+        this._runItem(item);
+      }
     }
     ev.stopPropagation();
+  }
+
+  // The backdrop behind the phone sheet closes it when it is tapped.
+  private _backdropClicked(ev: MouseEvent) {
+    if (this._menuPhone && ev.target === this._menu) {
+      this._closeMenu();
+    }
+  }
+
+  private _dragFrom?: number;
+
+  private _sheetDragStart(ev: PointerEvent) {
+    this._dragFrom = ev.clientY;
+    (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+  }
+
+  private _sheetDragMove(ev: PointerEvent) {
+    if (this._dragFrom !== undefined) {
+      this._sheetOffset = Math.max(0, ev.clientY - this._dragFrom);
+    }
+  }
+
+  // A swipe down on the sheet's top closes it; a short one lets it go back.
+  private _sheetDragEnd() {
+    if (this._dragFrom === undefined) {
+      return;
+    }
+    this._dragFrom = undefined;
+    if (this._sheetOffset > SWIPE_CLOSE_PX) {
+      this._closeMenu();
+    }
+    this._sheetOffset = 0;
+  }
+
+  private _closeMenuClicked() {
+    this._closeMenu();
   }
 
   private _menuFilterChanged(ev: Event) {
@@ -799,7 +1037,11 @@ export class HaAppearanceTools extends LitElement {
       const chain = this._chainFrom(active);
       const rect = active.getBoundingClientRect();
       if (chain.length) {
-        this._openMenu(chain, { x: rect.left + 12, y: rect.bottom });
+        this._openMenu(
+          chain,
+          { x: rect.left + 12, y: rect.bottom },
+          "keyboard"
+        );
       }
     }
   };
@@ -892,53 +1134,128 @@ export class HaAppearanceTools extends LitElement {
 
   protected render(): TemplateResult {
     const items = this._menuChain ? this._menuItems() : [];
+    const phone = this._menuPhone;
+    const element = this._menuElement;
     return html`
       <div
         id="menu"
+        class=${classMap({ phone, expanded: phone && !!this._menuFilter })}
         popover="manual"
         role="dialog"
+        tabindex="-1"
         aria-label=${this._l("menu_title")}
         style=${styleMap(this._menuPosition)}
         @keydown=${this._menuKeydown}
+        @click=${this._backdropClicked}
       >
         ${
           this._menuChain
             ? html`
-                <ha-input-search
-                  appearance="outlined"
-                  .value=${this._menuFilter}
-                  .placeholder=${this._l("menu_filter")}
-                  .accessibleLabel=${this._l("menu_filter")}
-                  @input=${this._menuFilterChanged}
-                ></ha-input-search>
-                <div class="items" role="menu">
+                <div
+                  class="body"
+                  style=${styleMap(
+                    this._sheetOffset
+                      ? { transform: `translateY(${this._sheetOffset}px)` }
+                      : {}
+                  )}
+                >
                   ${
-                    items.length
-                      ? items.map(
-                          (item, index) => html`
-                            <button
-                              role="menuitem"
-                              class=${index === this._menuIndex ? "active" : ""}
-                              .itemId=${item.id}
-                              @click=${this._menuItemClicked}
-                            >
-                              <ha-svg-icon .path=${item.icon}></ha-svg-icon>
-                              <span class="item-label">${item.label}</span>
-                              ${
-                                item.shortcut
-                                  ? html`<kbd>${item.shortcut}</kbd>`
-                                  : nothing
-                              }
-                            </button>
-                          `
-                        )
-                      : html`<p class="note">${this._l("menu_empty")}</p>`
+                    phone && element
+                      ? html`
+                          <div
+                            class="grab"
+                            @pointerdown=${this._sheetDragStart}
+                            @pointermove=${this._sheetDragMove}
+                            @pointerup=${this._sheetDragEnd}
+                            @pointercancel=${this._sheetDragEnd}
+                          >
+                            <span class="handle" aria-hidden="true"></span>
+                            <div class="sheet-head">
+                              <div class="sheet-title">
+                                <span class="sheet-name"
+                                  >${kindLabel(element.localName)}</span
+                                >
+                                ${
+                                  document.title
+                                    ? html`<span class="note"
+                                        >${this._l("sheet_subtitle", {
+                                          page: document.title,
+                                        })}</span
+                                      >`
+                                    : nothing
+                                }
+                              </div>
+                              <button
+                                class="sheet-close"
+                                aria-label=${this._l("menu_close")}
+                                @click=${this._closeMenuClicked}
+                              >
+                                <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
+                              </button>
+                            </div>
+                          </div>
+                        `
+                      : nothing
                   }
+                  <ha-input-search
+                    appearance="outlined"
+                    .value=${this._menuFilter}
+                    .placeholder=${this._l("menu_filter")}
+                    .accessibleLabel=${this._l("menu_filter")}
+                    @input=${this._menuFilterChanged}
+                  ></ha-input-search>
+                  <div class="items" role="menu">
+                    ${
+                      items.length
+                        ? items.map(
+                            (item, index) => html`
+                              <button
+                                role="menuitem"
+                                class=${index === this._menuIndex ? "active" : ""}
+                                .itemId=${item.id}
+                                @click=${this._menuItemClicked}
+                              >
+                                <ha-svg-icon .path=${item.icon}></ha-svg-icon>
+                                <span class="item-label">${item.label}</span>
+                                ${
+                                  item.letter
+                                    ? html`<kbd title=${item.shortcut ?? ""}
+                                        >${item.letter.toUpperCase()}</kbd
+                                      >`
+                                    : nothing
+                                }
+                              </button>
+                            `
+                          )
+                        : html`<p class="note">${this._l("menu_empty")}</p>`
+                    }
+                  </div>
+                  <p class="note">${this._l("menu_note")}</p>
                 </div>
-                <p class="note">${this._l("menu_note")}</p>
               `
             : nothing
         }
+      </div>
+      <div
+        id="target"
+        popover="manual"
+        aria-hidden="true"
+        style=${styleMap(this._targetStyle)}
+      ></div>
+      <div
+        id="ring"
+        popover="manual"
+        aria-hidden="true"
+        style=${styleMap(this._ringStyle)}
+      >
+        <svg viewBox="0 0 56 56">
+          <circle class="track" cx="28" cy="28" r="24"></circle>
+          <circle class="fill" cx="28" cy="28" r="24"></circle>
+        </svg>
+      </div>
+      <div id="hold" popover="manual">
+        <ha-svg-icon .path=${mdiGestureTapHold}></ha-svg-icon>
+        <span>${this._l("hold_hint")}</span>
       </div>
       <div
         id="pick"
@@ -989,8 +1306,157 @@ export class HaAppearanceTools extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-2);
     }
+    #menu:focus {
+      outline: none;
+    }
+    #menu:not(.phone) .body {
+      display: contents;
+    }
     #menu ha-input-search {
       --ha-input-search-border-radius: var(--ha-border-radius-pill);
+    }
+    #menu.phone {
+      max-width: none;
+      padding: 0;
+      border-radius: 0;
+      background: rgba(0, 0, 0, 0.32);
+      box-shadow: none;
+      overflow: hidden;
+    }
+    #menu.phone:popover-open {
+      justify-content: flex-end;
+      gap: 0;
+    }
+    .phone .body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      box-sizing: border-box;
+      max-height: 100%;
+      padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
+      border-radius: var(--ha-border-radius-4xl) var(--ha-border-radius-4xl) 0 0;
+      background: var(--card-background-color);
+    }
+    .phone.expanded .body {
+      height: 100%;
+      border-radius: 0;
+    }
+    .phone kbd {
+      display: none;
+    }
+    .grab {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      touch-action: none;
+    }
+    .handle {
+      align-self: center;
+      width: 32px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--divider-color);
+    }
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+    }
+    .sheet-title {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .sheet-name {
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+    .sheet-title .note {
+      padding: 0;
+    }
+    .sheet-close {
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      width: var(--ha-space-10);
+      height: var(--ha-space-10);
+      border-radius: var(--ha-border-radius-circle);
+      --mdc-icon-size: 20px;
+    }
+    .sheet-close:hover {
+      background: var(--ha-color-fill-neutral-quiet-hover);
+    }
+    .sheet-close:focus-visible {
+      outline: 2px solid var(--primary-color);
+    }
+    #target {
+      position: fixed;
+      box-sizing: border-box;
+      padding: 0;
+      border: 3px solid var(--primary-color);
+      border-radius: var(--ha-border-radius-lg);
+      background: none;
+      pointer-events: none;
+      overflow: visible;
+    }
+    #ring {
+      position: fixed;
+      width: 56px;
+      height: 56px;
+      padding: 0;
+      background: none;
+      pointer-events: none;
+      overflow: visible;
+    }
+    #ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    #ring circle {
+      fill: none;
+      stroke-width: 4;
+    }
+    #ring .track {
+      stroke: color-mix(in srgb, var(--primary-color) 24%, transparent);
+    }
+    #ring .fill {
+      stroke: var(--primary-color);
+      stroke-linecap: round;
+      stroke-dasharray: 151;
+      stroke-dashoffset: 151;
+      animation: ring-fill 450ms linear forwards;
+    }
+    @keyframes ring-fill {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #ring .fill {
+        animation: none;
+        stroke-dashoffset: 0;
+      }
+    }
+    #hold {
+      position: fixed;
+      left: 50%;
+      bottom: var(--ha-space-6);
+      transform: translateX(-50%);
+      padding: var(--ha-space-3) var(--ha-space-4);
+      border-radius: var(--ha-border-radius-pill);
+      background: var(--primary-text-color);
+      color: var(--card-background-color);
+      pointer-events: none;
+      --mdc-icon-size: 20px;
+    }
+    #hold:popover-open {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
     }
     .items {
       display: flex;

@@ -15,6 +15,7 @@ import { DirtyStateProviderMixin } from "../../../mixins/dirty-state-provider-mi
 import { haStyleDialog } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
+import { showErrorToast } from "../../../util/show-error-toast";
 import { expandLovelaceConfigStrategies } from "../strategies/get-strategy";
 import type { SaveDialogParams } from "./show-save-config-dialog";
 
@@ -194,7 +195,11 @@ export class HuiSaveConfig
       this._markDirtyStateClean();
       this.closeDialog();
     } catch (err: any) {
-      alert(`Saving failed: ${err.message}`);
+      showErrorToast(
+        this,
+        this.hass.localize("ui.replaced_dialogs.dashboard_save_failed"),
+        err.message
+      );
       this._saving = false;
     }
   }

@@ -32,6 +32,7 @@ import {
 } from "../data/category_registry";
 import { apiContext, connectionContext } from "../data/context";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
+import { showErrorToast } from "../util/show-error-toast";
 import { showCategoryRegistryDetailDialog } from "../panels/config/category/show-dialog-category-registry-detail";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistantConnection } from "../types";
@@ -278,7 +279,11 @@ export class HaFilterCategories extends LitElement {
         this._setValue(this.value.filter((categoryId) => categoryId !== id));
       }
     } catch (err: any) {
-      alert(`Failed to delete: ${err.message}`);
+      showErrorToast(
+        this,
+        this._localize("ui.replaced_dialogs.category_delete_failed"),
+        err.message
+      );
     }
   }
 
