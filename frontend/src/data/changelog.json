@@ -4,7 +4,11 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Lists: the icon of each row sits on a small tile, and a device row names its maker and model under the device."
+          "text": "The rail has an Assist button at its top."
+        },
+        {
+          "text": "Lists: the icon of each row sits on a small tile, and a device row names its maker and model under the device.",
+          "commit": "fcdf322ced57"
         },
         {
           "text": "What changed: this list inside the interface, under Settings, About, with a search, a range of days and the commit behind each entry. It ships with the build and opens without a connection.",

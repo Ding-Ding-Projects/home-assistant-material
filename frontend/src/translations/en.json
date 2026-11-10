@@ -3554,6 +3554,7 @@
       "provenance_updated": "Updated {date} at {time}",
       "provenance_unavailable": "Build time unavailable",
       "sidebar_toggle": "Sidebar toggle",
+      "assist": "Assist",
       "edit_sidebar": "Edit sidebar",
       "edit_subtitle": "Synced on all devices",
       "migrate_to_user_data": "This will change the sidebar on all the devices you are logged in to. To create a sidebar per device, you should use a different user for that device.",

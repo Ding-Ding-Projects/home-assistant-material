@@ -4,6 +4,7 @@ import {
   mdiCog,
   mdiMenu,
   mdiMenuOpen,
+  mdiMicrophone,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
@@ -45,6 +46,7 @@ import "./ha-tooltip";
 import "./item/ha-list-item-button";
 import "./list/ha-list-nav";
 import "./user/ha-user-badge";
+import { showVoiceCommandDialog } from "../dialogs/voice-command-dialog/show-ha-voice-command-dialog";
 
 const SORT_VALUE_URL_PATHS = {
   energy: 1,
@@ -235,7 +237,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
     // prettier-ignore
     return html`
-      ${this._renderHeader()}
+      ${this._renderHeader()} ${this._renderAssist()}
       ${this._renderAllPanels(selectedPanel)}
       ${this._renderProvenance()}`;
   }
@@ -354,6 +356,28 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       }
       <div class="title">${this.sidebarTitle}</div>
     </div>`;
+  }
+
+  /** The button at the top of the rail that opens Assist, when it is set up. */
+  private _renderAssist() {
+    if (!this.hass.config.components.includes("conversation")) {
+      return nothing;
+    }
+    const label = this.hass.localize("ui.sidebar.assist");
+    return html`<button
+      type="button"
+      class="assist"
+      aria-label=${label}
+      title=${label}
+      @click=${this._openAssist}
+    >
+      <ha-svg-icon .path=${mdiMicrophone}></ha-svg-icon>
+      <span class="assist-text">${label}</span>
+    </button>`;
+  }
+
+  private _openAssist() {
+    showVoiceCommandDialog(this, this.hass, { pipeline_id: "last_used" });
   }
 
   private _renderAllPanels(selectedPanel: string) {
@@ -762,6 +786,41 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         }
         .menu ha-icon-button {
           color: var(--sidebar-icon-color);
+        }
+        .assist {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--ha-space-3);
+          flex: none;
+          box-sizing: border-box;
+          width: 56px;
+          height: 56px;
+          margin: var(--ha-space-2) auto var(--ha-space-3);
+          padding: 0;
+          border: none;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
+          font: inherit;
+          font-weight: var(--ha-font-weight-medium);
+          cursor: pointer;
+        }
+        .assist-text {
+          display: none;
+        }
+        :host([expanded]) .assist {
+          width: calc(100% - 2 * var(--ha-space-4));
+          margin-inline: var(--ha-space-4);
+          justify-content: flex-start;
+          padding: 0 var(--ha-space-5);
+        }
+        :host([expanded]) .assist-text {
+          display: inline;
+        }
+        .assist:focus-visible {
+          outline: 3px solid var(--primary-text-color);
+          outline-offset: 2px;
         }
         .title {
           margin-left: 3px;

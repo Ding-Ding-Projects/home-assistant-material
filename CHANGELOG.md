@@ -8,6 +8,7 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- The rail has an Assist button at its top.
 - Lists: the icon of each row sits on a small tile, and a device row names its maker and model
   under the device.
 - What changed: this list inside the interface, under Settings, About, with a search, a range of

@@ -80,6 +80,7 @@ observer images are unchanged upstream images.
 | `frontend/src/common/changelog/parse-changelog.ts`, `frontend/src/data/changelog.json`, `frontend/build-scripts/sync-changelog.mjs`, `frontend/src/panels/config/changelog/ha-config-changelog.ts` (new), `ha-panel-config.ts` | What changed: the changelog bundled with the build and the page that shows it, at `/config/changelog`. |
 | `frontend/src/common/base64/base64.ts`, `frontend/src/panels/config/tools/base64/tools-base64.ts` (new), `tools-router.ts`, `ha-panel-tools.ts` | The Base64 toolkit and its tab under Tools. |
 | `frontend/src/common/home/home-hero.ts`, `frontend/src/panels/lovelace/cards/hui-home-hero-card.ts` (new) | The `home-hero` card: the large cards on Home and the facts behind them. Home's view strategy adds it as its first section. |
+| `frontend/src/components/ha-sidebar.ts` | An Assist button at the top of the rail. |
 | `frontend/src/state/connection-mixin.ts` | The rail starts compact (`dockedSidebar: "auto"`). |
 | `frontend/src/components/ha-page-tabs.ts` | A language button and the user's picture in the top bar. |
 | `frontend/src/components/data-table/ha-data-table.ts` | `row-cards`: each row drawn as a rounded card, without changing row or column geometry. |
