@@ -1,0 +1,133 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T21:00:09Z"
+  },
+  "title": "Polish pass: pattern workbench, element tools and locks",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "WorkbenchPhone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1120,
+      "h": 1308,
+      "title": "Pattern workbench on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "WorkbenchWide.dc.html": {
+      "x": 1220,
+      "y": 0,
+      "w": 1440,
+      "h": 1050,
+      "title": "Pattern workbench in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ElementMenuPhone.dc.html": {
+      "x": 0,
+      "y": 1528,
+      "w": 1120,
+      "h": 1138,
+      "title": "Element tools on a phone, opened by touch and hold",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ElementMenuWide.dc.html": {
+      "x": 1220,
+      "y": 1528,
+      "w": 1440,
+      "h": 908,
+      "title": "Element tools in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LockWizardPhone.dc.html": {
+      "x": 0,
+      "y": 2886,
+      "w": 1120,
+      "h": 1198,
+      "title": "Lock wizard on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LockWizardWide.dc.html": {
+      "x": 1220,
+      "y": 2886,
+      "w": 1440,
+      "h": 1528,
+      "title": "Lock wizard in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "UnlockPhone.dc.html": {
+      "x": 0,
+      "y": 4634,
+      "w": 1120,
+      "h": 1198,
+      "title": "Unlock prompt and PIN keypad on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "UnlockWide.dc.html": {
+      "x": 1220,
+      "y": 4634,
+      "w": 1440,
+      "h": 948,
+      "title": "Unlock prompt in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LockListPhone.dc.html": {
+      "x": 0,
+      "y": 6052,
+      "w": 1120,
+      "h": 1072,
+      "title": "List of locks on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LockListWide.dc.html": {
+      "x": 1220,
+      "y": 6052,
+      "w": 1440,
+      "h": 888,
+      "title": "List of locks in a wide window",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "WorkbenchPhone.dc.html",
+    "WorkbenchWide.dc.html",
+    "ElementMenuPhone.dc.html",
+    "ElementMenuWide.dc.html",
+    "LockWizardPhone.dc.html",
+    "LockWizardWide.dc.html",
+    "UnlockPhone.dc.html",
+    "UnlockWide.dc.html",
+    "LockListPhone.dc.html",
+    "LockListWide.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Polish pass: pattern workbench, element tools and locks. 10 boards.",
+      "kind": "title1",
+      "maxW": 2660,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

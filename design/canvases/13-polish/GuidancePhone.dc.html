@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guidance note in setup dialogs, on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+.m3{--p:#00639B;--on-p:#FFFFFF;--pc:#CEE5FF;--on-pc:#004A76;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--t:#68587A;--tc:#EEDBFF;--on-tc:#4F4061;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--heat:#8C3A1D;--heatc:#FFDBCF;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e1:0 1px 2px rgba(0,0,0,.18),0 1px 3px 1px rgba(0,0,0,.08);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);font-family:'Google Sans Flex','Roboto Flex',Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--p:#98CBFF;--on-p:#003354;--pc:#004A76;--on-pc:#CEE5FF;--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--t:#D4BEE6;--tc:#4F4061;--on-tc:#EEDBFF;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--heat:#FFB59E;--heatc:#6F2609;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e1:0 1px 2px rgba(0,0,0,.5);--e3:0 6px 16px rgba(0,0,0,.6)}
+:where(.m3) *{box-sizing:border-box}
+:where(.m3) button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+:where(.m3) a{color:var(--p);text-decoration:none}
+:where(.m3) a:hover{color:var(--on-pc)}
+:where(.m3) input,:where(.m3) textarea{font:inherit;color:inherit}
+:where(.m3) h1,:where(.m3) h2,:where(.m3) h3,:where(.m3) p{margin:0}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:32px;height:32px}
+.dx{font-size:88px;line-height:92px;font-weight:500;letter-spacing:-2px}
+.dl{font-size:57px;line-height:64px;font-weight:500;letter-spacing:-.5px}
+.dm{font-size:45px;line-height:52px;font-weight:500}
+.hl{font-size:32px;line-height:40px;font-weight:500}
+.hs{font-size:24px;line-height:32px;font-weight:500}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:600;letter-spacing:.1px}
+.ll{font-size:14px;line-height:20px;font-weight:600;letter-spacing:.1px}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px}
+.bl{font-size:16px;line-height:24px}
+.bm{font-size:14px;line-height:20px}
+.bs{font-size:12px;line-height:16px;letter-spacing:.2px}
+.mu{color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.row{display:flex;align-items:center}
+.col{display:flex;flex-direction:column}
+.grow{flex:1;min-width:0}
+.app{display:flex;padding:12px 12px 12px 0;gap:0}
+.rail{width:88px;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0 8px}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;width:72px;padding:4px 0;color:var(--onv)}
+.ri .pill{width:56px;height:32px;border-radius:16px;display:grid;place-items:center;position:relative}
+.ri:hover .pill{background:var(--sl4)}
+.ri.sel{color:var(--on)}
+.ri.sel .pill{background:var(--pc);color:var(--on-pc)}
+.badge{position:absolute;top:0;right:8px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--sl0);font-size:11px;line-height:16px;font-weight:600;text-align:center}
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--sl0);border-radius:32px;overflow:hidden}
+.bar{display:flex;align-items:center;gap:8px;min-height:72px;padding:12px 20px 12px 28px;flex-wrap:wrap}
+.pt{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:20px;color:var(--onv);font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.pt:hover{background:var(--sl2)}
+.pt.sel{background:var(--inv);color:var(--on-inv)}
+.find{display:flex;align-items:center;gap:12px;height:48px;padding:0 8px 0 16px;border-radius:24px;background:var(--sl2);color:var(--onv);min-width:0}
+.kbd{font-size:12px;line-height:16px;font-weight:600;padding:4px 8px;border-radius:8px;background:var(--sl0);color:var(--onv);white-space:nowrap;box-shadow:inset 0 0 0 1px var(--outv)}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none}
+.ib:hover{background:var(--sl2)}
+.ib.t{background:var(--sl2)}
+.ib.f{background:var(--p);color:var(--on-p)}
+.av{width:40px;height:40px;border-radius:20px;background:var(--tc);color:var(--on-tc);display:grid;place-items:center;font-size:14px;font-weight:600;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border-radius:24px;font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.btn.sm{height:40px;padding:0 16px;border-radius:20px}
+.btn.lg{height:56px;padding:0 28px;border-radius:28px;font-size:16px}
+.btn.fill{background:var(--p);color:var(--on-p)}
+.btn.tonal{background:var(--sc);color:var(--on-sc)}
+.btn.out{box-shadow:inset 0 0 0 1px var(--outv);color:var(--on)}
+.btn.text{color:var(--p);padding:0 12px}
+.btn.err{background:var(--err);color:var(--sl0)}
+.btn.rs{border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.card{background:var(--sl2);border-radius:32px;padding:28px}
+.card.hero{border-radius:40px;padding:32px}
+.sq{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;flex:none;background:var(--sl0);color:var(--on)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.slide{height:56px;border-radius:28px;background:var(--sl0);display:flex;align-items:center;overflow:hidden;position:relative}
+.slide b{display:block;height:100%;background:var(--p);border-radius:28px 8px 8px 28px}
+.slide i{display:block;width:4px;height:40px;border-radius:2px;background:var(--p);margin-left:6px}
+.track{height:8px;border-radius:4px;background:var(--sl4);overflow:hidden}
+.track b{display:block;height:100%;border-radius:4px;background:var(--p)}
+.li{display:flex;align-items:center;gap:16px;min-height:64px;padding:8px 16px;border-radius:20px;width:100%}
+.li:hover{background:var(--sl2)}
+.li.sel{background:var(--pc);color:var(--on-pc)}
+.lead{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--sl3);color:var(--onv);flex:none}
+.field{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out)}
+.field.focus{box-shadow:inset 0 -3px 0 var(--p)}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:28px;background:var(--sl2);flex:none}
+.seg button{height:40px;padding:0 18px;border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:600;color:var(--onv)}
+.seg button.sel{background:var(--sl0);color:var(--on);box-shadow:var(--e1)}
+.dlg{background:var(--sl0);border-radius:36px;padding:32px;box-shadow:var(--e3)}
+.menu{background:var(--sl1);border-radius:20px;padding:8px;box-shadow:var(--e3);min-width:280px}
+.mi{display:flex;align-items:center;gap:12px;height:48px;padding:0 12px;border-radius:12px;width:100%}
+.mi:hover,.mi.act{background:var(--sl3)}
+.note{display:flex;gap:12px;padding:16px;border-radius:20px;background:var(--sl2);color:var(--onv)}
+.note.warn{background:var(--errc);color:var(--on-errc)}
+.note.ok{background:var(--greenc);color:var(--green)}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.a{background:var(--amberc);color:var(--amber)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.div{height:1px;background:var(--outv);opacity:.6}
+.foot{padding:12px 32px 20px;color:var(--onv);font-size:12px;line-height:16px}
+.stage{padding:12px;display:flex}
+@media (prefers-reduced-motion:no-preference){.ri .pill,.chip,.sw,.sw i,.btn,.pt,.li,.ib,.mi{transition:background-color .2s cubic-bezier(.2,0,0,1),box-shadow .2s cubic-bezier(.2,0,0,1),border-radius .35s cubic-bezier(.34,1.56,.64,1)}.btn:active{border-radius:12px}}
+</style>
+</helmet>
+<div class="m3">
+<div class="row" style="min-height: 400px; padding: 40px 32px; gap: 0; align-items: flex-start">
+<div class="col" style="gap: 28px; width: 100%"><header class="col" style="gap: 6px"><h1 class="hs">Guidance note in setup dialogs, on a phone</h1><p class="bm mu" style="max-width: 860px">A collapsed note per step: what the step is for, what is needed first, a link to the documentation.</p></header><div class="row" style="gap: 40px; align-items: flex-start; flex-wrap: wrap"><figure class="col" style="margin: 0; gap: 12px; width: 320px; flex: none"><div class="m3 col" role="group" aria-label="Phone screen, 320 pixels wide" style="width: 320px; height: 640px; border-radius: 28px; overflow: hidden; background: var(--surf); color: var(--on); box-shadow: 0 0 0 1px var(--outv), var(--e3); position: relative"><header class="row" style="gap: 4px; padding: 8px 4px 8px 16px; min-height: 64px; flex: none"><div class="col grow" style="padding: 0 4px"><h2 class="tm" style="font-size: 18px">MQTT</h2><span class="bs mu">Connect to the broker</span></div><button class="ib" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></header><div class="col grow" style="padding: 4px 16px 16px; gap: 12px; min-height: 0"><button class="row" aria-expanded="false" style="gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--sl2); width: 100%"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span class="ll grow">About this step</span><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button><div class="col" style="gap: 10px"><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Host</span><span class="bl">192.168.1.40</span></span></label></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Port</span><span class="bl">1883</span></span></label></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Username</span><span class="bl">homeassistant</span></span></label></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Password</span><span class="bl">••••••••</span></span></label></div></div></div><footer class="row" style="gap: 8px; padding: 12px 16px; flex: none; border-top: 1px solid var(--outv); background: var(--sl1)"><span class="grow"></span><button class="btn fill sm">Submit</button></footer></div><figcaption class="bs mu" style="padding: 0 8px">Collapsed: one 44 px row above the form. The form starts where it always did.</figcaption></figure><figure class="col" style="margin: 0; gap: 12px; width: 320px; flex: none"><div class="m3 col" role="group" aria-label="Phone screen, 320 pixels wide" style="width: 320px; height: 640px; border-radius: 28px; overflow: hidden; background: var(--surf); color: var(--on); box-shadow: 0 0 0 1px var(--outv), var(--e3); position: relative"><header class="row" style="gap: 4px; padding: 8px 4px 8px 16px; min-height: 64px; flex: none"><div class="col grow" style="padding: 0 4px"><h2 class="tm" style="font-size: 18px">MQTT</h2><span class="bs mu">Connect to the broker</span></div><button class="ib" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></header><div class="col grow" style="padding: 4px 16px 16px; gap: 12px; min-height: 0"><button class="row" aria-expanded="false" style="gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--sl2); width: 100%"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span class="ll grow">About this step</span><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button><div class="col" style="gap: 10px"><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Host</span><span class="bl">192.168.1.40</span></span></label></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Port</span><span class="bl">1883</span></span></label></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Username</span><span class="bl">homeassistant</span></span></label></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Password</span><span class="bl">••••••••</span></span></label></div></div></div><div aria-hidden="true" style="position: absolute; inset: 0; background: var(--scrim)"></div><section class="col" role="dialog" aria-label="About this step" style="position: absolute; left: 0; right: 0; bottom: 0px; background: var(--sl1); border-radius: 28px 28px 0 0; padding: 8px 16px 16px; gap: 10px; box-shadow: var(--e3)"><button aria-label="Drag to resize the sheet, or press to expand it" style="align-self: center; width: 48px; height: 24px; display: flex; align-items: center; justify-content: center"><span aria-hidden="true" style="width: 32px; height: 4px; border-radius: 2px; background: var(--out)"></span></button><h3 class="tm">About this step</h3><span class="bm"><b>What it is for:</b> tells Home Assistant where your MQTT broker is and how to sign in.</span><span class="bm"><b>Needed first:</b> a running broker, for example the Mosquitto app, and its user name and password.</span><a class="row ll" href="#docs" style="gap: 8px"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"></path></svg>MQTT documentation</a></section></div><figcaption class="bs mu" style="padding: 0 8px">Opened: a sheet over the form, so the form never moves.</figcaption></figure><figure class="col" style="margin: 0; gap: 12px; width: 320px; flex: none"><div class="m3 dark col" role="group" aria-label="Phone screen, 320 pixels wide" style="width: 320px; height: 640px; border-radius: 28px; overflow: hidden; background: var(--surf); color: var(--on); box-shadow: 0 0 0 1px var(--outv), var(--e3); position: relative"><header class="row" style="gap: 4px; padding: 8px 4px 8px 16px; min-height: 64px; flex: none"><div class="col grow" style="padding: 0 4px"><h2 class="tm" style="font-size: 18px">MQTT</h2><span class="bs mu">Connect to the broker</span></div><button class="ib" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"></path></svg></button></header><div class="col grow" style="padding: 4px 16px 16px; gap: 12px; min-height: 0"><button class="row" aria-expanded="false" style="gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--sl2); width: 100%"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"></path></svg><span class="ll grow">About this step</span><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"></path></svg></button><div class="col"><label class="field bad"><span class="col grow"><span class="bs" style="color: var(--err)">Host</span><span class="bl">192.168.1.40</span></span></label><span class="bs" role="alert" style="color: var(--err); padding: 4px 16px 0" >Could not reach the broker at this address.</span></div><div class="col"><label class="field"><span class="col grow"><span class="bs mu">Port</span><span class="bl">1883</span></span></label></div></div><footer class="row" style="gap: 8px; padding: 12px 16px; flex: none; border-top: 1px solid var(--outv); background: var(--sl1)"><span class="grow"></span><button class="btn fill sm">Submit</button></footer></div><figcaption class="bs mu" style="padding: 0 8px">With an error: the note stays collapsed and the error is under its field.</figcaption></figure></div><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px"><section class="card col" aria-label="What this board settles" style="gap: 12px; padding: 24px; background: var(--sl1)"><h2 class="tm">What this board settles</h2><ul class="col" style="gap: 10px; margin: 0; padding: 0; list-style: none"><li class="row bm" style="gap: 10px; align-items: flex-start"><span style="color: var(--p); margin-top: -2px"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg></span><span>Collapsed by default, one row. It remembers being opened for the rest of that setup.</span></li><li class="row bm" style="gap: 10px; align-items: flex-start"><span style="color: var(--p); margin-top: -2px"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg></span><span>Three parts in a fixed order: what it is for, needed first, documentation link.</span></li></ul></section><section class="card col" aria-label="Works differently from today's build" style="gap: 12px; padding: 24px; background: var(--sl1)"><h2 class="tm">Works differently from today's build</h2><ul class="col" style="gap: 10px; margin: 0; padding: 0; list-style: none"><li class="row bm" style="gap: 10px; align-items: flex-start"><span style="color: var(--p); margin-top: -2px"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg></span><span>On a phone the note opens as a sheet instead of expanding in place, so the form does not move down.</span></li><li class="row bm" style="gap: 10px; align-items: flex-start"><span style="color: var(--p); margin-top: -2px"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg></span><span>Steps that have no guidance show no row at all, rather than an empty note.</span></li></ul></section></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":1052}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

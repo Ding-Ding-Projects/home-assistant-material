@@ -157,3 +157,85 @@ Open after this pass:
 - The phone layout is drawn for Home only.
 - No board in this pass is built in the product. The pattern workbench is the first to be wired
   in; see `docs/feature-status.md`.
+
+## Pass 4 (10 November 2026), the polish pass, complete as a design pass
+
+Answers `DESIGNER-HANDOFF.md` of the same day: every surface built in code without a board, the
+eight decisions the audit asked for, and a project page. 34 boards on four new canvases; no
+earlier board changed.
+
+- Phone boards are drawn at 320 px, the narrowest width the product supports, three screens to a
+  board, with at least one in dark. Wide boards are 1440 px with a dark variant where it differs.
+- Each board ends with "What this board settles" and, where the build should change, "Works
+  differently from today's build". The code follows those lines.
+- Every search field on these boards carries the pattern workbench button, including fields
+  with typed text, the menu search and the search of open pages on a phone.
+- Sources: `source/pages/polish_lib.py` (phone frame, sheets, keypad, steppers) and
+  `p_polish_a.py`, `p_polish_b.py`, `p_audit.py`, `p_site.py`. `source/pages/build_polish.py`
+  writes the boards, measures their heights in Chrome, writes `canvas.json` and renders
+  `frames/`.
+- Design guidance: the Stageshow skill, pinned copy at commit
+  `299140fafd08df55a9c234e610c3f64af3f45531`; a fresh install was refused in the session that
+  made this pass. Applied: restraint, real product pictures only (the project page uses
+  screenshots from running builds), one hero per screen, no cut controls. Not applied: its
+  filming and motion steps; these are stills.
+
+### Boards added
+
+- `canvases/12-polish/WorkbenchPhone.dc.html`: Pattern workbench on a phone.
+- `canvases/12-polish/WorkbenchWide.dc.html`: Pattern workbench in a wide window.
+- `canvases/12-polish/ElementMenuPhone.dc.html`: Element tools on a phone, opened by touch and hold.
+- `canvases/12-polish/ElementMenuWide.dc.html`: Element tools in a wide window.
+- `canvases/12-polish/LockWizardPhone.dc.html`: Lock wizard on a phone.
+- `canvases/12-polish/LockWizardWide.dc.html`: Lock wizard in a wide window.
+- `canvases/12-polish/UnlockPhone.dc.html`: Unlock prompt and PIN keypad on a phone.
+- `canvases/12-polish/UnlockWide.dc.html`: Unlock prompt in a wide window.
+- `canvases/12-polish/LockListPhone.dc.html`: List of locks on a phone.
+- `canvases/12-polish/LockListWide.dc.html`: List of locks in a wide window.
+- `canvases/13-polish/PersonalPhone.dc.html`: Personal settings on a phone.
+- `canvases/13-polish/PersonalWide.dc.html`: Personal settings in a wide window.
+- `canvases/13-polish/SetupListPhone.dc.html`: Guided setup list on a phone.
+- `canvases/13-polish/SetupListWide.dc.html`: Guided setup list in a wide window.
+- `canvases/13-polish/SetupWizardPhone.dc.html`: Guided setup wizard on a phone.
+- `canvases/13-polish/SetupWizardWide.dc.html`: Guided setup wizard in a wide window.
+- `canvases/13-polish/GuidancePhone.dc.html`: Guidance note in setup dialogs, on a phone.
+- `canvases/13-polish/GuidanceWide.dc.html`: Guidance note in setup dialogs, wide.
+- `canvases/13-polish/RailDevTools.dc.html`: Developer tools on the rail.
+- `canvases/13-polish/MediaSearchPhone.dc.html`: Media search with the workbench, on a phone.
+- `canvases/13-polish/MediaSearchWide.dc.html`: Media search with the workbench, wide.
+- `canvases/14-decisions/PhoneReach.dc.html`: Search, accessibility and New tab on a phone.
+- `canvases/14-decisions/PhoneTabs.dc.html`: Open pages on a phone, with one hand.
+- `canvases/14-decisions/PickTouch.dc.html`: Choosing an element by touch.
+- `canvases/14-decisions/AlertReplacements.dc.html`: Replacing the browser's blocking boxes.
+- `canvases/14-decisions/TwoStepPhone.dc.html`: Two-step confirmation on a phone.
+- `canvases/14-decisions/LocksMore.dc.html`: Locks still to build, part 1.
+- `canvases/14-decisions/LocksMore2.dc.html`: Locks still to build, part 2.
+- `canvases/14-decisions/WorkbenchMore.dc.html`: Pattern workbench, gaps against the reference tool.
+- `canvases/14-decisions/SettingsMore.dc.html`: Settings controls still to build.
+- `canvases/15-site/SiteWide.dc.html`: Project page, wide, light.
+- `canvases/15-site/SiteWideDark.dc.html`: Project page, wide, dark.
+- `canvases/15-site/SitePhone.dc.html`: Project page, phone, light.
+- `canvases/15-site/SitePhoneDark.dc.html`: Project page, phone, dark.
+
+### The project page
+
+`docs/site/index.html` is the live page, generated from `p_site.py` with the same markup as the
+`15-site` boards. It loads nothing from other sites: the typeface is served from `docs/site/fonts`
+and the pictures are crops of `docs/screenshots`. `.github/workflows/pages.yml` publishes it to
+GitHub Pages on every change under `docs/site/`. Pages must be set to "GitHub Actions" as its
+source in the repository settings once.
+
+### Review record
+
+Every board was rendered and read. Fixed in review: the workbench title, tab row and footer were
+cut at 320 px (now three tabs and More, the flags chip beside the mode switch, Copy and Export
+under More); the hold ring and its status covered the cards; the lock wizard panel was clipped in
+its window; the keypad's second text button ran off the screen; sheets slid under the bottom
+bar; the open pages search was squeezed by New tab; the project page headline ran under its
+picture and overflowed at 360 px.
+
+Open after this pass:
+
+- The audit counted 22 browser boxes; the code has 18 calls today. The board lists the 18.
+- The QR code on the locks board is a labelled place; the app draws it from the secret.
+- Cantonese copy on the new boards needs a native review.

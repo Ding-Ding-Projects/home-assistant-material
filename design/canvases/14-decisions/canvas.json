@@ -1,0 +1,123 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T21:01:13Z"
+  },
+  "title": "Decisions the audit asked for: phone reach, tabs, picking, dialogs, confirmation, locks, workbench, settings",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "PhoneReach.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1120,
+      "h": 1138,
+      "title": "Search, accessibility and New tab on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "PhoneTabs.dc.html": {
+      "x": 1220,
+      "y": 0,
+      "w": 1120,
+      "h": 1138,
+      "title": "Open pages on a phone, with one hand",
+      "expand": "fill",
+      "page": "all"
+    },
+    "PickTouch.dc.html": {
+      "x": 0,
+      "y": 1358,
+      "w": 1120,
+      "h": 1068,
+      "title": "Choosing an element by touch",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AlertReplacements.dc.html": {
+      "x": 1220,
+      "y": 1358,
+      "w": 1440,
+      "h": 1652,
+      "title": "Replacing the browser's blocking boxes",
+      "expand": "fill",
+      "page": "all"
+    },
+    "TwoStepPhone.dc.html": {
+      "x": 0,
+      "y": 3230,
+      "w": 1120,
+      "h": 1132,
+      "title": "Two-step confirmation on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LocksMore.dc.html": {
+      "x": 1220,
+      "y": 3230,
+      "w": 1440,
+      "h": 790,
+      "title": "Locks still to build, part 1",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LocksMore2.dc.html": {
+      "x": 0,
+      "y": 4582,
+      "w": 1440,
+      "h": 840,
+      "title": "Locks still to build, part 2",
+      "expand": "fill",
+      "page": "all"
+    },
+    "WorkbenchMore.dc.html": {
+      "x": 1540,
+      "y": 4582,
+      "w": 1440,
+      "h": 904,
+      "title": "Pattern workbench, gaps against the reference tool",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SettingsMore.dc.html": {
+      "x": 0,
+      "y": 5706,
+      "w": 1440,
+      "h": 1152,
+      "title": "Settings controls still to build",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "PhoneReach.dc.html",
+    "PhoneTabs.dc.html",
+    "PickTouch.dc.html",
+    "AlertReplacements.dc.html",
+    "TwoStepPhone.dc.html",
+    "LocksMore.dc.html",
+    "LocksMore2.dc.html",
+    "WorkbenchMore.dc.html",
+    "SettingsMore.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Decisions the audit asked for: phone reach, tabs, picking, dialogs, confirmation, locks, workbench, settings. 9 boards.",
+      "kind": "title1",
+      "maxW": 2980,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

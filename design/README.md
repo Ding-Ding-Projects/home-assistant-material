@@ -1,7 +1,7 @@
 # Design
 
 Design files for the Material Design 3 interface, kept in the repository so every canvas can be
-read back from here alone. 153 boards on 11 canvases, at most 15 boards on each.
+read back from here alone. 187 boards on 15 canvases, at most 15 boards on each.
 
 | Folder | Boards | What it holds |
 | --- | --- | --- |
@@ -16,6 +16,10 @@ read back from here alone. 153 boards on 11 canvases, at most 15 boards on each.
 | `canvases/09-features` | 14 | Language, wording, narration, modes, schedules, identity, appearance editors, colour picker, fonts, accessibility, panels, tokens |
 | `canvases/10-features` | 13 | Tabs, command palette, pattern workbench, context menus, guided forms, extensions, confirmation, locks, support, authenticator |
 | `canvases/11-features` | 14 | History, export, bulk actions, changelog, help, notifications, converters, local models, hand-off, Minecraft, drawing, progress |
+| `canvases/12-polish` | 10 | Polish pass: pattern workbench, element tools, lock wizard, unlock prompt and list of locks, phone and wide |
+| `canvases/13-polish` | 11 | Polish pass: personal settings, guided setup list and wizard, setup guidance, developer tools on the rail, media search |
+| `canvases/14-decisions` | 9 | The audit's decisions: phone bottom bar, open pages on a phone, picking by touch, replacing browser boxes, two-step confirmation, locks and workbench still to build, settings still to build |
+| `canvases/15-site` | 4 | The project page, wide and phone, light and dark; the live page is `docs/site/` |
 
 In each canvas folder, `canvas.json` is the index (one entry per board with its frame and title)
 and every `*.dc.html` is one board, a self-contained page.

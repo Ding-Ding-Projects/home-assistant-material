@@ -5,7 +5,7 @@ core, the supervisor and the operating system, with releases for Raspberry Pi, V
 Docker.
 
 **Status: early.** The build and update pipeline works and publishes real images. The redesigned
-interface exists as a complete design (153 boards on 11 canvases in [`design/`](design/)). The first part of it
+interface exists as a complete design (187 boards on 15 canvases in [`design/`](design/)). The first part of it
 is built: colours, typeface, navigation rail, floating pane, cards and tabs. Most features on the
 boards are **not yet implemented**. See [`docs/feature-status.md`](docs/feature-status.md) for
 exactly what is and is not done.
@@ -15,6 +15,7 @@ exactly what is and is not done.
 | Run it in Docker | [Run the container](#run-the-container) |
 | Flash a Raspberry Pi or start a VirtualBox VM | [Operating system images](#operating-system-images) |
 | Build it myself | [Build](#build) |
+| See the project page | [ding-ding-projects.github.io/home-assistant-material](https://ding-ding-projects.github.io/home-assistant-material/) |
 | See the design | [`design/README.md`](design/README.md) |
 | Know what changed from upstream | [`docs/material-changes.md`](docs/material-changes.md) |
 | See what is planned | [`ROADMAP.md`](ROADMAP.md) |

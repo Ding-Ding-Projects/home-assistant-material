@@ -1,0 +1,73 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T21:01:18Z"
+  },
+  "title": "Project page: wide and phone, light and dark",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "SiteWide.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2546,
+      "title": "Project page, wide, light",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteWideDark.dc.html": {
+      "x": 1540,
+      "y": 0,
+      "w": 1440,
+      "h": 2546,
+      "title": "Project page, wide, dark",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SitePhone.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 360,
+      "h": 3784,
+      "title": "Project page, phone, light",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SitePhoneDark.dc.html": {
+      "x": 3540,
+      "y": 0,
+      "w": 360,
+      "h": 3784,
+      "title": "Project page, phone, dark",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "SiteWide.dc.html",
+    "SiteWideDark.dc.html",
+    "SitePhone.dc.html",
+    "SitePhoneDark.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Project page: wide and phone, light and dark. 4 boards.",
+      "kind": "title1",
+      "maxW": 3900,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

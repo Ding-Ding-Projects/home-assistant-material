@@ -1,0 +1,143 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T21:00:24Z"
+  },
+  "title": "Polish pass: personal settings, guided setup, guidance, rail and media search",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "PersonalPhone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1120,
+      "h": 1214,
+      "title": "Personal settings on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "PersonalWide.dc.html": {
+      "x": 1220,
+      "y": 0,
+      "w": 1440,
+      "h": 988,
+      "title": "Personal settings in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SetupListPhone.dc.html": {
+      "x": 0,
+      "y": 1434,
+      "w": 1120,
+      "h": 1112,
+      "title": "Guided setup list on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SetupListWide.dc.html": {
+      "x": 1220,
+      "y": 1434,
+      "w": 1440,
+      "h": 956,
+      "title": "Guided setup list in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SetupWizardPhone.dc.html": {
+      "x": 0,
+      "y": 2766,
+      "w": 1120,
+      "h": 1132,
+      "title": "Guided setup wizard on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SetupWizardWide.dc.html": {
+      "x": 1220,
+      "y": 2766,
+      "w": 1440,
+      "h": 834,
+      "title": "Guided setup wizard in a wide window",
+      "expand": "fill",
+      "page": "all"
+    },
+    "GuidancePhone.dc.html": {
+      "x": 0,
+      "y": 4118,
+      "w": 1120,
+      "h": 1052,
+      "title": "Guidance note in setup dialogs, on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "GuidanceWide.dc.html": {
+      "x": 1220,
+      "y": 4118,
+      "w": 1440,
+      "h": 866,
+      "title": "Guidance note in setup dialogs, wide",
+      "expand": "fill",
+      "page": "all"
+    },
+    "RailDevTools.dc.html": {
+      "x": 0,
+      "y": 5390,
+      "w": 1440,
+      "h": 1140,
+      "title": "Developer tools on the rail",
+      "expand": "fill",
+      "page": "all"
+    },
+    "MediaSearchPhone.dc.html": {
+      "x": 1540,
+      "y": 5390,
+      "w": 1120,
+      "h": 1032,
+      "title": "Media search with the workbench, on a phone",
+      "expand": "fill",
+      "page": "all"
+    },
+    "MediaSearchWide.dc.html": {
+      "x": 0,
+      "y": 6750,
+      "w": 1440,
+      "h": 866,
+      "title": "Media search with the workbench, wide",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "PersonalPhone.dc.html",
+    "PersonalWide.dc.html",
+    "SetupListPhone.dc.html",
+    "SetupListWide.dc.html",
+    "SetupWizardPhone.dc.html",
+    "SetupWizardWide.dc.html",
+    "GuidancePhone.dc.html",
+    "GuidanceWide.dc.html",
+    "RailDevTools.dc.html",
+    "MediaSearchPhone.dc.html",
+    "MediaSearchWide.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Polish pass: personal settings, guided setup, guidance, rail and media search. 11 boards.",
+      "kind": "title1",
+      "maxW": 2660,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}
