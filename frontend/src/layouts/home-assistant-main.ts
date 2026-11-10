@@ -20,6 +20,8 @@ import { listenMediaQuery } from "../common/dom/media_query";
 import { storage } from "../common/decorators/storage";
 import { DEBUG_SAFE_AREA_TOOL_STORAGE_KEY } from "../common/util/debug-safe-area";
 import { computeRTLDirection } from "../common/util/compute_rtl";
+import "../components/appearance/ha-appearance-tools";
+import type { HaAppearanceTools } from "../components/appearance/ha-appearance-tools";
 import "../components/ha-accessibility-tools";
 import type { HaAccessibilityTools } from "../components/ha-accessibility-tools";
 import "../components/ha-drawer";
@@ -62,6 +64,8 @@ export class HomeAssistantMain extends LitElement {
   private _debugSafeAreaTool = false;
 
   private _unsubAccessibility?: UnsubscribeFunc;
+
+  private _appearanceTools?: HaAppearanceTools;
 
   @query("ha-accessibility-tools")
   private _accessibilityTools?: HaAccessibilityTools;
@@ -166,6 +170,10 @@ export class HomeAssistantMain extends LitElement {
       }
     });
 
+    this.addEventListener("hass-pick-appearance", () => {
+      this._appearanceTools?.startPicking();
+    });
+
     this.addEventListener("hass-show-accessibility-tools", () => {
       this._accessibilityTools?.toggle();
     });
@@ -179,6 +187,14 @@ export class HomeAssistantMain extends LitElement {
 
   public connectedCallback() {
     super.connectedCallback();
+    // Created here, not in the template: the tools move into an open modal
+    // dialog and back, which a rendered template would not follow.
+    this._appearanceTools ??= document.createElement("ha-appearance-tools");
+    this.updateComplete.then(() => {
+      if (this._appearanceTools && !this._appearanceTools.isConnected) {
+        this.shadowRoot?.appendChild(this._appearanceTools);
+      }
+    });
     window.addEventListener("keydown", this._handleAccessibilityShortcut);
     window.addEventListener("dragover", this._handleWordingDragOver);
     window.addEventListener("drop", this._handleWordingDrop);
@@ -189,6 +205,8 @@ export class HomeAssistantMain extends LitElement {
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._appearanceTools?.stop();
+    this._appearanceTools?.remove();
     window.removeEventListener("keydown", this._handleAccessibilityShortcut);
     window.removeEventListener("dragover", this._handleWordingDragOver);
     window.removeEventListener("drop", this._handleWordingDrop);

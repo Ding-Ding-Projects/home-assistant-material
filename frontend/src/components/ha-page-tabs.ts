@@ -1,6 +1,7 @@
 import {
   mdiClose,
   mdiCog,
+  mdiFormatPaint,
   mdiHuman,
   mdiMagnify,
   mdiPlus,
@@ -51,6 +52,8 @@ const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
 declare global {
   interface HASSDomEvents {
     "hass-show-accessibility-tools": undefined;
+    /** Starts the tool that picks an element to edit its appearance. */
+    "hass-pick-appearance": undefined;
   }
 }
 
@@ -282,6 +285,14 @@ export class HaPageTabs extends LitElement {
           >
           <kbd>${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
         </button>
+        <button
+          class="new-tab"
+          aria-label=${this.hass.localize("ui.page_tabs.edit_appearance")}
+          title=${this.hass.localize("ui.page_tabs.edit_appearance")}
+          @click=${this._pickAppearance}
+        >
+          <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
+        </button>
         ${
           this._accessibilityButtonHidden
             ? nothing
@@ -446,6 +457,10 @@ export class HaPageTabs extends LitElement {
 
   private _openSearch() {
     showQuickBar(this, {});
+  }
+
+  private _pickAppearance() {
+    fireEvent(this, "hass-pick-appearance");
   }
 
   private _openAccessibility() {

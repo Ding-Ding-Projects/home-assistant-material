@@ -23,6 +23,9 @@ Every release is also listed, with its build results, on the
 - Tabs: close the tabs that match a search, or the ones that do not, with counts and Undo.
 - Automations: a visible test button on every condition and on every Choose option. Not yet seen
   in a build.
+- Appearance editor for any element: right-click, Ctrl+Shift+E or the paint button, then change
+  fill layers, text, shape, accent and size for that element or every one of its kind.
+- A menu on every element, with a filter and working shortcuts.
 - Private vocabulary: load your own JSON wording file from Profile, Localization, or drop it
   anywhere in the window. Checked in full, kept in the browser only, replace and clear.
 - Hosting: `compose.yaml`, `host.sh` and `host.bat` start the published image in one step.

@@ -263,7 +263,7 @@ export const normalizeStore = (raw: unknown): AppearanceStore => {
     for (const [tag, choice] of Object.entries(value.kinds)) {
       const appearance = normalizeAppearance(choice);
       if (
-        /^[a-z][a-z0-9-]*$/.test(tag) &&
+        /^[a-z][a-z0-9]*-[a-z0-9-]*$/.test(tag) &&
         !isEmptyAppearance(appearance) &&
         entries < APPEARANCE_LIMITS.entries
       ) {
@@ -391,100 +391,89 @@ const layerImage = (layer: FillLayer): string => {
   return `url("${layer.url}")`;
 };
 
+/** The styles for a choice, split by where they have to go. */
+export interface AppearanceStyles {
+  /** Fill, shape, border, shadow and size: the box that is drawn. */
+  box: Record<string, string>;
+  /** Text, accent and opacity: what everything inside inherits. */
+  inherited: Record<string, string>;
+}
+
 /**
  * The inline styles for a choice.
  *
- * `card` is true for an element that draws itself with `ha-card`: its fill,
- * border and shadow then go through the card's own variables, so the card's
- * shape keeps clipping them.
+ * They come in two groups because a dashboard card is two elements: an
+ * outer one that is only a wrapper, and the card inside it that is drawn.
+ * The box styles go on the drawn card; the inherited ones on the wrapper.
+ * For any other element both groups go on the element itself.
  */
 export const appearanceToStyles = (
-  appearance: ElementAppearance,
-  card = false
-): Record<string, string> => {
-  const styles: Record<string, string> = {};
+  appearance: ElementAppearance
+): AppearanceStyles => {
+  const box: Record<string, string> = {};
+  const inherited: Record<string, string> = {};
   const layers = (appearance.layers ?? []).filter((layer) => layer.visible);
   if (layers.length) {
-    styles["background-image"] = layers.map(layerImage).join(", ");
-    styles["background-blend-mode"] = layers
+    box["background-image"] = layers.map(layerImage).join(", ");
+    box["background-blend-mode"] = layers
       .map((layer) => layer.blend)
       .join(", ");
-    styles["background-size"] = layers
+    box["background-size"] = layers
       .map((layer) => (layer.type === "image" ? layer.size : "auto"))
       .join(", ");
-    styles["background-position"] = layers
+    box["background-position"] = layers
       .map((layer) => (layer.type === "image" ? layer.position : "center"))
       .join(", ");
-    styles["background-repeat"] = layers
+    box["background-repeat"] = layers
       .map((layer) =>
         layer.type === "image" && !layer.repeat ? "no-repeat" : "repeat"
       )
       .join(", ");
-    styles["background-color"] = "transparent";
-    if (card) {
-      // The inner card becomes clear so these layers show through it.
-      styles["--ha-card-background"] = "transparent";
-    }
-  }
-  if (card && (layers.length || appearance.radius !== undefined)) {
-    styles["border-radius"] =
-      appearance.radius !== undefined
-        ? `${appearance.radius}px`
-        : "var(--ha-card-border-radius, var(--ha-border-radius-3xl))";
+    box["background-color"] = "transparent";
   }
   if (appearance.radius !== undefined) {
-    styles["border-radius"] = `${appearance.radius}px`;
-    styles["--ha-card-border-radius"] = `${appearance.radius}px`;
-  }
-  if (appearance.textColor) {
-    styles.color = appearance.textColor;
-    styles["--primary-text-color"] = appearance.textColor;
-    styles["--secondary-text-color"] = withAlpha(appearance.textColor, 0.72);
-  }
-  if (appearance.accentColor) {
-    styles["--primary-color"] = appearance.accentColor;
-    styles["--accent-color"] = appearance.accentColor;
-  }
-  if (appearance.fontFamily) {
-    const family = `"${appearance.fontFamily}", var(--ha-font-family-body)`;
-    styles["font-family"] = family;
-    styles["--ha-font-family-body"] = family;
-    styles["--ha-font-family-heading"] = family;
-  }
-  if (appearance.fontWeight) {
-    const weight = String(appearance.fontWeight);
-    styles["font-weight"] = weight;
-    styles["--ha-font-weight-normal"] = weight;
-    styles["--ha-font-weight-medium"] = weight;
-  }
-  if (appearance.zoom !== undefined) {
-    styles.zoom = String(appearance.zoom);
+    box["border-radius"] = `${appearance.radius}px`;
+    box["--ha-card-border-radius"] = `${appearance.radius}px`;
   }
   if (
     appearance.borderWidth !== undefined ||
     appearance.borderColor !== undefined
   ) {
-    const width = `${appearance.borderWidth ?? 1}px`;
-    const borderColor = appearance.borderColor ?? "var(--outline-color)";
-    if (card) {
-      styles["--ha-card-border-width"] = width;
-      styles["--ha-card-border-color"] = borderColor;
-    } else {
-      styles.border = `${width} solid ${borderColor}`;
-    }
+    box.border = `${appearance.borderWidth ?? 1}px solid ${
+      appearance.borderColor ?? "var(--outline-color)"
+    }`;
   }
   if (appearance.shadow !== undefined) {
-    const shadow = SHADOWS[appearance.shadow] ?? "none";
-    if (card) {
-      styles["--ha-card-box-shadow"] = shadow;
-    } else {
-      styles["box-shadow"] = shadow;
-    }
+    box["box-shadow"] = SHADOWS[appearance.shadow] ?? "none";
+  }
+  if (appearance.zoom !== undefined) {
+    box.zoom = String(appearance.zoom);
+  }
+  if (appearance.textColor) {
+    inherited.color = appearance.textColor;
+    inherited["--primary-text-color"] = appearance.textColor;
+    inherited["--secondary-text-color"] = withAlpha(appearance.textColor, 0.72);
+  }
+  if (appearance.accentColor) {
+    inherited["--primary-color"] = appearance.accentColor;
+    inherited["--accent-color"] = appearance.accentColor;
+  }
+  if (appearance.fontFamily) {
+    const family = `"${appearance.fontFamily}", var(--ha-font-family-body)`;
+    inherited["font-family"] = family;
+    inherited["--ha-font-family-body"] = family;
+    inherited["--ha-font-family-heading"] = family;
+  }
+  if (appearance.fontWeight) {
+    const weight = String(appearance.fontWeight);
+    inherited["font-weight"] = weight;
+    inherited["--ha-font-weight-normal"] = weight;
+    inherited["--ha-font-weight-medium"] = weight;
   }
   if (appearance.opacity !== undefined) {
-    styles.opacity = String(appearance.opacity);
+    inherited.opacity = String(appearance.opacity);
   }
-  return styles;
+  return { box, inherited };
 };
 
 /** Later choices win: the choice for one element is laid over its kind's. */
@@ -497,20 +486,13 @@ export const mergeAppearance = (
 
 const applied = new WeakMap<HTMLElement, string[]>();
 
-/** True for an element that draws itself with `ha-card`. */
-export const drawsACard = (element: HTMLElement): boolean =>
-  element.localName !== "ha-card" &&
-  !!element.shadowRoot?.querySelector(":scope > ha-card, ha-card");
+/** The card an element draws itself with, when it is only a wrapper. */
+export const drawnCard = (element: HTMLElement): HTMLElement | undefined =>
+  element.localName === "ha-card"
+    ? undefined
+    : (element.shadowRoot?.querySelector<HTMLElement>("ha-card") ?? undefined);
 
-/** Applies a choice to an element, replacing what was applied before. */
-export const applyAppearance = (
-  element: HTMLElement,
-  appearance: ElementAppearance | undefined
-): void => {
-  const styles =
-    appearance && !isEmptyAppearance(appearance)
-      ? appearanceToStyles(appearance, drawsACard(element))
-      : {};
+const applyStyles = (element: HTMLElement, styles: Record<string, string>) => {
   const previous = applied.get(element) ?? [];
   previous.forEach((property) => {
     if (!(property in styles)) {
@@ -530,8 +512,27 @@ export const applyAppearance = (
   }
 };
 
+/** Applies a choice to an element, replacing what was applied before. */
+export const applyAppearance = (
+  element: HTMLElement,
+  appearance: ElementAppearance | undefined
+): void => {
+  const { box, inherited } =
+    appearance && !isEmptyAppearance(appearance)
+      ? appearanceToStyles(appearance)
+      : { box: {}, inherited: {} };
+  const card = drawnCard(element);
+  if (card) {
+    applyStyles(card, box);
+    applyStyles(element, inherited);
+  } else {
+    applyStyles(element, { ...box, ...inherited });
+  }
+};
+
 export const hasAppliedAppearance = (element: HTMLElement): boolean =>
-  applied.has(element);
+  applied.has(element) ||
+  !!(drawnCard(element) && applied.has(drawnCard(element)!));
 
 /** The parent of a node, stepping out of a shadow root to its host. */
 export const composedParent = (node: Node): Node | null => {
@@ -647,6 +648,13 @@ export const kindLabel = (tag: string): string => {
   const text = words.join(" ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
+
+/**
+ * True for an element that can be styled as a kind: a component. Plain
+ * elements such as blocks and buttons are only styled one at a time.
+ */
+export const isAKind = (element: Element): boolean =>
+  element.localName.includes("-");
 
 /** The page a single-element choice belongs to. */
 export const currentPageKey = (): string =>

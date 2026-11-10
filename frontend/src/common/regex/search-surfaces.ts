@@ -76,6 +76,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     matcher: FUZZY,
   },
   {
+    file: "components/appearance/ha-appearance-tools.ts",
+    searches: "Entries of the menu that opens on any element",
+  },
+  {
     file: "components/ha-page-tabs.ts",
     searches: "Pages in the New tab catalog",
   },

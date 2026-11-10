@@ -54,7 +54,9 @@ observer images are unchanged upstream images.
 | `frontend/src/common/translations/localize.ts`, `frontend/src/state/translations-mixin.ts` | Localized text passes through the private vocabulary; the localize function is rebuilt when the vocabulary changes. |
 | `frontend/src/panels/profile/ha-personal-wording-card.ts` (new), `ha-profile-section-localization.ts` | The private vocabulary card on Profile, Localization. |
 | `frontend/src/layouts/home-assistant-main.ts` | A wording file dropped anywhere in the window is loaded; a dropped file never replaces the page. |
-| `frontend/src/common/appearance/element-appearance.ts` (new) | Per-element appearance: model, storage, styles, element paths. No interface yet. |
+| `frontend/src/common/appearance/` (new) | Per-element appearance: the model, storage, styles, element paths, and the page-wide session that applies stored choices. |
+| `frontend/src/components/appearance/ha-appearance-tools.ts`, `ha-appearance-editor.ts` (new) | The menu on every element, the pick tool, the shortcut, and the appearance editor. |
+| `frontend/src/layouts/home-assistant-main.ts`, `frontend/src/components/ha-page-tabs.ts` | The tools are created by the main layout; a paint button in the top bar starts the pick tool. |
 | `frontend/build-scripts/check-minify-templates.mjs` (new) | Runs the production template minifier over given files, with the legacy browser targets, so a template that only breaks a production build is found before pushing. |
 | `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 

@@ -45,9 +45,10 @@ exactly what has been seen working and where.
 - [x] Private vocabulary file: choose or drop, checked in full, replace, clear
 - [~] Command search on Ctrl+Shift+F: opens from the top bar; the redesigned palette with live
       controls is not built
-- [~] Per-element appearance editor: the model, storage and styles are in; the editor, the
-      context menu and the pick tool are not
-- [ ] Context menus with working shortcuts on every element
+- [x] Per-element appearance editor: fill layers, text, shape, accent, size; this element or
+      every one of its kind; menu, shortcut and pick tool
+- [~] Context menus on every element: the menu, its filter and shortcuts are in; entries
+      specific to what was clicked, lock, history and export are not
 - [ ] Element locks and the unlock ladder
 - [ ] Two-key confirmation for destructive actions
 - [ ] Local version history on every page and dialog

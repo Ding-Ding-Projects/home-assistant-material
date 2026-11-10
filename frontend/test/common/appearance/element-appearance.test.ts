@@ -86,7 +86,7 @@ describe("isSafeImageUrl", () => {
 
 describe("appearanceToStyles", () => {
   it("writes layers top first with their blend modes", () => {
-    const styles = appearanceToStyles({
+    const { box } = appearanceToStyles({
       layers: [
         {
           type: "gradient",
@@ -113,28 +113,27 @@ describe("appearanceToStyles", () => {
         },
       ],
     });
-    expect(styles["background-image"]).toBe(
+    expect(box["background-image"]).toBe(
       "linear-gradient(160deg, rgba(255, 0, 0, 0.5), rgba(0, 0, 255, 0.5)), linear-gradient(#112233, #112233)"
     );
-    expect(styles["background-blend-mode"]).toBe("soft-light, normal");
+    expect(box["background-blend-mode"]).toBe("soft-light, normal");
   });
 
-  it("goes through the card's variables for a card", () => {
-    const plain = appearanceToStyles({ borderWidth: 2, shadow: 2 });
-    const card = appearanceToStyles({ borderWidth: 2, shadow: 2 }, true);
-    expect(plain.border).toContain("2px solid");
-    expect(card.border).toBeUndefined();
-    expect(card["--ha-card-border-width"]).toBe("2px");
-    expect(card["--ha-card-box-shadow"]).toBe(plain["box-shadow"]);
-  });
-
-  it("sets the theme variables text and accent colours feed", () => {
-    const styles = appearanceToStyles({
+  it("separates what is drawn from what is inherited", () => {
+    const { box, inherited } = appearanceToStyles({
+      borderWidth: 2,
+      shadow: 2,
+      radius: 8,
       textColor: "#102030",
       accentColor: "#aa0000",
+      opacity: 0.5,
     });
-    expect(styles["--primary-text-color"]).toBe("#102030");
-    expect(styles["--primary-color"]).toBe("#aa0000");
+    expect(box.border).toContain("2px solid");
+    expect(box["border-radius"]).toBe("8px");
+    expect(Object.keys(box)).not.toContain("color");
+    expect(inherited["--primary-text-color"]).toBe("#102030");
+    expect(inherited["--primary-color"]).toBe("#aa0000");
+    expect(inherited.opacity).toBe("0.5");
   });
 });
 
@@ -217,11 +216,33 @@ describe("applying choices", () => {
   });
 });
 
+describe("a dashboard card", () => {
+  it("draws the fill on the card inside and the text on the wrapper", () => {
+    const wrapper = document.createElement("my-wrapper");
+    const card = document.createElement("ha-card");
+    wrapper.attachShadow({ mode: "open" }).append(card);
+    document.body.append(wrapper);
+    applyAppearance(wrapper, { radius: 8, textColor: "#102030" });
+    expect(card.style.borderRadius).toBe("8px");
+    expect(wrapper.style.borderRadius).toBe("");
+    expect(wrapper.style.color).not.toBe("");
+    applyAppearance(wrapper, undefined);
+    expect(card.getAttribute("style") ?? "").toBe("");
+    expect(wrapper.getAttribute("style") ?? "").toBe("");
+  });
+});
+
 describe("normalizeStore", () => {
   it("drops empty choices and odd keys", () => {
     expect(
       normalizeStore({
-        kinds: { "ha-card": { radius: 8 }, "BAD TAG": { radius: 8 }, x: {} },
+        kinds: {
+          "ha-card": { radius: 8 },
+          "BAD TAG": { radius: 8 },
+          // A plain element is not a kind: this would restyle every block.
+          div: { radius: 8 },
+          "x-y": {},
+        },
         elements: { "/a": { ">div": { opacity: 0.5 }, ">p": {} }, "/b": 3 },
       })
     ).toEqual({
