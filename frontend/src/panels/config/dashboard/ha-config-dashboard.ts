@@ -1,9 +1,10 @@
 import {
   mdiCloudLock,
   mdiDotsVertical,
-  mdiMagnify,
   mdiPower,
   mdiRefresh,
+  mdiUpdate,
+  mdiWrench,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
@@ -11,17 +12,23 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import { computeStateName } from "../../../common/entity/compute_state_name";
 import { ctrlOrCmdLabel } from "../../../common/keyboard/ctrl-or-cmd";
-import "../../../components/ha-card";
+import { PageLockController } from "../../../common/locks/page-lock-controller";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
-import "../../../components/ha-tooltip";
-import "../../../components/ha-top-app-bar-fixed";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import "../../../components/page/ha-page-footer";
+import "../../../components/page/ha-page-lock-banner";
+import "../../../components/page/ha-page-tools";
+import { getConfigEntries } from "../../../data/config_entries";
 import type { CloudStatus } from "../../../data/cloud";
 import type { RepairsIssue } from "../../../data/repairs";
 import {
@@ -33,21 +40,18 @@ import {
   checkForEntityUpdates,
   filterUpdateEntitiesParameterized,
 } from "../../../data/update";
-import { showQuickBar } from "../../../dialogs/quick-bar/show-dialog-quick-bar";
 import { showRestartDialog } from "../../../dialogs/restart/show-dialog-restart";
 import { showShortcutsDialog } from "../../../dialogs/shortcuts/show-shortcuts-dialog";
 import type { PageNavigation } from "../../../layouts/hass-tabs-subpage";
 import { ChildPanelReady } from "../../../layouts/panel-ready";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
-import { haStyle } from "../../../resources/styles";
+import { haStyle, haStyleScrollbar } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import { isMobileClient } from "../../../util/is_mobile";
-import "../ha-config-section";
 import { configSections } from "../config-sections";
-import "../repairs/ha-config-repairs";
 import "./ha-config-navigation";
-import "./ha-config-updates";
+import { sectionCounts, sectionSummaries } from "./section-summaries";
 
 type DashboardSummary<Key extends string, Item> = Record<Key, Item[]> & {
   total: number;
@@ -162,6 +166,12 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     total: 0,
   };
 
+  @state() private _filter = "";
+
+  @state() private _integrations?: number;
+
+  private _pageLock = new PageLockController(this);
+
   public constructor() {
     super();
     new ChildPanelReady(this);
@@ -180,7 +190,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           ? pages.filter((page) => page.path !== "/config/apps")
           : pages;
       return [
-        isCloudLoaded
+        ...(isCloudLoaded
           ? filterApps([
               {
                 component: "cloud",
@@ -193,10 +203,12 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
               },
               ...configSections.dashboard,
             ])
-          : filterApps(configSections.dashboard),
-        hasExternalSettings ? configSections.dashboard_external_settings : [],
-        configSections.dashboard_2,
-        configSections.dashboard_3,
+          : filterApps(configSections.dashboard)),
+        ...(hasExternalSettings
+          ? configSections.dashboard_external_settings
+          : []),
+        ...configSections.dashboard_2,
+        ...configSections.dashboard_3,
       ];
     }
   );
@@ -222,16 +234,50 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     ];
   }
 
-  protected render(): TemplateResult {
-    const quickBarLabel = [
-      this.hass.localize("ui.dialogs.quick-bar.title"),
-      this.hass.enableShortcuts && !isMobileClient
-        ? `(${ctrlOrCmdLabel(this.hass.localize)} + K)`
-        : undefined,
-    ]
-      .filter(Boolean)
-      .join(" ");
+  private _summaries = memoizeOne(
+    (
+      devices: HomeAssistant["devices"],
+      states: HomeAssistant["states"],
+      areas: HomeAssistant["areas"],
+      floors: HomeAssistant["floors"],
+      panels: HomeAssistant["panels"],
+      config: HomeAssistant["config"],
+      integrations: number | undefined,
+      localize: HomeAssistant["localize"]
+    ) =>
+      sectionSummaries(
+        sectionCounts(
+          { devices, states, areas, floors, panels, config },
+          integrations
+        ),
+        localize
+      )
+  );
 
+  protected firstUpdated(changedProps: PropertyValues<this>): void {
+    super.firstUpdated(changedProps);
+    if (this.hass.user?.is_admin) {
+      getConfigEntries(this.hass).then(
+        (entries) => {
+          this._integrations = new Set(
+            entries.map((entry) => entry.domain)
+          ).size;
+        },
+        () => undefined
+      );
+    }
+  }
+
+  private _issueTitle(issue: RepairsIssue): string {
+    return (
+      this.hass.localize(
+        `component.${issue.domain}.issues.${issue.translation_key || issue.issue_id}.title`,
+        issue.translation_placeholders || {}
+      ) || `${issue.domain}: ${issue.translation_key || issue.issue_id}`
+    );
+  }
+
+  protected render(): TemplateResult {
     const { updates: canInstallUpdates, total: totalUpdates } =
       this._filterUpdateEntitiesParameterized(
         this.hass.states,
@@ -242,22 +288,36 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     const { issues: repairsIssues, total: totalRepairIssues } =
       this._repairsIssues;
 
-    return html`
-      <ha-top-app-bar-fixed .narrow=${this.narrow}>
-        <div slot="title">${this.hass.localize("panel.config")}</div>
+    const locked = this._pageLock.locked;
+    const title = this.hass.localize("panel.config");
 
-        <ha-icon-button
-          slot="actionItems"
-          id="button-quick-bar"
-          .label=${quickBarLabel}
-          .path=${mdiMagnify}
-          hide-title
-          @click=${this._showQuickBar}
-        ></ha-icon-button>
-        <ha-tooltip placement="bottom" for="button-quick-bar"
-          >${quickBarLabel}</ha-tooltip
-        >
-        <ha-dropdown slot="actionItems" @wa-select=${this._handleMenuAction}>
+    return html`
+      <header>
+        ${
+          this.narrow
+            ? html`<ha-menu-button
+                .hass=${this.hass}
+                .narrow=${this.narrow}
+              ></ha-menu-button>`
+            : nothing
+        }
+        <div class="titles">
+          <h1>${title}</h1>
+          ${
+            this.narrow
+              ? nothing
+              : html`<p>
+                  ${this.hass.localize("ui.panel.config.dashboard.summary")}
+                </p>`
+          }
+        </div>
+        ${this.narrow ? nothing : this._renderSearch()}
+        <ha-page-tools
+          no-find
+          .compact=${this.narrow}
+          .pageTitle=${title}
+        ></ha-page-tools>
+        <ha-dropdown ?inert=${locked} @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"
             .label=${this.hass.localize("ui.common.menu")}
@@ -276,96 +336,107 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
             <ha-svg-icon slot="icon" .path=${mdiPower}></ha-svg-icon>
           </ha-dropdown-item>
         </ha-dropdown>
-
-        <ha-config-section
+      </header>
+      ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
+      <div class="content ha-scrollbar" ?inert=${locked}>
+        ${this.narrow ? this._renderSearch() : nothing}
+        ${
+          canInstallUpdates.length || repairsIssues.length
+            ? html`<div class="banners">
+                ${
+                  canInstallUpdates.length
+                    ? html`<a
+                        class="banner updates"
+                        href="/config/updates?historyBack=1"
+                      >
+                        <ha-svg-icon .path=${mdiUpdate}></ha-svg-icon>
+                        <span class="banner-text">
+                          <strong
+                            >${this.hass.localize(
+                              "ui.panel.config.dashboard.updates_ready",
+                              { count: totalUpdates }
+                            )}</strong
+                          >
+                          <span
+                            >${canInstallUpdates
+                              .map((entity) => computeStateName(entity))
+                              .join(", ")}</span
+                          >
+                        </span>
+                        <ha-icon-next></ha-icon-next>
+                      </a>`
+                    : nothing
+                }
+                ${
+                  repairsIssues.length
+                    ? html`<a
+                        class="banner repairs"
+                        href="/config/repairs?historyBack=1"
+                      >
+                        <ha-svg-icon .path=${mdiWrench}></ha-svg-icon>
+                        <span class="banner-text">
+                          <strong
+                            >${this.hass.localize(
+                              "ui.panel.config.dashboard.repairs_waiting",
+                              { count: totalRepairIssues }
+                            )}</strong
+                          >
+                          <span>${this._issueTitle(repairsIssues[0])}</span>
+                        </span>
+                        <ha-icon-next></ha-icon-next>
+                      </a>`
+                    : nothing
+                }
+              </div>`
+            : nothing
+        }
+        <ha-config-navigation
+          grid
+          .hass=${this.hass}
           .narrow=${this.narrow}
-          .isWide=${this.isWide}
-          full-width
-        >
-          ${
-            repairsIssues.length || canInstallUpdates.length
-              ? html`<div class="dashboard-alerts">
-                  ${
-                    repairsIssues.length
-                      ? html`
-                          <ha-card outlined class="dashboard-alert-card">
-                            <div
-                              class="dashboard-alert-title"
-                              role="heading"
-                              aria-level="2"
-                            >
-                              <a href="/config/repairs?historyBack=1">
-                                ${this.hass.localize(
-                                  "ui.panel.config.repairs.title",
-                                  {
-                                    count: totalRepairIssues,
-                                  }
-                                )}
-                                <ha-icon-next></ha-icon-next>
-                              </a>
-                            </div>
-                            <ha-config-repairs
-                              .hass=${this.hass}
-                              .narrow=${this.narrow}
-                              .repairsIssues=${repairsIssues}
-                            ></ha-config-repairs>
-                          </ha-card>
-                        `
-                      : ""
-                  }
-                  ${
-                    canInstallUpdates.length
-                      ? html`
-                          <ha-card outlined class="dashboard-alert-card">
-                            <div
-                              class="dashboard-alert-title"
-                              role="heading"
-                              aria-level="2"
-                            >
-                              <a href="/config/updates?historyBack=1">
-                                ${this.hass.localize(
-                                  "ui.panel.config.updates.title",
-                                  {
-                                    count: totalUpdates,
-                                  }
-                                )}
-                                <ha-icon-next></ha-icon-next>
-                              </a>
-                            </div>
-                            <ha-config-updates
-                              .narrow=${this.narrow}
-                              .updateEntities=${canInstallUpdates}
-                            ></ha-config-updates>
-                          </ha-card>
-                        `
-                      : ""
-                  }
-                </div>`
-              : ""
-          }
-          ${this._pages(
+          .filter=${this._filter}
+          .summaries=${this._summaries(
+            this.hass.devices,
+            this.hass.states,
+            this.hass.areas,
+            this.hass.floors,
+            this.hass.panels,
+            this.hass.config,
+            this._integrations,
+            this.hass.localize
+          )}
+          .pages=${this._pages(
             this.cloudStatus,
             isComponentLoaded(this.hass.config, "cloud"),
             this.hass.auth.external?.config.hasSettingsScreen,
             this.hass.userData?.apps_info_dismissed,
             isComponentLoaded(this.hass.config, "hassio")
-          ).map((categoryPages) =>
-            categoryPages.length === 0
-              ? nothing
-              : html`
-                  <ha-card outlined>
-                    <ha-config-navigation
-                      .hass=${this.hass}
-                      .narrow=${this.narrow}
-                      .pages=${categoryPages}
-                    ></ha-config-navigation>
-                  </ha-card>
-                `
           )}
-          <ha-tip>${this._tip}</ha-tip>
-        </ha-config-section>
-      </ha-top-app-bar-fixed>
+        ></ha-config-navigation>
+        <ha-tip>${this._tip}</ha-tip>
+      </div>
+      ${
+        this.narrow
+          ? nothing
+          : html`<ha-page-footer .locked=${locked}></ha-page-footer>`
+      }
     `;
+  }
+
+  private _renderSearch(): TemplateResult {
+    const label = this.hass.localize("ui.panel.config.dashboard.search");
+    return html`<ha-input-search
+      class="search"
+      appearance="outlined"
+      .placeholder=${label}
+      .accessibleLabel=${label}
+      .value=${this._filter}
+      @input=${this._filterChanged}
+    ></ha-input-search>`;
+  }
+
+  private _filterChanged(ev: Event): void {
+    this._filter = (ev.target as HaInputSearch).value ?? "";
   }
 
   protected override updated(changedProps: PropertyValues<this>): void {
@@ -402,10 +473,6 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     }
   );
 
-  private _showQuickBar(): void {
-    showQuickBar(this, { showHint: this.hass.enableShortcuts });
-  }
-
   private async _handleMenuAction(ev: HaDropdownSelectEvent) {
     const action = ev.detail.item.value;
     switch (action) {
@@ -421,75 +488,133 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      haStyleScrollbar,
       css`
-        ha-config-section {
-          margin: auto;
-          margin-top: -32px;
-          max-width: 600px;
-        }
-
-        ha-card {
-          overflow: hidden;
-          margin-bottom: 0;
-        }
-        ha-card a {
-          text-decoration: none;
-          color: var(--primary-text-color);
-        }
-
-        .dashboard-alerts {
+        :host {
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-4);
+          height: 100vh;
+          height: 100dvh;
+          box-sizing: border-box;
+          padding-top: var(--safe-area-inset-top, 0px);
+          background: var(--primary-background-color);
         }
 
-        .dashboard-alert-title {
-          padding: var(--ha-space-4) var(--ha-space-4) var(--ha-space-2);
-          font-size: var(--ha-font-size-l);
-        }
-
-        .dashboard-alert-title a {
-          display: inline-flex;
+        header {
+          flex: none;
+          display: flex;
           align-items: center;
           gap: var(--ha-space-2);
+          padding: var(--ha-space-6) var(--ha-space-8) var(--ha-space-3);
+          color: var(--sidebar-icon-color);
         }
-
-        .dashboard-alert-title ha-icon-next {
+        :host([narrow]) header {
+          padding: var(--ha-space-2) var(--ha-space-2);
+        }
+        .titles {
+          flex: 1;
+          min-width: 0;
+          color: var(--primary-text-color);
+        }
+        h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        :host([narrow]) h1 {
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-normal);
+        }
+        .titles p {
+          margin: var(--ha-space-1) 0 0;
+          font-size: var(--ha-font-size-l);
           color: var(--secondary-text-color);
-          width: 20px;
-          height: 20px;
+        }
+        .search {
+          width: clamp(200px, 26vw, 340px);
+          --ha-input-search-height: var(--ha-space-12);
+          --ha-input-search-border-radius: var(--ha-border-radius-pill);
+        }
+        :host([narrow]) .search {
+          display: block;
+          width: auto;
+          margin-bottom: var(--ha-space-3);
+        }
+        ha-page-footer,
+        ha-page-lock-banner {
+          flex: none;
         }
 
-        @media all and (max-width: 600px) {
-          ha-card {
-            border-width: 1px 0;
-            border-radius: var(--ha-border-radius-square);
-            box-shadow: unset;
-            box-sizing: border-box;
-            width: calc(
-              100% + var(--safe-area-inset-left, 0px) +
-                var(--safe-area-inset-right, 0px)
-            );
-            margin-left: calc(-1 * var(--safe-area-inset-left, 0px));
-            margin-right: calc(-1 * var(--safe-area-inset-right, 0px));
-            padding-left: var(--safe-area-inset-left, 0px);
-            padding-right: var(--safe-area-inset-right, 0px);
-          }
-          ha-config-section {
-            margin-top: -42px;
-          }
+        .content {
+          flex: 1;
+          min-height: 0;
+          overflow: auto;
+          box-sizing: border-box;
+          padding: var(--ha-space-3) var(--ha-space-8) var(--ha-space-6);
+          padding-right: calc(
+            var(--ha-space-8) + var(--safe-area-inset-right, 0px)
+          );
+        }
+        :host([narrow]) .content {
+          padding: var(--ha-space-2) var(--ha-space-3)
+            calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
+        }
+
+        .banners {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-4);
+        }
+        .banner {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          min-height: 56px;
+          box-sizing: border-box;
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl);
+          color: var(--primary-text-color);
+          text-decoration: none;
+        }
+        .banner:focus-visible {
+          outline: 3px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .banner.updates {
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 22%,
+            var(--primary-background-color)
+          );
+        }
+        .banner.repairs {
+          background: color-mix(
+            in srgb,
+            var(--warning-color) 45%,
+            var(--primary-background-color)
+          );
+        }
+        .banner-text {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .banner-text strong {
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .banner-text span {
+          font-size: var(--ha-font-size-s);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         ha-tip {
-          margin-bottom: 8px;
-        }
-
-        .new {
-          color: var(--primary-color);
-        }
-
-        .keep-together {
-          display: inline-block;
+          margin-top: var(--ha-space-6);
         }
       `,
     ];

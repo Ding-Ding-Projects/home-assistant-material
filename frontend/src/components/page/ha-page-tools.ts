@@ -74,6 +74,9 @@ export class HaPageTools extends LitElement {
 
   @property({ attribute: "page-title" }) public pageTitle?: string;
 
+  /** Leaves out Search this page, for a page with its own search of the page. */
+  @property({ type: Boolean, attribute: "no-find" }) public noFind = false;
+
   @consume({ context: internationalizationContext, subscribe: true })
   @state()
   private _i18n!: ContextType<typeof internationalizationContext>;
@@ -171,41 +174,7 @@ export class HaPageTools extends LitElement {
       `;
     }
     return html`
-      <div class="find">
-        <ha-input-search
-          appearance="outlined"
-          .placeholder=${localize("ui.page_tools.find")}
-          .accessibleLabel=${localize("ui.page_tools.find")}
-          .value=${this._query}
-          @input=${this._findInput}
-          @keydown=${this._findKeydown}
-        ></ha-input-search>
-        ${
-          this._query.trim()
-            ? html`
-                <span
-                  class=${classMap({ count: true, bad: this._invalid })}
-                  role="status"
-                  >${this._countText()}</span
-                >
-                <ha-icon-button
-                  class="step"
-                  .label=${localize("ui.page_tools.find_previous")}
-                  .path=${mdiChevronUp}
-                  .disabled=${!this._total}
-                  @click=${this._previous}
-                ></ha-icon-button>
-                <ha-icon-button
-                  class="step"
-                  .label=${localize("ui.page_tools.find_next")}
-                  .path=${mdiChevronDown}
-                  .disabled=${!this._total}
-                  @click=${this._next}
-                ></ha-icon-button>
-              `
-            : nothing
-        }
-      </div>
+      ${this.noFind ? nothing : this._renderFind()}
       <ha-icon-button
         .label=${localize("ui.page_tools.appearance")}
         .path=${mdiFormatPaint}
@@ -267,6 +236,47 @@ export class HaPageTools extends LitElement {
         data-tool="help"
         @click=${this._openTool}
       ></ha-icon-button>
+    `;
+  }
+
+  private _renderFind(): TemplateResult {
+    const localize = this._i18n.localize;
+    return html`
+      <div class="find">
+        <ha-input-search
+          appearance="outlined"
+          .placeholder=${localize("ui.page_tools.find")}
+          .accessibleLabel=${localize("ui.page_tools.find")}
+          .value=${this._query}
+          @input=${this._findInput}
+          @keydown=${this._findKeydown}
+        ></ha-input-search>
+        ${
+          this._query.trim()
+            ? html`
+                <span
+                  class=${classMap({ count: true, bad: this._invalid })}
+                  role="status"
+                  >${this._countText()}</span
+                >
+                <ha-icon-button
+                  class="step"
+                  .label=${localize("ui.page_tools.find_previous")}
+                  .path=${mdiChevronUp}
+                  .disabled=${!this._total}
+                  @click=${this._previous}
+                ></ha-icon-button>
+                <ha-icon-button
+                  class="step"
+                  .label=${localize("ui.page_tools.find_next")}
+                  .path=${mdiChevronDown}
+                  .disabled=${!this._total}
+                  @click=${this._next}
+                ></ha-icon-button>
+              `
+            : nothing
+        }
+      </div>
     `;
   }
 

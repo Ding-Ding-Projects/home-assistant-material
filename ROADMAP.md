@@ -37,7 +37,9 @@ exactly what has been seen working and where.
 ## Shell and cross-cutting features
 
 - [~] Tokens: colour, type and shape are in; motion tokens and a dark theme check are not
-- [x] Rail, floating pane and pill tabs
+- [x] Rail, floating pane and pill tabs; the rail is compact unless opened
+- [~] Top bar: search, edit appearance, language, accessibility and the user's picture. The
+      language button opens the profile's language page; there are no language modes yet
 - [x] Bar of open pages: every page open by default, New tab catalog, close and reopen
 - [x] Bulk close: close the tabs that match a search, or the ones that do not, with Undo
 - [ ] Tabs on a phone, drag to reorder, pinned tabs, a search for each group
@@ -121,8 +123,8 @@ matches its board, checked side by side.
       (14 boards)
 - [ ] `03-settings`: integrations, integration page, add integration, devices, device, entities,
       entity settings, helpers, and the automation pages (15 boards)
-- [ ] `04-settings`: settings home, scenes, scripts, blueprints, areas, labels, zones, apps, app
-      store, dashboards (15 boards)
+- [~] `04-settings`: settings home is drawn to its board; scenes, scripts, blueprints, areas,
+      labels, zones, apps, app store and dashboards are not (15 boards)
 - [ ] `05-system`: voice assistants, voice pipeline, expose, tags, people, users, energy setup,
       cloud, system, updates, repairs, logs, backups, analytics (15 boards)
 - [ ] `06-tools`: network, storage, hardware, general, labs, AI ids, restart, and the developer

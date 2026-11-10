@@ -93,7 +93,9 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
         localize: () => "",
         translationMetadata,
         kioskMode: false,
-        dockedSidebar: "docked",
+        // The rail: icons with their names under them. The menu button opens
+        // the full list, and that choice is remembered.
+        dockedSidebar: "auto",
         vibrate: true,
         debugConnection: __DEV__,
         suspendWhenHidden: true,

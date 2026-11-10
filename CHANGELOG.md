@@ -28,6 +28,9 @@ Every release is also listed, with its build results, on the
 - Interface: page tools in the header of every settings page. Search this page (with the pattern
   workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow
   screen. Section tabs moved to a row under the header, and wide screens have a footer line.
+- Settings home: a large title, a search of the sections, banners for updates and repairs, and
+  the sections as a grid of cards that say what each holds now.
+- The rail is compact by default. The top bar has a language button and the user's picture.
 - List pages under Settings: where the page sits and its title in the header, a large title with
   a summary line, rows as rounded cards, and an export button beside the table settings.
 - The menu on any element has Export this page, History of changes and Lock this page.

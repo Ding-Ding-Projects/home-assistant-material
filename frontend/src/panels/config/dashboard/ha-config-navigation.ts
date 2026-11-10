@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
 import { filterNavigationPages } from "../../../common/config/filter_navigation_pages";
+import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-next";
 import type { CloudStatus } from "../../../data/cloud";
@@ -25,6 +26,15 @@ class HaConfigNavigation extends LitElement {
   @property({ attribute: false }) public pages!: PageNavigation[];
 
   @property() public label?: string;
+
+  /** Draws the pages as a grid of cards. */
+  @property({ type: Boolean }) public grid = false;
+
+  /** What each page holds now, by its path, shown in place of its description. */
+  @property({ attribute: false }) public summaries?: Record<string, string>;
+
+  /** Search text; only pages whose name or description match are shown. */
+  @property() public filter = "";
 
   @state() private _visiblePages?: PageNavigation[];
 
@@ -94,6 +104,7 @@ class HaConfigNavigation extends LitElement {
                 `
           : `
                 ${
+                  this.summaries?.[page.path] ||
                   page.description ||
                   this.hass.localize(
                     `ui.panel.config.dashboard.${page.translationKey}.secondary`
@@ -102,14 +113,23 @@ class HaConfigNavigation extends LitElement {
               `,
     }));
     const label = this.label ?? this.hass.localize("panel.config");
+    const matches = searchMatcher(this.filter);
+    const shown = pages.filter((page) => matches(page.name, page.description));
     return html`
       <div class="visually-hidden" role="heading" aria-level="2">${label}</div>
-      <ha-config-navigation-list
-        has-secondary
-        .narrow=${this.narrow}
-        .pages=${pages}
-        .label=${label}
-      ></ha-config-navigation-list>
+      ${
+        this.filter && !shown.length
+          ? html`<p class="empty" role="status">
+              ${this.hass.localize("ui.panel.config.dashboard.search_empty")}
+            </p>`
+          : html`<ha-config-navigation-list
+              has-secondary
+              .grid=${this.grid}
+              .narrow=${this.narrow}
+              .pages=${shown}
+              .label=${label}
+            ></ha-config-navigation-list>`
+      }
     `;
   }
 
@@ -150,6 +170,12 @@ class HaConfigNavigation extends LitElement {
   }
 
   static styles: CSSResultGroup = css`
+    .empty {
+      margin: 0;
+      padding: var(--ha-space-8) 0;
+      text-align: center;
+      color: var(--secondary-text-color);
+    }
     /* Accessibility */
     .visually-hidden {
       position: absolute;

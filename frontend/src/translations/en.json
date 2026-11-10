@@ -3331,7 +3331,9 @@
       "bulk_undo": "Undo",
       "search_label": "Search",
       "search_everything": "Search and commands",
-      "edit_appearance": "Edit the appearance of anything"
+      "edit_appearance": "Edit the appearance of anything",
+      "language": "Language and region",
+      "profile": "Profile of {name}"
     },
     "page_tools": {
       "label": "Page tools",
@@ -3640,6 +3642,22 @@
         },
         "header": "Configure Home Assistant",
         "dashboard": {
+          "summary": "Everything about this home, in one place.",
+          "search": "Search settings",
+          "search_empty": "No setting matches that search.",
+          "updates_ready": "{count, plural,\n  one {# update is ready}\n  other {# updates are ready}\n}",
+          "repairs_waiting": "{count, plural,\n  one {# thing to repair}\n  other {# things to repair}\n}",
+          "summaries": {
+            "devices": "{devices, plural,\n  one {# device}\n  other {# devices}\n}",
+            "integrations": "{integrations, plural,\n  one {# integration}\n  other {# integrations}\n}",
+            "automations": "{automations, plural,\n  one {# automation}\n  other {# automations}\n}",
+            "scenes": "{scenes, plural,\n  one {# scene}\n  other {# scenes}\n}",
+            "areas": "{areas, plural,\n  one {# area}\n  other {# areas}\n}",
+            "areas_floors": "{areas, plural,\n  one {# area}\n  other {# areas}\n} on {floors, plural,\n  one {# floor}\n  other {# floors}\n}",
+            "dashboards": "{dashboards, plural,\n  one {# dashboard}\n  other {# dashboards}\n}",
+            "people": "{people, plural,\n  one {# person}\n  other {# people}\n}",
+            "version": "Version {version}"
+          },
           "devices": {
             "main": "Devices & services",
             "secondary": "Integrations, devices, entities, and helpers"

@@ -3,6 +3,7 @@ import {
   mdiCog,
   mdiFormatPaint,
   mdiHuman,
+  mdiTranslate,
   mdiPlus,
   mdiTabPlus,
   mdiTabRemove,
@@ -45,6 +46,7 @@ import "./ha-icon";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
 import "./ha-svg-icon";
+import "./user/ha-user-badge";
 
 const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
 
@@ -294,6 +296,14 @@ export class HaPageTabs extends LitElement {
         >
           <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
         </button>
+        <a
+          class="new-tab"
+          href="/profile/localization"
+          aria-label=${this.hass.localize("ui.page_tabs.language")}
+          title=${this.hass.localize("ui.page_tabs.language")}
+        >
+          <ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>
+        </a>
         ${
           this._accessibilityButtonHidden
             ? nothing
@@ -305,6 +315,22 @@ export class HaPageTabs extends LitElement {
               >
                 <ha-svg-icon .path=${mdiHuman}></ha-svg-icon>
               </button>`
+        }
+        ${
+          this.hass.user
+            ? html`<a
+                class="profile"
+                href="/profile"
+                aria-label=${this.hass.localize("ui.page_tabs.profile", {
+                  name: this.hass.user.name,
+                })}
+                title=${this.hass.localize("ui.page_tabs.profile", {
+                  name: this.hass.user.name,
+                })}
+              >
+                <ha-user-badge .user=${this.hass.user}></ha-user-badge>
+              </a>`
+            : nothing
         }
       </div>
     `;
@@ -627,6 +653,23 @@ export class HaPageTabs extends LitElement {
       border-radius: var(--ha-border-radius-circle);
       color: var(--secondary-text-color);
       anchor-name: --page-tabs-new;
+    }
+    a.new-tab {
+      text-decoration: none;
+    }
+    .profile {
+      display: flex;
+      flex: none;
+      border-radius: var(--ha-border-radius-circle);
+    }
+    .profile ha-user-badge {
+      width: var(--ha-space-9);
+      height: var(--ha-space-9);
+    }
+    .profile:focus-visible,
+    a.new-tab:focus-visible {
+      outline: 3px solid var(--primary-color);
+      outline-offset: 2px;
     }
     .new-tab:hover {
       background-color: var(--ha-color-fill-neutral-quiet-resting);
