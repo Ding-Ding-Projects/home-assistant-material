@@ -74,7 +74,10 @@ const supportsIndices = (() => {
   try {
     // A literal with an unknown flag would stop the whole file from parsing.
     // eslint-disable-next-line prefer-regex-literals
-    return new RegExp("", "d").hasIndices === true;
+    return (
+      (new RegExp("", "d") as RegExp & { hasIndices?: boolean }).hasIndices ===
+      true
+    );
   } catch (_err) {
     return false;
   }
