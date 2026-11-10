@@ -252,7 +252,7 @@ export class HaConfigLabels extends LitElement {
         .loading=${this._loading}
         .summary=${this.hass.localize("ui.panel.config.labels.summary")}
         .noDataText=${this.hass.localize("ui.panel.config.labels.no_labels")}
-        has-fab
+        .hasFab=${this.narrow}
         .initialSorting=${this._tableSettings.sorting}
         .columnOrder=${this._activeColumnOrder}
         .hiddenColumns=${this._activeHiddenColumns}
@@ -280,7 +280,11 @@ export class HaConfigLabels extends LitElement {
           .disabled=${!this._selected.length}
           @click=${this._deleteSelected}
         ></ha-assist-chip>
-        <ha-button slot="fab" size="l" @click=${this._addLabel}>
+        <ha-button
+          slot=${this.narrow ? "fab" : "heading-action"}
+          size="l"
+          @click=${this._addLabel}
+        >
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.labels.add_label")}
         </ha-button>

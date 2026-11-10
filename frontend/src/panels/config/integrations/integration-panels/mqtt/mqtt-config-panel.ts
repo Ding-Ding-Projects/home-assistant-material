@@ -1,6 +1,7 @@
 import {
   mdiAlertCircleOutline,
   mdiCheck,
+  mdiCog,
   mdiDevices,
   mdiShape,
   mdiTune,
@@ -33,7 +34,6 @@ import "../../../../../layouts/hass-subpage";
 import { mdiMqttLogo } from "../../../../../resources/mqtt-logo-svg";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
-import { brandsUrl } from "../../../../../util/brands-url";
 import { showToast } from "../../../../../util/toast";
 import "./mqtt-subscribe-card";
 
@@ -43,7 +43,7 @@ const qosLevel = ["0", "1", "2"];
 export class MQTTConfigPanel extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state()
   @storage({
@@ -131,13 +131,19 @@ export class MQTTConfigPanel extends LitElement {
         back-path="/config/integrations/integration/mqtt"
         has-fab
       >
-        <div class="content">
-          <div class="container">
-            ${this._renderNetworkStatus(isOnline, deviceIds.size)}
-            ${this._renderMyNetworkCard(deviceIds.size, entityCount)}
-            ${this._renderNavigationCard()} ${this._renderPublishCard()}
+        <div class="page">
+          ${this._renderHero(isOnline, deviceIds.size)}
+          <div class="grid">
+            ${this._renderPublishCard()}
             <mqtt-subscribe-card .hass=${this.hass}></mqtt-subscribe-card>
           </div>
+          <section class="broker">
+            <h2>${this.hass.localize("ui.panel.config.mqtt.broker_title")}</h2>
+            <div class="broker-cards">
+              ${this._renderMyNetworkCard(deviceIds.size, entityCount)}
+              ${this._renderNavigationCard()}
+            </div>
+          </section>
         </div>
       </hass-subpage>
     `;
@@ -168,43 +174,33 @@ export class MQTTConfigPanel extends LitElement {
     `;
   }
 
-  private _renderNetworkStatus(isOnline: boolean, deviceCount: number) {
+  private _renderHero(isOnline: boolean, deviceCount: number) {
     return html`
-      <ha-card class="content network-status">
-        <div class="card-content">
-          <div class="heading">
-            <div class="icon ${isOnline ? "success" : "error"}">
-              <ha-svg-icon
-                .path=${isOnline ? mdiCheck : mdiAlertCircleOutline}
-              ></ha-svg-icon>
-            </div>
-            <div class="details">
-              ${this.hass.localize(
-                `ui.panel.config.mqtt.status_${isOnline ? "online" : "offline"}`
-              )}<br />
-              <small>
-                ${this.hass.localize("ui.panel.config.mqtt.devices", {
-                  count: deviceCount,
-                })}
-              </small>
-            </div>
-            <img
-              class="logo"
-              alt="MQTT"
-              crossorigin="anonymous"
-              referrerpolicy="no-referrer"
-              src=${brandsUrl(
-                {
-                  domain: "mqtt",
-                  type: "icon",
-                  darkOptimized: this.hass.themes?.darkMode,
-                },
-                this.hass.auth.data.hassUrl
-              )}
-            />
-          </div>
+      <section class="hero">
+        <div class="hero-text">
+          <h1>${this.hass.localize("ui.panel.config.mqtt.title")}</h1>
+          <p>
+            ${this.hass.localize(
+              isOnline
+                ? "ui.panel.config.mqtt.summary_connected"
+                : "ui.panel.config.mqtt.summary_offline",
+              { count: deviceCount }
+            )}
+          </p>
         </div>
-      </ha-card>
+        <span class="chip ${isOnline ? "success" : "error"}">
+          <ha-svg-icon
+            .path=${isOnline ? mdiCheck : mdiAlertCircleOutline}
+          ></ha-svg-icon>
+          ${this.hass.localize(
+            `ui.panel.config.mqtt.status_${isOnline ? "connected" : "offline"}`
+          )}
+        </span>
+        <ha-button appearance="outlined" @click=${this._openConfigFlow}>
+          <ha-svg-icon slot="start" .path=${mdiCog}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.mqtt.reconfigure")}
+        </ha-button>
+      </section>
     `;
   }
 
@@ -286,6 +282,7 @@ export class MQTTConfigPanel extends LitElement {
   private _renderPublishCard() {
     return html`
       <ha-card
+        class="publish-card"
         .header=${this.hass.localize(
           "ui.panel.config.mqtt.description_publish"
         )}
@@ -416,125 +413,116 @@ export class MQTTConfigPanel extends LitElement {
           user-select: initial;
         }
 
+        .page {
+          box-sizing: border-box;
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: var(--ha-space-4) var(--ha-space-8)
+            calc(var(--ha-space-16) + var(--safe-area-inset-bottom, 0px));
+        }
+        :host([narrow]) .page {
+          padding: var(--ha-space-2) var(--ha-space-3)
+            calc(var(--ha-space-16) + var(--safe-area-inset-bottom, 0px));
+        }
+        .hero {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          gap: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+        }
+        .hero-text {
+          flex: 1;
+          min-width: 220px;
+        }
+        h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl, 2.25rem);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .hero p {
+          margin: var(--ha-space-1) 0 0;
+          color: var(--secondary-text-color);
+          line-height: var(--ha-line-height-normal);
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--primary-text-color);
+          background: color-mix(in srgb, var(--chip-color) 22%, transparent);
+          --mdc-icon-size: 16px;
+        }
+        .chip.success {
+          --chip-color: var(--success-color);
+        }
+        .chip.error {
+          --chip-color: var(--error-color);
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--ha-space-4);
+          align-items: start;
+        }
+        :host([narrow]) .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        ha-card,
+        mqtt-subscribe-card {
+          min-width: 0;
+        }
+        mqtt-subscribe-card {
+          display: block;
+        }
+        .broker h2 {
+          margin: var(--ha-space-6) 0 var(--ha-space-3);
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .broker-cards {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--ha-space-4);
+          align-items: start;
+        }
+        :host([narrow]) .broker-cards {
+          grid-template-columns: minmax(0, 1fr);
+        }
         .nav-card {
           overflow: hidden;
         }
-
         .nav-card .card-content {
           padding: 0;
         }
-
         .nav-card .card-header {
           padding-bottom: var(--ha-space-2);
         }
-        .content {
-          margin-top: var(--ha-space-6);
-        }
-
         .panel-dev-mqtt-fields {
           display: flex;
-          justify-content: space-between;
           flex-wrap: wrap;
-        }
-        ha-card {
-          margin: 0 auto var(--ha-space-4);
-          max-width: 600px;
+          align-items: center;
+          gap: var(--ha-space-2);
         }
         ha-select {
           width: 96px;
-          margin: 0 8px;
         }
         ha-input {
           flex: 1;
+          min-width: 160px;
         }
         @media screen and (max-width: 600px) {
-          ha-select {
-            margin-left: 0px;
-            margin-inline-start: 0px;
-            margin-inline-end: initial;
-            margin-top: 8px;
-          }
           ha-input {
             flex: auto;
             width: 100%;
           }
         }
-        ha-card:first-child {
-          margin-bottom: 16px;
-        }
-        mqtt-subscribe-card {
-          display: block;
-          margin: 16px auto;
-        }
-        .network-status div.heading {
-          display: flex;
-          align-items: center;
-          column-gap: var(--ha-space-4);
-        }
-
-        .network-status div.heading .logo {
-          height: 40px;
-          width: 40px;
-          margin-inline-start: auto;
-          object-fit: contain;
-        }
-
-        .network-status div.heading .icon {
-          position: relative;
-          border-radius: var(--ha-border-radius-2xl);
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          flex-shrink: 0;
-          --icon-color: var(--primary-color);
-        }
-
-        .network-status div.heading .icon.success {
-          --icon-color: var(--success-color);
-        }
-
-        .network-status div.heading .icon.error {
-          --icon-color: var(--error-color);
-        }
-
-        .network-status div.heading .icon::before {
-          display: block;
-          content: "";
-          position: absolute;
-          inset: 0;
-          background-color: var(--icon-color);
-          opacity: 0.2;
-        }
-
-        .network-status div.heading .icon ha-svg-icon {
-          color: var(--icon-color);
-          width: 24px;
-          height: 24px;
-        }
-
-        .network-status div.heading .details {
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-condensed);
-          color: var(--primary-text-color);
-        }
-
-        .network-status small {
-          font-size: var(--ha-font-size-m);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-condensed);
-          letter-spacing: 0.25px;
-          color: var(--secondary-text-color);
-        }
-
-        .container {
-          padding: var(--ha-space-2) var(--ha-space-4)
-            calc(var(--ha-space-16) + var(--safe-area-inset-bottom, 0px));
-        }
-
         a[slot="fab"] {
           text-decoration: none;
         }

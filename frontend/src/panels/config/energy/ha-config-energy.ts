@@ -1,15 +1,8 @@
 import "../../../layouts/hass-error-screen";
-import {
-  mdiDownload,
-  mdiFire,
-  mdiLightningBolt,
-  mdiViewDashboardEdit,
-  mdiWater,
-} from "@mdi/js";
+import { mdiDownload, mdiLightningBolt, mdiViewDashboardEdit } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { css, html, LitElement, nothing } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { cache } from "lit/directives/cache";
 import { navigate } from "../../../common/navigate";
 import type {
   EnergyPreferencesValidation,
@@ -25,10 +18,12 @@ import {
 import type { StatisticsMetaData } from "../../../data/recorder";
 import { getStatisticMetadata } from "../../../data/recorder";
 import "../../../layouts/hass-loading-screen";
-import "../../../layouts/hass-tabs-subpage";
+import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
-import "../../../components/ha-alert";
+import "../../../components/ha-button";
+import "../../../components/ha-icon-button";
+import "../../../components/ha-svg-icon";
 import "./components/ha-energy-device-settings";
 import "./components/ha-energy-device-settings-water";
 import "./components/ha-energy-grid-settings";
@@ -39,7 +34,6 @@ import "./components/ha-energy-gas-settings";
 import "./components/ha-energy-water-settings";
 import { fileDownload } from "../../../util/file_download";
 import { showToast } from "../../../util/toast";
-import type { PageNavigation } from "../../../layouts/hass-tabs-subpage";
 import { showEnergyCustomiseDialog } from "./dialogs/show-dialog-energy-customise";
 
 const INITIAL_CONFIG: EnergyPreferences = {
@@ -48,32 +42,15 @@ const INITIAL_CONFIG: EnergyPreferences = {
   device_consumption_water: [],
 };
 
-const TABS: PageNavigation[] = [
-  {
-    path: "/config/energy/electricity",
-    translationKey: "ui.panel.config.energy.tabs.electricity",
-    iconPath: mdiLightningBolt,
-    iconColor: "#F1C447",
-  },
-  {
-    path: "/config/energy/gas",
-    translationKey: "ui.panel.config.energy.tabs.gas",
-    iconPath: mdiFire,
-    iconColor: "#F1C447",
-  },
-  {
-    path: "/config/energy/water",
-    translationKey: "ui.panel.config.energy.tabs.water",
-    iconPath: mdiWater,
-    iconColor: "#F1C447",
-  },
-];
+// The addresses /config/energy/<section> keep working: each one scrolls its
+// section of the page into view.
+const SECTIONS = ["electricity", "gas", "water"] as const;
 
 @customElement("ha-config-energy")
 class HaConfigEnergy extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
@@ -96,7 +73,7 @@ class HaConfigEnergy extends LitElement {
   protected willUpdate(changedProperties: PropertyValues<this>) {
     if (changedProperties.has("route")) {
       const tab = this.route.path.substring(1);
-      if (!tab || !TABS.some((t) => t.path.endsWith(`/${tab}`))) {
+      if (!tab || !SECTIONS.some((section) => section === tab)) {
         navigate(`${this.route.prefix}/electricity`, { replace: true });
       }
     }
@@ -105,6 +82,20 @@ class HaConfigEnergy extends LitElement {
   protected firstUpdated() {
     this._fetchConfig();
   }
+
+  protected updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+    // Bring the section named in the address into view, once the cards exist.
+    if (!this._preferences || this._scrolledTo === this._currTab) {
+      return;
+    }
+    this._scrolledTo = this._currTab;
+    if (this._currTab !== "electricity") {
+      this.shadowRoot?.getElementById(this._currTab)?.scrollIntoView();
+    }
+  }
+
+  private _scrolledTo?: string;
 
   protected render(): TemplateResult {
     if (!this._preferences && !this._error) {
@@ -123,11 +114,11 @@ class HaConfigEnergy extends LitElement {
     }
 
     return html`
-      <hass-tabs-subpage
+      <hass-subpage
         .hass=${this.hass}
+        .narrow=${this.narrow}
         back-path="/config/lovelace/dashboards"
-        .route=${this.route}
-        .tabs=${TABS}
+        .header=${this.hass.localize("ui.panel.config.energy.caption")}
       >
         <div slot="toolbar-icon" class="toolbar-icons">
           <ha-icon-button
@@ -145,84 +136,88 @@ class HaConfigEnergy extends LitElement {
             @click=${this._downloadDiagnostics}
           ></ha-icon-button>
         </div>
-        <ha-alert>
-          ${this.hass.localize("ui.panel.config.energy.new_device_info")}
-        </ha-alert>
-        <div class="content">${cache(this._renderTabContent())}</div>
-      </hass-tabs-subpage>
+        <div class="page">
+          <div class="intro">
+            <h2>${this.hass.localize("ui.panel.config.energy.title")}</h2>
+            <p>${this.hass.localize("ui.panel.config.energy.summary")}</p>
+          </div>
+          <div class="cards">
+            <ha-energy-grid-settings
+              id="electricity"
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-grid-settings>
+            <ha-energy-solar-settings
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              .info=${this._info}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-solar-settings>
+            <ha-energy-battery-settings
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-battery-settings>
+            <ha-energy-home-settings
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-home-settings>
+            <ha-energy-device-settings
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-device-settings>
+            <ha-energy-gas-settings
+              id="gas"
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-gas-settings>
+            <ha-energy-water-settings
+              id="water"
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-water-settings>
+            <ha-energy-device-settings-water
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              .validationResult=${this._validationResult}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-device-settings-water>
+          </div>
+          <div class="footer">
+            <p>
+              ${this.hass.localize("ui.panel.config.energy.new_device_info")}
+            </p>
+            <ha-button appearance="filled" @click=${this._openDashboard}>
+              <ha-svg-icon slot="start" .path=${mdiLightningBolt}></ha-svg-icon>
+              ${this.hass.localize("ui.panel.config.energy.open_dashboard")}
+            </ha-button>
+          </div>
+        </div>
+      </hass-subpage>
     `;
   }
 
-  private _renderTabContent(): TemplateResult | typeof nothing {
-    switch (this._currTab) {
-      case "electricity":
-        return html`
-          <ha-energy-grid-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-grid-settings>
-          <ha-energy-solar-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            .info=${this._info}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-solar-settings>
-          <ha-energy-home-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-home-settings>
-          <ha-energy-battery-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-battery-settings>
-          <ha-energy-device-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-device-settings>
-        `;
-      case "gas":
-        return html`
-          <ha-energy-gas-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-gas-settings>
-        `;
-      case "water":
-        return html`
-          <ha-energy-water-settings
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-water-settings>
-          <ha-energy-device-settings-water
-            .hass=${this.hass}
-            .preferences=${this._preferences!}
-            .statsMetadata=${this._statsMetadata}
-            .validationResult=${this._validationResult}
-            @value-changed=${this._prefsChanged}
-          ></ha-energy-device-settings-water>
-        `;
-      default:
-        return nothing;
-    }
+  private _openDashboard() {
+    navigate("/energy");
   }
 
   private async _fetchConfig() {
@@ -325,29 +320,57 @@ class HaConfigEnergy extends LitElement {
           display: flex;
           align-items: center;
         }
-        .content {
-          padding: 0 var(--ha-space-5);
-          max-width: 1040px;
+        .page {
+          box-sizing: border-box;
+          max-width: 1100px;
           margin: 0 auto;
+          padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         }
-
-        ha-alert {
-          display: block;
-          margin: 12px auto;
-          max-width: 600px;
+        :host([narrow]) .page {
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
         }
-
-        ha-energy-grid-settings,
-        ha-energy-solar-settings,
-        ha-energy-home-settings,
-        ha-energy-battery-settings,
-        ha-energy-gas-settings,
-        ha-energy-water-settings,
-        ha-energy-device-settings,
-        ha-energy-device-settings-water {
+        .intro {
+          margin-bottom: var(--ha-space-4);
+        }
+        .intro h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .intro p {
+          margin: var(--ha-space-1) 0 0;
+          color: var(--secondary-text-color);
+          line-height: var(--ha-line-height-normal);
+        }
+        .cards {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fill,
+            minmax(min(100%, 320px), 1fr)
+          );
+          gap: var(--ha-space-4);
+          align-items: stretch;
+        }
+        .cards > * {
           display: block;
-          max-width: 600px;
-          margin: 0 auto 12px;
+          min-width: 0;
+          scroll-margin-top: var(--ha-space-4);
+        }
+        .footer {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-4);
+          margin-top: var(--ha-space-6);
+        }
+        .footer p {
+          flex: 1 1 280px;
+          margin: 0;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
         }
       `,
     ];

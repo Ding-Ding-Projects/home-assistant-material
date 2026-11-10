@@ -370,20 +370,21 @@ export class HaAuthFlow extends LitElement {
     return html`<div class="user-list" role="list">
       ${options.map(
         ([id, name]) => html`
-          <button
-            type="button"
-            class="user-row"
-            role="listitem"
-            .disabled=${this._submitting}
-            .userId=${id}
-            @click=${this._handleUserClick}
-          >
-            <span class="user-initial" aria-hidden="true"
-              >${(name || id).charAt(0).toUpperCase()}</span
+          <div role="listitem">
+            <button
+              type="button"
+              class="user-row"
+              .disabled=${this._submitting}
+              .userId=${id}
+              @click=${this._handleUserClick}
             >
-            <span class="user-name">${name}</span>
-            <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
-          </button>
+              <span class="user-initial" aria-hidden="true"
+                >${(name || id).charAt(0).toUpperCase()}</span
+              >
+              <span class="user-name">${name}</span>
+              <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
+            </button>
+          </div>
         `
       )}
     </div>`;

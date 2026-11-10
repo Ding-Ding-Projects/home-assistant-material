@@ -255,6 +255,14 @@ class HaPanelDevStatistics extends KeyboardShortcutMixin(LitElement) {
         groupable: true,
         urlName: "device",
       },
+      area: {
+        title: localize(
+          "ui.panel.config.tools.tabs.statistics.data_table.area"
+        ),
+        sortable: true,
+        groupable: true,
+        urlName: "area",
+      },
     })
   );
 

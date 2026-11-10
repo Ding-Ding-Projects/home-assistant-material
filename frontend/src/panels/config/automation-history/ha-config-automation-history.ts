@@ -1,14 +1,22 @@
 import {
   mdiCheck,
+  mdiClockOutline,
   mdiClose,
   mdiCloudUpload,
+  mdiCog,
   mdiCompare,
+  mdiDotsVertical,
   mdiExport,
+  mdiFileCompare,
   mdiFlask,
+  mdiHistory,
   mdiMinus,
+  mdiPencil,
   mdiPlay,
   mdiRestore,
+  mdiShieldCheck,
   mdiSourceBranch,
+  mdiSourceRepository,
   mdiStop,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
@@ -16,6 +24,8 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { ensureArray } from "../../../common/array/ensure-array";
+import { QueryParamsController } from "../../../common/controllers/query-params-controller";
+import { navigate } from "../../../common/navigate";
 import type {
   CheckState,
   VersionRef,
@@ -33,6 +43,10 @@ import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
+import "../../../components/ha-dropdown";
+import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
+import "../../../components/ha-dropdown-item";
+import "../../../components/ha-icon-button";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
@@ -55,6 +69,7 @@ import {
   fetchAutomationReposStatus,
   fetchAutomationVersion,
   pushAutomationRepos,
+  setAutomationRemote,
 } from "../../../data/automation_repos";
 import { validateConfig } from "../../../data/config";
 import type { Action } from "../../../data/script";
@@ -62,11 +77,27 @@ import { callExecuteScript } from "../../../data/service";
 import {
   showAlertDialog,
   showConfirmationDialog,
+  showPromptDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-tabs-subpage";
 import type { HomeAssistant, Route } from "../../../types";
 import { fileDownload } from "../../../util/file_download";
 import { configSections } from "../config-sections";
+import "./ha-automation-diff";
+import "./ha-config-automation-repo";
+import type {
+  HistoryFilter,
+  HistoryRange,
+} from "./automation-history-query-params";
+import {
+  automationHistoryQueryParamConfig,
+  decodeAutomationHistoryQueryParams,
+  HISTORY_FILTERS,
+  HISTORY_RANGES,
+  queryParamsFromState,
+  repositoryUrl,
+  stateFromQueryParams,
+} from "./automation-history-query-params";
 
 interface VersionRow extends VersionRef {
   message: string;
@@ -77,7 +108,13 @@ interface VersionRow extends VersionRef {
   live: boolean;
 }
 
-type Filter = "failing" | "live" | "untested";
+type Filter = HistoryFilter;
+
+/** Versions listed before Load more. */
+const PAGE_SIZE = 25;
+
+/** Which repositories the list of repositories shows. */
+type RepoFilter = "changes" | "clean";
 
 /** How many tests run at the same time. */
 const TESTS_AT_ONCE = 4;
@@ -125,6 +162,31 @@ export class HaConfigAutomationHistory extends LitElement {
 
   @state() private _filters: Filter[] = [];
 
+  /** The automation the list is limited to; empty for all of them. */
+  @state() private _automation = "";
+
+  @state() private _range: HistoryRange = "all";
+
+  /** Versions shown before Load more. */
+  @state() private _limit = PAGE_SIZE;
+
+  /** The automation whose version history is open, and the commit shown. */
+  @state() private _repository?: string;
+
+  @state() private _commit?: string;
+
+  /** When the running bulk test started, for the time it has left. */
+  private _testStartedAt = 0;
+
+  private _urlParams = new QueryParamsController(
+    this,
+    automationHistoryQueryParamConfig,
+    {
+      enabled: () => true,
+      navigated: () => this._applyUrl(),
+    }
+  );
+
   @state() private _selected: string[] = [];
 
   @state() private _results: Record<string, VersionTestResult> = {};
@@ -151,11 +213,55 @@ export class HaConfigAutomationHistory extends LitElement {
 
   @state() private _pushResult?: AutomationPushResult;
 
+  @state() private _preview?: { title: string; text: string };
+
+  @state() private _repoSearch = "";
+
+  @state() private _repoFilter?: RepoFilter;
+
+  @state() private _repoSelected: string[] = [];
+
   private _configs = new Map<string, AutomationConfig>();
 
   protected firstUpdated(changed: PropertyValues) {
     super.firstUpdated(changed);
+    this._applyUrl();
     this._load();
+  }
+
+  /**
+   * A link names the state it wants, so it replaces what was chosen before:
+   * a filter left over would hide part of what the link shows.
+   */
+  private _applyUrl() {
+    const params = this._urlParams.searchParams();
+    if (!params) {
+      return;
+    }
+    const next = stateFromQueryParams(
+      decodeAutomationHistoryQueryParams(params)
+    );
+    this._search = next.search;
+    this._filters = next.filters;
+    this._automation = next.automation;
+    this._range = next.range;
+    this._repository = next.repository;
+    this._commit = next.commit;
+    this._limit = PAGE_SIZE;
+  }
+
+  private _writeUrl(debounced = false) {
+    this._urlParams.write(
+      queryParamsFromState({
+        search: this._search,
+        filters: this._filters,
+        automation: this._automation,
+        range: this._range,
+        repository: this._repository,
+        commit: this._commit,
+      }),
+      debounced
+    );
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -211,6 +317,9 @@ export class HaConfigAutomationHistory extends LitElement {
       this._rows = rows;
       const known = new Set(rows.map(versionKey));
       this._selected = this._selected.filter((key) => known.has(key));
+      this._repoSelected = this._repoSelected.filter((id) =>
+        status.automations.some((automation) => automation.id === id)
+      );
     } catch (err: any) {
       this._error = err?.message || String(err);
     } finally {
@@ -308,6 +417,7 @@ export class HaConfigAutomationHistory extends LitElement {
       return;
     }
     this._testing = refs;
+    this._testStartedAt = Date.now();
     this._testRunning = true;
     this._stopTests = false;
     const cleared = { ...this._results };
@@ -526,11 +636,14 @@ export class HaConfigAutomationHistory extends LitElement {
     this._pushing = true;
     this._pushResult = undefined;
     try {
+      // With repositories ticked, only those are committed; without, all
       this._pushResult = await pushAutomationRepos(
         this.hass,
-        this._message.trim() || undefined
+        this._message.trim() || undefined,
+        this._repoSelected.length ? this._repoSelected : undefined
       );
       this._message = "";
+      this._repoSelected = [];
       await this._load();
     } catch (err: any) {
       showAlertDialog(this, {
@@ -539,6 +652,67 @@ export class HaConfigAutomationHistory extends LitElement {
       });
     } finally {
       this._pushing = false;
+    }
+  }
+
+  // The address of the remote of the master repository. Empty removes it.
+  private async _editRemote() {
+    const answer = await showPromptDialog(this, {
+      title: this._l("remote_title"),
+      inputLabel: this._l("remote_label"),
+      textBelowInput: this._l("remote_hint"),
+      defaultValue: this._status?.master.remote ?? "",
+      confirmText: this._l("remote_save"),
+    });
+    if (answer === null) {
+      return;
+    }
+    try {
+      await setAutomationRemote(this.hass, null, answer.trim() || null);
+      await this._load();
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    }
+  }
+
+  // Every change that waits, as one piece of text: each changed automation
+  // compared with its last commit. An automation that has no commit yet has
+  // nothing to compare with, and is counted instead.
+  private async _previewChanges() {
+    const waiting = (this._status?.automations ?? []).filter(
+      (item) => item.dirty
+    );
+    try {
+      const parts = await Promise.all(
+        waiting
+          .filter((item) => item.head)
+          .map(async (item) => {
+            const { diff } = await fetchAutomationDiff(
+              this.hass,
+              item.id,
+              item.head!
+            );
+            return `=== ${item.alias} ===\n${diff}`;
+          })
+      );
+      const uncommitted = waiting.filter((item) => !item.head);
+      this._preview = {
+        title: this._l("preview_title", { count: waiting.length }),
+        text: [
+          ...parts,
+          ...uncommitted.map(
+            (item) => `=== ${item.alias} ===\n${this._l("preview_new")}`
+          ),
+        ].join("\n"),
+      };
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
     }
   }
 
@@ -557,7 +731,18 @@ export class HaConfigAutomationHistory extends LitElement {
 
   private _visibleRows(): VersionRow[] {
     const matches = searchMatcher(this._search);
+    // Changes that are not committed yet have no time, and are always shown.
+    const since =
+      this._range === "all"
+        ? 0
+        : Date.now() / 1000 - Number(this._range) * 86400;
     return this._rows.filter((row) => {
+      if (this._automation && row.automationId !== this._automation) {
+        return false;
+      }
+      if (row.timestamp !== undefined && row.timestamp < since) {
+        return false;
+      }
       if (!matches(row.alias, row.message, row.sha, row.author)) {
         return false;
       }
@@ -578,6 +763,15 @@ export class HaConfigAutomationHistory extends LitElement {
   }
 
   protected render(): TemplateResult {
+    if (this._repository) {
+      return html`<ha-config-automation-repo
+        .hass=${this.hass}
+        .narrow=${this.narrow}
+        .automationId=${this._repository}
+        .selectedSha=${this._commit}
+        @automation-repo-commit-selected=${this._repoCommitSelected}
+      ></ha-config-automation-repo>`;
+    }
     return html`
       <hass-tabs-subpage
         .hass=${this.hass}
@@ -587,10 +781,6 @@ export class HaConfigAutomationHistory extends LitElement {
         .tabs=${configSections.automations}
       >
         <div class="page">
-          <div class="heading">
-            <h1>${this._l("title")}</h1>
-            <p>${this._l("description")}</p>
-          </div>
           ${
             this._error
               ? html`<ha-alert
@@ -600,7 +790,20 @@ export class HaConfigAutomationHistory extends LitElement {
                 >`
               : nothing
           }
-          ${this._renderMaster()} ${this._renderSelectionBar()}
+          ${this._renderMaster()}
+          <div class="repos-grid">
+            ${this._renderRepositories()} ${this._renderSteps()}
+          </div>
+          ${this._renderDiff(this._preview, this._closePreview)}
+          ${this._renderRemoteCards()}
+          <div class="heading history-heading">
+            <div class="heading-text">
+              <h2>${this._l("title")}</h2>
+              <p>${this._l("description")}</p>
+            </div>
+            ${this._renderScope()}
+          </div>
+          ${this._renderSelectionBar()}
           <div class="columns">
             <div class="main">${this._renderList()}</div>
             <div class="side">
@@ -614,6 +817,15 @@ export class HaConfigAutomationHistory extends LitElement {
     `;
   }
 
+  private _commitLabel(status: AutomationReposStatus): string {
+    if (this._repoSelected.length) {
+      return this._l("commit_selected", { count: this._repoSelected.length });
+    }
+    const hasRemote =
+      !!status.master.remote || status.automations.some((item) => item.remote);
+    return this._l(hasRemote ? "commit_all_push" : "commit_all");
+  }
+
   private _renderMaster() {
     const status = this._status;
     if (!status) {
@@ -622,79 +834,350 @@ export class HaConfigAutomationHistory extends LitElement {
     const waiting = status.automations.filter((item) => item.dirty).length;
     const result = this._pushResult;
     return html`
-      <ha-card class="master">
-        <div class="master-text">
-          <span class="eyebrow">
-            <ha-svg-icon .path=${mdiSourceBranch}></ha-svg-icon>
-            ${this._l("master_eyebrow", {
-              count: status.automations.length,
-            })}
-          </span>
-          <span class="master-title"
-            >${this._l("master_title", { count: waiting })}</span
-          >
-          <span class="secondary">
-            ${
-              status.master.head
-                ? this._l("master_head", {
-                    commit: status.master.head.slice(0, 7),
-                  })
-                : this._l("master_empty")
-            }
-            ${
-              status.master.remote
-                ? this._l("master_remote", { remote: status.master.remote })
-                : this._l("master_no_remote")
-            }
-          </span>
-        </div>
-        <div class="master-actions">
-          <input
-            class="message"
-            type="text"
-            maxlength="500"
-            .value=${this._message}
-            placeholder=${this._l("message_placeholder")}
-            aria-label=${this._l("message_placeholder")}
-            @input=${this._messageChanged}
-          />
-          <ha-button ?disabled=${this._pushing} @click=${this._push}>
+      <div class="hero">
+        <ha-card class="master">
+          <div class="master-text">
+            <span class="eyebrow">
+              <ha-svg-icon .path=${mdiSourceBranch}></ha-svg-icon>
+              ${this._l("master_eyebrow", {
+                count: status.automations.length,
+              })}
+            </span>
+            <h1 class="master-title">
+              ${this._l("master_title", { count: waiting })}
+            </h1>
+            <p class="master-sentence">
+              ${this._l("master_text", { count: status.automations.length })}
+            </p>
+            <span class="secondary">
+              ${
+                status.master.head
+                  ? this._l("master_head", {
+                      commit: status.master.head.slice(0, 7),
+                    })
+                  : this._l("master_empty")
+              }
+              ${
+                status.master.remote
+                  ? this._l("master_remote", { remote: status.master.remote })
+                  : this._l("master_no_remote")
+              }
+            </span>
+          </div>
+          ${
+            result
+              ? html`<div class="push-result" role="status">
+                  <span
+                    >${this._l("push_result", {
+                      committed: result.committed.length,
+                      unchanged: result.unchanged,
+                    })}
+                    ${
+                      result.master_commit
+                        ? this._l("push_master", {
+                            commit: result.master_commit.slice(0, 7),
+                          })
+                        : this._l("push_master_unchanged")
+                    }
+                    ${
+                      result.pushed.length
+                        ? this._l("push_sent", { count: result.pushed.length })
+                        : ""
+                    }</span
+                  >
+                  ${[...result.skipped, ...result.push_errors].map(
+                    (item) =>
+                      html`<span class="warning"
+                        >${item.id}:
+                        ${"reason" in item ? item.reason : item.error}</span
+                      >`
+                  )}
+                </div>`
+              : nothing
+          }
+        </ha-card>
+        <div class="hero-actions">
+          <ha-button size="l" ?disabled=${this._pushing} @click=${this._push}>
             <ha-svg-icon slot="start" .path=${mdiCloudUpload}></ha-svg-icon>
-            ${this._l("commit_all")}
+            ${this._commitLabel(status)}
+          </ha-button>
+          <ha-button appearance="outlined" size="l" @click=${this._editRemote}>
+            <ha-svg-icon slot="start" .path=${mdiCog}></ha-svg-icon>
+            ${this._l("remote_settings")}
           </ha-button>
         </div>
-        ${
-          result
-            ? html`<div class="push-result" role="status">
-                <span
-                  >${this._l("push_result", {
-                    committed: result.committed.length,
-                    unchanged: result.unchanged,
-                  })}
-                  ${
-                    result.master_commit
-                      ? this._l("push_master", {
-                          commit: result.master_commit.slice(0, 7),
-                        })
-                      : this._l("push_master_unchanged")
-                  }
-                  ${
-                    result.pushed.length
-                      ? this._l("push_sent", { count: result.pushed.length })
-                      : ""
-                  }</span
-                >
-                ${[...result.skipped, ...result.push_errors].map(
-                  (item) =>
-                    html`<span class="warning"
-                      >${item.id}:
-                      ${"reason" in item ? item.reason : item.error}</span
-                    >`
-                )}
-              </div>`
-            : nothing
-        }
+      </div>
+    `;
+  }
+
+  private _visibleRepos() {
+    const matches = searchMatcher(this._repoSearch);
+    return (this._status?.automations ?? []).filter(
+      (item) =>
+        matches(item.alias, item.repository) &&
+        (this._repoFilter === "changes"
+          ? item.dirty
+          : this._repoFilter === "clean"
+            ? !item.dirty
+            : true)
+    );
+  }
+
+  // Every automation has its own repository inside the master
+  private _renderRepositories() {
+    const status = this._status;
+    if (!status) {
+      return this._loading
+        ? html`<div class="repos">
+            <p class="empty">${this._l("loading")}</p>
+          </div>`
+        : nothing;
+    }
+    const repos = this._visibleRepos();
+    const selected = new Set(this._repoSelected);
+    return html`
+      <div class="repos">
+        <div class="filters">
+          <ha-input-search
+            appearance="outlined"
+            .value=${this._repoSearch}
+            .placeholder=${this._l("repo_search")}
+            .patternSamples=${status.automations.map(
+              (item) => `${item.alias} ${item.repository}`
+            )}
+            @input=${this._repoSearchChanged}
+          ></ha-input-search>
+          ${(["changes", "clean"] as const).map(
+            (filter) => html`
+              <button
+                class=${classMap({
+                  chip: true,
+                  on: this._repoFilter === filter,
+                })}
+                aria-pressed=${this._repoFilter === filter ? "true" : "false"}
+                .repoFilter=${filter}
+                @click=${this._toggleRepoFilter}
+              >
+                ${this._l(`repo_filter_${filter}`)}
+              </button>
+            `
+          )}
+        </div>
+        <div class="table" role="table" aria-label=${this._l("repo_title")}>
+          <div class="row repo head" role="row">
+            <span role="columnheader" class="check">
+              <input
+                type="checkbox"
+                aria-label=${this._l("repo_select_all")}
+                .checked=${
+                  repos.length > 0 &&
+                  repos.every((item) => selected.has(item.id))
+                }
+                @change=${this._toggleAllRepos}
+              />
+            </span>
+            <span role="columnheader"
+              >${this._l("repo_column_automation")}</span
+            >
+            <span role="columnheader">${this._l("repo_column_state")}</span>
+            <span role="columnheader" class="push-column"
+              >${this._l("repo_column_push")}</span
+            >
+          </div>
+          ${
+            this._loading
+              ? html`<p class="empty">${this._l("loading")}</p>`
+              : repos.length
+                ? repos.map((item) => {
+                    const doing = item.dirty
+                      ? item.remote || status.master.remote
+                        ? "repo_do_commit_push"
+                        : "repo_do_commit"
+                      : "repo_do_nothing";
+                    return html`
+                      <div
+                        class=${classMap({
+                          row: true,
+                          repo: true,
+                          on: selected.has(item.id),
+                        })}
+                        role="row"
+                      >
+                        <span role="cell" class="check">
+                          <input
+                            type="checkbox"
+                            aria-label=${this._l("repo_select", {
+                              alias: item.alias,
+                            })}
+                            .checked=${selected.has(item.id)}
+                            .repoId=${item.id}
+                            @change=${this._toggleRepo}
+                          />
+                        </span>
+                        <span role="cell" class="repo-name">
+                          <span class="tile">
+                            <ha-svg-icon
+                              .path=${mdiSourceRepository}
+                            ></ha-svg-icon>
+                          </span>
+                          <span class="version">
+                            <span class="primary">${item.alias}</span>
+                            <span class="secondary"
+                              ><code>${item.repository}</code> ·
+                              ${this._l("repo_commits", {
+                                count: item.commits,
+                              })}</span
+                            >
+                          </span>
+                        </span>
+                        <span role="cell">
+                          <span
+                            class=${classMap({
+                              "state-chip": true,
+                              changes: item.dirty,
+                              clean: !item.dirty,
+                            })}
+                            >${this._l(
+                              item.dirty
+                                ? "repo_state_changes"
+                                : "repo_state_clean"
+                            )}</span
+                          >
+                        </span>
+                        <span role="cell" class="push-column"
+                          >${this._l(doing)}</span
+                        >
+                      </div>
+                    `;
+                  })
+                : html`<p class="empty">
+                    ${this._l(
+                      status.automations.length ? "repo_no_match" : "repo_none"
+                    )}
+                  </p>`
+          }
+        </div>
+        <p class="secondary count">
+          ${this._l("repo_showing", {
+            shown: repos.length,
+            total: status.automations.length,
+          })}
+        </p>
+      </div>
+    `;
+  }
+
+  // What a push does, step by step, with the message and the two buttons
+  private _renderSteps() {
+    const status = this._status;
+    if (!status) {
+      return nothing;
+    }
+    const waiting = status.automations.filter((item) => item.dirty).length;
+    const steps = [
+      { title: "step_check_title", text: "step_check_text" },
+      { title: "step_commit_title", text: "step_commit_text" },
+      { title: "step_master_title", text: "step_master_text" },
+      { title: "step_send_title", text: "step_send_text" },
+    ];
+    return html`
+      <ha-card class="panel steps">
+        <h2>${this._l("steps_title")}</h2>
+        <ol>
+          ${steps.map(
+            (step, index) => html`
+              <li>
+                <span class="step-number">${index + 1}</span>
+                <span class="setting-text">
+                  <span class="primary">${this._l(step.title)}</span>
+                  <span class="secondary"
+                    >${this._l(step.text, { count: waiting })}</span
+                  >
+                </span>
+              </li>
+            `
+          )}
+        </ol>
+        <input
+          class="message"
+          type="text"
+          maxlength="500"
+          .value=${this._message}
+          placeholder=${this._l("message_placeholder")}
+          aria-label=${this._l("message_placeholder")}
+          @input=${this._messageChanged}
+        />
+        <p class="safe">
+          <ha-svg-icon .path=${mdiShieldCheck}></ha-svg-icon>
+          ${this._l("steps_safe")}
+        </p>
+        <div class="panel-actions">
+          <ha-button
+            appearance="plain"
+            ?disabled=${!waiting}
+            @click=${this._previewChanges}
+          >
+            <ha-svg-icon slot="start" .path=${mdiFileCompare}></ha-svg-icon>
+            ${this._l("preview_changes")}
+          </ha-button>
+          <ha-button ?disabled=${this._pushing} @click=${this._push}>
+            <ha-svg-icon slot="start" .path=${mdiCloudUpload}></ha-svg-icon>
+            ${this._commitLabel(status)}
+          </ha-button>
+        </div>
       </ha-card>
+    `;
+  }
+
+  // Where the master goes, and what is left out of it
+  private _renderRemoteCards() {
+    const status = this._status;
+    if (!status) {
+      return nothing;
+    }
+    const remote = status.master.remote;
+    return html`
+      <div class="cards">
+        <ha-card class="panel">
+          <h2>${this._l("card_remote_title")}</h2>
+          <div class="setting">
+            <span class="tile">
+              <ha-svg-icon .path=${mdiCloudUpload}></ha-svg-icon>
+            </span>
+            <span class="setting-text">
+              <span class="primary remote-address"
+                >${remote ?? this._l("card_remote_none")}</span
+              >
+              <span class="secondary">
+                ${
+                  status.master.last_commit
+                    ? html`${this._l("card_remote_last")}
+                        <ha-relative-time
+                          .hass=${this.hass}
+                          .datetime=${new Date(status.master.last_commit * 1000)}
+                        ></ha-relative-time>`
+                    : this._l("master_empty")
+                }
+              </span>
+            </span>
+            <ha-button appearance="plain" size="s" @click=${this._editRemote}>
+              <ha-svg-icon slot="start" .path=${mdiPencil}></ha-svg-icon>
+              ${this._l(remote ? "card_remote_change" : "card_remote_add")}
+            </ha-button>
+          </div>
+        </ha-card>
+        <ha-card class="panel">
+          <h2>${this._l("card_secrets_title")}</h2>
+          <div class="setting">
+            <span class="tile">
+              <ha-svg-icon .path=${mdiShieldCheck}></ha-svg-icon>
+            </span>
+            <span class="setting-text">
+              <span class="secondary">${this._l("card_secrets_text")}</span>
+            </span>
+          </div>
+        </ha-card>
+      </div>
     `;
   }
 
@@ -774,6 +1257,7 @@ export class HaConfigAutomationHistory extends LitElement {
 
   private _renderList() {
     const rows = this._visibleRows();
+    const shown = rows.slice(0, this._limit);
     const selected = new Set(this._selected);
     return html`
       <div class="filters">
@@ -786,7 +1270,7 @@ export class HaConfigAutomationHistory extends LitElement {
           )}
           @input=${this._searchChanged}
         ></ha-input-search>
-        ${(["failing", "live", "untested"] as const).map(
+        ${HISTORY_FILTERS.map(
           (filter) => html`
             <button
               class=${classMap({
@@ -825,12 +1309,13 @@ export class HaConfigAutomationHistory extends LitElement {
             >${this._l("column_checks")}</span
           >
           <span role="columnheader" class="actions"></span>
+          <span role="columnheader" class="menu"></span>
         </div>
         ${
           this._loading
             ? html`<p class="empty">${this._l("loading")}</p>`
             : rows.length
-              ? rows.map((row) => {
+              ? shown.map((row) => {
                   const key = versionKey(row);
                   const result = this._results[key];
                   return html`
@@ -885,9 +1370,11 @@ export class HaConfigAutomationHistory extends LitElement {
                                 result.conditions,
                                 this._l("check_conditions")
                               )}`
-                            : html`<span class="secondary"
-                                >${this._l("never_tested")}</span
-                              >`
+                            : this._waiting(row)
+                              ? this._waitingBadges()
+                              : html`<span class="secondary"
+                                  >${this._l("never_tested")}</span
+                                >`
                         }
                       </span>
                       <span role="cell" class="actions">
@@ -905,6 +1392,9 @@ export class HaConfigAutomationHistory extends LitElement {
                           ${this._l("test")}
                         </ha-button>
                       </span>
+                      <span role="cell" class="menu">
+                        ${this._renderRowMenu(row)}
+                      </span>
                     </div>
                   `;
                 })
@@ -913,13 +1403,109 @@ export class HaConfigAutomationHistory extends LitElement {
                 </p>`
         }
       </div>
-      <p class="secondary count">
-        ${this._l("showing", {
-          shown: rows.length,
-          total: this._rows.length,
-          automations: this._status?.automations.length ?? 0,
-        })}
-      </p>
+      <div class="list-foot">
+        <p class="secondary count">
+          ${this._l("showing", {
+            shown: shown.length,
+            total: this._rows.length,
+            automations: this._status?.automations.length ?? 0,
+          })}
+        </p>
+        ${
+          rows.length > shown.length
+            ? html`<button class="link" @click=${this._loadMore}>
+                ${this._l("load_more")}
+              </button>`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  /** A version that is in the test that is running and has no result yet. */
+  private _waiting(row: VersionRow): boolean {
+    return (
+      this._testRunning &&
+      !!this._testing?.some((ref) => versionKey(ref) === versionKey(row))
+    );
+  }
+
+  private _waitingBadges() {
+    return html`${[this._l("check_loads"), this._l("check_conditions")].map(
+      (label) =>
+        html`<span
+          class="badge"
+          role="img"
+          aria-label=${`${label}: ${this._l("state_running")}`}
+          title=${`${label}: ${this._l("state_running")}`}
+        >
+          <ha-svg-icon .path=${mdiClockOutline}></ha-svg-icon>
+        </span>`
+    )}`;
+  }
+
+  private _renderRowMenu(row: VersionRow) {
+    const working = row.sha === WORKING;
+    return html`
+      <ha-dropdown .row=${row} @wa-select=${this._rowMenuSelected}>
+        <ha-icon-button
+          slot="trigger"
+          .label=${this._l("row_menu", { alias: row.alias })}
+          .path=${mdiDotsVertical}
+        ></ha-icon-button>
+        <ha-dropdown-item value="history">
+          ${this._l("row_history")}
+          <ha-svg-icon slot="icon" .path=${mdiHistory}></ha-svg-icon>
+        </ha-dropdown-item>
+        <ha-dropdown-item value="compare" .disabled=${working}>
+          ${this._l("row_compare")}
+          <ha-svg-icon slot="icon" .path=${mdiCompare}></ha-svg-icon>
+        </ha-dropdown-item>
+        <ha-dropdown-item value="make_live" .disabled=${working || row.live}>
+          ${this._l("make_live")}
+          <ha-svg-icon slot="icon" .path=${mdiRestore}></ha-svg-icon>
+        </ha-dropdown-item>
+        <ha-dropdown-item value="export">
+          ${this._l("export")}
+          <ha-svg-icon slot="icon" .path=${mdiExport}></ha-svg-icon>
+        </ha-dropdown-item>
+      </ha-dropdown>
+    `;
+  }
+
+  private _renderScope() {
+    const automations = this._status?.automations ?? [];
+    return html`
+      <div class="scope">
+        <label class="scope-field">
+          <span class="secondary">${this._l("scope_automation")}</span>
+          <select .value=${this._automation} @change=${this._automationChanged}>
+            <option value="" ?selected=${!this._automation}>
+              ${this._l("scope_all", { count: automations.length })}
+            </option>
+            ${automations.map(
+              (automation) =>
+                html`<option
+                  value=${automation.id}
+                  ?selected=${this._automation === automation.id}
+                >
+                  ${automation.alias}
+                </option>`
+            )}
+          </select>
+        </label>
+        <label class="scope-field">
+          <span class="secondary">${this._l("scope_versions")}</span>
+          <select .value=${this._range} @change=${this._rangeChanged}>
+            ${HISTORY_RANGES.map(
+              (range) =>
+                html`<option value=${range} ?selected=${this._range === range}>
+                  ${this._l(`range_${range}`)}
+                </option>`
+            )}
+          </select>
+        </label>
+      </div>
     `;
   }
 
@@ -953,6 +1539,7 @@ export class HaConfigAutomationHistory extends LitElement {
                     passed: summary.passed,
                     failed: summary.failed,
                   })}
+                  ${this._testRunning ? this._timeLeft(summary) : nothing}
                 </p>
               `
             : html`<p class="secondary">${this._l("bulk_test_idle")}</p>`
@@ -1065,6 +1652,17 @@ export class HaConfigAutomationHistory extends LitElement {
           <ha-button
             appearance="outlined"
             size="small"
+            href=${repositoryUrl(
+              failing.automationId,
+              failing.sha === WORKING ? undefined : failing.sha
+            )}
+          >
+            <ha-svg-icon slot="start" .path=${mdiHistory}></ha-svg-icon>
+            ${this._l("open_version")}
+          </ha-button>
+          <ha-button
+            appearance="outlined"
+            size="small"
             href=${`/config/automation/edit/${failing.automationId}`}
           >
             ${this._l("open_automation")}
@@ -1074,37 +1672,21 @@ export class HaConfigAutomationHistory extends LitElement {
     `;
   }
 
-  private _renderDiff() {
-    if (!this._diff) {
+  private _renderDiff(diff = this._diff, close: () => void = this._closeDiff) {
+    if (!diff) {
       return nothing;
     }
     return html`
       <ha-card class="diff">
         <div class="panel-head">
-          <h2>${this._diff.title}</h2>
-          <ha-button appearance="plain" size="small" @click=${this._closeDiff}>
+          <h2>${diff.title}</h2>
+          <ha-button appearance="plain" size="small" @click=${close}>
             ${this._l("close")}
           </ha-button>
         </div>
         ${
-          this._diff.text.trim()
-            ? html`<div class="diff-text" role="group">
-                ${this._diff.text
-                  .split("\n")
-                  .map(
-                    (line) =>
-                      html`<div
-                        class=${
-                          line.startsWith("+") && !line.startsWith("+++")
-                            ? "added"
-                            : line.startsWith("-") && !line.startsWith("---")
-                              ? "removed"
-                              : ""
-                        }
-                        .textContent=${line}
-                      ></div>`
-                  )}
-              </div>`
+          diff.text.trim()
+            ? html`<ha-automation-diff .text=${diff.text}></ha-automation-diff>`
             : html`<p class="secondary">${this._l("diff_empty")}</p>`
         }
       </ha-card>
@@ -1119,6 +1701,8 @@ export class HaConfigAutomationHistory extends LitElement {
 
   private _searchChanged(ev: Event) {
     this._search = (ev.target as HaInputSearch).value ?? "";
+    this._limit = PAGE_SIZE;
+    this._writeUrl(true);
   }
 
   private _toggleFilter(ev: Event) {
@@ -1127,6 +1711,64 @@ export class HaConfigAutomationHistory extends LitElement {
     this._filters = this._filters.includes(filter)
       ? this._filters.filter((item) => item !== filter)
       : [...this._filters, filter];
+    this._limit = PAGE_SIZE;
+    this._writeUrl();
+  }
+
+  private _automationChanged(ev: Event) {
+    this._automation = (ev.currentTarget as HTMLSelectElement).value;
+    this._limit = PAGE_SIZE;
+    this._writeUrl();
+  }
+
+  private _rangeChanged(ev: Event) {
+    this._range = (ev.currentTarget as HTMLSelectElement).value as HistoryRange;
+    this._limit = PAGE_SIZE;
+    this._writeUrl();
+  }
+
+  private _loadMore() {
+    this._limit += PAGE_SIZE;
+  }
+
+  /** What is left of a running test, guessed from how long it has taken. */
+  private _timeLeft(summary: { total: number; done: number }) {
+    if (!summary.done || summary.done >= summary.total) {
+      return nothing;
+    }
+    const perVersion = (Date.now() - this._testStartedAt) / summary.done;
+    const seconds = Math.max(
+      1,
+      Math.round((perVersion * (summary.total - summary.done)) / 1000)
+    );
+    return this._l("bulk_test_left", { seconds });
+  }
+
+  private _rowMenuSelected(ev: HaDropdownSelectEvent) {
+    const row = (ev.currentTarget as HTMLElement & { row: VersionRow }).row;
+    switch (ev.detail?.item?.value) {
+      case "history":
+        this._openRepository(row.automationId, row.sha);
+        break;
+      case "compare":
+        this._compare([row]);
+        break;
+      case "make_live":
+        this._makeLive(row);
+        break;
+      case "export":
+        this._export([row]);
+        break;
+    }
+  }
+
+  private _openRepository(automationId: string, sha?: string) {
+    navigate(repositoryUrl(automationId, sha === WORKING ? undefined : sha));
+  }
+
+  private _repoCommitSelected(ev: CustomEvent<{ sha: string }>) {
+    this._commit = ev.detail.sha || undefined;
+    this._writeUrl();
   }
 
   private _toggleRow(ev: Event) {
@@ -1196,6 +1838,35 @@ export class HaConfigAutomationHistory extends LitElement {
     this._skipGuarded = (ev.currentTarget as HTMLInputElement).checked;
   }
 
+  private _closePreview = () => {
+    this._preview = undefined;
+  };
+
+  private _repoSearchChanged(ev: Event) {
+    this._repoSearch = (ev.target as HaInputSearch).value ?? "";
+  }
+
+  private _toggleRepoFilter(ev: Event) {
+    const filter = (
+      ev.currentTarget as HTMLElement & { repoFilter: RepoFilter }
+    ).repoFilter;
+    this._repoFilter = this._repoFilter === filter ? undefined : filter;
+  }
+
+  private _toggleRepo(ev: Event) {
+    const input = ev.currentTarget as HTMLInputElement & { repoId: string };
+    this._repoSelected = input.checked
+      ? [...new Set([...this._repoSelected, input.repoId])]
+      : this._repoSelected.filter((id) => id !== input.repoId);
+  }
+
+  private _toggleAllRepos(ev: Event) {
+    const ids = this._visibleRepos().map((item) => item.id);
+    this._repoSelected = (ev.currentTarget as HTMLInputElement).checked
+      ? [...new Set([...this._repoSelected, ...ids])]
+      : this._repoSelected.filter((id) => !ids.includes(id));
+  }
+
   private _closeDiff() {
     this._diff = undefined;
   }
@@ -1254,13 +1925,131 @@ export class HaConfigAutomationHistory extends LitElement {
       --mdc-icon-size: 18px;
     }
     .master-title {
-      font-size: var(--ha-font-size-2xl);
+      font-size: var(--ha-font-size-3xl);
+      font-weight: var(--ha-font-weight-normal);
+      line-height: var(--ha-line-height-condensed);
     }
-    .master-actions {
+    .master-sentence {
+      font-size: var(--ha-font-size-m);
+      line-height: var(--ha-line-height-normal);
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+      gap: var(--ha-space-4);
+      align-items: start;
+    }
+    .hero-actions {
       display: flex;
-      flex-wrap: wrap;
-      gap: var(--ha-space-2);
+      flex-direction: column;
+      gap: var(--ha-space-3);
+    }
+    .repos-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+      gap: var(--ha-space-4);
+      align-items: start;
+    }
+    .repos {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      min-width: 0;
+    }
+    .row.repo {
+      grid-template-columns: 40px minmax(0, 1.6fr) 120px minmax(0, 1.2fr);
+    }
+    .repo-name {
+      display: flex;
       align-items: center;
+      gap: var(--ha-space-3);
+      min-width: 0;
+    }
+    .tile {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: var(--ha-space-10);
+      height: var(--ha-space-10);
+      border-radius: var(--ha-border-radius-lg);
+      background: var(--ha-color-fill-neutral-normal-resting);
+      --mdc-icon-size: 20px;
+    }
+    .state-chip {
+      display: inline-block;
+      padding: 2px var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .state-chip.changes {
+      background: var(--ha-color-fill-warning-normal-resting);
+      color: var(--ha-color-on-warning-normal);
+    }
+    .state-chip.clean {
+      background: var(--ha-color-fill-success-normal-resting);
+      color: var(--ha-color-on-success-normal, var(--success-color));
+    }
+    .steps ol {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--ha-space-3);
+    }
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: var(--ha-space-8);
+      height: var(--ha-space-8);
+      border-radius: 50%;
+      background: var(--ha-color-fill-primary-normal-resting);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .steps .message {
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .safe {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      --mdc-icon-size: 20px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--ha-space-4);
+    }
+    .remote-address {
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 900px) {
+      .hero,
+      .repos-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    @media (max-width: 700px) {
+      .row.repo {
+        grid-template-columns: 40px minmax(0, 1fr) auto;
+      }
+      .row.repo .push-column {
+        display: none;
+      }
     }
     .message {
       height: var(--ha-space-10);
@@ -1362,7 +2151,7 @@ export class HaConfigAutomationHistory extends LitElement {
     }
     .row {
       display: grid;
-      grid-template-columns: 40px minmax(0, 1fr) 132px 96px 96px;
+      grid-template-columns: 40px minmax(0, 1fr) 132px 96px 96px 40px;
       align-items: center;
       gap: var(--ha-space-2);
       min-height: var(--ha-space-14);
@@ -1435,6 +2224,95 @@ export class HaConfigAutomationHistory extends LitElement {
     .actions {
       justify-self: end;
     }
+    .menu {
+      justify-self: end;
+    }
+    /* On a phone the row has two lines: the version, then what was checked. */
+    @media (max-width: 700px) {
+      .row {
+        grid-template-columns: 40px minmax(0, 1fr) auto;
+        grid-template-areas:
+          "check version menu"
+          ". commit commit"
+          ". checks checks"
+          ". actions actions";
+      }
+      .row .check {
+        grid-area: check;
+      }
+      .row .version {
+        grid-area: version;
+      }
+      .row .commit {
+        grid-area: commit;
+      }
+      .row .checks {
+        grid-area: checks;
+      }
+      .row .actions {
+        grid-area: actions;
+        justify-self: start;
+      }
+      .row .menu {
+        grid-area: menu;
+      }
+      .row.head {
+        grid-template-columns: 40px minmax(0, 1fr);
+        grid-template-areas: "check version";
+      }
+      .row.head .commit,
+      .row.head .checks,
+      .row.head .actions,
+      .row.head .menu {
+        display: none;
+      }
+    }
+    .history-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--ha-space-4);
+    }
+    .heading-text {
+      flex: 1 1 280px;
+      min-width: 0;
+    }
+    .scope {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
+    }
+    .scope-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      min-width: 160px;
+    }
+    .scope-field select {
+      min-height: var(--ha-space-10);
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-border-radius-md);
+      border: 1px solid var(--outline-color);
+      background: var(--card-background-color);
+      color: inherit;
+      font: inherit;
+    }
+    .scope-field select:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .list-foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    .list-foot .link {
+      color: var(--primary-color);
+      font-weight: var(--ha-font-weight-medium);
+    }
     .empty {
       padding: var(--ha-space-6);
       text-align: center;
@@ -1501,25 +2379,6 @@ export class HaConfigAutomationHistory extends LitElement {
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-3);
-    }
-    .diff-text {
-      padding: var(--ha-space-4);
-      border-radius: var(--ha-border-radius-xl);
-      background: var(--ha-color-fill-neutral-quiet-resting);
-      font-family: var(--ha-font-family-code);
-      font-size: var(--ha-font-size-s);
-      overflow-x: auto;
-    }
-    /* Lines are set as text, so only their own spaces show. */
-    .diff-text > div {
-      white-space: pre;
-      min-height: 1.4em;
-    }
-    .diff-text .added {
-      color: var(--success-color);
-    }
-    .diff-text .removed {
-      color: var(--error-color);
     }
   `;
 }

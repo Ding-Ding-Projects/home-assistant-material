@@ -136,7 +136,7 @@ export class EnergyDeviceSettingsWater extends LitElement {
               : ""
           }
           <div class="row">
-            <ha-button @click=${this._addDevice} appearance="filled" size="s">
+            <ha-button @click=${this._addDevice} appearance="plain" size="s">
               <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
               >${this.hass.localize(
                 "ui.panel.config.energy.device_consumption_water.add_device"
@@ -270,6 +270,7 @@ export class EnergyDeviceSettingsWater extends LitElement {
     if (
       !(await showConfirmationDialog(this, {
         title: this.hass.localize("ui.panel.config.energy.delete_source"),
+        destructive: true,
       }))
     ) {
       return;

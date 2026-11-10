@@ -176,7 +176,7 @@ export class EnergyGridSettings extends LitElement {
               : nothing
           }
           <div class="row">
-            <ha-button @click=${this._addSource} appearance="filled" size="s">
+            <ha-button @click=${this._addSource} appearance="plain" size="s">
               <ha-svg-icon .path=${mdiPlus} slot="start"></ha-svg-icon>
               ${this.hass.localize(
                 "ui.panel.config.energy.grid.add_connection"
@@ -227,7 +227,7 @@ export class EnergyGridSettings extends LitElement {
                   <div class="row">
                     <ha-button
                       @click=${this._addCO2Sensor}
-                      appearance="filled"
+                      appearance="plain"
                       size="s"
                     >
                       <ha-svg-icon .path=${mdiPlus} slot="start"></ha-svg-icon>

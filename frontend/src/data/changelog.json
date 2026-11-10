@@ -4,13 +4,25 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Statistics and Scenes can be sorted and grouped again, and Statistics keeps its search, sorting and grouping in the page address."
+          "text": "Devices and Entities have their filters as chips beside the search, a tick box on every row and a line under the list; Labels has its Create button beside the title."
         },
         {
-          "text": "Sign-in, first-run setup, About, Profile, Helpers, the settings of one entity, and the Zigbee, Z-Wave and Matter pages are started on their boards."
+          "text": "Started on their boards: Backups and backup settings, voice assistants and one assistant's page, what is exposed to assistants, the cloud account, energy setup, apps and the app store, the list of automations, their history and repositories, past runs, MQTT, Thread and Bluetooth."
         },
         {
-          "text": "Nine defects found by review are fixed: People, Zones, Blueprints, Repairs, Logs, Updates and the scene editor."
+          "text": "Six more defects found by review are fixed: Profile tabs no longer reload the page, the people on the sign-in page are real buttons, the Zigbee list has its way to the map, a device list is no longer cut between a device and its children, the Logs filters come back on, and Statistics sorts and groups by area again."
+        },
+        {
+          "text": "Statistics and Scenes can be sorted and grouped again, and Statistics keeps its search, sorting and grouping in the page address.",
+          "commit": "c52c94f4d4dd"
+        },
+        {
+          "text": "Sign-in, first-run setup, About, Profile, Helpers, the settings of one entity, and the Zigbee, Z-Wave and Matter pages are started on their boards.",
+          "commit": "c52c94f4d4dd"
+        },
+        {
+          "text": "Nine defects found by review are fixed: People, Zones, Blueprints, Repairs, Logs, Updates and the scene editor.",
+          "commit": "c52c94f4d4dd"
         },
         {
           "text": "More pages on their boards: Integrations (status on each card, filter chips), an integration's own page, Devices (what needs attention, offline and low battery marked), one device, Entities (a live state column), Areas and one area, Labels, Scenes as cards and the scene editor, Scripts with Run and Stop, Zones, Blueprints, Dashboards, People, Users, Tags, Updates, Repairs and Logs.",

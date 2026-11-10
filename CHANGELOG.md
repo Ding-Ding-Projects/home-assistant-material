@@ -8,6 +8,15 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Devices and Entities have their filters as chips beside the search, a tick box on every row
+  and a line under the list; Labels has its Create button beside the title.
+- Started on their boards: Backups and backup settings, voice assistants and one assistant's
+  page, what is exposed to assistants, the cloud account, energy setup, apps and the app store,
+  the list of automations, their history and repositories, past runs, MQTT, Thread and Bluetooth.
+- Six more defects found by review are fixed: Profile tabs no longer reload the page, the
+  people on the sign-in page are real buttons, the Zigbee list has its way to the map, a
+  device list is no longer cut between a device and its children, the Logs filters come back
+  on, and Statistics sorts and groups by area again.
 - Statistics and Scenes can be sorted and grouped again, and Statistics keeps its search,
   sorting and grouping in the page address.
 - Sign-in, first-run setup, About, Profile, Helpers, the settings of one entity, and the

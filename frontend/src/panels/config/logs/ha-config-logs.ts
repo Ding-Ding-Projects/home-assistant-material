@@ -359,6 +359,7 @@ export class HaConfigLogs extends LitElement {
                         )}
                         no-title
                         @switch-log-view=${this._showDetail}
+                        @show-all-levels=${this._showAllLevels}
                       ></system-log-card>
                     `
                   : html`<error-log-card
@@ -408,6 +409,11 @@ export class HaConfigLogs extends LitElement {
 
   private _toggleErrors() {
     this._showErrors = !this._showErrors;
+  }
+
+  private _showAllLevels() {
+    this._showErrors = true;
+    this._showWarnings = true;
   }
 
   private _toggleWarnings() {

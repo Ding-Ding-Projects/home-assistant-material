@@ -147,7 +147,7 @@ export class EnergySolarSettings extends LitElement {
                   <div class="row">
                     <ha-button
                       @click=${this._addSource}
-                      appearance="filled"
+                      appearance="plain"
                       size="s"
                     >
                       <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>

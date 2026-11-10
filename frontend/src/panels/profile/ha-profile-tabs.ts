@@ -1,6 +1,8 @@
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
+import { isNavigationClick } from "../../common/dom/is-navigation-click";
+import { navigate } from "../../common/navigate";
 import type { HomeAssistant } from "../../types";
 
 /** The two tabs at the top of the profile: General and Security. */
@@ -12,7 +14,10 @@ class HaProfileTabs extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <nav aria-label=${this.hass.localize("panel.profile")}>
+      <nav
+        aria-label=${this.hass.localize("panel.profile")}
+        @click=${this._tabClicked}
+      >
         <a
           href="/profile"
           class=${this.active === "general" ? "active" : ""}
@@ -27,6 +32,14 @@ class HaProfileTabs extends LitElement {
         >
       </nav>
     `;
+  }
+
+  private async _tabClicked(ev: MouseEvent): Promise<void> {
+    const href = isNavigationClick(ev);
+    if (!href) {
+      return;
+    }
+    await navigate(href, { replace: true });
   }
 
   static styles: CSSResultGroup = css`

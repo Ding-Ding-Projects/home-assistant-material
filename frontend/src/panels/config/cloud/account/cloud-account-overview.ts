@@ -1,11 +1,18 @@
 import {
+  mdiAccountVoice,
   mdiBackupRestore,
   mdiCellphone,
+  mdiCertificate,
+  mdiCloudAlert,
+  mdiCloudCheck,
+  mdiCloudSync,
   mdiEarth,
   mdiEye,
   mdiEyeOff,
+  mdiGoogleAssistant,
   mdiMicrophone,
   mdiMicrophoneMessage,
+  mdiOpenInNew,
   mdiVideo,
   mdiWebhook,
 } from "@mdi/js";
@@ -21,20 +28,32 @@ import "../../../../components/ha-card";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-icon-next";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/item/ha-list-item-base";
-import "../../../../components/item/ha-list-item-button";
-import "../../../../components/list/ha-list-base";
-import "../../../../components/list/ha-list-nav";
+import "../../../../components/ha-switch";
+import "../../../../components/input/ha-input-copy";
+import type { HaSwitch } from "../../../../components/ha-switch";
 import type { BackupConfig } from "../../../../data/backup";
 import { cloudBackupEnabled, cloudBackupHealth } from "../../../../data/backup";
 import type {
   CloudStatusLoggedIn,
   SubscriptionInfo,
 } from "../../../../data/cloud";
+import {
+  connectCloudRemote,
+  disconnectCloudRemote,
+  updateCloudPref,
+} from "../../../../data/cloud";
 import type { Webhook } from "../../../../data/webhook";
 import { isActiveCloudWebhook } from "../../../../data/webhook";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import { showToast } from "../../../../util/toast";
+import { obfuscateUrl } from "../../../../util/url";
+
+/** How many entities each cloud voice assistant is exposed to, when known. */
+export interface ExposedAssistantCounts {
+  google: number;
+  alexa: number;
+}
 
 @customElement("cloud-account-overview")
 export class CloudAccountOverview extends LitElement {
@@ -48,16 +67,415 @@ export class CloudAccountOverview extends LitElement {
 
   @property({ attribute: false }) public webhooks?: Webhook[];
 
+  @property({ attribute: false }) public exposedCounts?: ExposedAssistantCounts;
+
   @state() private _emailRevealed = false;
 
   protected render(): TemplateResult {
     return html`
-      ${this._renderTopCard()} ${this._renderFeaturesCard()}
-      ${this._renderAccountCard()}
+      ${this._renderHero()} ${this._renderSubscriptionState()}
+      <div class="grid">
+        ${this._renderReachCard()} ${this._renderVoiceCard()}
+        ${this._renderWebhooksCard()} ${this._renderMoreCard()}
+      </div>
+      ${this._renderThanksCard()}
     `;
   }
 
-  private _renderTopCard(): TemplateResult {
+  private _renderHero(): TemplateResult {
+    const { email, cloud } = this.cloudStatus;
+    const at = email.indexOf("@");
+    const maskedEmail = at > 0 ? `${"•".repeat(at)}${email.slice(at)}` : email;
+    const link =
+      cloud === "connected"
+        ? "connected"
+        : cloud === "connecting"
+          ? "connecting"
+          : "not_connected";
+    return html`
+      <div class="hero-row">
+        <section class="hero" data-state=${link}>
+          <div class="eyebrow">
+            <ha-svg-icon
+              .path=${
+                link === "connected"
+                  ? mdiCloudCheck
+                  : link === "connecting"
+                    ? mdiCloudSync
+                    : mdiCloudAlert
+              }
+            ></ha-svg-icon>
+            <span
+              >${this.hass.localize(
+                "ui.panel.config.cloud.account.overview.hero_eyebrow"
+              )}</span
+            >
+          </div>
+          <h2>
+            ${this.hass.localize(`ui.panel.config.cloud.account.${link}`)}
+          </h2>
+          <p class="hero-line">
+            <span
+              >${this.hass.localize(
+                "ui.panel.config.cloud.account.overview.signed_in_as"
+              )}</span
+            >
+            <span class="email-line">
+              <span>${this._emailRevealed ? email : maskedEmail}</span>
+              <ha-icon-button
+                .path=${this._emailRevealed ? mdiEyeOff : mdiEye}
+                .label=${
+                  this._emailRevealed
+                    ? this.hass.localize(
+                        "ui.panel.config.cloud.account.hide_email"
+                      )
+                    : this.hass.localize(
+                        "ui.panel.config.cloud.account.show_email"
+                      )
+                }
+                @click=${this._toggleEmail}
+              ></ha-icon-button>
+            </span>
+            <span>${this._subscriptionDetail()}</span>
+          </p>
+        </section>
+        <div class="hero-actions">
+          <ha-button
+            appearance="filled"
+            href="https://account.nabucasa.com"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
+            ${this.hass.localize("ui.panel.config.cloud.account.manage_account")}
+          </ha-button>
+          <ha-button
+            @click=${this._signOut}
+            variant="danger"
+            appearance="outlined"
+          >
+            ${this.hass.localize("ui.panel.config.cloud.account.sign_out")}
+          </ha-button>
+        </div>
+      </div>
+    `;
+  }
+
+  /** A row on a card: tile, title and detail, optionally a link and a control. */
+  private _row(
+    icon: string,
+    title: string,
+    supporting: string | TemplateResult,
+    href?: string,
+    control?: TemplateResult
+  ): TemplateResult {
+    const inner = html`
+      <span class="tile"><ha-svg-icon .path=${icon}></ha-svg-icon></span>
+      <span class="row-text">
+        <span class="row-title">${title}</span>
+        ${supporting ? html`<span class="row-sub">${supporting}</span>` : nothing}
+      </span>
+      ${href && !control ? html`<ha-icon-next></ha-icon-next>` : nothing}
+    `;
+    return html`
+      <div class="row">
+        ${
+          href
+            ? html`<a class="row-main" href=${href}>${inner}</a>`
+            : html`<div class="row-main">${inner}</div>`
+        }
+        ${control ?? nothing}
+      </div>
+    `;
+  }
+
+  private _renderReachCard(): TemplateResult {
+    const { remote_certificate, remote_certificate_status, remote_domain } =
+      this.cloudStatus;
+    const certReady =
+      !!remote_certificate && remote_certificate_status === "ready";
+    const { remote_enabled } = this.cloudStatus.prefs;
+    return html`
+      <ha-card outlined>
+        <div class="card-body">
+          <h3>
+            ${this.hass.localize(
+              "ui.panel.config.cloud.account.overview.reach_title"
+            )}
+          </h3>
+          ${this._row(
+            mdiEarth,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_remote"
+            ),
+            this._remoteStatus(),
+            "/config/cloud/remote",
+            certReady
+              ? html`<ha-switch
+                  .checked=${remote_enabled}
+                  aria-label=${this.hass.localize(
+                    "ui.panel.config.cloud.account.overview.feature_remote"
+                  )}
+                  @change=${this._toggleRemote}
+                ></ha-switch>`
+              : undefined
+          )}
+          ${
+            certReady && remote_enabled && remote_domain
+              ? html`<ha-input-copy
+                  readonly
+                  .value=${`https://${remote_domain}`}
+                  .maskedValue=${obfuscateUrl(`https://${remote_domain}`)}
+                  .label=${this.hass.localize(
+                    "ui.panel.config.common.copy_link"
+                  )}
+                ></ha-input-copy>`
+              : nothing
+          }
+          ${
+            remote_certificate
+              ? this._row(
+                  mdiCertificate,
+                  this.hass.localize(
+                    "ui.panel.config.cloud.account.overview.certificate"
+                  ),
+                  this.hass.localize(
+                    "ui.panel.config.cloud.account.overview.valid_until",
+                    {
+                      date: formatDate(
+                        new Date(remote_certificate.expire_date),
+                        this.hass.locale,
+                        this.hass.config
+                      ),
+                    }
+                  ),
+                  "/config/cloud/remote"
+                )
+              : nothing
+          }
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _renderVoiceCard(): TemplateResult {
+    const { prefs, google_registered, alexa_registered } = this.cloudStatus;
+    const counts = this.exposedCounts;
+    const assistantDetail = (
+      enabled: boolean,
+      registered: boolean,
+      exposed: number | undefined
+    ): string => {
+      if (!enabled) {
+        return this.hass.localize("ui.panel.config.cloud.account.overview.off");
+      }
+      if (!registered) {
+        return this.hass.localize(
+          "ui.panel.config.cloud.account.overview.not_set_up"
+        );
+      }
+      return exposed === undefined
+        ? this.hass.localize("ui.panel.config.cloud.account.overview.linked")
+        : this.hass.localize(
+            "ui.panel.config.cloud.account.overview.entities_exposed",
+            { count: exposed }
+          );
+    };
+    return html`
+      <ha-card outlined>
+        <div class="card-body">
+          <h3>
+            ${this.hass.localize(
+              "ui.panel.config.cloud.account.overview.voice_title"
+            )}
+          </h3>
+          ${this._row(
+            mdiGoogleAssistant,
+            this.hass.localize("ui.panel.config.cloud.account.google.title"),
+            assistantDetail(
+              prefs.google_enabled,
+              google_registered,
+              counts?.google
+            ),
+            undefined,
+            html`<ha-switch
+              .checked=${prefs.google_enabled}
+              aria-label=${this.hass.localize(
+                "ui.panel.config.cloud.account.google.title"
+              )}
+              @change=${this._toggleGoogle}
+            ></ha-switch>`
+          )}
+          ${this._row(
+            mdiMicrophone,
+            this.hass.localize("ui.panel.config.cloud.account.alexa.title"),
+            assistantDetail(
+              prefs.alexa_enabled,
+              alexa_registered,
+              counts?.alexa
+            ),
+            undefined,
+            html`<ha-switch
+              .checked=${prefs.alexa_enabled}
+              aria-label=${this.hass.localize(
+                "ui.panel.config.cloud.account.alexa.title"
+              )}
+              @change=${this._toggleAlexa}
+            ></ha-switch>`
+          )}
+          ${this._row(
+            mdiAccountVoice,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_voice"
+            ),
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_voice_sub"
+            ),
+            "/config/cloud/voice-assistants"
+          )}
+          ${this._row(
+            mdiMicrophoneMessage,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_alexa_google"
+            ),
+            this._alexaGoogleStatus(),
+            "/config/voice-assistants/assistants?historyBack=1"
+          )}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _renderWebhooksCard(): TemplateResult {
+    const cloudhooks = this.cloudStatus.prefs.cloudhooks || {};
+    const hooks = (this.webhooks ?? []).filter(isActiveCloudWebhook);
+    const shown = hooks.slice(0, 4);
+    return html`
+      <ha-card outlined>
+        <div class="card-body">
+          <h3>
+            ${this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_webhooks"
+            )}
+          </h3>
+          ${shown.map((hook) =>
+            this._row(
+              mdiWebhook,
+              hook.name,
+              cloudhooks[hook.webhook_id]
+                ? this.hass.localize(
+                    "ui.panel.config.cloud.account.overview.webhook_reachable"
+                  )
+                : this.hass.localize(
+                    "ui.panel.config.cloud.account.overview.webhook_local"
+                  ),
+              "/config/cloud/webhooks"
+            )
+          )}
+          ${this._row(
+            mdiWebhook,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.manage_webhooks"
+            ),
+            this.webhooks === undefined
+              ? ""
+              : this.hass.localize(
+                  "ui.panel.config.cloud.account.overview.webhooks_active",
+                  {
+                    count: hooks.filter((hook) => cloudhooks[hook.webhook_id])
+                      .length,
+                  }
+                ),
+            "/config/cloud/webhooks"
+          )}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _renderMoreCard(): TemplateResult {
+    return html`
+      <ha-card outlined>
+        <div class="card-body">
+          <h3>
+            ${this.hass.localize(
+              "ui.panel.config.cloud.account.overview.more_title"
+            )}
+          </h3>
+          ${this._row(
+            mdiBackupRestore,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_backups"
+            ),
+            this._renderBackupStatus(),
+            "/config/cloud/backup"
+          )}
+          ${this._row(
+            mdiCellphone,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_companion"
+            ),
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_companion_sub"
+            ),
+            "/config/cloud/companion"
+          )}
+          ${this._row(
+            mdiVideo,
+            this.hass.localize(
+              "ui.panel.config.cloud.account.overview.feature_cameras"
+            ),
+            this._onOffStatus(this.cloudStatus.prefs.cloud_ice_servers_enabled),
+            "/config/cloud/webrtc"
+          )}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private async _toggleRemote(ev: Event) {
+    const toggle = ev.target as HaSwitch;
+    try {
+      if (toggle.checked) {
+        await connectCloudRemote(this.hass);
+      } else {
+        await disconnectCloudRemote(this.hass);
+      }
+      fireEvent(this, "ha-refresh-cloud-status");
+    } catch (err: any) {
+      showToast(this, { message: err.message });
+      toggle.checked = !toggle.checked;
+    }
+  }
+
+  private _toggleGoogle(ev: Event) {
+    this._toggleAssistantPref(ev, "google_enabled");
+  }
+
+  private _toggleAlexa(ev: Event) {
+    this._toggleAssistantPref(ev, "alexa_enabled");
+  }
+
+  private async _toggleAssistantPref(
+    ev: Event,
+    pref: "google_enabled" | "alexa_enabled"
+  ) {
+    const toggle = ev.target as HaSwitch;
+    try {
+      await updateCloudPref(
+        this.hass,
+        pref === "google_enabled"
+          ? { google_enabled: toggle.checked }
+          : { alexa_enabled: toggle.checked }
+      );
+      fireEvent(this, "ha-refresh-cloud-status");
+    } catch (err: any) {
+      showToast(this, { message: err.message });
+      toggle.checked = !toggle.checked;
+    }
+  }
+
+  private _renderThanksCard(): TemplateResult {
     return html`
       <ha-card outlined class="summary-card">
         <div class="card-content">
@@ -124,7 +542,6 @@ export class CloudAccountOverview extends LitElement {
             ${this.hass.localize("ui.panel.config.cloud.account.funding_note")}
           </p>
         </div>
-        ${this._renderSubscriptionState()}
       </ha-card>
     `;
   }
@@ -237,206 +654,6 @@ export class CloudAccountOverview extends LitElement {
           date: this._renewalDate,
         });
     }
-  }
-
-  private _renderAccountCard(): TemplateResult {
-    const { email } = this.cloudStatus;
-    const at = email.indexOf("@");
-    const maskedEmail = at > 0 ? `${"•".repeat(at)}${email.slice(at)}` : email;
-    return html`
-      <ha-card outlined>
-        <div class="account-header">
-          <span class="card-title"
-            >${this.hass.localize(
-              "ui.panel.config.cloud.account.nabu_casa_account"
-            )}</span
-          >
-          <img
-            class="nc-logo"
-            alt="Nabu Casa"
-            src="https://brands.home-assistant.io/_/cloud/${
-              this.hass.themes?.darkMode ? "dark_" : ""
-            }icon.png"
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"
-          />
-        </div>
-        <div class="card-content">
-          <ha-list-base>
-            <ha-list-item-base>
-              <span slot="headline"
-                >${this.hass.localize(
-                  "ui.panel.config.cloud.account.email"
-                )}</span
-              >
-              <span slot="supporting-text" class="email-line">
-                <span>${this._emailRevealed ? email : maskedEmail}</span>
-                <ha-icon-button
-                  .path=${this._emailRevealed ? mdiEyeOff : mdiEye}
-                  .label=${
-                    this._emailRevealed
-                      ? this.hass.localize(
-                          "ui.panel.config.cloud.account.hide_email"
-                        )
-                      : this.hass.localize(
-                          "ui.panel.config.cloud.account.show_email"
-                        )
-                  }
-                  @click=${this._toggleEmail}
-                ></ha-icon-button>
-              </span>
-            </ha-list-item-base>
-            <ha-list-item-base>
-              <span slot="headline"
-                >${this.hass.localize(
-                  "ui.panel.config.cloud.account.subscription"
-                )}</span
-              >
-              <span slot="supporting-text">${this._subscriptionDetail()}</span>
-            </ha-list-item-base>
-          </ha-list-base>
-        </div>
-        <div class="card-actions split">
-          <ha-button
-            appearance="filled"
-            href="https://account.nabucasa.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            ${this.hass.localize(
-              "ui.panel.config.cloud.account.manage_account"
-            )}
-          </ha-button>
-          <ha-button
-            @click=${this._signOut}
-            variant="danger"
-            appearance="plain"
-          >
-            ${this.hass.localize("ui.panel.config.cloud.account.sign_out")}
-          </ha-button>
-        </div>
-      </ha-card>
-    `;
-  }
-
-  private _renderFeaturesCard(): TemplateResult {
-    const cloudhooks = this.cloudStatus.prefs.cloudhooks || {};
-    // Distinguish "not loaded yet / unavailable" (undefined) from "zero active"
-    // so we don't claim 0 active webhooks before the fetch resolves.
-    const webhookStatus =
-      this.webhooks === undefined
-        ? ""
-        : this.hass.localize(
-            "ui.panel.config.cloud.account.overview.webhooks_active",
-            {
-              count: this.webhooks.filter(
-                (hook) =>
-                  isActiveCloudWebhook(hook) && cloudhooks[hook.webhook_id]
-              ).length,
-            }
-          );
-    return html`
-      <ha-card outlined>
-        <div class="extras-header">
-          <h1>
-            ${this.hass.localize(
-              "ui.panel.config.cloud.account.overview.features_title"
-            )}
-          </h1>
-        </div>
-        <div class="extras-content">
-          <p>
-            ${this.hass.localize(
-              "ui.panel.config.cloud.account.overview.features_intro"
-            )}
-          </p>
-          <ha-list-nav
-            .ariaLabel=${this.hass.localize(
-              "ui.panel.config.cloud.account.overview.features_title"
-            )}
-          >
-            ${this._featureRow(
-              mdiEarth,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_remote"
-              ),
-              this._remoteStatus(),
-              "/config/cloud/remote"
-            )}
-            ${this._featureRow(
-              mdiBackupRestore,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_backups"
-              ),
-              this._renderBackupStatus(),
-              "/config/cloud/backup"
-            )}
-            ${this._featureRow(
-              mdiMicrophone,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_voice"
-              ),
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_voice_sub"
-              ),
-              "/config/cloud/voice-assistants"
-            )}
-            ${this._featureRow(
-              mdiCellphone,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_companion"
-              ),
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_companion_sub"
-              ),
-              "/config/cloud/companion"
-            )}
-            ${this._featureRow(
-              mdiMicrophoneMessage,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_alexa_google"
-              ),
-              this._alexaGoogleStatus(),
-              "/config/voice-assistants/assistants?historyBack=1"
-            )}
-            ${this._featureRow(
-              mdiVideo,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_cameras"
-              ),
-              this._onOffStatus(
-                this.cloudStatus.prefs.cloud_ice_servers_enabled
-              ),
-              "/config/cloud/webrtc"
-            )}
-            ${this._featureRow(
-              mdiWebhook,
-              this.hass.localize(
-                "ui.panel.config.cloud.account.overview.feature_webhooks"
-              ),
-              webhookStatus,
-              "/config/cloud/webhooks"
-            )}
-          </ha-list-nav>
-        </div>
-      </ha-card>
-    `;
-  }
-
-  private _featureRow(
-    icon: string,
-    title: string,
-    supporting: string | TemplateResult,
-    href: string
-  ): TemplateResult {
-    return html`
-      <ha-list-item-button href=${href}>
-        <ha-svg-icon slot="start" .path=${icon}></ha-svg-icon>
-        <span slot="headline">${title}</span>
-        <span slot="supporting-text">${supporting}</span>
-        <ha-icon-next slot="end"></ha-icon-next>
-      </ha-list-item-button>
-    `;
   }
 
   private get _subscriptionActive(): boolean {
@@ -622,13 +839,178 @@ export class CloudAccountOverview extends LitElement {
         :host {
           display: flex;
           flex-direction: column;
-          gap: var(--ha-space-6);
+          gap: var(--ha-space-4);
+        }
+        .hero-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-4);
+          align-items: stretch;
+        }
+        .hero {
+          flex: 1 1 320px;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: var(--ha-space-6);
+          border-radius: var(--ha-border-radius-3xl);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 14%,
+            var(--card-background-color)
+          );
+          color: var(--primary-text-color);
+        }
+        .hero[data-state="connecting"] {
+          background: color-mix(
+            in srgb,
+            var(--warning-color) 16%,
+            var(--card-background-color)
+          );
+        }
+        .hero[data-state="not_connected"] {
+          background: color-mix(
+            in srgb,
+            var(--error-color) 14%,
+            var(--card-background-color)
+          );
+        }
+        .eyebrow {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--secondary-text-color);
+        }
+        h2 {
+          margin: var(--ha-space-2) 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .hero-line {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-1);
+          margin: 0;
+          color: var(--secondary-text-color);
+          line-height: var(--ha-line-height-normal);
+        }
+        .email-line {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .email-line ha-icon-button {
+          --ha-icon-button-size: 32px;
+          --mdc-icon-size: 18px;
+          color: var(--secondary-text-color);
+        }
+        .hero-actions {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: var(--ha-space-3);
+          flex: 0 1 220px;
+        }
+        .hero-actions ha-button {
+          width: 100%;
+        }
+        .subscription-alert {
+          display: block;
+          --ha-alert-padding: var(--ha-space-3);
+        }
+        .subscription-alert ha-button[slot="action"] {
+          width: max-content;
+          white-space: nowrap;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 300px), 1fr)
+          );
+          gap: var(--ha-space-4);
+          align-items: start;
         }
         ha-card {
+          --ha-card-border-radius: var(--ha-border-radius-3xl);
           display: block;
-          width: 100%;
-          max-width: 600px;
-          margin-inline: auto;
+          min-width: 0;
+        }
+        .card-body {
+          padding: var(--ha-space-4) var(--ha-space-5) var(--ha-space-5);
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+        }
+        h3 {
+          margin: 0 0 var(--ha-space-2);
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .row {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          min-height: 56px;
+        }
+        .row-main {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          color: inherit;
+          text-decoration: none;
+          border-radius: var(--ha-border-radius-xl);
+        }
+        a.row-main:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .tile {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+        .row-text {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .row-title {
+          font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
+        }
+        .row-sub {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+          overflow-wrap: anywhere;
+        }
+        a.row-main ha-icon-next {
+          color: var(--secondary-text-color);
+        }
+        ha-input-copy {
+          display: block;
+          margin: 0 0 var(--ha-space-2);
+        }
+        .muted {
+          color: var(--secondary-text-color);
+        }
+        p.muted {
+          margin: var(--ha-space-2) 0 0;
         }
         .card-title {
           font-size: var(--ha-font-size-xl);
@@ -645,33 +1027,8 @@ export class CloudAccountOverview extends LitElement {
           width: auto;
           color: var(--primary-text-color);
         }
-        /* Prevent the embedded .subscription-alert ha-alert from bleeding outside the card */
         .summary-card {
           overflow: hidden;
-        }
-        .subscription-alert {
-          display: block;
-          --ha-alert-padding: var(--ha-space-3);
-        }
-        .subscription-alert ha-button[slot="action"] {
-          width: max-content;
-          white-space: nowrap;
-        }
-        .account-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: var(--ha-space-4) var(--ha-space-4) 0;
-        }
-        .nc-logo {
-          width: 36px;
-          height: auto;
-        }
-        .muted {
-          color: var(--secondary-text-color);
-        }
-        p.muted {
-          margin: var(--ha-space-2) 0 0;
         }
         .status-line {
           display: flex;
@@ -694,65 +1051,6 @@ export class CloudAccountOverview extends LitElement {
         }
         .status-dot.disabled {
           background-color: var(--error-color);
-        }
-        ha-list-base {
-          --ha-row-item-padding-inline: 0;
-        }
-        .extras-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: var(--ha-space-3) var(--ha-space-4);
-        }
-        .extras-header h1 {
-          font-size: var(--ha-font-size-2xl);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-expanded);
-          letter-spacing: -0.012em;
-          margin: 0;
-        }
-        .extras-content {
-          padding: 0;
-          overflow: hidden;
-          border-radius: 0 0 var(--ha-card-border-radius, 12px)
-            var(--ha-card-border-radius, 12px);
-        }
-        .extras-content p {
-          color: var(--secondary-text-color);
-          padding-inline: var(--ha-space-4);
-          margin-top: 0;
-        }
-        .extras-content ha-list-nav {
-          padding-top: 0;
-          --ha-row-item-padding-inline: var(--ha-space-4);
-        }
-        .extras-content ha-list-item-button {
-          --ha-row-item-padding-block: var(--ha-space-2);
-        }
-        .extras-content ha-svg-icon[slot="start"],
-        .extras-content ha-icon-next {
-          color: var(--secondary-text-color);
-        }
-        .card-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: var(--ha-space-2);
-          padding: var(--ha-space-2) var(--ha-space-3);
-          flex-wrap: wrap;
-        }
-        .card-actions.split {
-          flex-direction: row-reverse;
-          justify-content: space-between;
-        }
-        .email-line {
-          display: inline-flex;
-          align-items: center;
-          gap: var(--ha-space-1);
-        }
-        .email-line ha-icon-button {
-          --ha-icon-button-size: 32px;
-          --mdc-icon-size: 18px;
-          color: var(--secondary-text-color);
         }
       `,
     ];

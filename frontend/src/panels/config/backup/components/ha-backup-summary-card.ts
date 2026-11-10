@@ -1,6 +1,7 @@
 import {
   mdiAlertCircleOutline,
   mdiAlertOutline,
+  mdiBackupRestore,
   mdiCheck,
   mdiInformationOutline,
   mdiSync,
@@ -11,6 +12,7 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-card";
 import "../../../../components/ha-icon";
 import "../../../../components/ha-spinner";
+import "../../../../components/ha-svg-icon";
 
 type SummaryStatus =
   "success" | "error" | "info" | "warning" | "loading" | "none";
@@ -23,6 +25,11 @@ const ICONS: Partial<Record<SummaryStatus, string>> = {
   loading: mdiSync,
 };
 
+/**
+ * The large tinted card at the top of the backups page. The tint follows the
+ * status, the heading is the one sentence that says how the backups are doing,
+ * and whatever is slotted in follows it as plain lines.
+ */
 @customElement("ha-backup-summary-card")
 class HaBackupSummaryCard extends LitElement {
   @property()
@@ -31,31 +38,40 @@ class HaBackupSummaryCard extends LitElement {
   @property()
   public description!: string;
 
+  @property()
+  public eyebrow?: string;
+
   @property({ type: Boolean, attribute: "has-action" })
   public hasAction = false;
 
-  @property()
+  @property({ reflect: true })
   public status: SummaryStatus = "info";
 
   render() {
     return html`
-      <ha-card outlined>
-        <div class="summary">
+      <ha-card>
+        <div class="eyebrow">
           ${
             this.status === "loading"
-              ? html`<ha-spinner></ha-spinner>`
-              : this.status === "none"
-                ? nothing
-                : html`
-                    <div class="icon ${this.status}">
-                      <ha-svg-icon .path=${ICONS[this.status]}></ha-svg-icon>
-                    </div>
-                  `
+              ? html`<ha-spinner size="small"></ha-spinner>`
+              : html`<ha-svg-icon
+                  .path=${
+                    this.status === "none" || this.status === "success"
+                      ? mdiBackupRestore
+                      : ICONS[this.status]
+                  }
+                ></ha-svg-icon>`
           }
-
+          ${this.eyebrow ? html`<span>${this.eyebrow}</span>` : nothing}
+        </div>
+        <div class="summary">
           <div class="content">
-            <p class="heading">${this.heading}</p>
-            <p class="description">${this.description}</p>
+            <h2 class="heading">${this.heading}</h2>
+            ${
+              this.description
+                ? html`<p class="description">${this.description}</p>`
+                : nothing
+            }
           </div>
           ${
             this.hasAction
@@ -67,7 +83,7 @@ class HaBackupSummaryCard extends LitElement {
               : nothing
           }
         </div>
-        <div class="content">
+        <div class="slotted">
           <slot></slot>
         </div>
       </ha-card>
@@ -75,56 +91,59 @@ class HaBackupSummaryCard extends LitElement {
   }
 
   static styles = css`
+    :host {
+      --backup-summary-tint: var(--primary-color);
+      display: block;
+    }
+    :host([status="success"]) {
+      --backup-summary-tint: var(--success-color);
+    }
+    :host([status="warning"]) {
+      --backup-summary-tint: var(--warning-color);
+    }
+    :host([status="error"]) {
+      --backup-summary-tint: var(--error-color);
+    }
     ha-card {
+      box-sizing: border-box;
       min-height: 74px;
+      padding: var(--ha-space-5) var(--ha-space-6);
+      background: color-mix(
+        in srgb,
+        var(--backup-summary-tint) 22%,
+        var(--card-background-color)
+      );
+    }
+    :host([status="none"]) ha-card,
+    :host([status="loading"]) ha-card,
+    :host([status="info"]) ha-card {
+      background: var(--card-background-color);
+    }
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--backup-summary-tint);
+      --mdc-icon-size: 28px;
+    }
+    :host([status="none"]) .eyebrow,
+    :host([status="loading"]) .eyebrow,
+    :host([status="info"]) .eyebrow {
+      color: var(--secondary-text-color);
+    }
+    ha-spinner {
+      --ha-spinner-size: 28px;
     }
     .summary {
       display: flex;
       flex-direction: row;
+      flex-wrap: wrap;
       column-gap: var(--ha-space-4);
       row-gap: var(--ha-space-2);
       align-items: center;
-      padding: 16px;
-      padding-bottom: 8px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .icon {
-      position: relative;
-      border-radius: var(--ha-border-radius-2xl);
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      --icon-color: var(--primary-color);
-      animation: pop-in var(--ha-animation-duration-normal, 250ms) ease-out;
-    }
-    .icon.success {
-      --icon-color: var(--success-color);
-    }
-    .icon.warning {
-      --icon-color: var(--warning-color);
-    }
-    .icon.error {
-      --icon-color: var(--error-color);
-    }
-    .icon::before {
-      display: block;
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-color: var(--icon-color, var(--primary-color));
-      opacity: 0.2;
-    }
-    .icon ha-svg-icon {
-      color: var(--icon-color, var(--primary-color));
-      width: 24px;
-      height: 24px;
-    }
-    ha-spinner {
-      --ha-spinner-size: 40px;
+      margin-top: var(--ha-space-2);
     }
     .content {
       display: flex;
@@ -133,44 +152,34 @@ class HaBackupSummaryCard extends LitElement {
       min-width: 0;
     }
     .heading {
-      font-size: var(--ha-font-size-xl);
-      font-style: normal;
-      font-weight: var(--ha-font-weight-normal);
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-3xl);
+      font-weight: var(--ha-font-weight-medium);
       line-height: var(--ha-line-height-condensed);
       color: var(--primary-text-color);
-      margin: 0;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
     }
     .description {
+      margin: var(--ha-space-2) 0 0;
       font-size: var(--ha-font-size-m);
-      font-style: normal;
-      font-weight: var(--ha-font-weight-normal);
-      line-height: var(--ha-line-height-condensed);
-      letter-spacing: 0.25px;
+      line-height: var(--ha-line-height-normal);
       color: var(--secondary-text-color);
-      margin: 0;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
     }
-
+    .slotted {
+      min-width: 0;
+    }
     @media all and (max-width: 550px) {
+      ha-card {
+        padding: var(--ha-space-4);
+      }
+      .heading {
+        font-size: var(--ha-font-size-2xl);
+      }
       .action {
         width: 100%;
         display: flex;
         justify-content: flex-end;
-      }
-    }
-    @keyframes pop-in {
-      from {
-        transform: scale(0);
-        opacity: 0;
-      }
-      to {
-        transform: scale(1);
-        opacity: 1;
       }
     }
   `;

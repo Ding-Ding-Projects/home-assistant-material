@@ -56,8 +56,10 @@ import type {
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
+import "../../../components/chips/ha-assist-chip";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-checkbox";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -79,6 +81,7 @@ import { getConfigEntries, getSubEntries } from "../../../data/config_entries";
 import { fullEntitiesContext, labelsContext } from "../../../data/context";
 import type {
   DataTableFiltersItems,
+  DataTableFiltersValue,
   DataTableFiltersValues,
 } from "../../../data/data_table_filters";
 import { UNAVAILABLE } from "../../../data/entity/entity";
@@ -773,6 +776,138 @@ export class HaConfigEntities extends LitElement {
         ${this.hass.localize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
+  private _areaOptions = memoize((areas: HomeAssistant["areas"]) =>
+    Object.values(areas)
+      .map((area) => ({ value: area.area_id, label: area.name }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
+
+  private _domainOptions = memoize(
+    (states: HomeAssistant["states"], localize: LocalizeFunc) =>
+      [
+        ...new Set(
+          Object.keys(states).map((entityId) => computeDomain(entityId))
+        ),
+      ]
+        .map((domain) => ({
+          value: domain,
+          label: domainToName(localize, domain),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+  );
+
+  // The Domain and Area chips drive the same filters as the filter pane
+  private _chipSelection(chip: "domain" | "area"): {
+    selected: string[];
+    total: number;
+  } {
+    if (chip === "area") {
+      const value = this._filters["ha-filter-floor-areas"] as
+        Record<string, string[]> | undefined;
+      const areas = value?.areas ?? [];
+      return {
+        selected: areas,
+        total: areas.length + (value?.floors?.length ?? 0),
+      };
+    }
+    const value = this._filters["ha-filter-domains"];
+    const selected = Array.isArray(value) ? value : [];
+    return { selected, total: selected.length };
+  }
+
+  private _renderChipMenu(chip: "domain" | "area") {
+    const localize = this.hass.localize;
+    const options =
+      chip === "area"
+        ? this._areaOptions(this.hass.areas)
+        : this._domainOptions(this.hass.states, localize);
+    const { selected, total } = this._chipSelection(chip);
+    const value =
+      total === 0
+        ? localize("ui.panel.config.entities.picker.chip_any")
+        : total === 1 && selected.length === 1
+          ? (options.find((option) => option.value === selected[0])?.label ??
+            selected[0])
+          : localize("ui.panel.config.entities.picker.chip_count", {
+              count: total,
+            });
+
+    return html`<ha-dropdown
+      slot="filter-chips"
+      data-chip=${chip}
+      @wa-select=${this._handleChipSelect}
+    >
+      <ha-assist-chip
+        slot="trigger"
+        .active=${total > 0}
+        .label=${localize(
+          chip === "area"
+            ? "ui.panel.config.entities.picker.chip_area"
+            : "ui.panel.config.entities.picker.chip_domain",
+          { value }
+        )}
+      >
+        <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+      </ha-assist-chip>
+      <ha-dropdown-item value="__any" .disabled=${total === 0}>
+        ${localize("ui.panel.config.entities.picker.chip_clear")}
+      </ha-dropdown-item>
+      <wa-divider></wa-divider>
+      ${options.map(
+        (option) =>
+          html`<ha-dropdown-item .value=${option.value}>
+            <ha-checkbox
+              slot="icon"
+              .checked=${selected.includes(option.value)}
+            ></ha-checkbox>
+            ${option.label}
+          </ha-dropdown-item>`
+      )}
+    </ha-dropdown>`;
+  }
+
+  private _handleChipSelect(ev: HaDropdownSelectEvent) {
+    const chip = (ev.currentTarget as HTMLElement).dataset.chip as
+      "domain" | "area";
+    const picked = ev.detail.item.value;
+    if (!picked) {
+      return;
+    }
+    if (picked !== "__any") {
+      // Keep the menu open to pick several
+      ev.preventDefault();
+    }
+
+    const { selected } = this._chipSelection(chip);
+    const next =
+      picked === "__any"
+        ? []
+        : selected.includes(picked)
+          ? selected.filter((item) => item !== picked)
+          : [...selected, picked];
+
+    if (chip === "domain") {
+      this._setChipFilter("ha-filter-domains", next.length ? next : undefined);
+      return;
+    }
+
+    const current = this._filters["ha-filter-floor-areas"] as
+      Record<string, string[]> | undefined;
+    // Selected floors stay as they are, only the areas change
+    const empty = !next.length && !current?.floors?.length;
+    this._setChipFilter(
+      "ha-filter-floor-areas",
+      empty ? undefined : { ...current, areas: next }
+    );
+  }
+
+  // The filter in the pane finds the matching items for the new value itself
+  private _setChipFilter(key: string, value: DataTableFiltersValue) {
+    this._storageFilters = { ...this._storedFilters(), [key]: value };
+    this._filters = { ...this._filters, [key]: value };
+    this._writeFilters();
+  }
+
   protected render() {
     if (!this.hass || this._entities === undefined) {
       return html` <hass-loading-screen></hass-loading-screen> `;
@@ -832,6 +967,15 @@ export class HaConfigEntities extends LitElement {
           ).length
         }
         selectable
+        always-show-checkboxes
+        footer-select
+        .footerText=${this.hass.localize(
+          "ui.panel.config.entities.picker.footer",
+          {
+            shown: filteredEntities.length,
+            total: this._entities.length + this._entitiesWithoutUniqueId.length,
+          }
+        )}
         .selected=${this._selected.length}
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
@@ -857,7 +1001,7 @@ export class HaConfigEntities extends LitElement {
           .hass=${this.hass}
           slot="toolbar-icon"
         ></ha-integration-overflow-menu>
-
+        ${this._renderChipMenu("domain")}${this._renderChipMenu("area")}
         ${
           !this.narrow
             ? html`<ha-dropdown

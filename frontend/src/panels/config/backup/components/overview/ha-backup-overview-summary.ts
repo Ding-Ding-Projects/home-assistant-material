@@ -1,4 +1,4 @@
-import { mdiBackupRestore, mdiCalendar, mdiInformationOutline } from "@mdi/js";
+import { mdiInformationOutline } from "@mdi/js";
 import { addHours, differenceInDays, isToday, isTomorrow } from "date-fns";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -11,11 +11,8 @@ import {
 import { relativeTime } from "../../../../../common/datetime/relative_time";
 import type { LocalizeKeys } from "../../../../../common/translations/localize";
 import "../../../../../components/ha-button";
-import "../../../../../components/ha-card";
 import "../../../../../components/ha-icon-button";
 import "../../../../../components/ha-svg-icon";
-import "../../../../../components/item/ha-list-item-base";
-import "../../../../../components/list/ha-list-base";
 import type { BackupConfig, BackupContent } from "../../../../../data/backup";
 import {
   BACKUP_OVERDUE_MARGIN_HOURS,
@@ -63,46 +60,39 @@ class HaBackupOverviewBackups extends LitElement {
     lastCompletedDate?: Date
   ) {
     return html`
-      <ha-backup-summary-card .heading=${heading} .status=${status}>
-        <ha-list-base>
-          <ha-list-item-base>
-            <ha-svg-icon slot="start" .path=${mdiBackupRestore}></ha-svg-icon>
-            <span slot="headline" class=${headline === null ? "skeleton" : ""}
-              >${headline}</span
-            >
-          </ha-list-item-base>
-          ${
-            description || description === null
-              ? html`
-                  <ha-list-item-base>
-                    <ha-svg-icon
-                      slot="start"
-                      .path=${mdiCalendar}
-                    ></ha-svg-icon>
-                    <span
-                      slot="headline"
-                      class=${description === null ? "skeleton" : ""}
-                      >${description}</span
-                    >
-
-                    ${
-                      lastCompletedDate
-                        ? html`
-                            <ha-icon-button
-                              slot="end"
-                              @click=${this._createAdditionalBackupDescription(
-                                lastCompletedDate
-                              )}
-                              .path=${mdiInformationOutline}
-                            ></ha-icon-button>
-                          `
-                        : nothing
-                    }
-                  </ha-list-item-base>
-                `
-              : nothing
-          }
-        </ha-list-base>
+      <ha-backup-summary-card
+        .heading=${heading}
+        .status=${status}
+        .eyebrow=${this.hass.localize(
+          "ui.panel.config.backup.overview.hero_eyebrow"
+        )}
+      >
+        <p class="line ${headline === null ? "skeleton" : ""}">${headline}</p>
+        ${
+          description || description === null
+            ? html`
+                <p class="line ${description === null ? "skeleton" : ""}">
+                  ${description}
+                  ${
+                    lastCompletedDate
+                      ? html`
+                          <ha-icon-button
+                            class="info"
+                            .label=${this.hass.localize(
+                              "ui.panel.config.backup.overview.summary.more_information"
+                            )}
+                            @click=${this._createAdditionalBackupDescription(
+                              lastCompletedDate
+                            )}
+                            .path=${mdiInformationOutline}
+                          ></ha-icon-button>
+                        `
+                      : nothing
+                  }
+                </p>
+              `
+            : nothing
+        }
       </ha-backup-summary-card>
     `;
   }
@@ -340,31 +330,19 @@ class HaBackupOverviewBackups extends LitElement {
     return [
       haStyle,
       css`
-        .card-header {
+        .line {
           display: flex;
-          flex-direction: row;
           align-items: center;
-          gap: var(--ha-space-4);
+          flex-wrap: wrap;
+          margin: var(--ha-space-1) 0 0;
+          color: var(--secondary-text-color);
+          line-height: var(--ha-line-height-normal);
         }
-        p {
-          margin: 0;
+        .info {
+          --mdc-icon-button-size: 32px;
+          margin-inline-start: var(--ha-space-1);
         }
-        ha-svg-icon {
-          flex: none;
-        }
-        .card-actions {
-          display: flex;
-          justify-content: flex-end;
-          border-top: none;
-        }
-        ha-list-item-base {
-          --ha-row-item-padding-block: var(--ha-space-2);
-          --ha-row-item-min-height: 40x;
-        }
-        ha-list-item-base::part(start) {
-          color: var(--ha-color-text-secondary);
-        }
-        span.skeleton {
+        .line.skeleton {
           position: relative;
           display: block;
           width: 160px;

@@ -14,6 +14,7 @@ import { consume } from "../../../common/decorators/consume";
 import { storage } from "../../../common/decorators/storage";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { stopPropagation } from "../../../common/dom/stop_propagation";
 import { computeDomain } from "../../../common/entity/compute_domain";
 import type { EntityDomainFilter } from "../../../common/entity/entity_domain_filter";
 import {
@@ -28,7 +29,10 @@ import type {
   RowClickedEvent,
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
+import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-button";
+import "../../../components/ha-switch";
+import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/ha-tooltip";
 import type { AlexaEntity } from "../../../data/alexa";
 import { fetchCloudAlexaEntities } from "../../../data/alexa";
@@ -37,11 +41,16 @@ import { entitiesContext } from "../../../data/context";
 import type { ExtEntityRegistryEntry } from "../../../data/entity/entity_registry";
 import { getExtendedEntityRegistryEntries } from "../../../data/entity/entity_registry";
 import type { ExposeEntitySettings } from "../../../data/expose";
-import { exposeEntities, voiceAssistants } from "../../../data/expose";
+import {
+  exposeEntities,
+  getExposeNewEntities,
+  voiceAssistants,
+} from "../../../data/expose";
 import type { GoogleEntity } from "../../../data/google_assistant";
 import { fetchCloudGoogleEntities } from "../../../data/google_assistant";
 import { domainToName } from "../../../data/integration";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
+import { showErrorToast } from "../../../util/show-error-toast";
 import "../../../layouts/hass-loading-screen";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
@@ -93,6 +102,8 @@ export class VoiceAssistantsExpose extends LitElement {
   @state() private _searchParms = new URLSearchParams(window.location.search);
 
   @state() private _selectedEntities: string[] = [];
+
+  @state() private _exposeNew?: boolean;
 
   @state() private _supportedEntities?: Record<
     "cloud.google_assistant" | "cloud.alexa" | "conversation",
@@ -171,7 +182,13 @@ export class VoiceAssistantsExpose extends LitElement {
         availableAssistants,
         entitiesToCheck,
         supportedEntities,
-        true
+        false
+      ),
+      ...this._toggleColumns(
+        localize,
+        narrow,
+        availableAssistants,
+        supportedEntities
       ),
       aliases: {
         title: localize(
@@ -208,6 +225,75 @@ export class VoiceAssistantsExpose extends LitElement {
       },
     })
   );
+
+  /** One column per assistant, with a switch that exposes or hides the entity. */
+  private _toggleColumns(
+    localize: LocalizeFunc,
+    narrow: boolean,
+    availableAssistants: string[],
+    supportedEntities:
+      | Record<
+          "cloud.google_assistant" | "cloud.alexa" | "conversation",
+          string[] | undefined
+        >
+      | undefined
+  ): DataTableColumnContainer {
+    const columns: DataTableColumnContainer = {};
+    for (const vaId of availableAssistants) {
+      columns[`expose_${vaId.replace(".", "_")}`] = {
+        title: voiceAssistants[vaId].name,
+        label: localize(
+          "ui.panel.config.voice_assistants.expose.headers.expose_to",
+          { assistant: voiceAssistants[vaId].name }
+        ),
+        type: "flex",
+        hidden: narrow,
+        minWidth: "88px",
+        maxWidth: "88px",
+        template: (entry: any) => {
+          const checked = entry.assistants.includes(vaId);
+          const manual = entry.manAssistants?.includes(vaId) ?? false;
+          const unsupported =
+            !!supportedEntities?.[vaId] &&
+            !supportedEntities[vaId]!.includes(entry.entity_id);
+          return html`<ha-switch
+            .checked=${checked}
+            .disabled=${manual || (unsupported && !checked)}
+            aria-label=${localize(
+              "ui.panel.config.voice_assistants.expose.toggle_label",
+              { assistant: voiceAssistants[vaId].name, name: entry.name }
+            )}
+            data-assistant=${vaId}
+            data-entity=${entry.entity_id}
+            @click=${stopPropagation}
+            @change=${this._toggleExposed}
+          ></ha-switch>`;
+        },
+      };
+    }
+    return columns;
+  }
+
+  private _toggleExposed = async (ev: Event) => {
+    const toggle = ev.currentTarget as HaSwitch;
+    const { assistant, entity } = toggle.dataset;
+    if (!assistant || !entity) {
+      return;
+    }
+    try {
+      await exposeEntities(this.hass, [assistant], [entity], toggle.checked);
+      fireEvent(this, "exposed-entities-changed");
+    } catch (err: any) {
+      toggle.checked = !toggle.checked;
+      showErrorToast(
+        this,
+        this.hass.localize(
+          "ui.panel.config.voice_assistants.expose.toggle_failed"
+        ),
+        err?.message
+      );
+    }
+  };
 
   private _getEntityFilterFuncs = memoize(
     (googleFilter: EntityDomainFilter, alexaFilter: EntityDomainFilter) => ({
@@ -448,6 +534,18 @@ export class VoiceAssistantsExpose extends LitElement {
     };
   }
 
+  protected firstUpdated(changedProperties: PropertyValues): void {
+    super.firstUpdated(changedProperties);
+    getExposeNewEntities(this.hass, "conversation").then(
+      (value) => {
+        this._exposeNew = value.expose_new;
+      },
+      () => {
+        this._exposeNew = undefined;
+      }
+    );
+  }
+
   public willUpdate(changedProperties: PropertyValues): void {
     if (changedProperties.has("_entities")) {
       this._fetchEntities();
@@ -501,11 +599,10 @@ export class VoiceAssistantsExpose extends LitElement {
           }
         )}
         .summary=${this.hass.localize(
-          "ui.panel.config.entities.picker.summary",
-          {
-            number: filteredEntities.length,
-          }
+          "ui.panel.config.voice_assistants.expose.summary",
+          { count: this._exposedCount() }
         )}
+        .footerText=${this._footerNote()}
         .filter=${this._tableSettings.search}
         selectable
         .selected=${this._selectedEntities.length}
@@ -527,6 +624,17 @@ export class VoiceAssistantsExpose extends LitElement {
         id="entity_id"
         has-fab
       >
+        <div slot="top-header" class="quick-filters">
+          ${this._availableAssistants.map(
+            (vaId) =>
+              html`<ha-filter-chip
+                .selected=${this._activeAssistants().includes(vaId)}
+                .label=${voiceAssistants[vaId].name}
+                data-assistant=${vaId}
+                @click=${this._toggleAssistantFilter}
+              ></ha-filter-chip>`
+          )}
+        </div>
         ${
           this._selectedEntities.length
             ? html`
@@ -590,6 +698,53 @@ export class VoiceAssistantsExpose extends LitElement {
         </ha-button>
       </hass-tabs-subpage-data-table>
     `;
+  }
+
+  /** The assistants named in the address, none when it is not filtered. */
+  private _activeAssistants(): string[] {
+    const value = this._searchParms.get("assistants");
+    return value ? value.split(",") : [];
+  }
+
+  /** How many entities are exposed to at least one assistant on this page. */
+  private _exposedCount(): number {
+    const available = this._availableAssistants;
+    return Object.entries(this.exposedEntities ?? {}).filter(
+      ([entityId, settings]) =>
+        entityId in this.hass.states && available.some((vaId) => settings[vaId])
+    ).length;
+  }
+
+  private _footerNote(): string | undefined {
+    if (this._exposeNew === undefined) {
+      return undefined;
+    }
+    return this.hass.localize(
+      this._exposeNew
+        ? "ui.panel.config.voice_assistants.expose.footer_new_on"
+        : "ui.panel.config.voice_assistants.expose.footer_new_off"
+    );
+  }
+
+  private _toggleAssistantFilter(ev: Event) {
+    const vaId = (ev.currentTarget as HTMLElement).dataset.assistant!;
+    const active = this._activeAssistants();
+    const next = active.includes(vaId)
+      ? active.filter((id) => id !== vaId)
+      : [...active, vaId];
+    const params = new URLSearchParams(this._searchParms);
+    if (next.length) {
+      params.set("assistants", next.join(","));
+    } else {
+      params.delete("assistants");
+    }
+    const queryString = params.toString();
+    navigate(
+      `${window.location.pathname}${queryString ? `?${queryString}` : ""}`,
+      {
+        replace: true,
+      }
+    );
   }
 
   private _addEntry() {
@@ -771,6 +926,12 @@ export class VoiceAssistantsExpose extends LitElement {
         .header-btns > ha-button,
         .header-btns > ha-icon-button {
           margin: var(--ha-space-2);
+        }
+        .quick-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-4) 0;
         }
         .clear {
           color: var(--primary-color);

@@ -26,6 +26,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
+import { ensureArray } from "../../../common/array/ensure-array";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { consume } from "../../../common/decorators/consume";
@@ -75,7 +76,14 @@ import "../../../components/ha-switch";
 import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/ha-tooltip";
 import { createAreaRegistryEntry } from "../../../data/area/area_registry";
-import type { AutomationEntity } from "../../../data/automation";
+import type {
+  AutomationConfig,
+  AutomationEntity,
+  Trigger,
+} from "../../../data/automation";
+import { describeTrigger } from "../../../data/automation_i18n";
+import type { Blueprints } from "../../../data/blueprint";
+import { fetchBlueprints } from "../../../data/blueprint";
 import {
   deleteAutomation,
   duplicateAutomation,
@@ -166,6 +174,8 @@ type AutomationItem = AutomationEntity & {
   name: string;
   area: string | undefined;
   last_triggered: string | undefined;
+  /** What starts the automation, in words; read from its configuration. */
+  trigger_text: string | undefined;
   formatted_state: string;
   category: string | undefined;
   label_entries: LabelRegistryEntry[];
@@ -226,6 +236,14 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
 
   @state() private _expandedFilter?: string;
 
+  @state() private _blueprints?: Blueprints;
+
+  // What starts each automation, by entity ID. Read one automation at a time
+  // after the page opens, so the list shows at once and fills in.
+  @state() private _triggerTexts: Record<string, string> = {};
+
+  private _requestedTexts = new Set<string>();
+
   @state() private _selected: string[] = [];
 
   @state()
@@ -282,7 +300,8 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       formatEntityName: HomeAssistant["formatEntityName"],
       categoryReg?: CategoryRegistryEntry[],
       labelReg?: LabelRegistryEntry[],
-      filteredAutomations?: string[] | null
+      filteredAutomations?: string[] | null,
+      triggerTexts: Record<string, string> = {}
     ): AutomationItem[] => {
       if (filteredAutomations === null) {
         return [];
@@ -319,6 +338,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
             ? areas[entityRegEntry?.area_id]?.name
             : undefined,
           last_triggered: automation.attributes.last_triggered || undefined,
+          trigger_text: triggerTexts[automation.entity_id],
           formatted_state: this.hass.formatEntityState(automation),
           category: category
             ? categoryReg?.find((cat) => cat.category_id === category)?.name
@@ -388,14 +408,26 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           filterable: true,
           direction: "asc",
           flex: 2,
-          extraTemplate: (automation) =>
-            automation.label_entries.length
-              ? html`<ha-data-table-labels
-                  .clickable=${!narrow}
-                  @label-clicked=${narrow ? undefined : this._labelClicked}
-                  .labels=${automation.label_entries}
-                ></ha-data-table-labels>`
-              : nothing,
+          extraTemplate: (automation) => html`
+            ${
+              automation.trigger_text
+                ? html`<div
+                    style="color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+                  >
+                    ${automation.trigger_text}
+                  </div>`
+                : nothing
+            }
+            ${
+              automation.label_entries.length
+                ? html`<ha-data-table-labels
+                    .clickable=${!narrow}
+                    @label-clicked=${narrow ? undefined : this._labelClicked}
+                    .labels=${automation.label_entries}
+                  ></ha-data-table-labels>`
+                : nothing
+            }
+          `,
         },
         area: getAreaTableColumn(localize),
         category: getCategoryTableColumn(localize),
@@ -491,6 +523,220 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     ];
   }
 
+  protected firstUpdated(changedProps: PropertyValues) {
+    super.firstUpdated(changedProps);
+    if (isComponentLoaded(this.hass.config, "blueprint")) {
+      fetchBlueprints(this.hass.callWS, "automation").then(
+        (blueprints) => {
+          this._blueprints = blueprints;
+        },
+        () => {
+          // Without the list the Blueprint chip has no options to offer
+        }
+      );
+    }
+  }
+
+  // What starts an automation, in words. One automation at a time, four at
+  // once, and only those not asked for yet.
+  private async _loadTriggerTexts() {
+    const pending = this.automations
+      .map((automation) => automation.entity_id)
+      .filter((entityId) => !this._requestedTexts.has(entityId));
+    pending.forEach((entityId) => this._requestedTexts.add(entityId));
+    let next = 0;
+    const worker = async () => {
+      while (next < pending.length) {
+        const entityId = pending[next++];
+        try {
+          // The reads are one after another on purpose, to keep them few
+          // eslint-disable-next-line no-await-in-loop
+          const { config } = await getAutomationStateConfig(
+            this.hass,
+            entityId
+          );
+          const text = this._describeTriggers(config);
+          if (text) {
+            this._triggerTexts = { ...this._triggerTexts, [entityId]: text };
+          }
+        } catch (_err: unknown) {
+          // An automation that cannot be read simply has no second line
+        }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+  }
+
+  private _describeTriggers(config: AutomationConfig): string | undefined {
+    const localize = this.hass.localize;
+    if ("use_blueprint" in config) {
+      const path = config.use_blueprint.path;
+      const blueprint = this._blueprints?.[path];
+      const name =
+        blueprint && !("error" in blueprint)
+          ? blueprint.metadata.name || path
+          : path;
+      return localize("ui.panel.config.automation.picker.from_blueprint", {
+        name,
+      });
+    }
+    const triggers = ensureArray(
+      config.triggers ?? config.trigger
+    ) as Trigger[];
+    if (!triggers.length) {
+      return undefined;
+    }
+    const first = describeTrigger(triggers[0], this.hass, this._entityReg);
+    return triggers.length > 1
+      ? localize("ui.panel.config.automation.picker.trigger_more", {
+          description: first,
+          count: triggers.length - 1,
+        })
+      : first;
+  }
+
+  // The options of a filter chip, which drives the same filter as the pane
+  private _chipOptions(
+    chip: "category" | "label" | "area" | "blueprint"
+  ): { value: string; label: string }[] {
+    let options: { value: string; label: string }[];
+    if (chip === "category") {
+      options = (this._categories ?? []).map((category) => ({
+        value: category.category_id,
+        label: category.name,
+      }));
+    } else if (chip === "label") {
+      options = (this._labels ?? []).map((label) => ({
+        value: label.label_id,
+        label: label.name,
+      }));
+    } else if (chip === "area") {
+      options = Object.values(this.hass.areas).map((area) => ({
+        value: area.area_id,
+        label: area.name,
+      }));
+    } else {
+      options = Object.entries(this._blueprints ?? {}).flatMap(
+        ([path, blueprint]) =>
+          "error" in blueprint
+            ? []
+            : [{ value: path, label: blueprint.metadata.name || path }]
+      );
+    }
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  private _chipFilterKey(chip: string): string {
+    return {
+      category: "ha-filter-categories",
+      label: "ha-filter-labels",
+      area: "ha-filter-floor-areas",
+      blueprint: "ha-filter-blueprints",
+    }[chip]!;
+  }
+
+  private _chipSelected(chip: string): { selected: string[]; total: number } {
+    const value = this._filters[this._chipFilterKey(chip)]?.value;
+    if (chip === "area") {
+      const areaValue = value as Record<string, string[]> | undefined;
+      const areas = areaValue?.areas ?? [];
+      return {
+        selected: areas,
+        total: areas.length + (areaValue?.floors?.length ?? 0),
+      };
+    }
+    const selected = Array.isArray(value) ? value : [];
+    return { selected, total: selected.length };
+  }
+
+  private _renderChipMenu(
+    chip: "category" | "label" | "area" | "blueprint"
+  ): TemplateResult | typeof nothing {
+    if (chip === "blueprint" && !this._blueprints) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    const options = this._chipOptions(chip);
+    const { selected, total } = this._chipSelected(chip);
+    const value =
+      total === 0
+        ? localize("ui.panel.config.automation.picker.chip_any")
+        : total === 1 && selected.length === 1
+          ? (options.find((option) => option.value === selected[0])?.label ??
+            selected[0])
+          : localize("ui.panel.config.automation.picker.chip_count", {
+              count: total,
+            });
+
+    return html`<ha-dropdown
+      slot="filter-chips"
+      data-chip=${chip}
+      @wa-select=${this._handleChipSelect}
+    >
+      <ha-assist-chip
+        slot="trigger"
+        .active=${total > 0}
+        .label=${localize(`ui.panel.config.automation.picker.chip_${chip}`, {
+          value,
+        })}
+      >
+        <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+      </ha-assist-chip>
+      <ha-dropdown-item value="__any" .disabled=${total === 0}>
+        ${localize("ui.panel.config.automation.picker.chip_clear")}
+      </ha-dropdown-item>
+      <wa-divider></wa-divider>
+      ${options.map(
+        (option) =>
+          html`<ha-dropdown-item .value=${option.value}>
+            <ha-checkbox
+              slot="icon"
+              .checked=${selected.includes(option.value)}
+            ></ha-checkbox>
+            ${option.label}
+          </ha-dropdown-item>`
+      )}
+    </ha-dropdown>`;
+  }
+
+  private _handleChipSelect(ev: HaDropdownSelectEvent) {
+    const chip = (ev.currentTarget as HTMLElement).dataset.chip!;
+    const picked = ev.detail.item.value;
+    if (!picked) {
+      return;
+    }
+    if (picked !== "__any") {
+      // Keep the menu open to pick several
+      ev.preventDefault();
+    }
+
+    const { selected } = this._chipSelected(chip);
+    const next =
+      picked === "__any"
+        ? []
+        : selected.includes(picked)
+          ? selected.filter((item) => item !== picked)
+          : [...selected, picked];
+    const key = this._chipFilterKey(chip);
+
+    if (chip === "area") {
+      const current = this._filters[key]?.value as
+        Record<string, string[]> | undefined;
+      // Selected floors stay as they are, only the areas change
+      const value = { ...current, areas: next };
+      const empty = !next.length && !current?.floors?.length;
+      this._setFilter(key, {
+        value: empty ? undefined : value,
+        items: undefined,
+      });
+      return;
+    }
+    this._setFilter(key, {
+      value: next.length ? next : undefined,
+      items: undefined,
+    });
+  }
+
   /** How many automations there are, and how many of them are on. */
   private _summary(automations: { state: string }[]): string {
     const count = this.hass.localize(
@@ -525,7 +771,8 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       this.hass.formatEntityName,
       this._categories,
       this._labels,
-      this._filteredEntityIds
+      this._filteredEntityIds,
+      this._triggerTexts
     );
     return html`
       <hass-tabs-subpage-data-table
@@ -541,6 +788,12 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         )}
         .summary=${this._summary(automations)}
         selectable
+        always-show-checkboxes
+        footer-select
+        .footerText=${this.hass.localize(
+          "ui.panel.config.automation.picker.footer",
+          { shown: automations.length, total: this.automations.length }
+        )}
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
         has-filters
@@ -590,6 +843,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           this._tableSettings.grouping,
           this._categoryDeleted
         )}
+        ${this._renderChipMenu("category")}${this._renderChipMenu("label")}${this._renderChipMenu("area")}${this._renderChipMenu("blueprint")}
         <ha-filter-floor-areas
           .type=${"automation"}
           .value=${this._filters["ha-filter-floor-areas"]?.value}
@@ -941,6 +1195,9 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     // are added or removed
     if (changedProps.has("_entityReg") || changedProps.has("automations")) {
       this._applyFilters();
+    }
+    if (changedProps.has("automations") || changedProps.has("_entityReg")) {
+      this._loadTriggerTexts();
     }
   }
 

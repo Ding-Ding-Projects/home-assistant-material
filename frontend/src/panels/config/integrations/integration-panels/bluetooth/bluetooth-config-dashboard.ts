@@ -5,12 +5,14 @@ import {
   mdiCheck,
   mdiCloseCircleOutline,
   mdiLinkVariant,
+  mdiBluetooth,
   mdiVectorPolyline,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
-import { LitElement, css, html } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { styleMap } from "lit/directives/style-map";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-card";
 import "../../../../../components/ha-icon-next";
@@ -20,6 +22,7 @@ import "../../../../../components/list/ha-list-nav";
 import type {
   BluetoothAllocationsData,
   BluetoothDeviceData,
+  BluetoothScannersDetails,
   BluetoothScannerState,
 } from "../../../../../data/bluetooth";
 import {
@@ -27,13 +30,13 @@ import {
   subscribeBluetoothAdvertisements,
   subscribeBluetoothConnectionAllocations,
   subscribeBluetoothScannerState,
+  subscribeBluetoothScannersDetails,
 } from "../../../../../data/bluetooth";
 import type { ConfigEntry } from "../../../../../data/config_entries";
 import { getConfigEntries } from "../../../../../data/config_entries";
 import "../../../../../layouts/hass-subpage";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
-import { brandsUrl } from "../../../../../util/brands-url";
 
 @customElement("bluetooth-config-dashboard")
 export class BluetoothConfigDashboard extends LitElement {
@@ -41,7 +44,7 @@ export class BluetoothConfigDashboard extends LitElement {
 
   @property({ attribute: false }) public route!: Route;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
@@ -52,6 +55,10 @@ export class BluetoothConfigDashboard extends LitElement {
   @state() private _scannerStates: Record<string, BluetoothScannerState> = {};
 
   @state() private _advertisementData: BluetoothDeviceData[] = [];
+
+  @state() private _scanners: BluetoothScannersDetails = {};
+
+  private _unsubScanners?: UnsubscribeFunc;
 
   private _unsubConnectionAllocations?: (() => Promise<void>) | undefined;
 
@@ -66,7 +73,20 @@ export class BluetoothConfigDashboard extends LitElement {
       this._subscribeBluetoothConnectionAllocations();
       this._subscribeBluetoothScannerState();
       this._subscribeBluetoothAdvertisements();
+      this._subscribeBluetoothScanners();
     }
+  }
+
+  private _subscribeBluetoothScanners(): void {
+    if (this._unsubScanners) {
+      return;
+    }
+    this._unsubScanners = subscribeBluetoothScannersDetails(
+      this.hass.connection,
+      (scanners) => {
+        this._scanners = scanners;
+      }
+    );
   }
 
   private async _loadConfigEntries(): Promise<void> {
@@ -129,6 +149,10 @@ export class BluetoothConfigDashboard extends LitElement {
       this._unsubAdvertisements();
       this._unsubAdvertisements = undefined;
     }
+    if (this._unsubScanners) {
+      this._unsubScanners();
+      this._unsubScanners = undefined;
+    }
   }
 
   protected render(): TemplateResult {
@@ -136,10 +160,6 @@ export class BluetoothConfigDashboard extends LitElement {
       (e) => e.disabled_by === null
     );
     const adapterCount = enabledEntries.length;
-    const totalSlots = this._connectionAllocationData.reduce(
-      (sum, a) => sum + a.slots,
-      0
-    );
     const usedSlots = this._connectionAllocationData.reduce(
       (sum, a) => sum + (a.slots - a.free),
       0
@@ -162,41 +182,23 @@ export class BluetoothConfigDashboard extends LitElement {
         .header=${this.hass.localize("ui.panel.config.bluetooth.title")}
         back-path="/config/connectivity"
       >
-        <div class="container">
-          <ha-card class="content network-status">
-            <div class="card-content">
-              <div class="heading">
-                <div class="icon ${status}">
-                  <ha-svg-icon .path=${statusIcon}></ha-svg-icon>
-                </div>
-                <div class="details">
-                  ${this.hass.localize(
-                    `ui.panel.config.bluetooth.status_${status}`
-                  )}<br />
-                  <small>
-                    ${this.hass.localize(
-                      "ui.panel.config.bluetooth.connections_summary",
-                      { used: usedSlots, total: totalSlots }
-                    )}
-                  </small>
-                </div>
-                <img
-                  class="logo"
-                  alt="Bluetooth"
-                  crossorigin="anonymous"
-                  referrerpolicy="no-referrer"
-                  src=${brandsUrl(
-                    {
-                      domain: "bluetooth",
-                      type: "icon",
-                      darkOptimized: this.hass.themes?.darkMode,
-                    },
-                    this.hass.auth.data.hassUrl
-                  )}
-                />
-              </div>
+        <div class="page">
+          <section class="hero">
+            <div class="hero-text">
+              <h1>${this.hass.localize("ui.panel.config.bluetooth.title")}</h1>
+              <p>
+                ${this.hass.localize("ui.panel.config.bluetooth.summary", {
+                  adapters: adapterCount,
+                  devices: this._advertisementData.length,
+                })}
+              </p>
             </div>
-          </ha-card>
+            <span class="chip ${status}">
+              <ha-svg-icon .path=${statusIcon}></ha-svg-icon>
+              ${this.hass.localize(`ui.panel.config.bluetooth.status_${status}`)}
+            </span>
+          </section>
+          ${this._renderAdapters()}
 
           <ha-card class="network-card">
             <div class="card-header">
@@ -268,104 +270,181 @@ export class BluetoothConfigDashboard extends LitElement {
     `;
   }
 
+  private _renderAdapters() {
+    const sources = new Set<string>([
+      ...this._connectionAllocationData.map((a) => a.source),
+      ...Object.keys(this._scanners),
+    ]);
+    if (!sources.size) {
+      return nothing;
+    }
+    return html`<div class="adapters">
+      ${[...sources].map((source) => {
+        const allocation = this._connectionAllocationData.find(
+          (a) => a.source === source
+        );
+        const scanner = this._scanners[source];
+        const scannerState = this._scannerStates[source];
+        const mismatch = scannerState
+          ? isScannerStateMismatch(scannerState)
+          : false;
+        const used = allocation ? allocation.slots - allocation.free : 0;
+        const slots = allocation?.slots ?? 0;
+        return html`<ha-card class="adapter">
+          <div class="card-content">
+            <div class="adapter-head">
+              <ha-svg-icon .path=${mdiBluetooth}></ha-svg-icon>
+              <div class="adapter-name">
+                <strong>${scanner?.name || source}</strong>
+                <span>${scanner?.adapter || source}</span>
+              </div>
+              ${
+                scannerState
+                  ? html`<span class="chip ${mismatch ? "warning" : "online"}"
+                      >${this.hass.localize(
+                        mismatch
+                          ? "ui.panel.config.bluetooth.status_warning"
+                          : "ui.panel.config.bluetooth.listening"
+                      )}</span
+                    >`
+                  : nothing
+              }
+            </div>
+            ${
+              slots
+                ? html`<p class="slots">
+                      ${this.hass.localize(
+                        "ui.panel.config.bluetooth.connections_in_use",
+                        { used, total: slots }
+                      )}
+                    </p>
+                    <div class="bar">
+                      <div
+                        class="bar-fill"
+                        style=${styleMap({
+                          width: `${Math.round((used / slots) * 100)}%`,
+                        })}
+                      ></div>
+                    </div>`
+                : html`<p class="slots">
+                    ${this.hass.localize(
+                      "ui.panel.config.bluetooth.no_connection_slots"
+                    )}
+                  </p>`
+            }
+          </div>
+        </ha-card>`;
+      })}
+    </div>`;
+  }
+
   static get styles(): CSSResultGroup {
     return [
       haStyle,
       css`
-        .container {
-          padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
+        .page {
+          box-sizing: border-box;
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         }
-
+        :host([narrow]) .page {
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+        }
+        .hero {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          gap: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+        }
+        .hero-text {
+          flex: 1;
+          min-width: 220px;
+        }
+        h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl, 2.25rem);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .hero p {
+          margin: var(--ha-space-1) 0 0;
+          color: var(--secondary-text-color);
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--primary-text-color);
+          background: color-mix(in srgb, var(--chip-color) 22%, transparent);
+          --chip-color: var(--primary-color);
+          --mdc-icon-size: 16px;
+        }
+        .chip.online {
+          --chip-color: var(--success-color);
+        }
+        .chip.warning {
+          --chip-color: var(--warning-color);
+        }
+        .chip.offline {
+          --chip-color: var(--error-color);
+        }
+        .adapters {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+        }
         ha-card {
-          margin: 0px auto var(--ha-space-4);
-          max-width: 600px;
+          overflow: hidden;
+          border-radius: var(--ha-border-radius-3xl);
         }
-
-        .content {
-          margin-top: var(--ha-space-6);
+        .adapter-head {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
         }
-
-        .network-card {
+        .adapter-name {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .adapter-name span {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+        .slots {
+          margin: var(--ha-space-3) 0 var(--ha-space-2);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .bar {
+          height: 8px;
+          border-radius: 4px;
+          background: var(--divider-color);
           overflow: hidden;
         }
-
+        .bar-fill {
+          height: 100%;
+          background: var(--primary-color);
+        }
         .network-card .card-content {
           padding: 0;
         }
-
         .network-card .card-header {
           display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
           align-items: center;
           justify-content: space-between;
           padding-bottom: var(--ha-space-2);
-        }
-
-        .network-status div.heading {
-          display: flex;
-          align-items: center;
-          column-gap: var(--ha-space-4);
-        }
-
-        .network-status div.heading .logo {
-          height: 40px;
-          width: 40px;
-          margin-inline-start: auto;
-          object-fit: contain;
-        }
-
-        .network-status div.heading .icon {
-          position: relative;
-          border-radius: var(--ha-border-radius-2xl);
-          width: var(--ha-space-10);
-          height: var(--ha-space-10);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          flex-shrink: 0;
-          --icon-color: var(--primary-color);
-        }
-
-        .network-status div.heading .icon.online {
-          --icon-color: var(--success-color);
-        }
-
-        .network-status div.heading .icon.warning {
-          --icon-color: var(--warning-color);
-        }
-
-        .network-status div.heading .icon.offline {
-          --icon-color: var(--error-color);
-        }
-
-        .network-status div.heading .icon::before {
-          display: block;
-          content: "";
-          position: absolute;
-          inset: 0;
-          background-color: var(--icon-color, var(--primary-color));
-          opacity: 0.2;
-        }
-
-        .network-status div.heading .icon ha-svg-icon {
-          color: var(--icon-color, var(--primary-color));
-          width: var(--ha-space-6);
-          height: var(--ha-space-6);
-        }
-
-        .network-status div.heading .details {
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-condensed);
-          color: var(--primary-text-color);
-        }
-
-        .network-status small {
-          font-size: var(--ha-font-size-m);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-condensed);
-          letter-spacing: 0.25px;
-          color: var(--secondary-text-color);
         }
       `,
     ];

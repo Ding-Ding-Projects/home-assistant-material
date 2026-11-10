@@ -22,6 +22,7 @@ import {
   fetchCloudSubscriptionInfo,
   ONBOARDING_ITEMS,
 } from "../../../../data/cloud";
+import { listExposedEntities } from "../../../../data/expose";
 import type { Webhook } from "../../../../data/webhook";
 import { fetchWebhooks } from "../../../../data/webhook";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
@@ -31,6 +32,7 @@ import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import "./cloud-account-onboarding";
 import "./cloud-account-overview";
+import type { ExposedAssistantCounts } from "./cloud-account-overview";
 import {
   onboardingComplete,
   onboardingPanelCompleted,
@@ -54,6 +56,8 @@ export class CloudAccount extends SubscribeMixin(LitElement) {
   @state() private _backupConfig?: BackupConfig;
 
   @state() private _webhooks?: Webhook[];
+
+  @state() private _exposedCounts?: ExposedAssistantCounts;
 
   // Whether the async backup config fetch has finished (regardless of outcome).
   // Used to avoid flashing the onboarding card in and out before we know the
@@ -107,6 +111,7 @@ export class CloudAccount extends SubscribeMixin(LitElement) {
             .subscription=${this._subscription}
             .backupConfig=${this._backupConfig}
             .webhooks=${this._webhooks}
+            .exposedCounts=${this._exposedCounts}
             @cloud-sign-out=${this._signOut}
           ></cloud-account-overview>
         </div>
@@ -164,6 +169,21 @@ export class CloudAccount extends SubscribeMixin(LitElement) {
     this._fetchSubscriptionInfo();
     this._fetchBackupConfig();
     this._fetchWebhooks();
+    this._fetchExposedCounts();
+  }
+
+  private async _fetchExposedCounts() {
+    try {
+      const { exposed_entities } = await listExposedEntities(this.hass);
+      const settings = Object.values(exposed_entities);
+      this._exposedCounts = {
+        google: settings.filter((item) => item["cloud.google_assistant"])
+          .length,
+        alexa: settings.filter((item) => item["cloud.alexa"]).length,
+      };
+    } catch {
+      // Best effort; the rows then say "linked" without a count.
+    }
   }
 
   protected updated(changedProps: PropertyValues) {
@@ -310,7 +330,7 @@ export class CloudAccount extends SubscribeMixin(LitElement) {
           padding-bottom: calc(
             var(--safe-area-inset-bottom) + var(--ha-space-6)
           );
-          max-width: 860px;
+          max-width: 1100px;
           margin: 0 auto;
           gap: var(--ha-space-6);
           display: flex;

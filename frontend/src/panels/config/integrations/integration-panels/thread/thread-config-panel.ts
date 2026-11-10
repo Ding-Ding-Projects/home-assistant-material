@@ -1,9 +1,12 @@
 import {
   mdiCellphoneKey,
+  mdiCheck,
   mdiDeleteOutline,
   mdiDevices,
   mdiDotsVertical,
   mdiInformationOutline,
+  mdiLanConnect,
+  mdiPlus,
 } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -68,7 +71,7 @@ export interface ThreadNetwork {
 export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() private _configEntryId: string | null = null;
 
@@ -119,70 +122,213 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
             )}</ha-dropdown-item
           >
         </ha-dropdown>
-        <div class="content">
-          <h2>${this.hass.localize("ui.panel.config.thread.my_network")}</h2>
-          ${
-            networks.preferred
-              ? this._renderNetwork(networks.preferred)
-              : html`<ha-card>
-                  <div class="card-content no-routers">
-                    <h3>
-                      ${this.hass.localize(
-                        "ui.panel.config.thread.no_preferred_network"
-                      )}
-                    </h3>
-                    <ha-svg-icon .path=${mdiDevices}></ha-svg-icon>
-                    <ha-button
-                      appearance="plain"
-                      size="s"
-                      href=${documentationUrl(this.hass, `/integrations/thread`)}
-                      target="_blank"
-                    >
-                      ${this.hass.localize(
-                        "ui.panel.config.thread.more_info"
-                      )}</ha-button
-                    >
-                  </div>
-                </ha-card>`
-          }
-          ${
-            networks.networks.length
-              ? html`<h3>
-                    ${this.hass.localize("ui.panel.config.thread.other_networks")}
-                  </h3>
-                  ${networks.networks.map((network) =>
-                    this._renderNetwork(network)
-                  )}`
-              : ""
-          }
-          ${
-            this.hass.auth.external?.config.canImportThreadCredentials
-              ? html`<h3>
-                    ${this.hass.localize(
-                      "ui.panel.config.thread.thread_network_send_credentials_ha"
-                    )}
-                  </h3>
-                  <ha-card>
-                    <div class="card-content">
-                      ${this.hass.localize(
-                        "ui.panel.config.thread.thread_network_send_credentials_ha_description"
-                      )}
-                    </div>
-                    <div class="card-actions">
+        <div class="page">
+          ${this._renderHero(networks)}
+          <div class="layout">
+            <div class="main">
+              <h2>
+                ${this.hass.localize("ui.panel.config.thread.my_network")}${
+                  networks.preferred?.name
+                    ? html`: ${networks.preferred.name}`
+                    : nothing
+                }
+              </h2>
+              ${
+                networks.preferred
+                  ? this._renderNetwork(networks.preferred)
+                  : html`<ha-card>
+                      <div class="card-content no-routers">
+                        <h3>
+                          ${this.hass.localize(
+                            "ui.panel.config.thread.no_preferred_network"
+                          )}
+                        </h3>
+                        <ha-svg-icon .path=${mdiDevices}></ha-svg-icon>
+                        <ha-button
+                          appearance="plain"
+                          size="s"
+                          href=${documentationUrl(
+                            this.hass,
+                            `/integrations/thread`
+                          )}
+                          target="_blank"
+                        >
+                          ${this.hass.localize(
+                            "ui.panel.config.thread.more_info"
+                          )}</ha-button
+                        >
+                      </div>
+                    </ha-card>`
+              }
+              ${
+                networks.networks.length
+                  ? html`<h2>
+                        ${this.hass.localize(
+                          "ui.panel.config.thread.other_networks"
+                        )}
+                      </h2>
+                      ${networks.networks.map((network) =>
+                        this._renderNetwork(network)
+                      )}`
+                  : nothing
+              }
+            </div>
+            <div class="side">${this._renderSide(networks)}</div>
+          </div>
+        </div>
+      </hass-subpage>
+    `;
+  }
+
+  private _renderHero(networks: {
+    preferred?: ThreadNetwork;
+    networks: ThreadNetwork[];
+  }) {
+    const networkCount =
+      (networks.preferred ? 1 : 0) + networks.networks.length;
+    const routerCount =
+      (networks.preferred?.routers?.length ?? 0) +
+      networks.networks.reduce((n, net) => n + (net.routers?.length ?? 0), 0);
+    return html`
+      <section class="hero">
+        <div class="hero-card">
+          <div class="eyebrow">
+            <ha-svg-icon .path=${mdiLanConnect}></ha-svg-icon> Thread
+          </div>
+          <h1>
+            ${
+              networkCount
+                ? this.hass.localize("ui.panel.config.thread.hero_title", {
+                    networks: networkCount,
+                    routers: routerCount,
+                  })
+                : this.hass.localize("ui.panel.config.thread.hero_title_none")
+            }
+          </h1>
+          <p>
+            ${
+              networks.preferred?.name
+                ? this.hass.localize("ui.panel.config.thread.hero_summary", {
+                    name: networks.preferred.name,
+                  })
+                : this.hass.localize("ui.panel.config.thread.hero_summary_none")
+            }
+          </p>
+        </div>
+        <ha-button appearance="filled" @click=${this._addOTBR}>
+          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.thread.add_border_router")}
+        </ha-button>
+      </section>
+    `;
+  }
+
+  private _renderSide(networks: {
+    preferred?: ThreadNetwork;
+    networks: ThreadNetwork[];
+  }) {
+    const preferred = networks.preferred;
+    const canImportKeychain =
+      this.hass.auth.external?.config.canTransferThreadCredentialsToKeychain;
+    const otbr =
+      preferred?.dataset &&
+      findOTBRInfoForDataset(this._otbrInfo, preferred.dataset);
+    const showSend =
+      canImportKeychain && preferred?.dataset && preferred.routers?.length;
+    const showImport =
+      this.hass.auth.external?.config.canImportThreadCredentials;
+    const showChannel = preferred?.dataset && otbr?.channel;
+    const sameNetwork =
+      !!preferred &&
+      networks.networks.length === 0 &&
+      (preferred.routers?.length ?? 0) > 1;
+    return html`
+      ${
+        sameNetwork
+          ? html`<div class="banner">
+              <ha-svg-icon .path=${mdiCheck}></ha-svg-icon>
+              ${this.hass.localize("ui.panel.config.thread.same_network_note")}
+            </div>`
+          : nothing
+      }
+      ${
+        showSend || showImport || showChannel
+          ? html`<ha-card class="tools">
+              ${
+                showSend
+                  ? html`<div class="tool">
+                      <ha-svg-icon .path=${mdiCellphoneKey}></ha-svg-icon>
+                      <div class="tool-text">
+                        <strong
+                          >${this.hass.localize(
+                            "ui.panel.config.thread.thread_network_send_credentials_phone"
+                          )}</strong
+                        >
+                        <span
+                          >${this.hass.localize(
+                            "ui.panel.config.thread.thread_network_send_credentials_phone_description"
+                          )}</span
+                        >
+                      </div>
+                      <ha-button
+                        size="s"
+                        .networkDataset=${preferred!.dataset}
+                        @click=${this._sendCredentials}
+                        >${this.hass.localize(
+                          "ui.panel.config.thread.send"
+                        )}</ha-button
+                      >
+                    </div>`
+                  : nothing
+              }
+              ${
+                showImport
+                  ? html`<div class="tool">
+                      <ha-svg-icon .path=${mdiCellphoneKey}></ha-svg-icon>
+                      <div class="tool-text">
+                        <strong
+                          >${this.hass.localize(
+                            "ui.panel.config.thread.thread_network_send_credentials_ha"
+                          )}</strong
+                        >
+                        <span
+                          >${this.hass.localize(
+                            "ui.panel.config.thread.thread_network_send_credentials_ha_description"
+                          )}</span
+                        >
+                      </div>
                       <ha-button
                         size="s"
                         @click=${this._importExternalThreadCredentials}
+                        >${this.hass.localize(
+                          "ui.panel.config.thread.import"
+                        )}</ha-button
                       >
-                        ${this.hass.localize(
-                          "ui.panel.config.thread.thread_network_send_credentials_ha"
-                        )}
-                      </ha-button>
-                    </div>
-                  </ha-card>`
-              : nothing
-          }
-        </div>
-      </hass-subpage>
+                    </div>`
+                  : nothing
+              }
+              ${
+                showChannel
+                  ? html`<a
+                      class="tool"
+                      href=${`/config/thread/network-info/${preferred!.dataset!.dataset_id}${window.location.search}`}
+                    >
+                      <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
+                      <div class="tool-text">
+                        <strong
+                          >${this.hass.localize(
+                            "ui.panel.config.thread.change_channel_label"
+                          )}</strong
+                        >
+                        <span>${otbr!.channel}</span>
+                      </div>
+                      <ha-icon-next></ha-icon-next>
+                    </a>`
+                  : nothing
+              }
+            </ha-card>`
+          : nothing
+      }
     `;
   }
 
@@ -190,9 +336,6 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
     const otbrForNetwork =
       network.dataset &&
       findOTBRInfoForDataset(this._otbrInfo, network.dataset);
-    const canImportKeychain =
-      this.hass.auth.external?.config.canTransferThreadCredentialsToKeychain;
-
     return html`<ha-card>
       <div class="card-header">
         ${network.name}${
@@ -401,27 +544,6 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
                 @click=${this._setPreferred}
                 >${this.hass.localize(
                   "ui.panel.config.thread.thread_network_make_preferred"
-                )}</ha-button
-              >
-            </div>`
-          : ""
-      }
-      ${
-        canImportKeychain &&
-        network.dataset?.preferred &&
-        network.routers?.length
-          ? html`<div class="card-actions">
-              <p class="send-to-phone-description">
-                ${this.hass.localize(
-                  "ui.panel.config.thread.thread_network_send_credentials_phone_description"
-                )}
-              </p>
-              <ha-button
-                size="s"
-                .networkDataset=${network.dataset}
-                @click=${this._sendCredentials}
-                >${this.hass.localize(
-                  "ui.panel.config.thread.thread_network_send_credentials_phone"
                 )}</ha-button
               >
             </div>`
@@ -785,11 +907,100 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
   static styles = [
     haStyle,
     css`
-      .content {
-        padding: 24px 8px 32px;
-        max-width: 600px;
+      .page {
+        box-sizing: border-box;
+        max-width: 1100px;
         margin: 0 auto;
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         direction: ltr;
+      }
+      :host([narrow]) .page {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+      }
+      .hero {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-4);
+        margin-bottom: var(--ha-space-4);
+      }
+      .hero-card {
+        flex: 1;
+        min-width: 240px;
+        padding: var(--ha-space-5) var(--ha-space-6);
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(
+          --primary-container-color,
+          var(--card-background-color)
+        );
+      }
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        --mdc-icon-size: 20px;
+      }
+      h1 {
+        margin: var(--ha-space-2) 0;
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .hero p {
+        margin: 0;
+        line-height: var(--ha-line-height-normal);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: var(--ha-space-6);
+        align-items: start;
+      }
+      :host([narrow]) .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .main h2 {
+        margin: var(--ha-space-4) 0 var(--ha-space-2);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .main h2:first-child {
+        margin-top: 0;
+      }
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-4);
+      }
+      .banner {
+        display: flex;
+        gap: var(--ha-space-3);
+        align-items: flex-start;
+        padding: var(--ha-space-3) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-xl, 16px);
+        background: color-mix(in srgb, var(--success-color) 22%, transparent);
+        line-height: var(--ha-line-height-normal);
+      }
+      .tools .tool {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-3) var(--ha-space-4);
+        color: inherit;
+        text-decoration: none;
+      }
+      .tool-text {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .tool-text span {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
       }
       ha-list-item.router {
         --mdc-list-item-meta-size: auto;
@@ -824,14 +1035,18 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
         margin-bottom: 8px;
       }
       ha-card {
-        margin-bottom: 16px;
+        margin-bottom: var(--ha-space-4);
         overflow: hidden;
+        border-radius: var(--ha-border-radius-3xl);
+      }
+      .side ha-card {
+        margin-bottom: 0;
       }
       ha-list-nav {
         border-top: 1px solid var(--divider-color);
       }
       h3 {
-        margin-top: var(--ha-space-8);
+        margin-top: 0;
       }
       h4 {
         margin: 0;
@@ -843,11 +1058,6 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
       }
       .card-header ha-icon-button {
         margin-block: calc(var(--ha-space-3) * -1);
-      }
-
-      .send-to-phone-description {
-        color: var(--secondary-text-color);
-        font-size: var(--ha-font-size-s);
       }
     `,
   ];

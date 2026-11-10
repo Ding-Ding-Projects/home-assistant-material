@@ -30,6 +30,7 @@ import { brandsUrl } from "../../../util/brands-url";
 import { documentationUrl } from "../../../util/documentation-url";
 import "./components/config/ha-backup-config-agents";
 import "./components/config/ha-backup-config-data";
+import "./components/config/ha-backup-config-encryption-key";
 import type { BackupConfigData } from "./components/config/ha-backup-config-data";
 import "./components/config/ha-backup-config-schedule";
 import type { BackupConfigSchedule } from "./components/config/ha-backup-config-schedule";
@@ -41,7 +42,7 @@ class HaConfigBackupSettings extends LitElement {
 
   @property({ attribute: false }) public cloudStatus?: CloudStatus;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: false }) public config?: BackupConfig;
 
@@ -159,174 +160,213 @@ class HaConfigBackupSettings extends LitElement {
             : nothing
         }
 
-        <div class="content">
-          <ha-card id="schedule">
-            <div class="card-header">
-              ${this.hass.localize(
-                "ui.panel.config.backup.settings.schedule.title"
-              )}
-            </div>
-            <div class="card-content">
-              <p>
+        <div class="page">
+          <div class="column">
+            <ha-card id="schedule">
+              <div class="card-header">
                 ${this.hass.localize(
-                  "ui.panel.config.backup.settings.schedule.description"
+                  "ui.panel.config.backup.settings.schedule.title"
                 )}
-              </p>
-              ${
-                this._supervisorUpdateConfigError
-                  ? html`<ha-alert alert-type="error">
-                      ${this._supervisorUpdateConfigError}
-                    </ha-alert>`
-                  : nothing
-              }
-              <ha-backup-config-schedule
-                .hass=${this.hass}
-                .value=${this._config}
-                .supervisor=${supervisor}
-                .supervisorUpdateConfig=${this._supervisorUpdateConfig}
-                @update-config-changed=${this._supervisorUpdateConfigChanged}
-                @value-changed=${this._scheduleConfigChanged}
-              ></ha-backup-config-schedule>
-            </div>
-          </ha-card>
-          <ha-card id="data">
-            <div class="card-header">
-              ${this.hass.localize(
-                "ui.panel.config.backup.settings.data.title"
-              )}
-            </div>
-            <div class="card-content">
-              <ha-backup-config-data
-                .hass=${this.hass}
-                .value=${this._dataConfig}
-                @value-changed=${this._dataConfigChanged}
-                force-home-assistant
-                hide-addon-version
-              ></ha-backup-config-data>
-            </div>
-          </ha-card>
+              </div>
+              <div class="card-content">
+                <p>
+                  ${this.hass.localize(
+                    "ui.panel.config.backup.settings.schedule.description"
+                  )}
+                </p>
+                ${
+                  this._supervisorUpdateConfigError
+                    ? html`<ha-alert alert-type="error">
+                        ${this._supervisorUpdateConfigError}
+                      </ha-alert>`
+                    : nothing
+                }
+                <ha-backup-config-schedule
+                  .hass=${this.hass}
+                  .value=${this._config}
+                  .supervisor=${supervisor}
+                  .supervisorUpdateConfig=${this._supervisorUpdateConfig}
+                  @update-config-changed=${this._supervisorUpdateConfigChanged}
+                  @value-changed=${this._scheduleConfigChanged}
+                ></ha-backup-config-schedule>
+              </div>
+            </ha-card>
+            <ha-card id="data">
+              <div class="card-header">
+                ${this.hass.localize(
+                  "ui.panel.config.backup.settings.data.title"
+                )}
+              </div>
+              <div class="card-content">
+                <ha-backup-config-data
+                  .hass=${this.hass}
+                  .value=${this._dataConfig}
+                  @value-changed=${this._dataConfigChanged}
+                  force-home-assistant
+                  hide-addon-version
+                ></ha-backup-config-data>
+              </div>
+            </ha-card>
+          </div>
 
-          <ha-card class="agents" id="locations">
-            <div class="card-header">
-              ${this.hass.localize(
-                "ui.panel.config.backup.settings.locations.title"
-              )}
-            </div>
-            <div class="card-content">
-              <p>
+          <div class="column">
+            <ha-card class="agents" id="locations">
+              <div class="card-header">
                 ${this.hass.localize(
-                  "ui.panel.config.backup.settings.locations.description"
+                  "ui.panel.config.backup.settings.locations.title"
                 )}
-              </p>
-              <ha-backup-config-agents
-                .hass=${this.hass}
-                .value=${this._config.create_backup.agent_ids}
-                .agentsConfig=${this._config.agents}
-                .cloudStatus=${this.cloudStatus}
-                .agents=${this.agents}
-                @value-changed=${this._agentsConfigChanged}
-                show-settings
-              ></ha-backup-config-agents>
+              </div>
+              <div class="card-content">
+                <p>
+                  ${this.hass.localize(
+                    "ui.panel.config.backup.settings.locations.description"
+                  )}
+                </p>
+                <ha-backup-config-agents
+                  .hass=${this.hass}
+                  .value=${this._config.create_backup.agent_ids}
+                  .agentsConfig=${this._config.agents}
+                  .cloudStatus=${this.cloudStatus}
+                  .agents=${this.agents}
+                  @value-changed=${this._agentsConfigChanged}
+                  show-settings
+                ></ha-backup-config-agents>
+                ${
+                  !this._config.create_backup.agent_ids.length
+                    ? html`
+                        <ha-alert
+                          alert-type="warning"
+                          .title=${this.hass.localize(
+                            "ui.panel.config.backup.settings.locations.no_location"
+                          )}
+                        >
+                          ${this.hass.localize(
+                            "ui.panel.config.backup.settings.locations.no_location_description"
+                          )}
+                        </ha-alert>
+                        <br />
+                      `
+                    : nothing
+                }
+              </div>
               ${
-                !this._config.create_backup.agent_ids.length
-                  ? html`
-                      <ha-alert
-                        alert-type="warning"
-                        .title=${this.hass.localize(
-                          "ui.panel.config.backup.settings.locations.no_location"
-                        )}
-                      >
+                !this.cloudStatus?.logged_in &&
+                isComponentLoaded(this.hass.config, "cloud")
+                  ? html`<ha-card class="cloud-info">
+                      <div class="cloud-header">
+                        <img
+                          .src=${brandsUrl(
+                            {
+                              domain: "cloud",
+                              type: "icon",
+                              darkOptimized: this.hass.themes?.darkMode,
+                            },
+                            this.hass.auth.data.hassUrl
+                          )}
+                          crossorigin="anonymous"
+                          referrerpolicy="no-referrer"
+                          alt="Nabu Casa logo"
+                          slot="start"
+                        />
+                        <span
+                          >${this.hass.localize(
+                            "ui.panel.config.backup.settings.locations.ha_cloud_backup",
+                            {
+                              home_assistant_cloud: "Home Assistant Cloud",
+                            }
+                          )}</span
+                        >
+                      </div>
+                      <div class="card-content">
                         ${this.hass.localize(
-                          "ui.panel.config.backup.settings.locations.no_location_description"
+                          "ui.panel.config.backup.settings.locations.ha_cloud_description"
                         )}
-                      </ha-alert>
-                      <br />
-                    `
+                      </div>
+                      <div class="card-actions">
+                        <ha-button
+                          appearance="plain"
+                          href="/config/cloud/login"
+                        >
+                          ${this.hass.localize(
+                            "ui.panel.config.voice_assistants.assistants.cloud.sign_in"
+                          )}
+                        </ha-button>
+                        <ha-button
+                          href="/config/cloud/register"
+                          appearance="filled"
+                        >
+                          ${this.hass.localize(
+                            "ui.panel.config.voice_assistants.assistants.cloud.try_one_month"
+                          )}
+                        </ha-button>
+                      </div>
+                    </ha-card>`
                   : nothing
               }
-            </div>
-            ${
-              !this.cloudStatus?.logged_in &&
-              isComponentLoaded(this.hass.config, "cloud")
-                ? html`<ha-card class="cloud-info">
-                    <div class="cloud-header">
-                      <img
-                        .src=${brandsUrl(
-                          {
-                            domain: "cloud",
-                            type: "icon",
-                            darkOptimized: this.hass.themes?.darkMode,
-                          },
-                          this.hass.auth.data.hassUrl
-                        )}
-                        crossorigin="anonymous"
-                        referrerpolicy="no-referrer"
-                        alt="Nabu Casa logo"
-                        slot="start"
-                      />
-                      <span
-                        >${this.hass.localize(
-                          "ui.panel.config.backup.settings.locations.ha_cloud_backup",
-                          {
-                            home_assistant_cloud: "Home Assistant Cloud",
-                          }
-                        )}</span
-                      >
-                    </div>
-                    <div class="card-content">
-                      ${this.hass.localize(
-                        "ui.panel.config.backup.settings.locations.ha_cloud_description"
-                      )}
-                    </div>
-                    <div class="card-actions">
-                      <ha-button appearance="plain" href="/config/cloud/login">
-                        ${this.hass.localize(
-                          "ui.panel.config.voice_assistants.assistants.cloud.sign_in"
-                        )}
-                      </ha-button>
-                      <ha-button
-                        href="/config/cloud/register"
-                        appearance="filled"
+              <div class="card-actions">
+                <ha-button
+                  size="s"
+                  href=${documentationUrl(this.hass, "/integrations/#backup")}
+                  target="_blank"
+                  rel="noreferrer"
+                  appearance="plain"
+                >
+                  <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
+                  ${this.hass.localize(
+                    "ui.panel.config.backup.settings.locations.more_locations"
+                  )}
+                </ha-button>
+                ${
+                  supervisor
+                    ? html`<ha-button
+                        size="s"
+                        appearance="plain"
+                        href="/config/storage"
                       >
                         ${this.hass.localize(
-                          "ui.panel.config.voice_assistants.assistants.cloud.try_one_month"
+                          "ui.panel.config.backup.settings.locations.manage_network_storage"
                         )}
-                      </ha-button>
-                    </div>
-                  </ha-card>`
-                : nothing
-            }
-            <div class="card-actions">
-              <ha-button
-                size="s"
-                href=${documentationUrl(this.hass, "/integrations/#backup")}
-                target="_blank"
-                rel="noreferrer"
-                appearance="plain"
-              >
-                <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
+                      </ha-button>`
+                    : nothing
+                }
+              </div>
+            </ha-card>
+
+            <ha-card class="encryption" id="encryption">
+              <div class="card-header">
                 ${this.hass.localize(
-                  "ui.panel.config.backup.settings.locations.more_locations"
+                  "ui.panel.config.backup.settings.encryption_key.title"
                 )}
-              </ha-button>
-              ${
-                supervisor
-                  ? html`<ha-button
-                      size="s"
-                      appearance="plain"
-                      href="/config/storage"
-                    >
-                      ${this.hass.localize(
-                        "ui.panel.config.backup.settings.locations.manage_network_storage"
-                      )}
-                    </ha-button>`
-                  : nothing
-              }
-            </div>
-          </ha-card>
+              </div>
+              <div class="card-content">
+                <p>
+                  ${this.hass.localize(
+                    "ui.panel.config.backup.settings.encryption_key.description"
+                  )}
+                </p>
+                <ha-backup-config-encryption-key
+                  .hass=${this.hass}
+                  .value=${this._config.create_backup.password}
+                  @value-changed=${this._encryptionKeyChanged}
+                ></ha-backup-config-encryption-key>
+              </div>
+            </ha-card>
+          </div>
         </div>
       </hass-subpage>
     `;
+  }
+
+  private _encryptionKeyChanged(ev) {
+    const password = ev.detail.value as string;
+    this._config = {
+      ...this._config!,
+      create_backup: {
+        ...this._config!.create_backup,
+        password,
+      },
+    };
+    this._debounceSave();
   }
 
   private _changeLocalLocation = () => {
@@ -374,7 +414,7 @@ class HaConfigBackupSettings extends LitElement {
     this._config = {
       ...this._config!,
       create_backup: {
-        ...this.config!.create_backup,
+        ...this._config!.create_backup,
         include_database: data.include_database,
         include_folders: data.include_folders || null,
         include_all_addons: data.include_all_addons,
@@ -447,14 +487,36 @@ class HaConfigBackupSettings extends LitElement {
     p.error {
       color: var(--error-color);
     }
-    .content {
-      padding: 28px 20px 0;
-      max-width: 690px;
+    .page {
+      box-sizing: border-box;
+      max-width: 1100px;
       margin: 0 auto;
-      gap: var(--ha-space-6);
+      padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: var(--ha-space-4);
+    }
+    :host([narrow]) .page {
+      padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+    }
+    .column {
       display: flex;
       flex-direction: column;
-      margin-bottom: 24px;
+      gap: var(--ha-space-4);
+      min-width: 0;
+    }
+    @media all and (max-width: 900px) {
+      .page {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    .encryption {
+      background: color-mix(
+        in srgb,
+        var(--warning-color) 22%,
+        var(--card-background-color)
+      );
     }
     .alert {
       --mdc-theme-primary: var(--error-color);

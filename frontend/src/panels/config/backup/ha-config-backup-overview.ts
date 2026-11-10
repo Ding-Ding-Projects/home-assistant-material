@@ -1,9 +1,10 @@
-import { mdiDotsVertical, mdiPlus, mdiUpload } from "@mdi/js";
+import { mdiCog, mdiDotsVertical, mdiPlus, mdiUpload } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { debounce } from "../../../common/util/debounce";
+import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
@@ -33,6 +34,8 @@ import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
 import { showAlertDialog } from "../../lovelace/custom-card-helpers";
 import "./components/overview/ha-backup-overview-backups";
+import "./components/overview/ha-backup-overview-latest";
+import "./components/overview/ha-backup-overview-locations";
 import "./components/overview/ha-backup-overview-app-update-backup";
 import "./components/overview/ha-backup-overview-onboarding";
 import "./components/overview/ha-backup-overview-progress";
@@ -50,7 +53,7 @@ class HaConfigBackupOverview extends LitElement {
 
   @property({ attribute: false }) public cloudStatus?: CloudStatus;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -235,7 +238,7 @@ class HaConfigBackupOverview extends LitElement {
             )}
           </ha-dropdown-item>
         </ha-dropdown>
-        <div class="content">
+        <div class="page">
           ${
             this.info && Object.keys(this.info.agent_errors).length
               ? html`
@@ -265,95 +268,127 @@ class HaConfigBackupOverview extends LitElement {
                 `
               : nothing
           }
-          ${
-            backupInProgress
-              ? html`
-                  <ha-backup-overview-progress
-                    .hass=${this.hass}
-                    .manager=${this.manager}
-                    .agents=${this.agents}
-                    .uploadProgress=${this.uploadProgress}
-                  >
-                  </ha-backup-overview-progress>
-                `
-              : this._needsOnboarding
+          <div class="top">
+            ${
+              backupInProgress
                 ? html`
-                    <ha-backup-overview-onboarding
+                    <ha-backup-overview-progress
                       .hass=${this.hass}
-                      @button-click=${this._handleOnboardingButtonClick}
+                      .manager=${this.manager}
+                      .agents=${this.agents}
+                      .uploadProgress=${this.uploadProgress}
                     >
-                    </ha-backup-overview-onboarding>
+                    </ha-backup-overview-progress>
                   `
-                : this.config
+                : this._needsOnboarding
                   ? html`
-                      <ha-backup-overview-summary
+                      <ha-backup-overview-onboarding
                         .hass=${this.hass}
-                        .backups=${this.backups}
-                        .config=${this.config}
-                        .fetching=${this.fetching}
+                        @button-click=${this._handleOnboardingButtonClick}
                       >
-                      </ha-backup-overview-summary>
+                      </ha-backup-overview-onboarding>
                     `
+                  : this.config
+                    ? html`
+                        <ha-backup-overview-summary
+                          .hass=${this.hass}
+                          .backups=${this.backups}
+                          .config=${this.config}
+                          .fetching=${this.fetching}
+                        >
+                        </ha-backup-overview-summary>
+                      `
+                    : html`<div></div>`
+            }
+            <div class="actions">
+              <ha-button
+                size="l"
+                .loading=${backupInProgress}
+                .disabled=${backupInProgress}
+                @click=${this._newBackup}
+              >
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize("ui.panel.config.backup.overview.new_backup")}
+              </ha-button>
+              ${
+                !this._needsOnboarding && this.config
+                  ? html`<ha-button
+                      size="l"
+                      appearance="outlined"
+                      href="/config/backup/settings"
+                    >
+                      <ha-svg-icon slot="start" .path=${mdiCog}></ha-svg-icon>
+                      ${this.hass.localize(
+                        "ui.panel.config.backup.overview.settings_button"
+                      )}
+                    </ha-button>`
                   : nothing
-          }
+              }
+            </div>
+          </div>
 
-          <ha-backup-overview-backups
+          <ha-backup-overview-locations
             .hass=${this.hass}
             .backups=${this.backups}
-          ></ha-backup-overview-backups>
+            .agents=${this.agents}
+            .config=${this.config}
+          ></ha-backup-overview-locations>
 
-          ${
-            !this._needsOnboarding && this._config
-              ? html`
-                  <ha-card>
-                    <div class="card-header">
-                      ${this.hass.localize(
-                        "ui.panel.config.backup.settings.encryption_key.title"
-                      )}
-                    </div>
-                    <div class="card-content">
-                      <p>
+          <ha-backup-overview-latest
+            .hass=${this.hass}
+            .backups=${this.backups}
+            .agents=${this.agents}
+          ></ha-backup-overview-latest>
+
+          <div class="more">
+            <ha-backup-overview-backups
+              .hass=${this.hass}
+              .backups=${this.backups}
+            ></ha-backup-overview-backups>
+
+            ${
+              !this._needsOnboarding && this._config
+                ? html`
+                    <ha-card>
+                      <div class="card-header">
                         ${this.hass.localize(
-                          "ui.panel.config.backup.settings.encryption_key.description"
+                          "ui.panel.config.backup.settings.encryption_key.title"
                         )}
-                      </p>
-                      <ha-backup-config-encryption-key
-                        .hass=${this.hass}
-                        .value=${this._config.create_backup.password}
-                        @value-changed=${this._encryptionKeyChanged}
-                      ></ha-backup-config-encryption-key>
-                    </div>
-                  </ha-card>
+                      </div>
+                      <div class="card-content">
+                        <p>
+                          ${this.hass.localize(
+                            "ui.panel.config.backup.settings.encryption_key.description"
+                          )}
+                        </p>
+                        <ha-backup-config-encryption-key
+                          .hass=${this.hass}
+                          .value=${this._config.create_backup.password}
+                          @value-changed=${this._encryptionKeyChanged}
+                        ></ha-backup-config-encryption-key>
+                      </div>
+                    </ha-card>
 
-                  <ha-backup-overview-settings
-                    .hass=${this.hass}
-                    .config=${this._config}
-                    .agents=${this.agents}
-                  ></ha-backup-overview-settings>
+                    <ha-backup-overview-settings
+                      .hass=${this.hass}
+                      .config=${this._config}
+                      .agents=${this.agents}
+                    ></ha-backup-overview-settings>
 
-                  ${
-                    this.hass.config.components.includes("hassio")
-                      ? html`
-                          <ha-backup-overview-app-update-backup
-                            .hass=${this.hass}
-                          ></ha-backup-overview-app-update-backup>
-                        `
-                      : nothing
-                  }
-                `
-              : nothing
-          }
+                    ${
+                      this.hass.config.components.includes("hassio")
+                        ? html`
+                            <ha-backup-overview-app-update-backup
+                              .hass=${this.hass}
+                            ></ha-backup-overview-app-update-backup>
+                          `
+                        : nothing
+                    }
+                  `
+                : nothing
+            }
+          </div>
         </div>
-
-        <ha-button
-          slot="fab"
-          size="l"
-          .loading=${backupInProgress}
-          @click=${this._newBackup}
-        >
-          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.backup.overview.new_backup")}
-        </ha-button>
       </hass-subpage>
     `;
   }
@@ -374,14 +409,54 @@ class HaConfigBackupOverview extends LitElement {
           color: var(--secondary-text-color);
         }
 
-        .content {
-          padding: 28px 20px 0;
-          max-width: 690px;
+        .page {
+          box-sizing: border-box;
+          max-width: 1100px;
           margin: 0 auto;
-          gap: var(--ha-space-6);
+          padding: var(--ha-space-4) var(--ha-space-8)
+            calc(var(--safe-area-inset-bottom) + var(--ha-space-8));
           display: flex;
           flex-direction: column;
-          margin-bottom: calc(var(--safe-area-inset-bottom) + 72px);
+          gap: var(--ha-space-4);
+        }
+        :host([narrow]) .page {
+          padding: var(--ha-space-2) var(--ha-space-3)
+            calc(var(--safe-area-inset-bottom) + var(--ha-space-6));
+        }
+        .top {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 240px;
+          gap: var(--ha-space-4);
+          align-items: stretch;
+        }
+        .actions {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: var(--ha-space-3);
+        }
+        .actions ha-button {
+          width: 100%;
+        }
+        .more {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          align-items: start;
+          gap: var(--ha-space-4);
+        }
+        @media all and (max-width: 700px) {
+          .top {
+            grid-template-columns: minmax(0, 1fr);
+          }
+          .actions {
+            flex-direction: row;
+            flex-wrap: wrap;
+          }
+          .actions ha-button {
+            flex: 1;
+            min-width: 140px;
+            width: auto;
+          }
         }
         .card-actions {
           display: flex;

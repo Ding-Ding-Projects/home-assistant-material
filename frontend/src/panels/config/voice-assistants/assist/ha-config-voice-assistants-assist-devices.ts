@@ -15,9 +15,10 @@ import {
   listAssistDevices,
   listAssistPipelines,
 } from "../../../../data/assist_pipeline";
-import "../../../../layouts/hass-subpage";
+import "../../../../layouts/hass-tabs-subpage";
 import "../../../../layouts/hass-loading-screen";
-import type { HomeAssistant } from "../../../../types";
+import type { HomeAssistant, Route } from "../../../../types";
+import { voiceAssistantTabs } from "../ha-config-voice-assistants";
 
 interface AssistDeviceExtra extends AssistDevice {
   name: string;
@@ -30,6 +31,8 @@ class AssistDevicesPage extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
+
+  @property({ attribute: false }) public route!: Route;
 
   @state() private _pipelines: Record<string, AssistPipeline> = {};
 
@@ -128,13 +131,12 @@ class AssistDevicesPage extends LitElement {
     }
 
     return html`
-      <hass-subpage
+      <hass-tabs-subpage
         .hass=${this.hass}
         .narrow=${this.narrow}
-        back-path="/config/voice-assistants/assistants"
-        .header=${this.hass.localize(
-          "ui.panel.config.voice_assistants.assistants.pipeline.devices.title"
-        )}
+        back-path="/config"
+        .route=${this.route}
+        .tabs=${voiceAssistantTabs}
       >
         <ha-data-table
           clickable
@@ -152,7 +154,7 @@ class AssistDevicesPage extends LitElement {
           auto-height
           @row-click=${this._handleRowClicked}
         ></ha-data-table>
-      </hass-subpage>
+      </hass-tabs-subpage>
     `;
   }
 

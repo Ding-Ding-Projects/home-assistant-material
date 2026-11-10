@@ -558,11 +558,25 @@ export class HaConfigEntryRow extends LitElement {
     entities: EntityRegistryEntry[]
   ) {
     const grouped = groupDevicesByParent(ownDevices);
-    const limited = grouped.length > DEVICES_SHOWN;
-    const visible =
-      limited && !this._showAllDevices
-        ? grouped.slice(0, DEVICES_SHOWN)
-        : grouped;
+    // Count and cut on parent devices so a parent is never separated from its
+    // children and the connector of the last visible child stays correct.
+    const parentCount = grouped.filter(({ isChild }) => !isChild).length;
+    const limited = parentCount > DEVICES_SHOWN;
+    let visible = grouped;
+    if (limited && !this._showAllDevices) {
+      let seenParents = 0;
+      let cut = grouped.length;
+      for (let i = 0; i < grouped.length; i++) {
+        if (!grouped[i].isChild) {
+          seenParents++;
+          if (seenParents > DEVICES_SHOWN) {
+            cut = i;
+            break;
+          }
+        }
+      }
+      visible = grouped.slice(0, cut);
+    }
 
     return html`
       ${visible.map(
@@ -586,7 +600,7 @@ export class HaConfigEntryRow extends LitElement {
                     ? nothing
                     : this.hass.localize(
                         "ui.panel.config.integrations.config_entry.more_devices_hidden",
-                        { count: grouped.length - DEVICES_SHOWN }
+                        { count: parentCount - DEVICES_SHOWN }
                       )
                 }</span
               >
@@ -598,7 +612,7 @@ export class HaConfigEntryRow extends LitElement {
                       )
                     : this.hass.localize(
                         "ui.panel.config.integrations.config_entry.show_all_devices",
-                        { count: grouped.length }
+                        { count: parentCount }
                       )
                 }
               </ha-button>

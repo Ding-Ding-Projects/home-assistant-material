@@ -46,8 +46,10 @@ import type {
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
 import "../../../components/entity/ha-battery-icon";
+import "../../../components/chips/ha-assist-chip";
 import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-alert";
+import "../../../components/ha-checkbox";
 import "../../../components/skeleton/ha-skeleton-icon";
 import "../../../components/skeleton/ha-skeleton-text";
 import "../../../components/ha-button";
@@ -63,7 +65,10 @@ import { createAreaRegistryEntry } from "../../../data/area/area_registry";
 import type { ConfigEntry, SubEntry } from "../../../data/config_entries";
 import { getSubEntries, sortConfigEntries } from "../../../data/config_entries";
 import { fullEntitiesContext, labelsContext } from "../../../data/context";
-import type { DataTableFilters } from "../../../data/data_table_filters";
+import type {
+  DataTableFilter,
+  DataTableFilters,
+} from "../../../data/data_table_filters";
 import {
   deserializeFilters,
   serializeFilters,
@@ -83,6 +88,7 @@ import {
   findBatteryEntity,
 } from "../../../data/entity/entity_registry";
 import type { IntegrationManifest } from "../../../data/integration";
+import { domainToName } from "../../../data/integration";
 import type { LabelRegistryEntry } from "../../../data/label/label_registry";
 import { createLabelRegistryEntry } from "../../../data/label/label_registry";
 import {
@@ -900,6 +906,148 @@ export class HaConfigDeviceDashboard extends LitElement {
       : count;
   }
 
+  private _areaOptions = memoizeOne((areas: HomeAssistant["areas"]) =>
+    Object.values(areas)
+      .map((area) => ({ value: area.area_id, label: area.name }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
+
+  private _integrationOptions = memoizeOne(
+    (
+      entries: ConfigEntry[] | undefined,
+      manifests: IntegrationManifest[],
+      localize: LocalizeFunc
+    ) => {
+      const manifestLookup = new Map(
+        (manifests ?? []).map((manifest) => [manifest.domain, manifest])
+      );
+      return [...new Set((entries ?? []).map((entry) => entry.domain))]
+        .map((domain) => ({
+          value: domain,
+          label: domainToName(localize, domain, manifestLookup.get(domain)),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+  );
+
+  // The Area and Integration chips drive the same filters as the filter pane
+  private _chipSelection(chip: "area" | "integration"): {
+    selected: string[];
+    total: number;
+  } {
+    if (chip === "area") {
+      const value = this._filters["ha-filter-floor-areas"]?.value as
+        Record<string, string[]> | undefined;
+      const areas = value?.areas ?? [];
+      return {
+        selected: areas,
+        total: areas.length + (value?.floors?.length ?? 0),
+      };
+    }
+    const value = this._filters["ha-filter-integrations"]?.value;
+    const selected = Array.isArray(value) ? value : [];
+    return { selected, total: selected.length };
+  }
+
+  private _renderChipMenu(chip: "area" | "integration") {
+    const localize = this.hass.localize;
+    const options =
+      chip === "area"
+        ? this._areaOptions(this.hass.areas)
+        : this._integrationOptions(
+            this.entries,
+            this.manifests,
+            this.hass.localize
+          );
+    const { selected, total } = this._chipSelection(chip);
+    const value =
+      total === 0
+        ? localize("ui.panel.config.devices.picker.chip_any")
+        : total === 1 && selected.length === 1
+          ? (options.find((option) => option.value === selected[0])?.label ??
+            selected[0])
+          : localize("ui.panel.config.devices.picker.chip_count", {
+              count: total,
+            });
+
+    return html`<ha-dropdown
+      slot="filter-chips"
+      data-chip=${chip}
+      @wa-select=${this._handleChipSelect}
+    >
+      <ha-assist-chip
+        slot="trigger"
+        .active=${total > 0}
+        .label=${localize(
+          chip === "area"
+            ? "ui.panel.config.devices.picker.chip_area"
+            : "ui.panel.config.devices.picker.chip_integration",
+          { value }
+        )}
+      >
+        <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+      </ha-assist-chip>
+      <ha-dropdown-item value="__any" .disabled=${total === 0}>
+        ${localize("ui.panel.config.devices.picker.chip_clear")}
+      </ha-dropdown-item>
+      <wa-divider></wa-divider>
+      ${options.map(
+        (option) =>
+          html`<ha-dropdown-item .value=${option.value}>
+            <ha-checkbox
+              slot="icon"
+              .checked=${selected.includes(option.value)}
+            ></ha-checkbox>
+            ${option.label}
+          </ha-dropdown-item>`
+      )}
+    </ha-dropdown>`;
+  }
+
+  private _handleChipSelect(ev: HaDropdownSelectEvent) {
+    const chip = (ev.currentTarget as HTMLElement).dataset.chip as
+      "area" | "integration";
+    const picked = ev.detail.item.value;
+    if (!picked) {
+      return;
+    }
+    if (picked !== "__any") {
+      // Keep the menu open to pick several
+      ev.preventDefault();
+    }
+
+    const { selected } = this._chipSelection(chip);
+    const next =
+      picked === "__any"
+        ? []
+        : selected.includes(picked)
+          ? selected.filter((item) => item !== picked)
+          : [...selected, picked];
+
+    if (chip === "integration") {
+      this._setChipFilter(
+        "ha-filter-integrations",
+        next.length ? next : undefined
+      );
+      return;
+    }
+
+    const current = this._filters["ha-filter-floor-areas"]?.value as
+      Record<string, string[]> | undefined;
+    // Selected floors stay as they are, only the areas change
+    const value = { ...current, areas: next };
+    const empty = !next.length && !current?.floors?.length;
+    this._setChipFilter("ha-filter-floor-areas", empty ? undefined : value);
+  }
+
+  // The filter in the pane finds the matching items for the new value itself
+  private _setChipFilter(key: string, value: DataTableFilter["value"]) {
+    const filter: DataTableFilter = { value, items: undefined };
+    this._storageFilters = { ...this._storageFilters, [key]: filter };
+    this._filters = { ...this._filters, [key]: filter };
+    this._writeFilters();
+  }
+
   private _toggleQuickFilter(ev: Event) {
     const chip = ev.currentTarget as HTMLElement & { selected: boolean };
     const key = chip.dataset.filter as "attention" | "battery";
@@ -948,6 +1096,15 @@ export class HaConfigDeviceDashboard extends LitElement {
         }
         @retry-load=${this._reloadConfigEntries}
         selectable
+        always-show-checkboxes
+        footer-select
+        .footerText=${this.hass.localize(
+          "ui.panel.config.devices.picker.footer",
+          {
+            shown: devicesOutput.length,
+            total: Object.keys(this.hass.devices).length,
+          }
+        )}
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
         .filter=${this._tableSettings.search}
@@ -983,24 +1140,25 @@ export class HaConfigDeviceDashboard extends LitElement {
           .hass=${this.hass}
           slot="toolbar-icon"
         ></ha-integration-overflow-menu>
-        <div slot="top-header" class="quick-filters">
-          <ha-filter-chip
-            data-filter="attention"
-            .selected=${this._quick.attention}
-            .label=${this.hass.localize(
-              "ui.panel.config.devices.picker.needs_attention"
-            )}
-            @click=${this._toggleQuickFilter}
-          ></ha-filter-chip>
-          <ha-filter-chip
-            data-filter="battery"
-            .selected=${this._quick.battery}
-            .label=${this.hass.localize(
-              "ui.panel.config.devices.picker.battery_powered"
-            )}
-            @click=${this._toggleQuickFilter}
-          ></ha-filter-chip>
-        </div>
+        ${this._renderChipMenu("area")}${this._renderChipMenu("integration")}
+        <ha-filter-chip
+          slot="filter-chips"
+          data-filter="attention"
+          .selected=${this._quick.attention}
+          .label=${this.hass.localize(
+            "ui.panel.config.devices.picker.needs_attention"
+          )}
+          @click=${this._toggleQuickFilter}
+        ></ha-filter-chip>
+        <ha-filter-chip
+          slot="filter-chips"
+          data-filter="battery"
+          .selected=${this._quick.battery}
+          .label=${this.hass.localize(
+            "ui.panel.config.devices.picker.battery_powered"
+          )}
+          @click=${this._toggleQuickFilter}
+        ></ha-filter-chip>
         <ha-button slot="fab" size="l" @click=${this._addDevice}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.devices.add_device")}
@@ -1497,12 +1655,6 @@ ${rejected
         }
         hass-tabs-subpage-data-table.narrow {
           --data-table-row-height: 72px;
-        }
-        .quick-filters {
-          display: flex;
-          flex-wrap: wrap;
-          gap: var(--ha-space-2);
-          padding: var(--ha-space-2) var(--ha-space-2) 0;
         }
         .clear {
           color: var(--primary-color);

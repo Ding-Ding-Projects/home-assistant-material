@@ -85,6 +85,14 @@ export class HaTracePathDetails extends LitElement {
     NodeInfo
   >;
 
+  /**
+   * Shows only one part, without the tabs of its own: `info` is the notes
+   * about the step, the others are what its tabs show. Left out, the
+   * component shows the notes and the tabs.
+   */
+  @property({ attribute: false }) public section?:
+    "info" | (typeof TRACE_PATH_TABS)[number];
+
   @state() private _view: (typeof TRACE_PATH_TABS)[number] = "step_config";
 
   @state()
@@ -129,6 +137,21 @@ export class HaTracePathDetails extends LitElement {
   }
 
   protected render(): TemplateResult {
+    // A page that has its own tabs asks for one part, without ours.
+    if (this.section === "info") {
+      return html`<div class="padded-box trace-info">
+        ${this._renderNotTriggeredNotice()} ${this._renderSelectedTraceInfo()}
+      </div>`;
+    }
+    if (this.section) {
+      return html`${
+        this.section === "step_config"
+          ? this._renderSelectedConfig()
+          : this.section === "changed_variables"
+            ? this._renderChangedVars()
+            : this._renderLogbook()
+      }`;
+    }
     return html`
       <div class="padded-box trace-info">
         ${this._renderNotTriggeredNotice()} ${this._renderSelectedTraceInfo()}

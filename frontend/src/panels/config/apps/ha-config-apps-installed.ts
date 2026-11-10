@@ -1,6 +1,5 @@
 import {
   mdiAlertDecagramOutline,
-  mdiArrowUpBoldCircle,
   mdiArrowUpBoldCircleOutline,
   mdiFlask,
   mdiPuzzle,
@@ -8,12 +7,16 @@ import {
   mdiStorePlus,
 } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { searchMatcher } from "../../../common/regex/filter";
 import { navigate } from "../../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../../common/string/compare";
+import type { LocalizeKeys } from "../../../common/translations/localize";
+import "../../../components/chips/ha-filter-chip";
+import "../../../components/ha-app-icon";
+import "../../../components/ha-bar";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
@@ -24,21 +27,28 @@ import type {
   HassioAddonsInfo,
 } from "../../../data/hassio/addon";
 import { fetchHassioAddonsInfo } from "../../../data/hassio/addon";
+import type { HassioStats } from "../../../data/hassio/common";
+import { fetchHassioStats } from "../../../data/hassio/common";
 import "../../../layouts/hass-error-screen";
 import "../../../layouts/hass-loading-screen";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant, Route } from "../../../types";
+import { roundWithOneDecimal } from "../../../util/calculate";
 import { getAppDisplayName } from "./common/app";
 import { checkForAppUpdates } from "./common/check-for-updates";
-import "./components/supervisor-apps-card-content";
 import type { AppTag } from "./components/supervisor-apps-card-content";
-import { supervisorAppsStyle } from "./resources/supervisor-apps-style";
+import "./components/supervisor-apps-state";
+import "./components/supervisor-apps-tag";
+
+type StatusFilter = "running" | "stopped" | "update";
+
+const STATUS_FILTERS: StatusFilter[] = ["running", "stopped", "update"];
 
 @customElement("ha-config-apps-installed")
 export class HaConfigAppsInstalled extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -49,6 +59,10 @@ export class HaConfigAppsInstalled extends LitElement {
   @state() private _error?: string;
 
   @state() private _checkingUpdates = false;
+
+  @state() private _statusFilters: StatusFilter[] = [];
+
+  @state() private _stats: Record<string, HassioStats> = {};
 
   protected firstUpdated() {
     this._loadData();
@@ -73,7 +87,8 @@ export class HaConfigAppsInstalled extends LitElement {
       `;
     }
 
-    const addons = this._getAddons(this._addonInfo.addons, this._filter);
+    const all = this._addonInfo.addons;
+    const addons = this._getAddons(all, this._filter, this._statusFilters);
 
     return html`
       <hass-subpage
@@ -92,94 +107,194 @@ export class HaConfigAppsInstalled extends LitElement {
             "ui.panel.config.apps.store.check_updates"
           )}
         ></ha-icon-button>
-        <div class="search">
-          <ha-input-search
-            appearance="outlined"
-            .value=${this._filter}
-            .placeholder=${this.hass.localize(
-              "ui.panel.config.apps.installed.search",
-              { number: this._addonInfo.addons.length }
-            )}
-            @input=${this._handleSearchChange}
-          >
-          </ha-input-search>
-        </div>
-        <div class="content">
-          ${
-            addons.length === 0
-              ? html`
-                  <ha-card outlined>
-                    <div class="card-content">
-                      <button class="link" @click=${this._openStore}>
-                        ${this.hass.localize(
-                          "ui.panel.config.apps.installed.no_apps"
-                        )}
-                      </button>
-                    </div>
-                  </ha-card>
+        <div class="page">
+          <header class="heading">
+            <div class="heading-text">
+              <h2>${this.hass.localize("ui.panel.config.apps.caption")}</h2>
+              <p>
+                ${this.hass.localize("ui.panel.config.apps.installed.summary", {
+                  number: all.length,
+                })}
+                ${this.hass.localize(
+                  "ui.panel.config.apps.installed.page_summary"
+                )}
+              </p>
+            </div>
+            <ha-button size="l" href="/config/apps/available">
+              <ha-svg-icon slot="start" .path=${mdiStorePlus}></ha-svg-icon>
+              ${this.hass.localize("ui.panel.config.apps.store.title")}
+            </ha-button>
+          </header>
+          <div class="filters">
+            <ha-input-search
+              appearance="outlined"
+              .value=${this._filter}
+              .placeholder=${this.hass.localize(
+                "ui.panel.config.apps.installed.search",
+                { number: all.length }
+              )}
+              @input=${this._handleSearchChange}
+            >
+            </ha-input-search>
+            <div
+              class="chips"
+              role="group"
+              aria-label=${this.hass.localize(
+                "ui.panel.config.apps.installed.filters"
+              )}
+            >
+              ${STATUS_FILTERS.map(
+                (status) => html`
+                  <ha-filter-chip
+                    .selected=${this._statusFilters.includes(status)}
+                    .label=${this.hass.localize(
+                      `ui.panel.config.apps.installed.filter_${status}`
+                    )}
+                    .status=${status}
+                    @click=${this._statusChipClicked}
+                  ></ha-filter-chip>
                 `
-              : addons.map(
-                  (addon) => html`
-                    <ha-card
-                      role="button"
-                      tabindex="0"
-                      outlined
-                      .addon=${addon}
-                      @click=${this._addonTapped}
-                      aria-label=${getAppDisplayName(addon.name, addon.stage)}
-                    >
+              )}
+            </div>
+          </div>
+          <div class="content">
+            ${
+              all.length === 0
+                ? html`
+                    <ha-card outlined class="empty">
                       <div class="card-content">
-                        <supervisor-apps-card-content
-                          .hass=${this.hass}
-                          .title=${addon.name}
-                          .stage=${addon.stage}
-                          .description=${addon.description}
-                          available
-                          .tags=${this._getAppTags(addon)}
-                          .state=${addon.state}
-                          .icon=${
-                            addon.update_available
-                              ? mdiArrowUpBoldCircle
-                              : mdiPuzzle
-                          }
-                          .iconTitle=${
-                            addon.state !== "started"
-                              ? this.hass.localize(
-                                  "ui.panel.config.apps.installed.app_stopped"
-                                )
-                              : addon.update_available
-                                ? this.hass.localize(
-                                    "ui.panel.config.apps.installed.app_update_available"
-                                  )
-                                : this.hass.localize(
-                                    "ui.panel.config.apps.installed.app_running"
-                                  )
-                          }
-                          .appSlug=${addon.slug}
-                          .hasAppIcon=${addon.icon}
-                        ></supervisor-apps-card-content>
+                        <button class="link" @click=${this._openStore}>
+                          ${this.hass.localize(
+                            "ui.panel.config.apps.installed.no_apps"
+                          )}
+                        </button>
                       </div>
                     </ha-card>
                   `
-                )
-          }
+                : addons.length === 0
+                  ? html`
+                      <ha-card outlined class="empty">
+                        <div class="card-content">
+                          ${this.hass.localize(
+                            "ui.panel.config.apps.installed.no_matches"
+                          )}
+                        </div>
+                      </ha-card>
+                    `
+                  : addons.map((addon) => this._renderApp(addon))
+            }
+          </div>
         </div>
-
-        <ha-button size="l" href="/config/apps/available">
-          <ha-svg-icon slot="start" .path=${mdiStorePlus}></ha-svg-icon>
-          ${this.hass.localize("ui.panel.config.apps.installed.add_app")}
-        </ha-button>
       </hass-subpage>
     `;
   }
 
+  private _renderApp(addon: HassioAddonInfo): TemplateResult {
+    const stats = this._stats[addon.slug];
+    const running = addon.state === "started";
+    const tags = this._getAppTags(addon);
+    return html`
+      <ha-card
+        role="button"
+        tabindex="0"
+        outlined
+        .addon=${addon}
+        @click=${this._addonTapped}
+        @keydown=${this._addonKeydown}
+        aria-label=${getAppDisplayName(addon.name, addon.stage)}
+      >
+        <div class="card-content">
+          <div class="app">
+            <div class="icon-wrapper">
+              <ha-app-icon
+                .slug=${addon.slug}
+                .hasIcon=${addon.icon}
+                .alt=${""}
+              >
+                <ha-svg-icon class="app-icon" .path=${mdiPuzzle}></ha-svg-icon>
+              </ha-app-icon>
+            </div>
+            <div class="names">
+              <div class="title">
+                ${getAppDisplayName(addon.name, addon.stage)}
+              </div>
+              <div class="version">${addon.version}</div>
+            </div>
+            <div class="tags">
+              <supervisor-apps-state
+                .state=${addon.state}
+              ></supervisor-apps-state>
+              ${tags.map(
+                (tag) => html`
+                  <supervisor-apps-tag
+                    .variant=${tag.variant}
+                    .iconPath=${tag.iconPath}
+                    .label=${tag.label}
+                  ></supervisor-apps-tag>
+                `
+              )}
+            </div>
+          </div>
+          ${
+            running
+              ? stats
+                ? html`
+                    <div class="usage">
+                      ${this._renderMeter(
+                        "ui.panel.config.apps.installed.cpu",
+                        stats.cpu_percent
+                      )}
+                      ${this._renderMeter(
+                        "ui.panel.config.apps.installed.memory",
+                        stats.memory_percent
+                      )}
+                    </div>
+                  `
+                : nothing
+              : html`<div class="idle">
+                  ${this.hass.localize("ui.panel.config.apps.installed.idle")}
+                </div>`
+          }
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _renderMeter(
+    key: LocalizeKeys,
+    value: number | null
+  ): TemplateResult | typeof nothing {
+    if (value === null || value === undefined) {
+      return nothing;
+    }
+    const rounded = roundWithOneDecimal(value);
+    return html`
+      <div class="meter">
+        <span>${this.hass.localize(key, { percent: `${rounded} %` })}</span>
+        <ha-bar .value=${value}></ha-bar>
+      </div>
+    `;
+  }
+
   private _getAddons = memoizeOne(
-    (addons: HassioAddonInfo[], filter?: string) => {
-      let filteredAddons = addons;
+    (
+      addons: HassioAddonInfo[],
+      filter?: string,
+      statuses: StatusFilter[] = []
+    ) => {
+      let filteredAddons = [...addons];
       if (filter) {
         const matches = searchMatcher(filter);
-        filteredAddons = addons.filter((addon) =>
+        filteredAddons = filteredAddons.filter((addon) =>
           matches(addon.name, addon.description, addon.slug)
+        );
+      }
+      if (statuses.length) {
+        filteredAddons = filteredAddons.filter(
+          (addon) =>
+            (statuses.includes("running") && addon.state === "started") ||
+            (statuses.includes("stopped") && addon.state !== "started") ||
+            (statuses.includes("update") && addon.update_available)
         );
       }
       return filteredAddons.sort((a, b) =>
@@ -188,6 +303,13 @@ export class HaConfigAppsInstalled extends LitElement {
     }
   );
 
+  private _statusChipClicked(ev: Event) {
+    const status = (ev.currentTarget as any).status as StatusFilter;
+    this._statusFilters = this._statusFilters.includes(status)
+      ? this._statusFilters.filter((item) => item !== status)
+      : [...this._statusFilters, status];
+  }
+
   private _handleSearchChange(ev: InputEvent) {
     this._filter = (ev.target as HTMLInputElement).value;
   }
@@ -195,10 +317,32 @@ export class HaConfigAppsInstalled extends LitElement {
   private async _loadData(): Promise<void> {
     try {
       this._addonInfo = await fetchHassioAddonsInfo(this.hass);
+      this._loadStats(this._addonInfo.addons);
     } catch (err: any) {
       this._error =
         err.message || this.hass.localize("ui.panel.config.apps.error_loading");
     }
+  }
+
+  /** Usage of each running app; an app whose figures cannot be read shows none. */
+  private async _loadStats(addons: HassioAddonInfo[]): Promise<void> {
+    const entries = await Promise.all(
+      addons
+        .filter((addon) => addon.state === "started")
+        .map(async (addon) => {
+          try {
+            return [
+              addon.slug,
+              await fetchHassioStats(this.hass.callWS, `addons/${addon.slug}`),
+            ] as const;
+          } catch (_err: any) {
+            return undefined;
+          }
+        })
+    );
+    this._stats = Object.fromEntries(
+      entries.filter((entry): entry is NonNullable<typeof entry> => !!entry)
+    );
   }
 
   private async _handleCheckUpdates() {
@@ -207,11 +351,19 @@ export class HaConfigAppsInstalled extends LitElement {
       const info = await checkForAppUpdates(this, this.hass);
       if (info) {
         this._addonInfo = info;
+        this._loadStats(info.addons);
       } else {
         this._loadData();
       }
     } finally {
       this._checkingUpdates = false;
+    }
+  }
+
+  private _addonKeydown(ev: KeyboardEvent) {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      this._addonTapped(ev);
     }
   }
 
@@ -251,77 +403,158 @@ export class HaConfigAppsInstalled extends LitElement {
   }
 
   static styles: CSSResultGroup = [
-    supervisorAppsStyle,
     css`
       :host {
         display: block;
         height: 100%;
       }
 
+      .page {
+        box-sizing: border-box;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
+      }
+      :host([narrow]) .page {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+      }
+      .heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--ha-space-4);
+        margin-bottom: var(--ha-space-4);
+      }
+      .heading-text {
+        flex: 1;
+        min-width: 220px;
+      }
+      h2 {
+        margin: 0 0 var(--ha-space-1);
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .heading p {
+        margin: 0;
+        color: var(--secondary-text-color);
+        line-height: var(--ha-line-height-normal);
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-3);
+        margin-bottom: var(--ha-space-4);
+      }
+      ha-input-search {
+        flex: 1 1 260px;
+        min-width: 0;
+        max-width: 420px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+      }
+      .content {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
+        gap: var(--ha-space-4);
+      }
       ha-card {
         cursor: pointer;
         overflow: hidden;
+        border-radius: var(--ha-border-radius-3xl);
       }
-
-      ha-card:hover {
+      ha-card.empty {
+        cursor: default;
+        grid-column: 1 / -1;
+      }
+      ha-card[role="button"]:hover {
         background-color: var(--ha-color-fill-neutral-quiet-resting);
       }
-
-      .search {
+      .card-content {
+        padding: var(--ha-space-4);
+        color: var(--primary-text-color);
+      }
+      .app {
         display: flex;
         align-items: center;
-        width: 100%;
-        height: 56px;
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        padding: 0 var(--ha-space-4);
-        box-sizing: border-box;
-        border-bottom: 1px solid var(--divider-color);
-        background: var(
-          --ha-panel-toolbar-background,
-          var(--primary-background-color)
-        );
+        gap: var(--ha-space-4);
+        margin-bottom: var(--ha-space-3);
       }
-
-      ha-input-search {
+      .icon-wrapper {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      ha-app-icon {
+        --ha-app-icon-size: 48px;
+      }
+      .app-icon {
+        color: var(--secondary-text-color);
+      }
+      .names {
         flex: 1;
         min-width: 0;
       }
-
-      .content {
-        padding: var(--ha-space-4);
-        margin-bottom: var(--ha-space-18);
-        gap: var(--ha-space-4);
+      .title {
+        font-weight: var(--ha-font-weight-medium);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .version {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--ha-space-2);
+      }
+      .usage {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(min(336px, 100%), 1fr));
+        grid-template-columns: 1fr 1fr;
+        gap: var(--ha-space-4);
       }
-
-      .card-content {
-        padding: var(--ha-space-4) var(--ha-space-4) var(--ha-space-2);
+      :host([narrow]) .usage {
+        grid-template-columns: 1fr;
       }
-
+      .meter {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      ha-bar {
+        --ha-bar-primary-color: var(
+          --hassio-bar-ok-color,
+          var(--success-color)
+        );
+      }
+      .idle {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
       button.link {
         color: var(--primary-color);
         background: none;
         border: none;
         padding: 0;
         font: inherit;
-        text-align: left;
+        text-align: start;
         text-decoration: underline;
         cursor: pointer;
-      }
-
-      ha-button[size="l"] {
-        position: fixed;
-        right: calc(var(--ha-space-4) + var(--safe-area-inset-right));
-        bottom: calc(var(--ha-space-4) + var(--safe-area-inset-bottom));
-        inset-inline-end: calc(
-          var(--ha-space-4) + var(--safe-area-inset-right)
-        );
-        inset-inline-start: initial;
-        z-index: 1;
-        --ha-button-box-shadow: var(--ha-box-shadow-l);
       }
     `,
   ];

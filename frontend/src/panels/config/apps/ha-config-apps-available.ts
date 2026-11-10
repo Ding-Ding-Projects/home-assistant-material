@@ -1,4 +1,4 @@
-import { mdiDotsVertical } from "@mdi/js";
+import { mdiDotsVertical, mdiRefresh, mdiSourceRepository } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -6,10 +6,13 @@ import memoizeOne from "memoize-one";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { navigate } from "../../../common/navigate";
 import { extractSearchParam } from "../../../common/url/search-params";
+import "../../../components/chips/ha-filter-chip";
+import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
+import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input-search";
 import type {
   HassioAddonRepository,
@@ -37,6 +40,15 @@ import { checkForAppUpdates } from "./common/check-for-updates";
 
 import "./supervisor-apps-repository";
 
+type StoreFilter = "official" | "community" | "not_installed" | "available";
+
+const STORE_FILTERS: StoreFilter[] = [
+  "official",
+  "community",
+  "not_installed",
+  "available",
+];
+
 const sortRepos = (a: HassioAddonRepository, b: HassioAddonRepository) => {
   if (a.slug === "local") {
     return -1;
@@ -57,7 +69,7 @@ const sortRepos = (a: HassioAddonRepository, b: HassioAddonRepository) => {
 export class HaConfigAppsAvailable extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -70,6 +82,8 @@ export class HaConfigAppsAvailable extends LitElement {
   @state() private _filter?: string;
 
   @state() private _checkingUpdates = false;
+
+  @state() private _storeFilters: StoreFilter[] = [];
 
   public connectedCallback(): void {
     super.connectedCallback();
@@ -126,7 +140,8 @@ export class HaConfigAppsAvailable extends LitElement {
       repos = this._addonRepositories(
         this._store.repositories,
         this._store.addons,
-        this._filter
+        this._filter,
+        this._storeFilters
       );
     }
 
@@ -161,30 +176,119 @@ export class HaConfigAppsAvailable extends LitElement {
           repos.length === 0
             ? html`<hass-loading-screen no-toolbar></hass-loading-screen>`
             : html`
-                <div class="search">
-                  <ha-input-search
-                    appearance="outlined"
-                    .value=${this._filter}
-                    @input=${this._filterChanged}
-                  ></ha-input-search>
+                <div class="page">
+                  <header class="heading">
+                    <div class="heading-text">
+                      <h2>
+                        ${this.hass.localize("ui.panel.config.apps.store.title")}
+                      </h2>
+                      <p>
+                        ${this.hass.localize(
+                          "ui.panel.config.apps.store.page_summary",
+                          {
+                            apps: this._store.addons.length,
+                            repositories: this._store.repositories.length,
+                          }
+                        )}
+                      </p>
+                    </div>
+                    <div class="heading-actions">
+                      <ha-button
+                        appearance="outlined"
+                        @click=${this._manageRepositoriesClicked}
+                      >
+                        <ha-svg-icon
+                          slot="start"
+                          .path=${mdiSourceRepository}
+                        ></ha-svg-icon>
+                        ${this.hass.localize(
+                          "ui.panel.config.apps.store.repositories"
+                        )}
+                      </ha-button>
+                      <ha-button
+                        appearance="plain"
+                        .disabled=${this._checkingUpdates}
+                        @click=${this._refreshData}
+                      >
+                        <ha-svg-icon
+                          slot="start"
+                          .path=${mdiRefresh}
+                        ></ha-svg-icon>
+                        ${this.hass.localize(
+                          "ui.panel.config.apps.store.check_new_apps"
+                        )}
+                      </ha-button>
+                    </div>
+                  </header>
+                  <div class="filters">
+                    <ha-input-search
+                      appearance="outlined"
+                      .value=${this._filter}
+                      .placeholder=${this.hass.localize(
+                        "ui.panel.config.apps.store.search"
+                      )}
+                      @input=${this._filterChanged}
+                    ></ha-input-search>
+                    <div
+                      class="chips"
+                      role="group"
+                      aria-label=${this.hass.localize(
+                        "ui.panel.config.apps.store.filters"
+                      )}
+                    >
+                      ${STORE_FILTERS.map(
+                        (name) => html`
+                          <ha-filter-chip
+                            .selected=${this._storeFilters.includes(name)}
+                            .label=${this.hass.localize(
+                              `ui.panel.config.apps.store.filter_${name}`
+                            )}
+                            .storeFilter=${name}
+                            @click=${this._storeChipClicked}
+                          ></ha-filter-chip>
+                        `
+                      )}
+                    </div>
+                  </div>
+                  ${
+                    repos.every((repo) => repo === nothing)
+                      ? html`<p class="no-matches">
+                          ${this.hass.localize(
+                            "ui.panel.config.apps.store.no_matches"
+                          )}
+                        </p>`
+                      : repos
+                  }
                 </div>
-
-                ${repos}
               `
         }
       </hass-subpage>
     `;
   }
 
+  private _storeChipClicked(ev: Event) {
+    const name = (ev.currentTarget as any).storeFilter as StoreFilter;
+    this._storeFilters = this._storeFilters.includes(name)
+      ? this._storeFilters.filter((item) => item !== name)
+      : [...this._storeFilters, name];
+  }
+
   private _addonRepositories = memoizeOne(
     (
       repositories: HassioAddonRepository[],
       addons: StoreAddon[],
-      filter?: string
+      filter?: string,
+      storeFilters: StoreFilter[] = []
     ) =>
-      repositories.sort(sortRepos).map((repo) => {
+      [...repositories].sort(sortRepos).map((repo) => {
+        const official = repo.slug === "core";
         const filteredAddons = addons.filter(
-          (addon) => addon.repository === repo.slug
+          (addon) =>
+            addon.repository === repo.slug &&
+            (!storeFilters.includes("official") || official) &&
+            (!storeFilters.includes("community") || !official) &&
+            (!storeFilters.includes("not_installed") || !addon.installed) &&
+            (!storeFilters.includes("available") || addon.available)
         );
 
         return filteredAddons.length !== 0
@@ -320,18 +424,61 @@ export class HaConfigAppsAvailable extends LitElement {
       display: block;
       height: 100%;
     }
-    supervisor-apps-repository {
-      margin-top: 24px;
+    .page {
+      box-sizing: border-box;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
     }
-    .search {
-      position: sticky;
-      top: 0;
-      z-index: 2;
+    :host([narrow]) .page {
+      padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+    }
+    .heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--ha-space-4);
+      margin-bottom: var(--ha-space-4);
+    }
+    .heading-text {
+      flex: 1;
+      min-width: 220px;
+    }
+    h2 {
+      margin: 0 0 var(--ha-space-1);
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-3xl);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: var(--ha-line-height-condensed);
+    }
+    .heading p,
+    .no-matches {
+      margin: 0;
+      color: var(--secondary-text-color);
+      line-height: var(--ha-line-height-normal);
+    }
+    .heading-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-3);
+      margin-bottom: var(--ha-space-2);
     }
     ha-input-search {
-      padding: var(--ha-space-3) var(--ha-space-2);
-      background: var(--sidebar-background-color);
-      border-bottom: 1px solid var(--divider-color);
+      flex: 1 1 260px;
+      min-width: 0;
+      max-width: 420px;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
     }
   `;
 }

@@ -452,6 +452,14 @@ class ZHAConfigDashboard extends LitElement {
           `
         )}
       </ha-list-nav>
+      <div class="actions">
+        <ha-button appearance="plain" href="/config/zha/visualization">
+          <ha-svg-icon slot="start" .path=${mdiVectorPolyline}></ha-svg-icon>
+          ${this.hass.localize(
+            "ui.panel.config.zha.configuration_page.show_map"
+          )}
+        </ha-button>
+      </div>
     `;
   }
 

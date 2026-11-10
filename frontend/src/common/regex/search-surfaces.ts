@@ -148,7 +148,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   },
   {
     file: "panels/config/automation-history/ha-config-automation-history.ts",
-    searches: "Versions of automations, by name, message, commit and author",
+    searches:
+      "Versions of automations, by name, message, commit and author, and the automation repositories, by name and folder",
+  },
+  {
+    file: "panels/config/automation-history/ha-config-automation-repo.ts",
+    searches: "Commits of one automation, by message, author and commit",
   },
   {
     file: "panels/config/automation/add-automation-element-dialog.ts",
