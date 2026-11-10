@@ -1,0 +1,20 @@
+{
+  "product": "Home Assistant Material",
+  "registry_owner": "ding-ding-projects",
+  "repository": "Ding-Ding-Projects/home-assistant-material",
+  "core": "2026.11.1",
+  "frontend": "20261028.5",
+  "supervisor": "2026.11.0",
+  "os": "18.5",
+  "core_base_image": "2026.10.3",
+  "machines": {
+    "amd64": ["generic-x86-64", "qemux86-64"],
+    "aarch64": ["green", "khadas-vim3", "odroid-c2", "odroid-c4", "odroid-m1", "odroid-n2", "qemuarm-64", "raspberrypi3-64", "raspberrypi4-64", "raspberrypi5-64", "yellow"]
+  },
+  "os_boards": [
+    {"id": "rpi5-64", "defconfig": "rpi5_64", "label": "Raspberry Pi 5"},
+    {"id": "rpi4-64", "defconfig": "rpi4_64", "label": "Raspberry Pi 4 and 400"},
+    {"id": "rpi3-64", "defconfig": "rpi3_64", "label": "Raspberry Pi 3"},
+    {"id": "ova", "defconfig": "ova", "label": "VirtualBox and other virtual machines"}
+  ]
+}
