@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overview dashboard, light</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap">
+<style>
+/*@@M3CSS@@*/
+</style>
+</helmet>
+<div class="m3" style="min-height: 1040px; display: flex; flex-direction: column">
+<div class="tabs" role="tablist" aria-label="Open pages">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="8">
+<button class="tab {{tab.cls}}" role="tab" aria-selected="{{tab.sel}}">
+<svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>
+<span class="ll">{{tab.label}}</span>
+<sc-if value="{{tab.sel}}" hint-placeholder-val="{{false}}"><svg class="ic s" viewBox="0 0 24 24" role="img" aria-label="Close tab"><path d="{{i.Close}}"></path></svg></sc-if>
+</button>
+</sc-for>
+<button class="ib" style="width: 40px; height: 40px" aria-label="New tab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Plus}}"></path></svg></button>
+</div>
+<div style="display: flex; flex: 1; min-height: 0">
+<nav class="rail" aria-label="Main">
+<button class="ib" aria-label="Expand navigation"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Menu}}"></path></svg></button>
+<button class="fab" aria-label="Ask Assist"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Microphone}}"></path></svg></button>
+<div class="col" style="gap: 12px; margin-top: 12px; flex: 1">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<button class="ri {{n.cls}}">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.icon}}"></path></svg></span>
+<span class="lm">{{n.label}}</span>
+</button>
+</sc-for>
+</div>
+<button class="ri">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Bell}}"></path></svg><span class="badge">3</span></span>
+<span class="lm">Alerts</span>
+</button>
+<button class="ri">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Cog}}"></path></svg></span>
+<span class="lm">Settings</span>
+</button>
+</nav>
+<main class="grow col" style="background: var(--sl0); border-radius: 28px 0 0 0; padding: 0 0 0 0">
+<header class="row" style="gap: 16px; padding: 20px 24px 12px 32px; flex-wrap: wrap">
+<div class="col" style="flex: 0 1 auto; min-width: 160px">
+<h1 class="hl">Home</h1>
+<p class="bs">Monday 9 November, everything is running</p>
+</div>
+<div class="search" style="flex: 1 1 360px; max-width: 720px; margin: 0 auto">
+<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Magnify}}"></path></svg>
+<span class="bl grow" style="color: var(--onv)">Search or run a command</span>
+<span class="kbd">Ctrl + Shift + F</span>
+<button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Regex}}"></path></svg></button>
+</div>
+<div class="row" style="gap: 4px">
+<button class="ib" aria-label="Edit dashboard"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Pencil}}"></path></svg></button>
+<button class="ib" aria-label="More options"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.DotsVertical}}"></path></svg></button>
+</div>
+</header>
+<div class="row" style="gap: 8px; padding: 4px 32px 16px; overflow-x: auto">
+<button class="chip sel"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Check}}"></path></svg>All rooms</button>
+<button class="chip">Living room</button>
+<button class="chip">Kitchen</button>
+<button class="chip">Bedroom</button>
+<button class="chip">Garage</button>
+<button class="chip">Outside</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 0 32px 8px">
+<sc-for list="{{summary}}" as="s" hint-placeholder-count="4">
+<button class="card row" style="gap: 16px; background: {{s.bg}}; color: {{s.fg}}">
+<span style="width: 56px; height: 56px; border-radius: 20px; display: grid; place-items: center; background: var(--sl0); flex: none"><svg class="ic" style="width: 28px; height: 28px" viewBox="0 0 24 24" aria-hidden="true"><path d="{{s.icon}}"></path></svg></span>
+<span class="col">
+<span class="hl">{{s.value}}</span>
+<span class="ll">{{s.label}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; padding: 16px 32px 8px; align-items: start">
+<section class="col" style="gap: 8px">
+<div class="sec"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Sofa}}"></path></svg><h2 class="tm grow">Living room</h2><span class="bs">21.4 °C</span></div>
+<div class="tile light on" style="flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 16px">
+<div class="row" style="gap: 12px">
+<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Lightbulb}}"></path></svg></span>
+<span class="col grow"><span class="ll">Ceiling lights</span><span class="bs">On, 80 percent, warm white</span></span>
+<button class="sw on" role="switch" aria-checked="true" aria-label="Ceiling lights"><i></i></button>
+</div>
+<div class="track" role="slider" aria-label="Ceiling lights brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80" tabindex="0" style="background: var(--amberc)"><b style="width: 80%; background: var(--amber)"></b></div>
+</div>
+<sc-for list="{{living}}" as="t" hint-placeholder-count="4">
+<div class="tile {{t.cls}}">
+<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+<span class="col grow"><span class="ll">{{t.name}}</span><span class="bs">{{t.state}}</span></span>
+<sc-if value="{{t.toggle}}" hint-placeholder-val="{{true}}"><button class="sw {{t.sw}}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.name}}"><i></i></button></sc-if>
+</div>
+</sc-for>
+</section>
+<section class="col" style="gap: 8px">
+<div class="sec"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.SilverwareForkKnife}}"></path></svg><h2 class="tm grow">Kitchen</h2><span class="bs">22.0 °C</span></div>
+<sc-for list="{{kitchen}}" as="t" hint-placeholder-count="3">
+<div class="tile {{t.cls}}">
+<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+<span class="col grow"><span class="ll">{{t.name}}</span><span class="bs">{{t.state}}</span></span>
+<sc-if value="{{t.toggle}}" hint-placeholder-val="{{true}}"><button class="sw {{t.sw}}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.name}}"><i></i></button></sc-if>
+</div>
+</sc-for>
+<div class="sec" style="margin-top: 8px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Bed}}"></path></svg><h2 class="tm grow">Bedroom</h2><span class="bs">19.8 °C</span></div>
+<sc-for list="{{bedroom}}" as="t" hint-placeholder-count="3">
+<div class="tile {{t.cls}}">
+<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}"></path></svg></span>
+<span class="col grow"><span class="ll">{{t.name}}</span><span class="bs">{{t.state}}</span></span>
+<sc-if value="{{t.toggle}}" hint-placeholder-val="{{true}}"><button class="sw {{t.sw}}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.name}}"><i></i></button></sc-if>
+</div>
+</sc-for>
+</section>
+<section class="col" style="gap: 16px">
+<div class="card" style="background: var(--pc); color: var(--on-pc)">
+<div class="row" style="gap: 16px">
+<svg class="ic" style="width: 56px; height: 56px" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.WeatherPartlyCloudy}}"></path></svg>
+<div class="col grow"><span class="disp">8°</span><span class="ll">Partly cloudy, feels like 5°</span></div>
+</div>
+<div class="row" style="gap: 8px; margin-top: 16px">
+<sc-for list="{{forecast}}" as="f" hint-placeholder-count="4">
+<div class="col" style="flex: 1; align-items: center; gap: 2px; padding: 8px 0; border-radius: 16px; background: var(--sl0); color: var(--on)"><span class="lm">{{f.day}}</span><span class="tm">{{f.hi}}</span><span class="bs">{{f.lo}}</span></div>
+</sc-for>
+</div>
+</div>
+<div class="card" style="background: var(--tc); color: var(--on-tc)">
+<div class="row" style="gap: 12px">
+<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Speaker}}"></path></svg>
+<div class="col grow"><span class="tm">Kitchen speaker</span><span class="bm">Playing, morning jazz radio</span></div>
+</div>
+<div class="track" role="progressbar" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="42" style="height: 8px; margin: 16px 0; background: var(--sl0)"><b style="width: 42%; background: var(--t)"></b></div>
+<div class="row" style="gap: 8px">
+<button aria-label="Pause" style="width: 72px; height: 56px; border-radius: 16px; background: var(--t); color: var(--sl0); display: grid; place-items: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Pause}}"></path></svg></button>
+<button aria-label="Next track" style="width: 56px; height: 56px; border-radius: 28px; background: var(--sl0); color: var(--on-tc); display: grid; place-items: center"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.SkipNext}}"></path></svg></button>
+</div>
+</div>
+<div class="card">
+<div class="row" style="gap: 12px"><div class="col grow"><span class="tm">Energy today</span><span class="bs">Updated a minute ago</span></div><span class="tl">6.8 kWh</span></div>
+<div class="row" role="img" aria-label="Hourly energy use today, peaking at 6 pm" style="gap: 6px; height: 96px; align-items: flex-end; margin-top: 16px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
+<span style="flex: 1; height: {{b.h}}; border-radius: 6px 6px 2px 2px; background: {{b.c}}"></span>
+</sc-for>
+</div>
+<div class="row bs" style="justify-content: space-between; margin-top: 8px"><span>6 am</span><span>noon</span><span>6 pm</span></div>
+</div>
+</section>
+</div>
+<div class="foot grow" style="display: flex; align-items: flex-end">Home Assistant Material 2026.11.1, updated 9 November 2026</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+const i = {/*@@ICONS:Close,Plus,Menu,Microphone,Bell,Cog,Magnify,Regex,Pencil,DotsVertical,Check,Sofa,Lightbulb,SilverwareForkKnife,Bed,WeatherPartlyCloudy,Speaker,Pause,SkipNext,ViewDashboard,LightningBolt,Map,FormatListBulleted,History,PlayBoxMultiple,Calendar,Thermometer,Lock,Flash,Television,Blinds,Fan,RobotVacuum,MotionSensor,DoorOpen@@*/};
+const tab = (label, icon, sel) => ({ label, icon, sel: !!sel, cls: sel ? 'sel' : '' });
+const nav = (label, icon, sel) => ({ label, icon, cls: sel ? 'sel' : '' });
+const tile = (name, state, icon, kind, on, toggle) => ({ name, state, icon, on: !!on, toggle: toggle !== false, cls: kind + (on ? ' on' : ''), sw: on ? 'on' : '' });
+const hours = [18, 14, 22, 30, 26, 34, 40, 38, 52, 78, 96, 60];
+return {
+i,
+tabs: [tab('Overview', i.ViewDashboard, true), tab('Energy', i.LightningBolt), tab('Map', i.Map), tab('Activity', i.FormatListBulleted), tab('History', i.History), tab('Media', i.PlayBoxMultiple), tab('Calendar', i.Calendar), tab('Settings', i.Cog)],
+nav: [nav('Overview', i.ViewDashboard, true), nav('Energy', i.LightningBolt), nav('Map', i.Map), nav('Activity', i.FormatListBulleted), nav('History', i.History), nav('Media', i.PlayBoxMultiple), nav('Calendar', i.Calendar)],
+summary: [
+{ value: '5 on', label: 'Lights', icon: i.Lightbulb, bg: 'var(--amberc)', fg: 'var(--amber)' },
+{ value: '21.4 °C', label: 'Climate, heating', icon: i.Thermometer, bg: 'var(--heatc)', fg: 'var(--heat)' },
+{ value: 'Locked', label: 'Doors and alarm', icon: i.Lock, bg: 'var(--greenc)', fg: 'var(--green)' },
+{ value: '2.4 kW', label: 'Power right now', icon: i.Flash, bg: 'var(--pc)', fg: 'var(--on-pc)' }
+],
+living: [
+tile('Floor lamp', 'Off', i.Lightbulb, 'light', false),
+tile('Television', 'Playing, volume 24', i.Television, 'ter', true),
+tile('Thermostat', 'Heating to 21.5 °C', i.Thermometer, 'heat', true, false),
+tile('Window blinds', 'Open 60 percent', i.Blinds, 'pri', true, false)
+],
+kitchen: [
+tile('Counter lights', 'On, 100 percent', i.Lightbulb, 'light', true),
+tile('Extractor fan', 'Off', i.Fan, 'pri', false),
+tile('Robot vacuum', 'Docked, 100 percent charged', i.RobotVacuum, 'ok', true, false)
+],
+bedroom: [
+tile('Bedside lamps', 'Off', i.Lightbulb, 'light', false),
+tile('Motion', 'Clear for 2 hours', i.MotionSensor, 'pri', false, false),
+tile('Balcony door', 'Closed and locked', i.DoorOpen, 'ok', true, false)
+],
+forecast: [{ day: 'Tue', hi: '9°', lo: '3°' }, { day: 'Wed', hi: '7°', lo: '1°' }, { day: 'Thu', hi: '4°', lo: '-2°' }, { day: 'Fri', hi: '6°', lo: '0°' }],
+bars: hours.map((h, n) => ({ h: h + '%', c: n === 10 ? 'var(--p)' : 'var(--sc)' }))
+};
+}
+}
+</script>
+</body>
+</html>

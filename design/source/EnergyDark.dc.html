@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Energy dashboard, dark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap">
+<style>
+/*@@M3CSS@@*/
+.seg{display:inline-flex;border:1px solid var(--out);border-radius:20px;overflow:hidden;flex:none}
+.seg button{height:40px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:var(--on);border-right:1px solid var(--out)}
+.seg button:last-child{border-right:0}
+.seg button.sel{background:var(--sc);color:var(--on-sc)}
+</style>
+</helmet>
+<div class="m3 dark" style="min-height: 1040px; display: flex; flex-direction: column">
+<div class="tabs" role="tablist" aria-label="Open pages">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="8">
+<button class="tab {{tab.cls}}" role="tab" aria-selected="{{tab.sel}}">
+<svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>
+<span class="ll">{{tab.label}}</span>
+<sc-if value="{{tab.sel}}" hint-placeholder-val="{{false}}"><svg class="ic s" viewBox="0 0 24 24" role="img" aria-label="Close tab"><path d="{{i.Close}}"></path></svg></sc-if>
+</button>
+</sc-for>
+<button class="ib" style="width: 40px; height: 40px" aria-label="New tab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Plus}}"></path></svg></button>
+</div>
+<div style="display: flex; flex: 1; min-height: 0">
+<nav class="rail" aria-label="Main">
+<button class="ib" aria-label="Expand navigation"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Menu}}"></path></svg></button>
+<button class="fab" aria-label="Ask Assist"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Microphone}}"></path></svg></button>
+<div class="col" style="gap: 12px; margin-top: 12px; flex: 1">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<button class="ri {{n.cls}}">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.icon}}"></path></svg></span>
+<span class="lm">{{n.label}}</span>
+</button>
+</sc-for>
+</div>
+<button class="ri">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Bell}}"></path></svg><span class="badge">3</span></span>
+<span class="lm">Alerts</span>
+</button>
+<button class="ri">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Cog}}"></path></svg></span>
+<span class="lm">Settings</span>
+</button>
+</nav>
+<main class="grow col" style="background: var(--sl1); border-radius: 28px 0 0 0">
+<header class="row" style="gap: 16px; padding: 20px 24px 16px 32px; flex-wrap: wrap">
+<div class="col grow" style="min-width: 200px">
+<h1 class="hl">Energy</h1>
+<p class="bs">Live, readings arrive every 5 seconds</p>
+</div>
+<div class="seg" role="group" aria-label="Period">
+<button class="sel" aria-pressed="true"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Check}}"></path></svg>Today</button>
+<button aria-pressed="false">Week</button>
+<button aria-pressed="false">Month</button>
+</div>
+<button class="ib" aria-label="Export this view"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Export}}"></path></svg></button>
+<button class="ib" aria-label="More options"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.DotsVertical}}"></path></svg></button>
+</header>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; padding: 0 32px">
+<section class="card" style="flex: 999 1 560px; min-width: 0; background: var(--sl2); padding: 24px">
+<div class="row" style="gap: 24px; flex-wrap: wrap">
+<div class="col"><span class="bs">Using now</span><span class="disp">2.4 kW</span></div>
+<div class="row grow" style="gap: 20px; justify-content: flex-end; flex-wrap: wrap">
+<span class="row ll" style="gap: 8px"><span style="width: 12px; height: 12px; border-radius: 6px; background: var(--p)"></span>Home use</span>
+<span class="row ll" style="gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; background: var(--amber)"></span>Solar</span>
+</div>
+</div>
+<svg viewBox="0 0 800 280" preserveAspectRatio="none" role="img" aria-label="Home use and solar production through today. Solar peaks at midday, home use peaks in the evening." style="display: block; width: 100%; height: 320px; margin-top: 16px">
+<g stroke="#41484D" stroke-width="1"><line x1="0" y1="70" x2="800" y2="70"></line><line x1="0" y1="140" x2="800" y2="140"></line><line x1="0" y1="210" x2="800" y2="210"></line></g>
+<path d="M0,270 C100,270 160,258 220,212 S320,96 400,74 S500,62 560,118 S680,250 800,270 Z" fill="#F5BF48" fill-opacity="0.16"></path>
+<path d="M0,270 C100,270 160,258 220,212 S320,96 400,74 S500,62 560,118 S680,250 800,270" fill="none" stroke="#F5BF48" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"></path>
+<path d="M0,214 C60,208 100,202 140,182 S220,128 260,150 S340,192 400,162 S480,98 540,120 S600,96 640,84" fill="none" stroke="#7BD0FF" stroke-width="4" stroke-linecap="round"></path>
+<line x1="640" y1="0" x2="640" y2="280" stroke="#8B9198" stroke-width="1" stroke-dasharray="4 4"></line>
+<circle cx="640" cy="84" r="12" fill="#7BD0FF" fill-opacity="0.25"></circle>
+<circle cx="640" cy="84" r="6" fill="#7BD0FF"></circle>
+</svg>
+<div class="row bs" style="justify-content: space-between; margin-top: 8px"><span>Midnight</span><span>6 am</span><span>Noon</span><span>6 pm</span><span>Midnight</span></div>
+</section>
+<section class="col" style="flex: 1 1 320px; gap: 8px">
+<h2 class="tm" style="height: 40px; display: flex; align-items: center; color: var(--onv)">Right now</h2>
+<sc-for list="{{flows}}" as="f" hint-placeholder-count="4">
+<div class="tile {{f.cls}}" style="background: var(--sl3)">
+<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{f.icon}}"></path></svg></span>
+<span class="col grow"><span class="ll">{{f.name}}</span><span class="bs">{{f.state}}</span></span>
+<span class="tl">{{f.value}}</span>
+</div>
+</sc-for>
+<a class="btn tonal" href="#sources" style="margin-top: 8px; align-self: flex-start">Set up energy sources</a>
+</section>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 24px 32px 8px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div class="card" style="background: var(--sl2)">
+<span class="bs">{{s.label}}</span>
+<div class="hl" style="margin: 4px 0 12px">{{s.value}}</div>
+<div class="track" role="img" aria-label="{{s.aria}}" style="height: 8px; background: var(--sl4)"><b style="width: {{s.w}}; background: {{s.c}}"></b></div>
+</div>
+</sc-for>
+</div>
+<div class="foot grow" style="display: flex; align-items: flex-end">Home Assistant Material 2026.11.1, updated 9 November 2026</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+const i = {/*@@ICONS:Close,Plus,Menu,Microphone,Bell,Cog,Check,Export,DotsVertical,ViewDashboard,LightningBolt,Map,FormatListBulleted,History,PlayBoxMultiple,Calendar,SolarPower,Flash,Home,Power@@*/};
+const tab = (label, icon, sel) => ({ label, icon, sel: !!sel, cls: sel ? 'sel' : '' });
+const nav = (label, icon, sel) => ({ label, icon, cls: sel ? 'sel' : '' });
+return {
+i,
+tabs: [tab('Overview', i.ViewDashboard), tab('Energy', i.LightningBolt, true), tab('Map', i.Map), tab('Activity', i.FormatListBulleted), tab('History', i.History), tab('Media', i.PlayBoxMultiple), tab('Calendar', i.Calendar), tab('Settings', i.Cog)],
+nav: [nav('Overview', i.ViewDashboard), nav('Energy', i.LightningBolt, true), nav('Map', i.Map), nav('Activity', i.FormatListBulleted), nav('History', i.History), nav('Media', i.PlayBoxMultiple), nav('Calendar', i.Calendar)],
+flows: [
+{ name: 'Solar panels', state: 'Producing', value: '3.1 kW', icon: i.SolarPower, cls: 'light on' },
+{ name: 'Home', state: 'Using', value: '2.4 kW', icon: i.Home, cls: 'pri on' },
+{ name: 'Grid', state: 'Sending back', value: '0.7 kW', icon: i.Flash, cls: 'ok on' },
+{ name: 'Standby devices', state: 'Always on', value: '180 W', icon: i.Power, cls: 'ter on' }
+],
+stats: [
+{ label: 'Solar produced', value: '14.2 kWh', w: '71%', c: 'var(--amber)', aria: '71 percent of the best day this month' },
+{ label: 'Taken from grid', value: '3.1 kWh', w: '22%', c: 'var(--p)', aria: '22 percent of today’s use' },
+{ label: 'Sent to grid', value: '5.6 kWh', w: '39%', c: 'var(--green)', aria: '39 percent of solar production' },
+{ label: 'Self-sufficiency', value: '82 %', w: '82%', c: 'var(--t)', aria: '82 percent' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

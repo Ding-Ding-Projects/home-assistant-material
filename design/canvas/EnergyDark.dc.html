@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Energy dashboard, dark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap">
+<style>
+body{margin:0}
+.m3{--p:#00668B;--on-p:#FFFFFF;--pc:#C4E7FF;--on-pc:#004C69;--s:#4E616D;--sc:#D1E5F4;--on-sc:#364955;--t:#605A7D;--tc:#E6DEFF;--on-tc:#484264;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#F6FAFE;--sl0:#FFFFFF;--sl1:#F0F4F8;--sl2:#EBEEF3;--sl3:#E5E8ED;--sl4:#DFE3E7;--on:#181C1F;--onv:#41484D;--out:#71787E;--outv:#C1C7CE;--inv:#2D3135;--on-inv:#EEF1F6;--amber:#6F5100;--amberc:#FFDF9E;--heat:#8F3A1C;--heatc:#FFDBCF;--green:#22633A;--greenc:#B1F1BB;--scrim:rgba(0,0,0,.4);--e1:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15);--e3:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15);font-family:'Roboto Flex',Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--p:#7BD0FF;--on-p:#00354A;--pc:#004C69;--on-pc:#C4E7FF;--s:#B5C9D7;--sc:#364955;--on-sc:#D1E5F4;--t:#CAC1EA;--tc:#484264;--on-tc:#E6DEFF;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#101417;--sl0:#0B0F12;--sl1:#181C1F;--sl2:#1C2023;--sl3:#262A2E;--sl4:#313539;--on:#DFE3E7;--onv:#C1C7CE;--out:#8B9198;--outv:#41484D;--inv:#DFE3E7;--on-inv:#2D3135;--amber:#F5BF48;--amberc:#5C4300;--heat:#FFB59D;--heatc:#7D2C0E;--green:#96D5A1;--greenc:#12512A;--scrim:rgba(0,0,0,.6)}
+.m3 *{box-sizing:border-box}
+.m3 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+.m3 a{color:var(--p);text-decoration:none}
+.m3 a:hover{color:var(--on-pc)}
+.m3 input{font:inherit;color:inherit}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:18px;height:18px}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none}
+.ib:hover{background:var(--sl3)}
+.disp{font-size:45px;line-height:52px;font-weight:400;margin:0}
+.hl{font-size:28px;line-height:36px;font-weight:400;margin:0}
+.tl{font-size:22px;line-height:28px;font-weight:400;margin:0}
+.tm{font-size:16px;line-height:24px;font-weight:500;letter-spacing:.15px;margin:0}
+.ll{font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;margin:0}
+.lm{font-size:12px;line-height:16px;font-weight:500;letter-spacing:.5px;margin:0}
+.bl{font-size:16px;line-height:24px;letter-spacing:.5px;margin:0}
+.bm{font-size:14px;line-height:20px;letter-spacing:.25px;margin:0}
+.bs{font-size:12px;line-height:16px;letter-spacing:.4px;color:var(--onv);margin:0}
+.row{display:flex;align-items:center}
+.col{display:flex;flex-direction:column}
+.grow{flex:1;min-width:0}
+.tabs{display:flex;align-items:flex-end;gap:2px;height:48px;padding:8px 12px 0;background:var(--sl3);overflow:hidden}
+.tab{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:14px 14px 0 0;color:var(--onv);white-space:nowrap;flex:none}
+.tab.sel{background:var(--surf);color:var(--on)}
+.tab:hover{background:var(--sl2)}
+.tab.sel:hover{background:var(--surf)}
+.rail{width:96px;flex:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 0 16px;background:var(--surf)}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;width:80px;color:var(--onv)}
+.ri .pill{width:56px;height:32px;border-radius:16px;display:grid;place-items:center;position:relative}
+.ri:hover .pill{background:var(--sl3)}
+.ri.sel{color:var(--on)}
+.ri.sel .pill{background:var(--sc);color:var(--on-sc)}
+.fab{width:56px;height:56px;border-radius:16px;background:var(--pc);color:var(--on-pc);display:grid;place-items:center;box-shadow:var(--e1);flex:none}
+.badge{position:absolute;top:2px;right:10px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--sl0);font-size:11px;line-height:16px;font-weight:500;text-align:center}
+.search{display:flex;align-items:center;gap:12px;height:56px;padding:0 8px 0 16px;border-radius:28px;background:var(--sl3);color:var(--onv);min-width:0}
+.kbd{font-size:12px;line-height:16px;font-weight:500;padding:4px 8px;border-radius:8px;background:var(--sl0);color:var(--onv);white-space:nowrap;border:1px solid var(--outv)}
+.chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 16px;border-radius:8px;border:1px solid var(--outv);color:var(--onv);font-size:14px;line-height:20px;font-weight:500;white-space:nowrap;flex:none}
+.chip.sel{background:var(--sc);border-color:var(--sc);color:var(--on-sc);padding-left:8px}
+.card{background:var(--sl1);border-radius:28px;padding:20px}
+.tile{display:flex;align-items:center;gap:12px;min-height:72px;padding:12px 16px 12px 12px;border-radius:20px;background:var(--sl1);width:100%}
+.tile:hover{background:var(--sl2)}
+.tile .disc{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;background:var(--sl4);color:var(--onv);flex:none}
+.tile.on{background:var(--sl0);box-shadow:var(--e1)}
+.tile.light.on .disc{background:var(--amberc);color:var(--amber)}
+.tile.heat.on .disc{background:var(--heatc);color:var(--heat)}
+.tile.ok.on .disc{background:var(--greenc);color:var(--green)}
+.tile.pri.on .disc{background:var(--pc);color:var(--on-pc)}
+.tile.ter.on .disc{background:var(--tc);color:var(--on-tc)}
+.sw{width:52px;height:32px;border-radius:16px;border:2px solid var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 6px;flex:none}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out)}
+.sw.on{border-color:var(--p);background:var(--p);justify-content:flex-end;padding:0 2px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 24px;border-radius:20px;font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;white-space:nowrap}
+.btn.fill{background:var(--p);color:var(--on-p)}
+.btn.tonal{background:var(--sc);color:var(--on-sc)}
+.btn.out{border:1px solid var(--outv);color:var(--p)}
+.btn.text{color:var(--p);padding:0 12px}
+.sec{display:flex;align-items:center;gap:8px;height:40px;color:var(--onv)}
+.track{height:16px;border-radius:8px;background:var(--sc);position:relative;overflow:hidden}
+.track b{display:block;height:100%;border-radius:8px 2px 2px 8px;background:var(--p)}
+.li{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 16px;border-radius:16px;width:100%}
+.li:hover{background:var(--sl2)}
+.li .lead{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:var(--sc);color:var(--on-sc);flex:none}
+.foot{padding:16px 24px 24px;color:var(--onv);font-size:12px;line-height:16px;letter-spacing:.4px}
+@media (prefers-reduced-motion:no-preference){.tile,.ri .pill,.chip,.sw,.sw i,.btn,.tab,.li{transition:background-color .2s cubic-bezier(.2,0,0,1),box-shadow .2s cubic-bezier(.2,0,0,1),width .2s cubic-bezier(.2,0,0,1)}}
+.seg{display:inline-flex;border:1px solid var(--out);border-radius:20px;overflow:hidden;flex:none}
+.seg button{height:40px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:var(--on);border-right:1px solid var(--out)}
+.seg button:last-child{border-right:0}
+.seg button.sel{background:var(--sc);color:var(--on-sc)}
+</style>
+</helmet>
+<div class="m3 dark" style="min-height: 1040px; display: flex; flex-direction: column">
+<div class="tabs" role="tablist" aria-label="Open pages">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="8">
+<button class="tab {{tab.cls}}" role="tab" aria-selected="{{tab.sel}}">
+<svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>
+<span class="ll">{{tab.label}}</span>
+<sc-if value="{{tab.sel}}" hint-placeholder-val="{{false}}"><svg class="ic s" viewBox="0 0 24 24" role="img" aria-label="Close tab"><path d="{{i.Close}}"></path></svg></sc-if>
+</button>
+</sc-for>
+<button class="ib" style="width: 40px; height: 40px" aria-label="New tab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Plus}}"></path></svg></button>
+</div>
+<div style="display: flex; flex: 1; min-height: 0">
+<nav class="rail" aria-label="Main">
+<button class="ib" aria-label="Expand navigation"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Menu}}"></path></svg></button>
+<button class="fab" aria-label="Ask Assist"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Microphone}}"></path></svg></button>
+<div class="col" style="gap: 12px; margin-top: 12px; flex: 1">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<button class="ri {{n.cls}}">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.icon}}"></path></svg></span>
+<span class="lm">{{n.label}}</span>
+</button>
+</sc-for>
+</div>
+<button class="ri">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Bell}}"></path></svg><span class="badge">3</span></span>
+<span class="lm">Alerts</span>
+</button>
+<button class="ri">
+<span class="pill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Cog}}"></path></svg></span>
+<span class="lm">Settings</span>
+</button>
+</nav>
+<main class="grow col" style="background: var(--sl1); border-radius: 28px 0 0 0">
+<header class="row" style="gap: 16px; padding: 20px 24px 16px 32px; flex-wrap: wrap">
+<div class="col grow" style="min-width: 200px">
+<h1 class="hl">Energy</h1>
+<p class="bs">Live, readings arrive every 5 seconds</p>
+</div>
+<div class="seg" role="group" aria-label="Period">
+<button class="sel" aria-pressed="true"><svg class="ic s" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Check}}"></path></svg>Today</button>
+<button aria-pressed="false">Week</button>
+<button aria-pressed="false">Month</button>
+</div>
+<button class="ib" aria-label="Export this view"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.Export}}"></path></svg></button>
+<button class="ib" aria-label="More options"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{i.DotsVertical}}"></path></svg></button>
+</header>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; padding: 0 32px">
+<section class="card" style="flex: 999 1 560px; min-width: 0; background: var(--sl2); padding: 24px">
+<div class="row" style="gap: 24px; flex-wrap: wrap">
+<div class="col"><span class="bs">Using now</span><span class="disp">2.4 kW</span></div>
+<div class="row grow" style="gap: 20px; justify-content: flex-end; flex-wrap: wrap">
+<span class="row ll" style="gap: 8px"><span style="width: 12px; height: 12px; border-radius: 6px; background: var(--p)"></span>Home use</span>
+<span class="row ll" style="gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; background: var(--amber)"></span>Solar</span>
+</div>
+</div>
+<svg viewBox="0 0 800 280" preserveAspectRatio="none" role="img" aria-label="Home use and solar production through today. Solar peaks at midday, home use peaks in the evening." style="display: block; width: 100%; height: 320px; margin-top: 16px">
+<g stroke="#41484D" stroke-width="1"><line x1="0" y1="70" x2="800" y2="70"></line><line x1="0" y1="140" x2="800" y2="140"></line><line x1="0" y1="210" x2="800" y2="210"></line></g>
+<path d="M0,270 C100,270 160,258 220,212 S320,96 400,74 S500,62 560,118 S680,250 800,270 Z" fill="#F5BF48" fill-opacity="0.16"></path>
+<path d="M0,270 C100,270 160,258 220,212 S320,96 400,74 S500,62 560,118 S680,250 800,270" fill="none" stroke="#F5BF48" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"></path>
+<path d="M0,214 C60,208 100,202 140,182 S220,128 260,150 S340,192 400,162 S480,98 540,120 S600,96 640,84" fill="none" stroke="#7BD0FF" stroke-width="4" stroke-linecap="round"></path>
+<line x1="640" y1="0" x2="640" y2="280" stroke="#8B9198" stroke-width="1" stroke-dasharray="4 4"></line>
+<circle cx="640" cy="84" r="12" fill="#7BD0FF" fill-opacity="0.25"></circle>
+<circle cx="640" cy="84" r="6" fill="#7BD0FF"></circle>
+</svg>
+<div class="row bs" style="justify-content: space-between; margin-top: 8px"><span>Midnight</span><span>6 am</span><span>Noon</span><span>6 pm</span><span>Midnight</span></div>
+</section>
+<section class="col" style="flex: 1 1 320px; gap: 8px">
+<h2 class="tm" style="height: 40px; display: flex; align-items: center; color: var(--onv)">Right now</h2>
+<sc-for list="{{flows}}" as="f" hint-placeholder-count="4">
+<div class="tile {{f.cls}}" style="background: var(--sl3)">
+<span class="disc"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="{{f.icon}}"></path></svg></span>
+<span class="col grow"><span class="ll">{{f.name}}</span><span class="bs">{{f.state}}</span></span>
+<span class="tl">{{f.value}}</span>
+</div>
+</sc-for>
+<a class="btn tonal" href="#sources" style="margin-top: 8px; align-self: flex-start">Set up energy sources</a>
+</section>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 24px 32px 8px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div class="card" style="background: var(--sl2)">
+<span class="bs">{{s.label}}</span>
+<div class="hl" style="margin: 4px 0 12px">{{s.value}}</div>
+<div class="track" role="img" aria-label="{{s.aria}}" style="height: 8px; background: var(--sl4)"><b style="width: {{s.w}}; background: {{s.c}}"></b></div>
+</div>
+</sc-for>
+</div>
+<div class="foot grow" style="display: flex; align-items: flex-end">Home Assistant Material 2026.11.1, updated 9 November 2026</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+renderVals() {
+const i = {Close:"M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z",Plus:"M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z",Menu:"M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z",Microphone:"M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z",Bell:"M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21",Cog:"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z",Check:"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",Export:"M23,12L19,8V11H10V13H19V16M1,18V6C1,4.89 1.9,4 3,4H15A2,2 0 0,1 17,6V9H15V6H3V18H15V15H17V18A2,2 0 0,1 15,20H3A2,2 0 0,1 1,18Z",DotsVertical:"M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z",ViewDashboard:"M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z",LightningBolt:"M11 15H6L13 1V9H18L11 23V15Z",Map:"M15,19L9,16.89V5L15,7.11M20.5,3C20.44,3 20.39,3 20.34,3L15,5.1L9,3L3.36,4.9C3.15,4.97 3,5.15 3,5.38V20.5A0.5,0.5 0 0,0 3.5,21C3.55,21 3.61,21 3.66,20.97L9,18.9L15,21L20.64,19.1C20.85,19 21,18.85 21,18.62V3.5A0.5,0.5 0 0,0 20.5,3Z",FormatListBulleted:"M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z",History:"M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3",PlayBoxMultiple:"M4,6H2V20A2,2 0 0,0 4,22H18V20H4V6M20,2H8A2,2 0 0,0 6,4V16A2,2 0 0,0 8,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M12,14.5V5.5L18,10L12,14.5Z",Calendar:"M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z",SolarPower:"M11.45,2V5.55L15,3.77L11.45,2M10.45,8L8,10.46L11.75,11.71L10.45,8M2,11.45L3.77,15L5.55,11.45H2M10,2H2V10C2.57,10.17 3.17,10.25 3.77,10.25C7.35,10.26 10.26,7.35 10.27,3.75C10.26,3.16 10.17,2.57 10,2M17,22V16H14L19,7V13H22L17,22Z",Flash:"M7,2V13H10V22L17,10H13L17,2H7Z",Home:"M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z",Power:"M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"};
+const tab = (label, icon, sel) => ({ label, icon, sel: !!sel, cls: sel ? 'sel' : '' });
+const nav = (label, icon, sel) => ({ label, icon, cls: sel ? 'sel' : '' });
+return {
+i,
+tabs: [tab('Overview', i.ViewDashboard), tab('Energy', i.LightningBolt, true), tab('Map', i.Map), tab('Activity', i.FormatListBulleted), tab('History', i.History), tab('Media', i.PlayBoxMultiple), tab('Calendar', i.Calendar), tab('Settings', i.Cog)],
+nav: [nav('Overview', i.ViewDashboard), nav('Energy', i.LightningBolt, true), nav('Map', i.Map), nav('Activity', i.FormatListBulleted), nav('History', i.History), nav('Media', i.PlayBoxMultiple), nav('Calendar', i.Calendar)],
+flows: [
+{ name: 'Solar panels', state: 'Producing', value: '3.1 kW', icon: i.SolarPower, cls: 'light on' },
+{ name: 'Home', state: 'Using', value: '2.4 kW', icon: i.Home, cls: 'pri on' },
+{ name: 'Grid', state: 'Sending back', value: '0.7 kW', icon: i.Flash, cls: 'ok on' },
+{ name: 'Standby devices', state: 'Always on', value: '180 W', icon: i.Power, cls: 'ter on' }
+],
+stats: [
+{ label: 'Solar produced', value: '14.2 kWh', w: '71%', c: 'var(--amber)', aria: '71 percent of the best day this month' },
+{ label: 'Taken from grid', value: '3.1 kWh', w: '22%', c: 'var(--p)', aria: '22 percent of today’s use' },
+{ label: 'Sent to grid', value: '5.6 kWh', w: '39%', c: 'var(--green)', aria: '39 percent of solar production' },
+{ label: 'Self-sufficiency', value: '82 %', w: '82%', c: 'var(--t)', aria: '82 percent' }
+]
+};
+}
+}
+</script>
+</body>
+</html>
