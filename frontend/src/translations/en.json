@@ -3182,6 +3182,38 @@
         "timeout": "The pattern took too long on this list and was stopped."
       }
     },
+    "personal_wording": {
+      "title": "Private vocabulary",
+      "description": "Load your own private vocabulary file to rename things your way. It stays on this device and is checked in full before anything changes.",
+      "drop_title": "Drop a wording file anywhere in this window",
+      "drop_format": "JSON, up to 256 KiB, UTF-8, schema version 1",
+      "choose": "Choose a file",
+      "replace": "Replace",
+      "clear": "Clear",
+      "none": "No wording file is loaded. The shipped wording shows.",
+      "loaded": "{count, plural,\n  one {# entry is in use}\n  other {# entries are in use}\n}, schema version 1.",
+      "loaded_label": "Loaded now",
+      "clear_note": "Clearing removes the cached copy and returns every label to the shipped wording.",
+      "overlay_title": "Private vocabulary loaded",
+      "overlay_count": "{count, plural,\n  one {# label now speaks your way}\n  other {# labels now speak your way}\n}",
+      "cleared": "The shipped wording is back.",
+      "not_applied": "The file was not applied. Your current wording is unchanged.",
+      "error": {
+        "too_large": "The file is larger than 256 KiB.",
+        "not_utf8": "The file is not UTF-8 text.",
+        "malformed": "The file is not valid JSON with an object at the top.",
+        "too_deep": "The file nests more than 8 levels deep.",
+        "duplicate_key": "The file names the same key twice.",
+        "unsafe_key": "The file uses a key name that is not allowed.",
+        "unknown_field": "The file has a field other than schemaVersion and entries.",
+        "unsupported_version": "The file is not schema version 1.",
+        "bad_entries": "The entries must be a map of text to text.",
+        "bad_key": "A key is empty or longer than 160 characters.",
+        "bad_value": "A value is not text, or is longer than 1,000 characters.",
+        "control_character": "A key or value contains a control character or a line break.",
+        "unreadable": "The file could not be read."
+      }
+    },
     "page_tabs": {
       "open_pages": "Open pages",
       "close_tab": "Close {name}",

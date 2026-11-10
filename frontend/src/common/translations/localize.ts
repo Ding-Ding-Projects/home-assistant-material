@@ -1,5 +1,6 @@
 import type { IntlMessageFormat } from "intl-messageformat";
 import type { HTMLTemplateResult } from "lit";
+import { applyPersonalVocabulary } from "../vocabulary/personal-vocabulary";
 import { polyfillLocaleData } from "../../resources/polyfills/locale-data-polyfill";
 import type { Resources, TranslationDict } from "../../types";
 import { fireEvent } from "../dom/fire_event";
@@ -140,7 +141,11 @@ export const computeLocalize = async <Keys extends string = LocalizeKeys>(
     }
 
     try {
-      return translatedMessage.format<string>(argObject) as string;
+      // Personal wording is applied here, where text becomes interface
+      // text, so commands, addresses and stored names stay as they are.
+      return applyPersonalVocabulary(
+        translatedMessage.format<string>(argObject) as string
+      );
     } catch (err: any) {
       // eslint-disable-next-line no-console
       console.error("Translation error", key, language, err);

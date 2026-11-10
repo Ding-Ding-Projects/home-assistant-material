@@ -4,6 +4,12 @@ import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import {
+  importWordingFile,
+  looksLikeWordingFile,
+  showWordingOverlay,
+} from "../common/vocabulary/wording-import";
+import { showToast } from "../util/toast";
+import {
   applyAccessibilitySettings,
   getAccessibilitySettings,
   subscribeAccessibilitySettings,
@@ -174,6 +180,8 @@ export class HomeAssistantMain extends LitElement {
   public connectedCallback() {
     super.connectedCallback();
     window.addEventListener("keydown", this._handleAccessibilityShortcut);
+    window.addEventListener("dragover", this._handleWordingDragOver);
+    window.addEventListener("drop", this._handleWordingDrop);
     this._unsubAccessibility = subscribeAccessibilitySettings(() =>
       this._applyAccessibility()
     );
@@ -182,6 +190,8 @@ export class HomeAssistantMain extends LitElement {
   public disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this._handleAccessibilityShortcut);
+    window.removeEventListener("dragover", this._handleWordingDragOver);
+    window.removeEventListener("drop", this._handleWordingDrop);
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
   }
@@ -192,6 +202,42 @@ export class HomeAssistantMain extends LitElement {
       Boolean(this.hass?.themes?.darkMode)
     );
   }
+
+  // A wording file can be dropped anywhere in the window. A drop that a page
+  // already took (an upload field, a card editor) is left to that page.
+  private _handleWordingDragOver = (ev: DragEvent) => {
+    if (!ev.defaultPrevented && ev.dataTransfer?.types.includes("Files")) {
+      ev.preventDefault();
+    }
+  };
+
+  private _handleWordingDrop = async (ev: DragEvent) => {
+    const files = ev.dataTransfer?.files;
+    if (ev.defaultPrevented || !files?.length) {
+      return;
+    }
+    // Never let a dropped file replace the page.
+    ev.preventDefault();
+    if (files.length !== 1 || !looksLikeWordingFile(files[0])) {
+      return;
+    }
+    const result = await importWordingFile(files[0]);
+    if (result.ok) {
+      showWordingOverlay(
+        this.hass.localize("ui.personal_wording.overlay_title"),
+        this.hass.localize("ui.personal_wording.overlay_count", {
+          count: result.count,
+        })
+      );
+      return;
+    }
+    showToast(this, {
+      message: `${this.hass.localize("ui.personal_wording.not_applied")} ${this.hass.localize(
+        `ui.personal_wording.error.${result.error}`
+      )}`,
+      duration: 8000,
+    });
+  };
 
   // Alt+A opens the accessibility tools, also while their button is hidden.
   private _handleAccessibilityShortcut = (ev: KeyboardEvent) => {

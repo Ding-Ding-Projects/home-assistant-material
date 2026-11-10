@@ -5,6 +5,7 @@ import "../../components/ha-card";
 import "../../layouts/hass-subpage";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant, Route } from "../../types";
+import "./ha-personal-wording-card";
 import "./ha-pick-date-format-row";
 import "./ha-pick-first-weekday-row";
 import "./ha-pick-language-row";
@@ -62,6 +63,9 @@ class HaProfileSectionLocalization extends LitElement {
               .hass=${this.hass}
             ></ha-pick-first-weekday-row>
           </ha-card>
+          <ha-personal-wording-card
+            .hass=${this.hass}
+          ></ha-personal-wording-card>
         </div>
       </hass-subpage>
     `;

@@ -4,6 +4,7 @@ import { fireEvent } from "../common/dom/fire_event";
 import type { HASSDomEvent } from "../common/dom/fire_event";
 import type { LocalizeFunc } from "../common/translations/localize";
 import { computeLocalize } from "../common/translations/localize";
+import { VOCABULARY_CHANGED_EVENT } from "../common/vocabulary/personal-vocabulary";
 import {
   computeRTLDirection,
   setDirectionStyles,
@@ -80,6 +81,11 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
 
     protected firstUpdated(changedProps: PropertyValues<this>) {
       super.firstUpdated(changedProps);
+      // Loading or clearing personal wording changes what every label says,
+      // so the localize function is rebuilt and everything renders again.
+      window.addEventListener(VOCABULARY_CHANGED_EVENT, () =>
+        this._rebuildLocalize()
+      );
       this.addEventListener("hass-language-select", (e) => {
         this._selectLanguage(
           (e as HASSDomEvent<HASSDomEvents["hass-language-select"]>).detail,
@@ -437,6 +443,20 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       } finally {
         this.__coreProgress = undefined;
       }
+    }
+
+    private async _rebuildLocalize() {
+      const hass = this.hass ?? this._pendingHass;
+      const language = hass?.language;
+      if (!language || !this.__resources[language]) {
+        return;
+      }
+      const localize = await computeLocalize(this, language, this.__resources);
+      if (language !== (this.hass ?? this._pendingHass).language) {
+        return;
+      }
+      this._updateHass({ localize });
+      fireEvent(this, "translations-updated");
     }
 
     private async _updateResources(
