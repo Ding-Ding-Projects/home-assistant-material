@@ -87,7 +87,20 @@ async def websocket_update_preview_feature(
     if create_backup and enabled:
         try:
             backup_manager = async_get_manager(hass)
-            await backup_manager.async_create_automatic_backup()
+            if backup_manager.config.data.create_backup.agent_ids:
+                await backup_manager.async_create_automatic_backup()
+            else:
+                # Automatic backups are not set up, so they name no location.
+                await backup_manager.async_create_backup(
+                    agent_ids=list(backup_manager.local_backup_agents),
+                    include_addons=None,
+                    include_all_addons=False,
+                    include_database=True,
+                    include_folders=None,
+                    include_homeassistant=True,
+                    name=None,
+                    password=None,
+                )
         except Exception as err:  # noqa: BLE001 - websocket handlers can catch broad exceptions
             connection.send_error(
                 msg["id"],

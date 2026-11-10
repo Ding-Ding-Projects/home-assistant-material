@@ -14,7 +14,7 @@
 
 services:
   homeassistant:
-    image: ghcr.io/ding-ding-projects/home-assistant-material:${HA_MATERIAL_TAG:-2026.11.1.46}
+    image: ghcr.io/ding-ding-projects/home-assistant-material:${HA_MATERIAL_TAG:-2026.11.1.53}
     container_name: home-assistant-material
     restart: unless-stopped
     ports:
