@@ -1,0 +1,30 @@
+# Changelog
+
+Every release is also listed, with its build results, on the
+[releases page](https://github.com/Ding-Ding-Projects/home-assistant-material/releases).
+
+## Unreleased
+
+- Root README, licence, notice, contributing, security and conduct files.
+- Feature status page and roadmap.
+
+## v2026.11.1.1 to v2026.11.1.8, 9 November 2026
+
+### Added
+
+- The repository: upstream frontend, core, supervisor, operating system (with Buildroot), landing
+  page and version feed, each vendored in its own folder at a pinned release.
+- A release workflow that publishes one tagged release per push to `main` and builds the frontend
+  wheel, core, machine, landing page and supervisor images, a multi-architecture container image,
+  the update feed, and operating system images for Raspberry Pi 3, 4 and 5 and virtual machines.
+- An update feed on the `channel` branch. The supervisor and the operating system read it instead
+  of the upstream feed.
+- `build.bat`, `build-installer.bat`, `build.sh` and dependency installers.
+- The design canvas: 48 boards covering the everyday screens and every required feature.
+
+### Verified so far
+
+- Build 1: frontend wheel, both supervisor images, both core images, all machine images and the
+  multi-architecture container image built and are publicly pullable. The update feed is live.
+- Not verified: operating system images (still building when this was written), a real boot on a
+  Raspberry Pi or in VirtualBox, an update from one build to the next, the Windows scripts.
