@@ -1,68 +1,129 @@
 # Roadmap
 
-Checked items are finished and verified. Everything else is open.
+The goal is fixed: **every board in `design/canvases/` built into the product, 153 of 153, and the
+running product matching its board.** This file lists all of it. `docs/feature-status.md` says
+exactly what has been seen working and where.
+
+- `[x]` built and seen working in a running build
+- `[~]` partly built; the line says what is missing
+- `[ ]` not started
 
 ## Foundation
 
 - [x] Vendor the upstream sources at pinned releases
 - [x] Release workflow: one tagged release per push
-- [x] Container images, publicly pullable (build 1)
+- [x] Container images, publicly pullable
 - [x] Update feed on the `channel` branch, supervisor and operating system pointed at it
-- [ ] Operating system images finish building and are attached to a release
+- [x] The published container image starts and serves the interface (build 26, run from the
+      registry and driven through first-run setup)
+- [~] Operating system images: the VirtualBox image is attached to release `v2026.11.1.1`; the
+      Raspberry Pi images were still building
 - [ ] Boot the VirtualBox image and complete first-run setup
 - [ ] Boot a Raspberry Pi image and complete first-run setup
 - [ ] Observe a core update from one build to the next through Settings
 - [ ] Add the operating system signing secrets and observe an over-the-air operating system update
 - [ ] Run `build.bat --run` and `build-installer.bat` on Windows
 
-## Interface, in build order
+## Hosting
 
-- [ ] Tokens: colour roles, type, shape and motion in `frontend/src/resources/theme`
-- [ ] Shell: rail, floating pane, pill tab bar, search field, accessibility button
-- [ ] Home, Energy, Settings and the phone layout
-- [ ] First-run wizard
-- [ ] Command palette, context menus, tab catalog
-- [ ] Language modes, playfulness sliders, dialog emoji switch
-- [ ] Personal wording file and drop to apply
+- [ ] `compose.yaml` that runs the published image, with the port and storage mapped
+- [ ] `host.bat` and `host.sh`: pull, start, wait for health, print the address; a detached mode
+      and a live log view
+- [ ] A live demo of the interface, built and published by the release workflow
+- [ ] A setup wizard for Windows that performs the same steps
+
+## Shell and cross-cutting features
+
+- [~] Tokens: colour, type and shape are in; motion tokens and a dark theme check are not
+- [x] Rail, floating pane and pill tabs
+- [x] Bar of open pages: every page open by default, New tab catalog, close and reopen
+- [x] Bulk close: close the tabs that match a search, or the ones that do not, with Undo
+- [ ] Tabs on a phone, drag to reorder, pinned tabs, a search for each group
+- [x] Accessibility tools: text size, contrast, reduced motion, focus ring, larger targets, read
+      aloud, keyboard help
+- [x] Pattern workbench on every search field, regular expressions in every list
+- [x] Private vocabulary file: choose or drop, checked in full, replace, clear
+- [~] Command search on Ctrl+Shift+F: opens from the top bar; the redesigned palette with live
+      controls is not built
+- [~] Per-element appearance editor: the model, storage and styles are in; the editor, the
+      context menu and the pick tool are not
+- [ ] Context menus with working shortcuts on every element
+- [ ] Element locks and the unlock ladder
+- [ ] Two-key confirmation for destructive actions
+- [ ] Local version history on every page and dialog
+- [ ] Export in every format, from every page and table
+- [ ] Bulk actions on every table
+- [ ] Guided forms and per-control information buttons
+- [ ] Settings that explain themselves
+- [ ] Resizable panels, collapsible filters and statistics
+- [ ] Notification centre and toasts
+- [ ] Progress where it started, recovery where it broke
+- [ ] Starting points for blank editors
+- [x] Version and updated-at on the first screen
+- [ ] Free, with nothing to buy: the About page
+
+## Language and voice
+
+- [ ] Language modes: English, playful Cantonese, both
+- [ ] Playfulness sliders and the dialog emoji switch
 - [ ] Spoken narrator and action sounds
 - [ ] School mode and focus modes
 - [ ] Scheduled and external settings sources
 - [ ] Renaming the app and logo customization
 - [ ] Dim sum surprise
-- [ ] Per-element appearance editor
+
+## Appearance
+
 - [ ] Colour picker and translator
 - [ ] Fonts and type scale
-- [ ] Accessibility tools
-- [ ] Resizable panels, collapsible filters and statistics
-- [ ] Tabs open by default and the New tab catalog
-- [ ] Command palette on Ctrl+Shift+F
-- [ ] Pattern workbench on every search
-- [ ] Context menus with working shortcuts
-- [ ] Guided forms and per-control information buttons
-- [ ] Settings that explain themselves
+- [ ] Appearance editor for type
+- [ ] Appearance editor for fill and layers: picture layers, masks, blend, per-state layers
+
+## Automations
+
+- [~] Test buttons: on every condition and every Choose option; a dry run of a whole automation
+      is not built
+- [ ] A Git repository for each automation
+- [ ] A master repository; one push commits every automation repository, then the master
+- [ ] History manager: every version, compare, restore, test one, test many, run many
+- [ ] Automation list, editor, trace and repository pages redrawn to their boards
+
+## Pages redrawn to their boards
+
+Each line is a canvas folder in `design/canvases/`. A page counts when the running product
+matches its board, checked side by side.
+
+- [ ] `01-everyday`: Home, Energy, the phone layout, dashboards and their editor, card picker,
+      map, activity, history, media, lists, calendar, lights, climate, security (15 boards)
+- [ ] `02-everyday`: maintenance, embedded pages, profile, profile security, Assist, shortcuts,
+      states, links, sign-in, first run and its steps, the preparing page, about, release notes
+      (14 boards)
+- [ ] `03-settings`: integrations, integration page, add integration, devices, device, entities,
+      entity settings, helpers, and the automation pages (15 boards)
+- [ ] `04-settings`: settings home, scenes, scripts, blueprints, areas, labels, zones, apps, app
+      store, dashboards (15 boards)
+- [ ] `05-system`: voice assistants, voice pipeline, expose, tags, people, users, energy setup,
+      cloud, system, updates, repairs, logs, backups, analytics (15 boards)
+- [ ] `06-tools`: network, storage, hardware, general, labs, AI ids, restart, and the developer
+      tools (15 boards)
+- [ ] `07-protocols`: Zigbee, Z-Wave, Matter, Thread, Bluetooth, MQTT, infrared, LoRaWAN, serial,
+      discovery, application credentials (11 boards)
+- [ ] `08-dialogs`: 36 entity dialogs (12 boards)
+
+## Tools
+
 - [ ] Extension support
-- [ ] Starting points for blank editors
-- [ ] Two-key confirmation
-- [ ] Element locks
-- [ ] Unlock ladder
-- [ ] Support Tickets
+- [ ] Support tickets
 - [ ] Authenticator and QR pairing
-- [ ] Local version history
-- [ ] Export in every format
-- [ ] Bulk actions
 - [ ] Changelog viewer
 - [ ] Offline help articles
 - [ ] Rendered provider text
-- [ ] Notification centre and toasts
 - [ ] File converter
 - [ ] Base64 toolkit
 - [ ] Minecraft server manager and world generator
 - [ ] Local Ollama suite
 - [ ] External editor hand-off and publishing to a forge
 - [ ] Drawing and annotation
-- [ ] Progress and recovery
-- [ ] Version and updated-at on the first screen
-- [ ] Free, with nothing to buy
 
 ## Later
 

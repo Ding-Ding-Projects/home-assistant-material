@@ -28,6 +28,26 @@ docker run -d --name homeassistant --restart unless-stopped --network host -v /p
 Open `http://<host>:8123`. The image is built for `amd64` and `arm64`. Without `--network host`,
 use `-p 8123:8123`; device discovery is weaker that way.
 
+### One step, with Docker Compose
+
+`compose.yaml` in this repository runs a fixed build of the published image, publishes port 8123
+to your network and keeps settings in `./config`.
+
+| On | Run | What it does |
+| --- | --- | --- |
+| Windows | `host.bat` | Asks which mode to use. `host.bat --detached` starts it in the background; `host.bat --logs` starts it and stays in a live status and log view; `host.bat --stop` stops it. |
+| Linux, macOS | `./host.sh` | The same modes: `--detached`, `--logs`, `--stop`. |
+
+Each start pulls the image, starts the container, waits until it answers, and prints the address
+for this machine and for your network. If Docker is missing or not running, the pull fails, the
+port is taken, or nothing answers within five minutes, the script says so and exits with an
+error. Leaving the log view does not stop anything. `host.sh` has been run for real on Linux:
+pull, start, health, both addresses, the log view, stop and the failure paths. **`host.bat` has
+not been run on Windows yet.**
+
+To use another port, set `HA_MATERIAL_PORT`. To move to a newer build, change the tag in
+`compose.yaml` or set `HA_MATERIAL_TAG`.
+
 ## Operating system images
 
 Each [release](https://github.com/Ding-Ding-Projects/home-assistant-material/releases) that

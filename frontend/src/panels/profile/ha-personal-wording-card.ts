@@ -187,6 +187,11 @@ export class HaPersonalWordingCard extends LitElement {
   }
 
   static styles: CSSResultGroup = css`
+    :host {
+      display: block;
+      max-width: 600px;
+      margin: 0 auto var(--ha-space-4);
+    }
     .description,
     .note {
       margin: 0;

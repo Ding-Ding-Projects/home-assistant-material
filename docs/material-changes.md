@@ -50,6 +50,11 @@ observer images are unchanged upstream images.
 | `frontend/src/panels/config/` (apps, helpers, integrations, zha, logs, tools/state, voice-assistants, dashboard), `frontend/src/panels/lovelace/editor/` (badge and card pickers) | Their own filters go through the shared matcher or `fuseSearch`. |
 | `frontend/src/common/tabs/bulk-close.ts` (new), `frontend/src/components/ha-page-tabs.ts` | Close tabs that match the catalog search, or that do not; guards for an empty search and an unusable pattern; Undo. |
 | `frontend/src/panels/config/automation/condition/ha-automation-condition-row.ts`, `option/ha-automation-option-row.ts` | A visible test button on every condition, and a test button on every Choose option that checks the option's conditions. |
+| `frontend/src/common/vocabulary/` (new) | Private vocabulary: the strict parser for the wording file, the whole-word replacer that leaves addresses and identifiers alone, the browser cache, file import and the confirmation overlay. |
+| `frontend/src/common/translations/localize.ts`, `frontend/src/state/translations-mixin.ts` | Localized text passes through the private vocabulary; the localize function is rebuilt when the vocabulary changes. |
+| `frontend/src/panels/profile/ha-personal-wording-card.ts` (new), `ha-profile-section-localization.ts` | The private vocabulary card on Profile, Localization. |
+| `frontend/src/layouts/home-assistant-main.ts` | A wording file dropped anywhere in the window is loaded; a dropped file never replaces the page. |
+| `frontend/src/common/appearance/element-appearance.ts` (new) | Per-element appearance: model, storage, styles, element paths. No interface yet. |
 | `frontend/build-scripts/check-minify-templates.mjs` (new) | Runs the production template minifier over given files, with the legacy browser targets, so a template that only breaks a production build is found before pushing. |
 | `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 

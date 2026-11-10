@@ -34,6 +34,20 @@ Written 9 November 2026 for whoever picks this up next.
   master repository whose push commits every automation repository first; the dry run of a whole
   automation. The boards for each are named in `docs/feature-status.md`.
 
+### Checking against a real instance
+
+The published image runs in Docker, and the frontend in this repository can be served from it,
+which gives every settings page with a real server behind it:
+
+1. `docker run -d --name ha --network host -v <config dir>:/config -v <repo>/frontend:/frontend-dev:ro ghcr.io/ding-ding-projects/home-assistant-material:latest`
+2. In `<config dir>/configuration.yaml`, under `frontend:`, add `development_repo: /frontend-dev`.
+3. Run `npx gulp develop-app` in `frontend/` and wait for "Build done" **before** starting the
+   container, or restart the container afterwards: it only serves folders that existed when it
+   started. New translation strings need the build restarted.
+4. Open port 8123. Rebuilds are picked up on reload.
+
+`ROADMAP.md` lists everything still to build. The goal is all 153 boards built and matching.
+
 ## Next steps, in order
 
 1. Confirm the operating system images attached to the release, then boot the VirtualBox image

@@ -3183,7 +3183,7 @@
       }
     },
     "personal_wording": {
-      "title": "Private vocabulary",
+      "title": "Your private vocabulary",
       "description": "Load your own private vocabulary file to rename things your way. It stays on this device and is checked in full before anything changes.",
       "drop_title": "Drop a wording file anywhere in this window",
       "drop_format": "JSON, up to 256 KiB, UTF-8, schema version 1",
@@ -3194,7 +3194,7 @@
       "loaded": "{count, plural,\n  one {# entry is in use}\n  other {# entries are in use}\n}, schema version 1.",
       "loaded_label": "Loaded now",
       "clear_note": "Clearing removes the cached copy and returns every label to the shipped wording.",
-      "overlay_title": "Private vocabulary loaded",
+      "overlay_title": "Your private vocabulary is loaded",
       "overlay_count": "{count, plural,\n  one {# label now speaks your way}\n  other {# labels now speak your way}\n}",
       "cleared": "The shipped wording is back.",
       "not_applied": "The file was not applied. Your current wording is unchanged.",

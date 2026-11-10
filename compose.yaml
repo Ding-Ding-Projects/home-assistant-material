@@ -1,0 +1,35 @@
+# Runs Home Assistant Material from the published image.
+#
+#   docker compose pull
+#   docker compose up -d
+#
+# then open http://<this machine's address>:8123. host.bat (Windows) and host.sh (Linux, macOS)
+# do the same, wait until it answers and print the address.
+#
+# The image tag is a fixed build, so the same file always starts the same build. To move to a
+# newer build, change the tag below or set HA_MATERIAL_TAG, then pull and start again. Builds are
+# listed on the releases page.
+#
+# Settings and data live in ./config next to this file and survive updates.
+
+services:
+  homeassistant:
+    image: ghcr.io/ding-ding-projects/home-assistant-material:${HA_MATERIAL_TAG:-2026.11.1.26}
+    container_name: home-assistant-material
+    restart: unless-stopped
+    ports:
+      # Published on every network interface, so other devices on the network can reach it.
+      - "${HA_MATERIAL_PORT:-8123}:8123"
+    volumes:
+      - ./config:/config
+    environment:
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "5", "http://127.0.0.1:8123/manifest.json"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 90s
+
+# Device discovery (mDNS, SSDP) works best with host networking, which Docker only offers on
+# Linux. There, replace the "ports" block with:  network_mode: host
