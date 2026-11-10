@@ -48,6 +48,12 @@ Written 9 November 2026 for whoever picks this up next.
 
 ## Things that will surprise you
 
+- The demo and development builds do not minify templates; the production build does, and its
+  legacy pass can fail on a template the other builds accept (an expression inside an inline
+  `style="..."` attribute is the known case; use `styleMap`). Before pushing interface work, run
+  `node build-scripts/check-minify-templates.mjs <changed files>` in `frontend/`. Builds 23 to 25
+  failed this way and have no images.
+
 - Every push to `main` publishes a release. Pushes that touch only `design/`, `docs/` or Markdown
   files skip the builds.
 - A build that has started always finishes. While it runs, only the newest waiting build of each

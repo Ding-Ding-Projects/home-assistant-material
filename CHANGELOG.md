@@ -23,6 +23,7 @@ Every release is also listed, with its build results, on the
 - Tabs: close the tabs that match a search, or the ones that do not, with counts and Undo.
 - Automations: a visible test button on every condition and on every Choose option. Not yet seen
   in a build.
+- Fixed: the production build failed on the pattern workbench (builds 23 to 25 have no images).
 - Design: every page of the product is drawn. 153 boards on 11 canvases of at most 15 boards,
   including a Git repository per automation, a master repository, an automation history manager
   and test buttons on Choose options and conditions.

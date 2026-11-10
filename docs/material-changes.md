@@ -50,6 +50,7 @@ observer images are unchanged upstream images.
 | `frontend/src/panels/config/` (apps, helpers, integrations, zha, logs, tools/state, voice-assistants, dashboard), `frontend/src/panels/lovelace/editor/` (badge and card pickers) | Their own filters go through the shared matcher or `fuseSearch`. |
 | `frontend/src/common/tabs/bulk-close.ts` (new), `frontend/src/components/ha-page-tabs.ts` | Close tabs that match the catalog search, or that do not; guards for an empty search and an unusable pattern; Undo. |
 | `frontend/src/panels/config/automation/condition/ha-automation-condition-row.ts`, `option/ha-automation-option-row.ts` | A visible test button on every condition, and a test button on every Choose option that checks the option's conditions. |
+| `frontend/build-scripts/check-minify-templates.mjs` (new) | Runs the production template minifier over given files, with the legacy browser targets, so a template that only breaks a production build is found before pushing. |
 | `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 
 ## Build-time stamping (not committed)

@@ -884,7 +884,9 @@ export class HaRegexWorkbench extends LitElement {
           (token) => html`
             <li
               class=${token.kind === "unsupported" ? "unsupported" : ""}
-              style="padding-inline-start: ${token.depth * 16}px"
+              style=${styleMap({
+                "padding-inline-start": `${token.depth * 16}px`,
+              })}
             >
               <code class=${TOKEN_CLASS[token.kind] ?? "t-literal"}
                 >${token.text}</code
