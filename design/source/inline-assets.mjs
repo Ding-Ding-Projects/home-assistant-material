@@ -51,6 +51,8 @@ ${items}
 }
 function bar(selected) {
   const names = ["Home", "Energy", "Map", "Activity", "Media", "Tools", "Settings"];
+  // A page opened from the New tab catalog gets its own tab, before Settings.
+  if (selected && !names.includes(selected)) names.splice(6, 0, selected);
   const tabs = names.map((label) => label === selected
     ? `<button class="pt sel" role="tab" aria-selected="true">${label}${icon("Close", "s")}</button>`
     : `<button class="pt" role="tab" aria-selected="false">${label}</button>`
