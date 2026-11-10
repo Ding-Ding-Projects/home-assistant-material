@@ -105,6 +105,8 @@ export class QuickBar extends LitElement {
 
   @query("ha-picker-combo-box") private _comboBox?: HaPickerComboBox;
 
+  private _initialSearch?: string;
+
   private get _showEntityId() {
     return this.hass.userData?.showEntityIdPicker;
   }
@@ -131,6 +133,7 @@ export class QuickBar extends LitElement {
     this._initialize();
     this._selectedSection = effectiveQuickBarMode(this.hass.user, params.mode);
     this._showHint = params.showHint ?? false;
+    this._initialSearch = params.search;
 
     this._open = true;
   }
@@ -286,6 +289,7 @@ export class QuickBar extends LitElement {
                 mode="dialog"
                 .sections=${sections}
                 .selectedSection=${this._selectedSection}
+                .initialSearch=${this._initialSearch}
                 clearable
               ></ha-picker-combo-box>`
             : nothing

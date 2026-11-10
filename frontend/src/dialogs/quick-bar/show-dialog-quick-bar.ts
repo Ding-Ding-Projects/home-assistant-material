@@ -9,6 +9,8 @@ export interface QuickBarParams {
   entityFilter?: string;
   mode?: QuickBarSection;
   showHint?: boolean;
+  /** Text to start the search with, plain or written as /pattern/flags. */
+  search?: string;
 }
 
 /** Non-admin users cannot scope the bar to command, device, or area (those sections are admin-only). */

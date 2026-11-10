@@ -193,6 +193,9 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
 
   @property({ type: Boolean, reflect: true }) public clearable = false;
 
+  /** Text the search starts with, as if it had been typed. */
+  @property({ attribute: false }) public initialSearch?: string;
+
   @property({ type: Boolean, attribute: "no-sort" }) public noSort = false;
 
   @query(".list") private _list?: HaListBase;
@@ -245,6 +248,12 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
 
   protected firstUpdated() {
     this._registerKeyboardShortcuts();
+    if (this.initialSearch && this._searchFieldElement) {
+      this._searchFieldElement.value = this.initialSearch;
+      this._filterChanged({
+        target: this._searchFieldElement,
+      } as unknown as InputEvent);
+    }
     // The virtualized list pins the selected row itself.
     if (this._plainList) {
       this._scrollToSelectedRow();

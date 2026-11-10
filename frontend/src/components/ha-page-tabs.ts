@@ -3,7 +3,6 @@ import {
   mdiCog,
   mdiFormatPaint,
   mdiHuman,
-  mdiMagnify,
   mdiPlus,
   mdiTabPlus,
   mdiTabRemove,
@@ -274,17 +273,19 @@ export class HaPageTabs extends LitElement {
         </div>
       </div>
       <div class="actions">
-        <button
-          class="search-field"
-          aria-label=${this.hass.localize("ui.page_tabs.search_everything")}
-          @click=${this._openSearch}
+        <ha-input-search
+          class="top-search"
+          appearance="outlined"
+          .placeholder=${this.hass.localize("ui.page_tabs.search_label")}
+          .accessibleLabel=${this.hass.localize(
+            "ui.page_tabs.search_everything"
+          )}
+          .patternSamples=${tabs.map((tab) => tab.title)}
+          @input=${this._topSearchInput}
+          @keydown=${this._topSearchKeydown}
         >
-          <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
-          <span class="search-label"
-            >${this.hass.localize("ui.page_tabs.search_label")}</span
-          >
-          <kbd>${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
-        </button>
+          <kbd slot="end">${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
+        </ha-input-search>
         <button
           class="new-tab"
           aria-label=${this.hass.localize("ui.page_tabs.edit_appearance")}
@@ -455,8 +456,25 @@ export class HaPageTabs extends LitElement {
     navigate(`/${urlPath}`);
   }
 
-  private _openSearch() {
-    showQuickBar(this, {});
+  // The search at the top starts the search of everything: what is typed
+  // or built here opens the full search with that text already in it.
+  private _topSearchInput(ev: Event) {
+    const field = ev.target as HaInputSearch;
+    const value = field.value ?? "";
+    if (!value) {
+      return;
+    }
+    field.value = "";
+    field.blur();
+    showQuickBar(this, { search: value });
+  }
+
+  private _topSearchKeydown(ev: KeyboardEvent) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      (ev.currentTarget as HaInputSearch).blur();
+      showQuickBar(this, {});
+    }
   }
 
   private _pickAppearance() {
@@ -622,27 +640,10 @@ export class HaPageTabs extends LitElement {
       margin-inline-start: auto;
       padding-inline-start: var(--ha-space-4);
     }
-    .search-field {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-3);
-      height: var(--ha-space-10);
-      min-width: 220px;
-      padding: 0 var(--ha-space-2) 0 var(--ha-space-4);
-      border-radius: var(--ha-border-radius-pill);
-      background-color: var(--card-background-color);
-      border: var(--ha-card-border-width, 0px) solid
-        var(--ha-card-border-color, transparent);
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-m);
-      --mdc-icon-size: 20px;
-    }
-    .search-field:hover {
-      color: var(--primary-text-color);
-    }
-    .search-label {
-      flex: 1;
-      text-align: start;
+    .top-search {
+      width: 300px;
+      --ha-input-search-height: var(--ha-space-10);
+      --ha-input-search-border-radius: var(--ha-border-radius-pill);
     }
     kbd {
       font-family: var(--ha-font-family-body);
@@ -655,11 +656,9 @@ export class HaPageTabs extends LitElement {
       white-space: nowrap;
     }
     @media (max-width: 1100px) {
-      .search-field {
-        min-width: 0;
-        padding: 0 var(--ha-space-3);
+      .top-search {
+        width: 180px;
       }
-      .search-label,
       kbd {
         display: none;
       }
