@@ -76,7 +76,11 @@ def head(title, sub='', *actions, size='hl'):
             f'<div class="col grow" style="gap: 6px; min-width: 280px"><h1 class="{size}">{title}</h1>{s}</div>{"".join(actions)}</div>')
 
 
-def toolbar(placeholder, *chips, right=''):
+def toolbar(placeholder, *chips, right=None):
+    """A list's own search with its pattern button, filters, and the tools every list has:
+    select many, choose columns, export."""
+    if right is None:
+        right = ib('CheckboxMultipleOutline', 'Select many') + ib('TableCog', 'Choose columns') + ib('Export', 'Export this list')
     return row(find(placeholder, width='320px'), *chips, '<span class="grow"></span>', right, style='flex-wrap: wrap')
 
 
@@ -84,7 +88,7 @@ def table(cols, data, label, lead=None):
     """cols: [(heading, css flex)], data: rows of cells; cell 0 may be (title, sub).
     lead: icon per row, or one icon for all."""
     hdr = ''.join(f'<span style="flex: {f}; min-width: 0">{h}</span>' for h, f in cols)
-    pad = '<span style="width: 40px; flex: none"></span>' if lead else ''
+    pad = '<span style="width: 20px; flex: none"></span>' + ('<span style="width: 40px; flex: none"></span>' if lead else '')
     out = [f'<div class="row bs mu" style="gap: 16px; padding: 0 16px 4px">{pad}{hdr}</div>']
     for n, r in enumerate(data):
         cells = []
@@ -97,12 +101,16 @@ def table(cols, data, label, lead=None):
         ic = ''
         if lead:
             ic = f'<span class="lead">{I(lead[n] if isinstance(lead, list) else lead)}</span>'
-        out.append(f'<div class="li" role="row" style="background: var(--sl1)">{ic}{"".join(cells)}</div>')
+        box = f'<input type="checkbox" aria-label="Select row {n + 1}" style="width: 20px; height: 20px; accent-color: #00639B; flex: none">'
+        out.append(f'<div class="li" role="row" style="background: var(--sl1)">{box}{ic}{"".join(cells)}</div>')
     return f'<div class="col" role="table" aria-label="{label}" style="gap: 4px">{"".join(out)}</div>'
 
 
 def setting(icon, title, desc, control=''):
-    return f'@@LI:{icon}|{title}|{desc}@@{control}@@/LI@@'
+    """One setting: what it is, what it does, its control, and its own information button."""
+    d = f'<span class="bs mu">{desc}</span>' if desc else ''
+    tip = f'<button class="ib" style="width: 28px; height: 28px" aria-label="About {title}">{I("InformationOutline", "s")}</button>'
+    return (f'<div class="li"><span class="lead">{I(icon)}</span><span class="col grow"><span class="row" style="gap: 2px"><span class="ll">{title}</span>{tip}</span>{d}</span>{control}</div>')
 
 
 def group(title, *items, note='', style=''):
@@ -187,6 +195,10 @@ def shell(page, name, title, rail, tab, body, h=None, dark=False, pad='20px 48px
 
 def surf(page, name, title, crumb, heading, body, w=1200, h=None, pad='8px 40px 40px', gap=20):
     hh = h or 400
+    foot = (f'<div class="row bs mu" style="gap: 12px; flex-wrap: wrap; padding-top: 4px"><span class="grow">{FOOT}</span>'
+            f'<span class="row" style="gap: 6px">{I("Translate", "s")}English, playfulness 5</span>'
+            f'<span class="row" style="gap: 6px">{I("CursorDefaultClick", "s")}Right-click anything to edit its appearance or lock it</span></div>')
+    body = body + foot
     src = (f"@@HEAD:{title}@@\n@@SURF:{crumb}|{heading}|{hh}@@\n"
            f'<div class="col grow" style="padding: {pad}; gap: {gap}px">\n{body}\n</div>\n'
            f"@@/SURF@@\n@@TAIL:{w},{hh}@@\n")
@@ -205,14 +217,20 @@ def bare(page, name, title, body, w=1200, h=None, dark=False, style='padding: 32
 
 
 def dlg(title, *kids, sub='', actions='', w=360, icon=None, more=True):
-    """An entity dialog: header with close, name and overflow, then the controls."""
+    """An entity dialog: header with close, name, history, settings and more; the controls; then the
+    row every dialog ends with: its own search with a pattern button, edit appearance, and lock."""
     s = f'<span class="bs mu">{sub}</span>' if sub else ''
-    head_ = (f'<header class="row" style="gap: 8px">{ib("Close", "Close")}'
-             f'<div class="col grow"><h2 class="tm">{title}</h2>{s}</div>'
-             + (ib('History', 'History') + ib('Cog', 'Settings') + ib('DotsVertical', 'More') if more else '') + '</header>')
+    def hb(icon_, label_):
+        return f'<button class="ib" style="width: 40px; height: 40px" aria-label="{label_}">{I(icon_, "s")}</button>'
+    head_ = (f'<header class="row" style="gap: 2px">{hb("Close", "Close")}'
+             f'<div class="col grow" style="padding: 0 6px"><h2 class="tm">{title}</h2>{s}</div>'
+             + (hb('History', 'History of ' + title) + hb('Cog', 'Settings of ' + title) + hb('DotsVertical', 'More for ' + title) if more else '') + '</header>')
     a = f'<div class="row" style="gap: 8px; justify-content: center; flex-wrap: wrap">{actions}</div>' if actions else ''
-    return (f'<section class="dlg col" role="dialog" aria-label="{title}" style="width: {w}px; flex: 1 1 {w}px; gap: 16px; padding: 16px 16px 24px">'
-            f'{head_}{"".join(kids)}{a}</section>')
+    foot = (f'<div class="row" style="gap: 4px; padding-top: 4px"><div class="find grow" style="height: 40px; padding-right: 4px"><span class="row grow" style="gap: 8px">{I("Magnify", "s")}'
+            f'<span class="bs">Search this dialog</span></span><button class="ib" style="width: 32px; height: 32px" aria-label="Build a pattern search for {title}">{I("Regex", "s")}</button></div>'
+            + hb('FormatPaint', 'Edit the appearance of ' + title) + hb('LockOutline', 'Lock ' + title) + '</div>')
+    return (f'<section class="dlg col" role="dialog" aria-label="{title}" style="width: {w}px; flex: 1 1 {w}px; gap: 16px; padding: 16px 16px 16px">'
+            f'{head_}{"".join(kids)}{a}{foot}</section>')
 
 
 def big(value, sub='', tone=''):

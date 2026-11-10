@@ -63,7 +63,10 @@ ${tabs}
 <button class="ib" aria-label="New tab" style="width: 40px; height: 40px">${icon("Plus")}</button>
 </div>
 <span class="grow"></span>
-<button class="find" style="width: 280px"><span class="row grow" style="gap: 12px">${icon("Magnify")}<span class="bl">Search</span></span><span class="kbd">Ctrl Shift F</span></button>
+<button class="find" style="width: 320px; padding-right: 52px"><span class="row grow" style="gap: 12px">${icon("Magnify")}<span class="bl">Search</span></span><span class="kbd">Ctrl Shift F</span></button>
+<button class="ib" style="width: 40px; height: 40px; margin-left: -52px; margin-right: 4px" aria-label="Build a pattern search">${icon("Regex", "s")}</button>
+<button class="ib" aria-label="Edit the appearance of this page">${icon("FormatPaint")}</button>
+<button class="ib" aria-label="Language: English. Switch to Cantonese or both">${icon("Translate")}</button>
 <button class="ib" aria-label="Accessibility tools">${icon("HumanHandsup")}</button>
 <button class="av" aria-label="Account, Sam">S</button>
 </header>`;
@@ -114,6 +117,12 @@ function surf(arg) {
 <header class="bar" style="padding-left: 16px; gap: 12px; flex-wrap: nowrap">
 <button class="ib" aria-label="Back">${icon("ArrowLeft")}</button>
 <div class="col grow"><span class="bs mu">${crumb}</span><h1 class="tl">${title}</h1></div>
+<div class="find" style="width: 250px; height: 44px"><span class="row grow" style="gap: 10px">${icon("Magnify", "s")}<span class="bm">Search this page</span></span><button class="ib" style="width: 36px; height: 36px" aria-label="Build a pattern search for this page">${icon("Regex", "s")}</button></div>
+<button class="ib" aria-label="Edit the appearance of this page">${icon("FormatPaint")}</button>
+<button class="ib" aria-label="Read this page aloud">${icon("AccountVoice")}</button>
+<button class="ib" aria-label="History of changes made on this page">${icon("History")}</button>
+<button class="ib" aria-label="Export this page">${icon("Export")}</button>
+<button class="ib" aria-label="Lock this page">${icon("LockOutline")}</button>
 <button class="ib" aria-label="About this page">${icon("HelpCircleOutline")}</button>
 <button class="ib" aria-label="More options">${icon("DotsVertical")}</button>
 </header>`;

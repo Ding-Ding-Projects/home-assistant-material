@@ -1,0 +1,143 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Radios and protocols",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "Zigbee.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 780,
+      "title": "Zigbee network",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ZWave.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 816,
+      "title": "Z-Wave network",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Matter.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 844,
+      "title": "Matter",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Thread.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 744,
+      "title": "Thread networks",
+      "expand": "fill",
+      "page": "all"
+    },
+    "BluetoothPage.dc.html": {
+      "x": 0,
+      "y": 1004,
+      "w": 1200,
+      "h": 858,
+      "title": "Bluetooth",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Mqtt.dc.html": {
+      "x": 1300,
+      "y": 1004,
+      "w": 1200,
+      "h": 890,
+      "title": "MQTT",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Infrared.dc.html": {
+      "x": 2600,
+      "y": 1004,
+      "w": 1200,
+      "h": 722,
+      "title": "Infrared and radio remotes",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Lorawan.dc.html": {
+      "x": 3900,
+      "y": 1004,
+      "w": 1200,
+      "h": 738,
+      "title": "LoRaWAN",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Serial.dc.html": {
+      "x": 0,
+      "y": 2054,
+      "w": 1200,
+      "h": 842,
+      "title": "Serial ports and Modbus",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Discovery.dc.html": {
+      "x": 1300,
+      "y": 2054,
+      "w": 1200,
+      "h": 826,
+      "title": "Network discovery browsers",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AppCredentials.dc.html": {
+      "x": 2600,
+      "y": 2054,
+      "w": 1200,
+      "h": 578,
+      "title": "Application credentials",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "Zigbee.dc.html",
+    "ZWave.dc.html",
+    "Matter.dc.html",
+    "Thread.dc.html",
+    "BluetoothPage.dc.html",
+    "Mqtt.dc.html",
+    "Infrared.dc.html",
+    "Lorawan.dc.html",
+    "Serial.dc.html",
+    "Discovery.dc.html",
+    "AppCredentials.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Radios and protocols. 11 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5100,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

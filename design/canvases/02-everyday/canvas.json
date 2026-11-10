@@ -1,0 +1,173 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Everyday app pages, part 2, with sign-in, first run and About",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "Maintenance.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Maintenance, batteries, updates and offline devices",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Embedded.dc.html": {
+      "x": 1540,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "An app or web page inside the pane",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Profile.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 1200,
+      "h": 720,
+      "title": "Profile, general",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ProfileSecurity.dc.html": {
+      "x": 4380,
+      "y": 0,
+      "w": 1200,
+      "h": 772,
+      "title": "Profile, security",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Assist.dc.html": {
+      "x": 0,
+      "y": 1060,
+      "w": 1200,
+      "h": 672,
+      "title": "Assist, typed and spoken",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Shortcuts.dc.html": {
+      "x": 1300,
+      "y": 1060,
+      "w": 1200,
+      "h": 492,
+      "title": "Keyboard shortcuts",
+      "expand": "fill",
+      "page": "all"
+    },
+    "States.dc.html": {
+      "x": 2600,
+      "y": 1060,
+      "w": 1200,
+      "h": 736,
+      "title": "Empty, lost and loading states",
+      "expand": "fill",
+      "page": "all"
+    },
+    "MyLink.dc.html": {
+      "x": 3900,
+      "y": 1060,
+      "w": 1200,
+      "h": 520,
+      "title": "A link from the web asks to open a page",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SignIn.dc.html": {
+      "x": 0,
+      "y": 1956,
+      "w": 1200,
+      "h": 671,
+      "title": "Sign in, second step, and trusted devices",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Onboarding.dc.html": {
+      "x": 1300,
+      "y": 1956,
+      "w": 1440,
+      "h": 900,
+      "title": "First-run wizard on a Raspberry Pi",
+      "expand": "fill",
+      "page": "all"
+    },
+    "OnboardingSteps.dc.html": {
+      "x": 2840,
+      "y": 1956,
+      "w": 1440,
+      "h": 900,
+      "title": "First run, all six steps",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Landing.dc.html": {
+      "x": 4380,
+      "y": 1956,
+      "w": 1200,
+      "h": 648,
+      "title": "The preparing page, before the first start",
+      "expand": "fill",
+      "page": "all"
+    },
+    "About.dc.html": {
+      "x": 0,
+      "y": 3016,
+      "w": 1200,
+      "h": 700,
+      "title": "About, provenance and updates from this fork",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ReleaseNotes.dc.html": {
+      "x": 1300,
+      "y": 3016,
+      "w": 1200,
+      "h": 640,
+      "title": "Provider text rendered, and its empty state",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "Maintenance.dc.html",
+    "Embedded.dc.html",
+    "Profile.dc.html",
+    "ProfileSecurity.dc.html",
+    "Assist.dc.html",
+    "Shortcuts.dc.html",
+    "States.dc.html",
+    "MyLink.dc.html",
+    "SignIn.dc.html",
+    "Onboarding.dc.html",
+    "OnboardingSteps.dc.html",
+    "Landing.dc.html",
+    "About.dc.html",
+    "ReleaseNotes.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Everyday app pages, part 2, with sign-in, first run and About. 14 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5580,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

@@ -4,7 +4,7 @@
     "v": 1,
     "at": "2026-11-10T04:00:00Z"
   },
-  "title": "System, About and Developer tools",
+  "title": "System pages, part 2, and Developer tools",
   "launch": {
     "view": "canvas",
     "page": "all"
@@ -16,140 +16,150 @@
     }
   ],
   "boards": {
-    "Labs.dc.html": {
+    "Network.dc.html": {
       "x": 0,
       "y": 0,
       "w": 1200,
-      "h": 558,
+      "h": 720,
+      "title": "Network",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Storage.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 788,
+      "title": "Storage",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Hardware.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 850,
+      "title": "Hardware",
+      "expand": "fill",
+      "page": "all"
+    },
+    "General.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 668,
+      "title": "General",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Labs.dc.html": {
+      "x": 0,
+      "y": 1010,
+      "w": 1200,
+      "h": 602,
       "title": "Labs",
       "expand": "fill",
       "page": "all"
     },
     "AiIds.dc.html": {
       "x": 1300,
-      "y": 0,
+      "y": 1010,
       "w": 1200,
-      "h": 592,
+      "h": 644,
       "title": "AI and entity IDs",
       "expand": "fill",
       "page": "all"
     },
     "Restart.dc.html": {
       "x": 2600,
-      "y": 0,
+      "y": 1010,
       "w": 1200,
       "h": 752,
       "title": "Restart options",
       "expand": "fill",
       "page": "all"
     },
-    "About.dc.html": {
-      "x": 3900,
-      "y": 0,
-      "w": 1200,
-      "h": 700,
-      "title": "About, provenance and updates from this fork",
-      "expand": "fill",
-      "page": "all"
-    },
-    "ReleaseNotes.dc.html": {
-      "x": 0,
-      "y": 912,
-      "w": 1200,
-      "h": 640,
-      "title": "Provider text rendered, and its empty state",
-      "expand": "fill",
-      "page": "all"
-    },
-    "Tokens.dc.html": {
-      "x": 1300,
-      "y": 912,
-      "w": 1440,
-      "h": 1000,
-      "title": "Material Design 3 tokens",
-      "expand": "fill",
-      "page": "all"
-    },
     "DevYaml.dc.html": {
-      "x": 2840,
-      "y": 912,
+      "x": 3900,
+      "y": 1010,
       "w": 1200,
-      "h": 716,
+      "h": 760,
       "title": "Developer tools, YAML",
       "expand": "fill",
       "page": "all"
     },
     "DevStates.dc.html": {
-      "x": 4140,
-      "y": 912,
+      "x": 0,
+      "y": 1930,
       "w": 1200,
-      "h": 692,
+      "h": 756,
       "title": "Developer tools, States",
       "expand": "fill",
       "page": "all"
     },
     "DevActions.dc.html": {
-      "x": 0,
-      "y": 2072,
+      "x": 1300,
+      "y": 1930,
       "w": 1200,
-      "h": 836,
+      "h": 880,
       "title": "Developer tools, Actions",
       "expand": "fill",
       "page": "all"
     },
     "DevTemplate.dc.html": {
-      "x": 1300,
-      "y": 2072,
+      "x": 2600,
+      "y": 1930,
       "w": 1200,
-      "h": 720,
+      "h": 764,
       "title": "Developer tools, Template",
       "expand": "fill",
       "page": "all"
     },
     "DevEvents.dc.html": {
-      "x": 2600,
-      "y": 2072,
+      "x": 3900,
+      "y": 1930,
       "w": 1200,
-      "h": 786,
+      "h": 830,
       "title": "Developer tools, Events",
       "expand": "fill",
       "page": "all"
     },
     "DevStatistics.dc.html": {
-      "x": 3900,
-      "y": 2072,
+      "x": 0,
+      "y": 2970,
       "w": 1200,
-      "h": 708,
+      "h": 752,
       "title": "Developer tools, Statistics",
       "expand": "fill",
       "page": "all"
     },
     "DevAssist.dc.html": {
-      "x": 0,
-      "y": 3068,
+      "x": 1300,
+      "y": 2970,
       "w": 1200,
-      "h": 608,
+      "h": 652,
       "title": "Developer tools, Assist",
       "expand": "fill",
       "page": "all"
     },
     "DevDebug.dc.html": {
-      "x": 1300,
-      "y": 3068,
+      "x": 2600,
+      "y": 2970,
       "w": 1200,
-      "h": 692,
+      "h": 736,
       "title": "Developer tools, Debug and action history",
       "expand": "fill",
       "page": "all"
     }
   },
   "order": [
+    "Network.dc.html",
+    "Storage.dc.html",
+    "Hardware.dc.html",
+    "General.dc.html",
     "Labs.dc.html",
     "AiIds.dc.html",
     "Restart.dc.html",
-    "About.dc.html",
-    "ReleaseNotes.dc.html",
-    "Tokens.dc.html",
     "DevYaml.dc.html",
     "DevStates.dc.html",
     "DevActions.dc.html",
@@ -163,9 +173,9 @@
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "System, About and Developer tools. 14 boards, all on this one page.",
+      "text": "System pages, part 2, and Developer tools. 15 boards, all on this one page.",
       "kind": "title1",
-      "maxW": 5340,
+      "maxW": 5100,
       "page": "all"
     }
   },

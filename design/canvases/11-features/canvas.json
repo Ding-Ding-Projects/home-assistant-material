@@ -4,7 +4,7 @@
     "v": 1,
     "at": "2026-11-10T04:00:00Z"
   },
-  "title": "Required features: records, history and built-in tools",
+  "title": "required features: records, history and built-in tools",
   "launch": {
     "view": "canvas",
     "page": "all"
@@ -163,7 +163,7 @@
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Required features: records, history and built-in tools. 14 boards, all on this one page.",
+      "text": "required features: records, history and built-in tools. 14 boards, all on this one page.",
       "kind": "title1",
       "maxW": 5100,
       "page": "all"

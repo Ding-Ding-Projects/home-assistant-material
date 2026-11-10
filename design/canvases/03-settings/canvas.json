@@ -4,7 +4,7 @@
     "v": 1,
     "at": "2026-11-10T04:00:00Z"
   },
-  "title": "Settings pages, part 1: devices and automations",
+  "title": "Settings pages, part 1: devices, and automations with tests, history and their Git repositories",
   "launch": {
     "view": "canvas",
     "page": "all"
@@ -16,35 +16,8 @@
     }
   ],
   "boards": {
-    "SettingsHome.dc.html": {
-      "x": 0,
-      "y": 0,
-      "w": 1440,
-      "h": 900,
-      "title": "Settings, the home of settings",
-      "expand": "fill",
-      "page": "all"
-    },
-    "Settings.dc.html": {
-      "x": 1540,
-      "y": 0,
-      "w": 1440,
-      "h": 980,
-      "title": "app settings that explain themselves",
-      "expand": "fill",
-      "page": "all"
-    },
-    "Cloud.dc.html": {
-      "x": 3080,
-      "y": 0,
-      "w": 1200,
-      "h": 848,
-      "title": "Home Assistant Cloud",
-      "expand": "fill",
-      "page": "all"
-    },
     "Integrations.dc.html": {
-      "x": 4380,
+      "x": 0,
       "y": 0,
       "w": 1200,
       "h": 926,
@@ -53,8 +26,8 @@
       "page": "all"
     },
     "IntegrationPage.dc.html": {
-      "x": 0,
-      "y": 1140,
+      "x": 1300,
+      "y": 0,
       "w": 1200,
       "h": 680,
       "title": "One integration",
@@ -62,8 +35,8 @@
       "page": "all"
     },
     "AddIntegration.dc.html": {
-      "x": 1300,
-      "y": 1140,
+      "x": 2600,
+      "y": 0,
       "w": 1200,
       "h": 572,
       "title": "Add integration, pick, set up, assign areas",
@@ -71,8 +44,8 @@
       "page": "all"
     },
     "Devices.dc.html": {
-      "x": 2600,
-      "y": 1140,
+      "x": 3900,
+      "y": 0,
       "w": 1200,
       "h": 806,
       "title": "Devices",
@@ -80,8 +53,8 @@
       "page": "all"
     },
     "Device.dc.html": {
-      "x": 3900,
-      "y": 1140,
+      "x": 0,
+      "y": 1086,
       "w": 1200,
       "h": 744,
       "title": "One device",
@@ -89,8 +62,8 @@
       "page": "all"
     },
     "Entities.dc.html": {
-      "x": 0,
-      "y": 2106,
+      "x": 1300,
+      "y": 1086,
       "w": 1200,
       "h": 790,
       "title": "Entities",
@@ -98,8 +71,8 @@
       "page": "all"
     },
     "EntitySettings.dc.html": {
-      "x": 1300,
-      "y": 2106,
+      "x": 2600,
+      "y": 1086,
       "w": 1200,
       "h": 768,
       "title": "Entity settings",
@@ -107,8 +80,8 @@
       "page": "all"
     },
     "Helpers.dc.html": {
-      "x": 2600,
-      "y": 2106,
+      "x": 3900,
+      "y": 1086,
       "w": 1200,
       "h": 762,
       "title": "Helpers",
@@ -116,8 +89,8 @@
       "page": "all"
     },
     "Automations.dc.html": {
-      "x": 3900,
-      "y": 2106,
+      "x": 0,
+      "y": 2036,
       "w": 1200,
       "h": 806,
       "title": "Automations",
@@ -125,37 +98,61 @@
       "page": "all"
     },
     "AutomationEditor.dc.html": {
-      "x": 0,
-      "y": 3072,
+      "x": 1300,
+      "y": 2036,
       "w": 1200,
       "h": 1108,
       "title": "Automation editor",
       "expand": "fill",
       "page": "all"
     },
-    "AutomationTrace.dc.html": {
+    "AutomationChoose.dc.html": {
+      "x": 2600,
+      "y": 2036,
+      "w": 1200,
+      "h": 1904,
+      "title": "Choose between options, with a test on every option and condition",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AutomationHistory.dc.html": {
+      "x": 3900,
+      "y": 2036,
+      "w": 1200,
+      "h": 1258,
+      "title": "History manager for automations: test and run versions in bulk",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AutomationRepo.dc.html": {
+      "x": 0,
+      "y": 4100,
+      "w": 1200,
+      "h": 905,
+      "title": "One repository for each automation",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AutomationsMaster.dc.html": {
       "x": 1300,
-      "y": 3072,
+      "y": 4100,
+      "w": 1200,
+      "h": 1216,
+      "title": "The master repository of all automations",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AutomationTrace.dc.html": {
+      "x": 2600,
+      "y": 4100,
       "w": 1200,
       "h": 612,
       "title": "Automation trace, one past run",
       "expand": "fill",
       "page": "all"
-    },
-    "Scenes.dc.html": {
-      "x": 2600,
-      "y": 3072,
-      "w": 1200,
-      "h": 842,
-      "title": "Scenes",
-      "expand": "fill",
-      "page": "all"
     }
   },
   "order": [
-    "SettingsHome.dc.html",
-    "Settings.dc.html",
-    "Cloud.dc.html",
     "Integrations.dc.html",
     "IntegrationPage.dc.html",
     "AddIntegration.dc.html",
@@ -166,16 +163,19 @@
     "Helpers.dc.html",
     "Automations.dc.html",
     "AutomationEditor.dc.html",
-    "AutomationTrace.dc.html",
-    "Scenes.dc.html"
+    "AutomationChoose.dc.html",
+    "AutomationHistory.dc.html",
+    "AutomationRepo.dc.html",
+    "AutomationsMaster.dc.html",
+    "AutomationTrace.dc.html"
   ],
   "notes": {
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Settings pages, part 1: devices and automations. 15 boards, all on this one page.",
+      "text": "Settings pages, part 1: devices, and automations with tests, history and their Git repositories. 15 boards, all on this one page.",
       "kind": "title1",
-      "maxW": 5580,
+      "maxW": 5100,
       "page": "all"
     }
   },

@@ -4,7 +4,7 @@
     "v": 1,
     "at": "2026-11-10T04:00:00Z"
   },
-  "title": "Settings pages, part 3, and the System pages",
+  "title": "Settings pages, part 3: voice, people, cloud, and the first System pages",
   "launch": {
     "view": "canvas",
     "page": "all"
@@ -16,8 +16,35 @@
     }
   ],
   "boards": {
-    "Tags.dc.html": {
+    "VoiceAssistants.dc.html": {
       "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 674,
+      "title": "Voice assistants",
+      "expand": "fill",
+      "page": "all"
+    },
+    "VoicePipeline.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 788,
+      "title": "One voice assistant, its four stages",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Expose.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 798,
+      "title": "Expose entities to assistants",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Tags.dc.html": {
+      "x": 3900,
       "y": 0,
       "w": 1200,
       "h": 526,
@@ -26,8 +53,8 @@
       "page": "all"
     },
     "People.dc.html": {
-      "x": 1300,
-      "y": 0,
+      "x": 0,
+      "y": 958,
       "w": 1200,
       "h": 690,
       "title": "People",
@@ -35,8 +62,8 @@
       "page": "all"
     },
     "Users.dc.html": {
-      "x": 2600,
-      "y": 0,
+      "x": 1300,
+      "y": 958,
       "w": 1200,
       "h": 798,
       "title": "Users",
@@ -44,136 +71,109 @@
       "page": "all"
     },
     "EnergyConfig.dc.html": {
-      "x": 3900,
-      "y": 0,
+      "x": 2600,
+      "y": 958,
       "w": 1200,
       "h": 862,
       "title": "Energy setup",
       "expand": "fill",
       "page": "all"
     },
+    "Cloud.dc.html": {
+      "x": 3900,
+      "y": 958,
+      "w": 1200,
+      "h": 848,
+      "title": "Home Assistant Cloud",
+      "expand": "fill",
+      "page": "all"
+    },
     "System.dc.html": {
       "x": 0,
-      "y": 1022,
+      "y": 1980,
       "w": 1200,
-      "h": 856,
+      "h": 900,
       "title": "System",
       "expand": "fill",
       "page": "all"
     },
     "Updates.dc.html": {
       "x": 1300,
-      "y": 1022,
+      "y": 1980,
       "w": 1200,
-      "h": 844,
+      "h": 888,
       "title": "Updates",
       "expand": "fill",
       "page": "all"
     },
     "Repairs.dc.html": {
       "x": 2600,
-      "y": 1022,
+      "y": 1980,
       "w": 1200,
-      "h": 662,
+      "h": 706,
       "title": "Repairs",
       "expand": "fill",
       "page": "all"
     },
     "Logs.dc.html": {
       "x": 3900,
-      "y": 1022,
+      "y": 1980,
       "w": 1200,
-      "h": 718,
+      "h": 762,
       "title": "Logs",
       "expand": "fill",
       "page": "all"
     },
     "Backups.dc.html": {
       "x": 0,
-      "y": 2038,
+      "y": 3040,
       "w": 1200,
-      "h": 848,
+      "h": 892,
       "title": "Backups",
       "expand": "fill",
       "page": "all"
     },
     "BackupSettings.dc.html": {
       "x": 1300,
-      "y": 2038,
+      "y": 3040,
       "w": 1200,
-      "h": 768,
+      "h": 812,
       "title": "Backup settings",
       "expand": "fill",
       "page": "all"
     },
     "Analytics.dc.html": {
       "x": 2600,
-      "y": 2038,
+      "y": 3040,
       "w": 1200,
-      "h": 574,
+      "h": 618,
       "title": "Analytics",
-      "expand": "fill",
-      "page": "all"
-    },
-    "Network.dc.html": {
-      "x": 3900,
-      "y": 2038,
-      "w": 1200,
-      "h": 676,
-      "title": "Network",
-      "expand": "fill",
-      "page": "all"
-    },
-    "Storage.dc.html": {
-      "x": 0,
-      "y": 3046,
-      "w": 1200,
-      "h": 744,
-      "title": "Storage",
-      "expand": "fill",
-      "page": "all"
-    },
-    "Hardware.dc.html": {
-      "x": 1300,
-      "y": 3046,
-      "w": 1200,
-      "h": 806,
-      "title": "Hardware",
-      "expand": "fill",
-      "page": "all"
-    },
-    "General.dc.html": {
-      "x": 2600,
-      "y": 3046,
-      "w": 1200,
-      "h": 624,
-      "title": "General",
       "expand": "fill",
       "page": "all"
     }
   },
   "order": [
+    "VoiceAssistants.dc.html",
+    "VoicePipeline.dc.html",
+    "Expose.dc.html",
     "Tags.dc.html",
     "People.dc.html",
     "Users.dc.html",
     "EnergyConfig.dc.html",
+    "Cloud.dc.html",
     "System.dc.html",
     "Updates.dc.html",
     "Repairs.dc.html",
     "Logs.dc.html",
     "Backups.dc.html",
     "BackupSettings.dc.html",
-    "Analytics.dc.html",
-    "Network.dc.html",
-    "Storage.dc.html",
-    "Hardware.dc.html",
-    "General.dc.html"
+    "Analytics.dc.html"
   ],
   "notes": {
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Settings pages, part 3, and the System pages. 15 boards, all on this one page.",
+      "text": "Settings pages, part 3: voice, people, cloud, and the first System pages. 15 boards, all on this one page.",
       "kind": "title1",
       "maxW": 5100,
       "page": "all"

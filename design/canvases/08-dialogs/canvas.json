@@ -1,0 +1,153 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Entity dialogs, all 34 kinds",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "More1.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 750,
+      "title": "Entity dialogs: light, climate, cover",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More2.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 804,
+      "title": "Entity dialogs: lock, alarm, camera",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More3.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 816,
+      "title": "Entity dialogs: media player, vacuum, fan",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More4.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 838,
+      "title": "Entity dialogs: weather, sensor, update",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More5.dc.html": {
+      "x": 0,
+      "y": 998,
+      "w": 1200,
+      "h": 786,
+      "title": "Entity dialogs: person, timer, counter",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More6.dc.html": {
+      "x": 1300,
+      "y": 998,
+      "w": 1200,
+      "h": 850,
+      "title": "Entity dialogs: humidifier, water heater, valve",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More7.dc.html": {
+      "x": 2600,
+      "y": 998,
+      "w": 1200,
+      "h": 826,
+      "title": "Entity dialogs: siren, lawn mower, remote",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More8.dc.html": {
+      "x": 3900,
+      "y": 998,
+      "w": 1200,
+      "h": 806,
+      "title": "Entity dialogs: switch, toggle, group",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More9.dc.html": {
+      "x": 0,
+      "y": 2008,
+      "w": 1200,
+      "h": 750,
+      "title": "Entity dialogs: automation, script, conversation",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More10.dc.html": {
+      "x": 1300,
+      "y": 2008,
+      "w": 1200,
+      "h": 748,
+      "title": "Entity dialogs: date, time, date and time",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More11.dc.html": {
+      "x": 2600,
+      "y": 2008,
+      "w": 1200,
+      "h": 852,
+      "title": "Entity dialogs: sun, image, calendar",
+      "expand": "fill",
+      "page": "all"
+    },
+    "More12.dc.html": {
+      "x": 3900,
+      "y": 2008,
+      "w": 1200,
+      "h": 892,
+      "title": "Entity dialogs: setup step, any other entity, and what every dialog shares",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "More1.dc.html",
+    "More2.dc.html",
+    "More3.dc.html",
+    "More4.dc.html",
+    "More5.dc.html",
+    "More6.dc.html",
+    "More7.dc.html",
+    "More8.dc.html",
+    "More9.dc.html",
+    "More10.dc.html",
+    "More11.dc.html",
+    "More12.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Entity dialogs, all 34 kinds. 12 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5100,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

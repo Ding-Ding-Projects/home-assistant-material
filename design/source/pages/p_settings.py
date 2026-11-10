@@ -206,7 +206,11 @@ body = row(
          frow(field('Offset', '15 minutes'), seg(['Before', 'After'], 'Before', 'Direction')),
          note('Today that is 4:43 pm. It moves a minute or two each day.'), setting('Identifier', 'Trigger ID', 'Lets a later step tell which trigger fired', btn('Add', 'text', None, True)),
          row(btn('Edit as code', 'text', 'CodeBraces', True), '<span class="grow"></span>', btn('Test', 'out', 'Play', True)), label='Step editor', style='flex: 2; min-width: 0; padding: 24px; align-self: flex-start'),
-    gap=20, style='align-items: flex-start') + row(btn('Run now', 'out', 'Play'), btn('See past runs', 'text', 'TransitConnection'), '<span class="grow"></span>', '<span class="bs mu">Saved 4 minutes ago</span>', btn('Save', 'fill', 'ContentSave'))
+    gap=20, style='align-items: flex-start') + (
+    f'<div class="row" style="gap: 12px; background: var(--sl2); border-radius: 24px; padding: 12px 12px 12px 20px; flex-wrap: wrap">{I("SourceRepository")}'
+    '<div class="col grow" style="min-width: 240px"><span class="ll">This automation is its own repository</span><span class="bs mu mono">automations/evening-lights, branch main, 2 changes since the last commit</span></div>'
+    + btn('See the changes', 'text', 'FileCompare', True) + btn('History, 14 commits', 'text', 'History', True) + btn('Try on a branch', 'out', 'SourceBranch', True) + btn('Commit', 'tonal', 'SourceCommit', True) + '</div>'
+    ) + row(btn('Run now', 'out', 'Play'), btn('Dry run', 'out', 'TestTube'), btn('See past runs', 'text', 'TransitConnection'), '<span class="grow"></span>', '<span class="bs mu">Saved 4 minutes ago</span>', btn('Save', 'fill', 'ContentSave'))
 surf(P, 'AutomationEditor', 'Automation editor', 'Settings, Automations', 'Edit automation', body)
 
 # ---------- Automation trace ----------
@@ -225,6 +229,137 @@ body = row(
          row(btn('Download this trace', 'text', 'Download', True), '<span class="grow"></span>', btn('Open in the editor', 'out', 'Pencil', True)), label='Step details', style='flex: 2; min-width: 0; padding: 24px'),
     gap=20, style='align-items: flex-start')
 surf(P, 'AutomationTrace', 'Automation trace, one past run', 'Settings, Automations, Evening lights', 'Past runs', body)
+
+# ---------- Choose, with a test on every option and every condition ----------
+def cond(text, result, detail):
+    c, word = (('greenc', 'True now') if result else ('errc', 'False now'))
+    return (f'<div class="li" style="background: var(--sl0); min-height: 60px">{I("DragVertical", "s")}<span class="col grow"><span class="ll">{text}</span><span class="bs mu">{detail}</span></span>'
+            f'<span class="tag" style="background: var(--{c}); color: var(--on)">{word}</span>{btn("Test", "text", "TestTube", True)}{ib("DotsVertical", "Condition options")}</div>')
+def option(n, title, would, conds, actions_, tone, chosen=False):
+    ring = 'box-shadow: 0 0 0 3px var(--p)' if chosen else ''
+    badge = tag('Would run now', 'g') if chosen else tag('Would be skipped now')
+    return card(row(f'<span class="tag" style="background: var(--{tone}); color: var(--on); height: 28px; font-size: 13px">Option {n}</span>', f'<h2 class="tm grow">{title}</h2>', badge, btn('Run test', 'tonal', 'Play', True), ib('DotsVertical', f'Option {n} options')),
+                '<span class="ll mu">If all of these are true</span>', *conds, row(btn('Add condition', 'text', 'Plus', True)), '<span class="ll mu">Then do</span>', *actions_, row(btn('Add action', 'text', 'Plus', True), '<span class="grow"></span>', f'<span class="bs mu">{would}</span>'),
+                label=f'Option {n}: {title}', style=f'padding: 20px; {ring}', gap=8)
+def act(icon, title, sub): return f'<div class="li" style="background: var(--sl0); min-height: 60px">{I("DragVertical", "s")}<span class="lead">{I(icon)}</span><span class="col grow"><span class="ll">{title}</span><span class="bs mu">{sub}</span></span>{btn("Run", "text", "Play", True)}</div>'
+body = row(
+    col(row('<div class="col grow" style="gap: 4px"><h1 class="hs">Choose what to do when someone arrives</h1><p class="bm mu">The first option whose conditions are all true runs. The others are skipped.</p></div>', btn('Test every option', 'fill', 'TestTube')),
+        option(1, 'It is dark and nobody else is home', 'Test at 21:14: skipped, 1 of 2 conditions false',
+               [cond('Sun: below the horizon', True, 'The sun set at 4:58 pm'), cond('Number of people home: equals 0', False, 'It is 2: Sam and Mika')], [act('LightbulbOn', 'Turn on the hallway and porch lights', '100%, for 10 minutes')], 'pc'),
+        option(2, 'It is dark and someone is home', 'Test at 21:14: would run, 2 actions, about 0.4 seconds',
+               [cond('Sun: below the horizon', True, 'The sun set at 4:58 pm'), cond('Guest mode: equals off', True, 'Off since Sunday')], [act('LightbulbOn', 'Turn on the porch light', '60%, for 5 minutes'), act('Bullhorn', 'Say “Welcome home” in the hallway', 'Only between 7 am and 10 pm')], 'tc', True),
+        option(3, 'The alarm is armed', 'Test at 21:14: not reached, option 2 ran first',
+               [cond('Alarm: equals armed away', False, 'It is armed home')], [act('BellRing', 'Ask the person arriving to disarm', 'A notification with a Disarm button')], 'amberc'),
+        card(row('<span class="tag" style="height: 28px; font-size: 13px">Otherwise</span>', '<h2 class="tm grow">If no option matched</h2>', btn('Run test', 'tonal', 'Play', True)), act('TextBoxOutline', 'Write a line in the log', '“Arrival with no matching option”'), label='Otherwise', style='padding: 20px', gap=8),
+        row(btn('Add option', 'tonal', 'Plus'), '<span class="grow"></span>'), gap=12, style='flex: 3; min-width: 0'),
+    col(card('<h2 class="tl">Test with</h2>', seg(['The home as it is now', 'A saved moment', 'Values I set'], 'The home as it is now', 'Test data'),
+             '<p class="bm mu">A test checks conditions for real and <b>pretends</b> the actions: nothing in the house changes. Run does them for real.</p>',
+             kv(('Sun', 'Below the horizon'), ('People home', '2'), ('Guest mode', 'Off'), ('Alarm', 'Armed home'), ('Time', '9:14 pm')),
+             row(btn('Change a value for this test', 'text', 'Pencil', True)), label='Test data', style='padding: 24px'),
+        card(row('<h2 class="tl grow">Last test</h2>', tag('Option 2', 'g')), kv(('Checked', '5 conditions in 3 ms'), ('Chosen', 'Option 2, it is dark and someone is home'), ('Would do', '2 actions'), ('Would take', 'About 0.4 seconds')),
+             note('Option 3 can never run while option 2 matches first. Drag it above option 2 if the alarm should win.', 'warn', 'Alert'),
+             row(btn('Save as a test case', 'out', 'ContentSave', True), btn('See the steps', 'text', 'TransitConnection', True)), label='Last test result', style='padding: 24px'),
+        gap=12, style='flex: 2; min-width: 0'),
+    gap=20, style='align-items: flex-start')
+surf(P, 'AutomationChoose', 'Choose between options, with a test on every option and condition', 'Settings, Automations, Arrival', 'Edit a Choose step', body)
+
+# ---------- History manager ----------
+def cell(state):
+    c, ic, lab = {'pass': ('greenc', 'Check', 'Pass'), 'fail': ('errc', 'Close', 'Fail'), 'none': ('sl3', 'Minus', 'Not tested'), 'run': ('pc', 'ProgressClock', 'Testing')}[state]
+    return f'<span role="img" aria-label="{lab}" style="width: 32px; height: 32px; border-radius: 10px; background: var(--{c}); color: var(--on); display: grid; place-items: center">{I(ic, "s")}</span>'
+def vrow(name, sha, when, cells, live=False, checked=False):
+    return (f'<div class="li" role="row" style="background: var(--{"pc" if checked else "sl1"}); min-height: 60px"><input type="checkbox" {"checked " if checked else ""}aria-label="Select {name} {sha}" style="width: 20px; height: 20px; accent-color: #00639B; flex: none">'
+            f'<span class="col" style="flex: 4; min-width: 0"><span class="ll">{name}</span><span class="bs mu">{when}</span></span><span class="mono bs" style="flex: 1.4">{sha}</span>'
+            f'<span style="flex: 1.4">{tag("Live", "p") if live else ""}</span><span class="row" style="flex: 3; gap: 6px">{"".join(cell(c) for c in cells)}</span>'
+            f'{btn("Test", "text", "TestTube", True)}{ib("DotsVertical", "More for this version")}</div>')
+body = (
+    tabs(['Automations', 'History manager', 'Test cases', 'Schedules'], 'History manager')
+    + row('<div class="col grow" style="gap: 6px; min-width: 280px"><h1 class="hl">History manager</h1><p class="bl mu">Every version of every automation, with its test results. Test or run many at once.</p></div>',
+          select('Automation', 'All 18'), select('Versions', 'Last 30 days'), style='flex-wrap: wrap; align-items: flex-end')
+    + f'<div class="row" style="gap: 12px; background: var(--inv); color: var(--on-inv); border-radius: 24px; padding: 8px 8px 8px 20px; flex-wrap: wrap"><span class="tm">3 versions selected</span>'
+    + btn('Select every live version', 'text', None, True, 'color: var(--on-inv)') + '<span class="grow"></span>'
+    + btn('Test selected', 'tonal', 'TestTube', True, 'background: var(--sl0); color: var(--on)') + btn('Run selected', 'tonal', 'Play', True, 'background: var(--sl0); color: var(--on)') + btn('Compare', 'tonal', 'FileCompare', True, 'background: var(--sl0); color: var(--on)')
+    + btn('Make live', 'tonal', 'Restore', True, 'background: var(--sl0); color: var(--on)') + btn('Export', 'tonal', 'Export', True, 'background: var(--sl0); color: var(--on)') + '</div>'
+    + row(
+        col(toolbar('Search versions and messages', chip('Failing', False), chip('Live', True), chip('Never tested')),
+            '<div class="row bs mu" style="gap: 16px; padding: 0 16px 4px"><span style="width: 20px"></span><span style="flex: 4">Version</span><span style="flex: 1.4">Commit</span><span style="flex: 1.4"></span><span style="flex: 3">Test cases: sunset, dark inside, nobody home, guest mode</span><span style="width: 128px"></span></div>',
+            vrow('Evening lights: trigger 15 minutes before sunset', 'working', 'Not committed, now', ['run', 'run', 'none', 'none'], False, True),
+            vrow('Evening lights: dim to 60% instead of 80%', 'a41c9e2', 'Sam, today 8:51 pm', ['pass', 'pass', 'pass', 'pass'], True, True),
+            vrow('Evening lights: wait until 11 pm, then stop', '7be03d1', 'Sam, yesterday', ['pass', 'pass', 'fail', 'pass']),
+            vrow('Bathroom fan: stop at 55% instead of 50%', '3c8f210', 'Mika, today 7:20 am', ['pass', 'pass', 'none', 'none'], True, True),
+            vrow('Lock up at night: also check the garage', 'e02b7aa', 'Sam, Saturday', ['pass', 'fail', 'pass', 'pass'], True),
+            row('<span class="bs mu grow">Showing 5 of 126 versions across 18 automations.</span>', btn('Load more', 'text', None, True)), gap=4, style='flex: 3; min-width: 0'),
+        col(card(row('<h2 class="tl grow">Bulk test</h2>', tag('Running', 'p')), track(42, '5 of 12 tests done'), '<span class="bm mu">3 versions against 4 test cases: 12 tests. 5 done, 5 passed. About 6 seconds left.</span>',
+                 kv(('Tests pretend the actions', 'Nothing in the house changes'), ('Each test is limited to', '10 seconds'), ('Runs at once', '4')), row(btn('Stop', 'out', 'Stop', True), '<span class="grow"></span>', btn('Open the results', 'text', None, True)), label='Bulk test', style='padding: 24px'),
+            card('<h2 class="tl">Bulk run</h2>', '<p class="bm mu">Runs the actions of each selected automation <b>for real</b>, one after another, at the live version.</p>',
+                 setting('ShieldCheck', 'Ask before each one', 'Shows what it will do first', sw(True, 'Ask before each run')), setting('LockOutline', 'Skip locks, doors and alarms', 'They need their own confirmation', sw(True, 'Skip locks, doors and alarms')),
+                 row('<span class="grow"></span>', btn('Run 3 automations', 'fill', 'Play', True)), label='Bulk run', style='padding: 24px'),
+            card('<h2 class="tl">Why e02b7aa fails “dark inside”</h2>', '<span class="bm">Expected the garage check before locking. The lock action ran first.</span>', row(btn('See the steps', 'text', 'TransitConnection', True), btn('Open that version', 'out', 'Pencil', True)), label='A failing test', style='padding: 24px; background: var(--errc); color: var(--on-errc)'),
+            gap=12, style='flex: 2; min-width: 0'),
+        gap=20, style='align-items: flex-start')
+)
+surf(P, 'AutomationHistory', 'History manager for automations: test and run versions in bulk', 'Settings, Automations and scenes', 'Automations', body)
+
+# ---------- One repository per automation ----------
+def commit(msg, who, when, sha, sel=False, tagtext=''):
+    ring = 'background: var(--pc); color: var(--on-pc)' if sel else 'background: var(--sl1)'
+    t_ = tag(tagtext, 'g') if tagtext else ''
+    return (f'<button class="li" style="{ring}; min-height: 60px"><span style="width: 12px; height: 12px; border-radius: 6px; background: var(--p); flex: none; box-shadow: 0 0 0 4px var(--sl0)"></span>'
+            f'<span class="col grow"><span class="ll">{msg}</span><span class="bs{"" if sel else " mu"}">{who}, {when}</span></span>{t_}<span class="mono bs">{sha}</span></button>')
+def diffline(kind, text):
+    c = {'+': ('greenc', 'green', 'Plus'), '-': ('errc', 'on-errc', 'Minus'), '~': ('amberc', 'amber', 'Pencil')}[kind]
+    return f'<div class="row" style="gap: 12px; background: var(--{c[0]}); color: var(--{c[1]}); border-radius: 16px; padding: 10px 16px">{I(c[2], "s")}<span class="bm grow">{text}</span></div>'
+body = (
+    row(f'<span class="sq" style="background: var(--pc); color: var(--on-pc)">{I("SourceRepository")}</span>',
+        '<div class="col grow" style="gap: 2px"><h1 class="hs">Evening lights</h1><span class="bm mu mono">automations/evening-lights</span></div>',
+        select('Branch', 'main'), btn('New branch', 'out', 'SourceBranch', True), btn('Open the editor', 'tonal', 'Pencil', True), gap=16)
+    + row(
+        col(toolbar('Search commits', chip('By Sam'), chip('Tagged'), right=''),
+            commit('Not committed yet: 2 changes', 'You', 'now', 'working', True),
+            commit('Dim to 60% instead of 80%', 'Sam', 'today, 8:51 pm', 'a41c9e2'), commit('Wait until 11 pm, then stop', 'Sam', 'yesterday', '7be03d1', False, 'works well'),
+            commit('Also trigger when it gets dark inside', 'Mika', '3 November', '20f6a1b'), commit('Close the blinds too', 'Sam', '28 October', 'c9d2e77'), commit('First version, from the blueprint', 'Sam', '12 October', '0e11f04'),
+            row('<span class="bs mu grow">14 commits. One is made each time you choose Commit, with a message suggested from what changed.</span>', btn('Show all', 'text', None, True)), gap=4, style='flex: 1; min-width: 0'),
+        card(row('<h2 class="tl grow">Not committed yet</h2>', seg(['Steps', 'YAML'], 'Steps', 'Show the changes as')),
+             diffline('~', 'Trigger “The sun sets”: offset 30 minutes before → <b>15 minutes before</b>'), diffline('+', 'New action after “Close the blinds”: <b>Wait until 11 pm</b>'),
+             '<span class="bs mu">Compared with the last commit, a41c9e2.</span>',
+             f'<label class="field focus">{I("MessageText", "s")}<span class="col grow"><span class="bs mu">Commit message, suggested</span><span class="bl">Trigger 15 minutes before sunset, wait until 11 pm</span></span></label>',
+             row(btn('Discard changes', 'text', 'Undo', True), '<span class="grow"></span>', btn('Commit and push', 'out', 'CloudUpload', True), btn('Commit', 'fill', 'SourceCommit', True)),
+             '<div class="div"></div>',
+             group('', setting('Restore', 'Go back to a commit', 'Loads it into the editor. Nothing is lost: going back is a new commit', I('ChevronRight')), setting('FileCompare', 'Compare any two commits', 'Side by side, as steps or as YAML', I('ChevronRight')),
+                   setting('SourceMerge', 'Merge a branch', '1 branch: try-motion-sensor, 2 commits ahead', btn('Review', 'tonal', None, True)), setting('Tag', 'Tag this state', 'A name you can find again, such as “works well”', I('ChevronRight')), style='padding: 0; background: none'),
+             label='Changes not committed yet', style='flex: 1; min-width: 0; padding: 24px'),
+        gap=20, style='align-items: flex-start')
+)
+surf(P, 'AutomationRepo', 'One repository for each automation', 'Settings, Automations, Evening lights', 'Version history', body)
+
+# ---------- The master repository of all automations ----------
+def repo(name, path, state, tone, detail):
+    return [(name, f'<span class="mono">{path}</span>'), tag(state, tone), detail]
+body = (
+    row('<section class="card hero col grow" aria-label="All automations" style="background: var(--pc); color: var(--on-pc); gap: 8px">' + row(I('SourceRepositoryMultiple', 'l'), '<span class="ll">All automations, one master repository</span>')
+        + '<span class="hl">3 automations have changes to push</span><span class="bl">18 automation repositories sit inside the master repository. One push commits every one of them, then the master, and sends it all.</span></section>',
+        col(btn('Commit all and push', 'fill lg', 'CloudUpload'), btn('Pull', 'tonal lg', 'SourcePull'), btn('Remote settings', 'out lg', 'Cog'), gap=8, style='justify-content: center'), gap=24, style='align-items: stretch')
+    + row(
+        col(toolbar('Search automation repositories', chip('With changes', True), chip('Ahead of the remote'), chip('Clean')),
+            table([('Automation', 4), ('State', 2), ('What a push will do', 4)],
+                  [repo('Evening lights', 'automations/evening-lights', '2 changes', 'a', 'Commit them, then push 1 commit'), repo('Bathroom fan', 'automations/bathroom-fan', '1 change', 'a', 'Commit it, then push 1 commit'),
+                   repo('Lock up at night', 'automations/lock-up-at-night', '2 commits ahead', 'p', 'Push 2 commits'), repo('Laundry is done', 'automations/laundry-is-done', 'Clean', 'g', 'Nothing'),
+                   repo('Holiday lights', 'automations/holiday-lights', 'Clean', 'g', 'Nothing')], 'Automation repositories', 'SourceRepository'),
+            '<span class="bs mu">Showing 5 of 18. A new automation gets its own repository the first time it is saved.</span>', gap=12, style='flex: 3; min-width: 0'),
+        card('<h2 class="tl">What “Commit all and push” does</h2>',
+             *[f'<div class="row" style="gap: 12px; align-items: flex-start"><span class="tag p" style="height: 28px; min-width: 28px; justify-content: center">{n}</span><span class="col grow"><span class="ll">{t_}</span><span class="bs mu">{d}</span></span></div>'
+               for n, t_, d in [(1, 'Checks every automation', 'Each must load without errors. One that does not is left out and named.'), (2, 'Commits each repository that changed', '2 here, each with its own suggested message.'),
+                                (3, 'Commits the master repository', 'It records which commit each automation is at, so the whole set can be restored together.'), (4, 'Pushes everything', 'To github.com, repository home/automations, over SSH. Never forced.')]],
+             field('Message for the master commit', 'Evening lights and bathroom fan, 9 November', 'MessageText'),
+             note('If the remote has commits you do not have, the push stops and offers Pull first. Nothing is overwritten.', '', 'ShieldCheck'),
+             row(btn('Preview every change', 'text', 'FileCompare', True), '<span class="grow"></span>', btn('Commit all and push', 'fill', 'CloudUpload', True)),
+             label='What the push does', style='flex: 2; min-width: 0; padding: 24px'),
+        gap=20, style='align-items: flex-start')
+    + grid(3, group('The remote', setting('Github', 'github.com, home/automations', 'Private. Last pushed today, 8:52 pm', tag('Reachable', 'g')), setting('Nas', 'Second remote', 'A bare repository on nas.local', btn('Add', 'text', None, True))),
+           group('Also keep in repositories', setting('ScriptText', 'Scripts', 'One repository each, same master', sw(True, 'Scripts in repositories')), setting('Movie', 'Scenes', 'One repository each, same master', sw(False, 'Scenes in repositories'))),
+           group('On a new machine', setting('SourcePull', 'Clone the master repository', 'Brings back every automation at the commit you pick', btn('Clone', 'tonal', None, True)), setting('KeyVariant', 'Secrets stay out', 'Passwords and tokens are never committed', tag('Checked', 'g'))), gap=16)
+)
+surf(P, 'AutomationsMaster', 'The master repository of all automations', 'Settings, Automations', 'All automations', body)
 
 # ---------- Scenes ----------
 def scene(icon, name, sub, tone):
