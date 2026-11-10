@@ -1,13 +1,21 @@
 import { ContextProvider } from "@lit/context";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
+import {
+  applyAccessibilitySettings,
+  getAccessibilitySettings,
+  subscribeAccessibilitySettings,
+} from "../common/accessibility/accessibility-tools";
 import type { HASSDomEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { listenMediaQuery } from "../common/dom/media_query";
 import { storage } from "../common/decorators/storage";
 import { DEBUG_SAFE_AREA_TOOL_STORAGE_KEY } from "../common/util/debug-safe-area";
 import { computeRTLDirection } from "../common/util/compute_rtl";
+import "../components/ha-accessibility-tools";
+import type { HaAccessibilityTools } from "../components/ha-accessibility-tools";
 import "../components/ha-drawer";
 import "../components/ha-page-tabs";
 import { narrowViewportContext } from "../data/context";
@@ -46,6 +54,13 @@ export class HomeAssistantMain extends LitElement {
     subscribe: true,
   })
   private _debugSafeAreaTool = false;
+
+  private _unsubAccessibility?: UnsubscribeFunc;
+
+  @query("ha-accessibility-tools")
+  private _accessibilityTools?: HaAccessibilityTools;
+
+  @query("partial-panel-resolver") private _panelResolver?: HTMLElement;
 
   private _narrowViewportProvider = new ContextProvider(this, {
     context: narrowViewportContext,
@@ -96,6 +111,10 @@ export class HomeAssistantMain extends LitElement {
             : nothing
         }
       </ha-drawer>
+      <ha-accessibility-tools
+        .hass=${this.hass}
+        .pageRoot=${this._pageRoot}
+      ></ha-accessibility-tools>
       ${
         this._debugSafeAreaTool
           ? html`<ha-debug-safe-area-tool></ha-debug-safe-area-tool>`
@@ -141,12 +160,54 @@ export class HomeAssistantMain extends LitElement {
       }
     });
 
+    this.addEventListener("hass-show-accessibility-tools", () => {
+      this._accessibilityTools?.toggle();
+    });
+
     this.addEventListener("hass-show-notifications", () => {
       showNotificationDrawer(this, {
         narrow: this.narrow,
       });
     });
   }
+
+  public connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("keydown", this._handleAccessibilityShortcut);
+    this._unsubAccessibility = subscribeAccessibilitySettings(() =>
+      this._applyAccessibility()
+    );
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("keydown", this._handleAccessibilityShortcut);
+    this._unsubAccessibility?.();
+    this._unsubAccessibility = undefined;
+  }
+
+  private _applyAccessibility() {
+    applyAccessibilitySettings(
+      getAccessibilitySettings(),
+      Boolean(this.hass?.themes?.darkMode)
+    );
+  }
+
+  // Alt+A opens the accessibility tools, also while their button is hidden.
+  private _handleAccessibilityShortcut = (ev: KeyboardEvent) => {
+    if (
+      ev.altKey &&
+      !ev.ctrlKey &&
+      !ev.metaKey &&
+      !ev.shiftKey &&
+      ev.code === "KeyA"
+    ) {
+      ev.preventDefault();
+      this._accessibilityTools?.toggle();
+    }
+  };
+
+  private _pageRoot = (): Node | null => this._panelResolver ?? null;
 
   public willUpdate(changedProps: PropertyValues<this>) {
     if (changedProps.has("narrow")) {
@@ -164,6 +225,8 @@ export class HomeAssistantMain extends LitElement {
 
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
+
+    this._applyAccessibility();
 
     this.toggleAttribute("expanded", this.hass.dockedSidebar === "docked");
 
@@ -194,7 +257,10 @@ export class HomeAssistantMain extends LitElement {
          accessibility tree with an empty panel subtree while the page paints
          normally, which breaks UI automation such as the companion app E2E. */
       isolation: isolate;
-      --ha-sidebar-width: calc(88px + var(--safe-area-inset-left, 0px));
+      /* The rail grows with the text size so its labels still fit. */
+      --ha-sidebar-width: calc(
+        88px * var(--ha-font-size-scale, 1) + var(--safe-area-inset-left, 0px)
+      );
       --ha-top-app-bar-width: calc(
         100% - var(--ha-sidebar-width) - var(--safe-area-inset-right, 0px)
       );
@@ -209,7 +275,9 @@ export class HomeAssistantMain extends LitElement {
     :host(:not([modal])) {
       --ha-pane-gap: 12px;
       --ha-pane-radius: var(--ha-border-radius-4xl);
-      --ha-page-tabs-height: 52px;
+      --ha-page-tabs-height: calc(
+        52px + 8px * (var(--ha-font-size-scale, 1) - 1)
+      );
       --ha-page-tabs-top: calc(
         var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
           var(--ha-pane-gap)
@@ -233,28 +301,34 @@ export class HomeAssistantMain extends LitElement {
     :host(:not([modal])) .pane-frame {
       display: block;
       position: fixed;
-      z-index: 5;
+      z-index: 6;
       inset-block: var(--ha-pane-gap);
       inset-inline-start: var(--ha-sidebar-width);
       inset-inline-end: var(--ha-pane-gap);
       border-radius: var(--ha-pane-radius);
       box-shadow: 0 0 0 100vmax var(--ha-color-window);
+      outline: var(--ha-pane-outline, none);
       pointer-events: none;
       transition: inset-inline-start var(--ha-animation-duration-normal) ease;
     }
-    /* The bar of open pages sits at the top of the pane, above the page
-       headers, and rounds its own top corners to match the frame. Its height
-       is reported to pages as safe area. */
+    /* The bar of open pages sits at the top of the pane: above the page
+       headers, and under the frame, which rounds its corners. Its height is
+       reported to pages as safe area. */
     ha-page-tabs {
       position: fixed;
-      z-index: 6;
+      z-index: 5;
       top: var(--ha-page-tabs-top);
       inset-inline-start: var(--ha-sidebar-width);
       inset-inline-end: var(--ha-pane-gap);
       height: var(--ha-page-tabs-height);
-      border-start-start-radius: var(--ha-pane-radius);
-      border-start-end-radius: var(--ha-pane-radius);
       transition: inset-inline-start var(--ha-animation-duration-normal) ease;
+    }
+    /* The rail starts at the top of the window, not under the bar. */
+    :host(:not([modal])) ha-sidebar {
+      --safe-area-inset-top: var(
+        --app-safe-area-inset-top,
+        env(safe-area-inset-top, 0px)
+      );
     }
     :host([expanded]) {
       --ha-sidebar-width: calc(256px + var(--safe-area-inset-left, 0px));

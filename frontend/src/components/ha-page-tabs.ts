@@ -1,4 +1,12 @@
-import { mdiClose, mdiCog, mdiMagnify, mdiPlus, mdiTabPlus } from "@mdi/js";
+import {
+  mdiClose,
+  mdiCog,
+  mdiHuman,
+  mdiMagnify,
+  mdiPlus,
+  mdiTabPlus,
+} from "@mdi/js";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import {
@@ -10,7 +18,12 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
+import {
+  getAccessibilitySettings,
+  subscribeAccessibilitySettings,
+} from "../common/accessibility/accessibility-tools";
 import { storage } from "../common/decorators/storage";
+import { fireEvent } from "../common/dom/fire_event";
 import { navigate } from "../common/navigate";
 import {
   FIXED_PANELS,
@@ -20,11 +33,19 @@ import {
   getPanelTitle,
   SYSTEM_PANELS,
 } from "../data/panel";
+import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant, PanelInfo } from "../types";
+import { isMac } from "../util/is_mac";
 import "./ha-icon";
 import "./ha-svg-icon";
 
 const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
+
+declare global {
+  interface HASSDomEvents {
+    "hass-show-accessibility-tools": undefined;
+  }
+}
 
 interface PageTab {
   urlPath: string;
@@ -52,6 +73,11 @@ export class HaPageTabs extends LitElement {
   @state()
   @storage({ key: CLOSED_TABS_STORAGE_KEY, state: true, subscribe: true })
   private _closed: string[] = [];
+
+  @state() private _accessibilityButtonHidden =
+    getAccessibilitySettings().hideButton;
+
+  private _unsubAccessibility?: UnsubscribeFunc;
 
   @state() private _filter = "";
 
@@ -145,7 +171,6 @@ export class HaPageTabs extends LitElement {
                 .urlPath=${tab.urlPath}
                 @click=${this._openPage}
               >
-                ${this._renderIcon(tab)}
                 <span class="label">${tab.title}</span>
               </button>
               <button
@@ -239,7 +264,46 @@ export class HaPageTabs extends LitElement {
           }
         </div>
       </div>
+      <div class="actions">
+        <button
+          class="search-field"
+          aria-label=${this.hass.localize("ui.page_tabs.search_everything")}
+          @click=${this._openSearch}
+        >
+          <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
+          <span class="search-label"
+            >${this.hass.localize("ui.page_tabs.search_label")}</span
+          >
+          <kbd>${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
+        </button>
+        ${
+          this._accessibilityButtonHidden
+            ? nothing
+            : html`<button
+                class="new-tab"
+                aria-label=${this.hass.localize("ui.accessibility_tools.title")}
+                title=${this.hass.localize("ui.accessibility_tools.title")}
+                @click=${this._openAccessibility}
+              >
+                <ha-svg-icon .path=${mdiHuman}></ha-svg-icon>
+              </button>`
+        }
+      </div>
     `;
+  }
+
+  public connectedCallback() {
+    super.connectedCallback();
+    this._accessibilityButtonHidden = getAccessibilitySettings().hideButton;
+    this._unsubAccessibility = subscribeAccessibilitySettings((settings) => {
+      this._accessibilityButtonHidden = settings.hideButton;
+    });
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    this._unsubAccessibility?.();
+    this._unsubAccessibility = undefined;
   }
 
   private _renderIcon(tab: PageTab) {
@@ -273,6 +337,14 @@ export class HaPageTabs extends LitElement {
     this._closed = this._closed.filter((closed) => closed !== urlPath);
     this._catalog?.hidePopover();
     navigate(`/${urlPath}`);
+  }
+
+  private _openSearch() {
+    showQuickBar(this, {});
+  }
+
+  private _openAccessibility() {
+    fireEvent(this, "hass-show-accessibility-tools");
   }
 
   private _openEveryTab() {
@@ -320,6 +392,8 @@ export class HaPageTabs extends LitElement {
       box-sizing: border-box;
       height: 100%;
       padding: 0 var(--ha-space-3) 0 var(--ha-space-5);
+      border-bottom: var(--ha-card-border-width, 0px) solid
+        var(--ha-card-border-color, transparent);
       background-color: var(--primary-background-color);
       color: var(--primary-text-color);
       font-family: var(--ha-font-family-body);
@@ -353,7 +427,7 @@ export class HaPageTabs extends LitElement {
       display: flex;
       align-items: center;
       flex: none;
-      height: var(--ha-space-10);
+      height: var(--ha-page-tab-height, var(--ha-space-10));
       border-radius: var(--ha-border-radius-pill);
       color: var(--secondary-text-color);
       transition:
@@ -417,6 +491,56 @@ export class HaPageTabs extends LitElement {
     .new-tab:hover {
       background-color: var(--ha-color-fill-neutral-quiet-resting);
       color: var(--primary-text-color);
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      flex: none;
+      margin-inline-start: auto;
+      padding-inline-start: var(--ha-space-4);
+    }
+    .search-field {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      height: var(--ha-space-10);
+      min-width: 220px;
+      padding: 0 var(--ha-space-2) 0 var(--ha-space-4);
+      border-radius: var(--ha-border-radius-pill);
+      background-color: var(--card-background-color);
+      border: var(--ha-card-border-width, 0px) solid
+        var(--ha-card-border-color, transparent);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-m);
+      --mdc-icon-size: 20px;
+    }
+    .search-field:hover {
+      color: var(--primary-text-color);
+    }
+    .search-label {
+      flex: 1;
+      text-align: start;
+    }
+    kbd {
+      font-family: var(--ha-font-family-body);
+      font-size: var(--ha-font-size-xs);
+      font-weight: var(--ha-font-weight-medium);
+      padding: var(--ha-space-1) var(--ha-space-2);
+      border-radius: var(--ha-border-radius-md);
+      border: 1px solid var(--outline-hover-color);
+      background-color: var(--primary-background-color);
+      white-space: nowrap;
+    }
+    @media (max-width: 1100px) {
+      .search-field {
+        min-width: 0;
+        padding: 0 var(--ha-space-3);
+      }
+      .search-label,
+      kbd {
+        display: none;
+      }
     }
     #catalog {
       position: fixed;

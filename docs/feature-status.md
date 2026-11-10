@@ -21,7 +21,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 
 | Feature | State | Where |
 | --- | --- | --- |
-| Material Design 3 shell: rail, pane, pill tabs, tokens | Partly built: colour scales, surfaces, typeface, navigation rail, floating pane, borderless cards and pill tabs are in the frontend and seen working in its demo build (`docs/screenshots/`). The tab bar of open pages is built (see the Tabs row). Not built: the search field and accessibility button in the header, the redesigned Home, the dark theme check, the phone layout. | Main, Energy, Settings, Phone, Tokens |
+| Material Design 3 shell: rail, pane, pill tabs, tokens | Partly built: colour scales, surfaces, typeface, navigation rail, floating pane, borderless cards and pill tabs are in the frontend and seen working in its demo build (`docs/screenshots/`). The tab bar of open pages, its search button and the accessibility button are built (see the Tabs and Accessibility rows). Not built: the redesigned Home, the dark theme check, the phone layout. | Main, Energy, Settings, Phone, Tokens |
 | Motion with a reduced-motion path | Designed | Settings, Accessibility |
 | Live charts | Designed | Energy |
 | First-run wizard | Designed | Onboarding |
@@ -35,10 +35,10 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | Per-element appearance editor | Designed | AppearanceType, AppearanceLayers |
 | Colour picker and translator | Designed | ColorPicker |
 | Fonts and type scale | Designed | Fonts |
-| Accessibility tools | Designed | Accessibility |
+| Accessibility tools | Built on wide screens and seen working in the demo build (`docs/screenshots/accessibility.png`, `contrast.png`): a top bar button and Alt+A open the panel; text size from 100% to 200%, three contrast levels for light and dark, reduce motion, a focus ring that follows the focused control, larger targets, keyboard help, reset, and hiding the button with a confirmation. Choices are kept in the browser. Limits: text size and larger targets reach everything that uses the theme's size tokens, not components with fixed pixel sizes; reduce motion reaches animations that use the theme's duration tokens. Read aloud is built but not heard working (the test browser has no speech voices). No button on a phone yet; Alt+A works there with a keyboard. | Accessibility |
 | Resizable panels, collapsible filters and statistics | Designed | Panels |
 | Tabs open by default and the New tab catalog | Built for pages on wide screens and seen working in the demo build (`docs/screenshots/tabs.png`): every page starts open in page order, a closed tab stays closed, a page added later opens by default, close buttons show on the active tab and on hover or focus, the New tab catalog lists every page with search, and Open every tab reopens them all. Arrow, Home and End keys move between tabs. Not built: the pattern workbench on the catalog search, tabs on a phone, drag to reorder, bulk close. | Tabs |
-| Command palette on Ctrl+Shift+F | The existing quick bar is rebound to Ctrl+Shift+F. Not seen working: the demo build has no quick bar. The redesigned palette with live controls is not built. | CommandPalette |
+| Command palette on Ctrl+Shift+F | The existing quick bar is rebound to Ctrl+Shift+F and opens from the Search button in the top bar (seen working in the demo build). The key press itself is not yet seen working: the demo build does not register shortcuts. The redesigned palette with live controls is not built. | CommandPalette |
 | Pattern workbench on every search | Designed | Regex |
 | Context menus with working shortcuts | Designed | ContextMenu |
 | Guided forms and per-control information buttons | Designed | GuidedForm |

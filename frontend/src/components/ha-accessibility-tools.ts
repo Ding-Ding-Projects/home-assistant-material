@@ -1,0 +1,584 @@
+import {
+  mdiAccountVoice,
+  mdiChevronRight,
+  mdiContrastCircle,
+  mdiEyeOff,
+  mdiFocusField,
+  mdiFormatSize,
+  mdiGestureTapButton,
+  mdiHuman,
+  mdiKeyboard,
+  mdiMinus,
+  mdiMotionPauseOutline,
+  mdiPlay,
+  mdiPlus,
+  mdiRestore,
+  mdiStop,
+} from "@mdi/js";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, query, state } from "lit/decorators";
+import type {
+  AccessibilityContrast,
+  AccessibilitySettings,
+} from "../common/accessibility/accessibility-tools";
+import {
+  ACCESSIBILITY_STORAGE_KEY,
+  canReadAloud,
+  collectReadableText,
+  DEFAULT_ACCESSIBILITY_SETTINGS,
+  normalizeAccessibilitySettings,
+  readAloud,
+  stopReadingAloud,
+  TEXT_SCALE_STEPS,
+} from "../common/accessibility/accessibility-tools";
+import { storage } from "../common/decorators/storage";
+import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
+import { showShortcutsDialog } from "../dialogs/shortcuts/show-shortcuts-dialog";
+import type { HomeAssistant } from "../types";
+import { isMac } from "../util/is_mac";
+import "./ha-svg-icon";
+import "./ha-switch";
+
+const CONTRASTS: AccessibilityContrast[] = ["standard", "more", "most"];
+
+type SwitchSetting = "reduceMotion" | "showFocus" | "largerTargets";
+
+/**
+ * @element ha-accessibility-tools
+ *
+ * @summary
+ * The accessibility tools panel: text size, contrast, reduced motion, a ring
+ * on the focused control, larger targets, reading the page aloud and keyboard
+ * help. Opened from the top bar button or with Alt+A. The choices are kept in
+ * this browser and applied by the main layout, also while the button is
+ * hidden.
+ */
+@customElement("ha-accessibility-tools")
+export class HaAccessibilityTools extends LitElement {
+  @property({ attribute: false }) public hass!: HomeAssistant;
+
+  /** Returns the part of the page that Read aloud reads. */
+  @property({ attribute: false }) public pageRoot?: () => Node | null;
+
+  @state()
+  @storage({ key: ACCESSIBILITY_STORAGE_KEY, state: true, subscribe: true })
+  private _stored?: Partial<AccessibilitySettings>;
+
+  @state() private _reading = false;
+
+  @query("#panel") private _panel?: HTMLElement;
+
+  private _closedAt = 0;
+
+  /** Opens the panel, or closes it when it is open. */
+  public toggle() {
+    if (!this._panel) {
+      return;
+    }
+    if (this._panel.matches(":popover-open")) {
+      this._panel.hidePopover();
+      return;
+    }
+    // A press on the button that opened the panel first dismisses it. Do not
+    // open it again for that same press.
+    if (Date.now() - this._closedAt < 250) {
+      return;
+    }
+    this._panel.showPopover();
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._reading) {
+      stopReadingAloud();
+      this._reading = false;
+    }
+  }
+
+  private get _settings(): AccessibilitySettings {
+    return normalizeAccessibilitySettings(this._stored);
+  }
+
+  private _update(change: Partial<AccessibilitySettings>) {
+    this._stored = { ...this._settings, ...change };
+  }
+
+  protected render(): TemplateResult {
+    const settings = this._settings;
+    const localize = this.hass.localize;
+    const stepIndex = TEXT_SCALE_STEPS.indexOf(settings.textScale);
+    const isDefault =
+      JSON.stringify(settings) ===
+      JSON.stringify(DEFAULT_ACCESSIBILITY_SETTINGS);
+
+    return html`
+      <div
+        id="panel"
+        popover
+        role="dialog"
+        aria-label=${localize("ui.accessibility_tools.title")}
+        @toggle=${this._toggled}
+      >
+        <div class="header">
+          <ha-svg-icon .path=${mdiHuman}></ha-svg-icon>
+          <h2>${localize("ui.accessibility_tools.title")}</h2>
+          <kbd>${isMac ? "⌥ A" : "Alt A"}</kbd>
+        </div>
+
+        <div class="row">
+          <span class="lead"
+            ><ha-svg-icon .path=${mdiFormatSize}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name"
+              >${localize("ui.accessibility_tools.text_size")}</span
+            >
+          </span>
+          <button
+            class="round"
+            aria-label=${localize("ui.accessibility_tools.text_smaller")}
+            ?disabled=${stepIndex <= 0}
+            @click=${this._textSmaller}
+          >
+            <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
+          </button>
+          <span class="value" role="status" aria-live="polite"
+            >${Math.round(settings.textScale * 100)}%</span
+          >
+          <button
+            class="round"
+            aria-label=${localize("ui.accessibility_tools.text_larger")}
+            ?disabled=${stepIndex >= TEXT_SCALE_STEPS.length - 1}
+            @click=${this._textLarger}
+          >
+            <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+          </button>
+        </div>
+
+        <div class="row">
+          <span class="lead"
+            ><ha-svg-icon .path=${mdiContrastCircle}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name" id="contrast-label"
+              >${localize("ui.accessibility_tools.contrast")}</span
+            >
+          </span>
+          <div
+            class="segments"
+            role="radiogroup"
+            aria-labelledby="contrast-label"
+          >
+            ${CONTRASTS.map(
+              (contrast) => html`
+                <button
+                  role="radio"
+                  aria-checked=${
+                    settings.contrast === contrast ? "true" : "false"
+                  }
+                  .contrast=${contrast}
+                  @click=${this._contrastChanged}
+                >
+                  ${localize(`ui.accessibility_tools.contrast_${contrast}`)}
+                </button>
+              `
+            )}
+          </div>
+        </div>
+
+        ${this._renderSwitch(
+          "reduceMotion",
+          mdiMotionPauseOutline,
+          settings.reduceMotion
+        )}
+        ${this._renderSwitch("showFocus", mdiFocusField, settings.showFocus)}
+        ${this._renderSwitch(
+          "largerTargets",
+          mdiGestureTapButton,
+          settings.largerTargets
+        )}
+        ${
+          canReadAloud()
+            ? html`
+                <div class="row">
+                  <span class="lead"
+                    ><ha-svg-icon .path=${mdiAccountVoice}></ha-svg-icon
+                  ></span>
+                  <span class="text">
+                    <span class="name"
+                      >${localize("ui.accessibility_tools.read_aloud")}</span
+                    >
+                    <span class="note"
+                      >${localize("ui.accessibility_tools.read_aloud_note")}</span
+                    >
+                  </span>
+                  <button class="tonal" @click=${this._toggleReading}>
+                    <ha-svg-icon
+                      .path=${this._reading ? mdiStop : mdiPlay}
+                    ></ha-svg-icon>
+                    ${localize(
+                      this._reading
+                        ? "ui.accessibility_tools.read_stop"
+                        : "ui.accessibility_tools.read_start"
+                    )}
+                  </button>
+                </div>
+              `
+            : nothing
+        }
+
+        <button class="row link" @click=${this._keyboardHelp}>
+          <span class="lead"
+            ><ha-svg-icon .path=${mdiKeyboard}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name"
+              >${localize("ui.accessibility_tools.keyboard_help")}</span
+            >
+            <span class="note"
+              >${localize("ui.accessibility_tools.keyboard_help_note")}</span
+            >
+          </span>
+          <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
+        </button>
+
+        <div class="footer">
+          <button
+            class="text-button"
+            ?disabled=${isDefault}
+            @click=${this._reset}
+          >
+            <ha-svg-icon .path=${mdiRestore}></ha-svg-icon>
+            ${localize("ui.accessibility_tools.reset")}
+          </button>
+          <button class="text-button" @click=${this._toggleButton}>
+            <ha-svg-icon .path=${mdiEyeOff}></ha-svg-icon>
+            ${localize(
+              settings.hideButton
+                ? "ui.accessibility_tools.show_button"
+                : "ui.accessibility_tools.hide_button"
+            )}
+          </button>
+        </div>
+        <p class="kept">${localize("ui.accessibility_tools.kept")}</p>
+      </div>
+    `;
+  }
+
+  private _renderSwitch(
+    setting: SwitchSetting,
+    icon: string,
+    checked: boolean
+  ) {
+    const key = {
+      reduceMotion: "reduce_motion",
+      showFocus: "show_focus",
+      largerTargets: "larger_targets",
+    }[setting] as "reduce_motion" | "show_focus" | "larger_targets";
+    return html`
+      <label class="row">
+        <span class="lead"><ha-svg-icon .path=${icon}></ha-svg-icon></span>
+        <span class="text">
+          <span class="name"
+            >${this.hass.localize(`ui.accessibility_tools.${key}`)}</span
+          >
+          <span class="note"
+            >${this.hass.localize(`ui.accessibility_tools.${key}_note`)}</span
+          >
+        </span>
+        <ha-switch
+          .checked=${checked}
+          .setting=${setting}
+          @change=${this._switchChanged}
+        ></ha-switch>
+      </label>
+    `;
+  }
+
+  private _toggled(ev: ToggleEvent) {
+    if (ev.newState === "closed") {
+      this._closedAt = Date.now();
+    }
+  }
+
+  private _textSmaller() {
+    const index = TEXT_SCALE_STEPS.indexOf(this._settings.textScale);
+    this._update({ textScale: TEXT_SCALE_STEPS[Math.max(0, index - 1)] });
+  }
+
+  private _textLarger() {
+    const index = TEXT_SCALE_STEPS.indexOf(this._settings.textScale);
+    this._update({
+      textScale:
+        TEXT_SCALE_STEPS[Math.min(TEXT_SCALE_STEPS.length - 1, index + 1)],
+    });
+  }
+
+  private _contrastChanged(ev: Event) {
+    this._update({
+      contrast: (
+        ev.currentTarget as HTMLElement & { contrast: AccessibilityContrast }
+      ).contrast,
+    });
+  }
+
+  private _switchChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      checked: boolean;
+      setting: SwitchSetting;
+    };
+    this._update({ [target.setting]: target.checked });
+  }
+
+  private _toggleReading() {
+    if (this._reading) {
+      stopReadingAloud();
+      this._reading = false;
+      return;
+    }
+    const root = this.pageRoot?.();
+    if (!root) {
+      return;
+    }
+    this._reading = true;
+    readAloud(collectReadableText(root), this.hass.language, () => {
+      this._reading = false;
+    });
+  }
+
+  private _keyboardHelp() {
+    this._panel?.hidePopover();
+    showShortcutsDialog(this);
+  }
+
+  private _reset() {
+    this._stored = {
+      ...DEFAULT_ACCESSIBILITY_SETTINGS,
+      hideButton: this._settings.hideButton,
+    };
+  }
+
+  private async _toggleButton() {
+    if (this._settings.hideButton) {
+      this._update({ hideButton: false });
+      return;
+    }
+    this._panel?.hidePopover();
+    const confirmed = await showConfirmationDialog(this, {
+      title: this.hass.localize("ui.accessibility_tools.hide_title"),
+      text: this.hass.localize("ui.accessibility_tools.hide_text", {
+        shortcut: isMac ? "⌥ A" : "Alt+A",
+      }),
+      confirmText: this.hass.localize("ui.accessibility_tools.hide_confirm"),
+    });
+    if (confirmed) {
+      this._update({ hideButton: true });
+    }
+  }
+
+  static styles: CSSResultGroup = css`
+    :host {
+      font-family: var(--ha-font-family-body);
+    }
+    button {
+      font: inherit;
+      color: inherit;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    button:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    button[disabled] {
+      opacity: 0.4;
+      cursor: default;
+    }
+    #panel {
+      position: fixed;
+      inset: auto;
+      top: calc(
+        var(--ha-page-tabs-top, 12px) + var(--ha-page-tabs-height, 0px) +
+          var(--ha-space-1)
+      );
+      inset-inline-end: calc(var(--ha-pane-gap, 0px) + var(--ha-space-3));
+      margin: 0;
+      width: min(440px, calc(100vw - 24px));
+      max-height: calc(100vh - 96px);
+      box-sizing: border-box;
+      padding: var(--ha-space-4);
+      border: var(--ha-pane-outline, none);
+      border-radius: var(--ha-border-radius-4xl);
+      background-color: var(--primary-background-color);
+      color: var(--primary-text-color);
+      box-shadow:
+        0 4px 8px 3px rgba(0, 0, 0, 0.1),
+        0 1px 3px rgba(0, 0, 0, 0.2);
+      overflow-y: auto;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+    }
+    #panel:popover-open {
+      display: flex;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      padding: var(--ha-space-1) var(--ha-space-2) var(--ha-space-3);
+    }
+    h2 {
+      flex: 1;
+      margin: 0;
+      font-size: var(--ha-font-size-xl);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: var(--ha-line-height-condensed);
+    }
+    kbd {
+      font-family: var(--ha-font-family-body);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      padding: var(--ha-space-1) var(--ha-space-2);
+      border-radius: var(--ha-border-radius-md);
+      border: 1px solid var(--outline-hover-color);
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      min-height: var(--ha-space-14);
+      padding: var(--ha-space-1) var(--ha-space-2);
+      border-radius: var(--ha-border-radius-2xl);
+      box-sizing: border-box;
+      width: 100%;
+      text-align: start;
+    }
+    label.row,
+    .row.link {
+      cursor: pointer;
+    }
+    label.row:hover,
+    .row.link:hover {
+      background-color: var(--card-background-color);
+    }
+    .lead {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: var(--ha-space-10);
+      height: var(--ha-space-10);
+      border-radius: var(--ha-border-radius-xl);
+      background-color: var(--secondary-background-color);
+      border: var(--ha-card-border-width, 0px) solid
+        var(--ha-card-border-color, transparent);
+      box-sizing: border-box;
+      --mdc-icon-size: 20px;
+    }
+    .text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+    .name {
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .note {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+    .value {
+      min-width: var(--ha-space-14);
+      text-align: center;
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-medium);
+      font-variant-numeric: tabular-nums;
+    }
+    .round {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: var(--ha-space-11, 44px);
+      height: var(--ha-space-11, 44px);
+      border-radius: var(--ha-border-radius-circle);
+      background-color: var(--card-background-color);
+      border: var(--ha-card-border-width, 0px) solid
+        var(--ha-card-border-color, transparent);
+      --mdc-icon-size: 20px;
+    }
+    .segments {
+      display: flex;
+      flex: none;
+      padding: var(--ha-space-1);
+      gap: var(--ha-space-1);
+      border-radius: var(--ha-border-radius-pill);
+      background-color: var(--card-background-color);
+      border: var(--ha-card-border-width, 0px) solid
+        var(--ha-card-border-color, transparent);
+    }
+    .segments button {
+      height: var(--ha-space-9, 36px);
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+    }
+    .segments button[aria-checked="true"] {
+      background-color: var(--primary-text-color);
+      color: var(--primary-background-color);
+    }
+    .tonal,
+    .text-button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      height: var(--ha-space-10);
+      padding: 0 var(--ha-space-4);
+      border-radius: var(--ha-border-radius-pill);
+      font-weight: var(--ha-font-weight-medium);
+      white-space: nowrap;
+      --mdc-icon-size: 18px;
+    }
+    .tonal {
+      background-color: var(--ha-color-fill-primary-normal-resting);
+      color: var(--ha-color-on-primary-normal, var(--primary-text-color));
+    }
+    .text-button:hover {
+      background-color: var(--card-background-color);
+    }
+    .chevron {
+      color: var(--secondary-text-color);
+    }
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+      margin-top: var(--ha-space-2);
+      padding-top: var(--ha-space-2);
+      border-top: 1px solid var(--divider-color);
+    }
+    .kept {
+      margin: 0;
+      padding: var(--ha-space-1) var(--ha-space-2) 0;
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-accessibility-tools": HaAccessibilityTools;
+  }
+}

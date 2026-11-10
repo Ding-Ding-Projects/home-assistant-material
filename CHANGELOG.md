@@ -12,7 +12,10 @@ Every release is also listed, with its build results, on the
 - Interface: version and build time at the foot of the rail.
 - Interface: the bar of open pages. Every page starts open, a closed tab stays closed, and the
   New tab catalog lists every page, searches them and can reopen them all.
-- The command search opens with Ctrl+Shift+F.
+- The command search opens with Ctrl+Shift+F and from a Search button in the top bar.
+- Interface: accessibility tools on a top bar button and Alt+A. Text size, contrast, reduced
+  motion, a focus ring that follows the focused control, larger targets, reading the page aloud
+  and keyboard help.
 - Fixed: vendored font files were altered by line-ending conversion on commit.
 
 ## v2026.11.1.1 to v2026.11.1.8, 9 November 2026

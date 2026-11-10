@@ -119,6 +119,8 @@ pane, cards and pill tabs.
 
 ![The Home dashboard in the demo build: navigation rail, floating pane, open-page tabs, tinted cards](docs/screenshots/home.png)
 ![The bar of open pages with the New tab catalog, in the demo build](docs/screenshots/tabs.png)
+![The accessibility tools panel in the demo build](docs/screenshots/accessibility.png)
+![The same page at Most contrast and 125% text](docs/screenshots/contrast.png)
 ![The Energy dashboard in the demo build, with pill tabs](docs/screenshots/energy.png)
 ![The Map page in the demo build](docs/screenshots/map.png)
 

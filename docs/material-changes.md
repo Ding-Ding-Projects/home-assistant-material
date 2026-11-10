@@ -37,6 +37,11 @@ observer images are unchanged upstream images.
 | `frontend/src/state/quick-bar-mixin.ts`, `frontend/src/dialogs/shortcuts/dialog-shortcuts.ts` | The quick bar opens with Ctrl+Shift+F instead of Ctrl+K. |
 | `frontend/src/components/ha-page-tabs.ts` (new) | The bar of open pages: every page open by default, close buttons, the New tab catalog with search, and Open every tab. Only the closed list is stored, in the browser. |
 | `frontend/src/layouts/home-assistant-main.ts`, `frontend/src/translations/en.json` | The bar is placed at the top of the pane on wide screens and its height is reported to pages as safe area; its strings. |
+| `frontend/src/common/accessibility/accessibility-tools.ts` (new) | Accessibility choices: storage, the stylesheet that turns them into theme variables, the focus ring that follows the focused control through components and dialogs, and reading a page aloud. |
+| `frontend/src/components/ha-accessibility-tools.ts` (new) | The accessibility tools panel. |
+| `frontend/src/components/ha-page-tabs.ts` | Search button (opens the command search) and accessibility button at the end of the bar. |
+| `frontend/src/layouts/home-assistant-main.ts` | Applies the accessibility choices, hosts the panel, handles Alt+A, and keeps the rail at the top of the window. |
+| `frontend/src/components/ha-sidebar.ts` | The rail grows with the text size. |
 
 ## Build-time stamping (not committed)
 

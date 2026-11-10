@@ -737,7 +737,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
           font-size: var(--ha-font-size-xl);
           align-items: center;
           overflow: hidden;
-          width: calc(88px + var(--safe-area-inset-left, 0px));
+          width: calc(
+            88px * var(--ha-font-size-scale, 1) +
+              var(--safe-area-inset-left, 0px)
+          );
           padding-left: calc(
             var(--ha-space-5) + var(--safe-area-inset-left, 0px)
           );
@@ -835,7 +838,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         }
         :host(:not([expanded])) ha-list-item-button {
           margin-inline: var(--ha-space-1);
-          width: var(--ha-space-20);
+          width: calc(var(--ha-space-20) * var(--ha-font-size-scale, 1));
         }
         /* Collapsed: a navigation rail. The icon sits in a pill that shows
            the selection, with the label under it. */
