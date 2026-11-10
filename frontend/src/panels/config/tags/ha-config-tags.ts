@@ -2,11 +2,13 @@ import {
   mdiDelete,
   mdiHelpCircleOutline,
   mdiMemoryArrowDown,
+  mdiNfcVariant,
+  mdiPencil,
   mdiPlus,
   mdiRobot,
 } from "@mdi/js";
 import type { PropertyValues } from "lit";
-import { html, LitElement } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
@@ -23,6 +25,7 @@ import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-overflow-menu";
 import "../../../components/ha-relative-time";
+import "../../../components/ha-svg-icon";
 import type { TagTrigger } from "../../../data/automation";
 import { showAutomationEditor } from "../../../data/automation";
 import type { Tag, TagScannedEvent, UpdateTagParams } from "../../../data/tag";
@@ -109,16 +112,61 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         sortable: true,
         urlName: "last_scanned",
         direction: "desc",
-        template: (tag) => html`
-          ${
-            tag.last_scanned_datetime
-              ? html`<ha-relative-time
-                  .datetime=${tag.last_scanned_datetime}
-                  capitalize
-                ></ha-relative-time>`
-              : this.hass.localize("ui.panel.config.tag.never_scanned")
+        flex: 2,
+        template: (tag) => {
+          if (!tag.last_scanned_datetime) {
+            return html`${this.hass.localize(
+              "ui.panel.config.tag.never_scanned"
+            )}`;
           }
-        `,
+          const device = tag.device_id
+            ? this.hass.devices[tag.device_id]
+            : undefined;
+          const deviceName = device?.name_by_user || device?.name;
+          return html`<ha-relative-time
+              .datetime=${tag.last_scanned_datetime}
+              capitalize
+            ></ha-relative-time
+            >${
+              deviceName
+                ? html`,
+                  ${this.hass.localize("ui.panel.config.tag.scanned_by", {
+                    device: deviceName,
+                  })}`
+                : nothing
+            }`;
+        },
+      },
+      create_automation: {
+        title: "",
+        label: localize("ui.panel.config.tag.create_automation"),
+        type: "icon-button",
+        minWidth: "190px",
+        maxWidth: "190px",
+        template: (tag) =>
+          html`<ha-button
+            appearance="plain"
+            size="s"
+            .tag=${tag}
+            @click=${this._handleCreateAutomationClick}
+          >
+            <ha-svg-icon slot="start" .path=${mdiRobot}></ha-svg-icon>
+            ${localize("ui.panel.config.tag.create_automation")}
+          </ha-button>`,
+      },
+      edit: {
+        title: "",
+        label: localize("ui.panel.config.tag.edit"),
+        type: "icon-button",
+        showNarrow: true,
+        moveable: false,
+        template: (tag) =>
+          html`<ha-icon-button
+            .tag=${tag}
+            @click=${this._handleEditClick}
+            .label=${localize("ui.panel.config.tag.edit")}
+            .path=${mdiPencil}
+          ></ha-icon-button>`,
       },
     };
     if (this._canWriteTags) {
@@ -192,6 +240,7 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           return;
         }
         foundTag.last_scanned = ev.time_fired;
+        foundTag.device_id = ev.data.device_id;
         this._tags = [...this._tags];
       }, EVENT_TAG_SCANNED),
     ];
@@ -214,6 +263,8 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
             ? this.hass.localize("ui.panel.config.tag.load_failed")
             : undefined
         }
+        .summary=${this.hass.localize("ui.panel.config.tag.summary")}
+        .appendRow=${this._waitingCard(this.hass.localize)}
         @retry-load=${this._retryFetchTags}
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
@@ -245,6 +296,38 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
       </hass-tabs-subpage-data-table>
     `;
   }
+
+  private _waitingCard = memoizeOne(
+    (localize: LocalizeFunc) =>
+      html`<div
+        style="display: flex; align-items: center; gap: var(--ha-space-4); margin: var(--ha-space-2) var(--ha-space-4); padding: var(--ha-space-5) var(--ha-space-6); border-radius: var(--ha-border-radius-3xl); background: var(--secondary-background-color);"
+      >
+        <ha-svg-icon
+          .path=${mdiNfcVariant}
+          style="flex: none; --mdc-icon-size: 32px; color: var(--primary-color);"
+        ></ha-svg-icon>
+        <div role="status">
+          <div
+            style="font-size: var(--ha-font-size-l); font-weight: var(--ha-font-weight-medium);"
+          >
+            ${localize("ui.panel.config.tag.waiting_title")}
+          </div>
+          <div style="color: var(--secondary-text-color);">
+            ${localize("ui.panel.config.tag.waiting_text")}
+          </div>
+        </div>
+      </div>`
+  );
+
+  private _handleCreateAutomationClick = (ev: Event) => {
+    ev.stopPropagation();
+    this._createAutomation((ev.currentTarget as any).tag);
+  };
+
+  private _handleEditClick = (ev: Event) => {
+    ev.stopPropagation();
+    this._openDialog((ev.currentTarget as any).tag);
+  };
 
   private _handleWriteClick = (ev: Event) =>
     this._openWrite((ev.currentTarget as any).tag);

@@ -8,6 +8,16 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- More pages on their boards: Integrations (status on each card, filter chips), an integration's
+  own page, Devices (what needs attention, offline and low battery marked), one device,
+  Entities (a live state column), Areas and one area, Labels, Scenes as cards and the scene
+  editor, Scripts with Run and Stop, Zones, Blueprints, Dashboards, People, Users, Tags,
+  Updates, Repairs and Logs.
+- Developer tools: Events shows a live feed, YAML shows whether the configuration is valid
+  and reloads each kind, Statistics lists problems first, Assist shows what a sentence was
+  understood as. Labs is a grid of switches, and Restart is one list of choices with one button.
+- The form that runs an action draws each field as a row with its own switch.
+- An installation set up by an earlier build no longer logs an error about analytics at start.
 - Nothing is sent out any more. The analytics integration, its page and its first-run step are
   gone, the supervisor's crash reports and diagnostics are off, and the buttons that reported
   an issue or gave feedback are removed.

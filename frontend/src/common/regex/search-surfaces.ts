@@ -138,6 +138,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "The personal settings on the personal settings page",
   },
   {
+    file: "panels/config/scene/ha-scene-dashboard.ts",
+    searches: "The scene cards, by name, area, category and label",
+  },
+  {
     file: "panels/config/dashboard/ha-config-dashboard.ts",
     searches: "The sections on the settings home page",
     matcher: "panels/config/dashboard/ha-config-navigation.ts",
@@ -239,8 +243,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   },
   {
     file: "panels/config/tools/statistics/tools-statistics.ts",
-    searches: "Statistics",
-    matcher: TABLE_WORKER,
+    searches: "Statistics by id, name, device, area, unit, source and problem",
+  },
+  {
+    file: "panels/config/tools/yaml_configuration/tools-yaml-config.ts",
+    searches: "Kinds of YAML configuration that can be reloaded",
   },
   {
     file: "panels/config/guided-setup/ha-config-guided-setup.ts",

@@ -1,9 +1,10 @@
+import { mdiSend } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-button";
-import "../../../../components/ha-card";
+import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-yaml-editor";
 import "../../../../components/input/ha-input";
 import type { HaInput } from "../../../../components/input/ha-input";
@@ -29,86 +30,65 @@ class HaPanelDevEvent extends LitElement {
   @state() private _selectedEventType = "";
 
   protected render(): TemplateResult {
+    const localize = this.hass.localize;
     return html`
-      <div
-        class=${
-          this.narrow ? "content layout vertical" : "content layout horizontal"
-        }
-      >
-        <div class="flex">
-          <ha-card>
-            <div class="card-content">
-              <p>
-                ${this.hass.localize(
-                  "ui.panel.config.tools.tabs.events.description"
-                )}
-                <a
-                  href=${documentationUrl(
-                    this.hass,
-                    "/docs/configuration/events/"
-                  )}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  ${this.hass.localize(
-                    "ui.panel.config.tools.tabs.events.documentation"
-                  )}
-                </a>
-              </p>
-              <div class="inputs">
-                <ha-input
-                  .label=${this.hass.localize(
-                    "ui.panel.config.tools.tabs.events.type"
-                  )}
-                  autofocus
-                  required
-                  .value=${this._eventType}
-                  @change=${this._eventTypeChanged}
-                ></ha-input>
-                <p>
-                  ${this.hass.localize(
-                    "ui.panel.config.tools.tabs.events.data"
-                  )}
-                </p>
-              </div>
-              <div class="code-editor">
-                <ha-yaml-editor
-                  .value=${this._eventData}
-                  .error=${!this._isValid}
-                  @value-changed=${this._yamlChanged}
-                ></ha-yaml-editor>
-              </div>
-            </div>
-            <div class="card-actions">
+      <div class="content">
+        <div class="column">
+          <section class="card">
+            <h2>${localize("ui.panel.config.tools.tabs.events.fire_title")}</h2>
+            <p class="hint">
+              ${localize("ui.panel.config.tools.tabs.events.description")}
+              <a
+                href=${documentationUrl(this.hass, "/docs/configuration/events/")}
+                target="_blank"
+                rel="noreferrer"
+              >
+                ${localize("ui.panel.config.tools.tabs.events.documentation")}
+              </a>
+            </p>
+            <ha-input
+              .label=${localize("ui.panel.config.tools.tabs.events.type")}
+              autofocus
+              required
+              .value=${this._eventType}
+              @change=${this._eventTypeChanged}
+            ></ha-input>
+            <p class="field-label">
+              ${localize("ui.panel.config.tools.tabs.events.data_label")}
+            </p>
+            <ha-yaml-editor
+              .value=${this._eventData}
+              .error=${!this._isValid}
+              @value-changed=${this._yamlChanged}
+            ></ha-yaml-editor>
+            <div class="actions">
               <ha-button
                 @click=${this._fireEvent}
-                appearance="filled"
+                appearance="accent"
                 .disabled=${!this._isValid}
-                >${this.hass.localize(
-                  "ui.panel.config.tools.tabs.events.fire_event"
-                )}</ha-button
               >
+                <ha-svg-icon slot="start" .path=${mdiSend}></ha-svg-icon>
+                ${localize("ui.panel.config.tools.tabs.events.fire_event")}
+              </ha-button>
             </div>
-          </ha-card>
+          </section>
 
-          <event-subscribe-card
-            .hass=${this.hass}
-            .narrow=${this.narrow}
-            .selectedEventType=${this._selectedEventType}
-          ></event-subscribe-card>
+          <section class="card">
+            <h2>
+              ${localize("ui.panel.config.tools.tabs.events.active_listeners")}
+            </h2>
+            <events-list
+              @event-selected=${this._eventSelected}
+              .hass=${this.hass}
+            ></events-list>
+          </section>
         </div>
 
-        <div>
-          <h2>
-            ${this.hass.localize(
-              "ui.panel.config.tools.tabs.events.active_listeners"
-            )}
-          </h2>
-          <events-list
-            @event-selected=${this._eventSelected}
-            .hass=${this.hass}
-          ></events-list>
-        </div>
+        <event-subscribe-card
+          .hass=${this.hass}
+          .narrow=${this.narrow}
+          .selectedEventType=${this._selectedEventType}
+        ></event-subscribe-card>
       </div>
     `;
   }
@@ -153,60 +133,67 @@ class HaPanelDevEvent extends LitElement {
     return [
       haStyle,
       css`
-        .content {
-          gap: var(--ha-space-4);
-          padding: var(--ha-space-4);
-          max-width: 1200px;
-          margin: auto;
-          height: 100%;
-          box-sizing: border-box;
-        }
-
         :host {
           user-select: initial;
           display: block;
-          height: 100%;
         }
 
-        :host([narrow]) {
-          height: auto;
+        .content {
+          display: grid;
+          grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+          gap: var(--ha-space-4);
+          align-items: start;
+          padding: var(--ha-space-4);
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
         }
 
         :host([narrow]) .content {
-          height: auto;
+          grid-template-columns: minmax(0, 1fr);
         }
 
-        .flex {
+        .column {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-4);
           min-width: 0;
-          min-height: 0;
+        }
+
+        .card {
+          box-sizing: border-box;
           display: flex;
           flex-direction: column;
+          gap: var(--ha-space-3);
+          padding: var(--ha-space-5);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
         }
 
-        :host([narrow]) .flex {
-          min-height: auto;
+        h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
         }
 
-        .inputs {
-          max-width: 400px;
+        p {
+          margin: 0;
         }
 
-        ha-button {
-          margin-top: var(--ha-space-2);
+        .hint {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
         }
 
-        event-subscribe-card {
+        .field-label {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .actions {
           display: flex;
-          flex-direction: column;
-          min-height: 0;
-          flex: 1;
-          margin-top: var(--ha-space-4);
-          direction: var(--direction);
-        }
-
-        :host([narrow]) event-subscribe-card {
-          flex: none;
-          min-height: auto;
+          justify-content: flex-end;
         }
 
         a {

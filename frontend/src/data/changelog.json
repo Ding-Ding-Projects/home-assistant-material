@@ -4,16 +4,32 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Nothing is sent out any more. The analytics integration, its page and its first-run step are gone, the supervisor's crash reports and diagnostics are off, and the buttons that reported an issue or gave feedback are removed."
+          "text": "More pages on their boards: Integrations (status on each card, filter chips), an integration's own page, Devices (what needs attention, offline and low battery marked), one device, Entities (a live state column), Areas and one area, Labels, Scenes as cards and the scene editor, Scripts with Run and Stop, Zones, Blueprints, Dashboards, People, Users, Tags, Updates, Repairs and Logs."
         },
         {
-          "text": "Problems are kept on this system instead. Settings, System, Problem log lists every warning and error, one entry per problem with a count and when it was first and last seen. They are files in a Git repository in the configuration folder, with passwords, tokens, addresses and other private values removed. Nothing leaves the system unless you add a remote yourself."
+          "text": "Developer tools: Events shows a live feed, YAML shows whether the configuration is valid and reloads each kind, Statistics lists problems first, Assist shows what a sentence was understood as. Labs is a grid of switches, and Restart is one list of choices with one button."
         },
         {
-          "text": "A wording file that loads gets a short celebration over the whole window and a sound; one that is refused gets a different sound and a clear message."
+          "text": "The form that runs an action draws each field as a row with its own switch."
         },
         {
-          "text": "Storage, General, Hardware and Network are drawn to their boards, and so are the States, Actions and Template pages of the developer tools. General has one Save and one Discard."
+          "text": "An installation set up by an earlier build no longer logs an error about analytics at start."
+        },
+        {
+          "text": "Nothing is sent out any more. The analytics integration, its page and its first-run step are gone, the supervisor's crash reports and diagnostics are off, and the buttons that reported an issue or gave feedback are removed.",
+          "commit": "ef8c3f0c0af9"
+        },
+        {
+          "text": "Problems are kept on this system instead. Settings, System, Problem log lists every warning and error, one entry per problem with a count and when it was first and last seen. They are files in a Git repository in the configuration folder, with passwords, tokens, addresses and other private values removed. Nothing leaves the system unless you add a remote yourself.",
+          "commit": "ef8c3f0c0af9"
+        },
+        {
+          "text": "A wording file that loads gets a short celebration over the whole window and a sound; one that is refused gets a different sound and a clear message.",
+          "commit": "ef8c3f0c0af9"
+        },
+        {
+          "text": "Storage, General, Hardware and Network are drawn to their boards, and so are the States, Actions and Template pages of the developer tools. General has one Save and one Discard.",
+          "commit": "ef8c3f0c0af9"
         },
         {
           "text": "Everyday pages start on their boards: Lights opens with how many are on and a card for each room; Security shows each alarm with arm and disarm; Climate draws the first thermostat large; the Map lists where everyone is; Activity, History, To-do, Calendar and Energy gain a large title and a line of facts; Home shows power use when energy is set up.",

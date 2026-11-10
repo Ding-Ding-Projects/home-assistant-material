@@ -2,14 +2,13 @@ import { mdiFlask, mdiHelpCircleOutline, mdiOpenInNew } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import { extractSearchParam } from "../../../common/url/search-params";
-import "../../../components/ha-alert";
-import "../../../components/ha-button";
-import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
+import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import { domainToName } from "../../../data/integration";
 import type { LabPreviewFeature } from "../../../data/labs";
@@ -36,7 +35,7 @@ import {
 class HaConfigLabs extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() private _preview_features?: LabPreviewFeature[];
 
@@ -152,27 +151,25 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
                   </div>
                 `
               : html`
-                  <ha-card outlined>
-                    <div class="card-content intro-card">
-                      <h1>
-                        ${this.hass.localize("ui.panel.config.labs.intro_title")}
-                      </h1>
-                      <p class="intro-text">
-                        ${this.hass.localize(
-                          "ui.panel.config.labs.intro_description"
-                        )}
-                      </p>
-                      <ha-alert alert-type="warning">
-                        ${this.hass.localize(
-                          "ui.panel.config.labs.intro_warning"
-                        )}
-                      </ha-alert>
-                    </div>
-                  </ha-card>
-
-                  ${sortedFeatures.map((preview_feature) =>
-                    this._renderPreviewFeature(preview_feature)
-                  )}
+                  <div class="intro">
+                    <h2>
+                      ${this.hass.localize("ui.panel.config.labs.caption")}
+                    </h2>
+                    <p>${this.hass.localize("ui.panel.config.labs.summary")}</p>
+                  </div>
+                  <div class="tiles">
+                    ${sortedFeatures.map((preview_feature) =>
+                      this._renderPreviewFeature(preview_feature)
+                    )}
+                  </div>
+                  <div class="note">
+                    <ha-svg-icon .path=${mdiFlask}></ha-svg-icon>
+                    <span
+                      >${this.hass.localize(
+                        "ui.panel.config.labs.backup_note"
+                      )}</span
+                    >
+                  </div>
                 `
           }
         </div>
@@ -210,51 +207,51 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
       : description;
 
     return html`
-      <ha-card
-        outlined
+      <div
         data-feature-id=${previewFeatureId}
-        class=${isHighlighted ? "highlighted" : ""}
+        class=${classMap({
+          tile: true,
+          enabled: preview_feature.enabled,
+          highlighted: isHighlighted,
+        })}
       >
-        <div class="card-content">
+        <div class="tile-content">
           <div class="card-header">
-            <img
-              alt=""
-              src=${brandsUrl(
-                {
-                  domain: preview_feature.domain,
-                  type: "icon",
-                  darkOptimized: this.hass.themes?.darkMode,
-                },
-                this.hass.auth.data.hassUrl
-              )}
-              crossorigin="anonymous"
-              referrerpolicy="no-referrer"
-            />
-            <div class="feature-title">
-              <span class="integration-name"
-                >${integrationNameWithCustomLabel}</span
-              >
-              <h2>${featureName}</h2>
+            <div class="icon-wrap">
+              <img
+                alt=""
+                src=${brandsUrl(
+                  {
+                    domain: preview_feature.domain,
+                    type: "icon",
+                    darkOptimized: this.hass.themes?.darkMode,
+                  },
+                  this.hass.auth.data.hassUrl
+                )}
+                crossorigin="anonymous"
+                referrerpolicy="no-referrer"
+              />
             </div>
+            <ha-switch
+              .checked=${preview_feature.enabled}
+              .ariaLabel=${`${featureName}: ${this.hass.localize(
+                preview_feature.enabled
+                  ? "ui.panel.config.labs.disable"
+                  : "ui.panel.config.labs.enable"
+              )}`}
+              @change=${this._handleToggle}
+              .preview_feature=${preview_feature}
+            ></ha-switch>
+          </div>
+          <div class="feature-title">
+            <span class="integration-name"
+              >${integrationNameWithCustomLabel}</span
+            >
+            <h2>${featureName}</h2>
           </div>
           <ha-markdown .content=${descriptionWithLink} breaks></ha-markdown>
         </div>
-        <div class="card-actions">
-          <div></div>
-          <ha-button
-            appearance="filled"
-            .variant=${preview_feature.enabled ? "danger" : "brand"}
-            @click=${this._handleToggle}
-            .preview_feature=${preview_feature}
-          >
-            ${this.hass.localize(
-              preview_feature.enabled
-                ? "ui.panel.config.labs.disable"
-                : "ui.panel.config.labs.enable"
-            )}
-          </ha-button>
-        </div>
-      </ha-card>
+      </div>
     `;
   }
 
@@ -275,8 +272,12 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
   private async _handleToggle(ev: Event): Promise<void> {
     const buttonEl = ev.currentTarget as HTMLElement & {
       preview_feature: LabPreviewFeature;
+      checked?: boolean;
     };
     const preview_feature = buttonEl.preview_feature;
+    // The switch only reflects the stored state; it follows the feature
+    // once the change has been confirmed and saved.
+    buttonEl.checked = preview_feature.enabled;
     const enabled = !preview_feature.enabled;
     const previewFeatureId = `${preview_feature.domain}.${preview_feature.preview_feature}`;
 
@@ -386,25 +387,83 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
       }
 
       .content {
-        max-width: 800px;
+        box-sizing: border-box;
+        max-width: 1100px;
         margin: 0 auto;
-        padding: var(--ha-space-4);
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
         display: flex;
         flex-direction: column;
+        gap: var(--ha-space-4);
+      }
+
+      :host([narrow]) .content {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
       }
 
       .content:has(.empty) {
         justify-content: center;
       }
 
-      ha-card {
-        margin-bottom: var(--ha-space-4);
+      .intro h2 {
+        margin: 0;
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+
+      .intro p {
+        margin: var(--ha-space-1) 0 0;
+        color: var(--secondary-text-color);
+        line-height: var(--ha-line-height-normal);
+      }
+
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+        gap: var(--ha-space-4);
+      }
+
+      .tile {
         position: relative;
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
         transition: box-shadow 0.3s ease;
       }
 
-      ha-card.highlighted {
+      .tile.enabled {
+        background: var(
+          --primary-container-color,
+          var(--secondary-background-color)
+        );
+      }
+
+      .tile.highlighted {
         animation: highlight-fade 2.5s ease-out forwards;
+      }
+
+      .icon-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--card-background-color);
+      }
+
+      .note {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-3) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
+      }
+
+      .note ha-svg-icon {
+        flex-shrink: 0;
       }
 
       @keyframes highlight-fade {
@@ -420,43 +479,27 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
         }
       }
 
-      /* Intro card */
-      .intro-card {
-        display: flex;
-        flex-direction: column;
-        gap: var(--ha-space-4);
-      }
-
-      .intro-card h1 {
-        margin: 0;
-      }
-
-      .intro-text {
-        margin: 0 0 var(--ha-space-3);
-      }
-
-      /* Feature cards */
-      .card-content {
-        padding: var(--ha-space-4);
+      /* Feature tiles */
+      .tile-content {
+        padding: var(--ha-space-4) var(--ha-space-5) var(--ha-space-5);
       }
 
       .card-header {
         display: flex;
+        justify-content: space-between;
         gap: var(--ha-space-3);
         margin-bottom: var(--ha-space-4);
         align-items: flex-start;
       }
 
       .card-header img {
-        width: 38px;
-        height: 38px;
-        flex-shrink: 0;
-        margin-top: 2px;
+        width: 36px;
+        height: 36px;
       }
 
       .feature-title {
-        flex: 1;
         min-width: 0;
+        margin-bottom: var(--ha-space-2);
       }
 
       .feature-title h2 {
@@ -520,23 +563,6 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
         width: 16px;
         height: 16px;
         opacity: 1;
-      }
-
-      /* Card actions */
-      .card-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: var(--ha-space-2);
-        padding: var(--ha-space-2);
-        border-top: var(--ha-border-width-sm) solid var(--divider-color);
-      }
-
-      .card-actions > div {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--ha-space-2);
       }
     `,
   ];

@@ -43,6 +43,12 @@ export class SystemLogCard extends LitElement {
 
   @property() public header?: string;
 
+  // Leaves the title out when the page around the card already shows one
+  @property({ attribute: "no-title", type: Boolean }) public noTitle = false;
+
+  // When set, only entries of these levels are listed
+  @property({ attribute: false }) public levels?: string[];
+
   @property({ attribute: false }) public integrations?: string[];
 
   @property({ attribute: false }) public integrationLoggers?: string[];
@@ -80,9 +86,13 @@ export class SystemLogCard extends LitElement {
       localize: LocalizeFunc,
       items: LoggedError[],
       filter: string,
-      loggers: string[] | undefined
+      loggers: string[] | undefined,
+      levels: string[] | undefined
     ) =>
       items.filter((item: LoggedError) => {
+        if (levels && !levels.includes(item.level)) {
+          return false;
+        }
         if (
           loggers &&
           !loggers.some(
@@ -115,7 +125,8 @@ export class SystemLogCard extends LitElement {
           this.hass.localize,
           this._items,
           this.filter,
-          this.integrations?.length ? this.integrationLoggers : undefined
+          this.integrations?.length ? this.integrationLoggers : undefined,
+          this.levels
         )
       : [];
     const integrations = filteredItems.length
@@ -133,12 +144,16 @@ export class SystemLogCard extends LitElement {
                 `
               : html`
                   <div class="header">
-                    <h1 class="card-header">
-                      ${
-                        this.header ||
-                        this.hass.localize("ui.panel.config.logs.caption")
-                      }
-                    </h1>
+                    ${
+                      this.noTitle
+                        ? html`<span></span>`
+                        : html`<h1 class="card-header">
+                            ${
+                              this.header ||
+                              this.hass.localize("ui.panel.config.logs.caption")
+                            }
+                          </h1>`
+                    }
                     <div class="header-buttons">
                       ${
                         logFileDownloadUnavailableReason

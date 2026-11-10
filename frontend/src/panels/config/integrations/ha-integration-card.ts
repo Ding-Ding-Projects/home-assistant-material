@@ -1,11 +1,5 @@
 import type { ContextType } from "@lit/context";
-import {
-  mdiAlertCircle,
-  mdiBugOutline,
-  mdiFileCodeOutline,
-  mdiPackageVariant,
-  mdiWeb,
-} from "@mdi/js";
+import { mdiFileCodeOutline, mdiPackageVariant, mdiWeb } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -52,7 +46,6 @@ import {
 
 interface IntegrationCardStatus {
   level: IntegrationCardStatusLevel;
-  icon?: string;
   message: string;
 }
 
@@ -158,8 +151,9 @@ export class HaIntegrationCard extends LitElement {
             <span slot="headline" class="name" role="heading" aria-level="3"
               >${domainName}</span
             >
-            ${this._renderSupportingText(status)}
+            ${this._renderSupportingText()}
           </ha-row-item>
+          ${this._renderPill(status)}
         </a>
       </ha-card>
     `;
@@ -173,7 +167,6 @@ export class HaIntegrationCard extends LitElement {
     if (level) {
       return {
         level,
-        icon: level === "progress" ? undefined : mdiAlertCircle,
         message: this._localize(
           `ui.panel.config.integrations.config_entry.state.${entryState}`
         ),
@@ -182,7 +175,6 @@ export class HaIntegrationCard extends LitElement {
     if (debugLoggingEnabled) {
       return {
         level: "warning",
-        icon: mdiBugOutline,
         message: this._localize(
           "ui.panel.config.integrations.config_entry.debug_logging_enabled"
         ),
@@ -191,15 +183,7 @@ export class HaIntegrationCard extends LitElement {
     return undefined;
   }
 
-  private _computeSupportingText(
-    summary?: IntegrationCardSummary,
-    status?: IntegrationCardStatus
-  ): string {
-    // Initializing, unloading and debug logging have no attention count,
-    // so their message is shown instead of the plain count.
-    if (status && !summary?.attention) {
-      return status.message;
-    }
+  private _computeSupportingText(summary?: IntegrationCardSummary): string {
     if (!summary) {
       return this._localize(
         "ui.panel.config.integrations.config_entry.no_devices_or_entities"
@@ -228,9 +212,23 @@ export class HaIntegrationCard extends LitElement {
     );
   }
 
-  private _renderSupportingText(
-    status?: IntegrationCardStatus
-  ): TemplateResult {
+  private _renderPill(status?: IntegrationCardStatus): TemplateResult {
+    const level = status?.level ?? "ok";
+    return html`<span class="pill pill-${level}">
+      ${
+        status?.level === "progress"
+          ? html`<ha-spinner size="tiny" aria-hidden="true"></ha-spinner>`
+          : nothing
+      }
+      ${
+        status
+          ? status.message
+          : this._localize("ui.panel.config.integrations.config_entry.working")
+      }
+    </span>`;
+  }
+
+  private _renderSupportingText(): TemplateResult {
     const devices = this._getDevices(this.items, this._devices);
     const summary = computeIntegrationCardSummary(
       this.items,
@@ -244,27 +242,10 @@ export class HaIntegrationCard extends LitElement {
           )
     );
 
-    const text = this._computeSupportingText(summary, status);
+    const text = this._computeSupportingText(summary);
 
     return html`<span slot="supporting-text" class="supporting-text">
-      ${
-        status
-          ? html`<span class="status status-${status.level}">
-              ${
-                status.icon
-                  ? html`<ha-svg-icon
-                      .path=${status.icon}
-                      aria-hidden="true"
-                    ></ha-svg-icon>`
-                  : html`<ha-spinner
-                      size="tiny"
-                      aria-hidden="true"
-                    ></ha-spinner>`
-              }
-              <span class="text">${text}</span>
-            </span>`
-          : html`<span class="text">${text}</span>`
-      }
+      <span class="text">${text}</span>
       ${this._renderIcons()}
     </span>`;
   }
@@ -484,26 +465,35 @@ export class HaIntegrationCard extends LitElement {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .status {
-          display: flex;
+        .pill {
+          display: inline-flex;
           align-items: center;
           gap: var(--ha-space-1);
-          min-width: 0;
-          line-height: 16px;
+          align-self: flex-start;
+          margin: 0 var(--ha-space-4) var(--ha-space-4);
+          padding: 2px var(--ha-space-2);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-normal);
+          background: var(--ha-color-fill-success-quiet-resting, #d7f5dc);
+          color: var(--ha-color-on-success-normal, #0d5c1f);
         }
-        .status ha-svg-icon,
-        .status ha-spinner {
-          flex-shrink: 0;
-          --mdc-icon-size: 16px;
-        }
-        .status ha-spinner {
+        .pill ha-spinner {
+          --mdc-icon-size: 14px;
           --track-width: 2px;
         }
-        .status-error ha-svg-icon {
-          color: var(--error-color);
+        .pill-error {
+          background: var(--ha-color-fill-danger-quiet-resting, #fde3e1);
+          color: var(--ha-color-on-danger-normal, #8c1d18);
         }
-        .status-warning ha-svg-icon {
-          color: var(--warning-color);
+        .pill-warning {
+          background: var(--ha-color-fill-warning-quiet-resting, #fdecc8);
+          color: var(--ha-color-on-warning-normal, #7a4a00);
+        }
+        .pill-progress {
+          background: var(--ha-color-fill-neutral-quiet-resting);
+          color: var(--secondary-text-color);
         }
         .icons {
           display: flex;

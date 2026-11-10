@@ -1,4 +1,4 @@
-import { mdiHelpCircleOutline } from "@mdi/js";
+import { mdiHelpCircleOutline, mdiTuneVariant } from "@mdi/js";
 import type { HassService, HassServices } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -33,15 +33,15 @@ import type { HassServiceTargetWithExclude } from "../data/target";
 import type { HomeAssistant, ValueChangedEvent } from "../types";
 import { documentationUrl } from "../util/documentation-url";
 import { getSelectorFallbackValue } from "./ha-form/get-selector-fallback-value";
-import "./ha-checkbox";
-import type { HaCheckbox } from "./ha-checkbox";
 import "./ha-icon-button";
 import "./ha-markdown";
 import "./ha-selector/ha-selector";
 import type { HaSelector } from "./ha-selector/ha-selector";
 import "./ha-service-picker";
 import "./ha-service-section-icon";
-import "./ha-settings-row";
+import "./ha-svg-icon";
+import "./ha-switch";
+import type { HaSwitch } from "./ha-switch";
 import "./ha-yaml-editor";
 import type { HaYamlEditor } from "./ha-yaml-editor";
 
@@ -59,22 +59,6 @@ const showOptionalToggle = (field) =>
   field.selector &&
   !field.required &&
   !("boolean" in field.selector && field.default);
-
-const FULL_WIDTH_SELECTOR_TYPES = new Set([
-  "action",
-  "area",
-  "device",
-  "entity",
-  "floor",
-  "label",
-  "target",
-]);
-
-const isFullWidthSelector = (selector?: Selector): boolean =>
-  !!selector &&
-  Object.keys(selector).some((selectorType) =>
-    FULL_WIDTH_SELECTOR_TYPES.has(selectorType)
-  );
 
 // A switch fits next to its label, even when the editor is narrow.
 const isBooleanSelector = (selector?: Selector): boolean =>
@@ -541,14 +525,17 @@ export class HaServiceControl extends LitElement {
     }
     ${
       serviceData && "target" in serviceData
-        ? html`<ha-selector
-            class="target-selector"
-            .hass=${this.hass}
-            .selector=${targetSelector}
-            .disabled=${this.disabled}
-            @value-changed=${this._targetChanged}
-            .value=${this._value?.target}
-          ></ha-selector>`
+        ? html`<div class="target-heading">
+              ${this.hass.localize("ui.components.service-control.target")}
+            </div>
+            <ha-selector
+              class="target-selector"
+              .hass=${this.hass}
+              .selector=${targetSelector}
+              .disabled=${this.disabled}
+              @value-changed=${this._targetChanged}
+              .value=${this._value?.target}
+            ></ha-selector>`
         : entityId
           ? html`<ha-entity-picker
               .disabled=${this.disabled}
@@ -690,33 +677,41 @@ export class HaServiceControl extends LitElement {
         ? this.hass.services[domain][serviceName].description_placeholders
         : undefined;
 
-    return dataField.selector
-      ? html`<ha-settings-row
-          .narrow=${
-            (this.narrow && !isBooleanSelector(selector)) ||
-            isFullWidthSelector(selector)
-          }
-        >
-          ${
-            !showOptional
-              ? hasOptional
-                ? html`<div slot="prefix" class="checkbox-spacer"></div>`
-                : ""
-              : html`<ha-checkbox
-                  .key=${dataField.key}
-                  .checked=${
-                    this._checkedKeys.has(dataField.key) ||
-                    (!!this._value?.data &&
-                      this._value.data[dataField.key] !== undefined)
-                  }
-                  .disabled=${this.disabled}
-                  @change=${this._checkboxChanged}
-                  slot="prefix"
-                ></ha-checkbox>`
-          }
+    if (!dataField.selector) {
+      return "";
+    }
+
+    const inline = isBooleanSelector(selector);
+    const selectorTemplate = html`<ha-selector
+      .context=${this._selectorContext(targetEntities)}
+      .disabled=${
+        this.disabled ||
+        (showOptional &&
+          !this._checkedKeys.has(dataField.key) &&
+          (!this._value?.data || this._value.data[dataField.key] === undefined))
+      }
+      .hass=${this.hass}
+      .selector=${selector}
+      .key=${dataField.key}
+      @value-changed=${this._serviceDataChanged}
+      .value=${this._value?.data ? this._value.data[dataField.key] : undefined}
+      .placeholder=${dataField.default}
+      .localizeValue=${this._localizeValueCallback}
+      .required=${dataField.required}
+    ></ha-selector>`;
+
+    // `hasOptional` is kept in the signature for callers; the toggle now sits
+    // at the end of the row, so no spacer is needed.
+    void hasOptional;
+
+    return html`<div class="field">
+      <div class="field-head">
+        <span class="field-tile"
+          ><ha-svg-icon .path=${mdiTuneVariant}></ha-svg-icon
+        ></span>
+        <div class="field-text">
           <span
-            slot="heading"
-            class=${showOptional ? "clickable" : ""}
+            class="field-heading ${showOptional ? "clickable" : ""}"
             @click=${showOptional ? this._toggleCheckbox : undefined}
             >${
               this.hass.localize(
@@ -728,8 +723,7 @@ export class HaServiceControl extends LitElement {
             }</span
           >
           <span
-            slot="description"
-            class=${showOptional ? "clickable" : ""}
+            class="field-description ${showOptional ? "clickable" : ""}"
             @click=${showOptional ? this._toggleCheckbox : undefined}
             ><ha-markdown
               breaks
@@ -742,28 +736,29 @@ export class HaServiceControl extends LitElement {
               }
             ></ha-markdown>
           </span>
-          <ha-selector
-            .context=${this._selectorContext(targetEntities)}
-            .disabled=${
-              this.disabled ||
-              (showOptional &&
-                !this._checkedKeys.has(dataField.key) &&
-                (!this._value?.data ||
-                  this._value.data[dataField.key] === undefined))
-            }
-            .hass=${this.hass}
-            .selector=${selector}
-            .key=${dataField.key}
-            @value-changed=${this._serviceDataChanged}
-            .value=${
-              this._value?.data ? this._value.data[dataField.key] : undefined
-            }
-            .placeholder=${dataField.default}
-            .localizeValue=${this._localizeValueCallback}
-            .required=${dataField.required}
-          ></ha-selector>
-        </ha-settings-row>`
-      : "";
+        </div>
+        ${
+          inline
+            ? html`<div class="field-inline">${selectorTemplate}</div>`
+            : nothing
+        }
+        ${
+          showOptional
+            ? html`<ha-switch
+                .key=${dataField.key}
+                .checked=${
+                  this._checkedKeys.has(dataField.key) ||
+                  (!!this._value?.data &&
+                    this._value.data[dataField.key] !== undefined)
+                }
+                .disabled=${this.disabled}
+                @change=${this._checkboxChanged}
+              ></ha-switch>`
+            : nothing
+        }
+      </div>
+      ${inline ? nothing : html`<div class="field-control">${selectorTemplate}</div>`}
+    </div>`;
   };
 
   private _selectorContext = memoizeOne((targetEntities: string[] | null) => ({
@@ -784,14 +779,18 @@ export class HaServiceControl extends LitElement {
   };
 
   private _toggleCheckbox(ev: HASSDomCurrentTargetEvent<HTMLElement>) {
-    const checkbox = (
-      ev.currentTarget as HTMLElement
-    )?.parentElement?.querySelector("ha-checkbox");
-    checkbox?.click();
+    const toggle = (ev.currentTarget as HTMLElement)
+      ?.closest(".field")
+      ?.querySelector("ha-switch");
+    if (!toggle || toggle.disabled) {
+      return;
+    }
+    toggle.checked = !toggle.checked;
+    toggle.dispatchEvent(new Event("change"));
   }
 
   private _checkboxChanged(
-    ev: HASSDomCurrentTargetEvent<HaCheckbox & { key: string }>
+    ev: HASSDomCurrentTargetEvent<HaSwitch & { key: string }>
   ) {
     const checked = ev.currentTarget.checked;
     const key = ev.currentTarget.key;
@@ -988,19 +987,55 @@ export class HaServiceControl extends LitElement {
   }
 
   static styles = css`
-    ha-settings-row {
-      padding: var(--service-control-padding, 0 var(--ha-space-4));
-    }
-    ha-settings-row[narrow] {
-      padding-bottom: var(--ha-space-2);
-    }
-    ha-settings-row {
-      --settings-row-content-width: 100%;
-      --settings-row-prefix-display: contents;
+    .field {
+      padding: var(--ha-space-2)
+        var(--service-control-field-padding-inline, var(--ha-space-4));
       border-top: var(
         --service-control-items-border-top,
         1px solid var(--divider-color)
       );
+    }
+    .field-head {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      min-height: 48px;
+    }
+    .field-tile {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--ha-border-radius-lg, 12px);
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+    }
+    .field-text {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .field-heading {
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+    .field-description {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+    .field-inline {
+      flex: none;
+    }
+    .field-control {
+      padding: var(--ha-space-1) 0 var(--ha-space-2);
+    }
+    .target-heading {
+      margin: var(--service-control-padding, 0 var(--ha-space-4));
+      padding-top: var(--ha-space-2);
+      font-weight: var(--ha-font-weight-medium);
     }
     ha-service-picker,
     ha-entity-picker,
@@ -1025,9 +1060,6 @@ export class HaServiceControl extends LitElement {
     }
     :host([hide-picker]) p {
       padding-top: 0;
-    }
-    .checkbox-spacer {
-      width: var(--ha-space-8);
     }
     .clickable {
       cursor: pointer;

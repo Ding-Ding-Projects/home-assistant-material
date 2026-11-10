@@ -2,12 +2,11 @@ import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiDelete,
   mdiDotsVertical,
-  mdiFloorPlan,
   mdiHelpCircleOutline,
   mdiPencil,
   mdiPlus,
-  mdiSofa,
   mdiSort,
+  mdiTextureBox,
 } from "@mdi/js";
 import {
   css,
@@ -25,8 +24,10 @@ import {
   getAreasOrder,
   type AreasFloorHierarchy,
 } from "../../../common/areas/areas-floor-hierarchy";
+import { computeDomain } from "../../../common/entity/compute_domain";
 import { formatListWithAnds } from "../../../common/string/format-list";
 import "../../../components/ha-button";
+import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -74,6 +75,7 @@ interface AreaStats {
   devices: number;
   services: number;
   entities: number;
+  automations: number;
 }
 
 @customElement("ha-config-areas-dashboard")
@@ -100,6 +102,7 @@ export class HaConfigAreasDashboard extends LitElement {
         let devicesCount = 0;
         let servicesCount = 0;
         let entitiesCount = 0;
+        let automationsCount = 0;
 
         for (const device of Object.values(devices)) {
           if (device.area_id === area.area_id) {
@@ -112,8 +115,14 @@ export class HaConfigAreasDashboard extends LitElement {
         }
 
         for (const entity of Object.values(entities)) {
-          if (entity.area_id === area.area_id) {
+          const entityAreaId =
+            entity.area_id ??
+            (entity.device_id ? devices[entity.device_id]?.area_id : undefined);
+          if (entityAreaId === area.area_id) {
             entitiesCount++;
+            if (computeDomain(entity.entity_id) === "automation") {
+              automationsCount++;
+            }
           }
         }
 
@@ -121,6 +130,7 @@ export class HaConfigAreasDashboard extends LitElement {
           devices: devicesCount,
           services: servicesCount,
           entities: entitiesCount,
+          automations: automationsCount,
         };
       };
       const areaStats = new Map<string, AreaStats>();
@@ -162,6 +172,9 @@ export class HaConfigAreasDashboard extends LitElement {
       this.hass.entities
     );
 
+    const floorCount = this._hierarchy.floors.length;
+    const areaCount = Object.keys(this.hass.areas).length;
+
     return html`
       <hass-tabs-subpage
         .hass=${this.hass}
@@ -169,7 +182,6 @@ export class HaConfigAreasDashboard extends LitElement {
         back-path="/config"
         .tabs=${configSections.areas}
         .route=${this.route}
-        has-fab
       >
         <ha-icon-button
           slot="toolbar-icon"
@@ -178,6 +190,36 @@ export class HaConfigAreasDashboard extends LitElement {
           @click=${this._showHelp}
         ></ha-icon-button>
         <div class="container">
+          <div class="page-header">
+            <div class="page-heading">
+              <h1>${this.hass.localize("ui.panel.config.areas.caption")}</h1>
+              <p>
+                ${this.hass.localize(
+                  floorCount
+                    ? "ui.panel.config.areas.picker.summary"
+                    : "ui.panel.config.areas.picker.summary_no_floors",
+                  { areas: areaCount, floors: floorCount }
+                )}
+              </p>
+            </div>
+            <div class="page-actions">
+              <ha-button appearance="outlined" @click=${this._createFloor}>
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize("ui.panel.config.areas.picker.add_floor")}
+              </ha-button>
+              <ha-button @click=${this._createArea}>
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize("ui.panel.config.areas.picker.add_area")}
+              </ha-button>
+            </div>
+          </div>
+          ${
+            !floorCount && !this._hierarchy.areas.length
+              ? html`<div class="empty">
+                  ${this.hass.localize("ui.panel.config.areas.picker.no_areas")}
+                </div>`
+              : nothing
+          }
           <div class="floors">
             ${this._hierarchy.floors.map(({ areas, id }) => {
               const floor = this.hass.floors[id];
@@ -192,6 +234,14 @@ export class HaConfigAreasDashboard extends LitElement {
                       ${floor.name}
                     </h2>
                     <div class="actions">
+                      <ha-icon-button
+                        .floor=${floor}
+                        .path=${mdiPencil}
+                        .label=${this.hass.localize(
+                          "ui.panel.config.areas.picker.floor.edit_floor"
+                        )}
+                        @click=${this._editFloorClicked}
+                      ></ha-icon-button>
                       <ha-dropdown
                         .floor=${floor}
                         @wa-select=${this._handleFloorAction}
@@ -265,7 +315,7 @@ export class HaConfigAreasDashboard extends LitElement {
                       <h2>
                         ${this.hass.localize(
                           this._hierarchy.floors.length
-                            ? "ui.panel.config.areas.picker.other_areas"
+                            ? "ui.panel.config.areas.picker.no_floor"
                             : "ui.panel.config.areas.picker.header"
                         )}
                       </h2>
@@ -315,20 +365,6 @@ export class HaConfigAreasDashboard extends LitElement {
               : nothing
           }
         </div>
-        <ha-dropdown slot="fab" @wa-select=${this._handleCreateAction}>
-          <ha-button slot="trigger" id="fab" size="l">
-            <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-            ${this.hass.localize("ui.common.add")}
-          </ha-button>
-          <ha-dropdown-item value="create_floor">
-            <ha-svg-icon .path=${mdiFloorPlan} slot="icon"></ha-svg-icon>
-            ${this.hass.localize("ui.panel.config.areas.picker.create_floor")}
-          </ha-dropdown-item>
-          <ha-dropdown-item value="create_area">
-            <ha-svg-icon .path=${mdiSofa} slot="icon"></ha-svg-icon>
-            ${this.hass.localize("ui.panel.config.areas.picker.create_area")}
-          </ha-dropdown-item>
-        </ha-dropdown>
       </hass-tabs-subpage>
     `;
   }
@@ -337,6 +373,34 @@ export class HaConfigAreasDashboard extends LitElement {
     area: AreaRegistryEntry,
     stats: AreaStats | undefined
   ): TemplateResult<1> {
+    const temperatureState = area.temperature_entity_id
+      ? this.hass.states[area.temperature_entity_id]
+      : undefined;
+    const temperature =
+      temperatureState &&
+      temperatureState.state !== "unavailable" &&
+      temperatureState.state !== "unknown"
+        ? this.hass.formatEntityState(temperatureState)
+        : undefined;
+    const summary = formatListWithAnds(
+      this.hass.locale,
+      [
+        stats?.devices &&
+          this.hass.localize(
+            "ui.panel.config.integrations.config_entry.devices",
+            { count: stats.devices }
+          ),
+        stats?.services &&
+          this.hass.localize(
+            "ui.panel.config.integrations.config_entry.services",
+            { count: stats.services }
+          ),
+        stats?.automations &&
+          this.hass.localize("ui.panel.config.areas.picker.automations_count", {
+            count: stats.automations,
+          }),
+      ].filter((v): v is string => Boolean(v))
+    );
     return html`
       <a href=${`/config/areas/area/${area.area_id}`} .sortableData=${area}>
         <ha-card outlined>
@@ -349,42 +413,27 @@ export class HaConfigAreasDashboard extends LitElement {
             class="picture ${!area.picture ? "placeholder" : ""}"
           >
             ${
-              !area.picture && area.icon
-                ? html`<ha-icon .icon=${area.icon}></ha-icon>`
-                : ""
+              temperature
+                ? html`<span class="temperature">${temperature}</span>`
+                : nothing
             }
           </div>
-          <div class="card-header">
-            ${area.name}
+          <div class="card-body">
+            ${
+              area.icon
+                ? html`<ha-icon .icon=${area.icon}></ha-icon>`
+                : html`<ha-svg-icon .path=${mdiTextureBox}></ha-svg-icon>`
+            }
+            <div class="card-text">
+              <div class="name">${area.name}</div>
+              ${summary ? html`<div class="stats">${summary}</div>` : nothing}
+            </div>
             <ha-icon-button
               .area=${area}
               .path=${mdiPencil}
+              .label=${this.hass.localize("ui.panel.config.areas.edit_settings")}
               @click=${this._openAreaDetails}
             ></ha-icon-button>
-          </div>
-          <div class="card-content">
-            <div>
-              ${formatListWithAnds(
-                this.hass.locale,
-                [
-                  stats?.devices &&
-                    this.hass.localize(
-                      "ui.panel.config.integrations.config_entry.devices",
-                      { count: stats.devices }
-                    ),
-                  stats?.services &&
-                    this.hass.localize(
-                      "ui.panel.config.integrations.config_entry.services",
-                      { count: stats.services }
-                    ),
-                  stats?.entities &&
-                    this.hass.localize(
-                      "ui.panel.config.integrations.config_entry.entities",
-                      { count: stats.entities }
-                    ),
-                ].filter((v): v is string => Boolean(v))
-              )}
-            </div>
           </div>
         </ha-card>
       </a>
@@ -550,17 +599,13 @@ export class HaConfigAreasDashboard extends LitElement {
     }
   }
 
-  private _handleCreateAction(ev: HaDropdownSelectEvent) {
-    const action = ev.detail.item.value;
-    if (action === "create_floor") {
-      this._createFloor();
-    } else if (action === "create_area") {
-      this._createArea();
-    }
-  }
-
   private _createFloor() {
     this._openFloorDialog();
+  }
+
+  private _editFloorClicked(ev: Event) {
+    ev.stopPropagation();
+    this._editFloor((ev.currentTarget as any).floor);
   }
 
   private _editFloor(floor) {
@@ -649,82 +694,138 @@ export class HaConfigAreasDashboard extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+    }
     .container {
-      padding: 8px 16px 16px;
-      margin: 0 auto 64px auto;
+      box-sizing: border-box;
+      padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
+      margin: 0 auto;
+      max-width: 1280px;
+    }
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--ha-space-4);
+      padding-top: var(--ha-space-4);
+    }
+    .page-heading h1 {
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-4xl);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: var(--ha-line-height-condensed);
+      color: var(--primary-text-color);
+    }
+    .page-heading p {
+      margin: var(--ha-space-1) 0 0;
+      font-size: var(--ha-font-size-l);
+      line-height: var(--ha-line-height-normal);
+      color: var(--secondary-text-color);
+    }
+    .page-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-3);
+    }
+    .empty {
+      padding: var(--ha-space-8) 0;
+      color: var(--secondary-text-color);
     }
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: var(--secondary-text-color);
-      padding-inline-start: 8px;
+      padding-inline-start: var(--ha-space-1);
     }
     .header h2 {
-      font-size: var(--ha-font-size-m);
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      margin: var(--ha-space-6) 0 var(--ha-space-2);
+      font-size: var(--ha-font-size-l);
       font-weight: var(--ha-font-weight-medium);
-      margin-top: 28px;
-    }
-    .header ha-icon {
-      margin-inline-end: 8px;
+      color: var(--primary-text-color);
     }
     .header .actions {
       display: flex;
       align-items: center;
+      color: var(--secondary-text-color);
     }
     .areas {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      grid-gap: 16px 16px;
+      grid-gap: var(--ha-space-4);
       max-width: 2000px;
-      margin-bottom: 16px;
+      margin-bottom: var(--ha-space-4);
     }
     .areas > * {
       max-width: 500px;
     }
-    .handle {
-      cursor: move; /* fallback if grab cursor is unsupported */
-      cursor: grab;
-    }
     ha-card {
       overflow: hidden;
+      border-radius: var(--ha-border-radius-3xl);
     }
     a {
       text-decoration: none;
-    }
-    h1 {
-      padding-bottom: 0;
+      color: inherit;
     }
     .picture {
-      height: 150px;
+      height: 96px;
       width: 100%;
       background-size: cover;
       background-position: center;
       position: relative;
     }
-    .placeholder {
+    .picture.placeholder {
+      background-image: linear-gradient(
+        135deg,
+        var(--primary-color),
+        color-mix(
+          in srgb,
+          var(--primary-color) 25%,
+          var(--card-background-color)
+        )
+      );
+    }
+    .temperature {
+      position: absolute;
+      inset-inline-start: var(--ha-space-3);
+      bottom: var(--ha-space-3);
+      padding: var(--ha-space-1) var(--ha-space-2);
+      border-radius: var(--ha-border-radius-pill, 999px);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .card-body {
       display: flex;
       align-items: center;
-      justify-content: center;
-      --mdc-icon-size: 48px;
+      gap: var(--ha-space-3);
+      padding: var(--ha-space-3) var(--ha-space-2) var(--ha-space-3)
+        var(--ha-space-4);
     }
-    .picture.placeholder::before {
-      position: absolute;
-      content: "";
-      width: 100%;
-      height: 100%;
-      background-color: var(--sidebar-selected-icon-color);
-      opacity: 0.12;
+    .card-text {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
-    .card-content {
-      min-height: 16px;
+    .name {
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--primary-text-color);
+    }
+    .stats {
+      font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
     }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      overflow-wrap: anywhere;
+    @media (max-width: 600px) {
+      .container {
+        padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-6);
+      }
     }
   `;
 }

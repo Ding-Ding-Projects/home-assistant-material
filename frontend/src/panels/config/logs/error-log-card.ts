@@ -100,6 +100,9 @@ class ErrorLogCard extends LitElement {
 
   @property() public header?: string;
 
+  // Leaves the title out when the page around the card already shows one
+  @property({ attribute: "no-title", type: Boolean }) public noTitle = false;
+
   @property() public provider?: string;
 
   @property({ attribute: false }) public integrations?: string[];
@@ -208,9 +211,16 @@ class ErrorLogCard extends LitElement {
         }
         <ha-card outlined>
           <div class="header">
-            <h1 class="card-header">
-              ${this.header || localize("ui.panel.config.logs.show_full_logs")}
-            </h1>
+            ${
+              this.noTitle
+                ? html`<span></span>`
+                : html`<h1 class="card-header">
+                    ${
+                      this.header ||
+                      localize("ui.panel.config.logs.show_full_logs")
+                    }
+                  </h1>`
+            }
             <div class="action-buttons">
               ${
                 hasBoots && this._showBootsSelect

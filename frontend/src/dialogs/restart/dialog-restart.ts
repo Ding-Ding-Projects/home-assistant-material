@@ -8,18 +8,16 @@ import {
 import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { fireEvent } from "../../common/dom/fire_event";
-import type { HASSDomCurrentTargetEvent } from "../../common/dom/fire_event";
 import "../../components/animation/ha-fade-in";
 import "../../components/ha-adaptive-dialog";
 import "../../components/ha-alert";
-import "../../components/ha-expansion-panel";
-import "../../components/ha-icon-next";
+import "../../components/ha-button";
+import "../../components/ha-dialog-footer";
 import "../../components/ha-spinner";
-import "../../components/item/ha-list-item-button";
-import type { HaListItemButton } from "../../components/item/ha-list-item-button";
-import "../../components/list/ha-list-base";
+import "../../components/ha-svg-icon";
 import "../../components/progress/ha-progress-bar";
 import {
   getBackupState,
@@ -45,6 +43,26 @@ import {
 import { showRestartWaitDialog } from "./show-dialog-restart";
 import "./automation-restart-status";
 
+type RestartAction =
+  "reload" | "restart" | "restart-safe-mode" | "reboot" | "shutdown";
+
+interface RestartOption {
+  action: RestartAction;
+  icon: string;
+  danger?: boolean;
+}
+
+const APP_OPTIONS: RestartOption[] = [
+  { action: "reload", icon: mdiAutoFix },
+  { action: "restart", icon: mdiRefresh },
+  { action: "restart-safe-mode", icon: mdiLifebuoy },
+];
+
+const MACHINE_OPTIONS: RestartOption[] = [
+  { action: "reboot", icon: mdiPowerCycle },
+  { action: "shutdown", icon: mdiPower, danger: true },
+];
+
 @customElement("dialog-restart")
 class DialogRestart extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -63,11 +81,14 @@ class DialogRestart extends LitElement {
   @state()
   private _dialogOpen = false;
 
+  @state() private _selected: RestartAction = "reload";
+
   public async showDialog(): Promise<void> {
     const isHassioLoaded = isComponentLoaded(this.hass.config, "hassio");
 
     this._open = true;
     this._dialogOpen = true;
+    this._selected = "reload";
 
     if (isHassioLoaded && !this._hostInfo) {
       this._loadHostInfo();
@@ -102,19 +123,53 @@ class DialogRestart extends LitElement {
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
+  private _optionTitle(action: RestartAction): string {
+    return this.hass.localize(`ui.dialogs.restart.${action}.title`);
+  }
+
+  private _renderOption(option: RestartOption) {
+    const selected = this._selected === option.action;
+    return html`
+      <button
+        type="button"
+        role="radio"
+        class=${classMap({
+          option: true,
+          selected,
+          danger: !!option.danger,
+        })}
+        aria-checked=${selected ? "true" : "false"}
+        .action=${option.action}
+        .disabled=${this._loadingBackupInfo}
+        @click=${this._select}
+      >
+        <span class="icon">
+          <ha-svg-icon .path=${option.icon}></ha-svg-icon>
+        </span>
+        <span class="text">
+          <span class="title">${this._optionTitle(option.action)}</span>
+          <span class="description">
+            ${this.hass.localize(
+              `ui.dialogs.restart.${option.action}.description`
+            )}
+          </span>
+        </span>
+      </button>
+    `;
+  }
+
   protected render() {
     if (!this._open) {
       return nothing;
     }
 
-    const showRebootShutdown = !!this._hostInfo;
-
-    const dialogTitle = this.hass.localize("ui.dialogs.restart.heading");
+    const showMachine = !!this._hostInfo;
 
     return html`
       <ha-adaptive-dialog
         .open=${this._dialogOpen}
-        header-title=${dialogTitle}
+        header-title=${this.hass.localize("ui.dialogs.restart.heading")}
+        header-subtitle=${this.hass.localize("ui.dialogs.restart.subtitle")}
         allow-mode-change
         flexcontent
         @closed=${this._dialogClosed}
@@ -137,133 +192,70 @@ class DialogRestart extends LitElement {
                   </div>
                 `
               : html`
-                  <ha-list-base dialogInitialFocus>
-                    <ha-list-item-button
-                      @click=${this._reload}
-                      .disabled=${this._loadingBackupInfo}
-                    >
-                      <div slot="headline">
-                        ${this.hass.localize("ui.dialogs.restart.reload.title")}
-                      </div>
-                      <div slot="supporting-text">
-                        ${this.hass.localize(
-                          "ui.dialogs.restart.reload.description"
-                        )}
-                      </div>
-                      <div slot="start" class="icon-background reload">
-                        <ha-svg-icon .path=${mdiAutoFix}></ha-svg-icon>
-                      </div>
-                      <ha-icon-next slot="end"></ha-icon-next>
-                    </ha-list-item-button>
-                    <ha-list-item-button
-                      .action=${"restart"}
-                      @click=${this._handleAction}
-                      .disabled=${this._loadingBackupInfo}
-                    >
-                      <div slot="start" class="icon-background restart">
-                        <ha-svg-icon .path=${mdiRefresh}></ha-svg-icon>
-                      </div>
-                      <div slot="headline">
-                        ${this.hass.localize("ui.dialogs.restart.restart.title")}
-                      </div>
-                      <div slot="supporting-text">
-                        ${this.hass.localize(
-                          "ui.dialogs.restart.restart.description"
-                        )}
-                      </div>
-                      <ha-icon-next slot="end"></ha-icon-next>
-                    </ha-list-item-button>
-                  </ha-list-base>
-                  <ha-expansion-panel
-                    .header=${this.hass.localize(
-                      "ui.dialogs.restart.more_options"
-                    )}
-                  >
-                    <ha-list-base>
-                      ${
-                        showRebootShutdown
-                          ? html`
-                              <ha-list-item-button
-                                .action=${"reboot"}
-                                @click=${this._handleAction}
-                                .disabled=${this._loadingBackupInfo}
-                              >
-                                <div
-                                  slot="start"
-                                  class="icon-background reboot"
-                                >
-                                  <ha-svg-icon
-                                    .path=${mdiPowerCycle}
-                                  ></ha-svg-icon>
-                                </div>
-                                <div slot="headline">
-                                  ${this.hass.localize(
-                                    "ui.dialogs.restart.reboot.title"
-                                  )}
-                                </div>
-                                <div slot="supporting-text">
-                                  ${this.hass.localize(
-                                    "ui.dialogs.restart.reboot.description"
-                                  )}
-                                </div>
-                                <ha-icon-next slot="end"></ha-icon-next>
-                              </ha-list-item-button>
-                              <ha-list-item-button
-                                .action=${"shutdown"}
-                                @click=${this._handleAction}
-                                .disabled=${this._loadingBackupInfo}
-                              >
-                                <div
-                                  slot="start"
-                                  class="icon-background shutdown"
-                                >
-                                  <ha-svg-icon .path=${mdiPower}></ha-svg-icon>
-                                </div>
-                                <div slot="headline">
-                                  ${this.hass.localize(
-                                    "ui.dialogs.restart.shutdown.title"
-                                  )}
-                                </div>
-                                <div slot="supporting-text">
-                                  ${this.hass.localize(
-                                    "ui.dialogs.restart.shutdown.description"
-                                  )}
-                                </div>
-                                <ha-icon-next slot="end"></ha-icon-next>
-                              </ha-list-item-button>
-                            `
-                          : nothing
-                      }
-                      <ha-list-item-button
-                        .action=${"restart-safe-mode"}
-                        @click=${this._handleAction}
-                        .disabled=${this._loadingBackupInfo}
-                      >
-                        <div
-                          slot="start"
-                          class="icon-background restart-safe-mode"
-                        >
-                          <ha-svg-icon .path=${mdiLifebuoy}></ha-svg-icon>
-                        </div>
-                        <div slot="headline">
-                          ${this.hass.localize(
-                            "ui.dialogs.restart.restart-safe-mode.title"
-                          )}
-                        </div>
-                        <div slot="supporting-text">
-                          ${this.hass.localize(
-                            "ui.dialogs.restart.restart-safe-mode.description"
-                          )}
-                        </div>
-                        <ha-icon-next slot="end"></ha-icon-next>
-                      </ha-list-item-button>
-                    </ha-list-base>
-                  </ha-expansion-panel>
+                  <div class="options" role="radiogroup">
+                    ${APP_OPTIONS.map((option) => this._renderOption(option))}
+                    ${
+                      showMachine
+                        ? html`
+                            <div class="section">
+                              ${this.hass.localize(
+                                "ui.dialogs.restart.this_machine"
+                              )}
+                            </div>
+                            ${MACHINE_OPTIONS.map((option) =>
+                              this._renderOption(option)
+                            )}
+                          `
+                        : nothing
+                    }
+                  </div>
                 `
           }
         </div>
+        <ha-dialog-footer slot="footer">
+          <span slot="secondaryAction" class="footer-note">
+            ${this.hass.localize("ui.dialogs.restart.footer_note")}
+          </span>
+          <ha-button
+            slot="secondaryAction"
+            appearance="plain"
+            @click=${this._cancel}
+          >
+            ${this.hass.localize("ui.common.cancel")}
+          </ha-button>
+          <ha-button
+            slot="primaryAction"
+            variant=${this._selected === "shutdown" ? "danger" : "brand"}
+            .disabled=${this._loadingBackupInfo || this._loadingHostInfo}
+            @click=${this._confirmSelected}
+          >
+            ${this._optionTitle(this._selected)}
+          </ha-button>
+        </ha-dialog-footer>
       </ha-adaptive-dialog>
     `;
+  }
+
+  private _select(ev: Event) {
+    const button = ev.currentTarget as HTMLButtonElement & {
+      action: RestartAction;
+    };
+    if (button.disabled) {
+      return;
+    }
+    this._selected = button.action;
+  }
+
+  private _cancel() {
+    this._dialogOpen = false;
+  }
+
+  private _confirmSelected() {
+    if (this._selected === "reload") {
+      this._reload();
+      return;
+    }
+    this._handleAction(this._selected);
   }
 
   private async _reload() {
@@ -344,17 +336,12 @@ class DialogRestart extends LitElement {
     };
 
   private async _handleAction(
-    ev: HASSDomCurrentTargetEvent<
-      HaListItemButton & {
-        action: "restart" | "reboot" | "shutdown" | "restart-safe-mode";
-      }
-    >
+    action: "restart" | "reboot" | "shutdown" | "restart-safe-mode"
   ) {
     if (this._loadingBackupInfo) {
       return;
     }
     this._loadingBackupInfo = true;
-    const action = ev.currentTarget.action;
 
     const backupState = await this._loadBackupState();
 
@@ -424,59 +411,98 @@ class DialogRestart extends LitElement {
           --dialog-content-padding: 0;
         }
 
-        ha-expansion-panel {
-          border-top: 1px solid var(--divider-color);
-          margin-bottom: 10px;
-          box-shadow: none;
-          --expansion-panel-content-padding: 0;
-          --expansion-panel-summary-padding: 0
-            var(--mdc-list-side-padding, 20px);
-          --ha-card-border-radius: var(--ha-border-radius-square);
+        .options {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-6) var(--ha-space-4);
         }
 
-        .icon-background {
-          border-radius: var(--ha-border-radius-circle);
-          color: #fff;
+        .option {
           display: flex;
-          width: 40px;
-          height: 40px;
+          align-items: center;
+          gap: var(--ha-space-4);
+          width: 100%;
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border: var(--ha-border-width-md) solid transparent;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color);
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
+
+        .option:disabled {
+          cursor: default;
+          opacity: 0.6;
+        }
+
+        .option:focus-visible {
+          outline: var(--ha-border-width-md) solid var(--primary-color);
+          outline-offset: 2px;
+        }
+
+        .option.selected {
+          background: var(
+            --primary-container-color,
+            var(--secondary-background-color)
+          );
+          border-color: var(--primary-color);
+        }
+
+        .option.danger {
+          background: var(
+            --error-container-color,
+            var(--secondary-background-color)
+          );
+        }
+
+        .option.danger.selected {
+          border-color: var(--error-color);
+        }
+
+        .icon {
+          flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--card-background-color);
         }
-        .reload {
-          background-color: #5f8a49;
+
+        .text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
         }
-        .restart {
-          background-color: #ffd500;
-          color: #665500;
+
+        .title {
+          font-weight: var(--ha-font-weight-medium);
         }
-        .reboot {
-          background-color: #ba1b1b;
-          color: #fff;
+
+        .description {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
         }
-        .shutdown {
-          background-color: #0b1d29;
-          color: #fff;
-        }
-        .restart-safe-mode {
-          background-color: #e48629;
-          color: #fff;
-        }
-        .divider {
-          height: 1px;
-          background-color: var(--divider-color);
-        }
+
         .section {
+          margin-top: var(--ha-space-2);
+          padding: 0 var(--ha-space-4);
           font-size: var(--ha-font-size-m);
           font-weight: var(--ha-font-weight-medium);
           line-height: var(--ha-line-height-condensed);
-          margin: 8px 0 4px 0;
-          padding-left: var(--mdc-list-side-padding, 20px);
-          padding-right: var(--mdc-list-side-padding, 20px);
-          padding-inline-start: var(--mdc-list-side-padding, 20px);
-          padding-inline-end: var(--mdc-list-side-padding, 20px);
+          color: var(--secondary-text-color);
         }
+
+        .footer-note {
+          margin-inline-end: auto;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+
         .loader {
           display: flex;
           align-items: center;

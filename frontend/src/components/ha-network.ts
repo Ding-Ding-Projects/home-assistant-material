@@ -1,4 +1,4 @@
-import { mdiStar } from "@mdi/js";
+import { mdiAutoFix, mdiEthernet, mdiLan, mdiStar, mdiWifi } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -15,8 +15,9 @@ import "./ha-checkbox";
 import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import type { LocalizeFunc } from "../common/translations/localize";
 import type { HaCheckbox } from "./ha-checkbox";
-import "./ha-settings-row";
 import "./ha-svg-icon";
+import "./ha-switch";
+import type { HaSwitch } from "./ha-switch";
 
 const format_addresses = (
   addresses: IPv6ConfiguredAddress[] | IPv4ConfiguredAddress[]
@@ -35,6 +36,16 @@ const format_auto_detected_interfaces = (
         (${format_addresses([...adapter.ipv4, ...adapter.ipv6])})`
       : ""
   );
+
+const adapterIcon = (adapter: Adapter): string => {
+  if (/^(wl|wlan|wifi)/i.test(adapter.name)) {
+    return mdiWifi;
+  }
+  if (/^(en|eth)/i.test(adapter.name)) {
+    return mdiEthernet;
+  }
+  return mdiLan;
+};
 
 declare global {
   interface HASSDomEvents {
@@ -56,46 +67,75 @@ export class HaNetwork extends LitElement {
       return nothing;
     }
     const configured_adapters = this.networkConfig.configured_adapters || [];
+    const auto = !configured_adapters.length;
     return html`
-      <ha-checkbox
-        @change=${this._handleAutoConfigureCheckboxClick}
-        .checked=${!configured_adapters.length}
-        .hint=${
-          !configured_adapters.length
-            ? this._localize(
-                "ui.panel.config.network.adapter.auto_configure_manual_hint"
-              )
-            : ""
-        }
-      >
-        ${this._localize("ui.panel.config.network.adapter.auto_configure")}
-        <div class="description">
-          ${this._localize("ui.panel.config.network.adapter.detected")}:
-          ${format_auto_detected_interfaces(this.networkConfig.adapters)}
+      <div class="row">
+        <span class="tile"
+          ><ha-svg-icon .path=${mdiAutoFix}></ha-svg-icon
+        ></span>
+        <div class="text">
+          <span class="heading"
+            >${this._localize(
+              "ui.panel.config.network.adapter.choose_for_me"
+            )}</span
+          >
+          <span class="description">
+            ${this._localize("ui.panel.config.network.adapter.detected")}:
+            ${format_auto_detected_interfaces(this.networkConfig.adapters)}
+          </span>
         </div>
-      </ha-checkbox>
+        <ha-switch
+          .checked=${auto}
+          .ariaLabel=${this._localize(
+            "ui.panel.config.network.adapter.auto_configure"
+          )}
+          @change=${this._handleAutoConfigureCheckboxClick}
+        ></ha-switch>
+      </div>
+      ${
+        auto
+          ? html`<p class="hint">
+              ${this._localize(
+                "ui.panel.config.network.adapter.auto_configure_manual_hint"
+              )}
+            </p>`
+          : nothing
+      }
       ${
         configured_adapters.length || this._expanded
           ? this.networkConfig.adapters.map(
               (adapter) =>
-                html`<ha-checkbox
-                  id=${adapter.name}
-                  @change=${this._handleAdapterCheckboxClick}
-                  .checked=${configured_adapters.includes(adapter.name)}
-                  .adapter=${adapter.name}
-                >
-                  ${this._localize("ui.panel.config.network.adapter.adapter")}:
-                  ${adapter.name}
-                  ${
-                    adapter.default
-                      ? html`<ha-svg-icon .path=${mdiStar}></ha-svg-icon>
-                          (${this._localize("ui.common.default")})`
-                      : nothing
-                  }
-                  <div class="description">
-                    ${format_addresses([...adapter.ipv4, ...adapter.ipv6])}
-                  </div>
-                </ha-checkbox>`
+                html`<div class="row">
+                  <span class="tile"
+                    ><ha-svg-icon .path=${adapterIcon(adapter)}></ha-svg-icon
+                  ></span>
+                  <label class="text" for=${adapter.name}>
+                    <span class="heading">
+                      ${this._localize(
+                        "ui.panel.config.network.adapter.adapter"
+                      )}:
+                      ${adapter.name}
+                      ${
+                        adapter.default
+                          ? html`<ha-svg-icon
+                                class="default"
+                                .path=${mdiStar}
+                              ></ha-svg-icon>
+                              (${this._localize("ui.common.default")})`
+                          : nothing
+                      }
+                    </span>
+                    <span class="description">
+                      ${format_addresses([...adapter.ipv4, ...adapter.ipv6])}
+                    </span>
+                  </label>
+                  <ha-checkbox
+                    id=${adapter.name}
+                    @change=${this._handleAdapterCheckboxClick}
+                    .checked=${configured_adapters.includes(adapter.name)}
+                    .adapter=${adapter.name}
+                  ></ha-checkbox>
+                </div>`
             )
           : nothing
       }
@@ -103,9 +143,9 @@ export class HaNetwork extends LitElement {
   }
 
   private _handleAutoConfigureCheckboxClick(
-    ev: HASSDomCurrentTargetEvent<HaCheckbox>
+    ev: HASSDomCurrentTargetEvent<HaSwitch>
   ) {
-    const checkbox = ev.currentTarget as HaCheckbox;
+    const checkbox = ev.currentTarget as HaSwitch;
     if (this.networkConfig === undefined) {
       return;
     }
@@ -161,19 +201,53 @@ export class HaNetwork extends LitElement {
           color: var(--error-color);
         }
 
-        ha-checkbox:not(:last-child) {
-          margin-bottom: var(--ha-space-3);
+        .row {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
+          padding: var(--ha-space-2) 0;
         }
 
-        ha-svg-icon {
-          --mdc-icon-size: 12px;
-          margin-bottom: 4px;
+        .tile {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-lg, 12px);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+
+        .text {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+        }
+
+        .heading {
+          font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
         }
 
         .description {
           font-size: var(--ha-font-size-s);
-          margin-top: var(--ha-space-1);
           color: var(--secondary-text-color);
+          overflow-wrap: anywhere;
+        }
+
+        .hint {
+          margin: var(--ha-space-2) 0 0;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+
+        ha-svg-icon.default {
+          --mdc-icon-size: 12px;
+          margin-bottom: 4px;
         }
       `,
     ];

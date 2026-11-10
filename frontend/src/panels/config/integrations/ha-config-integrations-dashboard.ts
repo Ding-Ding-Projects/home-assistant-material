@@ -1,11 +1,9 @@
-import { mdiFilterVariant, mdiPlus } from "@mdi/js";
+import { mdiPlus } from "@mdi/js";
 import type { IFuseOptions } from "fuse.js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
-import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
 import { fuseSearch } from "../../../resources/fuseMultiTerm";
 import { consume } from "../../../common/decorators/consume";
@@ -27,10 +25,7 @@ import {
 import { extractSearchParam } from "../../../common/url/search-params";
 import { nextRender } from "../../../common/util/render-status";
 import "../../../components/ha-button";
-import "../../../components/ha-dropdown";
-import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
-import "../../../components/ha-dropdown-item";
-import "../../../components/ha-icon-button";
+import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
@@ -81,6 +76,7 @@ import "./ha-integration-card";
 import type { HaIntegrationCard } from "./ha-integration-card";
 import "./ha-integration-overflow-menu";
 import { showAddIntegrationDialog } from "./show-add-integration-dialog";
+import { configEntryNeedsAttention } from "./integration-card-summary";
 import { showSingleConfigEntryWarning } from "./show-single-config-entry-warning";
 
 export interface ConfigEntryExtended extends Omit<ConfigEntry, "entry_id"> {
@@ -172,6 +168,8 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
   );
 
   @state() private _filter = "";
+
+  @state() private _attentionOnly = false;
 
   @state() private _logInfos?: Record<string, IntegrationLogInfo>;
 
@@ -497,64 +495,56 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       this._filter
     );
 
-    const showDisabledBadge =
-      !this._showDisabled && this.narrow && disabledConfigEntries.length > 0;
-
-    const filterMenu = html`
-      <div slot=${ifDefined(this.narrow ? "toolbar-icon" : undefined)}>
-        <div class="menu-badge-container">
-          ${
-            showDisabledBadge
-              ? html`<span class="badge" aria-hidden="true"
-                  >${disabledConfigEntries.length}</span
-                >`
-              : ""
-          }
-          <ha-dropdown multi @wa-select=${this._handleMenuAction}>
-            <ha-icon-button
-              slot="trigger"
-              .label=${
-                showDisabledBadge
-                  ? this.hass.localize(
-                      "ui.panel.config.integrations.filters_disabled_hidden",
-                      { number: disabledConfigEntries.length }
-                    )
-                  : this.hass.localize("ui.panel.config.integrations.filters")
-              }
-              .path=${mdiFilterVariant}
-            >
-            </ha-icon-button>
-            <ha-dropdown-item
-              type="checkbox"
-              .checked=${this._showIgnored}
-              value="show-ignored"
-            >
-              ${this.hass.localize(
-                "ui.panel.config.integrations.ignore.show_ignored"
-              )}
-            </ha-dropdown-item>
-            <ha-dropdown-item
-              type="checkbox"
-              .checked=${this._showDisabled}
-              value="show-disabled"
-            >
-              ${this.hass.localize(
-                "ui.panel.config.integrations.disable.show_disabled"
-              )}
-            </ha-dropdown-item>
-          </ha-dropdown>
-        </div>
-        ${
-          this.narrow
-            ? html`
-                <ha-integration-overflow-menu
-                  .hass=${this.hass}
-                  slot="toolbar-icon"
-                ></ha-integration-overflow-menu>
-              `
-            : ""
-        }
+    const chips = html`
+      <div
+        class="chips"
+        role="group"
+        aria-label=${this.hass.localize("ui.panel.config.integrations.filters")}
+      >
+        <ha-filter-chip
+          .label=${this.hass.localize(
+            "ui.panel.config.integrations.filter_attention"
+          )}
+          .selected=${this._attentionOnly}
+          @click=${this._toggleAttentionOnly}
+        ></ha-filter-chip>
+        <ha-filter-chip
+          .label=${this.hass.localize("ui.panel.config.integrations.disabled")}
+          .selected=${this._showDisabled}
+          @click=${this._toggleShowDisabled}
+        ></ha-filter-chip>
+        <ha-filter-chip
+          .label=${this.hass.localize(
+            "ui.panel.config.integrations.ignore.ignored"
+          )}
+          .selected=${this._showIgnored}
+          @click=${this._toggleShowIgnored}
+        ></ha-filter-chip>
       </div>
+    `;
+
+    const shownIntegrations = this._attentionOnly
+      ? integrations.filter(([, items]) =>
+          items.some(
+            (item) =>
+              item.entry_id &&
+              configEntryNeedsAttention(item as unknown as ConfigEntry)
+          )
+        )
+      : integrations;
+
+    const searchField = html`
+      <ha-input-search
+        appearance="outlined"
+        .value=${this._filter}
+        @input=${this._handleSearchChange}
+        @blur=${this._flushUrl}
+        .placeholder=${this.hass.localize("ui.panel.config.integrations.search")}
+        .accessibleLabel=${this.hass.localize(
+          "ui.panel.config.integrations.search"
+        )}
+      >
+      </ha-input-search>
     `;
 
     return html`
@@ -568,208 +558,99 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         ${
           this.narrow
             ? html`
-                <div slot="header" class="header">
-                  <ha-input-search
-                    appearance="outlined"
-                    .value=${this._filter}
-                    @input=${this._handleSearchChange}
-                    @blur=${this._flushUrl}
-                    .placeholder=${this.hass.localize(
-                      "ui.panel.config.integrations.search"
-                    )}
-                    .accessibleLabel=${this.hass.localize(
-                      "ui.panel.config.integrations.search"
-                    )}
-                  >
-                  </ha-input-search>
-                </div>
-                ${filterMenu}
-              `
-            : html`
+                <div slot="header" class="header">${searchField}</div>
                 <ha-integration-overflow-menu
                   .hass=${this.hass}
                   slot="toolbar-icon"
                 ></ha-integration-overflow-menu>
-                <div class="search">
-                  <ha-input-search
-                    appearance="outlined"
-                    .value=${this._filter}
-                    @input=${this._handleSearchChange}
-                    @blur=${this._flushUrl}
-                    .placeholder=${this.hass.localize(
-                      "ui.panel.config.integrations.search"
-                    )}
-                    .accessibleLabel=${this.hass.localize(
-                      "ui.panel.config.integrations.search"
-                    )}
-                  >
-                  </ha-input-search>
-                  <div class="filters">
-                    ${
-                      !this._showDisabled && disabledConfigEntries.length
-                        ? html`<div class="active-filters">
-                            ${this.hass.localize(
-                              "ui.panel.config.integrations.disable.disabled_integrations",
-                              { number: disabledConfigEntries.length }
-                            )}
-                            <ha-button
-                              appearance="plain"
-                              size="s"
-                              @click=${this._toggleShowDisabled}
-                            >
-                              ${this.hass.localize(
-                                "ui.panel.config.integrations.disable.show"
-                              )}
-                            </ha-button>
-                          </div>`
-                        : nothing
-                    }
-                    ${filterMenu}
-                  </div>
-                </div>
               `
+            : html`<ha-integration-overflow-menu
+                .hass=${this.hass}
+                slot="toolbar-icon"
+              ></ha-integration-overflow-menu>`
         }
-        ${
-          this._showIgnored
-            ? html`<h2 class="section-header">
-                  ${this.hass.localize(
-                    "ui.panel.config.integrations.ignore.ignored"
-                  )}
-                </h2>
-                <div class="container">
-                  ${
-                    ignoredConfigEntries.length > 0
-                      ? ignoredConfigEntries.map(
-                          (entry: ConfigEntryExtended) => html`
-                            <ha-ignored-config-entry-card
-                              .hass=${this.hass}
-                              .manifest=${this._manifests[entry.domain]}
-                              .entry=${entry}
-                              @change=${this._handleFlowUpdated}
-                            ></ha-ignored-config-entry-card>
-                          `
-                        )
-                      : html`${this.hass.localize(
-                          "ui.panel.config.integrations.no_ignored_integrations"
-                        )}`
-                  }
-                </div>`
-            : ""
-        }
-        ${
-          configEntriesInProgress.length
-            ? html`<h2 class="section-header">
-                  ${this.hass.localize("ui.panel.config.integrations.discovered")}
-                </h2>
-                <div class="container">
-                  ${configEntriesInProgress.map(
-                    (flow: DataEntryFlowProgressExtended) => html`
-                      <ha-config-flow-card
-                        .hass=${this.hass}
-                        .manifest=${this._manifests[flow.handler]}
-                        .flow=${flow}
-                        @change=${this._handleFlowUpdated}
-                      ></ha-config-flow-card>
-                    `
-                  )}
-                </div>`
-            : ""
-        }
-        ${
-          this._showDisabled
-            ? html`<h2 class="section-header">
-                  ${this.hass.localize("ui.panel.config.integrations.disabled")}
-                </h2>
-                <div class="container">
-                  ${
-                    disabledConfigEntries.length > 0
-                      ? disabledConfigEntries.map(
-                          (entry: ConfigEntryExtended) => html`
-                            <ha-disabled-config-entry-card
-                              .hass=${this.hass}
-                              .entry=${entry}
-                              .manifest=${this._manifests[entry.domain]}
-                              .entityRegistryEntries=${this._entityRegistryEntries}
-                            ></ha-disabled-config-entry-card>
-                          `
-                        )
-                      : html`${this.hass.localize(
-                          "ui.panel.config.integrations.no_disabled_integrations"
-                        )}`
-                  }
-                </div>`
-            : ""
-        }
-        <h2
-          class=${classMap({
-            "section-header": true,
-            // Only shown when there are other sections, but always kept for
-            // screen readers so the cards are nested under a heading.
-            "visually-hidden": !(
-              configEntriesInProgress.length ||
-              this._showDisabled ||
-              this._showIgnored
-            ),
-          })}
-        >
-          ${this.hass.localize("ui.panel.config.integrations.configured")}
-        </h2>
-        <div class="container">
+        <div class="page">
+          <header class="page-head">
+            <h1>
+              ${this.hass.localize("ui.panel.config.integrations.caption")}
+            </h1>
+            <p>${this.hass.localize("ui.panel.config.integrations.summary")}</p>
+          </header>
           ${
-            integrations.length
-              ? integrations.map(
-                  ([domain, items]) =>
-                    html`<ha-integration-card
-                      data-domain=${domain}
-                      .domain=${domain}
-                      .items=${items}
-                      .manifest=${this._manifests[domain]}
-                      .entityRegistryEntries=${this._entityRegistryEntries}
-                      .domainEntities=${this._domainEntities[domain] || []}
-                      .logInfo=${
-                        this._logInfos ? this._logInfos[domain] : nothing
-                      }
-                    ></ha-integration-card>`
-                )
-              : this._filter &&
-                  !configEntriesInProgress.length &&
-                  !integrations.length &&
-                  this.configEntries.length
-                ? html`
-                    <div class="empty-message">
-                      <h3>
-                        ${this.hass.localize(
-                          "ui.panel.config.integrations.none_found"
-                        )}
-                      </h3>
-                      <p>
-                        ${this.hass.localize(
-                          "ui.panel.config.integrations.none_found_detail"
-                        )}
-                      </p>
-                      <ha-button
-                        @click=${this._createFlow}
-                        appearance="filled"
-                        size="s"
-                      >
-                        <ha-svg-icon
-                          slot="start"
-                          .path=${mdiPlus}
-                        ></ha-svg-icon>
-                        ${this.hass.localize(
-                          "ui.panel.config.integrations.add_integration"
-                        )}
-                      </ha-button>
-                    </div>
-                  `
-                : // If we have a filter, never show a card
-                  this._filter
-                  ? ""
-                  : // If we're showing 0 cards, show empty state text
-                    (!this._showIgnored || ignoredConfigEntries.length === 0) &&
-                      (!this._showDisabled ||
-                        disabledConfigEntries.length === 0) &&
-                      integrations.length === 0
+            configEntriesInProgress.length
+              ? html`<h2 class="section-header">
+                    ${this.hass.localize(
+                      "ui.panel.config.integrations.found_on_network"
+                    )}
+                  </h2>
+                  <div class="container discovered">
+                    ${configEntriesInProgress.map(
+                      (flow: DataEntryFlowProgressExtended) => html`
+                        <ha-config-flow-card
+                          .hass=${this.hass}
+                          .manifest=${this._manifests[flow.handler]}
+                          .flow=${flow}
+                          @change=${this._handleFlowUpdated}
+                        ></ha-config-flow-card>
+                      `
+                    )}
+                  </div>`
+              : nothing
+          }
+          <div class="toolbar">
+            ${this.narrow ? nothing : searchField} ${chips}
+          </div>
+          <h2 class="section-header visually-hidden">
+            ${this.hass.localize("ui.panel.config.integrations.configured")}
+          </h2>
+          <div class="container">
+            ${
+              shownIntegrations.length
+                ? shownIntegrations.map(
+                    ([domain, items]) =>
+                      html`<ha-integration-card
+                        data-domain=${domain}
+                        .domain=${domain}
+                        .items=${items}
+                        .manifest=${this._manifests[domain]}
+                        .entityRegistryEntries=${this._entityRegistryEntries}
+                        .domainEntities=${this._domainEntities[domain] || []}
+                        .logInfo=${
+                          this._logInfos ? this._logInfos[domain] : nothing
+                        }
+                      ></ha-integration-card>`
+                  )
+                : this._filter || this._attentionOnly
+                  ? configEntriesInProgress.length && !this._attentionOnly
+                    ? nothing
+                    : html`
+                        <div class="empty-message">
+                          <h3>
+                            ${this.hass.localize(
+                              "ui.panel.config.integrations.none_found"
+                            )}
+                          </h3>
+                          <p>
+                            ${this.hass.localize(
+                              "ui.panel.config.integrations.none_found_detail"
+                            )}
+                          </p>
+                          <ha-button
+                            @click=${this._createFlow}
+                            appearance="filled"
+                            size="s"
+                          >
+                            <ha-svg-icon
+                              slot="start"
+                              .path=${mdiPlus}
+                            ></ha-svg-icon>
+                            ${this.hass.localize(
+                              "ui.panel.config.integrations.add_integration"
+                            )}
+                          </ha-button>
+                        </div>
+                      `
+                  : !this._showIgnored && !this._showDisabled
                     ? html`
                         <div class="empty-message">
                           <h3>
@@ -797,7 +678,62 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
                           </ha-button>
                         </div>
                       `
-                    : ""
+                    : nothing
+            }
+          </div>
+          ${
+            this._showDisabled
+              ? html`<h2 class="section-header">
+                    ${this.hass.localize("ui.panel.config.integrations.disabled")}
+                  </h2>
+                  <div class="container">
+                    ${
+                      disabledConfigEntries.length > 0
+                        ? disabledConfigEntries.map(
+                            (entry: ConfigEntryExtended) => html`
+                              <ha-disabled-config-entry-card
+                                .hass=${this.hass}
+                                .entry=${entry}
+                                .manifest=${this._manifests[entry.domain]}
+                                .entityRegistryEntries=${
+                                  this._entityRegistryEntries
+                                }
+                              ></ha-disabled-config-entry-card>
+                            `
+                          )
+                        : html`${this.hass.localize(
+                            "ui.panel.config.integrations.no_disabled_integrations"
+                          )}`
+                    }
+                  </div>`
+              : nothing
+          }
+          ${
+            this._showIgnored
+              ? html`<h2 class="section-header">
+                    ${this.hass.localize(
+                      "ui.panel.config.integrations.ignore.ignored"
+                    )}
+                  </h2>
+                  <div class="container">
+                    ${
+                      ignoredConfigEntries.length > 0
+                        ? ignoredConfigEntries.map(
+                            (entry: ConfigEntryExtended) => html`
+                              <ha-ignored-config-entry-card
+                                .hass=${this.hass}
+                                .manifest=${this._manifests[entry.domain]}
+                                .entry=${entry}
+                                @change=${this._handleFlowUpdated}
+                              ></ha-ignored-config-entry-card>
+                            `
+                          )
+                        : html`${this.hass.localize(
+                            "ui.panel.config.integrations.no_ignored_integrations"
+                          )}`
+                    }
+                  </div>`
+              : nothing
           }
         </div>
         <ha-button slot="fab" size="l" @click=${this._createFlow}>
@@ -916,22 +852,18 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
     });
   }
 
-  private _handleMenuAction(ev: HaDropdownSelectEvent) {
-    const action = ev.detail.item.value;
-    switch (action) {
-      case "show-ignored":
-        this._showIgnored = !this._showIgnored;
-        this._writeUrl();
-        break;
-      case "show-disabled":
-        this._toggleShowDisabled();
-        break;
-    }
-  }
-
   private _toggleShowDisabled() {
     this._showDisabled = !this._showDisabled;
     this._writeUrl();
+  }
+
+  private _toggleShowIgnored() {
+    this._showIgnored = !this._showIgnored;
+    this._writeUrl();
+  }
+
+  private _toggleAttentionOnly() {
+    this._attentionOnly = !this._attentionOnly;
   }
 
   private _handleSearchChange(ev: HASSDomTargetEvent<HaInputSearch>) {
@@ -1152,11 +1084,25 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         :host([narrow]) hass-tabs-subpage {
           --main-title-margin: 0;
         }
-        ha-dropdown {
-          margin-left: 8px;
-          margin-inline-start: 8px;
-          margin-inline-end: initial;
-          direction: var(--direction);
+        .page {
+          box-sizing: border-box;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-20);
+        }
+        :host([narrow]) .page {
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-20);
+        }
+        .page-head h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl);
+          font-weight: var(--ha-font-weight-normal);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .page-head p {
+          margin: var(--ha-space-2) 0 0;
+          color: var(--secondary-text-color);
         }
         .container {
           display: grid;
@@ -1165,8 +1111,14 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
             minmax(min(300px, 100%), 1fr)
           );
           gap: var(--ha-space-4);
-          padding: var(--ha-space-6) var(--ha-space-4) 0;
+          padding: var(--ha-space-4) 0 0;
           margin: 0;
+        }
+        .container.discovered {
+          grid-template-columns: repeat(
+            auto-fill,
+            minmax(min(420px, 100%), 1fr)
+          );
         }
         .empty-message {
           margin: auto;
@@ -1188,78 +1140,25 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           display: flex;
           min-width: 0;
         }
-        .search {
+        .toolbar {
           display: flex;
-          justify-content: space-between;
-          width: 100%;
+          flex-wrap: wrap;
           align-items: center;
-          height: 56px;
-          position: sticky;
-          top: 0;
-          z-index: 2;
-          background: var(
-            --ha-panel-toolbar-background,
-            var(--primary-background-color)
-          );
-          padding: 0 16px;
-          gap: var(--ha-space-4);
-          box-sizing: border-box;
-          border-bottom: 1px solid var(--divider-color);
+          gap: var(--ha-space-3);
+          margin-top: var(--ha-space-6);
         }
-        .filters {
-          --mdc-text-field-fill-color: var(--input-fill-color);
-          --mdc-text-field-idle-line-color: var(--input-idle-line-color);
-          --mdc-shape-small: 4px;
-          --text-field-overflow: initial;
+        .toolbar ha-input-search {
+          flex: 0 1 320px;
+        }
+        .chips {
           display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          color: var(--primary-text-color);
-        }
-        .active-filters {
-          color: var(--primary-text-color);
-          display: flex;
-          align-items: center;
-          padding: 2px 2px 2px 8px;
-          line-height: 1;
-          padding-inline-start: 8px;
-          padding-inline-end: 2px;
-          font-size: var(--ha-font-size-m);
-          width: max-content;
-          cursor: initial;
-          direction: var(--direction);
-          height: 32px;
-          background-color: var(--ha-color-fill-primary-normal-resting);
-          border-radius: var(--ha-border-radius-sm);
-        }
-        .active-filters ha-button {
-          margin-left: 8px;
-          margin-inline-start: 8px;
-          margin-inline-end: initial;
-          direction: var(--direction);
-        }
-        .badge {
-          min-width: 20px;
-          min-height: 20px;
-          border-radius: var(--ha-border-radius-circle);
-          font-weight: var(--ha-font-weight-normal);
-          background-color: var(--primary-color);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-primary-color);
-          position: absolute;
-          right: 0px;
-          top: 4px;
-          font-size: var(--ha-font-size-s);
-        }
-        .menu-badge-container {
-          position: relative;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
         }
         .section-header {
-          margin: var(--ha-space-6) var(--ha-space-4) 0;
+          margin: var(--ha-space-6) 0 0;
           font-family: var(--ha-font-family-heading);
-          font-size: var(--ha-font-size-2xl);
+          font-size: var(--ha-font-size-xl);
           font-weight: var(--ha-font-weight-normal);
           line-height: var(--ha-line-height-condensed);
           white-space: normal;
@@ -1275,9 +1174,6 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           clip: rect(0, 0, 0, 0);
           white-space: nowrap;
           border: 0;
-        }
-        ha-dropdown ha-icon-button {
-          color: var(--primary-text-color);
         }
       `,
     ];

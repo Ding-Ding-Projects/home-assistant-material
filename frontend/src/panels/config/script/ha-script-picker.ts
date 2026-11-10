@@ -10,6 +10,7 @@ import {
   mdiMenuDown,
   mdiOpenInNew,
   mdiPlay,
+  mdiStop,
   mdiPlus,
   mdiScriptText,
   mdiTag,
@@ -48,6 +49,7 @@ import type {
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
+import "../../../components/chips/ha-assist-chip";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -121,6 +123,7 @@ import {
   getEntityIdHiddenTableColumn,
   getLabelsTableColumn,
   getTriggeredAtTableColumn,
+  renderRelativeTimeColumn,
 } from "../common/data-table-columns";
 import { configSections } from "../config-sections";
 import { showLabelDetailDialog } from "../labels/show-dialog-label-detail";
@@ -161,15 +164,13 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
 
   @state() private _filteredEntityIds?: string[] | null;
 
-  private _tableSettings = new DataTableSettingsController(
-    this,
-    {
-      search: "script-table-search",
-      sorting: "script-table-sort",
-      grouping: "script-table-grouping",
-    },
-    { defaultGrouping: "category" }
-  );
+  // Rows are one flat list with the category in a column, as the board shows;
+  // grouping stays available from the table menu
+  private _tableSettings = new DataTableSettingsController(this, {
+    search: "script-table-search",
+    sorting: "script-table-sort",
+    grouping: "script-table-grouping",
+  });
 
   @state()
   private _filters: DataTableFilters = {};
@@ -327,10 +328,54 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
                 ></ha-data-table-labels>`
               : nothing,
         },
-        area: getAreaTableColumn(localize),
-        category: getCategoryTableColumn(localize),
+        area: { ...getAreaTableColumn(localize), defaultHidden: true },
+        category: { ...getCategoryTableColumn(localize), defaultHidden: false },
         labels: getLabelsTableColumn(),
-        last_triggered: getTriggeredAtTableColumn(localize, this.hass),
+        last_triggered: {
+          ...getTriggeredAtTableColumn(localize, this.hass),
+          template: (script) =>
+            script.state === "on"
+              ? html`<ha-assist-chip
+                  .label=${localize("ui.panel.config.script.picker.running")}
+                ></ha-assist-chip>`
+              : renderRelativeTimeColumn(
+                  script.last_triggered as string,
+                  "last-triggered",
+                  script.entity_id,
+                  localize,
+                  this.hass
+                ),
+        },
+        run: {
+          title: "",
+          label: localize("ui.panel.config.script.picker.run"),
+          showNarrow: true,
+          moveable: false,
+          minWidth: "112px",
+          maxWidth: "112px",
+          template: (script) =>
+            script.state === "on"
+              ? html`<ha-button
+                  size="s"
+                  appearance="outlined"
+                  variant="neutral"
+                  .entityId=${script.entity_id}
+                  @click=${this._stopClicked}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiStop}></ha-svg-icon>
+                  ${localize("ui.panel.config.script.picker.stop")}
+                </ha-button>`
+              : html`<ha-button
+                  size="s"
+                  appearance="accent"
+                  .disabled=${script.state === UNAVAILABLE}
+                  .entityId=${script.entity_id}
+                  @click=${this._runClicked}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+                  ${localize("ui.panel.config.script.picker.run")}
+                </ha-button>`,
+        },
         actions: {
           lastFixed: true,
           title: "",
@@ -451,9 +496,10 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           "ui.panel.config.script.picker.search",
           { number: scripts.length }
         )}
-        .summary=${this.hass.localize("ui.panel.config.script.picker.summary", {
-          number: scripts.length,
-        })}
+        .summary=${`${this.hass.localize(
+          "ui.panel.config.script.picker.summary",
+          { number: scripts.length }
+        )}. ${this.hass.localize("ui.panel.config.script.picker.description")}`}
         has-filters
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
@@ -1034,6 +1080,37 @@ ${rejected
         }),
       });
     }
+  };
+
+  private _scriptOfClick(ev: Event): ScriptEntity | undefined {
+    const entityId = (ev.currentTarget as HTMLElement & { entityId?: string })
+      .entityId;
+    return this.scripts.find((script) => script.entity_id === entityId);
+  }
+
+  private _runClicked = (ev: Event) => {
+    const script = this._scriptOfClick(ev);
+    if (script) {
+      this._runScript(script);
+    }
+  };
+
+  private _stopClicked = (ev: Event) => {
+    const script = this._scriptOfClick(ev);
+    if (script) {
+      this._stopScript(script);
+    }
+  };
+
+  private _stopScript = async (script: ScriptEntity) => {
+    await this.hass.callService("script", "turn_off", {
+      entity_id: script.entity_id,
+    });
+    showToast(this, {
+      message: this.hass.localize("ui.panel.config.script.picker.stopped", {
+        name: this.hass.formatEntityName(script),
+      }),
+    });
   };
 
   private _showInfo(script: any) {

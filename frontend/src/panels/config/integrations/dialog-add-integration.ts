@@ -578,9 +578,14 @@ class AddIntegrationDialog extends LitElement {
         ?autofocus=${!this._narrow}
         .value=${this._filter}
         @input=${this._filterChanged}
-        .placeholder=${this.hass.localize(
-          "ui.panel.config.integrations.search_brand"
-        )}
+        .placeholder=${
+          this._integrations && !this._integrationFilter
+            ? this.hass.localize(
+                "ui.panel.config.integrations.search_brands_count",
+                { count: Object.keys(this._integrations).length }
+              )
+            : this.hass.localize("ui.panel.config.integrations.search_brand")
+        }
         @keydown=${this._maybeSubmit}
       ></ha-input-search>
       ${

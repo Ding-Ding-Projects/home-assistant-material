@@ -1,7 +1,5 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
-  mdiAlertCircle,
-  mdiCancel,
   mdiDelete,
   mdiDotsVertical,
   mdiEye,
@@ -9,10 +7,8 @@ import {
   mdiMenuDown,
   mdiMicrophoneMessage,
   mdiMicrophoneMessageOff,
-  mdiPencilOff,
   mdiPlus,
   mdiRestore,
-  mdiRestoreAlert,
   mdiToggleSwitch,
   mdiToggleSwitchOffOutline,
 } from "@mdi/js";
@@ -43,7 +39,6 @@ import {
   PROTOCOL_INTEGRATIONS,
   protocolIntegrationPicked,
 } from "../../../common/integrations/protocolIntegrationPicked";
-import { slugify } from "../../../common/string/slugify";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import {
   entitiesFilterQueryParamConfig,
@@ -78,7 +73,6 @@ import "../../../components/ha-icon";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
-import "../../../components/ha-tooltip";
 import type { CloudStatus } from "../../../data/cloud";
 import type { ConfigEntry, SubEntry } from "../../../data/config_entries";
 import { getConfigEntries, getSubEntries } from "../../../data/config_entries";
@@ -370,6 +364,53 @@ export class HaConfigEntities extends LitElement {
               `
             : nothing,
       },
+      entity_id: getEntityIdTableColumn(localize, true),
+      area: getAreaTableColumn(localize),
+      state: {
+        title: localize("ui.panel.config.entities.picker.headers.state"),
+        sortable: false,
+        minWidth: "120px",
+        template: (entry) => {
+          const stateObj = this.hass.states[entry.entity_id];
+          return stateObj ? this.hass.formatEntityState(stateObj) : "—";
+        },
+      },
+      status: {
+        title: localize("ui.panel.config.entities.picker.headers.status"),
+        showNarrow: true,
+        sortable: true,
+        filterable: true,
+        minWidth: "130px",
+        maxWidth: "150px",
+        template: (entry) => {
+          if (!(
+            entry.restored ||
+            entry.unavailable ||
+            entry.disabled_by ||
+            entry.hidden_by ||
+            entry.readonly
+          )) {
+            return "";
+          }
+          const problem = entry.unavailable || entry.restored;
+          return html`<span
+            style=${styleMap({
+              display: "inline-block",
+              padding: "2px 10px",
+              borderRadius: "999px",
+              fontSize: "var(--ha-font-size-s)",
+              fontWeight: "var(--ha-font-weight-medium)",
+              background: problem
+                ? "color-mix(in srgb, var(--error-color) 18%, var(--primary-background-color))"
+                : "var(--secondary-background-color)",
+              color: problem
+                ? "var(--error-color)"
+                : "var(--secondary-text-color)",
+            })}
+            >${entry.status}</span
+          >`;
+        },
+      },
       device: {
         title: localize("ui.panel.config.entities.picker.headers.device"),
         sortable: true,
@@ -382,8 +423,6 @@ export class HaConfigEntities extends LitElement {
         urlName: "device",
         hidden: true,
       },
-      area: getAreaTableColumn(localize),
-      entity_id: getEntityIdTableColumn(localize, true),
       localized_platform: {
         title: localize("ui.panel.config.entities.picker.headers.integration"),
         sortable: true,
@@ -402,72 +441,6 @@ export class HaConfigEntities extends LitElement {
             : this.hass.localize(
                 `config_entry.disabled_by.${entry.disabled_by}`
               ),
-      },
-      status: {
-        title: localize("ui.panel.config.entities.picker.headers.status"),
-        type: "icon",
-        showNarrow: true,
-        sortable: true,
-        filterable: true,
-        minWidth: "80px",
-        maxWidth: "80px",
-        template: (entry) =>
-          entry.unavailable ||
-          entry.disabled_by ||
-          entry.hidden_by ||
-          entry.readonly
-            ? html`
-                <div
-                  tabindex="0"
-                  style="display:inline-block; position: relative;"
-                >
-                  <ha-svg-icon
-                    .id="status-icon-${slugify(entry.entity_id)}"
-                    style=${styleMap({
-                      color: entry.unavailable ? "var(--error-color)" : "",
-                    })}
-                    .path=${
-                      entry.restored
-                        ? mdiRestoreAlert
-                        : entry.unavailable
-                          ? mdiAlertCircle
-                          : entry.disabled_by
-                            ? mdiCancel
-                            : entry.hidden_by
-                              ? mdiEyeOff
-                              : mdiPencilOff
-                    }
-                  ></ha-svg-icon>
-
-                  <ha-tooltip
-                    .for="status-icon-${slugify(entry.entity_id)}"
-                    placement="left"
-                  >
-                    ${
-                      entry.restored
-                        ? this.hass.localize(
-                            "ui.panel.config.entities.picker.status.not_provided"
-                          )
-                        : entry.unavailable
-                          ? this.hass.localize(
-                              "ui.panel.config.entities.picker.status.unavailable"
-                            )
-                          : entry.disabled_by
-                            ? this.hass.localize(
-                                "ui.panel.config.entities.picker.status.disabled"
-                              )
-                            : entry.hidden_by
-                              ? this.hass.localize(
-                                  "ui.panel.config.entities.picker.status.hidden"
-                                )
-                              : this.hass.localize(
-                                  "ui.panel.config.entities.picker.status.unmanageable"
-                                )
-                    }
-                  </ha-tooltip>
-                </div>
-              `
-            : "—",
       },
       created_at: getCreatedAtTableColumn(localize, this.hass),
       modified_at: getModifiedAtTableColumn(localize, this.hass),
@@ -843,9 +816,10 @@ export class HaConfigEntities extends LitElement {
           "ui.panel.config.entities.picker.search",
           { number: filteredEntities.length }
         )}
-        .summary=${this.hass.localize("ui.panel.config.entities.picker.summary", {
-          number: filteredEntities.length,
-        })}
+        .summary=${`${this.hass.localize(
+          "ui.panel.config.entities.picker.summary",
+          { number: filteredEntities.length }
+        )}. ${this.hass.localize("ui.panel.config.entities.picker.tagline")}`}
         has-filters
         .filters=${
           Object.values(this._filters).filter((filter) =>

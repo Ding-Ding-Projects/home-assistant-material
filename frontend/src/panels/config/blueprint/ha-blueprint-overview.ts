@@ -4,12 +4,14 @@ import {
   mdiDownload,
   mdiEye,
   mdiHelpCircleOutline,
+  mdiInformationOutline,
   mdiOpenInNew,
+  mdiPaletteSwatch,
   mdiPlus,
   mdiShareVariant,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { LitElement, html } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
@@ -48,6 +50,8 @@ import {
 import { showScriptEditor } from "../../../data/script";
 import { findRelated } from "../../../data/search";
 import "../../../components/chips/ha-assist-chip";
+import "../../../components/chips/ha-chip-set";
+import "../../../components/chips/ha-filter-chip";
 import {
   showAlertDialog,
   showConfirmationDialog,
@@ -71,7 +75,17 @@ type BlueprintMetaDataPath = BlueprintMetaData & {
   type: "automation" | "script";
   fullpath: string;
   usageCount?: number;
+  usageAutomations?: number;
+  usageScripts?: number;
+  usedByText?: string;
 };
+
+type BlueprintFilter = "automation" | "script" | "used";
+
+interface BlueprintUsage {
+  automation: number;
+  script: number;
+}
 
 const createNewFunctions = {
   automation: (blueprintMeta: BlueprintMetaDataPath) => {
@@ -130,7 +144,10 @@ class HaBlueprintOverview extends LitElement {
   })
   private _activeHiddenColumns?: string[];
 
-  @state() private _usageCounts: Record<string, number> = {};
+  @state() private _usageCounts: Record<string, BlueprintUsage> = {};
+
+  // Filter chips above the list; with none on, every blueprint is listed
+  @state() private _filters: BlueprintFilter[] = [];
 
   private _usageCountRequest = 0;
 
@@ -147,8 +164,9 @@ class HaBlueprintOverview extends LitElement {
     (
       blueprints: Record<string, Blueprints>,
       localize: LocalizeFunc,
-      usageCounts: Record<string, number>,
-      deleted: string[]
+      usageCounts: Record<string, BlueprintUsage>,
+      deleted: string[],
+      filters: BlueprintFilter[]
     ): BlueprintMetaDataPath[] => {
       const deletedFullpaths = new Set(deleted);
       const result: any[] = [];
@@ -171,6 +189,23 @@ class HaBlueprintOverview extends LitElement {
               usageCount: 0,
             });
           } else {
+            const usage = usageCounts[fullpath];
+            const automations = usage?.automation ?? 0;
+            const scripts = usage?.script ?? 0;
+            const parts = [
+              automations
+                ? localize(
+                    "ui.panel.config.blueprint.overview.used_by_automations",
+                    { count: automations }
+                  )
+                : undefined,
+              scripts
+                ? localize(
+                    "ui.panel.config.blueprint.overview.used_by_scripts",
+                    { count: scripts }
+                  )
+                : undefined,
+            ].filter(Boolean);
             result.push({
               ...blueprint.metadata,
               type,
@@ -180,12 +215,22 @@ class HaBlueprintOverview extends LitElement {
               error: false,
               path,
               fullpath,
-              usageCount: usageCounts[fullpath] || 0,
+              usageCount: automations + scripts,
+              usageAutomations: automations,
+              usageScripts: scripts,
+              usedByText: parts.length
+                ? parts.join(", ")
+                : localize("ui.panel.config.blueprint.overview.not_used"),
             });
           }
         })
       );
-      return result;
+      return result.filter(
+        (row) =>
+          (!filters.includes("automation") || row.type === "automation") &&
+          (!filters.includes("script") || row.type === "script") &&
+          (!filters.includes("used") || (row.usageCount ?? 0) > 0)
+      );
     }
   );
 
@@ -193,6 +238,17 @@ class HaBlueprintOverview extends LitElement {
     (
       localize: LocalizeFunc
     ): DataTableColumnContainer<BlueprintMetaDataPath> => ({
+      icon: {
+        title: "",
+        label: localize("ui.panel.config.blueprint.overview.headers.icon"),
+        type: "icon",
+        moveable: false,
+        showNarrow: true,
+        template: (blueprint) =>
+          html`<ha-svg-icon
+            .path=${blueprint.error ? mdiAlertCircle : mdiPaletteSwatch}
+          ></ha-svg-icon>`,
+      },
       name: {
         title: localize("ui.panel.config.blueprint.overview.headers.name"),
         main: true,
@@ -200,9 +256,16 @@ class HaBlueprintOverview extends LitElement {
         filterable: true,
         direction: "asc",
         flex: 2,
+        extraTemplate: (blueprint) =>
+          blueprint.description
+            ? html`<span
+                style="display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+                >${blueprint.description}</span
+              >`
+            : "",
       },
       translated_type: {
-        title: localize("ui.panel.config.blueprint.overview.headers.type"),
+        title: localize("ui.panel.config.blueprint.overview.headers.kind"),
         sortable: true,
         filterable: true,
         groupable: true,
@@ -212,37 +275,51 @@ class HaBlueprintOverview extends LitElement {
         title: localize("ui.panel.config.blueprint.overview.headers.file_name"),
         sortable: true,
         filterable: true,
+        defaultHidden: true,
         flex: 2,
       },
       usage_count: {
-        title: localize(
-          "ui.panel.config.blueprint.overview.headers.usage_count"
-        ),
+        title: localize("ui.panel.config.blueprint.overview.headers.used_by"),
         sortable: true,
         valueColumn: "usageCount",
-        type: "numeric",
-        minWidth: "90px",
-        maxWidth: "90px",
-        template: (blueprint) => {
-          const count = blueprint.usageCount ?? 0;
-          return html`
-            <ha-assist-chip
-              filled
-              .active=${count > 0}
-              label=${String(count)}
-              title=${
-                blueprint.error
-                  ? String(count)
-                  : this.hass.localize(
-                      `ui.panel.config.blueprint.overview.view_${blueprint.type}`
-                    )
-              }
-              ?disabled=${blueprint.error}
-              data-fullpath=${blueprint.fullpath}
-              @click=${this._handleUsageClick}
-            ></ha-assist-chip>
-          `;
-        },
+        flex: 1,
+        template: (blueprint) =>
+          blueprint.error
+            ? ""
+            : !blueprint.usageCount
+              ? html`<span style="color: var(--secondary-text-color);"
+                  >${blueprint.usedByText}</span
+                >`
+              : html`<button
+                  style="all: unset; cursor: pointer; color: var(--primary-text-color);"
+                  title=${this.hass.localize(
+                    `ui.panel.config.blueprint.overview.view_${blueprint.type}`
+                  )}
+                  data-fullpath=${blueprint.fullpath}
+                  @click=${this._handleUsageClick}
+                >
+                  ${blueprint.usedByText}
+                </button>`,
+      },
+      use: {
+        title: "",
+        label: this.hass.localize("ui.panel.config.blueprint.overview.use"),
+        showNarrow: false,
+        minWidth: "110px",
+        maxWidth: "110px",
+        template: (blueprint) =>
+          blueprint.error
+            ? ""
+            : html`<ha-button
+                appearance="filled"
+                variant="neutral"
+                size="s"
+                data-fullpath=${blueprint.fullpath}
+                @click=${this._handleUseClick}
+              >
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize("ui.panel.config.blueprint.overview.use")}
+              </ha-button>`,
       },
       fullpath: {
         title: "fullpath",
@@ -378,11 +455,17 @@ class HaBlueprintOverview extends LitElement {
           this.blueprints,
           this.hass.localize,
           this._usageCounts,
-          this._deletedFullpaths
+          this._deletedFullpaths,
+          this._filters
         )}
         id="fullpath"
         .noDataText=${this.hass.localize(
-          "ui.panel.config.blueprint.overview.no_blueprints"
+          this._filters.length
+            ? "ui.panel.config.blueprint.overview.no_match"
+            : "ui.panel.config.blueprint.overview.no_blueprints"
+        )}
+        .summary=${this.hass.localize(
+          "ui.panel.config.blueprint.overview.summary"
         )}
         has-fab
         clickable
@@ -391,10 +474,19 @@ class HaBlueprintOverview extends LitElement {
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
         .appendRow=${html`<div
-          class="mdc-data-table__cell"
-          style="width: 100%; text-align: center;"
           role="cell"
+          style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; box-sizing: border-box; padding: 12px 16px; margin-top: 8px; border-radius: 16px; background: var(--secondary-background-color);"
         >
+          <div
+            style="display: flex; align-items: center; gap: 12px; color: var(--secondary-text-color);"
+          >
+            <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
+            <span
+              >${this.hass.localize(
+                "ui.panel.config.blueprint.overview.info_files"
+              )}</span
+            >
+          </div>
           <ha-button
             appearance="plain"
             href=${documentationUrl(this.hass, "/get-blueprints")}
@@ -421,6 +513,20 @@ class HaBlueprintOverview extends LitElement {
         @search-changed=${this._tableSettings.searchChanged}
         sync-url
       >
+        <ha-chip-set slot="top-header" class="filter-chips">
+          ${(["automation", "script", "used"] as const).map(
+            (filter) => html`
+              <ha-filter-chip
+                data-filter=${filter}
+                .label=${this.hass.localize(
+                  `ui.panel.config.blueprint.overview.filter_${filter}`
+                )}
+                .selected=${this._filters.includes(filter)}
+                @click=${this._toggleFilter}
+              ></ha-filter-chip>
+            `
+          )}
+        </ha-chip-set>
         <ha-icon-button
           slot="toolbar-icon"
           .label=${this.hass.localize("ui.common.help")}
@@ -488,19 +594,20 @@ class HaBlueprintOverview extends LitElement {
 
     const request = ++this._usageCountRequest;
     this._usageCountsLoading = true;
-    const usageCounts: Record<string, number> = {};
+    const usageCounts: Record<string, BlueprintUsage> = {};
 
     const blueprintList = this._processedBlueprints(
       this.blueprints,
       this.hass.localize,
       {},
-      this._deletedFullpaths
+      this._deletedFullpaths,
+      []
     );
 
     await Promise.all(
       blueprintList.map(async (blueprint) => {
         if (blueprint.error) {
-          usageCounts[blueprint.fullpath] = 0;
+          usageCounts[blueprint.fullpath] = { automation: 0, script: 0 };
           return;
         }
         try {
@@ -509,11 +616,12 @@ class HaBlueprintOverview extends LitElement {
             `${blueprint.domain}_blueprint`,
             blueprint.path
           );
-          const count =
-            (related.automation?.length || 0) + (related.script?.length || 0);
-          usageCounts[blueprint.fullpath] = count;
+          usageCounts[blueprint.fullpath] = {
+            automation: related.automation?.length || 0,
+            script: related.script?.length || 0,
+          };
         } catch (_err) {
-          usageCounts[blueprint.fullpath] = 0;
+          usageCounts[blueprint.fullpath] = { automation: 0, script: 0 };
         }
       })
     );
@@ -529,7 +637,8 @@ class HaBlueprintOverview extends LitElement {
       this.blueprints,
       this.hass.localize,
       this._usageCounts,
-      this._deletedFullpaths
+      this._deletedFullpaths,
+      []
     ).find((b) => b.fullpath === ev.detail.id)!;
     if (blueprint.error) {
       showAlertDialog(this, {
@@ -555,13 +664,37 @@ class HaBlueprintOverview extends LitElement {
       this.blueprints,
       this.hass.localize,
       this._usageCounts,
-      this._deletedFullpaths
+      this._deletedFullpaths,
+      []
     ).find((item) => item.fullpath === fullpath);
     if (!blueprint || blueprint.error) {
       return;
     }
     this._showUsed(blueprint);
   };
+
+  private _handleUseClick = (ev: HASSDomCurrentTargetEvent<HTMLElement>) => {
+    ev.stopPropagation();
+    const fullpath = ev.currentTarget.dataset.fullpath;
+    const blueprint = this._processedBlueprints(
+      this.blueprints,
+      this.hass.localize,
+      this._usageCounts,
+      this._deletedFullpaths,
+      []
+    ).find((item) => item.fullpath === fullpath);
+    if (blueprint && !blueprint.error) {
+      this._createNew(blueprint);
+    }
+  };
+
+  private _toggleFilter(ev: Event) {
+    const filter = (ev.currentTarget as HTMLElement).dataset
+      .filter as BlueprintFilter;
+    this._filters = this._filters.includes(filter)
+      ? this._filters.filter((item) => item !== filter)
+      : [...this._filters, filter];
+  }
 
   private _showUsed = (blueprint: BlueprintMetaDataPath) => {
     navigate(
@@ -723,7 +856,8 @@ class HaBlueprintOverview extends LitElement {
       this.blueprints,
       this.hass.localize,
       this._usageCounts,
-      this._deletedFullpaths
+      this._deletedFullpaths,
+      []
     );
     const selectedRows = rows.filter((row) =>
       this._selected.includes(row.fullpath)
@@ -818,7 +952,14 @@ class HaBlueprintOverview extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    return haStyle;
+    return [
+      haStyle,
+      css`
+        .filter-chips {
+          padding: var(--ha-space-2) var(--ha-space-4);
+        }
+      `,
+    ];
   }
 }
 

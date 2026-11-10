@@ -56,6 +56,15 @@ export class HaIntegrationListItem extends HaListItemButton {
               : nothing
           }
         </div>
+        ${
+          integration.is_discovered
+            ? html`<div part="supporting-text" class="supporting">
+                ${this._localize(
+                  "ui.panel.config.integrations.found_on_network"
+                )}
+              </div>`
+            : nothing
+        }
       </div>
       <div part="end" class="end">
         ${
@@ -116,6 +125,10 @@ export class HaIntegrationListItem extends HaListItemButton {
         display: flex;
         align-items: center;
         gap: var(--ha-space-2);
+      }
+      .supporting {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
       }
       .discovered-icon {
         color: var(--primary-color);

@@ -30,4 +30,8 @@ DOMAIN = "analytics"
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the analytics integration. Nothing is sent anywhere."""
+    # An installation set up by an earlier build holds a configuration entry
+    # for analytics. There is nothing left for it to set up.
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        hass.async_create_task(hass.config_entries.async_remove(entry.entry_id))
     return True

@@ -3,6 +3,7 @@ import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiCog,
   mdiDelete,
+  mdiDevices,
   mdiDotsVertical,
   mdiDownload,
   mdiMicrophone,
@@ -43,6 +44,7 @@ import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
+import "../../../components/ha-entity-id-icon";
 import "../../../components/ha-icon";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-button-next";
@@ -838,8 +840,8 @@ export class HaConfigDevicePage extends LitElement {
       ></ha-device-linked-devices-card>
     `;
 
-    const entitiesColumn = html`
-      ${DEVICE_ENTITY_CATEGORIES.map((category) =>
+    const entityCards = (categories: readonly DeviceEntityCategory[]) =>
+      categories.map((category) =>
         // Make sure we render controls if no other cards will be rendered
         entitiesByCategory[category].length > 0 ||
         (entities.length === 0 && category === "control")
@@ -855,13 +857,22 @@ export class HaConfigDevicePage extends LitElement {
               >
               </ha-device-entities-card>
             `
-          : ""
-      )}
-      <ha-device-via-devices-card
-        .hass=${this.hass}
-        .deviceId=${this.deviceId}
-      ></ha-device-via-devices-card>
-    `;
+          : nothing
+      );
+
+    // What the device does and senses comes first, then how it is set up and
+    // how it is doing, then where it is used and what it did lately
+    const usageCategories = DEVICE_ENTITY_CATEGORIES.filter(
+      (category) => category !== "config" && category !== "diagnostic"
+    );
+    const setupCategories = DEVICE_ENTITY_CATEGORIES.filter(
+      (category) => category === "config" || category === "diagnostic"
+    );
+
+    const viaDevicesCard = html`<ha-device-via-devices-card
+      .hass=${this.hass}
+      .deviceId=${this.deviceId}
+    ></ha-device-via-devices-card>`;
 
     const logbookColumn = isComponentLoaded(this.hass.config, "logbook")
       ? html`
@@ -896,15 +907,46 @@ export class HaConfigDevicePage extends LitElement {
         `
       : nothing;
 
+    const headingEntityId = (entitiesByCategory.control[0] ?? entities[0])
+      ?.entity_id;
+    const headingSummary = this._headingSummary(
+      device,
+      area?.name,
+      integrations.length
+        ? domainToName(this.hass.localize, integrations[0].domain)
+        : undefined
+    );
+
     const columns =
       this._columnsController.value ?? (this.narrow ? 1 : MAX_COLUMNS);
 
     const columnContents =
       columns >= 3
-        ? [[infoColumn, relatedCard], [entitiesColumn], [logbookColumn]]
+        ? [
+            [entityCards(usageCategories)],
+            [entityCards(setupCategories), viaDevicesCard, infoColumn],
+            [relatedCard, logbookColumn],
+          ]
         : columns === 2
-          ? [[infoColumn, relatedCard, logbookColumn], [entitiesColumn]]
-          : [[infoColumn, entitiesColumn, relatedCard, logbookColumn]];
+          ? [
+              [entityCards(usageCategories), relatedCard],
+              [
+                entityCards(setupCategories),
+                viaDevicesCard,
+                infoColumn,
+                logbookColumn,
+              ],
+            ]
+          : [
+              [
+                infoColumn,
+                entityCards(usageCategories),
+                entityCards(setupCategories),
+                viaDevicesCard,
+                relatedCard,
+                logbookColumn,
+              ],
+            ];
 
     return html`<hass-subpage
       .hass=${this.hass}
@@ -960,6 +1002,33 @@ export class HaConfigDevicePage extends LitElement {
       </ha-dropdown>
 
       <div class="container" ${this._columnsController.target()}>
+        <div class="page-heading fullwidth">
+          <div class="heading-tile">
+            ${
+              headingEntityId
+                ? html`<ha-entity-id-icon
+                    .entityId=${headingEntityId}
+                  ></ha-entity-id-icon>`
+                : html`<ha-svg-icon .path=${mdiDevices}></ha-svg-icon>`
+            }
+          </div>
+          <div class="heading-text">
+            <h1 class="heading-title">${deviceName}</h1>
+            ${
+              headingSummary
+                ? html`<p class="heading-summary">${headingSummary}</p>`
+                : nothing
+            }
+          </div>
+          <ha-button
+            class="heading-rename"
+            appearance="outlined"
+            @click=${this._showSettings}
+          >
+            <ha-svg-icon slot="start" .path=${mdiPencil}></ha-svg-icon>
+            ${this.hass.localize("ui.panel.config.devices.page.rename")}
+          </ha-button>
+        </div>
         <div class="header fullwidth">
           ${
             area
@@ -1040,6 +1109,58 @@ export class HaConfigDevicePage extends LitElement {
         )}
       </div>
     </hass-subpage>`;
+  }
+
+  /** One line about the device: what it is, where it is and what runs it. */
+  private _headingSummary(
+    device: DeviceRegistryEntry,
+    areaName?: string,
+    integrationName?: string
+  ): string {
+    const localize = this.hass.localize;
+    const model =
+      device.model && !device.model.startsWith("<") ? device.model : undefined;
+    const manufacturer =
+      device.manufacturer && !device.manufacturer.startsWith("<")
+        ? device.manufacturer
+        : undefined;
+    const parts: string[] = [];
+
+    if (model && manufacturer) {
+      parts.push(
+        localize("ui.panel.config.devices.page.model_by_maker", {
+          model,
+          manufacturer,
+        })
+      );
+    } else if (model) {
+      parts.push(`${model}.`);
+    } else if (manufacturer) {
+      parts.push(
+        localize("ui.panel.config.devices.page.made_by", { manufacturer })
+      );
+    }
+
+    if (areaName && integrationName) {
+      parts.push(
+        localize("ui.panel.config.devices.page.area_and_integration", {
+          area: areaName,
+          integration: integrationName,
+        })
+      );
+    } else if (areaName) {
+      parts.push(
+        localize("ui.panel.config.devices.page.in_area", { area: areaName })
+      );
+    } else if (integrationName) {
+      parts.push(
+        localize("ui.panel.config.devices.page.through_integration", {
+          integration: integrationName,
+        })
+      );
+    }
+
+    return parts.join(" ");
   }
 
   private _fetchData() {
@@ -1702,6 +1823,66 @@ export class HaConfigDevicePage extends LitElement {
         .header {
           display: flex;
           justify-content: space-between;
+        }
+
+        .page-heading {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-5);
+          padding: var(--ha-space-2) 0;
+        }
+        .heading-tile {
+          flex: none;
+          display: grid;
+          place-items: center;
+          width: 88px;
+          height: 88px;
+          border-radius: var(--ha-border-radius-3xl);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 22%,
+            var(--primary-background-color)
+          );
+          color: var(--primary-color);
+          --mdc-icon-size: 40px;
+        }
+        .heading-text {
+          flex: 1;
+          min-width: 0;
+        }
+        h1.heading-title {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+          color: var(--primary-text-color);
+          opacity: 1;
+          overflow-wrap: anywhere;
+        }
+        .heading-summary {
+          margin: var(--ha-space-1) 0 0;
+          font-size: var(--ha-font-size-l);
+          line-height: var(--ha-line-height-normal);
+          color: var(--secondary-text-color);
+        }
+        .heading-rename {
+          flex: none;
+        }
+        :host([narrow]) .page-heading {
+          flex-wrap: wrap;
+          gap: var(--ha-space-3);
+        }
+        :host([narrow]) .heading-tile {
+          width: 56px;
+          height: 56px;
+          --mdc-icon-size: 28px;
+        }
+        :host([narrow]) h1.heading-title {
+          font-size: var(--ha-font-size-2xl);
+        }
+        :host([narrow]) .heading-text {
+          flex-basis: calc(100% - 72px);
         }
 
         .header-name {

@@ -1,9 +1,12 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
+  mdiChevronRight,
   mdiDotsVertical,
+  mdiHistory,
   mdiLocationEnter,
   mdiLocationExit,
   mdiRefresh,
+  mdiUpdate,
 } from "@mdi/js";
 import type {
   HassEntities,
@@ -14,20 +17,21 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import { fireEvent } from "../../../common/dom/fire_event";
 import { supportsFeature } from "../../../common/entity/supports-feature";
-import { caseInsensitiveStringCompare } from "../../../common/string/compare";
+import { navigate } from "../../../common/navigate";
 import "../../../components/animation/ha-fade-in";
+import "../../../components/entity/state-badge";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
-import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
+import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
+import "../../../components/ha-svg-icon";
 import type { ManagerState } from "../../../data/backup_manager";
 import { subscribeBackupEvents } from "../../../data/backup_manager";
-import type { EntitySources } from "../../../data/entity/entity_sources";
-import { fetchEntitySourcesWithCache } from "../../../data/entity/entity_sources";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
 import type {
   HassioSupervisorInfo,
@@ -38,7 +42,6 @@ import {
   reloadSupervisor,
   setSupervisorOption,
 } from "../../../data/hassio/supervisor";
-import { domainToName } from "../../../data/integration";
 import type { UpdateEntity } from "../../../data/update";
 import {
   checkForEntityUpdates,
@@ -53,36 +56,29 @@ import {
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
+import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
-import "../dashboard/ha-config-updates";
 import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 
-interface UpdateGroup {
-  key: string;
-  title: string;
-  entities: UpdateEntity[];
-  showUpdateButton: boolean;
-}
+type UpdateRowVariant = "install" | "skipped" | "manual" | "current";
 
-const SYSTEM_KEY = "__system__";
-const APPS_KEY = "__apps__";
+// How many up to date entries the card shows before the person asks for all
+const CURRENT_PREVIEW = 6;
 
 @customElement("ha-config-section-updates")
 class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() private _showSkipped = false;
+
+  @state() private _showAllCurrent = false;
 
   @state() private _backupState?: ManagerState;
 
   @state() private _supervisorInfo?: HassioSupervisorInfo;
-
-  @state() private _entitySources?: EntitySources;
-
-  @state() private _loadedIntegrationTitles = new Set<string>();
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
@@ -90,57 +86,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     if (isComponentLoaded(this.hass.config, "hassio")) {
       this._refreshSupervisorInfo();
     }
-
-    this._loadEntitySources();
-  }
-
-  private async _loadEntitySources() {
-    try {
-      this._entitySources = await fetchEntitySourcesWithCache(
-        this.hass.callWS,
-        this.hass.states
-      );
-    } catch (_err) {
-      // Non-fatal: grouping falls back to entity registry platform lookup.
-    }
-  }
-
-  protected updated(changedProps: PropertyValues<this>) {
-    super.updated(changedProps);
-    if (changedProps.has("hass")) {
-      this._loadIntegrationTitles();
-    }
-  }
-
-  private _collectUpdateDomains = memoizeOne(
-    (states: HassEntities, entities: HomeAssistant["entities"]) => {
-      const domains = new Set<string>();
-      for (const entity of Object.values(states)) {
-        if (!entity.entity_id.startsWith("update.")) continue;
-        const platform = entities[entity.entity_id]?.platform;
-        if (platform) {
-          domains.add(platform);
-        }
-      }
-      return domains;
-    }
-  );
-
-  private async _loadIntegrationTitles() {
-    const domains = this._collectUpdateDomains(
-      this.hass.states,
-      this.hass.entities
-    );
-    const toLoad: string[] = [];
-    for (const domain of domains) {
-      if (!this._loadedIntegrationTitles.has(domain)) {
-        toLoad.push(domain);
-      }
-    }
-    if (!toLoad.length) return;
-    toLoad.forEach((d) => this._loadedIntegrationTitles.add(d));
-    await this.hass.loadBackendTranslation("title", toLoad);
-    this.requestUpdate();
   }
 
   protected hassSubscribe(): Promise<UnsubscribeFunc>[] {
@@ -199,6 +144,14 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     }
   }
 
+  private _backupInProgress(): boolean {
+    return (
+      this._backupState === "create_backup" ||
+      this._backupState === "receive_backup" ||
+      this._backupState === "restore_backup"
+    );
+  }
+
   protected render(): TemplateResult {
     const installableUpdates = this._filterInstallableUpdateEntities(
       this.hass.states,
@@ -214,16 +167,13 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       this.hass.formatEntityName,
       this._showSkipped
     );
-
-    const groups = this._groupUpdates(
-      installableUpdates,
-      this._entitySources,
-      this.hass.localize,
-      this.hass.entities,
-      this.hass.locale.language
+    const currentUpdates = this._filterCurrentUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
     );
 
     const backupInProgressAlert = this._backupInProgressAlert();
+    const readyCount = installableUpdates.length + notInstallableUpdates.length;
 
     return html`
       <hass-subpage
@@ -233,13 +183,6 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         .header=${this.hass.localize("ui.panel.config.updates.caption")}
       >
         <div slot="toolbar-icon">
-          <ha-icon-button
-            .label=${this.hass.localize(
-              "ui.panel.config.updates.check_updates"
-            )}
-            .path=${mdiRefresh}
-            @click=${this._checkUpdates}
-          ></ha-icon-button>
           <ha-dropdown @wa-select=${this._handleOverflowAction}>
             <ha-icon-button
               slot="trigger"
@@ -287,132 +230,54 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                 </ha-fade-in>
               `
             : html`
-                <div class="content">
+                <div class="page">
                   ${
                     backupInProgressAlert &&
-                    groups.some(
-                      (group) =>
-                        group.key === APPS_KEY || group.key === SYSTEM_KEY
+                    installableUpdates.some((entity) =>
+                      this._isAppUpdate(entity)
                     )
                       ? backupInProgressAlert
                       : nothing
                   }
-                  ${groups.map(
-                    (group) => html`
-                      <ha-card outlined>
-                        <div class="card-content">
-                          <div class="card-header">
-                            <div class="title" role="heading" aria-level="2">
-                              ${group.title}
-                            </div>
-                            ${
-                              group.showUpdateButton
-                                ? html`
-                                    <ha-button
-                                      appearance="plain"
-                                      size="s"
-                                      .group=${group}
-                                      .disabled=${
-                                        (!!backupInProgressAlert &&
-                                          group.key === APPS_KEY) ||
-                                        group.entities.every((entity) =>
-                                          updateIsInstalling(entity)
-                                        )
-                                      }
-                                      @click=${this._updateGroup}
-                                    >
-                                      ${this.hass.localize(
-                                        group.entities.length > 1
-                                          ? "ui.panel.config.updates.update_all"
-                                          : "ui.common.update"
-                                      )}
-                                    </ha-button>
-                                  `
-                                : nothing
-                            }
-                          </div>
-                          <ha-config-updates
-                            .narrow=${this.narrow}
-                            .updateEntities=${group.entities}
-                            showAll
-                          ></ha-config-updates>
-                        </div>
-                      </ha-card>
-                    `
-                  )}
+                  ${this._renderHero(installableUpdates, readyCount)}
                   ${
-                    skippedUpdates.length
-                      ? html`
-                          <ha-card outlined>
-                            <div class="card-content">
-                              <div class="card-header">
-                                <div
-                                  class="title"
-                                  role="heading"
-                                  aria-level="2"
-                                >
-                                  ${this.hass.localize(
-                                    "ui.panel.config.updates.title_skipped",
-                                    {
-                                      count: skippedUpdates.length,
-                                    }
-                                  )}
-                                </div>
-                              </div>
-                              <ha-config-updates
-                                .narrow=${this.narrow}
-                                .updateEntities=${skippedUpdates}
-                                showAll
-                              ></ha-config-updates>
-                            </div>
-                          </ha-card>
-                        `
+                    installableUpdates.length
+                      ? html`<div class="rows">
+                          ${installableUpdates.map((entity) =>
+                            this._renderRow(entity, "install")
+                          )}
+                        </div>`
                       : nothing
                   }
                   ${
                     notInstallableUpdates.length
-                      ? html`
-                          <ha-card outlined>
-                            <div class="card-content">
-                              <div class="card-header">
-                                <div
-                                  class="title"
-                                  role="heading"
-                                  aria-level="2"
-                                >
-                                  ${this.hass.localize(
-                                    "ui.panel.config.updates.title_not_installable",
-                                    {
-                                      count: notInstallableUpdates.length,
-                                    }
-                                  )}
-                                </div>
-                              </div>
-                              <ha-config-updates
-                                .narrow=${this.narrow}
-                                .updateEntities=${notInstallableUpdates}
-                                showAll
-                              ></ha-config-updates>
-                            </div>
-                          </ha-card>
-                        `
+                      ? this._renderListSection(
+                          this.hass.localize(
+                            "ui.panel.config.updates.title_not_installable",
+                            { count: notInstallableUpdates.length }
+                          ),
+                          notInstallableUpdates,
+                          "manual"
+                        )
                       : nothing
                   }
                   ${
-                    groups.length +
-                    notInstallableUpdates.length +
                     skippedUpdates.length
-                      ? nothing
-                      : html`
-                          <ha-card outlined>
-                            <div class="no-updates">
-                              ${this.hass.localize(
-                                "ui.panel.config.updates.no_updates"
-                              )}
-                            </div>
-                          </ha-card>
-                        `
+                      ? this._renderListSection(
+                          this.hass.localize(
+                            "ui.panel.config.updates.title_skipped",
+                            { count: skippedUpdates.length }
+                          ),
+                          skippedUpdates,
+                          "skipped"
+                        )
+                      : nothing
                   }
+                  <div class="columns">
+                    ${this._renderBeforeUpdating()}
+                    ${this._renderCurrent(currentUpdates)}
+                  </div>
+                  ${this._renderFootnote()}
                 </div>
               `
         }
@@ -420,19 +285,328 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     `;
   }
 
+  private _renderHero(
+    installable: UpdateEntity[],
+    readyCount: number
+  ): TemplateResult {
+    const localize = this.hass.localize;
+    const updateAll = this._updateAllEntityIds(installable);
+    const installing =
+      installable.length > 0 &&
+      installable.every((entity) => updateIsInstalling(entity));
+    return html`
+      <div class="hero-row">
+        <section class="hero" aria-labelledby="hero-title">
+          <span class="eyebrow"
+            >${localize("ui.panel.config.updates.caption")}</span
+          >
+          <h1 id="hero-title">
+            ${
+              readyCount
+                ? localize("ui.panel.config.updates.ready", {
+                    count: readyCount,
+                  })
+                : localize("ui.panel.config.updates.all_current")
+            }
+          </h1>
+          <p>
+            ${
+              readyCount
+                ? localize("ui.panel.config.updates.ready_hint")
+                : localize("ui.panel.config.updates.all_current_hint")
+            }
+          </p>
+        </section>
+        <div class="hero-actions">
+          ${
+            updateAll.length > 1
+              ? html`<ha-button
+                  appearance="filled"
+                  .disabled=${installing}
+                  @click=${this._updateAll}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiUpdate}></ha-svg-icon>
+                  ${localize("ui.panel.config.updates.update_all")}
+                </ha-button>`
+              : nothing
+          }
+          <ha-button appearance="outlined" @click=${this._checkUpdates}>
+            <ha-svg-icon slot="start" .path=${mdiRefresh}></ha-svg-icon>
+            ${localize("ui.panel.config.updates.check_now")}
+          </ha-button>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderListSection(
+    title: string,
+    entities: UpdateEntity[],
+    variant: UpdateRowVariant
+  ): TemplateResult {
+    return html`
+      <section class="list-section">
+        <h2>${title}</h2>
+        <div class="rows">
+          ${entities.map((entity) => this._renderRow(entity, variant))}
+        </div>
+      </section>
+    `;
+  }
+
+  private _renderRow(
+    entity: UpdateEntity,
+    variant: UpdateRowVariant
+  ): TemplateResult {
+    const localize = this.hass.localize;
+    const name = this.hass.formatEntityName(entity) || entity.entity_id;
+    const title = entity.attributes.title;
+    const sub =
+      title && title !== name ? title : entity.attributes.release_summary || "";
+    const installed = entity.attributes.installed_version;
+    const latest = entity.attributes.latest_version;
+    const installing = updateIsInstalling(entity);
+    const system = isSystemUpdate(entity);
+    const notesUrl = entity.attributes.release_url;
+    const hasNotes =
+      !!notesUrl || supportsFeature(entity, UpdateEntityFeature.RELEASE_NOTES);
+    const showNotes = variant === "install" || variant === "manual";
+
+    return html`
+      <div class="row">
+        <button
+          class="row-main"
+          .entityId=${entity.entity_id}
+          @click=${this._openMoreInfo}
+        >
+          <state-badge
+            .title=${title || name}
+            .hass=${this.hass}
+            .stateObj=${entity}
+          ></state-badge>
+          <span class="text">
+            <span class="name">${name}</span>
+            ${sub ? html`<span class="sub">${sub}</span>` : nothing}
+          </span>
+          ${
+            variant === "current"
+              ? html`<span class="version">${installed ?? ""}</span>`
+              : installed && latest
+                ? html`<span
+                    class="version"
+                    aria-label=${localize(
+                      "ui.panel.config.updates.version_change",
+                      { installed, latest }
+                    )}
+                  >
+                    <span>${installed}</span>
+                    <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
+                    <strong>${latest}</strong>
+                  </span>`
+                : latest
+                  ? html`<span class="version"
+                      ><strong>${latest}</strong></span
+                    >`
+                  : nothing
+          }
+          ${
+            variant === "skipped"
+              ? html`<span class="chip"
+                  >${localize("ui.panel.config.updates.skipped")}</span
+                >`
+              : nothing
+          }
+        </button>
+        ${
+          variant === "current"
+            ? html`<span class="chip current"
+                >${localize("ui.panel.config.updates.current")}</span
+              >`
+            : html`
+                ${
+                  showNotes && hasNotes
+                    ? html`<ha-button
+                        appearance="plain"
+                        size="s"
+                        .entityId=${entity.entity_id}
+                        .href=${notesUrl || undefined}
+                        .target=${notesUrl ? "_blank" : undefined}
+                        .rel=${notesUrl ? "noopener noreferrer" : undefined}
+                        @click=${notesUrl ? undefined : this._openMoreInfo}
+                      >
+                        ${localize("ui.panel.config.updates.notes")}
+                      </ha-button>`
+                    : nothing
+                }
+                ${
+                  variant === "install"
+                    ? installing
+                      ? html`<span class="installing">
+                          <ha-spinner size="small"></ha-spinner>
+                          ${localize("ui.panel.config.updates.update_in_progress")}
+                        </span>`
+                      : html`<ha-button
+                          appearance="accent"
+                          size="s"
+                          .entityId=${entity.entity_id}
+                          .disabled=${
+                            this._backupInProgress() &&
+                            this._isAppUpdate(entity)
+                          }
+                          @click=${system ? this._openMoreInfo : this._updateOne}
+                        >
+                          ${localize("ui.common.update")}
+                        </ha-button>`
+                    : nothing
+                }
+              `
+        }
+      </div>
+    `;
+  }
+
+  private _renderBeforeUpdating(): TemplateResult | typeof nothing {
+    if (!isComponentLoaded(this.hass.config, "backup")) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    return html`
+      <section class="card">
+        <h2>${localize("ui.panel.config.updates.before_updating")}</h2>
+        <button class="link-row" @click=${this._openBackups}>
+          <span class="tile"
+            ><ha-svg-icon .path=${mdiHistory}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name"
+              >${localize("ui.panel.config.updates.backups_title")}</span
+            >
+            <span class="sub"
+              >${localize("ui.panel.config.updates.backups_description")}</span
+            >
+          </span>
+          <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
+        </button>
+      </section>
+    `;
+  }
+
+  private _renderCurrent(
+    current: UpdateEntity[]
+  ): TemplateResult | typeof nothing {
+    if (!current.length) {
+      return nothing;
+    }
+    const shown = this._showAllCurrent
+      ? current
+      : current.slice(0, CURRENT_PREVIEW);
+    const localize = this.hass.localize;
+    return html`
+      <section class="card">
+        <h2>${localize("ui.panel.config.updates.up_to_date")}</h2>
+        <div class="rows plain">
+          ${shown.map((entity) => this._renderRow(entity, "current"))}
+        </div>
+        ${
+          current.length > CURRENT_PREVIEW
+            ? html`<div class="card-actions">
+                <ha-button appearance="plain" @click=${this._toggleAllCurrent}>
+                  ${
+                    this._showAllCurrent
+                      ? localize("ui.panel.config.updates.show_fewer")
+                      : localize("ui.panel.config.updates.show_all_current", {
+                          count: current.length,
+                        })
+                  }
+                </ha-button>
+              </div>`
+            : nothing
+        }
+      </section>
+    `;
+  }
+
+  private _renderFootnote(): TemplateResult {
+    const localize = this.hass.localize;
+    const channel = this._supervisorInfo?.channel;
+    return html`
+      <div class="footnote">
+        <span>
+          ${localize("ui.panel.config.updates.skipped_note")}
+          ${
+            channel
+              ? channel === "stable"
+                ? localize("ui.panel.config.updates.beta_off")
+                : localize("ui.panel.config.updates.beta_on", { channel })
+              : nothing
+          }
+        </span>
+        ${
+          channel && channel !== "dev"
+            ? html`<ha-button appearance="plain" @click=${this._toggleBeta}>
+                ${localize(
+                  `ui.panel.config.updates.${channel === "stable" ? "join" : "leave"}_beta`
+                )}
+              </ha-button>`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  private _isAppUpdate(entity: UpdateEntity): boolean {
+    return (
+      !isSystemUpdate(entity) &&
+      this.hass.entities[entity.entity_id]?.platform === "hassio"
+    );
+  }
+
+  // The Core, Operating System and Supervisor updates are left out: each of
+  // them restarts something, so they are started one at a time from their row.
+  private _updateAllEntityIds(installable: UpdateEntity[]): string[] {
+    return installable
+      .filter(
+        (entity) =>
+          !isSystemUpdate(entity) &&
+          !updateIsInstalling(entity) &&
+          !(this._backupInProgress() && this._isAppUpdate(entity))
+      )
+      .map((entity) => entity.entity_id);
+  }
+
+  private _openMoreInfo(ev: Event): void {
+    const entityId = (ev.currentTarget as any).entityId as string;
+    fireEvent(this, "hass-more-info", { entityId });
+  }
+
+  private _openBackups(): void {
+    navigate("/config/backup");
+  }
+
+  private _toggleAllCurrent(): void {
+    this._showAllCurrent = !this._showAllCurrent;
+  }
+
   private async _refreshSupervisorInfo() {
     this._supervisorInfo = await fetchHassioSupervisorInfo(this.hass);
   }
 
+  private _toggleBeta(): void {
+    if (!this._supervisorInfo) {
+      return;
+    }
+    if (this._supervisorInfo.channel === "stable") {
+      showJoinBetaDialog(this, {
+        join: () => this._setChannel("beta"),
+      });
+    } else {
+      this._setChannel("stable");
+    }
+  }
+
   private _handleOverflowAction(ev: HaDropdownSelectEvent): void {
     if (ev.detail.item.value === "toggle_beta") {
-      if (this._supervisorInfo!.channel === "stable") {
-        showJoinBetaDialog(this, {
-          join: () => this._setChannel("beta"),
-        });
-      } else {
-        this._setChannel("stable");
-      }
+      this._toggleBeta();
     } else if (ev.detail.item.value === "show_skipped") {
       this._showSkipped = !this._showSkipped;
     }
@@ -458,11 +632,20 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     checkForEntityUpdates(this, this.hass);
   }
 
-  private async _updateGroup(ev: Event) {
-    const group = (ev.currentTarget as any).group as UpdateGroup;
-    const entityIds = group.entities
-      .filter((entity) => !updateIsInstalling(entity))
-      .map((entity) => entity.entity_id);
+  private async _updateAll(): Promise<void> {
+    const installable = this._filterInstallableUpdateEntities(
+      this.hass.states,
+      this.hass.formatEntityName
+    );
+    await this._install(this._updateAllEntityIds(installable));
+  }
+
+  private async _updateOne(ev: Event): Promise<void> {
+    const entityId = (ev.currentTarget as any).entityId as string;
+    await this._install([entityId]);
+  }
+
+  private async _install(entityIds: string[]): Promise<void> {
     if (!entityIds.length) {
       return;
     }
@@ -530,136 +713,260 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
     }
   );
 
-  private _groupUpdates = memoizeOne(
+  // Updates with nothing waiting: off, and not held back by a skipped version.
+  private _filterCurrentUpdateEntities = memoizeOne(
     (
-      entities: UpdateEntity[],
-      entitySources: EntitySources | undefined,
-      localize: HomeAssistant["localize"],
-      entityRegistry: HomeAssistant["entities"],
-      language: string
-    ): UpdateGroup[] => {
-      if (!entities.length) {
-        return [];
-      }
-
-      const systemEntities: UpdateEntity[] = [];
-      const appEntities: UpdateEntity[] = [];
-      const byDomain = new Map<string, UpdateEntity[]>();
-
-      for (const entity of entities) {
-        if (isSystemUpdate(entity)) {
-          systemEntities.push(entity);
-          continue;
-        }
-        const domain =
-          entitySources?.[entity.entity_id]?.domain ??
-          entityRegistry[entity.entity_id]?.platform ??
-          "unknown";
-        if (domain === "hassio") {
-          appEntities.push(entity);
-          continue;
-        }
-        if (!byDomain.has(domain)) {
-          byDomain.set(domain, []);
-        }
-        byDomain.get(domain)!.push(entity);
-      }
-
-      const integrationGroups: UpdateGroup[] = [];
-      byDomain.forEach((entries, domain) => {
-        integrationGroups.push({
-          key: domain,
-          title: domainToName(localize, domain),
-          entities: entries,
-          showUpdateButton: true,
-        });
-      });
-
-      integrationGroups.sort((a, b) =>
-        caseInsensitiveStringCompare(a.title, b.title, language)
-      );
-
-      const groups: UpdateGroup[] = [];
-
-      if (systemEntities.length) {
-        groups.push({
-          key: SYSTEM_KEY,
-          title: localize("ui.panel.config.updates.group_system"),
-          entities: systemEntities,
-          showUpdateButton: false,
-        });
-      }
-
-      groups.push(...integrationGroups);
-
-      if (appEntities.length) {
-        groups.push({
-          key: APPS_KEY,
-          title: localize("ui.panel.config.updates.group_apps"),
-          entities: appEntities,
-          showUpdateButton: true,
-        });
-      }
-
-      return groups;
-    }
+      entities: HassEntities,
+      formatEntityName: HomeAssistant["formatEntityName"]
+    ): UpdateEntity[] =>
+      filterUpdateEntities(entities, formatEntityName).filter(
+        (entity) =>
+          entity.state === "off" &&
+          !!entity.attributes.installed_version &&
+          !latestVersionIsSkipped(entity)
+      )
   );
 
-  static styles = css`
-    .content {
-      padding: 28px 20px 0;
-      max-width: 1040px;
-      margin: 0 auto;
-    }
-    ha-card {
-      max-width: 600px;
-      margin: 0 auto;
-      height: 100%;
-      justify-content: space-between;
-      flex-direction: column;
-      display: flex;
-      margin-bottom: max(24px, var(--safe-area-inset-bottom));
-    }
-    ha-config-updates {
-      margin-bottom: 8px;
-    }
-    ha-alert {
-      display: block;
-      max-width: 600px;
-      margin: 0 auto var(--ha-space-6);
-    }
-    .loading {
-      display: flex;
-      justify-content: center;
-      padding: var(--ha-space-8) 0;
-    }
-
-    .card-content {
-      display: flex;
-      justify-content: space-between;
-      flex-direction: column;
-      padding: 0;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--ha-space-2);
-      padding: var(--ha-space-4) var(--ha-space-2) 0 var(--ha-space-4);
-    }
-
-    .title {
-      font-size: var(--ha-font-size-l);
-    }
-
-    .no-updates {
-      padding: 16px;
-    }
-    li[divider] {
-      border-bottom-color: var(--divider-color);
-    }
-  `;
+  static styles = [
+    haStyle,
+    css`
+      .page {
+        box-sizing: border-box;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-4);
+      }
+      :host([narrow]) .page {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+      }
+      .loading {
+        display: flex;
+        justify-content: center;
+        padding: var(--ha-space-8) 0;
+      }
+      ha-alert {
+        display: block;
+      }
+      .hero-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: var(--ha-space-4);
+      }
+      :host([narrow]) .hero-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .hero {
+        box-sizing: border-box;
+        padding: var(--ha-space-6) var(--ha-space-8);
+        border-radius: var(--ha-border-radius-3xl);
+        color: var(--primary-text-color);
+        background: color-mix(
+          in srgb,
+          var(--primary-color) 22%,
+          var(--primary-background-color)
+        );
+      }
+      :host([narrow]) .hero {
+        padding: var(--ha-space-4) var(--ha-space-5);
+      }
+      .eyebrow {
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      h1 {
+        margin: var(--ha-space-1) 0 var(--ha-space-2);
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-4xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+      :host([narrow]) h1 {
+        font-size: var(--ha-font-size-2xl);
+      }
+      .hero p {
+        margin: 0;
+        line-height: var(--ha-line-height-normal);
+      }
+      .hero-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+        min-width: 180px;
+      }
+      :host([narrow]) .hero-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      h2 {
+        margin: 0 0 var(--ha-space-3);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .list-section h2 {
+        margin-inline: var(--ha-space-2);
+      }
+      .rows {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-2);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-2xl);
+        background: var(--card-background-color);
+      }
+      .rows.plain .row {
+        padding-inline: 0;
+        background: none;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        text-align: start;
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      button:focus-visible {
+        outline: 3px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .row-main {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: var(--ha-space-4);
+        min-width: 0;
+        padding: var(--ha-space-1);
+        border-radius: var(--ha-border-radius-xl);
+      }
+      .text {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
+      }
+      .name {
+        font-weight: var(--ha-font-weight-medium);
+        overflow-wrap: anywhere;
+      }
+      .sub {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
+      }
+      .version {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        gap: var(--ha-space-1);
+        font-family: var(--ha-font-family-code, monospace);
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      .version strong {
+        color: var(--primary-text-color);
+      }
+      .version ha-svg-icon {
+        --mdc-icon-size: 16px;
+      }
+      :host([narrow]) .row {
+        flex-wrap: wrap;
+      }
+      :host([narrow]) .row-main {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+      }
+      .chip {
+        flex: none;
+        padding: var(--ha-space-1) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-pill);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        background: var(--secondary-background-color);
+      }
+      .chip.current {
+        background: color-mix(
+          in srgb,
+          var(--success-color) 30%,
+          var(--primary-background-color)
+        );
+      }
+      .installing {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: var(--ha-space-4);
+      }
+      :host([narrow]) .columns,
+      .columns:has(> :only-child) {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      @media (max-width: 800px) {
+        .columns {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .card {
+        box-sizing: border-box;
+        padding: var(--ha-space-5) var(--ha-space-6);
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
+      }
+      .link-row {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-4);
+        width: 100%;
+        padding: var(--ha-space-2) 0;
+        border-radius: var(--ha-border-radius-xl);
+      }
+      .tile {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
+      }
+      .chevron {
+        flex: none;
+        color: var(--secondary-text-color);
+      }
+      .card-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: var(--ha-space-2);
+      }
+      .footnote {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+    `,
+  ];
 }
 
 declare global {

@@ -1,11 +1,11 @@
 import {
-  mdiCheck,
   mdiDelete,
   mdiDotsVertical,
-  mdiHomeCircleOutline,
   mdiHomeEdit,
+  mdiInformationOutline,
   mdiPencil,
   mdiPlus,
+  mdiViewDashboard,
 } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -32,7 +32,7 @@ import "../../../../components/ha-icon";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-icon-overflow-menu";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/ha-tooltip";
+import "../../../../components/ha-switch";
 import { saveFrontendSystemData } from "../../../../data/frontend";
 import type { LovelaceRawConfig } from "../../../../data/lovelace/config/types";
 import {
@@ -112,6 +112,9 @@ export class HaConfigLovelaceDashboards extends LitElement {
 
   @state() private _selected: string[] = [];
 
+  // How many extra card files are loaded, for the line under the list
+  @state() private _resourceCount?: number;
+
   @query("hass-tabs-subpage-data-table", true)
   private _dataTable!: HaTabsSubpageDataTable;
 
@@ -168,12 +171,20 @@ export class HaConfigLovelaceDashboards extends LitElement {
             "ui.panel.config.lovelace.dashboards.picker.headers.icon"
           ),
           type: "icon",
-          template: (dashboard) =>
-            dashboard.icon
-              ? html`
-                  <ha-icon slot="item-icon" .icon=${dashboard.icon}></ha-icon>
-                `
-              : nothing,
+          template: (dashboard) => html`
+            <span
+              style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: var(--secondary-background-color);"
+            >
+              ${
+                dashboard.icon
+                  ? html`<ha-icon
+                      slot="item-icon"
+                      .icon=${dashboard.icon}
+                    ></ha-icon>`
+                  : html`<ha-svg-icon .path=${mdiViewDashboard}></ha-svg-icon>`
+              }
+            </span>
+          `,
         },
         title: {
           title: localize(
@@ -195,25 +206,21 @@ export class HaConfigLovelaceDashboards extends LitElement {
                   >
                   ${
                     dashboard.default
-                      ? html`
-                          <ha-svg-icon
-                            .id="default-icon-${dashboard.title}"
-                            style="flex-shrink:0;"
-                            .path=${mdiHomeCircleOutline}
-                          ></ha-svg-icon>
-                          <ha-tooltip
-                            .for="default-icon-${dashboard.title}"
-                            placement="right"
-                          >
-                            ${this.hass.localize(
-                              `ui.panel.config.lovelace.dashboards.default_dashboard`
-                            )}
-                          </ha-tooltip>
-                        `
+                      ? html`<span
+                          style="flex-shrink: 0; padding: 2px 10px; border-radius: 999px; background: var(--primary-color); color: var(--text-primary-color); font-size: var(--ha-font-size-s);"
+                          >${this.hass.localize(
+                            "ui.panel.config.lovelace.dashboards.default_badge"
+                          )}</span
+                        >`
                       : nothing
                   }
                 </span>
               `,
+          extraTemplate: (dashboard) =>
+            html`<span
+              style="display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+              >/${dashboard.url_path}</span
+            >`,
         },
       };
 
@@ -233,6 +240,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
         ),
         sortable: true,
         filterable: true,
+        defaultHidden: true,
         template: (dashboard) => html`
           ${
             this.hass.localize(
@@ -248,34 +256,47 @@ export class HaConfigLovelaceDashboards extends LitElement {
           ),
           sortable: true,
           filterable: true,
+          defaultHidden: true,
         };
       }
       columns.require_admin = {
         title: localize(
-          "ui.panel.config.lovelace.dashboards.picker.headers.require_admin"
+          "ui.panel.config.lovelace.dashboards.picker.headers.who_sees_it"
         ),
         sortable: true,
         hidden: narrow,
-        type: "icon",
-        minWidth: "120px",
-        maxWidth: "120px",
+        minWidth: "140px",
+        maxWidth: "180px",
         template: (dashboard) =>
-          dashboard.require_admin
-            ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
-            : html`—`,
+          localize(
+            dashboard.require_admin
+              ? "ui.panel.config.lovelace.dashboards.picker.who_admins"
+              : "ui.panel.config.lovelace.dashboards.picker.who_everyone"
+          ),
       };
       columns.show_in_sidebar = {
         title: localize(
-          "ui.panel.config.lovelace.dashboards.picker.headers.sidebar"
+          "ui.panel.config.lovelace.dashboards.picker.headers.on_the_rail"
         ),
-        hidden: narrow,
-        type: "icon",
-        minWidth: "120px",
+        sortable: true,
+        showNarrow: true,
+        minWidth: "100px",
         maxWidth: "120px",
-        template: (dashboard) =>
-          dashboard.show_in_sidebar
-            ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
-            : html`—`,
+        template: (dashboard) => html`
+          <ha-switch
+            .checked=${dashboard.show_in_sidebar}
+            .disabled=${
+              dashboard.type === "user_created" && dashboard.mode !== "storage"
+            }
+            aria-label=${localize(
+              "ui.panel.config.lovelace.dashboards.picker.show_on_rail",
+              { title: dashboard.title }
+            )}
+            data-url-path=${dashboard.url_path}
+            @click=${this._stopRowClick}
+            @change=${this._handleRailToggled}
+          ></ha-switch>
+        `,
       };
 
       columns.actions = {
@@ -442,6 +463,10 @@ export class HaConfigLovelaceDashboards extends LitElement {
         }
         @retry-load=${this._retryGetDashboards}
         id="url_path"
+        .summary=${this.hass.localize(
+          "ui.panel.config.lovelace.dashboards.picker.summary"
+        )}
+        .appendRow=${this._renderResourcesNote()}
         has-fab
         clickable
       >
@@ -475,6 +500,56 @@ export class HaConfigLovelaceDashboards extends LitElement {
     `;
   }
 
+  private _renderResourcesNote() {
+    if (this._resourceCount === undefined) {
+      return undefined;
+    }
+    return html`<div
+      role="cell"
+      style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 12px 16px; margin-top: 8px; border-radius: 16px; background: var(--secondary-background-color); color: var(--secondary-text-color);"
+    >
+      <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
+      <span
+        >${this.hass.localize(
+          "ui.panel.config.lovelace.dashboards.picker.resources_note",
+          { count: this._resourceCount }
+        )}</span
+      >
+    </div>`;
+  }
+
+  private _stopRowClick(ev: Event) {
+    ev.stopPropagation();
+  }
+
+  private async _handleRailToggled(ev: Event) {
+    ev.stopPropagation();
+    const target = ev.currentTarget as HTMLElement & { checked: boolean };
+    const urlPath = target.dataset.urlPath!;
+    const show = target.checked;
+    const dashboard = this._dashboards.find((res) => res.url_path === urlPath);
+    try {
+      if (dashboard) {
+        const updated = await updateDashboard(this.hass, dashboard.id, {
+          show_in_sidebar: show,
+        });
+        this._dashboards = this._dashboards.map((res) =>
+          res === dashboard ? updated : res
+        );
+      } else if (this.hass.panels[urlPath]) {
+        await updatePanel(this.hass, urlPath, { show_in_sidebar: show });
+      }
+    } catch (err: any) {
+      target.checked = !show;
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.lovelace.dashboards.picker.rail_failed"
+        ),
+        text: err.message,
+      });
+    }
+  }
+
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
 
@@ -485,6 +560,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
 
     preloadWindow.llResProm
       .then((resources) => {
+        this._resourceCount = resources.length;
         loadLovelaceResources(resources, this.hass);
       })
       .catch((err: unknown) => {

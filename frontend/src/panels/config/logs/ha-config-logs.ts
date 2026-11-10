@@ -38,7 +38,9 @@ import {
 } from "../../../common/url/logs-query-params";
 import { createQueryString } from "../../../common/url/query-params";
 import "../../../components/ha-app-icon";
+import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-button";
+import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-combo-box-item";
 import "../../../components/ha-filter-integrations";
 import "../../../components/ha-filter-pane";
@@ -55,11 +57,22 @@ import {
   fetchHassioAddonsInfo,
   type HassioAddonInfo,
 } from "../../../data/hassio/addon";
+import { domainToName } from "../../../data/integration";
+import type { LoggedError } from "../../../data/system_log";
+import {
+  fetchSystemLog,
+  getLoggedErrorIntegration,
+} from "../../../data/system_log";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { mdiHomeAssistant } from "../../../resources/home-assistant-logo-svg";
 import { haStyle } from "../../../resources/styles";
-import type { HomeAssistant, Route, ValueChangedEvent } from "../../../types";
+import type {
+  HomeAssistant,
+  Route,
+  ToggleButton,
+  ValueChangedEvent,
+} from "../../../types";
 import "./error-log-card";
 import "./system-log-card";
 import type { SystemLogCard } from "./system-log-card";
@@ -128,6 +141,15 @@ export class HaConfigLogs extends LitElement {
 
   @state() private _integrationsExpanded = true;
 
+  // The two kinds of entry the summary lists; a chip hides one of them
+  @state() private _showErrors = true;
+
+  @state() private _showWarnings = true;
+
+  // What the summary holds, read separately so the figures under the log stay
+  // on screen in the raw view too
+  @state() private _loggedErrors?: LoggedError[];
+
   @state()
   @consume({ context: manifestsContext, subscribe: true })
   private _manifests?: ContextType<typeof manifestsContext>;
@@ -147,6 +169,18 @@ export class HaConfigLogs extends LitElement {
     if (systemLog && systemLog.loaded) {
       systemLog.fetchData();
     }
+    if (this.hasUpdated) {
+      this._loadLoggedErrors();
+    }
+  }
+
+  private async _loadLoggedErrors() {
+    try {
+      this._loggedErrors = await fetchSystemLog(this.hass);
+    } catch (_err) {
+      // The figures are left out when the summary cannot be read
+      this._loggedErrors = undefined;
+    }
   }
 
   protected willUpdate(changedProps: PropertyValues<this>): void {
@@ -159,6 +193,7 @@ export class HaConfigLogs extends LitElement {
 
   protected firstUpdated(changedProps: PropertyValues<this>): void {
     super.firstUpdated(changedProps);
+    this._loadLoggedErrors();
     this._init();
   }
 
@@ -188,37 +223,6 @@ export class HaConfigLogs extends LitElement {
         .header=${this.hass.localize("ui.panel.config.logs.caption")}
         back-path="/config/system"
       >
-        ${
-          isComponentLoaded(this.hass.config, "hassio") && this._logProviders
-            ? html`
-                <ha-generic-picker
-                  id="provider-picker"
-                  slot="toolbar-icon"
-                  .getItems=${this._getLogProviderItems}
-                  value=""
-                  .rowRenderer=${this._providerRenderer}
-                  @value-changed=${this._handleDropdownSelect}
-                >
-                  <ha-button
-                    slot="field"
-                    appearance="filled"
-                    @click=${this._openPicker}
-                  >
-                    ${
-                      selectedProvider
-                        ? this._renderProviderIcon(selectedProvider)
-                        : nothing
-                    }
-                    ${selectedProvider?.primary}
-                    <ha-svg-icon
-                      slot="end"
-                      .path=${mdiChevronDown}
-                    ></ha-svg-icon>
-                  </ha-button>
-                </ha-generic-picker>
-              `
-            : nothing
-        }
         <div class="main">
           ${
             filtersShown
@@ -239,6 +243,48 @@ export class HaConfigLogs extends LitElement {
               : nothing
           }
           <div class="content-column">
+            <div class="head">
+              <div class="titles">
+                <h2>${this.hass.localize("ui.panel.config.logs.caption")}</h2>
+                <p>${this.hass.localize("ui.panel.config.logs.summary")}</p>
+              </div>
+              ${
+                isComponentLoaded(this.hass.config, "hassio") &&
+                this._logProviders
+                  ? html`
+                      <ha-generic-picker
+                        id="provider-picker"
+                        .getItems=${this._getLogProviderItems}
+                        value=""
+                        .rowRenderer=${this._providerRenderer}
+                        @value-changed=${this._handleDropdownSelect}
+                      >
+                        <ha-button
+                          slot="field"
+                          appearance="outlined"
+                          @click=${this._openPicker}
+                        >
+                          <span class="source-label"
+                            >${this.hass.localize(
+                              "ui.panel.config.logs.source"
+                            )}</span
+                          >
+                          ${
+                            selectedProvider
+                              ? this._renderProviderIcon(selectedProvider)
+                              : nothing
+                          }
+                          ${selectedProvider?.primary}
+                          <ha-svg-icon
+                            slot="end"
+                            .path=${mdiChevronDown}
+                          ></ha-svg-icon>
+                        </ha-button>
+                      </ha-generic-picker>
+                    `
+                  : nothing
+              }
+            </div>
             <div class="toolbar">
               ${
                 core && (!filtersShown || this.narrow)
@@ -258,6 +304,37 @@ export class HaConfigLogs extends LitElement {
                 .value=${this._filter}
                 .placeholder=${this.hass.localize("ui.panel.config.logs.search")}
               ></ha-input-search>
+              ${
+                core && !this._detail
+                  ? html`<div class="level-chips">
+                      <ha-filter-chip
+                        .label=${this.hass.localize(
+                          "ui.panel.config.logs.errors"
+                        )}
+                        .selected=${this._showErrors}
+                        @click=${this._toggleErrors}
+                      ></ha-filter-chip>
+                      <ha-filter-chip
+                        .label=${this.hass.localize(
+                          "ui.panel.config.logs.warnings"
+                        )}
+                        .selected=${this._showWarnings}
+                        @click=${this._toggleWarnings}
+                      ></ha-filter-chip>
+                    </div>`
+                  : nothing
+              }
+              ${
+                core
+                  ? html`<ha-button-toggle-group
+                      .buttons=${this._getViewButtons(this.hass.localize)}
+                      .active=${this._detail ? "raw" : "summary"}
+                      size="s"
+                      no-wrap
+                      @value-changed=${this._viewChanged}
+                    ></ha-button-toggle-group>`
+                  : nothing
+              }
             </div>
             <div class="content">
               ${
@@ -271,11 +348,16 @@ export class HaConfigLogs extends LitElement {
                           )!.name
                         }
                         .filter=${this._filter}
+                        .levels=${this._shownLevels(
+                          this._showErrors,
+                          this._showWarnings
+                        )}
                         .integrations=${integrations}
                         .integrationLoggers=${this._getIntegrationLoggers(
                           integrations,
                           this._manifests
                         )}
+                        no-title
                         @switch-log-view=${this._showDetail}
                       ></system-log-card>
                     `
@@ -290,9 +372,11 @@ export class HaConfigLogs extends LitElement {
                       .integrations=${integrations}
                       @switch-log-view=${this._showDetail}
                       allow-switch
+                      no-title
                     ></error-log-card>`
               }
             </div>
+            ${core ? this._renderTiles() : nothing}
           </div>
         </div>
       </hass-subpage>
@@ -302,6 +386,98 @@ export class HaConfigLogs extends LitElement {
   private _showDetail() {
     this._detail = !this._detail;
     this._writeUrl();
+  }
+
+  private _viewChanged(ev: ValueChangedEvent<string>) {
+    ev.stopPropagation();
+    const raw = ev.detail?.value === "raw";
+    if (raw !== this._detail) {
+      this._showDetail();
+    }
+  }
+
+  private _getViewButtons = memoizeOne(
+    (localize: HomeAssistant["localize"]): ToggleButton[] => [
+      {
+        label: localize("ui.panel.config.logs.view_summary"),
+        value: "summary",
+      },
+      { label: localize("ui.panel.config.logs.view_raw"), value: "raw" },
+    ]
+  );
+
+  private _toggleErrors() {
+    this._showErrors = !this._showErrors;
+  }
+
+  private _toggleWarnings() {
+    this._showWarnings = !this._showWarnings;
+  }
+
+  private _shownLevels = memoizeOne(
+    (errors: boolean, warnings: boolean): string[] => [
+      ...(errors ? ["critical", "error"] : []),
+      ...(warnings ? ["warning"] : []),
+    ]
+  );
+
+  // "All from Tuya" or "Most from Tuya", for the entry source that appears
+  // most often among the given entries
+  private _sourceNote(entries: LoggedError[]): string | undefined {
+    if (!entries.length) {
+      return undefined;
+    }
+    const counts = new Map<string, number>();
+    for (const entry of entries) {
+      const domain = getLoggedErrorIntegration(entry);
+      const source = domain
+        ? domainToName(this.hass.localize, domain)
+        : entry.source[0];
+      counts.set(source, (counts.get(source) ?? 0) + 1);
+    }
+    const [top, topCount] = [...counts.entries()].sort(
+      (a, b) => b[1] - a[1]
+    )[0];
+    return this.hass.localize(
+      topCount === entries.length
+        ? "ui.panel.config.logs.all_from"
+        : "ui.panel.config.logs.most_from",
+      { source: top }
+    );
+  }
+
+  private _renderTiles() {
+    if (!this._loggedErrors) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    // Entries are kept with the time they last happened
+    const dayAgo = Date.now() / 1000 - 24 * 60 * 60;
+    const recent = this._loggedErrors.filter(
+      (entry) => entry.timestamp >= dayAgo
+    );
+    const errors = recent.filter(
+      (entry) => entry.level === "error" || entry.level === "critical"
+    );
+    const warnings = recent.filter((entry) => entry.level === "warning");
+    return html`
+      <div class="tiles">
+        <div class="tile errors">
+          <span class="tile-label"
+            >${localize("ui.panel.config.logs.errors_last_day")}</span
+          >
+          <span class="tile-value">${errors.length}</span>
+          <span class="tile-sub">${this._sourceNote(errors)}</span>
+        </div>
+        <div class="tile warnings">
+          <span class="tile-label"
+            >${localize("ui.panel.config.logs.warnings_last_day")}</span
+          >
+          <span class="tile-value">${warnings.length}</span>
+          <span class="tile-sub">${this._sourceNote(warnings)}</span>
+        </div>
+      </div>
+    `;
   }
 
   private _openPicker(ev: Event) {
@@ -589,10 +765,11 @@ export class HaConfigLogs extends LitElement {
           z-index: 2;
           display: flex;
           align-items: center;
+          flex-wrap: wrap;
           gap: var(--ha-space-4);
           box-sizing: border-box;
-          height: 56px;
-          padding: 0 var(--ha-space-4);
+          min-height: 56px;
+          padding: var(--ha-space-2) var(--ha-space-4);
           background: var(
             --ha-panel-toolbar-background,
             var(--primary-background-color)
@@ -601,6 +778,82 @@ export class HaConfigLogs extends LitElement {
         }
         .toolbar ha-input-search {
           flex: 1;
+          min-width: 180px;
+        }
+        .head {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: var(--ha-space-4);
+          padding: var(--ha-space-4) var(--ha-space-4) var(--ha-space-2);
+        }
+        .titles h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .titles p {
+          margin: var(--ha-space-1) 0 0;
+          color: var(--secondary-text-color);
+          line-height: var(--ha-line-height-normal);
+        }
+        .source-label {
+          color: var(--secondary-text-color);
+          margin-inline-end: var(--ha-space-1);
+        }
+        .level-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+        .tiles {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 220px), 1fr)
+          );
+          gap: var(--ha-space-4);
+          padding: 0 var(--ha-space-4) var(--ha-space-6);
+        }
+        .tile {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          box-sizing: border-box;
+          padding: var(--ha-space-5);
+          border-radius: var(--ha-border-radius-3xl);
+          color: var(--primary-text-color);
+          background: var(--card-background-color);
+        }
+        .tile.errors {
+          background: color-mix(
+            in srgb,
+            var(--error-color) 30%,
+            var(--primary-background-color)
+          );
+        }
+        .tile.warnings {
+          background: color-mix(
+            in srgb,
+            var(--warning-color) 45%,
+            var(--primary-background-color)
+          );
+        }
+        .tile-label {
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .tile-value {
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .tile-sub {
+          font-size: var(--ha-font-size-s);
         }
         @media (min-width: 871px) {
           .toolbar ha-input-search {

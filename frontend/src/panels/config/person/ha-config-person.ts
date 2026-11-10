@@ -1,10 +1,17 @@
-import { mdiPlus } from "@mdi/js";
+import { mdiInformationOutline, mdiPencil, mdiPlus } from "@mdi/js";
+import type { HassEntity } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import memoizeOne from "memoize-one";
+import { formatDateTime } from "../../../common/datetime/format_date_time";
+import { formatTime } from "../../../common/datetime/format_time";
+import { computeDomain } from "../../../common/entity/compute_domain";
 import { stringCompare } from "../../../common/string/compare";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
+import "../../../components/ha-icon-button";
 import "../../../components/ha-list";
 import "../../../components/ha-list-item";
 import "../../../components/ha-svg-icon";
@@ -24,14 +31,16 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-loading-screen";
 import "../../../layouts/hass-tabs-subpage";
+import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
-import "../ha-config-section";
 import { configSections } from "../config-sections";
 import {
   loadPersonDetailDialog,
   showPersonDetailDialog,
 } from "./show-dialog-person-detail";
+
+const AVATAR_TONES = 4;
 
 @customElement("ha-config-person")
 export class HaConfigPerson extends LitElement {
@@ -47,6 +56,22 @@ export class HaConfigPerson extends LitElement {
 
   private _usersLoad?: Promise<User[]>;
 
+  /** The person entity of every person, keyed by the person's id. */
+  private _personEntities = memoizeOne(
+    (states: HomeAssistant["states"]): Map<string, HassEntity> => {
+      const entities = new Map<string, HassEntity>();
+      for (const stateObj of Object.values(states)) {
+        if (
+          computeDomain(stateObj.entity_id) === "person" &&
+          stateObj.attributes.id
+        ) {
+          entities.set(stateObj.attributes.id, stateObj);
+        }
+      }
+      return entities;
+    }
+  );
+
   protected render() {
     if (
       !this.hass ||
@@ -56,88 +81,67 @@ export class HaConfigPerson extends LitElement {
       return html` <hass-loading-screen></hass-loading-screen> `;
     }
     const hass = this.hass;
+    const hasSignInlessPerson = this._storageItems.some(
+      (person) => !person.user_id
+    );
     return html`
       <hass-tabs-subpage
         .hass=${this.hass}
         .route=${this.route}
         back-path="/config"
         .tabs=${configSections.persons}
-        has-fab
       >
-        <ha-config-section .isWide=${this.isWide}>
-          <span slot="header"
-            >${hass.localize("ui.panel.config.person.caption")}</span
-          >
-          <span slot="introduction">
-            <p>${hass.localize("ui.panel.config.person.introduction")}</p>
-            ${
-              this._configItems.length > 0
-                ? html`
-                    <p>
-                      ${hass.localize(
-                        "ui.panel.config.person.note_about_persons_configured_in_yaml"
-                      )}
-                    </p>
-                  `
-                : ""
-            }
-
-            <a
-              href=${documentationUrl(this.hass, "/integrations/person/")}
-              target="_blank"
-              rel="noreferrer"
-            >
-              ${this.hass.localize("ui.panel.config.person.learn_more")}
-            </a>
-          </span>
-
-          <ha-card outlined class="storage">
-            <ha-list>
-              ${this._storageItems.map(
-                (entry) => html`
-                  <ha-list-item
-                    graphic="avatar"
-                    @click=${this._openEditEntry}
-                    .entry=${entry}
-                  >
-                    <ha-person-badge
-                      .person=${entry}
-                      slot="graphic"
-                    ></ha-person-badge>
-                    <span>${entry.name}</span>
-                  </ha-list-item>
-                `
-              )}
-            </ha-list>
-            ${
-              this._storageItems.length === 0
-                ? html`
-                    <div class="empty">
-                      ${hass.localize(
-                        "ui.panel.config.person.no_persons_created_yet"
-                      )}
-                      <ha-button
-                        @click=${this._createPerson}
-                        appearance="filled"
-                        size="s"
-                      >
-                        <ha-svg-icon
-                          slot="start"
-                          .path=${mdiPlus}
-                        ></ha-svg-icon>
-                        ${hass.localize(
-                          "ui.panel.config.person.create_person"
-                        )}</ha-button
-                      >
-                    </div>
-                  `
-                : nothing
-            }
-          </ha-card>
+        <div class="page">
+          <header>
+            <div class="titles">
+              <h1>${hass.localize("ui.panel.config.person.caption")}</h1>
+              <p>
+                ${hass.localize("ui.panel.config.person.summary")}
+                <a
+                  href=${documentationUrl(hass, "/integrations/person/")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ${hass.localize("ui.panel.config.person.learn_more")}
+                </a>
+              </p>
+            </div>
+            <ha-button size="l" @click=${this._createPerson}>
+              <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+              ${hass.localize("ui.panel.config.person.add_person")}
+            </ha-button>
+          </header>
+          ${
+            this._storageItems.length === 0
+              ? html`<div class="empty">
+                  <p>
+                    ${hass.localize(
+                      "ui.panel.config.person.no_persons_created_yet"
+                    )}
+                  </p>
+                  <ha-button appearance="filled" @click=${this._createPerson}>
+                    <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                    ${hass.localize("ui.panel.config.person.create_person")}
+                  </ha-button>
+                </div>`
+              : html`<div class="cards">
+                  ${this._storageItems.map((person, index) =>
+                    this._renderPerson(person, index)
+                  )}
+                </div>`
+          }
           ${
             this._configItems.length > 0
-              ? html`
-                  <ha-card outlined header="Configuration.yaml persons">
+              ? html`<section class="yaml">
+                  <h2>
+                    ${hass.localize("ui.panel.config.person.yaml_persons")}
+                  </h2>
+                  <p>
+                    ${hass.localize(
+                      "ui.panel.config.person.note_about_persons_configured_in_yaml"
+                    )}
+                  </p>
+                  <ha-card outlined>
                     <ha-list>
                       ${this._configItems.map(
                         (entry) => html`
@@ -152,16 +156,94 @@ export class HaConfigPerson extends LitElement {
                       )}
                     </ha-list>
                   </ha-card>
-                `
+                </section>`
               : nothing
           }
-        </ha-config-section>
-        <ha-button slot="fab" size="l" @click=${this._createPerson}>
-          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${hass.localize("ui.panel.config.person.add_person")}
-        </ha-button>
+          ${
+            hasSignInlessPerson
+              ? html`<div class="note">
+                  <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
+                  <span
+                    >${hass.localize(
+                      "ui.panel.config.person.note_no_sign_in"
+                    )}</span
+                  >
+                </div>`
+              : nothing
+          }
+        </div>
       </hass-tabs-subpage>
     `;
+  }
+
+  private _renderPerson(person: Person, index: number) {
+    const hass = this.hass!;
+    const trackers = (person.device_trackers ?? [])
+      .map(
+        (entityId) =>
+          hass.states[entityId]?.attributes.friendly_name ?? entityId
+      )
+      .join(", ");
+    return html`
+      <ha-card
+        outlined
+        class="person"
+        role="button"
+        tabindex="0"
+        .entry=${person}
+        @click=${this._openEditEntry}
+        @keydown=${this._cardKeydown}
+      >
+        <div class="top">
+          <ha-person-badge
+            .person=${person}
+            class=${classMap({
+              avatar: true,
+              [`tone-${index % AVATAR_TONES}`]: true,
+            })}
+          ></ha-person-badge>
+          <div class="text">
+            <span class="name">${person.name}</span>
+            <span class="where">${this._presence(person)}</span>
+          </div>
+          <ha-icon-button
+            .path=${mdiPencil}
+            .label=${hass.localize("ui.panel.config.person.edit_person", {
+              name: person.name,
+            })}
+            .entry=${person}
+            @click=${this._openEditEntry}
+          ></ha-icon-button>
+        </div>
+        <div class="chips">
+          <span class="chip ${classMap({ "can-sign-in": !!person.user_id })}">
+            ${hass.localize(
+              person.user_id
+                ? "ui.panel.config.person.can_sign_in"
+                : "ui.panel.config.person.no_sign_in"
+            )}
+          </span>
+          ${trackers ? html`<span class="chip">${trackers}</span>` : nothing}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  /** Where the person is, and since when, from their person entity. */
+  private _presence(person: Person): string {
+    const hass = this.hass!;
+    const stateObj = this._personEntities(hass.states).get(person.id);
+    if (!stateObj || stateObj.state === "unavailable") {
+      return hass.localize("ui.panel.config.person.state_unknown");
+    }
+    const since = new Date(stateObj.last_changed);
+    const sameDay = since.toDateString() === new Date().toDateString();
+    return hass.localize("ui.panel.config.person.state_since", {
+      state: hass.formatEntityState(stateObj),
+      time: sameDay
+        ? formatTime(since, hass.locale, hass.config)
+        : formatDateTime(since, hass.locale, hass.config),
+    });
   }
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
@@ -211,9 +293,20 @@ export class HaConfigPerson extends LitElement {
     this._openDialog();
   }
 
-  private _openEditEntry(ev: MouseEvent) {
+  private _openEditEntry(ev: Event) {
+    ev.stopPropagation();
     const entry: Person = (ev.currentTarget! as any).entry;
     this._openDialog(entry);
+  }
+
+  private _cardKeydown(ev: KeyboardEvent) {
+    if (ev.target !== ev.currentTarget) {
+      return;
+    }
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      this._openEditEntry(ev);
+    }
   }
 
   private _allowedUsers(users: User[], currentPerson?: Person) {
@@ -284,25 +377,176 @@ export class HaConfigPerson extends LitElement {
     });
   }
 
-  static styles = css`
-    a {
-      color: var(--primary-color);
-    }
-    ha-card {
-      max-width: 600px;
-      margin: 16px auto;
-      overflow: hidden;
-    }
-    .empty {
-      padding: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-    }
-    ha-list:has(+ .empty) {
-      display: none;
-    }
-  `;
+  static styles = [
+    haStyle,
+    css`
+      :host {
+        display: block;
+      }
+      .page {
+        box-sizing: border-box;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
+      }
+      @media (max-width: 600px) {
+        .page {
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+        }
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: var(--ha-space-3);
+        margin-bottom: var(--ha-space-5);
+      }
+      .titles {
+        flex: 1;
+        min-width: 220px;
+      }
+      h1 {
+        margin: 0;
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-4xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+      @media (max-width: 600px) {
+        h1 {
+          font-size: var(--ha-font-size-2xl);
+        }
+      }
+      .titles p {
+        margin: var(--ha-space-1) 0 0;
+        font-size: var(--ha-font-size-l);
+        color: var(--secondary-text-color);
+      }
+      a {
+        color: var(--primary-color);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+        gap: var(--ha-space-4);
+      }
+      .person {
+        box-sizing: border-box;
+        padding: var(--ha-space-5) var(--ha-space-6);
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
+        cursor: pointer;
+      }
+      .person:focus-visible {
+        outline: 3px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-4);
+      }
+      .avatar {
+        flex: none;
+        width: 64px;
+        height: 64px;
+        --ha-picture-border-radius: var(--ha-border-radius-2xl);
+        --person-badge-font-size: var(--ha-font-size-2xl);
+        --ha-person-badge-font-size-long: var(--ha-font-size-xl);
+        --light-primary-color: color-mix(
+          in srgb,
+          var(--tone, var(--primary-color)) 22%,
+          var(--card-background-color)
+        );
+        --text-light-primary-color: var(--primary-text-color);
+      }
+      .tone-1 {
+        --tone: var(--accent-color, var(--primary-color));
+      }
+      .tone-2 {
+        --tone: var(--warning-color, var(--primary-color));
+      }
+      .tone-3 {
+        --tone: var(--success-color, var(--primary-color));
+      }
+      .text {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
+      }
+      .name {
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-medium);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .where {
+        color: var(--secondary-text-color);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+        margin-top: var(--ha-space-4);
+      }
+      .chip {
+        padding: var(--ha-space-1) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-pill);
+        background: var(--secondary-background-color);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .chip.can-sign-in {
+        background: color-mix(
+          in srgb,
+          var(--primary-color) 18%,
+          var(--card-background-color)
+        );
+      }
+      .note {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        margin-top: var(--ha-space-4);
+        padding: var(--ha-space-4) var(--ha-space-5);
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
+      }
+      .note ha-svg-icon {
+        flex: none;
+      }
+      .yaml {
+        margin-top: var(--ha-space-6);
+      }
+      .yaml h2 {
+        margin: 0 0 var(--ha-space-1);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .yaml p {
+        margin: 0 0 var(--ha-space-3);
+        color: var(--secondary-text-color);
+      }
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-8) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
+        color: var(--secondary-text-color);
+        text-align: center;
+      }
+      .empty p {
+        margin: 0;
+      }
+    `,
+  ];
 }
 
 declare global {

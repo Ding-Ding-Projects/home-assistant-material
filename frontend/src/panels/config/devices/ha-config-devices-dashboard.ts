@@ -46,6 +46,7 @@ import type {
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-labels";
 import "../../../components/entity/ha-battery-icon";
+import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-alert";
 import "../../../components/skeleton/ha-skeleton-icon";
 import "../../../components/skeleton/ha-skeleton-text";
@@ -111,8 +112,19 @@ interface DeviceRowData extends DeviceRegistryEntry {
   area?: string;
   integration?: string;
   battery_entity?: [string | undefined, string | undefined];
+  battery_level?: string;
+  low_battery?: boolean;
+  offline?: boolean;
   label_entries: LabelRegistryEntry[];
 }
+
+/** The look of the small status pills in a row, from the board. */
+const PILL_STYLE =
+  "display:inline-block;padding:2px 10px;border-radius:999px;font-size:var(--ha-font-size-s);font-weight:var(--ha-font-weight-medium);";
+
+const OFFLINE_PILL_STYLE = `${PILL_STYLE}background:color-mix(in srgb,var(--error-color) 18%,var(--primary-background-color));color:var(--error-color);`;
+
+const LOW_PILL_STYLE = `${PILL_STYLE}background:color-mix(in srgb,var(--error-color) 18%,var(--primary-background-color));color:var(--error-color);`;
 
 /** Who made a device and which model it is, when either is known. */
 const makerLine = (manufacturer?: string, model?: string): string =>
@@ -172,6 +184,9 @@ export class HaConfigDeviceDashboard extends LitElement {
   private _storageFilters: DataTableFilters = {};
 
   @state() private _expandedFilter?: string;
+
+  // The two quick filters shown above the table, besides the filter pane
+  @state() private _quick = { attention: false, battery: false };
 
   @consume({ context: labelsContext, subscribe: true })
   @state()
@@ -233,6 +248,37 @@ export class HaConfigDeviceDashboard extends LitElement {
         );
       });
     }
+  }
+
+  private _quickCache?: {
+    source: unknown;
+    quick: { attention: boolean; battery: boolean };
+    result: unknown;
+  };
+
+  // Keeps the same list for the same input, so the table is not given new data
+  // on every render
+  private _applyQuickFilters<
+    T extends {
+      low_battery?: boolean;
+      offline?: boolean;
+      battery_entity?: (string | undefined)[];
+    },
+  >(devices: T[], quick: { attention: boolean; battery: boolean }): T[] {
+    if (!quick.attention && !quick.battery) {
+      return devices;
+    }
+    const cache = this._quickCache;
+    if (cache && cache.source === devices && cache.quick === quick) {
+      return cache.result as T[];
+    }
+    const result = devices.filter(
+      (device) =>
+        (!quick.attention || device.low_battery || device.offline) &&
+        (!quick.battery || device.battery_entity?.[0])
+    );
+    this._quickCache = { source: devices, quick, result };
+    return result;
   }
 
   // Links, like the ones on an integration page, say in the URL what to show.
@@ -540,6 +586,12 @@ export class HaConfigDeviceDashboard extends LitElement {
               this._batteryEntity(device.id, deviceEntityLookup) || ""
             ]?.state,
           label_entries: labelsEntries,
+          offline: this._isOffline(device.id, deviceEntityLookup),
+          low_battery: this._isLowBattery(
+            this.hass.states[
+              this._batteryEntity(device.id, deviceEntityLookup) || ""
+            ]?.state
+          ),
         };
       });
 
@@ -703,7 +755,11 @@ export class HaConfigDeviceDashboard extends LitElement {
             ? html`
                 ${
                   batteryDomain === "sensor"
-                    ? this.hass.formatEntityState(battery)
+                    ? device.low_battery
+                      ? html`<span style=${LOW_PILL_STYLE}
+                          >${this.hass.formatEntityState(battery)}</span
+                        >`
+                      : this.hass.formatEntityState(battery)
                     : nothing
                 }
                 <ha-battery-icon
@@ -713,6 +769,18 @@ export class HaConfigDeviceDashboard extends LitElement {
               `
             : "—";
         },
+      },
+      offline: {
+        title: localize("ui.panel.config.devices.data_table.connection"),
+        sortable: true,
+        minWidth: "100px",
+        maxWidth: "120px",
+        template: (device) =>
+          device.offline
+            ? html`<span style=${OFFLINE_PILL_STYLE}
+                >${localize("ui.panel.config.devices.data_table.offline")}</span
+              >`
+            : "",
       },
       created_at: getCreatedAtTableColumn(localize, this.hass),
       modified_at: getModifiedAtTableColumn(localize, this.hass),
@@ -815,24 +883,31 @@ export class HaConfigDeviceDashboard extends LitElement {
       </ha-dropdown-item>`;
 
   /** How many devices there are, and how many have a low battery. */
-  private _summary(devices: { battery_level?: string }[]): string {
+  private _summary(
+    devices: { low_battery?: boolean; offline?: boolean }[]
+  ): string {
     const count = this.hass.localize("ui.panel.config.devices.picker.summary", {
       number: devices.length,
     });
-    const low = devices.filter((device) => {
-      const level = Number(device.battery_level);
-      return device.battery_level !== undefined && level <= LOW_BATTERY;
-    }).length;
-    return low
+    const attention = devices.filter(
+      (device) => device.low_battery || device.offline
+    ).length;
+    return attention
       ? `${count}. ${this.hass.localize(
-          "ui.panel.config.devices.picker.summary_low_battery",
-          { number: low }
+          "ui.panel.config.devices.picker.summary_attention",
+          { number: attention }
         )}`
       : count;
   }
 
+  private _toggleQuickFilter(ev: Event) {
+    const chip = ev.currentTarget as HTMLElement & { selected: boolean };
+    const key = chip.dataset.filter as "attention" | "battery";
+    this._quick = { ...this._quick, [key]: chip.selected };
+  }
+
   protected render(): TemplateResult {
-    const { devicesOutput } = this._devicesAndFilterDomains(
+    const { devicesOutput: allDevices } = this._devicesAndFilterDomains(
       this.hass.devices,
       this.entries,
       this.entriesFailed,
@@ -843,6 +918,8 @@ export class HaConfigDeviceDashboard extends LitElement {
       this.hass.localize,
       this._labels
     );
+
+    const devicesOutput = this._applyQuickFilters(allDevices, this._quick);
 
     const areasInOverflow =
       (this._sizeController.value && this._sizeController.value < 700) ||
@@ -906,6 +983,24 @@ export class HaConfigDeviceDashboard extends LitElement {
           .hass=${this.hass}
           slot="toolbar-icon"
         ></ha-integration-overflow-menu>
+        <div slot="top-header" class="quick-filters">
+          <ha-filter-chip
+            data-filter="attention"
+            .selected=${this._quick.attention}
+            .label=${this.hass.localize(
+              "ui.panel.config.devices.picker.needs_attention"
+            )}
+            @click=${this._toggleQuickFilter}
+          ></ha-filter-chip>
+          <ha-filter-chip
+            data-filter="battery"
+            .selected=${this._quick.battery}
+            .label=${this.hass.localize(
+              "ui.panel.config.devices.picker.battery_powered"
+            )}
+            @click=${this._toggleQuickFilter}
+          ></ha-filter-chip>
+        </div>
         <ha-button slot="fab" size="l" @click=${this._addDevice}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.devices.add_device")}
@@ -1113,6 +1208,33 @@ export class HaConfigDeviceDashboard extends LitElement {
 
     this._filters = filters;
     this._writeFilters();
+  }
+
+  // A device is offline when it has entities and every enabled one of them
+  // is unavailable
+  private _isOffline(
+    deviceId: string,
+    deviceEntityLookup: DeviceEntityLookup<EntityRegistryEntry>
+  ): boolean {
+    const enabled = (deviceEntityLookup[deviceId] || []).filter(
+      (entity) => !entity.disabled_by
+    );
+
+    return (
+      enabled.length > 0 &&
+      enabled.every(
+        (entity) => this.hass.states[entity.entity_id]?.state === "unavailable"
+      )
+    );
+  }
+
+  private _isLowBattery(level?: string): boolean {
+    return (
+      level !== undefined &&
+      level !== "" &&
+      !Number.isNaN(Number(level)) &&
+      Number(level) <= LOW_BATTERY
+    );
   }
 
   private _batteryEntity(
@@ -1375,6 +1497,12 @@ ${rejected
         }
         hass-tabs-subpage-data-table.narrow {
           --data-table-row-height: 72px;
+        }
+        .quick-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-2) 0;
         }
         .clear {
           color: var(--primary-color);

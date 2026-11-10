@@ -1,10 +1,12 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
-import { ResizeController } from "@lit-labs/observers/resize-controller";
 import {
+  mdiClose,
   mdiCog,
   mdiContentDuplicate,
   mdiDelete,
-  mdiDotsVertical,
+  mdiFilterVariant,
+  mdiFilterVariantRemove,
+  mdiFormatListChecks,
   mdiHelpCircleOutline,
   mdiInformationOutline,
   mdiMenuDown,
@@ -28,7 +30,7 @@ import { storage } from "../../../common/decorators/storage";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { navigate } from "../../../common/navigate";
-import type { LocalizeFunc } from "../../../common/translations/localize";
+import { searchMatcher } from "../../../common/regex/filter";
 import {
   scenesFilterQueryParamConfig,
   scenesFilterQueryParams,
@@ -40,13 +42,9 @@ import {
   hasRejectedItems,
   rejectedItems,
 } from "../../../common/util/promise-all-settled-results";
-import type {
-  DataTableColumnContainer,
-  RowClickedEvent,
-  SelectionChangedEvent,
-} from "../../../components/data-table/ha-data-table";
-import "../../../components/data-table/ha-data-table-labels";
+import "../../../components/chips/ha-assist-chip";
 import "../../../components/ha-button";
+import "../../../components/ha-checkbox";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -60,7 +58,8 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-icon-overflow-menu";
 import "../../../components/ha-state-icon";
 import "../../../components/ha-svg-icon";
-import "../../../components/ha-tooltip";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import "../../../components/input/ha-input-search";
 import { createAreaRegistryEntry } from "../../../data/area/area_registry";
 import type { CategoryRegistryEntry } from "../../../data/category_registry";
 import {
@@ -101,7 +100,7 @@ import {
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
-import "../../../layouts/hass-tabs-subpage-data-table";
+import "../../../layouts/hass-tabs-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
@@ -109,33 +108,34 @@ import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import { showAreaRegistryDetailDialog } from "../areas/show-dialog-area-registry-detail";
 import { showAssignCategoryDialog } from "../category/show-dialog-assign-category";
-import { renderCategoryGroupActions } from "../category/render-category-group-actions";
 import { showCategoryRegistryDetailDialog } from "../category/show-dialog-category-registry-detail";
-import {
-  getAreaTableColumn,
-  getCategoryTableColumn,
-  getEditableTableColumn,
-  getLabelsTableColumn,
-  renderRelativeTimeColumn,
-} from "../common/data-table-columns";
 import { configSections } from "../config-sections";
 import { showLabelDetailDialog } from "../labels/show-dialog-label-detail";
-import {
-  getAssistantsSortableKey,
-  getAssistantsTableColumn,
-} from "../voice-assistants/expose/assistants-table-column";
-import { getAvailableAssistants } from "../voice-assistants/expose/available-assistants";
 import { showSceneSaveDialog } from "./scene-save-dialog/show-dialog-scene-save";
+
+// The card colours, taken from the theme's colour scales
+const TINT_COUNT = 6;
 
 type SceneItem = SceneEntity & {
   name: string;
   area: string | undefined;
+  area_id: string | undefined;
   category: string | undefined;
   label_entries: LabelRegistryEntry[];
   labels: string[]; // search only
-  assistants: string[];
-  assistants_sortable_key: string | undefined;
+  entity_count: number;
+  tint: number;
+  selectable: boolean;
   editable: boolean;
+};
+
+// Keeps a scene on the same colour whatever else is on the page
+const tintOf = (entityId: string): number => {
+  let hash = 0;
+  for (let i = 0; i < entityId.length; i++) {
+    hash = (hash * 31 + entityId.charCodeAt(i)) % 9973;
+  }
+  return hash % TINT_COUNT;
 };
 
 @customElement("ha-scene-dashboard")
@@ -154,19 +154,16 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
 
   @state() private _selected: string[] = [];
 
-  @state() private _activeFilters?: string[];
+  @state() private _selectMode = false;
+
+  @state() private _showMoreFilters = false;
 
   @state() private _filteredSceneEntityIds?: string[] | null;
 
-  private _tableSettings = new DataTableSettingsController(
-    this,
-    {
-      search: "scene-table-search",
-      sorting: "scene-table-sort",
-      grouping: "scene-table-grouping",
-    },
-    { defaultGrouping: "category" }
-  );
+  // Only the search is kept here; the page lists its scenes by name
+  private _tableSettings = new DataTableSettingsController(this, {
+    search: "scene-table-search",
+  });
 
   @state()
   private _filters: DataTableFilters = {};
@@ -181,8 +178,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   })
   private _storageFilters: DataTableFilters = {};
 
-  // The filters are kept in the URL by the page, the search, sorting and
-  // grouping by the table
+  // The filters are kept in the URL by the page
   private _filterParams = new QueryParamsController(
     this,
     scenesFilterQueryParamConfig,
@@ -205,35 +201,6 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   @consume({ context: fullEntitiesContext, subscribe: true })
   _entityReg: EntityRegistryEntry[] = [];
 
-  @storage({
-    key: "scene-table-collapsed",
-    state: false,
-    subscribe: false,
-  })
-  private _activeCollapsed?: string;
-
-  @storage({
-    key: "scene-table-column-order",
-    state: false,
-    subscribe: false,
-  })
-  private _activeColumnOrder?: string[];
-
-  @storage({
-    key: "scene-table-hidden-columns",
-    state: false,
-    subscribe: false,
-  })
-  private _activeHiddenColumns?: string[];
-
-  private _sizeController = new ResizeController(this, {
-    callback: (entries) => entries[0]?.contentRect.width,
-  });
-
-  private get _availableAssistants() {
-    return getAvailableAssistants(this.cloudStatus, this.hass);
-  }
-
   private _scenes = memoizeOne(
     (
       scenes: SceneEntity[],
@@ -251,173 +218,42 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
         filteredScenes
           ? scenes.filter((scene) => filteredScenes!.includes(scene.entity_id))
           : scenes
-      ).map((scene) => {
-        const entityRegEntry = entityReg.find(
-          (reg) => reg.entity_id === scene.entity_id
+      )
+        .map((scene) => {
+          const entityRegEntry = entityReg.find(
+            (reg) => reg.entity_id === scene.entity_id
+          );
+          const category = entityRegEntry?.categories.scene;
+          const labels = labelReg && entityRegEntry?.labels;
+          const label_entries = (labels || [])
+            .map((lbl) => labelReg!.find((label) => label.label_id === lbl))
+            .filter((lbl): lbl is LabelRegistryEntry => lbl !== undefined);
+          const members = (scene.attributes as { entity_id?: string[] })
+            .entity_id;
+          return {
+            ...scene,
+            name: formatEntityName(scene),
+            area: entityRegEntry?.area_id
+              ? areas[entityRegEntry?.area_id]?.name
+              : undefined,
+            area_id: entityRegEntry?.area_id || undefined,
+            category: category
+              ? categoryReg?.find((cat) => cat.category_id === category)?.name
+              : undefined,
+            label_entries,
+            labels: label_entries.map((lbl) => lbl.name),
+            entity_count: Array.isArray(members) ? members.length : 0,
+            tint: tintOf(scene.entity_id),
+            selectable: entityRegEntry !== undefined,
+            editable: Boolean(scene.attributes.id),
+          };
+        })
+        .sort((a, b) =>
+          a.name.localeCompare(b.name, this.hass.locale?.language, {
+            numeric: true,
+            sensitivity: "base",
+          })
         );
-        const category = entityRegEntry?.categories.scene;
-        const labels = labelReg && entityRegEntry?.labels;
-        const label_entries = (labels || [])
-          .map((lbl) => labelReg!.find((label) => label.label_id === lbl))
-          .filter((lbl): lbl is LabelRegistryEntry => lbl !== undefined);
-        const assistants = getEntityVoiceAssistantsIds(
-          entityReg,
-          scene.entity_id
-        );
-        return {
-          ...scene,
-          name: formatEntityName(scene),
-          area: entityRegEntry?.area_id
-            ? areas[entityRegEntry?.area_id]?.name
-            : undefined,
-          category: category
-            ? categoryReg?.find((cat) => cat.category_id === category)?.name
-            : undefined,
-          label_entries,
-          labels: label_entries.map((lbl) => lbl.name),
-          assistants,
-          assistants_sortable_key: getAssistantsSortableKey(assistants),
-          selectable: entityRegEntry !== undefined,
-          editable: Boolean(scene.attributes.id),
-        };
-      });
-    }
-  );
-
-  private _columns = memoizeOne(
-    (
-      localize: LocalizeFunc,
-      entitiesToCheck?: any[]
-    ): DataTableColumnContainer<SceneItem> => {
-      const columns: DataTableColumnContainer<SceneItem> = {
-        icon: {
-          title: "",
-          label: localize("ui.panel.config.scene.picker.headers.icon"),
-          moveable: false,
-          showNarrow: true,
-          type: "icon",
-          template: (scene) => html`
-            <ha-state-icon .stateObj=${scene}></ha-state-icon>
-          `,
-        },
-        name: {
-          title: localize("ui.panel.config.scene.picker.headers.name"),
-          main: true,
-          sortable: true,
-          filterable: true,
-          direction: "asc",
-          flex: 2,
-          extraTemplate: (scene) =>
-            scene.label_entries.length
-              ? html`<ha-data-table-labels
-                  clickable
-                  @label-clicked=${this._labelClicked}
-                  .labels=${scene.label_entries}
-                ></ha-data-table-labels>`
-              : nothing,
-        },
-        area: getAreaTableColumn(localize),
-        category: getCategoryTableColumn(localize),
-        labels: getLabelsTableColumn(),
-        state: {
-          title: localize(
-            "ui.panel.config.scene.picker.headers.last_activated"
-          ),
-          sortable: true,
-          urlName: "last_activated",
-          template: (scene) =>
-            renderRelativeTimeColumn(
-              scene.state,
-              "last-activated",
-              scene.entity_id,
-              localize,
-              this.hass
-            ),
-        },
-        only_editable: getEditableTableColumn(
-          localize,
-          localize("ui.panel.config.scene.picker.only_editable")
-        ),
-        actions: {
-          lastFixed: true,
-          title: "",
-          label: this.hass.localize("ui.panel.config.generic.headers.actions"),
-          type: "overflow-menu",
-          showNarrow: true,
-          template: (scene) => html`
-            <ha-icon-overflow-menu
-              narrow
-              .items=${[
-                {
-                  path: mdiPlay,
-                  label: this.hass.localize(
-                    "ui.panel.config.scene.picker.apply"
-                  ),
-                  action: () => this._activateScene(scene),
-                },
-                {
-                  path: mdiInformationOutline,
-                  label: this.hass.localize(
-                    "ui.panel.config.scene.picker.show_info"
-                  ),
-                  action: () => this._showInfo(scene),
-                },
-                {
-                  path: mdiCog,
-                  label: this.hass.localize(
-                    "ui.panel.config.automation.picker.show_settings"
-                  ),
-                  action: () => this._openSettings(scene),
-                },
-                {
-                  path: mdiTag,
-                  label: this.hass.localize(
-                    `ui.panel.config.scene.picker.${scene.category ? "edit_category" : "assign_category"}`
-                  ),
-                  action: () => this._editCategory(scene),
-                },
-                {
-                  path: mdiPencil,
-                  label: this.hass.localize(
-                    "ui.panel.config.scene.editor.rename"
-                  ),
-                  action: () => this._rename(scene),
-                  disabled: !scene.editable,
-                },
-                {
-                  divider: true,
-                },
-                {
-                  path: mdiContentDuplicate,
-                  label: this.hass.localize(
-                    "ui.panel.config.scene.picker.duplicate"
-                  ),
-                  action: () => this._duplicate(scene),
-                  disabled: !scene.editable,
-                },
-                {
-                  label: this.hass.localize(
-                    "ui.panel.config.scene.picker.delete"
-                  ),
-                  path: mdiDelete,
-                  action: () => this._deleteConfirm(scene),
-                  warning: scene.editable,
-                  disabled: !scene.editable,
-                },
-              ]}
-            >
-            </ha-icon-overflow-menu>
-          `,
-        },
-        assistants: getAssistantsTableColumn(
-          localize,
-          this.hass,
-          this._availableAssistants,
-          entitiesToCheck
-        ),
-      };
-
-      return columns;
     }
   );
 
@@ -443,7 +279,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       this._applyFilters();
     } else if (searchParams?.toString() === "") {
       // Opened again without params, like from the sidebar. Written once the
-      // table has seen the URL without params, so it restores what it stored
+      // page has seen the URL without params, so it restores what it stored
       this._filters = this._keepItems(this._storageFilters);
       this._applyFilters();
       queueMicrotask(() => this._writeFilters());
@@ -488,16 +324,19 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     ];
   }
 
+  private get _filterCount(): number {
+    return Object.values(this._filters).filter((filter) =>
+      Array.isArray(filter.value)
+        ? filter.value.length
+        : filter.value &&
+          Object.values(filter.value).some((val) =>
+            Array.isArray(val) ? val.length : val
+          )
+    ).length;
+  }
+
   protected render(): TemplateResult {
-    const areasInOverflow =
-      (this._sizeController.value && this._sizeController.value < 900) ||
-      (!this._sizeController.value && this.hass.dockedSidebar === "docked");
-
-    const labelsInOverflow =
-      areasInOverflow &&
-      (!this._sizeController.value || this._sizeController.value < 700);
-
-    const scenes = this._scenes(
+    const allScenes = this._scenes(
       this.scenes,
       this._entityReg,
       this.hass.areas,
@@ -507,58 +346,28 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       this._filteredSceneEntityIds
     );
 
+    const matches = searchMatcher(this._tableSettings.search);
+    const scenes = allScenes.filter((scene) =>
+      matches(scene.name, scene.area, scene.category, ...scene.labels)
+    );
+
+    const filterCount = this._filterCount;
+    const narrowedDown = Boolean(this._tableSettings.search) || filterCount > 0;
+    const searchLabel = this.hass.localize(
+      "ui.panel.config.scene.picker.search",
+      { number: scenes.length }
+    );
+
     return html`
-      <hass-tabs-subpage-data-table
+      <hass-tabs-subpage
         .hass=${this.hass}
         .narrow=${this.narrow}
+        .isWide=${this.isWide}
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.automations}
-        .searchLabel=${this.hass.localize(
-          "ui.panel.config.scene.picker.search",
-          { number: scenes.length }
-        )}
-        .summary=${this.hass.localize("ui.panel.config.scene.picker.summary", {
-          number: scenes.length,
-        })}
-        selectable
-        .selected=${this._selected.length}
-        @selection-changed=${this._handleSelectionChanged}
-        has-filters
-        .filters=${
-          Object.values(this._filters).filter((filter) =>
-            Array.isArray(filter.value)
-              ? filter.value.length
-              : filter.value &&
-                Object.values(filter.value).some((val) =>
-                  Array.isArray(val) ? val.length : val
-                )
-          ).length
-        }
-        .columns=${this._columns(this.hass.localize, scenes)}
-        id="entity_id"
-        .initialGroupColumn=${this._tableSettings.grouping}
-        .initialCollapsedGroups=${this._activeCollapsed}
-        .initialSorting=${this._tableSettings.sorting}
-        .columnOrder=${this._activeColumnOrder}
-        .hiddenColumns=${this._activeHiddenColumns}
-        @columns-changed=${this._handleColumnsChanged}
-        @sorting-changed=${this._tableSettings.sortingChanged}
-        @grouping-changed=${this._tableSettings.groupingChanged}
-        @collapsed-changed=${this._handleCollapseChanged}
-        .data=${scenes}
-        .empty=${!this.scenes.length}
-        .activeFilters=${this._activeFilters}
-        .noDataText=${this.hass.localize(
-          "ui.panel.config.scene.picker.no_scenes"
-        )}
-        @clear-filter=${this._clearFilter}
-        .filter=${this._tableSettings.search}
-        @search-changed=${this._tableSettings.searchChanged}
-        sync-url
+        content-heading
         has-fab
-        clickable
-        @row-click=${this._handleRowClicked}
       >
         <ha-icon-button
           slot="toolbar-icon"
@@ -566,221 +375,608 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           .label=${this.hass.localize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
         ></ha-icon-button>
-        ${renderCategoryGroupActions(
-          "scene",
-          this._categories,
-          this._tableSettings.grouping,
-          this._categoryDeleted
-        )}
-
-        <ha-filter-floor-areas
-          .type=${"scene"}
-          .value=${this._filters["ha-filter-floor-areas"]?.value}
-          @data-table-filter-changed=${this._filterChanged}
-          slot="filter-pane"
-          .expanded=${this._expandedFilter === "ha-filter-floor-areas"}
-          .narrow=${this.narrow}
-          @expanded-changed=${this._filterExpanded}
-        ></ha-filter-floor-areas>
-        <ha-filter-devices
-          .type=${"scene"}
-          .value=${this._filters["ha-filter-devices"]?.value}
-          @data-table-filter-changed=${this._filterChanged}
-          slot="filter-pane"
-          .expanded=${this._expandedFilter === "ha-filter-devices"}
-          .narrow=${this.narrow}
-          @expanded-changed=${this._filterExpanded}
-        ></ha-filter-devices>
-        <ha-filter-entities
-          .type=${"scene"}
-          .value=${this._filters["ha-filter-entities"]?.value}
-          @data-table-filter-changed=${this._filterChanged}
-          slot="filter-pane"
-          .expanded=${this._expandedFilter === "ha-filter-entities"}
-          .narrow=${this.narrow}
-          @expanded-changed=${this._filterExpanded}
-        ></ha-filter-entities>
-        <ha-filter-labels
-          .value=${this._filters["ha-filter-labels"]?.value}
-          @data-table-filter-changed=${this._filterChanged}
-          slot="filter-pane"
-          .expanded=${this._expandedFilter === "ha-filter-labels"}
-          .narrow=${this.narrow}
-          @expanded-changed=${this._filterExpanded}
-        ></ha-filter-labels>
-        <ha-filter-categories
-          scope="scene"
-          .value=${this._filters["ha-filter-categories"]?.value}
-          @data-table-filter-changed=${this._filterChanged}
-          slot="filter-pane"
-          .expanded=${this._expandedFilter === "ha-filter-categories"}
-          .narrow=${this.narrow}
-          @expanded-changed=${this._filterExpanded}
-        ></ha-filter-categories>
-        <ha-filter-voice-assistants
-          .value=${this._filters["ha-filter-voice-assistants"]?.value}
-          @data-table-filter-changed=${this._filterChanged}
-          slot="filter-pane"
-          .expanded=${this._expandedFilter === "ha-filter-voice-assistants"}
-          .narrow=${this.narrow}
-          @expanded-changed=${this._filterExpanded}
-        ></ha-filter-voice-assistants>
-
-        ${
-          !this.narrow
-            ? html`<ha-dropdown
-                  slot="selection-bar"
-                  @wa-select=${this._handleBulkCategory}
-                >
-                  <ha-assist-chip
-                    slot="trigger"
-                    .label=${this.hass.localize(
-                      "ui.panel.config.automation.picker.bulk_actions.move_category"
-                    )}
-                  >
-                    <ha-svg-icon
-                      slot="trailing-icon"
-                      .path=${mdiMenuDown}
-                    ></ha-svg-icon>
-                  </ha-assist-chip>
-                  ${this._renderCategoryItems()}
-                </ha-dropdown>
-                ${
-                  labelsInOverflow
-                    ? nothing
-                    : html`<ha-dropdown
-                        slot="selection-bar"
-                        @wa-select=${this._handleBulkLabel}
-                      >
-                        <ha-assist-chip
-                          slot="trigger"
-                          .label=${this.hass.localize(
-                            "ui.panel.config.automation.picker.bulk_actions.add_label"
-                          )}
-                        >
-                          <ha-svg-icon
-                            slot="trailing-icon"
-                            .path=${mdiMenuDown}
-                          ></ha-svg-icon>
-                        </ha-assist-chip>
-                        ${this._renderLabelItems()}
-                      </ha-dropdown>`
-                }
-                ${
-                  areasInOverflow
-                    ? nothing
-                    : html`<ha-dropdown
-                        slot="selection-bar"
-                        @wa-select=${this._handleBulkArea}
-                      >
-                        <ha-assist-chip
-                          slot="trigger"
-                          .label=${this.hass.localize(
-                            "ui.panel.config.devices.picker.bulk_actions.move_area"
-                          )}
-                        >
-                          <ha-svg-icon
-                            slot="trailing-icon"
-                            .path=${mdiMenuDown}
-                          ></ha-svg-icon>
-                        </ha-assist-chip>
-                        ${this._renderAreaItems()}
-                      </ha-dropdown>`
-                }`
-            : nothing
-        }
-        ${
-          this.narrow || areasInOverflow
-            ? html` <ha-dropdown
-                slot="selection-bar"
-                @wa-select=${this._handleBulkAction}
-              >
-                ${
-                  this.narrow
-                    ? html`<ha-assist-chip
-                        .label=${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_action"
-                        )}
-                        slot="trigger"
-                      >
-                        <ha-svg-icon
-                          slot="trailing-icon"
-                          .path=${mdiMenuDown}
-                        ></ha-svg-icon>
-                      </ha-assist-chip>`
-                    : html`<ha-icon-button
-                        .path=${mdiDotsVertical}
-                        .label=${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_action"
-                        )}
-                        slot="trigger"
-                      ></ha-icon-button>`
-                }
-                ${
-                  this.narrow
-                    ? html`<ha-dropdown-item>
-                        ${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_actions.move_category"
-                        )}
-                        ${this._renderCategoryItems("submenu")}
-                      </ha-dropdown-item>`
-                    : nothing
-                }
-                ${
-                  this.narrow || labelsInOverflow
-                    ? html`<ha-dropdown-item>
-                        ${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_actions.add_label"
-                        )}
-                        ${this._renderLabelItems("submenu")}
-                      </ha-dropdown-item>`
-                    : nothing
-                }
-                ${
-                  this.narrow || areasInOverflow
-                    ? html`<ha-dropdown-item>
-                        ${this.hass.localize(
-                          "ui.panel.config.devices.picker.bulk_actions.move_area"
-                        )}
-                        ${this._renderAreaItems("submenu")}
-                      </ha-dropdown-item>`
-                    : nothing
-                }
-              </ha-dropdown>`
-            : nothing
-        }
-        ${
-          !this.scenes.length
-            ? html`<div class="empty" slot="empty">
-                <ha-svg-icon .path=${mdiPalette}></ha-svg-icon>
-                <h2>
-                  ${this.hass.localize(
-                    "ui.panel.config.scene.picker.empty_header"
-                  )}
-                </h2>
-                <p>
-                  ${this.hass.localize("ui.panel.config.scene.picker.empty_text")}
-                </p>
-                <ha-button
-                  appearance="plain"
-                  href=${documentationUrl(this.hass, "/docs/scene/editor/")}
-                  target="_blank"
-                  rel="noreferrer"
-                  size="s"
-                >
-                  ${this.hass.localize("ui.panel.config.common.learn_more")}
-                  <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
-                </ha-button>
-              </div>`
-            : nothing
-        }
+        <div class="page">
+          <div class="page-heading">
+            <h1>${this.hass.localize("ui.panel.config.scene.caption")}</h1>
+            <p>
+              ${this.hass.localize("ui.panel.config.scene.picker.summary", {
+                number: this.scenes.length,
+              })}.
+              ${this.hass.localize("ui.panel.config.scene.picker.description")}
+            </p>
+          </div>
+          ${
+            this.scenes.length
+              ? html`
+                  ${this._renderToolbar(searchLabel, filterCount)}
+                  ${this._selectMode ? this._renderSelectionBar() : nothing}
+                `
+              : nothing
+          }
+          <div class="filter-panel" ?hidden=${!this._showMoreFilters}>
+            ${this._renderFilterPanes()}
+          </div>
+          ${
+            !this.scenes.length
+              ? this._renderEmpty()
+              : scenes.length
+                ? html`<div class="grid">
+                    ${scenes.map((scene) => this._renderCard(scene))}
+                  </div>`
+                : html`<div class="no-match">
+                    <p>
+                      ${this.hass.localize(
+                        "ui.panel.config.scene.picker.no_match"
+                      )}
+                    </p>
+                    ${
+                      narrowedDown
+                        ? html`<ha-button
+                            appearance="plain"
+                            size="s"
+                            @click=${this._clearAll}
+                          >
+                            ${this.hass.localize(
+                              "ui.panel.config.scene.picker.clear_filters"
+                            )}
+                          </ha-button>`
+                        : nothing
+                    }
+                  </div>`
+          }
+        </div>
         <ha-button href="/config/scene/edit/new" size="l" slot="fab">
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.scene.picker.add_scene")}
         </ha-button>
-      </hass-tabs-subpage-data-table>
+      </hass-tabs-subpage>
     `;
   }
+
+  private _renderToolbar(searchLabel: string, filterCount: number) {
+    const areaId = this._selectedAreas[0];
+    const categoryIds = this._selectedCategories;
+    const labelIds = this._selectedLabels;
+    return html`<div class="toolbar">
+      <ha-input-search
+        class="search"
+        appearance="outlined"
+        .placeholder=${searchLabel}
+        .accessibleLabel=${searchLabel}
+        .value=${this._tableSettings.search}
+        @input=${this._searchChanged}
+      ></ha-input-search>
+      <ha-dropdown @wa-select=${this._handleAreaFilter}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${this._chipLabel(
+            this.hass.localize("ui.panel.config.scene.picker.filter_area"),
+            this._selectedAreas.length > 1
+              ? undefined
+              : areaId
+                ? this.hass.areas[areaId]?.name
+                : "",
+            this._selectedAreas.length
+          )}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        <ha-dropdown-item value="area_any" .selected=${!areaId}>
+          ${this.hass.localize("ui.panel.config.scene.picker.filter_any_item")}
+        </ha-dropdown-item>
+        ${Object.values(this.hass.areas).map(
+          (area) =>
+            html`<ha-dropdown-item
+              .value=${`area_${area.area_id}`}
+              .selected=${this._selectedAreas.includes(area.area_id)}
+            >
+              ${area.name}
+            </ha-dropdown-item>`
+        )}
+      </ha-dropdown>
+      <ha-dropdown @wa-select=${this._handleCategoryFilter}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${this._chipLabel(
+            this.hass.localize("ui.panel.config.scene.picker.filter_category"),
+            categoryIds.length === 1
+              ? this._categories?.find(
+                  (cat) => cat.category_id === categoryIds[0]
+                )?.name
+              : undefined,
+            categoryIds.length
+          )}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        <ha-dropdown-item value="category_any" .selected=${!categoryIds.length}>
+          ${this.hass.localize("ui.panel.config.scene.picker.filter_any_item")}
+        </ha-dropdown-item>
+        ${this._categories?.map(
+          (category) =>
+            html`<ha-dropdown-item
+              .value=${`category_${category.category_id}`}
+              .selected=${categoryIds.includes(category.category_id)}
+            >
+              ${category.name}
+            </ha-dropdown-item>`
+        )}
+      </ha-dropdown>
+      <ha-dropdown @wa-select=${this._handleLabelFilter}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${this._chipLabel(
+            this.hass.localize("ui.panel.config.scene.picker.filter_label"),
+            labelIds.length === 1
+              ? this._labels?.find((lbl) => lbl.label_id === labelIds[0])?.name
+              : undefined,
+            labelIds.length
+          )}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        <ha-dropdown-item value="label_any" .selected=${!labelIds.length}>
+          ${this.hass.localize("ui.panel.config.scene.picker.filter_any_item")}
+        </ha-dropdown-item>
+        ${this._labels?.map(
+          (label) =>
+            html`<ha-dropdown-item
+              .value=${`label_${label.label_id}`}
+              .selected=${labelIds.includes(label.label_id)}
+            >
+              ${label.name}
+            </ha-dropdown-item>`
+        )}
+      </ha-dropdown>
+      <ha-assist-chip
+        .label=${this.hass.localize(
+          "ui.panel.config.scene.picker.more_filters"
+        )}
+        .active=${this._showMoreFilters}
+        @click=${this._toggleMoreFilters}
+      >
+        <ha-svg-icon slot="icon" .path=${mdiFilterVariant}></ha-svg-icon>
+      </ha-assist-chip>
+      ${
+        filterCount
+          ? html`<ha-icon-button
+              .path=${mdiFilterVariantRemove}
+              .label=${this.hass.localize(
+                "ui.panel.config.scene.picker.clear_filters"
+              )}
+              @click=${this._clearFilter}
+            ></ha-icon-button>`
+          : nothing
+      }
+      <span class="spacer"></span>
+      <ha-icon-button
+        .path=${mdiFormatListChecks}
+        .label=${this.hass.localize(
+          "ui.panel.config.scene.picker.select_scenes"
+        )}
+        aria-pressed=${this._selectMode ? "true" : "false"}
+        @click=${this._toggleSelectMode}
+      ></ha-icon-button>
+    </div>`;
+  }
+
+  private _chipLabel(
+    name: string,
+    value: string | undefined,
+    count: number
+  ): string {
+    if (!count) {
+      return this.hass.localize("ui.panel.config.scene.picker.filter_any", {
+        name,
+      });
+    }
+    return this.hass.localize("ui.panel.config.scene.picker.filter_value", {
+      name,
+      value:
+        value ??
+        this.hass.localize("ui.panel.config.scene.picker.filter_count", {
+          count,
+        }),
+    });
+  }
+
+  private get _selectedAreas(): string[] {
+    const value = this._filters["ha-filter-floor-areas"]?.value;
+    return value && !Array.isArray(value) ? (value.areas ?? []) : [];
+  }
+
+  private get _selectedCategories(): string[] {
+    const value = this._filters["ha-filter-categories"]?.value;
+    return Array.isArray(value) ? value : [];
+  }
+
+  private get _selectedLabels(): string[] {
+    const value = this._filters["ha-filter-labels"]?.value;
+    return Array.isArray(value) ? value : [];
+  }
+
+  private _renderSelectionBar() {
+    return html`<div class="selection-bar">
+      <ha-icon-button
+        .path=${mdiClose}
+        .label=${this.hass.localize(
+          "ui.components.subpage-data-table.exit_selection_mode"
+        )}
+        @click=${this._toggleSelectMode}
+      ></ha-icon-button>
+      <ha-dropdown @wa-select=${this._handleSelect}>
+        <ha-assist-chip
+          slot="trigger"
+          .label=${this.hass.localize("ui.components.subpage-data-table.select")}
+        >
+          <ha-svg-icon slot="icon" .path=${mdiFormatListChecks}></ha-svg-icon>
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        <ha-dropdown-item value="all">
+          ${this.hass.localize("ui.components.subpage-data-table.select_all")}
+        </ha-dropdown-item>
+        <ha-dropdown-item value="none">
+          ${this.hass.localize("ui.components.subpage-data-table.select_none")}
+        </ha-dropdown-item>
+      </ha-dropdown>
+      <p>
+        ${this.hass.localize("ui.components.subpage-data-table.selected", {
+          selected: this._selected.length || "0",
+        })}
+      </p>
+      <ha-dropdown @wa-select=${this._handleBulkCategory}>
+        <ha-assist-chip
+          slot="trigger"
+          .disabled=${!this._selected.length}
+          .label=${this.hass.localize(
+            "ui.panel.config.automation.picker.bulk_actions.move_category"
+          )}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${this._renderCategoryItems()}
+      </ha-dropdown>
+      <ha-dropdown @wa-select=${this._handleBulkLabel}>
+        <ha-assist-chip
+          slot="trigger"
+          .disabled=${!this._selected.length}
+          .label=${this.hass.localize(
+            "ui.panel.config.automation.picker.bulk_actions.add_label"
+          )}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${this._renderLabelItems()}
+      </ha-dropdown>
+      <ha-dropdown @wa-select=${this._handleBulkArea}>
+        <ha-assist-chip
+          slot="trigger"
+          .disabled=${!this._selected.length}
+          .label=${this.hass.localize(
+            "ui.panel.config.devices.picker.bulk_actions.move_area"
+          )}
+        >
+          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
+        </ha-assist-chip>
+        ${this._renderAreaItems()}
+      </ha-dropdown>
+    </div>`;
+  }
+
+  private _renderFilterPanes() {
+    return html`
+      <ha-filter-floor-areas
+        .type=${"scene"}
+        .value=${this._filters["ha-filter-floor-areas"]?.value}
+        @data-table-filter-changed=${this._filterChanged}
+        .expanded=${this._expandedFilter === "ha-filter-floor-areas"}
+        .narrow=${this.narrow}
+        @expanded-changed=${this._filterExpanded}
+      ></ha-filter-floor-areas>
+      <ha-filter-devices
+        .type=${"scene"}
+        .value=${this._filters["ha-filter-devices"]?.value}
+        @data-table-filter-changed=${this._filterChanged}
+        .expanded=${this._expandedFilter === "ha-filter-devices"}
+        .narrow=${this.narrow}
+        @expanded-changed=${this._filterExpanded}
+      ></ha-filter-devices>
+      <ha-filter-entities
+        .type=${"scene"}
+        .value=${this._filters["ha-filter-entities"]?.value}
+        @data-table-filter-changed=${this._filterChanged}
+        .expanded=${this._expandedFilter === "ha-filter-entities"}
+        .narrow=${this.narrow}
+        @expanded-changed=${this._filterExpanded}
+      ></ha-filter-entities>
+      <ha-filter-labels
+        .value=${this._filters["ha-filter-labels"]?.value}
+        @data-table-filter-changed=${this._filterChanged}
+        .expanded=${this._expandedFilter === "ha-filter-labels"}
+        .narrow=${this.narrow}
+        @expanded-changed=${this._filterExpanded}
+      ></ha-filter-labels>
+      <ha-filter-categories
+        scope="scene"
+        .value=${this._filters["ha-filter-categories"]?.value}
+        @data-table-filter-changed=${this._filterChanged}
+        .expanded=${this._expandedFilter === "ha-filter-categories"}
+        .narrow=${this.narrow}
+        @expanded-changed=${this._filterExpanded}
+      ></ha-filter-categories>
+      <ha-filter-voice-assistants
+        .value=${this._filters["ha-filter-voice-assistants"]?.value}
+        @data-table-filter-changed=${this._filterChanged}
+        .expanded=${this._expandedFilter === "ha-filter-voice-assistants"}
+        .narrow=${this.narrow}
+        @expanded-changed=${this._filterExpanded}
+      ></ha-filter-voice-assistants>
+    `;
+  }
+
+  private _renderEmpty() {
+    return html`<div class="empty">
+      <ha-svg-icon .path=${mdiPalette}></ha-svg-icon>
+      <h2>
+        ${this.hass.localize("ui.panel.config.scene.picker.empty_header")}
+      </h2>
+      <p>${this.hass.localize("ui.panel.config.scene.picker.empty_text")}</p>
+      <ha-button
+        appearance="plain"
+        href=${documentationUrl(this.hass, "/docs/scene/editor/")}
+        target="_blank"
+        rel="noreferrer"
+        size="s"
+      >
+        ${this.hass.localize("ui.panel.config.common.learn_more")}
+        <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
+      </ha-button>
+    </div>`;
+  }
+
+  private _renderCard(scene: SceneItem) {
+    const selected = this._selected.includes(scene.entity_id);
+    const subtitle = [
+      this.hass.localize("ui.panel.config.scene.picker.entity_count", {
+        count: scene.entity_count,
+      }),
+      scene.area,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return html`
+      <div
+        class="card tint-${scene.tint} ${selected ? "selected" : ""}"
+        title=${
+          scene.editable
+            ? ""
+            : this.hass.localize("ui.panel.config.scene.picker.only_editable")
+        }
+      >
+        <button
+          type="button"
+          class="open"
+          aria-label=${scene.name}
+          aria-pressed=${this._selectMode ? String(selected) : nothing}
+          .entityId=${scene.entity_id}
+          @click=${this._cardClicked}
+        ></button>
+        <div class="card-top">
+          <div class="icon-tile">
+            <ha-state-icon .stateObj=${scene}></ha-state-icon>
+          </div>
+          ${
+            this._selectMode
+              ? html`<ha-checkbox
+                  class="check"
+                  .checked=${selected}
+                  .disabled=${!scene.selectable}
+                  .ariaLabel=${scene.name}
+                  .entityId=${scene.entity_id}
+                  @change=${this._checkChanged}
+                ></ha-checkbox>`
+              : html`<ha-icon-overflow-menu
+                  narrow
+                  .items=${this._cardActions(scene)}
+                ></ha-icon-overflow-menu>`
+          }
+        </div>
+        <div class="card-text">
+          <h2>${scene.name}</h2>
+          <p>${subtitle}</p>
+        </div>
+        <ha-button
+          class="turn-on"
+          size="s"
+          appearance="filled"
+          variant="neutral"
+          .entityId=${scene.entity_id}
+          @click=${this._turnOnClicked}
+        >
+          <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.scene.picker.turn_on")}
+        </ha-button>
+      </div>
+    `;
+  }
+
+  private _cardActions(scene: SceneItem) {
+    return [
+      {
+        path: mdiPlay,
+        label: this.hass.localize("ui.panel.config.scene.picker.apply"),
+        action: () => this._activateScene(scene),
+      },
+      {
+        path: mdiInformationOutline,
+        label: this.hass.localize("ui.panel.config.scene.picker.show_info"),
+        action: () => this._showInfo(scene),
+      },
+      {
+        path: mdiCog,
+        label: this.hass.localize(
+          "ui.panel.config.automation.picker.show_settings"
+        ),
+        action: () => this._openSettings(scene),
+      },
+      {
+        path: mdiTag,
+        label: this.hass.localize(
+          `ui.panel.config.scene.picker.${scene.category ? "edit_category" : "assign_category"}`
+        ),
+        action: () => this._editCategory(scene),
+      },
+      {
+        path: mdiPencil,
+        label: this.hass.localize("ui.panel.config.scene.editor.rename"),
+        action: () => this._rename(scene),
+        disabled: !scene.editable,
+      },
+      {
+        divider: true,
+      },
+      {
+        path: mdiContentDuplicate,
+        label: this.hass.localize("ui.panel.config.scene.picker.duplicate"),
+        action: () => this._duplicate(scene),
+        disabled: !scene.editable,
+      },
+      {
+        label: this.hass.localize("ui.panel.config.scene.picker.delete"),
+        path: mdiDelete,
+        action: () => this._deleteConfirm(scene),
+        warning: scene.editable,
+        disabled: !scene.editable,
+      },
+    ];
+  }
+
+  private _searchChanged(ev: Event) {
+    const value = (ev.target as HaInputSearch).value ?? "";
+    this._tableSettings.searchChanged({
+      detail: { value },
+    } as unknown as HASSDomEvent<HASSDomEvents["search-changed"]>);
+  }
+
+  private _toggleMoreFilters() {
+    this._showMoreFilters = !this._showMoreFilters;
+  }
+
+  private _toggleSelectMode() {
+    this._selectMode = !this._selectMode;
+    if (!this._selectMode) {
+      this._selected = [];
+    }
+  }
+
+  private _handleSelect(ev: HaDropdownSelectEvent) {
+    const value = ev.detail.item.value;
+    if (value === "all") {
+      this._selected = this._scenes(
+        this.scenes,
+        this._entityReg,
+        this.hass.areas,
+        this.hass.formatEntityName,
+        this._categories,
+        this._labels,
+        this._filteredSceneEntityIds
+      )
+        .filter((scene) => {
+          const matches = searchMatcher(this._tableSettings.search);
+          return (
+            scene.selectable &&
+            matches(scene.name, scene.area, scene.category, ...scene.labels)
+          );
+        })
+        .map((scene) => scene.entity_id);
+    } else if (value === "none") {
+      this._selected = [];
+    }
+  }
+
+  private _entityIdOf(ev: Event): string | undefined {
+    return (ev.currentTarget as HTMLElement & { entityId?: string }).entityId;
+  }
+
+  private _toggleSelected(entityId: string) {
+    // Only scenes in the entity registry can take part in bulk actions
+    if (!this._entityReg.some((reg) => reg.entity_id === entityId)) {
+      return;
+    }
+    this._selected = this._selected.includes(entityId)
+      ? this._selected.filter((id) => id !== entityId)
+      : [...this._selected, entityId];
+  }
+
+  private _checkChanged(ev: Event) {
+    const entityId = this._entityIdOf(ev);
+    if (entityId) {
+      this._toggleSelected(entityId);
+    }
+  }
+
+  private _turnOnClicked(ev: Event) {
+    const scene = this.scenes.find(
+      (item) => item.entity_id === this._entityIdOf(ev)
+    );
+    if (scene) {
+      this._activateScene(scene);
+    }
+  }
+
+  private _cardClicked(ev: Event) {
+    const entityId = this._entityIdOf(ev);
+    const scene = this.scenes.find((item) => item.entity_id === entityId);
+    if (!scene) {
+      return;
+    }
+    if (this._selectMode) {
+      this._toggleSelected(scene.entity_id);
+      return;
+    }
+    if (scene.attributes.id) {
+      navigate(`/config/scene/edit/${scene.attributes.id}`);
+    } else {
+      this._showInfo(scene);
+    }
+  }
+
+  private _handleAreaFilter = (ev: HaDropdownSelectEvent) => {
+    const value = ev.detail.item.value;
+    if (!value?.startsWith("area_")) {
+      return;
+    }
+    const id = value.substring(5);
+    this._setFilter("ha-filter-floor-areas", {
+      value: id === "any" ? undefined : { floors: [], areas: [id] },
+      items: undefined,
+    });
+  };
+
+  private _handleCategoryFilter = (ev: HaDropdownSelectEvent) => {
+    const value = ev.detail.item.value;
+    if (!value?.startsWith("category_")) {
+      return;
+    }
+    const id = value.substring(9);
+    this._setFilter("ha-filter-categories", {
+      value: id === "any" ? undefined : [id],
+      items: undefined,
+    });
+  };
+
+  private _handleLabelFilter = (ev: HaDropdownSelectEvent) => {
+    const value = ev.detail.item.value;
+    if (!value?.startsWith("label_")) {
+      return;
+    }
+    const id = value.substring(6);
+    this._setFilter("ha-filter-labels", {
+      value: id === "any" ? undefined : [id],
+      items: undefined,
+    });
+  };
 
   private _filterExpanded(ev) {
     if (ev.detail.expanded) {
@@ -789,29 +985,6 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       this._expandedFilter = undefined;
     }
   }
-
-  private _labelClicked = (ev: CustomEvent) => {
-    const label = ev.detail.label;
-    this._setFilter("ha-filter-labels", {
-      value: [label.label_id],
-      items: undefined,
-    });
-  };
-
-  private _categoryDeleted = (categoryId: string) => {
-    const value = this._filters["ha-filter-categories"]?.value;
-
-    if (!Array.isArray(value) || !value.includes(categoryId)) {
-      return;
-    }
-
-    const remaining = value.filter((id) => id !== categoryId);
-
-    this._setFilter("ha-filter-categories", {
-      value: remaining.length ? remaining : undefined,
-      items: undefined,
-    });
-  };
 
   private _filterChanged(ev) {
     this._setFilter(ev.target.localName, ev.detail);
@@ -889,20 +1062,11 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
     this._writeFilters();
   }
 
-  private _handleSelectionChanged(
-    ev: HASSDomEvent<SelectionChangedEvent>
-  ): void {
-    this._selected = ev.detail.value;
-  }
-
-  private _handleRowClicked(ev: HASSDomEvent<RowClickedEvent>) {
-    const scene = this.scenes.find((a) => a.entity_id === ev.detail.id);
-
-    if (scene?.attributes.id) {
-      navigate(`/config/scene/edit/${scene?.attributes.id}`);
-    } else if (scene) {
-      this._showInfo(scene);
-    }
+  private _clearAll() {
+    this._clearFilter();
+    this._tableSettings.searchChanged({
+      detail: { value: "" },
+    } as unknown as HASSDomEvent<HASSDomEvents["search-changed"]>);
   }
 
   private _handleBulkCategory = (ev: HaDropdownSelectEvent) => {
@@ -1188,13 +1352,10 @@ ${rejected
     });
   };
 
-  private _renderCategoryItems = (slot = "") =>
+  private _renderCategoryItems = () =>
     html`${this._categories?.map(
         (category) =>
-          html`<ha-dropdown-item
-            .slot=${slot}
-            .value=${`category_${category.category_id}`}
-          >
+          html`<ha-dropdown-item .value=${`category_${category.category_id}`}>
             ${
               category.icon
                 ? html`<ha-icon slot="icon" .icon=${category.icon}></ha-icon>`
@@ -1203,17 +1364,17 @@ ${rejected
             ${category.name}
           </ha-dropdown-item>`
       )}
-      <ha-dropdown-item .slot=${slot} value="category_none">
+      <ha-dropdown-item value="category_none">
         ${this.hass.localize(
           "ui.panel.config.automation.picker.bulk_actions.no_category"
         )}
       </ha-dropdown-item>
-      <wa-divider .slot=${slot}></wa-divider>
-      <ha-dropdown-item .slot=${slot} value="category_create">
+      <wa-divider></wa-divider>
+      <ha-dropdown-item value="category_create">
         ${this.hass.localize("ui.panel.config.category.editor.add")}
       </ha-dropdown-item>`;
 
-  private _renderLabelItems = (slot = "") =>
+  private _renderLabelItems = () =>
     html`${this._labels?.map((label) => {
         const selected = this._selected.every((entityId) =>
           this.hass.entities[entityId]?.labels.includes(label.label_id)
@@ -1224,7 +1385,6 @@ ${rejected
             this.hass.entities[entityId]?.labels.includes(label.label_id)
           );
         return html`<ha-dropdown-item
-          .slot=${slot}
           .value=${`label_${label.label_id}`}
           .action=${selected ? "remove" : "add"}
         >
@@ -1243,15 +1403,15 @@ ${rejected
           </ha-label>
         </ha-dropdown-item>`;
       })}
-      <wa-divider .slot=${slot}></wa-divider>
-      <ha-dropdown-item .slot=${slot} value="label_create">
+      <wa-divider></wa-divider>
+      <ha-dropdown-item value="label_create">
         ${this.hass.localize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
-  private _renderAreaItems = (slot = "") =>
+  private _renderAreaItems = () =>
     html`${Object.values(this.hass.areas).map(
         (area) =>
-          html`<ha-dropdown-item .slot=${slot} .value=${`area_${area.area_id}`}>
+          html`<ha-dropdown-item .value=${`area_${area.area_id}`}>
             ${
               area.icon
                 ? html`<ha-icon slot="icon" .icon=${area.icon}></ha-icon>`
@@ -1263,66 +1423,17 @@ ${rejected
             ${area.name}
           </ha-dropdown-item>`
       )}
-      <ha-dropdown-item .slot=${slot} value="area_none">
+      <ha-dropdown-item value="area_none">
         ${this.hass.localize(
           "ui.panel.config.devices.picker.bulk_actions.no_area"
         )}
       </ha-dropdown-item>
-      <wa-divider .slot=${slot}></wa-divider>
-      <ha-dropdown-item .slot=${slot} value="area_create">
+      <wa-divider></wa-divider>
+      <ha-dropdown-item value="area_create">
         ${this.hass.localize(
           "ui.panel.config.devices.picker.bulk_actions.add_area"
         )}
       </ha-dropdown-item>`;
-
-  private _handleBulkAction = (ev) => {
-    const item = ev.detail.item;
-    const value = item.value;
-
-    if (!value) {
-      return;
-    }
-
-    if (value.startsWith("category_")) {
-      if (value === "category_create") {
-        this._bulkCreateCategory();
-      } else if (value === "category_none") {
-        this._bulkAddCategory(null);
-      } else {
-        this._bulkAddCategory(value.substring(9));
-      }
-      return;
-    }
-
-    if (value.startsWith("label_")) {
-      if (value === "label_create") {
-        this._bulkCreateLabel();
-      } else {
-        const action = item.action;
-        this._bulkLabel(value.substring(6), action);
-      }
-      return;
-    }
-
-    if (value.startsWith("area_")) {
-      if (value === "area_create") {
-        this._bulkCreateArea();
-      } else if (value === "area_none") {
-        this._bulkAddArea(null);
-      } else {
-        this._bulkAddArea(value.substring(5));
-      }
-    }
-  };
-
-  private _handleCollapseChanged(ev: CustomEvent) {
-    this._activeCollapsed = ev.detail.value;
-  }
-
-  private _handleColumnsChanged(ev: CustomEvent) {
-    this._activeColumnOrder = ev.detail.columnOrder;
-    this._activeHiddenColumns = ev.detail.hiddenColumns;
-  }
 
   static get styles(): CSSResultGroup {
     return [
@@ -1332,18 +1443,195 @@ ${rejected
           display: block;
           height: 100%;
         }
-        hass-tabs-subpage-data-table {
-          --data-table-row-height: 60px;
+        .page {
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 var(--ha-space-8) var(--ha-space-20);
         }
-        a {
-          text-decoration: none;
+        :host([narrow]) .page {
+          padding: 0 var(--ha-space-3) var(--ha-space-20);
         }
-        .empty {
-          --mdc-icon-size: 80px;
+        .page-heading {
+          padding: var(--ha-space-6) var(--ha-space-2) var(--ha-space-2);
+        }
+        :host([narrow]) .page-heading {
+          padding-top: var(--ha-space-3);
+        }
+        .page-heading h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+          color: var(--primary-text-color);
+        }
+        .page-heading p {
+          margin: var(--ha-space-1) 0 0;
+          font-size: var(--ha-font-size-l);
+          line-height: var(--ha-line-height-normal);
+          color: var(--secondary-text-color);
+        }
+        .toolbar,
+        .selection-bar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-3) 0;
+        }
+        .selection-bar {
+          padding-top: 0;
+        }
+        .selection-bar p {
+          margin: 0 var(--ha-space-2);
+          color: var(--secondary-text-color);
+        }
+        .spacer {
+          flex: 1;
+        }
+        .search {
+          flex: 0 1 320px;
+          min-width: 200px;
+          --ha-input-search-height: var(--ha-space-12);
+          --ha-input-search-border-radius: var(--ha-border-radius-pill);
+        }
+        :host([narrow]) .search {
+          flex: 1 1 100%;
+        }
+        ha-assist-chip {
+          --ha-assist-chip-container-shape: 10px;
+          --ha-assist-chip-trailing-space: 8px;
+        }
+        ha-icon-button[aria-pressed="true"] {
+          color: var(--primary-color);
+        }
+        .filter-panel {
+          margin-bottom: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
+          overflow: hidden;
+        }
+        .filter-panel[hidden] {
+          display: none;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: var(--ha-space-4);
+          padding-top: var(--ha-space-2);
+        }
+        .card {
+          --card-tint: var(--ha-color-primary-60);
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+          min-width: 0;
+          padding: var(--ha-space-5);
+          border-radius: var(--ha-border-radius-3xl);
+          background: color-mix(
+            in srgb,
+            var(--card-tint) 24%,
+            var(--card-background-color)
+          );
+          color: var(--primary-text-color);
+          transition: box-shadow var(--ha-animation-duration-fast, 150ms);
+        }
+        .card:hover {
+          box-shadow: 0 0 0 2px
+            color-mix(in srgb, var(--card-tint) 55%, transparent);
+        }
+        .card.selected {
+          box-shadow: 0 0 0 3px var(--primary-color);
+        }
+        .card.tint-1 {
+          --card-tint: var(--ha-color-red-60);
+        }
+        .card.tint-2 {
+          --card-tint: var(--ha-color-neutral-60);
+        }
+        .card.tint-3 {
+          --card-tint: var(--ha-color-orange-70);
+        }
+        .card.tint-4 {
+          --card-tint: var(--ha-color-green-60);
+        }
+        .card.tint-5 {
+          --card-tint: var(--ha-color-orange-60);
+        }
+        /* The whole card opens the scene; the controls sit above it */
+        .card .open {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          border: 0;
+          border-radius: inherit;
+          background: transparent;
+          cursor: pointer;
+        }
+        .card .open:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .card-top,
+        .card-text,
+        .turn-on {
+          position: relative;
+          z-index: 1;
+        }
+        .card-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          pointer-events: none;
+        }
+        .card-top > * {
+          pointer-events: auto;
+        }
+        .icon-tile {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: var(--ha-space-14, 56px);
+          height: var(--ha-space-14, 56px);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
+          --mdc-icon-size: 28px;
+          pointer-events: none;
+        }
+        .card-text {
+          min-width: 0;
+          pointer-events: none;
+        }
+        .card-text h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+          overflow-wrap: anywhere;
+        }
+        .card-text p {
+          margin: var(--ha-space-1) 0 0;
+          color: var(--secondary-text-color);
+        }
+        .turn-on {
+          align-self: flex-start;
+        }
+        .empty,
+        .no-match {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin: var(--ha-space-10) auto;
           max-width: 500px;
+          text-align: center;
+          color: var(--secondary-text-color);
         }
-        .empty ha-button {
-          --mdc-icon-size: 24px;
+        .empty ha-svg-icon {
+          --mdc-icon-size: 80px;
         }
         .empty h2 {
           margin-block: var(--ha-space-5);
@@ -1351,18 +1639,14 @@ ${rejected
           font-size: var(--ha-font-size-3xl);
           font-weight: var(--ha-font-weight-normal);
           line-height: var(--ha-line-height-condensed);
-          white-space: normal;
-          overflow: visible;
-        }
-        ha-assist-chip {
-          --ha-assist-chip-container-shape: 10px;
+          color: var(--primary-text-color);
         }
         ha-dropdown::part(menu),
         ha-dropdown::part(submenu) {
           --auto-size-available-width: calc(50vw - var(--ha-space-4));
         }
-        ha-dropdown ha-assist-chip {
-          --ha-assist-chip-trailing-space: 8px;
+        ha-dropdown-item[selected]::part(base) {
+          font-weight: var(--ha-font-weight-medium);
         }
       `,
     ];

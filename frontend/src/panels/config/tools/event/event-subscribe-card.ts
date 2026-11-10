@@ -1,33 +1,43 @@
-import { mdiInformationOutline } from "@mdi/js";
+import { mdiPlay, mdiStop } from "@mdi/js";
 import type { HassEvent } from "home-assistant-js-websocket";
+import { dump } from "js-yaml";
 import type { TemplateResult, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { repeat } from "lit/directives/repeat";
 import { formatTimeWithSeconds } from "../../../../common/datetime/format_time";
 import type { HASSDomTargetEvent } from "../../../../common/dom/fire_event";
 import { searchMatcher } from "../../../../common/regex/filter";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
-import "../../../../components/ha-card";
-import "../../../../components/ha-icon-button";
-import "../../../../components/ha-icon-button-next";
-import "../../../../components/ha-icon-button-prev";
-import "../../../../components/ha-icon-button-last";
-import "../../../../components/ha-icon-button-first";
 import "../../../../components/ha-svg-icon";
-import "../../../../components/ha-tooltip";
-import "../../../../components/ha-yaml-editor";
 import "../../../../components/input/ha-input";
 import "../../../../components/input/ha-input-search";
 import type { HaInput } from "../../../../components/input/ha-input";
 import type { HomeAssistant } from "../../../../types";
 
-const MAX_BUFFERED_EVENTS = 100;
+const MAX_BUFFERED_EVENTS = 50;
 
 interface SubscribedEvent {
   id: number;
   event: HassEvent;
 }
+
+// The text shown for an event is built once, not on every update
+const yamlCache = new WeakMap<HassEvent, string>();
+
+const eventYaml = (event: HassEvent): string => {
+  let text = yamlCache.get(event);
+  if (text === undefined) {
+    try {
+      text = dump(event, { indent: 2, noRefs: true }).trimEnd();
+    } catch (_err) {
+      text = JSON.stringify(event, null, 2);
+    }
+    yamlCache.set(event, text);
+  }
+  return text;
+};
 
 @customElement("event-subscribe-card")
 class EventSubscribeCard extends LitElement {
@@ -46,8 +56,6 @@ class EventSubscribeCard extends LitElement {
   @state() private _events: SubscribedEvent[] = [];
 
   @state() private _error?: string;
-
-  @state() private _viewedEventId?: number;
 
   private _eventCount = 0;
 
@@ -74,213 +82,142 @@ class EventSubscribeCard extends LitElement {
   }
 
   protected render(): TemplateResult {
+    const localize = this.hass!.localize;
+    const listening = this._subscribed !== undefined;
     return html`
-      <ha-card
-        header=${this.hass!.localize(
-          "ui.panel.config.tools.tabs.events.listen_to_events"
-        )}
-      >
-        <div class="card-content">
+      <section class="card">
+        <div class="header">
+          <h2>
+            ${
+              listening
+                ? localize(
+                    "ui.panel.config.tools.tabs.events.listening_title",
+                    {
+                      type: this._eventType,
+                    }
+                  )
+                : localize("ui.panel.config.tools.tabs.events.listen_to_events")
+            }
+          </h2>
+          ${
+            listening
+              ? html`<span class="live">
+                  <span class="dot"></span>
+                  ${localize("ui.panel.config.tools.tabs.events.live")}
+                </span>`
+              : nothing
+          }
+          <ha-button
+            appearance=${listening ? "outlined" : "accent"}
+            .disabled=${this._eventType === ""}
+            @click=${this._startOrStopListening}
+          >
+            <ha-svg-icon
+              slot="start"
+              .path=${listening ? mdiStop : mdiPlay}
+            ></ha-svg-icon>
+            ${
+              listening
+                ? localize("ui.panel.config.tools.tabs.events.stop_listening")
+                : localize("ui.panel.config.tools.tabs.events.start_listening")
+            }
+          </ha-button>
+        </div>
+        <div class="inputs">
           <ha-input
             .label=${
-              this._subscribed
-                ? this.hass!.localize(
-                    "ui.panel.config.tools.tabs.events.listening_to"
-                  )
-                : this.hass!.localize(
-                    "ui.panel.config.tools.tabs.events.subscribe_to"
-                  )
+              listening
+                ? localize("ui.panel.config.tools.tabs.events.type")
+                : localize("ui.panel.config.tools.tabs.events.subscribe_to")
             }
-            .disabled=${this._subscribed !== undefined}
+            .disabled=${listening}
             .value=${this._eventType}
             @input=${this._valueChanged}
           ></ha-input>
           <ha-input-search
-            .label=${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.filter_events"
+            .label=${localize(
+              "ui.panel.config.tools.tabs.events.only_if_contains"
             )}
             .value=${this._eventFilter}
-            .disabled=${this._subscribed !== undefined}
-            .hint=${`${this.hass!.localize("ui.panel.config.tools.tabs.events.filter_helper")}${this._ignoredEventsCount ? ` ${this.hass!.localize("ui.panel.config.tools.tabs.events.filter_ignored", { count: this._ignoredEventsCount })}` : ""}`}
+            .disabled=${listening}
+            .hint=${localize("ui.panel.config.tools.tabs.events.filter_helper")}
             @input=${this._filterChanged}
           ></ha-input-search>
-          ${
-            this._error
-              ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
-              : ""
-          }
         </div>
-        <div class="card-actions">
-          <ha-button
-            appearance="filled"
-            .disabled=${this._eventType === ""}
-            @click=${this._startOrStopListening}
-          >
+        ${
+          this._error
+            ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+            : nothing
+        }
+        ${this._renderEvents(listening)}
+        <div class="footer">
+          <p class="hint">
             ${
-              this._subscribed
-                ? this.hass!.localize(
-                    "ui.panel.config.tools.tabs.events.stop_listening"
-                  )
-                : this.hass!.localize(
-                    "ui.panel.config.tools.tabs.events.start_listening"
-                  )
-            }
-          </ha-button>
-          <ha-button
-            appearance="plain"
-            .disabled=${this._eventType === ""}
-            @click=${this._clearEvents}
-          >
-            ${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.clear_events"
-            )}
-          </ha-button>
-        </div>
-      </ha-card>
-      ${this._renderEventsCard()}
-    `;
-  }
-
-  private _renderEventsCard(): TemplateResult {
-    if (!this._events.length) {
-      const message = this._subscribed
-        ? this.hass!.localize(
-            "ui.panel.config.tools.tabs.events.waiting_for_events"
-          )
-        : this.hass!.localize(
-            "ui.panel.config.tools.tabs.events.subscribe_prompt"
-          );
-      return html`
-        <ha-card class="events-card">
-          <div class="empty-state">${message}</div>
-        </ha-card>
-      `;
-    }
-    const bufferTotal = this._events.length;
-    const index = this._resolveViewedIndex();
-    const event = this._events[index];
-    const position = event.id + 1;
-
-    const bufferPosition = bufferTotal - index;
-    const atNewest = index === 0;
-
-    const hasRolledOver = this._events[bufferTotal - 1].id > 0;
-
-    return html`
-      <ha-card class="events-card">
-        <div class="events-toolbar">
-          <ha-icon-button-first
-            .disabled=${index >= bufferTotal - 1}
-            .label=${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.oldest_event"
-            )}
-            @click=${this._showOldest}
-          ></ha-icon-button-first>
-          <ha-icon-button-prev
-            .disabled=${index >= bufferTotal - 1}
-            .label=${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.older_event"
-            )}
-            @click=${this._showOlder}
-          ></ha-icon-button-prev>
-          <div class="event-info">
-            ${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.event_fired",
-              {
-                name: position,
-                time: formatTimeWithSeconds(
-                  new Date(event.event.time_fired),
-                  this.hass!.locale,
-                  this.hass!.config
-                ),
-              }
-            )}
-            <span class="counter">(${bufferPosition} / ${bufferTotal})</span>
-            ${
-              hasRolledOver
-                ? html`
-                    <ha-svg-icon
-                      id="buffer-info"
-                      class="buffer-info"
-                      .path=${mdiInformationOutline}
-                    ></ha-svg-icon>
-                    <ha-tooltip for="buffer-info" placement="bottom">
-                      <span class="buffer-tooltip">
-                        ${this.hass!.localize(
-                          "ui.panel.config.tools.tabs.events.buffer_disclaimer",
-                          { count: MAX_BUFFERED_EVENTS }
-                        )}
-                      </span>
-                    </ha-tooltip>
-                  `
+              this._events.length
+                ? localize("ui.panel.config.tools.tabs.events.events_shown", {
+                    count: this._events.length,
+                    max: MAX_BUFFERED_EVENTS,
+                  })
                 : nothing
             }
-          </div>
-          <ha-icon-button-next
-            .disabled=${atNewest}
-            .label=${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.newer_event"
-            )}
-            @click=${this._showNewer}
-          ></ha-icon-button-next>
-          <ha-icon-button-last
-            .disabled=${atNewest}
-            .label=${this.hass!.localize(
-              "ui.panel.config.tools.tabs.events.newest_event"
-            )}
-            @click=${this._showNewest}
-          ></ha-icon-button-last>
+            ${
+              this._ignoredEventsCount
+                ? localize("ui.panel.config.tools.tabs.events.filter_ignored", {
+                    count: this._ignoredEventsCount,
+                  })
+                : nothing
+            }
+          </p>
+          <ha-button
+            appearance="plain"
+            size="small"
+            .disabled=${!this._events.length && !this._ignoredEventsCount}
+            @click=${this._clearEvents}
+          >
+            ${localize("ui.panel.config.tools.tabs.events.clear_events")}
+          </ha-button>
         </div>
-        <ha-yaml-editor
-          .value=${event.event}
-          auto-update
-          read-only
-        ></ha-yaml-editor>
-      </ha-card>
+      </section>
     `;
   }
 
-  private _resolveViewedIndex(): number {
-    if (this._viewedEventId === undefined) {
-      return 0;
-    }
-    const found = this._events.findIndex((e) => e.id === this._viewedEventId);
-
-    // Fall back to the oldest available event when the viewed one has aged out.
-    return found === -1 ? this._events.length - 1 : found;
-  }
-
-  private _showOldest() {
+  private _renderEvents(listening: boolean): TemplateResult {
     if (!this._events.length) {
-      return;
+      return html`<div class="empty-state">
+        ${
+          listening
+            ? this.hass!.localize(
+                "ui.panel.config.tools.tabs.events.waiting_for_events"
+              )
+            : this.hass!.localize(
+                "ui.panel.config.tools.tabs.events.subscribe_prompt"
+              )
+        }
+      </div>`;
     }
-    this._viewedEventId = this._events[this._events.length - 1].id;
-  }
-
-  private _showOlder() {
-    if (!this._events.length) {
-      return;
-    }
-    const next = Math.min(
-      this._resolveViewedIndex() + 1,
-      this._events.length - 1
-    );
-    this._viewedEventId = this._events[next].id;
-  }
-
-  private _showNewest() {
-    if (!this._events.length) {
-      return;
-    }
-    this._viewedEventId = this._events[0].id;
-  }
-
-  private _showNewer() {
-    if (!this._events.length) {
-      return;
-    }
-    const next = Math.max(this._resolveViewedIndex() - 1, 0);
-    this._viewedEventId = this._events[next].id;
+    return html`
+      <ul class="events">
+        ${repeat(
+          this._events,
+          (item) => item.id,
+          (item) => html`
+            <li class="event">
+              <div class="event-head">
+                <span class="event-type">${item.event.event_type}</span>
+                <span class="event-time">
+                  ${formatTimeWithSeconds(
+                    new Date(item.event.time_fired),
+                    this.hass!.locale,
+                    this.hass!.config
+                  )}
+                </span>
+              </div>
+              <pre class="event-body">${eventYaml(item.event)}</pre>
+            </li>
+          `
+        )}
+      </ul>
+    `;
   }
 
   private _valueChanged(ev: HASSDomTargetEvent<HaInput>) {
@@ -355,9 +292,6 @@ class EventSubscribeCard extends LitElement {
               },
               ...tail,
             ];
-            if (this._viewedEventId === undefined) {
-              this._viewedEventId = id;
-            }
           }, this._eventType);
       } catch (error) {
         this._error = this.hass!.localize(
@@ -380,80 +314,132 @@ class EventSubscribeCard extends LitElement {
     this._eventCount = 0;
     this._ignoredEventsCount = 0;
     this._error = undefined;
-    this._viewedEventId = undefined;
   }
 
   static styles = css`
     :host {
+      display: block;
+      min-width: 0;
+    }
+
+    .card {
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      min-height: 0;
+      gap: var(--ha-space-3);
+      padding: var(--ha-space-5);
+      border-radius: var(--ha-border-radius-3xl);
+      background: var(--card-background-color);
     }
-    ha-input {
-      margin-bottom: var(--ha-space-2);
-    }
-    .error-message {
-      margin-top: var(--ha-space-2);
-    }
-    pre {
-      font-family: var(--ha-font-family-code);
-    }
-    ha-card {
-      margin-bottom: var(--ha-space-2);
-    }
-    .events-card {
+
+    .header {
       display: flex;
-      flex-direction: column;
-      height: 620px;
-      padding: var(--ha-space-2);
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-3);
     }
-    :host([narrow]) .events-card {
-      height: auto;
-      min-height: 360px;
+
+    h2 {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-xl);
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
     }
-    .events-toolbar {
-      display: flex;
+
+    .live {
+      display: inline-flex;
       align-items: center;
       gap: var(--ha-space-2);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
-    .empty-state {
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success-color);
+    }
+
+    .inputs {
       display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-3);
+    }
+
+    .inputs > * {
       flex: 1;
-      align-items: center;
-      justify-content: center;
-      padding: var(--ha-space-8);
-      color: var(--primary-text-color);
-      text-align: center;
-      font-size: var(--ha-font-size-xl);
-      line-height: var(--ha-line-height-normal);
+      min-width: 200px;
     }
-    .event-info {
-      flex: 1;
-      text-align: center;
-      font-size: var(--ha-font-size-m);
-    }
-    .counter {
-      color: var(--secondary-text-color);
-      margin-left: var(--ha-space-2);
-    }
-    .buffer-info {
-      color: var(--secondary-text-color);
-      margin-left: var(--ha-space-1);
-      vertical-align: middle;
-      --mdc-icon-size: 16px;
-    }
-    .buffer-tooltip {
-      white-space: pre-line;
-      display: block;
-      max-width: 320px;
-    }
-    ha-yaml-editor {
+
+    .events {
+      list-style: none;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
-      min-height: 0;
-      flex: 1;
-      margin-top: var(--ha-space-2);
-      --code-mirror-height: 100%;
+      gap: var(--ha-space-4);
+      max-height: 560px;
+      overflow-y: auto;
+    }
+
+    :host([narrow]) .events {
+      max-height: none;
+    }
+
+    .event-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--ha-space-3);
+      margin-bottom: var(--ha-space-2);
+    }
+
+    .event-type {
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+
+    .event-time {
+      flex: none;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+
+    .event-body {
+      margin: 0;
+      padding: var(--ha-space-3) var(--ha-space-4);
+      max-height: 260px;
+      overflow: auto;
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--secondary-background-color);
+      font-family: var(--ha-font-family-code);
+      font-size: var(--ha-font-size-s);
+      direction: ltr;
+    }
+
+    .empty-state {
+      padding: var(--ha-space-8) var(--ha-space-4);
+      color: var(--secondary-text-color);
+      text-align: center;
+      line-height: var(--ha-line-height-normal);
+    }
+
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-3);
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
   `;
 }

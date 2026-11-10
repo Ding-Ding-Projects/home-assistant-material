@@ -12,7 +12,7 @@ import {
   mdiShape,
 } from "@mdi/js";
 import type { PropertyValues } from "lit";
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
@@ -145,7 +145,7 @@ export class HaConfigLabels extends LitElement {
   @query("hass-tabs-subpage-data-table", true)
   private _dataTable!: HaTabsSubpageDataTable;
 
-  private _columns = memoizeOne((localize: LocalizeFunc, narrow: boolean) => {
+  private _columns = memoizeOne((localize: LocalizeFunc) => {
     const columns: DataTableColumnContainer<LabelRegistryEntry> = {
       icon: {
         title: "",
@@ -171,20 +171,10 @@ export class HaConfigLabels extends LitElement {
         flex: 2,
         sortable: true,
         filterable: true,
-        template: narrow
-          ? undefined
-          : (label) => html`
-              <div>${label.name}</div>
-              ${
-                label.description
-                  ? html`<div class="secondary">${label.description}</div>`
-                  : nothing
-              }
-            `,
+        template: (label) => html`<strong>${label.name}</strong>`,
       },
       description: {
         title: localize("ui.panel.config.labels.headers.description"),
-        hidden: !narrow,
         filterable: true,
         hideable: true,
       },
@@ -257,9 +247,10 @@ export class HaConfigLabels extends LitElement {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.areas}
-        .columns=${this._columns(this.hass.localize, this.narrow)}
+        .columns=${this._columns(this.hass.localize)}
         .data=${this._data(this._labels)}
         .loading=${this._loading}
+        .summary=${this.hass.localize("ui.panel.config.labels.summary")}
         .noDataText=${this.hass.localize("ui.panel.config.labels.no_labels")}
         has-fab
         .initialSorting=${this._tableSettings.sorting}

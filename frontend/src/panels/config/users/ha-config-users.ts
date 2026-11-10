@@ -1,6 +1,6 @@
-import { mdiCheck, mdiPlus } from "@mdi/js";
+import { mdiCheck, mdiInformationOutline, mdiPlus } from "@mdi/js";
 import type { PropertyValues } from "lit";
-import { LitElement, html } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
@@ -12,7 +12,9 @@ import type {
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/data-table/ha-data-table-icon";
 import "../../../components/ha-button";
+import "../../../components/ha-label";
 import "../../../components/ha-svg-icon";
+import "../../../components/user/ha-user-badge";
 import type { User } from "../../../data/user";
 import {
   computeUserBadges,
@@ -73,7 +75,15 @@ export class HaConfigUsers extends LitElement {
 
   private _columns = memoizeOne(
     (narrow: boolean, localize: LocalizeFunc): DataTableColumnContainer => {
-      const columns: DataTableColumnContainer<User> = {
+      const columns: DataTableColumnContainer<User & { group: string }> = {
+        avatar: {
+          title: "",
+          label: localize("ui.panel.config.users.picker.headers.icon"),
+          type: "icon",
+          moveable: false,
+          template: (user) =>
+            html`<ha-user-badge .user=${user}></ha-user-badge>`,
+        },
         name: {
           title: localize("ui.panel.config.users.picker.headers.name"),
           main: true,
@@ -81,19 +91,25 @@ export class HaConfigUsers extends LitElement {
           filterable: true,
           direction: "asc",
           flex: 2,
+          extraTemplate: (user) =>
+            user.username
+              ? html`<div class="secondary">${user.username}</div>`
+              : nothing,
         },
         username: {
           title: localize("ui.panel.config.users.picker.headers.username"),
           sortable: true,
           filterable: true,
+          defaultHidden: true,
           template: (user) => html`${user.username || "—"}`,
         },
         group: {
-          title: localize("ui.panel.config.users.picker.headers.group"),
+          title: localize("ui.panel.config.users.picker.headers.role"),
           sortable: true,
           filterable: true,
           groupable: true,
           urlName: "group",
+          template: (user) => html`<ha-label dense>${user.group}</ha-label>`,
         },
         is_active: {
           title: this.hass.localize(
@@ -116,23 +132,25 @@ export class HaConfigUsers extends LitElement {
           sortable: true,
           filterable: true,
           hidden: narrow,
+          defaultHidden: true,
           template: (user) =>
             user.system_generated
               ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
               : "",
         },
         local_only: {
-          title: this.hass.localize(
-            "ui.panel.config.users.picker.headers.local"
-          ),
-          type: "icon",
+          title: localize("ui.panel.config.users.picker.headers.away"),
           sortable: true,
           filterable: true,
           hidden: narrow,
           template: (user) =>
-            user.local_only
-              ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
-              : "",
+            user.system_generated
+              ? nothing
+              : user.local_only
+                ? html`<ha-label dense
+                    >${localize("ui.panel.config.users.picker.home_only")}</ha-label
+                  >`
+                : html`${localize("ui.panel.config.users.picker.away_allowed")}`,
         },
         icons: {
           title: "",
@@ -190,6 +208,8 @@ export class HaConfigUsers extends LitElement {
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
         .initialSorting=${this._tableSettings.sorting}
+        .summary=${this.hass.localize("ui.panel.config.users.summary")}
+        .appendRow=${this._footnote(this.hass.localize)}
         @sorting-changed=${this._tableSettings.sortingChanged}
         @grouping-changed=${this._tableSettings.groupingChanged}
         @collapsed-changed=${this._handleCollapseChanged}
@@ -208,11 +228,37 @@ export class HaConfigUsers extends LitElement {
     `;
   }
 
+  private _footnote = memoizeOne(
+    (localize: LocalizeFunc) =>
+      html`<div
+        style="display: flex; align-items: center; gap: var(--ha-space-3); margin: var(--ha-space-2) var(--ha-space-4); padding: var(--ha-space-4) var(--ha-space-5); border-radius: var(--ha-border-radius-xl); background: var(--secondary-background-color); color: var(--secondary-text-color);"
+      >
+        <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
+        <span>${localize("ui.panel.config.users.picker.footnote")}</span>
+      </div>`
+  );
+
+  private _roleName(user: User, localize: LocalizeFunc): string {
+    if (user.system_generated) {
+      return localize("ui.panel.config.users.picker.role_system");
+    }
+    if (user.is_owner || user.group_ids.includes("owner")) {
+      return localize("ui.panel.config.users.is_owner");
+    }
+    if (user.group_ids.includes("system-admin")) {
+      return localize("ui.panel.config.users.editor.admin");
+    }
+    if (user.group_ids.includes("system-read-only")) {
+      return localize("ui.panel.config.users.picker.role_read_only");
+    }
+    return localize("ui.panel.config.users.picker.role_user");
+  }
+
   private _userData = memoizeOne((users: User[], localize: LocalizeFunc) =>
     users.map((user) => ({
       ...user,
       name: user.name || localize("ui.panel.config.users.editor.unnamed_user"),
-      group: localize(`groups.${user.group_ids[0]}`),
+      group: this._roleName(user, localize),
     }))
   );
 
