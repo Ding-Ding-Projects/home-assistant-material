@@ -110,6 +110,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-changelog",
         load: () => import("./changelog/ha-config-changelog"),
       },
+      notifications: {
+        tag: "ha-config-notifications",
+        load: () => import("./notifications/ha-config-notifications"),
+      },
       // customize was removed in 2021.12, fallback to dashboard
       customize: "dashboard",
       dashboard: {

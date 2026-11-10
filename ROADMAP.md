@@ -73,7 +73,8 @@ exactly what has been seen working and where.
 - [ ] Guided forms and per-control information buttons
 - [ ] Settings that explain themselves
 - [ ] Resizable panels, collapsible filters and statistics
-- [ ] Notification centre and toasts
+- [~] Notification centre and toasts: notifications are a page with a search and selection;
+      the board's colours by severity, action buttons and stacked toasts are not built
 - [ ] Progress where it started, recovery where it broke
 - [ ] Starting points for blank editors
 - [x] Version and updated-at on the first screen

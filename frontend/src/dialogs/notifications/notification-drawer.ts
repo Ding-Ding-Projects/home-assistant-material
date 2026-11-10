@@ -137,6 +137,13 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
           <div slot="title">
             ${this.hass.localize("ui.notification_drawer.title")}
           </div>
+          <a
+            slot="actionItems"
+            class="open-page"
+            href="/config/notifications"
+            @click=${this.closeDialog}
+            >${this.hass.localize("ui.panel.config.notifications.open_page")}</a
+          >
           <ha-icon-button-prev
             slot="actionItems"
             @click=${this.closeDialog}
@@ -223,6 +230,15 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
   }
 
   static styles = css`
+    .open-page {
+      align-self: center;
+      padding: 0 var(--ha-space-2);
+      color: var(--primary-color);
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+      text-decoration: none;
+      white-space: nowrap;
+    }
     ha-header-bar {
       --header-bar-padding: var(--safe-area-inset-top, 0px) 0 0
         var(--safe-area-inset-left, 0px);

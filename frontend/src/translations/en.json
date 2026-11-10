@@ -10737,6 +10737,16 @@
           "supervisor_stats": "Supervisor metrics",
           "integration_start_time": "Integration startup time"
         },
+        "notifications": {
+          "summary": "{count, plural,\n  =0 {Nothing is waiting for you.}\n  one {# notification.}\n  other {# notifications.}\n}",
+          "search": "Search notifications",
+          "select": "Select",
+          "dismiss": "Dismiss {title}",
+          "dismiss_selected": "{count, plural,\n  =0 {Dismiss selected}\n  one {Dismiss # selected}\n  other {Dismiss # selected}\n}",
+          "no_match": "No notification matches.",
+          "open_page": "Open as a page",
+          "note": "A dismissed notification is gone; the instance does not keep it."
+        },
         "changelog": {
           "title": "What changed",
           "search": "Search changes",
