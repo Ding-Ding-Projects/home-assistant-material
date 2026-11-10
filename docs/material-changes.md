@@ -35,6 +35,8 @@ observer images are unchanged upstream images.
 | `frontend/build-scripts/bundle.cjs`, `frontend/src/types.ts` | Build-time constants `__MATERIAL_BUILD__` and `__BUILD_TIME__`. |
 | `frontend/src/components/ha-sidebar.ts`, `frontend/src/translations/en.json` | Version and build time shown at the foot of the rail on the first screen. |
 | `frontend/src/state/quick-bar-mixin.ts`, `frontend/src/dialogs/shortcuts/dialog-shortcuts.ts` | The quick bar opens with Ctrl+Shift+F instead of Ctrl+K. |
+| `frontend/src/components/ha-page-tabs.ts` (new) | The bar of open pages: every page open by default, close buttons, the New tab catalog with search, and Open every tab. Only the closed list is stored, in the browser. |
+| `frontend/src/layouts/home-assistant-main.ts`, `frontend/src/translations/en.json` | The bar is placed at the top of the pane on wide screens and its height is reported to pages as safe area; its strings. |
 
 ## Build-time stamping (not committed)
 

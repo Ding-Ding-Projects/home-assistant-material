@@ -2840,6 +2840,17 @@
         "action": "Take survey"
       }
     },
+    "page_tabs": {
+      "open_pages": "Open pages",
+      "close_tab": "Close {name}",
+      "new_tab": "New tab",
+      "catalog_title": "All pages",
+      "open_every_tab": "Open every tab",
+      "search": "Search pages",
+      "state_open": "Open",
+      "state_closed": "Closed, select to open",
+      "no_match": "No page matches that search."
+    },
     "sidebar": {
       "external_app_configuration": "App settings",
       "provenance_version": "Version {version}",

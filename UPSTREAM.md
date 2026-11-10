@@ -24,5 +24,9 @@ Notes:
 - Workflow files inside the subfolders (`*/.github/workflows`) are kept for reference only.
   GitHub runs only the workflows in the root `.github/workflows` folder.
 
+Checked on 9 November 2026: at the commit that vendored each subfolder, every file's Git blob
+is identical to the same file in the upstream commit above. The only differences are the removed
+`.gitmodules` files and the Buildroot submodule link, which is replaced by the files themselves.
+
 To move a subfolder to a newer upstream release, replace its contents with the new release,
 re-apply the changes listed in `docs/material-changes.md`, and update this table.

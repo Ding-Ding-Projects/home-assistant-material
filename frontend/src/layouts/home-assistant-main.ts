@@ -9,6 +9,7 @@ import { storage } from "../common/decorators/storage";
 import { DEBUG_SAFE_AREA_TOOL_STORAGE_KEY } from "../common/util/debug-safe-area";
 import { computeRTLDirection } from "../common/util/compute_rtl";
 import "../components/ha-drawer";
+import "../components/ha-page-tabs";
 import { narrowViewportContext } from "../data/context";
 import { showNotificationDrawer } from "../dialogs/notifications/show-notification-drawer";
 import type { HomeAssistant, Route } from "../types";
@@ -68,6 +69,11 @@ export class HomeAssistantMain extends LitElement {
     return html`
       <ha-snowflakes .narrow=${this.narrow}></ha-snowflakes>
       <div class="pane-frame" aria-hidden="true"></div>
+      ${
+        isPanelReady && !sidebarNarrow
+          ? html`<ha-page-tabs .hass=${this.hass}></ha-page-tabs>`
+          : nothing
+      }
       <ha-drawer
         .type=${sidebarNarrow ? "modal" : ""}
         .open=${sidebarNarrow ? this._drawerOpen : false}
@@ -203,9 +209,14 @@ export class HomeAssistantMain extends LitElement {
     :host(:not([modal])) {
       --ha-pane-gap: 12px;
       --ha-pane-radius: var(--ha-border-radius-4xl);
-      --safe-area-inset-top: calc(
+      --ha-page-tabs-height: 52px;
+      --ha-page-tabs-top: calc(
         var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
           var(--ha-pane-gap)
+      );
+      --safe-area-inset-top: calc(
+        var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+          var(--ha-pane-gap) + var(--ha-page-tabs-height)
       );
       --safe-area-inset-bottom: calc(
         var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
@@ -229,6 +240,20 @@ export class HomeAssistantMain extends LitElement {
       border-radius: var(--ha-pane-radius);
       box-shadow: 0 0 0 100vmax var(--ha-color-window);
       pointer-events: none;
+      transition: inset-inline-start var(--ha-animation-duration-normal) ease;
+    }
+    /* The bar of open pages sits at the top of the pane, above the page
+       headers, and rounds its own top corners to match the frame. Its height
+       is reported to pages as safe area. */
+    ha-page-tabs {
+      position: fixed;
+      z-index: 6;
+      top: var(--ha-page-tabs-top);
+      inset-inline-start: var(--ha-sidebar-width);
+      inset-inline-end: var(--ha-pane-gap);
+      height: var(--ha-page-tabs-height);
+      border-start-start-radius: var(--ha-pane-radius);
+      border-start-end-radius: var(--ha-pane-radius);
       transition: inset-inline-start var(--ha-animation-duration-normal) ease;
     }
     :host([expanded]) {

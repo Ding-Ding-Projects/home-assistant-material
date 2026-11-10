@@ -9,17 +9,22 @@ Written 9 November 2026 for whoever picks this up next.
 - Build 1 (`v2026.11.1.1`) built and published the frontend wheel, every container image and the
   update feed. Its operating system jobs were still running when this was written. Check the
   release notes of the newest release that rebuilt the product for the final job results.
-- The product's interface is still the upstream interface. No design board is implemented.
+- The interface work has started in `frontend/`: colour scales and surfaces, the typeface, the
+  navigation rail, the floating pane, pill tabs, the build stamp on the rail, and the bar of open
+  pages with its New tab catalog. `docs/feature-status.md` says exactly what is built and what has
+  only been seen in the frontend's demo build. Everything else on the canvas is still a design.
+- Open work is tracked in issues 1 to 11 of this repository.
 
 ## Next steps, in order
 
 1. Confirm the operating system images attached to the release, then boot the VirtualBox image
    (`haos_ova-<version>.vdi.zip`) and a Raspberry Pi image. Record what happens in
    `docs/feature-status.md`.
-2. Start the interface work in `frontend/`: tokens first (`src/resources/theme`), then the shell
-   (`src/layouts`, `src/components/ha-sidebar.ts`, `src/panels/lovelace/hui-root.ts`). The boards
-   to match are `design/canvas/Main.dc.html`, `Energy.dc.html`, `Settings.dc.html` and
-   `Phone.dc.html`; `design/frames/` shows how each should look.
+2. Continue the interface work in `frontend/` (issue 4 first): the search field and accessibility
+   button in the header, the redesigned Home, the phone layout, then the feature groups in issues
+   5 to 10. The boards to match are in `design/canvas/`; `design/frames/` shows how each should
+   look. To see changes locally, run `npx gulp develop-demo` in `frontend/` and open port 8090.
+   New translation strings and static files need a restart of that server.
 3. Work down `ROADMAP.md`. List every edit to a vendored folder in `docs/material-changes.md`.
 
 ## Things that will surprise you

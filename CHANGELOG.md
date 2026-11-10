@@ -7,6 +7,13 @@ Every release is also listed, with its build results, on the
 
 - Root README, licence, notice, contributing, security and conduct files.
 - Feature status page and roadmap.
+- Interface: Material Design 3 colour scales and surfaces, Google Sans Flex, the navigation rail,
+  the floating pane, borderless cards and pill tabs.
+- Interface: version and build time at the foot of the rail.
+- Interface: the bar of open pages. Every page starts open, a closed tab stays closed, and the
+  New tab catalog lists every page, searches them and can reopen them all.
+- The command search opens with Ctrl+Shift+F.
+- Fixed: vendored font files were altered by line-ending conversion on commit.
 
 ## v2026.11.1.1 to v2026.11.1.8, 9 November 2026
 

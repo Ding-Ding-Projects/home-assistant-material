@@ -117,7 +117,8 @@ Taken from the frontend's demo build of this repository, which runs the real int
 sample data. They show what is built so far: the colours, typeface, navigation rail, floating
 pane, cards and pill tabs.
 
-![The Home dashboard in the demo build: navigation rail, floating pane, tinted cards](docs/screenshots/home.png)
+![The Home dashboard in the demo build: navigation rail, floating pane, open-page tabs, tinted cards](docs/screenshots/home.png)
+![The bar of open pages with the New tab catalog, in the demo build](docs/screenshots/tabs.png)
 ![The Energy dashboard in the demo build, with pill tabs](docs/screenshots/energy.png)
 ![The Map page in the demo build](docs/screenshots/map.png)
 
