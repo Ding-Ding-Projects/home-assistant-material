@@ -84,6 +84,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Pages in the New tab catalog",
   },
   {
+    file: "components/dialog/ha-dialog-tools.ts",
+    searches: "The text of the dialog it is in, marked where it is found",
+    matcher: "common/page/find-in-page.ts",
+  },
+  {
     file: "components/page/ha-page-tools.ts",
     searches: "The text of the page it is on, marked where it is found",
     matcher: "common/page/find-in-page.ts",

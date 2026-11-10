@@ -20,6 +20,7 @@ import { configContext, internationalizationContext } from "../data/context";
 import { ScrollableFadeMixin } from "../mixins/scrollable-fade-mixin";
 import { haStyleScrollbar } from "../resources/styles";
 import { isIosApp } from "../util/is_ios";
+import "./dialog/ha-dialog-tools";
 import "./ha-dialog-header";
 import "./ha-icon-button";
 
@@ -124,6 +125,15 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
   @property({ type: Boolean, attribute: "without-header" })
   public withoutHeader = false;
 
+  /**
+   * Leaves out the tools at the foot of the dialog: search this dialog,
+   * edit appearance and lock. Alerts never have them.
+   */
+  @property({ type: Boolean, attribute: "without-tools" })
+  public withoutTools = false;
+
+  @state() private _locked = false;
+
   @state()
   private _open = false;
 
@@ -158,6 +168,10 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
     if (changedProperties.has("open")) {
       this._open = this.open;
     }
+  }
+
+  private _lockChanged(ev: CustomEvent<{ locked: boolean }>): void {
+    this._locked = ev.detail.locked;
   }
 
   protected render() {
@@ -215,18 +229,33 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
                           slot="subtitle"
                         ></slot>`
                   }
-                  <slot name="headerActionItems" slot="actionItems"></slot>
+                  <slot
+                    name="headerActionItems"
+                    slot="actionItems"
+                    ?inert=${this._locked}
+                  ></slot>
                 </ha-dialog-header>
               </slot>`
             : nothing
         }
         <div class="content-wrapper">
-          <div class="body ha-scrollbar" @scroll=${this._handleBodyScroll}>
+          <div
+            class="body ha-scrollbar"
+            ?inert=${this._locked}
+            @scroll=${this._handleBodyScroll}
+          >
             <slot></slot>
           </div>
           ${this.renderScrollableFades()}
         </div>
-        <slot name="footer" slot="footer"></slot>
+        ${
+          this.withoutTools || this.type === "alert"
+            ? nothing
+            : html`<ha-dialog-tools
+                @dialog-lock-changed=${this._lockChanged}
+              ></ha-dialog-tools>`
+        }
+        <slot name="footer" slot="footer" ?inert=${this._locked}></slot>
       </wa-dialog>
     `;
   }

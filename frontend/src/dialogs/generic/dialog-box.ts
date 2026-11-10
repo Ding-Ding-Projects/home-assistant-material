@@ -91,6 +91,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
 
     return html`
       <ha-dialog
+        without-tools
         .open=${this._open}
         type=${confirmPrompt ? "alert" : "standard"}
         .preventScrimClose=${!!this._params.confirmation || this.isDirtyState}

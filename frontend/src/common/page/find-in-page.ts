@@ -1,3 +1,4 @@
+import { isNotShown } from "../dom/is-not-shown";
 import { regexQuery, regexRanges } from "../regex/filter";
 
 /**
@@ -80,11 +81,7 @@ export const visibleTextNodes = (
       ) {
         return;
       }
-      if (
-        node instanceof HTMLElement &&
-        typeof node.checkVisibility === "function" &&
-        !node.checkVisibility()
-      ) {
+      if (isNotShown(node)) {
         return;
       }
       // What a slot shows is what was put in it, or else its own content.

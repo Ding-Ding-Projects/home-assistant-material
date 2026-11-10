@@ -58,7 +58,8 @@ exactly what has been seen working and where.
       export, lock and help, with a footer line on every page. On every page layout: settings
       pages, history, activity, media, to-do lists, calendar and the developer tools. Dashboards
       have the footer, the lock and the tools in the right-click menu, but no header cluster.
-      Dialogs do not have them yet
+      Dialogs have their own row: search this dialog, edit appearance and lock; history and
+      export are not offered inside a dialog
 - [~] Locks and the unlock ladder: a whole page can be locked, unlocked by a hold or a PIN, with
       growing waits after wrong PINs. Locks on single elements are not built
 - [ ] Two-key confirmation for destructive actions
@@ -135,7 +136,9 @@ matches its board, checked side by side.
       tools (15 boards)
 - [ ] `07-protocols`: Zigbee, Z-Wave, Matter, Thread, Bluetooth, MQTT, infrared, LoRaWAN, serial,
       discovery, application credentials (11 boards)
-- [ ] `08-dialogs`: 36 entity dialogs (12 boards)
+- [~] `08-dialogs`: every dialog has the row of tools at its foot and the entity dialogs have
+      history, settings and more in their header, as on the boards. The controls inside each of
+      the 36 entity dialogs are not redrawn (12 boards)
 
 ## Tools
 

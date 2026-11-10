@@ -1,5 +1,6 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
+import { isNotShown } from "../dom/is-not-shown";
 
 /**
  * Accessibility tools: text size, contrast, motion, a focus ring that follows
@@ -376,11 +377,7 @@ export const collectReadableText = (root: Node): string[] => {
       ) {
         return;
       }
-      if (
-        node instanceof HTMLElement &&
-        typeof node.checkVisibility === "function" &&
-        !node.checkVisibility({ visibilityProperty: true })
-      ) {
+      if (isNotShown(node)) {
         return;
       }
       if (node instanceof HTMLSlotElement) {

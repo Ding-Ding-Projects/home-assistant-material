@@ -3335,6 +3335,12 @@
       "language": "Language and region",
       "profile": "Profile of {name}"
     },
+    "dialog_tools": {
+      "find": "Search this dialog",
+      "lock": "Lock this dialog",
+      "unlock_hold": "Hold to unlock this dialog",
+      "locked": "This dialog is locked."
+    },
     "page_tools": {
       "label": "Page tools",
       "find": "Search this page",

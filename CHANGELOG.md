@@ -28,6 +28,9 @@ Every release is also listed, with its build results, on the
 - Interface: page tools in the header of every settings page. Search this page (with the pattern
   workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow
   screen. Section tabs moved to a row under the header, and wide screens have a footer line.
+- Dialogs: a row at the foot of every dialog with Search this dialog, Edit appearance and Lock.
+- Fixed: read aloud, copy the text and export left out text that a component shows through a
+  slot, which was most of a page.
 - Home opens with a greeting for the time of day, a sentence about the home made from its real
   state, and buttons for the scenes used most.
 - The page tools, the footer and the lock are on history, activity, media, to-do lists, calendar
