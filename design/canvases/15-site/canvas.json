@@ -2,9 +2,9 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-10T21:01:18Z"
+    "at": "2026-11-10T21:32:25Z"
   },
-  "title": "Project page: wide and phone, light and dark",
+  "title": "Project page: every tab, wide and phone, light and dark",
   "launch": {
     "view": "canvas",
     "page": "all"
@@ -16,56 +16,156 @@
     }
   ],
   "boards": {
-    "SiteWide.dc.html": {
+    "SiteHome.dc.html": {
       "x": 0,
       "y": 0,
       "w": 1440,
-      "h": 2546,
-      "title": "Project page, wide, light",
+      "h": 1787,
+      "title": "Project page, Home, wide, light",
       "expand": "fill",
       "page": "all"
     },
-    "SiteWideDark.dc.html": {
+    "SiteHomeDark.dc.html": {
       "x": 1540,
       "y": 0,
       "w": 1440,
-      "h": 2546,
-      "title": "Project page, wide, dark",
+      "h": 1787,
+      "title": "Project page, Home, wide, dark",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteFeatures.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 1440,
+      "h": 3080,
+      "title": "Project page, Features filtered to built, wide",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteArticle.dc.html": {
+      "x": 4620,
+      "y": 0,
+      "w": 1440,
+      "h": 966,
+      "title": "Project page, one article per feature, wide",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteSettings.dc.html": {
+      "x": 0,
+      "y": 3300,
+      "w": 1440,
+      "h": 4281,
+      "title": "Project page, Settings, wide",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteTools.dc.html": {
+      "x": 1540,
+      "y": 3300,
+      "w": 1440,
+      "h": 1782,
+      "title": "Project page, Tools, wide, dark",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SitePalette.dc.html": {
+      "x": 3080,
+      "y": 3300,
+      "w": 1440,
+      "h": 900,
+      "title": "Project page, Ctrl Shift F search with live controls",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteMenu.dc.html": {
+      "x": 4620,
+      "y": 3300,
+      "w": 1440,
+      "h": 900,
+      "title": "Project page, the menu on any element",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteAppearance.dc.html": {
+      "x": 0,
+      "y": 7801,
+      "w": 1440,
+      "h": 900,
+      "title": "Project page, editing the appearance of an element",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteWorkbench.dc.html": {
+      "x": 1540,
+      "y": 7801,
+      "w": 1440,
+      "h": 1100,
+      "title": "Project page, the pattern workbench from a search",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SiteUnlock.dc.html": {
+      "x": 3080,
+      "y": 7801,
+      "w": 1440,
+      "h": 900,
+      "title": "Project page, a lock and its keypad",
       "expand": "fill",
       "page": "all"
     },
     "SitePhone.dc.html": {
-      "x": 3080,
-      "y": 0,
+      "x": 4620,
+      "y": 7801,
       "w": 360,
-      "h": 3784,
+      "h": 2900,
       "title": "Project page, phone, light",
       "expand": "fill",
       "page": "all"
     },
-    "SitePhoneDark.dc.html": {
-      "x": 3540,
-      "y": 0,
+    "SitePhoneSettings.dc.html": {
+      "x": 0,
+      "y": 10921,
       "w": 360,
-      "h": 3784,
-      "title": "Project page, phone, dark",
+      "h": 6810,
+      "title": "Project page, phone, Settings, dark",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SitePhoneBoth.dc.html": {
+      "x": 460,
+      "y": 10921,
+      "w": 360,
+      "h": 1573,
+      "title": "Project page, phone, English and Cantonese together",
       "expand": "fill",
       "page": "all"
     }
   },
   "order": [
-    "SiteWide.dc.html",
-    "SiteWideDark.dc.html",
+    "SiteHome.dc.html",
+    "SiteHomeDark.dc.html",
+    "SiteFeatures.dc.html",
+    "SiteArticle.dc.html",
+    "SiteSettings.dc.html",
+    "SiteTools.dc.html",
+    "SitePalette.dc.html",
+    "SiteMenu.dc.html",
+    "SiteAppearance.dc.html",
+    "SiteWorkbench.dc.html",
+    "SiteUnlock.dc.html",
     "SitePhone.dc.html",
-    "SitePhoneDark.dc.html"
+    "SitePhoneSettings.dc.html",
+    "SitePhoneBoth.dc.html"
   ],
   "notes": {
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Project page: wide and phone, light and dark. 4 boards.",
+      "text": "Project page: every tab, wide and phone, light and dark. 14 boards.",
       "kind": "title1",
-      "maxW": 3900,
+      "maxW": 6060,
       "page": "all"
     }
   },

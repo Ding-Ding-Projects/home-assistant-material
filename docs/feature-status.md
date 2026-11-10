@@ -15,7 +15,7 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | Operating system updates over the air | Wired, and the two signing secrets are set since 10 November 2026. Not yet observed: no build has finished its operating system images since, and no update between two such builds has been watched | README |
 | `build.sh`, `build.bat`, `build-installer.bat`, dependency installers | Written; not yet run end to end | repository root |
 | Dedicated build application | Not started |  |
-| Project website | Not started |  |
+| Project website | Built and checked in Chrome at 1440 and 360 px (`docs/site/check_site.py`): ten tabs open by default, Ctrl Shift F search with live controls, the pattern workbench on every search, a menu on every element, per-element appearance, toy locks with the wait ladder, three language modes with both playfulness levels, the wording file, history, export, notifications, tools, support and one article for each of 69 features. Publishing waits for GitHub Pages to be switched on. |  |
 
 ## Checked in published images
 
