@@ -1,0 +1,208 @@
+{
+  "days": [
+    {
+      "date": "2026-11-10",
+      "items": [
+        {
+          "text": "What changed: this list inside the interface, under Settings, About, with a search, a range of days and the commit behind each entry. It ships with the build and opens without a connection."
+        },
+        {
+          "text": "About: the version and build time of this project, where its updates come from, that it is free, and that it is independent of the Open Home Foundation. The links to merchandise and to the upstream issue tracker are gone; Report a problem opens this project's issues."
+        },
+        {
+          "text": "Tabs: close the tabs that match a search, or the ones that do not, with counts and Undo.",
+          "commit": "e9de4f249ae0"
+        },
+        {
+          "text": "Automations: a visible test button on every condition and on every Choose option.",
+          "commit": "e9de4f249ae0"
+        },
+        {
+          "text": "The search at the top is a real search field with the pattern workbench; what is typed or built there opens the search of everything with that text.",
+          "commit": "abfe5e6f4766"
+        },
+        {
+          "text": "Interface: page tools in the header of every settings page. Search this page (with the pattern workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow screen. Section tabs moved to a row under the header, and wide screens have a footer line.",
+          "commit": "20f353d25980"
+        },
+        {
+          "text": "Tools: a Base64 toolkit for text and files, with strict and lenient decoding and data URLs.",
+          "commit": "cf187ff4ee11"
+        },
+        {
+          "text": "Home: large cards for a room's lights, the thermostat, the locks and what is playing.",
+          "commit": "c058e8ba37e7"
+        },
+        {
+          "text": "Anything that destroys data is confirmed with two keys and a slide, not one button.",
+          "commit": "8f151a500e7f"
+        },
+        {
+          "text": "System: a card about the running system and its sections as a grid. Pages reached from Settings show where they sit above their title.",
+          "commit": "26d48cce98c3"
+        },
+        {
+          "text": "Dialogs: a row at the foot of every dialog with Search this dialog, Edit appearance and Lock.",
+          "commit": "81609536deb1"
+        },
+        {
+          "text": "Fixed: read aloud, copy the text and export left out text that a component shows through a slot, which was most of a page.",
+          "commit": "81609536deb1"
+        },
+        {
+          "text": "Home opens with a greeting for the time of day, a sentence about the home made from its real state, and buttons for the scenes used most.",
+          "commit": "45890a7f6635"
+        },
+        {
+          "text": "The page tools, the footer and the lock are on history, activity, media, to-do lists, calendar and the developer tools. Dashboards have the footer and the lock.",
+          "commit": "45890a7f6635"
+        },
+        {
+          "text": "Settings home: a large title, a search of the sections, banners for updates and repairs, and the sections as a grid of cards that say what each holds now.",
+          "commit": "c1c837b2c706"
+        },
+        {
+          "text": "The rail is compact by default. The top bar has a language button and the user's picture.",
+          "commit": "c1c837b2c706"
+        },
+        {
+          "text": "List pages under Settings: where the page sits and its title in the header, a large title with a summary line, rows as rounded cards, and an export button beside the table settings.",
+          "commit": "dc8c36fbeb5e"
+        },
+        {
+          "text": "The menu on any element has Export this page, History of changes and Lock this page.",
+          "commit": "dc8c36fbeb5e"
+        },
+        {
+          "text": "Export a page as CSV, JSON, Markdown, plain text or HTML, or print it.",
+          "commit": "20f353d25980"
+        },
+        {
+          "text": "Lock a page with the lock button or Ctrl+Shift+L; unlock with a hold or a PIN.",
+          "commit": "20f353d25980"
+        },
+        {
+          "text": "History of local changes to appearance, accessibility and open tabs, with undo.",
+          "commit": "20f353d25980"
+        },
+        {
+          "text": "Help articles that ship with the interface.",
+          "commit": "20f353d25980"
+        },
+        {
+          "text": "Automations: a History tab with every version of every automation; test one or many, run one or many, compare, make live, export, and commit everything to the master repository.",
+          "commit": "9c77cb8b05b6"
+        },
+        {
+          "text": "Automations: a Git repository for each automation and a master repository (new integration `automation_repos`). Every save is a commit.",
+          "commit": "9c77cb8b05b6"
+        },
+        {
+          "text": "Fixed: the test button on a Choose option failed when the option had conditions, because the server tests one condition at a time.",
+          "commit": "9c77cb8b05b6"
+        },
+        {
+          "text": "Appearance editor for any element: right-click, Ctrl+Shift+E or the paint button, then change fill layers, text, shape, accent and size for that element or every one of its kind.",
+          "commit": "d04382d55c76"
+        },
+        {
+          "text": "A menu on every element, with a filter and working shortcuts.",
+          "commit": "d04382d55c76"
+        },
+        {
+          "text": "Private vocabulary: load your own JSON wording file from Profile, Localization, or drop it anywhere in the window. Checked in full, kept in the browser only, replace and clear.",
+          "commit": "5c6ad7daf524"
+        },
+        {
+          "text": "Hosting: `compose.yaml`, `host.sh` and `host.bat` start the published image in one step.",
+          "commit": "5c6ad7daf524"
+        },
+        {
+          "text": "The published image (build 26) was run from the registry and driven through first-run setup.",
+          "commit": "5c6ad7daf524"
+        },
+        {
+          "text": "Fixed: the production build failed on the pattern workbench (builds 23 to 25 have no images).",
+          "commit": "e6175a31d12c"
+        }
+      ]
+    },
+    {
+      "date": "2026-11-09",
+      "items": [
+        {
+          "text": "Root README, licence, notice, contributing, security and conduct files.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "Feature status page and roadmap.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "Interface: Material Design 3 colour scales and surfaces, Google Sans Flex, the navigation rail, the floating pane, borderless cards and pill tabs.",
+          "commit": "369d6046615f"
+        },
+        {
+          "text": "Interface: version and build time at the foot of the rail.",
+          "commit": "369d6046615f"
+        },
+        {
+          "text": "Interface: the bar of open pages. Every page starts open, a closed tab stays closed, and the New tab catalog lists every page, searches them and can reopen them all.",
+          "commit": "369d6046615f"
+        },
+        {
+          "text": "The command search opens with Ctrl+Shift+F and from a Search button in the top bar.",
+          "commit": "8b9dafe1f013"
+        },
+        {
+          "text": "Interface: accessibility tools on a top bar button and Alt+A. Text size, contrast, reduced motion, a focus ring that follows the focused control, larger targets, reading the page aloud and keyboard help.",
+          "commit": "8b9dafe1f013"
+        },
+        {
+          "text": "Fixed: vendored font files were altered by line-ending conversion on commit.",
+          "commit": "369d6046615f"
+        },
+        {
+          "text": "Interface: every search field has a pattern workbench button, and every list accepts a regular expression written as `/pattern/flags`. Plain text stays the default. The workbench shows which items of the list a pattern matches. Seen working on the New tab catalog in the demo build.",
+          "commit": "bdd5c4f902df"
+        },
+        {
+          "text": "Design: every page of the product is drawn. 153 boards on 11 canvases of at most 15 boards, including a Git repository per automation, a master repository, an automation history manager and test buttons on Choose options and conditions.",
+          "commit": "a5b09cc3b1f4"
+        },
+        {
+          "text": "Builds in progress are no longer cancelled by a newer push.",
+          "commit": "a5b09cc3b1f4"
+        },
+        {
+          "text": "The repository: upstream frontend, core, supervisor, operating system (with Buildroot), landing page and version feed, each vendored in its own folder at a pinned release.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "A release workflow that publishes one tagged release per push to `main` and builds the frontend wheel, core, machine, landing page and supervisor images, a multi-architecture container image, the update feed, and operating system images for Raspberry Pi 3, 4 and 5 and virtual machines.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "An update feed on the `channel` branch. The supervisor and the operating system read it instead of the upstream feed.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "`build.bat`, `build-installer.bat`, `build.sh` and dependency installers.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "The design canvas: 48 boards covering the everyday screens and every required feature.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "Build 1: frontend wheel, both supervisor images, both core images, all machine images and the multi-architecture container image built and are publicly pullable. The update feed is live.",
+          "commit": "db94eb176ec3"
+        },
+        {
+          "text": "Not verified: operating system images (still building when this was written), a real boot on a Raspberry Pi or in VirtualBox, an update from one build to the next, the Windows scripts.",
+          "commit": "db94eb176ec3"
+        }
+      ]
+    }
+  ]
+}

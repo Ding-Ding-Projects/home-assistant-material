@@ -1,19 +1,15 @@
 import {
-  mdiBug,
   mdiFileDocument,
   mdiHandsPray,
   mdiHelp,
   mdiKeyboard,
-  mdiNewspaperVariant,
   mdiOpenInNew,
-  mdiTshirtCrew,
 } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import "../../../components/ha-card";
-import "../../../components/ha-logo-svg";
 import "../../../components/ha-svg-icon";
 import "../../../components/item/ha-list-item-button";
 import "../../../components/list/ha-list-base";
@@ -25,7 +21,6 @@ import { subscribeSystemHealthInfo } from "../../../data/system_health";
 import { showShortcutsDialog } from "../../../dialogs/shortcuts/show-shortcuts-dialog";
 import "../../../layouts/hass-subpage";
 import { panelIsReady } from "../../../layouts/panel-ready";
-import { mdiHomeAssistant } from "../../../resources/home-assistant-logo-svg";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
@@ -33,36 +28,21 @@ import { documentationUrl } from "../../../util/documentation-url";
 const JS_TYPE = __BUILD__;
 const JS_VERSION = __VERSION__;
 
+const MATERIAL_VERSION = __MATERIAL_BUILD__;
+
+const PROJECT_URL =
+  "https://github.com/Ding-Ding-Projects/home-assistant-material";
+
+/** The feed this project's builds read their updates from. */
+const FEED_URL =
+  "https://raw.githubusercontent.com/Ding-Ding-Projects/home-assistant-material/channel/stable.json";
+
 const PAGES = [
-  {
-    name: "change_log",
-    path: "/latest-release-notes/",
-    iconPath: mdiNewspaperVariant,
-    iconColor: "#4A5963",
-  },
   {
     name: "thanks",
     path: "/developers/credits/",
     iconPath: mdiHandsPray,
     iconColor: "#3B808E",
-  },
-  {
-    name: "merch",
-    path: "/merch",
-    iconPath: mdiTshirtCrew,
-    iconColor: "#C65326",
-  },
-  {
-    name: "feature",
-    path: "/feature-requests",
-    iconPath: mdiHomeAssistant,
-    iconColor: "#0D47A1",
-  },
-  {
-    name: "bug",
-    path: "/issues",
-    iconPath: mdiBug,
-    iconColor: "#F1C447",
   },
   {
     name: "help",
@@ -104,8 +84,6 @@ class HaConfigInfo extends LitElement {
     const customUiList: { name: string; url: string; version: string }[] =
       (window as any).CUSTOM_UI_LIST || [];
 
-    const isDark = this.hass.themes?.darkMode || false;
-
     return html`
       <hass-subpage
         .hass=${this.hass}
@@ -114,20 +92,34 @@ class HaConfigInfo extends LitElement {
         .header=${this.hass.localize("ui.panel.config.info.caption")}
       >
         <div class="content">
-          <ha-card outlined class="header">
-            <a
-              href=${documentationUrl(this.hass, "")}
-              target="_blank"
-              rel="noreferrer"
+          <section class="hero">
+            <span class="eyebrow"
+              >${this.hass.config.location_name || "Home Assistant Material"}</span
             >
-              <ha-logo-svg
-                title=${this.hass.localize(
-                  "ui.panel.config.info.home_assistant_logo"
-                )}
+            <span class="product">Home Assistant Material</span>
+            <h2>${MATERIAL_VERSION || hass.connection.haVersion}</h2>
+            <p>${this._builtText()}</p>
+            <p class="note">
+              ${this.hass.localize("ui.panel.config.info.material.read_from_build")}
+            </p>
+            <div class="hero-actions">
+              <a class="pill primary" href="/config/changelog"
+                >${this.hass.localize("ui.panel.config.changelog.title")}</a
               >
-              </ha-logo-svg>
-            </a>
-            <p>Home Assistant</p>
+              <a class="pill" href="/config/updates"
+                >${this.hass.localize("ui.panel.config.info.material.updates")}</a
+              >
+              <a
+                class="pill"
+                href=${PROJECT_URL + "/issues"}
+                target="_blank"
+                rel="noopener noreferrer"
+                >${this.hass.localize("ui.panel.config.info.material.report")}</a
+              >
+            </div>
+          </section>
+
+          <ha-card outlined class="versions-card">
             <ul class="versions">
               <li>
                 <span class="version-label"
@@ -191,18 +183,38 @@ class HaConfigInfo extends LitElement {
               }
             </ul>
           </ha-card>
-          <ha-card outlined class="ohf ${isDark ? "dark" : ""}">
-            <div>
-              ${this.hass.localize("ui.panel.config.info.proud_part_of")}
-            </div>
-            <a
-              href="https://www.openhomefoundation.org"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <img src="/static/icons/ohf.svg" alt="Open Home Foundation" />
-            </a>
-          </ha-card>
+
+          <section class="card">
+            <h3>
+              ${this.hass.localize("ui.panel.config.info.material.source_title")}
+            </h3>
+            <p>
+              ${this.hass.localize("ui.panel.config.info.material.source_text")}
+            </p>
+            <code class="address">${FEED_URL}</code>
+            <p class="note">
+              ${this.hass.localize(
+                this._hassioInfo
+                  ? "ui.panel.config.info.material.source_supervised"
+                  : "ui.panel.config.info.material.source_container"
+              )}
+            </p>
+          </section>
+
+          <section class="card free">
+            <h3>
+              ${this.hass.localize("ui.panel.config.info.material.free_title")}
+            </h3>
+            <p>
+              ${this.hass.localize("ui.panel.config.info.material.free_text")}
+            </p>
+          </section>
+
+          <section class="card">
+            <p>
+              ${this.hass.localize("ui.panel.config.info.material.independent")}
+            </p>
+          </section>
 
           <ha-card outlined class="pages">
             <ha-list-base>
@@ -271,6 +283,28 @@ class HaConfigInfo extends LitElement {
     `;
   }
 
+  /** When this build was made, read from the build itself. */
+  private _builtText(): string {
+    const built = new Date(__BUILD_TIME__);
+    if (Number.isNaN(built.getTime())) {
+      return this.hass.localize("ui.panel.config.info.material.built_unknown");
+    }
+    const language = this.hass.locale.language;
+    return this.hass.localize("ui.panel.config.info.material.built", {
+      date: built.toLocaleDateString(language, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+      time: built.toLocaleTimeString(language, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "long",
+      }),
+    });
+  }
+
   protected firstUpdated(changedProps: PropertyValues<this>): void {
     super.firstUpdated(changedProps);
 
@@ -320,46 +354,119 @@ class HaConfigInfo extends LitElement {
           margin: 0 auto;
         }
 
-        ha-logo-svg {
-          height: 56px;
-          width: 56px;
+        ha-card,
+        .hero,
+        .card {
+          box-sizing: border-box;
+          max-width: 720px;
+          margin: 0 auto var(--ha-space-4);
         }
 
         ha-card {
-          max-width: 600px;
-          margin: 0 auto;
-          margin-bottom: 16px;
           padding: 16px;
         }
 
-        .header {
+        .hero,
+        .card {
+          padding: var(--ha-space-5) var(--ha-space-6);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
+
+        .hero {
           display: flex;
           flex-direction: column;
-          justify-content: center;
+          gap: var(--ha-space-1);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 20%,
+            var(--primary-background-color)
+          );
+        }
+
+        .eyebrow {
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .product {
+          color: var(--secondary-text-color);
+        }
+
+        .hero h2 {
+          margin: var(--ha-space-3) 0 var(--ha-space-1);
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: clamp(36px, 5vw, 56px);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+        }
+
+        .hero p,
+        .card p {
+          margin: 0;
+          line-height: var(--ha-line-height-normal);
+        }
+
+        .note {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+
+        .hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          margin-top: var(--ha-space-4);
+        }
+
+        .pill {
+          display: inline-flex;
           align-items: center;
-          padding: 32px 8px 16px 8px;
+          min-height: var(--ha-space-10);
+          padding: 0 var(--ha-space-5);
+          border: 1px solid var(--outline-color);
+          border-radius: var(--ha-border-radius-pill);
+          color: var(--primary-text-color);
+          font-weight: var(--ha-font-weight-medium);
+          text-decoration: none;
         }
 
-        .header p {
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-condensed);
-          text-align: center;
-          margin: 24px;
+        .pill.primary {
+          border-color: transparent;
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
         }
 
-        .ohf {
-          text-align: center;
-          padding-bottom: 5px;
+        .pill:focus-visible {
+          outline: 3px solid var(--primary-color);
+          outline-offset: 2px;
         }
 
-        .ohf img {
-          width: 100%;
-          max-width: 250px;
+        .card h3 {
+          margin: 0 0 var(--ha-space-2);
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
         }
 
-        .ohf.dark img {
-          color-scheme: dark;
+        .card.free {
+          background: color-mix(
+            in srgb,
+            var(--success-color) 28%,
+            var(--primary-background-color)
+          );
+        }
+
+        .address {
+          display: block;
+          margin: var(--ha-space-3) 0;
+          padding: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--primary-background-color);
+          font-family: var(--ha-font-family-code);
+          font-size: var(--ha-font-size-s);
+          overflow-wrap: anywhere;
         }
 
         .versions {

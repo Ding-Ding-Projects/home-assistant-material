@@ -47,6 +47,13 @@ Written 9 November 2026 for whoever picks this up next.
 - A local change is only in History if its store calls `noteLocalChange` (see
   `common/history/local-history.ts`). Locks must never be added there.
 
+### The changelog is shown in the interface
+
+`CHANGELOG.md` has a heading for each day (`## 2026-11-10`) and one bullet for each change. After
+editing it, run `node build-scripts/sync-changelog.mjs` in `frontend/`; it writes
+`frontend/src/data/changelog.json`, which What changed shows. A test fails when the two differ.
+An entry gets its commit on the first sync after it is committed.
+
 ### Checking against a real instance
 
 The published image runs in Docker, and the frontend in this repository can be served from it,

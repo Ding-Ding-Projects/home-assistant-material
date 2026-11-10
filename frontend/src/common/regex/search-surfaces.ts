@@ -119,6 +119,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Installed apps",
   },
   {
+    file: "panels/config/changelog/ha-config-changelog.ts",
+    searches: "Entries of What changed, by text, commit and day",
+  },
+  {
     file: "panels/config/dashboard/ha-config-dashboard.ts",
     searches: "The sections on the settings home page",
     matcher: "panels/config/dashboard/ha-config-navigation.ts",

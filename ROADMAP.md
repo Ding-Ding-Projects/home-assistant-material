@@ -76,7 +76,7 @@ exactly what has been seen working and where.
 - [ ] Progress where it started, recovery where it broke
 - [ ] Starting points for blank editors
 - [x] Version and updated-at on the first screen
-- [ ] Free, with nothing to buy: the About page
+- [x] Free, with nothing to buy: the About page says so, and says the project is independent
 
 ## Language and voice
 
@@ -149,7 +149,7 @@ matches its board, checked side by side.
 - [ ] Extension support
 - [ ] Support tickets
 - [ ] Authenticator and QR pairing
-- [ ] Changelog viewer
+- [x] Changelog viewer: What changed, under Settings, About
 - [~] Offline help articles: 12 articles in the Help tool, searchable. No article per page yet
 - [ ] Rendered provider text
 - [ ] File converter

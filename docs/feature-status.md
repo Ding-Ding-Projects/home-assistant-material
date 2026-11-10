@@ -78,7 +78,7 @@ build 32 image.
 | Local version history | Partly built and seen working in a running instance (`docs/screenshots/page-tools-history.png`). The History tool lists changes made in this browser to appearance, accessibility and open tabs, newest first, with the page each was made on; a search with the pattern workbench; this page or everywhere; undo a change or go back to a version; clear with a second confirmation. A burst of changes is one entry. A change to the private vocabulary is listed without its text. Locks are never listed. Newest 100 entries. Nothing is kept on the server, and dialogs have no history. | History |
 | Export in every format | Partly built and seen working in a running instance (`docs/screenshots/page-tools-export.png`). The Export tool makes a file from what the page shows: CSV for a table (with the list's current filter, formulas disarmed), JSON, Markdown, plain text and HTML, with a preview, download, copy and print. A table exports its stored values, so a column the page formats specially can read differently; moments in time are written as ISO 8601. No spreadsheet or PDF files. | Export |
 | Bulk actions | Designed | Bulk |
-| Changelog viewer | Designed | Changelog |
+| Changelog viewer | Built and seen working in a running instance (`docs/screenshots/what-changed.png`). Settings, About, What changed lists `CHANGELOG.md` by day, with the commit that added each entry as a link, a search with the pattern workbench, a range of days (all, this week, this month, or chosen days) and export of the view. The list is bundled with the build, so it opens without a connection; a test fails when the bundled list and `CHANGELOG.md` differ. Entries are grouped by day and not by version, because one day holds several releases. | Changelog |
 | Offline help articles | Partly built and seen working in a running instance (`docs/screenshots/page-tools-help.png`). The Help tool has 12 articles that ship with the interface, with a search that has the pattern workbench. There is not yet an article for each page. | Docs |
 | Rendered provider text | Designed | ReleaseNotes |
 | Notification centre and toasts | Designed | Notifications |
@@ -90,7 +90,7 @@ build 32 image.
 | Drawing and annotation | Designed | Drawing |
 | Progress and recovery | Designed | Progress |
 | Version and updated-at on the first screen | Built: version, date and time with seconds and time zone at the foot of the rail, from build-time constants. Seen in the demo build. | Main, About |
-| Free, with nothing to buy | Designed | About |
+| Free, with nothing to buy | Built and seen working in a running instance (`docs/screenshots/about-page.png`). About shows this project's version and when the build was made, read from the build itself; the versions of the parts; where updates come from and how this kind of install is updated; a card that says every feature is included and nothing is sold; and that the project is independent of the Open Home Foundation. The upstream claim of being part of the foundation, the merchandise link and the upstream issue links are removed. The board's channel switch, automatic install switch and reachability check are not built. | About |
 
 ## Not applicable to this product
 

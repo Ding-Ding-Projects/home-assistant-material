@@ -5790,6 +5790,20 @@
         },
         "info": {
           "caption": "About",
+          "material": {
+            "built": "Updated {date} at {time}",
+            "built_unknown": "This build does not carry the time it was made.",
+            "read_from_build": "Read from the running build itself, not from the clock or a file date.",
+            "updates": "Updates",
+            "report": "Report a problem",
+            "source_title": "Where updates come from",
+            "source_text": "This build checks the feed of its own project, so an update never swaps this interface for another one.",
+            "source_supervised": "Updates from this feed are offered under Settings, System, Updates.",
+            "source_container": "This is a container. It is updated by pulling a newer image of this project; the feed names the newest one.",
+            "free_title": "Free. Nothing to buy.",
+            "free_text": "Every feature in this build is included. There are no paid tiers, no trials that run out, and no reminders asking for money.",
+            "independent": "An independent project built from Home Assistant's open source code. Not affiliated with or endorsed by the Open Home Foundation."
+          },
           "installation_method": "Installation method",
           "external_app_version": "Companion app",
           "copy_menu": "Copy menu",
@@ -10721,6 +10735,23 @@
           "core_stats": "Core metrics",
           "supervisor_stats": "Supervisor metrics",
           "integration_start_time": "Integration startup time"
+        },
+        "changelog": {
+          "title": "What changed",
+          "search": "Search changes",
+          "range": "Which days",
+          "range_all": "All",
+          "range_week": "This week",
+          "range_month": "This month",
+          "range_custom": "Choose days",
+          "from": "From",
+          "to": "To",
+          "clear_dates": "Clear",
+          "export": "Export this view",
+          "open_commit": "Open this change on GitHub",
+          "empty": "No change matches.",
+          "count": "{shown} of {total} entries shown.",
+          "note": "The list ships with this build and opens without a connection. Each code is the commit that added the entry."
         },
         "system_dashboard": {
           "this_machine": "This system",
