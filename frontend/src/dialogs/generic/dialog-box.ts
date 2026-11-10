@@ -1,4 +1,4 @@
-import { mdiAlertOutline, mdiClose } from "@mdi/js";
+import { mdiAlertOutline, mdiExitRun, mdiClose } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -9,6 +9,7 @@ import "../../components/ha-dialog";
 import "../../components/ha-dialog-footer";
 import "../../components/ha-dialog-header";
 import "../../components/ha-svg-icon";
+import "../../components/ha-two-key-confirm";
 import "../../components/ha-textarea";
 import type { HaTextArea } from "../../components/ha-textarea";
 import "../../components/input/ha-input";
@@ -84,6 +85,8 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
 
     const confirmPrompt = this._params.confirmation || !!this._params.prompt;
+    // Anything that destroys data is confirmed with two keys and a slider.
+    const twoKey = confirmPrompt && !!this._params.destructive;
     const dialogTitle =
       this._params.title ||
       (this._params.confirmation &&
@@ -182,6 +185,17 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
                 </div>`
               : nothing
           }
+          ${
+            twoKey
+              ? html`<ha-two-key-confirm
+                  .disabled=${
+                    this._loading ||
+                    (!!this._params.prompt && !this._validInput)
+                  }
+                  @two-key-confirmed=${this._confirm}
+                ></ha-two-key-confirm>`
+              : nothing
+          }
         </div>
         <ha-dialog-footer slot="footer">
           ${
@@ -192,33 +206,44 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
                     @click=${this._dismiss}
                     ?autofocus=${!this._params.prompt && this._params.destructive}
                     ?disabled=${this._loading}
-                    appearance="plain"
+                    appearance=${twoKey ? "filled" : "plain"}
                   >
                     ${
-                      this._params.dismissText
-                        ? this._params.dismissText
-                        : this.hass.localize("ui.common.cancel")
+                      twoKey
+                        ? html`<ha-svg-icon
+                              slot="start"
+                              .path=${mdiExitRun}
+                            ></ha-svg-icon
+                            >${this.hass.localize("ui.dialogs.two_key.exit")}`
+                        : this._params.dismissText
+                          ? this._params.dismissText
+                          : this.hass.localize("ui.common.cancel")
                     }
                   </ha-button>
                 `
               : nothing
           }
-          <ha-button
-            slot="primaryAction"
-            @click=${this._confirm}
-            ?autofocus=${!this._params.prompt && !this._params.destructive}
-            ?disabled=${
-              this._loading || (!!this._params.prompt && !this._validInput)
-            }
-            .loading=${this._loading}
-            variant=${this._params.destructive ? "danger" : "brand"}
-          >
-            ${
-              this._params.confirmText
-                ? this._params.confirmText
-                : this.hass.localize("ui.common.ok")
-            }
-          </ha-button>
+          ${
+            twoKey
+              ? nothing
+              : html`<ha-button
+                  slot="primaryAction"
+                  @click=${this._confirm}
+                  ?autofocus=${!this._params.prompt && !this._params.destructive}
+                  ?disabled=${
+                    this._loading ||
+                    (!!this._params.prompt && !this._validInput)
+                  }
+                  .loading=${this._loading}
+                  variant=${this._params.destructive ? "danger" : "brand"}
+                >
+                  ${
+                    this._params.confirmText
+                      ? this._params.confirmText
+                      : this.hass.localize("ui.common.ok")
+                  }
+                </ha-button>`
+          }
         </ha-dialog-footer>
       </ha-dialog>
     `;

@@ -62,7 +62,8 @@ exactly what has been seen working and where.
       export are not offered inside a dialog
 - [~] Locks and the unlock ladder: a whole page can be locked, unlocked by a hold or a PIN, with
       growing waits after wrong PINs. Locks on single elements are not built
-- [ ] Two-key confirmation for destructive actions
+- [x] Two-key confirmation for destructive actions: every question marked destructive (104
+      places) asks for two keys and a slide
 - [~] Local version history: appearance, accessibility and open tabs, with undo, from every page
       that has the page tools. Not in dialogs; nothing kept on the server
 - [~] Export from every page that has the page tools: CSV, JSON, Markdown, plain text, HTML and

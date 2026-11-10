@@ -28,6 +28,7 @@ Every release is also listed, with its build results, on the
 - Interface: page tools in the header of every settings page. Search this page (with the pattern
   workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow
   screen. Section tabs moved to a row under the header, and wide screens have a footer line.
+- Anything that destroys data is confirmed with two keys and a slide, not one button.
 - System: a card about the running system and its sections as a grid. Pages reached from Settings
   show where they sit above their title.
 - Dialogs: a row at the foot of every dialog with Search this dialog, Edit appearance and Lock.

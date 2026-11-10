@@ -1696,6 +1696,21 @@
       }
     },
     "dialogs": {
+      "two_key": {
+        "turn_one": "Turn key one",
+        "turn_two": "Turn key two",
+        "turned_one": "Key one turned",
+        "turned_two": "Key two turned",
+        "name_one": "key one",
+        "name_two": "key two",
+        "hold": "Hold {letter}, or press and hold here",
+        "stays": "{seconds, plural,\n  one {Stays turned for # second}\n  other {Stays turned for # seconds}\n}",
+        "slide": "Then slide all the way to confirm",
+        "slide_ready": "Slide to the end",
+        "waiting": "Waiting for {key}",
+        "note": "Nothing happens until both keys are turned and the slider reaches the end. A key stays turned for a few seconds after you let go, so they can be turned one after the other. Escape leaves.",
+        "exit": "Emergency exit"
+      },
       "vacuum_segment_mapping": {
         "title": "Map vacuum segments to areas",
         "no_segments": "No segments available",
