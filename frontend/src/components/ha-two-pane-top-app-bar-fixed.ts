@@ -32,6 +32,7 @@ export class HaTwoPaneTopAppBarFixed extends HaTopAppBarFixed {
           "ha-scrollbar": true,
           "top-app-bar-fixed-adjust--pane": this.pane,
         })}
+        ?inert=${this._locked}
       >
         ${
           this.pane

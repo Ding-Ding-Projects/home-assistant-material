@@ -97,6 +97,9 @@ import "./views/hui-view";
 import type { HUIView } from "./views/hui-view";
 import "./views/hui-view-background";
 import "./views/hui-view-container";
+import "../../components/page/ha-page-footer";
+import "../../components/page/ha-page-lock-banner";
+import { PageLockController } from "../../common/locks/page-lock-controller";
 import { LOVELACE_EDIT_TOAST_ID } from "./types";
 
 interface ActionItem {
@@ -171,6 +174,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
   private _viewScrollPositions: Record<string, number> = {};
 
   private _restoreScroll = false;
+
+  private _pageLock = new PageLockController(this);
 
   private _childPanelReady?: ChildPanelReady;
 
@@ -562,6 +567,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
 
     const isSubview = curViewConfig?.subview;
     const hasTabViews = views.filter((view) => !view.subview).length > 1;
+    const locked = !this._editMode && this._pageLock.locked;
+    const showFooter = !this.narrow && !this.embedded && !this._editMode;
 
     return html`
       <div
@@ -634,13 +641,18 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
                       ${
                         this.embedded
                           ? nothing
-                          : html`<div class="action-items">
+                          : html`<div class="action-items" ?inert=${locked}>
                               ${this._renderActionItems()}
                             </div>`
                       }
                     `
               }
             </div>
+            ${
+              locked
+                ? html`<ha-page-lock-banner></ha-page-lock-banner>`
+                : nothing
+            }
             ${
               this._editMode
                 ? html`
@@ -662,14 +674,23 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           </slot>
         </div>
         <hui-view-container
-          class=${this._editMode ? "has-tab-bar" : ""}
+          class=${classMap({
+            "has-tab-bar": this._editMode,
+            "has-footer": showFooter,
+          })}
           .hass=${this.hass}
           .theme=${curViewConfig?.theme}
           id="view"
+          ?inert=${locked}
         >
           <hui-view-background .hass=${this.hass} .background=${background}>
           </hui-view-background>
         </hui-view-container>
+        ${
+          showFooter
+            ? html`<ha-page-footer .locked=${locked}></ha-page-footer>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -1614,6 +1635,19 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
             var(--view-container-inset-bottom) +
               var(--view-container-padding-bottom, 0px)
           );
+        }
+        /* The page footer follows the view, at the foot of the window or
+           below it when the view is longer. */
+        hui-view-container.has-footer {
+          min-height: calc(100vh - var(--ha-page-footer-height, 40px));
+        }
+        ha-page-footer {
+          position: relative;
+        }
+        ha-page-lock-banner {
+          position: absolute;
+          top: 100%;
+          inset-inline: 0;
         }
         /* At least as high as the element it is embedded in, rather than the
            window, so that panel views fill it */

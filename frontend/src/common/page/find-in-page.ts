@@ -87,8 +87,18 @@ export const visibleTextNodes = (
       ) {
         return;
       }
+      // What a slot shows is what was put in it, or else its own content.
+      if (node instanceof HTMLSlotElement) {
+        const assigned = node.assignedNodes({ flatten: true });
+        (assigned.length ? assigned : Array.from(node.childNodes)).forEach(
+          visit
+        );
+        return;
+      }
+      // A component shows its own tree; its children appear through slots.
       if (node.shadowRoot) {
         node.shadowRoot.childNodes.forEach(visit);
+        return;
       }
     }
     node.childNodes.forEach(visit);

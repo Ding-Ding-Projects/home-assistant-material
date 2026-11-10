@@ -3,10 +3,14 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import type { HASSDomCurrentTargetEvent } from "../common/dom/fire_event";
+import { PageLockController } from "../common/locks/page-lock-controller";
 import { goBack } from "../common/navigate";
 import { haStyleScrollbar } from "../resources/styles";
 import "./ha-icon-button-arrow-prev";
 import "./ha-menu-button";
+import "./page/ha-page-footer";
+import "./page/ha-page-lock-banner";
+import "./page/ha-page-tools";
 
 const PASSIVE_EVENT_OPTIONS = { passive: true } as const;
 
@@ -140,6 +144,31 @@ export const haTopAppBarFixedStyles = css`
   :host([narrow]) .top-app-bar-fixed-adjust {
     padding-left: var(--safe-area-inset-left);
   }
+
+  /* Wide pages end in the page footer. */
+  :host(:not([narrow]):not([no-page-tools])) .top-app-bar-fixed-adjust {
+    bottom: calc(
+      var(--ha-page-footer-height, 40px) + var(--safe-area-inset-bottom, 0px)
+    );
+    padding-bottom: 0;
+  }
+  ha-page-footer {
+    position: absolute;
+    bottom: 0;
+    inset-inline: 0;
+  }
+  ha-page-tools {
+    color: inherit;
+  }
+  .action-items {
+    display: contents;
+  }
+  ha-page-lock-banner {
+    position: absolute;
+    top: 100%;
+    inset-inline: 0;
+    z-index: 1;
+  }
 `;
 
 @customElement("ha-top-app-bar-fixed")
@@ -149,6 +178,17 @@ export class HaTopAppBarFixed extends LitElement {
   @property({ attribute: "back-button", type: Boolean }) backButton = false;
 
   @property({ attribute: "center-title", type: Boolean }) centerTitle = false;
+
+  /** Leaves out the page tools and the footer, for screens that are not pages. */
+  @property({ attribute: "no-page-tools", type: Boolean, reflect: true })
+  public noPageTools = false;
+
+  private _pageLock = new PageLockController(this);
+
+  /** Whether the page is locked, so nothing on it may take input. */
+  protected get _locked(): boolean {
+    return !this.noPageTools && this._pageLock.locked;
+  }
 
   @query(".top-app-bar") protected _barElement!: HTMLElement;
 
@@ -183,7 +223,11 @@ export class HaTopAppBarFixed extends LitElement {
   }
 
   protected render() {
-    return html`${this._renderHeader()}${this._renderContent()}`;
+    return html`${this._renderHeader()}${this._renderContent()}${
+      this.noPageTools || this.narrow
+        ? nothing
+        : html`<ha-page-footer .locked=${this._locked}></ha-page-footer>`
+    }`;
   }
 
   override connectedCallback() {
@@ -232,12 +276,24 @@ export class HaTopAppBarFixed extends LitElement {
               : nothing
           }
           <section class="section end" id="actions" role="toolbar">
-            <slot name="actionItems"></slot>
+            ${
+              this.noPageTools
+                ? nothing
+                : html`<ha-page-tools .compact=${this.narrow}></ha-page-tools>`
+            }
+            <span class="action-items" ?inert=${this._locked}>
+              <slot name="actionItems"></slot>
+            </span>
           </section>
         </div>
         <div class="sub-row" ?hidden=${!this._hasSubRow}>
           <slot name="subRow" @slotchange=${this._subRowSlotChanged}></slot>
         </div>
+        ${
+          this._locked
+            ? html`<ha-page-lock-banner></ha-page-lock-banner>`
+            : nothing
+        }
       </header>
     `;
   }
@@ -259,7 +315,10 @@ export class HaTopAppBarFixed extends LitElement {
   }
 
   protected _renderContent() {
-    return html`<div class="top-app-bar-fixed-adjust ha-scrollbar">
+    return html`<div
+      class="top-app-bar-fixed-adjust ha-scrollbar"
+      ?inert=${this._locked}
+    >
       <slot></slot>
     </div>`;
   }

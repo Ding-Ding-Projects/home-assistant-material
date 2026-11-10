@@ -54,7 +54,7 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
 
   protected render(): TemplateResult | undefined {
     return html`
-      <ha-top-app-bar-fixed .narrow=${this.narrow}>
+      <ha-top-app-bar-fixed no-page-tools .narrow=${this.narrow}>
         <ha-icon-button
           slot="navigationIcon"
           .path=${mdiClose}

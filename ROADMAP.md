@@ -55,8 +55,10 @@ exactly what has been seen working and where.
       history and lock for the page the element is on; entries specific to what was clicked
       are not
 - [~] Page tools in every page header: search this page, edit appearance, read aloud, history,
-      export, lock and help, with a footer line on every page. On the two shared page layouts
-      (most settings pages); dashboards, developer tools and dialogs do not have them yet
+      export, lock and help, with a footer line on every page. On every page layout: settings
+      pages, history, activity, media, to-do lists, calendar and the developer tools. Dashboards
+      have the footer, the lock and the tools in the right-click menu, but no header cluster.
+      Dialogs do not have them yet
 - [~] Locks and the unlock ladder: a whole page can be locked, unlocked by a hold or a PIN, with
       growing waits after wrong PINs. Locks on single elements are not built
 - [ ] Two-key confirmation for destructive actions
@@ -116,8 +118,10 @@ long lists scroll instead of loading more.
 Each line is a canvas folder in `design/canvases/`. A page counts when the running product
 matches its board, checked side by side.
 
-- [ ] `01-everyday`: Home, Energy, the phone layout, dashboards and their editor, card picker,
-      map, activity, history, media, lists, calendar, lights, climate, security (15 boards)
+- [~] `01-everyday`: Home has its greeting, a sentence about the home and scene buttons; its
+      large cards and rooms row are not built. Energy, the phone layout, dashboards and their
+      editor, card picker, map, activity, history, media, lists, calendar, lights, climate and
+      security are not redrawn (15 boards)
 - [ ] `02-everyday`: maintenance, embedded pages, profile, profile security, Assist, shortcuts,
       states, links, sign-in, first run and its steps, the preparing page, about, release notes
       (14 boards)

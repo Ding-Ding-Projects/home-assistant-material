@@ -740,6 +740,11 @@ export interface HomeSummaryCard extends LovelaceCardConfig {
   double_tap_action?: ActionConfig;
 }
 
+export interface HomeGreetingCardConfig extends LovelaceCardConfig {
+  /** Leaves the scene buttons out. */
+  hide_scenes?: boolean;
+}
+
 export interface ShortcutCardConfig extends LovelaceCardConfig {
   label?: string;
   description?: string;

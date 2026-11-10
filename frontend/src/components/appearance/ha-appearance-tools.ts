@@ -73,7 +73,14 @@ const SKIPPED = new Set([
 const WHOLE_THINGS = [/^hui-.+-(card|badge|row)$/, /^ha-card$/];
 
 /** The layouts that carry the page tools. */
-const PAGE_LAYOUTS = new Set(["hass-subpage", "hass-tabs-subpage"]);
+const PAGE_LAYOUTS = new Set([
+  "hass-subpage",
+  "hass-tabs-subpage",
+  "ha-top-app-bar-fixed",
+  "ha-two-pane-top-app-bar-fixed",
+  "ha-config-dashboard",
+  "hui-root",
+]);
 
 const INTERACTIVE = new Set(["button", "a", "input", "select", "textarea"]);
 

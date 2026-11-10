@@ -34,7 +34,10 @@ export class HaPageFooter extends LitElement {
   @state()
   private _hassConfig?: ContextType<typeof configContext>;
 
-  protected render(): TemplateResult {
+  protected render(): TemplateResult | typeof nothing {
+    if (!this._i18n) {
+      return nothing;
+    }
     const localize = this._i18n.localize;
     const version =
       __MATERIAL_BUILD__ || this._hassConfig?.config?.version || __VERSION__;

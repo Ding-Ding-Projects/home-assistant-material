@@ -28,6 +28,10 @@ Every release is also listed, with its build results, on the
 - Interface: page tools in the header of every settings page. Search this page (with the pattern
   workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow
   screen. Section tabs moved to a row under the header, and wide screens have a footer line.
+- Home opens with a greeting for the time of day, a sentence about the home made from its real
+  state, and buttons for the scenes used most.
+- The page tools, the footer and the lock are on history, activity, media, to-do lists, calendar
+  and the developer tools. Dashboards have the footer and the lock.
 - Settings home: a large title, a search of the sections, banners for updates and repairs, and
   the sections as a grid of cards that say what each holds now.
 - The rail is compact by default. The top bar has a language button and the user's picture.

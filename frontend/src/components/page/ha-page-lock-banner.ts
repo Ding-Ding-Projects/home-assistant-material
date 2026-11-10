@@ -1,7 +1,7 @@
 import type { ContextType } from "@lit/context";
 import { mdiLock } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
 import { internationalizationContext } from "../../data/context";
@@ -14,7 +14,10 @@ export class HaPageLockBanner extends LitElement {
   @state()
   private _i18n!: ContextType<typeof internationalizationContext>;
 
-  protected render(): TemplateResult {
+  protected render(): TemplateResult | typeof nothing {
+    if (!this._i18n) {
+      return nothing;
+    }
     return html`
       <ha-svg-icon .path=${mdiLock}></ha-svg-icon>
       <span role="status"

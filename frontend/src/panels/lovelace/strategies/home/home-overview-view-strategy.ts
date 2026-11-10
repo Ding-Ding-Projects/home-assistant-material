@@ -29,8 +29,8 @@ import type {
   DiscoveredDevicesCardConfig,
   EmptyStateCardConfig,
   HeadingCardConfig,
+  HomeGreetingCardConfig,
   HomeSummaryCard,
-  MarkdownCardConfig,
   RepairsCardConfig,
   ShortcutCardConfig,
   TileCardConfig,
@@ -741,10 +741,8 @@ export class HomeOverviewViewStrategy extends ReactiveElement {
         header: {
           layout: "responsive",
           card: {
-            type: "markdown",
-            text_only: true,
-            content: `## ${hass.localize("ui.panel.lovelace.strategy.home.welcome_user", { user: "{{ user }}" })}`,
-          } satisfies MarkdownCardConfig,
+            type: "home-greeting",
+          } satisfies HomeGreetingCardConfig,
         },
       }),
       ...(sidebarSection && {

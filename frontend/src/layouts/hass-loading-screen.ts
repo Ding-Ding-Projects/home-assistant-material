@@ -27,6 +27,7 @@ class HassLoadingScreen extends LitElement {
 
     return html`
       <ha-top-app-bar-fixed
+        no-page-tools
         .narrow=${this.narrow}
         .backButton=${!(this.rootnav || getHistoryState()?.root)}
       >

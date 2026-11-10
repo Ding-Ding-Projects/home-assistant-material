@@ -161,7 +161,10 @@ export class HaPageTools extends LitElement {
     }
   };
 
-  protected render(): TemplateResult {
+  protected render(): TemplateResult | typeof nothing {
+    if (!this._i18n) {
+      return nothing;
+    }
     const localize = this._i18n.localize;
     if (this.compact) {
       return html`
