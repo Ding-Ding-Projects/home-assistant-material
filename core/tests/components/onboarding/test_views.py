@@ -643,52 +643,6 @@ async def test_onboarding_core_no_rpi_power(
     assert not rpi_power_state
 
 
-async def test_onboarding_core_ensures_analytics_loaded(
-    hass: HomeAssistant,
-    hass_storage: dict[str, Any],
-    hass_client: ClientSessionGenerator,
-    mock_default_integrations,
-) -> None:
-    """Test finishing the core step ensures analytics is ready."""
-    mock_storage(hass_storage, {"done": [const.STEP_USER]})
-    assert "analytics" not in hass.config.components
-
-    assert await async_setup_component(hass, DOMAIN, {})
-    await hass.async_block_till_done()
-
-    client = await hass_client()
-    resp = await client.post("/api/onboarding/core_config")
-
-    assert resp.status == 200
-
-    await hass.async_block_till_done()
-    assert "analytics" in hass.config.components
-
-
-async def test_onboarding_analytics(
-    hass: HomeAssistant,
-    hass_storage: dict[str, Any],
-    hass_client: ClientSessionGenerator,
-    hass_admin_user: MockUser,
-) -> None:
-    """Test finishing analytics step."""
-    mock_storage(hass_storage, {"done": [const.STEP_USER]})
-
-    assert await async_setup_component(hass, DOMAIN, {})
-    await hass.async_block_till_done()
-
-    client = await hass_client()
-
-    resp = await client.post("/api/onboarding/analytics")
-
-    assert resp.status == 200
-
-    assert const.STEP_ANALYTICS in hass_storage[const.DOMAIN]["data"]["done"]
-
-    resp = await client.post("/api/onboarding/analytics")
-    assert resp.status == 403
-
-
 async def test_onboarding_installation_type(
     hass: HomeAssistant,
     hass_storage: dict[str, Any],
@@ -971,12 +925,6 @@ async def test_complete_onboarding(
         "/api/onboarding/integration",
         json={"client_id": CLIENT_ID, "redirect_uri": CLIENT_REDIRECT_URI},
     )
-    assert resp.status == 200
-    assert not onboarding.async_is_onboarded(hass)
-    listener_2.assert_not_called()
-
-    # Complete the analytics step
-    resp = await client.post("/api/onboarding/analytics")
     assert resp.status == 200
     assert onboarding.async_is_onboarded(hass)
     listener_1.assert_not_called()  # Registered before the integration was setup

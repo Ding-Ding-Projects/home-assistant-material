@@ -32,7 +32,7 @@ import type { HomeAssistantFormatters } from "../../../../types";
 class HaPanelDevStateRenderer extends LitElement {
   @property({ attribute: false }) public entities: HassEntity[] = [];
 
-  @property({ type: Boolean, attribute: "narrow" })
+  @property({ type: Boolean, attribute: "narrow", reflect: true })
   public narrow = false;
 
   @property({ type: Boolean, attribute: "virtualize", reflect: true })
@@ -141,7 +141,7 @@ class HaPanelDevStateRenderer extends LitElement {
         ${
           this.entities.length === 0
             ? html` <div class="row" role="row" aria-rowindex="3">
-                <div class="cell" role="cell" aria-colspan="5">
+                <div class="cell empty-state" role="cell" aria-colspan="5">
                   <span class="padded">
                     ${this._i18n.localize(
                       "ui.panel.config.tools.tabs.states.no_entities"
@@ -322,12 +322,17 @@ class HaPanelDevStateRenderer extends LitElement {
           width: 100%;
         }
 
-        .entities .odd .cell {
-          background-color: var(--table-row-background-color, #fff);
+        .entities .row.odd,
+        .entities .row.even {
+          margin-block-end: var(--ha-space-1);
+          border-radius: var(--ha-border-radius-xl);
+          background-color: var(--card-background-color);
+          overflow: hidden;
         }
 
-        .entities .even .cell {
-          background-color: var(--table-row-alternative-background-color, #eee);
+        .entities .row.odd .cell,
+        .entities .row.even .cell {
+          align-items: center;
         }
 
         .header,
@@ -339,7 +344,9 @@ class HaPanelDevStateRenderer extends LitElement {
         }
 
         .header {
-          font-weight: bold;
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
           text-align: var(--float-start);
           direction: var(--direction);
         }
@@ -348,12 +355,34 @@ class HaPanelDevStateRenderer extends LitElement {
           padding: 0 8px;
         }
 
+        .entities .row.filters {
+          margin-block-end: var(--ha-space-2);
+        }
+
         .filters .header {
-          background-color: var(--table-row-alternative-background-color, #eee);
-          --mdc-text-field-fill-color: var(
-            --table-row-alternative-background-color,
-            #eee
-          );
+          border-radius: var(--ha-border-radius-xl);
+          background-color: var(--card-background-color);
+        }
+
+        .cell .secondary {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .empty-state {
+          flex: 1;
+          padding: var(--ha-space-6) var(--ha-space-4);
+          text-align: center;
+          color: var(--secondary-text-color);
+          border-radius: var(--ha-border-radius-xl);
+          background-color: var(--card-background-color);
+        }
+
+        :host([narrow]) .entities .row .header:nth-child(1),
+        :host([narrow]) .entities .row .cell:nth-child(1),
+        :host([narrow]) .header,
+        :host([narrow]) .cell {
+          min-width: 0;
         }
 
         .cell {

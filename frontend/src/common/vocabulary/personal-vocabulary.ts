@@ -266,7 +266,13 @@ export const buildVocabularyReplacer = (
 
 const MEMO_LIMIT = 4000;
 
-let active: { count: number; replace: (text: string) => string } | undefined;
+let active:
+  | {
+      count: number;
+      entries: Record<string, string>;
+      replace: (text: string) => string;
+    }
+  | undefined;
 
 let memo = new Map<string, string>();
 
@@ -275,12 +281,21 @@ const activate = (entries: Record<string, string> | undefined) => {
   const count = entries ? Object.keys(entries).length : 0;
   active =
     entries && count
-      ? { count, replace: buildVocabularyReplacer(entries) }
+      ? { count, entries, replace: buildVocabularyReplacer(entries) }
       : undefined;
 };
 
 /** How many entries are in use, or 0 when the shipped wording shows. */
 export const activeVocabularyCount = (): number => active?.count ?? 0;
+
+/**
+ * The value the wording in use gives for exactly this key, or undefined when
+ * nothing is loaded, the key is absent, or its value is blank.
+ */
+export const activeVocabularyEntry = (key: string): string | undefined => {
+  const value = active?.entries[key];
+  return value && value.trim() ? value : undefined;
+};
 
 /** Rewrites interface text with the wording in use. */
 export const applyPersonalVocabulary = (text: string): string => {

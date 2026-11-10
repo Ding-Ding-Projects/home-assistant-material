@@ -1,5 +1,4 @@
 import {
-  mdiBug,
   mdiBugPlay,
   mdiBugStop,
   mdiDotsVertical,
@@ -65,7 +64,6 @@ import {
   LogSeverity,
   domainToName,
   fetchIntegrationManifest,
-  integrationIssuesUrl,
   setIntegrationLogLevel,
   subscribeLogInfo,
 } from "../../../data/integration";
@@ -441,32 +439,6 @@ class HaConfigIntegrationPage extends SubscribeMixin(LitElement) {
                   .label=${this.hass.localize("ui.common.menu")}
                   .path=${mdiDotsVertical}
                 ></ha-icon-button>
-                ${
-                  this._manifest &&
-                  (this._manifest.is_built_in || this._manifest.issue_tracker)
-                    ? html`
-                        <a
-                          href=${integrationIssuesUrl(this.domain, this._manifest)}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          <ha-dropdown-item>
-                            <ha-svg-icon
-                              slot="icon"
-                              .path=${mdiBug}
-                            ></ha-svg-icon>
-                            ${this.hass.localize(
-                              "ui.panel.config.integrations.config_entry.known_issues"
-                            )}
-                            <ha-svg-icon
-                              slot="details"
-                              .path=${mdiOpenInNew}
-                            ></ha-svg-icon>
-                          </ha-dropdown-item>
-                        </a>
-                      `
-                    : nothing
-                }
                 ${
                   this._logInfo
                     ? html`<a

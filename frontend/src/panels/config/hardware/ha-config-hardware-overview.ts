@@ -1,4 +1,4 @@
-import { mdiPower } from "@mdi/js";
+import { mdiMemory, mdiPower, mdiUsb } from "@mdi/js";
 import type { SeriesOption } from "echarts/types/dist/shared";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
@@ -6,6 +6,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
+import { navigate } from "../../../common/navigate";
 import { round } from "../../../common/number/round";
 import { blankBeforePercent } from "../../../common/translations/blank_before_percent";
 import { sanitizeHttpUrl } from "../../../common/url/sanitize-http-url";
@@ -13,12 +14,9 @@ import "../../../components/animation/ha-fade-in";
 import "../../../components/chart/ha-chart-base";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
-import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
-import "../../../components/ha-icon-next";
 import "../../../components/ha-spinner";
-import "../../../components/item/ha-list-item-button";
-import "../../../components/list/ha-list-nav";
+import "../../../components/ha-svg-icon";
 import type { ConfigEntry } from "../../../data/config_entries";
 import { subscribeConfigEntries } from "../../../data/config_entries";
 import type {
@@ -42,6 +40,8 @@ import { hardwareBrandsUrl } from "../../../util/brands-url";
 import { hardwareTabs } from "./ha-config-hardware";
 
 const DATASAMPLES = 60;
+// One sample arrives every five seconds.
+const SAMPLE_SECONDS = 5;
 
 const DATA_SET_CONFIG: SeriesOption = {
   type: "line",
@@ -51,7 +51,7 @@ const DATA_SET_CONFIG: SeriesOption = {
   },
   symbolSize: 0,
   lineStyle: {
-    width: 1,
+    width: 2,
   },
   smooth: 0.25,
 };
@@ -61,6 +61,8 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public route!: Route;
+
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() private _error?: string;
 
@@ -150,32 +152,24 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
 
   protected willUpdate(): void {
     if (!this.hasUpdated && !this._chartOptions) {
+      // A plain trend line: the figure above it carries the number.
       this._chartOptions = {
         xAxis: {
           type: "time",
+          show: false,
         },
         yAxis: {
           type: "value",
           min: 0,
           max: 100,
-          splitLine: {
-            show: true,
-          },
-          axisLabel: {
-            formatter: (value: number) =>
-              value + blankBeforePercent(this.hass.locale) + "%",
-          },
-          axisLine: {
-            show: false,
-          },
+          show: false,
           scale: true,
         },
         grid: {
-          top: 10,
-          bottom: 10,
-          left: 10,
-          right: 10,
-          containLabel: true,
+          top: 6,
+          bottom: 6,
+          left: 0,
+          right: 0,
         },
         tooltip: {
           trigger: "axis",
@@ -194,7 +188,7 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
     // Force graph to start drawing from the right
     for (let i = 0; i < DATASAMPLES; i++) {
       const t = new Date(date);
-      t.setSeconds(t.getSeconds() - 5 * (DATASAMPLES - i));
+      t.setSeconds(t.getSeconds() - SAMPLE_SECONDS * (DATASAMPLES - i));
       this._memoryEntries.push([t.getTime(), null]);
       this._cpuEntries.push([t.getTime(), null]);
     }
@@ -245,15 +239,22 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
       boardName = BOARD_NAMES[this._OSData.board];
     }
 
+    const isHassio = isComponentLoaded(this.hass.config, "hassio");
+    const hasStatus = isComponentLoaded(this.hass.config, "hardware");
+    const showHero = Boolean(boardName) || isHassio;
+    const showConnected =
+      Boolean(boardData) || Boolean(dongles?.length) || isHassio;
+
     return html`
       <hass-tabs-subpage
         back-path="/config/system"
         .hass=${this.hass}
+        .narrow=${this.narrow}
         .route=${this.route}
         .tabs=${hardwareTabs(this.hass)}
       >
         ${
-          isComponentLoaded(this.hass.config, "hassio")
+          isHassio
             ? html`
                 <ha-icon-button
                   slot="toolbar-icon"
@@ -271,195 +272,268 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
             ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
             : nothing
         }
-        <div class="content">
+        <div class="page">
           ${
-            boardName || isComponentLoaded(this.hass.config, "hassio")
-              ? html`
-                  <ha-card outlined>
-                    <div class="card-content">
+            showHero
+              ? html`<section class="hero">
+                  <span class="board-tile">
+                    ${
+                      imageURL
+                        ? html`<img
+                            alt=""
+                            src=${imageURL}
+                            crossorigin="anonymous"
+                            referrerpolicy="no-referrer"
+                          />`
+                        : html`<ha-svg-icon .path=${mdiMemory}></ha-svg-icon>`
+                    }
+                  </span>
+                  <div class="hero-text">
+                    <h2>
                       ${
-                        imageURL
-                          ? html`<img
-                              alt=""
-                              src=${imageURL}
-                              crossorigin="anonymous"
-                              referrerpolicy="no-referrer"
-                            />`
-                          : nothing
+                        boardName ||
+                        this.hass.localize(
+                          "ui.panel.config.hardware.generic_hardware"
+                        )
                       }
-                      <div class="board-info">
-                        <p class="primary-text">
-                          ${
-                            boardName ||
-                            this.hass.localize(
-                              "ui.panel.config.hardware.generic_hardware"
-                            )
-                          }
-                        </p>
-                        ${
-                          boardId
-                            ? html`<p class="secondary-text">${boardId}</p>`
-                            : nothing
-                        }
-                      </div>
-                    </div>
+                    </h2>
+                    <p>${this._heroFacts(boardId)}</p>
+                  </div>
+                  ${
+                    isHassio
+                      ? html`<ha-button
+                          appearance="filled"
+                          @click=${this._showRestartDialog}
+                        >
+                          <ha-svg-icon
+                            slot="start"
+                            .path=${mdiPower}
+                          ></ha-svg-icon>
+                          ${this.hass.localize("ui.panel.config.hardware.restart")}
+                        </ha-button>`
+                      : nothing
+                  }
+                </section>`
+              : nothing
+          }
+          ${
+            hasStatus
+              ? html`<div class="metrics">
+                  ${this._renderMetric(
+                    this.hass.localize("ui.panel.config.hardware.processor"),
+                    this._systemStatusData
+                      ? `${this._systemStatusData.cpu_percent}${blankBeforePercent(this.hass.locale)}%`
+                      : "-",
+                    this._cpuEntries,
+                    this._peakText()
+                  )}
+                  ${this._renderMetric(
+                    this.hass.localize("ui.panel.config.hardware.memory"),
+                    this._systemStatusData
+                      ? `${round(
+                          this._systemStatusData.memory_used_percent ?? 0,
+                          0
+                        )}${blankBeforePercent(this.hass.locale)}%`
+                      : "-",
+                    this._memoryEntries,
+                    this._memoryText()
+                  )}
+                </div>`
+              : nothing
+          }
+          ${
+            showConnected
+              ? html`<section class="card">
+                  <h3>
+                    ${this.hass.localize(
+                      "ui.panel.config.hardware.connected_hardware"
+                    )}
+                  </h3>
+                  ${
+                    dongles?.length
+                      ? dongles.map((dongle) => {
+                          const configEntry = (dongle.config_entries ?? [])
+                            .map((id) => this._configEntries?.[id])
+                            .filter(
+                              (entry) =>
+                                entry?.supports_options && !entry.disabled_by
+                            )[0];
+                          const detail = [
+                            dongle.dongle?.manufacturer,
+                            dongle.dongle?.description,
+                          ]
+                            .filter(Boolean)
+                            .join(", ");
+                          return html`<div class="row">
+                            <span class="tile"
+                              ><ha-svg-icon .path=${mdiUsb}></ha-svg-icon
+                            ></span>
+                            <div class="text">
+                              <span class="title">${dongle.name}</span>
+                              ${
+                                detail
+                                  ? html`<span class="sub">${detail}</span>`
+                                  : nothing
+                              }
+                            </div>
+                            ${
+                              configEntry
+                                ? html`<ha-button
+                                    .entry=${configEntry}
+                                    @click=${this._openOptionsFlow}
+                                    appearance="filled"
+                                  >
+                                    ${this.hass.localize(
+                                      "ui.panel.config.hardware.configure"
+                                    )}
+                                  </ha-button>`
+                                : nothing
+                            }
+                          </div>`;
+                        })
+                      : html`<p class="empty">
+                          ${this.hass.localize(
+                            "ui.panel.config.hardware.no_connected_hardware"
+                          )}
+                        </p>`
+                  }
+                  <div class="links">
+                    ${
+                      isHassio
+                        ? html`<ha-button
+                            appearance="plain"
+                            @click=${this._openAllHardware}
+                          >
+                            ${this.hass.localize(
+                              "ui.panel.config.hardware.all_hardware"
+                            )}
+                          </ha-button>`
+                        : nothing
+                    }
                     ${
                       documentationURL
-                        ? html`
-                            <ha-list-nav
-                              .ariaLabel=${this.hass.localize(
-                                "ui.panel.config.hardware.documentation"
-                              )}
-                            >
-                              <ha-list-item-button
-                                .href=${documentationURL}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <span slot="headline"
-                                  >${this.hass.localize(
-                                    "ui.panel.config.hardware.documentation"
-                                  )}</span
-                                >
-                                <span slot="supporting-text"
-                                  >${this.hass.localize(
-                                    "ui.panel.config.hardware.documentation_description"
-                                  )}</span
-                                >
-                                <ha-icon-next slot="end"></ha-icon-next>
-                              </ha-list-item-button>
-                            </ha-list-nav>
-                          `
+                        ? html`<ha-button
+                            appearance="plain"
+                            .href=${documentationURL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            ${this.hass.localize(
+                              "ui.panel.config.hardware.board_details"
+                            )}
+                          </ha-button>`
                         : nothing
                     }
                     ${
                       boardConfigEntries.length
-                        ? html`<div class="card-actions">
-                            <ha-button
-                              .entry=${boardConfigEntries[0]}
-                              @click=${this._openOptionsFlow}
-                              appearance="plain"
-                            >
-                              ${this.hass.localize(
-                                "ui.panel.config.hardware.configure"
-                              )}
-                            </ha-button>
-                          </div>`
+                        ? html`<ha-button
+                            appearance="plain"
+                            .entry=${boardConfigEntries[0]}
+                            @click=${this._openOptionsFlow}
+                          >
+                            ${this.hass.localize(
+                              "ui.panel.config.hardware.configure"
+                            )}
+                          </ha-button>`
                         : nothing
                     }
-                  </ha-card>
-                `
-              : nothing
-          }
-          ${
-            dongles?.length
-              ? html`<ha-card outlined>
-                  ${dongles.map((dongle) => {
-                    const configEntry = (dongle.config_entries ?? [])
-                      .map((id) => this._configEntries?.[id])
-                      .filter(
-                        (entry) => entry?.supports_options && !entry.disabled_by
-                      )[0];
-                    return html`<div class="row">
-                      ${dongle.name}${
-                        configEntry
-                          ? html`<ha-button
-                              .entry=${configEntry}
-                              @click=${this._openOptionsFlow}
-                              appearance="filled"
-                            >
-                              ${this.hass.localize(
-                                "ui.panel.config.hardware.configure"
-                              )}
-                            </ha-button>`
-                          : nothing
-                      }
-                    </div>`;
-                  })}
-                </ha-card>`
-              : nothing
-          }
-          ${
-            isComponentLoaded(this.hass.config, "hardware")
-              ? html`<ha-card outlined>
-                    <div class="header">
-                      <div class="title">
-                        ${this.hass.localize(
-                          "ui.panel.config.hardware.processor"
-                        )}
-                      </div>
-                      <div class="value">
-                        ${
-                          this._systemStatusData
-                            ? html`${
-                                this._systemStatusData.cpu_percent
-                              }${blankBeforePercent(this.hass.locale)}%`
-                            : "-"
-                        }
-                      </div>
-                    </div>
-                    <div class="card-content loading-container">
-                      <ha-chart-base
-                        .data=${this._getChartData(this._cpuEntries)}
-                        .options=${this._chartOptions}
-                      ></ha-chart-base>
-                      ${
-                        !this._systemStatusData
-                          ? html` <ha-fade-in
-                              delay="1000"
-                              class="loading-overlay"
-                            >
-                              <ha-spinner size="large"></ha-spinner>
-                            </ha-fade-in>`
-                          : nothing
-                      }
-                    </div>
-                  </ha-card>
-                  <ha-card outlined>
-                    <div class="header">
-                      <div class="title">
-                        ${this.hass.localize("ui.panel.config.hardware.memory")}
-                      </div>
-                      <div class="value">
-                        ${
-                          this._systemStatusData
-                            ? html`${round(
-                                this._systemStatusData.memory_used_mb / 1024,
-                                1
-                              )}
-                              GB /
-                              ${round(
-                                (this._systemStatusData.memory_used_mb +
-                                  this._systemStatusData.memory_free_mb) /
-                                  1024,
-                                0
-                              )}
-                              GB`
-                            : "-"
-                        }
-                      </div>
-                    </div>
-                    <div class="card-content loading-container">
-                      <ha-chart-base
-                        .data=${this._getChartData(this._memoryEntries)}
-                        .options=${this._chartOptions}
-                      ></ha-chart-base>
-                      ${
-                        !this._systemStatusData
-                          ? html`
-                              <ha-fade-in delay="1000" class="loading-overlay">
-                                <ha-spinner size="large"></ha-spinner>
-                              </ha-fade-in>
-                            `
-                          : nothing
-                      }
-                    </div>
-                  </ha-card>`
+                  </div>
+                </section>`
               : nothing
           }
         </div>
       </hass-tabs-subpage>
     `;
+  }
+
+  private _renderMetric(
+    title: string,
+    value: string,
+    entries: [number, number | null][],
+    footnote?: string
+  ) {
+    const live = Boolean(this._systemStatusData);
+    return html`<section class="card metric">
+      <div class="metric-head">
+        <span class="title">${title}</span>
+        ${
+          live
+            ? html`<span class="live"
+                >${this.hass.localize("ui.panel.config.hardware.live")}</span
+              >`
+            : nothing
+        }
+      </div>
+      <div class="value">${value}</div>
+      <div class="loading-container">
+        <ha-chart-base
+          .height=${"90px"}
+          .data=${this._getChartData(entries)}
+          .options=${this._chartOptions}
+        ></ha-chart-base>
+        ${
+          !live
+            ? html`<ha-fade-in delay="1000" class="loading-overlay">
+                <ha-spinner size="large"></ha-spinner>
+              </ha-fade-in>`
+            : nothing
+        }
+      </div>
+      ${footnote ? html`<span class="sub">${footnote}</span>` : nothing}
+    </section>`;
+  }
+
+  /** The highest processor reading still in the chart, if any reading came. */
+  private _peakText(): string | undefined {
+    const values = this._cpuEntries
+      .map((entry) => entry[1])
+      .filter((value): value is number => value !== null);
+    if (!values.length) {
+      return undefined;
+    }
+    return this.hass.localize("ui.panel.config.hardware.peak_recent", {
+      minutes: Math.round((DATASAMPLES * SAMPLE_SECONDS) / 60),
+      value: `${Math.max(...values)}${blankBeforePercent(this.hass.locale)}%`,
+    });
+  }
+
+  private _memoryText(): string | undefined {
+    const data = this._systemStatusData;
+    if (!data) {
+      return undefined;
+    }
+    return this.hass.localize("ui.panel.config.hardware.memory_of", {
+      used: `${round(data.memory_used_mb / 1024, 1)} GB`,
+      total: `${round((data.memory_used_mb + data.memory_free_mb) / 1024, 0)} GB`,
+    });
+  }
+
+  /** What the instance reports about itself; anything it does not report is left out. */
+  private _heroFacts(boardId?: string): string {
+    const facts: string[] = [];
+    if (this._systemStatusData) {
+      facts.push(
+        this.hass.localize("ui.panel.config.hardware.fact_memory", {
+          memory: `${round(
+            (this._systemStatusData.memory_used_mb +
+              this._systemStatusData.memory_free_mb) /
+              1024,
+            0
+          )} GB`,
+        })
+      );
+    }
+    if (this._OSData?.version) {
+      facts.push(
+        this.hass.localize("ui.panel.config.hardware.fact_os", {
+          version: this._OSData.version,
+        })
+      );
+    }
+    if (!facts.length && boardId) {
+      facts.push(boardId);
+    }
+    return facts.join(" ");
   }
 
   private async _load() {
@@ -473,7 +547,7 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
         this._hardwareInfo = await this.hass.callWS({ type: "hardware/info" });
       }
 
-      if (isHassioLoaded && !this._hardwareInfo?.hardware.length) {
+      if (isHassioLoaded) {
         this._OSData = await fetchHassioHassOsInfo(this.hass);
       }
     } catch (err: any) {
@@ -487,6 +561,10 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
       return;
     }
     showOptionsFlowDialog(this, entry);
+  }
+
+  private _openAllHardware() {
+    navigate("/config/hardware/all");
   }
 
   private async _showRestartDialog() {
@@ -510,89 +588,161 @@ class HaConfigHardwareOverview extends SubscribeMixin(LitElement) {
   static styles = [
     haStyle,
     css`
-      .content {
-        padding: 28px 20px 0;
-        max-width: 1040px;
+      .page {
+        box-sizing: border-box;
+        max-width: 1100px;
         margin: 0 auto;
-        --mdc-list-side-padding: 24px;
-        --mdc-list-vertical-padding: 0;
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
       }
-      ha-card {
-        max-width: 600px;
-        margin: 0 auto;
-        height: 100%;
-        justify-content: space-between;
-        flex-direction: column;
+      :host([narrow]) .page {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+      }
+      ha-alert {
+        --ha-alert-icon-size: 24px;
+      }
+      .card,
+      .hero {
+        box-sizing: border-box;
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
+      }
+      .card {
+        padding: var(--ha-space-5) var(--ha-space-6);
+      }
+      .hero {
         display: flex;
-        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-4);
+        margin-bottom: var(--ha-space-4);
+        padding: var(--ha-space-4) var(--ha-space-6);
       }
-      .card-content {
+      .board-tile {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        overflow: hidden;
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
+        --mdc-icon-size: 36px;
+      }
+      .board-tile img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+      .hero-text {
+        flex: 1;
+        min-width: 220px;
+      }
+      h2 {
+        margin: 0;
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .hero p {
+        margin: var(--ha-space-1) 0 0;
+        color: var(--secondary-text-color);
+        line-height: var(--ha-line-height-normal);
+      }
+      h3 {
+        margin: 0 0 var(--ha-space-3);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: var(--ha-space-4);
+        margin-bottom: var(--ha-space-4);
+      }
+      .metric {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+      }
+      .metric-head {
         display: flex;
         justify-content: space-between;
-        flex-direction: column;
-        padding: 16px;
+        align-items: center;
       }
-
+      .title {
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .metric .value {
+        font-size: var(--ha-font-size-3xl);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .live {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      .live::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: var(--ha-border-radius-circle);
+        background: var(--success-color);
+      }
+      .sub {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
       .loading-container {
         position: relative;
       }
-
       .loading-overlay {
         position: absolute;
         top: 0;
         right: 0;
         bottom: 0;
         left: 0;
-        background-color: rgba(var(--rgb-card-background-color), 0.75);
         display: flex;
         justify-content: center;
         align-items: center;
       }
-      .card-content img {
-        max-width: 300px;
-        margin: auto;
-      }
-      .board-info {
-        text-align: center;
-      }
-      .primary-text {
-        font-size: var(--ha-font-size-l);
-        margin: 0;
-      }
-      .secondary-text {
-        font-size: var(--ha-font-size-m);
-        margin-bottom: 0;
-        color: var(--secondary-text-color);
-      }
-
-      .header {
-        padding: 16px;
-        display: flex;
-        justify-content: space-between;
-      }
-
-      .header .title {
-        color: var(--secondary-text-color);
-        font-size: var(--ha-font-size-l);
-      }
-
-      .header .value {
-        font-size: var(--ha-font-size-l);
-      }
       .row {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        height: 48px;
-        padding: 8px 16px;
+        gap: var(--ha-space-4);
+        padding: var(--ha-space-2) 0;
       }
-      .card-actions {
+      .tile {
         display: flex;
-        justify-content: space-between;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--secondary-background-color);
+        color: var(--secondary-text-color);
       }
-
-      ha-alert {
-        --ha-alert-icon-size: 24px;
+      .text {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        min-width: 0;
+      }
+      .empty {
+        margin: 0;
+        color: var(--secondary-text-color);
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+        margin-top: var(--ha-space-2);
       }
     `,
   ];

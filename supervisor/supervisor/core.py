@@ -217,15 +217,14 @@ class Core(CoreSysAttributes):
         """Start Supervisor orchestration."""
         await self.set_state(CoreState.STARTUP)
 
-        # Set OS Agent diagnostics if needed
+        # Make sure OS Agent diagnostics stay off
         if (
             self.sys_dbus.agent.is_connected
-            and self.sys_config.diagnostics is not None
-            and self.sys_dbus.agent.diagnostics != self.sys_config.diagnostics
+            and self.sys_dbus.agent.diagnostics
             and self.supported
         ):
-            _LOGGER.debug("Set OS Agent diagnostics to %s", self.sys_config.diagnostics)
-            await self.sys_dbus.agent.set_diagnostics(self.sys_config.diagnostics)
+            _LOGGER.debug("Turning OS Agent diagnostics off")
+            await self.sys_dbus.agent.set_diagnostics(False)
 
         # Check if system is healthy
         if not self.supported:

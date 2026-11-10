@@ -4,7 +4,6 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import type { LocalizeFunc } from "../../../common/translations/localize";
-import { sanitizeHttpUrl } from "../../../common/url/sanitize-http-url";
 import { extractSearchParam } from "../../../common/url/search-params";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -205,9 +204,6 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
 
     const isHighlighted = this._highlightedPreviewFeature === previewFeatureId;
 
-    const feedbackUrl = sanitizeHttpUrl(preview_feature.feedback_url);
-    const reportIssueUrl = sanitizeHttpUrl(preview_feature.report_issue_url);
-
     // Build description with learn more link if available
     const descriptionWithLink = preview_feature.learn_more_url
       ? `${description}\n\n[${this.hass.localize("ui.panel.config.labs.learn_more")}](${preview_feature.learn_more_url})`
@@ -244,38 +240,7 @@ class HaConfigLabs extends SubscribeMixin(LitElement) {
           <ha-markdown .content=${descriptionWithLink} breaks></ha-markdown>
         </div>
         <div class="card-actions">
-          <div>
-            ${
-              feedbackUrl
-                ? html`
-                    <ha-button
-                      appearance="plain"
-                      href=${feedbackUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      ${this.hass.localize(
-                        "ui.panel.config.labs.provide_feedback"
-                      )}
-                    </ha-button>
-                  `
-                : nothing
-            }
-            ${
-              reportIssueUrl
-                ? html`
-                    <ha-button
-                      appearance="plain"
-                      href=${reportIssueUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      ${this.hass.localize("ui.panel.config.labs.report_issue")}
-                    </ha-button>
-                  `
-                : nothing
-            }
-          </div>
+          <div></div>
           <ha-button
             appearance="filled"
             .variant=${preview_feature.enabled ? "danger" : "brand"}

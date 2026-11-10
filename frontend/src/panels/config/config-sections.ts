@@ -1,4 +1,5 @@
 import {
+  mdiBug,
   mdiAccessPointNetwork,
   mdiAccount,
   mdiAccountCog,
@@ -582,10 +583,11 @@ export const configSections: Record<string, PageNavigation[]> = {
       adminOnly: true,
     },
     {
-      path: "/config/analytics",
-      translationKey: "analytics",
-      iconPath: mdiShape,
-      iconColor: "#f1c447",
+      path: "/config/problem-log",
+      translationKey: "problem_log",
+      iconPath: mdiBug,
+      iconColor: "#c0562b",
+      core: true,
       adminOnly: true,
     },
     {

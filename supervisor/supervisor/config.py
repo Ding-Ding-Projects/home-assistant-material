@@ -178,13 +178,13 @@ class CoreConfig(FileConfiguration):
 
     @property
     def diagnostics(self) -> bool | None:
-        """Return bool if diagnostics is set otherwise None."""
-        return self._data[ATTR_DIAGNOSTICS]
+        """Return False: diagnostics and crash reporting are always off."""
+        return False
 
     @diagnostics.setter
     def diagnostics(self, value: bool) -> None:
-        """Set diagnostics settings."""
-        self._data[ATTR_DIAGNOSTICS] = value
+        """Ignore the value. Diagnostics and crash reporting cannot be enabled."""
+        self._data[ATTR_DIAGNOSTICS] = False
 
     @property
     def logging(self) -> LogLevel:

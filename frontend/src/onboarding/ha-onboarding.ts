@@ -42,7 +42,6 @@ import { HassElement } from "../state/hass-element";
 import type { HomeAssistant, ValueChangedEvent } from "../types";
 import { storeState } from "../util/ha-pref-storage";
 import { registerServiceWorker } from "../util/register-service-worker";
-import "./onboarding-analytics";
 import "./onboarding-create-user";
 import "./onboarding-loading";
 import "./onboarding-welcome";
@@ -63,9 +62,6 @@ type OnboardingEvent =
     }
   | {
       type: "integration";
-    }
-  | {
-      type: "analytics";
     };
 
 interface OnboardingProgressEvent {
@@ -178,11 +174,6 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
     if (step.step === "core_config") {
       return html`
         <onboarding-core-config .hass=${this.hass}></onboarding-core-config>
-      `;
-    }
-    if (step.step === "analytics") {
-      return html`
-        <onboarding-analytics .hass=${this.hass}></onboarding-analytics>
       `;
     }
     if (step.step === "integration") {
@@ -400,9 +391,6 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
       }
     } else if (stepResult.type === "core_config") {
       this._progress = 75;
-      // We do nothing
-    } else if (stepResult.type === "analytics") {
-      this._progress = 100;
       // We do nothing
     } else if (stepResult.type === "integration") {
       this._loading = true;

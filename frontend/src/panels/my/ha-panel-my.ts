@@ -531,9 +531,6 @@ export const getMyRedirects = (): Redirects => ({
   network: {
     redirect: "/config/network",
   },
-  analytics: {
-    redirect: "/config/analytics",
-  },
   updates: {
     redirect: "/config/updates",
   },

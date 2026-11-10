@@ -43,10 +43,6 @@ class HaPanelConfig extends HassRouterPage {
   protected routerOptions: RouterOptions = {
     defaultPage: "dashboard",
     routes: {
-      analytics: {
-        tag: "ha-config-section-analytics",
-        load: () => import("./core/ha-config-section-analytics"),
-      },
       areas: {
         tag: "ha-config-areas",
         load: () => import("./areas/ha-config-areas"),
@@ -128,6 +124,10 @@ class HaPanelConfig extends HassRouterPage {
       energy: {
         tag: "ha-config-energy",
         load: () => import("./energy/ha-config-energy"),
+      },
+      "problem-log": {
+        tag: "ha-config-problem-log",
+        load: () => import("./problem-log/ha-config-problem-log"),
       },
       "guided-setup": {
         tag: "ha-config-guided-setup",

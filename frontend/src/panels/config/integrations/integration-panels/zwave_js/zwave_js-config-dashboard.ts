@@ -1,6 +1,5 @@
 import {
   mdiAlertCircleOutline,
-  mdiChartBox,
   mdiCheck,
   mdiDevices,
   mdiDownload,
@@ -41,7 +40,6 @@ import type {
   ZwaveJSProvisioningEntry,
 } from "../../../../../data/zwave_js";
 import {
-  fetchZwaveDataCollectionStatus,
   fetchZwaveNetworkStatus,
   fetchZwaveProvisioningEntries,
   InclusionState,
@@ -80,8 +78,6 @@ class ZWaveJSConfigDashboard extends LitElement {
   @state() private _provisioningEntries?: ZwaveJSProvisioningEntry[];
 
   @state() private _status?: ZWaveJSClient["state"];
-
-  @state() private _dataCollectionOptIn?: boolean;
 
   @state() private _multipleNetworks = false;
 
@@ -431,29 +427,6 @@ class ZWaveJSConfigDashboard extends LitElement {
               </div>
               <ha-icon-next slot="end"></ha-icon-next>
             </ha-list-item-button>
-            <ha-list-item-button href="/config/analytics?section=zwave">
-              <ha-svg-icon slot="start" .path=${mdiChartBox}></ha-svg-icon>
-              <div slot="headline">
-                ${this.hass.localize(
-                  "ui.panel.config.zwave_js.dashboard.analytics_title"
-                )}
-              </div>
-              <div slot="supporting-text">
-                ${this.hass.localize(
-                  "ui.panel.config.zwave_js.dashboard.analytics_description"
-                )}
-              </div>
-              <span slot="end">
-                ${
-                  this._dataCollectionOptIn !== undefined
-                    ? this.hass.localize(
-                        `ui.panel.config.zwave_js.dashboard.analytics_${this._dataCollectionOptIn ? "on" : "off"}`
-                      )
-                    : nothing
-                }
-              </span>
-              <ha-icon-next slot="end"></ha-icon-next>
-            </ha-list-item-button>
             <ha-list-item-button
               href=${`network-info?config_entry=${this.configEntryId}`}
             >
@@ -690,17 +663,6 @@ class ZWaveJSConfigDashboard extends LitElement {
     this._network = network;
 
     this._status = this._network.client.state;
-
-    try {
-      const status = await fetchZwaveDataCollectionStatus(
-        this.hass,
-        this.configEntryId
-      );
-      this._dataCollectionOptIn =
-        status.opted_in === true || status.enabled === true;
-    } catch {
-      // Data collection status is optional
-    }
   };
 
   private async _addNodeClicked() {

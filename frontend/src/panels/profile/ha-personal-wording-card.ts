@@ -10,7 +10,7 @@ import {
 } from "../../common/vocabulary/personal-vocabulary";
 import {
   importWordingFile,
-  showWordingOverlay,
+  reportWordingImport,
 } from "../../common/vocabulary/wording-import";
 import "../../components/ha-alert";
 import "../../components/ha-button";
@@ -32,7 +32,7 @@ export class HaPersonalWordingCard extends LitElement {
 
   @state() private _count = activeVocabularyCount();
 
-  @state() private _error?: VocabularyError | "unreadable";
+  @state() private _error?: VocabularyError | "unreadable" | "not_json";
 
   @state() private _dragging = false;
 
@@ -169,17 +169,8 @@ export class HaPersonalWordingCard extends LitElement {
 
   private async _import(file: File) {
     const result = await importWordingFile(file);
-    if (result.ok) {
-      this._error = undefined;
-      showWordingOverlay(
-        this.hass.localize("ui.personal_wording.overlay_title"),
-        this.hass.localize("ui.personal_wording.overlay_count", {
-          count: result.count,
-        })
-      );
-      return;
-    }
-    this._error = result.error;
+    reportWordingImport(result, this.hass.localize);
+    this._error = result.ok ? undefined : result.error;
   }
 
   private _clear() {
@@ -247,6 +238,21 @@ export class HaPersonalWordingCard extends LitElement {
     }
     .note {
       font-size: var(--ha-font-size-s);
+    }
+    .status {
+      flex-wrap: wrap;
+    }
+    .status-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    @media all and (max-width: 450px) {
+      .drop {
+        padding: var(--ha-space-6) var(--ha-space-3);
+      }
+      .drop-title {
+        font-size: var(--ha-font-size-l);
+      }
     }
   `;
 }

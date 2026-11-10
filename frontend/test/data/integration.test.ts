@@ -4,7 +4,6 @@ import type { IntegrationManifest } from "../../src/data/integration";
 import {
   fetchIntegrationManifest,
   fetchIntegrationManifests,
-  integrationIssuesUrl,
 } from "../../src/data/integration";
 import type { HomeAssistant } from "../../src/types";
 
@@ -69,12 +68,6 @@ describe("integration manifests", () => {
     await fetchIntegrationManifests(hass);
 
     expect(received.documentation).toEqual(UNSAFE_URL);
-  });
-
-  it("falls back to the core issue tracker for an unsafe issue_tracker", () => {
-    expect(
-      integrationIssuesUrl("evil", manifest({ issue_tracker: UNSAFE_URL }))
-    ).toContain("https://github.com/home-assistant/core/issues");
   });
 });
 /* eslint-enable no-script-url */

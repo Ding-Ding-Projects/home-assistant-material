@@ -1,4 +1,10 @@
-import { mdiDeleteOutline, mdiMenuDown, mdiPlus, mdiWifi } from "@mdi/js";
+import {
+  mdiDeleteOutline,
+  mdiEthernet,
+  mdiMenuDown,
+  mdiPlus,
+  mdiWifi,
+} from "@mdi/js";
 import { css, type CSSResultGroup, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { cache } from "lit/directives/cache";
@@ -20,8 +26,7 @@ import "../../../components/radio/ha-radio-group";
 import type { HaRadioGroup } from "../../../components/radio/ha-radio-group";
 import "../../../components/radio/ha-radio-option";
 import "../../../components/ha-spinner";
-import "../../../components/ha-tab-group";
-import "../../../components/ha-tab-group-tab";
+import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
@@ -103,29 +108,55 @@ export class HassioNetwork extends LitElement {
       <ha-card outlined>
         <div class="card-header">
           ${this.hass.localize("ui.panel.config.network.supervisor.title")}
-          ${
-            this._interfaces.length > 1
-              ? html`
-                  <ha-tab-group @wa-tab-show=${this._handleTabActivated}
-                    >${this._interfaces.map(
-                      (device, i) =>
-                        html`<ha-tab-group-tab
-                          slot="nav"
-                          .active=${this._curTabIndex === i}
-                          .panel=${i.toString()}
-                          .id=${device.interface}
-                        >
-                          ${device.interface}
-                        </ha-tab-group-tab>`
-                    )}
-                  </ha-tab-group>
-                `
-              : nothing
-          }
+        </div>
+        <div class="adapters">
+          ${this._interfaces.map((device, i) => this._renderAdapter(device, i))}
         </div>
         ${cache(this._renderTab())}
       </ha-card>
     `;
+  }
+
+  private _renderAdapter(device: NetworkInterface, index: number) {
+    const wireless = device.type === "wireless";
+    const address = device.ipv4?.address?.[0]?.split("/")[0];
+    const connected = wireless ? Boolean(device.wifi?.ssid) : device.connected;
+    const detail = connected
+      ? [wireless ? device.wifi?.ssid : undefined, address]
+          .filter(Boolean)
+          .join(", ") || device.mac
+      : this.hass.localize("ui.panel.config.network.supervisor.not_connected");
+    return html`<button
+      type="button"
+      class="adapter ${this._curTabIndex === index ? "selected" : ""}"
+      data-index=${index}
+      aria-pressed=${this._curTabIndex === index ? "true" : "false"}
+      @click=${this._handleAdapterClick}
+    >
+      <span class="adapter-tile"
+        ><ha-svg-icon .path=${wireless ? mdiWifi : mdiEthernet}></ha-svg-icon
+      ></span>
+      <span class="adapter-text">
+        <span class="adapter-title"
+          >${this.hass.localize(
+            wireless
+              ? "ui.panel.config.network.supervisor.adapter_wifi"
+              : "ui.panel.config.network.supervisor.adapter_ethernet",
+            { name: device.interface }
+          )}</span
+        >
+        <span class="adapter-detail">${detail}</span>
+      </span>
+      ${
+        device.primary
+          ? html`<span class="adapter-badge"
+              >${this.hass.localize(
+                "ui.panel.config.network.supervisor.in_use"
+              )}</span
+            >`
+          : nothing
+      }
+    </button>`;
   }
 
   private _renderTab() {
@@ -618,7 +649,16 @@ export class HassioNetwork extends LitElement {
     this.requestUpdate("_interface");
   }
 
-  private async _handleTabActivated(ev: CustomEvent): Promise<void> {
+  private async _handleAdapterClick(ev: Event): Promise<void> {
+    await this._activateAdapter(
+      Number((ev.currentTarget as HTMLElement).dataset.index)
+    );
+  }
+
+  private async _activateAdapter(index: number): Promise<void> {
+    if (index === this._curTabIndex) {
+      return;
+    }
     if (this._dirty) {
       const confirm = await showConfirmationDialog(this, {
         text: this.hass.localize("ui.panel.config.network.supervisor.unsaved"),
@@ -630,7 +670,7 @@ export class HassioNetwork extends LitElement {
         return;
       }
     }
-    this._curTabIndex = Number(ev.detail.name);
+    this._curTabIndex = index;
     this._interface = { ...this._interfaces[this._curTabIndex] };
   }
 
@@ -857,15 +897,69 @@ export class HassioNetwork extends LitElement {
           margin-bottom: 16px;
         }
 
-        ha-tab-group {
-          line-height: var(--ha-line-height-normal);
+        .adapters {
+          display: flex;
+          flex-direction: column;
+          padding: 0 var(--ha-space-4);
         }
-        ha-tab-group-tab {
-          flex: 1;
-        }
-        ha-tab-group-tab::part(base) {
+        .adapter {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
           width: 100%;
+          padding: var(--ha-space-2);
+          border: none;
+          border-radius: var(--ha-border-radius-xl);
+          background: none;
+          color: inherit;
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+        }
+        .adapter.selected {
+          background: var(--secondary-background-color);
+        }
+        .adapter:focus-visible {
+          outline: 3px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .adapter-tile {
+          display: flex;
+          flex: none;
+          align-items: center;
           justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+        }
+        .adapter.selected .adapter-tile {
+          background: var(--card-background-color);
+        }
+        .adapter-text {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          min-width: 0;
+        }
+        .adapter-title {
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .adapter-detail {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .adapter-badge {
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 22%,
+            var(--card-background-color)
+          );
+          font-size: var(--ha-font-size-s);
         }
       `,
     ];

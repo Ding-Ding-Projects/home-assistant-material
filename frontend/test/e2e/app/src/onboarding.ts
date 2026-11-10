@@ -13,8 +13,6 @@ export interface OnboardingCalls {
   user?: Record<string, unknown>;
   coreConfig?: Record<string, unknown>;
   coreConfigCompleted?: boolean;
-  analyticsPreferences?: Record<string, unknown>;
-  analyticsCompleted?: boolean;
   systemData?: Record<string, unknown>;
   integration?: Record<string, unknown>;
   tokenRequests: string[];
@@ -41,7 +39,6 @@ export const onboardingData = {
 const onboardingSteps = [
   { step: "user", done: false },
   { step: "core_config", done: false },
-  { step: "analytics", done: false },
   { step: "integration", done: false },
 ];
 
@@ -68,8 +65,6 @@ const subscriptionResults: Record<string, unknown> = {
 };
 
 const commandResults: Record<string, unknown> = {
-  analytics: { preferences: {} },
-  "analytics/preferences": {},
   "auth/current_user": currentUser,
   "brands/access_token": { token: "brands-token" },
   "config/area_registry/list": [],
@@ -137,8 +132,6 @@ const handleWebSocketMessage = (
 
   if (message.type === "config/core/update") {
     calls.coreConfig = message;
-  } else if (message.type === "analytics/preferences") {
-    calls.analyticsPreferences = message;
   } else if (message.type === "frontend/set_system_data") {
     calls.systemData = message;
   }
@@ -219,12 +212,6 @@ export async function setupOnboardingMocks(
     if (pathname === "/api/onboarding/core_config") {
       completedSteps.add("core_config");
       calls.coreConfigCompleted = true;
-      await route.fulfill({ json: {} });
-      return;
-    }
-    if (pathname === "/api/onboarding/analytics") {
-      completedSteps.add("analytics");
-      calls.analyticsCompleted = true;
       await route.fulfill({ json: {} });
       return;
     }
@@ -327,12 +314,6 @@ export async function completeCoreConfig(
     },
     { locationData: onboardingData.location, unitSystem: detectedUnitSystem }
   );
-}
-
-export async function completeAnalytics(page: Page) {
-  const analytics = page.locator("onboarding-analytics");
-  await expect(analytics).toBeAttached({ timeout: PANEL_TIMEOUT });
-  await analytics.getByRole("button", { name: "Next", exact: true }).click();
 }
 
 export async function finishIntegrations(page: Page) {

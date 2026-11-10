@@ -27,6 +27,10 @@ export class StorageBreakdownChart extends LitElement {
   @property({ attribute: false })
   public storageInfo?: HostDisksUsage | null;
 
+  /** Hide the heading line when the page shows the figure itself. */
+  @property({ attribute: "hide-header", type: Boolean })
+  public hideHeader = false;
+
   @state()
   private _chartType: "bar" | "sunburst" = "bar";
 
@@ -51,10 +55,14 @@ export class StorageBreakdownChart extends LitElement {
     const showBarChart = this._chartType === "bar" || !hasChildren;
 
     return html`
-      <div class="header">
+      <div class="header ${this.hideHeader ? "compact" : ""}">
         <div class="heading-text">
-          <span class="heading">${heading}</span>
-          <span class="description">${description}</span>
+          ${
+            this.hideHeader
+              ? nothing
+              : html`<span class="heading">${heading}</span>
+                  <span class="description">${description}</span>`
+          }
         </div>
         <ha-icon-button
           .path=${
@@ -231,6 +239,10 @@ export class StorageBreakdownChart extends LitElement {
     .heading-text {
       display: flex;
       flex: 1;
+    }
+
+    .header.compact {
+      justify-content: flex-end;
     }
 
     .heading {

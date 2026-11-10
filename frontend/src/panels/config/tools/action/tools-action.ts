@@ -1,4 +1,4 @@
-import { mdiHelpCircleOutline } from "@mdi/js";
+import { mdiAlertCircleOutline, mdiCheck, mdiHelpCircleOutline } from "@mdi/js";
 import type { HassService } from "home-assistant-js-websocket";
 import { ERR_CONNECTION_LOST } from "home-assistant-js-websocket";
 import { dump, JSON_SCHEMA, load } from "js-yaml";
@@ -35,6 +35,7 @@ import "../../../../components/ha-expansion-panel";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-service-control";
 import "../../../../components/ha-service-picker";
+import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-yaml-editor";
 import type { HaYamlEditor } from "../../../../components/ha-yaml-editor";
 import { forwardHaptic } from "../../../../data/haptics";
@@ -58,7 +59,7 @@ class HaPanelDevAction extends MatchMinHeightMixin(
 ) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @state() private _uiAvailable = true;
 
@@ -70,6 +71,15 @@ class HaPanelDevAction extends MatchMinHeightMixin(
   };
 
   @state() private _error?: string;
+
+  @state() private _running = false;
+
+  // What the last run sent and how long it took, for the result cards.
+  @state() private _lastRun?: {
+    action: string;
+    seconds: number;
+    sent: Action[];
+  };
 
   private _yamlValid = true;
 
@@ -161,111 +171,122 @@ class HaPanelDevAction extends MatchMinHeightMixin(
         : undefined;
 
     return html`
-      <div class="content">
-        <ha-card>
-          <div class="card-header">
-            <div class="header-row">
-              <div class="header-title">
-                ${this.hass.localize(
-                  "ui.panel.config.tools.tabs.actions.title"
-                )}
+      <div class="content layout">
+        <div class="main-col">
+          <ha-card class="run-card">
+            <div class="card-header">
+              <div class="header-row">
+                <div class="header-title">
+                  ${this.hass.localize(
+                    "ui.panel.config.tools.tabs.actions.title"
+                  )}
+                </div>
+                <ha-button-toggle-group
+                  size="s"
+                  class="yaml-mode-toggle"
+                  .buttons=${modeButtons}
+                  .active=${this._yamlMode ? "yaml" : "ui"}
+                  .disabled=${!this._uiAvailable}
+                  @value-changed=${this._modeChanged}
+                ></ha-button-toggle-group>
               </div>
-              <ha-button-toggle-group
-                size="s"
-                class="yaml-mode-toggle"
-                .buttons=${modeButtons}
-                .active=${this._yamlMode ? "yaml" : "ui"}
-                .disabled=${!this._uiAvailable}
-                @value-changed=${this._modeChanged}
-              ></ha-button-toggle-group>
+              <p class="secondary">
+                ${this.hass.localize(
+                  "ui.panel.config.tools.tabs.actions.description"
+                )}
+              </p>
             </div>
-            <p class="secondary">
-              ${this.hass.localize(
-                "ui.panel.config.tools.tabs.actions.description"
-              )}
-            </p>
-          </div>
-          ${
-            this._yamlMode
-              ? html`<div
-                  class="card-content"
-                  style=${styleMap(this._matchMinHeightStyle)}
-                >
-                  <ha-service-picker
-                    .value=${this._serviceData?.action}
-                    @value-changed=${this._serviceChanged}
-                    show-service-id
-                  ></ha-service-picker>
-                  <ha-yaml-editor
-                    id="yaml-editor"
-                    .defaultValue=${this._serviceData}
-                    @value-changed=${this._yamlChanged}
-                  ></ha-yaml-editor>
-                </div>`
-              : html`
-                  <ha-service-control
-                    .hass=${this.hass}
-                    .value=${this._serviceData}
-                    .narrow=${this.narrow}
-                    show-service-id
-                    @value-changed=${this._serviceDataChanged}
-                    class="card-content ui-mode-content"
-                  ></ha-service-control>
-                `
-          }
-          ${
-            this._error !== undefined
-              ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
-              : nothing
-          }
-          <div class="card-actions">
             ${
-              !this._uiAvailable
-                ? html`<span class="error"
-                    >${this.hass.localize(
-                      "ui.panel.config.tools.tabs.actions.no_template_ui_support"
-                    )}</span
-                  >`
+              this._yamlMode
+                ? html`<div
+                    class="card-content"
+                    style=${styleMap(this._matchMinHeightStyle)}
+                  >
+                    <ha-service-picker
+                      .value=${this._serviceData?.action}
+                      @value-changed=${this._serviceChanged}
+                      show-service-id
+                    ></ha-service-picker>
+                    <ha-yaml-editor
+                      id="yaml-editor"
+                      .defaultValue=${this._serviceData}
+                      @value-changed=${this._yamlChanged}
+                    ></ha-yaml-editor>
+                  </div>`
+                : html`
+                    <ha-service-control
+                      .hass=${this.hass}
+                      .value=${this._serviceData}
+                      .narrow=${this.narrow}
+                      show-service-id
+                      @value-changed=${this._serviceDataChanged}
+                      class="card-content ui-mode-content"
+                    ></ha-service-control>
+                  `
+            }
+            ${
+              this._error !== undefined
+                ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
                 : nothing
             }
-            <ha-progress-button raised @click=${this._callService}>
-              ${this.hass.localize(
-                "ui.panel.config.tools.tabs.actions.call_service"
-              )}
-            </ha-progress-button>
-          </div>
-        </ha-card>
-      </div>
-      ${
-        this._response?.result
-          ? html`<div class="content response">
-              <ha-card
-                .header=${this.hass.localize(
-                  "ui.panel.config.tools.tabs.actions.response"
-                )}
-              >
-                <div class="card-content">
-                  <ha-yaml-editor
-                    read-only
-                    auto-update
-                    has-extra-actions
-                    .value=${this._response.result}
-                  >
-                    <ha-button
-                      appearance="plain"
-                      slot="extra-actions"
-                      @click=${this._copyTemplate}
+            <div class="card-actions">
+              ${
+                !this._uiAvailable
+                  ? html`<span class="error"
                       >${this.hass.localize(
-                        "ui.panel.config.tools.tabs.actions.copy_clipboard_template"
-                      )}</ha-button
-                    >
-                  </ha-yaml-editor>
-                  ${until(this._response.media)}
-                </div>
-              </ha-card>
-            </div>`
-          : nothing
-      }
+                        "ui.panel.config.tools.tabs.actions.no_template_ui_support"
+                      )}</span
+                    >`
+                  : nothing
+              }
+              <ha-button appearance="plain" @click=${this._copyYaml}>
+                ${this.hass.localize(
+                  "ui.panel.config.tools.tabs.actions.copy_yaml"
+                )}
+              </ha-button>
+              <ha-progress-button raised @click=${this._callService}>
+                ${this.hass.localize(
+                  "ui.panel.config.tools.tabs.actions.call_service"
+                )}
+              </ha-progress-button>
+            </div>
+          </ha-card>
+        </div>
+        <div class="side-col">
+          ${this._renderStatusCard()} ${this._renderSentCard()}
+          ${
+            this._response?.result
+              ? html`<div class="response">
+                  <ha-card
+                    class="side-card"
+                    .header=${this.hass.localize(
+                      "ui.panel.config.tools.tabs.actions.response"
+                    )}
+                  >
+                    <div class="card-content">
+                      <ha-yaml-editor
+                        read-only
+                        auto-update
+                        has-extra-actions
+                        .value=${this._response.result}
+                      >
+                        <ha-button
+                          appearance="plain"
+                          slot="extra-actions"
+                          @click=${this._copyTemplate}
+                          >${this.hass.localize(
+                            "ui.panel.config.tools.tabs.actions.copy_clipboard_template"
+                          )}</ha-button
+                        >
+                      </ha-yaml-editor>
+                      ${until(this._response.media)}
+                    </div>
+                  </ha-card>
+                </div>`
+              : nothing
+          }
+        </div>
+      </div>
       ${
         (this._yamlMode ? fields : this._filterSelectorFields(fields)).length
           ? html`<div class="content">
@@ -384,6 +405,73 @@ class HaPanelDevAction extends MatchMinHeightMixin(
           : ""
       }
     `;
+  }
+
+  private _renderStatusCard() {
+    const localize = this.hass.localize;
+    let tone = "idle";
+    let title = localize(
+      "ui.panel.config.tools.tabs.actions.result_placeholder"
+    );
+    let detail: string | undefined;
+    let icon = mdiCheck;
+    if (this._running) {
+      title = localize("ui.panel.config.tools.tabs.actions.result_running");
+    } else if (this._error !== undefined) {
+      tone = "error";
+      icon = mdiAlertCircleOutline;
+      title = localize("ui.panel.config.tools.tabs.actions.result_failed");
+    } else if (this._lastRun) {
+      tone = "success";
+      title = localize("ui.panel.config.tools.tabs.actions.result_done", {
+        seconds: this._lastRun.seconds.toFixed(2),
+      });
+      detail = localize(
+        "ui.panel.config.tools.tabs.actions.result_done_detail",
+        { action: this._lastRun.action }
+      );
+    }
+    return html`<div class="side-card status ${tone}" role="status">
+      ${
+        tone === "idle"
+          ? nothing
+          : html`<div class="status-tile">
+              <ha-svg-icon .path=${icon}></ha-svg-icon>
+            </div>`
+      }
+      <div class="status-text">
+        <div class="status-title">${title}</div>
+        ${detail ? html`<div class="secondary">${detail}</div>` : nothing}
+      </div>
+    </div>`;
+  }
+
+  private _renderSentCard() {
+    if (!this._lastRun) {
+      return nothing;
+    }
+    const sent = this._lastRun.sent;
+    return html`<ha-card
+      class="side-card"
+      .header=${this.hass.localize(
+        "ui.panel.config.tools.tabs.actions.what_was_sent"
+      )}
+    >
+      <div class="card-content">
+        <ha-yaml-editor
+          read-only
+          auto-update
+          .value=${sent.length === 1 ? sent[0] : sent}
+        ></ha-yaml-editor>
+      </div>
+    </ha-card>`;
+  }
+
+  private async _copyYaml(): Promise<void> {
+    await copyToClipboard(dump(this._serviceData ?? {}));
+    showToast(this, {
+      message: this.hass.localize("ui.common.copied_clipboard"),
+    });
   }
 
   private async _copyTemplate(): Promise<void> {
@@ -537,8 +625,15 @@ class HaPanelDevAction extends MatchMinHeightMixin(
       script.push(this._serviceData!);
     }
     button.progress = true;
+    this._running = true;
+    const startedAt = performance.now();
     try {
       const result = (await callExecuteScript(this.hass, script)).response;
+      this._lastRun = {
+        action: this._serviceData!.action!,
+        seconds: (performance.now() - startedAt) / 1000,
+        sent: JSON.parse(JSON.stringify(script)) as Action[],
+      };
       this._response = {
         domain,
         service,
@@ -612,6 +707,7 @@ class HaPanelDevAction extends MatchMinHeightMixin(
       return;
     } finally {
       button.progress = false;
+      this._running = false;
     }
     button.actionSuccess();
   }
@@ -742,6 +838,68 @@ class HaPanelDevAction extends MatchMinHeightMixin(
           padding: var(--ha-space-4);
           max-width: 1200px;
           margin: auto;
+        }
+        .layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+          gap: var(--ha-space-4);
+          align-items: start;
+        }
+        :host([narrow]) .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .main-col,
+        .side-col {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-4);
+          min-width: 0;
+        }
+        ha-card {
+          --ha-card-border-radius: var(--ha-border-radius-3xl);
+        }
+        .side-card {
+          box-sizing: border-box;
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
+        .response {
+          min-width: 0;
+        }
+        .status {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
+          padding: var(--ha-space-5);
+        }
+        .status-tile {
+          display: flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          width: 56px;
+          height: 56px;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
+        }
+        .status.success .status-tile {
+          background: var(--success-color);
+          color: var(--text-primary-color);
+        }
+        .status.error .status-tile {
+          background: var(--error-color);
+          color: var(--text-primary-color);
+        }
+        .status-title {
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .status.idle .status-title {
+          color: var(--secondary-text-color);
+          font-weight: var(--ha-font-weight-normal);
+        }
+        .status-text {
+          min-width: 0;
+          word-break: break-word;
         }
         .card-header {
           display: flex;

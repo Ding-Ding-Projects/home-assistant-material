@@ -33,6 +33,10 @@ class HaConfigSectionNetwork extends LitElement {
         .header=${this.hass.localize("ui.panel.config.network.caption")}
       >
         <div class="content">
+          <div class="intro">
+            <h2>${this.hass.localize("ui.panel.config.network.caption")}</h2>
+            <p>${this._summary()}</p>
+          </div>
           ${
             isComponentLoaded(this.hass.config, "hassio")
               ? html`<supervisor-hostname
@@ -89,8 +93,45 @@ class HaConfigSectionNetwork extends LitElement {
     `;
   }
 
+  /** One line from what the instance already knows; nothing is probed here. */
+  private _summary(): string {
+    const config = this.hass.config;
+    const parts: string[] = [];
+    if (config.internal_url) {
+      parts.push(
+        this.hass.localize("ui.panel.config.network.summary_home", {
+          address: config.internal_url,
+        })
+      );
+    }
+    parts.push(
+      this.hass.localize(
+        config.external_url
+          ? "ui.panel.config.network.summary_away_on"
+          : "ui.panel.config.network.summary_away_off"
+      )
+    );
+    return parts.join(" ");
+  }
+
   static styles = css`
+    .intro {
+      grid-column: 1 / -1;
+    }
+    .intro h2 {
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-3xl);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: var(--ha-line-height-condensed);
+    }
+    .intro p {
+      margin: var(--ha-space-1) 0 0;
+      color: var(--secondary-text-color);
+      line-height: var(--ha-line-height-normal);
+    }
     .content {
+      --ha-card-header-font-size: var(--ha-font-size-l);
       box-sizing: border-box;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));

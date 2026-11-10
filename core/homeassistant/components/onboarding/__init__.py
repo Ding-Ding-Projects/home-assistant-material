@@ -12,7 +12,6 @@ from homeassistant.helpers.typing import ConfigType
 from . import views
 from .const import (
     DOMAIN,
-    STEP_ANALYTICS,
     STEP_CORE_CONFIG,
     STEP_INTEGRATION,
     STEP_USER,
@@ -67,8 +66,6 @@ class OnboardingStorage(Store[OnboardingStoreData]):
             old_data["done"].append(STEP_INTEGRATION)
         if old_major_version < 3:
             old_data["done"].append(STEP_CORE_CONFIG)
-        if old_major_version < 4:
-            old_data["done"].append(STEP_ANALYTICS)
         return old_data
 
 
@@ -125,7 +122,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             data["done"].append(STEP_USER)
             await store.async_save(data)
 
-    if set(data["done"]) == set(STEPS):
+    if set(STEPS) <= set(data["done"]):
         return True
 
     hass.data[DOMAIN] = OnboardingData([], False, data)

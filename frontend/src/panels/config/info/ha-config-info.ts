@@ -30,9 +30,6 @@ const JS_VERSION = __VERSION__;
 
 const MATERIAL_VERSION = __MATERIAL_BUILD__;
 
-const PROJECT_URL =
-  "https://github.com/Ding-Ding-Projects/home-assistant-material";
-
 /** The feed this project's builds read their updates from. */
 const FEED_URL =
   "https://raw.githubusercontent.com/Ding-Ding-Projects/home-assistant-material/channel/stable.json";
@@ -109,11 +106,7 @@ class HaConfigInfo extends LitElement {
               <a class="pill" href="/config/updates"
                 >${this.hass.localize("ui.panel.config.info.material.updates")}</a
               >
-              <a
-                class="pill"
-                href=${PROJECT_URL + "/issues"}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a class="pill" href="/config/problem-log"
                 >${this.hass.localize("ui.panel.config.info.material.report")}</a
               >
             </div>

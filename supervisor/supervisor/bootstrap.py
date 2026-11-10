@@ -49,7 +49,7 @@ from .services import ServiceManager
 from .store import StoreManager
 from .supervisor import Supervisor
 from .updater import Updater
-from .utils.sentry import capture_exception, init_sentry
+from .utils.sentry import capture_exception
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -98,10 +98,6 @@ async def initialize_coresys() -> CoreSys:
 
     # Set Machine/Host ID
     await coresys.init_machine()
-
-    # diagnostics
-    if coresys.config.diagnostics:
-        init_sentry(coresys)
 
     # bootstrap config
     def _bootstrap_config() -> None:

@@ -4,10 +4,24 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Everyday pages start on their boards: Lights opens with how many are on and a card for each room; Security shows each alarm with arm and disarm; Climate draws the first thermostat large; the Map lists where everyone is; Activity, History, To-do, Calendar and Energy gain a large title and a line of facts; Home shows power use when energy is set up."
+          "text": "Nothing is sent out any more. The analytics integration, its page and its first-run step are gone, the supervisor's crash reports and diagnostics are off, and the buttons that reported an issue or gave feedback are removed."
         },
         {
-          "text": "The Network page lays its cards out in two columns on a wide screen."
+          "text": "Problems are kept on this system instead. Settings, System, Problem log lists every warning and error, one entry per problem with a count and when it was first and last seen. They are files in a Git repository in the configuration folder, with passwords, tokens, addresses and other private values removed. Nothing leaves the system unless you add a remote yourself."
+        },
+        {
+          "text": "A wording file that loads gets a short celebration over the whole window and a sound; one that is refused gets a different sound and a clear message."
+        },
+        {
+          "text": "Storage, General, Hardware and Network are drawn to their boards, and so are the States, Actions and Template pages of the developer tools. General has one Save and one Discard."
+        },
+        {
+          "text": "Everyday pages start on their boards: Lights opens with how many are on and a card for each room; Security shows each alarm with arm and disarm; Climate draws the first thermostat large; the Map lists where everyone is; Activity, History, To-do, Calendar and Energy gain a large title and a line of facts; Home shows power use when energy is set up.",
+          "commit": "d1ff6a68e4bc"
+        },
+        {
+          "text": "The Network page lays its cards out in two columns on a wide screen.",
+          "commit": "d1ff6a68e4bc"
         },
         {
           "text": "On a phone there is a bar at the bottom: Home, Search, Pages, Access and Menu. Pages opens a sheet of the open pages with a search, New tab, and closing by button or swipe, with Undo. A slim bar at the top switches between open pages.",

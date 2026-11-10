@@ -1,3 +1,4 @@
+import { mdiMapMarker } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -8,13 +9,13 @@ import "../../../components/buttons/ha-progress-button";
 import type { HaProgressButton } from "../../../components/buttons/ha-progress-button";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
-import "../../../components/ha-card";
 import "../../../components/ha-checkbox";
 import type { HaCheckbox } from "../../../components/ha-checkbox";
 import "../../../components/ha-country-picker";
 import "../../../components/ha-currency-picker";
 import "../../../components/ha-language-picker";
 import "../../../components/ha-select-box";
+import "../../../components/ha-svg-icon";
 import "../../../components/ha-timezone-picker";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
@@ -30,11 +31,9 @@ import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 class HaConfigSectionGeneral extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow = false;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
-  @state() private _submittingName = false;
-
-  @state() private _submittingRegional = false;
+  @state() private _submitting = false;
 
   @state() private _unitSystem?: ConfigUpdateValues["unit_system"];
 
@@ -50,16 +49,14 @@ class HaConfigSectionGeneral extends LitElement {
 
   @state() private _timeZone?: string;
 
-  @state() private _location?: [number, number];
-
   @state() private _error?: string;
 
   @state() private _updateUnits?: boolean;
 
   protected render(): TemplateResult {
-    const canEdit = ["storage", "default"].includes(
-      this.hass.config.config_source
-    );
+    const config = this.hass.config;
+    const canEdit = ["storage", "default"].includes(config.config_source);
+    const disabled = this._submitting || !canEdit;
     return html`
       <hass-subpage
         back-path="/config/system"
@@ -67,261 +64,256 @@ class HaConfigSectionGeneral extends LitElement {
         .narrow=${this.narrow}
         .header=${this.hass.localize("ui.panel.config.core.caption")}
       >
-        <div class="content">
+        <div class="page">
+          <div class="intro">
+            <h2>${this.hass.localize("ui.panel.config.core.caption")}</h2>
+            <p>${this._summary()}</p>
+          </div>
           ${
             this._error
               ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
-              : ""
+              : nothing
           }
           ${
             !canEdit
-              ? html`
-                  <ha-alert>
-                    ${this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.edit_requires_storage"
-                    )}
-                  </ha-alert>
-                `
+              ? html`<ha-alert>
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.edit_requires_storage"
+                  )}
+                </ha-alert>`
               : nothing
           }
-          ${this._renderHomeNameCard(canEdit)}
-          ${this._renderLocationCard(canEdit)}
-          ${this._renderRegionalSettingsCard(canEdit)}
+          <div class="columns">
+            <div class="column">
+              <ha-input
+                name="name"
+                .label=${this.hass.localize(
+                  "ui.panel.config.core.section.core.core_config.location_name"
+                )}
+                .disabled=${disabled}
+                .value=${this._name}
+                @change=${this._handleChange}
+              ></ha-input>
+              <div class="pair">
+                <ha-country-picker
+                  .label=${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.country"
+                  )}
+                  name="country"
+                  .disabled=${disabled}
+                  .value=${this._country}
+                  @value-changed=${this._handleValueChanged}
+                ></ha-country-picker>
+                <ha-language-picker
+                  native-name
+                  .label=${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.language"
+                  )}
+                  name="language"
+                  .value=${this._language}
+                  .disabled=${disabled}
+                  @closed=${stopPropagation}
+                  @value-changed=${this._handleValueChanged}
+                ></ha-language-picker>
+                <ha-timezone-picker
+                  .label=${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.time_zone"
+                  )}
+                  name="timeZone"
+                  .disabled=${disabled}
+                  .value=${this._timeZone}
+                  @value-changed=${this._handleValueChanged}
+                  hide-clear-icon
+                ></ha-timezone-picker>
+                <div>
+                  <ha-currency-picker
+                    .label=${this.hass.localize(
+                      "ui.panel.config.core.section.core.core_config.currency"
+                    )}
+                    name="currency"
+                    .disabled=${disabled}
+                    .value=${this._currency}
+                    @value-changed=${this._handleValueChanged}
+                  ></ha-currency-picker>
+                  <a
+                    href="https://en.wikipedia.org/wiki/ISO_4217#Active_codes"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="find-value"
+                    >${this.hass.localize(
+                      "ui.panel.config.core.section.core.core_config.find_currency_value"
+                    )}</a
+                  >
+                </div>
+              </div>
+              <section class="card">
+                <h3>
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.unit_system"
+                  )}
+                </h3>
+                ${this._renderUnits(disabled)}
+              </section>
+            </div>
+            <div class="column">
+              ${this._renderMap(canEdit)}
+              <ha-input
+                name="elevation"
+                type="number"
+                .label=${this.hass.localize(
+                  "ui.panel.config.core.section.core.core_config.elevation"
+                )}
+                .disabled=${disabled}
+                .value=${
+                  this._elevation !== undefined ? String(this._elevation) : ""
+                }
+                @change=${this._handleChange}
+              >
+                <span slot="end"
+                  >${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.elevation_meters"
+                  )}</span
+                >
+              </ha-input>
+              <p class="hint">
+                ${this.hass.localize(
+                  "ui.panel.config.core.section.core.core_config.location_hint"
+                )}
+              </p>
+            </div>
+          </div>
+          <div class="actions">
+            <ha-button
+              appearance="plain"
+              .disabled=${disabled || !this._dirty()}
+              @click=${this._discard}
+            >
+              ${this.hass.localize(
+                "ui.panel.config.core.section.core.core_config.discard_button"
+              )}
+            </ha-button>
+            <ha-progress-button
+              appearance="filled"
+              @click=${this._save}
+              .disabled=${disabled || !this._dirty()}
+            >
+              ${this.hass.localize("ui.common.save")}
+            </ha-progress-button>
+          </div>
         </div>
       </hass-subpage>
     `;
   }
 
-  private _renderHomeNameCard(canEdit: boolean): TemplateResult {
-    const disabled = this._submittingName || !canEdit;
-
+  private _renderUnits(disabled: boolean): TemplateResult {
     return html`
-      <ha-card
-        outlined
-        .header=${this.hass.localize(
-          "ui.panel.config.core.section.core.home_name_card.header"
-        )}
+      <ha-select-box
+        name="unit_system"
+        .value=${this._unitSystem}
+        .disabled=${disabled}
+        @value-changed=${this._unitSystemChanged}
+        .options=${[
+          {
+            value: "metric",
+            label: this.hass.localize(
+              "ui.panel.config.core.section.core.core_config.metric_example"
+            ),
+            description: this.hass.localize(
+              "ui.panel.config.core.section.core.core_config.unit_system_metric"
+            ),
+          },
+          {
+            value: "us_customary",
+            label: this.hass.localize(
+              "ui.panel.config.core.section.core.core_config.us_customary_example"
+            ),
+            description: this.hass.localize(
+              "ui.panel.config.core.section.core.core_config.unit_system_us_customary"
+            ),
+          },
+        ]}
       >
-        <div class="card-content">
-          <ha-input
-            name="name"
-            .label=${this.hass.localize(
-              "ui.panel.config.core.section.core.core_config.location_name"
-            )}
-            .disabled=${disabled}
-            .value=${this._name}
-            @change=${this._handleChange}
-          ></ha-input>
-        </div>
-        <div class="card-actions">
-          <ha-progress-button
-            appearance="filled"
-            @click=${this._updateHomeName}
-            .disabled=${disabled}
-          >
-            ${this.hass.localize("ui.common.save")}
-          </ha-progress-button>
-        </div>
-      </ha-card>
+      </ha-select-box>
+      ${
+        this._unitSystem !== this._configuredUnitSystem()
+          ? html`
+              <ha-checkbox
+                .checked=${this._updateUnits}
+                .disabled=${this._submitting}
+                @change=${this._updateUnitsChanged}
+              >
+                ${this.hass.localize(
+                  "ui.panel.config.core.section.core.core_config.update_units_label"
+                )}
+                <div slot="hint">
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.update_units_text_1"
+                  )}
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.update_units_text_2"
+                  )}
+                  <br /><br />
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.update_units_text_3"
+                  )}
+                </div>
+              </ha-checkbox>
+            `
+          : nothing
+      }
     `;
   }
 
-  private _renderLocationCard(canEdit: boolean): TemplateResult {
+  private _renderMap(canEdit: boolean): TemplateResult {
     const hasHomeZone = "zone.home" in this.hass.states;
-
     return html`
-      <ha-card
-        outlined
-        .header=${this.hass.localize(
-          "ui.panel.config.core.section.core.location_card.header"
-        )}
-      >
+      <div class="map-card">
         ${
           hasHomeZone
-            ? html`
-                <div class="card-content">
-                  <ha-map
-                    .entities=${["zone.home"]}
-                    .zoom=${14}
-                    .autoFit=${true}
-                    .fitZones=${true}
-                    .themeMode=${"auto"}
-                    .renderPassive=${false}
-                    .interactiveZones=${false}
-                    class="map-preview"
-                  ></ha-map>
-                </div>
-              `
-            : nothing
+            ? html`<ha-map
+                .entities=${["zone.home"]}
+                .zoom=${14}
+                .autoFit=${true}
+                .fitZones=${true}
+                .themeMode=${"auto"}
+                .renderPassive=${false}
+                .interactiveZones=${false}
+                class="map-preview"
+              ></ha-map>`
+            : html`<div class="no-map">
+                <ha-svg-icon .path=${mdiMapMarker}></ha-svg-icon>
+                <p>
+                  ${this.hass.localize(
+                    "ui.panel.config.core.section.core.core_config.no_home_zone"
+                  )}
+                </p>
+              </div>`
         }
-        <div class="card-actions">
-          <ha-button
-            appearance="filled"
-            @click=${this._editLocation}
-            .disabled=${!canEdit}
-          >
-            ${this.hass.localize("ui.common.edit")}
-          </ha-button>
-        </div>
-      </ha-card>
+        <ha-button
+          class="edit-location"
+          appearance="filled"
+          @click=${this._editLocation}
+          .disabled=${!canEdit}
+        >
+          ${this.hass.localize("ui.common.edit")}
+        </ha-button>
+      </div>
     `;
   }
 
-  private _renderRegionalSettingsCard(canEdit: boolean): TemplateResult {
-    const disabled = this._submittingRegional || !canEdit;
-
-    return html`
-      <ha-card
-        outlined
-        .header=${this.hass.localize(
-          "ui.panel.config.core.section.core.regional_settings_card.header"
-        )}
-      >
-        <div class="card-content">
-          <ha-timezone-picker
-            .label=${this.hass.localize(
-              "ui.panel.config.core.section.core.core_config.time_zone"
-            )}
-            name="timeZone"
-            .disabled=${disabled}
-            .value=${this._timeZone}
-            @value-changed=${this._handleValueChanged}
-            hide-clear-icon
-          ></ha-timezone-picker>
-          <ha-input
-            .label=${this.hass.localize(
-              "ui.panel.config.core.section.core.core_config.elevation"
-            )}
-            name="elevation"
-            type="number"
-            .disabled=${disabled}
-            .value=${
-              this._elevation !== undefined ? String(this._elevation) : ""
-            }
-            @change=${this._handleChange}
-          >
-            <span slot="end"
-              >${this.hass.localize(
-                "ui.panel.config.core.section.core.core_config.elevation_meters"
-              )}</span
-            >
-          </ha-input>
-          <div>
-            <div>
-              ${this.hass.localize(
-                "ui.panel.config.core.section.core.core_config.unit_system"
-              )}
-            </div>
-            <div class="unit-system-options">
-              <ha-select-box
-                name="unit_system"
-                .value=${this._unitSystem}
-                .disabled=${disabled}
-                @value-changed=${this._unitSystemChanged}
-                .options=${[
-                  {
-                    value: "metric",
-                    label: this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.metric_example"
-                    ),
-                    description: this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.unit_system_metric"
-                    ),
-                  },
-                  {
-                    value: "us_customary",
-                    label: this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.us_customary_example"
-                    ),
-                    description: this.hass.localize(
-                      "ui.panel.config.core.section.core.core_config.unit_system_us_customary"
-                    ),
-                  },
-                ]}
-              >
-              </ha-select-box>
-              ${
-                this._unitSystem !== this._configuredUnitSystem()
-                  ? html`
-                      <ha-checkbox
-                        .checked=${this._updateUnits}
-                        .disabled=${this._submittingRegional}
-                        @change=${this._updateUnitsChanged}
-                      >
-                        ${this.hass.localize(
-                          "ui.panel.config.core.section.core.core_config.update_units_label"
-                        )}
-                        <div slot="hint">
-                          ${this.hass.localize(
-                            "ui.panel.config.core.section.core.core_config.update_units_text_1"
-                          )}
-                          ${this.hass.localize(
-                            "ui.panel.config.core.section.core.core_config.update_units_text_2"
-                          )}
-                          <br /><br />
-                          ${this.hass.localize(
-                            "ui.panel.config.core.section.core.core_config.update_units_text_3"
-                          )}
-                        </div>
-                      </ha-checkbox>
-                    `
-                  : nothing
-              }
-            </div>
-          </div>
-          <div>
-            <ha-currency-picker
-              .label=${this.hass.localize(
-                "ui.panel.config.core.section.core.core_config.currency"
-              )}
-              name="currency"
-              .disabled=${disabled}
-              .value=${this._currency}
-              @value-changed=${this._handleValueChanged}
-            ></ha-currency-picker>
-            <a
-              href="https://en.wikipedia.org/wiki/ISO_4217#Active_codes"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="find-value"
-              >${this.hass.localize(
-                "ui.panel.config.core.section.core.core_config.find_currency_value"
-              )}</a
-            >
-          </div>
-          <ha-country-picker
-            .label=${this.hass.localize(
-              "ui.panel.config.core.section.core.core_config.country"
-            )}
-            name="country"
-            .disabled=${disabled}
-            .value=${this._country}
-            @value-changed=${this._handleValueChanged}
-          ></ha-country-picker>
-          <ha-language-picker
-            native-name
-            .label=${this.hass.localize(
-              "ui.panel.config.core.section.core.core_config.language"
-            )}
-            name="language"
-            .value=${this._language}
-            .disabled=${disabled}
-            @closed=${stopPropagation}
-            @value-changed=${this._handleValueChanged}
-          >
-          </ha-language-picker>
-        </div>
-        <div class="card-actions">
-          <ha-progress-button
-            appearance="filled"
-            @click=${this._updateRegionalSettings}
-            .disabled=${disabled}
-          >
-            ${this.hass.localize("ui.common.save")}
-          </ha-progress-button>
-        </div>
-      </ha-card>
-    `;
+  private _summary(): string {
+    return this.hass.localize(
+      "ui.panel.config.core.section.core.core_config.summary",
+      {
+        name: this.hass.config.location_name,
+        time_zone: this.hass.config.time_zone,
+        units: this.hass.localize(
+          this._configuredUnitSystem() === "metric"
+            ? "ui.panel.config.core.section.core.core_config.summary_metric"
+            : "ui.panel.config.core.section.core.core_config.summary_us_customary"
+        ),
+      }
+    );
   }
 
   private _configuredUnitSystem() {
@@ -330,7 +322,24 @@ class HaConfigSectionGeneral extends LitElement {
       : "us_customary";
   }
 
+  private _dirty(): boolean {
+    const config = this.hass.config;
+    return (
+      this._name !== config.location_name ||
+      this._timeZone !== (config.time_zone || "Etc/GMT") ||
+      Number(this._elevation) !== config.elevation ||
+      this._unitSystem !== this._configuredUnitSystem() ||
+      this._currency !== config.currency ||
+      this._country !== config.country ||
+      this._language !== config.language
+    );
+  }
+
   protected firstUpdated(): void {
+    this._resetFields();
+  }
+
+  private _resetFields(): void {
     this._unitSystem = this._configuredUnitSystem();
     this._currency = this.hass.config.currency;
     this._country = this.hass.config.country;
@@ -339,6 +348,11 @@ class HaConfigSectionGeneral extends LitElement {
     this._timeZone = this.hass.config.time_zone || "Etc/GMT";
     this._name = this.hass.config.location_name;
     this._updateUnits = true;
+  }
+
+  private _discard(): void {
+    this._error = undefined;
+    this._resetFields();
   }
 
   private _handleValueChanged(ev: ValueChangedEvent<string>) {
@@ -359,31 +373,7 @@ class HaConfigSectionGeneral extends LitElement {
     this._updateUnits = (ev.target as HaCheckbox).checked;
   }
 
-  private async _updateHomeName(ev: CustomEvent) {
-    const button = ev.target as HaProgressButton;
-    if (button.progress) {
-      return;
-    }
-
-    button.progress = true;
-    this._submittingName = true;
-    this._error = undefined;
-
-    try {
-      await saveCoreConfig(this.hass, {
-        location_name: this._name,
-      });
-      button.actionSuccess();
-    } catch (err: any) {
-      button.actionError();
-      this._error = err.message;
-    } finally {
-      button.progress = false;
-      this._submittingName = false;
-    }
-  }
-
-  private async _updateRegionalSettings(ev: CustomEvent) {
+  private async _save(ev: CustomEvent) {
     const button = ev.target as HaProgressButton;
     if (button.progress) {
       return;
@@ -408,22 +398,12 @@ class HaConfigSectionGeneral extends LitElement {
       }
     }
     button.progress = true;
-    this._submittingRegional = true;
-    this._error = undefined;
-
-    let locationConfig;
-
-    if (this._location) {
-      locationConfig = {
-        latitude: this._location[0],
-        longitude: this._location[1],
-      };
-    }
-
+    this._submitting = true;
     this._error = undefined;
 
     try {
       await saveCoreConfig(this.hass, {
+        location_name: this._name,
         time_zone: this._timeZone,
         elevation: Number(this._elevation),
         unit_system: this._unitSystem,
@@ -431,7 +411,6 @@ class HaConfigSectionGeneral extends LitElement {
         currency: this._currency,
         country: this._country,
         language: this._language,
-        ...locationConfig,
       });
       button.actionSuccess();
     } catch (err: any) {
@@ -439,7 +418,7 @@ class HaConfigSectionGeneral extends LitElement {
       this._error = err.message;
     } finally {
       button.progress = false;
-      this._submittingRegional = false;
+      this._submitting = false;
     }
   }
 
@@ -450,53 +429,119 @@ class HaConfigSectionGeneral extends LitElement {
   static styles = [
     haStyle,
     css`
-      .content {
-        padding: var(--ha-space-7) var(--ha-space-5) 0;
-        max-width: 1040px;
+      .page {
+        box-sizing: border-box;
+        max-width: 1100px;
         margin: 0 auto;
+        padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-8);
       }
-      ha-card {
-        max-width: 600px;
-        margin: 0 auto var(--ha-space-6);
+      :host([narrow]) .page {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
       }
-      .card-content {
+      .intro {
+        margin-bottom: var(--ha-space-4);
+      }
+      .intro h2 {
+        margin: 0;
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-medium);
+        line-height: var(--ha-line-height-condensed);
+      }
+      .intro p {
+        margin: var(--ha-space-1) 0 0;
+        color: var(--secondary-text-color);
+        line-height: var(--ha-line-height-normal);
+      }
+      ha-alert {
+        display: block;
+        margin-bottom: var(--ha-space-4);
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: var(--ha-space-4);
+      }
+      :host([narrow]) .columns {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      @media (max-width: 800px) {
+        .columns {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .column {
         display: flex;
         flex-direction: column;
+        gap: var(--ha-space-4);
+        min-width: 0;
       }
-      .card-content > * {
-        display: block;
+      .pair {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: var(--ha-space-4);
       }
-      .card-content > *:not(:first-child) {
-        margin-top: var(--ha-space-4);
+      .pair > * {
+        min-width: 0;
       }
-      .card-actions {
-        display: flex;
-        justify-content: flex-end;
+      .card {
+        padding: var(--ha-space-5) var(--ha-space-6);
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
+      }
+      h3 {
+        margin: 0 0 var(--ha-space-3);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
       }
       a.find-value {
         margin-top: var(--ha-space-2);
         display: inline-block;
       }
-      .map-preview {
-        height: 200px;
-        width: 100%;
-        display: block;
-        border-radius: var(--ha-card-border-radius, 8px);
+      .map-card {
+        position: relative;
         overflow: hidden;
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--card-background-color);
+      }
+      .map-preview {
+        display: block;
+        width: 100%;
+        height: 280px;
+      }
+      .no-map {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--ha-space-8) var(--ha-space-4);
+        color: var(--secondary-text-color);
+        text-align: center;
+      }
+      .edit-location {
+        position: absolute;
+        inset-block-end: var(--ha-space-3);
+        inset-inline-end: var(--ha-space-3);
+      }
+      .no-map + .edit-location {
+        position: static;
+        margin: 0 var(--ha-space-3) var(--ha-space-3);
+        display: block;
+      }
+      .hint {
+        margin: 0;
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--ha-space-2);
+        margin-top: var(--ha-space-4);
       }
       ha-checkbox {
-        display: flex;
-        margin-top: var(--ha-space-2);
-        margin-bottom: var(--ha-space-3);
-      }
-      .unit-system-options {
-        padding-top: var(--ha-space-2);
-      }
-
-      .unit-system-options ha-checkbox {
         display: block;
         margin-top: var(--ha-space-3);
-        margin-inline-start: var(--ha-space-3);
       }
     `,
   ];

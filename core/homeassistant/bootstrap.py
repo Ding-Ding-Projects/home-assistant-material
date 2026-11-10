@@ -220,7 +220,6 @@ DEFAULT_INTEGRATIONS = {
     # These integrations are set up unless recovery mode is activated.
     #
     # Integrations providing core functionality:
-    "analytics",  # Needed for onboarding
     "application_credentials",
     "backup",
     "brands",
@@ -231,6 +230,7 @@ DEFAULT_INTEGRATIONS = {
     "logger",
     "marketplace",
     "network",
+    "problem_log",
     "system_health",
     #
     # Key-feature:

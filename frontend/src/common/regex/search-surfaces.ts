@@ -247,6 +247,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Integrations that have no setup screen",
   },
   {
+    file: "panels/config/problem-log/ha-config-problem-log.ts",
+    searches: "Problems recorded in the local problem log",
+  },
+  {
     file: "panels/config/voice-assistants/dialog-expose-entity.ts",
     searches: "Entities to expose to a voice assistant",
   },

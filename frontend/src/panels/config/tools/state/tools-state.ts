@@ -24,7 +24,6 @@ import "../../../../components/entity/ha-entity-picker";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-checkbox";
-import "../../../../components/ha-expansion-panel";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-input-helper-text";
 import "../../../../components/ha-svg-icon";
@@ -79,7 +78,7 @@ class HaPanelDevState extends LitElement {
   @state() private _stateAttributes: HassEntityAttributeBase &
     Record<string, any> = {};
 
-  @state() private _expanded = false;
+  @state() private _stateSet = false;
 
   @state() private _validJSON = true;
 
@@ -165,65 +164,136 @@ class HaPanelDevState extends LitElement {
     );
 
     return html`
-      <div class="heading">
-        <h1>
-          ${this._i18n.localize(
-            "ui.panel.config.tools.tabs.states.current_entities"
-          )}
-        </h1>
-        ${
-          !this.narrow
-            ? html`
-                <div class="filters-toggles">
-                  <ha-checkbox
-                    .checked=${this._showDevice}
-                    @change=${this._saveDeviceCheckboxState}
-                  >
+      <div class="page">
+        <section class="list-column">
+          <div class="heading">
+            <div class="heading-text">
+              <h1>
+                ${this._i18n.localize(
+                  "ui.panel.config.tools.tabs.states.current_entities"
+                )}
+              </h1>
+              <p class="summary">
+                ${this._i18n.localize(
+                  "ui.panel.config.tools.tabs.states.entity_count",
+                  { count: entities.length }
+                )}
+              </p>
+            </div>
+            ${
+              !this.narrow
+                ? html`
+                    <div class="filters-toggles">
+                      <ha-checkbox
+                        .checked=${this._showDevice}
+                        @change=${this._saveDeviceCheckboxState}
+                      >
+                        ${this._i18n.localize(
+                          "ui.panel.config.entities.picker.headers.device"
+                        )}
+                      </ha-checkbox>
+                      <ha-checkbox
+                        .checked=${this._showArea}
+                        @change=${this._saveAreaCheckboxState}
+                      >
+                        ${this._i18n.localize(
+                          "ui.panel.config.generic.headers.area"
+                        )}
+                      </ha-checkbox>
+                      <ha-checkbox
+                        .checked=${this._showAttributes}
+                        @change=${this._saveAttributeCheckboxState}
+                      >
+                        ${this._i18n.localize(
+                          "ui.panel.config.tools.tabs.states.attributes"
+                        )}
+                      </ha-checkbox>
+                    </div>
+                  `
+                : nothing
+            }
+          </div>
+          <tools-state-renderer
+            .narrow=${this.narrow}
+            .entities=${entities}
+            .virtualize=${entities.length > VIRTUALIZE_THRESHOLD}
+            .showAttributes=${this._showAttributes}
+            .showDevice=${this._showDevice}
+            .showArea=${this._showArea}
+            @states-tool-entity-selected=${this._entitySelected}
+          >
+            <ha-input-search
+              slot="filter-entities"
+              .label=${this._i18n.localize(
+                "ui.panel.config.tools.tabs.states.filter_entities"
+              )}
+              .value=${this._entityFilter}
+              @input=${this._entityFilterChanged}
+            ></ha-input-search>
+            <ha-input-search
+              slot="filter-states"
+              .label=${this._i18n.localize(
+                "ui.panel.config.tools.tabs.states.filter_states"
+              )}
+              type="search"
+              .value=${this._stateFilter}
+              @input=${this._stateFilterChanged}
+            ></ha-input-search>
+            <ha-input-search
+              slot="filter-devices"
+              .label=${this._i18n.localize(
+                "ui.panel.config.entities.picker.headers.device"
+              )}
+              type="search"
+              .value=${this._deviceFilter}
+              @input=${this._deviceFilterChanged}
+            ></ha-input-search>
+            <ha-input-search
+              slot="filter-areas"
+              .label=${this._i18n.localize(
+                "ui.panel.config.generic.headers.area"
+              )}
+              type="search"
+              .value=${this._areaFilter}
+              @input=${this._areaFilterChanged}
+            ></ha-input-search>
+            <ha-input-search
+              slot="filter-attributes"
+              .label=${this._i18n.localize(
+                "ui.panel.config.tools.tabs.states.filter_attributes"
+              )}
+              type="search"
+              .value=${this._attributeFilter}
+              @input=${this._attributeFilterChanged}
+            ></ha-input-search>
+          </tools-state-renderer>
+          <p class="hint">
+            ${this._i18n.localize("ui.panel.config.tools.tabs.states.select_hint")}
+          </p>
+        </section>
+        <section class="set-card">
+          <h2>
+            ${this._i18n.localize("ui.panel.config.tools.tabs.states.set_state")}
+          </h2>
+          <ha-alert alert-type="warning">
+            ${this._i18n.localize(
+              "ui.panel.config.tools.tabs.states.description1"
+            )}
+            ${this._i18n.localize(
+              "ui.panel.config.tools.tabs.states.description2"
+            )}
+          </ha-alert>
+          ${
+            this._error
+              ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+              : this._stateSet
+                ? html`<ha-alert alert-type="success">
                     ${this._i18n.localize(
-                      "ui.panel.config.entities.picker.headers.device"
+                      "ui.panel.config.tools.tabs.states.state_set"
                     )}
-                  </ha-checkbox>
-                  <ha-checkbox
-                    .checked=${this._showArea}
-                    @change=${this._saveAreaCheckboxState}
-                  >
-                    ${this._i18n.localize("ui.panel.config.generic.headers.area")}
-                  </ha-checkbox>
-                </div>
-                <ha-checkbox
-                  .checked=${this._showAttributes}
-                  @change=${this._saveAttributeCheckboxState}
-                >
-                  ${this._i18n.localize(
-                    "ui.panel.config.tools.tabs.states.attributes"
-                  )}
-                </ha-checkbox>
-              `
-            : nothing
-        }
-      </div>
-      <ha-expansion-panel
-        .header=${this._i18n.localize(
-          "ui.panel.config.tools.tabs.states.set_state"
-        )}
-        outlined
-        .expanded=${this._expanded}
-        @expanded-changed=${this._expandedChanged}
-      >
-        <p>
-          ${this._i18n.localize(
-            "ui.panel.config.tools.tabs.states.description1"
-          )}<br />
-          ${this._i18n.localize(
-            "ui.panel.config.tools.tabs.states.description2"
-          )}
-        </p>
-        ${
-          this._error
-            ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
-            : nothing
-        }
-        <div class="state-wrapper flex-horizontal">
+                  </ha-alert>`
+                : nothing
+          }
           <div class="inputs">
             <ha-entity-picker
               autofocus
@@ -260,7 +330,7 @@ class HaPanelDevState extends LitElement {
               @change=${this._stateChanged}
               class="state-input"
             ></ha-input>
-            <p>
+            <p class="field-label">
               ${this._i18n.localize(
                 "ui.panel.config.tools.tabs.states.state_attributes"
               )}
@@ -271,31 +341,15 @@ class HaPanelDevState extends LitElement {
               @value-changed=${this._yamlChanged}
               dir="ltr"
             ></ha-yaml-editor>
-            <div class="button-row">
-              <ha-button
-                @click=${this._handleSetState}
-                .disabled=${!this._validJSON}
-                raised
-                >${this._i18n.localize(
-                  "ui.panel.config.tools.tabs.states.set_state"
-                )}</ha-button
-              >
-              <ha-icon-button
-                @click=${this._updateEntity}
-                .label=${this._i18n.localize("ui.common.refresh")}
-                .path=${mdiRefresh}
-              ></ha-icon-button>
-            </div>
-          </div>
-          <div class="info">
             ${
               this._entity
-                ? html`<p>
+                ? html`<div class="info">
+                    <p>
                       <b
                         >${this._i18n.localize(
                           "ui.panel.config.tools.tabs.states.last_changed"
                         )}:</b
-                      ><br />
+                      >
                       <a href=${this._historyFromLastChanged(this._entity)}
                         >${this._lastChangedString(this._entity)}</a
                       >
@@ -305,68 +359,32 @@ class HaPanelDevState extends LitElement {
                         >${this._i18n.localize(
                           "ui.panel.config.tools.tabs.states.last_updated"
                         )}:</b
-                      ><br />
+                      >
                       <a href=${this._historyFromLastUpdated(this._entity)}
                         >${this._lastUpdatedString(this._entity)}</a
                       >
-                    </p>`
+                    </p>
+                  </div>`
                 : nothing
             }
+            <div class="button-row">
+              <ha-icon-button
+                @click=${this._updateEntity}
+                .label=${this._i18n.localize("ui.common.refresh")}
+                .path=${mdiRefresh}
+              ></ha-icon-button>
+              <ha-button
+                @click=${this._handleSetState}
+                .disabled=${!this._validJSON}
+                raised
+                >${this._i18n.localize(
+                  "ui.panel.config.tools.tabs.states.set_state"
+                )}</ha-button
+              >
+            </div>
           </div>
-        </div>
-      </ha-expansion-panel>
-      <tools-state-renderer
-        .narrow=${this.narrow}
-        .entities=${entities}
-        .virtualize=${entities.length > VIRTUALIZE_THRESHOLD}
-        .showAttributes=${this._showAttributes}
-        .showDevice=${this._showDevice}
-        .showArea=${this._showArea}
-        @states-tool-entity-selected=${this._entitySelected}
-      >
-        <ha-input-search
-          slot="filter-entities"
-          .label=${this._i18n.localize(
-            "ui.panel.config.tools.tabs.states.filter_entities"
-          )}
-          .value=${this._entityFilter}
-          @input=${this._entityFilterChanged}
-        ></ha-input-search>
-        <ha-input-search
-          slot="filter-states"
-          .label=${this._i18n.localize(
-            "ui.panel.config.tools.tabs.states.filter_states"
-          )}
-          type="search"
-          .value=${this._stateFilter}
-          @input=${this._stateFilterChanged}
-        ></ha-input-search>
-        <ha-input-search
-          slot="filter-devices"
-          .label=${this._i18n.localize(
-            "ui.panel.config.entities.picker.headers.device"
-          )}
-          type="search"
-          .value=${this._deviceFilter}
-          @input=${this._deviceFilterChanged}
-        ></ha-input-search>
-        <ha-input-search
-          slot="filter-areas"
-          .label=${this._i18n.localize("ui.panel.config.generic.headers.area")}
-          type="search"
-          .value=${this._areaFilter}
-          @input=${this._areaFilterChanged}
-        ></ha-input-search>
-        <ha-input-search
-          slot="filter-attributes"
-          .label=${this._i18n.localize(
-            "ui.panel.config.tools.tabs.states.filter_attributes"
-          )}
-          type="search"
-          .value=${this._attributeFilter}
-          @input=${this._attributeFilterChanged}
-        ></ha-input-search>
-      </tools-state-renderer>
+        </section>
+      </div>
     `;
   }
 
@@ -385,7 +403,7 @@ class HaPanelDevState extends LitElement {
     this._state = entityState.state;
     this._stateAttributes = entityState.attributes;
     this._updateEditor();
-    this._expanded = true;
+    this._stateSet = false;
     ev.preventDefault();
     window.scrollTo({ top: 0 });
   }
@@ -414,7 +432,7 @@ class HaPanelDevState extends LitElement {
     this._state = entityState.state;
     this._stateAttributes = entityState.attributes;
     this._updateEditor();
-    this._expanded = true;
+    this._stateSet = false;
   }
 
   private _stateChanged(ev: HASSDomTargetEvent<HaInput>) {
@@ -455,20 +473,9 @@ class HaPanelDevState extends LitElement {
     return this._getHistoryURL(entity.entity_id, entity.last_updated);
   }
 
-  private _expandedChanged(ev) {
-    this._expanded = ev.detail.expanded;
-    if (!ev.detail.expanded) {
-      // lit-virtulizer in state renderer will not show items
-      // if none were in view when panel was expanded
-      // so we fire scroll event to trigger a re-render
-      setTimeout(() => {
-        window.dispatchEvent(new Event("scroll"));
-      }, 100);
-    }
-  }
-
   private async _handleSetState() {
     this._error = "";
+    this._stateSet = false;
     if (!this._entityId) {
       showAlertDialog(this, {
         text: this._i18n.localize(
@@ -483,6 +490,7 @@ class HaPanelDevState extends LitElement {
         state: this._state,
         attributes: this._stateAttributes,
       });
+      this._stateSet = true;
     } catch (e: any) {
       this._error = e.body?.message || "Unknown error";
     }
@@ -671,27 +679,87 @@ class HaPanelDevState extends LitElement {
           --ha-input-padding-bottom: 0;
         }
 
+        .page {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+          gap: var(--ha-space-4);
+          align-items: start;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+
+        .list-column {
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+        }
+
         .heading {
           display: flex;
+          flex-wrap: wrap;
           justify-content: flex-start;
           align-items: center;
           gap: var(--ha-space-4);
         }
 
-        .heading h1 {
+        .heading-text {
           margin-right: auto;
+          margin-inline-end: auto;
+          min-width: 0;
+        }
+
+        h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+        }
+
+        .summary,
+        .hint {
+          margin: 0;
+          color: var(--secondary-text-color);
+        }
+
+        .hint {
+          font-size: var(--ha-font-size-s);
         }
 
         .filters-toggles {
           display: flex;
           align-items: center;
-          gap: var(--ha-space-4);
+          gap: var(--ha-space-2);
         }
 
         .heading .filters-toggles ha-checkbox {
           margin-right: 0;
           width: max-content;
           display: inline-flex;
+        }
+
+        .set-card {
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+          padding: var(--ha-space-5);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
+
+        h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .field-label {
+          margin: var(--ha-space-2) 0 var(--ha-space-1);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
         }
 
         .entity-id {
@@ -724,41 +792,38 @@ class HaPanelDevState extends LitElement {
           margin-top: var(--ha-space-4);
         }
 
-        ha-expansion-panel {
-          margin: 0 var(--ha-space-2) var(--ha-space-4);
-        }
-
-        ha-expansion-panel p {
-          padding: 0 var(--ha-space-2);
-        }
-
         .inputs {
           width: 100%;
-          max-width: 800px;
         }
 
-        .info {
-          padding: 0 var(--ha-space-4);
+        .info p {
+          margin: var(--ha-space-2) 0 0;
+          font-size: var(--ha-font-size-s);
+        }
+
+        .info a {
+          color: var(--primary-color);
         }
 
         .button-row {
           display: flex;
-          margin: var(--ha-space-2) 0;
+          justify-content: flex-end;
+          margin: var(--ha-space-4) 0 0;
           align-items: center;
           gap: var(--ha-space-2);
         }
 
-        :host([narrow]) .state-wrapper {
-          flex-direction: column;
+        :host([narrow]) {
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
         }
 
-        :host([narrow]) .info {
-          padding: 0;
+        :host([narrow]) .page {
+          grid-template-columns: minmax(0, 1fr);
         }
 
-        .flex-horizontal {
-          display: flex;
-          flex-direction: row;
+        :host([narrow]) .set-card {
+          order: -1;
+          padding: var(--ha-space-4);
         }
       `,
     ];

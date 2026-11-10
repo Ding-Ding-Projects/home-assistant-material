@@ -43,7 +43,6 @@ from ..coresys import CoreSysAttributes
 from ..exceptions import APIError
 from ..store.validate import repositories
 from ..utils.blockbuster import BlockBusterManager
-from ..utils.sentry import close_sentry, init_sentry
 from ..utils.validate import validate_timezone
 from ..validate import version_tag, wait_boot
 from .const import CONTENT_TYPE_TEXT, DetectBlockingIO
@@ -201,13 +200,10 @@ class APISupervisor(CoreSysAttributes):
             self.sys_config.debug_block = body[ATTR_DEBUG_BLOCK]
 
         if ATTR_DIAGNOSTICS in body:
-            self.sys_config.diagnostics = body[ATTR_DIAGNOSTICS]
-            await self.sys_dbus.agent.set_diagnostics(body[ATTR_DIAGNOSTICS])
-
-            if body[ATTR_DIAGNOSTICS]:
-                init_sentry(self.coresys)
-            else:
-                close_sentry()
+            # Diagnostics and crash reporting cannot be enabled in this build;
+            # whatever was requested, keep everything off.
+            self.sys_config.diagnostics = False
+            await self.sys_dbus.agent.set_diagnostics(False)
 
         if ATTR_LOGGING in body:
             self.sys_config.logging = body[ATTR_LOGGING]

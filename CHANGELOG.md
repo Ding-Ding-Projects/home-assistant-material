@@ -8,6 +8,17 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Nothing is sent out any more. The analytics integration, its page and its first-run step are
+  gone, the supervisor's crash reports and diagnostics are off, and the buttons that reported
+  an issue or gave feedback are removed.
+- Problems are kept on this system instead. Settings, System, Problem log lists every warning
+  and error, one entry per problem with a count and when it was first and last seen. They are
+  files in a Git repository in the configuration folder, with passwords, tokens, addresses and
+  other private values removed. Nothing leaves the system unless you add a remote yourself.
+- A wording file that loads gets a short celebration over the whole window and a sound; one
+  that is refused gets a different sound and a clear message.
+- Storage, General, Hardware and Network are drawn to their boards, and so are the States,
+  Actions and Template pages of the developer tools. General has one Save and one Discard.
 - Everyday pages start on their boards: Lights opens with how many are on and a card for
   each room; Security shows each alarm with arm and disarm; Climate draws the first
   thermostat large; the Map lists where everyone is; Activity, History, To-do, Calendar and

@@ -26,7 +26,6 @@ vi.mock("../../../../src/layouts/hass-subpage", () => {
   customElements.define("hass-subpage", class extends HTMLElement {});
   return {};
 });
-vi.mock("../../../../src/panels/config/core/ha-config-analytics", () => ({}));
 vi.mock("../../../../src/components/ha-segmented-bar", () => {
   customElements.define("ha-segmented-bar", class extends HTMLElement {});
   return {};

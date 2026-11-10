@@ -6,7 +6,7 @@ import { customElement, property, query, state } from "lit/decorators";
 import {
   importWordingFile,
   looksLikeWordingFile,
-  showWordingOverlay,
+  reportWordingImport,
 } from "../common/vocabulary/wording-import";
 import { showToast } from "../util/toast";
 import {
@@ -294,17 +294,12 @@ export class HomeAssistantMain extends LitElement {
     }
     // Never let a dropped file replace the page.
     ev.preventDefault();
-    if (files.length !== 1 || !looksLikeWordingFile(files[0])) {
-      return;
-    }
-    const result = await importWordingFile(files[0]);
+    const result =
+      files.length === 1 && looksLikeWordingFile(files[0])
+        ? await importWordingFile(files[0])
+        : ({ ok: false, error: "not_json" } as const);
+    reportWordingImport(result, this.hass.localize);
     if (result.ok) {
-      showWordingOverlay(
-        this.hass.localize("ui.personal_wording.overlay_title"),
-        this.hass.localize("ui.personal_wording.overlay_count", {
-          count: result.count,
-        })
-      );
       return;
     }
     showToast(this, {

@@ -3249,7 +3249,7 @@
       "loaded": "{count, plural,\n  one {# entry is in use}\n  other {# entries are in use}\n}, schema version 1.",
       "loaded_label": "Loaded now",
       "clear_note": "Clearing removes the cached copy and returns every label to the shipped wording.",
-      "overlay_title": "Your private vocabulary is loaded",
+      "overlay_title": "Personal wording applied",
       "overlay_count": "{count, plural,\n  one {# label now speaks your way}\n  other {# labels now speak your way}\n}",
       "cleared": "The shipped wording is back.",
       "not_applied": "The file was not applied. Your current wording is unchanged.",
@@ -3266,7 +3266,8 @@
         "bad_key": "A key is empty or longer than 160 characters.",
         "bad_value": "A value is not text, or is longer than 1,000 characters.",
         "control_character": "A key or value contains a control character or a line break.",
-        "unreadable": "The file could not be read."
+        "unreadable": "The file could not be read.",
+        "not_json": "Drop one JSON wording file."
       }
     },
     "appearance_editor": {
@@ -3925,6 +3926,10 @@
           "apps": {
             "main": "Apps",
             "secondary": "Run extra applications next to Home Assistant"
+          },
+          "problem_log": {
+            "main": "Problem log",
+            "secondary": "Problems recorded on this machine, with nothing sent anywhere"
           },
           "guided_setup": {
             "main": "Guided setup",
@@ -5355,6 +5360,13 @@
               "no_template_ui_support": "The UI does not support templates, you can still use the YAML editor.",
               "copy_clipboard_template": "Copy to clipboard as template",
               "open_media": "Open media",
+              "result_placeholder": "Perform an action to see its result here.",
+              "result_done": "Done in {seconds} seconds",
+              "result_done_detail": "The action {action} finished without an error.",
+              "result_failed": "The action did not complete",
+              "result_running": "Running the action",
+              "what_was_sent": "What was sent",
+              "copy_yaml": "Copy as YAML",
               "errors": {
                 "ui": {
                   "no_action": "No action selected, please select an action",
@@ -5389,7 +5401,10 @@
               "alert_entity_field": "Entity is a mandatory field",
               "last_updated": "[%key:ui::dialogs::more_info_control::last_updated%]",
               "last_changed": "[%key:ui::dialogs::more_info_control::last_changed%]",
-              "copy_id": "Copy ID to clipboard"
+              "copy_id": "Copy ID to clipboard",
+              "entity_count": "{count} entities.",
+              "select_hint": "Select an entity to load it into the form.",
+              "state_set": "State set. Home Assistant reports the new value until the next real update."
             },
             "templates": {
               "title": "Template",
@@ -5406,6 +5421,14 @@
               "confirm_reset": "Do you want to reset your current template back to the demo template?",
               "confirm_clear": "Do you want to clear your current template?",
               "result_type": "Result type",
+              "rendered_in": "Worked out in {ms} ms.",
+              "listens_to": "This template listens to",
+              "listens_domain": "Every entity in the {domain} domain",
+              "listens_entity_detail": "State changes",
+              "listens_time": "The time",
+              "listens_time_detail": "Updates at the start of each minute",
+              "listens_all": "Every entity",
+              "listens_all_detail": "Updates on every state change",
               "docs_introduction": "Introduction to templating",
               "docs_introduction_description": "Start here for a step-by-step guide.",
               "docs_states": "Working with states",
@@ -5996,7 +6019,13 @@
                 "update_units_text_3": "Note: The unit of temperature sensors is always updated.",
                 "update_units_confirm_title": "The unit of sensors will be updated",
                 "update_units_confirm_text": "The unit system has been changed, and the unit of some sensors like distance and speed will be updated.",
-                "update_units_confirm_update": "Update"
+                "update_units_confirm_update": "Update",
+                "discard_button": "Discard",
+                "summary": "{name}. Time zone {time_zone}, {units}.",
+                "summary_metric": "metric units",
+                "summary_us_customary": "US customary units",
+                "location_hint": "Used for sunrise and sunset, and by weather and location-based integrations.",
+                "no_home_zone": "No home location is set yet."
               },
               "home_name_card": {
                 "header": "Home name"
@@ -6052,7 +6081,17 @@
           "configure": "Configure",
           "documentation_description": "Find extra information about your device",
           "restart_homeassistant": "[%key:ui::panel::config::system_dashboard::restart_homeassistant%]",
-          "loading_system_data": "Loading processor and memory data..."
+          "loading_system_data": "Loading processor and memory data...",
+          "restart": "[%key:ui::panel::config::system_dashboard::restart_short%]",
+          "live": "Live",
+          "peak_recent": "Highest in the last {minutes} minutes: {value}",
+          "memory_of": "{used} of {total}",
+          "fact_memory": "{memory} memory.",
+          "fact_os": "Home Assistant OS {version}.",
+          "connected_hardware": "Connected hardware",
+          "no_connected_hardware": "No extra hardware found",
+          "all_hardware": "All hardware",
+          "board_details": "Board details"
         },
         "info": {
           "caption": "About",
@@ -6061,7 +6100,7 @@
             "built_unknown": "This build does not carry the time it was made.",
             "read_from_build": "Read from the running build itself, not from the clock or a file date.",
             "updates": "Updates",
-            "report": "Report a problem",
+            "report": "Problem log",
             "source_title": "Where updates come from",
             "source_text": "This build checks the feed of its own project, so an update never swaps this interface for another one.",
             "source_supervised": "Updates from this feed are offered under Settings, System, Updates.",
@@ -6164,35 +6203,9 @@
           "startups_ago": "{boot} startups ago",
           "detail": {
             "logger": "Logger",
-            "report_issue": {
-              "frontend": {
-                "introduction": "This log entry was reported by a browser (or the Home Assistant app).",
-                "report": "If you think it relates to Home Assistant’s user interface, {report_link}.",
-                "guidance": "Core, custom integrations, or custom Frontend modules may also be involved. See the {guide_link} for further guidance.",
-                "link_text": "report it on the Frontend repository"
-              },
-              "core": {
-                "introduction": "This log entry was reported by Home Assistant Core.",
-                "report": "If you think it indicates a bug, {report_link}.",
-                "guidance": "See the {guide_link} for further guidance.",
-                "link_text": "report it on the Core repository"
-              },
-              "custom": {
-                "introduction": "This log entry is from {integration}, a custom integration.",
-                "report": "If you think it indicates a bug, you can {report_link}.",
-                "link_text": "report it on its issue tracker"
-              },
-              "custom_fallback": {
-                "introduction": "This log entry is from {integration}, a custom integration. Its issue tracker is unavailable.",
-                "report": "If you think it indicates a Home Assistant Core bug, {report_link}.",
-                "guidance": "See the {guide_link} for further guidance."
-              },
-              "guide_link_text": "reporting guide"
-            },
             "source": "Source",
             "integration": "[%key:ui::components::related-items::integration%]",
             "documentation": "documentation",
-            "issues": "issues",
             "first_occurred": "First occurred",
             "number_of_occurrences": "{count} {count, plural,\n one {occurrence}\n other {occurrences}\n}",
             "last_logged": "Last logged"
@@ -8998,7 +9011,6 @@
             "documentation": "Documentation",
             "download_diagnostics": "Download diagnostics",
             "disable_debug_logging": "Disable debug logging",
-            "known_issues": "Known issues",
             "delete": "Delete",
             "delete_confirm_title": "Delete {title}?",
             "delete_confirm_text": "Its devices and entities will be permanently deleted.",
@@ -9753,10 +9765,6 @@
             "visualization_description": "Visualize the network topology and device connections",
             "statistics_description": "View adapter and network communication statistics",
             "logs_description": "View and download Z-Wave logs",
-            "analytics_title": "Analytics",
-            "analytics_description": "Share anonymized telemetry and statistics with Z-Wave JS",
-            "analytics_on": "On",
-            "analytics_off": "Off",
             "driver_version": "Driver version",
             "server_version": "Server version",
             "home_id": "Home ID",
@@ -10636,6 +10644,29 @@
           "join_newsletter": "Newsletter",
           "media_storage": "You can add additional storage to your Home Assistant instance in the {storage} panel."
         },
+        "problem_log": {
+          "caption": "Problem log",
+          "title": "Recorded problems",
+          "nothing_sent": "Nothing is sent anywhere. Problems are written only to a Git repository on this machine, and no report leaves it unless you add a remote yourself.",
+          "location": "The repository is at {path}.",
+          "remote_none": "It has no remote, so it stays on this machine. To keep a copy elsewhere, run git remote add origin in that folder yourself; commits are then pushed to the remote named origin.",
+          "remote_set": "It has a remote named origin that you added, so new commits are pushed there.",
+          "git_missing": "The git program was not found on this machine, so problems are saved as files without commits.",
+          "search": "Search {count} problems",
+          "matches": "{count} of {total} match",
+          "empty": "No problems have been recorded.",
+          "empty_search": "No recorded problem matches the search.",
+          "loading": "Loading recorded problems",
+          "refresh": "Refresh",
+          "count": "{count, plural,\n  one {# time}\n  other {# times}\n}",
+          "first_seen": "First seen",
+          "last_seen": "Last seen",
+          "logger": "Logger",
+          "version": "Version",
+          "file": "File",
+          "dialog_hint": "Problems like this one are recorded in the {link}. Nothing is sent anywhere.",
+          "dialog_hint_link": "problem log"
+        },
         "analytics": {
           "caption": "Analytics",
           "header": "Home Assistant",
@@ -10851,8 +10882,6 @@
             "description": "There are currently no preview features available to try. Check back in future releases for new features!"
           },
           "learn_more": "Learn more",
-          "provide_feedback": "Provide feedback",
-          "report_issue": "Report issue",
           "enable": "Enable",
           "disable": "Disable",
           "enable_title": "Enable preview feature?",
@@ -10881,6 +10910,9 @@
           "description": "External access {state}",
           "enabled": "enabled",
           "disabled": "disabled",
+          "summary_home": "Home Assistant is reachable at {address}.",
+          "summary_away_on": "An address away from home is set.",
+          "summary_away_off": "No address away from home is set.",
           "supervisor": {
             "title": "Configure network interfaces",
             "connected_to": "Connected to {ssid}",
@@ -10904,6 +10936,10 @@
             "dns_server": "DNS server",
             "add_dns_server": "Add DNS server",
             "custom_dns": "Custom",
+            "adapter_ethernet": "Ethernet, {name}",
+            "adapter_wifi": "Wi-Fi, {name}",
+            "not_connected": "Not connected",
+            "in_use": "In use",
             "unsaved": "You have unsaved changes, these will get lost if you change tabs, do you want to continue?",
             "failed_to_change": "Failed to change network settings",
             "hostname": {
@@ -11026,6 +11062,15 @@
           "lifetime_description": "{lifetime} used",
           "lifetime_used_description": "The drive’s wear level is shown as a percentage, based on endurance indicators reported by the device via NVMe SMART or eMMC lifetime estimate fields.",
           "disk_metrics": "Disk metrics",
+          "this_machine": "Storage on this machine",
+          "figure": "{used} of {total}",
+          "the_disk": "The disk",
+          "drive_wear": "Drive wear",
+          "drive_wear_description": "{lifetime} of the rated lifetime used",
+          "move_data": "Move data to another disk",
+          "move_data_description": "A larger or faster one",
+          "move_action": "Move",
+          "mounts_description": "Network shares and extra disks for backups, media and files",
           "change_chart_type": "Change chart type",
           "datadisk": {
             "title": "Move data disk",
@@ -14206,32 +14251,6 @@
           "finish": "Finish",
           "all_set": "All set!",
           "lets_start": "Let’s start your private smart home adventure."
-        },
-        "analytics": {
-          "header": "Help us help you",
-          "finish": "Next",
-          "waiting": "Waiting for Home Assistant to finish starting up…",
-          "preferences": {
-            "base": {
-              "title": "[%key:ui::panel::config::analytics::preferences::base::title%]",
-              "description": "[%key:ui::panel::config::analytics::preferences::base::description%]"
-            },
-            "usage": {
-              "title": "[%key:ui::panel::config::analytics::preferences::usage::title%]",
-              "description": "[%key:ui::panel::config::analytics::preferences::usage::description%]"
-            },
-            "statistics": {
-              "title": "[%key:ui::panel::config::analytics::preferences::statistics::title%]",
-              "description": "[%key:ui::panel::config::analytics::preferences::statistics::description%]"
-            },
-            "diagnostics": {
-              "title": "[%key:ui::panel::config::analytics::preferences::diagnostics::title%]",
-              "description": "[%key:ui::panel::config::analytics::preferences::diagnostics::description%]"
-            }
-          },
-          "need_base_enabled": "[%key:ui::panel::config::analytics::need_base_enabled%]",
-          "learn_more": "[%key:ui::panel::config::analytics::learn_more%]",
-          "intro": "[%key:ui::panel::config::analytics::intro%]"
         },
         "restore": {
           "header": "Restore a backup",

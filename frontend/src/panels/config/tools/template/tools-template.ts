@@ -1,23 +1,26 @@
 import {
-  mdiRestore,
-  mdiTrashCanOutline,
+  mdiFlashOutline,
+  mdiInformationOutline,
+  mdiShapeOutline,
+  mdiClockOutline,
   mdiViewSplitHorizontal,
   mdiViewSplitVertical,
 } from "@mdi/js";
-import memoizeOne from "memoize-one";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import type { HASSDomTargetEvent } from "../../../../common/dom/fire_event";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import type { LocalizeKeys } from "../../../../common/translations/localize";
 import { debounce } from "../../../../common/util/debounce";
 import "../../../../components/ha-alert";
+import "../../../../components/ha-button";
+import "../../../../components/ha-icon-button";
 import "../../../../components/ha-card";
 import "../../../../components/ha-code-editor";
 import "../../../../components/ha-expansion-panel";
-import type { HaIconButtonToolbarItem } from "../../../../components/ha-icon-button-toolbar";
 import "../../../../components/ha-label";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-split-panel";
@@ -83,6 +86,10 @@ class HaPanelDevTemplate extends LitElement {
   @state() private _templateResult?: RenderTemplateResult;
 
   @state() private _unsubRenderTemplate?: Promise<UnsubscribeFunc>;
+
+  @state() private _renderMs?: number;
+
+  private _renderStartedAt = 0;
 
   @state() private _splitPosition = DEFAULT_SPLIT_POSITION;
 
@@ -201,7 +208,11 @@ class HaPanelDevTemplate extends LitElement {
         @wa-reposition=${this._splitRepositioned}
       >
         <div slot="start" class="pane">${editorCard}</div>
-        <div slot="end" class="pane">${resultCard}</div>
+        <div slot="end" class="pane">
+          <div class="stack ha-scrollbar">
+            ${resultCard} ${this._renderListenersCard()}
+          </div>
+        </div>
         ${this.narrow ? nothing : this._renderOrientationToggle()}
       </ha-split-panel>
     `;
@@ -235,42 +246,29 @@ class HaPanelDevTemplate extends LitElement {
     `;
   }
 
-  // Reset/clear live in the editor toolbar next to the built-in undo/redo,
-  // copy, search and fullscreen buttons; the trailing divider separates them.
-  private _editorToolbarItems = memoizeOne(
-    (
-      localize: HomeAssistant["localize"]
-    ): (HaIconButtonToolbarItem | string)[] => [
-      {
-        id: "restore-demo",
-        label: localize("ui.panel.config.tools.tabs.templates.reset"),
-        path: mdiRestore,
-        action: () => this._restoreDemo(),
-      },
-      {
-        id: "clear",
-        label: localize("ui.common.clear"),
-        path: mdiTrashCanOutline,
-        action: () => this._clear(),
-      },
-      "divider",
-    ]
-  );
-
   private _renderEditorCard() {
     return html`
-      <ha-card
-        class="edit-pane"
-        header=${this.hass.localize(
-          "ui.panel.config.tools.tabs.templates.editor"
-        )}
-      >
+      <ha-card class="edit-pane">
+        <div class="card-header-row">
+          <h2>
+            ${this.hass.localize("ui.panel.config.tools.tabs.templates.editor")}
+          </h2>
+          <ha-button
+            appearance="plain"
+            size="small"
+            @click=${this._restoreDemo}
+          >
+            ${this.hass.localize("ui.panel.config.tools.tabs.templates.reset")}
+          </ha-button>
+          <ha-button appearance="plain" size="small" @click=${this._clear}>
+            ${this.hass.localize("ui.common.clear")}
+          </ha-button>
+        </div>
         <div class="card-content">
           <ha-code-editor
             mode="jinja2"
             .value=${this._template}
             .error=${this._error}
-            .toolbarItems=${this._editorToolbarItems(this.hass.localize)}
             autofocus
             autocomplete-entities
             autocomplete-icons
@@ -305,13 +303,13 @@ class HaPanelDevTemplate extends LitElement {
       !this._error && !this._rendering && !this._template?.trim();
 
     return html`
-      <ha-card
-        class="render-pane"
-        header=${this.hass.localize(
-          "ui.panel.config.tools.tabs.templates.result"
-        )}
-      >
-        <div class="card-content ha-scrollbar">
+      <ha-card class="render-pane">
+        <div class="card-header-row">
+          <h2>
+            ${this.hass.localize("ui.panel.config.tools.tabs.templates.result")}
+          </h2>
+        </div>
+        <div class="card-content">
           ${
             this._rendering
               ? html`<ha-spinner
@@ -337,91 +335,134 @@ class HaPanelDevTemplate extends LitElement {
                 </div>`
               : this._templateResult
                 ? html`
-                    <ha-label dense>
-                      ${this.hass.localize(
-                        "ui.panel.config.tools.tabs.templates.result_type"
-                      )}:
-                      ${resultType}
-                    </ha-label>
                     <pre class="rendered">
 ${
                         type === "object"
                           ? JSON.stringify(this._templateResult.result, null, 2)
                           : this._templateResult.result
                       }</pre>
-                    ${
-                      this._templateResult.listeners.time
-                        ? html`
-                            <p>
-                              ${this.hass.localize(
-                                "ui.panel.config.tools.tabs.templates.time"
-                              )}
-                            </p>
-                          `
-                        : ""
-                    }
-                    ${
-                      !this._templateResult.listeners
-                        ? nothing
-                        : this._templateResult.listeners.all
-                          ? html`
-                              <p class="all_listeners">
-                                ${this.hass.localize(
-                                  "ui.panel.config.tools.tabs.templates.all_listeners"
-                                )}
-                              </p>
-                            `
-                          : this._templateResult.listeners.domains.length ||
-                              this._templateResult.listeners.entities.length
-                            ? html`
-                                <p>
-                                  ${this.hass.localize(
-                                    "ui.panel.config.tools.tabs.templates.listeners"
-                                  )}
-                                </p>
-                                <ul>
-                                  ${this._templateResult.listeners.domains
-                                    .sort()
-                                    .map(
-                                      (domain) => html`
-                                        <li>
-                                          <b
-                                            >${this.hass.localize(
-                                              "ui.panel.config.tools.tabs.templates.domain"
-                                            )}</b
-                                          >: ${domain}
-                                        </li>
-                                      `
-                                    )}
-                                  ${this._templateResult.listeners.entities
-                                    .sort()
-                                    .map(
-                                      (entity_id) => html`
-                                        <li>
-                                          <b
-                                            >${this.hass.localize(
-                                              "ui.panel.config.tools.tabs.templates.entity"
-                                            )}</b
-                                          >: ${entity_id}
-                                        </li>
-                                      `
-                                    )}
-                                </ul>
-                              `
-                            : !this._templateResult.listeners.time
-                              ? html`<span class="all_listeners">
-                                  ${this.hass.localize(
-                                    "ui.panel.config.tools.tabs.templates.no_listeners"
-                                  )}
-                                </span>`
-                              : nothing
-                    }
+                    <div class="result-meta">
+                      <ha-label dense>${resultType}</ha-label>
+                      ${
+                        this._renderMs !== undefined
+                          ? html`<span class="secondary"
+                              >${this.hass.localize(
+                                "ui.panel.config.tools.tabs.templates.rendered_in",
+                                { ms: this._renderMs }
+                              )}</span
+                            >`
+                          : nothing
+                      }
+                    </div>
                   `
                 : nothing
           }
         </div>
       </ha-card>
     `;
+  }
+
+  private _renderListenersCard() {
+    const listeners = this._templateResult?.listeners;
+    if (!listeners || (this._error && !this._templateResult)) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    const rows: {
+      icon: string;
+      title: string;
+      detail: string;
+      entityId?: string;
+    }[] = [];
+    if (listeners.all) {
+      rows.push({
+        icon: mdiShapeOutline,
+        title: localize("ui.panel.config.tools.tabs.templates.listens_all"),
+        detail: localize(
+          "ui.panel.config.tools.tabs.templates.listens_all_detail"
+        ),
+      });
+    } else {
+      [...listeners.domains].sort().forEach((domain) =>
+        rows.push({
+          icon: mdiShapeOutline,
+          title: localize(
+            "ui.panel.config.tools.tabs.templates.listens_domain",
+            { domain }
+          ),
+          detail: localize(
+            "ui.panel.config.tools.tabs.templates.listens_entity_detail"
+          ),
+        })
+      );
+      [...listeners.entities].sort().forEach((entityId) =>
+        rows.push({
+          icon: mdiFlashOutline,
+          title: entityId,
+          detail: localize(
+            "ui.panel.config.tools.tabs.templates.listens_entity_detail"
+          ),
+          entityId,
+        })
+      );
+    }
+    if (listeners.time) {
+      rows.push({
+        icon: mdiClockOutline,
+        title: localize("ui.panel.config.tools.tabs.templates.listens_time"),
+        detail: localize(
+          "ui.panel.config.tools.tabs.templates.listens_time_detail"
+        ),
+      });
+    }
+    return html`
+      <ha-card class="listeners-card">
+        <div class="card-header-row">
+          <h2>
+            ${localize("ui.panel.config.tools.tabs.templates.listens_to")}
+          </h2>
+        </div>
+        <div class="card-content">
+          ${
+            rows.length
+              ? rows.map(
+                  (row) => html`
+                    <div class="listener">
+                      <div class="listener-tile">
+                        <ha-svg-icon .path=${row.icon}></ha-svg-icon>
+                      </div>
+                      <div class="listener-text">
+                        <div class="listener-title">${row.title}</div>
+                        <div class="secondary">${row.detail}</div>
+                      </div>
+                      ${
+                        row.entityId
+                          ? html`<ha-icon-button
+                              .path=${mdiInformationOutline}
+                              .label=${localize(
+                                "ui.panel.config.tools.tabs.states.more_info"
+                              )}
+                              .entityId=${row.entityId}
+                              @click=${this._showMoreInfo}
+                            ></ha-icon-button>`
+                          : nothing
+                      }
+                    </div>
+                  `
+                )
+              : html`<span class="all_listeners">
+                  ${localize("ui.panel.config.tools.tabs.templates.no_listeners")}
+                </span>`
+          }
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _showMoreInfo(ev: Event) {
+    const entityId = (ev.currentTarget as HTMLElement & { entityId: string })
+      .entityId;
+    fireEvent(this, "hass-more-info", { entityId });
   }
 
   private _splitRepositioned(ev: HASSDomTargetEvent<HaSplitPanel>) {
@@ -560,6 +601,84 @@ ${
           flex-direction: column;
           height: 100%;
           margin: 0;
+          --ha-card-border-radius: var(--ha-border-radius-3xl);
+        }
+
+        .stack {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-4);
+          flex: 1;
+          min-width: 0;
+          min-height: 0;
+          overflow: auto;
+        }
+
+        .stack ha-card {
+          flex: none;
+          height: auto;
+        }
+
+        .card-header-row {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-4) var(--ha-space-4) 0;
+        }
+
+        .card-header-row h2 {
+          flex: 1;
+          min-width: 0;
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .result-meta {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+
+        .secondary {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .listener {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          padding: var(--ha-space-2) 0;
+        }
+
+        .listener-tile {
+          display: flex;
+          flex: none;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--secondary-background-color);
+        }
+
+        .listener-text {
+          flex: 1;
+          min-width: 0;
+          word-break: break-word;
+        }
+
+        .listener-title {
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .listeners-card .card-content {
+          display: flex;
+          flex-direction: column;
         }
 
         .edit-pane .card-content {
@@ -705,6 +824,8 @@ ${
     this._error = undefined;
     this._errorLevel = undefined;
     this._templateResult = undefined;
+    this._renderMs = undefined;
+    this._renderStartedAt = performance.now();
     try {
       this._unsubRenderTemplate = subscribeRenderTemplate(
         this.hass.connection,
@@ -720,6 +841,11 @@ ${
               this._errorLevel = result.level;
             }
           } else {
+            if (this._renderMs === undefined) {
+              this._renderMs = Math.round(
+                performance.now() - this._renderStartedAt
+              );
+            }
             this._templateResult = result;
           }
         },

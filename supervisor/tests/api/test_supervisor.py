@@ -208,25 +208,15 @@ async def test_api_supervisor_options_diagnostics(
     await os_agent_service.ping()
     assert coresys.dbus.agent.diagnostics is False
 
-    with patch("supervisor.utils.sentry.sentry_sdk.init") as sentry_init:
-        response = await api_client.post(
-            f"{prefix}/supervisor/options", json={"diagnostics": True}
-        )
-        assert response.status == 200
-        sentry_init.assert_called_once()
-
-    await os_agent_service.ping()
-    assert coresys.dbus.agent.diagnostics is True
-
-    with patch("supervisor.api.supervisor.close_sentry") as close_sentry:
-        response = await api_client.post(
-            f"{prefix}/supervisor/options", json={"diagnostics": False}
-        )
-        assert response.status == 200
-        close_sentry.assert_called_once()
+    # Diagnostics cannot be enabled in this build, whatever is requested.
+    response = await api_client.post(
+        f"{prefix}/supervisor/options", json={"diagnostics": True}
+    )
+    assert response.status == 200
 
     await os_agent_service.ping()
     assert coresys.dbus.agent.diagnostics is False
+    assert coresys.config.diagnostics is False
 
 
 async def test_api_supervisor_logs(advanced_logs_tester):
