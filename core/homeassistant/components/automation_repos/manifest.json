@@ -1,0 +1,9 @@
+{
+  "domain": "automation_repos",
+  "name": "Automation repositories",
+  "codeowners": [],
+  "dependencies": ["automation", "websocket_api"],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/automation-repositories.md",
+  "integration_type": "system",
+  "quality_scale": "internal"
+}
