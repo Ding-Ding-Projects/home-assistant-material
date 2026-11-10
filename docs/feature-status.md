@@ -17,6 +17,19 @@ What exists today, stated plainly. "Designed" means a board exists in `design/` 
 | Dedicated build application | Not started |  |
 | Project website | Not started |  |
 
+## Checked in published images
+
+Published images have been pulled from the registry and run, not only built:
+
+| Build | What was checked in the running image |
+| --- | --- |
+| `2026.11.1.26` | Starts, first-run setup completes, the interface loads; the pattern workbench on the Entities table; `host.sh` end to end |
+| `2026.11.1.29` | The version shown is 29; the menu on an element and the appearance tools; the private vocabulary card |
+
+The automation repositories and the history manager were checked in a running image with the
+integration added as a custom integration and the frontend served from this repository. They are
+in build 30 and later, which had not finished building when this was written.
+
 ## Interface
 
 | Feature | State | Where |

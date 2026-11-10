@@ -26,10 +26,12 @@ exactly what has been seen working and where.
 
 ## Hosting
 
-- [ ] `compose.yaml` that runs the published image, with the port and storage mapped
-- [ ] `host.bat` and `host.sh`: pull, start, wait for health, print the address; a detached mode
-      and a live log view
-- [ ] A live demo of the interface, built and published by the release workflow
+- [x] `compose.yaml` that runs the published image, with the port and storage mapped
+- [~] `host.sh` and `host.bat`: pull, start, wait for health, print the address; a detached mode
+      and a live log view. `host.sh` was run for real on Linux; `host.bat` has not been run on
+      Windows
+- [ ] A live demo of the interface on the web. The demo build expects to be served from the root
+      of a domain, so it needs its own domain or sub-path support first
 - [ ] A setup wizard for Windows that performs the same steps
 
 ## Shell and cross-cutting features
