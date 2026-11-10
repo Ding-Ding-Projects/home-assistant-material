@@ -1,0 +1,660 @@
+name: Release
+
+# Every push to main publishes one new tagged release.
+# This workflow runs no tests and no lint. It builds, packages and publishes.
+# Pushes that only touch documentation or design files publish a release that points at
+# the most recent full build instead of rebuilding the images.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  prepare:
+    name: Create the release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      build: ${{ steps.v.outputs.build }}
+      tag: ${{ steps.v.outputs.tag }}
+      core: ${{ steps.v.outputs.core }}
+      core_base: ${{ steps.v.outputs.core_base }}
+      core_base_image: ${{ steps.v.outputs.core_base_image }}
+      supervisor: ${{ steps.v.outputs.supervisor }}
+      os: ${{ steps.v.outputs.os }}
+      registry: ${{ steps.v.outputs.registry }}
+      heavy: ${{ steps.v.outputs.heavy }}
+      started: ${{ steps.v.outputs.started }}
+      boards: ${{ steps.v.outputs.boards }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Work out versions
+        id: v
+        env:
+          BUILD: ${{ github.run_number }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          core_base="$(jq -r .core versions.json)"
+          core="${core_base}.${BUILD}"
+          {
+            echo "build=${BUILD}"
+            echo "tag=v${core}"
+            echo "core=${core}"
+            echo "core_base=${core_base}"
+            echo "core_base_image=$(jq -r .core_base_image versions.json)"
+            echo "supervisor=$(jq -r .supervisor versions.json).${BUILD}"
+            echo "os=$(jq -r .os versions.json).${BUILD}"
+            echo "registry=ghcr.io/$(jq -r .registry_owner versions.json)"
+            echo "started=$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            echo "boards=$(jq -c .os_boards versions.json)"
+          } >> "$GITHUB_OUTPUT"
+          heavy=true
+          if [ "${EVENT}" = "push" ] && git rev-parse --verify --quiet HEAD^ >/dev/null; then
+            if ! git diff --name-only HEAD^ HEAD | grep -Ev '^(design/|docs/|[^/]+\.md$)' | grep -q .; then
+              heavy=false
+            fi
+          fi
+          echo "heavy=${heavy}" >> "$GITHUB_OUTPUT"
+
+      - name: Count lines
+        id: lines
+        run: |
+          set -euo pipefail
+          own="$(git ls-files -- . ':!core' ':!frontend' ':!supervisor' ':!operating-system' ':!landingpage' ':!version' | xargs -d '\n' cat 2>/dev/null | wc -l)"
+          all="$(git ls-files | wc -l)"
+          echo "own=${own}" >> "$GITHUB_OUTPUT"
+          echo "files=${all}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+          HEAVY: ${{ steps.v.outputs.heavy }}
+          CORE: ${{ steps.v.outputs.core }}
+          SUPERVISOR: ${{ steps.v.outputs.supervisor }}
+          OS: ${{ steps.v.outputs.os }}
+          REGISTRY: ${{ steps.v.outputs.registry }}
+          OWN_LINES: ${{ steps.lines.outputs.own }}
+          FILES: ${{ steps.lines.outputs.files }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Home Assistant Material ${CORE}"
+            echo
+            echo "Source: ${GITHUB_SHA}"
+            echo
+            if [ "${HEAVY}" = "true" ]; then
+              echo "Build files are attached to this release as each build job finishes. Until a file is listed below, it has not been built yet. A newer push replaces unfinished builds."
+              echo
+              echo "| Part | Version | Where |"
+              echo "| --- | --- | --- |"
+              echo "| Container image (amd64 and arm64) | ${CORE} | \`${REGISTRY}/home-assistant-material:${CORE}\` |"
+              echo "| Core images per machine | ${CORE} | \`${REGISTRY}/<machine>-homeassistant:${CORE}\` |"
+              echo "| Supervisor images | ${SUPERVISOR} | \`${REGISTRY}/<arch>-hassio-supervisor:${SUPERVISOR}\` |"
+              echo "| Operating system images | ${OS} | attached files named \`haos_<board>-${OS}\` |"
+              echo "| Frontend wheel | $(jq -r .frontend versions.json) | attached \`.whl\` file |"
+            else
+              echo "This push changed documentation or design files only, so no images were rebuilt. Use the build files from the most recent release that lists them."
+            fi
+            echo
+            echo "### Checks"
+            echo
+            echo "This workflow runs no tests and no lint. Nothing in this release is claimed to be tested by the release pipeline. Job results for this run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "### Size"
+            echo
+            echo "${FILES} tracked files. ${OWN_LINES} lines outside the vendored upstream folders, counted by this workflow."
+          } > notes.md
+          gh release create "${TAG}" --target "${GITHUB_SHA}" --title "Home Assistant Material ${CORE}" --notes-file notes.md
+          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,url
+
+  frontend:
+    name: Build the frontend
+    needs: prepare
+    if: needs.prepare.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: heavy-frontend
+      cancel-in-progress: true
+    permissions:
+      contents: write
+    env:
+      NODE_OPTIONS: --max_old_space_size=6144
+      HUSKY: "0"
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if ! ./node_modules/.bin/gulp build-app; then
+            echo "::warning::Build with downloaded translations failed. Building again with English only."
+            SKIP_FETCH_NIGHTLY_TRANSLATIONS=1 ./node_modules/.bin/gulp build-app
+          fi
+
+      - name: Package the wheel
+        run: |
+          python3 -m pip install build
+          rm -rf dist home_assistant_frontend.egg-info
+          python3 -m build -q
+          ls -l dist
+          sha256sum dist/*.whl
+
+      - name: Keep the wheel for the image builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-wheel
+          path: frontend/dist/*.whl
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Attach the wheel to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release upload "${TAG}" dist/*.whl --clobber
+
+  translations:
+    name: Collect integration translations
+    needs: prepare
+    if: needs.prepare.outputs.heavy == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      # Upstream downloads integration translations from its translation service with a
+      # private token. The same files ship inside the upstream image for this core release,
+      # so they are copied from there.
+      - name: Copy translations from the upstream image
+        env:
+          CORE_BASE: ${{ needs.prepare.outputs.core_base }}
+        run: |
+          set -euo pipefail
+          container="$(docker create "ghcr.io/home-assistant/amd64-homeassistant:${CORE_BASE}")"
+          docker cp "${container}:/usr/src/homeassistant/homeassistant/components" components
+          docker rm "${container}" >/dev/null
+          find components -path '*/translations/*.json' | tar czf translations.tar.gz -T -
+          echo "$(tar tzf translations.tar.gz | wc -l) translation files"
+
+      - name: Keep the translations for the image builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: translations
+          path: translations.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  core:
+    name: Build ${{ matrix.arch }} core images
+    needs: [prepare, frontend, translations]
+    runs-on: ${{ matrix.runner }}
+    concurrency:
+      group: heavy-core-${{ matrix.arch }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    env:
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      CORE: ${{ needs.prepare.outputs.core }}
+      ARCH: ${{ matrix.arch }}
+      PLATFORM: ${{ matrix.platform }}
+      SOURCE: https://github.com/${{ github.repository }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Stamp versions
+        run: python3 scripts/ci/set-versions.py "${{ needs.prepare.outputs.build }}"
+
+      - name: Fetch the frontend wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-wheel
+          path: core
+
+      - name: Fetch the translations
+        uses: actions/download-artifact@v4
+        with:
+          name: translations
+          path: .
+
+      - name: Add translations and the image marker
+        run: |
+          set -euo pipefail
+          tar xzf translations.tar.gz -C core/homeassistant
+          rm translations.tar.gz
+          echo "${GITHUB_SHA};${GITHUB_REF};${GITHUB_EVENT_NAME};${GITHUB_ACTOR}" > core/rootfs/OFFICIAL_IMAGE
+          ls core/home_assistant_frontend-*.whl
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push the core image
+        run: |
+          set -euo pipefail
+          docker buildx build core \
+            --platform "${PLATFORM}" \
+            --build-arg "BUILD_FROM=ghcr.io/home-assistant/${ARCH}-homeassistant-base:${{ needs.prepare.outputs.core_base_image }}" \
+            --label "io.hass.arch=${ARCH}" \
+            --label "io.hass.version=${CORE}" \
+            --label "org.opencontainers.image.source=${SOURCE}" \
+            --label "org.opencontainers.image.version=${CORE}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --tag "${REGISTRY}/${ARCH}-homeassistant:${CORE}" \
+            --tag "${REGISTRY}/${ARCH}-homeassistant:latest" \
+            --push
+
+      - name: Build and push the machine images
+        run: |
+          set -euo pipefail
+          for machine in $(jq -r --arg arch "${ARCH}" '.machines[$arch][]' versions.json); do
+            echo "::group::${machine}"
+            docker buildx build core/machine \
+              --file "core/machine/${machine}" \
+              --platform "${PLATFORM}" \
+              --build-arg "BUILD_FROM=${REGISTRY}/${ARCH}-homeassistant:${CORE}" \
+              --label "org.opencontainers.image.source=${SOURCE}" \
+              --tag "${REGISTRY}/${machine}-homeassistant:${CORE}" \
+              --tag "${REGISTRY}/${machine}-homeassistant:latest" \
+              --push
+            echo "::endgroup::"
+          done
+
+      - name: Build and push the landing page image
+        run: |
+          set -euo pipefail
+          tags=()
+          for machine in $(jq -r --arg arch "${ARCH}" '.machines[$arch][]' versions.json); do
+            tags+=(--tag "${REGISTRY}/${machine}-homeassistant:landingpage")
+          done
+          docker buildx build landingpage \
+            --platform "${PLATFORM}" \
+            --label "io.hass.arch=${ARCH}" \
+            --label "io.hass.version=landingpage" \
+            --label "org.opencontainers.image.source=${SOURCE}" \
+            "${tags[@]}" \
+            --push
+
+  supervisor:
+    name: Build ${{ matrix.arch }} supervisor image
+    needs: prepare
+    if: needs.prepare.outputs.heavy == 'true'
+    runs-on: ${{ matrix.runner }}
+    concurrency:
+      group: heavy-supervisor-${{ matrix.arch }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    env:
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      SUPERVISOR: ${{ needs.prepare.outputs.supervisor }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push the supervisor image
+        run: |
+          set -euo pipefail
+          mkdir -p supervisor/wheels
+          docker buildx build supervisor \
+            --platform "${{ matrix.platform }}" \
+            --build-arg "BUILD_VERSION=${SUPERVISOR}" \
+            --label "io.hass.arch=${ARCH}" \
+            --label "io.hass.version=${SUPERVISOR}" \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.version=${SUPERVISOR}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --tag "${REGISTRY}/${ARCH}-hassio-supervisor:${SUPERVISOR}" \
+            --tag "${REGISTRY}/${ARCH}-hassio-supervisor:latest" \
+            --push
+
+  container:
+    name: Publish the container image and the update feed
+    needs: [prepare, core, supervisor]
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: heavy-container
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      packages: write
+    env:
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      CORE: ${{ needs.prepare.outputs.core }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Publish the multi-architecture container image
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "${REGISTRY}/home-assistant-material:${CORE}" \
+            --tag "${REGISTRY}/home-assistant-material:latest" \
+            "${REGISTRY}/amd64-homeassistant:${CORE}" \
+            "${REGISTRY}/aarch64-homeassistant:${CORE}"
+          docker buildx imagetools inspect "${REGISTRY}/home-assistant-material:${CORE}"
+
+      - name: Check that the images can be pulled without signing in
+        id: public
+        run: |
+          set -uo pipefail
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          if docker manifest inspect "${REGISTRY}/home-assistant-material:${CORE}" >/dev/null 2>&1; then
+            echo "public=true" >> "$GITHUB_OUTPUT"
+            echo "Images are public." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "public=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::The container images are not public. Devices cannot pull them until each package under the organization's Packages page is changed to Public."
+            {
+              echo "## Action needed: container images are private"
+              echo
+              echo "Open the organization's Packages page, and for each package of this repository choose Package settings, Change visibility, Public. Until then the operating system images and the updater cannot download these images."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publish the update feed
+        run: scripts/ci/publish-channel.sh "${{ needs.prepare.outputs.build }}"
+
+      - name: Attach the feed and note the images on the release
+        env:
+          PUBLIC: ${{ steps.public.outputs.public }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/make-channel-json.py "${{ needs.prepare.outputs.build }}" stable.json
+          gh release upload "${TAG}" stable.json --clobber
+          gh release view "${TAG}" --json body --jq .body > notes.md
+          {
+            echo
+            echo "### Container images"
+            echo
+            echo "Published $(date --utc +%Y-%m-%dT%H:%M:%SZ): \`docker pull ${REGISTRY}/home-assistant-material:${CORE}\`"
+            if [ "${PUBLIC}" != "true" ]; then
+              echo
+              echo "The images are currently private in the container registry. They must be made public in the organization's Packages settings before a device can pull them."
+            fi
+          } >> notes.md
+          gh release edit "${TAG}" --notes-file notes.md
+
+  os:
+    name: Build the ${{ matrix.board.id }} operating system image
+    needs: [prepare, container]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    concurrency:
+      group: heavy-os-${{ matrix.board.id }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ fromJson(needs.prepare.outputs.boards) }}
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      OS: ${{ needs.prepare.outputs.os }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Free space on the build drive
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift
+          sudo docker image prune --all --force >/dev/null
+          sudo mkdir -p /mnt/cache /mnt/output
+          sudo chown -R "$(id -u):$(id -g)" /mnt/cache /mnt/output
+          df -h / /mnt
+
+      - name: Stamp versions and pin the container versions
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/set-versions.py "${{ needs.prepare.outputs.build }}"
+          python3 scripts/ci/make-channel-json.py "${{ needs.prepare.outputs.build }}" operating-system/version-pinned.json
+
+      - name: Prepare the update signing key
+        id: key
+        env:
+          RAUC_CERTIFICATE: ${{ secrets.RAUC_CERTIFICATE }}
+          RAUC_PRIVATE_KEY: ${{ secrets.RAUC_PRIVATE_KEY }}
+        working-directory: operating-system
+        run: |
+          set -euo pipefail
+          if [ -n "${RAUC_CERTIFICATE}" ] && [ -n "${RAUC_PRIVATE_KEY}" ]; then
+            printf '%s\n' "${RAUC_CERTIFICATE}" > cert.pem
+            printf '%s\n' "${RAUC_PRIVATE_KEY}" > key.pem
+            echo "persistent=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No RAUC_CERTIFICATE and RAUC_PRIVATE_KEY secrets. This image is signed with a one-time key, so operating system updates over the air are not offered for it."
+            buildroot-external/scripts/generate-signing-key.sh cert.pem key.pem
+            echo "persistent=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore the compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /mnt/cache/cc
+          key: haos-cc-${{ matrix.board.id }}-${{ github.run_id }}
+          restore-keys: haos-cc-${{ matrix.board.id }}-
+
+      - name: Build the builder container
+        run: docker build --tag haos-builder operating-system
+
+      - name: Build the image
+        env:
+          DEFCONFIG: ${{ matrix.board.defconfig }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          auth="$(printf '%s:%s' "${ACTOR}" "${GH_TOKEN}" | base64 -w0)"
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "${auth}" > operating-system/.registry-auth.json
+          docker run --rm --privileged \
+            -e BUILDER_UID="$(id -u)" \
+            -e BUILDER_GID="$(id -g)" \
+            -v "${GITHUB_WORKSPACE}/operating-system:/build" \
+            -v /mnt/cache:/cache \
+            -v /mnt/output:/build/output \
+            haos-builder \
+            bash -c "mkdir -p ~/.docker && cp /build/.registry-auth.json ~/.docker/config.json && make HAOS_VERSION_JSON=/build/version-pinned.json ${DEFCONFIG}"
+          rm -f operating-system/.registry-auth.json
+          ls -l /mnt/output/images/haos_* || true
+
+      - name: Attach the images to the release
+        working-directory: /mnt/output/images
+        run: |
+          set -euo pipefail
+          sha256sum haos_* > "SHA256SUMS.${{ matrix.board.id }}"
+          cat "SHA256SUMS.${{ matrix.board.id }}"
+          gh release upload "${TAG}" haos_* "SHA256SUMS.${{ matrix.board.id }}" --clobber
+          {
+            echo "## ${{ matrix.board.label }} (${{ matrix.board.id }})"
+            echo
+            echo "| File | Size |"
+            echo "| --- | --- |"
+            for f in haos_*; do echo "| ${f} | $(du -h "${f}" | cut -f1) |"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record whether updates over the air can be offered
+        run: echo "${{ steps.key.outputs.persistent }}" > persistent.txt
+
+      - name: Keep the signing result
+        uses: actions/upload-artifact@v4
+        with:
+          name: os-signing-${{ matrix.board.id }}
+          path: persistent.txt
+          retention-days: 1
+
+      - name: Save the compiler cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: /mnt/cache/cc
+          key: haos-cc-${{ matrix.board.id }}-${{ github.run_id }}
+
+  finish:
+    name: Finish the release
+    needs: [prepare, frontend, core, supervisor, container, os]
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Fetch the signing results
+        if: needs.os.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: os-signing-*
+          path: signing
+          merge-multiple: false
+
+      - name: Offer the operating system update when it can be installed
+        if: needs.os.result == 'success'
+        run: |
+          set -euo pipefail
+          if grep -rqx "false" signing; then
+            echo "Operating system images were signed with a one-time key. The update feed keeps its operating system entries unchanged."
+          else
+            scripts/ci/publish-channel.sh "${{ needs.prepare.outputs.build }}" --os "${TAG}"
+          fi
+
+      - name: Write the results and timing into the release notes
+        if: needs.prepare.result == 'success'
+        env:
+          STARTED: ${{ needs.prepare.outputs.started }}
+          HEAVY: ${{ needs.prepare.outputs.heavy }}
+          R_FRONTEND: ${{ needs.frontend.result }}
+          R_CORE: ${{ needs.core.result }}
+          R_SUPERVISOR: ${{ needs.supervisor.result }}
+          R_CONTAINER: ${{ needs.container.result }}
+          R_OS: ${{ needs.os.result }}
+        run: |
+          set -euo pipefail
+          finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+          seconds=$(( $(date --utc --date "${finished}" +%s) - $(date --utc --date "${STARTED}" +%s) ))
+          gh release view "${TAG}" --json body --jq .body > notes.md
+          {
+            echo
+            echo "### Build results"
+            echo
+            if [ "${HEAVY}" = "true" ]; then
+              echo "| Job | Result |"
+              echo "| --- | --- |"
+              echo "| Frontend | ${R_FRONTEND} |"
+              echo "| Core and machine images | ${R_CORE} |"
+              echo "| Supervisor images | ${R_SUPERVISOR} |"
+              echo "| Container image and update feed | ${R_CONTAINER} |"
+              echo "| Operating system images | ${R_OS} |"
+              echo
+              echo "A result other than success means the files for that job are missing from this release."
+              echo
+            fi
+            echo "Workflow started ${STARTED}, finished ${finished}, ${seconds} seconds end to end."
+          } >> notes.md
+          gh release edit "${TAG}" --notes-file notes.md
+          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,assets --jq '{tagName, isDraft, isPrerelease, assets: [.assets[].name]}'

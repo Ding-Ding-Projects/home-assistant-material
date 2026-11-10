@@ -1,0 +1,11 @@
+# Build outputs created by build.sh, build.bat and build-installer.bat
+/core/home_assistant_frontend-*.whl
+/core/rootfs/OFFICIAL_IMAGE
+/config/
+/.cache/
+/dist/
+/operating-system/output/
+/operating-system/cert.pem
+/operating-system/key.pem
+/operating-system/version-pinned.json
+/operating-system/.registry-auth.json
