@@ -843,6 +843,9 @@ export class HaConfigEntities extends LitElement {
           "ui.panel.config.entities.picker.search",
           { number: filteredEntities.length }
         )}
+        .summary=${this.hass.localize("ui.panel.config.entities.picker.summary", {
+          number: filteredEntities.length,
+        })}
         has-filters
         .filters=${
           Object.values(this._filters).filter((filter) =>

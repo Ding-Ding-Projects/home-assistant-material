@@ -518,6 +518,9 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           "ui.panel.config.scene.picker.search",
           { number: scenes.length }
         )}
+        .summary=${this.hass.localize("ui.panel.config.scene.picker.summary", {
+          number: scenes.length,
+        })}
         selectable
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}

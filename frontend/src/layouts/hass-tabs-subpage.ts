@@ -15,6 +15,7 @@ import { canShowPage } from "../common/config/can_show_page";
 import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
+import { fireEvent } from "../common/dom/fire_event";
 import { isNavigationClick } from "../common/dom/is-navigation-click";
 import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState, navigate } from "../common/navigate";
@@ -45,6 +46,25 @@ const normalizePathname = (pathname: string): string =>
   pathname.endsWith("/") && pathname.length > 1
     ? pathname.slice(0, -1)
     : pathname;
+
+declare global {
+  interface HASSDomEvents {
+    /** The title of the page a layout shows, for content that repeats it. */
+    "page-title-changed": { title: string };
+  }
+}
+
+type SectionResolver = (tabs: PageNavigation[]) => string | undefined;
+
+let sectionResolver: SectionResolver | undefined;
+
+/**
+ * Lets a panel say which of its sections a set of tabs belongs to, as a
+ * translation key. The layout shows it in the breadcrumb.
+ */
+export const setPageSectionResolver = (resolver: SectionResolver): void => {
+  sectionResolver = resolver;
+};
 
 export interface PageNavigation {
   path: string;
@@ -114,6 +134,21 @@ export class HassTabsSubpage extends LitElement {
    */
   @property({ type: Boolean, attribute: "show-tabs", reflect: true })
   public showTabs = false;
+
+  /**
+   * Where the page sits, shown in small type above the title. Pages under
+   * Settings get "Settings" when nothing is given.
+   */
+  @property() public breadcrumb?: string;
+
+  /**
+   * Set when the content shows the page title as its heading, so the title
+   * in the header is not a second heading.
+   */
+  @property({ type: Boolean, attribute: "content-heading" })
+  public contentHeading = false;
+
+  private _announcedTitle?: string;
 
   @state() private _activeTab?: PageNavigation;
 
@@ -212,8 +247,11 @@ export class HassTabsSubpage extends LitElement {
       this._activeTab && this._tabName(this._activeTab, localize);
     const title = this.showTabs ? activeName : (tabs[0] as string);
     const hiddenHeading =
-      this._hasCustomHeader || this._hasCustomToolbar ? title : undefined;
+      !this.contentHeading && (this._hasCustomHeader || this._hasCustomToolbar)
+        ? title
+        : undefined;
     const locked = this._pageLock.locked;
+    const breadcrumb = this.breadcrumb ?? this._breadcrumb(title);
 
     return html`
       <div class="toolbar ${classMap({ narrow: this._narrow })}">
@@ -231,7 +269,17 @@ export class HassTabsSubpage extends LitElement {
             }
             <div class="main-title">
               <slot name="header" @slotchange=${this._headerSlotChanged}
-                >${title ? html`<h1>${title}</h1>` : ""}</slot
+                >${
+                  breadcrumb && !this._narrow
+                    ? html`<span class="breadcrumb">${breadcrumb}</span>`
+                    : nothing
+                }${
+                  !title
+                    ? ""
+                    : this.contentHeading
+                      ? html`<span class="bar-title">${title}</span>`
+                      : html`<h1>${title}</h1>`
+                }</slot
               >
             </div>
             <ha-page-tools
@@ -289,6 +337,52 @@ export class HassTabsSubpage extends LitElement {
         <slot name="fab"></slot>
       </div>
     `;
+  }
+
+  /** Where the page sits: the panel, then its section, when they are known. */
+  private _breadcrumb(title: string | undefined): string | undefined {
+    if (this.mainPage || !this.route?.prefix?.startsWith("/config")) {
+      return undefined;
+    }
+    const localize = this._i18n.localize;
+    const sectionKey = sectionResolver?.(this.tabs);
+    const parts = [
+      localize("panel.config"),
+      sectionKey ? localize(sectionKey as LocalizeKeys) : undefined,
+    ].filter((part): part is string => !!part && part !== title);
+    return parts.length ? parts.join(", ") : undefined;
+  }
+
+  /** The title shown in the header: the open tab, or the only page. */
+  private _title(): string | undefined {
+    const localize = this._i18n.localize;
+    const tabs = this._getTabs(
+      this.tabs,
+      this._activeTab,
+      this._hassConfig.config.components,
+      this._i18n.language,
+      this._hassConfig.userData,
+      this._narrow,
+      localize,
+      this._entities
+    );
+    return this.showTabs
+      ? this._activeTab && this._tabName(this._activeTab, localize)
+      : (tabs[0] as string);
+  }
+
+  protected updated(changedProperties: PropertyValues<this>): void {
+    super.updated(changedProperties);
+    const title = this._title();
+    if (title !== this._announcedTitle) {
+      this._announcedTitle = title;
+      fireEvent(
+        this,
+        "page-title-changed",
+        { title: title ?? "" },
+        { bubbles: false, composed: false }
+      );
+    }
   }
 
   @eventOptions({ passive: true })
@@ -516,9 +610,23 @@ export class HassTabsSubpage extends LitElement {
         .narrow .main-title {
           margin-inline-start: var(--main-title-margin, var(--ha-space-2));
         }
-        .main-title h1 {
+        .main-title h1,
+        .main-title .bar-title {
+          display: block;
           margin: 0;
           font: inherit;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .breadcrumb {
+          display: block;
+          font-size: var(--ha-font-size-s);
+          line-height: var(--ha-line-height-condensed);
+          color: var(--secondary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .content {

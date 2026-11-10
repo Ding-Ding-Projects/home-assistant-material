@@ -1,9 +1,11 @@
 import type { ContextType } from "@lit/context";
+import { mdiCursorDefaultClickOutline, mdiTranslate } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
 import { configContext, internationalizationContext } from "../../data/context";
+import "../ha-svg-icon";
 
 const languageName = (language: string): string => {
   try {
@@ -38,33 +40,33 @@ export class HaPageFooter extends LitElement {
       __MATERIAL_BUILD__ || this._hassConfig?.config?.version || __VERSION__;
     const built = new Date(__BUILD_TIME__);
     const language = this._i18n.language;
-    const updated = Number.isNaN(built.getTime())
-      ? undefined
-      : built.toLocaleString(language, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZoneName: "short",
-        });
+    const hasTime = !Number.isNaN(built.getTime());
     return html`
       <span class="version"
-        >${localize("ui.page_tools.footer.version", { version })}</span
+        >${
+          hasTime
+            ? localize("ui.page_tools.footer.build", {
+                version,
+                date: built.toLocaleDateString(language, {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                }),
+                time: built.toLocaleTimeString(language, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  timeZoneName: "short",
+                }),
+              })
+            : localize("ui.page_tools.footer.build_no_time", { version })
+        }</span
       >
-      ${
-        updated
-          ? html`<span
-              >${localize("ui.page_tools.footer.updated", {
-                date: updated,
-              })}</span
-            >`
-          : nothing
-      }
-      <span
-        >${localize("ui.page_tools.footer.language", {
-          language: languageName(language),
-        })}</span
+      <span class="item"
+        ><ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>${localize(
+          "ui.page_tools.footer.language",
+          { language: languageName(language) }
+        )}</span
       >
       ${
         this.locked
@@ -73,7 +75,10 @@ export class HaPageFooter extends LitElement {
             >`
           : nothing
       }
-      <span class="hint">${localize("ui.page_tools.footer.menu_hint")}</span>
+      <span class="item hint"
+        ><ha-svg-icon .path=${mdiCursorDefaultClickOutline}></ha-svg-icon
+        >${localize("ui.page_tools.footer.menu_hint")}</span
+      >
     `;
   }
 
@@ -86,33 +91,38 @@ export class HaPageFooter extends LitElement {
       min-height: calc(
         var(--ha-page-footer-height, 40px) + var(--safe-area-inset-bottom, 0px)
       );
-      padding: 0 var(--ha-space-6);
+      padding: 0 var(--ha-space-8);
       padding-bottom: var(--safe-area-inset-bottom, 0px);
       white-space: nowrap;
       overflow: hidden;
-      border-top: 1px solid var(--divider-color);
       background: var(--primary-background-color);
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
       line-height: var(--ha-line-height-normal);
+      --mdc-icon-size: 16px;
+    }
+    span {
+      flex: none;
     }
     .version {
-      font-weight: var(--ha-font-weight-medium);
-      color: var(--primary-text-color);
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-1);
     }
     .locked {
       color: var(--primary-color);
       font-weight: var(--ha-font-weight-medium);
     }
-    span {
-      flex: none;
-    }
-    .hint {
-      flex: 1 1 0;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: end;
+    @media (max-width: 1100px) {
+      .hint {
+        display: none;
+      }
     }
   `;
 }

@@ -701,6 +701,9 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
           "ui.panel.config.helpers.picker.search",
           { number: helpers.length }
         )}
+        .summary=${this.hass.localize("ui.panel.config.helpers.picker.summary", {
+          number: helpers.length,
+        })}
         selectable
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}

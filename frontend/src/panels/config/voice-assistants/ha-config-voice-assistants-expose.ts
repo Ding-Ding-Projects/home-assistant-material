@@ -500,6 +500,12 @@ export class VoiceAssistantsExpose extends LitElement {
             number: filteredEntities.length,
           }
         )}
+        .summary=${this.hass.localize(
+          "ui.panel.config.entities.picker.summary",
+          {
+            number: filteredEntities.length,
+          }
+        )}
         .filter=${this._tableSettings.search}
         selectable
         .selected=${this._selectedEntities.length}

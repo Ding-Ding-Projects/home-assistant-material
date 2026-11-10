@@ -160,6 +160,10 @@ export class HaDataTable extends LitElement {
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
+  /** Draws each row as a rounded card with space between rows. */
+  @property({ type: Boolean, reflect: true, attribute: "row-cards" })
+  public rowCards = false;
+
   @property({ type: Object }) public columns: DataTableColumnContainer = {};
 
   @property({ type: Array }) public data: DataTableRowData[] = [];
@@ -2142,6 +2146,67 @@ export class HaDataTable extends LitElement {
             --ha-data-table-background,
             var(--primary-background-color)
           );
+        }
+
+        /* Rows as cards. The card is drawn behind the row, so the row keeps
+           its size and the columns keep their places. */
+        :host([row-cards]) .mdc-data-table {
+          background: var(--primary-background-color);
+        }
+        :host([row-cards]) .mdc-data-table__header-row {
+          border-bottom: none;
+          height: var(--ha-space-10);
+        }
+        :host([row-cards]) .mdc-data-table__header-cell {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+        :host([row-cards]) .mdc-data-table__row ~ .mdc-data-table__row {
+          border-top: none;
+        }
+        :host([row-cards])
+          .mdc-data-table__row[aria-rowindex]:not(.group-header-row) {
+          position: relative;
+          isolation: isolate;
+          height: calc(var(--data-table-row-height, 52px) + var(--ha-space-2));
+          padding-bottom: var(--ha-space-2);
+          background: none;
+        }
+        :host([row-cards])
+          .mdc-data-table__row[aria-rowindex]:not(.group-header-row)::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 var(--ha-space-2);
+          z-index: -1;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
+        }
+        :host([row-cards])
+          .mdc-data-table__row.mdc-data-table__row--selected::before {
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 14%,
+            var(--card-background-color)
+          );
+        }
+        :host([row-cards])
+          .mdc-data-table__row.clickable:not(
+            .mdc-data-table__row--selected
+          ):hover {
+          background: none;
+        }
+        :host([row-cards])
+          .mdc-data-table__row.clickable:not(
+            .mdc-data-table__row--selected
+          ):hover::before {
+          background: color-mix(
+            in srgb,
+            var(--primary-text-color) 6%,
+            var(--card-background-color)
+          );
+        }
+        :host([row-cards]) .mdc-data-table__row:has(.group-header) {
+          background: var(--primary-background-color);
         }
 
         .mdc-data-table__table.auto-height .scroller {

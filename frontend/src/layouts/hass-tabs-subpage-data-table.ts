@@ -7,6 +7,7 @@ import {
   mdiArrowUp,
   mdiClose,
   mdiFilterVariant,
+  mdiExportVariant,
   mdiFilterVariantRemove,
   mdiFormatListChecks,
   mdiMenuDown,
@@ -141,6 +142,16 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   @property({ type: String }) public filter = "";
 
   @property({ attribute: false }) public searchLabel?: string;
+
+  /**
+   * One line under the page title that says what the list holds. Without
+   * it, the line gives the number of rows.
+   */
+  @property({ attribute: false }) public summary?: string;
+
+  @state() private _pageTitle = "";
+
+  @query("hass-tabs-subpage") private _page?: HTMLElement;
 
   /**
    * Number of active filters.
@@ -493,6 +504,28 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       <ha-svg-icon slot="icon" .path=${mdiTableCog}></ha-svg-icon>
     </ha-assist-chip>`;
 
+    const exportButton = html`<ha-assist-chip
+      class="has-dropdown select-mode-chip"
+      @click=${this._openExport}
+      .title=${localize("ui.components.subpage-data-table.export")}
+    >
+      <ha-svg-icon slot="icon" .path=${mdiExportVariant}></ha-svg-icon>
+    </ha-assist-chip>`;
+
+    const heading = this._pageTitle
+      ? html`<div class="page-heading">
+          <h1>${this._pageTitle}</h1>
+          <p>
+            ${
+              this.summary ??
+              localize("ui.components.subpage-data-table.summary", {
+                count: this.data.length,
+              })
+            }
+          </p>
+        </div>`
+      : nothing;
+
     return html`
       <hass-tabs-subpage
         .isWide=${this.isWide}
@@ -502,7 +535,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         .tabs=${this.tabs}
         .mainPage=${this.mainPage}
         .pane=${showPane && this.showFilters}
+        .contentHeading=${!this.narrow && !(this.empty && !this.loading)}
         @sorting-changed=${this._sortingChanged}
+        @page-title-changed=${this._pageTitleChanged}
       >
         ${
           this._selectMode
@@ -616,6 +651,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                 }
                 <ha-data-table
                   .narrow=${this.narrow}
+                  row-cards
                   .columns=${this.columns}
                   .data=${this.data}
                   .loading=${this.loading}
@@ -641,6 +677,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                     !this.narrow
                       ? html`
                           <div slot="header">
+                            ${heading}
                             <slot name="top-header"></slot>
                             <slot name="header">
                               <div class="table-header">
@@ -648,7 +685,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                                   this.hasFilters && !this.showFilters
                                     ? html`${filterButton}`
                                     : nothing
-                                }${selectModeBtn}${searchBar}${groupByMenu}${sortByMenu}${settingsButton}
+                                }${selectModeBtn}${searchBar}${groupByMenu}${sortByMenu}${settingsButton}${exportButton}
                               </div>
                             </slot>
                           </div>
@@ -972,10 +1009,48 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     fireEvent(this, "search-changed", { value: this.filter });
   }
 
+  private _pageTitleChanged(ev: CustomEvent<{ title: string }>): void {
+    this._pageTitle = ev.detail.title;
+  }
+
+  private _openExport(ev: Event): void {
+    if (!this._page) {
+      return;
+    }
+    fireEvent(ev.currentTarget as HTMLElement, "hass-page-tool", {
+      tool: "export",
+      root: this._page,
+      title: this._pageTitle || document.title,
+    });
+  }
+
   static styles = css`
     :host {
       display: block;
       height: 100%;
+    }
+
+    .page-heading {
+      padding: var(--ha-space-6) var(--ha-space-2) var(--ha-space-2);
+    }
+    .page-heading h1 {
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-4xl);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: var(--ha-line-height-condensed);
+      color: var(--primary-text-color);
+    }
+    .page-heading p {
+      margin: var(--ha-space-1) 0 0;
+      font-size: var(--ha-font-size-l);
+      line-height: var(--ha-line-height-normal);
+      color: var(--secondary-text-color);
+    }
+    /* The list sits in from the edges of the page, like the rest of it. */
+    :host(:not([narrow])) ha-data-table {
+      width: calc(100% - 2 * var(--ha-space-8));
+      margin-inline: var(--ha-space-8);
     }
 
     ha-data-table {
@@ -1042,15 +1117,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       height: 56px;
       width: 100%;
       justify-content: space-between;
-      padding-left: calc(16px + var(--data-table-inset-left, 0px));
-      padding-right: calc(16px + var(--data-table-inset-right, 0px));
-      gap: var(--ha-space-4);
+      padding-left: var(--data-table-inset-left, 0px);
+      padding-right: var(--data-table-inset-right, 0px);
+      gap: var(--ha-space-2);
       box-sizing: border-box;
       background: var(
         --ha-panel-toolbar-background,
         var(--primary-background-color)
       );
-      border-bottom: 1px solid var(--divider-color);
       overflow-x: auto;
       scrollbar-width: none;
     }

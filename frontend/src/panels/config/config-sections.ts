@@ -631,3 +631,24 @@ export const configSections: Record<string, PageNavigation[]> = {
     },
   ],
 };
+
+/**
+ * The name, as a translation key, of the settings section a set of tabs
+ * belongs to: the entry on the settings home page that opens its first tab.
+ */
+export const sectionTitleKey = (
+  tabs: PageNavigation[] | undefined
+): string | undefined => {
+  const first = tabs?.[0]?.path;
+  if (!first) {
+    return undefined;
+  }
+  const entry = [
+    ...configSections.dashboard,
+    ...configSections.dashboard_2,
+    ...configSections.dashboard_3,
+  ].find((page) => page.path === first);
+  return entry?.translationKey
+    ? `ui.panel.config.dashboard.${entry.translationKey}.main`
+    : undefined;
+};

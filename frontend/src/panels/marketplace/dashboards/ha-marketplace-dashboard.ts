@@ -380,6 +380,9 @@ export class HaMarketplaceDashboard extends LitElement {
           "ui.panel.marketplace.dashboard.search",
           { number: repositories.length }
         )}
+        .summary=${this._i18n.localize("ui.panel.marketplace.dashboard.summary", {
+          number: repositories.length,
+        })}
         .isWide=${this.isWide}
         .narrow=${this.narrow}
         .route=${this.route}

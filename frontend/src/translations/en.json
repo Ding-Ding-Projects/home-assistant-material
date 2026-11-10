@@ -948,6 +948,8 @@
       },
       "subpage-data-table": {
         "filters": "Filters",
+        "summary": "{count, plural,\n  =0 {Nothing here yet}\n  one {# item}\n  other {# items}\n}",
+        "export": "Export this list",
         "show_results": "Show {number} results",
         "clear_filter": "Clear filter",
         "close_filter": "Close filters",
@@ -3353,12 +3355,15 @@
       "help": "Help",
       "close": "Close",
       "locked_banner": "This page is locked. Nothing on it can be changed until it is unlocked.",
+      "menu_export": "Export this page",
+      "menu_history": "History of changes",
+      "menu_lock": "Lock this page",
       "footer": {
-        "version": "Version {version}",
-        "updated": "Updated {date}",
+        "build": "Home Assistant Material {version}, updated {date} at {time}",
+        "build_no_time": "Home Assistant Material {version}",
         "language": "Language: {language}",
         "locked": "Page locked",
-        "menu_hint": "Right-click anything for its tools"
+        "menu_hint": "Right-click anything to edit its appearance or lock its page"
       },
       "export_panel": {
         "summary": "{tables, plural,\n  =0 {No tables}\n  one {# table}\n  other {# tables}\n}, {rows, plural,\n  one {# row}\n  other {# rows}\n}, {lines, plural,\n  one {# block of text}\n  other {# blocks of text}\n}",
@@ -3920,6 +3925,7 @@
           },
           "installed": {
             "search": "Search {number} {number, plural,\n  one {app}\n  other {apps}\n}",
+            "summary": "{number, plural,\n  =0 {No apps yet}\n  one {# app}\n  other {# apps}\n}",
             "no_apps": "You don't have any apps installed yet. Click here to browse available apps.",
             "add_app": "Install app",
             "app_stopped": "App is stopped",
@@ -5592,6 +5598,7 @@
             "create_helper": "Create helper",
             "no_helpers": "Looks like you don't have any helpers yet!",
             "search": "Search {number} {number, plural,\n  one {helper}\n  other {helpers}\n}",
+            "summary": "{number, plural,\n  =0 {No helpers yet}\n  one {# helper}\n  other {# helpers}\n}",
             "error_information": "Error information",
             "delete_confirm_title": "Delete helper?",
             "delete_confirm_text": "Are you sure you want to delete {name}?",
@@ -6377,6 +6384,8 @@
             "no_category_support": "You can't assign a category to this automation",
             "no_category_entity_reg": "To assign a category to an automation it needs to have a unique ID.",
             "search": "Search {number} {number, plural,\n  one {automation}\n  other {automations}\n}",
+            "summary": "{number, plural,\n  =0 {No automations yet}\n  one {# automation}\n  other {# automations}\n}",
+            "summary_on": "{number, plural,\n  =0 {None is on}\n  one {# is on}\n  other {# are on}\n}",
             "headers": {
               "toggle": "Enable/disable",
               "name": "Name",
@@ -7580,6 +7589,7 @@
             "empty_header": "Create your first script",
             "empty_text": "A script is a sequence of actions that can be run from a dashboard, an automation, or be triggered by voice. For example, a ''Wake-up routine'' script that gradually turns on the light in the bedroom and opens the blinds after a delay.",
             "search": "Search {number} {number, plural,\n  one {script}\n  other {scripts}\n}",
+            "summary": "{number, plural,\n  =0 {No scripts yet}\n  one {# script}\n  other {# scripts}\n}",
             "migrate_script": "Migrate script?",
             "migrate_script_description": "You can migrate this script, so it can be edited from the UI. After it is migrated and you have saved it, you will have to manually delete your old script from your configuration. Do you want to migrate this script?"
           },
@@ -7708,7 +7718,8 @@
             "no_category_entity_reg": "To assign a category to a scene it needs to have a unique ID.",
             "empty_header": "Create your first scene",
             "empty_text": "Scenes capture entities' states, so you can re-experience the same scene later on. For example, a ''Watching TV'' scene that dims the living room lights, sets a warm white color and turns on the TV.",
-            "search": "Search {number} {number, plural,\n  one {scene}\n  other {scenes}\n}"
+            "search": "Search {number} {number, plural,\n  one {scene}\n  other {scenes}\n}",
+            "summary": "{number, plural,\n  =0 {No scenes yet}\n  one {# scene}\n  other {# scenes}\n}"
           },
           "editor": {
             "review_mode": "Review Mode",
@@ -8282,6 +8293,8 @@
           "error_delete": "Error deleting device",
           "picker": {
             "search": "Search {number} {number, plural,\n  one {device}\n  other {devices}\n}",
+            "summary": "{number, plural,\n  =0 {No devices yet}\n  one {# device}\n  other {# devices}\n}",
+            "summary_low_battery": "{number, plural,\n  one {# has a low battery}\n  other {# have a low battery}\n}",
             "state": "Status",
             "bulk_actions": {
               "move_area": "Move to area",
@@ -8367,6 +8380,7 @@
             "introduction": "Home Assistant keeps a registry of every entity it has ever seen that can be uniquely identified. Each of these entities will have an entity ID assigned which will be reserved for just this entity.",
             "introduction2": "Use the entity registry to override the name, change the entity ID or remove the entry from Home Assistant.",
             "search": "Search {number} {number, plural,\n  one {entity}\n  other {entities}\n}",
+            "summary": "{number, plural,\n  =0 {No entities yet}\n  one {# entity}\n  other {# entities}\n}",
             "unnamed_entity": "Unnamed entity",
             "filtering_by_config_entry": "Filtering by config entry",
             "status": {
@@ -13779,6 +13793,7 @@
         },
         "dashboard": {
           "search": "Search {number} {number, plural,\n  one {repository}\n  other {repositories}\n}",
+          "summary": "{number, plural,\n  =0 {No repositories yet}\n  one {# repository}\n  other {# repositories}\n}",
           "empty_header": "Nothing in the Marketplace yet",
           "empty_text": "The Marketplace gets its list from the community catalog, which could not be reached yet. The list shows up here once it loads.",
           "no_data": "No repositories matching search and filters",

@@ -491,6 +491,24 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
     ];
   }
 
+  /** How many automations there are, and how many of them are on. */
+  private _summary(automations: { state: string }[]): string {
+    const count = this.hass.localize(
+      "ui.panel.config.automation.picker.summary",
+      { number: automations.length }
+    );
+    return automations.length
+      ? `${count}. ${this.hass.localize(
+          "ui.panel.config.automation.picker.summary_on",
+          {
+            number: automations.filter(
+              (automation) => automation.state === "on"
+            ).length,
+          }
+        )}`
+      : count;
+  }
+
   protected render(): TemplateResult {
     const areasInOverflow =
       (this._sizeController.value && this._sizeController.value < 900) ||
@@ -521,6 +539,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           "ui.panel.config.automation.picker.search",
           { number: automations.length }
         )}
+        .summary=${this._summary(automations)}
         selectable
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}

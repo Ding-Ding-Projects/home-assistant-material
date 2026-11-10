@@ -451,6 +451,9 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           "ui.panel.config.script.picker.search",
           { number: scripts.length }
         )}
+        .summary=${this.hass.localize("ui.panel.config.script.picker.summary", {
+          number: scripts.length,
+        })}
         has-filters
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}

@@ -114,6 +114,9 @@ interface DeviceRowData extends DeviceRegistryEntry {
   label_entries: LabelRegistryEntry[];
 }
 
+/** A battery at or under this many percent is called low. */
+const LOW_BATTERY = 15;
+
 @customElement("ha-config-devices-dashboard")
 export class HaConfigDeviceDashboard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -796,6 +799,23 @@ export class HaConfigDeviceDashboard extends LitElement {
         ${this.hass.localize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
+  /** How many devices there are, and how many have a low battery. */
+  private _summary(devices: { battery_level?: string }[]): string {
+    const count = this.hass.localize("ui.panel.config.devices.picker.summary", {
+      number: devices.length,
+    });
+    const low = devices.filter((device) => {
+      const level = Number(device.battery_level);
+      return device.battery_level !== undefined && level <= LOW_BATTERY;
+    }).length;
+    return low
+      ? `${count}. ${this.hass.localize(
+          "ui.panel.config.devices.picker.summary_low_battery",
+          { number: low }
+        )}`
+      : count;
+  }
+
   protected render(): TemplateResult {
     const { devicesOutput } = this._devicesAndFilterDomains(
       this.hass.devices,
@@ -824,6 +844,7 @@ export class HaConfigDeviceDashboard extends LitElement {
           "ui.panel.config.devices.picker.search",
           { number: devicesOutput.length }
         )}
+        .summary=${this._summary(devicesOutput)}
         .columns=${this._columns(this.hass.localize)}
         .data=${devicesOutput}
         .loadError=${

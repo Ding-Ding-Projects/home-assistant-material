@@ -12,7 +12,12 @@ import {
 } from "../../data/entity/entity_registry";
 import type { RouterOptions } from "../../layouts/hass-router-page";
 import { HassRouterPage } from "../../layouts/hass-router-page";
+import { setPageSectionResolver } from "../../layouts/hass-tabs-subpage";
 import type { HomeAssistant, Route } from "../../types";
+import { sectionTitleKey } from "./config-sections";
+
+// Pages under Settings show their section in the breadcrumb.
+setPageSectionResolver(sectionTitleKey);
 
 declare global {
   // for fire event

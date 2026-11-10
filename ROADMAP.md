@@ -49,8 +49,9 @@ exactly what has been seen working and where.
       controls is not built
 - [x] Per-element appearance editor: fill layers, text, shape, accent, size; this element or
       every one of its kind; menu, shortcut and pick tool
-- [~] Context menus on every element: the menu, its filter and shortcuts are in; entries
-      specific to what was clicked, lock, history and export are not
+- [~] Context menus on every element: the menu, its filter and shortcuts are in, with export,
+      history and lock for the page the element is on; entries specific to what was clicked
+      are not
 - [~] Page tools in every page header: search this page, edit appearance, read aloud, history,
       export, lock and help, with a footer line on every page. On the two shared page layouts
       (most settings pages); dashboards, developer tools and dialogs do not have them yet
@@ -102,6 +103,13 @@ exactly what has been seen working and where.
 - [ ] Automation list, editor and trace pages redrawn to their boards
 
 ## Pages redrawn to their boards
+
+Shared by every list page under Settings (27 pages) and seen side by side with the Devices,
+Entities and Automations boards: the breadcrumb and title in the header, the large title with
+a summary line, rows as rounded cards, an export button beside the table settings, and the
+footer line. Still different from those boards: filters are a side pane and not chips in the
+row, rows have no icon tile or second line, the checkboxes appear only in selection mode, and
+long lists scroll instead of loading more.
 
 Each line is a canvas folder in `design/canvases/`. A page counts when the running product
 matches its board, checked side by side.

@@ -1,7 +1,10 @@
 import type { ContextType } from "@lit/context";
 import {
   mdiContentCopy,
+  mdiExportVariant,
   mdiFormatPaint,
+  mdiHistory,
+  mdiLock,
   mdiMagnify,
   mdiPaletteSwatch,
   mdiRestore,
@@ -30,6 +33,7 @@ import {
   kindLabel,
 } from "../../common/appearance/element-appearance";
 import { consume } from "../../common/decorators/consume";
+import { fireEvent } from "../../common/dom/fire_event";
 import { searchMatcher } from "../../common/regex/filter";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
@@ -39,6 +43,7 @@ import { isMac } from "../../util/is_mac";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
+import type { PageTool } from "../page/ha-page-tools";
 import "./ha-appearance-editor";
 import type { HaAppearanceEditor } from "./ha-appearance-editor";
 
@@ -67,6 +72,9 @@ const SKIPPED = new Set([
  */
 const WHOLE_THINGS = [/^hui-.+-(card|badge|row)$/, /^ha-card$/];
 
+/** The layouts that carry the page tools. */
+const PAGE_LAYOUTS = new Set(["hass-subpage", "hass-tabs-subpage"]);
+
 const INTERACTIVE = new Set(["button", "a", "input", "select", "textarea"]);
 
 interface MenuItem {
@@ -84,6 +92,8 @@ interface MenuItem {
 const SHORTCUTS = {
   edit: { key: "e", ctrl: true, shift: true },
   search: { key: "f", ctrl: true, shift: true },
+  // Handled by the page tools panel; listed here so the menu can show it.
+  lock: { key: "l", ctrl: true, shift: true },
 } as const;
 
 const shortcutLabel = (shortcut: {
@@ -198,6 +208,21 @@ export class HaAppearanceTools extends LitElement {
     window.clearInterval(this._interval);
     window.clearTimeout(this._scanTimer);
     this._stopPicking();
+  }
+
+  /** The page layout an element is on, if it is on one. */
+  private _pageOf(element: HTMLElement): HTMLElement | undefined {
+    let current: Node | null = element;
+    while (current) {
+      if (
+        current instanceof HTMLElement &&
+        PAGE_LAYOUTS.has(current.localName)
+      ) {
+        return current;
+      }
+      current = composedParent(current);
+    }
+    return undefined;
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -450,6 +475,38 @@ export class HaAppearanceTools extends LitElement {
         run: () => showQuickBar(this, {}),
       }
     );
+    // The tools of the page the element is on, when it is on one.
+    const page = this._pageOf(element);
+    if (page && this._i18n) {
+      const localize = this._i18n.localize;
+      const open = (tool: PageTool) => () =>
+        fireEvent(this, "hass-page-tool", {
+          tool,
+          root: page,
+          title: document.title,
+        });
+      items.push(
+        {
+          id: "page_export",
+          icon: mdiExportVariant,
+          label: localize("ui.page_tools.menu_export"),
+          run: open("export"),
+        },
+        {
+          id: "page_history",
+          icon: mdiHistory,
+          label: localize("ui.page_tools.menu_history"),
+          run: open("history"),
+        },
+        {
+          id: "page_lock",
+          icon: mdiLock,
+          label: localize("ui.page_tools.menu_lock"),
+          shortcut: shortcutLabel(SHORTCUTS.lock),
+          run: open("lock"),
+        }
+      );
+    }
     const matches = searchMatcher(this._menuFilter);
     return items.filter((item) => matches(item.label));
   }
