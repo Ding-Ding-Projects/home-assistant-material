@@ -8,6 +8,9 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Guided setup draws real fields for 223 of the 240 integrations it lists, up from 10: text,
+  numbers, switches, choices, templates, durations and entity pickers, and a first step that
+  asks which kind of item to add where an integration has several.
 - Guided setup: integrations that had to be written by hand in YAML can be created from
   Settings, Guided setup, or from Add integration. Each one gets a step-by-step form, a review
   of what will be written, and a note on whether a reload or a restart follows. Most still

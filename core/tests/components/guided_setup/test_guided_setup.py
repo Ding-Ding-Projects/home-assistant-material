@@ -7,7 +7,7 @@ import pytest
 
 from homeassistant.components.guided_setup.catalog import (
     _scan_integration,
-    serialize_schema,
+    describe_schema,
 )
 from homeassistant.components.guided_setup.const import FILES_DIRECTORY
 from homeassistant.components.guided_setup.manager import GuidedSetupManager
@@ -18,25 +18,62 @@ from homeassistant.util.yaml import load_yaml_dict
 from tests.typing import WebSocketGenerator
 
 
-def test_serialize_schema_skips_platform_and_flags_free_form() -> None:
-    """Platform key is hidden and unsupported values become YAML boxes."""
+def test_describe_schema_maps_each_option_on_its_own() -> None:
+    """One validator that cannot be described only affects its own option."""
     schema = probatio.Schema(
         {
             probatio.Required("platform"): str,
             probatio.Required("host"): str,
-            probatio.Optional("port", default=80): int,
+            probatio.Optional("port", default=80): probatio.All(
+                probatio.Coerce(int), probatio.Range(min=1, max=100)
+            ),
+            probatio.Optional("mode"): probatio.In(["a", "b"]),
+            probatio.Optional("odd"): lambda value: value,
         }
     )
-    fields = serialize_schema(schema, "demo")
-    assert [field["name"] for field in fields] == ["host", "port"]
-    assert fields[0]["required"] is True
-    assert fields[1]["default"] == 80
+    fields = describe_schema(schema, "demo", "sensor").fields
+    by_name = {field["name"]: field for field in fields}
+    assert list(by_name) == ["host", "port", "mode", "odd"]
+    assert by_name["host"]["required"] is True
+    assert by_name["port"]["default"] == 80
+    assert by_name["port"]["selector"]["number"]["max"] == 100
+    assert [o["value"] for o in by_name["mode"]["selector"]["select"]["options"]] == [
+        "a",
+        "b",
+    ]
+    assert by_name["odd"]["free_form"] is True
 
 
-def test_serialize_schema_rejects_unusable_schema() -> None:
-    """A schema without describable options raises so the caller can fall back."""
+def test_describe_schema_list_items_keyed_by_kind() -> None:
+    """A list of items keyed by kind asks for the kind first."""
+    schema = probatio.Schema(
+        {
+            probatio.Optional("demo"): probatio.All(
+                probatio.EnsureList(),
+                [
+                    probatio.Schema(
+                        {
+                            probatio.Optional("sensor"): {
+                                probatio.Required("command"): str
+                            },
+                            probatio.Optional("switch"): {
+                                probatio.Required("command_on"): str
+                            },
+                        }
+                    )
+                ],
+            )
+        }
+    )
+    shape = describe_schema(schema, "demo", None)
+    assert shape.as_list is True
+    assert [kind["name"] for kind in shape.kinds] == ["sensor", "switch"]
+
+
+def test_describe_schema_rejects_user_named_keys() -> None:
+    """Options named by the user cannot be listed, so the caller falls back."""
     with pytest.raises(ValueError):
-        serialize_schema(probatio.Schema(str), "demo")
+        describe_schema(probatio.Schema({probatio.Optional("demo"): {str: str}}), "demo", None)
 
 
 def test_scan_finds_platform_and_domain_schema(tmp_path: Path) -> None:

@@ -57,6 +57,9 @@ export class HaGuidedSetupWizard extends LitElement {
 
   @state() private _data: Record<string, any> = {};
 
+  /** The kind of item chosen first, for integrations whose items are keyed by kind. */
+  @state() private _kind?: string;
+
   @state() private _errors: GuidedSetupError[] = [];
 
   @state() private _yaml = "";
@@ -77,6 +80,7 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private _reset(): void {
     this._form = undefined;
+    this._kind = undefined;
     this._errors = [];
     this._loadError = undefined;
     this._apply = undefined;
@@ -126,6 +130,11 @@ export class HaGuidedSetupWizard extends LitElement {
         domain: this.integration.domain,
         entity_domain: this._entityDomain,
       });
+      if (this._form.kinds && this.entry && this._kind === undefined) {
+        const [kind] = Object.keys(this.entry.data);
+        this._kind = kind;
+        this._data = { ...(this.entry.data[kind] ?? {}) };
+      }
     } catch (err: any) {
       this._form = undefined;
       this._loadError = err?.message ?? String(err);
@@ -164,7 +173,11 @@ export class HaGuidedSetupWizard extends LitElement {
   private _fieldErrors(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const error of this._errors) {
-      const name = error.path[0];
+      const path =
+        this._kind && error.path[0] === this._kind
+          ? error.path.slice(1)
+          : error.path;
+      const name = path[0];
       if (name && !result[name]) {
         result[name] = error.message;
       }
@@ -191,6 +204,25 @@ export class HaGuidedSetupWizard extends LitElement {
     this._errors = [];
   }
 
+  /** The options as they are written: wrapped in the chosen kind, if any. */
+  private _payload(): Record<string, any> {
+    const data = pruneGuidedSetupData(this._data);
+    return this._kind ? { [this._kind]: data } : data;
+  }
+
+  private _fields(form: GuidedSetupForm): GuidedSetupField[] {
+    if (!form.kinds) {
+      return form.fields;
+    }
+    return form.kinds.find((kind) => kind.name === this._kind)?.fields ?? [];
+  }
+
+  private _pickKind(ev: Event): void {
+    this._kind = (ev.currentTarget as HTMLElement).dataset.kind;
+    this._data = {};
+    this._errors = [];
+  }
+
   private _pickTarget(ev: Event): void {
     const value = (ev.currentTarget as HTMLElement).dataset.target ?? "";
     this._entityDomain = value === "" ? null : value;
@@ -211,6 +243,8 @@ export class HaGuidedSetupWizard extends LitElement {
     this._errors = [];
     if (this._step === "review") {
       this._step = "options";
+    } else if (this._step === "options" && this._kind && !this.entry) {
+      this._kind = undefined;
     } else if (this._step === "options" && !this.entry) {
       this._step = "about";
     } else {
@@ -221,7 +255,7 @@ export class HaGuidedSetupWizard extends LitElement {
   private async _review(): Promise<void> {
     this._busy = true;
     try {
-      const data = pruneGuidedSetupData(this._data);
+      const data = this._payload();
       const result = await validateGuidedSetup(
         this.hass,
         {
@@ -251,7 +285,7 @@ export class HaGuidedSetupWizard extends LitElement {
           domain: this.integration.domain,
           entity_domain: this._entityDomain,
         },
-        pruneGuidedSetupData(this._data),
+        this._payload(),
         this.entry?.id
       );
       if (!result.saved) {
@@ -373,6 +407,9 @@ export class HaGuidedSetupWizard extends LitElement {
     if (!form) {
       return html`${nothing}`;
     }
+    if (form.kinds && !this._kind) {
+      return this._renderKinds(form);
+    }
     return html`
       <section>
         ${this._renderErrors()}
@@ -382,7 +419,7 @@ export class HaGuidedSetupWizard extends LitElement {
                 .hass=${this.hass}
                 .narrow=${this.narrow}
                 .data=${this._data}
-                .schema=${form.fields}
+                .schema=${this._fields(form)}
                 .error=${this._fieldErrors()}
                 .computeLabel=${this._computeLabel}
                 .computeHelper=${this._computeHelper}
@@ -411,6 +448,28 @@ export class HaGuidedSetupWizard extends LitElement {
         ${this._renderActions(form.serializable ? false : !this._yamlValid)}
       </section>
     `;
+  }
+
+  private _renderKinds(form: GuidedSetupForm): TemplateResult {
+    return html`<section>
+      <h3 id="kind-label">${this._l("choose_kind")}</h3>
+      <div role="radiogroup" aria-labelledby="kind-label">
+        ${(form.kinds ?? []).map(
+          (kind) =>
+            html`<button
+              type="button"
+              role="radio"
+              class="choice"
+              aria-checked="false"
+              data-kind=${kind.name}
+              @click=${this._pickKind}
+            >
+              ${this._humanize(kind.name)}
+            </button>`
+        )}
+      </div>
+      ${this._renderActions(true)}
+    </section>`;
   }
 
   private _renderErrors(): TemplateResult | typeof nothing {

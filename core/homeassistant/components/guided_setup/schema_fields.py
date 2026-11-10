@@ -63,6 +63,9 @@ DURATION_FUNCTIONS = frozenset(
 TIME_FUNCTIONS = frozenset({"time"})
 BOOLEAN_FUNCTIONS = frozenset({"boolean"})
 NUMBER_FUNCTIONS = frozenset({"socket_timeout", "latitude", "longitude"})
+PLAIN_NAMES = frozenset(
+    {"string", "boolean", "entity_id", "entity_ids", "template", "slug", "icon"}
+)
 TEMPERATURE_UNITS = ["°C", "°F"]
 
 
@@ -87,9 +90,22 @@ def _is_cv(value: Any, names: frozenset[str]) -> bool:
     )
 
 
+def _ident(value: Any) -> str:
+    """Return the function name, or the class name of an instance."""
+    return getattr(value, "__name__", None) or type(value).__name__
+
+
 def _cv_name(value: Any) -> str | None:
-    if callable(value) and getattr(value, "__module__", None) == CV_MODULE:
-        return getattr(value, "__name__", None)
+    """Return the name of a shared validator function.
+
+    Integrations often wrap or re-export these helpers, so the name alone is
+    trusted for the small set of plain validators below.
+    """
+    if not callable(value) or isinstance(value, type):
+        return None
+    name = getattr(value, "__name__", None)
+    if getattr(value, "__module__", None) == CV_MODULE or name in PLAIN_NAMES:
+        return name
     return None
 
 
@@ -133,7 +149,7 @@ def _merge_bounds(kind: Kind, other: Kind) -> None:
 
 def map_validator(validator: Any, depth: int = 0) -> Kind | None:
     """Map one validator to a Kind, or None when it is not recognised."""
-    if depth > 8:
+    if depth > 30:
         return None
 
     if isinstance(validator, (probatio.Schema, dict)):
@@ -154,6 +170,8 @@ def map_validator(validator: Any, depth: int = 0) -> Kind | None:
                 return inner
         return None
 
+    if isinstance(validator, (str, int, float)) and not isinstance(validator, bool):
+        return Kind("select", options=[validator])
     if validator is str:
         return Kind("text")
     if validator is bool:
@@ -194,6 +212,13 @@ def map_validator(validator: Any, depth: int = 0) -> Kind | None:
     if isinstance(validator, probatio.All):
         return _map_all(validator, depth)
     if isinstance(validator, probatio.Any):
+        literals = [
+            member
+            for member in validator.validators
+            if isinstance(member, (str, int, float)) and not isinstance(member, bool)
+        ]
+        if literals and len(literals) == len(validator.validators):
+            return Kind("select", options=literals)
         for member in validator.validators:
             if (kind := map_validator(member, depth + 1)) is not None:
                 return kind
@@ -201,6 +226,8 @@ def map_validator(validator: Any, depth: int = 0) -> Kind | None:
     if isinstance(validator, (probatio.Match, probatio.Length, probatio.Slug)):
         return Kind("text")
 
+    if _ident(validator) in {"NonNegative", "Positive"}:
+        return Kind("number", minimum=0)
     return _map_cv_function(validator)
 
 
@@ -330,7 +357,7 @@ def _keys_of(mapping: Any) -> dict[Any, Any] | None:
 
 def mapping_parts(validator: Any, depth: int = 0) -> list[dict[Any, Any]]:
     """Find every key mapping inside Schema, All and extend chains."""
-    if depth > 8:
+    if depth > 30:
         return []
     keys = _keys_of(validator)
     if keys is not None:
@@ -345,6 +372,19 @@ def mapping_parts(validator: Any, depth: int = 0) -> list[dict[Any, Any]]:
     return []
 
 
+def key_info(key: Any) -> tuple[Any, probatio.Marker | None, bool]:
+    """Return the option name, its outer marker and whether it is a secret."""
+    marker = key if isinstance(key, probatio.Marker) else None
+    name = marker.schema if marker is not None else key
+    secret = False
+    depth = 0
+    while isinstance(name, probatio.Marker) and depth < 4:
+        secret = secret or isinstance(name, probatio.Secret)
+        name = name.schema
+        depth += 1
+    return name, marker, secret
+
+
 def describe_mapping(validator: Any, depth: int = 0) -> list[dict[str, Any]] | None:
     """Describe every option of a mapping schema.
 
@@ -357,20 +397,23 @@ def describe_mapping(validator: Any, depth: int = 0) -> list[dict[str, Any]] | N
     seen: set[str] = set()
     for keys in parts:
         for key, value in keys.items():
-            marker = key if isinstance(key, probatio.Marker) else None
-            name = marker.schema if marker is not None else key
+            name, marker, secret = key_info(key)
             if not isinstance(name, str):
                 # Keys chosen by the user cannot be drawn as named options.
                 return None
             if name == "platform" or name in seen:
                 continue
             seen.add(name)
-            fields.append(_describe_field(name, marker, value, depth))
+            fields.append(_describe_field(name, marker, value, depth, secret))
     return fields
 
 
 def _describe_field(
-    name: str, marker: probatio.Marker | None, validator: Any, depth: int
+    name: str,
+    marker: probatio.Marker | None,
+    validator: Any,
+    depth: int,
+    secret: bool = False,
 ) -> dict[str, Any]:
     required = isinstance(marker, probatio.Required)
     entry: dict[str, Any] = {"name": name, "required": required}
@@ -389,6 +432,8 @@ def _describe_field(
             "label": name,
         }
     selector = _selector(kind) if kind is not None else None
+    if selector is not None and secret and "text" in selector:
+        selector = {"text": {"type": "password"}}
     if selector is None:
         entry["selector"] = {"object": {}}
         entry["free_form"] = True
@@ -419,8 +464,7 @@ def item_kinds(validator: Any, depth: int = 0) -> list[dict[str, Any]] | None:
     kinds: list[dict[str, Any]] = []
     for keys in parts:
         for key, value in keys.items():
-            marker = key if isinstance(key, probatio.Marker) else None
-            name = marker.schema if marker is not None else key
+            name = key_info(key)[0]
             if not isinstance(name, str):
                 return None
             fields = describe_mapping(value, depth + 1)

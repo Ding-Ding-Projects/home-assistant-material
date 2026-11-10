@@ -28,6 +28,7 @@ from .schema_fields import (
     count_free_form,
     describe_mapping,
     item_kinds,
+    key_info,
     list_item_validator,
 )
 
@@ -223,8 +224,7 @@ def describe_schema(schema: Any, domain: str, entity_domain: str | None) -> Shap
     value = None
     for keys in mapping_parts(schema):
         for key, candidate in keys.items():
-            name = getattr(key, "schema", key)
-            if name == domain:
+            if key_info(key)[0] == domain:
                 value = candidate
     if value is None:
         raise ValueError("The schema does not describe the integration's options.")

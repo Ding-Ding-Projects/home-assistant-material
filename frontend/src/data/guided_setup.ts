@@ -27,6 +27,7 @@ export interface GuidedSetupEntry {
   domain: string;
   entity_domain: string | null;
   data: Record<string, any>;
+  as_list: boolean;
   apply: GuidedSetupApply;
 }
 
@@ -50,6 +51,12 @@ export interface GuidedSetupForm {
   /** False when the options could not be derived from the schema. */
   serializable: boolean;
   fields: GuidedSetupField[];
+  /** Set when items are keyed by kind; the user picks the kind first. */
+  kinds: { name: string; fields: GuidedSetupField[] }[] | null;
+  /** True when each setup is one item of a YAML list. */
+  as_list: boolean;
+  /** How many options inside a drawn form are edited as YAML. */
+  fallback_fields: number;
   reason: string | null;
   apply: GuidedSetupApply;
 }

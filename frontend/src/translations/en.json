@@ -10994,6 +10994,7 @@
           "before_text": "Have the details for this integration ready, such as the address of a device or the name of an account. The documentation lists what it needs.",
           "managed_note": "Home Assistant saves this in its own file in the guided_setup folder, so your own configuration files are not changed.",
           "choose_target": "What do you want to add?",
+          "choose_kind": "What kind of item do you want to add?",
           "target_platform": "A {domain} entity",
           "target_domain": "The settings of the integration",
           "required": "Required",
