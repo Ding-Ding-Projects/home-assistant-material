@@ -117,3 +117,43 @@ Open after this pass:
 - Dark theme is drawn for Energy only. The tokens define the full dark scheme.
 - Cantonese copy on the Language, Narration and Docs boards needs a native review.
 - No motion was filmed: the boards are stills.
+
+## Pass 3 (9 and 10 November 2026), complete as a design pass
+
+Pass 3 answers two reviews by the owner: every page of the product must be drawn, not only the
+feature boards, and every board must carry the required features in full.
+
+- 153 boards on 11 canvases in `canvases/`, at most 15 on each. Pass 2's 48 boards are kept on
+  canvases 01, 02, 04 and 09 to 11.
+- 105 boards are new: every panel, every settings page, the system pages, the developer tools,
+  the protocol pages, 36 entity dialogs, sign-in, the first-run steps and the preparing page.
+- The new boards are generated. `source/pages/p_*.py` describe each page; `source/pages/lib.py`
+  holds the shared parts. Heights are measured in a browser so no board is clipped.
+- Every page board has, in its header: a search field with the pattern workbench button, edit
+  appearance, read aloud, history, export, lock, help. Every table has select many, columns and
+  export. Every dialog has history, settings, its own search with the pattern button, edit
+  appearance and lock. The footer shows the version, the language mode and the right-click hint.
+
+### Automations
+
+| Requirement | Board |
+| --- | --- |
+| A Git repository for each automation | AutomationRepo, and the repository strip on AutomationEditor |
+| A master repository; one push commits every automation repository, then the master | AutomationsMaster |
+| A history manager: every version, test one version, test many, run many | AutomationHistory |
+| A test button on every Choose option and every condition | AutomationChoose |
+| A dry run of the whole automation | AutomationEditor |
+
+### Review record
+
+Every board was rendered and read. Fixed in review: pages taller than the frame were clipped;
+fields in a row were too narrow for their values; label colour dots did not show; table columns
+overlapped; five icon names did not exist in the icon set; the MQTT quality-of-service field
+wrapped its value.
+
+Open after this pass:
+
+- Dark theme is still drawn for Energy only.
+- The phone layout is drawn for Home only.
+- No board in this pass is built in the product. The pattern workbench is the first to be wired
+  in; see `docs/feature-status.md`.

@@ -17,6 +17,10 @@ Every release is also listed, with its build results, on the
   motion, a focus ring that follows the focused control, larger targets, reading the page aloud
   and keyboard help.
 - Fixed: vendored font files were altered by line-ending conversion on commit.
+- Design: every page of the product is drawn. 153 boards on 11 canvases of at most 15 boards,
+  including a Git repository per automation, a master repository, an automation history manager
+  and test buttons on Choose options and conditions.
+- Builds in progress are no longer cancelled by a newer push.
 
 ## v2026.11.1.1 to v2026.11.1.8, 9 November 2026
 

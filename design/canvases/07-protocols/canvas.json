@@ -65,7 +65,7 @@
       "x": 1300,
       "y": 1004,
       "w": 1200,
-      "h": 890,
+      "h": 958,
       "title": "MQTT",
       "expand": "fill",
       "page": "all"
@@ -90,7 +90,7 @@
     },
     "Serial.dc.html": {
       "x": 0,
-      "y": 2054,
+      "y": 2122,
       "w": 1200,
       "h": 842,
       "title": "Serial ports and Modbus",
@@ -99,7 +99,7 @@
     },
     "Discovery.dc.html": {
       "x": 1300,
-      "y": 2054,
+      "y": 2122,
       "w": 1200,
       "h": 826,
       "title": "Network discovery browsers",
@@ -108,7 +108,7 @@
     },
     "AppCredentials.dc.html": {
       "x": 2600,
-      "y": 2054,
+      "y": 2122,
       "w": 1200,
       "h": 578,
       "title": "Application credentials",

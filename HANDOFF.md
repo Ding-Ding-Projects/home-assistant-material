@@ -5,7 +5,7 @@ Written 9 November 2026 for whoever picks this up next.
 ## Where things stand
 
 - `main` holds the vendored upstream sources, the release workflow, the update feed tooling, the
-  build scripts, and the complete design (48 boards, `design/`).
+  build scripts, and the complete design (153 boards on 11 canvases, `design/`).
 - Build 1 (`v2026.11.1.1`) built and published the frontend wheel, every container image and the
   update feed. Its operating system jobs were still running when this was written. Check the
   release notes of the newest release that rebuilt the product for the final job results.
@@ -22,7 +22,7 @@ Written 9 November 2026 for whoever picks this up next.
    `docs/feature-status.md`.
 2. Continue the interface work in `frontend/` (issue 4 first): the search field and accessibility
    button in the header, the redesigned Home, the phone layout, then the feature groups in issues
-   5 to 10. The boards to match are in `design/canvas/`; `design/frames/` shows how each should
+   5 to 10. The boards to match are in `design/canvases/`; `design/frames/` shows how each should
    look. To see changes locally, run `npx gulp develop-demo` in `frontend/` and open port 8090.
    New translation strings and static files need a restart of that server.
 3. Work down `ROADMAP.md`. List every edit to a vendored folder in `docs/material-changes.md`.
