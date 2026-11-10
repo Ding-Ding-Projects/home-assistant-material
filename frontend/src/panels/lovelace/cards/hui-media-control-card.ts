@@ -1,0 +1,886 @@
+import {
+  mdiDotsVertical,
+  mdiPlayBoxMultiple,
+  mdiSpeakerMultiple,
+} from "@mdi/js";
+import type { HassConfig } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, query, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
+import { consume } from "../../../common/decorators/consume";
+import {
+  consumeEntityState,
+  consumeLocalize,
+} from "../../../common/decorators/consume-context-entry";
+import { transform } from "../../../common/decorators/transform";
+import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
+import { fireEvent } from "../../../common/dom/fire_event";
+import { stateActive } from "../../../common/entity/state_active";
+import { supportsFeature } from "../../../common/entity/supports-feature";
+import { extractColors } from "../../../common/image/extract_color";
+import { MediaProgressController } from "../../../common/controllers/media-progress-controller";
+import { debounce } from "../../../common/util/debounce";
+import "../../../components/ha-card";
+import "../../../components/ha-icon-button";
+import "../../../components/ha-slider";
+import type { HaSlider } from "../../../components/ha-slider";
+import "../../../components/ha-state-icon";
+import { showJoinMediaPlayersDialog } from "../../../components/media-player/show-join-media-players-dialog";
+import { showMediaBrowserDialog } from "../../../components/media-player/show-media-browser-dialog";
+import {
+  apiContext,
+  configContext,
+  connectionContext,
+  formattersContext,
+  uiContext,
+} from "../../../data/context";
+import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
+import type {
+  MediaPickedEvent,
+  MediaPlayerEntity,
+} from "../../../data/media-player";
+import {
+  cleanupMediaTitle,
+  computeMediaControls,
+  computeMediaDescription,
+  handleMediaControlClick,
+  MediaPlayerEntityFeature,
+  mediaPlayerPlayMedia,
+} from "../../../data/media-player";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+import type { Themes } from "../../../data/ws-themes";
+import type {
+  HomeAssistant,
+  HomeAssistantApi,
+  HomeAssistantConfig,
+  HomeAssistantConnection,
+  HomeAssistantFormatters,
+  HomeAssistantUI,
+} from "../../../types";
+import { findEntities } from "../common/find-entities";
+import "../components/hui-marquee";
+import { createEntityNotFoundWarning } from "../components/hui-warning";
+import type { LovelaceCard, LovelaceCardEditor } from "../types";
+import type { MediaControlCardConfig } from "./types";
+
+@customElement("hui-media-control-card")
+export class HuiMediaControlCard extends LitElement implements LovelaceCard {
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    await import("../editor/config-elements/hui-media-control-card-editor");
+    return document.createElement("hui-media-control-card-editor");
+  }
+
+  public static getStubConfig(
+    hass: HomeAssistant,
+    entities: string[],
+    entitiesFallback: string[]
+  ): MediaControlCardConfig {
+    const includeDomains = ["media_player"];
+    const maxEntities = 1;
+    const foundEntities = findEntities(
+      hass,
+      maxEntities,
+      entities,
+      entitiesFallback,
+      includeDomains
+    );
+
+    return { type: "media-control", entity: foundEntities[0] || "" };
+  }
+
+  @state() private _config?: MediaControlCardConfig;
+
+  @state()
+  @consumeEntityState({ entityIdPath: ["_config", "entity"] })
+  private _stateObj?: MediaPlayerEntity;
+
+  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  private _formatters!: HomeAssistantFormatters;
+
+  @state()
+  @consume({ context: configContext, subscribe: true })
+  @transform<HomeAssistantConfig, HassConfig>({
+    transformer: ({ config }) => config,
+  })
+  private _hassConfig!: HassConfig;
+
+  @state()
+  @consume({ context: connectionContext, subscribe: true })
+  @transform<HomeAssistantConnection, HomeAssistantConnection["hassUrl"]>({
+    transformer: ({ hassUrl }) => hassUrl,
+  })
+  private _hassUrl!: HomeAssistantConnection["hassUrl"];
+
+  @state()
+  @consume({ context: uiContext, subscribe: true })
+  @transform<HomeAssistantUI, Themes>({
+    transformer: ({ themes }) => themes,
+  })
+  private _themes!: Themes;
+
+  @consume({ context: apiContext, subscribe: true })
+  private _api!: HomeAssistantApi;
+
+  @state() private _foregroundColor?: string;
+
+  @state() private _backgroundColor?: string;
+
+  @state() private _narrow = false;
+
+  @state() private _veryNarrow = false;
+
+  @state() private _cardHeight = 0;
+
+  @query("ha-slider") private _progressBar?: HaSlider;
+
+  @state() private _marqueeActive = false;
+
+  private _progressController = new MediaProgressController(this, {
+    getStateObj: () => this._stateObj,
+    getSlider: () => this._progressBar,
+  });
+
+  private _resizeObserver?: ResizeObserver;
+
+  public getCardSize(): number {
+    return 3;
+  }
+
+  public setConfig(config: MediaControlCardConfig): void {
+    if (!config.entity || config.entity.split(".")[0] !== "media_player") {
+      throw new Error("Specify an entity from within the media_player domain");
+    }
+
+    this._config = config;
+
+    this.updateComplete.then(() => this._measureCard());
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this.updateComplete.then(() => this._attachObserver());
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+    }
+  }
+
+  protected render() {
+    if (!this._config) {
+      return nothing;
+    }
+    const stateObj = this._stateObj;
+
+    if (!stateObj) {
+      return html`
+        <hui-warning>
+          ${createEntityNotFoundWarning(this._localize, this._hassConfig)}
+        </hui-warning>
+      `;
+    }
+
+    const imageStyle = {
+      "background-image": this._image
+        ? `url(${this._hassUrl(this._image)})`
+        : "none",
+      width: `${this._cardHeight}px`,
+      "background-color": this._backgroundColor || "",
+    };
+
+    const gradientStyle = {
+      "background-image": `linear-gradient(to right, ${
+        this._backgroundColor
+      }, ${this._backgroundColor + "00"})`,
+      width: `${this._cardHeight}px`,
+    };
+
+    const entityState = stateObj.state;
+
+    const isOffState =
+      !stateActive(stateObj) &&
+      entityState !== UNAVAILABLE &&
+      entityState !== UNKNOWN;
+    const isUnavailable =
+      entityState === UNAVAILABLE ||
+      (isOffState &&
+        !supportsFeature(stateObj, MediaPlayerEntityFeature.TURN_ON));
+    const hasNoImage = !this._image;
+    const controls = computeMediaControls(stateObj, false);
+    const showControls =
+      !isUnavailable &&
+      controls &&
+      (!this._veryNarrow ||
+        isOffState ||
+        entityState === "idle" ||
+        entityState === "on");
+
+    const mediaDescription = computeMediaDescription(stateObj);
+    const mediaTitleClean = cleanupMediaTitle(stateObj.attributes.media_title);
+
+    const groupMembers = stateObj.attributes.group_members?.length;
+
+    return html`
+      <ha-card>
+        <div
+          class="background ${classMap({
+            "no-image": hasNoImage,
+            off: isOffState || isUnavailable,
+            unavailable: isUnavailable,
+          })}"
+        >
+          <div
+            class="color-block"
+            style=${styleMap({
+              "background-color": this._backgroundColor || "",
+            })}
+          ></div>
+          <div
+            class="no-img"
+            style=${styleMap({
+              "background-color": this._backgroundColor || "",
+            })}
+          ></div>
+          <div class="image" style=${styleMap(imageStyle)}></div>
+          ${
+            hasNoImage
+              ? ""
+              : html`
+                  <div
+                    class="color-gradient"
+                    style=${styleMap(gradientStyle)}
+                  ></div>
+                `
+          }
+        </div>
+        <div
+          class="player ${classMap({
+            "no-image": hasNoImage,
+            narrow: this._narrow && !this._veryNarrow,
+            off: isOffState || isUnavailable,
+            "no-progress": this._veryNarrow || !this._showProgressBar,
+            "no-controls": !showControls,
+          })}"
+          style=${styleMap({ color: this._foregroundColor || "" })}
+        >
+          <div class="top-info">
+            <div class="icon-name">
+              <ha-state-icon class="icon" .stateObj=${stateObj}></ha-state-icon>
+              <div>
+                ${this._formatters.formatEntityName(stateObj, this._config.name)}
+              </div>
+            </div>
+            <div>
+              <ha-icon-button
+                .path=${mdiDotsVertical}
+                .label=${this._localize(
+                  "ui.panel.lovelace.cards.show_more_info"
+                )}
+                class="more-info"
+                @click=${this._handleMoreInfo}
+              ></ha-icon-button>
+            </div>
+          </div>
+          ${
+            !isUnavailable &&
+            (mediaDescription || mediaTitleClean || showControls)
+              ? html`
+                  <div>
+                    <div class="title-controls">
+                      ${
+                        !mediaDescription && !mediaTitleClean
+                          ? ""
+                          : html`
+                              <div class="media-info">
+                                <hui-marquee
+                                  .text=${mediaTitleClean || mediaDescription}
+                                  .active=${this._marqueeActive}
+                                  @mouseover=${this._marqueeMouseOver}
+                                  @mouseleave=${this._marqueeMouseLeave}
+                                ></hui-marquee>
+                                ${!mediaTitleClean ? "" : mediaDescription}
+                              </div>
+                            `
+                      }
+                      ${
+                        !showControls
+                          ? ""
+                          : html`
+                              <div class="controls">
+                                <div class="start">
+                                  ${controls!.map(
+                                    (control) => html`
+                                      <ha-icon-button
+                                        .label=${this._localize(
+                                          `ui.card.media_player.${control.action}`
+                                        )}
+                                        .path=${control.icon}
+                                        action=${control.action}
+                                        @click=${this._handleClick}
+                                      >
+                                      </ha-icon-button>
+                                    `
+                                  )}
+                                </div>
+                                <div class="end">
+                                  ${
+                                    supportsFeature(
+                                      stateObj,
+                                      MediaPlayerEntityFeature.BROWSE_MEDIA
+                                    )
+                                      ? html`
+                                          <ha-icon-button
+                                            class="browse-media"
+                                            .label=${this._localize(
+                                              "ui.card.media_player.browse_media"
+                                            )}
+                                            .path=${mdiPlayBoxMultiple}
+                                            @click=${this._handleBrowseMedia}
+                                          ></ha-icon-button>
+                                        `
+                                      : ""
+                                  }
+                                  ${
+                                    supportsFeature(
+                                      stateObj,
+                                      MediaPlayerEntityFeature.GROUPING
+                                    )
+                                      ? html`
+                                          <ha-icon-button
+                                            class="join-media"
+                                            .label=${this._localize(
+                                              "ui.card.media_player.join"
+                                            )}
+                                            @click=${this._handleJoinMediaPlayers}
+                                          >
+                                            <ha-svg-icon
+                                              .path=${mdiSpeakerMultiple}
+                                            ></ha-svg-icon>
+                                            ${
+                                              groupMembers && groupMembers > 1
+                                                ? html`<span class="badge">
+                                                    ${
+                                                      stateObj.attributes
+                                                        .group_members?.length
+                                                    }
+                                                  </span>`
+                                                : nothing
+                                            }
+                                          </ha-icon-button>
+                                        `
+                                      : ""
+                                  }
+                                </div>
+                              </div>
+                            `
+                      }
+                    </div>
+                    ${
+                      !this._showProgressBar
+                        ? ""
+                        : html`
+                            <ha-slider
+                              min="0"
+                              max=${stateObj.attributes.media_duration || 0}
+                              step="1"
+                              style=${styleMap({
+                                "--ha-slider-indicator-color":
+                                  this._foregroundColor ||
+                                  "var(--accent-color)",
+                                cursor: supportsFeature(
+                                  stateObj,
+                                  MediaPlayerEntityFeature.SEEK
+                                )
+                                  ? "pointer"
+                                  : "initial",
+                              })}
+                              @change=${this._handleSeek}
+                            >
+                            </ha-slider>
+                          `
+                    }
+                  </div>
+                `
+              : ""
+          }
+        </div>
+      </ha-card>
+    `;
+  }
+
+  protected firstUpdated(): void {
+    this._attachObserver();
+    this._measureCard();
+  }
+
+  // Runs after @transform has refreshed _stateObj for a new config, which
+  // happens after willUpdate.
+  protected update(changedProps: PropertyValues): void {
+    if (
+      this._config &&
+      (changedProps.has("_config") || changedProps.has("_stateObj"))
+    ) {
+      this._updateColors(changedProps);
+    }
+    super.update(changedProps);
+  }
+
+  private _updateColors(changedProps: PropertyValues): void {
+    const stateObj = this._stateObj;
+
+    if (!stateObj) {
+      this._foregroundColor = undefined;
+      this._backgroundColor = undefined;
+      return;
+    }
+
+    const oldStateObj = changedProps.get("_stateObj") as
+      MediaPlayerEntity | undefined;
+
+    const oldImage =
+      oldStateObj?.attributes.entity_picture_local ||
+      oldStateObj?.attributes.entity_picture;
+
+    if (!this._image) {
+      this._foregroundColor = undefined;
+      this._backgroundColor = undefined;
+      return;
+    }
+
+    if (this._image !== oldImage) {
+      this._setColors();
+    }
+  }
+
+  protected updated(changedProps: PropertyValues) {
+    if (
+      !this._config ||
+      !this._themes ||
+      (!changedProps.has("_config") && !changedProps.has("_themes"))
+    ) {
+      return;
+    }
+
+    const oldThemes = changedProps.get("_themes") as Themes | undefined;
+    const oldConfig = changedProps.get("_config") as
+      MediaControlCardConfig | undefined;
+
+    if (
+      !oldThemes ||
+      !oldConfig ||
+      oldThemes !== this._themes ||
+      oldConfig.theme !== this._config.theme
+    ) {
+      applyThemesOnElement(this, this._themes, this._config.theme);
+    }
+  }
+
+  private get _image() {
+    const stateObj = this._stateObj;
+
+    if (!stateObj) {
+      return undefined;
+    }
+
+    return (
+      stateObj.attributes.entity_picture_local ||
+      stateObj.attributes.entity_picture
+    );
+  }
+
+  private get _showProgressBar() {
+    if (this._narrow) {
+      return false;
+    }
+
+    const stateObj = this._stateObj;
+
+    if (!stateObj) {
+      return false;
+    }
+
+    return (
+      (stateObj.state === "playing" || stateObj.state === "paused") &&
+      "media_duration" in stateObj.attributes &&
+      "media_position" in stateObj.attributes
+    );
+  }
+
+  private _measureCard() {
+    const card = this.shadowRoot!.querySelector("ha-card");
+
+    if (!card) {
+      return;
+    }
+    this._narrow = card.offsetWidth < 350;
+    this._veryNarrow = card.offsetWidth < 300;
+    this._cardHeight = card.offsetHeight;
+  }
+
+  private async _attachObserver(): Promise<void> {
+    if (!this._resizeObserver) {
+      this._resizeObserver = new ResizeObserver(
+        debounce(() => this._measureCard(), 250, false)
+      );
+    }
+    const card = this.shadowRoot!.querySelector("ha-card");
+    // If we show an error or warning there is no ha-card
+    if (!card) {
+      return;
+    }
+    this._resizeObserver.observe(card);
+  }
+
+  private _handleMoreInfo(): void {
+    fireEvent(this, "hass-more-info", {
+      entityId: this._config!.entity,
+    });
+  }
+
+  private _handleBrowseMedia(): void {
+    showMediaBrowserDialog(this, {
+      action: "play",
+      entityId: this._config!.entity,
+      mediaPickedCallback: (pickedMedia: MediaPickedEvent) =>
+        mediaPlayerPlayMedia(
+          this._api,
+          this._config!.entity,
+          pickedMedia.item.media_content_id,
+          pickedMedia.item.media_content_type
+        ),
+    });
+  }
+
+  private _handleJoinMediaPlayers(): void {
+    showJoinMediaPlayersDialog(this, {
+      entityId: this._config!.entity,
+    });
+  }
+
+  private _handleClick(e: MouseEvent): void {
+    handleMediaControlClick(
+      this._api,
+      this._stateObj!,
+      (e.currentTarget as HTMLElement).getAttribute("action")!
+    );
+  }
+
+  private _handleSeek(): void {
+    const stateObj = this._stateObj!;
+
+    if (!supportsFeature(stateObj, MediaPlayerEntityFeature.SEEK)) {
+      return;
+    }
+
+    const position = this._progressBar?.value ?? 0;
+    this._progressController.seek(position);
+
+    this._api.callService("media_player", "media_seek", {
+      entity_id: this._config!.entity,
+      seek_position: position,
+    });
+  }
+
+  private async _setColors(): Promise<void> {
+    if (!this._image) {
+      return;
+    }
+
+    try {
+      const { foreground, background } = await extractColors(
+        this._hassUrl(this._image)
+      );
+      this._backgroundColor = background.hex;
+      this._foregroundColor = foreground.hex;
+    } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.error("Error getting Image Colors", err);
+      this._foregroundColor = undefined;
+      this._backgroundColor = undefined;
+    }
+  }
+
+  private _marqueeMouseOver(): void {
+    if (!this._marqueeActive) {
+      this._marqueeActive = true;
+    }
+  }
+
+  private _marqueeMouseLeave(): void {
+    if (this._marqueeActive) {
+      this._marqueeActive = false;
+    }
+  }
+
+  static styles = css`
+    ha-card {
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .background {
+      display: flex;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      transition: filter 0.8s;
+    }
+
+    .color-block {
+      background-color: var(--primary-color);
+      transition: background-color 0.8s;
+      width: 100%;
+    }
+
+    .color-gradient {
+      position: absolute;
+      background-image: linear-gradient(
+        to right,
+        var(--primary-color),
+        transparent
+      );
+      height: 100%;
+      right: 0;
+
+      opacity: 1;
+      transition:
+        width 0.8s,
+        opacity 0.8s linear 0.8s;
+    }
+
+    .image {
+      background-color: var(--primary-color);
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      position: absolute;
+      right: 0;
+      height: 100%;
+      opacity: 1;
+      transition:
+        width 0.8s,
+        background-image 0.8s,
+        background-color 0.8s,
+        background-size 0.8s,
+        opacity 0.8s linear 0.8s;
+    }
+
+    .no-image .image {
+      opacity: 0;
+    }
+
+    .no-img {
+      background-color: var(--primary-color);
+      background-size: initial;
+      background-repeat: no-repeat;
+      background-position: center center;
+      padding-bottom: 0;
+      position: absolute;
+      right: 0;
+      height: 100%;
+      background-image: url("/static/images/card_media_player_bg.png");
+      width: 50%;
+      transition:
+        opacity 0.8s,
+        background-color 0.8s;
+    }
+
+    .off .image,
+    .off .color-gradient {
+      opacity: 0;
+      transition:
+        opacity 0s,
+        width 0.8s;
+      width: 0;
+    }
+
+    .unavailable .no-img,
+    .background:not(.off):not(.no-image) .no-img {
+      opacity: 0;
+    }
+
+    .player {
+      position: relative;
+      padding: 16px;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: var(--text-primary-color);
+      transition-property: color, padding;
+      transition-duration: 0.4s;
+    }
+
+    .controls {
+      padding: 8px 8px 8px 0;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      transition: padding, color;
+      transition-duration: 0.4s;
+      margin-left: -12px;
+      margin-inline-start: -12px;
+      margin-inline-end: initial;
+      padding-inline-start: 0;
+      padding-inline-end: 8px;
+      direction: ltr;
+    }
+
+    .controls > div {
+      display: flex;
+      align-items: center;
+    }
+
+    .controls > .start {
+      flex-grow: 1;
+    }
+
+    .controls ha-icon-button {
+      --ha-icon-button-size: 44px;
+      --mdc-icon-size: 30px;
+    }
+
+    ha-icon-button[action="media_play"],
+    ha-icon-button[action="media_play_pause"],
+    ha-icon-button[action="media_pause"],
+    ha-icon-button[action="media_stop"] {
+      --ha-icon-button-size: 56px;
+      --mdc-icon-size: 40px;
+    }
+
+    ha-icon-button.browse-media {
+      --mdc-icon-size: 24px;
+      inset-inline-end: 4px;
+      inset-inline-start: initial;
+    }
+
+    ha-icon-button.join-media {
+      --mdc-icon-size: 24px;
+      inset-inline-end: 4px;
+      inset-inline-start: initial;
+    }
+
+    .top-info {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .icon-name {
+      display: flex;
+      height: fit-content;
+      align-items: center;
+    }
+
+    .icon-name ha-state-icon {
+      padding-right: 8px;
+      padding-inline-start: initial;
+      padding-inline-end: 8px;
+      direction: var(--direction);
+    }
+
+    .more-info {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      inset-inline-start: initial;
+      inset-inline-end: 4px;
+      direction: var(--direction);
+    }
+
+    .media-info {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    hui-marquee {
+      font-size: 1.2em;
+      margin: 0px 0 4px;
+    }
+
+    .title-controls {
+      padding-top: 16px;
+    }
+
+    ha-slider {
+      --track-size: 8px;
+      width: 100%;
+      --ha-slider-track-color: rgba(200, 200, 200, 0.5);
+    }
+
+    ha-slider::part(thumb) {
+      display: none;
+    }
+
+    .no-image .controls {
+      padding: 0;
+    }
+
+    .off.background {
+      filter: grayscale(1);
+    }
+
+    .narrow .controls,
+    .no-progress .controls {
+      padding-bottom: 0;
+    }
+
+    .narrow ha-icon-button {
+      --ha-icon-button-size: 40px;
+      --mdc-icon-size: 28px;
+    }
+
+    .narrow ha-icon-button[action="media_play"],
+    .narrow ha-icon-button[action="media_play_pause"],
+    .narrow
+      ha-icon-button[action="media_pause"]
+      .narrow
+      ha-icon-button[action="media_stop"] {
+      --ha-icon-button-size: 50px;
+      --mdc-icon-size: 36px;
+    }
+
+    .narrow ha-icon-button.browse-media {
+      --mdc-icon-size: 24px;
+    }
+
+    .no-progress.player:not(.no-controls) {
+      padding-bottom: 0px;
+    }
+
+    .badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: auto;
+      height: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 8px;
+      min-height: 16px;
+      border-radius: 10px;
+      font-weight: var(--ha-font-weight-normal);
+      font-size: var(--ha-font-size-xs);
+      background-color: var(--accent-color);
+      padding: 0 4px;
+      color: var(--text-accent-color, var(--text-primary-color));
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-media-control-card": HuiMediaControlCard;
+  }
+}

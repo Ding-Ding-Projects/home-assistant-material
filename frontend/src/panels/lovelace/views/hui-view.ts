@@ -1,0 +1,685 @@
+import type { PropertyValues } from "lit";
+import { ReactiveElement } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import memoizeOne from "memoize-one";
+import { consume } from "../../../common/decorators/consume";
+import { storage } from "../../../common/decorators/storage";
+import type { HASSDomEvent } from "../../../common/dom/fire_event";
+import { debounce } from "../../../common/util/debounce";
+import { deepEqual } from "../../../common/util/deep-equal";
+import "../../../components/ha-svg-icon";
+import type { LovelaceViewElement } from "../../../data/lovelace";
+import type { LovelaceBadgeConfig } from "../../../data/lovelace/config/badge";
+import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
+import type { LovelaceSectionConfig } from "../../../data/lovelace/config/section";
+import type {
+  LovelaceViewConfig,
+  LovelaceViewRawConfig,
+} from "../../../data/lovelace/config/view";
+import { normalizeViewConfig } from "../../../data/lovelace/config/normalize";
+import { isStrategyView } from "../../../data/lovelace/config/view";
+import type { HomeAssistant } from "../../../types";
+import {
+  childPanelReadyContext,
+  type RegisterChildPanelReady,
+} from "../../../layouts/panel-ready";
+import "../badges/hui-badge";
+import type { HuiBadge } from "../badges/hui-badge";
+import "../cards/hui-card";
+import type { HuiCard } from "../cards/hui-card";
+import { createViewElement } from "../create-element/create-view-element";
+import { showCreateBadgeDialog } from "../editor/badge-editor/show-create-badge-dialog";
+import { showEditBadgeDialog } from "../editor/badge-editor/show-edit-badge-dialog";
+import { showCreateCardDialog } from "../editor/card-editor/show-create-card-dialog";
+import { showEditCardDialog } from "../editor/card-editor/show-edit-card-dialog";
+import { adoptViewLayout, getCardSectionConfig } from "../editor/config-util";
+import type { ClipboardActionParams } from "../editor/clipboard-actions";
+import {
+  performCopy,
+  performCut,
+  performPaste,
+} from "../editor/clipboard-actions";
+import {
+  type DeleteBadgeParams,
+  performDeleteBadge,
+} from "../editor/delete-badge";
+import {
+  type DeleteCardParams,
+  performDeleteCard,
+} from "../editor/delete-card";
+import type { LovelacePath } from "../editor/lovelace-path";
+import {
+  appendAtPath,
+  getAtPath,
+  getItemKind,
+  getParentPath,
+  getPathTarget,
+  getViewPath,
+  normalizeCardPath,
+  setAtPath,
+} from "../editor/lovelace-path";
+import { createErrorSectionConfig } from "../sections/hui-error-section";
+import "../sections/hui-section";
+import type { HuiSection } from "../sections/hui-section";
+import {
+  checkStrategyShouldRegenerate,
+  generateLovelaceViewStrategy,
+} from "../strategies/get-strategy";
+import type { Lovelace } from "../types";
+import { PANEL_VIEW_LAYOUT, SIDEBAR_VIEW_LAYOUT } from "./const";
+import { getViewType } from "./get-view-type";
+
+declare global {
+  // for fire event
+  interface HASSDomEvents {
+    "ll-create-card": { path: LovelacePath; suggested?: string[] };
+    "ll-edit-card": { path: LovelacePath };
+    "ll-delete-card": DeleteCardParams;
+    "ll-duplicate-card": { path: LovelacePath };
+    "ll-copy-card": { path: LovelacePath };
+    "ll-cut-card": { path: LovelacePath };
+    "ll-paste-card": { path: LovelacePath };
+    "ll-create-badge": { path: LovelacePath };
+    "ll-edit-badge": { path: LovelacePath };
+    "ll-delete-badge": DeleteBadgeParams;
+    "ll-copy-badge": { path: LovelacePath };
+    "ll-cut-badge": { path: LovelacePath };
+  }
+  interface HTMLElementEventMap {
+    "ll-create-card": HASSDomEvent<HASSDomEvents["ll-create-card"]>;
+    "ll-edit-card": HASSDomEvent<HASSDomEvents["ll-edit-card"]>;
+    "ll-delete-card": HASSDomEvent<HASSDomEvents["ll-delete-card"]>;
+    "ll-duplicate-card": HASSDomEvent<HASSDomEvents["ll-duplicate-card"]>;
+    "ll-copy-card": HASSDomEvent<HASSDomEvents["ll-copy-card"]>;
+    "ll-cut-card": HASSDomEvent<HASSDomEvents["ll-cut-card"]>;
+    "ll-paste-card": HASSDomEvent<HASSDomEvents["ll-paste-card"]>;
+    "ll-create-badge": HASSDomEvent<HASSDomEvents["ll-create-badge"]>;
+    "ll-edit-badge": HASSDomEvent<HASSDomEvents["ll-edit-badge"]>;
+    "ll-delete-badge": HASSDomEvent<HASSDomEvents["ll-delete-badge"]>;
+    "ll-copy-badge": HASSDomEvent<HASSDomEvents["ll-copy-badge"]>;
+    "ll-cut-badge": HASSDomEvent<HASSDomEvents["ll-cut-badge"]>;
+  }
+}
+
+@customElement("hui-view")
+export class HUIView extends ReactiveElement {
+  @property({ attribute: false }) public hass!: HomeAssistant;
+
+  @property({ attribute: false }) public lovelace!: Lovelace;
+
+  @property({ type: Boolean }) public narrow = false;
+
+  @property({ type: Number }) public index!: number;
+
+  @state() private _cards: HuiCard[] = [];
+
+  @state() private _badges: HuiBadge[] = [];
+
+  @state() private _sections: HuiSection[] = [];
+
+  private _layoutElementType?: string;
+
+  private _layoutElement?: LovelaceViewElement;
+
+  private _config?: LovelaceViewConfig;
+
+  private _resolveInitialRender?: () => void;
+
+  private _initialRenderComplete = new Promise<void>((resolve) => {
+    this._resolveInitialRender = resolve;
+  });
+
+  @consume({ context: childPanelReadyContext })
+  private _registerChildPanelReady?: RegisterChildPanelReady;
+
+  private _path = memoizeOne((index: number): LovelacePath => ["views", index]);
+
+  @storage({
+    key: "dashboardCardClipboard",
+    state: false,
+    subscribe: false,
+    storage: "sessionStorage",
+  })
+  protected _clipboard?: LovelaceCardConfig;
+
+  @storage({
+    key: "dashboardBadgeClipboard",
+    state: false,
+    subscribe: false,
+    storage: "sessionStorage",
+  })
+  protected _badgeClipboard?: LovelaceBadgeConfig;
+
+  constructor() {
+    super();
+    this.addEventListener(
+      "ll-create-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-create-card"]>) => {
+        // Temporary compatibility: custom view layouts still fire this event without a path
+        const detail = ev.detail as HASSDomEvents["ll-create-card"] | undefined;
+        const path = detail?.path ?? [...this._path(this.index), "cards"];
+        showCreateCardDialog(this, {
+          lovelaceConfig: this.lovelace.config,
+          saveConfig: this.lovelace.saveConfig,
+          path,
+          suggestedCards: detail?.suggested,
+        });
+      },
+      // Temporary compatibility: custom view layouts dispatch it without bubbling
+      { capture: true }
+    );
+    this.addEventListener(
+      "ll-edit-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-edit-card"]>) => {
+        const path = normalizeCardPath(ev.detail.path);
+        const cardConfig = this._getCardConfig(path);
+        if (!cardConfig) {
+          return;
+        }
+        showEditCardDialog(this, {
+          lovelaceConfig: this.lovelace.config,
+          saveCardConfig: async (newCardConfig) => {
+            const newConfig = setAtPath(
+              this.lovelace.config,
+              path,
+              newCardConfig
+            );
+            await this.lovelace.saveConfig(newConfig);
+          },
+          sectionConfig: getCardSectionConfig(this.lovelace.config, path),
+          cardConfig,
+        });
+      }
+    );
+    this.addEventListener(
+      "ll-delete-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-delete-card"]>) => {
+        if (!this.lovelace) return;
+        performDeleteCard(this.hass.localize, this.lovelace, {
+          ...ev.detail,
+          path: normalizeCardPath(ev.detail.path),
+        });
+      }
+    );
+    this.addEventListener(
+      "ll-duplicate-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-duplicate-card"]>) => {
+        const path = normalizeCardPath(ev.detail.path);
+        if (getPathTarget(path) !== "item") {
+          return;
+        }
+        const cardConfig = this._getCardConfig(path);
+        if (!cardConfig) {
+          return;
+        }
+        showEditCardDialog(this, {
+          lovelaceConfig: this.lovelace.config,
+          saveCardConfig: async (newCardConfig) => {
+            const cardsPath = getParentPath(path);
+            const newConfig = appendAtPath(
+              this.lovelace.config,
+              cardsPath,
+              newCardConfig
+            );
+            await this.lovelace.saveConfig(newConfig);
+          },
+          sectionConfig: getCardSectionConfig(this.lovelace.config, path),
+          cardConfig,
+          isNew: true,
+        });
+      }
+    );
+    this.addEventListener(
+      "ll-copy-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-copy-card"]>) => {
+        const params = this._getCardClipboardParams(ev.detail.path);
+        if (params) {
+          performCopy(this.hass.localize, this.lovelace, params);
+        }
+      }
+    );
+    this.addEventListener(
+      "ll-cut-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-cut-card"]>) => {
+        const params = this._getCardClipboardParams(ev.detail.path);
+        if (params) {
+          performCut(this.hass.localize, this.lovelace, params);
+        }
+      }
+    );
+    this.addEventListener(
+      "ll-paste-card",
+      (ev: HASSDomEvent<HASSDomEvents["ll-paste-card"]>) => {
+        const config = this._clipboard;
+        const path = normalizeCardPath(ev.detail.path);
+        const target =
+          getPathTarget(path) === "item" && getItemKind(path) === "card"
+            ? this._getCardConfig(path)
+            : undefined;
+        if (!config || !target) {
+          return;
+        }
+        const viewType = getViewType(
+          getAtPath<LovelaceViewConfig>(this.lovelace.config, getViewPath(path))
+        );
+        performPaste(this.hass.localize, this.lovelace, {
+          type: "card",
+          path,
+          config:
+            viewType === SIDEBAR_VIEW_LAYOUT
+              ? adoptViewLayout(config, target)
+              : config,
+          replace: viewType === PANEL_VIEW_LAYOUT,
+        });
+      }
+    );
+    this.addEventListener(
+      "ll-create-badge",
+      (ev: HASSDomEvent<HASSDomEvents["ll-create-badge"]>) => {
+        showCreateBadgeDialog(this, {
+          lovelaceConfig: this.lovelace.config,
+          saveConfig: this.lovelace.saveConfig,
+          path: ev.detail.path,
+        });
+      }
+    );
+    this.addEventListener(
+      "ll-edit-badge",
+      (ev: HASSDomEvent<HASSDomEvents["ll-edit-badge"]>) => {
+        const path = ev.detail.path;
+        const badge = getAtPath<LovelaceBadgeConfig>(
+          this.lovelace.config,
+          path
+        );
+        if (badge == null) {
+          return;
+        }
+        showEditBadgeDialog(this, {
+          lovelaceConfig: this.lovelace.config,
+          saveBadgeConfig: async (newBadgeConfig) => {
+            const newConfig = setAtPath(
+              this.lovelace.config,
+              path,
+              newBadgeConfig
+            );
+            await this.lovelace.saveConfig(newConfig);
+          },
+          badgeConfig: badge,
+        });
+      }
+    );
+    this.addEventListener(
+      "ll-delete-badge",
+      (ev: HASSDomEvent<HASSDomEvents["ll-delete-badge"]>) => {
+        if (!this.lovelace) return;
+        performDeleteBadge(this.hass.localize, this.lovelace, ev.detail);
+      }
+    );
+    this.addEventListener(
+      "ll-copy-badge",
+      (ev: HASSDomEvent<HASSDomEvents["ll-copy-badge"]>) => {
+        const params = this._getBadgeClipboardParams(ev.detail.path);
+        if (params) {
+          performCopy(this.hass.localize, this.lovelace, params);
+        }
+      }
+    );
+    this.addEventListener(
+      "ll-cut-badge",
+      (ev: HASSDomEvent<HASSDomEvents["ll-cut-badge"]>) => {
+        const params = this._getBadgeClipboardParams(ev.detail.path);
+        if (params) {
+          performCut(this.hass.localize, this.lovelace, params);
+        }
+      }
+    );
+  }
+
+  private _getCardClipboardParams(
+    path: LovelacePath
+  ): ClipboardActionParams<"card"> | undefined {
+    if (!this.lovelace) return undefined;
+    const cardPath = normalizeCardPath(path);
+    const config = this._getCardConfig(cardPath);
+    if (!config) return undefined;
+    return {
+      type: "card",
+      path: cardPath,
+      config,
+      setClipboard: (clipboard) => {
+        this._clipboard = clipboard;
+      },
+    };
+  }
+
+  private _getBadgeClipboardParams(
+    path: LovelacePath
+  ): ClipboardActionParams<"badge"> | undefined {
+    if (!this.lovelace) return undefined;
+    const config = getAtPath<LovelaceBadgeConfig>(this.lovelace.config, path);
+    if (!config) return undefined;
+    return {
+      type: "badge",
+      path,
+      config,
+      setClipboard: (clipboard) => {
+        this._badgeClipboard = clipboard;
+      },
+    };
+  }
+
+  private _getCardConfig(path: LovelacePath): LovelaceCardConfig | undefined {
+    if (isStrategyView(this.lovelace.config.views[this.index])) {
+      return undefined;
+    }
+    return getAtPath<LovelaceCardConfig>(this.lovelace.config, path);
+  }
+
+  private _createCardElement(cardConfig: LovelaceCardConfig) {
+    const element = document.createElement("hui-card");
+    element.hass = this.hass;
+    element.preview = this.lovelace.editMode;
+    element.config = cardConfig;
+    element.addEventListener("card-updated", (ev: Event) => {
+      ev.stopPropagation();
+      this._cards = [...this._cards];
+    });
+    element.load();
+    return element;
+  }
+
+  public createBadgeElement(badgeConfig: LovelaceBadgeConfig) {
+    const element = document.createElement("hui-badge");
+    element.hass = this.hass;
+    element.preview = this.lovelace.editMode;
+    element.config = badgeConfig;
+    element.addEventListener("badge-updated", (ev: Event) => {
+      ev.stopPropagation();
+      this._badges = [...this._badges];
+    });
+    element.load();
+    return element;
+  }
+
+  // Public to make demo happy
+  public createSectionElement(sectionConfig: LovelaceSectionConfig) {
+    const element = document.createElement("hui-section");
+    element.hass = this.hass;
+    element.lovelace = this.lovelace;
+    element.config = sectionConfig;
+    element.preview = this.lovelace.editMode;
+    element.addEventListener(
+      "ll-rebuild",
+      (ev: Event) => {
+        ev.stopPropagation();
+        this._rebuildSection(element, sectionConfig);
+      },
+      { once: true }
+    );
+    return element;
+  }
+
+  protected createRenderRoot() {
+    return this;
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._registerChildPanelReady?.(this._initialRenderComplete);
+  }
+
+  public willUpdate(changedProperties: PropertyValues<this>): void {
+    super.willUpdate(changedProperties);
+
+    /*
+      We need to handle the following use cases:
+       - initialization: create layout element, populate
+       - config changed to view with same layout element
+       - config changed to view with different layout element
+       - forwarded properties hass/narrow/lovelace/cards/badges change
+          - cards/badges change if one is rebuild when it was loaded later
+          - lovelace changes if edit mode is enabled or config has changed
+    */
+
+    const oldLovelace = changedProperties.get("lovelace");
+
+    // If config has changed, create element if necessary and set all values.
+    if (
+      changedProperties.has("index") ||
+      (changedProperties.has("lovelace") &&
+        (!oldLovelace ||
+          this.lovelace.config.views[this.index] !==
+            oldLovelace.config.views[this.index]))
+    ) {
+      this._initializeConfig();
+      return;
+    }
+
+    if (!changedProperties.has("hass")) {
+      return;
+    }
+
+    const oldHass = changedProperties.get("hass") as HomeAssistant | undefined;
+    const viewConfig = this.lovelace.config.views[this.index];
+    if (oldHass && this.hass && this.lovelace && isStrategyView(viewConfig)) {
+      if (
+        this.hass.config.state === "RUNNING" &&
+        (oldHass.config.state !== "RUNNING" ||
+          checkStrategyShouldRegenerate(
+            "view",
+            viewConfig.strategy,
+            oldHass,
+            this.hass
+          ))
+      ) {
+        this._debounceRefreshConfig();
+      }
+    }
+  }
+
+  private _debounceRefreshConfig = debounce(
+    () => this._initializeConfig(),
+    200
+  );
+
+  protected update(changedProperties: PropertyValues) {
+    super.update(changedProperties);
+
+    // If no layout element, we're still creating one
+    if (this._layoutElement) {
+      // Config has not changed. Just props
+      if (changedProperties.has("hass")) {
+        this._badges.forEach((badge) => {
+          badge.hass = this.hass;
+        });
+
+        this._cards.forEach((element) => {
+          element.hass = this.hass;
+        });
+
+        this._sections.forEach((element) => {
+          try {
+            element.hass = this.hass;
+          } catch (e: any) {
+            this._rebuildSection(element, createErrorSectionConfig(e.message));
+          }
+        });
+
+        this._layoutElement.hass = this.hass;
+      }
+      if (changedProperties.has("narrow")) {
+        this._layoutElement.narrow = this.narrow;
+      }
+      if (changedProperties.has("lovelace")) {
+        this._layoutElement.lovelace = this.lovelace;
+        this._sections.forEach((element) => {
+          try {
+            element.hass = this.hass;
+            element.lovelace = this.lovelace;
+            element.preview = this.lovelace.editMode;
+          } catch (e: any) {
+            this._rebuildSection(element, createErrorSectionConfig(e.message));
+          }
+        });
+        this._cards.forEach((element) => {
+          element.preview = this.lovelace.editMode;
+        });
+        this._badges.forEach((element) => {
+          element.preview = this.lovelace.editMode;
+        });
+      }
+      if (changedProperties.has("_cards")) {
+        this._layoutElement.cards = this._cards;
+      }
+      if (changedProperties.has("_badges")) {
+        this._layoutElement.badges = this._badges;
+      }
+    }
+  }
+
+  private async _generateConfig(
+    config: LovelaceViewRawConfig
+  ): Promise<LovelaceViewConfig> {
+    if (isStrategyView(config)) {
+      const strategyConfig = await generateLovelaceViewStrategy(
+        config,
+        this.hass!
+      );
+      const generatedConfig = normalizeViewConfig(strategyConfig);
+      return {
+        ...generatedConfig,
+        type: getViewType(generatedConfig),
+      };
+    }
+
+    return {
+      ...config,
+      type: getViewType(config),
+    };
+  }
+
+  private _setConfig(viewConfig: LovelaceViewConfig, isStrategy: boolean) {
+    if (isStrategy && deepEqual(viewConfig, this._config)) {
+      return;
+    }
+
+    this._config = viewConfig;
+
+    // Create a new layout element if necessary.
+    let addLayoutElement = false;
+
+    if (!this._layoutElement || this._layoutElementType !== viewConfig.type) {
+      addLayoutElement = true;
+      this._createLayoutElement(viewConfig);
+    } else {
+      this._layoutElement.setConfig(viewConfig);
+    }
+    this._createBadges(viewConfig);
+    this._createCards(viewConfig);
+    this._createSections(viewConfig);
+    this._layoutElement!.isStrategy = isStrategy;
+    this._layoutElement!.hass = this.hass;
+    this._layoutElement!.narrow = this.narrow;
+    this._layoutElement!.lovelace = this.lovelace;
+    this._layoutElement!.index = this.index;
+    this._layoutElement!.path = this._path(this.index);
+    this._layoutElement!.cards = this._cards;
+    this._layoutElement!.badges = this._badges;
+    this._layoutElement!.sections = this._sections;
+
+    if (addLayoutElement) {
+      while (this.lastChild) {
+        this.removeChild(this.lastChild);
+      }
+      this.appendChild(this._layoutElement!);
+    }
+  }
+
+  private async _initializeConfig() {
+    const rawConfig = this.lovelace.config.views[this.index];
+    const isStrategy = isStrategyView(rawConfig);
+
+    const viewConfig = await this._generateConfig(rawConfig);
+
+    this._setConfig(viewConfig, isStrategy);
+    await customElements.whenDefined(this._layoutElement!.localName);
+    if (this._layoutElement instanceof ReactiveElement) {
+      await this._layoutElement.updateComplete;
+    }
+    await this._layoutElement!.initialRenderComplete;
+    this._resolveInitialRender?.();
+    this._resolveInitialRender = undefined;
+  }
+
+  private _createLayoutElement(config: LovelaceViewConfig): void {
+    this._layoutElement = createViewElement(config) as LovelaceViewElement;
+    this._layoutElementType = config.type;
+    this._layoutElement.addEventListener(
+      "ll-rebuild",
+      (ev: Event) => {
+        ev.stopPropagation();
+        // Force recreation of the layout element
+        this._layoutElementType = undefined;
+        this._initializeConfig();
+      },
+      { once: true }
+    );
+  }
+
+  private _createBadges(config: LovelaceViewConfig): void {
+    if (!config || !config.badges || !Array.isArray(config.badges)) {
+      this._badges = [];
+      return;
+    }
+
+    this._badges = config.badges.map((badge) => this.createBadgeElement(badge));
+  }
+
+  private _createCards(config: LovelaceViewConfig): void {
+    if (!config || !config.cards || !Array.isArray(config.cards)) {
+      this._cards = [];
+      return;
+    }
+
+    this._cards = config.cards.map((cardConfig) => {
+      const element = this._createCardElement(cardConfig);
+      return element;
+    });
+  }
+
+  private _createSections(config: LovelaceViewConfig): void {
+    if (!config || !config.sections || !Array.isArray(config.sections)) {
+      this._sections = [];
+      return;
+    }
+
+    this._sections = config.sections.map((sectionConfig, index) => {
+      const element = this.createSectionElement(sectionConfig);
+      element.path = [...this._path(this.index), "sections", index];
+      return element;
+    });
+  }
+
+  private _rebuildSection(
+    sectionElToReplace: HuiSection,
+    config: LovelaceSectionConfig
+  ): void {
+    const newSectionEl = this.createSectionElement(config);
+    newSectionEl.path = sectionElToReplace.path;
+    if (sectionElToReplace.parentElement) {
+      sectionElToReplace.parentElement!.replaceChild(
+        newSectionEl,
+        sectionElToReplace
+      );
+    }
+    this._sections = this._sections!.map((curSectionEl) =>
+      curSectionEl === sectionElToReplace ? newSectionEl : curSectionEl
+    );
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-view": HUIView;
+  }
+}

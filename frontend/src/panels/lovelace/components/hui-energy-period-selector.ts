@@ -1,0 +1,892 @@
+import {
+  mdiCheckboxBlankOutline,
+  mdiCheckboxOutline,
+  mdiChevronLeft,
+  mdiChevronRight,
+  mdiDotsVertical,
+  mdiDownload,
+  mdiHomeClock,
+} from "@mdi/js";
+import {
+  differenceInCalendarMonths,
+  differenceInCalendarYears,
+  differenceInDays,
+  differenceInMonths,
+  endOfDay,
+  endOfMonth,
+  endOfToday,
+  endOfWeek,
+  isFirstDayOfMonth,
+  isLastDayOfMonth,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  subDays,
+  subMonths,
+} from "date-fns";
+import type { ContextType } from "@lit/context";
+import type { HassConfig } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import memoizeOne from "memoize-one";
+import {
+  calcDate,
+  calcDateDifferenceProperty,
+  calcDateProperty,
+  shiftDateRange,
+} from "../../../common/datetime/calc_date";
+import type { DateRange } from "../../../common/datetime/calc_date_range";
+import { calcDateRange } from "../../../common/datetime/calc_date_range";
+import { firstWeekdayIndex } from "../../../common/datetime/first_weekday";
+import {
+  formatDateMonth,
+  formatDateMonthShort,
+  formatDateVeryShort,
+  formatDateYear,
+} from "../../../common/datetime/format_date";
+import { consume } from "../../../common/decorators/consume";
+import { transform } from "../../../common/decorators/transform";
+import { mainWindow } from "../../../common/dom/get_main_window";
+import { stopPropagation } from "../../../common/dom/stop_propagation";
+import { debounce } from "../../../common/util/debounce";
+import "../../../components/date-picker/ha-date-range-picker";
+import type {
+  DateRangePickerRanges,
+  HaDateRangePicker,
+} from "../../../components/date-picker/ha-date-range-picker";
+import "../../../components/ha-button";
+import "../../../components/ha-dropdown";
+import "../../../components/ha-dropdown-item";
+import "../../../components/ha-ripple";
+import "../../../components/ha-spinner";
+import "../../../components/ha-svg-icon";
+import {
+  configContext,
+  internationalizationContext,
+  uiContext,
+} from "../../../data/context";
+import type { EnergyData } from "../../../data/energy";
+import {
+  CompareMode,
+  downloadEnergyData,
+  getEnergyDefaultPeriodStorageKey,
+} from "../../../data/energy";
+import { EnergyCollectionController } from "../../../data/energy-collection-controller";
+import type {
+  HomeAssistantConfig,
+  HomeAssistantInternationalization,
+} from "../../../types";
+import { animationStyles } from "../../../resources/theme/animations.globals";
+
+const RANGE_KEYS: DateRange[] = [
+  "today",
+  "yesterday",
+  "this_week",
+  "this_month",
+  "this_quarter",
+  "this_year",
+  "now-7d",
+  "now-30d",
+  "now-365d",
+  "now-12m",
+];
+
+interface OverflowMenuItem {
+  path: string;
+  label: string;
+  disabled?: boolean;
+  alwaysCollapse?: boolean;
+  hidden?: boolean;
+  action: () => void;
+}
+
+type VerticalOpeningDirection = "up" | "down";
+
+type OpeningDirection = "right" | "left" | "center" | "inline";
+
+@customElement("hui-energy-period-selector")
+export class HuiEnergyPeriodSelector extends LitElement {
+  @property({ attribute: "collection-key" }) public collectionKey?: string;
+
+  @property({ type: Boolean, reflect: true }) public narrow?: boolean;
+
+  @property({ type: Boolean, reflect: true }) public fixed?: boolean;
+
+  @property({ type: Boolean, attribute: "allow-compare" }) public allowCompare =
+    true;
+
+  @property({ attribute: "vertical-opening-direction" })
+  public verticalOpeningDirection?: VerticalOpeningDirection;
+
+  @property({ attribute: "opening-direction" })
+  public openingDirection?: OpeningDirection;
+
+  @state()
+  @consume({ context: internationalizationContext, subscribe: true })
+  private _i18n!: HomeAssistantInternationalization;
+
+  @state()
+  @consume({ context: configContext, subscribe: true })
+  @transform<HomeAssistantConfig, HassConfig>({
+    transformer: ({ config }) => config,
+  })
+  private _hassConfig!: HassConfig;
+
+  @consume({ context: uiContext, subscribe: true })
+  private _ui!: ContextType<typeof uiContext>;
+
+  @state() _datepickerOpen = false;
+
+  @state() _startDate?: Date;
+
+  @state() _endDate?: Date;
+
+  @state() private _ranges: DateRangePickerRanges = {};
+
+  @state() private _compare = false;
+
+  @state() private _collapseButtons = false;
+
+  @state() private _loading = false;
+
+  private _loadingTimer?: ReturnType<typeof setTimeout>;
+
+  private _resizeObserver?: ResizeObserver;
+
+  private _energyCollection = new EnergyCollectionController(this, {
+    config: () => ({ collection_key: this.collectionKey }),
+    onData: (data) => this._updateDates(data),
+  });
+
+  private _measure() {
+    this.narrow = this.offsetWidth < 425;
+    this._collapseButtons = this.offsetWidth < 275;
+  }
+
+  private async _attachObserver(): Promise<void> {
+    if (!this._resizeObserver) {
+      this._resizeObserver = new ResizeObserver(
+        debounce(() => this._measure(), 250, false)
+      );
+    }
+    this._resizeObserver.observe(this);
+  }
+
+  protected firstUpdated(): void {
+    this._attachObserver();
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this.updateComplete.then(() => this._attachObserver());
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+    }
+  }
+
+  public willUpdate(changedProps: PropertyValues) {
+    super.willUpdate(changedProps);
+    if (!this.hasUpdated) {
+      this._measure();
+    }
+
+    if (changedProps.has("_i18n") || changedProps.has("_hassConfig")) {
+      // pre defined date ranges
+      this._ranges = {};
+      RANGE_KEYS.forEach((key) => {
+        this._ranges[
+          this._i18n.localize(`ui.components.date-range-picker.ranges.${key}`)
+        ] = calcDateRange(this._i18n.locale, this._hassConfig, key);
+      });
+    }
+  }
+
+  protected render() {
+    if (!this._startDate) {
+      return nothing;
+    }
+
+    const simpleRange = this._simpleRange(
+      this._startDate,
+      this._endDate,
+      this._i18n.locale,
+      this._hassConfig
+    );
+
+    const today = new Date();
+    const showStartYear =
+      calcDateDifferenceProperty(
+        today,
+        this._startDate,
+        differenceInCalendarYears,
+        this._i18n.locale,
+        this._hassConfig
+      ) !== 0;
+    const showBothYear =
+      this._endDate &&
+      calcDateDifferenceProperty(
+        this._endDate,
+        this._startDate,
+        differenceInCalendarYears,
+        this._i18n.locale,
+        this._hassConfig
+      ) !== 0;
+    const showSubtitleYear =
+      simpleRange !== "year" && (showStartYear || showBothYear);
+
+    const buttons = [
+      {
+        path:
+          mainWindow.document.dir === "rtl" ? mdiChevronRight : mdiChevronLeft,
+        label: this._i18n.localize(
+          "ui.panel.lovelace.components.energy_period_selector.previous"
+        ),
+        action: () => this._pickPrevious(),
+      },
+      {
+        path:
+          mainWindow.document.dir === "rtl" ? mdiChevronLeft : mdiChevronRight,
+        label: this._i18n.localize(
+          "ui.panel.lovelace.components.energy_period_selector.next"
+        ),
+        action: () => this._pickNext(),
+      },
+      {
+        path: mdiHomeClock,
+        label: this._i18n.localize(
+          "ui.panel.lovelace.components.energy_period_selector.now"
+        ),
+        alwaysCollapse: true,
+        hidden: !this.narrow,
+        action: () => this._pickNow(),
+      },
+      {
+        path: this._compare ? mdiCheckboxOutline : mdiCheckboxBlankOutline,
+        disabled: !this.allowCompare,
+        alwaysCollapse: true,
+        label: this._i18n.localize(
+          "ui.panel.lovelace.components.energy_period_selector.compare"
+        ),
+        action: () => this._toggleCompare(),
+      },
+      {
+        path: mdiDownload,
+        alwaysCollapse: true,
+        label: this._i18n.localize(
+          "ui.panel.lovelace.components.energy_period_selector.download_data"
+        ),
+        action: () => this._downloadData(),
+      },
+    ] as OverflowMenuItem[];
+
+    return html`
+      <div
+        class=${classMap({
+          row: true,
+          "datepicker-open": this._datepickerOpen,
+        })}
+      >
+        <div class="backdrop"></div>
+        <div class="content">
+          <section class="date-picker-icon">
+            <ha-date-range-picker
+              .startDate=${this._startDate}
+              .endDate=${this._endDate || new Date()}
+              .ranges=${this._ranges}
+              @value-changed=${this._dateRangeChanged}
+              @preset-selected=${this._presetSelected}
+              @toggle=${this._handleDatepickerToggle}
+              minimal
+              backdrop
+              .popoverPlacement=${this._getDatePickerPlacement(
+                this.verticalOpeningDirection,
+                this.openingDirection
+              )}
+            ></ha-date-range-picker>
+          </section>
+          <section class="date-range" @click=${this._openDatePicker}>
+            <ha-ripple></ha-ripple>
+            <div class="header-title">
+              ${
+                simpleRange === "year"
+                  ? html`${formatDateYear(
+                      this._startDate,
+                      this._i18n.locale,
+                      this._hassConfig
+                    )}`
+                  : html`${
+                      simpleRange === "12month" ||
+                      simpleRange === "months" ||
+                      simpleRange === "quarter"
+                        ? html`${formatDateMonthShort(
+                            this._startDate,
+                            this._i18n.locale,
+                            this._hassConfig
+                          )}&ndash;${formatDateMonthShort(
+                            this._endDate || new Date(),
+                            this._i18n.locale,
+                            this._hassConfig
+                          )}`
+                        : html`${
+                            simpleRange === "month"
+                              ? html`${formatDateMonth(
+                                  this._startDate,
+                                  this._i18n.locale,
+                                  this._hassConfig
+                                )}`
+                              : simpleRange === "day"
+                                ? html`${formatDateVeryShort(
+                                    this._startDate,
+                                    this._i18n.locale,
+                                    this._hassConfig
+                                  )}`
+                                : html`${formatDateVeryShort(
+                                    this._startDate,
+                                    this._i18n.locale,
+                                    this._hassConfig
+                                  )}&ndash;${formatDateVeryShort(
+                                    this._endDate || new Date(),
+                                    this._i18n.locale,
+                                    this._hassConfig
+                                  )}`
+                          }`
+                    }`
+              }
+            </div>
+            ${
+              showSubtitleYear
+                ? html`<div class="header-subtitle">
+                    ${formatDateYear(
+                      this._startDate,
+                      this._i18n.locale,
+                      this._hassConfig
+                    )}${
+                      showBothYear
+                        ? html`&ndash;${formatDateYear(
+                            this._endDate || new Date(),
+                            this._i18n.locale,
+                            this._hassConfig
+                          )}`
+                        : ``
+                    }
+                  </div>`
+                : nothing
+            }
+            ${
+              this._loading
+                ? html`<ha-spinner
+                    class="loading-indicator"
+                    size="small"
+                  ></ha-spinner>`
+                : nothing
+            }
+          </section>
+          <section class="date-actions">
+            <div class="overflow">
+              ${
+                !this.narrow
+                  ? html`<ha-button
+                      appearance="filled"
+                      size="s"
+                      @click=${this._pickNow}
+                    >
+                      ${this._i18n.localize(
+                        "ui.panel.lovelace.components.energy_period_selector.now"
+                      )}
+                    </ha-button>`
+                  : nothing
+              }
+              ${buttons.map((item) =>
+                this._collapseButtons || item.alwaysCollapse
+                  ? nothing
+                  : html`<ha-icon-button
+                      @click=${item.action}
+                      .label=${item.label}
+                      .path=${item.path}
+                      ?disabled=${item.disabled}
+                    ></ha-icon-button>`
+              )}
+              ${
+                this._collapseButtons || buttons.some((x) => x.alwaysCollapse)
+                  ? html`<ha-dropdown
+                      @wa-show=${this._handleIconOverflowMenuOpened}
+                      @click=${stopPropagation}
+                    >
+                      <ha-icon-button
+                        .label=${this._i18n.localize("ui.common.overflow_menu")}
+                        .path=${mdiDotsVertical}
+                        slot="trigger"
+                      ></ha-icon-button>
+                      ${buttons.map((item) =>
+                        (this._collapseButtons || item.alwaysCollapse) &&
+                        !item.hidden
+                          ? html`<ha-dropdown-item
+                              ?disabled=${item.disabled}
+                              @click=${item.disabled ? undefined : item.action}
+                            >
+                              <ha-svg-icon
+                                slot="icon"
+                                .path=${item.path}
+                              ></ha-svg-icon>
+                              ${item.label}
+                            </ha-dropdown-item>`
+                          : nothing
+                      )}
+                    </ha-dropdown>`
+                  : nothing
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  private _simpleRange = memoizeOne(
+    (startDate, endDate, locale, config): string => {
+      if (differenceInDays(endDate!, startDate!) === 0) {
+        return "day";
+      }
+      // Check if range is one or more whole months
+      if (
+        (calcDateProperty(
+          startDate,
+          isFirstDayOfMonth,
+          locale,
+          config
+        ) as boolean) &&
+        (calcDateProperty(endDate, isLastDayOfMonth, locale, config) as boolean)
+      ) {
+        if (
+          (calcDateDifferenceProperty(
+            endDate,
+            startDate,
+            differenceInMonths,
+            locale,
+            config
+          ) as number) === 0
+        ) {
+          // Single month
+          return "month";
+        }
+        if (
+          (calcDateDifferenceProperty(
+            endDate,
+            startDate,
+            differenceInMonths,
+            locale,
+            config
+          ) as number) === 2 &&
+          startDate.getMonth() % 3 === 0
+        ) {
+          // Quarter year
+          return "quarter";
+        }
+        if (
+          calcDateDifferenceProperty(
+            endDate,
+            startDate,
+            differenceInMonths,
+            locale,
+            config
+          ) === 11
+        ) {
+          if (
+            calcDateDifferenceProperty(
+              endDate,
+              startDate,
+              differenceInCalendarYears,
+              locale,
+              config
+            ) === 0
+          ) {
+            // Exact year
+            return "year";
+          }
+          // Last 12 months
+          return "12month";
+        }
+        // Otherwise some number of whole months
+        return "months";
+      }
+      // Unnamed date range
+      return "other";
+    }
+  );
+
+  private get _datePicker(): HaDateRangePicker | undefined {
+    return this.shadowRoot!.querySelector("ha-date-range-picker") ?? undefined;
+  }
+
+  private _handleIconOverflowMenuOpened(ev: Event) {
+    ev.stopPropagation();
+  }
+
+  private _openDatePicker(ev: Event) {
+    const datePicker = this._datePicker;
+    if (datePicker) datePicker.open();
+    ev.stopPropagation();
+  }
+
+  private _updateCollectionPeriod() {
+    const energyCollection = this._energyCollection.collection;
+    if (!energyCollection) return;
+    energyCollection.setPeriod(this._startDate!, this._endDate!);
+    energyCollection.refresh();
+    this._scheduleLoadingIndicator();
+  }
+
+  private _dateRangeChanged(ev) {
+    this._startDate = calcDate(
+      ev.detail.value.startDate,
+      startOfDay,
+      this._i18n.locale,
+      this._hassConfig
+    );
+    this._endDate = calcDate(
+      ev.detail.value.endDate,
+      endOfDay,
+      this._i18n.locale,
+      this._hassConfig
+    );
+
+    this._updateCollectionPeriod();
+  }
+
+  private _presetSelected(ev) {
+    localStorage.setItem(
+      getEnergyDefaultPeriodStorageKey(this._ui.panelUrl, this.collectionKey),
+      RANGE_KEYS[ev.detail.index]
+    );
+  }
+
+  private _pickNow() {
+    if (!this._startDate) return;
+
+    const range = this._simpleRange(
+      this._startDate,
+      this._endDate,
+      this._i18n.locale,
+      this._hassConfig
+    );
+    const today = new Date();
+    if (range === "month") {
+      [this._startDate, this._endDate] = calcDateRange(
+        this._i18n.locale,
+        this._hassConfig,
+        "this_month"
+      );
+    } else if (range === "quarter") {
+      [this._startDate, this._endDate] = calcDateRange(
+        this._i18n.locale,
+        this._hassConfig,
+        "this_quarter"
+      );
+    } else if (range === "year") {
+      [this._startDate, this._endDate] = calcDateRange(
+        this._i18n.locale,
+        this._hassConfig,
+        "this_year"
+      );
+    } else if (range === "12month") {
+      [this._startDate, this._endDate] = calcDateRange(
+        this._i18n.locale,
+        this._hassConfig,
+        "now-12m"
+      );
+    } else if (range === "months") {
+      // Custom month range
+      const difference = calcDateDifferenceProperty(
+        this._endDate!,
+        this._startDate,
+        differenceInCalendarMonths,
+        this._i18n.locale,
+        this._hassConfig
+      ) as number;
+      this._startDate = calcDate(
+        calcDate(today, startOfMonth, this._i18n.locale, this._hassConfig),
+        subMonths,
+        this._i18n.locale,
+        this._hassConfig,
+        difference
+      );
+      this._endDate = calcDate(
+        today,
+        endOfMonth,
+        this._i18n.locale,
+        this._hassConfig
+      );
+    } else {
+      const weekStartsOn = firstWeekdayIndex(this._i18n.locale);
+      const weekStart = calcDate(
+        this._endDate!,
+        startOfWeek,
+        this._i18n.locale,
+        this._hassConfig,
+        {
+          weekStartsOn,
+        }
+      );
+      const weekEnd = calcDate(
+        this._endDate!,
+        endOfWeek,
+        this._i18n.locale,
+        this._hassConfig,
+        {
+          weekStartsOn,
+        }
+      );
+
+      // Check if a single week is selected
+      if (
+        this._startDate.getTime() === weekStart.getTime() &&
+        this._endDate!.getTime() === weekEnd.getTime()
+      ) {
+        // Pick current week
+        [this._startDate, this._endDate] = calcDateRange(
+          this._i18n.locale,
+          this._hassConfig,
+          "this_week"
+        );
+      } else {
+        // Custom date range
+        const difference = calcDateDifferenceProperty(
+          this._endDate!,
+          this._startDate,
+          differenceInDays,
+          this._i18n.locale,
+          this._hassConfig
+        ) as number;
+        this._startDate = calcDate(
+          calcDate(
+            today,
+            subDays,
+            this._i18n.locale,
+            this._hassConfig,
+            difference
+          ),
+          startOfDay,
+          this._i18n.locale,
+          this._hassConfig,
+          {
+            weekStartsOn,
+          }
+        );
+        this._endDate = calcDate(
+          today,
+          endOfDay,
+          this._i18n.locale,
+          this._hassConfig,
+          {
+            weekStartsOn,
+          }
+        );
+      }
+    }
+
+    this._updateCollectionPeriod();
+
+    // "yesterday" is the only preset whose range never includes today, making
+    // it the only remembered default that keeps reopening in the past.
+    const storageKey = getEnergyDefaultPeriodStorageKey(
+      this._ui.panelUrl,
+      this.collectionKey
+    );
+    if (localStorage.getItem(storageKey) === "yesterday") {
+      localStorage.setItem(storageKey, "today");
+    }
+  }
+
+  private _pickPrevious() {
+    this._shift(false);
+  }
+
+  private _pickNext() {
+    this._shift(true);
+  }
+
+  private _shift(forward: boolean) {
+    if (!this._startDate) return;
+    const { start, end } = shiftDateRange(
+      this._startDate,
+      this._endDate!,
+      forward,
+      this._i18n.locale,
+      this._hassConfig
+    );
+    this._startDate = start;
+    this._endDate = end;
+    this._updateCollectionPeriod();
+  }
+
+  private _updateDates(energyData: EnergyData): void {
+    clearTimeout(this._loadingTimer);
+    this._loading = false;
+    this._compare = energyData.startCompare !== undefined;
+    this._startDate = energyData.start;
+    this._endDate = energyData.end || endOfToday();
+  }
+
+  private _handleDatepickerToggle(ev: CustomEvent<{ open: boolean }>) {
+    this._datepickerOpen = ev.detail.open;
+  }
+
+  private _toggleCompare() {
+    const energyCollection = this._energyCollection.collection;
+    if (!energyCollection) return;
+    this._compare = !this._compare;
+    energyCollection.setCompare(
+      this._compare ? CompareMode.PREVIOUS : CompareMode.NONE
+    );
+    energyCollection.refresh();
+    this._scheduleLoadingIndicator();
+  }
+
+  private _downloadData() {
+    const energyCollection = this._energyCollection.collection;
+    if (!energyCollection) return;
+    downloadEnergyData(energyCollection, this._hassConfig.currency);
+  }
+
+  private _scheduleLoadingIndicator() {
+    // Add a delay before showing the loading indicator
+    // Basically to ensure there's no "flash loading" when data is loaded quickly
+    clearTimeout(this._loadingTimer);
+    this._loadingTimer = setTimeout(() => {
+      this._loading = true;
+    }, 200);
+  }
+
+  private _getDatePickerPlacement = memoizeOne(
+    (
+      verticalOpeningDirection: VerticalOpeningDirection | undefined,
+      openingDirection: OpeningDirection | undefined
+    ): HaDateRangePicker["popoverPlacement"] => {
+      const vertical = verticalOpeningDirection === "up" ? "top" : "bottom";
+      if (openingDirection === "center" || openingDirection === "inline") {
+        return vertical;
+      }
+      const horizontal = openingDirection === "left" ? "end" : "start";
+      return `${vertical}-${horizontal}`;
+    }
+  );
+
+  static styles = css`
+    ${animationStyles}
+    :host {
+      display: block;
+    }
+    .row {
+      justify-content: space-between;
+      container-type: inline-size;
+    }
+    .content {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .date-picker-icon {
+      flex: none;
+      min-width: var(--ha-space-2);
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+    }
+    .date-range {
+      flex: 1;
+      padding: 2px var(--ha-space-2) 2px 0px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: var(--ha-space-10);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+      position: relative;
+    }
+    .header-title {
+      font-size: var(--ha-font-size-xl);
+      line-height: var(--ha-line-height-condensed);
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--primary-text-color);
+    }
+    .header-subtitle {
+      font-size: var(--ha-font-size-m);
+      line-height: var(--ha-line-height-condensed);
+      color: var(--secondary-text-color);
+    }
+    :host([narrow]) .header-title {
+      font-size: var(--ha-font-size-m);
+    }
+    :host([narrow]) .header-subtitle {
+      font-size: var(--ha-font-size-s);
+    }
+    .date-actions {
+      flex: none;
+      min-width: var(--ha-space-2);
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+    .loading-indicator {
+      display: flex;
+      position: absolute;
+      right: var(--ha-space-2);
+      align-items: center;
+      animation: fade-in var(--ha-animation-duration-normal) ease-in-out;
+    }
+    .date-actions .overflow {
+      display: flex;
+      align-items: center;
+    }
+    ha-button {
+      margin-left: var(--ha-space-2);
+      margin-inline-start: var(--ha-space-2);
+      margin-inline-end: initial;
+      flex-shrink: 0;
+      --ha-button-theme-color: currentColor;
+    }
+    ha-ripple {
+      border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));
+    }
+    :host([narrow]) ha-date-range-picker::part(range-input) {
+      --ha-icon-button-size: 24px;
+      --mdc-icon-size: 16px;
+    }
+    .backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: var(--dialog-z-index, 8);
+      backdrop-filter: var(
+        --ha-dialog-scrim-backdrop-filter,
+        var(--dialog-backdrop-filter)
+      );
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--ha-animation-duration-slow) ease-in-out;
+    }
+    .datepicker-open .backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-energy-period-selector": HuiEnergyPeriodSelector;
+  }
+}

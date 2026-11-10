@@ -1,0 +1,396 @@
+import { TZDate } from "@date-fns/tz";
+import {
+  addDays,
+  addHours,
+  addMinutes,
+  addMonths,
+  constructFrom,
+  differenceInHours,
+  endOfDay,
+} from "date-fns";
+import type {
+  Statistics,
+  StatisticsMetaData,
+  StatisticValue,
+} from "../../../src/data/recorder";
+import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
+
+const getFirstDate = (
+  start: Date,
+  period: "5minute" | "hour" | "day" | "month"
+): Date => {
+  if (period === "day" || period === "month") {
+    return constructFrom(start, start);
+  }
+  // Core returns UTC-aligned buckets whose start is at or after the request.
+  const interval = (period === "hour" ? 60 : 5) * 60 * 1000;
+  return constructFrom(start, Math.ceil(start.getTime() / interval) * interval);
+};
+
+const getNextDate = (
+  currentDate: Date,
+  period: "5minute" | "hour" | "day" | "month"
+): Date => {
+  return period === "day"
+    ? addDays(currentDate, 1)
+    : period === "month"
+      ? addMonths(currentDate, 1)
+      : period === "hour"
+        ? addHours(currentDate, 1)
+        : addMinutes(currentDate, 5);
+};
+
+const generateMeanStatistics = (
+  start: Date,
+  end: Date,
+  period: "5minute" | "hour" | "day" | "month" = "hour",
+  maxDiff: number
+): StatisticValue[] => {
+  const statistics: StatisticValue[] = [];
+  let currentDate = getFirstDate(start, period);
+  const now = new Date();
+  while (end > currentDate && currentDate < now) {
+    const delta = Math.random() * maxDiff;
+    const mean = delta;
+    const nextDate = getNextDate(currentDate, period);
+    statistics.push({
+      start: currentDate.getTime(),
+      end: nextDate.getTime(),
+      mean,
+      min: mean - Math.random() * maxDiff,
+      max: mean + Math.random() * maxDiff,
+      last_reset: 0,
+      state: mean,
+      sum: null,
+    });
+    currentDate = nextDate;
+  }
+  return statistics;
+};
+
+const generateSumStatistics = (
+  start: Date,
+  end: Date,
+  period: "5minute" | "hour" | "day" | "month" = "hour",
+  initValue: number,
+  maxDiff: number | ((start: Date, end: Date) => number)
+): StatisticValue[] => {
+  const statistics: StatisticValue[] = [];
+  let currentDate = getFirstDate(start, period);
+  let sum = initValue;
+  const now = new Date();
+  while (end > currentDate && currentDate < now) {
+    const nextDate = getNextDate(currentDate, period);
+    const bound =
+      typeof maxDiff === "function" ? maxDiff(currentDate, nextDate) : maxDiff;
+    const add = Math.random() * bound;
+    sum += add;
+    statistics.push({
+      start: currentDate.getTime(),
+      end: nextDate.getTime(),
+      mean: null,
+      min: null,
+      max: null,
+      last_reset: 0,
+      change: add,
+      state: initValue + sum,
+      sum,
+    });
+    currentDate = nextDate;
+  }
+  return statistics;
+};
+
+const generateCurvedStatistics = (
+  start: Date,
+  end: Date,
+  period: "5minute" | "hour" | "day" | "month" = "hour",
+  initValue: number,
+  maxDiff: number,
+  metered: boolean
+): StatisticValue[] => {
+  const statistics: StatisticValue[] = [];
+  let currentDate = getFirstDate(start, period);
+  let sum = initValue;
+  const hours = differenceInHours(end, start) - 1;
+  let i = 0;
+  let half = false;
+  const now = new Date();
+  while (end > currentDate && currentDate < now) {
+    const nextDate = getNextDate(currentDate, period);
+    const add = i * (Math.random() * maxDiff);
+    sum += add;
+    statistics.push({
+      start: currentDate.getTime(),
+      end: nextDate.getTime(),
+      mean: null,
+      min: null,
+      max: null,
+      last_reset: 0,
+      change: add,
+      state: initValue + sum,
+      sum: metered ? sum : null,
+    });
+    currentDate = nextDate;
+    if (!half && i > hours / 2) {
+      half = true;
+    }
+    i += half ? -1 : 1;
+  }
+  return statistics;
+};
+
+const statisticsFunctions: Record<
+  string,
+  (
+    id: string,
+    start: Date,
+    end: Date,
+    period: "5minute" | "hour" | "day" | "month"
+  ) => StatisticValue[]
+> = {
+  "sensor.energy_water": (_id, start, end, period = "hour") =>
+    generateSumStatistics(
+      start,
+      end,
+      period,
+      4000,
+      (bucketStart, bucketEnd) =>
+        (20 * (bucketEnd.getTime() - bucketStart.getTime())) / 3600000
+    ),
+  "sensor.energy_consumption_tarif_1": (
+    _id: string,
+    start: Date,
+    end: Date,
+    period = "hour"
+  ) => {
+    if (period !== "hour") {
+      return generateSumStatistics(
+        start,
+        end,
+        period,
+        0,
+        period === "day" ? 17 : 504
+      );
+    }
+    const morningEnd = addHours(start, 10);
+    const morningLow = generateSumStatistics(start, morningEnd, period, 0, 0.7);
+    const eveningStart = addHours(start, 20);
+    const morningFinalVal = morningLow.length
+      ? morningLow[morningLow.length - 1].sum!
+      : 0;
+    const empty = generateSumStatistics(
+      morningEnd,
+      eveningStart,
+      period,
+      morningFinalVal,
+      0
+    );
+    const eveningLow = generateSumStatistics(
+      eveningStart,
+      end,
+      period,
+      morningFinalVal,
+      0.7
+    );
+    return [...morningLow, ...empty, ...eveningLow];
+  },
+  "sensor.energy_consumption_tarif_2": (
+    _id: string,
+    start: Date,
+    end: Date,
+    period = "hour"
+  ) => {
+    if (period !== "hour") {
+      return generateSumStatistics(
+        start,
+        end,
+        period,
+        0,
+        period === "day" ? 17 : 504
+      );
+    }
+    const morningEnd = addHours(start, 9);
+    const eveningStart = addHours(start, 20);
+    const highTarif = generateSumStatistics(
+      morningEnd,
+      eveningStart,
+      period,
+      0,
+      0.3
+    );
+    const highTarifFinalVal = highTarif.length
+      ? highTarif[highTarif.length - 1].sum!
+      : 0;
+    const morning = generateSumStatistics(start, morningEnd, period, 0, 0);
+    const evening = generateSumStatistics(
+      eveningStart,
+      end,
+      period,
+      highTarifFinalVal,
+      0
+    );
+    return [...morning, ...highTarif, ...evening];
+  },
+  "sensor.energy_production_tarif_1": (_id, start, end, period = "hour") =>
+    generateSumStatistics(start, end, period, 0, 0),
+  "sensor.energy_production_tarif_1_compensation": (
+    _id,
+    start,
+    end,
+    period = "hour"
+  ) => generateSumStatistics(start, end, period, 0, 0),
+  "sensor.energy_production_tarif_2": (_id, start, end, period = "hour") => {
+    if (period !== "hour") {
+      return generateSumStatistics(
+        start,
+        end,
+        period,
+        0,
+        period === "day" ? 17 : 504
+      );
+    }
+    const productionStart = addHours(start, 9);
+    const productionEnd = addHours(start, 21);
+    const dayEnd = constructFrom(
+      end,
+      Math.min(endOfDay(productionEnd).getTime(), end.getTime())
+    );
+    const production = generateCurvedStatistics(
+      productionStart,
+      productionEnd,
+      period,
+      0,
+      0.15,
+      true
+    );
+    const productionFinalVal = production.length
+      ? production[production.length - 1].sum!
+      : 0;
+    const morning = generateSumStatistics(start, productionStart, period, 0, 0);
+    const evening = generateSumStatistics(
+      productionEnd,
+      dayEnd,
+      period,
+      productionFinalVal,
+      0
+    );
+    const rest = generateSumStatistics(
+      dayEnd,
+      end,
+      period,
+      productionFinalVal,
+      1
+    );
+    return [...morning, ...production, ...evening, ...rest];
+  },
+  "sensor.solar_production": (_id, start, end, period = "hour") => {
+    if (period !== "hour") {
+      return generateSumStatistics(
+        start,
+        end,
+        period,
+        0,
+        period === "day" ? 17 : 504
+      );
+    }
+    const productionStart = addHours(start, 7);
+    const productionEnd = addHours(start, 23);
+    const dayEnd = constructFrom(
+      end,
+      Math.min(endOfDay(productionEnd).getTime(), end.getTime())
+    );
+    const production = generateCurvedStatistics(
+      productionStart,
+      productionEnd,
+      period,
+      0,
+      0.3,
+      true
+    );
+    const productionFinalVal = production.length
+      ? production[production.length - 1].sum!
+      : 0;
+    const morning = generateSumStatistics(start, productionStart, period, 0, 0);
+    const evening = generateSumStatistics(
+      productionEnd,
+      dayEnd,
+      period,
+      productionFinalVal,
+      0
+    );
+    const rest = generateSumStatistics(
+      dayEnd,
+      end,
+      period,
+      productionFinalVal,
+      0.2
+    );
+    return [...morning, ...production, ...evening, ...rest];
+  },
+};
+// Prices are per source unit; water uses litres (4 currency units per m³).
+const derivedCosts: Record<string, { source: string; price: number }> = {
+  "sensor.energy_water_cost": { source: "sensor.energy_water", price: 0.004 },
+};
+
+export const mockRecorder = (mockHass: MockHomeAssistant) => {
+  mockHass.mockWS(
+    "recorder/get_statistics_metadata",
+    (): StatisticsMetaData[] => []
+  );
+  mockHass.mockWS(
+    "recorder/list_statistic_ids",
+    (): StatisticsMetaData[] => []
+  );
+  mockHass.mockWS(
+    "recorder/statistics_during_period",
+    ({ statistic_ids, start_time, end_time, period }, hass): Statistics => {
+      // Calendar buckets follow the server timezone, independent of the browser.
+      const start = new TZDate(start_time, hass.config.time_zone);
+      const end = new TZDate(end_time ?? Date.now(), hass.config.time_zone);
+
+      const statistics: Record<string, StatisticValue[]> = {};
+      const cache: Record<string, StatisticValue[]> = {};
+      const getStats = (id: string) => {
+        cache[id] ??= statisticsFunctions[id](id, start, end, period);
+        return cache[id];
+      };
+
+      statistic_ids.forEach((id: string) => {
+        if (id in derivedCosts) {
+          const { source, price } = derivedCosts[id];
+          let cost = 0;
+          statistics[id] = getStats(source).map((statistic) => {
+            const change = statistic.change! * price;
+            cost += change;
+            return { ...statistic, change, state: cost, sum: cost };
+          });
+        } else if (id in statisticsFunctions) {
+          statistics[id] = getStats(id);
+        } else {
+          const entityState = hass.states[id];
+          const state = entityState ? Number(entityState.state) : 1;
+          statistics[id] =
+            entityState &&
+            (entityState.attributes.state_class === "total" ||
+              entityState.attributes.state_class === "total_increasing")
+              ? generateSumStatistics(
+                  start,
+                  end,
+                  period,
+                  state,
+                  state * (state > 80 ? 0.01 : 0.05)
+                )
+              : generateMeanStatistics(
+                  start,
+                  end,
+                  period,
+                  state * (state > 80 ? 0.05 : 0.1)
+                );
+        }
+      });
+      return statistics;
+    }
+  );
+};

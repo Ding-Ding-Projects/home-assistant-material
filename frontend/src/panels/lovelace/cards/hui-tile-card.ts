@@ -1,0 +1,471 @@
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import { ifDefined } from "lit/directives/if-defined";
+import { styleMap } from "lit/directives/style-map";
+import memoizeOne from "memoize-one";
+import { computeCssColor } from "../../../common/color/compute-color";
+import { hsv2rgb, rgb2hex, rgb2hsv } from "../../../common/color/convert-color";
+import { computeDomain } from "../../../common/entity/compute_domain";
+import { stateActive } from "../../../common/entity/state_active";
+import { stateColorCss } from "../../../common/entity/state_color";
+import "../../../components/ha-card";
+import "../../../components/ha-state-icon";
+import "../../../components/tile/ha-tile-badge";
+import "../../../components/tile/ha-tile-container";
+import "../../../components/tile/ha-tile-icon";
+import "../../../components/tile/ha-tile-info";
+import { timerJustFinished } from "../../../data/timer";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
+import "../../../state-display/state-display";
+import type { HomeAssistant } from "../../../types";
+import "../card-features/hui-card-features";
+import {
+  computeCardFeatureLayout,
+  computeCardFeatureRows,
+} from "../card-features/common/feature-layout";
+import type { LovelaceCardFeatureContext } from "../card-features/types";
+import { findEntities } from "../common/find-entities";
+import { handleAction } from "../common/handle-action";
+import { hasAction } from "../common/has-action";
+import { createEntityNotFoundWarning } from "../components/hui-warning";
+import type {
+  LovelaceCard,
+  LovelaceCardEditor,
+  LovelaceGridOptions,
+} from "../types";
+import { renderTileBadge } from "./tile/badges/tile-badge";
+import {
+  getTileActionDefaults,
+  getTileIconActionConfig,
+  getTileImageUrl,
+  hasTileCardAction,
+  hasTileIconAction,
+} from "./tile/tile-card-helpers";
+import { tileCardStyle } from "./tile/tile-card-style";
+import type { TileCardConfig } from "./types";
+
+@customElement("hui-tile-card")
+export class HuiTileCard extends LitElement implements LovelaceCard {
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    await import("../editor/config-elements/hui-tile-card-editor");
+    return document.createElement("hui-tile-card-editor");
+  }
+
+  public static getStubConfig(
+    hass: HomeAssistant,
+    entities: string[],
+    entitiesFallback: string[]
+  ): TileCardConfig {
+    const includeDomains = ["sensor", "light", "switch"];
+    const maxEntities = 1;
+    const foundEntities = findEntities(
+      hass,
+      maxEntities,
+      entities,
+      entitiesFallback,
+      includeDomains
+    );
+
+    return {
+      type: "tile",
+      entity: foundEntities[0] || "",
+    };
+  }
+
+  public static getDefaultConfig(): Partial<TileCardConfig> {
+    return {
+      features_position: "bottom",
+    };
+  }
+
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @property({ attribute: false }) public layout?: string;
+
+  @state() private _config?: TileCardConfig;
+
+  @state() private _featureContext: LovelaceCardFeatureContext = {};
+
+  @state() private _timerFinished = false;
+
+  protected willUpdate(changedProps: PropertyValues): void {
+    super.willUpdate(changedProps);
+    if (
+      !changedProps.has("hass") ||
+      !this._config?.entity ||
+      computeDomain(this._config.entity) !== "timer"
+    ) {
+      return;
+    }
+    const stateObj = this.hass?.states[this._config.entity];
+    const oldStateObj = (changedProps.get("hass") as HomeAssistant | undefined)
+      ?.states[this._config.entity];
+    if (stateObj && timerJustFinished(oldStateObj, stateObj)) {
+      this._timerFinished = true;
+    }
+  }
+
+  private _timerFinishedAnimationEnded(ev: AnimationEvent): void {
+    if (ev.animationName === "timer-finished-pulse") {
+      this._timerFinished = false;
+    }
+  }
+
+  public setConfig(config: TileCardConfig): void {
+    if (!config.entity) {
+      throw new Error("Specify an entity");
+    }
+
+    this._config = {
+      ...getTileActionDefaults(config.entity),
+      ...config,
+    };
+    this._featureContext = {
+      entity_id: config.entity,
+    };
+  }
+
+  public getCardSize(): number {
+    const featureRows = this._config ? this._featureRows(this._config) : 0;
+    return 1 + (this._config?.vertical ? 1 : 0) + featureRows;
+  }
+
+  public getGridOptions(): LovelaceGridOptions {
+    const columns = 6;
+    let min_columns = 6;
+    let rows = 1;
+    const featurePosition = this._config && this._featurePosition(this._config);
+    const featuresCount = this._config?.features?.length || 0;
+    if (this._config && featuresCount) {
+      if (featurePosition === "inline") {
+        min_columns = 12;
+      }
+      rows += this._featureRows(this._config);
+    }
+
+    if (this._config?.vertical) {
+      rows++;
+      min_columns = 3;
+    }
+    return {
+      columns,
+      rows,
+      min_columns,
+      min_rows: rows,
+    };
+  }
+
+  private _computeIconLabel(name: string, domain: string) {
+    if (this._config?.icon_tap_action?.action !== "toggle") {
+      return name;
+    }
+    const key = ["button", "input_button"].includes(domain)
+      ? "icon_press"
+      : domain === "scene"
+        ? "icon_activate"
+        : "icon_toggle";
+    return this.hass!.localize(`ui.card.tile.${key}`, { name });
+  }
+
+  private _handleAction(ev: ActionHandlerEvent) {
+    handleAction(this, this.hass!, this._config!, ev.detail.action!);
+  }
+
+  private _handleIconAction(ev: ActionHandlerEvent) {
+    ev.stopPropagation();
+
+    // The icon only has a hold or double tap action, so a tap belongs to the card
+    if (
+      ev.detail.action === "tap" &&
+      !hasAction(this._config?.icon_tap_action)
+    ) {
+      this._handleAction(ev);
+
+      return;
+    }
+
+    handleAction(
+      this,
+      this.hass!,
+      getTileIconActionConfig(this._config!.entity, this._config!),
+      ev.detail.action!
+    );
+  }
+
+  private _computeStateColor = memoizeOne(
+    (entity: HassEntity, color?: string) => {
+      // Use custom color if active
+      if (color) {
+        return stateActive(entity) ? computeCssColor(color) : undefined;
+      }
+
+      // Use default color for person/device_tracker because color is on the badge
+      if (
+        computeDomain(entity.entity_id) === "person" ||
+        computeDomain(entity.entity_id) === "device_tracker"
+      ) {
+        return undefined;
+      }
+
+      // Use light color if the light support rgb
+      if (
+        computeDomain(entity.entity_id) === "light" &&
+        entity.attributes.rgb_color
+      ) {
+        const hsvColor = rgb2hsv(entity.attributes.rgb_color);
+
+        // Modify the real rgb color for better contrast
+        if (hsvColor[1] < 0.4) {
+          // Special case for very light color (e.g: white)
+          if (hsvColor[1] < 0.1) {
+            hsvColor[2] = 225;
+          } else {
+            hsvColor[1] = 0.4;
+          }
+        }
+        return rgb2hex(hsv2rgb(hsvColor));
+      }
+
+      // Fallback to state color
+      return stateColorCss(entity);
+    }
+  );
+
+  private _featurePosition = memoizeOne((config: TileCardConfig) => {
+    if (config.vertical) {
+      return "bottom";
+    }
+    return config.features_position || "bottom";
+  });
+
+  private _featureLayout = memoizeOne((config: TileCardConfig) =>
+    computeCardFeatureLayout(config.features, this._featurePosition(config))
+  );
+
+  private _featureRows = memoizeOne((config: TileCardConfig) =>
+    computeCardFeatureRows(config.features, this._featurePosition(config))
+  );
+
+  protected render() {
+    if (!this._config || !this.hass) {
+      return nothing;
+    }
+    const entityId = this._config.entity;
+    const stateObj = entityId ? this.hass.states[entityId] : undefined;
+
+    if (!stateObj) {
+      return html`
+        <hui-warning>
+          ${createEntityNotFoundWarning(this.hass.localize, this.hass.config)}
+        </hui-warning>
+      `;
+    }
+
+    const name = this.hass.formatEntityName(stateObj, this._config.name);
+
+    const active = stateActive(stateObj);
+    const color = this._computeStateColor(stateObj, this._config.color);
+    const domain = computeDomain(stateObj.entity_id);
+
+    const stateDisplay = this._config.hide_state
+      ? nothing
+      : html`
+          <state-display
+            .stateObj=${stateObj}
+            .content=${this._config.state_content}
+            .timeFormat=${this._config.time_format}
+          >
+          </state-display>
+        `;
+
+    const style = {
+      "--tile-color": color,
+    };
+
+    const imageUrl = this._config.show_entity_picture
+      ? getTileImageUrl(this.hass, stateObj)
+      : undefined;
+
+    const featurePosition = this._featurePosition(this._config);
+    const features = this._featureLayout(this._config);
+
+    const hasImage = Boolean(imageUrl);
+    const hasFeatures = features.inline.length > 0 || features.below.length > 0;
+
+    const fixedInfoHeight =
+      this.layout === "grid" && this._config.grid_options?.rows !== "auto";
+
+    return html`
+      <ha-card
+        style=${styleMap(style)}
+        class=${classMap({ active })}
+        role=${ifDefined(hasFeatures ? "group" : undefined)}
+        aria-labelledby=${ifDefined(hasFeatures ? "name" : undefined)}
+      >
+        <ha-tile-container
+          .featurePosition=${featurePosition}
+          .vertical=${Boolean(this._config.vertical)}
+          .fixedInfoHeight=${fixedInfoHeight}
+          .interactive=${hasTileCardAction(this._config)}
+          .actionHandlerOptions=${{
+            hasHold: hasAction(this._config!.hold_action),
+            hasDoubleClick: hasAction(this._config!.double_tap_action),
+          }}
+          @action=${this._handleAction}
+        >
+          <ha-tile-icon
+            slot="icon"
+            @action=${this._handleIconAction}
+            .actionHandlerOptions=${{
+              hasHold: hasAction(this._config!.icon_hold_action),
+              hasDoubleClick: hasAction(this._config!.icon_double_tap_action),
+            }}
+            .interactive=${hasTileIconAction(this._config)}
+            .accessibleLabel=${this._computeIconLabel(name, domain)}
+            .imageUrl=${imageUrl}
+            data-domain=${ifDefined(domain)}
+            data-state=${ifDefined(stateObj?.state)}
+            class=${classMap({
+              image: hasImage,
+              "timer-finished": this._timerFinished,
+            })}
+            @animationend=${this._timerFinishedAnimationEnded}
+          >
+            ${
+              hasImage
+                ? nothing
+                : html`
+                    <ha-state-icon
+                      slot="icon"
+                      .icon=${this._config.icon}
+                      .stateObj=${stateObj}
+                    ></ha-state-icon>
+                  `
+            }
+            ${renderTileBadge(stateObj, this.hass)}
+          </ha-tile-icon>
+          <ha-tile-info slot="info">
+            <span slot="primary" class="primary" id="name">${name}</span>
+            ${
+              stateDisplay
+                ? html`<span slot="secondary">${stateDisplay}</span>`
+                : nothing
+            }
+          </ha-tile-info>
+          ${
+            features.inline.length > 0
+              ? html`
+                  <hui-card-features
+                    slot="features-inline"
+                    .hass=${this.hass}
+                    .context=${this._featureContext}
+                    .color=${this._config.color}
+                    .features=${features.inline}
+                  ></hui-card-features>
+                `
+              : nothing
+          }
+          ${
+            features.below.length > 0
+              ? html`
+                  <hui-card-features
+                    slot="features"
+                    .columns=${features.columns}
+                    .hass=${this.hass}
+                    .context=${this._featureContext}
+                    .color=${this._config.color}
+                    .features=${features.below}
+                  ></hui-card-features>
+                `
+              : nothing
+          }
+        </ha-tile-container>
+      </ha-card>
+    `;
+  }
+
+  static styles = [
+    tileCardStyle,
+    css`
+      :host {
+        --tile-color: var(--state-inactive-color);
+      }
+      ha-card.active {
+        --tile-color: var(--state-icon-color);
+      }
+      ha-tile-badge {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        inset-inline-end: 3px;
+        inset-inline-start: initial;
+      }
+      hui-card-features {
+        --feature-color: var(--tile-color);
+      }
+
+      ha-tile-icon[data-domain="alarm_control_panel"][data-state="pending"],
+      ha-tile-icon[data-domain="alarm_control_panel"][data-state="arming"],
+      ha-tile-icon[data-domain="alarm_control_panel"][data-state="triggered"],
+      ha-tile-icon[data-domain="lock"][data-state="jammed"] {
+        animation: pulse 1s infinite;
+      }
+
+      ha-tile-icon.timer-finished {
+        animation: timer-finished-pulse 0.5s ease-in-out 2;
+      }
+
+      @keyframes timer-finished-pulse {
+        50% {
+          --tile-icon-color: var(--error-color);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        ha-tile-icon.timer-finished {
+          animation-duration: var(--ha-animation-duration-none);
+        }
+      }
+
+      /* Pictures are rounded squares, matching avatars elsewhere */
+      ha-tile-icon.image {
+        --tile-icon-border-radius: var(
+          --ha-tile-icon-border-radius,
+          var(--ha-picture-border-radius)
+        );
+      }
+      /* Make sure we display the whole image */
+      ha-tile-icon.image[data-domain="update"] {
+        --tile-icon-border-radius: var(--ha-border-radius-square);
+      }
+      /* Make sure we display the almost the whole image but it often use text */
+      ha-tile-icon.image[data-domain="media_player"] {
+        --tile-icon-border-radius: min(
+          var(--ha-tile-icon-border-radius, var(--ha-border-radius-sm)),
+          var(--ha-border-radius-sm)
+        );
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+    `,
+  ];
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-tile-card": HuiTileCard;
+  }
+}

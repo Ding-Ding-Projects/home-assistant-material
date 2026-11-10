@@ -1,0 +1,782 @@
+import { describe, expect, it } from "vitest";
+import {
+  computeDefaultEntityNameItems,
+  computeEntityEntryName,
+  computeEntityNameDisplay,
+  computeEntityNameDisplayWithoutContext,
+  computeEntityNameParts,
+  computeEntitySearchLabels,
+  DEFAULT_ENTITY_NAME,
+  type EntityNameItem,
+} from "../../../src/common/entity/compute_entity_name_display";
+import type { DeviceRegistryEntry } from "../../../src/data/device/device_registry";
+import type { EntityRegistryDisplayEntry } from "../../../src/data/entity/entity_registry";
+import type { HomeAssistant } from "../../../src/types";
+import {
+  mockArea,
+  mockDevice,
+  mockEntity,
+  mockEntityEntry,
+  mockFloor,
+  mockStateObj,
+} from "./context/context-mock";
+
+describe("computeEntityNameDisplay", () => {
+  it("returns string name directly", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {},
+      devices: {},
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(stateObj, "Custom Name", hass);
+
+    expect(result).toBe("Custom Name");
+  });
+
+  it("returns text when all items are text", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {},
+      devices: {},
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [
+        { type: "text", text: "Hello" },
+        { type: "text", text: "World" },
+      ],
+      hass
+    );
+
+    expect(result).toBe("Hello World");
+  });
+
+  it("uses custom separator for text items", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {},
+      devices: {},
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [
+        { type: "text", text: "Hello" },
+        { type: "text", text: "World" },
+      ],
+      hass,
+      { separator: " - " }
+    );
+
+    expect(result).toBe("Hello - World");
+  });
+
+  it("returns entity name", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Kitchen Light",
+        }),
+      },
+      devices: {},
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(stateObj, { type: "entity" }, hass);
+
+    expect(result).toBe("Kitchen Light");
+  });
+
+  it("replaces entity with device name when entity uses device name", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          device_id: "dev1",
+          next_name_part: "device",
+        }),
+      },
+      devices: {
+        dev1: mockDevice({
+          id: "dev1",
+          name: "Kitchen Device",
+        }),
+      },
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(stateObj, { type: "entity" }, hass);
+
+    expect(result).toBe("Kitchen Device");
+  });
+
+  it("does not replace entity with device when device is already included", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          device_id: "dev1",
+          next_name_part: "device",
+        }),
+      },
+      devices: {
+        dev1: mockDevice({
+          id: "dev1",
+          name: "Kitchen Device",
+        }),
+      },
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [{ type: "entity" }, { type: "device" }],
+      hass
+    );
+
+    expect(result).toBe("Kitchen Device");
+  });
+
+  it("returns combined entity and area names", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Ceiling Light",
+          area_id: "kitchen",
+        }),
+      },
+      devices: {},
+      areas: {
+        kitchen: mockArea({
+          area_id: "kitchen",
+          name: "Kitchen",
+        }),
+      },
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [{ type: "area" }, { type: "entity" }],
+      hass
+    );
+
+    expect(result).toBe("Kitchen Ceiling Light");
+  });
+
+  it("returns combined device and area names", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Light",
+          device_id: "dev1",
+        }),
+      },
+      devices: {
+        dev1: mockDevice({
+          id: "dev1",
+          name: "Smart Light",
+          area_id: "kitchen",
+        }),
+      },
+      areas: {
+        kitchen: mockArea({
+          area_id: "kitchen",
+          name: "Kitchen",
+        }),
+      },
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [{ type: "area" }, { type: "device" }],
+      hass
+    );
+
+    expect(result).toBe("Kitchen Smart Light");
+  });
+
+  it("returns parent device name for an entity on a child device", () => {
+    const stateObj = mockStateObj({ entity_id: "switch.outlet_1" });
+    const hass = {
+      entities: {
+        "switch.outlet_1": mockEntity({
+          entity_id: "switch.outlet_1",
+          name: "Switch",
+          device_id: "child_1",
+        }),
+      },
+      devices: {
+        child_1: mockDevice({
+          id: "child_1",
+          name: "Outlet 1",
+          parent_device_id: "parent_1",
+        }),
+        parent_1: mockDevice({
+          id: "parent_1",
+          name: "Power strip",
+        }),
+      },
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [{ type: "parent_device" }, { type: "device" }, { type: "entity" }],
+      hass
+    );
+
+    expect(result).toBe("Power strip Outlet 1 Switch");
+  });
+
+  it("returns floor name", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Light",
+          area_id: "kitchen",
+        }),
+      },
+      devices: {},
+      areas: {
+        kitchen: mockArea({
+          area_id: "kitchen",
+          name: "Kitchen",
+          floor_id: "first",
+        }),
+      },
+      floors: {
+        first: mockFloor({
+          floor_id: "first",
+          name: "First Floor",
+        }),
+      },
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(stateObj, { type: "floor" }, hass);
+
+    expect(result).toBe("First Floor");
+  });
+
+  it("filters out undefined names when combining", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Light",
+        }),
+      },
+      devices: {},
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [{ type: "area" }, { type: "entity" }, { type: "floor" }],
+      hass
+    );
+
+    // Area and floor don't exist, so only entity name is included
+    expect(result).toBe("Light");
+  });
+
+  it("mixes text with entity types", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Light",
+          area_id: "kitchen",
+        }),
+      },
+      devices: {},
+      areas: {
+        kitchen: mockArea({
+          area_id: "kitchen",
+          name: "Kitchen",
+        }),
+      },
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    const result = computeEntityNameDisplay(
+      stateObj,
+      [{ type: "area" }, { type: "text", text: "-" }, { type: "entity" }],
+      hass
+    );
+
+    expect(result).toBe("Kitchen - Light");
+  });
+});
+
+describe("name context", () => {
+  const areas = {
+    kitchen: mockArea({ area_id: "kitchen", name: "Kitchen" }),
+    garage: mockArea({ area_id: "garage", name: "Garage" }),
+  };
+  const powerStrip = mockDevice({
+    id: "strip",
+    name: "Power strip",
+    area_id: "kitchen",
+    next_name_part: "area",
+  });
+  const stateObj = mockStateObj({ entity_id: "switch.freezer" });
+  const chain: EntityNameItem[] = [
+    { type: "area" },
+    { type: "parent_device" },
+    { type: "device" },
+    { type: "entity" },
+  ];
+
+  const registries = (
+    entity: Partial<EntityRegistryDisplayEntry>,
+    freezer: Partial<DeviceRegistryEntry>
+  ) => ({
+    entities: {
+      "switch.freezer": mockEntity({
+        entity_id: "switch.freezer",
+        device_id: "freezer",
+        ...entity,
+      }),
+    },
+    devices: {
+      strip: powerStrip,
+      freezer: mockDevice({
+        id: "freezer",
+        name: "Freezer",
+        parent_device_id: "strip",
+        ...freezer,
+      }),
+    },
+  });
+
+  const joinedNameList = (
+    { entities, devices }: ReturnType<typeof registries>,
+    name: EntityNameItem[] = chain
+  ) => {
+    const parts = computeEntityNameParts(stateObj, {
+      entities,
+      devices,
+      areas,
+      floors: {},
+    });
+    return name
+      .map((item) => (item.type === "text" ? item.text : parts[item.type]))
+      .filter(Boolean)
+      .join(" ");
+  };
+
+  it("leaves out the parent device when the child device has its own area", () => {
+    const result = joinedNameList(
+      registries(
+        { name: "Power", next_name_part: "device" },
+        { area_id: "garage", next_name_part: "area" }
+      )
+    );
+
+    expect(result).toBe("Garage Freezer Power");
+  });
+
+  it("leaves out the device and its parent when the entity has its own area", () => {
+    const result = joinedNameList(
+      registries(
+        { name: "Power", area_id: "garage", next_name_part: "area" },
+        { next_name_part: "parent_device" }
+      )
+    );
+
+    expect(result).toBe("Garage Power");
+  });
+
+  it("keeps a name equal to the device name when the entity has its own area", () => {
+    const result = joinedNameList(
+      registries(
+        { name: "Freezer", area_id: "garage", next_name_part: "area" },
+        { next_name_part: "parent_device" }
+      )
+    );
+
+    expect(result).toBe("Garage Freezer");
+  });
+
+  it("keeps the device name for an entity without a name of its own", () => {
+    const result = joinedNameList(
+      registries(
+        { area_id: "garage", next_name_part: "area" },
+        { next_name_part: "parent_device" }
+      ),
+      DEFAULT_ENTITY_NAME
+    );
+
+    expect(result).toBe("Freezer");
+  });
+
+  it("keeps every configured part in the formatted name", () => {
+    const { entities, devices } = registries(
+      { name: "Power", area_id: "garage", next_name_part: "area" },
+      { next_name_part: "parent_device" }
+    );
+
+    expect(
+      computeEntityNameDisplay(stateObj, chain, {
+        entities,
+        devices,
+        areas,
+        floors: {},
+      })
+    ).toBe("Garage Power strip Freezer Power");
+  });
+
+  it("keeps the owners left out of the name in the search labels", () => {
+    const { entities, devices } = registries(
+      { name: "Power", area_id: "garage", next_name_part: "area" },
+      { next_name_part: "parent_device" }
+    );
+
+    expect(
+      computeEntitySearchLabels(stateObj, {
+        entities,
+        devices,
+        areas,
+        floors: {},
+      })
+    ).toMatchObject({
+      entityName: "Power",
+      deviceName: "Freezer",
+      parentDeviceName: "Power strip",
+      areaName: "Garage",
+    });
+  });
+
+  describe("default name", () => {
+    const cases: {
+      title: string;
+      entity: Partial<EntityRegistryDisplayEntry>;
+      freezer: Partial<DeviceRegistryEntry>;
+      name: string;
+      items: EntityNameItem[];
+    }[] = [
+      {
+        title: "uses the device and entity names",
+        entity: { name: "Power", next_name_part: "device" },
+        freezer: { area_id: "garage", next_name_part: "area" },
+        name: "Freezer Power",
+        items: [{ type: "device" }, { type: "entity" }],
+      },
+      {
+        title: "uses the device name for an entity without a name of its own",
+        entity: { next_name_part: "device" },
+        freezer: { area_id: "garage", next_name_part: "area" },
+        name: "Freezer",
+        items: [{ type: "device" }],
+      },
+      {
+        title: "leaves out the device of an entity with its own area",
+        entity: { name: "Power", area_id: "garage", next_name_part: "area" },
+        freezer: { next_name_part: "parent_device" },
+        name: "Power",
+        items: [{ type: "entity" }],
+      },
+      {
+        title: "adds the parent of a child device without its own area",
+        entity: { name: "Power", next_name_part: "device" },
+        freezer: { next_name_part: "parent_device" },
+        name: "Power strip Freezer Power",
+        items: [
+          { type: "parent_device" },
+          { type: "device" },
+          { type: "entity" },
+        ],
+      },
+    ];
+
+    it.each(cases)("$title", ({ entity, freezer, name, items }) => {
+      const { entities, devices } = registries(entity, freezer);
+
+      expect(
+        computeEntityNameDisplay(stateObj, undefined, {
+          entities,
+          devices,
+          areas,
+          floors: {},
+        })
+      ).toBe(name);
+      expect(
+        computeDefaultEntityNameItems(stateObj, {
+          entities,
+          devices,
+          areas,
+          floors: {},
+        })
+      ).toEqual(items);
+      // Saving the picker chips as the name keeps the same name
+      expect(
+        computeEntityNameDisplay(stateObj, items, {
+          entities,
+          devices,
+          areas,
+          floors: {},
+        })
+      ).toBe(name);
+    });
+
+    it("uses the friendly name for an entity outside the registry", () => {
+      const friendlyStateObj = mockStateObj({
+        entity_id: "switch.freezer",
+        attributes: { friendly_name: "Freezer switch" },
+      });
+
+      expect(
+        computeEntityNameDisplay(friendlyStateObj, undefined, {
+          entities: {},
+          devices: {},
+          areas,
+          floors: {},
+        })
+      ).toBe("Freezer switch");
+      expect(
+        computeDefaultEntityNameItems(friendlyStateObj, {
+          entities: {},
+          devices: {},
+          areas,
+          floors: {},
+        })
+      ).toEqual([{ type: "entity" }]);
+    });
+
+    it("falls back to the object id when no part has a value", () => {
+      const { entities, devices } = registries({ device_id: undefined }, {});
+
+      expect(
+        computeEntityNameDisplay(stateObj, undefined, {
+          entities,
+          devices,
+          areas,
+          floors: {},
+        })
+      ).toBe("freezer");
+      expect(
+        computeDefaultEntityNameItems(stateObj, {
+          entities,
+          devices,
+          areas,
+          floors: {},
+        })
+      ).toEqual([]);
+    });
+  });
+});
+
+describe("computeEntityNameParts", () => {
+  it("returns every name part of the entity", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Light",
+          device_id: "dev1",
+          next_name_part: "device",
+        }),
+      },
+      devices: {
+        dev1: mockDevice({
+          id: "dev1",
+          name: "Smart Device",
+          area_id: "kitchen",
+        }),
+      },
+      areas: {
+        kitchen: mockArea({
+          area_id: "kitchen",
+          name: "Kitchen",
+          floor_id: "first",
+        }),
+      },
+      floors: {
+        first: mockFloor({
+          floor_id: "first",
+          name: "First Floor",
+        }),
+      },
+    } as unknown as HomeAssistant;
+
+    expect(computeEntityNameParts(stateObj, hass)).toEqual({
+      entity: "Light",
+      device: "Smart Device",
+      area: "Kitchen",
+      floor: "First Floor",
+    });
+  });
+
+  it("leaves out the parts the entity does not have", () => {
+    const stateObj = mockStateObj({ entity_id: "light.kitchen" });
+    const hass = {
+      entities: {
+        "light.kitchen": mockEntity({
+          entity_id: "light.kitchen",
+          name: "Light",
+        }),
+      },
+      devices: {},
+      areas: {},
+      floors: {},
+    } as unknown as HomeAssistant;
+
+    expect(computeEntityNameParts(stateObj, hass)).toEqual({ entity: "Light" });
+  });
+
+  it("uses the friendly name for an entity outside the registry", () => {
+    const stateObj = mockStateObj({
+      entity_id: "light.kitchen",
+      attributes: { friendly_name: "Kitchen Light" },
+    });
+
+    expect(
+      computeEntityNameParts(stateObj, {
+        entities: {},
+        devices: {},
+        areas: {},
+        floors: {},
+      })
+    ).toEqual({ entity: "Kitchen Light" });
+  });
+});
+
+describe("computeEntityEntryName", () => {
+  it("returns entry.name if no device", () => {
+    const entry = mockEntity({
+      entity_id: "light.kitchen",
+      name: "Ceiling Light",
+    });
+    expect(computeEntityEntryName(entry)).toBe("Ceiling Light");
+  });
+
+  it("returns original_name if present", () => {
+    const entry = mockEntityEntry({
+      entity_id: "light.kitchen",
+      original_name: "Old Name",
+    });
+    expect(computeEntityEntryName(entry)).toBe("Old Name");
+  });
+
+  it("uses the device name for an explicitly empty name instead of the integration name", () => {
+    const entry = mockEntityEntry({
+      device_id: "dev1",
+      name: "",
+      original_name: "Temperature",
+    });
+
+    expect(computeEntityEntryName(entry)).toBeUndefined();
+    expect(computeEntityEntryName({ ...entry, name: null })).toBe(
+      "Temperature"
+    );
+  });
+
+  it("returns undefined if no name, original_name, or device", () => {
+    const entry = mockEntity({ entity_id: "light.kitchen" });
+    expect(computeEntityEntryName(entry)).toBeUndefined();
+  });
+
+  it("handles entities with numeric original_name (real bug from issue #25363)", () => {
+    const entry = {
+      entity_id: "sensor.texas_instruments_cc2652_2",
+      name: null, // null name
+      original_name: 2, // Number instead of string! This caused the original crash
+      device_id: "dev1",
+      has_entity_name: true,
+    };
+
+    // Should not throw an error and should return the stringified number
+    expect(() => computeEntityEntryName(entry as any)).not.toThrow();
+    expect(computeEntityEntryName(entry as any)).toBe("2");
+  });
+
+  it("returns undefined when entity has device but no name or original_name", () => {
+    const entry = {
+      entity_id: "sensor.kitchen_sensor",
+      // No name property
+      // No original_name property
+      device_id: "dev1",
+    };
+
+    // Should return undefined to maintain function contract
+    expect(computeEntityEntryName(entry as any)).toBeUndefined();
+  });
+});
+
+describe("computeEntityNameDisplayWithoutContext", () => {
+  const stateObj = mockStateObj({
+    entity_id: "sensor.kitchen_sensor_battery",
+    attributes: { friendly_name: "Kitchen Sensor Battery" },
+  });
+
+  it("returns string name directly", () => {
+    expect(
+      computeEntityNameDisplayWithoutContext(stateObj, "Custom Name")
+    ).toBe("Custom Name");
+  });
+
+  it("returns text items", () => {
+    expect(
+      computeEntityNameDisplayWithoutContext(stateObj, [
+        { type: "text", text: "Hello" },
+        { type: "text", text: "World" },
+      ])
+    ).toBe("Hello World");
+  });
+
+  it("uses custom separator for text items", () => {
+    expect(
+      computeEntityNameDisplayWithoutContext(
+        stateObj,
+        [
+          { type: "text", text: "Hello" },
+          { type: "text", text: "World" },
+        ],
+        { separator: " - " }
+      )
+    ).toBe("Hello - World");
+  });
+
+  it("falls back to the friendly name when no name is configured", () => {
+    expect(computeEntityNameDisplayWithoutContext(stateObj, undefined)).toBe(
+      "Kitchen Sensor Battery"
+    );
+  });
+
+  it("falls back to the friendly name for items needing entity context", () => {
+    expect(
+      computeEntityNameDisplayWithoutContext(stateObj, [
+        { type: "area" },
+        { type: "entity" },
+      ])
+    ).toBe("Kitchen Sensor Battery");
+  });
+});

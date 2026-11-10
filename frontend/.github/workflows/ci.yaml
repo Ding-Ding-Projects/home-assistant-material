@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+      - master
+  pull_request:
+    branches:
+      - dev
+      - master
+
+env:
+  NODE_OPTIONS: --max_old_space_size=6144
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-dependencies:
+    name: Prepare dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out files from GitHub
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare dependencies
+        uses: ./.github/actions/prepare-dependencies
+
+  lint:
+    name: Lint and check format
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out files from GitHub
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node with shared dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-modules-cache: true
+      - name: Check for duplicate dependencies
+        run: pnpm dedupe --check
+      - name: Build resources
+        id: build_resources
+        run: ./node_modules/.bin/gulp gen-icons-json build-translations build-locale-data gather-gallery-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup lint cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules/.cache/prettier
+            node_modules/.cache/eslint
+            node_modules/.cache/typescript
+          key: lint-${{ github.sha }}
+          restore-keys: lint-
+      - name: Run eslint
+        run: pnpm run lint:eslint --quiet
+      - name: Run tsc
+        if: ${{ !cancelled() && steps.build_resources.outcome == 'success' }}
+        run: pnpm run lint:types
+      - name: Run lit-analyzer
+        if: ${{ !cancelled() && steps.build_resources.outcome == 'success' }}
+        run: pnpm run lint:lit --quiet
+      - name: Run prettier
+        if: ${{ !cancelled() && steps.build_resources.outcome == 'success' }}
+        run: pnpm run lint:prettier
+      - name: Check dependency licenses
+        if: ${{ !cancelled() && steps.build_resources.outcome == 'success' }}
+        run: pnpm run lint:licenses
+      - name: Check the bundled map sprite sheet
+        if: ${{ !cancelled() }}
+        run: ./node_modules/.bin/gulp check-map-sprites
+  test:
+    name: Run tests
+    needs: prepare-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out files from GitHub
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node with shared dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-modules-cache: true
+      - name: Build resources
+        run: ./node_modules/.bin/gulp gen-icons-json build-translations build-locale-data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Tests
+        run: pnpm run test
+  build:
+    name: Build frontend
+    needs:
+      - lint
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out files from GitHub
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node with shared dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-modules-cache: true
+      # Read-only reuse of the rspack cache written by the nightly (see
+      # nightly.yaml). rspack itself decides what is still valid (version +
+      # buildDependencies + node_modules snapshot), so the GHA key just restores
+      # the latest nightly cache; no fingerprint, and no save step (CI never
+      # writes the shared cache).
+      - name: Restore rspack cache
+        continue-on-error: true
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .rspack-cache
+          key: rspack-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            rspack-cache-${{ runner.os }}-
+      - name: Build Application
+        uses: ./.github/actions/build
+        with:
+          target: build-app
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          is-test: true
+          rspack-cache: readonly
+      - name: Upload bundle stats
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-bundle-stats
+          path: build/stats/*.json
+          if-no-files-found: error
+      - name: Check entrypoint bundle size budget
+        run: pnpm run check-bundlesize
+      - name: Upload frontend build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-build
+          path: hass_frontend/
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,583 @@
+import type { HassConfig, HassEntities } from "home-assistant-js-websocket";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import { consume } from "../../../../common/decorators/consume";
+import { preserveUnchangedEntityStatesRecord } from "../../../../common/decorators/consume-context-entry";
+import { transform } from "../../../../common/decorators/transform";
+import "../../../../components/ha-card";
+import "../../../../components/ha-svg-icon";
+import {
+  configContext,
+  formattersContext,
+  internationalizationContext,
+  registriesContext,
+  statesContext,
+} from "../../../../data/context";
+import type { EnergyData, EnergyPreferences } from "../../../../data/energy";
+import {
+  computeEnergyDeviceLabels,
+  energySourcesByType,
+  formatPowerShort,
+  getPowerFromState,
+  validateEnergyCollectionKey,
+} from "../../../../data/energy";
+import { EnergyCollectionController } from "../../../../data/energy-collection-controller";
+import type {
+  HomeAssistant,
+  HomeAssistantConfig,
+  HomeAssistantFormatters,
+  HomeAssistantInternationalization,
+  HomeAssistantRegistries,
+} from "../../../../types";
+import type { LovelaceCard, LovelaceGridOptions } from "../../types";
+import type { PowerSankeyCardConfig } from "../types";
+import "../../../../components/chart/ha-sankey-chart";
+import type { Link, Node } from "../../../../components/chart/ha-sankey-chart";
+import { MobileAwareMixin } from "../../../../mixins/mobile-aware-mixin";
+import {
+  buildSankeyDeviceNodes,
+  buildSankeyLayout,
+  DEFAULT_MAX_SANKEY_DEVICES,
+  fireSankeyNodeMoreInfo,
+  MIN_SANKEY_THRESHOLD_FACTOR,
+} from "./common/sankey";
+
+const DEFAULT_CONFIG: Partial<PowerSankeyCardConfig> = {
+  group_by_floor: true,
+  group_by_area: true,
+};
+
+interface PowerData {
+  solar: number;
+  from_grid: number;
+  to_grid: number;
+  from_battery: number;
+  to_battery: number;
+  grid_to_battery: number;
+  battery_to_grid: number;
+  solar_to_battery: number;
+  solar_to_grid: number;
+  used_solar: number;
+  used_grid: number;
+  used_battery: number;
+  used_total: number;
+}
+
+@customElement("hui-power-sankey-card")
+class HuiPowerSankeyCard
+  extends MobileAwareMixin(LitElement)
+  implements LovelaceCard
+{
+  public static async getConfigElement() {
+    await import("../../editor/config-elements/hui-energy-sankey-card-editor");
+    return document.createElement("hui-energy-sankey-card-editor");
+  }
+
+  @property({ attribute: false }) public layout?: string;
+
+  @state() private _config?: PowerSankeyCardConfig;
+
+  public static getStubConfig(
+    _hass: HomeAssistant,
+    _entities: string[],
+    _entitiesFill: string[]
+  ): PowerSankeyCardConfig {
+    return {
+      type: "power-sankey",
+      layout: "auto",
+      ...DEFAULT_CONFIG,
+    };
+  }
+
+  @state() private _data?: EnergyData;
+
+  @state()
+  @consume({ context: statesContext, subscribe: true })
+  @transform<HassEntities, HassEntities>({
+    transformer: function (this: HuiPowerSankeyCard, states) {
+      const tracked: HassEntities = {};
+      const prefs = this._data?.prefs;
+      if (states && prefs) {
+        [
+          ...prefs.energy_sources.map((source) =>
+            source.type === "gas" || source.type === "water"
+              ? undefined
+              : source.stat_rate
+          ),
+          ...prefs.device_consumption.map((device) => device.stat_rate),
+        ].forEach((entityId) => {
+          if (entityId && states[entityId]) {
+            tracked[entityId] = states[entityId];
+          }
+        });
+      }
+      return preserveUnchangedEntityStatesRecord(this._states, tracked);
+    },
+    watch: ["_data"],
+  })
+  private _states: HassEntities = {};
+
+  @state()
+  @consume({ context: internationalizationContext, subscribe: true })
+  private _i18n!: HomeAssistantInternationalization;
+
+  @state()
+  @consume({ context: configContext, subscribe: true })
+  @transform<HomeAssistantConfig, HassConfig>({
+    transformer: ({ config }) => config,
+  })
+  private _hassConfig!: HassConfig;
+
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  @transform<
+    HomeAssistantFormatters,
+    HomeAssistantFormatters["formatEntityName"]
+  >({
+    transformer: ({ formatEntityName }) => formatEntityName,
+  })
+  private _formatEntityName!: HomeAssistantFormatters["formatEntityName"];
+
+  @state()
+  @consume({ context: registriesContext, subscribe: true })
+  private _registries!: HomeAssistantRegistries;
+
+  constructor() {
+    super();
+    new EnergyCollectionController(this, {
+      config: () => this._config,
+      onData: (data) => {
+        this._data = data;
+      },
+    });
+  }
+
+  public setConfig(config: PowerSankeyCardConfig): void {
+    if (config.collection_key) {
+      validateEnergyCollectionKey(config.collection_key);
+    }
+    this._config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  public getCardSize(): Promise<number> | number {
+    return 5;
+  }
+
+  getGridOptions(): LovelaceGridOptions {
+    return {
+      columns: 12,
+      min_columns: 6,
+      rows: 6,
+      min_rows: 2,
+    };
+  }
+
+  protected render() {
+    if (!this._config) {
+      return nothing;
+    }
+
+    if (!this._data) {
+      return html`${this._i18n.localize("ui.panel.lovelace.cards.energy.loading")}`;
+    }
+
+    const prefs = this._data.prefs;
+    const powerData = this._computePowerData(prefs);
+    const computedStyle = getComputedStyle(this);
+    const types = energySourcesByType(prefs);
+
+    // Calculate dynamic threshold based on total consumption
+    const minPowerThreshold =
+      powerData.used_total * MIN_SANKEY_THRESHOLD_FACTOR;
+
+    const nodes: Node[] = [];
+    const links: Link[] = [];
+
+    // Create home node
+    const homeNode: Node = {
+      id: "home",
+      label: types.home?.[0]?.name || this._hassConfig.location_name,
+      value: Math.max(0, powerData.used_total),
+      color: computedStyle.getPropertyValue("--primary-color").trim(),
+      index: 1,
+    };
+    nodes.push(homeNode);
+
+    // Add battery source and sink if available
+    if (powerData.from_battery > 0) {
+      nodes.push({
+        id: "battery",
+        label: this._i18n.localize(
+          "ui.panel.lovelace.cards.energy.energy_distribution.battery"
+        ),
+        value: powerData.from_battery,
+        color: computedStyle
+          .getPropertyValue("--energy-battery-out-color")
+          .trim(),
+        index: 0,
+      });
+      links.push({
+        source: "battery",
+        target: "home",
+      });
+    }
+
+    if (powerData.to_battery > 0) {
+      nodes.push({
+        id: "battery_in",
+        label: this._i18n.localize(
+          "ui.panel.lovelace.cards.energy.energy_distribution.battery"
+        ),
+        value: powerData.to_battery,
+        color: computedStyle
+          .getPropertyValue("--energy-battery-in-color")
+          .trim(),
+        index: 1,
+      });
+      if (powerData.grid_to_battery > 0) {
+        links.push({
+          source: "grid",
+          target: "battery_in",
+        });
+      }
+      if (powerData.solar_to_battery > 0) {
+        links.push({
+          source: "solar",
+          target: "battery_in",
+        });
+      }
+    }
+
+    // Add grid source if available
+    if (powerData.from_grid > 0) {
+      nodes.push({
+        id: "grid",
+        label: this._i18n.localize(
+          "ui.panel.lovelace.cards.energy.energy_distribution.grid"
+        ),
+        value: powerData.from_grid,
+        color: computedStyle
+          .getPropertyValue("--energy-grid-consumption-color")
+          .trim(),
+        index: 0,
+      });
+      links.push({
+        source: "grid",
+        target: "home",
+      });
+    }
+
+    // Add solar if available
+    if (powerData.solar > 0) {
+      nodes.push({
+        id: "solar",
+        label: this._i18n.localize(
+          "ui.panel.lovelace.cards.energy.energy_distribution.solar"
+        ),
+        value: powerData.solar,
+        color: computedStyle.getPropertyValue("--energy-solar-color").trim(),
+        index: 0,
+      });
+      links.push({
+        source: "solar",
+        target: "home",
+      });
+    }
+
+    // Add grid return if available
+    if (powerData.to_grid > 0) {
+      nodes.push({
+        id: "grid_return",
+        label: this._i18n.localize(
+          "ui.panel.lovelace.cards.energy.energy_distribution.grid"
+        ),
+        value: powerData.to_grid,
+        color: computedStyle
+          .getPropertyValue("--energy-grid-return-color")
+          .trim(),
+        index: 1,
+      });
+      if (powerData.battery_to_grid > 0) {
+        links.push({
+          source: "battery",
+          target: "grid_return",
+        });
+      }
+      if (powerData.solar_to_grid > 0) {
+        links.push({
+          source: "solar",
+          target: "grid_return",
+        });
+      }
+    }
+
+    const deviceLabels = computeEnergyDeviceLabels(
+      this._states,
+      this._formatEntityName,
+      prefs.device_consumption,
+      this._data.statsMetadata,
+      "stat_rate"
+    );
+
+    const {
+      deviceNodes,
+      parentLinks,
+      links: deviceLinks,
+      untrackedConsumption,
+    } = buildSankeyDeviceNodes({
+      devices: prefs.device_consumption,
+      computedStyle,
+      localize: this._i18n.localize,
+      rootNodeId: "home",
+      minThreshold: minPowerThreshold,
+      maxDevices: this._config.max_devices ?? DEFAULT_MAX_SANKEY_DEVICES,
+      untrackedFloor: 1,
+      ceilOtherValue: true,
+      initialUntracked: homeNode.value,
+      getId: (device) => device.stat_rate,
+      getValue: (id) => this._getCurrentPower(id),
+      getLabel: (id) => deviceLabels[id] || this._getEntityLabel(id),
+      getEntityId: (id) => id,
+    });
+    links.push(...deviceLinks);
+
+    const { group_by_area, group_by_floor } = this._config;
+    const layout = buildSankeyLayout({
+      states: this._states,
+      registries: this._registries,
+      computedStyle,
+      localize: this._i18n.localize,
+      deviceNodes,
+      parentLinks,
+      rootNodeId: "home",
+      groupByFloor: !!group_by_floor,
+      groupByArea: !!group_by_area,
+      untrackedConsumption,
+      untrackedFloor: 1,
+    });
+    nodes.push(...layout.nodes);
+    links.push(...layout.links);
+
+    const hasData = nodes.some((node) => node.value > 0);
+
+    const vertical =
+      this._config.layout === "vertical" ||
+      (this._config.layout !== "horizontal" && this._isMobileSize);
+
+    return html`
+      <ha-card
+        .header=${this._config.title}
+        class=${classMap({
+          "is-grid": this.layout === "grid",
+          "is-panel": this.layout === "panel",
+          "is-vertical": vertical,
+        })}
+      >
+        <div class="card-content">
+          ${
+            hasData
+              ? html`<ha-sankey-chart
+                  .data=${{ nodes, links }}
+                  .vertical=${vertical}
+                  .showValues=${this._config.show_values === true}
+                  .valueFormatter=${this._valueFormatter}
+                  @node-click=${this._handleNodeClick}
+                ></ha-sankey-chart>`
+              : html`${this._i18n.localize(
+                  "ui.panel.lovelace.cards.energy.no_data"
+                )}`
+          }
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _valueFormatter = (value: number) =>
+    formatPowerShort(this._i18n.locale, value);
+
+  private _handleNodeClick(ev: CustomEvent<{ node: Node }>) {
+    fireSankeyNodeMoreInfo(this, ev.detail.node);
+  }
+
+  /**
+   * Compute real-time power data from current entity states.
+   * Similar to computeConsumptionData but for instantaneous power.
+   */
+  private _computePowerData(prefs: EnergyPreferences): PowerData {
+    let solar = 0;
+    let from_grid = 0;
+    let to_grid = 0;
+    let from_battery = 0;
+    let to_battery = 0;
+
+    // Collect solar power
+    prefs.energy_sources
+      .filter((source) => source.type === "solar")
+      .forEach((source) => {
+        if (source.type === "solar" && source.stat_rate) {
+          const value = this._getCurrentPower(source.stat_rate);
+          if (value > 0) {
+            solar += value;
+          }
+        }
+      });
+
+    // Collect grid power (positive = import, negative = export)
+    const gridValues = prefs.energy_sources.flatMap((source) =>
+      source.type === "grid" && source.stat_rate
+        ? [this._getCurrentPower(source.stat_rate)]
+        : []
+    );
+    gridValues.forEach((value) => {
+      if (value > 0) {
+        from_grid += value;
+      } else if (value < 0) {
+        to_grid += Math.abs(value);
+      }
+    });
+
+    // Collect battery power (positive = discharge, negative = charge)
+    // Sum all battery values first, then determine net direction.
+    // Momentary power should only flow in one direction across all batteries.
+    let net_battery = 0;
+    prefs.energy_sources
+      .filter((source) => source.type === "battery")
+      .forEach((source) => {
+        if (source.type === "battery" && source.stat_rate) {
+          net_battery += this._getCurrentPower(source.stat_rate);
+        }
+      });
+    if (net_battery > 0) {
+      from_battery = net_battery;
+    } else if (net_battery < 0) {
+      to_battery = Math.abs(net_battery);
+    }
+
+    const homeStatRate = energySourcesByType(prefs).home?.find(
+      (source) => source.stat_rate
+    )?.stat_rate;
+    const homePower = homeStatRate
+      ? getPowerFromState(this._states[homeStatRate])
+      : undefined;
+    const used_total =
+      homePower ?? from_grid + solar + from_battery - to_grid - to_battery;
+
+    // Determine power routing using priority logic
+    // Priority: Solar -> Battery_In, Solar -> Grid_Out, Battery_Out -> Grid_Out,
+    // Grid_In -> Battery_In, Solar -> Consumption, Battery_Out -> Consumption, Grid_In -> Consumption
+
+    let solar_remaining = solar;
+    let grid_remaining = from_grid;
+    let battery_remaining = from_battery;
+    let to_battery_remaining = to_battery;
+    let to_grid_remaining = to_grid;
+    let used_total_remaining = Math.max(used_total, 0);
+
+    let grid_to_battery = 0;
+
+    // Handle excess grid input to battery first
+    const excess_grid_in_after_consumption = Math.max(
+      0,
+      Math.min(to_battery_remaining, grid_remaining - used_total_remaining)
+    );
+    grid_to_battery += excess_grid_in_after_consumption;
+    to_battery_remaining -= excess_grid_in_after_consumption;
+    grid_remaining -= excess_grid_in_after_consumption;
+
+    // Solar -> Battery_In
+    const solar_to_battery = Math.min(solar_remaining, to_battery_remaining);
+    to_battery_remaining -= solar_to_battery;
+    solar_remaining -= solar_to_battery;
+
+    // Solar -> Grid_Out
+    const solar_to_grid = Math.min(solar_remaining, to_grid_remaining);
+    to_grid_remaining -= solar_to_grid;
+    solar_remaining -= solar_to_grid;
+
+    // Battery_Out -> Grid_Out
+    const battery_to_grid = Math.min(battery_remaining, to_grid_remaining);
+    battery_remaining -= battery_to_grid;
+
+    // Grid_In -> Battery_In (second pass)
+    const grid_to_battery_2 = Math.min(grid_remaining, to_battery_remaining);
+    grid_to_battery += grid_to_battery_2;
+    grid_remaining -= grid_to_battery_2;
+
+    // Solar -> Consumption
+    const used_solar = Math.min(used_total_remaining, solar_remaining);
+    used_total_remaining -= used_solar;
+
+    // Battery_Out -> Consumption
+    const used_battery = Math.min(battery_remaining, used_total_remaining);
+    used_total_remaining -= used_battery;
+
+    // Grid_In -> Consumption
+    const used_grid = Math.min(used_total_remaining, grid_remaining);
+
+    return {
+      solar,
+      from_grid,
+      to_grid,
+      from_battery,
+      to_battery,
+      grid_to_battery,
+      battery_to_grid,
+      solar_to_battery,
+      solar_to_grid,
+      used_solar,
+      used_grid,
+      used_battery,
+      used_total: Math.max(0, used_total),
+    };
+  }
+
+  /**
+   * Get current power value from entity state, normalized to watts (W)
+   * @param entityId - The entity ID to get power value from
+   * @returns Power value in W, or 0 if entity not found or invalid
+   */
+  private _getCurrentPower(entityId: string): number {
+    // getPowerFromState returns power in W
+    return getPowerFromState(this._states[entityId]) ?? 0;
+  }
+
+  /**
+   * Get entity label (entity name or entity ID)
+   * @param entityId - The entity ID to get label for
+   * @returns Entity name if available, otherwise the entity ID
+   */
+  private _getEntityLabel(entityId: string): string {
+    const stateObj = this._states[entityId];
+    if (!stateObj) {
+      return entityId;
+    }
+    return this._formatEntityName(stateObj) || entityId;
+  }
+
+  static styles = css`
+    ha-card {
+      height: 400px;
+      display: flex;
+      flex-direction: column;
+      --chart-max-height: none;
+    }
+    ha-card.is-vertical {
+      height: 500px;
+    }
+    ha-card.is-grid,
+    ha-card.is-panel {
+      height: 100%;
+    }
+    .card-content {
+      flex: 1;
+      display: flex;
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-power-sankey-card": HuiPowerSankeyCard;
+  }
+}

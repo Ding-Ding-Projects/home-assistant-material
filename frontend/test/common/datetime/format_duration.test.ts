@@ -1,0 +1,196 @@
+import "@formatjs/intl-durationformat/polyfill-force";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  DURATION_UNITS,
+  formatDuration,
+  formatDurationDigital,
+  formatDurationLong,
+  formatDurationNarrow,
+  formatNumericDuration,
+} from "../../../src/common/datetime/format_duration";
+import type { HaDurationData } from "../../../src/components/ha-duration-input";
+import type { FrontendLocaleData } from "../../../src/data/translation";
+import {
+  DateFormat,
+  FirstWeekday,
+  NumberFormat,
+  TimeFormat,
+  TimeZone,
+} from "../../../src/data/translation";
+
+const LOCALE: FrontendLocaleData = {
+  language: "en",
+  number_format: NumberFormat.language,
+  time_format: TimeFormat.am_pm,
+  date_format: DateFormat.language,
+  time_zone: TimeZone.local,
+  first_weekday: FirstWeekday.language,
+};
+
+describe("formatDuration", () => {
+  it("works", () => {
+    expect(formatDuration(LOCALE, "0.25", "min")).toBe("0m 15s");
+    expect(formatDuration(LOCALE, "0.5", "min")).toBe("0m 30s");
+    expect(formatDuration(LOCALE, "1", "min")).toBe("1m");
+    expect(formatDuration(LOCALE, "20", "min")).toBe("20m");
+    expect(formatDuration(LOCALE, "95.5", "min")).toBe("95m 30s");
+
+    expect(formatDuration(LOCALE, "0.25", "h")).toBe("0h 15m");
+    expect(formatDuration(LOCALE, "0.5", "h")).toBe("0h 30m");
+    expect(formatDuration(LOCALE, "1", "h")).toBe("1h");
+    expect(formatDuration(LOCALE, "20", "h")).toBe("20h");
+    expect(formatDuration(LOCALE, "95.5", "h")).toBe("95h 30m");
+
+    expect(formatDuration(LOCALE, "0", "d")).toBe("0d");
+    expect(formatDuration(LOCALE, "0.4", "d")).toBe("0d 9h");
+    expect(formatDuration(LOCALE, "1", "d")).toBe("1d");
+    expect(formatDuration(LOCALE, "20", "d")).toBe("20d");
+    expect(formatDuration(LOCALE, "95.5", "d")).toBe("95d 12h");
+    expect(formatDuration(LOCALE, "95.75", "d", 0)).toBe("96d");
+    expect(formatDuration(LOCALE, "95.75", "d", 2)).toBe("95d 18h");
+  });
+
+  it("throws error for invalid duration unit", () => {
+    expect(() => formatDuration(LOCALE, "1", "invalid_unit" as any)).toThrow(
+      "Invalid duration unit"
+    );
+  });
+});
+
+describe("formatDurationLong", () => {
+  it("formats long duration", () => {
+    const duration = { days: 1, hours: 2, minutes: 3, seconds: 4 };
+    expect(formatDurationLong(LOCALE, duration)).toBe(
+      "1 day, 2 hours, 3 minutes, 4 seconds"
+    );
+  });
+});
+
+describe("formatDurationNarrow", () => {
+  it("formats narrow duration", () => {
+    const duration = { days: 1, hours: 2, minutes: 3, seconds: 4 };
+    expect(formatDurationNarrow(LOCALE, duration)).toBe("1d 2h 3m 4s");
+  });
+
+  it("only formats units that are present", () => {
+    expect(formatDurationNarrow(LOCALE, { hours: 1, minutes: 30 })).toBe(
+      "1h 30m"
+    );
+    expect(formatDurationNarrow(LOCALE, { seconds: 45 })).toBe("45s");
+  });
+});
+
+describe("formatDurationDigital", () => {
+  it("formats digital duration", () => {
+    const duration = { hours: 1, minutes: 2, seconds: 3 };
+    expect(formatDurationDigital(LOCALE, duration)).toBe("1:02:03");
+  });
+});
+
+describe("formatNumericDuration", () => {
+  it("formats numeric duration", () => {
+    const duration = { days: 1, hours: 2, minutes: 3, seconds: 4 };
+    expect(formatNumericDuration(LOCALE, duration)).toBe("1 day 2:03:04");
+  });
+
+  it("formats duration with only days", () => {
+    const duration = { days: 1 };
+    expect(formatNumericDuration(LOCALE, duration)).toBe("1 day 0:00:00");
+  });
+
+  it("formats duration with only hours", () => {
+    const duration = { hours: 1 };
+    expect(formatNumericDuration(LOCALE, duration)).toBe("1:00:00");
+  });
+
+  it("formats duration with only minutes", () => {
+    const duration = { minutes: 1 };
+    expect(formatNumericDuration(LOCALE, duration)).toBe("1:00");
+  });
+
+  it("formats duration with only seconds", () => {
+    const duration = { seconds: 1 };
+    expect(formatNumericDuration(LOCALE, duration)).toBe("1 second");
+  });
+
+  it("formats duration with only milliseconds", () => {
+    const duration = { milliseconds: 1 };
+    expect(formatNumericDuration(LOCALE, duration)).toBe("1 millisecond");
+  });
+
+  it("should not format duration with 0", () => {
+    const duration = {
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      milliseconds: 0,
+    };
+    expect(formatNumericDuration(LOCALE, duration)).toBe(null);
+  });
+});
+
+describe("without Intl.DurationFormat", () => {
+  // Legacy browsers without BigInt cannot load the polyfill
+  const DURATIONS: HaDurationData[] = [
+    { hours: 0, minutes: 0, seconds: 0 },
+    { seconds: 45 },
+    { hours: 1, minutes: 30 },
+    { days: 1, hours: 2, minutes: 3, seconds: 4 },
+    { hours: 0, minutes: 2, seconds: 3 },
+    { hours: 25, minutes: 0, seconds: 0 },
+    { hours: -1, minutes: -30, seconds: 0 },
+    { seconds: 1, milliseconds: 500 },
+    { milliseconds: 250 },
+    { days: 2, hours: 0, minutes: 0, seconds: 7 },
+    // Rejected by Intl.DurationFormat
+    { hours: 1, minutes: -30 },
+    { seconds: 1.5 },
+    { hours: NaN, minutes: 5 },
+  ];
+
+  const attempt = (format: () => string) => {
+    try {
+      return format();
+    } catch (err) {
+      return (err as Error).name;
+    }
+  };
+
+  const formatAll = (locale: FrontendLocaleData) => [
+    ...DURATIONS.flatMap((duration) => [
+      attempt(() => formatDurationLong(locale, duration)),
+      attempt(() => formatDurationNarrow(locale, duration)),
+      attempt(() => formatDurationDigital(locale, duration)),
+    ]),
+    ...["0", "0.25", "1", "95.5", "-1", "-0.5", "-1.25"].flatMap((value) =>
+      DURATION_UNITS.map((unit) =>
+        attempt(() => formatDuration(locale, value, unit))
+      )
+    ),
+  ];
+
+  const descriptor = Object.getOwnPropertyDescriptor(Intl, "DurationFormat")!;
+  const expected = Object.fromEntries(
+    ["en", "de", "nl"].map((language) => [
+      language,
+      formatAll({ ...LOCALE, language }),
+    ])
+  );
+
+  beforeAll(() => {
+    Reflect.deleteProperty(Intl, "DurationFormat");
+  });
+
+  afterAll(() => {
+    Object.defineProperty(Intl, "DurationFormat", descriptor);
+  });
+
+  it.each(["en", "de", "nl"])(
+    "matches Intl.DurationFormat in %s",
+    (language) => {
+      expect("DurationFormat" in Intl).toBe(false);
+      expect(formatAll({ ...LOCALE, language })).toEqual(expected[language]);
+    }
+  );
+});

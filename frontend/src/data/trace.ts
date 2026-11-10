@@ -1,0 +1,335 @@
+import { strStartsWith } from "../common/string/starts-with";
+import type { Context, HomeAssistant } from "../types";
+import type {
+  BlueprintAutomationConfig,
+  ManualAutomationConfig,
+} from "./automation";
+import { flattenTriggers } from "./automation";
+import type { BlueprintScriptConfig, ScriptConfig } from "./script";
+
+interface BaseTraceStep {
+  path: string;
+  timestamp: string;
+  error?: string;
+  template_errors?: string[];
+  changed_variables?: Record<string, unknown>;
+}
+
+export interface TriggerTraceStep extends BaseTraceStep {
+  changed_variables: {
+    trigger: {
+      alias?: string | null;
+      // Absent on not-triggered traces, which have no trigger description.
+      description?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  // Present on not-triggered traces: a machine-readable reason code explaining
+  // why the trigger evaluated a relevant change but decided not to fire, plus
+  // optional diagnostic context.
+  result?: { reason: string; data?: Record<string, unknown> };
+}
+
+export interface ConditionTraceStep extends BaseTraceStep {
+  // `null` when the condition is disabled.
+  result?: { result: boolean | null };
+}
+
+export interface CallServiceActionTraceStep extends BaseTraceStep {
+  result?: {
+    running_script: boolean;
+    params: Record<string, unknown>;
+  };
+  // The script or automation run this step started.
+  child_id?: TraceId;
+}
+
+export interface ChooseActionTraceStep extends BaseTraceStep {
+  result?: { choice: number | "default" };
+}
+
+export interface IfActionTraceStep extends BaseTraceStep {
+  result?: { choice: "then" | "else" };
+}
+
+export interface StopActionTraceStep extends BaseTraceStep {
+  result?: { stop: string; error: boolean };
+}
+
+export interface WaitActionTraceStep extends BaseTraceStep {
+  result?: {
+    enabled?: boolean;
+    wait?: {
+      completed: boolean;
+      remaining: number | null;
+      trigger?: Record<string, unknown> | null;
+    };
+    timeout?: boolean;
+  };
+}
+
+export interface DelayActionTraceStep extends BaseTraceStep {
+  result?: { delay: number; done: boolean };
+}
+
+export interface ChooseChoiceActionTraceStep extends BaseTraceStep {
+  result?: { result: boolean };
+}
+
+export type ActionTraceStep =
+  | BaseTraceStep
+  | TriggerTraceStep
+  | ConditionTraceStep
+  | CallServiceActionTraceStep
+  | ChooseActionTraceStep
+  | IfActionTraceStep
+  | StopActionTraceStep
+  | WaitActionTraceStep
+  | DelayActionTraceStep
+  | ChooseChoiceActionTraceStep;
+
+interface BaseTrace {
+  domain: string;
+  error?: string;
+  item_id: string;
+  last_step: string | null;
+  run_id: string;
+  state: "running" | "stopped" | "debugged";
+  // True for traces recording that a trigger evaluated a relevant change but
+  // did not fire. These are counted separately from actual runs.
+  not_triggered?: boolean;
+  timestamp: {
+    start: string;
+    finish: string | null;
+  };
+  script_execution:
+    | // The script was not executed because the automation's condition failed
+      "failed_conditions"
+      // The script was not executed because the run mode is single
+    | "failed_single"
+    // The script was not executed because max parallel runs would be exceeded
+    | "failed_max_runs"
+    // All script steps finished:
+    | "finished"
+    // Script execution stopped by the script itself because a condition fails, wait_for_trigger timeouts etc:
+    | "aborted"
+    // Details about failing condition, timeout etc. is in the last element of the trace
+    // Script execution stops because of an unexpected exception:
+    | "error"
+    // The exception is in the trace itself or in the last element of the trace
+    // Script execution stopped by async_stop called on the script run because home assistant is shutting down, script mode is SCRIPT_MODE_RESTART etc:
+    | "cancelled"
+    // No action was executed because a trigger evaluated a relevant change but
+    // decided not to fire; the reason is in the trigger step of the trace
+    | "not_triggered"
+    // A script called itself, directly or through another script
+    | "disallowed_recursion_detected"
+    // The run has not stopped yet, so it has no stop reason
+    | null;
+}
+
+interface BaseTraceExtended {
+  trace: Record<string, ActionTraceStep[]>;
+  context: Context;
+}
+
+export interface AutomationTrace extends BaseTrace {
+  domain: "automation";
+  // `null` for not-triggered traces, which have no trigger description.
+  trigger: string | null;
+}
+
+export interface AutomationTraceExtended
+  extends AutomationTrace, BaseTraceExtended {
+  config: ManualAutomationConfig;
+  blueprint_inputs?: BlueprintAutomationConfig | null;
+}
+
+export interface ScriptTrace extends BaseTrace {
+  domain: "script";
+}
+
+export interface ScriptTraceExtended extends ScriptTrace, BaseTraceExtended {
+  config: ScriptConfig;
+  blueprint_inputs?: BlueprintScriptConfig | null;
+}
+
+export type Trace = AutomationTrace | ScriptTrace;
+export type TraceExtended = AutomationTraceExtended | ScriptTraceExtended;
+
+interface TraceTypes {
+  automation: {
+    short: AutomationTrace;
+    extended: AutomationTraceExtended;
+  };
+  script: {
+    short: ScriptTrace;
+    extended: ScriptTraceExtended;
+  };
+}
+
+export const loadTrace = <T extends keyof TraceTypes>(
+  hass: HomeAssistant,
+  domain: T,
+  item_id: string,
+  run_id: string
+): Promise<TraceTypes[T]["extended"]> =>
+  hass.callWS({
+    type: "trace/get",
+    domain,
+    item_id,
+    run_id,
+  });
+
+export const loadTraces = <T extends keyof TraceTypes>(
+  hass: HomeAssistant,
+  domain: T,
+  item_id: string
+): Promise<TraceTypes[T]["short"][]> =>
+  hass.callWS({
+    type: "trace/list",
+    domain,
+    item_id,
+  });
+
+export interface TraceId {
+  domain: string;
+  item_id: string;
+  run_id: string;
+}
+
+export const getTracePath = (domain: string, itemId: string): string =>
+  `/config/${domain}/trace/${encodeURIComponent(itemId)}`;
+
+export const getTraceUrl = ({ domain, item_id, run_id }: TraceId): string =>
+  `${getTracePath(domain, item_id)}?run_id=${run_id}`;
+
+export type TraceContexts = Record<string, TraceId>;
+
+export const loadTraceContexts = (
+  hass: HomeAssistant,
+  domain?: string,
+  item_id?: string
+): Promise<TraceContexts> =>
+  hass.callWS({
+    type: "trace/contexts",
+    domain,
+    item_id,
+  });
+
+export const getDataFromPath = (
+  config: TraceExtended["config"],
+  path: string
+): any => {
+  const parts = path.split("/").reverse();
+
+  let result: any = config;
+
+  while (parts.length) {
+    const raw = parts.pop()!;
+    const asNumber = Number(raw);
+
+    if (isNaN(asNumber)) {
+      let tempResult = result[raw];
+      if (!tempResult && raw === "sequence") {
+        continue;
+      }
+
+      if (!tempResult && raw === "trigger") {
+        tempResult = result.triggers;
+      }
+      if (!tempResult && raw === "condition") {
+        tempResult = result.conditions;
+      }
+      if (!tempResult && raw === "action") {
+        tempResult = result.actions;
+      }
+
+      if (raw === "trigger") {
+        result = flattenTriggers(tempResult);
+      } else {
+        result = tempResult;
+      }
+      continue;
+    }
+
+    if (Array.isArray(result)) {
+      result = result[asNumber];
+      continue;
+    }
+
+    if (asNumber !== 0) {
+      throw new Error("If config is not an array, can only return index 0");
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Follows a trace path relative to a step config (for example
+ * `choose/0/conditions/1`) and returns the deepest config it reaches. A
+ * template condition written as a plain string is returned as that string.
+ */
+export const getNestedStepConfig = (config: unknown, path: string): unknown => {
+  let currentDetail = config;
+  const parts = path.split("/");
+  for (const [index, part] of parts.entries()) {
+    if (typeof currentDetail !== "object" || currentDetail === null) {
+      break;
+    }
+    // Core traces each entity of a state condition one level deeper than the
+    // config, as `entity_id/<index>`. The condition itself is the deepest step.
+    if (part === "entity_id") {
+      break;
+    }
+    // Core traces the conditions of an `if` action as `if/condition/<index>`,
+    // while the config keeps them directly in `if`, as a list or as a single
+    // condition.
+    if (part === "condition" && parts[index - 1] === "if") {
+      continue;
+    }
+    // A list of conditions or actions can also be written as a single item,
+    // which Core traces as index 0.
+    if (!Array.isArray(currentDetail) && /^\d+$/.test(part)) {
+      if (part !== "0") {
+        break;
+      }
+      continue;
+    }
+    const child = (currentDetail as Record<string, unknown>)[part];
+    if (child === undefined) {
+      break;
+    }
+    currentDetail = child;
+  }
+  return currentDetail;
+};
+
+/**
+ * Returns the entity a condition trace step such as `entity_id/1` checked.
+ * Core traces each entity of a condition with a list of entities separately.
+ */
+export const getTracedEntityId = (
+  config: unknown,
+  path: string
+): string | undefined => {
+  const match = /(?:^|\/)entity_id\/(\d+)$/.exec(path);
+  if (!match || typeof config !== "object" || config === null) {
+    return undefined;
+  }
+  const entityIds = (config as { entity_id?: unknown }).entity_id;
+  const entityId = Array.isArray(entityIds)
+    ? entityIds[Number(match[1])]
+    : entityIds;
+  return typeof entityId === "string" ? entityId : undefined;
+};
+
+// It is 'trigger' if manually triggered by the user via UI
+export const isTriggerPath = (path: string): boolean =>
+  path === "trigger" || strStartsWith(path, "trigger/");
+
+export const getTriggerPathFromTrace = (
+  steps: Record<string, BaseTraceStep[]>
+): string | undefined => Object.keys(steps).find((path) => isTriggerPath(path));

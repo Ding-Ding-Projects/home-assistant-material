@@ -1,0 +1,1196 @@
+import {
+  mdiChartLine,
+  mdiClose,
+  mdiDevices,
+  mdiHome,
+  mdiLabel,
+  mdiMinus,
+  mdiMinusBox,
+  mdiSwapHorizontal,
+  mdiTextureBox,
+} from "@mdi/js";
+import type { ContextType } from "@lit/context";
+import type { HassEntity } from "home-assistant-js-websocket";
+import {
+  css,
+  html,
+  LitElement,
+  nothing,
+  type PropertyValues,
+  type TemplateResult,
+} from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import { ifDefined } from "lit/directives/if-defined";
+import { live } from "lit/directives/live";
+import memoizeOne from "memoize-one";
+import { consume } from "../../common/decorators/consume";
+import { transform } from "../../common/decorators/transform";
+import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
+import { fireEvent } from "../../common/dom/fire_event";
+import { stopPropagation } from "../../common/dom/stop_propagation";
+import { computeAreaName } from "../../common/entity/compute_area_name";
+import {
+  computeDeviceName,
+  computeDeviceNameDisplay,
+} from "../../common/entity/compute_device_name";
+import { computeDomain } from "../../common/entity/compute_domain";
+import { computeEntityPickerDisplay } from "../../common/entity/compute_entity_name_display";
+import { getDeviceArea } from "../../common/entity/context/get_device_context";
+import { computeRTL } from "../../common/util/compute_rtl";
+import type { AreaRegistryEntry } from "../../data/area/area_registry";
+import { getConfigEntry } from "../../data/config_entries";
+import {
+  apiContext,
+  configContext,
+  formattersContext,
+  internationalizationContext,
+  labelsContext,
+  registriesContext,
+  statesContext,
+  uiContext,
+} from "../../data/context";
+import type {
+  DeviceCompositeSplits,
+  DeviceRegistryEntry,
+} from "../../data/device/device_registry";
+import type { HaEntityPickerEntityFilterFunc } from "../../data/entity/entity";
+import type { FloorRegistryEntry } from "../../data/floor_registry";
+import { domainToName } from "../../data/integration";
+import type { LabelRegistryEntry } from "../../data/label/label_registry";
+import {
+  getStatisticMetadata,
+  isExternalStatistic,
+  type StatisticsMetaData,
+} from "../../data/recorder";
+import {
+  deviceMeetsFilter,
+  extractFromTarget,
+  type ExtractFromTargetResult,
+  type ExtractFromTargetResultReferenced,
+  type TargetItem,
+  type TargetType,
+} from "../../data/target";
+import { showMoreInfoDialog } from "../../dialogs/more-info/show-ha-more-info-dialog";
+import type {
+  HomeAssistantFormatters,
+  HomeAssistantRegistries,
+} from "../../types";
+import { brandsUrl } from "../../util/brands-url";
+import type { HaDevicePickerDeviceFilterFunc } from "../device/ha-device-picker";
+import "../entity/state-badge";
+import { floorDefaultIconPath } from "../ha-floor-icon";
+import "../ha-button";
+import "../ha-checkbox";
+import type { HaCheckbox } from "../ha-checkbox";
+import "../ha-icon-button";
+import "../ha-icon-next";
+import "../ha-label";
+import "../ha-state-icon";
+import "../ha-svg-icon";
+import "../item/ha-list-item-base";
+import "../item/ha-list-item-button";
+import { computeTargetSubRows } from "./compute-target-sub-rows";
+import { filterTargetEntries } from "./filter-target-entries";
+import {
+  buildTargetRow,
+  targetRowState,
+  type TargetExclusion,
+  type TargetRow,
+} from "./target-exclusions";
+
+@customElement("ha-target-picker-item-row")
+export class HaTargetPickerItemRow extends LitElement {
+  @property({ reflect: true }) public type!: TargetType;
+
+  @property({ attribute: "item-id" }) public itemId!: string;
+
+  @property({ type: Boolean }) public expand = false;
+
+  @property({ type: Boolean, attribute: "sub-entry", reflect: true })
+  public subEntry = false;
+
+  @property({ attribute: false })
+  public subLevel = 0;
+
+  @property({ type: Boolean, attribute: "hide-context" })
+  public hideContext = false;
+
+  @property({ attribute: false })
+  public parentEntries?: ExtractFromTargetResultReferenced;
+
+  @property({ attribute: false })
+  public deviceFilter?: HaDevicePickerDeviceFilterFunc;
+
+  @property({ attribute: false })
+  public entityFilter?: HaEntityPickerEntityFilterFunc;
+
+  /**
+   * Entities that pass the filters the page currently has on. Narrows the
+   * count, and the target details, but not what the target resolves to.
+   */
+  @property({ attribute: false })
+  public activeFilter?: (entityId: string) => boolean;
+
+  /**
+   * Show only targets with entities from specific domains.
+   * @type {Array}
+   * @attr include-domains
+   */
+  @property({ type: Array, attribute: "include-domains" })
+  public includeDomains?: string[];
+
+  /**
+   * Show only targets with entities of these device classes.
+   * @type {Array}
+   * @attr include-device-classes
+   */
+  @property({ type: Array, attribute: "include-device-classes" })
+  public includeDeviceClasses?: string[];
+
+  @property({ type: Boolean, attribute: "primary-entities-only" })
+  public primaryEntitiesOnly?: boolean;
+
+  @property({ attribute: false })
+  public compositeSplits?: DeviceCompositeSplits;
+
+  /**
+   * Render this row as an exclusion: muted, with a minus in front and a
+   * button to remove it, instead of as something the target includes.
+   */
+  @property({ type: Boolean, reflect: true })
+  public exclusion = false;
+
+  /** On an exclusion row: how many entities it takes out of the row above. */
+  @property({ attribute: false })
+  public removedCount?: number;
+
+  /**
+   * On a target row: the exclusions that take entities out of it. In the
+   * target details, every row gets the target's exclusions, as they are
+   * being edited.
+   */
+  @property({ attribute: false })
+  public exclusions?: TargetExclusion[];
+
+  /** In the target details: rows get a checkbox to exclude what they hold. */
+  @property({ type: Boolean })
+  public selectable = false;
+
+  @state() private _iconImg?: string;
+
+  @state() private _domainName?: string;
+
+  @state() private _entries?: ExtractFromTargetResult;
+
+  /** Metadata of an external statistic picked as entity, which has no state. */
+  @state() private _statistic?: StatisticsMetaData;
+
+  private _fetchedEntries?: ExtractFromTargetResult;
+
+  private _lastFetch = 0;
+
+  @state()
+  @consume({ context: labelsContext, subscribe: true })
+  _labelRegistry?: LabelRegistryEntry[];
+
+  @state()
+  @consume({ context: statesContext, subscribe: true })
+  private _states!: ContextType<typeof statesContext>;
+
+  @state()
+  @consume({ context: registriesContext, subscribe: true })
+  private _registries!: ContextType<typeof registriesContext>;
+
+  @state()
+  @consume({ context: internationalizationContext, subscribe: true })
+  private _i18n!: ContextType<typeof internationalizationContext>;
+
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  @transform<
+    HomeAssistantFormatters,
+    HomeAssistantFormatters["formatEntityState"]
+  >({
+    transformer: (formatters) => formatters?.formatEntityState,
+  })
+  private _formatEntityState!: HomeAssistantFormatters["formatEntityState"];
+
+  @consume({ context: apiContext, subscribe: true })
+  private _api!: ContextType<typeof apiContext>;
+
+  @consume({ context: uiContext, subscribe: true })
+  private _ui?: ContextType<typeof uiContext>;
+
+  @consume({ context: configContext, subscribe: true })
+  private _config?: ContextType<typeof configContext>;
+
+  private _loadedConfigEntryId?: string;
+
+  protected willUpdate(changedProps: PropertyValues) {
+    const resolvesEntries = !this.subEntry && !this.exclusion;
+    if (
+      resolvesEntries &&
+      (changedProps.has("itemId") || changedProps.has("primaryEntitiesOnly"))
+    ) {
+      this._updateItemData();
+    } else if (
+      resolvesEntries &&
+      this._fetchedEntries &&
+      (changedProps.has("entityFilter") ||
+        changedProps.has("deviceFilter") ||
+        changedProps.has("includeDomains") ||
+        changedProps.has("includeDeviceClasses"))
+    ) {
+      this._entries = this._filterEntries(this._fetchedEntries);
+    }
+    if (
+      changedProps.has("itemId") ||
+      changedProps.has("type") ||
+      changedProps.has("_registries") ||
+      changedProps.has("_i18n")
+    ) {
+      this._updateDomain();
+    }
+  }
+
+  private _updateDomain() {
+    if (this.type === "entity") {
+      this._setDomainName(computeDomain(this.itemId));
+      return;
+    }
+    if (this.type !== "device") {
+      return;
+    }
+    const configEntryId =
+      this._registries.devices?.[this.itemId]?.primary_config_entry;
+    if (configEntryId && configEntryId !== this._loadedConfigEntryId) {
+      this._loadedConfigEntryId = configEntryId;
+      this._getDeviceDomain(configEntryId);
+    }
+  }
+
+  private _targetRow = memoizeOne(
+    (
+      type: TargetType,
+      itemId: string,
+      entries: ExtractFromTargetResultReferenced | undefined,
+      entityRegistry: HomeAssistantRegistries["entities"],
+      devices: HomeAssistantRegistries["devices"]
+    ): TargetRow =>
+      buildTargetRow(type, itemId, entries, entityRegistry, devices)
+  );
+
+  protected render() {
+    if (this.type === "label" && !this._labelRegistry) {
+      return nothing;
+    }
+    if (this.exclusion) {
+      return this._renderExclusion();
+    }
+    const { name, context, iconPath, fallbackIconPath, stateObject, notFound } =
+      this._itemData(this.type, this.itemId);
+
+    const replacement =
+      this.type === "device" && notFound
+        ? this._getReplacement(this.itemId)
+        : undefined;
+    // Only surface the "replaced" state when there is at least one available
+    // replacement device to migrate to. If every replacement device was
+    // deleted (or filtered out), fall back to the plain "not found" state.
+    const canMigrate = !!replacement?.candidates.length;
+
+    const showEntities = this.type !== "entity" && !notFound;
+
+    const entries = this.parentEntries || this._entries;
+
+    // Don't show sub entries that have no entities
+    if (
+      this.subEntry &&
+      this.type !== "entity" &&
+      (!entries || entries.referenced_entities.length === 0)
+    ) {
+      return nothing;
+    }
+
+    const replaceable = !this.subEntry && !this.expand;
+
+    const isOut = this._isOut(this.exclusions);
+    const rowEntities =
+      this.type === "entity" ? [this.itemId] : entries?.referenced_entities;
+    const fullyOut = !!rowEntities?.length && rowEntities.every(isOut);
+    const excludedCount = rowEntities?.filter(isOut).length ?? 0;
+    const inDetails = this.expand || this.subEntry;
+    const rowState =
+      (this.selectable || (inDetails && this.exclusions)) && rowEntities?.length
+        ? targetRowState(
+            this._targetRow(
+              this.type,
+              this.itemId,
+              entries,
+              this._registries.entities,
+              this._registries.devices
+            ),
+            !this.subEntry,
+            this.exclusions ?? []
+          )
+        : undefined;
+    const out = rowState
+      ? !rowState.checked && !rowState.indeterminate
+      : fullyOut;
+    const excludedBy =
+      this.selectable && rowState
+        ? rowState.lockedBy
+        : this.subEntry && out
+          ? this._excludedBy(rowEntities!)
+          : [];
+
+    const content = html`
+      <div class="icon" slot="start">
+        ${this._renderIcon(
+          {
+            iconPath,
+            fallbackIconPath: canMigrate ? mdiSwapHorizontal : fallbackIconPath,
+            stateObject,
+          },
+          { type: this.type, id: this.itemId }
+        )}
+      </div>
+
+      <span slot="headline" class=${classMap({ out })}
+        >${
+          canMigrate
+            ? this._i18n.localize(
+                "ui.components.target-picker.device_replaced_headline"
+              )
+            : name
+        }</span
+      >
+      ${
+        notFound || (context && !this.hideContext)
+          ? html`<span slot="supporting-text"
+              >${
+                notFound
+                  ? canMigrate
+                    ? replacement!.candidates.length === 1 && replacement!.name
+                      ? this._i18n.localize(
+                          "ui.components.target-picker.device_replaced_by_one",
+                          { device: replacement!.name }
+                        )
+                      : this._i18n.localize(
+                          "ui.components.target-picker.device_replaced",
+                          { count: replacement!.candidates.length }
+                        )
+                    : this._i18n.localize(
+                        `ui.components.target-picker.${this.type}_not_found`
+                      )
+                  : context
+              }</span
+            >`
+          : nothing
+      }
+      ${
+        excludedBy.length
+          ? html`<span slot="supporting-text" class="excluded-by">
+              ${this._i18n.localize("ui.components.target-picker.excluded_by")}
+              ${excludedBy.map((item) => this._renderExcludedBy(item))}
+            </span>`
+          : stateObject && this.subEntry
+            ? html`<span slot="supporting-text" class="state"
+                >${this._formatEntityState(stateObject)}</span
+              >`
+            : nothing
+      }
+      ${
+        !this.subEntry && entries && showEntities
+          ? html`
+              <div slot="end" class="summary">
+                ${
+                  this.expand || !entries.referenced_entities.length
+                    ? html`<span class="main">
+                          ${this._entitiesLabel(entries, isOut)}
+                        </span>
+                        ${
+                          this.expand && excludedCount
+                            ? html`<span class="secondary">
+                                ${this._i18n.localize(
+                                  "ui.components.target-picker.excluded_count",
+                                  { count: excludedCount }
+                                )}
+                              </span>`
+                            : nothing
+                        }`
+                    : html`<ha-button
+                        appearance="filled"
+                        variant="brand"
+                        size="xs"
+                        @click=${this._openDetails}
+                      >
+                        ${this._entitiesLabel(entries, isOut)}
+                      </ha-button>`
+                }
+              </div>
+            `
+          : nothing
+      }
+      ${
+        canMigrate
+          ? html`
+              <ha-button
+                class="migrate"
+                slot="end"
+                appearance="plain"
+                variant="warning"
+                size="s"
+                @click=${this._migrate}
+              >
+                ${this._i18n.localize(
+                  "ui.components.target-picker.replace_update"
+                )}
+              </ha-button>
+            `
+          : nothing
+      }
+      ${
+        !this.expand && !this.subEntry
+          ? html`
+              <ha-icon-button
+                .path=${mdiClose}
+                slot="end"
+                @click=${this._removeItem}
+              ></ha-icon-button>
+            `
+          : this.subEntry && this.type === "entity"
+            ? html` <ha-icon-next slot="end"></ha-icon-next> `
+            : nothing
+      }
+      ${
+        this.selectable && rowState
+          ? html`<ha-checkbox
+              slot="end"
+              .checked=${live(rowState.checked)}
+              .indeterminate=${live(rowState.indeterminate)}
+              .disabled=${rowState.disabled}
+              .title=${name}
+              @change=${this._selectionChanged}
+              @click=${stopPropagation}
+            ></ha-checkbox>`
+          : nothing
+      }
+    `;
+
+    let item: TemplateResult;
+
+    if (replaceable || (this.subEntry && this.type === "entity")) {
+      item = html`
+        <ha-list-item-button
+          class=${classMap({
+            error: notFound,
+            replaceable,
+          })}
+          @click=${
+            replaceable
+              ? this._replaceItem
+              : this.subEntry && this.type === "entity"
+                ? this._openMoreInfo
+                : undefined
+          }
+        >
+          ${content}
+        </ha-list-item-button>
+      `;
+    } else {
+      item = html`
+        <ha-list-item-base
+          class=${classMap({
+            error: notFound,
+          })}
+        >
+          ${content}
+        </ha-list-item-base>
+      `;
+    }
+
+    return html`
+      ${item}
+      ${
+        this.expand && entries && entries.referenced_entities
+          ? this._renderEntries()
+          : nothing
+      }
+    `;
+  }
+
+  private _isOut = memoizeOne(
+    (exclusions?: TargetExclusion[]): ((entityId: string) => boolean) => {
+      const removed = new Set(
+        exclusions?.flatMap((exclusion) => exclusion.removed)
+      );
+      return (entityId) => removed.has(entityId);
+    }
+  );
+
+  private _excludedBy(entityIds: string[]): TargetItem[] {
+    const entities = new Set(entityIds);
+    return (this.exclusions ?? [])
+      .filter((exclusion) =>
+        exclusion.removed.some((entityId) => entities.has(entityId))
+      )
+      .map(({ type, id }) => ({ type, id }));
+  }
+
+  private _renderExcludedBy(item: TargetItem) {
+    const itemData = this._itemData(item.type, item.id);
+    return html`<ha-label dense>
+      ${this._renderIcon(itemData, item, "icon")} ${itemData.name}
+    </ha-label>`;
+  }
+
+  private _entitiesLabel(
+    entries: ExtractFromTargetResultReferenced,
+    isOut: (entityId: string) => boolean
+  ): string {
+    const remaining = entries.referenced_entities.filter(
+      (entityId) => !isOut(entityId)
+    );
+    const total = remaining.length;
+    const count = this.activeFilter
+      ? remaining.filter(this.activeFilter).length
+      : total;
+    return this.activeFilter
+      ? this._i18n.localize(
+          "ui.components.target-picker.entities_count_filtered",
+          { count, total }
+        )
+      : this._i18n.localize("ui.components.target-picker.entities_count", {
+          count,
+        });
+  }
+
+  private _renderIcon(
+    {
+      iconPath,
+      fallbackIconPath,
+      stateObject,
+    }: {
+      iconPath?: string | null;
+      fallbackIconPath?: string;
+      stateObject?: HassEntity;
+    },
+    item: TargetItem,
+    slot?: string
+  ) {
+    const ownItem = item.type === this.type && item.id === this.itemId;
+    if (iconPath) {
+      return html`<ha-icon
+        slot=${ifDefined(slot)}
+        .icon=${iconPath}
+      ></ha-icon>`;
+    }
+    if (ownItem && this._iconImg) {
+      return html`<img
+        slot=${ifDefined(slot)}
+        alt=${this._domainName || ""}
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+        src=${this._iconImg}
+      />`;
+    }
+    if (fallbackIconPath) {
+      return html`<ha-svg-icon
+        slot=${ifDefined(slot)}
+        .path=${fallbackIconPath}
+      ></ha-svg-icon>`;
+    }
+    if (item.type === "entity") {
+      if (
+        stateObject?.attributes.entity_picture ||
+        stateObject?.attributes.entity_picture_local
+      ) {
+        return html`<state-badge
+          slot=${ifDefined(slot)}
+          .stateObj=${stateObject}
+        ></state-badge>`;
+      }
+      return html`<ha-state-icon
+        slot=${ifDefined(slot)}
+        .stateObj=${
+          stateObject || ({ entity_id: item.id, attributes: {} } as HassEntity)
+        }
+      ></ha-state-icon>`;
+    }
+    return nothing;
+  }
+
+  private _renderExclusion() {
+    const { name, context, iconPath, fallbackIconPath, stateObject, notFound } =
+      this._itemData(this.type, this.itemId);
+
+    return html`
+      <ha-list-item-base class="exclusion">
+        <ha-svg-icon slot="start" class="minus" .path=${mdiMinus}></ha-svg-icon>
+        <div class="icon" slot="start">
+          ${this._renderIcon(
+            { iconPath, fallbackIconPath, stateObject },
+            { type: this.type, id: this.itemId }
+          )}
+        </div>
+        <span slot="headline"
+          ><span class="visually-hidden"
+            >${this._i18n.localize("ui.components.target-picker.excluded")}
+          </span>
+          ${name}</span
+        >
+        ${
+          notFound || context
+            ? html`<span slot="supporting-text"
+                >${
+                  notFound
+                    ? this._i18n.localize(
+                        `ui.components.target-picker.${this.type}_not_found`
+                      )
+                    : context
+                }</span
+              >`
+            : nothing
+        }
+        ${
+          this.removedCount
+            ? html`<span slot="end" class="removed">
+                ${this._i18n.localize(
+                  "ui.components.target-picker.excluded_count",
+                  { count: this.removedCount }
+                )}
+              </span>`
+            : nothing
+        }
+        <ha-icon-button
+          slot="end"
+          .path=${mdiClose}
+          .label=${this._i18n.localize(
+            "ui.components.target-picker.remove_exclusion"
+          )}
+          @click=${this._removeExclusion}
+        ></ha-icon-button>
+      </ha-list-item-base>
+    `;
+  }
+
+  private _renderEntries() {
+    const entries = this.parentEntries || this._entries;
+
+    if (!entries || entries.referenced_entities.length === 0) {
+      return this._renderEmptyEntries();
+    }
+
+    const {
+      nextType,
+      rows,
+      rowEntries,
+      deviceRows,
+      deviceRowEntries,
+      entityRows,
+    } = computeTargetSubRows(
+      this.type,
+      this.itemId,
+      entries,
+      this._registries.entities,
+      this._registries.devices
+    );
+
+    const nextSubLevel = this.subLevel + 1;
+
+    return html`
+      ${rows.map(
+        (itemId, index) => html`
+          <ha-target-picker-item-row
+            sub-entry
+            .subLevel=${nextSubLevel}
+            style=${`--sub-entry-indent: calc(${nextSubLevel} * var(--ha-space-10));`}
+            .type=${nextType}
+            .itemId=${itemId}
+            .parentEntries=${rowEntries?.[index]}
+            .hideContext=${this.hideContext || this.type !== "label"}
+            .selectable=${this.selectable}
+            .exclusions=${this.exclusions}
+            expand
+          ></ha-target-picker-item-row>
+        `
+      )}
+      ${deviceRows.map(
+        (itemId, index) => html`
+          <ha-target-picker-item-row
+            sub-entry
+            .subLevel=${nextSubLevel}
+            style=${`--sub-entry-indent: calc(${nextSubLevel} * var(--ha-space-10));`}
+            type="device"
+            .itemId=${itemId}
+            .parentEntries=${deviceRowEntries?.[index]}
+            .hideContext=${this.hideContext || this.type !== "label"}
+            .selectable=${this.selectable}
+            .exclusions=${this.exclusions}
+            expand
+          ></ha-target-picker-item-row>
+        `
+      )}
+      ${entityRows.map(
+        (itemId) => html`
+          <ha-target-picker-item-row
+            sub-entry
+            .subLevel=${nextSubLevel}
+            style=${`--sub-entry-indent: calc(${nextSubLevel} * var(--ha-space-10));`}
+            type="entity"
+            .itemId=${itemId}
+            .hideContext=${this.hideContext || this.type !== "label"}
+            .selectable=${this.selectable}
+            .exclusions=${this.exclusions}
+          ></ha-target-picker-item-row>
+        `
+      )}
+    `;
+  }
+
+  private _renderEmptyEntries() {
+    return html`<ha-list-item-base>
+      <ha-svg-icon .path=${mdiMinusBox} slot="start" class="icon"></ha-svg-icon>
+      <span slot="headline"
+        >${this._i18n.localize("ui.components.target-picker.no_targets")}</span
+      >
+    </ha-list-item-base>`;
+  }
+
+  private _filterEntries(entries: ExtractFromTargetResult) {
+    return filterTargetEntries(
+      this._states,
+      this._registries.entities,
+      this._registries.devices,
+      this._registries.areas,
+      { type: this.type, id: this.itemId },
+      entries,
+      {
+        deviceFilter: this.deviceFilter,
+        entityFilter: this.entityFilter,
+        includeDomains: this.includeDomains,
+        includeDeviceClasses: this.includeDeviceClasses,
+        primaryEntitiesOnly: this.primaryEntitiesOnly,
+      }
+    );
+  }
+
+  private async _updateItemData() {
+    const requestId = ++this._lastFetch;
+    this._fetchedEntries = undefined;
+    if (this.type === "entity") {
+      this._entries = undefined;
+      this._statistic = undefined;
+      if (isExternalStatistic(this.itemId)) {
+        try {
+          const [metadata] = await getStatisticMetadata(this._api.callWS, [
+            this.itemId,
+          ]);
+          if (requestId === this._lastFetch) {
+            this._statistic = metadata;
+          }
+        } catch {
+          // Without metadata the statistic is shown as not found
+        }
+      }
+      return;
+    }
+    try {
+      const entries = await extractFromTarget(
+        this._api.callWS,
+        {
+          [`${this.type}_id`]: [this.itemId],
+        },
+        false,
+        this.primaryEntitiesOnly
+      );
+      // A newer request was sent while this one was pending.
+      if (requestId !== this._lastFetch) {
+        return;
+      }
+      this._fetchedEntries = entries;
+      this._entries = this._filterEntries(entries);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to extract target", e);
+    }
+  }
+
+  private _itemData(type: TargetType, item: string) {
+    if (type === "floor") {
+      const floor: FloorRegistryEntry | undefined =
+        this._registries.floors?.[item];
+      return {
+        name: floor?.name || item,
+        iconPath: floor?.icon,
+        fallbackIconPath: floor ? floorDefaultIconPath(floor) : mdiHome,
+        notFound: !floor,
+      };
+    }
+    if (type === "area") {
+      const area: AreaRegistryEntry | undefined =
+        this._registries.areas?.[item];
+      return {
+        name: area?.name || item,
+        context:
+          area?.floor_id && this._registries.floors?.[area.floor_id]?.name,
+        iconPath: area?.icon,
+        fallbackIconPath: mdiTextureBox,
+        notFound: !area,
+      };
+    }
+    if (type === "device") {
+      const device: DeviceRegistryEntry | undefined =
+        this._registries.devices?.[item];
+
+      const area = device
+        ? getDeviceArea(
+            device,
+            this._registries.areas,
+            this._registries.devices
+          )
+        : undefined;
+      const parentDevice =
+        device?.parent_device_id && device.next_name_part === "parent_device"
+          ? this._registries.devices[device.parent_device_id]
+          : undefined;
+      const context = [
+        area ? computeAreaName(area) : undefined,
+        parentDevice ? computeDeviceName(parentDevice) : undefined,
+      ]
+        .filter(Boolean)
+        .join(
+          computeRTL(
+            this._i18n.language,
+            this._i18n.translationMetadata.translations
+          )
+            ? " ◂ "
+            : " ▸ "
+        );
+
+      return {
+        name: device
+          ? computeDeviceNameDisplay(device, this._i18n.localize)
+          : item,
+        context,
+        fallbackIconPath: mdiDevices,
+        notFound: !device,
+      };
+    }
+    if (type === "entity") {
+      const stateObject: HassEntity | undefined = this._states?.[item];
+      // External statistics have no state, only the metadata the recorder keeps.
+      if (!stateObject && this._statistic?.statistic_id === item) {
+        return {
+          name: this._statistic.name || item,
+          context: domainToName(this._i18n.localize, this._statistic.source),
+          fallbackIconPath: mdiChartLine,
+          notFound: false,
+        };
+      }
+      const { primary, secondary } = stateObject
+        ? computeEntityPickerDisplay(
+            {
+              entities: this._registries.entities,
+              devices: this._registries.devices,
+              areas: this._registries.areas,
+              floors: this._registries.floors,
+              language: this._i18n.language,
+              translationMetadata: this._i18n.translationMetadata,
+            },
+            stateObject
+          )
+        : { primary: item, secondary: undefined };
+      return {
+        name: primary,
+        context: secondary,
+        stateObject,
+        notFound: !stateObject && item !== "all" && item !== "none",
+      };
+    }
+
+    // type label
+    const label: LabelRegistryEntry | undefined = this._labelRegistry?.find(
+      (lab) => lab.label_id === item
+    );
+    return {
+      name: label?.name || item,
+      iconPath: label?.icon,
+      fallbackIconPath: mdiLabel,
+      notFound: !label,
+    };
+  }
+
+  private _setDomainName(domain: string) {
+    this._domainName = domainToName(this._i18n.localize, domain);
+  }
+
+  private _removeItem(ev: MouseEvent) {
+    ev.stopPropagation();
+    fireEvent(this, "remove-target-item", {
+      type: this.type,
+      id: this.itemId,
+    });
+  }
+
+  private _removeExclusion(ev: MouseEvent) {
+    ev.stopPropagation();
+    fireEvent(this, "remove-target-exclusion", {
+      type: this.type,
+      id: this.itemId,
+    });
+  }
+
+  private _selectionChanged(ev: HASSDomTargetEvent<HaCheckbox>) {
+    ev.stopPropagation();
+    fireEvent(this, "target-selection-changed", {
+      row: this._targetRow(
+        this.type,
+        this.itemId,
+        this.parentEntries || this._entries,
+        this._registries.entities,
+        this._registries.devices
+      ),
+      isTarget: !this.subEntry,
+      selected: ev.target.checked,
+    });
+  }
+
+  private async _getDeviceDomain(configEntryId: string) {
+    try {
+      const data = await getConfigEntry(this._api.callWS, configEntryId);
+      const domain = data.config_entry.domain;
+      this._iconImg = brandsUrl(
+        {
+          domain: domain,
+          type: "icon",
+          darkOptimized: this._ui?.themes?.darkMode,
+        },
+        this._config?.auth?.data.hassUrl
+      );
+
+      this._setDomainName(domain);
+    } catch {
+      // failed to load config entry -> ignore
+    }
+  }
+
+  private _replaceItem(ev: MouseEvent) {
+    ev.stopPropagation();
+    fireEvent(this, "replace-target-item", {
+      type: this.type,
+      id: this.itemId,
+    });
+  }
+
+  // Returns the split devices that replaced a removed composite device and
+  // pass this row's filters, or undefined if the item is not a replaced device.
+  private _getReplacement(item: string) {
+    const split = this.compositeSplits?.[item];
+    if (!split || this._registries.devices[item]) {
+      return undefined;
+    }
+    const candidates = split.split_ids.filter((id) => {
+      const device = this._registries.devices[id];
+      return (
+        device &&
+        deviceMeetsFilter(
+          device,
+          this._registries.entities,
+          this.deviceFilter,
+          this.includeDomains,
+          this.includeDeviceClasses,
+          this._states,
+          this.entityFilter,
+          !this.primaryEntitiesOnly
+        )
+      );
+    });
+    // Display the replaced reference using the primary replacement device's
+    // name instead of the removed composite device id. Fall back to the first
+    // available candidate if the primary device itself was deleted.
+    const nameDevice =
+      (split.primary_id && this._registries.devices[split.primary_id]) ||
+      (candidates.length ? this._registries.devices[candidates[0]] : undefined);
+    const name = nameDevice ? computeDeviceName(nameDevice) : undefined;
+    return { candidates, name };
+  }
+
+  private _migrate = (ev: MouseEvent) => {
+    ev.stopPropagation();
+    const replacement = this._getReplacement(this.itemId);
+    if (!replacement?.candidates.length) {
+      return;
+    }
+    fireEvent(this, "migrate-target-item", {
+      id: this.itemId,
+      replacements: replacement.candidates,
+    });
+  };
+
+  // The target picker opens the details, as it knows what is excluded from
+  // the whole target.
+  private _openDetails(ev: MouseEvent) {
+    ev.stopPropagation();
+    fireEvent(this, "open-target-details", {
+      type: this.type,
+      id: this.itemId,
+      title: this._itemData(this.type, this.itemId).name,
+    });
+  }
+
+  private _openMoreInfo = () => {
+    showMoreInfoDialog(this, {
+      entityId: this.itemId,
+    });
+  };
+
+  static styles = [
+    css`
+      .error {
+        background: var(--ha-color-fill-warning-quiet-resting);
+      }
+
+      /* Exclusions sit under the target they take something out of: muted,
+         indented and led by a minus, so they read as "except". */
+      .exclusion::part(base) {
+        padding-inline-start: var(--ha-space-8);
+      }
+      .exclusion [slot="headline"],
+      .exclusion [slot="supporting-text"],
+      .exclusion .removed,
+      .exclusion .minus,
+      .exclusion .icon {
+        color: var(--ha-color-text-secondary);
+      }
+      .exclusion .removed {
+        font-size: var(--ha-font-size-s);
+        white-space: nowrap;
+        align-self: center;
+      }
+      ha-list-item-base::part(end) {
+        gap: var(--ha-space-2);
+      }
+
+      .visually-hidden {
+        position: absolute;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        height: 1px;
+        width: 1px;
+        margin: -1px;
+        padding: 0;
+        border: 0;
+      }
+
+      [slot="headline"].out {
+        color: var(--ha-color-text-secondary);
+        text-decoration: line-through;
+      }
+      .excluded-by {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
+        color: var(--ha-color-text-secondary);
+      }
+
+      .error [slot="supporting-text"] {
+        color: var(--ha-color-on-warning-normal);
+      }
+
+      .migrate {
+        align-self: center;
+        white-space: nowrap;
+      }
+
+      .replaceable {
+        cursor: pointer;
+      }
+
+      .replaceable:hover {
+        background-color: var(--ha-color-fill-neutral-quiet-hover);
+      }
+
+      state-badge {
+        color: var(--ha-color-on-neutral-quiet);
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      ha-label state-badge {
+        width: 16px;
+        height: 16px;
+      }
+
+      .icon {
+        width: 24px;
+        display: flex;
+        color: var(--ha-color-on-neutral-normal);
+      }
+
+      img {
+        width: 24px;
+        height: 24px;
+        z-index: 1;
+      }
+      ha-icon-button {
+        --ha-icon-button-size: 32px;
+      }
+      .summary {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: var(--ha-line-height-condensed);
+      }
+      :host([sub-entry]) .summary {
+        margin-inline-start: var(--ha-space-12);
+      }
+      .summary .main {
+        font-weight: var(--ha-font-weight-medium);
+      }
+      :host([expand]) .summary .main {
+        color: var(--ha-color-text-secondary);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-normal);
+      }
+      .summary .secondary {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+
+      .state {
+        width: fit-content;
+        font-size: var(--ha-font-size-s);
+        color: var(--ha-color-text-secondary);
+      }
+
+      ha-list-item-button::part(end) {
+        gap: var(--ha-space-2);
+      }
+
+      :host([sub-entry]) ha-list-item-button::part(base),
+      :host([sub-entry]) ha-list-item-base::part(base) {
+        padding-inline-start: var(--sub-entry-indent);
+      }
+    `,
+  ];
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-target-picker-item-row": HaTargetPickerItemRow;
+  }
+
+  interface HASSDomEvents {
+    "open-target-details": { type: TargetType; id: string; title: string };
+    "target-selection-changed": {
+      row: TargetRow;
+      isTarget: boolean;
+      selected: boolean;
+    };
+  }
+}

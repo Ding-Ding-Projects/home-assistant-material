@@ -1,0 +1,343 @@
+import { mdiClose } from "@mdi/js";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { cache } from "lit/directives/cache";
+import { storage } from "../../../../common/decorators/storage";
+import { fireEvent } from "../../../../common/dom/fire_event";
+import "../../../../components/ha-dialog";
+import "../../../../components/ha-dialog-header";
+import "../../../../components/ha-paste-bar";
+import "../../../../components/ha-tab-group";
+import "../../../../components/ha-tab-group-tab";
+import type { LovelaceCardConfig } from "../../../../data/lovelace/config/card";
+import type {
+  LovelaceSectionConfig,
+  LovelaceSectionRawConfig,
+} from "../../../../data/lovelace/config/section";
+import type {
+  LovelaceViewConfig,
+  LovelaceViewRawConfig,
+} from "../../../../data/lovelace/config/view";
+import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
+import { haStyleDialog } from "../../../../resources/styles";
+import type { HomeAssistant } from "../../../../types";
+import { addCardAtPath, getCardSectionConfig } from "../config-util";
+import type { LovelacePath } from "../lovelace-path";
+import { getAtPath, getParentPath, getPathTarget } from "../lovelace-path";
+import "./hui-card-picker";
+import "./hui-suggestion-picker";
+import type { CreateCardDialogParams } from "./show-create-card-dialog";
+import { showEditCardDialog } from "./show-edit-card-dialog";
+
+@customElement("hui-dialog-create-card")
+export class HuiCreateDialogCard
+  extends LitElement
+  implements HassDialog<CreateCardDialogParams>
+{
+  @property({ attribute: false }) public hass!: HomeAssistant;
+
+  @state() private _params?: CreateCardDialogParams;
+
+  @state() private _open = false;
+
+  @state() private _containerConfig!:
+    LovelaceViewConfig | LovelaceSectionConfig;
+
+  @state() private _currTab: "card" | "entity" = "entity";
+
+  @state() private _narrow = false;
+
+  @state()
+  @storage({
+    key: "dashboardCardClipboard",
+    state: true,
+    subscribe: true,
+    storage: "sessionStorage",
+  })
+  private _clipboard?: LovelaceCardConfig;
+
+  public async showDialog(params: CreateCardDialogParams): Promise<void> {
+    this._params = params;
+
+    this._narrow = matchMedia(
+      "all and (max-width: 450px), all and (max-height: 500px)"
+    ).matches;
+
+    const containerConfig = getAtPath<
+      LovelaceViewRawConfig | LovelaceSectionRawConfig
+    >(params.lovelaceConfig, this._containerPath(params.path));
+
+    if (!containerConfig) {
+      throw new Error("Container does not exist");
+    }
+
+    if ("strategy" in containerConfig) {
+      throw new Error("Can't edit strategy");
+    }
+
+    this._containerConfig = containerConfig;
+    this._open = true;
+  }
+
+  public closeDialog(): boolean {
+    this._open = false;
+    return true;
+  }
+
+  private _containerPath(path: LovelacePath): LovelacePath {
+    const parentPath = getParentPath(path);
+    return getPathTarget(path) === "slot"
+      ? getParentPath(parentPath)
+      : parentPath;
+  }
+
+  private _dialogClosed(): void {
+    this._open = false;
+    this._params = undefined;
+    this._currTab = "entity";
+    fireEvent(this, "dialog-closed", { dialog: this.localName });
+  }
+
+  protected render() {
+    if (!this._params) {
+      return nothing;
+    }
+
+    const title = this._containerConfig.title
+      ? this.hass!.localize(
+          "ui.panel.lovelace.editor.edit_card.pick_card_title",
+          { name: `"${this._containerConfig.title}"` }
+        )
+      : this.hass!.localize("ui.panel.lovelace.editor.edit_card.pick_card");
+
+    return html`
+      <ha-dialog
+        .open=${this._open}
+        flexcontent
+        width="large"
+        @keydown=${this._ignoreKeydown}
+        @closed=${this._dialogClosed}
+      >
+        <ha-dialog-header show-border slot="header">
+          <ha-icon-button
+            slot="navigationIcon"
+            @click=${this._cancel}
+            .label=${this.hass.localize("ui.common.close")}
+            .path=${mdiClose}
+          ></ha-icon-button>
+          <span slot="title">${title}</span>
+
+          <ha-tab-group @wa-tab-show=${this._handleTabChanged}>
+            <ha-tab-group-tab
+              slot="nav"
+              .active=${this._currTab === "entity"}
+              panel="entity"
+              ?autofocus=${this._narrow}
+              >${this.hass.localize(
+                "ui.panel.lovelace.editor.cardpicker.by_entity"
+              )}</ha-tab-group-tab
+            >
+            <ha-tab-group-tab
+              slot="nav"
+              .active=${this._currTab === "card"}
+              panel="card"
+            >
+              ${this.hass!.localize(
+                "ui.panel.lovelace.editor.cardpicker.by_card"
+              )}
+            </ha-tab-group-tab>
+          </ha-tab-group>
+        </ha-dialog-header>
+        <div class="body">
+          ${cache(
+            this._currTab === "entity"
+              ? html`
+                  <hui-suggestion-picker
+                    ?autofocus=${!this._narrow}
+                    .hass=${this.hass}
+                    .prioritizedCardTypes=${this._params.suggestedCards}
+                    @suggestion-picked=${this._handleSuggestionPicked}
+                    @browse-cards=${this._handleBrowseCards}
+                  >
+                    ${this._renderPasteBar()}
+                  </hui-suggestion-picker>
+                `
+              : html`
+                  <hui-card-picker
+                    ?autofocus=${!this._narrow}
+                    .suggestedCards=${this._params.suggestedCards}
+                    .lovelace=${this._params.lovelaceConfig}
+                    .hass=${this.hass}
+                    hide-clipboard
+                    @config-changed=${this._handleCardPicked}
+                  >
+                    ${this._renderPasteBar()}
+                  </hui-card-picker>
+                `
+          )}
+        </div>
+      </ha-dialog>
+    `;
+  }
+
+  private _renderPasteBar() {
+    if (!this._clipboard) {
+      return nothing;
+    }
+
+    return html`<ha-paste-bar
+      .label=${this.hass.localize(
+        "ui.panel.lovelace.editor.cardpicker.paste_card"
+      )}
+      @paste-element=${this._paste}
+    ></ha-paste-bar>`;
+  }
+
+  private _ignoreKeydown(ev: KeyboardEvent) {
+    ev.stopPropagation();
+  }
+
+  static get styles(): CSSResultGroup {
+    return [
+      haStyleDialog,
+      css`
+        :host {
+          --dialog-safe-area-inset-bottom: var(--safe-area-inset-bottom, 0px);
+        }
+
+        ha-dialog {
+          --dialog-content-padding: 0;
+          --dialog-z-index: 6;
+        }
+
+        @media (min-width: 451px) and (min-height: 501px) {
+          ha-dialog {
+            --ha-dialog-min-height: min(900px, 80vh);
+            --ha-dialog-max-height: var(--ha-dialog-min-height);
+          }
+        }
+
+        ha-dialog::part(body) {
+          overflow: hidden;
+        }
+        @media all and (max-width: 450px), all and (max-height: 500px) {
+          ha-dialog {
+            --safe-area-inset-bottom: 0px;
+          }
+          ha-paste-bar {
+            padding-bottom: max(
+              var(--dialog-safe-area-inset-bottom),
+              var(--ha-space-3)
+            );
+          }
+          hui-card-picker:not(:has(> ha-paste-bar)) {
+            --ha-card-picker-content-padding-bottom: var(
+              --dialog-safe-area-inset-bottom
+            );
+          }
+          hui-suggestion-picker {
+            --ha-suggestion-picker-main-padding-bottom: var(
+              --dialog-safe-area-inset-bottom
+            );
+          }
+          hui-suggestion-picker:not(:has(> ha-paste-bar)) {
+            --ha-suggestion-picker-tree-padding-bottom: var(
+              --dialog-safe-area-inset-bottom
+            );
+          }
+        }
+
+        ha-tab-group-tab {
+          flex: 1;
+        }
+        ha-tab-group-tab::part(base) {
+          width: 100%;
+          justify-content: center;
+        }
+        .body {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+        }
+        hui-card-picker,
+        hui-suggestion-picker {
+          flex: 1;
+          min-height: 0;
+        }
+      `,
+    ];
+  }
+
+  private _handleBrowseCards(): void {
+    this._currTab = "card";
+  }
+
+  private async _handleSuggestionPicked(
+    ev: CustomEvent<{ config: LovelaceCardConfig }>
+  ): Promise<void> {
+    const config = ev.detail.config;
+    const lovelaceConfig = this._params!.lovelaceConfig;
+    const path = this._params!.path;
+    const saveConfig = this._params!.saveConfig;
+    await saveConfig(addCardAtPath(lovelaceConfig, path, config));
+    this.closeDialog();
+  }
+
+  private _handleCardPicked(ev) {
+    const config = ev.detail.config;
+    if (this._params!.entities && this._params!.entities.length) {
+      if ("entities" in config) {
+        config.entities = this._params!.entities;
+      } else if ("entity" in config) {
+        config.entity = this._params!.entities[0];
+      }
+    }
+
+    this._editNewCard(config);
+  }
+
+  private _paste() {
+    this._editNewCard(this._clipboard!);
+  }
+
+  private _editNewCard(config: LovelaceCardConfig) {
+    const lovelaceConfig = this._params!.lovelaceConfig;
+    const path = this._params!.path;
+    const saveConfig = this._params!.saveConfig;
+
+    showEditCardDialog(this, {
+      lovelaceConfig,
+      saveCardConfig: async (newCardConfig) => {
+        await saveConfig(addCardAtPath(lovelaceConfig, path, newCardConfig));
+      },
+      cardConfig: config,
+      sectionConfig: getCardSectionConfig(lovelaceConfig, path),
+      isNew: true,
+    });
+
+    this.closeDialog();
+  }
+
+  private _handleTabChanged(ev: CustomEvent): void {
+    const newTab = ev.detail.name;
+    if (newTab === this._currTab) {
+      return;
+    }
+    this._currTab = newTab;
+  }
+
+  private _cancel(ev?: Event) {
+    if (ev) {
+      ev.stopPropagation();
+    }
+    this.closeDialog();
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-dialog-create-card": HuiCreateDialogCard;
+  }
+}

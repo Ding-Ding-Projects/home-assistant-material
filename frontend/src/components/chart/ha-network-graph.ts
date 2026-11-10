@@ -1,0 +1,663 @@
+import type { EChartsType } from "echarts/core";
+import type { GraphSeriesOption } from "echarts/charts";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state, query } from "lit/decorators";
+
+import type {
+  CallbackDataParams,
+  TopLevelFormatterParams,
+} from "echarts/types/dist/shared";
+import { mdiFormatTextVariant, mdiGoogleCirclesGroup } from "@mdi/js";
+import memoizeOne from "memoize-one";
+import { consume } from "../../common/decorators/consume";
+import { consumeLocalize } from "../../common/decorators/consume-context-entry";
+import type { LocalizeFunc } from "../../common/translations/localize";
+import { reducedMotionContext } from "../../data/context";
+import type { HaECOption } from "../../resources/echarts/echarts";
+import "./ha-chart-base";
+import type { HaChartBase } from "./ha-chart-base";
+import { deepEqual } from "../../common/util/deep-equal";
+
+export interface NetworkNode {
+  id: string;
+  name?: string;
+  context?: string;
+  category?: number;
+  value?: number;
+  symbolSize?: number;
+  symbol?: string;
+  itemStyle?: {
+    color?: string;
+    borderColor?: string;
+    borderWidth?: number;
+  };
+  label?: { position: "left" | "right" | "top" | "bottom" };
+  fixed?: boolean;
+  /**
+   * Distance from the center, where 0 is the center and 1 is the edge
+   */
+  polarDistance?: number;
+  x?: number;
+  y?: number;
+}
+
+export interface NetworkLink {
+  source: string;
+  target: string;
+  value?: number;
+  reverseValue?: number;
+  lineStyle?: {
+    width?: number;
+    color?: string;
+    type?: "solid" | "dashed" | "dotted";
+  };
+  symbolSize?: number | number[];
+  symbol?: string;
+  label?: {
+    show?: boolean;
+    formatter?: string;
+  };
+  ignoreForceLayout?: boolean;
+}
+
+export interface NetworkData {
+  nodes: NetworkNode[];
+  links: NetworkLink[];
+  categories?: { name: string; symbol: string }[];
+}
+
+const PHYSICS_DISABLE_THRESHOLD = 512;
+
+const SELECTED_NODE_MAX_ZOOM = 2;
+
+// Keeps neighbors clear of the search field, buttons and legend
+const SELECTED_NODE_FIT_MARGIN = 72;
+
+const FOLLOW_ROAM = "follow-selected-node";
+
+// eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/consistent-type-imports
+let GraphChart: typeof import("echarts/lib/chart/graph/install");
+
+@customElement("ha-network-graph")
+export class HaNetworkGraph extends LitElement {
+  public chart?: EChartsType;
+
+  @property({ attribute: false }) public data!: NetworkData;
+
+  @property({ attribute: false }) public tooltipFormatter?: (
+    params: TopLevelFormatterParams
+  ) => TemplateResult | typeof nothing | null;
+
+  /**
+   * Optional callback that returns additional searchable strings for a node.
+   * These are matched against the search filter in addition to the node's name and context.
+   */
+  @property({ attribute: false }) public searchableAttributes?: (
+    nodeId: string
+  ) => string[];
+
+  @property({ attribute: false }) public searchFilter = "";
+
+  /**
+   * Id of a node to highlight. The view centers on it, zoomed so its neighbors
+   * stay visible, and follows it until the user moves the view.
+   */
+  @property({ attribute: false }) public selectedNode?: string;
+
+  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+
+  @state() private _highlightedNodes?: Set<string>;
+
+  @state()
+  @consume({ context: reducedMotionContext, subscribe: true })
+  private _reducedMotion = false;
+
+  @state() private _physicsEnabled?: boolean;
+
+  @state() private _showLabels = true;
+
+  private _nodePositions: Record<string, { x: number; y: number }> = {};
+
+  private _followSelectedNode = false;
+
+  private _followedChart?: EChartsType;
+
+  @query("ha-chart-base") private _baseChart?: HaChartBase;
+
+  constructor() {
+    super();
+    if (!GraphChart) {
+      import("echarts/lib/chart/graph/install").then((module) => {
+        GraphChart = module;
+        this.requestUpdate();
+      });
+    }
+  }
+
+  protected willUpdate(changedProperties: PropertyValues<this>): void {
+    super.willUpdate(changedProperties);
+    if (this._physicsEnabled === undefined && this.data?.nodes?.length > 1) {
+      this._physicsEnabled =
+        this.data.nodes.length <= PHYSICS_DISABLE_THRESHOLD;
+    }
+  }
+
+  protected render() {
+    if (!GraphChart || !this.data.nodes?.length) {
+      return nothing;
+    }
+
+    const isMobile = window.matchMedia(
+      "all and (max-width: 450px), all and (max-height: 500px)"
+    ).matches;
+
+    const hasHighlightedNodes =
+      this._highlightedNodes && this._highlightedNodes.size > 0;
+
+    return html`<ha-chart-base
+      .data=${this._getSeries(
+        this.data,
+        this._physicsEnabled ?? false,
+        this._reducedMotion,
+        this._showLabels,
+        isMobile,
+        hasHighlightedNodes,
+        this.selectedNode
+      )}
+      .options=${this._createOptions(this.data?.categories)}
+      height="100%"
+      .extraComponents=${[GraphChart]}
+      @chart-setup=${this._updateFollowing}
+    >
+      <slot name="search" slot="search"></slot>
+      <slot name="button" slot="button"></slot>
+      <ha-icon-button
+        slot="button"
+        class=${this._physicsEnabled ? "active" : "inactive"}
+        .path=${mdiGoogleCirclesGroup}
+        @click=${this._togglePhysics}
+        label=${this._localize("ui.panel.config.common.graph.toggle_physics")}
+      ></ha-icon-button>
+      <ha-icon-button
+        slot="button"
+        class=${this._showLabels ? "active" : "inactive"}
+        .path=${mdiFormatTextVariant}
+        @click=${this._toggleLabels}
+        label=${this._localize("ui.panel.config.common.graph.toggle_labels")}
+      ></ha-icon-button>
+    </ha-chart-base>`;
+  }
+
+  private _createOptions = memoizeOne(
+    (categories?: NetworkData["categories"]): HaECOption => ({
+      tooltip: {
+        trigger: "item",
+        confine: true,
+        formatter: this.tooltipFormatter,
+      },
+      legend: {
+        show: !!categories?.length,
+        data: categories?.map((category) => ({
+          ...category,
+          icon: category.symbol,
+        })),
+        bottom: 8,
+      },
+      dataZoom: {
+        type: "inside",
+        filterMode: "none",
+      },
+    }),
+    deepEqual
+  );
+
+  protected updated(changedProperties: PropertyValues<this>): void {
+    super.updated(changedProperties);
+    if (changedProperties.has("searchFilter")) {
+      const filter = this.searchFilter;
+      if (!filter) {
+        this._highlightedNodes = undefined;
+      } else {
+        const lowerFilter = filter.toLowerCase();
+        const matchingIds = new Set<string>();
+        for (const node of this.data.nodes) {
+          if (this._nodeMatchesFilter(node, lowerFilter)) {
+            matchingIds.add(node.id);
+          }
+        }
+        this._highlightedNodes = matchingIds;
+      }
+      this._applyHighlighting();
+      this._updateMouseoverHandler();
+    }
+    if (changedProperties.has("selectedNode")) {
+      this._followSelectedNode = !!this.selectedNode;
+      this._updateFollowing();
+    }
+  }
+
+  private _nodeMatchesFilter(node: NetworkNode, lowerFilter: string): boolean {
+    if (node.name?.toLowerCase().includes(lowerFilter)) {
+      return true;
+    }
+    if (node.context?.toLowerCase().includes(lowerFilter)) {
+      return true;
+    }
+    if (node.id?.toLowerCase().includes(lowerFilter)) {
+      return true;
+    }
+    if (this.searchableAttributes) {
+      const extraValues = this.searchableAttributes(node.id);
+      for (const value of extraValues) {
+        if (value?.toLowerCase().includes(lowerFilter)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private _getSeries = memoizeOne(
+    (
+      data: NetworkData,
+      physicsEnabled: boolean,
+      reducedMotion: boolean,
+      showLabels: boolean,
+      isMobile: boolean,
+      hasHighlightedNodes?: boolean,
+      selectedNode?: string
+    ) => ({
+      id: "network",
+      type: "graph",
+      layout: physicsEnabled ? "force" : "none",
+      draggable: true,
+      roam: true,
+      roamTrigger: "global",
+      selectedMode: "single",
+      label: {
+        show: showLabels,
+        position: "right",
+        formatter: (params: CallbackDataParams) => {
+          const node = params.data as NetworkNode;
+          if (node.context) {
+            return `{primary|${node.name ?? ""}}\n{secondary|${node.context}}`;
+          }
+          return node.name ?? "";
+        },
+        rich: {
+          primary: {
+            fontSize: 12,
+          },
+          secondary: {
+            fontSize: 12,
+            color: getComputedStyle(document.body).getPropertyValue(
+              "--secondary-text-color"
+            ),
+            lineHeight: 16,
+          },
+        },
+      },
+      emphasis: {
+        focus: hasHighlightedNodes ? "self" : isMobile ? "none" : "adjacency",
+      },
+      force: {
+        repulsion: [400, 600],
+        edgeLength: [200, 350],
+        gravity: 0.05,
+        layoutAnimation: !reducedMotion && data.nodes.length < 100,
+      },
+      edgeSymbol: ["none", "arrow"],
+      edgeSymbolSize: 10,
+      data: this._getSeriesData(
+        data.nodes,
+        data.links,
+        this._nodePositions,
+        selectedNode
+      ),
+      links: data.links.map((link) => ({
+        ...link,
+        value: link.reverseValue
+          ? Math.max(link.value ?? 0, link.reverseValue)
+          : link.value,
+        // remove arrow for bidirectional links
+        symbolSize: link.reverseValue ? 1 : link.symbolSize, // 0 doesn't work
+      })),
+      categories: data.categories || [],
+    }),
+    deepEqual
+  );
+
+  private _getSeriesData = memoizeOne(
+    (
+      nodes: NetworkNode[],
+      links: NetworkLink[],
+      nodePositions: Record<string, { x: number; y: number }>,
+      selectedNode?: string
+    ) =>
+      this._getPositionedNodes(nodes, links, nodePositions).map((node) => {
+        const selected = node.id === selectedNode;
+        return {
+          id: node.id,
+          name: node.name,
+          context: node.context,
+          category: node.category,
+          value: node.value,
+          symbolSize: node.symbolSize || 30,
+          symbol: node.symbol || "circle",
+          itemStyle: selected
+            ? { ...node.itemStyle, borderWidth: 3 }
+            : node.itemStyle || {},
+          label: selected ? { ...node.label, fontWeight: "bold" } : node.label,
+          fixed: node.fixed,
+          x: node.x,
+          y: node.y,
+        } as NonNullable<GraphSeriesOption["data"]>[number];
+      }),
+    deepEqual
+  );
+
+  private _getPositionedNodes(
+    nodes: NetworkNode[],
+    links: NetworkLink[],
+    nodePositions: Record<string, { x: number; y: number }>
+  ) {
+    const containerWidth = this.clientWidth;
+    const containerHeight = this.clientHeight;
+
+    const positionedNodes: NetworkNode[] = nodes.map((node) => ({ ...node }));
+    positionedNodes.forEach((node) => {
+      if (nodePositions[node.id]) {
+        node.x = nodePositions[node.id].x;
+        node.y = nodePositions[node.id].y;
+      }
+      if (node.polarDistance === 0) {
+        if (node.x == null && node.y == null) {
+          node.x = containerWidth / 2;
+          node.y = containerHeight / 2;
+        }
+        this._positionNodeNeighbors(
+          node,
+          positionedNodes,
+          links,
+          nodePositions
+        );
+      }
+    });
+    positionedNodes.forEach((node) => {
+      // set positions for unconnected nodes
+      if (node.polarDistance && node.x == null && node.y == null) {
+        // set the position of the node at polarDistance from the center in a random direction
+        const angle = Math.random() * 2 * Math.PI;
+        node.x =
+          ((Math.cos(angle) * containerWidth) / 2) * node.polarDistance +
+          containerWidth / 2;
+        node.y =
+          ((Math.sin(angle) * containerHeight) / 2) * node.polarDistance +
+          containerHeight / 2;
+        // save the random position
+        this._nodePositions[node.id] = {
+          x: node.x,
+          y: node.y,
+        };
+      }
+    });
+    return positionedNodes;
+  }
+
+  private _positionNodeNeighbors(
+    node: NetworkNode,
+    nodes: NetworkNode[],
+    links: NetworkLink[],
+    nodePositions: Record<string, { x: number; y: number }>,
+    parentId?: string,
+    minAngle = 0,
+    maxAngle = Math.PI * 2
+  ) {
+    const neighbors = links
+      .map((l) =>
+        l.source === node.id && l.target !== parentId && !l.ignoreForceLayout
+          ? nodes.find((n) => n.id === l.target)
+          : l.target === node.id &&
+              l.source !== parentId &&
+              !l.ignoreForceLayout
+            ? nodes.find((n) => n.id === l.source)
+            : null
+      )
+      .filter(Boolean) as NetworkNode[];
+    if (!neighbors.length) {
+      return;
+    }
+    const angle = Math.abs(maxAngle - minAngle) / neighbors.length;
+    const toContinue: { neighbor: NetworkNode; angle: number }[] = [];
+    neighbors.forEach((neighbor, i) => {
+      if (neighbor.x == null && neighbor.y == null) {
+        const nodeAngle = minAngle + angle * i + angle / 2;
+        toContinue.push({ neighbor, angle: nodeAngle });
+        if (nodePositions[neighbor.id]) {
+          neighbor.x = nodePositions[neighbor.id].x;
+          neighbor.y = nodePositions[neighbor.id].y;
+        } else {
+          neighbor.x = node.x! + (Math.cos(nodeAngle) * this.clientWidth) / 4;
+          neighbor.y = node.y! + (Math.sin(nodeAngle) * this.clientHeight) / 4;
+        }
+      }
+    });
+    toContinue.forEach(({ neighbor, angle: neighborAngle }) => {
+      this._positionNodeNeighbors(
+        neighbor,
+        nodes,
+        links,
+        nodePositions,
+        node.id,
+        neighborAngle - Math.PI / 2,
+        neighborAngle + Math.PI / 2
+      );
+    });
+  }
+
+  private _applyHighlighting() {
+    const chart = this._baseChart?.chart;
+    if (!chart) {
+      return;
+    }
+    // Reset all nodes to normal opacity first
+    chart.dispatchAction({ type: "downplay" });
+
+    const highlighted = this._highlightedNodes;
+    if (!highlighted || highlighted.size === 0) {
+      return;
+    }
+    const dataIndices: number[] = [];
+    this.data.nodes.forEach((node, index) => {
+      if (highlighted.has(node.id)) {
+        dataIndices.push(index);
+      }
+    });
+    if (dataIndices.length > 0) {
+      chart.dispatchAction({ type: "highlight", dataIndex: dataIndices });
+    }
+  }
+
+  private _emphasisGuardHandler?: () => void;
+
+  private _updateMouseoverHandler() {
+    const chart = this._baseChart?.chart;
+    if (!chart) {
+      return;
+    }
+
+    // When there are highlighted nodes, re-apply highlighting on hover
+    // and mouseout to prevent hover from overriding the search state
+    if (this._highlightedNodes && this._highlightedNodes.size > 0) {
+      if (this._emphasisGuardHandler) {
+        // Guard already set
+        return;
+      }
+      this._emphasisGuardHandler = () => {
+        this._applyHighlighting();
+      };
+      chart.on("mouseover", this._emphasisGuardHandler);
+      chart.on("mouseout", this._emphasisGuardHandler);
+    } else {
+      if (!this._emphasisGuardHandler) {
+        return;
+      }
+      chart.off("mouseover", this._emphasisGuardHandler);
+      chart.off("mouseout", this._emphasisGuardHandler);
+      this._emphasisGuardHandler = undefined;
+    }
+  }
+
+  private _updateFollowing() {
+    const chart = this._followSelectedNode ? this._baseChart?.chart : undefined;
+    if (chart !== this._followedChart) {
+      const previous = this._followedChart;
+      if (previous && !previous.isDisposed()) {
+        previous.off("rendered", this._centerOnSelectedNode);
+        previous.off("graphroam", this._handleGraphRoam);
+        previous.getZr().off("drag", this._stopFollowing);
+      }
+      chart?.on("rendered", this._centerOnSelectedNode);
+      chart?.on("graphroam", this._handleGraphRoam);
+      chart?.getZr().on("drag", this._stopFollowing);
+      this._followedChart = chart;
+    }
+    this._centerOnSelectedNode();
+  }
+
+  private _stopFollowing = () => {
+    this._followSelectedNode = false;
+    this._updateFollowing();
+  };
+
+  // A roam dispatched while ECharts renders is queued, so a flag set around
+  // dispatchAction would be cleared before the event fires
+  private _handleGraphRoam = (ev: unknown) => {
+    if ((ev as { from?: string }).from !== FOLLOW_ROAM) {
+      this._stopFollowing();
+    }
+  };
+
+  private _centerOnSelectedNode = () => {
+    const chart = this._followedChart;
+    if (!chart) {
+      return;
+    }
+    const series: any = chart
+      // @ts-ignore private method but no other way to get the graph positions
+      .getModel()
+      .getSeriesByIndex(0);
+    const node = series?.getGraph().getNodeById(this.selectedNode);
+    const position: number[] | undefined = node?.getLayout();
+    if (!position) {
+      return;
+    }
+    const toPixel = (point: number[]) =>
+      chart.convertToPixel({ seriesId: "network" }, point);
+    const [x, y] = toPixel(position);
+    const zoom = series.coordinateSystem.getRoamTransform()[0];
+    const centerX = chart.getWidth() / 2;
+    const centerY = chart.getHeight() / 2;
+    // Zoom so the neighbors stay in view
+    const fitX = Math.max(centerX - SELECTED_NODE_FIT_MARGIN, centerX / 2);
+    const fitY = Math.max(centerY - SELECTED_NODE_FIT_MARGIN, centerY / 2);
+    let targetZoom = SELECTED_NODE_MAX_ZOOM;
+    for (const edge of node.edges) {
+      const neighbor: number[] | undefined = (
+        edge.node1 === node ? edge.node2 : edge.node1
+      ).getLayout();
+      if (neighbor) {
+        const [neighborX, neighborY] = toPixel(neighbor);
+        targetZoom = Math.min(
+          targetZoom,
+          (zoom * fitX) / Math.abs(neighborX - x),
+          (zoom * fitY) / Math.abs(neighborY - y)
+        );
+      }
+    }
+    const zoomChanged = Math.abs(zoom - targetZoom) >= 1e-3;
+    if (
+      !zoomChanged &&
+      Math.abs(centerX - x) < 0.5 &&
+      Math.abs(centerY - y) < 0.5
+    ) {
+      return;
+    }
+    chart.dispatchAction({
+      type: "graphRoam",
+      from: FOLLOW_ROAM,
+      seriesId: "network",
+      dx: centerX - x,
+      dy: centerY - y,
+      // Any zoom, even 1, rescales every node and edge
+      zoom: zoomChanged ? targetZoom / zoom : undefined,
+      originX: centerX,
+      originY: centerY,
+    });
+  };
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._emphasisGuardHandler) {
+      this._baseChart?.chart?.off("mouseover", this._emphasisGuardHandler);
+      this._baseChart?.chart?.off("mouseout", this._emphasisGuardHandler);
+      this._emphasisGuardHandler = undefined;
+    }
+  }
+
+  private _togglePhysics() {
+    this._saveNodePositions();
+    this._physicsEnabled = !this._physicsEnabled;
+  }
+
+  private _toggleLabels() {
+    this._showLabels = !this._showLabels;
+  }
+
+  private _saveNodePositions() {
+    const positions = {};
+    if (this._baseChart?.chart) {
+      this._baseChart.chart
+        // @ts-ignore private method but no other way to get the graph positions
+        .getModel()
+        .getSeriesByIndex(0)
+        .getGraph()
+        .eachNode((node: any) => {
+          const layout = node.getLayout();
+          if (layout) {
+            positions[node.id] = {
+              x: layout[0],
+              y: layout[1],
+            };
+          }
+        });
+    }
+    this._nodePositions = positions;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+      position: relative;
+    }
+    ha-chart-base {
+      height: 100%;
+      --chart-max-height: 100%;
+    }
+
+    ha-icon-button,
+    ::slotted(ha-icon-button) {
+      margin-inline-end: var(--ha-space-3);
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-network-graph": HaNetworkGraph;
+  }
+  interface HASSDomEvents {
+    "node-selected": { id: string };
+  }
+}
