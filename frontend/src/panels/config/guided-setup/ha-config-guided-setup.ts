@@ -1,0 +1,358 @@
+import { mdiDelete, mdiPencil } from "@mdi/js";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { searchMatcher } from "../../../common/regex/filter";
+import "../../../components/ha-alert";
+import "../../../components/ha-icon-button";
+import "../../../components/ha-spinner";
+import "../../../components/ha-svg-icon";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
+import type {
+  GuidedSetupCatalog,
+  GuidedSetupEntry,
+  GuidedSetupIntegration,
+} from "../../../data/guided_setup";
+import {
+  deleteGuidedSetupEntry,
+  fetchGuidedSetupCatalog,
+} from "../../../data/guided_setup";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
+import "../../../layouts/hass-subpage";
+import { haStyle } from "../../../resources/styles";
+import type { HomeAssistant } from "../../../types";
+import { showToast } from "../../../util/toast";
+import "./ha-guided-setup-wizard";
+
+@customElement("ha-config-guided-setup")
+class HaConfigGuidedSetup extends LitElement {
+  @property({ attribute: false }) public hass!: HomeAssistant;
+
+  @property({ type: Boolean }) public narrow = false;
+
+  @state() private _catalog?: GuidedSetupCatalog;
+
+  @state() private _error?: string;
+
+  @state() private _filter = "";
+
+  @state() private _active?: GuidedSetupIntegration;
+
+  @state() private _editing?: GuidedSetupEntry;
+
+  protected firstUpdated(): void {
+    this._load();
+  }
+
+  private async _load(): Promise<void> {
+    try {
+      this._catalog = await fetchGuidedSetupCatalog(this.hass);
+      this._error = undefined;
+    } catch (err: any) {
+      this._error = err?.message ?? String(err);
+      return;
+    }
+    const domain = new URLSearchParams(window.location.search).get("domain");
+    if (domain && !this._active) {
+      this._active = this._catalog.integrations.find(
+        (item) => item.domain === domain
+      );
+    }
+  }
+
+  private _l(key: string, values?: Record<string, string | number>): string {
+    return this.hass.localize(
+      `ui.panel.config.guided_setup.${key}` as any,
+      values
+    );
+  }
+
+  private _shown(): GuidedSetupIntegration[] {
+    const matches = searchMatcher(this._filter);
+    return (this._catalog?.integrations ?? []).filter((item) =>
+      matches(item.name, item.domain)
+    );
+  }
+
+  private _integrationFor(
+    entry: GuidedSetupEntry
+  ): GuidedSetupIntegration | undefined {
+    return this._catalog?.integrations.find(
+      (item) => item.domain === entry.domain
+    );
+  }
+
+  private _filterChanged(ev: Event): void {
+    this._filter = (ev.target as HaInputSearch).value ?? "";
+  }
+
+  private _open(ev: Event): void {
+    const domain = (ev.currentTarget as HTMLElement).dataset.domain;
+    this._editing = undefined;
+    this._active = this._catalog?.integrations.find(
+      (item) => item.domain === domain
+    );
+  }
+
+  private _edit(ev: Event): void {
+    const entry = this._catalog?.entries.find(
+      (item) => item.id === (ev.currentTarget as HTMLElement).dataset.entry
+    );
+    const integration = entry && this._integrationFor(entry);
+    if (entry && integration) {
+      this._editing = entry;
+      this._active = integration;
+    }
+  }
+
+  private async _remove(ev: Event): Promise<void> {
+    const entry = this._catalog?.entries.find(
+      (item) => item.id === (ev.currentTarget as HTMLElement).dataset.entry
+    );
+    if (!entry) {
+      return;
+    }
+    const name = this._integrationFor(entry)?.name ?? entry.domain;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("remove_title"),
+      text: this._l("remove_text", { name }),
+      confirmText: this._l("remove"),
+      dismissText: this._l("cancel"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      const { apply } = await deleteGuidedSetupEntry(this.hass, entry.id);
+      showToast(this, {
+        message: this._l("removed", {
+          apply:
+            apply.mode === "reload"
+              ? this._l("apply_reload", { service: apply.service ?? "" })
+              : this._l("apply_restart"),
+        }),
+      });
+    } catch (err: any) {
+      this._error = err?.message ?? String(err);
+    }
+    await this._load();
+  }
+
+  private _wizardClosed(): void {
+    this._active = undefined;
+    this._editing = undefined;
+    this._load();
+  }
+
+  protected render(): TemplateResult {
+    return html`
+      <hass-subpage
+        .hass=${this.hass}
+        .narrow=${this.narrow}
+        back-path="/config/integrations"
+        .header=${this._l("title")}
+      >
+        ${
+          this._active
+            ? html`<ha-guided-setup-wizard
+                .hass=${this.hass}
+                .narrow=${this.narrow}
+                .integration=${this._active}
+                .entry=${this._editing}
+                @guided-setup-closed=${this._wizardClosed}
+              ></ha-guided-setup-wizard>`
+            : this._renderList()
+        }
+      </hass-subpage>
+    `;
+  }
+
+  private _renderList(): TemplateResult {
+    if (this._error) {
+      return html`<div class="content">
+        <ha-alert alert-type="error">${this._error}</ha-alert>
+      </div>`;
+    }
+    if (!this._catalog) {
+      return html`<div class="center">
+        <ha-spinner .ariaLabel=${this._l("loading")}></ha-spinner>
+      </div>`;
+    }
+    const shown = this._shown();
+    const search = this._l("search");
+    return html`
+      <div class="content">
+        <p class="intro">${this._l("intro")}</p>
+        <h3>${this._l("your_setups")}</h3>
+        ${
+          this._catalog.entries.length
+            ? html`<ul class="rows">
+                ${this._catalog.entries.map((entry) =>
+                  this._renderEntry(entry)
+                )}
+              </ul>`
+            : html`<p class="note">${this._l("no_entries")}</p>`
+        }
+        <ha-input-search
+          appearance="outlined"
+          .placeholder=${search}
+          .accessibleLabel=${search}
+          .value=${this._filter}
+          .patternSamples=${this._catalog.integrations.map((item) => item.name)}
+          @input=${this._filterChanged}
+        ></ha-input-search>
+        ${
+          shown.length
+            ? html`<ul class="rows">
+                ${shown.map((item) => this._renderIntegration(item))}
+              </ul>`
+            : html`<p class="note" role="status">${this._l("empty")}</p>`
+        }
+      </div>
+    `;
+  }
+
+  private _renderEntry(entry: GuidedSetupEntry): TemplateResult {
+    const name = this._integrationFor(entry)?.name ?? entry.domain;
+    return html`<li class="row">
+      <div class="text">
+        <span class="name">${name}</span>
+        <span class="detail">
+          ${
+            entry.entity_domain
+              ? this._l("works_with", {
+                  domains:
+                    this.hass.localize(
+                      `component.${entry.entity_domain}.title`
+                    ) || entry.entity_domain,
+                })
+              : this._l("domain_level")
+          }
+          ·
+          ${this._l("entry_summary", { count: Object.keys(entry.data).length })}
+        </span>
+      </div>
+      <ha-icon-button
+        .path=${mdiPencil}
+        .label=${`${this._l("edit")} ${name}`}
+        data-entry=${entry.id}
+        @click=${this._edit}
+      ></ha-icon-button>
+      <ha-icon-button
+        .path=${mdiDelete}
+        .label=${`${this._l("remove")} ${name}`}
+        data-entry=${entry.id}
+        @click=${this._remove}
+      ></ha-icon-button>
+    </li>`;
+  }
+
+  private _renderIntegration(item: GuidedSetupIntegration): TemplateResult {
+    const domains = item.entity_domains.map(
+      (domain) => this.hass.localize(`component.${domain}.title`) || domain
+    );
+    return html`<li>
+      <button
+        type="button"
+        class="row pick"
+        data-domain=${item.domain}
+        @click=${this._open}
+      >
+        <span class="text">
+          <span class="name">${item.name}</span>
+          <span class="detail">
+            ${
+              domains.length
+                ? this._l("works_with", { domains: domains.join(", ") })
+                : nothing
+            }
+            ${
+              item.has_domain_schema
+                ? html`${domains.length ? " · " : nothing}${this._l(
+                    "domain_level"
+                  )}`
+                : nothing
+            }
+          </span>
+        </span>
+      </button>
+    </li>`;
+  }
+
+  static styles = [
+    haStyle,
+    css`
+      .content {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: var(--ha-space-4);
+        box-sizing: border-box;
+      }
+      .center {
+        display: flex;
+        justify-content: center;
+        padding: var(--ha-space-8);
+      }
+      .intro,
+      .note {
+        color: var(--secondary-text-color);
+      }
+      ha-input-search {
+        display: block;
+        margin: var(--ha-space-4) 0 var(--ha-space-2);
+      }
+      .rows {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        width: 100%;
+        box-sizing: border-box;
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-bottom: 1px solid var(--divider-color);
+        background: none;
+        border-inline: 0;
+        border-top: 0;
+        font: inherit;
+        color: var(--primary-text-color);
+        text-align: start;
+      }
+      .pick {
+        cursor: pointer;
+      }
+      .pick:hover {
+        background: var(--secondary-background-color);
+      }
+      .pick:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -2px;
+      }
+      .text {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+      }
+      .name {
+        overflow-wrap: anywhere;
+      }
+      .detail {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+      }
+    `,
+  ];
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-config-guided-setup": HaConfigGuidedSetup;
+  }
+}

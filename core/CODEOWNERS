@@ -766,6 +766,8 @@ CLAUDE.md @home-assistant/core
 /tests/components/growatt_server/ @johanzander
 /homeassistant/components/guardian/ @bachya
 /tests/components/guardian/ @bachya
+/homeassistant/components/guided_setup/ @home-assistant/core
+/tests/components/guided_setup/ @home-assistant/core
 /homeassistant/components/guntamatic/ @JensTimmerman
 /tests/components/guntamatic/ @JensTimmerman
 /homeassistant/components/habitica/ @tr4nt0r

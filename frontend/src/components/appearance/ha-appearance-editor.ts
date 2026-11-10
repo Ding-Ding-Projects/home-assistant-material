@@ -1112,7 +1112,7 @@ export class HaAppearanceEditor extends LitElement {
       bottom: var(--ha-space-4);
       width: min(400px, calc(100vw - var(--ha-space-8)));
       height: auto;
-      max-height: calc(100vh - var(--ha-space-8));
+      max-height: calc(100dvh - var(--ha-space-8));
       border-radius: var(--ha-border-radius-3xl);
       background: var(--card-background-color);
       color: var(--primary-text-color);

@@ -37,6 +37,7 @@ from .util.yaml.objects import NodeStrClass
 _LOGGER = logging.getLogger(__name__)
 
 YAML_CONFIG_FILE = "configuration.yaml"
+GUIDED_SETUP_DIRECTORY = "guided_setup"
 VERSION_FILE = ".HA_VERSION"
 # The version that ran before this start, set only when it differs
 DATA_PREVIOUS_VERSION: HassKey[str] = HassKey("previous_version")
@@ -257,7 +258,37 @@ async def async_hass_config_yaml(hass: HomeAssistant) -> dict:
         )
         core_config[CONF_PACKAGES] = {}
 
+    await _async_merge_guided_setup(hass, config, secrets)
+
     return config
+
+
+async def _async_merge_guided_setup(
+    hass: HomeAssistant, config: dict, secrets: Secrets
+) -> None:
+    """Merge the files written by Guided setup as packages."""
+    directory = Path(hass.config.path(GUIDED_SETUP_DIRECTORY))
+
+    def _load() -> dict[str, Any]:
+        packages: dict[str, Any] = {}
+        if not directory.is_dir():
+            return packages
+        for file in sorted(directory.glob("*.yaml")):
+            try:
+                packages[f"guided_setup_{file.stem}"] = load_yaml_dict(
+                    str(file), secrets
+                )
+            except HomeAssistantError as exc:
+                _LOGGER.error("Unable to load Guided setup file %s: %s", file.name, exc)
+        return packages
+
+    packages = await hass.loop.run_in_executor(None, _load)
+    if not packages:
+        return
+    try:
+        await merge_packages_config(hass, config, packages)
+    except probatio.Invalid as exc:
+        _LOGGER.error("Invalid Guided setup configuration: %s", exc)
 
 
 def load_yaml_config_file(

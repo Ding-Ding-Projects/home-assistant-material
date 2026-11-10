@@ -1,6 +1,7 @@
 import {
   mdiAccessPointNetwork,
   mdiAccount,
+  mdiAccountCog,
   mdiBackupRestore,
   mdiBadgeAccountHorizontal,
   mdiBluetooth,
@@ -38,6 +39,7 @@ import {
   mdiTransitConnectionVariant,
   mdiUpdate,
   mdiViewDashboard,
+  mdiWizardHat,
   mdiZigbee,
   mdiZWave,
 } from "@mdi/js";
@@ -255,6 +257,13 @@ export const configSections: Record<string, PageNavigation[]> = {
     },
   ],
   dashboard_3: [
+    {
+      path: "/config/personal",
+      translationKey: "personal",
+      iconPath: mdiAccountCog,
+      iconColor: "#2E7D6B",
+      core: true,
+    },
     {
       path: "/config/person",
       translationKey: "people",
@@ -584,6 +593,14 @@ export const configSections: Record<string, PageNavigation[]> = {
       translationKey: "ai",
       iconPath: mdiStarFourPoints,
       iconColor: "#8B69E3",
+      core: true,
+      adminOnly: true,
+    },
+    {
+      path: "/config/guided-setup",
+      translationKey: "guided_setup",
+      iconPath: mdiWizardHat,
+      iconColor: "#2F8F83",
       core: true,
       adminOnly: true,
     },

@@ -8,6 +8,21 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Guided setup: integrations that had to be written by hand in YAML can be created from
+  Settings, Guided setup, or from Add integration. Each one gets a step-by-step form, a review
+  of what will be written, and a note on whether a reload or a restart follows. Most still
+  show one YAML box that is checked before saving, not drawn fields. The setup dialogs of
+  other integrations gain a short guidance note with a link to the documentation.
+- Locks on single elements choose their own way in: a PIN, a password, a one-time code, or a
+  mix of them, each lock with its own. A wizard opens beside the element, a keypad or the
+  keyboard enters the PIN, and the Lock tool lists every lock. A lock is a speed bump for
+  fun, not security; clearing this site's storage removes them all.
+- Personal settings: a page under Settings for sounds, low stimulation, the focus spotlight
+  and reduced motion, with a search. Language mode and the two playfulness levels are saved
+  and shown in a preview; the rest of the interface does not follow them yet.
+- On a phone, the menu of an element scrolls inside the screen, the New tab list stays on
+  the screen, every tab shows its close button, and side panels stop at the visible height.
+- The event filter in Developer tools has the pattern workbench.
 - Developer tools are back on the navigation rail, just above Settings, for administrators.
 - The pattern workbench fits a phone: it takes the visible screen instead of the space under
   the field, follows the keyboard, and its switches start at the left.

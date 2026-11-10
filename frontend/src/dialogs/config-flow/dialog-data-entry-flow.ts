@@ -37,6 +37,7 @@ import "./step-flow-abort";
 import "./step-flow-create-entry";
 import "./step-flow-external";
 import "./step-flow-form";
+import "./step-flow-guidance";
 import "./step-flow-loading";
 import "./step-flow-menu";
 import "./step-flow-progress";
@@ -402,6 +403,15 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
                   </ha-icon-button
                 ></a>
               `
+            : nothing
+        }
+        ${
+          !this._loading && this._step
+            ? html`<step-flow-guidance
+                .hass=${this.hass}
+                .manifest=${this._params.manifest}
+                .stepType=${this._step.type}
+              ></step-flow-guidance>`
             : nothing
         }
         <div>

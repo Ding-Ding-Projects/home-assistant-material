@@ -2812,6 +2812,9 @@ export class HaRegexWorkbench extends LitElement {
       color: var(--secondary-text-color);
     }
     @media (max-width: 700px) {
+      h2 {
+        white-space: normal;
+      }
       .flags {
         flex-basis: 100%;
         margin-inline-start: 0;

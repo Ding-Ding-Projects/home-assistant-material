@@ -3350,6 +3350,73 @@
       "language": "Language and region",
       "profile": "Profile of {name}"
     },
+    "locks": {
+      "created": "Locked. Pressing it again asks for its credentials.",
+      "wizard_title": "Lock {name}",
+      "wizard_step": "Step {current} of {total}",
+      "policy_title": "What unlocks it",
+      "policy_pin": "PIN",
+      "policy_password": "Password",
+      "policy_pin_password": "PIN and password",
+      "policy_password_totp": "Password and one-time code",
+      "policy_pin_totp": "PIN and one-time code",
+      "policy_password_pin_totp": "Password, PIN and one-time code",
+      "duration_title": "How long an unlock lasts",
+      "duration_surface": "This page only",
+      "duration_session": "Until the app is closed",
+      "duration_minutes": "A number of minutes",
+      "duration_invalid": "Enter a whole number of minutes from 1 to 1440.",
+      "pin_label": "PIN",
+      "pin_new": "Choose a PIN of 4 to 12 digits.",
+      "pin_repeat": "Enter the PIN again.",
+      "pin_mismatch": "The two PINs did not match. Choose it again.",
+      "password_new": "Password",
+      "password_repeat": "Password again",
+      "password_invalid": "Use a password of at least {min} characters.",
+      "password_mismatch": "The two passwords did not match.",
+      "totp_intro": "Add this secret to your authenticator app, then enter the code it shows. The secret is kept in this browser so codes can be checked.",
+      "totp_open": "Open in an authenticator app",
+      "totp_check": "Code from the app",
+      "totp_ok": "The code matched.",
+      "totp_wrong": "That code did not match. Check the app and try again.",
+      "summary": "{name} will be locked. To unlock it you will need: {policy}.",
+      "ack": "I understand this is just for fun",
+      "toy_note": "This lock is just for fun. It is a speed bump, not security, and does not protect anything from anyone else who uses this browser.",
+      "recovery": "Forgot it? Clear this site's storage in your browser to remove every lock.",
+      "create": "Create lock",
+      "create_failed": "The lock could not be created.",
+      "next": "Next",
+      "back": "Back",
+      "cancel": "Cancel",
+      "close": "Close",
+      "submit": "Submit",
+      "unlock": "Unlock",
+      "unlock_title": "Unlock {name}",
+      "factor_pin": "PIN",
+      "factor_password": "Password",
+      "factor_totp": "Code",
+      "factor_pin_label": "PIN",
+      "factor_password_label": "Password",
+      "factor_totp_label": "One-time code",
+      "keypad": "PIN keypad",
+      "keypad_clear": "Clear",
+      "keypad_backspace": "Backspace",
+      "keypad_shuffle": "Shuffle the keys",
+      "wrong": "That did not match. Tries in a row: {count}. To start over, clear this site's storage.",
+      "wait": "Too many tries. Wait {seconds} seconds.",
+      "legacy_lock": "This is an older lock. Unlock it from Lock in the page tools.",
+      "legacy_name": "Older lock",
+      "list_title": "Locks in this browser",
+      "list_search": "Search locks",
+      "list_empty": "Nothing is locked.",
+      "list_no_match": "No lock matches.",
+      "state_locked": "Locked",
+      "state_open": "Unlocked for now",
+      "lock_again": "Lock again",
+      "edit": "Edit",
+      "remove": "Remove",
+      "minutes_field": "Minutes"
+    },
     "dialog_tools": {
       "find": "Search this dialog",
       "lock": "Lock this dialog",
@@ -3691,6 +3758,10 @@
             "main": "Devices & services",
             "secondary": "Integrations, devices, entities, and helpers"
           },
+          "personal": {
+            "main": "Personal settings",
+            "secondary": "Language, playfulness, sounds and attention modes for you"
+          },
           "automations": {
             "main": "Automations & scenes",
             "secondary": "Automations, scenes, scripts, and blueprints"
@@ -3702,6 +3773,10 @@
           "apps": {
             "main": "Apps",
             "secondary": "Run extra applications next to Home Assistant"
+          },
+          "guided_setup": {
+            "main": "Guided setup",
+            "secondary": "Set up integrations that have no setup screen, with guidance"
           },
           "marketplace": {
             "main": "Marketplace",
@@ -8859,6 +8934,18 @@
             "submit": "Submit",
             "next": "Next",
             "preview": "Preview",
+            "guided_setup": "Set up with guidance",
+            "guided_setup_link": "Looking for an integration that has no setup screen? Set it up with guidance.",
+            "guidance": {
+              "title": "About this step",
+              "step_form": "This step asks for the details Home Assistant needs to connect to {name}.",
+              "step_menu": "Choose how you want to continue setting up {name}.",
+              "step_external": "You will be sent to another site to finish this step, then brought back here.",
+              "step_progress": "Home Assistant is working on this step. It can take a moment.",
+              "needs_cloud": "{name} uses an online service. Have your account details ready and make sure Home Assistant can reach the internet.",
+              "needs_local": "{name} talks to a device on your network. Make sure the device is turned on and on the same network as Home Assistant.",
+              "documentation": "Read the documentation"
+            },
             "yaml_only_title": "This integration cannot be added from the UI",
             "yaml_only": "You can add this integration by adding it to your ''configuration.yaml''. See the documentation for more information.",
             "open_documentation": "Open documentation",
@@ -10435,6 +10522,105 @@
           "caption": "AI",
           "description": "Configure AI suggestions, task preferences, and the Model Context Protocol server"
         },
+        "personal": {
+          "caption": "Personal settings",
+          "intro": "Choices that belong to you in this browser. Each one is saved as soon as you change it, says what it reaches today, and can be put back to its default.",
+          "search": "Search personal settings",
+          "search_empty": "No personal setting matches that search.",
+          "default_prefix": "Default:",
+          "reset": "Reset",
+          "reset_all": "Reset all personal settings",
+          "reset_all_note": "Puts every setting on this page back to its default.",
+          "group": {
+            "language": {
+              "title": "Language and playfulness",
+              "note": "How wording should read: which language, and how playful."
+            },
+            "sound": {
+              "title": "Sound",
+              "note": "Short sounds that follow actions. They never replace what is shown on screen."
+            },
+            "attention": {
+              "title": "Motion and attention",
+              "note": "Ways to make the interface calmer or to keep your place."
+            }
+          },
+          "language_mode": {
+            "label": "Language mode",
+            "description": "Choose English, playful Hong Kong Cantonese, or both together.",
+            "default": "English.",
+            "reach": "Saved and applied to the preview on this page. Most of the interface is not yet shown in this mode.",
+            "english": "English",
+            "cantonese": "Cantonese",
+            "bilingual": "Both"
+          },
+          "funny_english": {
+            "label": "Playfulness in English",
+            "description": "From 1, fully serious, to 5, as playful as it gets.",
+            "default": "5.",
+            "reach": "Saved and applied to the preview on this page. Most of the interface is not yet shown at this level."
+          },
+          "funny_cantonese": {
+            "label": "Playfulness in Cantonese",
+            "description": "From 1, fully serious, to 5, as playful as it gets. Independent of the English level.",
+            "default": "5.",
+            "reach": "Saved and applied to the preview on this page. Most of the interface is not yet shown at this level."
+          },
+          "sound_effects": {
+            "label": "Action sounds",
+            "description": "Play a short sound when you turn a setting on, reset it, or try a sound.",
+            "default": "On.",
+            "reach": "Active on this page now. Other pages do not play sounds yet.",
+            "try": "Try a sound",
+            "silent": {
+              "off": "Sounds are off.",
+              "low-stimulation": "Silent while low stimulation is on.",
+              "volume-zero": "Silent because the volume is 0."
+            }
+          },
+          "sound_volume": {
+            "label": "Sound volume",
+            "description": "How loud action sounds are, from 0 to 100.",
+            "default": "40.",
+            "reach": "Active on this page now."
+          },
+          "reduce_motion": {
+            "label": "Reduce motion",
+            "description": "Shortens animations across the interface. The accessibility panel changes the same choice.",
+            "default": "Off.",
+            "reach": "Active everywhere that uses the theme's animation timing."
+          },
+          "low_stimulation": {
+            "label": "Low stimulation",
+            "description": "Softens colour, shortens animations and silences action sounds.",
+            "default": "Off.",
+            "reach": "Active everywhere once this page has been opened in this browser session."
+          },
+          "focus_spotlight": {
+            "label": "Focus spotlight",
+            "description": "Dims everything except the control that has the keyboard focus. Nothing is hidden.",
+            "default": "Off.",
+            "reach": "Active everywhere once this page has been opened in this browser session."
+          },
+          "preview": {
+            "title": "Preview",
+            "note": "A sample message at the levels you chose, in the language mode you chose.",
+            "en": {
+              "level_1": "Your changes were saved.",
+              "level_2": "Saved. Your changes are in place.",
+              "level_3": "All saved, nice and tidy.",
+              "level_4": "Saved! Everything is exactly where you left it.",
+              "level_5": "Saved! Your changes are safe and snug, and the house is very proud of you."
+            },
+            "yue": {
+              "level_1": "已經儲存咗你嘅更改。",
+              "level_2": "儲存咗，更改已經生效。",
+              "level_3": "全部儲存好，整整齊齊。",
+              "level_4": "儲存咗！所有嘢都喺你擺低嘅位置。",
+              "level_5": "搞掂晒！你嘅更改安安樂樂，成間屋都為你自豪。"
+            }
+          }
+        },
         "entity_id_format": {
           "caption": "Entity ID format",
           "description": "Manage the format of newly created entity IDs",
@@ -10784,6 +10970,64 @@
           "no_match": "No notification matches.",
           "open_page": "Open as a page",
           "note": "A dismissed notification is gone; the instance does not keep it."
+        },
+        "guided_setup": {
+          "title": "Guided setup",
+          "intro": "Some integrations have no setup screen and are normally configured by writing YAML. Pick one here and Home Assistant guides you through its options, checks them against the integration's own rules, and writes the YAML for you.",
+          "search": "Search integrations",
+          "empty": "No integration matches your search.",
+          "loading": "Loading integrations",
+          "load_error": "Could not load this integration: {error}",
+          "your_setups": "Set up here",
+          "no_entries": "Nothing has been set up here yet.",
+          "works_with": "Works with: {domains}",
+          "domain_level": "Has its own settings",
+          "documentation": "Open documentation",
+          "step_about": "About",
+          "step_options": "Options",
+          "step_review": "Review",
+          "step_done": "Done",
+          "step_of": "Step {current} of {total}",
+          "about_title": "What this integration does",
+          "about_text": "{name} has no setup screen. It is configured with options that are saved as YAML. Read its documentation first to see what each option means.",
+          "before_title": "Before you start",
+          "before_text": "Have the details for this integration ready, such as the address of a device or the name of an account. The documentation lists what it needs.",
+          "managed_note": "Home Assistant saves this in its own file in the guided_setup folder, so your own configuration files are not changed.",
+          "choose_target": "What do you want to add?",
+          "target_platform": "A {domain} entity",
+          "target_domain": "The settings of the integration",
+          "required": "Required",
+          "optional": "Optional",
+          "default": "Default: {value}",
+          "free_form_title": "Write the options as YAML",
+          "free_form_reason": "{reason} Write the options as YAML instead. They are checked against the integration's own rules when you continue.",
+          "free_form_field": "Edit {name} as YAML",
+          "yaml_invalid": "The YAML is not valid.",
+          "next": "Next",
+          "back": "Back",
+          "save": "Save",
+          "close": "Close",
+          "cancel": "Cancel",
+          "review_title": "Review the YAML",
+          "review_text": "This is what will be written. Nothing is saved until you choose Save.",
+          "checking": "Checking your options",
+          "errors_title": "Some options need attention",
+          "error_line": "{field}: {message}",
+          "error_general": "The options as a whole",
+          "saved_title": "Saved",
+          "saved_text": "Your options are saved.",
+          "apply_reload": "This integration offers a reload action, {service}. Run it from Developer tools to apply the change without a restart.",
+          "apply_restart": "This integration has no reload action, so the change applies after you restart Home Assistant.",
+          "plain_text_note": "Values are stored as plain text in a file in your configuration folder.",
+          "edit": "Edit",
+          "edit_title": "Edit {name}",
+          "remove": "Remove",
+          "remove_title": "Remove this setup?",
+          "remove_text": "The saved options for {name} are deleted. The removal applies when the integration is reloaded or Home Assistant restarts.",
+          "removed": "Removed. {apply}",
+          "back_to_list": "Back to the list",
+          "one_only": "This integration accepts one configuration. Edit the existing one instead.",
+          "entry_summary": "{count} options"
         },
         "changelog": {
           "title": "What changed",

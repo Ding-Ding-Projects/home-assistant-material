@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { formatTimeWithSeconds } from "../../../../common/datetime/format_time";
 import type { HASSDomTargetEvent } from "../../../../common/dom/fire_event";
+import { searchMatcher } from "../../../../common/regex/filter";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-card";
@@ -17,6 +18,7 @@ import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-tooltip";
 import "../../../../components/ha-yaml-editor";
 import "../../../../components/input/ha-input";
+import "../../../../components/input/ha-input-search";
 import type { HaInput } from "../../../../components/input/ha-input";
 import type { HomeAssistant } from "../../../../types";
 
@@ -93,7 +95,7 @@ class EventSubscribeCard extends LitElement {
             .value=${this._eventType}
             @input=${this._valueChanged}
           ></ha-input>
-          <ha-input
+          <ha-input-search
             .label=${this.hass!.localize(
               "ui.panel.config.tools.tabs.events.filter_events"
             )}
@@ -101,7 +103,7 @@ class EventSubscribeCard extends LitElement {
             .disabled=${this._subscribed !== undefined}
             .hint=${`${this.hass!.localize("ui.panel.config.tools.tabs.events.filter_helper")}${this._ignoredEventsCount ? ` ${this.hass!.localize("ui.panel.config.tools.tabs.events.filter_ignored", { count: this._ignoredEventsCount })}` : ""}`}
             @input=${this._filterChanged}
-          ></ha-input>
+          ></ha-input-search>
           ${
             this._error
               ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
@@ -295,25 +297,27 @@ class EventSubscribeCard extends LitElement {
       return true;
     }
 
-    const searchStr = this._eventFilter;
+    // Plain text is looked for in every key and value; /pattern/flags is a
+    // regular expression tested against each of them as written.
+    const matches = searchMatcher(this._eventFilter);
 
     function visit(node: unknown) {
       // Handle primitives directly
       if (node === null || typeof node !== "object") {
-        return String(node).includes(searchStr);
+        return matches(String(node));
       }
 
       // Handle arrays and plain objects
       for (const key in node) {
         if (!Object.prototype.hasOwnProperty.call(node, key)) continue;
         // Check key
-        if (key.includes(searchStr)) return true;
+        if (matches(key)) return true;
 
         const value = node[key];
 
         // Check primitive value
         if (value === null || typeof value !== "object") {
-          if (String(value).includes(searchStr)) return true;
+          if (matches(String(value))) return true;
         } else if (visit(value)) {
           // Recurse into nested object/array
           return true;

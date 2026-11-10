@@ -92,6 +92,13 @@ observer images are unchanged upstream images.
 | `frontend/build-scripts/check-minify-templates.mjs` (new) | Runs the production template minifier over given files, with the legacy browser targets, so a template that only breaks a production build is found before pushing. |
 | `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 
+| `core/homeassistant/config.py`, `core/homeassistant/bootstrap.py`, `core/CODEOWNERS`, `core/homeassistant/components/guided_setup/` (new), `core/tests/components/guided_setup/` (new) | Guided setup. `config.py` merges every `<config>/guided_setup/*.yaml` file as a package, so entries made in the interface load without editing `configuration.yaml`; `bootstrap.py` loads the new integration by default. |
+| `frontend/src/panels/config/guided-setup/` (new), `frontend/src/data/guided_setup.ts` (new), `frontend/src/dialogs/config-flow/` (`step-flow-guidance.ts` new, `dialog-data-entry-flow.ts`), `frontend/src/panels/config/integrations/dialog-yaml-integration.ts`, `dialog-add-integration.ts` | The guided setup page and wizard, the ways into it, and a guidance note in setup dialogs. |
+| `frontend/src/common/locks/`, `frontend/src/components/locks/` (new), `frontend/src/components/page/ha-page-tool-panel.ts`, `frontend/src/components/appearance/ha-appearance-tools.ts` | Element locks with their own credentials, the lock wizard, prompt, keypad and list; the element menu opens by touch and hold and scrolls on a phone. |
+| `frontend/src/panels/config/personal/` (new), `frontend/src/common/preferences/` (new), `frontend/src/common/sound/` (new), `frontend/src/layouts/home-assistant-main.ts` | The personal settings page, its stored preferences applied at start, and action sounds. |
+| `frontend/src/components/ha-sidebar.ts` | A Developer tools item above Settings. |
+| `frontend/src/components/media-player/ha-media-player-browse.ts`, `frontend/src/panels/config/tools/event/event-subscribe-card.ts` | Their search and filter fields use the pattern workbench. |
+
 ## Build-time stamping (not committed)
 
 `scripts/ci/set-versions.py` writes the build number into `core/homeassistant/const.py`,

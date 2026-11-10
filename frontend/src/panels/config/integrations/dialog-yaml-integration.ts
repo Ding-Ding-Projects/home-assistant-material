@@ -2,6 +2,7 @@ import { mdiOpenInNew } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { navigate } from "../../../common/navigate";
 import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import type { YamlIntegrationDialogParams } from "./show-add-integration-dialog";
@@ -25,6 +26,12 @@ export class DialogYamlIntegration extends LitElement {
 
   public closeDialog() {
     this._open = false;
+  }
+
+  private _guidedSetup(): void {
+    const domain = this._params?.manifest.domain;
+    this.closeDialog();
+    navigate(`/config/guided-setup?domain=${encodeURIComponent(domain ?? "")}`);
   }
 
   private _dialogClosed(): void {
@@ -60,6 +67,15 @@ export class DialogYamlIntegration extends LitElement {
             @click=${this.closeDialog}
           >
             ${this.hass.localize("ui.common.cancel")}
+          </ha-button>
+          <ha-button
+            slot="secondaryAction"
+            appearance="filled"
+            @click=${this._guidedSetup}
+          >
+            ${this.hass.localize(
+              "ui.panel.config.integrations.config_flow.guided_setup"
+            )}
           </ha-button>
           ${
             docLink

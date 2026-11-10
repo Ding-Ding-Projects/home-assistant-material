@@ -225,6 +225,7 @@ DEFAULT_INTEGRATIONS = {
     "backup",
     "brands",
     "frontend",
+    "guided_setup",
     "hardware",
     "labs",
     "logger",

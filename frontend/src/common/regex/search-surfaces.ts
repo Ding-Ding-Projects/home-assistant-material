@@ -84,6 +84,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Pages in the New tab catalog",
   },
   {
+    file: "components/locks/ha-lock-list.ts",
+    searches: "The locks of this browser, by name, kind and policy",
+  },
+  {
     file: "components/dialog/ha-dialog-tools.ts",
     searches: "The text of the dialog it is in, marked where it is found",
     matcher: "common/page/find-in-page.ts",
@@ -124,6 +128,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/notifications/ha-config-notifications.ts",
     searches: "Notifications, by title, text and id",
+  },
+  {
+    file: "panels/config/personal/ha-config-section-personal.ts",
+    searches: "The personal settings on the personal settings page",
   },
   {
     file: "panels/config/dashboard/ha-config-dashboard.ts",
@@ -217,6 +225,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     matcher: TABLE_WORKER,
   },
   {
+    file: "panels/config/tools/event/event-subscribe-card.ts",
+    searches: "Keys and values of the events being listened to",
+  },
+  {
     file: "panels/config/tools/state/tools-state.ts",
     searches:
       "Entities by name, state, device, area and attribute, one field each",
@@ -225,6 +237,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     file: "panels/config/tools/statistics/tools-statistics.ts",
     searches: "Statistics",
     matcher: TABLE_WORKER,
+  },
+  {
+    file: "panels/config/guided-setup/ha-config-guided-setup.ts",
+    searches: "Integrations that have no setup screen",
   },
   {
     file: "panels/config/voice-assistants/dialog-expose-entity.ts",

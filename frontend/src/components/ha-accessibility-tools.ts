@@ -407,7 +407,7 @@ export class HaAccessibilityTools extends LitElement {
       inset-inline-end: calc(var(--ha-pane-gap, 0px) + var(--ha-space-3));
       margin: 0;
       width: min(440px, calc(100vw - 24px));
-      max-height: calc(100vh - 96px);
+      max-height: calc(100dvh - 96px);
       box-sizing: border-box;
       padding: var(--ha-space-4);
       border: var(--ha-pane-outline, none);

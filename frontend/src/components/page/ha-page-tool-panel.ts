@@ -78,6 +78,7 @@ import { fileDownload } from "../../util/file_download";
 import "../ha-button";
 import "../ha-icon-button";
 import "../ha-svg-icon";
+import "../locks/ha-lock-list";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
 import "../input/ha-input-search";
@@ -918,7 +919,10 @@ export class HaPageToolPanel extends LitElement {
       (item) => item.startsWith("page:") && item !== key
     );
     const page = window.location.pathname;
-    const elements = lockedElementPaths(this._locks, page);
+    // Locks with their own credentials are in the list of locks below.
+    const elements = lockedElementPaths(this._locks, page).filter(
+      (path) => !this._locks.records?.[elementLockKey(page, path)]
+    );
     return html`
       <p class=${classMap({ state: true, locked })}>
         <ha-svg-icon
@@ -1121,6 +1125,7 @@ export class HaPageToolPanel extends LitElement {
               ${localize("ui.page_tools.lock_panel.none_locked")}
             </p>`
       }
+      <ha-lock-list></ha-lock-list>
       <p class="note">${localize("ui.page_tools.lock_panel.shortcut")}</p>
       <p class="note">${localize("ui.page_tools.lock_panel.note")}</p>
     `;

@@ -129,6 +129,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-energy",
         load: () => import("./energy/ha-config-energy"),
       },
+      "guided-setup": {
+        tag: "ha-config-guided-setup",
+        load: () => import("./guided-setup/ha-config-guided-setup"),
+      },
       hardware: {
         tag: "ha-config-hardware",
         load: () => import("./hardware/ha-config-hardware"),
@@ -195,6 +199,10 @@ class HaPanelConfig extends HassRouterPage {
       general: {
         tag: "ha-config-section-general",
         load: () => import("./core/ha-config-section-general"),
+      },
+      personal: {
+        tag: "ha-config-section-personal",
+        load: () => import("./personal/ha-config-section-personal"),
       },
       labs: {
         tag: "ha-config-labs",

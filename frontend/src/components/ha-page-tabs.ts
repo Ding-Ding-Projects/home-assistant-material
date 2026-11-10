@@ -643,6 +643,18 @@ export class HaPageTabs extends LitElement {
     .close:hover {
       background-color: rgba(127, 127, 127, 0.3);
     }
+    /* A finger cannot hover: every tab shows its close button. */
+    @media (hover: none) {
+      .tab .close {
+        display: flex;
+      }
+    }
+    @media (max-width: 700px) {
+      :host #catalog {
+        inset-inline: var(--ha-space-4);
+        width: auto;
+      }
+    }
     .new-tab {
       display: flex;
       align-items: center;
@@ -715,7 +727,7 @@ export class HaPageTabs extends LitElement {
       );
       margin: 0;
       width: min(420px, calc(100vw - 32px));
-      max-height: min(560px, calc(100vh - 96px));
+      max-height: min(560px, calc(100dvh - 96px));
       box-sizing: border-box;
       padding: var(--ha-space-3);
       border: none;

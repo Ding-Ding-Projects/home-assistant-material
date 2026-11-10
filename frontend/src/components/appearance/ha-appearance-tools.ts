@@ -34,13 +34,14 @@ import {
   isEmptyAppearance,
   kindLabel,
 } from "../../common/appearance/element-appearance";
-import { applyElementLocks } from "../../common/locks/element-lock-session";
+import {
+  applyElementLocks,
+  setLockLocalize,
+} from "../../common/locks/element-lock-session";
 import {
   elementLockKey,
   readLocks,
   subscribeLocks,
-  withLock,
-  writeLocks,
 } from "../../common/locks/element-locks";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -161,6 +162,12 @@ export class HaAppearanceTools extends LitElement {
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n?: ContextType<typeof internationalizationContext>;
 
+  protected willUpdate(): void {
+    if (this._i18n) {
+      setLockLocalize(this._i18n.localize);
+    }
+  }
+
   @state() private _menuChain?: HTMLElement[];
 
   @state() private _menuPosition: Record<string, string> = {};
@@ -263,16 +270,23 @@ export class HaAppearanceTools extends LitElement {
     return readLocks().locked.some((key) => key.startsWith("element:"));
   }
 
-  /** Locks one element of the page that is open. */
+  /** Opens the lock wizard beside one element of the page that is open. */
   private _lockElement(element: HTMLElement): void {
-    writeLocks(
-      withLock(
-        readLocks(),
-        elementLockKey(window.location.pathname, elementPath(element)),
-        true
+    if (this._i18n) {
+      setLockLocalize(this._i18n.localize);
+    }
+    const key = elementLockKey(window.location.pathname, elementPath(element));
+    void import("../locks/ha-lock-wizard").then(({ openLockWizard }) =>
+      import("../locks/lock-text").then(({ describeElement }) =>
+        openLockWizard({
+          key,
+          label: describeElement(element),
+          anchor: element,
+          onCreated: () =>
+            this._announce(this._i18n?.localize("ui.locks.created") ?? ""),
+        })
       )
     );
-    this._announce(this._i18n?.localize("ui.page_tools.element_locked") ?? "");
   }
 
   /** The page layout an element is on, if it is on one. */
@@ -532,11 +546,16 @@ export class HaAppearanceTools extends LitElement {
     this._menuChain = chain;
     this._menuFilter = "";
     this._menuIndex = 0;
-    const width = 320;
-    const height = 420;
+    // The visible screen is smaller than the window while a phone's
+    // keyboard is up; the menu scrolls inside whatever is left.
+    const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+    const offsetTop = window.visualViewport?.offsetTop ?? 0;
+    const width = Math.min(320, window.innerWidth - 16);
+    const height = Math.min(560, visibleHeight - 16);
     this._menuPosition = {
       left: `${Math.max(8, Math.min(point.x, window.innerWidth - width - 8))}px`,
-      top: `${Math.max(8, Math.min(point.y, window.innerHeight - height - 8))}px`,
+      top: `${offsetTop + Math.max(8, Math.min(point.y, visibleHeight - height - 8))}px`,
+      "max-height": `${height}px`,
     };
     await this.updateComplete;
     if (this._menu && !this._menu.matches(":popover-open")) {
@@ -963,6 +982,7 @@ export class HaAppearanceTools extends LitElement {
       color: var(--primary-text-color);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
       overflow: visible;
+      box-sizing: border-box;
     }
     #menu:popover-open {
       display: flex;
@@ -975,6 +995,8 @@ export class HaAppearanceTools extends LitElement {
     .items {
       display: flex;
       flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
     }
     button {
       font: inherit;

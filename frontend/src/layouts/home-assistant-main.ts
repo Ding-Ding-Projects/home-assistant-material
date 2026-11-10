@@ -24,6 +24,7 @@ import {
   startLocalHistory,
 } from "../common/history/local-history";
 import { DEBUG_SAFE_AREA_TOOL_STORAGE_KEY } from "../common/util/debug-safe-area";
+import { initPersonalPreferences } from "../common/preferences/personal-preferences";
 import { computeRTLDirection } from "../common/util/compute_rtl";
 import "../components/appearance/ha-appearance-tools";
 import type { HaAppearanceTools } from "../components/appearance/ha-appearance-tools";
@@ -204,6 +205,9 @@ export class HomeAssistantMain extends LitElement {
 
   public connectedCallback() {
     super.connectedCallback();
+    // Stored personal settings apply on every page, not only after the
+    // personal settings page has been opened.
+    initPersonalPreferences();
     // Created here, not in the template: the tools move into an open modal
     // dialog and back, which a rendered template would not follow.
     this._appearanceTools ??= document.createElement("ha-appearance-tools");

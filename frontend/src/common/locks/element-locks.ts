@@ -1,6 +1,11 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
 import { sha256, toHex } from "../util/sha256";
+import type { LockRecord } from "./lock-credentials";
+import { normalizeLockRecord } from "./lock-credentials";
+import { waitForFailures } from "./lock-wait";
+
+export { waitForFailures };
 
 /**
  * Locks: a page that is locked cannot be changed until it is unlocked.
@@ -38,6 +43,11 @@ export interface LockStore {
   failures: number;
   /** Epoch milliseconds before which no PIN is tried. */
   blockedUntil: number;
+  /**
+   * Locks that have their own policy and credentials, by lock key. A lock
+   * without a record is an older lock and uses the shared PIN or a hold.
+   */
+  records?: Record<string, LockRecord>;
 }
 
 export const emptyLockStore = (): LockStore => ({
@@ -82,6 +92,18 @@ export const normalizeLockStore = (raw: unknown): LockStore => {
   if (Number.isFinite(value.blockedUntil) && value.blockedUntil! > 0) {
     store.blockedUntil = value.blockedUntil!;
   }
+  if (value.records && typeof value.records === "object") {
+    const records: Record<string, LockRecord> = {};
+    Object.values(value.records).forEach((entry) => {
+      const record = normalizeLockRecord(entry);
+      if (record && store.locked.includes(record.key)) {
+        records[record.key] = record;
+      }
+    });
+    if (Object.keys(records).length) {
+      store.records = records;
+    }
+  }
   return store;
 };
 
@@ -98,32 +120,39 @@ export const withLock = (
   locked: boolean
 ): LockStore => {
   const others = store.locked.filter((item) => item !== key);
-  return {
+  const next: LockStore = {
     ...store,
     locked: locked ? [...others, key].slice(-LOCK_LIMIT) : others,
   };
+  if (!locked && store.records?.[key]) {
+    // Removing a lock removes its credentials with it.
+    const { [key]: _gone, ...rest } = store.records;
+    if (Object.keys(rest).length) {
+      next.records = rest;
+    } else {
+      delete next.records;
+    }
+  }
+  return next;
 };
 
-/**
- * How long the next PIN try waits after this many wrong ones in a row:
- * nothing for the first two, then 5 seconds, 15 seconds, 1 minute, and
- * 5 minutes from then on.
- */
-export const waitForFailures = (failures: number): number => {
-  if (failures < 3) {
-    return 0;
-  }
-  if (failures === 3) {
-    return 5000;
-  }
-  if (failures === 4) {
-    return 15000;
-  }
-  if (failures === 5) {
-    return 60000;
-  }
-  return 300000;
+/** Adds a lock with its own policy and credentials, or replaces its record. */
+export const withLockRecord = (
+  store: LockStore,
+  record: LockRecord
+): LockStore => {
+  const locked = withLock(store, record.key, true);
+  return { ...locked, records: { ...store.records, [record.key]: record } };
 };
+
+/** Saves a changed record, such as a moved attempt budget. */
+export const withUpdatedRecord = (
+  store: LockStore,
+  record: LockRecord
+): LockStore =>
+  store.records?.[record.key]
+    ? { ...store, records: { ...store.records, [record.key]: record } }
+    : store;
 
 /** The stored form of a PIN: many rounds of a salted hash. */
 export const derivePin = (pin: string, salt: string): string => {

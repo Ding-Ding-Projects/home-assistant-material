@@ -601,7 +601,19 @@ class AddIntegrationDialog extends LitElement {
           : html`<div class="flex center">
               <ha-spinner></ha-spinner>
             </div>`
-      }`;
+      }
+      <p class="guided">
+        <button type="button" class="link" @click=${this._openGuidedSetup}>
+          ${this.hass.localize(
+            "ui.panel.config.integrations.config_flow.guided_setup_link"
+          )}
+        </button>
+      </p>`;
+  }
+
+  private _openGuidedSetup(): void {
+    this._open = false;
+    navigate("/config/guided-setup");
   }
 
   private _renderRow = (integration: IntegrationListItem) => {
@@ -880,6 +892,22 @@ class AddIntegrationDialog extends LitElement {
       }
       ha-list-virtualized {
         position: relative;
+      }
+      p.guided {
+        padding: var(--ha-space-2) var(--ha-space-4);
+      }
+      button.link {
+        background: none;
+        border: 0;
+        padding: 0;
+        font: inherit;
+        color: var(--primary-color);
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      button.link:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
       }
     `,
   ];

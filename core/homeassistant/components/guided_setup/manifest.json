@@ -1,0 +1,9 @@
+{
+  "domain": "guided_setup",
+  "name": "Guided setup",
+  "codeowners": ["@home-assistant/core"],
+  "dependencies": ["http", "websocket_api"],
+  "documentation": "https://www.home-assistant.io/docs/configuration/",
+  "integration_type": "system",
+  "quality_scale": "internal"
+}
