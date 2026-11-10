@@ -6,6 +6,7 @@ import {
 } from "../../../data/energy";
 import type { LovelaceSectionConfig } from "../../../data/lovelace/config/section";
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
+import type { PageHeadingCardConfig } from "../../lovelace/cards/types";
 import type { HomeAssistant } from "../../../types";
 import type { LovelaceStrategyDependency } from "../../lovelace/strategies/types";
 import type { EnergyViewStrategyConfig } from "./energy-cards";
@@ -30,6 +31,14 @@ export class WaterViewStrategy extends ReactiveElement {
 
     const view: LovelaceViewConfig = {
       type: "sections",
+      header: {
+        layout: "responsive",
+        card: {
+          type: "page-heading",
+          heading: hass.localize("panel.energy"),
+          summary: hass.localize("ui.panel.energy.summary"),
+        } satisfies PageHeadingCardConfig,
+      },
       max_columns: 3,
       sections: [{ type: "grid", cards: [], column_span: 3 }],
       footer: {

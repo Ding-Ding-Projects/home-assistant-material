@@ -4,25 +4,38 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "On a phone there is a bar at the bottom: Home, Search, Pages, Access and Menu. Pages opens a sheet of the open pages with a search, New tab, and closing by button or swipe, with Undo. A slim bar at the top switches between open pages."
+          "text": "Everyday pages start on their boards: Lights opens with how many are on and a card for each room; Security shows each alarm with arm and disarm; Climate draws the first thermostat large; the Map lists where everyone is; Activity, History, To-do, Calendar and Energy gain a large title and a line of facts; Home shows power use when energy is set up."
         },
         {
-          "text": "The pattern workbench on a phone has three tabs and More, one chip for the flags, and a footer that gets out of the way of the keyboard. On a wide screen the flags are named chips and the tabs wrap."
+          "text": "The Network page lays its cards out in two columns on a wide screen."
         },
         {
-          "text": "Holding an element shows a ring and opens a sheet on a phone; on a wide screen the menu sits beside the element and each tool has a one-letter shortcut."
+          "text": "On a phone there is a bar at the bottom: Home, Search, Pages, Access and Menu. Pages opens a sheet of the open pages with a search, New tab, and closing by button or swipe, with Undo. A slim bar at the top switches between open pages.",
+          "commit": "e830cae421fe"
         },
         {
-          "text": "The lock wizard has six steps with a progress line and a QR code for the one-time code. The unlock prompt counts down a wait, and the list of locks filters, selects several and shows the time left."
+          "text": "The pattern workbench on a phone has three tabs and More, one chip for the flags, and a footer that gets out of the way of the keyboard. On a wide screen the flags are named chips and the tabs wrap.",
+          "commit": "e830cae421fe"
         },
         {
-          "text": "Personal settings are grouped, show what each control reaches, and gain quiet hours for sounds. Guided setup lists what is set up first, and its last step offers one action: reload or restart. The guidance note in setup dialogs opens as a sheet."
+          "text": "Holding an element shows a ring and opens a sheet on a phone; on a wide screen the menu sits beside the element and each tool has a one-letter shortcut.",
+          "commit": "e830cae421fe"
         },
         {
-          "text": "Fifteen of the browser's own blocking boxes are replaced by messages and dialogs of the interface. Deleting an energy source, removing a Matter fabric, resetting a Thread border router and turning off a second sign-in step ask twice."
+          "text": "The lock wizard has six steps with a progress line and a QR code for the one-time code. The unlock prompt counts down a wait, and the list of locks filters, selects several and shows the time left.",
+          "commit": "e830cae421fe"
         },
         {
-          "text": "Turning on a preview feature with its backup switch on no longer fails when automatic backups are not set up. The backup is kept on this system."
+          "text": "Personal settings are grouped, show what each control reaches, and gain quiet hours for sounds. Guided setup lists what is set up first, and its last step offers one action: reload or restart. The guidance note in setup dialogs opens as a sheet.",
+          "commit": "e830cae421fe"
+        },
+        {
+          "text": "Fifteen of the browser's own blocking boxes are replaced by messages and dialogs of the interface. Deleting an energy source, removing a Matter fabric, resetting a Thread border router and turning off a second sign-in step ask twice.",
+          "commit": "e830cae421fe"
+        },
+        {
+          "text": "Turning on a preview feature with its backup switch on no longer fails when automatic backups are not set up. The backup is kept on this system.",
+          "commit": "e830cae421fe"
         },
         {
           "text": "Guided setup draws real fields for 223 of the 240 integrations it lists, up from 10: text, numbers, switches, choices, templates, durations and entity pickers, and a first step that asks which kind of item to add where an integration has several.",

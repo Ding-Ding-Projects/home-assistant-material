@@ -8,6 +8,11 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Everyday pages start on their boards: Lights opens with how many are on and a card for
+  each room; Security shows each alarm with arm and disarm; Climate draws the first
+  thermostat large; the Map lists where everyone is; Activity, History, To-do, Calendar and
+  Energy gain a large title and a line of facts; Home shows power use when energy is set up.
+- The Network page lays its cards out in two columns on a wide screen.
 - On a phone there is a bar at the bottom: Home, Search, Pages, Access and Menu. Pages opens
   a sheet of the open pages with a search, New tab, and closing by button or swipe, with Undo.
   A slim bar at the top switches between open pages.

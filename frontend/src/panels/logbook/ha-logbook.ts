@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
+import { fireEvent } from "../../common/dom/fire_event";
 import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import { throttle } from "../../common/util/throttle";
 import "../../components/ha-spinner";
@@ -230,6 +231,17 @@ export class HaLogbook extends LitElement {
     // We only respond to hass changes if the translations changed
     const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
     return !oldHass || oldHass.localize !== this.hass.localize;
+  }
+
+  protected updated(changedProps: PropertyValues): void {
+    super.updated(changedProps);
+    if (
+      changedProps.has("_logbookEntries") ||
+      changedProps.has("causeFilter")
+    ) {
+      // A page that summarises the entries reads them with getEntries.
+      fireEvent(this, "logbook-entries-changed");
+    }
   }
 
   protected willUpdate(changedProps: PropertyValues): void {
@@ -594,6 +606,10 @@ export class HaLogbook extends LitElement {
 }
 
 declare global {
+  interface HASSDomEvents {
+    "logbook-entries-changed": undefined;
+  }
+
   interface HTMLElementTagNameMap {
     "ha-logbook": HaLogbook;
   }

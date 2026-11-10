@@ -11431,6 +11431,8 @@
           "home_hero": {
             "lights_on": "{count, plural,\n  one {# light}\n  other {# lights}\n}, {on} on",
             "all_lights": "All lights in {room}",
+            "power": "Power right now",
+            "live": "Live",
             "on": "On",
             "off": "Off",
             "brightness": "Brightness",
@@ -11460,6 +11462,24 @@
             "unlocked": "{count, plural,\n  one {# door is not locked}\n  other {# doors are not locked}\n}",
             "nothing": "Add lights, locks or a temperature sensor for an area, and this line will say how the home is.",
             "scenes": "Scenes"
+          },
+          "lights_summary": {
+            "title": "Lights",
+            "are_on": "{count, plural,\n  one {# is on}\n  other {# are on}\n}",
+            "all_off": "All off",
+            "out_of": "Out of {total}, in {rooms, plural,\n  one {# room}\n  other {# rooms}\n}.",
+            "out_of_no_rooms": "Out of {total}.",
+            "turn_all_off": "Turn all off",
+            "turn_all_on": "Turn all on"
+          },
+          "security_alarm": {
+            "all_locked": "Every door is locked.",
+            "not_locked": "{count, plural, one {# door is not locked.} other {# doors are not locked.}}"
+          },
+          "room_lights": {
+            "of_on": "{on} of {total} on",
+            "all": "All the lights in {room}",
+            "brightness": "Brightness"
           },
           "confirm_delete": "Are you sure you want to delete this card?",
           "show_more_info": "Show more information",
@@ -11708,6 +11728,8 @@
         },
         "editor": {
           "header": "Edit UI",
+          "editing": "Editing {dashboard}",
+          "editing_view": "Editing {dashboard}, {view}",
           "yaml_unsupported": "The edit UI is not available when in YAML mode.",
           "undo_redo_failed_to_apply_changes": "Unable to apply changes: {error}",
           "menu": {
@@ -13695,7 +13717,9 @@
         }
       },
       "map": {
-        "edit_zones": "Edit zones"
+        "edit_zones": "Edit zones",
+        "where_everyone_is": "Where everyone is",
+        "state_since": "{state}, since {time}"
       },
       "notfound": {
         "no_access_title": "No access",
@@ -14342,6 +14366,7 @@
       },
       "energy": {
         "error_loading_preferences": "An error occurred loading energy preferences: {error}",
+        "summary": "Where your energy comes from and where it goes.",
         "title": {
           "overview": "Summary",
           "electricity": "Electricity",

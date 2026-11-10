@@ -7,6 +7,7 @@ import {
   type EntityFilter,
 } from "../../../common/entity/entity_filter";
 import { floorDefaultIcon } from "../../../components/ha-floor-icon";
+import { featuredClimate } from "../../../common/home/home-hero";
 import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
 import type { LovelaceSectionRawConfig } from "../../../data/lovelace/config/section";
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
@@ -288,10 +289,28 @@ export class ClimateViewStrategy extends ReactiveElement {
       sections.push(section);
     }
 
+    // The first thermostat is drawn large at the top of the page.
+    const thermostat = featuredClimate(hass.states, hass.entities);
+
     return {
       type: "sections",
       max_columns: 2,
       sections: sections,
+      ...(thermostat && {
+        header: {
+          layout: "responsive",
+          card: {
+            type: "thermostat",
+            entity: thermostat,
+            features: [
+              {
+                type: "climate-hvac-modes",
+                style: "icons",
+              },
+            ],
+          } satisfies LovelaceCardConfig,
+        },
+      }),
     };
   }
 }

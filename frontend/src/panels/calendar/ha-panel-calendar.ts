@@ -19,6 +19,7 @@ import "../../components/ha-spinner";
 import "../../components/ha-state-icon";
 import "../../components/ha-svg-icon";
 import "../../components/ha-two-pane-top-app-bar-fixed";
+import "../home/components/ha-panel-heading";
 import type { Calendar } from "../../data/calendar";
 import { getCalendars } from "../../data/calendar";
 import { CalendarEventsController } from "../../data/calendar-events-controller";
@@ -196,16 +197,25 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
                 }`
             : nothing
         }
-        <ha-full-calendar
-          add-fab
-          .events=${this._events.events}
-          .calendars=${this._calendars}
-          .narrow=${this.narrow}
-          .initialView=${this.narrow ? "listWeek" : "dayGridMonth"}
-          .hass=${this.hass}
-          .error=${this._computeError(this._events.errorCalendars)}
-          @view-changed=${this._handleViewChanged}
-        ></ha-full-calendar>
+        <div class="page">
+          <ha-panel-heading
+            .heading=${this.hass.localize("panel.calendar")}
+            .summary=${this.hass.localize("ui.components.calendar.summary", {
+              count: this._events.events.length,
+            })}
+            .narrow=${this.narrow}
+          ></ha-panel-heading>
+          <ha-full-calendar
+            add-fab
+            .events=${this._events.events}
+            .calendars=${this._calendars}
+            .narrow=${this.narrow}
+            .initialView=${this.narrow ? "listWeek" : "dayGridMonth"}
+            .hass=${this.hass}
+            .error=${this._computeError(this._events.errorCalendars)}
+            @view-changed=${this._handleViewChanged}
+          ></ha-full-calendar>
+        </div>
       </ha-two-pane-top-app-bar-fixed>
     `;
   }
@@ -297,16 +307,22 @@ class PanelCalendar extends SubscribeMixin(LitElement) {
         :host {
           display: block;
         }
-        ha-full-calendar {
-          --calendar-header-padding: 12px;
-          --calendar-border-radius: var(--ha-border-radius-square);
-          --calendar-border-width: 1px 0;
+        .page {
+          display: flex;
+          flex-direction: column;
           height: calc(
             100vh - var(--header-height, 0px) - var(
                 --safe-area-inset-top,
                 0px
               ) - var(--safe-area-inset-bottom, 0px)
           );
+        }
+        ha-full-calendar {
+          --calendar-header-padding: 12px;
+          --calendar-border-radius: var(--ha-border-radius-square);
+          --calendar-border-width: 1px 0;
+          flex: 1;
+          min-height: 0;
         }
         ha-dropdown ha-button {
           --ha-font-size-m: var(--ha-font-size-l);

@@ -24,6 +24,7 @@ import {
 } from "../../../common/home/home-hero";
 import { formatNumber } from "../../../common/number/format_number";
 import "../../../components/ha-control-slider";
+import "../../home/components/ha-home-power-tile";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
@@ -79,6 +80,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       <div class="heroes">
         ${room ? this._renderRoom(room) : nothing}
         ${climateId ? this._renderClimate(hass.states[climateId]) : nothing}
+        <ha-home-power-tile .hass=${hass}></ha-home-power-tile>
         ${locks ? this._renderLocks(locks) : nothing}
         ${mediaId ? this._renderMedia(hass.states[mediaId]) : nothing}
       </div>

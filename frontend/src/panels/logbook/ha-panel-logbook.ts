@@ -62,7 +62,11 @@ import { filterLogbookCompatibleEntities } from "../../data/logbook";
 import { resolveEntityIDs } from "../../data/selector";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
+import "../home/components/ha-panel-heading";
 import "./ha-logbook";
+import "./ha-logbook-stats";
+import type { HaLogbook } from "./ha-logbook";
+import type { LogbookEntry } from "../../data/logbook";
 import { showAlertDialog } from "../../dialogs/generic/show-dialog-box";
 import { csvDownload, csvSafeString } from "../../util/csv";
 
@@ -102,6 +106,8 @@ export class HaPanelLogbook extends LitElement {
   @query("ha-filter-pane") private _filterPane?: HaFilterPane;
 
   @state() private _entitySources?: EntitySources;
+
+  @state() private _entries: LogbookEntry[] = [];
 
   @state() private _targetPickerValue: HassServiceTarget = {};
 
@@ -221,6 +227,19 @@ export class HaPanelLogbook extends LitElement {
                 : nothing
             }
             <div class="content-column">
+              <ha-panel-heading
+                .heading=${this.hass.localize("panel.logbook")}
+                .summary=${this.hass.localize("ui.panel.logbook.summary")}
+                .narrow=${this.narrow}
+              ></ha-panel-heading>
+              ${
+                this.narrow
+                  ? nothing
+                  : html`<ha-logbook-stats
+                      .hass=${this.hass}
+                      .entries=${this._entries}
+                    ></ha-logbook-stats>`
+              }
               <div class="toolbar">
                 ${
                   this._sourcesShown() && !this.narrow
@@ -248,6 +267,7 @@ export class HaPanelLogbook extends LitElement {
                 .entityIds=${this._shownEntityIds}
                 .causeFilter=${this._shownCauses}
                 .narrow=${this.narrow}
+                @logbook-entries-changed=${this._entriesChanged}
                 show-cause
                 virtualize
               >
@@ -280,6 +300,10 @@ export class HaPanelLogbook extends LitElement {
         </div>
       </ha-top-app-bar-fixed>
     `;
+  }
+
+  private _entriesChanged(ev: Event) {
+    this._entries = (ev.target as HaLogbook).getEntries();
   }
 
   private _sourcesShown(): boolean {

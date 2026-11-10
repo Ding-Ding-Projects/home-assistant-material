@@ -49,6 +49,7 @@ import { showVoiceCommandDialog } from "../../dialogs/voice-command-dialog/show-
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import "../lovelace/cards/hui-card";
+import "../home/components/ha-panel-heading";
 import { showTodoItemEditDialog } from "./show-dialog-todo-item-editor";
 
 @customElement("ha-panel-todo")
@@ -294,6 +295,21 @@ class PanelTodo extends LitElement {
         </ha-dropdown>
         <div id="columns">
           <div class="column">
+            ${
+              entityState
+                ? html`<ha-panel-heading
+                    .heading=${this.hass.formatEntityName(entityState)}
+                    .summary=${
+                      Number.isFinite(Number(entityState.state))
+                        ? this.hass.localize("ui.panel.todo.items_left", {
+                            count: Number(entityState.state),
+                          })
+                        : undefined
+                    }
+                    .narrow=${this.narrow}
+                  ></ha-panel-heading>`
+                : nothing
+            }
             ${
               this._entityId
                 ? html`

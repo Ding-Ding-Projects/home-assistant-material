@@ -66,6 +66,7 @@ import {
 } from "../../components/ha-sources-picker";
 import "../../components/ha-spinner";
 import "../../components/ha-top-app-bar-fixed";
+import "../home/components/ha-panel-heading";
 import type { EntitySources } from "../../data/entity/entity_sources";
 import { fetchEntitySourcesWithCache } from "../../data/entity/entity_sources";
 import { entityTypesNeedStates } from "../../data/entity/entity_type";
@@ -287,6 +288,11 @@ class HaPanelHistory extends LitElement {
                 : nothing
             }
             <div class="content-column">
+              <ha-panel-heading
+                .heading=${this.hass.localize("panel.history")}
+                .summary=${this.hass.localize("ui.panel.history.summary")}
+                .narrow=${this.narrow}
+              ></ha-panel-heading>
               <div class="toolbar">
                 ${
                   this._sourcesShown() && !this.narrow

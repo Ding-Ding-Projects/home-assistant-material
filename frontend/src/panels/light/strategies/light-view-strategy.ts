@@ -16,7 +16,10 @@ import {
   LARGE_SCREEN_CONDITION,
   SMALL_SCREEN_CONDITION,
 } from "../../lovelace/strategies/helpers/view-columns-conditions";
-import type { ToggleGroupCardConfig } from "../../lovelace/cards/types";
+import type {
+  LightsSummaryCardConfig,
+  RoomLightsCardConfig,
+} from "../../lovelace/cards/types";
 import type { ButtonHeadingBadgeConfig } from "../../lovelace/heading-badges/types";
 
 export interface LightViewStrategyConfig {
@@ -72,6 +75,8 @@ const processAreasForLight = (
         heading_style: "subtitle",
         type: "heading",
         heading: area.name,
+        // The room card carries the name on a large screen.
+        visibility: [SMALL_SCREEN_CONDITION],
         tap_action: hass.panels.home
           ? {
               action: "navigate",
@@ -124,17 +129,15 @@ const processAreasForLight = (
         ] satisfies LovelaceCardConfig[],
       });
 
-      // Toggle group card for desktop
+      // Room card for desktop: switch, brightness and a chip for each light
       cards.push({
-        type: "toggle-group",
-        color: "amber",
-        entities: areaLights,
+        type: "room-lights",
+        area: area.area_id,
         visibility: [LARGE_SCREEN_CONDITION],
         grid_options: {
           columns: 6,
-          rows: 1,
         },
-      } as ToggleGroupCardConfig);
+      } satisfies RoomLightsCardConfig);
 
       areaCards.forEach((card) => {
         // Insert a blank card before every 3rd card to align the individual
@@ -294,6 +297,12 @@ export class LightViewStrategy extends ReactiveElement {
       type: "sections",
       max_columns: 2,
       sections: sections,
+      header: {
+        layout: "responsive",
+        card: {
+          type: "lights-summary",
+        } satisfies LightsSummaryCardConfig,
+      },
     };
   }
 }

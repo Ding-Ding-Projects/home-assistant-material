@@ -6,6 +6,7 @@ import {
 } from "../../../data/energy";
 import type { HomeAssistant } from "../../../types";
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
+import type { PageHeadingCardConfig } from "../../lovelace/cards/types";
 import type { LovelaceStrategyDependency } from "../../lovelace/strategies/types";
 import type { EnergyViewStrategyConfig } from "./energy-cards";
 import { hasWaterSource, isEnergyCardVisible } from "./energy-cards";
@@ -24,6 +25,14 @@ export class EnergyOverviewViewStrategy extends ReactiveElement {
 
     const view: LovelaceViewConfig = {
       type: "sections",
+      header: {
+        layout: "responsive",
+        card: {
+          type: "page-heading",
+          heading: hass.localize("panel.energy"),
+          summary: hass.localize("ui.panel.energy.summary"),
+        } satisfies PageHeadingCardConfig,
+      },
       sections: [],
       dense_section_placement: true,
       max_columns: 3,

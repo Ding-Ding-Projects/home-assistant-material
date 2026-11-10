@@ -8,6 +8,7 @@ import { navigate } from "../../common/navigate";
 import "../../components/ha-icon-button";
 import "../../components/ha-top-app-bar-fixed";
 import "../../components/map/ha-map";
+import "./ha-map-people";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 
@@ -33,7 +34,14 @@ class HaPanelMap extends LitElement {
               ></ha-icon-button>`
             : ""
         }
-        <ha-map .entities=${this._entities} auto-fit interactive-zones></ha-map>
+        <div class="stage">
+          <ha-map
+            .entities=${this._entities}
+            auto-fit
+            interactive-zones
+          ></ha-map>
+          <ha-map-people .hass=${this.hass}></ha-map-people>
+        </div>
       </ha-top-app-bar-fixed>
     `;
   }
@@ -82,8 +90,26 @@ class HaPanelMap extends LitElement {
     return [
       haStyle,
       css`
-        ha-map {
+        .stage {
+          position: relative;
           height: calc(100vh - var(--header-height));
+        }
+        ha-map {
+          height: 100%;
+        }
+        ha-map-people {
+          position: absolute;
+          top: var(--ha-space-4);
+          inset-inline-start: var(--ha-space-4);
+          z-index: 1;
+        }
+        @media (max-width: 600px) {
+          ha-map-people {
+            top: auto;
+            bottom: var(--ha-space-4);
+            inset-inline-end: var(--ha-space-4);
+            max-height: 45%;
+          }
         }
       `,
     ];

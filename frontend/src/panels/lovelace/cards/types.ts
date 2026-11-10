@@ -743,6 +743,22 @@ export interface HomeSummaryCard extends LovelaceCardConfig {
 // The large cards on Home take no options: they show what the home has.
 export type HomeHeroCardConfig = LovelaceCardConfig;
 
+// The top of the Lights page takes no options: it counts the lights.
+export type LightsSummaryCardConfig = LovelaceCardConfig;
+
+// The top of the Security page takes no options: it shows the alarm panels.
+export type SecurityAlarmCardConfig = LovelaceCardConfig;
+
+export interface PageHeadingCardConfig extends LovelaceCardConfig {
+  heading: string;
+  summary?: string;
+}
+
+export interface RoomLightsCardConfig extends LovelaceCardConfig {
+  /** The id of the area whose lights the card shows. */
+  area: string;
+}
+
 export interface HomeGreetingCardConfig extends LovelaceCardConfig {
   /** Leaves the scene buttons out. */
   hide_scenes?: boolean;

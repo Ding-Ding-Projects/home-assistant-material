@@ -587,8 +587,22 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
                   ? html`
                       <div class="main-title">
                         ${
-                          dashboardTitle ||
-                          this.hass!.localize("ui.panel.lovelace.editor.header")
+                          dashboardTitle
+                            ? curViewConfig?.title
+                              ? this.hass!.localize(
+                                  "ui.panel.lovelace.editor.editing_view",
+                                  {
+                                    dashboard: dashboardTitle,
+                                    view: curViewConfig.title,
+                                  }
+                                )
+                              : this.hass!.localize(
+                                  "ui.panel.lovelace.editor.editing",
+                                  { dashboard: dashboardTitle }
+                                )
+                            : this.hass!.localize(
+                                "ui.panel.lovelace.editor.header"
+                              )
                         }
                         <ha-icon-button
                           slot="actionItems"

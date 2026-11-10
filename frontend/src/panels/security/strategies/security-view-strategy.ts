@@ -20,7 +20,10 @@ import type {
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
 import type { SecurityAlertEntityConfig } from "../../../data/frontend";
 import type { HomeAssistant } from "../../../types";
-import type { LogbookCardConfig } from "../../lovelace/cards/types";
+import type {
+  LogbookCardConfig,
+  SecurityAlarmCardConfig,
+} from "../../lovelace/cards/types";
 import { computeAreaTileCardConfig } from "../../lovelace/strategies/areas/helpers/areas-strategy-helper";
 import { computeFavoriteCardConfig } from "../../lovelace/strategies/helpers/favorite-cards";
 import { computeSecurityAlertCardConfig } from "./security-alerts";
@@ -382,6 +385,12 @@ export class SecurityViewStrategy extends ReactiveElement {
       type: "sections",
       max_columns: 3,
       sections: sections,
+      header: {
+        layout: "responsive",
+        card: {
+          type: "security-alarm",
+        } satisfies SecurityAlarmCardConfig,
+      },
       ...(sidebarSections.length > 0 && {
         sidebar: {
           sections: sidebarSections,
