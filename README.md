@@ -133,11 +133,33 @@ result of every build job and the end-to-end time.
 <details>
 <summary><strong>Screenshots</strong></summary>
 
-Taken from the frontend's demo build of this repository, which runs the real interface against
-sample data. They show what is built so far: the colours, typeface, navigation rail, floating
-pane, cards and pill tabs.
+Taken from a running instance with a small sample home: three lights, two locks, a thermostat
+and three scenes. The last one is the published container image run as it is; the others are
+that container with the frontend of this repository mounted into it.
 
-![The Home dashboard in the demo build: navigation rail, floating pane, open-page tabs, tinted cards](docs/screenshots/home.png)
+![Home in a running instance: a greeting, one sentence about the home and scene buttons](docs/screenshots/home-greeting.png)
+![Settings home: a large title, a search and a grid of sections with live counts](docs/screenshots/settings-home.png)
+![The System page](docs/screenshots/system-page.png)
+![The Devices list: breadcrumb, large title with a summary line, rows as cards](docs/screenshots/list-page-devices.png)
+![Search this page, with the matches highlighted](docs/screenshots/page-tools-find.png)
+![Export this page](docs/screenshots/page-tools-export.png)
+![A locked page](docs/screenshots/page-tools-lock.png)
+![A locked element with a dashed outline, and the Lock tool listing it](docs/screenshots/element-lock.png)
+![Two-key confirmation before a destructive action](docs/screenshots/two-key-confirmation.png)
+![Search inside a dialog](docs/screenshots/dialog-tools-find.png)
+![The pattern workbench beside a search field](docs/screenshots/pattern-workbench.png)
+![The appearance editor for one element](docs/screenshots/appearance-editor.png)
+![The automation history manager](docs/screenshots/automation-history-run.png)
+![The Base64 toolkit](docs/screenshots/base64-toolkit.png)
+![The Colour tab](docs/screenshots/colour-tool.png)
+![Notifications as a page](docs/screenshots/notifications-page.png)
+![The About page](docs/screenshots/about-page.png)
+![What changed, the changelog inside the interface](docs/screenshots/what-changed.png)
+![The published container image, build 34, run as it is: a page exported to CSV](docs/screenshots/published-34-export.png)
+
+Older captures, from the frontend's demo build, which runs the real interface against sample
+data:
+
 ![The bar of open pages with the New tab catalog, in the demo build](docs/screenshots/tabs.png)
 ![The accessibility tools panel in the demo build](docs/screenshots/accessibility.png)
 ![The same page at Most contrast and 125% text](docs/screenshots/contrast.png)

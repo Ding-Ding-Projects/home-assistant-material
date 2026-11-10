@@ -201,3 +201,20 @@ export const subscribeLocks = (
   callback: (store: LockStore) => void
 ): UnsubscribeFunc =>
   getStorage().subscribeChanges(LOCKS_STORAGE_KEY, () => callback(readLocks()));
+
+const ELEMENT_PREFIX = "element:";
+
+/** The key of the lock on one element of a page. */
+export const elementLockKey = (page: string, elementPath: string): string =>
+  `${ELEMENT_PREFIX}${pageLockKey(page).slice(5)}#${elementPath}`;
+
+/** The paths of the elements locked on a page. */
+export const lockedElementPaths = (
+  store: LockStore,
+  page: string
+): string[] => {
+  const prefix = `${ELEMENT_PREFIX}${pageLockKey(page).slice(5)}#`;
+  return store.locked
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => key.slice(prefix.length));
+};

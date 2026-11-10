@@ -5,6 +5,7 @@ import {
   mdiFormatPaint,
   mdiHistory,
   mdiLock,
+  mdiLockOutline,
   mdiMagnify,
   mdiPaletteSwatch,
   mdiRestore,
@@ -28,10 +29,19 @@ import {
 import type { AppearanceScope } from "../../common/appearance/element-appearance";
 import {
   composedParent,
+  elementPath,
   isAKind,
   isEmptyAppearance,
   kindLabel,
 } from "../../common/appearance/element-appearance";
+import { applyElementLocks } from "../../common/locks/element-lock-session";
+import {
+  elementLockKey,
+  readLocks,
+  subscribeLocks,
+  withLock,
+  writeLocks,
+} from "../../common/locks/element-locks";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
 import { searchMatcher } from "../../common/regex/filter";
@@ -193,10 +203,17 @@ export class HaAppearanceTools extends LitElement {
     window.addEventListener("click", this._scheduleScan, true);
     window.addEventListener("keyup", this._scheduleScan, true);
     this._interval = window.setInterval(() => {
-      if (document.visibilityState === "visible" && hasAppearanceChoices()) {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      if (hasAppearanceChoices()) {
         reapplyAppearance();
       }
+      if (this._hasElementLocks()) {
+        applyElementLocks();
+      }
     }, 2500);
+    this._unsubscribeLocks = subscribeLocks(() => applyElementLocks());
     this._scheduleScan();
   }
 
@@ -214,7 +231,27 @@ export class HaAppearanceTools extends LitElement {
     window.removeEventListener("keyup", this._scheduleScan, true);
     window.clearInterval(this._interval);
     window.clearTimeout(this._scanTimer);
+    this._unsubscribeLocks?.();
+    this._unsubscribeLocks = undefined;
     this._stopPicking();
+  }
+
+  private _unsubscribeLocks?: () => void;
+
+  private _hasElementLocks(): boolean {
+    return readLocks().locked.some((key) => key.startsWith("element:"));
+  }
+
+  /** Locks one element of the page that is open. */
+  private _lockElement(element: HTMLElement): void {
+    writeLocks(
+      withLock(
+        readLocks(),
+        elementLockKey(window.location.pathname, elementPath(element)),
+        true
+      )
+    );
+    this._announce(this._i18n?.localize("ui.page_tools.element_locked") ?? "");
   }
 
   /** The page layout an element is on, if it is on one. */
@@ -244,13 +281,17 @@ export class HaAppearanceTools extends LitElement {
   // Choices are applied shortly after anything that can change the page,
   // and once more a second later for content that loads late.
   private _scheduleScan = () => {
-    if (!hasAppearanceChoices()) {
+    if (!hasAppearanceChoices() && !this._hasElementLocks()) {
       return;
     }
     window.clearTimeout(this._scanTimer);
     this._scanTimer = window.setTimeout(() => {
+      applyElementLocks();
       reapplyAppearance();
-      this._scanTimer = window.setTimeout(reapplyAppearance, 1000);
+      this._scanTimer = window.setTimeout(() => {
+        applyElementLocks();
+        reapplyAppearance();
+      }, 1000);
     }, 200);
   };
 
@@ -482,6 +523,12 @@ export class HaAppearanceTools extends LitElement {
         run: () => showQuickBar(this, {}),
       }
     );
+    items.push({
+      id: "lock_element",
+      icon: mdiLockOutline,
+      label: this._i18n?.localize("ui.page_tools.menu_lock_element") ?? "",
+      run: () => this._lockElement(element),
+    });
     // The tools of the page the element is on, when it is on one.
     const page = this._pageOf(element);
     if (page && this._i18n) {

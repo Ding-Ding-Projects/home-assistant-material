@@ -53,16 +53,18 @@ exactly what has been seen working and where.
 - [x] Per-element appearance editor: fill layers, text, shape, accent, size; this element or
       every one of its kind; menu, shortcut and pick tool
 - [~] Context menus on every element: the menu, its filter and shortcuts are in, with export,
-      history and lock for the page the element is on; entries specific to what was clicked
-      are not
+      history and lock for the page the element is on, and a lock for the element itself;
+      entries specific to what was clicked are not
 - [~] Page tools in every page header: search this page, edit appearance, read aloud, history,
       export, lock and help, with a footer line on every page. On every page layout: settings
       pages, history, activity, media, to-do lists, calendar and the developer tools. Dashboards
       have the footer, the lock and the tools in the right-click menu, but no header cluster.
       Dialogs have their own row: search this dialog, edit appearance and lock; history and
       export are not offered inside a dialog
-- [~] Locks and the unlock ladder: a whole page can be locked, unlocked by a hold or a PIN, with
-      growing waits after wrong PINs. Locks on single elements are not built
+- [~] Locks and the unlock ladder: a whole page, a dialog or a single element can be locked,
+      unlocked by a hold or a PIN, with growing waits after wrong PINs. Unlocking elements with
+      the PIN is written but only the hold was exercised; the other rungs of the board's ladder
+      are not built
 - [x] Two-key confirmation for destructive actions: every question marked destructive (104
       places) asks for two keys and a slide
 - [~] Local version history: appearance, accessibility and open tabs, with undo, from every page
@@ -109,6 +111,9 @@ exactly what has been seen working and where.
 - [ ] The repository page for one automation and the repository strip in the editor
 - [ ] Remote settings and pull in the interface; a push to a real remote host checked
 - [ ] Repositories for scripts and scenes
+- [ ] Backups carry every automation repository with its history, and a restore brings them
+      back. Read only so far: neither exclude list names the folder. Not proven with a real
+      backup and restore
 - [ ] Automation list, editor and trace pages redrawn to their boards
 
 ## Pages redrawn to their boards

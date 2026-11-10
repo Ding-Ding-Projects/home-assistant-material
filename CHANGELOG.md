@@ -8,6 +8,10 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Locks on single elements: right-click anything and choose Lock this element. It stops taking
+  clicks and keys and gets a dashed outline. The Lock tool lists the locked elements of the
+  page and unlocks each one by a hold, or all of them with the PIN.
+- The README shows captures from a running instance.
 - Tools: a Colour tab that reads one colour in every notation, names the nearest named colour
   and says how well text reads on it.
 - Notifications as a page, with a search and dismissing one, the selected ones or all. The

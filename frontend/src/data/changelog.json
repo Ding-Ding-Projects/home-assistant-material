@@ -4,7 +4,14 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Tools: a Colour tab that reads one colour in every notation, names the nearest named colour and says how well text reads on it."
+          "text": "Locks on single elements: right-click anything and choose Lock this element. It stops taking clicks and keys and gets a dashed outline. The Lock tool lists the locked elements of the page and unlocks each one by a hold, or all of them with the PIN."
+        },
+        {
+          "text": "The README shows captures from a running instance."
+        },
+        {
+          "text": "Tools: a Colour tab that reads one colour in every notation, names the nearest named colour and says how well text reads on it.",
+          "commit": "42f1f4c0abe5"
         },
         {
           "text": "Notifications as a page, with a search and dismissing one, the selected ones or all. The notification drawer links to it.",

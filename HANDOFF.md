@@ -1,6 +1,34 @@
 # Handoff
 
-Written 9 November 2026 for whoever picks this up next.
+Written 9 November 2026 and updated 10 November 2026 for whoever picks this up next.
+
+## Stopped here on 10 November 2026
+
+Work stopped at a checkpoint, not at the end. Everything written so far is on `main`; nothing is
+left only on one machine. `ROADMAP.md` is the full list and most of it is still open: of the 153
+boards, about a dozen pages are drawn to their boards.
+
+Asked for and not done, in this order:
+
+1. Backups must carry every automation repository with its history, and a restore must bring
+   them back. Only read so far. The repositories are in `automation_repos/` inside the
+   configuration folder: a master `.git`, and one `.git` under `automations/<name>/`. Neither
+   exclude list names that folder or `.git`: `EXCLUDE_FROM_BACKUP` in
+   `core/homeassistant/components/backup/const.py`, and `HOMEASSISTANT_BACKUP_EXCLUDE` as used in
+   `supervisor/supervisor/homeassistant/module.py`. So they should be in a backup, but no backup
+   has been made and restored to prove it. Make one on a running instance, list the archive for
+   `automation_repos/**/.git`, restore it into an empty configuration folder, then compare
+   `git log` and run `git fsck` in every repository. Add a test, and say on the backup page that
+   the repositories are included.
+2. Run the newest published container image as it is and confirm what was added after build 38:
+   two-key confirmation, the System page, the large cards on Home, the Base64 and Colour tabs,
+   About, What changed, the list changes, the Assist button, Notifications as a page and locks
+   on single elements. These were seen working in the build 32 container with this repository's
+   frontend mounted, not in their own published images. Then move the tag in `compose.yaml`.
+3. Carry on down `ROADMAP.md`.
+
+The last piece added, locks on single elements, was type checked and seen working with a hold.
+Unlocking elements with the PIN is written but was not exercised.
 
 ## Where things stand
 

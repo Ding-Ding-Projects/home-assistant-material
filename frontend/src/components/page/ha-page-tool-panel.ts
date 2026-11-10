@@ -27,6 +27,10 @@ import {
   stopReadingAloud,
 } from "../../common/accessibility/accessibility-tools";
 import { reloadAppearance } from "../../common/appearance/appearance-session";
+import {
+  kindLabel,
+  resolveElementPath,
+} from "../../common/appearance/element-appearance";
 import { consume } from "../../common/decorators/consume";
 import { getStorage } from "../../common/decorators/storage";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -43,7 +47,9 @@ import {
 } from "../../common/history/local-history";
 import type { LockStore } from "../../common/locks/element-locks";
 import {
+  elementLockKey,
   isLocked,
+  lockedElementPaths,
   pageLockKey,
   PIN_PATTERN,
   readLocks,
@@ -122,7 +128,8 @@ export class HaPageToolPanel extends LitElement {
 
   @state() private _now = Date.now();
 
-  @state() private _holding = false;
+  /** What is being held to unlock: the page, or the key of an element. */
+  @state() private _holding?: string;
 
   @state() private _pinError = "";
 
@@ -910,6 +917,8 @@ export class HaPageToolPanel extends LitElement {
     const others = this._locks.locked.filter(
       (item) => item.startsWith("page:") && item !== key
     );
+    const page = window.location.pathname;
+    const elements = lockedElementPaths(this._locks, page);
     return html`
       <p class=${classMap({ state: true, locked })}>
         <ha-svg-icon
@@ -954,7 +963,11 @@ export class HaPageToolPanel extends LitElement {
               `
             : html`<button
                 type="button"
-                class=${classMap({ hold: true, holding: this._holding })}
+                class=${classMap({
+                  hold: true,
+                  holding: this._holding === "page",
+                })}
+                data-key="page"
                 @pointerdown=${this._holdStart}
                 @pointerup=${this._holdEnd}
                 @pointerleave=${this._holdEnd}
@@ -966,7 +979,7 @@ export class HaPageToolPanel extends LitElement {
                 <span class="fill"></span>
                 <span class="hold-label"
                   >${localize(
-                    this._holding
+                    this._holding === "page"
                       ? "ui.page_tools.lock_panel.holding"
                       : "ui.page_tools.lock_panel.hold"
                   )}</span
@@ -977,6 +990,69 @@ export class HaPageToolPanel extends LitElement {
         this._pinError
           ? html`<p class="error" role="alert">${this._pinError}</p>`
           : nothing
+      }
+
+      <h3>${localize("ui.page_tools.lock_panel.elements")}</h3>
+      ${
+        elements.length
+          ? html`<ul class="elements">
+                ${elements.map((path) => {
+                  const elementKey = elementLockKey(page, path);
+                  return html`<li>
+                    <span class="element-name"
+                      >${this._describeElement(path)}</span
+                    >
+                    ${
+                      hasPin
+                        ? nothing
+                        : html`<button
+                            type="button"
+                            class=${classMap({
+                              hold: true,
+                              small: true,
+                              holding: this._holding === elementKey,
+                            })}
+                            data-key=${elementKey}
+                            @pointerdown=${this._holdStart}
+                            @pointerup=${this._holdEnd}
+                            @pointerleave=${this._holdEnd}
+                            @pointercancel=${this._holdEnd}
+                            @keydown=${this._holdKeydown}
+                            @keyup=${this._holdKeyup}
+                            @blur=${this._holdEnd}
+                          >
+                            <span class="fill"></span>
+                            <span class="hold-label"
+                              >${localize("ui.page_tools.lock_panel.hold")}</span
+                            >
+                          </button>`
+                    }
+                  </li>`;
+                })}
+              </ul>
+              ${
+                hasPin
+                  ? html`<form
+                      class="pin-form"
+                      @submit=${this._unlockElementsWithPin}
+                    >
+                      <ha-input
+                        name="pin"
+                        type="password"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        .label=${localize("ui.page_tools.lock_panel.pin_label")}
+                        ?disabled=${wait > 0}
+                      ></ha-input>
+                      <ha-button type="submit" ?disabled=${wait > 0}>
+                        ${localize("ui.page_tools.lock_panel.unlock_elements")}
+                      </ha-button>
+                    </form>`
+                  : nothing
+              }`
+          : html`<p class="note">
+              ${localize("ui.page_tools.lock_panel.no_elements")}
+            </p>`
       }
 
       <h3>${localize("ui.page_tools.lock_panel.pin_title")}</h3>
@@ -1140,14 +1216,20 @@ export class HaPageToolPanel extends LitElement {
     this._status = this._i18n.localize("ui.page_tools.lock_panel.pin_removed");
   }
 
-  private _holdStart(): void {
-    if (this._holding) {
+  private _holdStart(ev: Event): void {
+    const key = (ev.currentTarget as HTMLElement).dataset.key;
+    if (this._holding || !key) {
       return;
     }
-    this._holding = true;
+    this._holding = key;
     this._holdTimer = window.setTimeout(() => {
-      this._holding = false;
-      this._unlockPage();
+      this._holding = undefined;
+      if (key === "page") {
+        this._unlockPage();
+      } else {
+        writeLocks(withLock(readLocks(), key, false));
+        this._status = this._i18n.localize("ui.page_tools.lock_panel.unlocked");
+      }
     }, UNLOCK_HOLD_MS);
   }
 
@@ -1155,15 +1237,43 @@ export class HaPageToolPanel extends LitElement {
     if (!this._holding) {
       return;
     }
-    this._holding = false;
+    this._holding = undefined;
     window.clearTimeout(this._holdTimer);
   }
 
   private _holdKeydown(ev: KeyboardEvent): void {
     if ((ev.key === "Enter" || ev.key === " ") && !ev.repeat) {
       ev.preventDefault();
-      this._holdStart();
+      this._holdStart(ev);
     }
+  }
+
+  /** What a locked element is, in a few words, for the list of locks. */
+  private _describeElement(path: string): string {
+    const element = resolveElementPath(path);
+    if (!element) {
+      return this._i18n.localize("ui.page_tools.lock_panel.element_gone");
+    }
+    const text = collectReadableText(element)[0]?.slice(0, 60);
+    const kind = kindLabel(element.localName);
+    return text ? `${kind}: ${text}` : kind;
+  }
+
+  private _unlockElementsWithPin(ev: SubmitEvent): void {
+    ev.preventDefault();
+    const form = ev.currentTarget as HTMLFormElement;
+    const pin = this._formValue(form, "pin");
+    this._clearForm(form);
+    if (!this._checkPin(pin)) {
+      return;
+    }
+    const page = window.location.pathname;
+    let locks = readLocks();
+    lockedElementPaths(locks, page).forEach((path) => {
+      locks = withLock(locks, elementLockKey(page, path), false);
+    });
+    writeLocks(locks);
+    this._status = this._i18n.localize("ui.page_tools.lock_panel.unlocked");
   }
 
   private _holdKeyup(ev: KeyboardEvent): void {
@@ -1488,6 +1598,28 @@ export class HaPageToolPanel extends LitElement {
       text-align: center;
       touch-action: none;
       user-select: none;
+    }
+    .hold.small {
+      flex: none;
+      min-height: var(--ha-space-9);
+      padding: 0 var(--ha-space-4);
+      font-size: var(--ha-font-size-s);
+    }
+    .elements li {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-lg);
+      background: var(--primary-background-color);
+    }
+    .element-name {
+      flex: 1;
+      min-width: 0;
+      font-size: var(--ha-font-size-s);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .hold .fill {
       position: absolute;
