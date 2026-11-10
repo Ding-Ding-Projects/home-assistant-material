@@ -740,6 +740,9 @@ export interface HomeSummaryCard extends LovelaceCardConfig {
   double_tap_action?: ActionConfig;
 }
 
+// The large cards on Home take no options: they show what the home has.
+export type HomeHeroCardConfig = LovelaceCardConfig;
+
 export interface HomeGreetingCardConfig extends LovelaceCardConfig {
   /** Leaves the scene buttons out. */
   hide_scenes?: boolean;

@@ -10862,6 +10862,23 @@
           }
         },
         "cards": {
+          "home_hero": {
+            "lights_on": "{count, plural,\n  one {# light}\n  other {# lights}\n}, {on} on",
+            "all_lights": "All lights in {room}",
+            "on": "On",
+            "off": "Off",
+            "brightness": "Brightness",
+            "cooler": "Cooler",
+            "warmer": "Warmer",
+            "target": "Target {temperature}, {mode}",
+            "all_locked": "All locked",
+            "not_locked": "{count, plural,\n  one {# door is not locked}\n  other {# doors are not locked}\n}",
+            "doors": "{count, plural,\n  one {# lock}\n  other {# locks}\n}",
+            "lock_all": "Lock all",
+            "pause": "Pause",
+            "play": "Play",
+            "next": "Next"
+          },
           "home_greeting": {
             "morning": "Good morning",
             "afternoon": "Good afternoon",

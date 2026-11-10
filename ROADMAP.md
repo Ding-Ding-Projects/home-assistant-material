@@ -120,8 +120,9 @@ long lists scroll instead of loading more.
 Each line is a canvas folder in `design/canvases/`. A page counts when the running product
 matches its board, checked side by side.
 
-- [~] `01-everyday`: Home has its greeting, a sentence about the home and scene buttons; its
-      large cards and rooms row are not built. Energy, the phone layout, dashboards and their
+- [~] `01-everyday`: Home has its greeting, a sentence about the home, scene buttons and the
+      large cards for a room's lights, the thermostat, the locks and what is playing; the power
+      card is not built and the rooms are still the existing area cards. Energy, the phone layout, dashboards and their
       editor, card picker, map, activity, history, media, lists, calendar, lights, climate and
       security are not redrawn (15 boards)
 - [ ] `02-everyday`: maintenance, embedded pages, profile, profile security, Assist, shortcuts,

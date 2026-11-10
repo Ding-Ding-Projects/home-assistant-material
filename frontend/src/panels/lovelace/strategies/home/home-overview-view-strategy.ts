@@ -723,9 +723,24 @@ export class HomeOverviewViewStrategy extends ReactiveElement {
           }
         : undefined;
 
+    // The large cards for the room with the most lights, the thermostat,
+    // the locks and what is playing. The card shows nothing in a home that
+    // has none of them.
+    const heroSection: LovelaceSectionConfig = {
+      type: "grid",
+      column_span: maxColumns,
+      cards: [
+        {
+          type: "home-hero",
+          grid_options: { columns: "full" },
+        },
+      ],
+    };
+
     const sections = (
       [
         emptyStateSection,
+        heroSection,
         mobileAlertsSection,
         favoritesSection,
         mobileSummarySection,
