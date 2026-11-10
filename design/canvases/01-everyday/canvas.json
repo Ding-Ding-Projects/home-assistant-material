@@ -1,0 +1,183 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Everyday app pages, part 1",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Home, Material Design 3 light",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Energy.dc.html": {
+      "x": 1540,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Energy with live chart, Material Design 3 dark",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Phone.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Phone home",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Dashboard.dc.html": {
+      "x": 3570,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "A dashboard of your own, with views",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DashboardEdit.dc.html": {
+      "x": 0,
+      "y": 1060,
+      "w": 1440,
+      "h": 1012,
+      "title": "Dashboard, edit mode with the card editor",
+      "expand": "fill",
+      "page": "all"
+    },
+    "CardPicker.dc.html": {
+      "x": 1540,
+      "y": 1060,
+      "w": 1200,
+      "h": 714,
+      "title": "Card picker",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Map.dc.html": {
+      "x": 2840,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "title": "Map, people and zones",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Activity.dc.html": {
+      "x": 4380,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "title": "Activity, the logbook",
+      "expand": "fill",
+      "page": "all"
+    },
+    "PageHistory.dc.html": {
+      "x": 0,
+      "y": 2232,
+      "w": 1440,
+      "h": 1006,
+      "title": "History, graphs and state timelines",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Media.dc.html": {
+      "x": 1540,
+      "y": 2232,
+      "w": 1440,
+      "h": 900,
+      "title": "Media browser and player",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Todo.dc.html": {
+      "x": 3080,
+      "y": 2232,
+      "w": 1440,
+      "h": 982,
+      "title": "To-do lists",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Calendar.dc.html": {
+      "x": 4620,
+      "y": 2232,
+      "w": 1440,
+      "h": 900,
+      "title": "Calendar, month view",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Lights.dc.html": {
+      "x": 0,
+      "y": 3398,
+      "w": 1440,
+      "h": 928,
+      "title": "Lights, every room at once",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ClimatePage.dc.html": {
+      "x": 1540,
+      "y": 3398,
+      "w": 1440,
+      "h": 900,
+      "title": "Climate, thermostat and rooms",
+      "expand": "fill",
+      "page": "all"
+    },
+    "SecurityPage.dc.html": {
+      "x": 3080,
+      "y": 3398,
+      "w": 1440,
+      "h": 900,
+      "title": "Security, alarm, locks and cameras",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Energy.dc.html",
+    "Phone.dc.html",
+    "Dashboard.dc.html",
+    "DashboardEdit.dc.html",
+    "CardPicker.dc.html",
+    "Map.dc.html",
+    "Activity.dc.html",
+    "PageHistory.dc.html",
+    "Media.dc.html",
+    "Todo.dc.html",
+    "Calendar.dc.html",
+    "Lights.dc.html",
+    "ClimatePage.dc.html",
+    "SecurityPage.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Everyday app pages, part 1. 15 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 6060,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

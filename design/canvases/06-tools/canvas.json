@@ -1,0 +1,173 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "System, About and Developer tools",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "Labs.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 558,
+      "title": "Labs",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AiIds.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 592,
+      "title": "AI and entity IDs",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Restart.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 752,
+      "title": "Restart options",
+      "expand": "fill",
+      "page": "all"
+    },
+    "About.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "About, provenance and updates from this fork",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ReleaseNotes.dc.html": {
+      "x": 0,
+      "y": 912,
+      "w": 1200,
+      "h": 640,
+      "title": "Provider text rendered, and its empty state",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Tokens.dc.html": {
+      "x": 1300,
+      "y": 912,
+      "w": 1440,
+      "h": 1000,
+      "title": "Material Design 3 tokens",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevYaml.dc.html": {
+      "x": 2840,
+      "y": 912,
+      "w": 1200,
+      "h": 716,
+      "title": "Developer tools, YAML",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevStates.dc.html": {
+      "x": 4140,
+      "y": 912,
+      "w": 1200,
+      "h": 692,
+      "title": "Developer tools, States",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevActions.dc.html": {
+      "x": 0,
+      "y": 2072,
+      "w": 1200,
+      "h": 836,
+      "title": "Developer tools, Actions",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevTemplate.dc.html": {
+      "x": 1300,
+      "y": 2072,
+      "w": 1200,
+      "h": 720,
+      "title": "Developer tools, Template",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevEvents.dc.html": {
+      "x": 2600,
+      "y": 2072,
+      "w": 1200,
+      "h": 786,
+      "title": "Developer tools, Events",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevStatistics.dc.html": {
+      "x": 3900,
+      "y": 2072,
+      "w": 1200,
+      "h": 708,
+      "title": "Developer tools, Statistics",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevAssist.dc.html": {
+      "x": 0,
+      "y": 3068,
+      "w": 1200,
+      "h": 608,
+      "title": "Developer tools, Assist",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DevDebug.dc.html": {
+      "x": 1300,
+      "y": 3068,
+      "w": 1200,
+      "h": 692,
+      "title": "Developer tools, Debug and action history",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "Labs.dc.html",
+    "AiIds.dc.html",
+    "Restart.dc.html",
+    "About.dc.html",
+    "ReleaseNotes.dc.html",
+    "Tokens.dc.html",
+    "DevYaml.dc.html",
+    "DevStates.dc.html",
+    "DevActions.dc.html",
+    "DevTemplate.dc.html",
+    "DevEvents.dc.html",
+    "DevStatistics.dc.html",
+    "DevAssist.dc.html",
+    "DevDebug.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "System, About and Developer tools. 14 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5340,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

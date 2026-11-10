@@ -1,0 +1,183 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Settings pages, part 2: scripts, areas, apps and voice",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "SceneEditor.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 824,
+      "title": "Scene editor",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Scripts.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 738,
+      "title": "Scripts",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ScriptEditor.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 956,
+      "title": "Script editor",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Blueprints.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 670,
+      "title": "Blueprints",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Areas.dc.html": {
+      "x": 0,
+      "y": 1116,
+      "w": 1200,
+      "h": 958,
+      "title": "Areas and floors",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Area.dc.html": {
+      "x": 1300,
+      "y": 1116,
+      "w": 1200,
+      "h": 660,
+      "title": "One area",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Labels.dc.html": {
+      "x": 2600,
+      "y": 1116,
+      "w": 1200,
+      "h": 662,
+      "title": "Labels",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Zones.dc.html": {
+      "x": 3900,
+      "y": 1116,
+      "w": 1200,
+      "h": 787,
+      "title": "Zones on the map",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Apps.dc.html": {
+      "x": 0,
+      "y": 2234,
+      "w": 1200,
+      "h": 674,
+      "title": "Apps, installed",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AppStore.dc.html": {
+      "x": 1300,
+      "y": 2234,
+      "w": 1200,
+      "h": 714,
+      "title": "App store",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AppPage.dc.html": {
+      "x": 2600,
+      "y": 2234,
+      "w": 1200,
+      "h": 796,
+      "title": "One app",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Dashboards.dc.html": {
+      "x": 3900,
+      "y": 2234,
+      "w": 1200,
+      "h": 798,
+      "title": "Dashboards and resources",
+      "expand": "fill",
+      "page": "all"
+    },
+    "VoiceAssistants.dc.html": {
+      "x": 0,
+      "y": 3192,
+      "w": 1200,
+      "h": 674,
+      "title": "Voice assistants",
+      "expand": "fill",
+      "page": "all"
+    },
+    "VoicePipeline.dc.html": {
+      "x": 1300,
+      "y": 3192,
+      "w": 1200,
+      "h": 788,
+      "title": "One voice assistant, its four stages",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Expose.dc.html": {
+      "x": 2600,
+      "y": 3192,
+      "w": 1200,
+      "h": 798,
+      "title": "Expose entities to assistants",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "SceneEditor.dc.html",
+    "Scripts.dc.html",
+    "ScriptEditor.dc.html",
+    "Blueprints.dc.html",
+    "Areas.dc.html",
+    "Area.dc.html",
+    "Labels.dc.html",
+    "Zones.dc.html",
+    "Apps.dc.html",
+    "AppStore.dc.html",
+    "AppPage.dc.html",
+    "Dashboards.dc.html",
+    "VoiceAssistants.dc.html",
+    "VoicePipeline.dc.html",
+    "Expose.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Settings pages, part 2: scripts, areas, apps and voice. 15 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5100,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

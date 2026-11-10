@@ -1,0 +1,183 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Settings pages, part 1: devices and automations",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "SettingsHome.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings, the home of settings",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Settings.dc.html": {
+      "x": 1540,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "app settings that explain themselves",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Cloud.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 1200,
+      "h": 848,
+      "title": "Home Assistant Cloud",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Integrations.dc.html": {
+      "x": 4380,
+      "y": 0,
+      "w": 1200,
+      "h": 926,
+      "title": "Integrations",
+      "expand": "fill",
+      "page": "all"
+    },
+    "IntegrationPage.dc.html": {
+      "x": 0,
+      "y": 1140,
+      "w": 1200,
+      "h": 680,
+      "title": "One integration",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AddIntegration.dc.html": {
+      "x": 1300,
+      "y": 1140,
+      "w": 1200,
+      "h": 572,
+      "title": "Add integration, pick, set up, assign areas",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Devices.dc.html": {
+      "x": 2600,
+      "y": 1140,
+      "w": 1200,
+      "h": 806,
+      "title": "Devices",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Device.dc.html": {
+      "x": 3900,
+      "y": 1140,
+      "w": 1200,
+      "h": 744,
+      "title": "One device",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Entities.dc.html": {
+      "x": 0,
+      "y": 2106,
+      "w": 1200,
+      "h": 790,
+      "title": "Entities",
+      "expand": "fill",
+      "page": "all"
+    },
+    "EntitySettings.dc.html": {
+      "x": 1300,
+      "y": 2106,
+      "w": 1200,
+      "h": 768,
+      "title": "Entity settings",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Helpers.dc.html": {
+      "x": 2600,
+      "y": 2106,
+      "w": 1200,
+      "h": 762,
+      "title": "Helpers",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Automations.dc.html": {
+      "x": 3900,
+      "y": 2106,
+      "w": 1200,
+      "h": 806,
+      "title": "Automations",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AutomationEditor.dc.html": {
+      "x": 0,
+      "y": 3072,
+      "w": 1200,
+      "h": 1108,
+      "title": "Automation editor",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AutomationTrace.dc.html": {
+      "x": 1300,
+      "y": 3072,
+      "w": 1200,
+      "h": 612,
+      "title": "Automation trace, one past run",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Scenes.dc.html": {
+      "x": 2600,
+      "y": 3072,
+      "w": 1200,
+      "h": 842,
+      "title": "Scenes",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "SettingsHome.dc.html",
+    "Settings.dc.html",
+    "Cloud.dc.html",
+    "Integrations.dc.html",
+    "IntegrationPage.dc.html",
+    "AddIntegration.dc.html",
+    "Devices.dc.html",
+    "Device.dc.html",
+    "Entities.dc.html",
+    "EntitySettings.dc.html",
+    "Helpers.dc.html",
+    "Automations.dc.html",
+    "AutomationEditor.dc.html",
+    "AutomationTrace.dc.html",
+    "Scenes.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Settings pages, part 1: devices and automations. 15 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5580,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

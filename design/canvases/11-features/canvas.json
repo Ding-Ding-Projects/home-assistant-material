@@ -1,0 +1,173 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Required features: records, history and built-in tools",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "History.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Local version history",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Export.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Export everything, every format",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Bulk.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Bulk actions on any list",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Changelog.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Changelog viewer with date range",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Docs.dc.html": {
+      "x": 0,
+      "y": 860,
+      "w": 1200,
+      "h": 700,
+      "title": "Offline help articles",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Notifications.dc.html": {
+      "x": 1300,
+      "y": 860,
+      "w": 1200,
+      "h": 700,
+      "title": "Notification centre and toasts",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Converter.dc.html": {
+      "x": 2600,
+      "y": 860,
+      "w": 1200,
+      "h": 620,
+      "title": "Universal local file converter",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Base64.dc.html": {
+      "x": 3900,
+      "y": 860,
+      "w": 1200,
+      "h": 620,
+      "title": "Base64 toolkit",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Ollama.dc.html": {
+      "x": 0,
+      "y": 1720,
+      "w": 1200,
+      "h": 610,
+      "title": "Local Ollama suite manager",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Handoff.dc.html": {
+      "x": 1300,
+      "y": 1720,
+      "w": 1200,
+      "h": 640,
+      "title": "External editor and publishing to a forge",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Minecraft.dc.html": {
+      "x": 2600,
+      "y": 1720,
+      "w": 1200,
+      "h": 780,
+      "title": "Minecraft server manager",
+      "expand": "fill",
+      "page": "all"
+    },
+    "WorldGen.dc.html": {
+      "x": 3900,
+      "y": 1720,
+      "w": 1200,
+      "h": 700,
+      "title": "Minecraft world generator",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Drawing.dc.html": {
+      "x": 0,
+      "y": 2660,
+      "w": 1200,
+      "h": 720,
+      "title": "Drawing and annotation board",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Progress.dc.html": {
+      "x": 1300,
+      "y": 2660,
+      "w": 1200,
+      "h": 640,
+      "title": "Progress where it started, recovery where it broke",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "History.dc.html",
+    "Export.dc.html",
+    "Bulk.dc.html",
+    "Changelog.dc.html",
+    "Docs.dc.html",
+    "Notifications.dc.html",
+    "Converter.dc.html",
+    "Base64.dc.html",
+    "Ollama.dc.html",
+    "Handoff.dc.html",
+    "Minecraft.dc.html",
+    "WorldGen.dc.html",
+    "Drawing.dc.html",
+    "Progress.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Required features: records, history and built-in tools. 14 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5100,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

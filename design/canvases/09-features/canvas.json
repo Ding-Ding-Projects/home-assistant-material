@@ -1,0 +1,163 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T04:00:00Z"
+  },
+  "title": "Required features: language, voice and Material Design 3 appearance",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "Language.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Language modes and playfulness",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Vocabulary.dc.html": {
+      "x": 1300,
+      "y": 0,
+      "w": 1200,
+      "h": 740,
+      "title": "Personal wording file and drop celebration",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Narration.dc.html": {
+      "x": 2600,
+      "y": 0,
+      "w": 1200,
+      "h": 780,
+      "title": "Spoken narrator and action sounds",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Modes.dc.html": {
+      "x": 3900,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "School mode and focus modes",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Schedule.dc.html": {
+      "x": 0,
+      "y": 940,
+      "w": 1200,
+      "h": 680,
+      "title": "Scheduled settings",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Identity.dc.html": {
+      "x": 1300,
+      "y": 940,
+      "w": 1200,
+      "h": 740,
+      "title": "Renaming the app and its logo",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DimSum.dc.html": {
+      "x": 2600,
+      "y": 940,
+      "w": 1200,
+      "h": 720,
+      "title": "Dim sum surprise",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AppearanceType.dc.html": {
+      "x": 3900,
+      "y": 940,
+      "w": 1200,
+      "h": 860,
+      "title": "Edit appearance, type at Word depth",
+      "expand": "fill",
+      "page": "all"
+    },
+    "AppearanceLayers.dc.html": {
+      "x": 0,
+      "y": 1960,
+      "w": 1200,
+      "h": 860,
+      "title": "Edit appearance, layered fills",
+      "expand": "fill",
+      "page": "all"
+    },
+    "ColorPicker.dc.html": {
+      "x": 1300,
+      "y": 1960,
+      "w": 1200,
+      "h": 740,
+      "title": "Infinite colour picker and translator",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Fonts.dc.html": {
+      "x": 2600,
+      "y": 1960,
+      "w": 1200,
+      "h": 720,
+      "title": "Fonts and type scale",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Accessibility.dc.html": {
+      "x": 3900,
+      "y": 1960,
+      "w": 1200,
+      "h": 760,
+      "title": "Accessibility tools everywhere",
+      "expand": "fill",
+      "page": "all"
+    },
+    "Panels.dc.html": {
+      "x": 0,
+      "y": 2980,
+      "w": 1200,
+      "h": 760,
+      "title": "Resizable panels and folding filters",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "Language.dc.html",
+    "Vocabulary.dc.html",
+    "Narration.dc.html",
+    "Modes.dc.html",
+    "Schedule.dc.html",
+    "Identity.dc.html",
+    "DimSum.dc.html",
+    "AppearanceType.dc.html",
+    "AppearanceLayers.dc.html",
+    "ColorPicker.dc.html",
+    "Fonts.dc.html",
+    "Accessibility.dc.html",
+    "Panels.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Required features: language, voice and Material Design 3 appearance. 13 boards, all on this one page.",
+      "kind": "title1",
+      "maxW": 5100,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}
