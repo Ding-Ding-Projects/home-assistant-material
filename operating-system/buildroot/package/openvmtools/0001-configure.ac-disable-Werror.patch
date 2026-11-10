@@ -1,0 +1,27 @@
+From ba2d0f452140fbf48593dadfd272e0cbdbd38e48 Mon Sep 17 00:00:00 2001
+From: Stefan Agner <stefan@agner.ch>
+Date: Tue, 5 Sep 2023 13:11:18 +0200
+Subject: [PATCH] configure.ac: disable -Werror
+
+Disable the mandatory flag -Werror in configure.ac.
+
+Signed-off-by: Karoly Kasza <kaszak@gmail.com>
+[rebased against stable-12.3.0]
+Signed-off-by: Stefan Agner <stefan@agner.ch>
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index fcc3050..fd8e18d 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1403,7 +1403,7 @@ AC_C_VOLATILE
+ 
+ ### General flags / actions
+ CFLAGS="$CFLAGS -Wall"
+-CFLAGS="$CFLAGS -Werror"
++# CFLAGS="$CFLAGS -Werror"
+ 
+ # -Wno-unknown-pragmas is due to gcc not understanding '#pragma ident'
+ # in Xlib.h on OpenSolaris.
