@@ -1,6 +1,5 @@
 import { mdiFilterVariant, mdiPlus } from "@mdi/js";
 import type { IFuseOptions } from "fuse.js";
-import Fuse from "fuse.js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -8,6 +7,7 @@ import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
+import { fuseSearch } from "../../../resources/fuseMultiTerm";
 import { consume } from "../../../common/decorators/consume";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
@@ -311,10 +311,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           minMatchCharLength: Math.min(filter.length, 2),
           threshold: 0.2,
         };
-        const fuse = new Fuse(allEntries, options);
-        filteredConfigEntries = fuse
-          .search(filter)
-          .map((result) => result.item);
+        filteredConfigEntries = fuseSearch(allEntries, filter, options);
       } else {
         filteredConfigEntries = allEntries;
       }
@@ -396,8 +393,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           threshold: 0.2,
           ignoreDiacritics: true,
         };
-        const fuse = new Fuse(inProgress, options);
-        filteredEntries = fuse.search(filter).map((result) => result.item);
+        filteredEntries = fuseSearch(inProgress, filter, options);
       } else {
         filteredEntries = inProgress;
       }

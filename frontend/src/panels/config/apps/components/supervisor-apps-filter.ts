@@ -1,5 +1,5 @@
 import type { IFuseOptions } from "fuse.js";
-import Fuse from "fuse.js";
+import { fuseSearch } from "../../../../resources/fuseMultiTerm";
 import type { StoreAddon } from "../../../../data/supervisor/store";
 
 export function filterAndSort(addons: StoreAddon[], filter: string) {
@@ -10,6 +10,5 @@ export function filterAndSort(addons: StoreAddon[], filter: string) {
     threshold: 0.2,
     ignoreDiacritics: true,
   };
-  const fuse = new Fuse(addons, options);
-  return fuse.search(filter).map((result) => result.item);
+  return fuseSearch(addons, filter, options);
 }

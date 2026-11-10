@@ -10,6 +10,7 @@ import type {
 } from "echarts/types/dist/shared";
 import { mdiFormatTextVariant, mdiGoogleCirclesGroup } from "@mdi/js";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../../common/regex/filter";
 import { consume } from "../../common/decorators/consume";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
 import type { LocalizeFunc } from "../../common/translations/localize";
@@ -219,10 +220,10 @@ export class HaNetworkGraph extends LitElement {
       if (!filter) {
         this._highlightedNodes = undefined;
       } else {
-        const lowerFilter = filter.toLowerCase();
+        const matches = searchMatcher(filter);
         const matchingIds = new Set<string>();
         for (const node of this.data.nodes) {
-          if (this._nodeMatchesFilter(node, lowerFilter)) {
+          if (this._nodeMatchesFilter(node, matches)) {
             matchingIds.add(node.id);
           }
         }
@@ -237,25 +238,15 @@ export class HaNetworkGraph extends LitElement {
     }
   }
 
-  private _nodeMatchesFilter(node: NetworkNode, lowerFilter: string): boolean {
-    if (node.name?.toLowerCase().includes(lowerFilter)) {
-      return true;
-    }
-    if (node.context?.toLowerCase().includes(lowerFilter)) {
-      return true;
-    }
-    if (node.id?.toLowerCase().includes(lowerFilter)) {
-      return true;
-    }
-    if (this.searchableAttributes) {
-      const extraValues = this.searchableAttributes(node.id);
-      for (const value of extraValues) {
-        if (value?.toLowerCase().includes(lowerFilter)) {
-          return true;
-        }
-      }
-    }
-    return false;
+  private _nodeMatchesFilter(
+    node: NetworkNode,
+    matches: ReturnType<typeof searchMatcher>
+  ): boolean {
+    return (
+      matches(node.name, node.context, node.id) ||
+      (!!this.searchableAttributes &&
+        matches(...this.searchableAttributes(node.id)))
+    );
   }
 
   private _getSeries = memoizeOne(

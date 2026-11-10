@@ -4,6 +4,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../../../../../common/regex/filter";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-dialog";
@@ -214,16 +215,15 @@ class DialogZHAAddGroupMembers
       let deviceEndpoints = availableDeviceEndpoints;
 
       if (normalizedFilter) {
+        const matches = searchMatcher(filter);
         deviceEndpoints = deviceEndpoints.filter((deviceEndpoint) =>
-          [
+          matches(
             this._deviceEndpointName(deviceEndpoint),
             this._deviceEndpointDetails(deviceEndpoint),
             deviceEndpoint.device.ieee,
             deviceEndpoint.device.manufacturer,
-            deviceEndpoint.device.model,
-          ]
-            .filter(Boolean)
-            .some((value) => value!.toLowerCase().includes(normalizedFilter))
+            deviceEndpoint.device.model
+          )
         );
       }
 

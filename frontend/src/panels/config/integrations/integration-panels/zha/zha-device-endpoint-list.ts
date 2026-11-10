@@ -3,6 +3,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { repeat } from "lit/directives/repeat";
+import { searchMatcher } from "../../../../../common/regex/filter";
 import { consume } from "../../../../../common/decorators/consume";
 import type {
   HASSDomCurrentTargetEvent,
@@ -237,16 +238,15 @@ export class ZHADeviceEndpointList extends LitElement {
       return deviceEndpoints;
     }
 
+    const matches = searchMatcher(this._filter);
     return deviceEndpoints.filter((deviceEndpoint) =>
-      [
+      matches(
         deviceEndpoint.name,
         this._deviceEndpointDetails(deviceEndpoint),
         deviceEndpoint.ieee,
         deviceEndpoint.manufacturer,
-        deviceEndpoint.model,
-      ]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(normalizedFilter))
+        deviceEndpoint.model
+      )
     );
   }
 

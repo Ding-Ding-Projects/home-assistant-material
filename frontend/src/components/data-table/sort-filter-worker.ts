@@ -2,6 +2,7 @@ import { expose } from "comlink";
 import type { FuseOptionKey, IFuseOptions } from "fuse.js";
 import Fuse from "fuse.js";
 import memoizeOne from "memoize-one";
+import { matchesAny, regexQuery } from "../../common/regex/filter";
 import { ipCompare, stringCompare } from "../../common/string/compare";
 import { stripDiacritics } from "../../common/string/strip-diacritics";
 import type {
@@ -51,6 +52,36 @@ const getSearchableValue = (
   }
 
   return stripDiacritics(String(value).toLowerCase());
+};
+
+/** The value of a filterable column as written, for regular expressions. */
+const getRawValue = (
+  row: DataTableRowData,
+  { key, filterKey }: FilterKeyConfig
+): string => {
+  let value = row[key];
+
+  if (
+    filterKey &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    value = value[filterKey];
+  }
+
+  if (value == null) {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item != null && typeof item !== "object")
+      .map(String)
+      .join(" ");
+  }
+
+  return typeof value === "object" ? "" : String(value);
 };
 
 /** Filters data using exact substring matching (all terms must match). */
@@ -151,6 +182,22 @@ const filterData = (
 
   if (!filterKeys.length) {
     return data;
+  }
+
+  // A filter written as /pattern/flags is a regular expression. It is tested
+  // against each filterable column as written; an unusable pattern matches
+  // nothing rather than falling back to plain text.
+  const pattern = regexQuery(filter);
+  if (pattern) {
+    if (pattern.error) {
+      return [];
+    }
+    return data.filter((row) =>
+      matchesAny(
+        pattern,
+        filterKeys.map((config) => getRawValue(row, config))
+      )
+    );
   }
 
   const terms = normalizedFilter.split(/\s+/);

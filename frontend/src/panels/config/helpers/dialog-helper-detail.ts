@@ -3,6 +3,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../../../common/regex/filter";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { dynamicElement } from "../../../common/dom/dynamic-element-directive";
 import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
@@ -359,13 +360,10 @@ export class DialogHelperDetail extends DirtyStateProviderMixin<
       return items
         .filter(([domain, label]) => {
           if (filter) {
-            const lowerFilter = filter.toLowerCase();
-            return (
-              label.toLowerCase().includes(lowerFilter) ||
-              domain.toLowerCase().includes(lowerFilter) ||
-              (predefinedHelpers[domain as HelperDomain]?.alias || []).some(
-                (alias) => alias.toLowerCase().includes(lowerFilter)
-              )
+            return searchMatcher(filter)(
+              label,
+              domain,
+              ...(predefinedHelpers[domain as HelperDomain]?.alias || [])
             );
           }
           return true;

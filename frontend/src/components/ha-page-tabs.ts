@@ -25,6 +25,7 @@ import {
 import { storage } from "../common/decorators/storage";
 import { fireEvent } from "../common/dom/fire_event";
 import { navigate } from "../common/navigate";
+import { searchMatcher } from "../common/regex/filter";
 import {
   FIXED_PANELS,
   getDefaultPanelUrlPath,
@@ -37,6 +38,8 @@ import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant, PanelInfo } from "../types";
 import { isMac } from "../util/is_mac";
 import "./ha-icon";
+import "./input/ha-input-search";
+import type { HaInputSearch } from "./input/ha-input-search";
 import "./ha-svg-icon";
 
 const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
@@ -83,7 +86,7 @@ export class HaPageTabs extends LitElement {
 
   @query("#catalog") private _catalog?: HTMLElement;
 
-  @query("#catalog-search") private _search?: HTMLInputElement;
+  @query("#catalog-search") private _search?: HaInputSearch;
 
   @queryAll(".tab-button") private _tabButtons?: NodeListOf<HTMLButtonElement>;
 
@@ -147,10 +150,8 @@ export class HaPageTabs extends LitElement {
     const closed = new Set(this._closed);
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
     const current = this.hass.panelUrl;
-    const filter = this._filter.trim().toLowerCase();
-    const listed = filter
-      ? tabs.filter((tab) => tab.title.toLowerCase().includes(filter))
-      : tabs;
+    const matches = searchMatcher(this._filter);
+    const listed = tabs.filter((tab) => matches(tab.title, tab.urlPath));
 
     return html`
       <div
@@ -215,18 +216,15 @@ export class HaPageTabs extends LitElement {
             ${this.hass.localize("ui.page_tabs.open_every_tab")}
           </button>
         </div>
-        <label class="search">
-          <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
-          <input
-            id="catalog-search"
-            type="search"
-            autocomplete="off"
-            .value=${this._filter}
-            placeholder=${this.hass.localize("ui.page_tabs.search")}
-            aria-label=${this.hass.localize("ui.page_tabs.search")}
-            @input=${this._filterChanged}
-          />
-        </label>
+        <ha-input-search
+          id="catalog-search"
+          appearance="outlined"
+          .value=${this._filter}
+          .placeholder=${this.hass.localize("ui.page_tabs.search")}
+          .accessibleLabel=${this.hass.localize("ui.page_tabs.search")}
+          .patternSamples=${tabs.map((tab) => tab.title)}
+          @input=${this._filterChanged}
+        ></ha-input-search>
         <div class="catalog-list" role="list">
           ${
             listed.length
@@ -352,7 +350,7 @@ export class HaPageTabs extends LitElement {
   }
 
   private _filterChanged(ev: InputEvent) {
-    this._filter = (ev.target as HTMLInputElement).value;
+    this._filter = (ev.target as HaInputSearch).value ?? "";
   }
 
   private _catalogToggled(ev: ToggleEvent) {
@@ -596,28 +594,9 @@ export class HaPageTabs extends LitElement {
       opacity: 0.5;
       cursor: default;
     }
-    .search {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-3);
-      height: var(--ha-space-12);
-      padding: 0 var(--ha-space-4);
-      border-radius: var(--ha-border-radius-pill);
-      background-color: var(--card-background-color);
-      color: var(--secondary-text-color);
-    }
-    .search input {
-      flex: 1;
-      min-width: 0;
-      border: none;
-      outline: none;
-      background: transparent;
-      color: var(--primary-text-color);
-      font: inherit;
-      font-size: var(--ha-font-size-l);
-    }
-    .search:focus-within {
-      outline: 2px solid var(--primary-color);
+    #catalog-search {
+      --ha-input-search-height: var(--ha-space-12);
+      --ha-input-search-border-radius: var(--ha-border-radius-pill);
     }
     .catalog-list {
       display: flex;

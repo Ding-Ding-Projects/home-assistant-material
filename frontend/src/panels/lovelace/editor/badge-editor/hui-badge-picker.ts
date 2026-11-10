@@ -1,5 +1,4 @@
 import type { IFuseOptions } from "fuse.js";
-import Fuse from "fuse.js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -7,6 +6,7 @@ import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { until } from "lit/directives/until";
 import memoizeOne from "memoize-one";
+import { fuseSearch } from "../../../../resources/fuseMultiTerm";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { stringCompare } from "../../../../common/string/compare";
 import "../../../../components/ha-spinner";
@@ -96,8 +96,7 @@ export class HuiBadgePicker extends LitElement {
         ignoreDiacritics: true,
         ignoreLocation: true,
       };
-      const fuse = new Fuse(badges, options);
-      badges = fuse.search(filter).map((result) => result.item);
+      badges = fuseSearch(badges, filter, options);
       return badgeElements.filter((badgeElement: BadgeElement) =>
         badges.includes(badgeElement.badge)
       );

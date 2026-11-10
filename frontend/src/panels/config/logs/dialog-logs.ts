@@ -2,6 +2,7 @@ import type { ContextType } from "@lit/context";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
+import { searchMatcher } from "../../../common/regex/filter";
 import { consume } from "../../../common/decorators/consume";
 import "../../../components/ha-alert";
 import "../../../components/ha-dialog";
@@ -98,7 +99,7 @@ class LogsDialog extends DialogMixin<LogsDialogParams>(LitElement) {
 
     if (
       this._filter === filter &&
-      !logs.toLowerCase().includes(filter.toLowerCase())
+      !logs.split("\n").some((line) => searchMatcher(filter)(line))
     ) {
       this._unmatchedFilter = filter;
       this._filter = "";

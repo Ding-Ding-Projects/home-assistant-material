@@ -14,6 +14,7 @@ import {
   state as litState,
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { regexRanges, searchMatcher } from "../common/regex/filter";
 import "./ha-button";
 import "./ha-svg-icon";
 
@@ -379,10 +380,10 @@ export class HaAnsiToHtml extends LitElement {
 
       const lineList = Array.from(lines);
 
-      const matches = lineList.map(
-        (line) =>
-          line.textContent?.toLowerCase().includes(filter.toLowerCase()) ??
-          false
+      // Plain text, or a regular expression written as /pattern/flags.
+      const lineMatches = searchMatcher(filter);
+      const matches = lineList.map((line) =>
+        line.textContent ? lineMatches(line.textContent) : false
       );
 
       // A line without a timestamp continues the entry above it, such as a
@@ -449,20 +450,23 @@ export class HaAnsiToHtml extends LitElement {
           if (CSS.highlights && line.firstChild !== null && line.textContent) {
             const spansOfLine = line.querySelectorAll("span");
             spansOfLine.forEach((span) => {
-              const text = span.textContent.toLowerCase();
-              const indices: number[] = [];
-              let startPos = 0;
-              while (startPos < text.length) {
-                const index = text.indexOf(filter.toLowerCase(), startPos);
-                if (index === -1) break;
-                indices.push(index);
-                startPos = index + filter.length;
+              let spans = regexRanges(filter, span.textContent);
+              if (!spans) {
+                spans = [];
+                const text = span.textContent.toLowerCase();
+                let startPos = 0;
+                while (startPos < text.length) {
+                  const index = text.indexOf(filter.toLowerCase(), startPos);
+                  if (index === -1) break;
+                  spans.push([index, index + filter.length]);
+                  startPos = index + filter.length;
+                }
               }
 
-              indices.forEach((index) => {
+              spans.forEach(([start, end]) => {
                 const range = new Range();
-                range.setStart(span.firstChild!, index);
-                range.setEnd(span.firstChild!, index + filter.length);
+                range.setStart(span.firstChild!, start);
+                range.setEnd(span.firstChild!, end);
                 highlightRanges.push(range);
               });
             });

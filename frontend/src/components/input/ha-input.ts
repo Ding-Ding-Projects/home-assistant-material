@@ -317,6 +317,7 @@ export class HaInput extends WaInputMixin(LitElement) {
           ${this.renderStartDefault()}
         </slot>
         <slot name="end" slot="end"> ${this.renderEndDefault()} </slot>
+        ${this.renderEndFixed()}
         <slot name="clear-button" slot="clear-button">
           <ha-icon-button
             @click=${this._handleClearClick}
@@ -362,6 +363,14 @@ export class HaInput extends WaInputMixin(LitElement) {
   }
 
   protected renderEndDefault(): TemplateResult | typeof nothing {
+    return nothing;
+  }
+
+  /**
+   * Content after the input that stays when the `end` slot is filled. Give
+   * the returned element `slot="end"`.
+   */
+  protected renderEndFixed(): TemplateResult | typeof nothing {
     return nothing;
   }
 

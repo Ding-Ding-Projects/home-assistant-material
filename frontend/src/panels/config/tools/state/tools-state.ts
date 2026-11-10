@@ -10,6 +10,7 @@ import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { regexQuery } from "../../../../common/regex/filter";
 import { consume } from "../../../../common/decorators/consume";
 import { formatDateTimeWithSeconds } from "../../../../common/datetime/format_date_time";
 import { storage } from "../../../../common/decorators/storage";
@@ -498,27 +499,32 @@ class HaPanelDevState extends LitElement {
     devices: HomeAssistantRegistries["devices"],
     areas: HomeAssistantRegistries["areas"]
   ) {
-    const entityFilterRegExp =
-      entityFilter &&
-      RegExp(escapeRegExp(entityFilter).replace(/\\\*/g, ".*"), "i");
+    // Plain text with * as a wildcard, or a regular expression written as
+    // /pattern/flags.
+    const toTest = (filter: string) =>
+      filter &&
+      (regexQuery(filter) ??
+        RegExp(escapeRegExp(filter).replace(/\\\*/g, ".*"), "i"));
 
-    const stateFilterRegExp =
-      stateFilter &&
-      RegExp(escapeRegExp(stateFilter).replace(/\\\*/g, ".*"), "i");
+    const entityFilterRegExp = toTest(entityFilter);
 
-    const deviceFilterRegExp =
-      deviceFilter &&
-      RegExp(escapeRegExp(deviceFilter).replace(/\\\*/g, ".*"), "i");
+    const stateFilterRegExp = toTest(stateFilter);
 
-    const areaFilterRegExp =
-      areaFilter &&
-      RegExp(escapeRegExp(areaFilter).replace(/\\\*/g, ".*"), "i");
+    const deviceFilterRegExp = toTest(deviceFilter);
+
+    const areaFilterRegExp = toTest(areaFilter);
 
     let keyFilterRegExp;
     let valueFilterRegExp;
     let multiMode = false;
 
-    if (attributeFilter) {
+    const attributePattern = regexQuery(attributeFilter);
+    if (attributePattern) {
+      // A regular expression is tested against each attribute's name and
+      // against its value; the name:value form is for plain text only.
+      keyFilterRegExp = attributePattern;
+      valueFilterRegExp = attributePattern;
+    } else if (attributeFilter) {
       const colonIndex = attributeFilter.indexOf(":");
       multiMode = colonIndex !== -1;
 

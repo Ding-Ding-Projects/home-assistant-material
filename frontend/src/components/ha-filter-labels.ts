@@ -7,6 +7,7 @@ import { customElement, property, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
+import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
 import { consume } from "../common/decorators/consume";
 import {
   FilterPanelController,
@@ -65,12 +66,7 @@ export class HaFilterLabels extends LitElement {
       _value
     ) =>
       labels
-        .filter(
-          (label) =>
-            !filter ||
-            label.name.toLowerCase().includes(filter) ||
-            label.label_id.toLowerCase().includes(filter)
-        )
+        .filter((label) => searchMatcher(filter)(label.name, label.label_id))
         .sort((a, b) =>
           stringCompare(a.name || a.label_id, b.name || b.label_id, language)
         )
@@ -161,7 +157,7 @@ export class HaFilterLabels extends LitElement {
 
   private _handleSearchChange(ev: InputEvent) {
     const value = (ev.target as HaInputSearch).value ?? "";
-    this._filter = value.toLowerCase();
+    this._filter = normalizeSearchText(value);
   }
 
   private async _labelSelected(ev: CustomEvent<SelectedDetail<Set<number>>>) {

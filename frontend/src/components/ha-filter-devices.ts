@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../common/regex/filter";
 import { consume } from "../common/decorators/consume";
 import {
   FilterPanelController,
@@ -199,10 +200,7 @@ export class HaFilterDevices extends LitElement {
           interactive: true,
           name: computeDeviceNameDisplay(device, localize),
         }))
-        .filter(
-          ({ name }) =>
-            !filter || name.toLowerCase().includes(filter.toLowerCase())
-        )
+        .filter(({ name }) => searchMatcher(filter)(name))
         .sort((a, b) => stringCompare(a.name, b.name, language));
     }
   );

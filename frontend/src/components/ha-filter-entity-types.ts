@@ -12,6 +12,7 @@ import { classMap } from "lit/directives/class-map";
 import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
+import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
 import { consume } from "../common/decorators/consume";
 import {
   FilterPanelController,
@@ -288,11 +289,7 @@ export class HaFilterEntityTypes extends LitElement {
     slug: string,
     name: string
   ): boolean {
-    return (
-      !filter ||
-      slug.toLowerCase().includes(filter) ||
-      name.toLowerCase().includes(filter)
-    );
+    return searchMatcher(filter)(slug, name);
   }
 
   private _isSelected(row: TypeRow): boolean {
@@ -417,7 +414,7 @@ export class HaFilterEntityTypes extends LitElement {
 
   private _handleSearchChange(ev: InputEvent) {
     const target = ev.target as HaInputSearch;
-    this._filter = (target.value ?? "").toLowerCase();
+    this._filter = normalizeSearchText(target.value);
   }
 
   static get styles(): CSSResultGroup {

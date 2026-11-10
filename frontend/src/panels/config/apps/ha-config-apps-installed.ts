@@ -11,6 +11,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../../../common/regex/filter";
 import { navigate } from "../../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../../common/string/compare";
 import "../../../components/ha-button";
@@ -176,12 +177,9 @@ export class HaConfigAppsInstalled extends LitElement {
     (addons: HassioAddonInfo[], filter?: string) => {
       let filteredAddons = addons;
       if (filter) {
-        const lowerCaseFilter = filter.toLowerCase();
-        filteredAddons = addons.filter(
-          (addon) =>
-            addon.name.toLowerCase().includes(lowerCaseFilter) ||
-            addon.description.toLowerCase().includes(lowerCaseFilter) ||
-            addon.slug.toLowerCase().includes(lowerCaseFilter)
+        const matches = searchMatcher(filter);
+        filteredAddons = addons.filter((addon) =>
+          matches(addon.name, addon.description, addon.slug)
         );
       }
       return filteredAddons.sort((a, b) =>

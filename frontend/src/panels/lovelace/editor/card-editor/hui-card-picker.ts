@@ -1,6 +1,5 @@
 import { mdiSort, mdiStar, mdiStarOutline } from "@mdi/js";
 import type { IFuseOptions } from "fuse.js";
-import Fuse from "fuse.js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -9,6 +8,7 @@ import { createRef, ref } from "lit/directives/ref";
 import { repeat } from "lit/directives/repeat";
 import { until } from "lit/directives/until";
 import memoizeOne from "memoize-one";
+import { fuseSearch } from "../../../../resources/fuseMultiTerm";
 import { storage } from "../../../../common/decorators/storage";
 import { PreserveScrollPositionController } from "../../../../common/controllers/preserve-scroll-position-controller";
 import { fireEvent } from "../../../../common/dom/fire_event";
@@ -137,8 +137,7 @@ export class HuiCardPicker extends LitElement {
         ignoreDiacritics: true,
         ignoreLocation: true,
       };
-      const fuse = new Fuse(cards, options);
-      cards = fuse.search(filter).map((result) => result.item);
+      cards = fuseSearch(cards, filter, options);
       return cardElements.filter(
         (cardElement: CardElement) =>
           cards.includes(cardElement.card) && cardElement.card.type !== "manual"

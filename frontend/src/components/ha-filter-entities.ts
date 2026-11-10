@@ -6,6 +6,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { createRef, ref } from "lit/directives/ref";
 import memoizeOne from "memoize-one";
+import { normalizeSearchText, searchMatcher } from "../common/regex/filter";
 import { consume } from "../common/decorators/consume";
 import {
   FilterPanelController,
@@ -190,7 +191,7 @@ export class HaFilterEntities extends LitElement {
 
   private _handleSearchChange(ev: InputEvent) {
     const target = ev.target as HaInputSearch;
-    this._filter = (target.value ?? "").toLowerCase();
+    this._filter = normalizeSearchText(target.value);
   }
 
   private _entities = memoizeOne(
@@ -208,11 +209,8 @@ export class HaFilterEntities extends LitElement {
           stateObj,
           name: formatters.formatEntityName(stateObj),
         }))
-        .filter(
-          (item) =>
-            !filter ||
-            item.stateObj.entity_id.toLowerCase().includes(filter) ||
-            item.name.toLowerCase().includes(filter)
+        .filter((item) =>
+          searchMatcher(filter)(item.stateObj.entity_id, item.name)
         )
         .sort((a, b) => stringCompare(a.name, b.name, language))
   );

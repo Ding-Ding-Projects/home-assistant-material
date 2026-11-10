@@ -42,6 +42,13 @@ observer images are unchanged upstream images.
 | `frontend/src/components/ha-page-tabs.ts` | Search button (opens the command search) and accessibility button at the end of the bar. |
 | `frontend/src/layouts/home-assistant-main.ts` | Applies the accessibility choices, hosts the panel, handles Alt+A, and keeps the rail at the top of the window. |
 | `frontend/src/components/ha-sidebar.ts` | The rail grows with the text size. |
+| `frontend/src/common/regex/` (new) | Search queries that can be plain text or `/pattern/flags`: parsing, compiling with limits, static risk screening, the explainer, code generation, the worker used by the workbench, the helpers lists filter with (`filter.ts`) and the hand-written catalogue of search fields (`search-surfaces.ts`). |
+| `frontend/src/components/regex/ha-regex-workbench.ts` (new) | The pattern workbench panel. |
+| `frontend/src/components/input/ha-input.ts`, `ha-input-search.ts` | A hook for fixed content after the input; the search field's workbench button, loaded on first use. |
+| `frontend/src/components/data-table/sort-filter-worker.ts`, `frontend/src/resources/fuseMultiTerm.ts` | Table filtering and fuzzy search accept `/pattern/flags`. `fuseSearch` replaces direct Fuse.js calls in the pickers and add dialogs. |
+| `frontend/src/components/ha-filter-*.ts`, `ha-ansi-to-html.ts`, `chart/ha-network-graph.ts`, `media-player/ha-media-player-browse.ts`, `ha-page-tabs.ts` | Filter panes, log lines (with highlighting), network maps, media folders and the New tab catalog filter through the shared matcher. |
+| `frontend/src/panels/config/` (apps, helpers, integrations, zha, logs, tools/state, voice-assistants, dashboard), `frontend/src/panels/lovelace/editor/` (badge and card pickers) | Their own filters go through the shared matcher or `fuseSearch`. |
+| `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 
 ## Build-time stamping (not committed)
 

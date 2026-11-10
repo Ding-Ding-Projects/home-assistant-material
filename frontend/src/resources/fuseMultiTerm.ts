@@ -5,6 +5,7 @@ import type {
   IFuseOptions,
 } from "fuse.js";
 import Fuse from "fuse.js";
+import { filterByRegexQuery } from "../common/regex/filter";
 
 export interface FuseWeightedKey {
   name: string | string[];
@@ -20,6 +21,65 @@ const DEFAULT_OPTIONS: IFuseOptions<any> = {
 };
 
 const DEFAULT_MIN_CHAR_LENGTH = 2;
+
+interface SearchKeyLike {
+  name?: string | string[];
+  path?: string[];
+  getFn?: ((obj: any) => readonly string[] | string | null | undefined) | null;
+}
+
+const readPath = (item: unknown, path: string[]): unknown[] => {
+  let current: unknown[] = [item];
+  for (const part of path) {
+    const next: unknown[] = [];
+    for (const value of current) {
+      if (Array.isArray(value)) {
+        value.forEach((entry) => {
+          if (entry != null && typeof entry === "object") {
+            next.push(entry[part]);
+          }
+        });
+      } else if (value != null && typeof value === "object") {
+        next.push((value as Record<string, unknown>)[part]);
+      }
+    }
+    current = next;
+  }
+  return current.flat();
+};
+
+/** The text of an item under the given search keys, as written. */
+const valuesForKeys = <T>(
+  item: T,
+  keys: readonly (string | string[] | SearchKeyLike)[]
+): string[] => {
+  if (typeof item === "string") {
+    return [item];
+  }
+  const values: string[] = [];
+  keys.forEach((key) => {
+    let found: unknown[];
+    if (typeof key === "string") {
+      found = readPath(item, key.split("."));
+    } else if (Array.isArray(key)) {
+      found = readPath(item, key);
+    } else if (key.getFn) {
+      found = [key.getFn(item)].flat();
+    } else if (key.path) {
+      found = readPath(item, key.path);
+    } else if (typeof key.name === "string") {
+      found = readPath(item, key.name.split("."));
+    } else {
+      found = readPath(item, key.name ?? []);
+    }
+    found.forEach((value) => {
+      if (typeof value === "string" || typeof value === "number") {
+        values.push(String(value));
+      }
+    });
+  });
+  return values;
+};
 
 /**
  * Searches for a term within a collection of items using Fuse.js fuzzy search.
@@ -54,6 +114,28 @@ function searchTerm<T>(
 }
 
 /**
+ * One fuzzy search over a list with the given Fuse.js options, in relevance
+ * order. A search written as /pattern/flags is a regular expression instead:
+ * it is tested against the text of every key and keeps the list's order.
+ */
+export function fuseSearch<T>(
+  items: T[],
+  search: string,
+  options: IFuseOptions<T> = {}
+): T[] {
+  const byPattern = filterByRegexQuery(items, search, (item) =>
+    valuesForKeys(
+      item,
+      (options.keys ?? []) as (string | string[] | SearchKeyLike)[]
+    )
+  );
+  if (byPattern) {
+    return byPattern;
+  }
+  return new Fuse(items, options).search(search).map((result) => result.item);
+}
+
+/**
  * Performs a multi-term search across an array of items using Fuse.js.
  * All search terms must match for an item to be included in the results.
  * Result is NOT sorted by relevance.
@@ -73,6 +155,15 @@ export function multiTermSearch<T>(
   fuseIndex?: FuseIndex<T>,
   options: IFuseOptions<T> = {}
 ): T[] {
+  // A search written as /pattern/flags is a regular expression, tested
+  // against the text of every search key.
+  const byPattern = filterByRegexQuery(items, search, (item) =>
+    valuesForKeys(item, searchKeys as (string | string[] | SearchKeyLike)[])
+  );
+  if (byPattern) {
+    return byPattern;
+  }
+
   const terms = search
     .toLowerCase()
     .split(" ")
@@ -144,6 +235,18 @@ export function multiTermSortedSearch<T>(
   fuseIndex?: FuseIndex<T>,
   options: IFuseOptions<T> = {}
 ) {
+  // A search written as /pattern/flags is a regular expression, tested
+  // against the text of every search key. The order of the items is kept.
+  const patternKeys = (fuseIndex?.keys ?? options.keys ?? []) as (
+    string | string[] | SearchKeyLike
+  )[];
+  const byPattern = filterByRegexQuery(items, search, (item) =>
+    valuesForKeys(item, patternKeys)
+  );
+  if (byPattern) {
+    return byPattern;
+  }
+
   const terms = search
     .toLowerCase()
     .split(" ")

@@ -6,6 +6,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../../../common/regex/filter";
 import { consume } from "../../../common/decorators/consume";
 import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
 import {
@@ -181,7 +182,7 @@ class DialogExposeEntity extends DirtyStateProviderMixin<string[]>()(
       registries: ContextType<typeof registriesContext>,
       filter?: string
     ): HassEntity[] => {
-      const lowerFilter = filter?.toLowerCase();
+      const matches = searchMatcher(filter);
       const result: HassEntity[] = [];
 
       for (const entity of Object.values(this._states)) {
@@ -193,10 +194,7 @@ class DialogExposeEntity extends DirtyStateProviderMixin<string[]>()(
           continue;
         }
 
-        if (
-          !lowerFilter ||
-          entity.entity_id.toLowerCase().includes(lowerFilter)
-        ) {
+        if (!filter || matches(entity.entity_id)) {
           result.push(entity);
           continue;
         }
@@ -204,11 +202,7 @@ class DialogExposeEntity extends DirtyStateProviderMixin<string[]>()(
         const { friendlyName, deviceName, parentDeviceName, areaName } =
           computeEntitySearchLabels(entity, registries);
 
-        if (
-          [friendlyName, deviceName, parentDeviceName, areaName].some((name) =>
-            name?.toLowerCase().includes(lowerFilter)
-          )
-        ) {
+        if (matches(friendlyName, deviceName, parentDeviceName, areaName)) {
           result.push(entity);
         }
       }

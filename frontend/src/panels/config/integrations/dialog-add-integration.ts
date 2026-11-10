@@ -1,11 +1,11 @@
 import type { IFuseOptions } from "fuse.js";
-import Fuse from "fuse.js";
 import type { HassConfig } from "home-assistant-js-websocket";
 import type { PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, query, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
+import { fuseSearch } from "../../../resources/fuseMultiTerm";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import type {
   HASSDomCurrentTargetEvent,
@@ -366,15 +366,9 @@ class AddIntegrationDialog extends LitElement {
           cloud: integration.iot_class?.startsWith("cloud_"),
         }));
         return [
-          ...new Fuse(integrations, options)
-            .search(filter)
-            .map((result) => result.item),
-          ...new Fuse(yamlIntegrations, options)
-            .search(filter)
-            .map((result) => result.item),
-          ...new Fuse(helpers, options)
-            .search(filter)
-            .map((result) => result.item),
+          ...fuseSearch(integrations, filter, options),
+          ...fuseSearch(yamlIntegrations, filter, options),
+          ...fuseSearch(helpers, filter, options),
         ];
       }
       return [

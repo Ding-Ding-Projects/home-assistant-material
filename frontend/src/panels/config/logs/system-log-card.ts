@@ -3,6 +3,7 @@ import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { searchMatcher } from "../../../common/regex/filter";
 import { fireEvent } from "../../../common/dom/fire_event";
 import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../../common/translations/localize";
@@ -93,18 +94,13 @@ export class SystemLogCard extends LitElement {
         }
         if (filter) {
           const integration = getLoggedErrorIntegration(item);
-          return (
-            item.message.some((message: string) =>
-              message.toLowerCase().includes(filter)
-            ) ||
-            item.source[0].toLowerCase().includes(filter) ||
-            item.name.toLowerCase().includes(filter) ||
-            (integration &&
-              domainToName(localize, integration)
-                .toLowerCase()
-                .includes(filter)) ||
-            this._timestamp(item).toLowerCase().includes(filter) ||
-            this._multipleMessages(item).toLowerCase().includes(filter)
+          return searchMatcher(filter)(
+            ...item.message,
+            item.source[0],
+            item.name,
+            integration ? domainToName(localize, integration) : undefined,
+            this._timestamp(item),
+            this._multipleMessages(item)
           );
         }
         return item;
@@ -118,7 +114,7 @@ export class SystemLogCard extends LitElement {
       ? this._getFilteredItems(
           this.hass.localize,
           this._items,
-          this.filter.toLowerCase(),
+          this.filter,
           this.integrations?.length ? this.integrationLoggers : undefined
         )
       : [];

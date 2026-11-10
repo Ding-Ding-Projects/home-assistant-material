@@ -20,6 +20,7 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { filterByRegexQuery } from "../../common/regex/filter";
 import { consume } from "../../common/decorators/consume";
 import { transform } from "../../common/decorators/transform";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -491,9 +492,15 @@ export class HaMediaPlayerBrowse extends LitElement {
     const filterQuery = showFilter ? normalizeForFilter(this._filterQuery) : "";
     const isFiltering = filterQuery !== "";
     if (isFiltering) {
-      children = children.filter((child) =>
-        normalizeForFilter(child.title).includes(filterQuery)
-      );
+      // A filter written as /pattern/flags is a regular expression, tested
+      // against each title as written.
+      children =
+        filterByRegexQuery(children, this._filterQuery, (child) => [
+          child.title,
+        ]) ??
+        children.filter((child) =>
+          normalizeForFilter(child.title).includes(filterQuery)
+        );
     }
     // The backend reports which media classes are worth filtering by for this
     // item; without them we still allow searching, just without the filter.
@@ -789,6 +796,7 @@ export class HaMediaPlayerBrowse extends LitElement {
                 <ha-input-search
                   class="search-input"
                   appearance="outlined"
+                  no-pattern-builder
                   .value=${this._searchQuery}
                   .placeholder=${this._i18n.localize(
                     "ui.components.media-browser.search.search_placeholder",

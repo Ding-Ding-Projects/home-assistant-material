@@ -1,9 +1,9 @@
 import type { IFuseOptions } from "fuse.js";
-import Fuse from "fuse.js";
 import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { fuseSearch } from "../../../resources/fuseMultiTerm";
 import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
 import type { WindowWithPreloads } from "../../../data/preloads";
@@ -294,8 +294,7 @@ class DialogNewDashboard extends LitElement implements HassDialog {
         ignoreLocation: true,
         minMatchCharLength: Math.min(filter.length, 2),
       };
-      const fuse = new Fuse(strategies, options);
-      return fuse.search(filter).map((result) => result.item);
+      return fuseSearch(strategies, filter, options);
     }
   );
 
@@ -315,8 +314,7 @@ class DialogNewDashboard extends LitElement implements HassDialog {
         ignoreDiacritics: true,
         ignoreLocation: true,
       };
-      const fuse = new Fuse(strategies, options);
-      return fuse.search(filter).map((result) => result.item);
+      return fuseSearch(strategies, filter, options);
     }
   );
 
