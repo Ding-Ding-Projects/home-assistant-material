@@ -708,6 +708,21 @@ export const testCondition = (
     variables,
   });
 
+/**
+ * Tests whether every one of several conditions passes right now. The
+ * server tests one condition at a time, so they are wrapped in an "and".
+ */
+export const testAllConditions = (
+  hass: HomeAssistant,
+  conditions: (Condition | string)[],
+  variables?: Record<string, unknown>
+) =>
+  testCondition(
+    hass,
+    { condition: "and", conditions } as unknown as Condition,
+    variables
+  );
+
 export const subscribeCondition = (
   connection: Connection,
   onChange: (result: {

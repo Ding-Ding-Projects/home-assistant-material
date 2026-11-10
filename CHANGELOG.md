@@ -23,6 +23,12 @@ Every release is also listed, with its build results, on the
 - Tabs: close the tabs that match a search, or the ones that do not, with counts and Undo.
 - Automations: a visible test button on every condition and on every Choose option. Not yet seen
   in a build.
+- Automations: a History tab with every version of every automation; test one or many, run one
+  or many, compare, make live, export, and commit everything to the master repository.
+- Automations: a Git repository for each automation and a master repository (new integration
+  `automation_repos`). Every save is a commit.
+- Fixed: the test button on a Choose option failed when the option had conditions, because the
+  server tests one condition at a time.
 - Appearance editor for any element: right-click, Ctrl+Shift+E or the paint button, then change
   fill layers, text, shape, accent and size for that element or every one of its kind.
 - A menu on every element, with a filter and working shortcuts.

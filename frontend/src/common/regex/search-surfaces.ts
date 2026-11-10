@@ -104,6 +104,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Installed apps",
   },
   {
+    file: "panels/config/automation-history/ha-config-automation-history.ts",
+    searches: "Versions of automations, by name, message, commit and author",
+  },
+  {
     file: "panels/config/automation/add-automation-element-dialog.ts",
     searches: "Triggers, conditions and actions to add to an automation",
     matcher: FUZZY,

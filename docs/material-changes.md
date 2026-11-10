@@ -57,6 +57,11 @@ observer images are unchanged upstream images.
 | `frontend/src/common/appearance/` (new) | Per-element appearance: the model, storage, styles, element paths, and the page-wide session that applies stored choices. |
 | `frontend/src/components/appearance/ha-appearance-tools.ts`, `ha-appearance-editor.ts` (new) | The menu on every element, the pick tool, the shortcut, and the appearance editor. |
 | `frontend/src/layouts/home-assistant-main.ts`, `frontend/src/components/ha-page-tabs.ts` | The tools are created by the main layout; a paint button in the top bar starts the pick tool. |
+| `core/homeassistant/components/automation_repos/` (new), `core/tests/components/automation_repos/` (new) | The integration that keeps a Git repository for each automation and a master repository. See `docs/automation-repositories.md`. |
+| `core/homeassistant/components/default_config/manifest.json` | Loads `automation_repos` with the default configuration. |
+| `frontend/src/data/automation_repos.ts`, `frontend/src/common/automation/version-tests.ts` (new) | Calls to the repositories integration; the logic for testing and running versions, with the guard for locks, doors and alarms. |
+| `frontend/src/panels/config/automation-history/` (new), `config-sections.ts`, `ha-panel-config.ts` | The history manager page and its tab beside Automations. |
+| `frontend/src/data/automation.ts` | `testAllConditions`: several conditions tested as one. |
 | `frontend/build-scripts/check-minify-templates.mjs` (new) | Runs the production template minifier over given files, with the legacy browser targets, so a template that only breaks a production build is found before pushing. |
 | `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 

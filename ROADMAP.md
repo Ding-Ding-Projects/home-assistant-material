@@ -82,12 +82,16 @@ exactly what has been seen working and where.
 
 ## Automations
 
-- [~] Test buttons: on every condition and every Choose option; a dry run of a whole automation
-      is not built
-- [ ] A Git repository for each automation
-- [ ] A master repository; one push commits every automation repository, then the master
-- [ ] History manager: every version, compare, restore, test one, test many, run many
-- [ ] Automation list, editor, trace and repository pages redrawn to their boards
+- [x] Test buttons on every condition and every Choose option
+- [x] A Git repository for each automation; every save is a commit
+- [x] A master repository; one push commits every automation repository, then the master
+- [x] History manager: every version, compare, make live, test one, test many, run many, export
+- [ ] Named test cases, and a simulated run that pretends the actions
+- [ ] A dry run of a whole automation from the editor
+- [ ] The repository page for one automation and the repository strip in the editor
+- [ ] Remote settings and pull in the interface; a push to a real remote host checked
+- [ ] Repositories for scripts and scenes
+- [ ] Automation list, editor and trace pages redrawn to their boards
 
 ## Pages redrawn to their boards
 

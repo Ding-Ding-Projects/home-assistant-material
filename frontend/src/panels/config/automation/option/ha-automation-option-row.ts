@@ -41,7 +41,7 @@ import type {
   OptionSidebarConfig,
   TriggerCondition,
 } from "../../../../data/automation";
-import { getRowNote, testCondition } from "../../../../data/automation";
+import { getRowNote, testAllConditions } from "../../../../data/automation";
 import { validateConfig } from "../../../../data/config";
 import { describeCondition } from "../../../../data/automation_i18n";
 import { fullEntitiesContext } from "../../../../data/context";
@@ -217,8 +217,7 @@ export default class HaAutomationOptionRow extends LitElement {
           });
           return;
         }
-        passes = (await testCondition(this.hass, conditions as Condition[]))
-          .result;
+        passes = (await testAllConditions(this.hass, conditions)).result;
       } catch (err: unknown) {
         if (this.option !== option) {
           return;

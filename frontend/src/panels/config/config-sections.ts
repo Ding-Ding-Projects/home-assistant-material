@@ -20,6 +20,7 @@ import {
   mdiNetwork,
   mdiNfcVariant,
   mdiPalette,
+  mdiHistory,
   mdiPaletteSwatch,
   mdiPuzzle,
   mdiRadioTower,
@@ -365,6 +366,15 @@ export const configSections: Record<string, PageNavigation[]> = {
       path: "/config/blueprint",
       translationKey: "ui.panel.config.blueprint.caption",
       iconPath: mdiPaletteSwatch,
+      iconColor: "#518C43",
+      adminOnly: true,
+    },
+    {
+      // Shown when the automation repositories integration is loaded.
+      component: "automation_repos",
+      path: "/config/automation_history",
+      translationKey: "ui.panel.config.automation_history.caption",
+      iconPath: mdiHistory,
       iconColor: "#518C43",
       adminOnly: true,
     },
