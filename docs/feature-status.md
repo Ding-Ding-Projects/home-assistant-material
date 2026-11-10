@@ -62,15 +62,17 @@ build 32 image.
 | Extension support | Designed | Extensions |
 | Starting points for blank editors | Designed | BlankEditor |
 | Two-key confirmation | Designed | SuperConfirm |
-| Element locks | Designed | Locks |
-| Unlock ladder | Designed | Ladder |
+| Page tools in every page header | Partly built and seen working in a running instance (`docs/screenshots/page-tools-find.png`). The two shared page layouts, which most settings pages use, have a header cluster: Search this page, Edit appearance, Read aloud, History, Export, Lock and Help. On a narrow screen it is one button that opens the same tools in a panel. Section tabs sit in a row under the header, and wide screens have a footer line with the version, build time, language and a hint. Not yet on dashboards, the developer tools, the energy and map pages, or dialogs. | Devices, SettingsHome |
+| Search this page | Built and seen working in a running instance. Marks every match on the page through component boundaries without changing the page, shows the count, and steps with Enter, Shift+Enter and the arrow buttons; Escape clears. Plain text ignores case; `/pattern/flags` is a regular expression, and the field has the pattern workbench. Up to 2000 matches. A long list only draws the rows in view, so only those are marked. | every page |
+| Page locks | Partly built and seen working in a running instance (`docs/screenshots/page-tools-lock.png`). The lock button or Ctrl+Shift+L locks the page: its content, toolbar actions and floating button stop taking input, and a line says so. Unlocking takes a 1.5 second hold, or the PIN when one is set (4 to 12 digits, stored as a salted hash). The lock is kept in this browser and is a guard against accidents, not a replacement for accounts. Locks on single elements are not built. | Locks |
+| Unlock ladder | Partly built and seen working in a running instance: the third wrong PIN in a row waits 5 seconds, then 15 seconds, 1 minute and 5 minutes; tries during a wait are refused. The other rungs of the board (a second person, recovery) are not built. | Ladder |
 | Support Tickets | Designed | SupportTickets |
 | Authenticator and QR pairing | Designed | Authenticator, QrPairing |
-| Local version history | Designed | History |
-| Export in every format | Designed | Export |
+| Local version history | Partly built and seen working in a running instance (`docs/screenshots/page-tools-history.png`). The History tool lists changes made in this browser to appearance, accessibility and open tabs, newest first, with the page each was made on; a search with the pattern workbench; this page or everywhere; undo a change or go back to a version; clear with a second confirmation. A burst of changes is one entry. A change to the private vocabulary is listed without its text. Locks are never listed. Newest 100 entries. Nothing is kept on the server, and dialogs have no history. | History |
+| Export in every format | Partly built and seen working in a running instance (`docs/screenshots/page-tools-export.png`). The Export tool makes a file from what the page shows: CSV for a table (with the list's current filter, formulas disarmed), JSON, Markdown, plain text and HTML, with a preview, download, copy and print. A table exports its stored values, so a column the page formats specially can read differently; moments in time are written as ISO 8601. No spreadsheet or PDF files. | Export |
 | Bulk actions | Designed | Bulk |
 | Changelog viewer | Designed | Changelog |
-| Offline help articles | Designed | Docs |
+| Offline help articles | Partly built and seen working in a running instance (`docs/screenshots/page-tools-help.png`). The Help tool has 12 articles that ship with the interface, with a search that has the pattern workbench. There is not yet an article for each page. | Docs |
 | Rendered provider text | Designed | ReleaseNotes |
 | Notification centre and toasts | Designed | Notifications |
 | File converter | Designed | Converter |

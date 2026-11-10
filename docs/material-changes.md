@@ -62,6 +62,12 @@ observer images are unchanged upstream images.
 | `frontend/src/data/automation_repos.ts`, `frontend/src/common/automation/version-tests.ts` (new) | Calls to the repositories integration; the logic for testing and running versions, with the guard for locks, doors and alarms. |
 | `frontend/src/panels/config/automation-history/` (new), `config-sections.ts`, `ha-panel-config.ts` | The history manager page and its tab beside Automations. |
 | `frontend/src/data/automation.ts` | `testAllConditions`: several conditions tested as one. |
+| `frontend/src/common/page/` (new) | Search this page (ranges of matches, drawn as CSS highlights), the export of a page and its tables, and the list of help articles. |
+| `frontend/src/common/locks/` (new), `frontend/src/common/util/sha256.ts` (new) | Page locks: the store, the PIN as a salted hash, the waits after wrong PINs, and a controller that tells a layout its page is locked. SHA-256 is written out because the browser only offers its own on secure origins. |
+| `frontend/src/common/history/local-history.ts` (new) | The journal of local changes, and the hook the stores call after a change. |
+| `frontend/src/components/page/` (new) | The page tools cluster, the tools panel (export, history, lock, help), the page footer and the locked-page line. |
+| `frontend/src/layouts/hass-subpage.ts`, `hass-tabs-subpage.ts`, `hass-tabs-subpage-data-table.ts` | The shared page layouts carry the page tools and the footer, and stop input on a locked page. They are now flex columns: the header, the tab row and the footer take what they need and the content gets the rest, so the table and filter pane no longer size themselves from the window. Section tabs moved from the header into a row under it, and the page title is always shown. |
+| `frontend/src/layouts/home-assistant-main.ts`, `frontend/src/common/appearance/` | The tools panel is created by the main layout; local history starts there; the appearance store reports its changes and can be read again after an undo. |
 | `frontend/build-scripts/check-minify-templates.mjs` (new) | Runs the production template minifier over given files, with the legacy browser targets, so a template that only breaks a production build is found before pushing. |
 | `frontend/test/common/regex/` (new) | Tests for the query, explainer, code generation and filter helpers, and the guard that every search field is in the catalogue. |
 

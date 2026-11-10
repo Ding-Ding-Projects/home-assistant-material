@@ -51,10 +51,16 @@ exactly what has been seen working and where.
       every one of its kind; menu, shortcut and pick tool
 - [~] Context menus on every element: the menu, its filter and shortcuts are in; entries
       specific to what was clicked, lock, history and export are not
-- [ ] Element locks and the unlock ladder
+- [~] Page tools in every page header: search this page, edit appearance, read aloud, history,
+      export, lock and help, with a footer line on every page. On the two shared page layouts
+      (most settings pages); dashboards, developer tools and dialogs do not have them yet
+- [~] Locks and the unlock ladder: a whole page can be locked, unlocked by a hold or a PIN, with
+      growing waits after wrong PINs. Locks on single elements are not built
 - [ ] Two-key confirmation for destructive actions
-- [ ] Local version history on every page and dialog
-- [ ] Export in every format, from every page and table
+- [~] Local version history: appearance, accessibility and open tabs, with undo, from every page
+      that has the page tools. Not in dialogs; nothing kept on the server
+- [~] Export from every page that has the page tools: CSV, JSON, Markdown, plain text, HTML and
+      print. No spreadsheet or PDF file formats, and a table exports its stored values
 - [ ] Bulk actions on every table
 - [ ] Guided forms and per-control information buttons
 - [ ] Settings that explain themselves
@@ -123,7 +129,7 @@ matches its board, checked side by side.
 - [ ] Support tickets
 - [ ] Authenticator and QR pairing
 - [ ] Changelog viewer
-- [ ] Offline help articles
+- [~] Offline help articles: 12 articles in the Help tool, searchable. No article per page yet
 - [ ] Rendered provider text
 - [ ] File converter
 - [ ] Base64 toolkit

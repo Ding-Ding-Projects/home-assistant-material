@@ -1,14 +1,18 @@
 import type { CSSResultGroup, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, eventOptions, property } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { restoreScroll } from "../common/decorators/restore-scroll";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
+import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState } from "../common/navigate";
 import { sanitizeNavigationPath } from "../common/url/sanitize-navigation-path";
 import { handleBackClick } from "./back-navigation";
 import "../components/ha-icon-button-arrow-prev";
 import "../components/ha-menu-button";
+import "../components/page/ha-page-footer";
+import "../components/page/ha-page-lock-banner";
+import "../components/page/ha-page-tools";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant } from "../types";
 
@@ -31,8 +35,11 @@ class HassSubpage extends LitElement {
   // @ts-ignore
   @restoreScroll(".content") private _savedScrollPos?: number;
 
+  private _pageLock = new PageLockController(this);
+
   protected render(): TemplateResult {
     const backPath = sanitizeNavigationPath(this.backPath);
+    const locked = this._pageLock.locked;
 
     return html`
       <div class="toolbar ${classMap({ narrow: this.narrow })}">
@@ -51,20 +58,33 @@ class HassSubpage extends LitElement {
           <div class="main-title">
             <slot name="header">${this.header}</slot>
           </div>
-          <slot name="toolbar-icon"></slot>
+          <ha-page-tools
+            .compact=${this.narrow}
+            .pageTitle=${this.header}
+          ></ha-page-tools>
+          <div class="toolbar-icons" ?inert=${locked}>
+            <slot name="toolbar-icon"></slot>
+          </div>
         </div>
       </div>
+      ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
       <div
         class=${classMap({
           content: true,
           "ha-scrollbar": this.scrollable,
           "not-scrollable": !this.scrollable,
         })}
+        ?inert=${locked}
         @scroll=${this._saveScrollPos}
       >
         <slot></slot>
       </div>
-      <div id="fab">
+      ${
+        this.narrow
+          ? nothing
+          : html`<ha-page-footer .locked=${locked}></ha-page-footer>`
+      }
+      <div id="fab" ?inert=${locked}>
         <slot name="fab"></slot>
       </div>
     `;
@@ -84,10 +104,22 @@ class HassSubpage extends LitElement {
       haStyleScrollbar,
       css`
         :host {
-          display: block;
+          display: flex;
+          flex-direction: column;
           height: 100%;
           overflow: hidden;
           position: relative;
+        }
+
+        .toolbar,
+        ha-page-footer,
+        ha-page-lock-banner {
+          flex: none;
+        }
+
+        .toolbar-icons {
+          display: flex;
+          align-items: center;
         }
 
         :host([narrow]) {
@@ -149,13 +181,9 @@ class HassSubpage extends LitElement {
         .content {
           position: relative;
           width: calc(100% - var(--safe-area-inset-right, 0px));
-          height: calc(
-            100% -
-              1px - var(--header-height, 0px) - var(
-                --safe-area-inset-top,
-                0px
-              ) - var(--safe-area-inset-bottom, 0px)
-          );
+          flex: 1;
+          min-height: 0;
+          box-sizing: border-box;
           padding-bottom: var(--safe-area-inset-bottom, 0px);
           margin-right: var(--safe-area-inset-right);
           overflow-y: auto;
@@ -190,11 +218,21 @@ class HassSubpage extends LitElement {
           gap: var(--ha-space-2);
           --ha-button-box-shadow: var(--ha-box-shadow-l);
         }
+        /* Above the page footer, which wide layouts show. */
+        :host(:not([narrow])) #fab {
+          bottom: calc(
+            16px + var(--ha-page-footer-height, 40px) +
+              var(--safe-area-inset-bottom, 0px)
+          );
+        }
         :host([narrow]) #fab.tabs {
           bottom: calc(84px + var(--safe-area-inset-bottom, 0px));
         }
         #fab[is-wide] {
-          bottom: calc(24px + var(--safe-area-inset-bottom, 0px));
+          bottom: calc(
+            24px + var(--ha-page-footer-height, 40px) +
+              var(--safe-area-inset-bottom, 0px)
+          );
           right: calc(24px + var(--safe-area-inset-right, 0px));
           inset-inline-end: calc(24px + var(--safe-area-inset-right, 0px));
           inset-inline-start: initial;

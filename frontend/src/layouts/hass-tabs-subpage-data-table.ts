@@ -989,16 +989,20 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     :host([narrow]) ha-data-table {
       --data-table-inset-left: var(--safe-area-inset-left, 0px);
     }
-    :host(:not([narrow])) ha-data-table,
-    .pane {
-      height: calc(
-        100vh -
-          1px - var(--header-height, 0px) - var(
-            --safe-area-inset-top,
-            0px
-          ) - var(--safe-area-inset-bottom, 0px)
-      );
+    /* The layout fills the window, and its header, tabs and footer take
+       what they need; the table and the filter pane get the rest. */
+    :host(:not([narrow])) hass-tabs-subpage {
+      height: 100vh;
+      height: 100dvh;
+    }
+    :host(:not([narrow])) ha-data-table {
+      height: 100%;
       display: block;
+    }
+    .pane {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
     /* Last content row should keep the same padding above the fab as the fab
        has to the bottom (16px standard fab bottom padding) + the safe-area inset. */
@@ -1019,13 +1023,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
 
     .pane-content {
-      height: calc(
-        100vh -
-          1px - var(--header-height, 0px) - var(--header-height, 0px) - var(
-            --safe-area-inset-top,
-            0px
-          ) - var(--safe-area-inset-bottom, 0px)
-      );
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }

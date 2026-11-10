@@ -3331,6 +3331,166 @@
       "search_everything": "Search and commands",
       "edit_appearance": "Edit the appearance of anything"
     },
+    "page_tools": {
+      "label": "Page tools",
+      "find": "Search this page",
+      "find_count": "{current} of {total}",
+      "find_count_limit": "{current} of the first {total}",
+      "find_none": "No matches",
+      "find_invalid": "Not a valid pattern",
+      "find_previous": "Previous match",
+      "find_next": "Next match",
+      "find_note": "Search this page marks every match on the page. A long list only draws the rows in view, so use the search of the list itself to filter all of its rows.",
+      "appearance": "Edit appearance",
+      "read_aloud": "Read this page aloud",
+      "stop_reading": "Stop reading",
+      "history": "History",
+      "export": "Export",
+      "lock": "Lock this page",
+      "lock_title": "Lock",
+      "unlock_hold": "Hold to unlock this page",
+      "unlock_hint": "Hold the lock for a moment to unlock",
+      "help": "Help",
+      "close": "Close",
+      "locked_banner": "This page is locked. Nothing on it can be changed until it is unlocked.",
+      "footer": {
+        "version": "Version {version}",
+        "updated": "Updated {date}",
+        "language": "Language: {language}",
+        "locked": "Page locked",
+        "menu_hint": "Right-click anything for its tools"
+      },
+      "export_panel": {
+        "summary": "{tables, plural,\n  =0 {No tables}\n  one {# table}\n  other {# tables}\n}, {rows, plural,\n  one {# row}\n  other {# rows}\n}, {lines, plural,\n  one {# block of text}\n  other {# blocks of text}\n}",
+        "format": "Format",
+        "formats": {
+          "csv": "CSV",
+          "json": "JSON",
+          "markdown": "Markdown",
+          "text": "Plain text",
+          "html": "HTML"
+        },
+        "no_table": "This page has no table, so CSV is not offered.",
+        "table": "Table",
+        "table_number": "Table {number}, {rows, plural,\n  one {# row}\n  other {# rows}\n}",
+        "preview": "Preview",
+        "preview_more": "The first {shown} of {total} characters are shown.",
+        "download": "Download",
+        "downloaded": "Saved as {name}",
+        "copy": "Copy",
+        "copied": "Copied",
+        "print": "Print",
+        "refresh": "Read the page again",
+        "note": "Made in this browser from what the page shows now, with the filter the list has now. Nothing is sent anywhere."
+      },
+      "history_panel": {
+        "scope": "Which changes",
+        "scope_page": "This page",
+        "scope_all": "Everywhere",
+        "search": "Search history",
+        "empty": "No changes yet. Changes to appearance, accessibility and open tabs made in this browser are listed here.",
+        "no_match": "No change matches.",
+        "subjects": {
+          "appearance": "Appearance",
+          "accessibility": "Accessibility",
+          "tabs": "Open tabs",
+          "wording": "Private vocabulary"
+        },
+        "changed": "{subject} changed",
+        "undo": "Undo this change",
+        "apply": "Go back to this version",
+        "not_kept": "Listed only. Its text is not kept, so it cannot be put back from here.",
+        "restored": "Put back.",
+        "clear": "Clear history",
+        "clear_confirm": "{count, plural,\n  one {Clear # entry?}\n  other {Clear all # entries?}\n}",
+        "clear_yes": "Clear",
+        "clear_no": "Keep",
+        "note": "Kept in this browser only, the newest {limit} changes. Locks are never listed."
+      },
+      "lock_panel": {
+        "state_locked": "This page is locked.",
+        "state_unlocked": "This page is not locked.",
+        "hold": "Hold to unlock",
+        "holding": "Keep holding",
+        "unlocked": "Unlocked.",
+        "unlock": "Unlock",
+        "wrong": "That PIN is not right.",
+        "wait": "{seconds, plural,\n  one {Wait # second before the next try.}\n  other {Wait # seconds before the next try.}\n}",
+        "pin_title": "PIN",
+        "pin_label": "PIN",
+        "pin_none": "No PIN is set. Holding the lock button unlocks.",
+        "pin_set": "A PIN is set. Unlocking asks for it.",
+        "pin_current": "Current PIN",
+        "pin_new": "New PIN, 4 to 12 digits",
+        "pin_repeat": "Repeat the new PIN",
+        "pin_save": "Set PIN",
+        "pin_remove": "Remove PIN",
+        "pin_invalid": "Use 4 to 12 digits.",
+        "pin_mismatch": "The two PINs are not the same.",
+        "pin_saved": "PIN set.",
+        "pin_removed": "PIN removed.",
+        "locked_pages": "Other locked pages",
+        "none_locked": "No other page is locked.",
+        "shortcut": "Ctrl Shift L locks the page you are on.",
+        "note": "A lock stops changes made by accident and casual use of a shared screen. It is kept in this browser and does not replace user accounts and permissions."
+      },
+      "help_panel": {
+        "search": "Search help",
+        "back": "All articles",
+        "no_match": "No article matches.",
+        "note": "These articles ship with the interface and open without a connection.",
+        "articles": {
+          "find": {
+            "title": "Search this page",
+            "body": "Type in Search this page in the page header to mark every place the text occurs on the page. The count shows which match you are on.\nPress Enter for the next match and Shift Enter for the previous one. Escape clears the search.\nThe search ignores upper and lower case. To use a regular expression, write it between slashes, for example /kitchen|hall/i, or open the pattern builder from the button in the field.\nA long list only draws the rows in view. To filter every row of a list, use the search field of the list."
+          },
+          "patterns": {
+            "title": "Patterns in search fields",
+            "body": "Every search field takes plain text. Text between slashes is read as a regular expression, with optional flags after the closing slash.\nThe button at the end of a search field opens the pattern builder. It explains a pattern piece by piece, tests it against sample text, lists the matches and groups, and puts the finished pattern in the field.\nPatterns are checked before they run. One that could take too long is refused, and the field says why."
+          },
+          "appearance": {
+            "title": "Edit the appearance of anything",
+            "body": "Choose Edit appearance in the page header, then pick any element on the page. You can also right-click an element, or press Ctrl Shift E while it has focus.\nThe editor changes fill, text, shape, accent, size and opacity. Fills are layers: a colour, a gradient or a picture.\nApply a change to this one element or to every element of its kind. Undo steps back, Reset this removes the choices for the element, and Reset everything returns to the theme.\nChoices are kept in this browser."
+          },
+          "read_aloud": {
+            "title": "Read a page aloud",
+            "body": "Choose Read this page aloud in the page header to hear the text of the page in the language of the interface. Choose it again to stop.\nForm fields, codes and passwords are never read.\nReading uses the voices of this device. If the device has none, the button is not shown."
+          },
+          "history": {
+            "title": "History of your changes",
+            "body": "History lists the changes made in this browser to appearance, accessibility and open tabs, newest first, with the page each was made on.\nUndo this change puts the choice back as it was before the change. Go back to this version puts it as it was right after.\nA change to the private vocabulary is listed, but its text is not kept, so clearing the vocabulary leaves no copy behind. Locks are never listed.\nHistory for automations is separate: Settings, Automations, History keeps every saved version in a repository."
+          },
+          "export": {
+            "title": "Export a page",
+            "body": "Export makes a file from what the page shows now: its text and its tables, with the filter each list has at that moment.\nChoose CSV for one table, JSON for tables and text as data, Markdown or HTML for a document, or plain text. You can download the file, copy it, or print it.\nIn CSV, a cell that starts with =, +, - or @ gets a leading quote so a spreadsheet does not run it as a formula.\nThe file is made in this browser. Nothing is sent anywhere."
+          },
+          "locks": {
+            "title": "Lock a page",
+            "body": "Choose Lock this page in the page header, or press Ctrl Shift L. A locked page can be read and searched, but nothing on it can be changed.\nTo unlock, hold the lock button for a moment. If you set a PIN, unlocking asks for it instead.\nAfter three wrong PINs in a row the next try has to wait: 5 seconds, then 15 seconds, then 1 minute, then 5 minutes.\nA lock is kept in this browser. It stops changes made by accident and casual use of a shared screen, and does not replace user accounts and permissions."
+          },
+          "tabs": {
+            "title": "The bar of open pages",
+            "body": "Every page starts open as a tab, in the order of the menu. Close a tab with its close button; it stays closed until you open it again.\nNew tab lists every page and reopens closed ones. Open every tab reopens them all.\nTo close many at once, search in the New tab list, then close the tabs that match or the ones that do not. Undo brings them back."
+          },
+          "menu": {
+            "title": "The tools of any element",
+            "body": "Right-click any element, or press Shift F10 or the menu key while it has focus, to open its tools: edit its appearance, copy its text, read it aloud, or search everything.\nThe menu has its own search field. Escape closes it."
+          },
+          "wording": {
+            "title": "Your private vocabulary",
+            "body": "A private vocabulary file replaces words of the interface with your own. Drop the file anywhere on the window, or choose it under Profile, Localization.\nThe file is checked in full before it is used. A file that fails a check changes nothing.\nThe wording is kept in this browser until you clear it or load another file."
+          },
+          "automation_history": {
+            "title": "Versions of automations",
+            "body": "Every automation has its own repository, and every save is a commit. Settings, Automations, History lists every version.\nSelect versions to compare them, test them, run them, export them, or make one live again. Bulk test checks many versions at once without running any action.\nCommit everything commits each automation that changed and then the master repository."
+          },
+          "shortcuts": {
+            "title": "Keyboard shortcuts",
+            "body": "Ctrl Shift F searches everything.\nCtrl Shift E edits the appearance of the element that has focus.\nCtrl Shift L locks the page you are on.\nShift F10 or the menu key opens the tools of the element that has focus.\nIn Search this page, Enter goes to the next match, Shift Enter to the previous one, and Escape clears."
+          }
+        }
+      }
+    },
     "accessibility_tools": {
       "title": "Accessibility tools",
       "text_size": "Text size",

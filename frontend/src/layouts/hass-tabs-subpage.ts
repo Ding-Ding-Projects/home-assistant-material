@@ -16,6 +16,7 @@ import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { isNavigationClick } from "../common/dom/is-navigation-click";
+import { PageLockController } from "../common/locks/page-lock-controller";
 import { getHistoryState, navigate } from "../common/navigate";
 import type {
   LocalizeFunc,
@@ -24,6 +25,9 @@ import type {
 import { sanitizeNavigationPath } from "../common/url/sanitize-navigation-path";
 import "../components/ha-icon-button-arrow-prev";
 import "../components/ha-menu-button";
+import "../components/page/ha-page-footer";
+import "../components/page/ha-page-lock-banner";
+import "../components/page/ha-page-tools";
 import "../components/ha-svg-icon";
 import "../components/ha-tab";
 import {
@@ -122,6 +126,8 @@ export class HassTabsSubpage extends LitElement {
   // @ts-ignore
   @restoreScroll(".content") private _savedScrollPos?: number;
 
+  private _pageLock = new PageLockController(this);
+
   private _getTabs = memoizeOne(
     (
       tabs: PageNavigation[],
@@ -202,11 +208,12 @@ export class HassTabsSubpage extends LitElement {
       this._entities
     );
     const backPath = sanitizeNavigationPath(this.backPath);
-    const hiddenHeading = this.showTabs
-      ? this._activeTab && this._tabName(this._activeTab, localize)
-      : this._hasCustomHeader || this._hasCustomToolbar
-        ? (tabs[0] as string)
-        : undefined;
+    const activeName =
+      this._activeTab && this._tabName(this._activeTab, localize);
+    const title = this.showTabs ? activeName : (tabs[0] as string);
+    const hiddenHeading =
+      this._hasCustomHeader || this._hasCustomToolbar ? title : undefined;
+    const locked = this._pageLock.locked;
 
     return html`
       <div class="toolbar ${classMap({ narrow: this._narrow })}">
@@ -222,35 +229,36 @@ export class HassTabsSubpage extends LitElement {
                     ></ha-icon-button-arrow-prev>
                   `
             }
-            ${
-              this._narrow || !this.showTabs
-                ? html`<div class="main-title">
-                    <slot name="header" @slotchange=${this._headerSlotChanged}
-                      >${!this.showTabs ? html`<h1>${tabs[0]}</h1>` : ""}</slot
-                    >
-                  </div>`
-                : ""
-            }
-            ${
-              this.showTabs && !this._narrow
-                ? html`<div id="tabbar">${tabs}</div>`
-                : ""
-            }
-            <div id="toolbar-icon">
+            <div class="main-title">
+              <slot name="header" @slotchange=${this._headerSlotChanged}
+                >${title ? html`<h1>${title}</h1>` : ""}</slot
+              >
+            </div>
+            <ha-page-tools
+              .compact=${this._narrow}
+              .pageTitle=${title}
+            ></ha-page-tools>
+            <div id="toolbar-icon" ?inert=${locked}>
               <slot name="toolbar-icon"></slot>
             </div>
           </div>
         </slot>
+        ${
+          this.showTabs && !this._narrow
+            ? html`<div id="tabbar" class="tab-row">${tabs}</div>`
+            : ""
+        }
         ${
           this.showTabs && this._narrow
             ? html`<div id="tabbar" class="bottom-bar">${tabs}</div>`
             : ""
         }
       </div>
+      ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
       <div class="container">
         ${
           this.pane
-            ? html`<div class="pane">
+            ? html`<div class="pane" ?inert=${locked}>
                 <div class="shadow-container"></div>
                 <div class="ha-scrollbar">
                   <slot name="pane"></slot>
@@ -258,7 +266,11 @@ export class HassTabsSubpage extends LitElement {
               </div>`
             : nothing
         }
-        <div class="content ha-scrollbar" @scroll=${this._saveScrollPos}>
+        <div
+          class="content ha-scrollbar"
+          ?inert=${locked}
+          @scroll=${this._saveScrollPos}
+        >
           ${
             hiddenHeading
               ? html`<h1 class="visually-hidden">${hiddenHeading}</h1>`
@@ -268,7 +280,12 @@ export class HassTabsSubpage extends LitElement {
           ${this.hasFab ? html`<div class="fab-bottom-space"></div>` : nothing}
         </div>
       </div>
-      <div id="fab">
+      ${
+        this._narrow
+          ? nothing
+          : html`<ha-page-footer .locked=${locked}></ha-page-footer>`
+      }
+      <div id="fab" ?inert=${locked}>
         <slot name="fab"></slot>
       </div>
     `;
@@ -354,7 +371,8 @@ export class HassTabsSubpage extends LitElement {
       haStyleScrollbar,
       css`
         :host {
-          display: block;
+          display: flex;
+          flex-direction: column;
           height: 100%;
         }
 
@@ -365,9 +383,13 @@ export class HassTabsSubpage extends LitElement {
 
         .container {
           display: flex;
-          height: calc(
-            100% - var(--header-height, 0px) - var(--safe-area-inset-top, 0px)
-          );
+          flex: 1;
+          min-height: 0;
+        }
+
+        ha-page-footer,
+        ha-page-lock-banner {
+          flex: none;
         }
 
         ha-menu-button {
@@ -377,8 +399,9 @@ export class HassTabsSubpage extends LitElement {
         }
 
         .toolbar {
+          flex: none;
           font-size: var(--ha-font-size-xl);
-          height: calc(
+          min-height: calc(
             var(--header-height, 0px) + var(--safe-area-inset-top, 0px)
           );
           padding-top: var(--safe-area-inset-top);
@@ -395,7 +418,8 @@ export class HassTabsSubpage extends LitElement {
           padding: 8px 12px;
           display: flex;
           align-items: center;
-          height: 100%;
+          gap: var(--ha-space-1);
+          height: var(--header-height);
           box-sizing: border-box;
         }
         :host([narrow]) .toolbar-content {
@@ -462,9 +486,10 @@ export class HassTabsSubpage extends LitElement {
           width: 100%;
         }
 
-        #tabbar:not(.bottom-bar) {
-          flex: 1;
-          justify-content: center;
+        #tabbar.tab-row {
+          justify-content: flex-start;
+          gap: var(--ha-space-1);
+          padding: 0 var(--ha-space-4) var(--ha-space-2);
         }
 
         :host(:not([narrow])) #toolbar-icon {
@@ -537,8 +562,15 @@ export class HassTabsSubpage extends LitElement {
         :host([narrow][show-tabs]) #fab {
           bottom: calc(84px + var(--safe-area-inset-bottom, 0px));
         }
+        /* Above the page footer, which wide layouts show. */
+        :host(:not([narrow])) #fab {
+          bottom: calc(
+            16px + var(--ha-page-footer-height, 40px) +
+              var(--safe-area-inset-bottom, 0px)
+          );
+        }
         #fab[is-wide] {
-          bottom: 24px;
+          bottom: calc(24px + var(--ha-page-footer-height, 40px));
           right: 24px;
           inset-inline-end: 24px;
           inset-inline-start: initial;

@@ -1,0 +1,526 @@
+import type { ContextType } from "@lit/context";
+import {
+  mdiChevronDown,
+  mdiChevronUp,
+  mdiDotsGrid,
+  mdiExportVariant,
+  mdiFormatPaint,
+  mdiHelpCircleOutline,
+  mdiHistory,
+  mdiLock,
+  mdiLockOpenVariantOutline,
+  mdiStop,
+  mdiVolumeHigh,
+} from "@mdi/js";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
+import {
+  canReadAloud,
+  collectReadableText,
+  readAloud,
+  stopReadingAloud,
+} from "../../common/accessibility/accessibility-tools";
+import { consume } from "../../common/decorators/consume";
+import { fireEvent } from "../../common/dom/fire_event";
+import {
+  isLocked,
+  pageLockKey,
+  readLocks,
+  subscribeLocks,
+  UNLOCK_HOLD_MS,
+  withLock,
+  writeLocks,
+} from "../../common/locks/element-locks";
+import { FIND_LIMIT, PageFinder } from "../../common/page/find-in-page";
+import { internationalizationContext } from "../../data/context";
+import "../ha-icon-button";
+import "../input/ha-input-search";
+import type { HaInputSearch } from "../input/ha-input-search";
+
+export type PageTool = "tools" | "export" | "history" | "lock" | "help";
+
+export interface PageToolRequest {
+  tool: PageTool;
+  /** The page the tool works on. */
+  root: HTMLElement;
+  title: string;
+}
+
+declare global {
+  interface HASSDomEvents {
+    /** Opens a page tool in the tools panel. */
+    "hass-page-tool": PageToolRequest;
+  }
+}
+
+/** Parts of a page that are its tools, not its content. */
+export const isPageChrome = (element: Element): boolean =>
+  element.localName === "ha-page-tools" ||
+  element.localName === "ha-page-footer" ||
+  element.localName === "ha-page-tool-panel";
+
+/**
+ * The tools every page has in its header: search this page, edit
+ * appearance, read aloud, history, export, lock and help.
+ *
+ * It works on the page layout it is placed in. With `compact` it is one
+ * button that opens the tools panel.
+ */
+@customElement("ha-page-tools")
+export class HaPageTools extends LitElement {
+  @property({ type: Boolean, reflect: true }) public compact = false;
+
+  @property({ attribute: "page-title" }) public pageTitle?: string;
+
+  @consume({ context: internationalizationContext, subscribe: true })
+  @state()
+  private _i18n!: ContextType<typeof internationalizationContext>;
+
+  @state() private _query = "";
+
+  @state() private _total = 0;
+
+  @state() private _position = 0;
+
+  @state() private _invalid = false;
+
+  @state() private _reading = false;
+
+  @state() private _locked = false;
+
+  @state() private _holding = false;
+
+  @state() private _hint = false;
+
+  private _finder = new PageFinder();
+
+  private _findTimer?: number;
+
+  private _holdTimer?: number;
+
+  private _hintTimer?: number;
+
+  private _unsubscribeLocks?: () => void;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._unsubscribeLocks = subscribeLocks(this._checkLock);
+    window.addEventListener("location-changed", this._pageChanged);
+    this._checkLock();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._unsubscribeLocks?.();
+    this._unsubscribeLocks = undefined;
+    window.removeEventListener("location-changed", this._pageChanged);
+    window.clearTimeout(this._findTimer);
+    window.clearTimeout(this._holdTimer);
+    window.clearTimeout(this._hintTimer);
+    if (this._query) {
+      this._finder.clear();
+    }
+    if (this._reading) {
+      stopReadingAloud();
+    }
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has("compact") && this.compact && this._query) {
+      this._clearFind();
+    }
+  }
+
+  /** The page layout these tools belong to. */
+  private get _page(): HTMLElement {
+    const root = this.getRootNode();
+    return root instanceof ShadowRoot ? (root.host as HTMLElement) : this;
+  }
+
+  private get _title(): string {
+    return this.pageTitle || document.title;
+  }
+
+  private _checkLock = (): void => {
+    this._locked = isLocked(readLocks(), pageLockKey(window.location.pathname));
+  };
+
+  private _pageChanged = (): void => {
+    this._checkLock();
+    if (this._query) {
+      this._clearFind();
+    }
+    if (this._reading) {
+      stopReadingAloud();
+      this._reading = false;
+    }
+  };
+
+  protected render(): TemplateResult {
+    const localize = this._i18n.localize;
+    if (this.compact) {
+      return html`
+        <ha-icon-button
+          class=${classMap({ on: this._locked })}
+          .label=${localize("ui.page_tools.label")}
+          .path=${this._locked ? mdiLock : mdiDotsGrid}
+          @click=${this._openTools}
+        ></ha-icon-button>
+      `;
+    }
+    return html`
+      <div class="find">
+        <ha-input-search
+          appearance="outlined"
+          .placeholder=${localize("ui.page_tools.find")}
+          .accessibleLabel=${localize("ui.page_tools.find")}
+          .value=${this._query}
+          @input=${this._findInput}
+          @keydown=${this._findKeydown}
+        ></ha-input-search>
+        ${
+          this._query.trim()
+            ? html`
+                <span
+                  class=${classMap({ count: true, bad: this._invalid })}
+                  role="status"
+                  >${this._countText()}</span
+                >
+                <ha-icon-button
+                  class="step"
+                  .label=${localize("ui.page_tools.find_previous")}
+                  .path=${mdiChevronUp}
+                  .disabled=${!this._total}
+                  @click=${this._previous}
+                ></ha-icon-button>
+                <ha-icon-button
+                  class="step"
+                  .label=${localize("ui.page_tools.find_next")}
+                  .path=${mdiChevronDown}
+                  .disabled=${!this._total}
+                  @click=${this._next}
+                ></ha-icon-button>
+              `
+            : nothing
+        }
+      </div>
+      <ha-icon-button
+        .label=${localize("ui.page_tools.appearance")}
+        .path=${mdiFormatPaint}
+        @click=${this._editAppearance}
+      ></ha-icon-button>
+      ${
+        canReadAloud()
+          ? html`<ha-icon-button
+              class=${classMap({ on: this._reading })}
+              .label=${localize(
+                this._reading
+                  ? "ui.page_tools.stop_reading"
+                  : "ui.page_tools.read_aloud"
+              )}
+              .path=${this._reading ? mdiStop : mdiVolumeHigh}
+              @click=${this._toggleReading}
+            ></ha-icon-button>`
+          : nothing
+      }
+      <ha-icon-button
+        .label=${localize("ui.page_tools.history")}
+        .path=${mdiHistory}
+        data-tool="history"
+        @click=${this._openTool}
+      ></ha-icon-button>
+      <ha-icon-button
+        .label=${localize("ui.page_tools.export")}
+        .path=${mdiExportVariant}
+        data-tool="export"
+        @click=${this._openTool}
+      ></ha-icon-button>
+      <span class="lock">
+        <ha-icon-button
+          class=${classMap({ on: this._locked, holding: this._holding })}
+          .label=${localize(
+            this._locked ? "ui.page_tools.unlock_hold" : "ui.page_tools.lock"
+          )}
+          .path=${this._locked ? mdiLock : mdiLockOpenVariantOutline}
+          @click=${this._lockClick}
+          @pointerdown=${this._holdStart}
+          @pointerup=${this._holdEnd}
+          @pointerleave=${this._holdEnd}
+          @pointercancel=${this._holdEnd}
+          @keydown=${this._holdKeydown}
+          @keyup=${this._holdKeyup}
+          @blur=${this._holdEnd}
+        ></ha-icon-button>
+        ${
+          this._hint
+            ? html`<span class="hint" role="status"
+                >${localize("ui.page_tools.unlock_hint")}</span
+              >`
+            : nothing
+        }
+      </span>
+      <ha-icon-button
+        .label=${localize("ui.page_tools.help")}
+        .path=${mdiHelpCircleOutline}
+        data-tool="help"
+        @click=${this._openTool}
+      ></ha-icon-button>
+    `;
+  }
+
+  private _countText(): string {
+    const localize = this._i18n.localize;
+    if (this._invalid) {
+      return localize("ui.page_tools.find_invalid");
+    }
+    if (!this._total) {
+      return localize("ui.page_tools.find_none");
+    }
+    return localize(
+      this._total >= FIND_LIMIT
+        ? "ui.page_tools.find_count_limit"
+        : "ui.page_tools.find_count",
+      { current: this._position + 1, total: this._total }
+    );
+  }
+
+  private _findInput(ev: Event): void {
+    this._query = (ev.target as HaInputSearch).value ?? "";
+    window.clearTimeout(this._findTimer);
+    this._findTimer = window.setTimeout(() => this._find(), 150);
+  }
+
+  private _find(): void {
+    if (!this._query.trim()) {
+      this._clearFind();
+      return;
+    }
+    this._finder.search(this._page, this._query, isPageChrome);
+    this._syncFind();
+  }
+
+  private _syncFind(): void {
+    this._total = this._finder.ranges.length;
+    this._position = this._finder.current;
+    this._invalid = this._finder.invalid;
+  }
+
+  private _clearFind(): void {
+    window.clearTimeout(this._findTimer);
+    this._finder.clear();
+    this._query = "";
+    this._total = 0;
+    this._position = 0;
+    this._invalid = false;
+  }
+
+  private _findKeydown(ev: KeyboardEvent): void {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      window.clearTimeout(this._findTimer);
+      if (this._finder.query !== this._query) {
+        this._find();
+        return;
+      }
+      this._finder.step(ev.shiftKey ? -1 : 1);
+      this._syncFind();
+    } else if (ev.key === "Escape" && this._query) {
+      ev.stopPropagation();
+      this._clearFind();
+    }
+  }
+
+  private _next(): void {
+    this._finder.step(1);
+    this._syncFind();
+  }
+
+  private _previous(): void {
+    this._finder.step(-1);
+    this._syncFind();
+  }
+
+  private _editAppearance(): void {
+    fireEvent(this, "hass-pick-appearance");
+  }
+
+  private _toggleReading(): void {
+    if (this._reading) {
+      stopReadingAloud();
+      this._reading = false;
+      return;
+    }
+    const chunks = collectReadableText(this._page);
+    if (!chunks.length) {
+      return;
+    }
+    this._reading = true;
+    readAloud(chunks, this._i18n.language, () => {
+      this._reading = false;
+    });
+  }
+
+  private _openTools(): void {
+    this._request("tools");
+  }
+
+  private _openTool(ev: Event): void {
+    this._request((ev.currentTarget as HTMLElement).dataset.tool as PageTool);
+  }
+
+  private _request(tool: PageTool): void {
+    fireEvent(this, "hass-page-tool", {
+      tool,
+      root: this._page,
+      title: this._title,
+    });
+  }
+
+  private _lockClick(): void {
+    if (this._locked) {
+      // Unlocking takes a hold, or the PIN when one is set.
+      if (readLocks().pin) {
+        this._request("lock");
+        return;
+      }
+      this._hint = true;
+      window.clearTimeout(this._hintTimer);
+      this._hintTimer = window.setTimeout(() => {
+        this._hint = false;
+      }, 4000);
+      return;
+    }
+    if (this._justUnlocked) {
+      this._justUnlocked = false;
+      return;
+    }
+    writeLocks(
+      withLock(readLocks(), pageLockKey(window.location.pathname), true)
+    );
+  }
+
+  private _justUnlocked = false;
+
+  private _holdStart(): void {
+    if (!this._locked || readLocks().pin || this._holding) {
+      return;
+    }
+    this._holding = true;
+    this._holdTimer = window.setTimeout(() => {
+      this._holding = false;
+      this._hint = false;
+      // The click that ends this hold must not lock the page again.
+      this._justUnlocked = true;
+      window.setTimeout(() => {
+        this._justUnlocked = false;
+      }, 600);
+      writeLocks(
+        withLock(readLocks(), pageLockKey(window.location.pathname), false)
+      );
+    }, UNLOCK_HOLD_MS);
+  }
+
+  private _holdEnd(): void {
+    if (!this._holding) {
+      return;
+    }
+    this._holding = false;
+    window.clearTimeout(this._holdTimer);
+  }
+
+  private _holdKeydown(ev: KeyboardEvent): void {
+    if ((ev.key === "Enter" || ev.key === " ") && !ev.repeat) {
+      this._holdStart();
+    }
+  }
+
+  private _holdKeyup(ev: KeyboardEvent): void {
+    if (ev.key === "Enter" || ev.key === " ") {
+      this._holdEnd();
+    }
+  }
+
+  static styles: CSSResultGroup = css`
+    :host {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      color: var(--sidebar-icon-color);
+      min-width: 0;
+    }
+    .find {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      min-width: 0;
+    }
+    ha-input-search {
+      width: clamp(180px, 22vw, 300px);
+      --ha-input-search-height: var(--ha-space-10);
+      --ha-input-search-border-radius: var(--ha-border-radius-pill);
+    }
+    .count {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .count.bad {
+      color: var(--error-color);
+    }
+    ha-icon-button {
+      --ha-icon-button-size: 40px;
+      border-radius: var(--ha-border-radius-pill);
+    }
+    ha-icon-button.step {
+      --ha-icon-button-size: 32px;
+    }
+    ha-icon-button.on {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .lock {
+      position: relative;
+      display: inline-flex;
+    }
+    ha-icon-button.holding {
+      animation: hold 1500ms linear forwards;
+    }
+    @keyframes hold {
+      from {
+        box-shadow: 0 0 0 0 var(--primary-color);
+      }
+      to {
+        box-shadow: 0 0 0 6px var(--primary-color);
+        background: var(--card-background-color);
+        color: var(--primary-color);
+      }
+    }
+    .hint {
+      position: absolute;
+      top: calc(100% + var(--ha-space-1));
+      inset-inline-end: 0;
+      z-index: 5;
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-md);
+      background: var(--primary-text-color);
+      color: var(--card-background-color);
+      font-size: var(--ha-font-size-s);
+      white-space: nowrap;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      ha-icon-button.holding {
+        animation: none;
+        outline: 3px solid var(--primary-color);
+      }
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-page-tools": HaPageTools;
+  }
+}

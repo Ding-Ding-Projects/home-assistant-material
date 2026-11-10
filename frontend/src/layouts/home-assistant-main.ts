@@ -17,7 +17,12 @@ import {
 import type { HASSDomEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
 import { listenMediaQuery } from "../common/dom/media_query";
-import { storage } from "../common/decorators/storage";
+import { getStorage, storage } from "../common/decorators/storage";
+import {
+  HISTORY_SUBJECTS,
+  noteLocalChange,
+  startLocalHistory,
+} from "../common/history/local-history";
 import { DEBUG_SAFE_AREA_TOOL_STORAGE_KEY } from "../common/util/debug-safe-area";
 import { computeRTLDirection } from "../common/util/compute_rtl";
 import "../components/appearance/ha-appearance-tools";
@@ -26,6 +31,8 @@ import "../components/ha-accessibility-tools";
 import type { HaAccessibilityTools } from "../components/ha-accessibility-tools";
 import "../components/ha-drawer";
 import "../components/ha-page-tabs";
+import "../components/page/ha-page-tool-panel";
+import type { HaPageToolPanel } from "../components/page/ha-page-tool-panel";
 import { narrowViewportContext } from "../data/context";
 import { showNotificationDrawer } from "../dialogs/notifications/show-notification-drawer";
 import type { HomeAssistant, Route } from "../types";
@@ -66,6 +73,12 @@ export class HomeAssistantMain extends LitElement {
   private _unsubAccessibility?: UnsubscribeFunc;
 
   private _appearanceTools?: HaAppearanceTools;
+
+  private _pageToolPanel?: HaPageToolPanel;
+
+  private _unsubHistory: UnsubscribeFunc[] = [];
+
+  private _noteWording = () => noteLocalChange("wording");
 
   @query("ha-accessibility-tools")
   private _accessibilityTools?: HaAccessibilityTools;
@@ -174,6 +187,10 @@ export class HomeAssistantMain extends LitElement {
       this._appearanceTools?.startPicking();
     });
 
+    this.addEventListener("hass-page-tool", (ev) => {
+      this._pageToolPanel?.open(ev.detail);
+    });
+
     this.addEventListener("hass-show-accessibility-tools", () => {
       this._accessibilityTools?.toggle();
     });
@@ -190,11 +207,25 @@ export class HomeAssistantMain extends LitElement {
     // Created here, not in the template: the tools move into an open modal
     // dialog and back, which a rendered template would not follow.
     this._appearanceTools ??= document.createElement("ha-appearance-tools");
+    this._pageToolPanel ??= document.createElement("ha-page-tool-panel");
     this.updateComplete.then(() => {
       if (this._appearanceTools && !this._appearanceTools.isConnected) {
         this.shadowRoot?.appendChild(this._appearanceTools);
       }
+      if (this._pageToolPanel && !this._pageToolPanel.isConnected) {
+        this.shadowRoot?.appendChild(this._pageToolPanel);
+      }
     });
+    startLocalHistory();
+    this._unsubHistory = [
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.accessibility.key, () =>
+        noteLocalChange("accessibility")
+      ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabs.key, () =>
+        noteLocalChange("tabs")
+      ),
+    ];
+    window.addEventListener("personal-vocabulary-changed", this._noteWording);
     window.addEventListener("keydown", this._handleAccessibilityShortcut);
     window.addEventListener("dragover", this._handleWordingDragOver);
     window.addEventListener("drop", this._handleWordingDrop);
@@ -207,6 +238,14 @@ export class HomeAssistantMain extends LitElement {
     super.disconnectedCallback();
     this._appearanceTools?.stop();
     this._appearanceTools?.remove();
+    this._pageToolPanel?.close();
+    this._pageToolPanel?.remove();
+    this._unsubHistory.forEach((unsubscribe) => unsubscribe());
+    this._unsubHistory = [];
+    window.removeEventListener(
+      "personal-vocabulary-changed",
+      this._noteWording
+    );
     window.removeEventListener("keydown", this._handleAccessibilityShortcut);
     window.removeEventListener("dragover", this._handleWordingDragOver);
     window.removeEventListener("drop", this._handleWordingDrop);

@@ -34,6 +34,19 @@ Written 9 November 2026 for whoever picks this up next.
   master repository whose push commits every automation repository first; the dry run of a whole
   automation. The boards for each are named in `docs/feature-status.md`.
 
+### Page tools (10 November 2026)
+
+- `frontend/src/components/page/ha-page-tools.ts` is the header cluster. A layout places it and
+  it works on that layout: it finds its page as the host of the shadow root it is in. To give
+  another layout the tools, render `<ha-page-tools>` in its header, `<ha-page-footer>` after its
+  content, and use `PageLockController` to put `inert` on what must not change while locked.
+  `hass-subpage.ts` is the shortest example.
+- Still without the tools: the dashboard header (`hui-root.ts`), `ha-top-app-bar-fixed.ts`, the
+  developer tools, and every dialog. The boards also show a large title with a summary line, tables
+  as rounded row cards and a card grid on Settings home; none of that is built.
+- A local change is only in History if its store calls `noteLocalChange` (see
+  `common/history/local-history.ts`). Locks must never be added there.
+
 ### Checking against a real instance
 
 The published image runs in Docker, and the frontend in this repository can be served from it,

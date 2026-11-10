@@ -1,3 +1,5 @@
+import { noteLocalChange } from "../history/local-history";
+
 /**
  * Appearance choices for single elements of the interface.
  *
@@ -313,6 +315,7 @@ export const writeAppearanceStore = (store: AppearanceStore): void => {
     // Storage can be full or unavailable; the choice still applies until
     // the page is closed.
   }
+  noteLocalChange("appearance");
 };
 
 // ---- Colour ----

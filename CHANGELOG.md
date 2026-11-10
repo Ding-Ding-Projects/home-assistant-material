@@ -25,6 +25,13 @@ Every release is also listed, with its build results, on the
   in a build.
 - The search at the top is a real search field with the pattern workbench; what is typed or built
   there opens the search of everything with that text.
+- Interface: page tools in the header of every settings page. Search this page (with the pattern
+  workbench), edit appearance, read aloud, history, export, lock and help; one button on a narrow
+  screen. Section tabs moved to a row under the header, and wide screens have a footer line.
+- Export a page as CSV, JSON, Markdown, plain text or HTML, or print it.
+- Lock a page with the lock button or Ctrl+Shift+L; unlock with a hold or a PIN.
+- History of local changes to appearance, accessibility and open tabs, with undo.
+- Help articles that ship with the interface.
 - Automations: a History tab with every version of every automation; test one or many, run one
   or many, compare, make live, export, and commit everything to the master repository.
 - Automations: a Git repository for each automation and a master repository (new integration

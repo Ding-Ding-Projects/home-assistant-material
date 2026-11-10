@@ -76,3 +76,9 @@ export const appearanceChoiceCount = (): number => {
     )
   );
 };
+
+/** Reads the stored choices again, after they were put back from history. */
+export const reloadAppearance = (): void => {
+  store = undefined;
+  applyStore(current(), tracked);
+};

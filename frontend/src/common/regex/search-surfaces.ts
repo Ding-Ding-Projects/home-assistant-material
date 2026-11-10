@@ -84,6 +84,16 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Pages in the New tab catalog",
   },
   {
+    file: "components/page/ha-page-tools.ts",
+    searches: "The text of the page it is on, marked where it is found",
+    matcher: "common/page/find-in-page.ts",
+  },
+  {
+    file: "components/page/ha-page-tool-panel.ts",
+    searches:
+      "The page from the tools panel on a small screen, the local history, and the help articles",
+  },
+  {
     file: "components/media-player/ha-media-player-browse.ts",
     searches:
       "Titles in a media folder. The second field on this page sends its text to the media source",
