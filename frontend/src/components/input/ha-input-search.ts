@@ -127,6 +127,13 @@ export class HaInputSearch extends HaInput {
     // Consumers filter on `input`, the same event typing fires.
     this.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
     this.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    // Put focus back in the field, where the person continues. The button
+    // just pressed is inside this element, and focusing an element that
+    // already holds focus does nothing, so let go of it first.
+    this.updateComplete.then(() => {
+      (this.shadowRoot?.activeElement as HTMLElement | null)?.blur();
+      this.focus();
+    });
   }
 
   static styles = [

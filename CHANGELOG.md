@@ -18,8 +18,8 @@ Every release is also listed, with its build results, on the
   and keyboard help.
 - Fixed: vendored font files were altered by line-ending conversion on commit.
 - Interface: every search field has a pattern workbench button, and every list accepts a regular
-  expression written as `/pattern/flags`. Plain text stays the default. Not yet seen working in a
-  build.
+  expression written as `/pattern/flags`. Plain text stays the default. The workbench shows which
+  items of the list a pattern matches. Seen working on the New tab catalog in the demo build.
 - Design: every page of the product is drawn. 153 boards on 11 canvases of at most 15 boards,
   including a Git repository per automation, a master repository, an automation history manager
   and test buttons on Choose options and conditions.

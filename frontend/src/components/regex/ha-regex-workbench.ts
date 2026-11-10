@@ -60,6 +60,12 @@ declare global {
   }
 }
 
+/** Most items of the field's list that are tested for the list preview. */
+const MAX_LIST_ITEMS = 500;
+
+/** Most matching items the list preview names. */
+const MAX_LIST_SHOWN = 12;
+
 const LIBRARY_STORAGE_KEY = "regexLibrary";
 
 const TABS = [
@@ -272,6 +278,9 @@ export class HaRegexWorkbench extends LitElement {
 
   @state() private _caseOutcome?: RegexOutcome<"cases">;
 
+  /** Which of the list's own items the pattern matches, one by one. */
+  @state() private _listOutcome?: RegexOutcome<"cases">;
+
   @state() private _selected = 0;
 
   @state() private _benchmark?: RegexOutcome<"time">;
@@ -407,12 +416,14 @@ export class HaRegexWorkbench extends LitElement {
     if (this._mode !== "regex" || !this._pattern) {
       this._outcome = undefined;
       this._caseOutcome = undefined;
+      this._listOutcome = undefined;
       return;
     }
     const check = compileRegex(this._pattern, this._flags);
     if (!check.regex) {
       this._outcome = undefined;
       this._caseOutcome = undefined;
+      this._listOutcome = undefined;
       return;
     }
     const runId = ++this._runId;
@@ -435,6 +446,20 @@ export class HaRegexWorkbench extends LitElement {
       this._selected >= outcome.result.matches.length
     ) {
       this._selected = 0;
+    }
+    if (outcome.status === "ok" && this.samples?.length) {
+      const listOutcome = await evaluateRegex({
+        type: "cases",
+        pattern: this._pattern,
+        flags: this._flags,
+        cases: this.samples.slice(0, MAX_LIST_ITEMS),
+      });
+      if (runId !== this._runId || listOutcome.status === "cancelled") {
+        return;
+      }
+      this._listOutcome = listOutcome;
+    } else {
+      this._listOutcome = undefined;
     }
     if (!this._cases.length || outcome.status !== "ok") {
       this._caseOutcome = undefined;
@@ -1103,10 +1128,51 @@ export class HaRegexWorkbench extends LitElement {
     return html`
       <div class="columns">
         <section>
-          ${this._renderSampleField()} ${this._renderSummary()}
-          ${this._renderMarkedSample()}
+          ${this._renderListPreview()} ${this._renderSampleField()}
+          ${this._renderSummary()} ${this._renderMarkedSample()}
         </section>
         ${this._renderMatchDetail()}
+      </div>
+    `;
+  }
+
+  // The list filters one item at a time, so this shows the answer the list
+  // will give, which can differ from matches in one long test text.
+  private _renderListPreview() {
+    const outcome = this._listOutcome;
+    if (!this.samples?.length || outcome?.status !== "ok") {
+      return nothing;
+    }
+    const items = this.samples.slice(0, MAX_LIST_ITEMS);
+    const matched = items.filter(
+      (_item, index) => outcome.result.matched[index]
+    );
+    const shown = matched.slice(0, MAX_LIST_SHOWN);
+    return html`
+      <div class="list-preview" role="status">
+        <span class="label">${this._l("test.list_title")}</span>
+        <p class="note">
+          ${this._l("test.list_summary", {
+            matched: matched.length,
+            count: items.length,
+          })}
+        </p>
+        ${
+          shown.length
+            ? html`<ul class="list-items">
+                ${shown.map((item) => html`<li>${item}</li>`)}
+                ${
+                  matched.length > shown.length
+                    ? html`<li class="more">
+                        ${this._l("test.list_more", {
+                          count: matched.length - shown.length,
+                        })}
+                      </li>`
+                    : nothing
+                }
+              </ul>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -2108,6 +2174,36 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   static styles: CSSResultGroup = css`
+    .list-preview {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-4);
+      margin-bottom: var(--ha-space-4);
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--ha-color-fill-primary-quiet-resting);
+    }
+    .list-preview .note {
+      margin: 0;
+    }
+    .list-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .list-items li {
+      padding: var(--ha-space-1) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      background: var(--card-background-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .list-items li.more {
+      background: none;
+      color: var(--secondary-text-color);
+    }
     :host {
       font-family: var(--ha-font-family-body);
       --regex-mono:

@@ -1,3 +1,4 @@
+import memoizeOne from "memoize-one";
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import { ResizeController } from "@lit-labs/observers/resize-controller";
 import type { ContextType } from "@lit/context";
@@ -28,6 +29,7 @@ import {
 } from "../common/url/data-table-query-params";
 import "../components/chips/ha-assist-chip";
 import { GROUP_ACTIONS_SLOT_PREFIX } from "../components/data-table/ha-data-table";
+import { tablePatternSamples } from "../components/data-table/pattern-samples";
 import type {
   DataTableColumnContainer,
   DataTableRowData,
@@ -369,6 +371,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       @input=${this._handleSearchChange}
       @blur=${this._flushUrl}
       .placeholder=${this.searchLabel}
+      .patternSamples=${this._patternSamples(this.data, this.columns)}
     >
     </ha-input-search>`;
 
@@ -954,6 +957,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   private _selectNone = () => {
     this._dataTable.clearSelection();
   };
+
+  private _patternSamples = memoizeOne(tablePatternSamples);
 
   private _handleSearchChange(
     ev: InputEvent & HASSDomTargetEvent<HaInputSearch>

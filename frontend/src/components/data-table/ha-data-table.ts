@@ -46,6 +46,7 @@ import "../skeleton/ha-skeleton-icon";
 import "../skeleton/ha-skeleton-text";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
+import { tablePatternSamples } from "./pattern-samples";
 import { filterData, sortData } from "./sort-filter";
 
 export interface RowClickedEvent {
@@ -451,6 +452,8 @@ export class HaDataTable extends LitElement {
     }
   }
 
+  private _patternSamples = memoizeOne(tablePatternSamples);
+
   private _memRenderRow = memoizeOne(
     (columns: DataTableColumnContainer, narrow: boolean) =>
       (row: DataTableRowData, index: number) =>
@@ -529,6 +532,10 @@ export class HaDataTable extends LitElement {
                       appearance="outlined"
                       @input=${this._handleSearchChange}
                       .placeholder=${this.searchLabel}
+                      .patternSamples=${this._patternSamples(
+                        this.data,
+                        this.columns
+                      )}
                     ></ha-input-search>
                   </div>
                 `
