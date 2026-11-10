@@ -256,6 +256,17 @@ export default class HaAutomationConditionRow extends LitElement {
 
       <slot name="icons" slot="icons"></slot>
 
+      <ha-icon-button
+        slot="icons"
+        class="run-test"
+        .label=${this.hass.localize(
+          "ui.panel.config.automation.editor.conditions.run_test"
+        )}
+        .path=${mdiFlask}
+        @click=${this._runTestClicked}
+        @keydown=${stopPropagation}
+      ></ha-icon-button>
+
       <ha-dropdown
         slot="icons"
         @click=${preventDefaultStopPropagation}
@@ -684,6 +695,13 @@ export default class HaAutomationConditionRow extends LitElement {
   private _switchYamlMode() {
     this._yamlMode = true;
   }
+
+  // The test button sits in the row header, which expands on a click.
+  private _runTestClicked = (ev: Event) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this._testCondition();
+  };
 
   private _testCondition = async () => {
     if (this._testing && this._testingTimeout === undefined) {

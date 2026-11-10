@@ -5,6 +5,8 @@ import {
   mdiMagnify,
   mdiPlus,
   mdiTabPlus,
+  mdiTabRemove,
+  mdiUndo,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
@@ -26,6 +28,8 @@ import { storage } from "../common/decorators/storage";
 import { fireEvent } from "../common/dom/fire_event";
 import { navigate } from "../common/navigate";
 import { searchMatcher } from "../common/regex/filter";
+import type { BulkCloseMode } from "../common/tabs/bulk-close";
+import { planBulkClose } from "../common/tabs/bulk-close";
 import {
   FIXED_PANELS,
   getDefaultPanelUrlPath,
@@ -83,6 +87,9 @@ export class HaPageTabs extends LitElement {
   private _unsubAccessibility?: UnsubscribeFunc;
 
   @state() private _filter = "";
+
+  /** Tabs closed by the last bulk close, kept so it can be undone. */
+  @state() private _bulkClosed: string[] = [];
 
   @query("#catalog") private _catalog?: HTMLElement;
 
@@ -225,6 +232,7 @@ export class HaPageTabs extends LitElement {
           .patternSamples=${tabs.map((tab) => tab.title)}
           @input=${this._filterChanged}
         ></ha-input-search>
+        ${this._renderBulkClose(tabs, closed, current)}
         <div class="catalog-list" role="list">
           ${
             listed.length
@@ -290,6 +298,105 @@ export class HaPageTabs extends LitElement {
     `;
   }
 
+  // Close tabs containing the text, or not containing it. The list under the
+  // search field shows what the text matches, so it is the preview.
+  private _renderBulkClose(
+    tabs: PageTab[],
+    closed: Set<string>,
+    current: string | undefined
+  ): TemplateResult | typeof nothing {
+    if (this._bulkClosed.length && !this._filter) {
+      return html`<div class="bulk" role="status">
+        <span class="bulk-note"
+          >${this.hass.localize("ui.page_tabs.bulk_done", {
+            count: this._bulkClosed.length,
+          })}</span
+        >
+        <button class="text-button" @click=${this._undoBulkClose}>
+          <ha-svg-icon .path=${mdiUndo}></ha-svg-icon>
+          ${this.hass.localize("ui.page_tabs.bulk_undo")}
+        </button>
+      </div>`;
+    }
+    if (!this._filter.trim()) {
+      return nothing;
+    }
+    const candidates = tabs.map((tab) => ({
+      id: tab.urlPath,
+      texts: [tab.title, tab.urlPath],
+      open: !closed.has(tab.urlPath),
+      current: tab.urlPath === current,
+    }));
+    const matching = planBulkClose(candidates, this._filter, "matching");
+    const others = planBulkClose(candidates, this._filter, "not_matching");
+    return html`<div class="bulk">
+      <div class="bulk-buttons">
+        <button
+          class="text-button"
+          .mode=${"matching"}
+          ?disabled=${!matching.ids.length}
+          @click=${this._bulkClose}
+        >
+          <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
+          ${this.hass.localize("ui.page_tabs.bulk_close_matching", {
+            count: matching.ids.length,
+          })}
+        </button>
+        <button
+          class="text-button"
+          .mode=${"not_matching"}
+          ?disabled=${!others.ids.length}
+          @click=${this._bulkClose}
+        >
+          <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
+          ${this.hass.localize("ui.page_tabs.bulk_close_others", {
+            count: others.ids.length,
+          })}
+        </button>
+      </div>
+      <span class="bulk-note"
+        >${this.hass.localize(
+          matching.blocked === "invalid"
+            ? "ui.page_tabs.bulk_invalid"
+            : "ui.page_tabs.bulk_note"
+        )}</span
+      >
+    </div>`;
+  }
+
+  private _bulkClose(ev: Event) {
+    const mode = (ev.currentTarget as HTMLElement & { mode: BulkCloseMode })
+      .mode;
+    const tabs = this._computeTabs(
+      this.hass.panels,
+      getDefaultPanelUrlPath(this.hass),
+      Boolean(this.hass.user?.is_admin),
+      this.hass.localize
+    );
+    const { ids } = planBulkClose(
+      tabs.map((tab) => ({
+        id: tab.urlPath,
+        texts: [tab.title, tab.urlPath],
+        open: !this._closed.includes(tab.urlPath),
+        current: tab.urlPath === this.hass.panelUrl,
+      })),
+      this._filter,
+      mode
+    );
+    if (!ids.length) {
+      return;
+    }
+    this._closed = [...this._closed, ...ids];
+    this._bulkClosed = ids;
+    this._filter = "";
+  }
+
+  private _undoBulkClose() {
+    const reopen = new Set(this._bulkClosed);
+    this._closed = this._closed.filter((urlPath) => !reopen.has(urlPath));
+    this._bulkClosed = [];
+  }
+
   public connectedCallback() {
     super.connectedCallback();
     this._accessibilityButtonHidden = getAccessibilitySettings().hideButton;
@@ -347,6 +454,7 @@ export class HaPageTabs extends LitElement {
 
   private _openEveryTab() {
     this._closed = [];
+    this._bulkClosed = [];
   }
 
   private _filterChanged(ev: InputEvent) {
@@ -356,6 +464,7 @@ export class HaPageTabs extends LitElement {
   private _catalogToggled(ev: ToggleEvent) {
     if (ev.newState === "open") {
       this._filter = "";
+      this._bulkClosed = [];
       this.updateComplete.then(() => this._search?.focus());
     }
   }
@@ -597,6 +706,26 @@ export class HaPageTabs extends LitElement {
     #catalog-search {
       --ha-input-search-height: var(--ha-space-12);
       --ha-input-search-border-radius: var(--ha-border-radius-pill);
+    }
+    .bulk {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+    }
+    .bulk-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
+    }
+    .bulk-note {
+      padding: 0 var(--ha-space-2);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .bulk[role="status"] {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
     }
     .catalog-list {
       display: flex;

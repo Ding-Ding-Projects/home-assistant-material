@@ -5,6 +5,7 @@ import {
   mdiCommentTextOutline,
   mdiDelete,
   mdiDotsVertical,
+  mdiFlask,
   mdiPlaylistEdit,
   mdiPlusCircleMultipleOutline,
   mdiRenameBox,
@@ -28,6 +29,7 @@ import type { HaAutomationRow } from "../../../../components/automation/ha-autom
 import "../../../../components/ha-card";
 import "../../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../../components/ha-dropdown";
+import "../../../../components/automation/ha-automation-row-event-chip";
 import "../../../../components/ha-dropdown-item";
 import "../../../../components/ha-expansion-panel";
 import "../../../../components/ha-icon-button";
@@ -39,13 +41,17 @@ import type {
   OptionSidebarConfig,
   TriggerCondition,
 } from "../../../../data/automation";
-import { getRowNote } from "../../../../data/automation";
+import { getRowNote, testCondition } from "../../../../data/automation";
+import { validateConfig } from "../../../../data/config";
 import { describeCondition } from "../../../../data/automation_i18n";
 import { fullEntitiesContext } from "../../../../data/context";
 import type { EntityRegistryEntry } from "../../../../data/entity/entity_registry";
 import type { Action, Option } from "../../../../data/script";
 import { migrateAutomationAction } from "../../../../data/script";
-import { showPromptDialog } from "../../../../dialogs/generic/show-dialog-box";
+import {
+  showAlertDialog,
+  showPromptDialog,
+} from "../../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../../types";
 import { isMac } from "../../../../util/is_mac";
 import "../action/ha-automation-action";
@@ -98,6 +104,12 @@ export default class HaAutomationOptionRow extends LitElement {
   @state() private _yamlMode = false;
 
   @state() private _warnings?: string[];
+
+  @state() private _testing = false;
+
+  @state() private _testingResult?: boolean;
+
+  private _testingTimeout?: number;
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
@@ -157,6 +169,77 @@ export default class HaAutomationOptionRow extends LitElement {
     ) {
       this.openSidebar();
     }
+  }
+
+  // The test button sits in the row header, which expands on a click.
+  private _runTestClicked = (ev: Event) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this._testOption();
+  };
+
+  /**
+   * Checks right now whether this option would be chosen: every one of its
+   * conditions must pass. An option without conditions always passes.
+   * Nothing is run and nothing is saved.
+   */
+  private async _testOption() {
+    const option = this.option;
+    if (!option) {
+      return;
+    }
+    window.clearTimeout(this._testingTimeout);
+    const conditions = ensureArray<Condition | string>(
+      option.conditions ?? []
+    ).map((condition) => {
+      if (typeof condition === "string") {
+        return condition;
+      }
+      const { enabled: _enabled, ...tested } = condition;
+      return tested;
+    });
+
+    let passes = true;
+    if (conditions.length) {
+      try {
+        const validation = await validateConfig(this.hass, {
+          conditions: conditions as Condition[],
+        });
+        if (this.option !== option) {
+          return;
+        }
+        if (!validation.conditions.valid) {
+          showAlertDialog(this, {
+            title: this.hass.localize(
+              "ui.panel.config.automation.editor.conditions.invalid_condition"
+            ),
+            text: validation.conditions.error,
+          });
+          return;
+        }
+        passes = (await testCondition(this.hass, conditions as Condition[]))
+          .result;
+      } catch (err: unknown) {
+        if (this.option !== option) {
+          return;
+        }
+        showAlertDialog(this, {
+          title: this.hass.localize(
+            "ui.panel.config.automation.editor.conditions.test_failed"
+          ),
+          text: err instanceof Error ? err.message : String(err),
+        });
+        return;
+      }
+    }
+    if (this.option !== option) {
+      return;
+    }
+    this._testingResult = passes;
+    this._testing = true;
+    this._testingTimeout = window.setTimeout(() => {
+      this._testing = false;
+    }, 2500);
   }
 
   private _expandedChanged(ev) {
@@ -266,11 +349,35 @@ export default class HaAutomationOptionRow extends LitElement {
         }
       </h3>
 
+      <ha-automation-row-event-chip
+        .show=${this._testing}
+        .variant=${this._testingResult ? "success" : "warning"}
+        slot="event"
+        class="event-chip"
+        aria-live="polite"
+      >
+        ${this.hass.localize(
+          `ui.panel.config.automation.editor.actions.type.choose.testing_${
+            this._testingResult ? "pass" : "error"
+          }`
+        )}
+      </ha-automation-row-event-chip>
+
       <slot name="icons" slot="icons"></slot>
 
       ${
         this.option
           ? html`
+              <ha-icon-button
+                slot="icons"
+                class="run-test"
+                .label=${this.hass.localize(
+                  "ui.panel.config.automation.editor.actions.type.choose.test_option"
+                )}
+                .path=${mdiFlask}
+                @click=${this._runTestClicked}
+                @keydown=${stopPropagation}
+              ></ha-icon-button>
               <ha-dropdown
                 slot="icons"
                 @click=${preventDefaultStopPropagation}

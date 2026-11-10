@@ -15,6 +15,25 @@ Written 9 November 2026 for whoever picks this up next.
   only been seen in the frontend's demo build. Everything else on the canvas is still a design.
 - Open work is tracked in issues 1 to 11 of this repository.
 
+## Added on 10 November 2026
+
+- The design is complete as a design: 153 boards on 11 canvases in `design/canvases/`. See
+  `design/README.md` and pass 3 in `design/HANDOFF.md`.
+- Build 1's VirtualBox image built and is attached to release `v2026.11.1.1`. Its Raspberry Pi
+  images were still building. No image has been booted yet.
+- Search: every search field has the pattern workbench and every list accepts `/pattern/flags`.
+  `frontend/src/common/regex/search-surfaces.ts` lists the fields; a test fails if one is added
+  without an entry. To add a search field, read the comment at the top of that file.
+- Tabs: bulk close by search. Automations: test buttons on conditions and Choose options.
+- The demo build (`npx gulp develop-demo` in `frontend/`) has no settings pages, so tables,
+  pickers, logs and the automation editor have not been seen running. They need a real
+  instance: run the container image from a release and check each row of
+  `docs/feature-status.md` that says "not seen in a build".
+- Still to build, in the owner's order: appearance editors on every element; the automation
+  history manager with test one, test many and run many; a Git repository per automation and a
+  master repository whose push commits every automation repository first; the dry run of a whole
+  automation. The boards for each are named in `docs/feature-status.md`.
+
 ## Next steps, in order
 
 1. Confirm the operating system images attached to the release, then boot the VirtualBox image
