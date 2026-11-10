@@ -8,6 +8,7 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Developer tools are back on the navigation rail, just above Settings, for administrators.
 - The pattern workbench fits a phone: it takes the visible screen instead of the space under
   the field, follows the keyboard, and its switches start at the left.
 - On a phone, resting a finger on an element opens its menu, where a right-click does on a

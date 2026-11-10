@@ -2,6 +2,7 @@ import {
   mdiBell,
   mdiCellphoneCog,
   mdiCog,
+  mdiHammer,
   mdiMenu,
   mdiMenuOpen,
   mdiMicrophone,
@@ -180,6 +181,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   @state() private _issuesCount = 0;
 
+  @state() private _inTools = false;
+
   @state() private _panelOrder?: string[];
 
   @state() private _hiddenPanels?: string[];
@@ -224,9 +227,24 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     ];
   }
 
+  public connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("location-changed", this._pathChanged);
+    window.addEventListener("popstate", this._pathChanged);
+    this._pathChanged();
+  }
+
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("location-changed", this._pathChanged);
+    window.removeEventListener("popstate", this._pathChanged);
   }
+
+  // The developer tools are pages of the settings panel, so the panel alone
+  // does not say which of the two items is open.
+  private _pathChanged = () => {
+    this._inTools = /^\/config\/tools(\/|$)/.test(window.location.pathname);
+  };
 
   protected render() {
     if (!this.hass) {
@@ -249,6 +267,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       changedProps.has("alwaysExpand") ||
       changedProps.has("_updatesCount") ||
       changedProps.has("_issuesCount") ||
+      changedProps.has("_inTools") ||
       changedProps.has("_notifications") ||
       changedProps.has("_hiddenPanels") ||
       changedProps.has("_panelOrder") ||
@@ -452,6 +471,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   private _renderFixedPanels(selectedPanel: string) {
     // prettier-ignore
     return html`
+      ${this._renderDeveloperTools()}
       ${this.hass.user?.is_admin
         ? this._renderConfiguration(selectedPanel)
         : this._renderExternalConfiguration()}
@@ -497,11 +517,33 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     return html`<div class="spacer" disabled></div>`;
   }
 
+  private _renderDeveloperTools() {
+    if (!this.hass.user?.is_admin) {
+      return nothing;
+    }
+    const title = this.hass.localize("ui.sidebar.developer_tools");
+    return html`
+      <ha-list-item-button
+        class=${classMap({ selected: this._inTools })}
+        href="/config/tools"
+        id="sidebar-developer-tools"
+      >
+        <ha-svg-icon slot="start" .path=${mdiHammer}></ha-svg-icon>
+        <span class="item-text" slot="headline">${title}</span>
+      </ha-list-item-button>
+      ${
+        !this.alwaysExpand
+          ? this._renderToolTip("sidebar-developer-tools", title)
+          : nothing
+      }
+    `;
+  }
+
   private _renderConfiguration(selectedPanel: string) {
     if (!this.hass.user?.is_admin) {
       return nothing;
     }
-    const isSelected = selectedPanel === "config";
+    const isSelected = selectedPanel === "config" && !this._inTools;
     return html`
       <ha-list-item-button
         class="configuration ${classMap({ selected: isSelected })}"
