@@ -1,0 +1,25 @@
+@@HEAD:Scheduled settings@@
+@@SURF:Settings, Appearance|Schedules|680@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: stretch; flex-wrap: wrap">
+<section class="col" aria-label="Rules, first match wins" style="flex: 1 1 500px; gap: 4px">
+<div class="row" style="gap: 12px; padding: 0 16px 12px"><p class="bm mu grow">Rules are checked top to bottom. The first one that applies wins. Times are in Toronto time and follow daylight saving.</p><button class="btn fill">@@I:Plus@@New rule</button></div>
+<div class="li sel">@@I:DragVertical@@<span class="col grow"><span class="ll">Dark theme while a movie plays</span><span class="bs">Theme is Dark when Movie mode is on</span></span><span class="tag" style="background: var(--sl0)">Home Assistant entity</span>@@SW:on|Dark theme while a movie plays@@</div>
+<div class="li">@@I:DragVertical@@<span class="col grow"><span class="ll">Evenings in warm colour</span><span class="bs mu">Colour is Ember, every day 19:00 to 23:00</span></span><span class="tag">On this device</span>@@SW:on|Evenings in warm colour@@</div>
+<div class="li">@@I:DragVertical@@<span class="col grow"><span class="ll">Cantonese on Sundays</span><span class="bs mu">Language is 廣東話, Sundays all day</span></span><span class="tag">On this device</span>@@SW:on|Cantonese on Sundays@@</div>
+<div class="li">@@I:DragVertical@@<span class="col grow"><span class="ll">Office display theme</span><span class="bs mu">Theme, density and font from the office display service</span></span><span class="tag a">Web service, held</span>@@SW:on|Office display theme@@</div>
+<div class="li">@@I:DragVertical@@<span class="col grow"><span class="ll">Calm motion at night</span><span class="bs mu">Motion is Reduced, every day 22:00 to 07:00</span></span><span class="tag">On this device</span>@@SW:off|Calm motion at night@@</div>
+<div class="note" style="margin-top: 12px">@@I:ClockOutline@@<span class="bm grow">In effect now: Ember colour. Next change at 23:00, back to Ocean blue.</span></div>
+</section>
+<section class="card col" aria-label="Edit rule" style="flex: 1 1 420px; gap: 16px">
+<h2 class="tl">Dark theme while a movie plays</h2>
+<div class="col" style="gap: 6px"><span class="lm mu">Change</span><button class="field" style="background: var(--sl0)" aria-haspopup="listbox"><span class="bl grow">Theme</span>@@I:MenuDown@@</button></div>
+<div class="col" style="gap: 6px"><span class="lm mu">To</span><div class="seg" role="group" aria-label="Theme value" style="background: var(--sl0)"><button aria-pressed="false">Light</button><button class="sel" aria-pressed="true" style="background: var(--pc); color: var(--on-pc)">Dark</button></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">When</span><div class="seg" role="group" aria-label="Where the answer comes from" style="background: var(--sl0)"><button aria-pressed="false">A time</button><button class="sel" aria-pressed="true" style="background: var(--pc); color: var(--on-pc)">An entity is on</button><button aria-pressed="false">A web service says so</button></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Entity</span><button class="field" style="background: var(--sl0)" aria-haspopup="listbox">@@I:ToggleSwitch@@<span class="col grow"><span class="bl">Movie mode</span><span class="bs mu mono">input_boolean.movie_mode</span></span><span class="tag g">On now</span>@@I:MenuDown@@</button></div>
+<div class="note" style="background: var(--sl0)">@@I:ShieldCheck@@<span class="bm">If the entity cannot be read, the last good answer is kept and this rule shows as held.</span></div>
+<span class="grow"></span>
+<div class="row" style="gap: 8px"><button class="btn text" style="color: var(--err)">Delete rule</button><span class="grow"></span><button class="btn out">Cancel</button><button class="btn fill">Save rule</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,680@@

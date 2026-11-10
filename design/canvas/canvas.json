@@ -1,28 +1,188 @@
 {
   "v": 3,
-  "createdOnFiles": {"v": 1, "at": "2026-11-10T02:12:00Z"},
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-10T02:12:00Z"
+  },
   "title": "Home Assistant Material Design 3",
-  "launch": {"view": "canvas", "page": "screens"},
+  "launch": {
+    "view": "canvas",
+    "page": "screens"
+  },
   "pages": [
-    {"id": "screens", "name": "Everyday screens"},
-    {"id": "language", "name": "Language and voice"},
-    {"id": "look", "name": "Material Design 3 and appearance"},
-    {"id": "nav", "name": "Navigation and search"},
-    {"id": "safety", "name": "Safety and locks"},
-    {"id": "records", "name": "Records and history"},
-    {"id": "tools", "name": "Built-in tools"},
-    {"id": "system", "name": "System and tokens"}
+    {
+      "id": "screens",
+      "name": "Everyday screens"
+    },
+    {
+      "id": "language",
+      "name": "Language and voice"
+    },
+    {
+      "id": "look",
+      "name": "Material Design 3 and appearance"
+    },
+    {
+      "id": "nav",
+      "name": "Navigation and search"
+    },
+    {
+      "id": "safety",
+      "name": "Safety and locks"
+    },
+    {
+      "id": "records",
+      "name": "Records and history"
+    },
+    {
+      "id": "tools",
+      "name": "Built-in tools"
+    },
+    {
+      "id": "system",
+      "name": "System and tokens"
+    }
   ],
   "boards": {
-    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Home, Material Design 3 light", "expand": "fill", "page": "screens"},
-    "Energy.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Energy with live chart, Material Design 3 dark", "expand": "fill", "page": "screens"},
-    "Settings.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 980, "title": "app settings that explain themselves", "expand": "fill", "page": "screens"},
-    "Onboarding.dc.html": {"x": 4560, "y": 0, "w": 1440, "h": 900, "title": "First-run wizard on a Raspberry Pi", "expand": "fill", "page": "screens"},
-    "Phone.dc.html": {"x": 6080, "y": 0, "w": 390, "h": 844, "title": "Phone home", "page": "screens"}
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Home, Material Design 3 light",
+      "expand": "fill",
+      "page": "screens"
+    },
+    "Energy.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Energy with live chart, Material Design 3 dark",
+      "expand": "fill",
+      "page": "screens"
+    },
+    "Settings.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "app settings that explain themselves",
+      "expand": "fill",
+      "page": "screens"
+    },
+    "Onboarding.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "First-run wizard on a Raspberry Pi",
+      "expand": "fill",
+      "page": "screens"
+    },
+    "Phone.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Phone home",
+      "page": "screens"
+    },
+    "Language.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "Language modes and playfulness",
+      "expand": "fill",
+      "page": "language"
+    },
+    "Vocabulary.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 740,
+      "title": "Personal wording file and drop celebration",
+      "expand": "fill",
+      "page": "language"
+    },
+    "Narration.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 780,
+      "title": "Spoken narrator and action sounds",
+      "expand": "fill",
+      "page": "language"
+    },
+    "Modes.dc.html": {
+      "x": 3840,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "School mode and focus modes",
+      "expand": "fill",
+      "page": "language"
+    },
+    "Schedule.dc.html": {
+      "x": 0,
+      "y": 900,
+      "w": 1200,
+      "h": 680,
+      "title": "Scheduled settings",
+      "expand": "fill",
+      "page": "language"
+    },
+    "Identity.dc.html": {
+      "x": 1280,
+      "y": 900,
+      "w": 1200,
+      "h": 740,
+      "title": "Renaming the app and its logo",
+      "expand": "fill",
+      "page": "language"
+    },
+    "DimSum.dc.html": {
+      "x": 2560,
+      "y": 900,
+      "w": 1200,
+      "h": 720,
+      "title": "Dim sum surprise",
+      "expand": "fill",
+      "page": "language"
+    }
   },
-  "order": ["Main.dc.html", "Energy.dc.html", "Settings.dc.html", "Onboarding.dc.html", "Phone.dc.html"],
+  "order": [
+    "Main.dc.html",
+    "Energy.dc.html",
+    "Settings.dc.html",
+    "Onboarding.dc.html",
+    "Phone.dc.html",
+    "Language.dc.html",
+    "Vocabulary.dc.html",
+    "Narration.dc.html",
+    "Modes.dc.html",
+    "Schedule.dc.html",
+    "Identity.dc.html",
+    "DimSum.dc.html"
+  ],
   "notes": {
-    "t-screens": {"x": 0, "y": -300, "text": "Everyday app screens", "kind": "title1", "maxW": 6470, "page": "screens"}
+    "t-screens": {
+      "x": 0,
+      "y": -300,
+      "text": "Everyday app screens",
+      "kind": "title1",
+      "maxW": 6470,
+      "page": "screens"
+    },
+    "t-language": {
+      "x": 0,
+      "y": -300,
+      "text": "Language, voice and personalization",
+      "kind": "title1",
+      "maxW": 5040,
+      "page": "language"
+    }
   },
   "designSystems": []
 }

@@ -1,0 +1,34 @@
+@@HEAD:Language and playfulness@@
+@@SURF:Settings, Language and voice|Language|700@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 40px; align-items: stretch; flex-wrap: wrap">
+<div class="col" style="flex: 1 1 480px; gap: 28px">
+<section class="col" aria-label="Language mode" style="gap: 12px">
+<div class="row" style="gap: 4px"><h2 class="tm">Language mode</h2>@@INFO:Language mode@@</div>
+<div role="radiogroup" aria-label="Language mode" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<button role="radio" aria-checked="false" class="card col" style="padding: 20px; gap: 4px; border-radius: 24px"><span class="tl">English</span><span class="bs mu">One language</span></button>
+<button role="radio" aria-checked="false" class="card col" style="padding: 20px; gap: 4px; border-radius: 24px"><span class="tl">廣東話</span><span class="bs mu">Hong Kong Cantonese</span></button>
+<button role="radio" aria-checked="true" class="card col" style="padding: 20px; gap: 4px; border-radius: 24px; background: var(--pc); color: var(--on-pc)"><span class="row" style="gap: 8px"><span class="tl grow">Both</span>@@I:CheckCircle@@</span><span class="bs">English first, 廣東話 beside it</span></button>
+</div>
+<span class="bs mu">From your settings file. Default: English.</span>
+</section>
+<section class="col" aria-label="Playfulness" style="gap: 16px">
+<div class="row" style="gap: 4px"><h2 class="tm">Playfulness</h2>@@INFO:Playfulness@@</div>
+<p class="bm mu">Changes the voice of every message, never the facts. 1 is fully serious, 5 is as playful as it gets. Each language has its own level.</p>
+<div class="row" style="gap: 16px"><span class="ll" style="width: 96px">English</span><div class="slide grow" role="slider" tabindex="0" aria-label="English playfulness" aria-valuemin="1" aria-valuemax="5" aria-valuenow="5" style="height: 44px; background: var(--sl2)"><b style="width: 94%"></b><i style="height: 28px"></i></div><span class="tl" style="width: 24px; text-align: center">5</span><button class="btn sm text">Reset</button></div>
+<div class="row" style="gap: 16px"><span class="ll" style="width: 96px">廣東話</span><div class="slide grow" role="slider" tabindex="0" aria-label="Cantonese playfulness" aria-valuemin="1" aria-valuemax="5" aria-valuenow="3" style="height: 44px; background: var(--sl2)"><b style="width: 50%"></b><i style="height: 28px"></i></div><span class="tl" style="width: 24px; text-align: center">3</span><button class="btn sm text">Reset</button></div>
+</section>
+@@LI:EmoticonHappyOutline|Show emojis in dialogs and message boxes|One fitting emoji per dialog. Never in buttons, labels or screen reader names.@@@@SW:on|Show emojis in dialogs and message boxes@@@@/LI@@
+</div>
+<aside class="col" aria-label="Live preview" style="flex: 1 1 400px; background: var(--sl2); border-radius: 32px; padding: 28px; gap: 16px">
+<span class="lm mu">Live preview, Both, English 5, 廣東話 3</span>
+<div class="dlg col" style="gap: 12px; margin: auto 0">
+<span style="font-size: 40px; line-height: 48px" aria-hidden="true">😴</span>
+<div class="col" style="gap: 2px"><h3 class="hs">Restart Home Assistant?</h3><span class="bm mu">重新啟動 Home Assistant？</span></div>
+<div class="col" style="gap: 2px"><p class="bl">Everything takes a one minute nap, then comes back fresher. Automations pause while it sleeps.</p><p class="bm mu">全部嘢會休息大約一分鐘先返嚟，期間自動化會暫停。</p></div>
+<div class="row" style="gap: 8px; justify-content: flex-end; margin-top: 8px"><button class="btn text">Not now<span class="bs mu">遲啲先</span></button><button class="btn fill">Restart<span class="bs" style="opacity: .85">重新啟動</span></button></div>
+</div>
+<p class="bs mu">Narrow screens show the second language behind a tap so labels never crowd.</p>
+</aside>
+</div>
+@@/SURF@@
+@@TAIL:1200,700@@

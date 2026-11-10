@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scheduled settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+.m3{--p:#00639B;--on-p:#FFFFFF;--pc:#CEE5FF;--on-pc:#004A76;--s:#51606F;--sc:#D5E4F6;--on-sc:#3A4857;--t:#68587A;--tc:#EEDBFF;--on-tc:#4F4061;--err:#BA1A1A;--errc:#FFDAD6;--on-errc:#93000A;--surf:#EEF1F6;--sl0:#FFFFFF;--sl1:#F7F9FD;--sl2:#F1F4F9;--sl3:#E9EDF3;--sl4:#E1E5EC;--on:#181C20;--onv:#42474E;--out:#72777F;--outv:#C2C7CF;--inv:#2D3135;--on-inv:#EFF1F6;--amber:#6B5200;--amberc:#FFE08B;--heat:#8C3A1D;--heatc:#FFDBCF;--green:#1F6A3B;--greenc:#B6F2BE;--scrim:rgba(24,28,32,.42);--e1:0 1px 2px rgba(0,0,0,.18),0 1px 3px 1px rgba(0,0,0,.08);--e3:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.2);font-family:'Google Sans Flex','Roboto Flex',Roboto,system-ui,sans-serif;color:var(--on);background:var(--surf);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.m3.dark{--p:#98CBFF;--on-p:#003354;--pc:#004A76;--on-pc:#CEE5FF;--s:#B9C8DA;--sc:#3A4857;--on-sc:#D5E4F6;--t:#D4BEE6;--tc:#4F4061;--on-tc:#EEDBFF;--err:#FFB4AB;--errc:#93000A;--on-errc:#FFDAD6;--surf:#0B0F13;--sl0:#14181D;--sl1:#191D22;--sl2:#1D2126;--sl3:#272B31;--sl4:#32363C;--on:#E0E2E8;--onv:#C2C7CF;--out:#8C9199;--outv:#42474E;--inv:#E0E2E8;--on-inv:#2D3135;--amber:#F2C744;--amberc:#514000;--heat:#FFB59E;--heatc:#6F2609;--green:#9BD6A4;--greenc:#005227;--scrim:rgba(0,0,0,.62);--e1:0 1px 2px rgba(0,0,0,.5);--e3:0 6px 16px rgba(0,0,0,.6)}
+:where(.m3) *{box-sizing:border-box}
+:where(.m3) button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;text-align:inherit}
+:where(.m3) a{color:var(--p);text-decoration:none}
+:where(.m3) a:hover{color:var(--on-pc)}
+:where(.m3) input,:where(.m3) textarea{font:inherit;color:inherit}
+:where(.m3) h1,:where(.m3) h2,:where(.m3) h3,:where(.m3) p{margin:0}
+.ic{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ic.s{width:20px;height:20px}
+.ic.l{width:32px;height:32px}
+.dx{font-size:88px;line-height:92px;font-weight:500;letter-spacing:-2px}
+.dl{font-size:57px;line-height:64px;font-weight:500;letter-spacing:-.5px}
+.dm{font-size:45px;line-height:52px;font-weight:500}
+.hl{font-size:32px;line-height:40px;font-weight:500}
+.hs{font-size:24px;line-height:32px;font-weight:500}
+.tl{font-size:22px;line-height:28px;font-weight:500}
+.tm{font-size:16px;line-height:24px;font-weight:600;letter-spacing:.1px}
+.ll{font-size:14px;line-height:20px;font-weight:600;letter-spacing:.1px}
+.lm{font-size:12px;line-height:16px;font-weight:600;letter-spacing:.4px}
+.bl{font-size:16px;line-height:24px}
+.bm{font-size:14px;line-height:20px}
+.bs{font-size:12px;line-height:16px;letter-spacing:.2px}
+.mu{color:var(--onv)}
+.mono{font-family:'Roboto Mono',ui-monospace,Menlo,monospace}
+.row{display:flex;align-items:center}
+.col{display:flex;flex-direction:column}
+.grow{flex:1;min-width:0}
+.app{display:flex;padding:12px 12px 12px 0;gap:0}
+.rail{width:88px;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0 8px}
+.ri{display:flex;flex-direction:column;align-items:center;gap:4px;width:72px;padding:4px 0;color:var(--onv)}
+.ri .pill{width:56px;height:32px;border-radius:16px;display:grid;place-items:center;position:relative}
+.ri:hover .pill{background:var(--sl4)}
+.ri.sel{color:var(--on)}
+.ri.sel .pill{background:var(--pc);color:var(--on-pc)}
+.badge{position:absolute;top:0;right:8px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--err);color:var(--sl0);font-size:11px;line-height:16px;font-weight:600;text-align:center}
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--sl0);border-radius:32px;overflow:hidden}
+.bar{display:flex;align-items:center;gap:8px;min-height:72px;padding:12px 20px 12px 28px;flex-wrap:wrap}
+.pt{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:20px;color:var(--onv);font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.pt:hover{background:var(--sl2)}
+.pt.sel{background:var(--inv);color:var(--on-inv)}
+.find{display:flex;align-items:center;gap:12px;height:48px;padding:0 8px 0 16px;border-radius:24px;background:var(--sl2);color:var(--onv);min-width:0}
+.kbd{font-size:12px;line-height:16px;font-weight:600;padding:4px 8px;border-radius:8px;background:var(--sl0);color:var(--onv);white-space:nowrap;box-shadow:inset 0 0 0 1px var(--outv)}
+.ib{width:48px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--onv);flex:none}
+.ib:hover{background:var(--sl2)}
+.ib.t{background:var(--sl2)}
+.ib.f{background:var(--p);color:var(--on-p)}
+.av{width:40px;height:40px;border-radius:20px;background:var(--tc);color:var(--on-tc);display:grid;place-items:center;font-size:14px;font-weight:600;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border-radius:24px;font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.btn.sm{height:40px;padding:0 16px;border-radius:20px}
+.btn.lg{height:56px;padding:0 28px;border-radius:28px;font-size:16px}
+.btn.fill{background:var(--p);color:var(--on-p)}
+.btn.tonal{background:var(--sc);color:var(--on-sc)}
+.btn.out{box-shadow:inset 0 0 0 1px var(--outv);color:var(--on)}
+.btn.text{color:var(--p);padding:0 12px}
+.btn.err{background:var(--err);color:var(--sl0)}
+.btn.sq{border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--outv);color:var(--onv);font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;flex:none}
+.chip.sel{background:var(--sc);box-shadow:none;color:var(--on-sc)}
+.card{background:var(--sl2);border-radius:32px;padding:28px}
+.card.hero{border-radius:40px;padding:32px}
+.sq{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;flex:none;background:var(--sl0);color:var(--on)}
+.sw{width:52px;height:32px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--out);background:var(--sl4);display:flex;align-items:center;padding:0 8px;flex:none}
+.sw i{display:block;width:16px;height:16px;border-radius:12px;background:var(--out)}
+.sw.on{box-shadow:none;background:var(--p);justify-content:flex-end;padding:0 4px}
+.sw.on i{width:24px;height:24px;background:var(--on-p)}
+.slide{height:56px;border-radius:28px;background:var(--sl0);display:flex;align-items:center;overflow:hidden;position:relative}
+.slide b{display:block;height:100%;background:var(--p);border-radius:28px 8px 8px 28px}
+.slide i{display:block;width:4px;height:40px;border-radius:2px;background:var(--p);margin-left:6px}
+.track{height:8px;border-radius:4px;background:var(--sl4);overflow:hidden}
+.track b{display:block;height:100%;border-radius:4px;background:var(--p)}
+.li{display:flex;align-items:center;gap:16px;min-height:64px;padding:8px 16px;border-radius:20px;width:100%}
+.li:hover{background:var(--sl2)}
+.li.sel{background:var(--pc);color:var(--on-pc)}
+.lead{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--sl3);color:var(--onv);flex:none}
+.field{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border-radius:16px;background:var(--sl2);box-shadow:inset 0 -2px 0 var(--out)}
+.field.focus{box-shadow:inset 0 -3px 0 var(--p)}
+.field.bad{box-shadow:inset 0 -3px 0 var(--err)}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:28px;background:var(--sl2);flex:none}
+.seg button{height:40px;padding:0 18px;border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:600;color:var(--onv)}
+.seg button.sel{background:var(--sl0);color:var(--on);box-shadow:var(--e1)}
+.dlg{background:var(--sl0);border-radius:36px;padding:32px;box-shadow:var(--e3)}
+.menu{background:var(--sl1);border-radius:20px;padding:8px;box-shadow:var(--e3);min-width:280px}
+.mi{display:flex;align-items:center;gap:12px;height:48px;padding:0 12px;border-radius:12px;width:100%}
+.mi:hover,.mi.act{background:var(--sl3)}
+.note{display:flex;gap:12px;padding:16px;border-radius:20px;background:var(--sl2);color:var(--onv)}
+.note.warn{background:var(--errc);color:var(--on-errc)}
+.note.ok{background:var(--greenc);color:var(--green)}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;background:var(--sl3);color:var(--onv);font-size:12px;line-height:16px;font-weight:600;white-space:nowrap}
+.tag.p{background:var(--pc);color:var(--on-pc)}
+.tag.g{background:var(--greenc);color:var(--green)}
+.tag.a{background:var(--amberc);color:var(--amber)}
+.tag.e{background:var(--errc);color:var(--on-errc)}
+.div{height:1px;background:var(--outv);opacity:.6}
+.foot{padding:12px 32px 20px;color:var(--onv);font-size:12px;line-height:16px}
+.stage{padding:12px;display:flex}
+@media (prefers-reduced-motion:no-preference){.ri .pill,.chip,.sw,.sw i,.btn,.pt,.li,.ib,.mi{transition:background-color .2s cubic-bezier(.2,0,0,1),box-shadow .2s cubic-bezier(.2,0,0,1),border-radius .35s cubic-bezier(.34,1.56,.64,1)}.btn:active{border-radius:12px}}
+</style>
+</helmet>
+<div class="m3">
+<div class="stage" style="min-height: 680px"><main class="pane">
+<header class="bar" style="padding-left: 16px; gap: 12px; flex-wrap: nowrap">
+<button class="ib" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"></path></svg></button>
+<div class="col grow"><span class="bs mu">Settings, Appearance</span><h1 class="tl">Schedules</h1></div>
+<button class="ib" aria-label="About this page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"></path></svg></button>
+<button class="ib" aria-label="More options"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z"></path></svg></button>
+</header>
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: stretch; flex-wrap: wrap">
+<section class="col" aria-label="Rules, first match wins" style="flex: 1 1 500px; gap: 4px">
+<div class="row" style="gap: 12px; padding: 0 16px 12px"><p class="bm mu grow">Rules are checked top to bottom. The first one that applies wins. Times are in Toronto time and follow daylight saving.</p><button class="btn fill"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path></svg>New rule</button></div>
+<div class="li sel"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"></path></svg><span class="col grow"><span class="ll">Dark theme while a movie plays</span><span class="bs">Theme is Dark when Movie mode is on</span></span><span class="tag" style="background: var(--sl0)">Home Assistant entity</span><button class="sw on" role="switch" aria-checked="true" aria-label="Dark theme while a movie plays"><i></i></button></div>
+<div class="li"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"></path></svg><span class="col grow"><span class="ll">Evenings in warm colour</span><span class="bs mu">Colour is Ember, every day 19:00 to 23:00</span></span><span class="tag">On this device</span><button class="sw on" role="switch" aria-checked="true" aria-label="Evenings in warm colour"><i></i></button></div>
+<div class="li"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"></path></svg><span class="col grow"><span class="ll">Cantonese on Sundays</span><span class="bs mu">Language is 廣東話, Sundays all day</span></span><span class="tag">On this device</span><button class="sw on" role="switch" aria-checked="true" aria-label="Cantonese on Sundays"><i></i></button></div>
+<div class="li"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"></path></svg><span class="col grow"><span class="ll">Office display theme</span><span class="bs mu">Theme, density and font from the office display service</span></span><span class="tag a">Web service, held</span><button class="sw on" role="switch" aria-checked="true" aria-label="Office display theme"><i></i></button></div>
+<div class="li"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"></path></svg><span class="col grow"><span class="ll">Calm motion at night</span><span class="bs mu">Motion is Reduced, every day 22:00 to 07:00</span></span><span class="tag">On this device</span><button class="sw" role="switch" aria-checked="false" aria-label="Calm motion at night"><i></i></button></div>
+<div class="note" style="margin-top: 12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"></path></svg><span class="bm grow">In effect now: Ember colour. Next change at 23:00, back to Ocean blue.</span></div>
+</section>
+<section class="card col" aria-label="Edit rule" style="flex: 1 1 420px; gap: 16px">
+<h2 class="tl">Dark theme while a movie plays</h2>
+<div class="col" style="gap: 6px"><span class="lm mu">Change</span><button class="field" style="background: var(--sl0)" aria-haspopup="listbox"><span class="bl grow">Theme</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7,10L12,15L17,10H7Z"></path></svg></button></div>
+<div class="col" style="gap: 6px"><span class="lm mu">To</span><div class="seg" role="group" aria-label="Theme value" style="background: var(--sl0)"><button aria-pressed="false">Light</button><button class="sel" aria-pressed="true" style="background: var(--pc); color: var(--on-pc)">Dark</button></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">When</span><div class="seg" role="group" aria-label="Where the answer comes from" style="background: var(--sl0)"><button aria-pressed="false">A time</button><button class="sel" aria-pressed="true" style="background: var(--pc); color: var(--on-pc)">An entity is on</button><button aria-pressed="false">A web service says so</button></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Entity</span><button class="field" style="background: var(--sl0)" aria-haspopup="listbox"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M17,7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7M17,15A3,3 0 0,1 14,12A3,3 0 0,1 17,9A3,3 0 0,1 20,12A3,3 0 0,1 17,15Z"></path></svg><span class="col grow"><span class="bl">Movie mode</span><span class="bs mu mono">input_boolean.movie_mode</span></span><span class="tag g">On now</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7,10L12,15L17,10H7Z"></path></svg></button></div>
+<div class="note" style="background: var(--sl0)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z"></path></svg><span class="bm">If the entity cannot be read, the last good answer is kept and this rule shows as held.</span></div>
+<span class="grow"></span>
+<div class="row" style="gap: 8px"><button class="btn text" style="color: var(--err)">Delete rule</button><span class="grow"></span><button class="btn out">Cancel</button><button class="btn fill">Save rule</button></div>
+</section>
+</div>
+</main></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":680}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
