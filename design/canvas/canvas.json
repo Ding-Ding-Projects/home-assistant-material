@@ -375,6 +375,104 @@
       "title": "Notification centre and toasts",
       "expand": "fill",
       "page": "records"
+    },
+    "Converter.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 620,
+      "title": "Universal local file converter",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "Base64.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 620,
+      "title": "Base64 toolkit",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "Ollama.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 610,
+      "title": "Local Ollama suite manager",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "Handoff.dc.html": {
+      "x": 3840,
+      "y": 0,
+      "w": 1200,
+      "h": 640,
+      "title": "External editor and publishing to a forge",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "Minecraft.dc.html": {
+      "x": 0,
+      "y": 760,
+      "w": 1200,
+      "h": 780,
+      "title": "Minecraft server manager",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "WorldGen.dc.html": {
+      "x": 1280,
+      "y": 760,
+      "w": 1200,
+      "h": 700,
+      "title": "Minecraft world generator",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "Drawing.dc.html": {
+      "x": 2560,
+      "y": 760,
+      "w": 1200,
+      "h": 720,
+      "title": "Drawing and annotation board",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "Progress.dc.html": {
+      "x": 3840,
+      "y": 760,
+      "w": 1200,
+      "h": 640,
+      "title": "Progress where it started, recovery where it broke",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "About.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 700,
+      "title": "About, provenance and updates from this Cha",
+      "expand": "fill",
+      "page": "system"
+    },
+    "ReleaseNotes.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 640,
+      "title": "Provider text rendered, and its empty state",
+      "expand": "fill",
+      "page": "system"
+    },
+    "Tokens.dc.html": {
+      "x": 0,
+      "y": 820,
+      "w": 1440,
+      "h": 1000,
+      "title": "Material Design 3 tokens",
+      "page": "system"
     }
   },
   "order": [
@@ -414,7 +512,18 @@
     "Bulk.dc.html",
     "Changelog.dc.html",
     "Docs.dc.html",
-    "Notifications.dc.html"
+    "Notifications.dc.html",
+    "Converter.dc.html",
+    "Base64.dc.html",
+    "Ollama.dc.html",
+    "Handoff.dc.html",
+    "Minecraft.dc.html",
+    "WorldGen.dc.html",
+    "Drawing.dc.html",
+    "Progress.dc.html",
+    "About.dc.html",
+    "ReleaseNotes.dc.html",
+    "Tokens.dc.html"
   ],
   "notes": {
     "t-screens": {
@@ -464,6 +573,22 @@
       "kind": "title1",
       "maxW": 3760,
       "page": "records"
+    },
+    "t-tools": {
+      "x": 0,
+      "y": -300,
+      "text": "Built-in tools and hand-off",
+      "kind": "title1",
+      "maxW": 5040,
+      "page": "tools"
+    },
+    "t-system": {
+      "x": 0,
+      "y": -300,
+      "text": "System and tokens",
+      "kind": "title1",
+      "maxW": 2480,
+      "page": "system"
     }
   },
   "designSystems": []

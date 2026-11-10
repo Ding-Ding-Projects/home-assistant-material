@@ -1,0 +1,23 @@
+@@HEAD:File converter@@
+@@SURF:Tools|File converter|620@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+<section class="col" aria-label="Convert" style="flex: 1 1 480px; gap: 16px">
+<div class="row" style="gap: 16px; padding: 20px; border-radius: 28px; background: var(--pc); color: var(--on-pc)"><span class="sq" style="color: var(--on-pc)">@@I:FileImage.l@@</span><div class="col grow"><span class="tl">porch-camera.heic</span><span class="bm">Detected by its contents: HEIC image, 4032 by 3024, 2.1 MB</span></div><button class="btn sm" style="background: var(--sl0)">Change file</button></div>
+<div class="col" style="gap: 8px"><span class="lm mu">Convert to</span><div class="row" style="gap: 8px; flex-wrap: wrap"><button class="chip sel" aria-pressed="true">@@I:Check.s@@JPEG</button><button class="chip" aria-pressed="false">PNG</button><button class="chip" aria-pressed="false">WebP</button><button class="chip" aria-pressed="false">AVIF</button><button class="chip" aria-pressed="false">PDF</button><button class="chip" aria-pressed="false">Base64 text</button></div></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px"><div class="col" style="gap: 6px"><span class="row lm mu">Quality<span class="grow"></span>85</span><div class="slide" role="slider" tabindex="0" aria-label="Quality" aria-valuemin="1" aria-valuemax="100" aria-valuenow="85" style="height: 44px; background: var(--sl2)"><b style="width: 85%"></b><i style="height: 28px"></i></div></div><div class="col" style="gap: 6px"><span class="lm mu">Size</span><button class="field" aria-haspopup="listbox"><span class="bl grow">Keep 4032 by 3024</span>@@I:MenuDown@@</button></div></div>
+@@LI:MapMarkerOff|Remove location and camera details|The copy will not say where or with what it was taken@@@@SW:on|Remove location and camera details@@@@/LI@@
+<div class="row" style="gap: 12px"><span class="bs mu grow">Runs on this device, inside a sandbox, with a 2 GB and 5 minute limit. The original is never changed.</span><button class="btn lg fill">@@I:FileSwap@@Convert</button></div>
+</section>
+<aside class="col" aria-label="What can be converted" style="flex: 1 1 400px; gap: 4px">
+<div class="find" style="margin-bottom: 8px"><span class="row grow" style="gap: 12px">@@I:Magnify@@<span class="bl">Search 212 formats</span></span><button class="ib" style="width: 40px; height: 40px" aria-label="Build a pattern search">@@I:Regex@@</button></div>
+@@LI:FileImage|Images|34 formats ready@@@@I:ChevronRight@@@@/LI@@
+@@LI:FileDocument|Documents and PDF|18 formats ready@@@@I:ChevronRight@@@@/LI@@
+@@LI:FileTable|Data and spreadsheets|CSV, JSON, YAML, XLSX and 12 more@@@@I:ChevronRight@@@@/LI@@
+@@LI:FileMusic|Audio|22 formats ready@@@@I:ChevronRight@@@@/LI@@
+<div class="li" style="opacity: .6"><span class="lead">@@I:FileVideo@@</span><span class="col grow"><span class="ll">Video</span><span class="bs mu">Not available: needs FFmpeg, which is not bundled in this build</span></span><span class="tag">Unavailable</span></div>
+@@LI:FolderZip|Archives|ZIP, 7z, tar, gz, xz, zst@@@@I:ChevronRight@@@@/LI@@
+@@LI:CodeBraces|Code, text and encodings|Base64, hex, URL, line endings@@@@I:ChevronRight@@@@/LI@@
+</aside>
+</div>
+@@/SURF@@
+@@TAIL:1200,620@@

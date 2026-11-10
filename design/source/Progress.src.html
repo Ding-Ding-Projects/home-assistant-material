@@ -1,0 +1,33 @@
+@@HEAD:Progress and recovery@@
+@@SURF:Settings, System and updates|Install update|640@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: flex-start; flex-wrap: wrap">
+<section class="dlg col" role="dialog" aria-label="Update in progress" style="flex: 1 1 480px; gap: 14px">
+<div class="row" style="gap: 16px"><span class="sq" style="background: var(--pc); color: var(--on-pc)">@@I:Update.l@@</span><div class="col grow"><h2 class="tl">Updating to 2026.11.1.43</h2><span class="bm mu">From this project's feed, core image for Raspberry Pi 5</span></div></div>
+<div class="col" style="gap: 8px">
+<span class="row bm" style="gap: 12px; color: var(--green)">@@I:CheckCircle.s@@Backup made, 48 MB, 12 seconds</span>
+<span class="row bm" style="gap: 12px; color: var(--green)">@@I:CheckCircle.s@@Image downloaded, 612 MB, checked</span>
+<span class="row bm" style="gap: 12px">@@I:ProgressClock.s@@<span class="grow">Starting the new version</span><span class="mu">step 3 of 4</span></span>
+<div class="track" role="progressbar" aria-label="Update progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="68" style="height: 12px; border-radius: 6px"><b style="width: 68%; border-radius: 6px"></b></div>
+<span class="row bm mu" style="gap: 12px">@@I:CircleOutline.s@@Checking that everything came back</span>
+</div>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" aria-label="Also rebuild the search index now" style="width: 22px; height: 22px; accent-color: #00639B"><span class="col grow"><span class="ll">Also rebuild the search index now</span><span class="bs mu">Adds about 4 minutes. If you skip it, search may miss new settings until tonight.</span></span></label>
+<div class="row" style="gap: 8px"><span class="bs mu grow">You can close this. Progress stays in the bottom corner.</span><button class="btn fill" disabled style="opacity: .5">Updating…</button></div>
+</section>
+<section class="col" aria-label="When it breaks, recovery is right there" style="flex: 1 1 440px; gap: 12px">
+<span class="lm mu">If a step fails, the fix sits where it failed</span>
+<div class="dlg col" style="gap: 12px; padding: 24px">
+<div class="row" style="gap: 12px; color: var(--err)">@@I:AlertCircle@@<span class="tm grow">The new version did not start</span></div>
+<p class="bm mu">Home Assistant stopped during startup: the integration "aquarium_logger" failed to load. Your previous version is still installed.</p>
+<div class="col" style="gap: 6px">
+<button class="btn fill">@@I:BackupRestore@@Go back to 2026.11.1.42</button>
+<button class="btn tonal">Start without "aquarium_logger" and try again</button>
+<button class="btn out">@@I:TextBoxSearchOutline@@Show the startup log</button>
+</div>
+<div class="div"></div>
+<div class="row" style="gap: 12px">@@I:RobotOutline@@<div class="col grow"><span class="ll">Hand this to a local coding assistant</span><span class="bs mu">Sends the real error and log lines, and tells it never to delete data or force changes.</span></div><button class="btn sm text">Copy the brief</button></div>
+</div>
+<div class="note warn" style="padding: 12px">@@I:KeyAlert@@<span class="bm grow">The container registry refused the download: this image is private. Ask the project owner to make it public, then try again.</span><button class="btn sm text" style="color: var(--on-errc)">Try again</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,640@@

@@ -1,0 +1,25 @@
+@@HEAD:World generator@@
+@@SURF:Tools, Minecraft servers, Family survival|World generator|700@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 32px; align-items: stretch; flex-wrap: wrap">
+<section class="col" aria-label="World options" style="flex: 1 1 440px; gap: 14px">
+<div class="col" style="gap: 6px"><span class="lm mu">World type, from the 1.21.4 server</span><div class="seg" role="group" aria-label="World type"><button class="sel" aria-pressed="true">Normal</button><button aria-pressed="false">Flat</button><button aria-pressed="false">Large biomes</button><button aria-pressed="false">Amplified</button><button aria-pressed="false">Single biome</button></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Seed</span><div class="field"><span class="bl mono grow">-4172144997902289642</span><button class="btn sm text">@@I:Dice5.s@@New seed</button></div></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px"><div class="li" style="background: var(--sl2)"><span class="ll grow">Villages and structures</span>@@SW:on|Villages and structures@@</div><div class="li" style="background: var(--sl2)"><span class="ll grow">Bonus chest</span>@@SW:off|Bonus chest@@</div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Size to generate</span><div class="row" style="gap: 12px"><div class="field grow"><span class="bl grow">100</span><span class="bs mu">chunks wide</span></div><span class="bm mu">by</span><div class="field grow"><span class="bl grow">100</span><span class="bs mu">chunks deep</span></div></div><span class="bs mu">1,600 by 1,600 blocks, about 420 MB. Or draw the area on the map.</span></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Save as</span><div class="row" style="gap: 12px"><div class="seg" role="group" aria-label="Output"><button class="sel" aria-pressed="true">Folder</button><button aria-pressed="false">ZIP</button></div><div class="field grow"><span class="bm mono grow" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">/share/minecraft/family-survival-2</span><button class="btn sm text">Browse</button></div></div></div>
+<label class="li" style="background: var(--sl2)"><input type="checkbox" aria-label="I accept the Minecraft End User License Agreement" style="width: 22px; height: 22px; accent-color: #00639B"><span class="bm grow">I accept the <a href="#eula">Minecraft End User License Agreement</a>. The server cannot run without it.</span></label>
+<div class="row" style="gap: 12px"><span class="bs mu grow">Runs the real 1.21.4 server in batches of 25 chunks, so it can be paused.</span><button class="btn lg fill" disabled style="opacity: .5">Generate 10,600 chunks</button></div>
+</section>
+<aside class="card col" aria-label="Area to generate" style="flex: 1 1 400px; gap: 12px">
+<div class="row" style="gap: 8px"><span class="lm mu grow">Draw the area. Each square is 10 chunks.</span><button class="chip sel" aria-pressed="true" style="height: 32px">@@I:Draw.s@@Draw</button><button class="chip" aria-pressed="false" style="height: 32px">@@I:Eraser.s@@Erase</button><button class="btn sm text">Reset to 100 by 100</button></div>
+<div role="img" aria-label="Map grid. A 100 by 100 chunk square is selected around the spawn point, with an extra strip drawn to the east." style="flex: 1; min-height: 340px; border-radius: 20px; position: relative; overflow: hidden; background: linear-gradient(var(--outv) 1px, transparent 1px) 0 0 / 34px 34px, linear-gradient(90deg, var(--outv) 1px, transparent 1px) 0 0 / 34px 34px, var(--sl0)">
+<div style="position: absolute; left: 34px; top: 34px; width: 340px; height: 340px; background: rgba(0,99,155,.22); box-shadow: inset 0 0 0 3px var(--p)"></div>
+<div style="position: absolute; left: 374px; top: 136px; width: 68px; height: 102px; background: rgba(0,99,155,.22); box-shadow: inset 0 0 0 3px var(--p)"></div>
+<span style="position: absolute; left: 194px; top: 194px; width: 20px; height: 20px; border-radius: 10px; background: var(--err); box-shadow: 0 0 0 3px var(--sl0)"></span>
+<span class="tag" style="position: absolute; left: 222px; top: 192px; background: var(--sl0)">Spawn, 0, 0</span>
+</div>
+<span class="bs mu">Selected: 10,600 chunks. Arrow keys move the pointer, Space paints.</span>
+</aside>
+</div>
+@@/SURF@@
+@@TAIL:1200,700@@

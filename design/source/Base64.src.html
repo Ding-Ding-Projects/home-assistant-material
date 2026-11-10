@@ -1,0 +1,22 @@
+@@HEAD:Base64 toolkit@@
+@@SURF:Tools|Base64|620@@
+<div class="col grow" style="padding: 0 40px 40px; gap: 16px">
+<div class="row" style="gap: 12px; flex-wrap: wrap">
+<div class="seg" role="group" aria-label="Direction"><button class="sel" aria-pressed="true">Encode</button><button aria-pressed="false">Decode</button><button aria-pressed="false">Data URL</button></div>
+<div class="seg" role="group" aria-label="Alphabet"><button class="sel" aria-pressed="true">Standard</button><button aria-pressed="false">URL-safe</button><button aria-pressed="false">MIME</button></div>
+<button class="chip sel" aria-pressed="true">@@I:Check.s@@Padding</button>
+<button class="field" aria-haspopup="listbox" style="height: 40px; border-radius: 12px"><span class="ll">Line length: none</span>@@I:MenuDown@@</button>
+<button class="field" aria-haspopup="listbox" style="height: 40px; border-radius: 12px"><span class="ll">Text as UTF-8</span>@@I:MenuDown@@</button>
+</div>
+<div class="row" style="gap: 16px; align-items: stretch; flex-wrap: wrap">
+<section class="card col" aria-label="Input" style="flex: 1 1 420px; gap: 8px; min-height: 240px"><div class="row"><span class="lm mu grow">Text or file</span><button class="btn sm text">@@I:FolderOpen.s@@Choose a file</button></div><p class="bl mono" style="font-size: 15px; line-height: 24px">{"entity_id": "light.living_ceiling", "brightness_pct": 80}</p><span class="grow"></span><span class="bs mu">58 bytes. Drop a file here to write name.ext.base64.txt beside it.</span></section>
+<section class="card col" aria-label="Output" style="flex: 1 1 420px; gap: 8px; background: var(--pc); color: var(--on-pc)"><div class="row"><span class="lm grow">Base64</span><button class="btn sm text" style="color: var(--on-pc)">@@I:ContentCopy.s@@Copy</button><button class="btn sm text" style="color: var(--on-pc)">@@I:ContentSave.s@@Save</button></div><p class="mono" style="font-size: 15px; line-height: 24px; word-break: break-all">eyJlbnRpdHlfaWQiOiAibGlnaHQubGl2aW5nX2NlaWxpbmciLCAiYnJpZ2h0bmVzc19wY3QiOiA4MH0=</p><span class="grow"></span><span class="row bs" style="gap: 8px">@@I:ShieldCheck.s@@Checked: decodes back to the same 58 bytes, SHA-256 matches</span></section>
+</div>
+<section class="card col" aria-label="A large file in progress" style="gap: 10px; padding: 20px 24px">
+<div class="row" style="gap: 16px">@@I:FileVideo@@<div class="col grow"><span class="ll">porch-clip.mp4, 1.8 GB</span><span class="bs mu">Encoding in pieces, 640 MB done, about 40 seconds left</span></div><button class="btn sm tonal">@@I:Pause.s@@Pause</button><button class="btn sm text">Cancel</button></div>
+<div class="track" role="progressbar" aria-label="Encoding progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="36"><b style="width: 36%"></b></div>
+</section>
+<div class="note warn">@@I:AlertCircle@@<span class="bm grow">Strict decoding stopped at character 41: "%" is not in the Standard alphabet. Lenient decoding would skip it.</span><button class="btn sm text" style="color: var(--on-errc)">Decode leniently</button></div>
+</div>
+@@/SURF@@
+@@TAIL:1200,620@@

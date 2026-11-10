@@ -1,0 +1,44 @@
+@@HEAD:Design tokens@@
+<div class="col" style="padding: 48px; gap: 40px; min-height: 1000px; background: var(--sl0)">
+<div class="col" style="gap: 8px"><h1 class="dl">Material Design 3 tokens</h1><p class="bl mu" style="max-width: 720px">One seed colour, one type family, one shape scale and one motion set. Every board on this canvas is drawn from these.</p></div>
+<section class="col" aria-label="Colour roles" style="gap: 12px"><h2 class="tl">Colour roles, light</h2>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+<div class="col" style="height: 96px; border-radius: 20px; padding: 12px; background: var(--p); color: var(--on-p); justify-content: flex-end"><span class="ll">Primary</span><span class="bs mono">#00639B</span></div>
+<div class="col" style="height: 96px; border-radius: 20px; padding: 12px; background: var(--pc); color: var(--on-pc); justify-content: flex-end"><span class="ll">Primary container</span><span class="bs mono">#CEE5FF</span></div>
+<div class="col" style="height: 96px; border-radius: 20px; padding: 12px; background: var(--sc); color: var(--on-sc); justify-content: flex-end"><span class="ll">Secondary container</span><span class="bs mono">#D5E4F6</span></div>
+<div class="col" style="height: 96px; border-radius: 20px; padding: 12px; background: var(--tc); color: var(--on-tc); justify-content: flex-end"><span class="ll">Tertiary container</span><span class="bs mono">#EEDBFF</span></div>
+<div class="col" style="height: 96px; border-radius: 20px; padding: 12px; background: var(--errc); color: var(--on-errc); justify-content: flex-end"><span class="ll">Error container</span><span class="bs mono">#FFDAD6</span></div>
+<div class="col" style="height: 96px; border-radius: 20px; padding: 12px; background: var(--inv); color: var(--on-inv); justify-content: flex-end"><span class="ll">Inverse surface</span><span class="bs mono">#2D3135</span></div>
+<div class="col" style="height: 72px; border-radius: 20px; padding: 12px; background: var(--surf); justify-content: flex-end"><span class="ll">Window</span><span class="bs mono">#EEF1F6</span></div>
+<div class="col" style="height: 72px; border-radius: 20px; padding: 12px; background: var(--sl0); box-shadow: inset 0 0 0 1px var(--outv); justify-content: flex-end"><span class="ll">Pane</span><span class="bs mono">#FFFFFF</span></div>
+<div class="col" style="height: 72px; border-radius: 20px; padding: 12px; background: var(--sl2); justify-content: flex-end"><span class="ll">Card</span><span class="bs mono">#F1F4F9</span></div>
+<div class="col" style="height: 72px; border-radius: 20px; padding: 12px; background: var(--sl4); justify-content: flex-end"><span class="ll">Highest</span><span class="bs mono">#E1E5EC</span></div>
+<div class="col" style="height: 72px; border-radius: 20px; padding: 12px; background: var(--amberc); color: var(--amber); justify-content: flex-end"><span class="ll">Data: light, solar</span><span class="bs mono">#FFE08B</span></div>
+<div class="col" style="height: 72px; border-radius: 20px; padding: 12px; background: var(--greenc); color: var(--green); justify-content: flex-end"><span class="ll">Data: safe, running</span><span class="bs mono">#B6F2BE</span></div>
+</div></section>
+<div class="row" style="gap: 40px; align-items: flex-start; flex-wrap: wrap">
+<section class="col" aria-label="Type scale" style="flex: 1 1 420px; gap: 8px"><h2 class="tl">Type, Google Sans Flex</h2>
+<span class="dl">Display 57</span><span class="dm">Display 45</span><span class="hl">Headline 32</span><span class="tl">Title 22</span><span class="tm">Title 16, semibold</span><span class="bl">Body 16, for reading</span><span class="bm mu">Body 14, supporting text</span><span class="lm mu">Label 12, captions and field labels</span><span class="bm mono">Roboto Mono 14, entity ids and code</span></section>
+<section class="col" aria-label="Shape" style="flex: 1 1 320px; gap: 12px"><h2 class="tl">Shape</h2>
+<div class="row" style="gap: 12px; align-items: flex-end; flex-wrap: wrap">
+<div class="col" style="align-items: center; gap: 6px"><span style="width: 64px; height: 64px; border-radius: 12px; background: var(--pc)"></span><span class="bs mu">12, chips</span></div>
+<div class="col" style="align-items: center; gap: 6px"><span style="width: 64px; height: 64px; border-radius: 20px; background: var(--pc)"></span><span class="bs mu">20, rows</span></div>
+<div class="col" style="align-items: center; gap: 6px"><span style="width: 64px; height: 64px; border-radius: 32px; background: var(--pc)"></span><span class="bs mu">32, cards</span></div>
+<div class="col" style="align-items: center; gap: 6px"><span style="width: 96px; height: 64px; border-radius: 40px 40px 40px 12px; background: var(--pc)"></span><span class="bs mu">40, hero</span></div>
+<div class="col" style="align-items: center; gap: 6px"><span style="width: 96px; height: 48px; border-radius: 24px; background: var(--p)"></span><span class="bs mu">Full, buttons</span></div>
+</div>
+<h2 class="tl" style="margin-top: 16px">Motion</h2>
+<span class="bm">Expressive: spring, 350 ms, slight overshoot on shape changes</span>
+<span class="bm">Standard: cubic-bezier(0.2, 0, 0, 1), 200 ms</span>
+<span class="bm">Reduced: no movement, state shown by colour, icon and text</span>
+</section>
+<section class="col" aria-label="Controls" style="flex: 1 1 320px; gap: 12px"><h2 class="tl">Controls</h2>
+<div class="row" style="gap: 8px; flex-wrap: wrap"><button class="btn fill">Filled</button><button class="btn tonal">Tonal</button><button class="btn out">Outlined</button><button class="btn text">Text</button></div>
+<div class="row" style="gap: 12px; flex-wrap: wrap">@@SW:on|Sample switch on@@@@SW:off|Sample switch off@@<button class="chip sel">@@I:Check.s@@Chip</button><button class="chip">Chip</button><button class="ib f" aria-label="Sample icon button">@@I:Plus@@</button></div>
+<div class="slide" role="slider" tabindex="0" aria-label="Sample slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60" style="background: var(--sl2)"><b style="width: 60%"></b><i></i></div>
+<div class="field"><span class="lm mu">Label</span><span class="bl grow">Text field</span></div>
+<div class="seg" role="group" aria-label="Sample segments"><button class="sel" aria-pressed="true">One</button><button aria-pressed="false">Two</button><button aria-pressed="false">Three</button></div>
+</section>
+</div>
+</div>
+@@TAIL:1440,1000@@

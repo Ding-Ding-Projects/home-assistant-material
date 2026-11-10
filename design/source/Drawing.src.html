@@ -1,0 +1,38 @@
+@@HEAD:Drawing board@@
+@@SURF:Tools|Drawing board|720@@
+<div class="col grow" style="padding: 0 40px 32px; gap: 12px; position: relative">
+<div role="img" aria-label="A camera snapshot of the porch with a hand-drawn red circle around a parcel and a blue arrow pointing at it" style="flex: 1; min-height: 480px; border-radius: 28px; background: var(--sl3); position: relative; overflow: hidden">
+<span class="tag" style="position: absolute; left: 20px; top: 16px; background: var(--sl0)">Porch camera, snapshot at 20:41</span>
+<div class="col" style="position: absolute; inset: 0; align-items: center; justify-content: center; color: var(--onv); gap: 8px">@@I:ImageOutline.l@@<span class="bs">Snapshot from your camera shows here</span></div>
+<svg viewBox="0 0 1100 480" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%">
+<path d="M700,300 C690,250 760,222 820,236 S910,300 880,348 S760,392 716,350 S700,310 706,292" fill="none" stroke="#BA1A1A" stroke-width="7" stroke-linecap="round"></path>
+<path d="M420,150 C500,170 580,210 668,270" fill="none" stroke="#00639B" stroke-width="6" stroke-linecap="round"></path>
+<path d="M636,236 L672,272 L622,278" fill="none" stroke="#00639B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M250,112 C280,96 300,128 330,108 S380,96 404,116" fill="none" stroke="#F2C744" stroke-width="18" stroke-linecap="round" stroke-opacity="0.6"></path>
+</svg>
+</div>
+<div class="row" role="toolbar" aria-label="Drawing tools" style="gap: 4px; align-self: center; background: var(--inv); color: var(--on-inv); border-radius: 32px; padding: 8px 12px; box-shadow: var(--e3); flex-wrap: wrap">
+<button class="ib" aria-label="Fine pen, 1" style="color: var(--on-inv)">@@I:Pen@@</button>
+<button class="ib" aria-label="Marker, 2" aria-pressed="true" style="background: var(--pc); color: var(--on-pc)">@@I:Marker@@</button>
+<button class="ib" aria-label="Brush, 3" style="color: var(--on-inv)">@@I:Brush@@</button>
+<button class="ib" aria-label="Pencil, 4" style="color: var(--on-inv)">@@I:LeadPencil@@</button>
+<button class="ib" aria-label="Highlighter, 5" style="color: var(--on-inv)">@@I:FormatColorHighlight@@</button>
+<button class="ib" aria-label="Fountain pen, 6" style="color: var(--on-inv)">@@I:Fountain@@</button>
+<button class="ib" aria-label="Spray, 7" style="color: var(--on-inv)">@@I:SprayBottle@@</button>
+<button class="ib" aria-label="Eraser, removes part of a stroke, E" style="color: var(--on-inv)">@@I:Eraser@@</button>
+<span style="width: 1px; height: 32px; background: rgba(255,255,255,.3); margin: 0 6px"></span>
+<button aria-label="Colour: red" style="width: 36px; height: 36px; border-radius: 18px; background: #BA1A1A; box-shadow: 0 0 0 3px var(--inv), 0 0 0 5px #fff"></button>
+<button aria-label="Colour: blue" style="width: 36px; height: 36px; border-radius: 18px; background: #00639B; margin-left: 8px"></button>
+<button aria-label="Colour: amber" style="width: 36px; height: 36px; border-radius: 18px; background: #F2C744; margin-left: 4px"></button>
+<button class="ib" aria-label="Any colour" style="color: var(--on-inv)">@@I:Eyedropper@@</button>
+<span class="row" style="gap: 8px; padding: 0 8px"><span class="bs">Width</span><span class="track" role="slider" tabindex="0" aria-label="Stroke width" aria-valuemin="1" aria-valuemax="40" aria-valuenow="7" style="width: 90px; background: rgba(255,255,255,.3)"><b style="width: 30%; background: var(--on-inv)"></b></span></span>
+<span style="width: 1px; height: 32px; background: rgba(255,255,255,.3); margin: 0 6px"></span>
+<button class="ib" aria-label="Undo, Ctrl Z" style="color: var(--on-inv)">@@I:Undo@@</button>
+<button class="ib" aria-label="Redo, Ctrl Shift Z" style="color: var(--on-inv)">@@I:Redo@@</button>
+<button class="ib" aria-label="Clear everything, asks first" style="color: var(--on-inv)">@@I:DeleteSweep@@</button>
+<button class="ib" aria-label="Shrink the toolbar to a disc" style="color: var(--on-inv)">@@I:ArrowCollapse@@</button>
+</div>
+<div class="row" style="gap: 8px; flex-wrap: wrap"><span class="bs mu grow">Hold Shift for straight lines. Strokes are saved on this device and join version history.</span><button class="btn sm out">@@I:FileImage.s@@PNG, 2x</button><button class="btn sm out">@@I:Svg.s@@SVG</button><button class="btn sm tonal">@@I:Send.s@@Send as a notification</button></div>
+</div>
+@@/SURF@@
+@@TAIL:1200,720@@

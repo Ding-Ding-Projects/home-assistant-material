@@ -1,0 +1,29 @@
+@@HEAD:Open in an editor and publish@@
+@@SURF:Settings, History and export|Open in an editor, publish to a forge|640@@
+<div class="row grow" style="padding: 8px 40px 40px; gap: 24px; align-items: stretch; flex-wrap: wrap">
+<section class="card col" aria-label="Open in an editor" style="flex: 1 1 480px; gap: 12px">
+<div class="row" style="gap: 16px"><span class="sq">@@I:MicrosoftVisualStudioCode.l@@</span><div class="col grow"><h2 class="tl">Open in an editor</h2><span class="bm mu">Your configuration folder, or any file, in the editor you choose</span></div></div>
+<div role="radiogroup" aria-label="Editor" class="col" style="gap: 4px">
+<button role="radio" aria-checked="true" class="li sel"><span class="lead" style="background: var(--sl0); color: var(--on-pc)">@@I:MicrosoftVisualStudioCode@@</span><span class="col grow"><span class="ll">Visual Studio Code</span><span class="bs">Found: the Studio Code Server add-on, version 1.105</span></span>@@I:CheckCircle@@</button>
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl0)"><span class="lead">@@I:FileCodeOutline@@</span><span class="col grow"><span class="ll">Built-in file editor</span><span class="bs mu">Always available</span></span></button>
+<button role="radio" aria-checked="false" class="li" style="background: var(--sl0)"><span class="lead">@@I:Plus@@</span><span class="col grow"><span class="ll">Add another editor</span><span class="bs mu">A web address or a desktop link such as vscode://</span></span></button>
+</div>
+<div class="note" style="background: var(--sl0)">@@I:InformationOutline@@<span class="bm">On a computer with VS Code installed, "Open on this computer" uses your own copy. If none is found you are told so and offered the download page.</span></div>
+<span class="grow"></span>
+<div class="row" style="gap: 8px"><button class="btn out">Open one file…</button><span class="grow"></span><button class="btn fill">@@I:OpenInNew@@Open the configuration folder</button></div>
+</section>
+<section class="card col" aria-label="Publish to a forge" style="flex: 1 1 480px; gap: 12px">
+<div class="row" style="gap: 16px"><span class="sq">@@I:SourceRepository.l@@</span><div class="col grow"><h2 class="tl">Publish your configuration</h2><span class="bm mu">Keep a copy in your own repository. Secrets are left out.</span></div></div>
+<div class="col" style="gap: 6px"><span class="lm mu">Account</span>
+<div role="listbox" aria-label="Accounts" class="col" style="gap: 4px">
+<button role="option" aria-selected="true" class="li sel"><span class="av" style="background: var(--sl0)">S</span><span class="col grow"><span class="ll">sam on GitHub</span><span class="bs">Active. Signed in 2 days ago.</span></span><span class="tag" style="background: var(--sl0)">Active</span></button>
+<div role="option" aria-selected="false" class="li" style="background: var(--sl0)"><span class="av">H</span><span class="col grow"><span class="ll">house-bot on Forgejo, git.home.example</span><span class="bs mu">Signed in 3 weeks ago</span></span><button class="btn sm text">Set active</button><button class="btn sm text">Sign out</button></div>
+</div><button class="btn sm text" style="align-self: flex-start">@@I:Plus.s@@Add an account</button></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px"><div class="col" style="gap: 6px"><span class="lm mu">Owner</span><button class="field" style="background: var(--sl0)" aria-haspopup="listbox"><span class="bl grow">sam</span>@@I:MenuDown@@</button></div><div class="col" style="gap: 6px"><span class="lm mu">Repository</span><div class="field" style="background: var(--sl0)"><span class="bl grow">home-config</span><span class="tag">Private</span></div></div></div>
+<span class="bs mu">Sign-in tokens stay in the system's credential vault under each account. The summary names the route used: a new repository, a fork, or a copy and push.</span>
+<span class="grow"></span>
+<div class="row" style="gap: 8px"><button class="btn out">Preview what is sent</button><span class="grow"></span><button class="btn fill">@@I:CloudUpload@@Publish 61 files</button></div>
+</section>
+</div>
+@@/SURF@@
+@@TAIL:1200,640@@
