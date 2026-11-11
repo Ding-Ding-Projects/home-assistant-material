@@ -312,7 +312,8 @@
   R.tools = function () {
     return '<div class="section" id="top"><h1 class="hl">' + L('tools') + '</h1><p class="bl mu">Small tools that run entirely in this window.</p><div class="chipline">' + [['regex', 'Pattern workbench'], ['base64', 'Base64'], ['convert', 'Convert'], ['colour', 'Colour'], ['otp', 'Authenticator']].map(function (x) { return '<button class="chip" data-go="tools:' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       '<section class="section" id="regex" data-k="t-regex"><h2 class="tl">Pattern workbench</h2><p class="bm mu">The same workbench every search here opens.</p><div><button class="btn tonal" data-regex="">Open the workbench</button></div></section>' +
-      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64</h2><textarea class="input" id="b64in" aria-label="Base64 input">Home Assistant Material</textarea><div class="chipline"><button class="btn tonal sm" data-act="b64enc">Encode</button><button class="btn tonal sm" data-act="b64dec">Decode</button><label class="row bm" style="gap:8px"><input type="checkbox" id="b64url"> URL-safe</label><label class="row bm" style="gap:8px"><input type="checkbox" id="b64pad" checked> Padding</label><label class="btn text sm">' + icon('Upload', 's') + 'A file<input type="file" id="b64file" hidden></label></div><pre class="wb-test" id="b64out" aria-live="polite"></pre></section>' +
+      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64, converting and drawing</h2><p class="bm mu">Each has its own tab now.</p><div class="chipline"><button class="btn tonal sm" data-go="base64:top">Base64</button><button class="btn tonal sm" data-go="convert:top">Convert</button><button class="btn tonal sm" data-go="draw:top">Draw</button></div></section>' +
+      '<section class="section" id="qrmake" data-k="t-qr"><h2 class="tl">Make a QR code</h2><p class="bm mu">From any text or link, or from a one-time code you added below.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input grow" id="qrtext" aria-label="Text for the QR code" placeholder="http://homeassistant.local:8123"><button class="btn tonal sm" data-act="qrmake">Make it</button>' + (st.otp.length ? '<select class="select" id="qrotp" aria-label="One-time code">' + st.otp.map(function (o2, i2) { return '<option value="' + i2 + '">' + esc(o2.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="qrotp">Show its QR code</button>' : '') + '</div></section>' +
       '<section class="section" id="convert" data-k="t-conv"><h2 class="tl">Convert</h2><p class="bm mu">Paste JSON (a list of objects) or CSV, then convert. Progress and errors show here.</p><textarea class="input" id="cvin" aria-label="Text to convert">[{"name": "Kitchen", "port": 8123}, {"name": "Garage", "port": 8124}]</textarea><div class="chipline"><button class="btn tonal sm" data-conv="csv">To CSV</button><button class="btn tonal sm" data-conv="json">To JSON</button><button class="btn tonal sm" data-conv="yaml">To YAML</button><button class="btn tonal sm" data-conv="md">To Markdown</button></div><div id="cvstat" class="bs mu" aria-live="polite"></div><pre class="wb-test" id="cvout"></pre></section>' +
       '<section class="section" id="colour" data-k="t-col"><h2 class="tl">Colour</h2><div class="row" style="gap:16px;flex-wrap:wrap"><input type="color" id="colin" value="#00639b" aria-label="Pick a colour" style="width:64px;height:48px;border:0;background:none"><input class="input mono" id="coltext" value="#00639B" aria-label="Type a colour as hex, rgb() or hsl()"><span class="swatch" id="colsw" style="background:#00639B"></span></div><div id="colout" class="bm"></div></section>' +
       '<section class="section" id="otp" data-k="t-otp"><h2 class="tl">Authenticator</h2><p class="bm mu">Add a one-time code secret (Base32). Codes are worked out here every 30 seconds. Or scan the QR code a site shows you: from an image, a pasted screenshot, or the camera. Nothing leaves this computer.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" id="otpname" placeholder="Name" aria-label="Name"><input class="input mono" id="otpsecret" placeholder="JBSWY3DPEHPK3PXP" aria-label="Secret"><button class="btn tonal sm" data-act="otpadd">Add</button></div><div class="chipline"><label class="btn tonal sm">' + icon('QrcodeScan', 's') + 'QR code from an image<input type="file" id="qrfile" accept="image/*" hidden></label><button class="btn tonal sm" data-act="qrcam">Use the camera</button><span class="bs mu">or paste a screenshot here</span></div><video id="qrvideo" class="qrvideo" hidden playsinline muted aria-label="Camera view for scanning a QR code"></video><div id="qrout" class="bs mu" aria-live="polite"></div><div id="otplist"></div></section>' + foot();
@@ -453,6 +454,7 @@
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
     if (st.active === 'tools') { otpDraw(); colour(); }
     if (st.active === 'instances') lcFrame();
+    if (st.active === 'draw') drPaint();
     if (st.active === 'activity') historyPanel();
     document.title = st.name + ' · ' + w(st.active);
   }
@@ -552,7 +554,7 @@
     items.push({ kind: 'Deploy', label: 'Write a Raspberry Pi card', act: 'pi' });
     exts.forEach(function (x) { (x.commands || []).forEach(function (c) { items.push({ kind: 'Extension', label: c.title, sub: x.name + (x.enabled ? '' : ' (off)'), go: 'extensions:ext-' + x.id }); }); });
     [['Add a schedule rule', 'ruleadd'], ['Change the logo', 'logo'], ['Home Assistant connection', 'haconn'], ['Choose your next step', 'nextset'], ['Export the activity', 'export-activity'], ['Export the backups', 'export-backups'], ['Export your settings', 'export-settings'], ['Show a dim sum', 'dimsum'], ['Check for a new version', 'checkupd'], ['Open the extensions folder', 'extfolder']].forEach(function (a2) { items.push({ kind: 'Action', label: a2[0], act: a2[1] }); });
-    [['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
+    [['Convert files', 'convert:top'], ['Convert, PDF tools', 'convert:cv-pdf'], ['Base64, files', 'base64:b64files'], ['Draw', 'draw:top'], ['Tools, Make a QR code', 'tools:qrmake'], ['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
     ['docker', 'ssh', 'virtualbox', 'vmware'].forEach(function (t) { items.push({ kind: 'Deploy', label: 'Deploy in one click: ' + w(t), act: 'deploy-' + t }); items.push({ kind: 'Deploy', label: 'Deploy with options: ' + w(t), act: 'options-' + t }); });
     D.instances.forEach(function (i) { items.push({ kind: 'Instance', label: i.name, sub: (i.url || '') + ' · ' + w(i.state), go: 'instances:inst-' + i.id }); if (i.url) items.push({ kind: 'Open', label: 'Open ' + i.name, act: 'open-' + i.id }); items.push({ kind: 'Backup', label: 'Back up ' + i.name, act: 'backup-' + i.id }); });
     D.hosts.forEach(function (h) { items.push({ kind: 'Host', label: h.name, sub: h.user + '@' + h.address, go: 'hosts:host-' + h.id }); });
@@ -669,6 +671,12 @@
       if ((b = t.closest('[data-rmticket]'))) { st.tickets.splice(+b.dataset.rmticket, 1); save(); render(); return; }
       if ((b = t.closest('[data-conv]'))) { convert(b.dataset.conv); return; }
       if ((b = t.closest('[data-rmotp]'))) { st.otp.splice(+b.dataset.rmotp, 1); save(); otpDraw(); return; }
+      if ((b = t.closest('[data-adapter]'))) { cvRun(b.dataset.adapter); return; }
+      if ((b = t.closest('[data-cvsave]'))) { var cs = b.dataset.cvsave.split(':'), cx = conv.files[+cs[0]], co = cx && cx.out[+cs[1]]; if (co) { if (co.path && API.showFile) API.showFile(co.path).catch(function (er) { toast(er.message); }); else { var an = document.createElement('a'); an.href = URL.createObjectURL(co.blob); an.download = co.name; an.click(); } } return; }
+      if ((b = t.closest('[data-b64o]'))) { var bk = b.dataset.b64o; b64.o[bk] = !b64.o[bk]; render(); return; }
+      if ((b = t.closest('[data-drtool]'))) { dr.tool = b.dataset.drtool; dr.mode = 'tools'; render(); return; }
+      if ((b = t.closest('[data-drmode]'))) { dr.mode = b.dataset.drmode; render(); return; }
+      if ((b = t.closest('[data-drink]'))) { dr.color = b.dataset.drink; dr.mode = 'tools'; render(); return; }
       if ((b = t.closest('[data-dimtroll]'))) { dimsumTroll(); return; }
       if ((b = t.closest('[data-rule]'))) { ruleDialog((st.rules || []).filter(function (r) { return r.id === b.dataset.rule; })[0]); return; }
       if ((b = t.closest('[data-ruleon]'))) { var rl = (st.rules || []).map(function (r) { return r.id === b.dataset.ruleon ? Object.assign({}, r, { on: !r.on }) : r; }); setVal('rules', rl, 'Schedule rule switched'); runRules(); render(); return; }
@@ -707,6 +715,29 @@
       else if (a === 'pi') piDialog();
       else if (a === 'wizgo') wizGo();
       else if (a === 'qrcam') qrCamera();
+      else if (a === 'qrmake') { var qt = $('#qrtext').value.trim(); if (!qt) { toast('Type the text or link first.'); $('#qrtext').focus(); } else qrShow('QR code', qt); }
+      else if (a === 'qrotp') { var oo = st.otp[+$('#qrotp').value]; if (oo) qrShow(oo.name, 'otpauth://totp/' + encodeURIComponent(oo.name) + '?secret=' + oo.secret + '&issuer=' + encodeURIComponent(oo.name.split(':')[0])); }
+      else if (a === 'cvclear') { conv.files = []; render(); }
+      else if (a === 'cvpause') { conv.paused = !conv.paused; render(); }
+      else if (a === 'cvcancel') { conv.cancel = true; conv.paused = false; toast('Cancelling: files already written stay; the rest are not started.'); }
+      else if (a === 'cvdest') { API.pickFolder('Choose where converted files go').then(function (d) { if (d) { conv.dest = d; render(); } }); }
+      else if (a === 'cvhistexport') exportDialog('Export the conversion history', 'conversions', st.convHistory || []);
+      else if (a === 'cvhistclear') superConfirm('Clear the conversion history', [(st.convHistory || []).length + ' entries are removed from this window.', 'The converted files stay where they are.'], 'CLEAR', function () { setVal('convHistory', [], 'Conversion history cleared'); render(); });
+      else if (a === 'b64e' || a === 'b64d') { b64Push(); try { if (a === 'b64e') { b64.output = b64Encode(encText(b64.input, b64.o.enc), b64.o); b64.preview = null; b64.note = 'Encoded ' + encText(b64.input, b64.o.enc).length + ' bytes.'; } else { var by = b64Decode(b64.input, b64.o); try { b64.output = decText(by, b64.o.enc); } catch (ee) { b64.output = ''; } b64Preview(by); b64.note = 'Decoded ' + by.length + ' bytes' + (b64.output ? '.' : '; they are not ' + b64.o.enc + ' text, so see the preview.'); } } catch (er) { b64.undo.pop(); b64.note = er.message; } render(); }
+      else if (a === 'b64swap') { b64Push(); var tmp2 = b64.input; b64.input = b64.output; b64.output = tmp2; render(); }
+      else if (a === 'b64url') { b64Push(); try { var bs = encText(b64.input, b64.o.enc); b64.output = 'data:text/plain;charset=' + (b64.o.enc === 'latin1' ? 'ISO-8859-1' : b64.o.enc.toUpperCase()) + ';base64,' + b64Encode(bs, { pad: true }); b64.note = 'A data: URL of ' + bs.length + ' bytes.'; } catch (er) { b64.note = er.message; } render(); }
+      else if (a === 'b64parse') { var pd = parseDataUrl(b64.input); if (!pd) b64.note = 'That is not a data: URL. It starts with data:, then a type, then a comma.'; else { b64Push(); try { b64.output = decText(pd.bytes, (pd.params.charset || 'utf-8').toLowerCase() === 'iso-8859-1' ? 'latin1' : 'utf-8'); } catch (ee) { b64.output = ''; } b64Preview(pd.bytes); b64.note = 'Type ' + pd.mime + (Object.keys(pd.params).length ? ', ' + Object.keys(pd.params).map(function (k) { return k + '=' + pd.params[k]; }).join(', ') : '') + ', ' + pd.bytes.length + ' bytes' + (pd.base64 ? ', Base64.' : ', percent-encoded.'); } render(); }
+      else if (a === 'b64paste') { navigator.clipboard.readText().then(function (tx) { b64Push(); b64.input = tx; render(); }, function () { toast('The clipboard could not be read. Paste into the box instead.'); }); }
+      else if (a === 'b64undo') { var u = b64.undo.pop(); if (u) { b64.redo.push({ input: b64.input, output: b64.output }); b64.input = u.input; b64.output = u.output; render(); } }
+      else if (a === 'b64redo') { var r2 = b64.redo.pop(); if (r2) { b64.undo.push({ input: b64.input, output: b64.output }); b64.input = r2.input; b64.output = r2.output; render(); } }
+      else if (a === 'b64record') { var by2 = new TextEncoder().encode(b64.output); sha256(by2).then(function (h) { saveText('base64-record.json', JSON.stringify({ variant: b64.o.url ? 'base64url' : 'base64', padding: b64.o.pad, mime: b64.o.mime, wrap: b64.o.wrap || 0, strict: b64.o.strict, encoding: b64.o.enc, inputBytes: encText(b64.input, b64.o.enc).length, outputBytes: by2.length, outputSha256: h, at: new Date().toISOString() }, null, 2)); }); }
+      else if (a === 'b64zip') { var zf = {}; zf['base64-results.json'] = new TextEncoder().encode(JSON.stringify(b64.files.map(function (f) { return { source: f.name, result: f.result, ok: !!f.ok, bytes: f.size || 0, sha256: f.sha || '', message: f.msg }; }), null, 2)); var zb = window.fflate.zipSync(zf); var za = document.createElement('a'); za.href = URL.createObjectURL(new Blob([zb])); za.download = 'base64-results.zip'; za.click(); }
+      else if (a === 'b64fclear') { b64.files = []; render(); }
+      else if (a === 'drundo') { if (dr.undo.length) { dr.redo.push(JSON.stringify(dr.strokes)); dr.strokes = JSON.parse(dr.undo.pop()); drSave(); render(); } }
+      else if (a === 'drredo') { if (dr.redo.length) { dr.undo.push(JSON.stringify(dr.strokes)); dr.strokes = JSON.parse(dr.redo.pop()); drSave(); render(); } }
+      else if (a === 'drclear') superConfirm('Clear the drawing', [dr.strokes.length + ' saved strokes are removed.', 'Export it first if you want to keep it.'], 'CLEAR', function () { drSnap(); dr.strokes = []; drSave(); render(); });
+      else if (a === 'drsvg') saveText('drawing.svg', drSvg());
+      else if (a === 'drpng1' || a === 'drpng2' || a === 'drpng3') drExportPng(+a.slice(-1));
       else if (a === 'nextset') { dialog('Your next step', '<label class="col" style="gap:4px"><span class="ll">What is the one thing to do next?</span><input class="input" id="nsin" maxlength="80" value="' + esc(st.nextStep || '') + '"></label><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="nsok">Keep it in view</button></div>', { emoji: '👉', focus: '#nsin' }); $('#nsok').onclick = function () { setVal('nextStep', $('#nsin').value.trim(), 'Next step'); closeDialog(); render(); }; }
       else if (a === 'nextdone') { setVal('nextStep', '', 'Next step done'); finishedOne(); render(); toast(msg('saved')); }
       else if (a === 'ruleadd') ruleDialog(null);
@@ -740,6 +771,10 @@
     app.addEventListener('input', function (e) {
       var t = e.target, map = { dsearch: 'downloads', isearch: 'instances', bsearch: 'backups', hsearch: 'hosts', asearch: 'activity', ssearch: 'settings', hpsearch: 'help' };
       if (map[t.id]) { q[map[t.id]] = t.value; render(); return; }
+      if (t.id === 'b64i') { b64.input = t.value; return; }
+      if (t.dataset.cvopt) { conv.opts[t.dataset.cvopt] = t.value; return; }
+      if (t.id && t.id.indexOf('cvq-') === 0) { conv.q[t.id.slice(4)] = t.value; render(); var cf = $('#' + t.id); if (cf) { cf.focus(); cf.setSelectionRange(cf.value.length, cf.value.length); } return; }
+      if (t.dataset.drsize != null) { dr.size = +t.value; return; }
       if (t.id === 'rhsearch') { q.rhist = t.value; if (historyPanel.draw) { historyPanel.draw(); var rf = $('#rhsearch'); rf.focus(); rf.setSelectionRange(rf.value.length, rf.value.length); } return; }
       if (t.dataset.nrange) { st.narrator[t.dataset.nrange] = +t.value; save(); return; }
       if (t.dataset.wiz) { var wv = wiz.vals[wizTarget()]; if (wv) wv[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; return; }
@@ -750,6 +785,12 @@
     });
     app.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.id === 'cvfiles' && t.files.length) { cvAdd(Array.prototype.slice.call(t.files)); return; }
+      if (t.dataset.b64file && t.files.length) { Array.prototype.forEach.call(t.files, function (f) { b64File(f, t.dataset.b64file); }); return; }
+      if (t.dataset.b64wrap != null) { b64.o.wrap = t.value; return; }
+      if (t.dataset.b64enc != null) { b64.o.enc = t.value; render(); return; }
+      if (t.dataset.drinkc != null) { dr.color = t.value; render(); return; }
+      if (t.id === 'drbg' && t.files[0]) { createImageBitmap(t.files[0]).then(function (bm) { dr.bg = bm; drPaint(); }, function () { toast('That picture could not be opened.'); }); return; }
       if (t.dataset.bksel) { bsel[t.dataset.bksel] = t.checked; render(); return; }
       if (t.dataset.bkall != null) { $$('[data-bksel]').forEach(function (c) { bsel[c.dataset.bksel] = t.checked; }); render(); return; }
       if (t.dataset.hsel) { hsel[t.dataset.hsel] = t.checked; render(); return; }
@@ -801,9 +842,18 @@
       var g = e.target.closest('.panel [data-go]'); if (g) { $('.panel').remove(); go(g.dataset.go); }
     });
     var dz = null;
-    document.addEventListener('dragover', function (e) { if (dragged) return; if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); if (!dz) { dz = document.createElement('div'); dz.className = 'dropzone'; dz.textContent = 'Drop your wording file to use it'; $('#app').appendChild(dz); } } });
+    document.addEventListener('dragover', function (e) { if (dragged) return; if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); if (!dz) { dz = document.createElement('div'); dz.className = 'dropzone'; dz.textContent = st.active === 'base64' ? 'Drop to encode or decode' : st.active === 'draw' ? 'Drop a picture to draw on it' : st.active === 'convert' ? 'Drop files to convert' : 'Drop a wording file, files to convert, or a virtual disk'; $('#app').appendChild(dz); } } });
     document.addEventListener('dragleave', function (e) { if (dz && !e.relatedTarget) { dz.remove(); dz = null; } });
-    document.addEventListener('drop', function (e) { if (dragged) return; if (dz) { dz.remove(); dz = null; } var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) { e.preventDefault(); loadVocabFile(f); } });
+    document.addEventListener('drop', function (e) {
+      if (dragged) return; if (dz) { dz.remove(); dz = null; } var fl = e.dataTransfer && e.dataTransfer.files; if (!fl || !fl.length) return; e.preventDefault();
+      var arr = Array.prototype.slice.call(fl), zone = e.target.closest && e.target.closest('[data-b64drop]');
+      if (arr.some(function (f) { return /\.(vhdx?|vhds|avhdx?|iso)$/i.test(f.name); }) && window.vdDrop) { window.vdDrop(arr); return; }
+      if (zone || st.active === 'base64') { arr.forEach(function (f) { b64File(f, zone ? zone.dataset.b64drop : (/\.(base64\.txt|b64)$/i.test(f.name) ? 'dec' : 'enc')); }); if (st.active !== 'base64') go('base64:b64files'); return; }
+      if (st.active === 'convert') { cvAdd(arr); return; }
+      if (st.active === 'draw' && /^image\//.test(arr[0].type)) { createImageBitmap(arr[0]).then(function (bm) { dr.bg = bm; drPaint(); }); return; }
+      if (/\.json$/i.test(arr[0].name)) { loadVocabFile(arr[0]); return; }
+      cvAdd(arr); go('convert:queue');
+    });
     if (mq.addEventListener) mq.addEventListener('change', apply);
   }
   function closeTab(t) {

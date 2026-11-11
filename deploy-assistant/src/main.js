@@ -76,6 +76,22 @@ app.whenReady().then(() => {
   h('openFolder', (id) => shell.openPath(id ? mgr.get(id).dir : mgr.dir));
   h('pickKey', async () => { const r = await dialog.showOpenDialog(win, { title: 'Choose your SSH private key', properties: ['openFile', 'showHiddenFiles'], defaultPath: path.join(app.getPath('home'), '.ssh') }); return r.canceled ? '' : r.filePaths[0]; });
   h('saveFile', async (name, text) => { const r = await dialog.showSaveDialog(win, { defaultPath: name }); if (r.canceled) return ''; fs.writeFileSync(r.filePath, text); return r.filePath; });
+  // Files the converter and Base64 toolkit write: into a folder you picked, or beside a file you
+  // picked or dropped. Never over an existing file (a number is added), written to a temporary name
+  // first and renamed, so a half-written file is never left under the real name.
+  const pickedDirs = new Set(); const written = new Set();
+  const freeName = (dir, name) => { const ext = path.extname(name); const stem = name.slice(0, name.length - ext.length); let n = 0; let f = path.join(dir, name); while (fs.existsSync(f)) f = path.join(dir, stem + ' (' + (++n) + ')' + ext); return f; };
+  const writeAtomic = (dir, name, bytes) => {
+    if (!/^[^\\/:*?"<>|\u0000-\u001f]{1,200}$/.test(name) || name === '.' || name === '..') throw new Error('That file name is not allowed.');
+    const buf = Buffer.from(bytes); if (buf.length > 2 * 1024 * 1024 * 1024) throw new Error('The result is larger than 2 GB.');
+    const free = fs.statfsSync ? fs.statfsSync(dir) : null; if (free && free.bavail * free.bsize < buf.length + 64 * 1024 * 1024) throw new Error('Not enough free space in that folder.');
+    const f = freeName(dir, name); const tmp = f + '.partial-' + process.pid;
+    fs.writeFileSync(tmp, buf); fs.renameSync(tmp, f); written.add(f); return f;
+  };
+  h('pickFolder', async (title) => { const r = await dialog.showOpenDialog(win, { title: title || 'Choose where to save', properties: ['openDirectory', 'createDirectory'] }); if (r.canceled) return ''; pickedDirs.add(r.filePaths[0]); return r.filePaths[0]; });
+  h('writeInto', (dir, name, bytes) => { if (!pickedDirs.has(dir)) throw new Error('Choose the folder first.'); return writeAtomic(dir, name, bytes); });
+  h('writeBeside', (source, name, bytes) => { if (!path.isAbsolute(source) || !fs.existsSync(source)) throw new Error('The source file is no longer there.'); return writeAtomic(path.dirname(source), name, bytes); });
+  h('showFile', (f) => { if (!written.has(f)) throw new Error('Only files this app wrote can be shown.'); shell.showItemInFolder(f); return true; });
   h('downloads', () => dl.list());
   h('downloadAll', () => { dl.all(true); return true; });
   h('autoDownload', (on) => { mgr.setAutoDownload(on); if (on) dl.all(); return on; });

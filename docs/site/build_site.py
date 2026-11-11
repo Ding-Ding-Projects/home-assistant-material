@@ -162,6 +162,10 @@ def deploy_demo():
     os.makedirs(os.path.join(dest, 'fonts'), exist_ok=True)
     for f in ['index.html', 'app.js', 'app.css', 'icons.js', 'mock.js', 'jsQR.js', 'jsQR-LICENSE.txt', 'site-data.js']:
         shutil.copy(os.path.join(src, f), os.path.join(dest, f))
+    shutil.rmtree(os.path.join(dest, 'vendor'), ignore_errors=True)
+    shutil.copytree(os.path.join(src, 'vendor'), os.path.join(dest, 'vendor'))
+    for f in []:
+        shutil.copy(os.path.join(src, f), os.path.join(dest, f))
     shutil.rmtree(os.path.join(dest, 'boards'), ignore_errors=True)
     shutil.copytree(os.path.join(src, 'boards'), os.path.join(dest, 'boards'))
     for f in os.listdir(os.path.join(src, 'fonts')):

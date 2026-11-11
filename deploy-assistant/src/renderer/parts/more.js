@@ -199,11 +199,12 @@
     var f = 'json', stamp = new Date().toISOString().slice(0, 10);
     function draw() {
       dialog(title, '<p class="bm mu">' + rows.length + ' rows. Passwords, keys and your wording file are never included.</p><div class="chipline" role="group" aria-label="Format">' + FORMATS.map(function (x) { return '<button class="chip' + (x === f ? ' sel' : '') + '" data-xf="' + x + '" aria-pressed="' + (x === f) + '">' + x.toUpperCase() + '</button>'; }).join('') + '</div><pre class="wb-test" style="max-height:220px;overflow:auto" tabindex="0">' + esc(fmtRows(rows.slice(0, 5), f, name)) + (rows.length > 5 ? '\n…' : '') + '</pre>' +
-        '<div class="row" style="gap:8px;flex-wrap:wrap"><span class="grow"></span><button class="btn text" id="xcopy">' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn tonal" id="xcode">' + icon('CodeBraces', 's') + 'Open in VS Code</button><button class="btn fill" id="xsave">' + icon('Export', 's') + 'Save</button></div>', { emoji: '📦' });
+        '<div class="row" style="gap:8px;flex-wrap:wrap"><span class="grow"></span><button class="btn text" id="xcopy">' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn tonal" id="xcode">' + icon('CodeBraces', 's') + 'Open in VS Code</button><button class="btn text" id="xzip">' + icon('FolderZipOutline', 's') + 'ZIP of every format</button><button class="btn fill" id="xsave">' + icon('Export', 's') + 'Save</button></div>', { emoji: '📦' });
       $('#ov').addEventListener('click', function (e) { var b = e.target.closest('[data-xf]'); if (b) { f = b.dataset.xf; draw(); } });
       var text = function () { return fmtRows(rows, f, name); }, file = name + '-' + stamp + '.' + f;
       $('#xcopy').onclick = function () { copy(text()); };
       $('#xsave').onclick = function () { saveText(file, text()); closeDialog(); };
+      $('#xzip').onclick = function () { zipAll(name, rows); closeDialog(); };
       $('#xcode').onclick = function () { if (DEMO) { toast('In the app this opens ' + file + ' in VS Code.'); return; } API.exportOpen(file, text()).then(function (r) { toast(r); closeDialog(); }, function (er) { toast(er.message); }); };
     }
     draw();
