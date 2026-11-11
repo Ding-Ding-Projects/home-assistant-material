@@ -11,6 +11,15 @@ export interface CoreFrontendUserData {
   default_panel?: string;
   apps_info_dismissed?: boolean;
   dashboard_favorite_card_types?: string[];
+  /** Cards saved from the dashboard editor tools to insert again later. */
+  dashboard_card_templates?: DashboardCardTemplate[];
+}
+
+export interface DashboardCardTemplate {
+  id: string;
+  name: string;
+  created: number;
+  cards: Record<string, unknown>[];
 }
 
 export interface SidebarFrontendUserData {

@@ -14801,7 +14801,8 @@
             "open": "Open dashboard menu",
             "raw_editor": "Raw configuration editor",
             "manage_dashboards": "Manage dashboards",
-            "manage_resources": "Manage resources"
+            "manage_resources": "Manage resources",
+            "dashboard_tools": "Dashboard tools"
           },
           "common": {
             "edit": "Edit",
@@ -16747,6 +16748,93 @@
               "element": "Element editor",
               "heading-badge": "Heading badge editor",
               "element_type": "{type} element editor"
+            }
+          },
+          "dashboard_tools": {
+            "title": "Dashboard tools",
+            "subtitle": "Work on the whole dashboard at once. Every change can be undone from the toolbar.",
+            "failed": "Could not save the dashboard: {error}",
+            "tabs": {
+              "outline": "Outline",
+              "replace": "Replace",
+              "check": "Check",
+              "templates": "Templates",
+              "stats": "Statistics"
+            },
+            "preview": {
+              "label": "Preview width",
+              "full": "Full",
+              "phone": "Phone",
+              "tablet": "Tablet",
+              "desktop": "Desktop"
+            },
+            "outline": {
+              "search": "Search cards, types and entities",
+              "bulk": "Selected cards",
+              "selected": "{count} selected",
+              "select_visible": "Select all shown",
+              "clear": "Clear selection",
+              "duplicate": "Duplicate",
+              "copy_yaml": "Copy YAML",
+              "delete": "Delete",
+              "move": "Move here",
+              "target": "Move or insert into",
+              "new_section": "New section",
+              "strategy": "Made by a strategy",
+              "entities": "{count} {count, plural,\n  one {entity}\n  other {entities}\n}",
+              "none": "No cards match."
+            },
+            "replace": {
+              "intro": "Swap one entity for another in every view, section, badge and card. Only exact entity IDs change, never names or templates.",
+              "from": "Replace entity ID",
+              "to": "With entity ID",
+              "hint": "Enter both entity IDs to see how many places change.",
+              "invalid": "Both must be entity IDs, such as light.kitchen.",
+              "preview": "{count} {count, plural,\n  one {place}\n  other {places}\n} will change.",
+              "unknown_target": "{entity} does not exist yet. Cards that use it will show as unavailable.",
+              "apply": "Replace everywhere"
+            },
+            "check": {
+              "clean": "No problems found.",
+              "found": "{count} {count, plural,\n  one {problem}\n  other {problems}\n} found.",
+              "kinds": {
+                "unknown_entity": "Entity does not exist",
+                "unavailable_entity": "Entity is unavailable",
+                "empty_section": "Empty section",
+                "empty_view": "Empty view",
+                "duplicate_path": "Two views share a path",
+                "no_type": "Card has no type"
+              }
+            },
+            "templates": {
+              "intro": "Save selected cards as a template, then insert copies anywhere. Templates follow your account to every dashboard.",
+              "name": "Template name",
+              "save": "Save {count} {count, plural,\n  one {card}\n  other {cards}\n}",
+              "cards": "{count} {count, plural,\n  one {card}\n  other {cards}\n}",
+              "insert": "Insert",
+              "remove": "Delete",
+              "remove_title": "Delete the template {name}?",
+              "none": "No templates yet. Select cards in the outline to save one."
+            },
+            "stats": {
+              "views": "Views",
+              "sections": "Sections",
+              "cards": "Cards",
+              "entities": "Entities",
+              "types": "Card types"
+            },
+            "confirm_delete": {
+              "title": "Delete {count} {count, plural,\n  one {card}\n  other {cards}\n}?",
+              "text": "You can bring them back with Undo until you leave the dashboard."
+            },
+            "done": {
+              "duplicated": "Duplicated {count} {count, plural,\n  one {card}\n  other {cards}\n}.",
+              "deleted": "Deleted {count} {count, plural,\n  one {card}\n  other {cards}\n}.",
+              "moved": "Moved {count} {count, plural,\n  one {card}\n  other {cards}\n}.",
+              "copied": "Copied the YAML.",
+              "replaced": "Replaced {from} with {to} in {count} {count, plural,\n  one {place}\n  other {places}\n}.",
+              "template_saved": "Saved the template {name}.",
+              "inserted": "Inserted {name}."
             }
           }
         },

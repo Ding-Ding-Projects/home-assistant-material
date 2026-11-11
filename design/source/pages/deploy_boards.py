@@ -4,6 +4,7 @@ The app's page runs in Chrome with mock.js standing in for the computer, so ever
 real interface in one state, saved as a static board. Run from the repository root after
 `node deploy-assistant/build-renderer.js`:
   python3 design/source/pages/deploy_boards.py
+Set ONLY=DeployMinecraft,DeployTools to draw just those boards again.
 """
 import datetime
 import json
@@ -76,6 +77,7 @@ BOARDS = [
     ('DeployNotifications', 'Deploy Assistant, notifications with bulk actions', 1320, 880, 'light', [('eval', "var s=JSON.parse(localStorage.getItem('ham-deploy-v1')||'{}');s.welcomed=true;s.notes=[{t:Date.now(),text:'Home is backed up.'},{t:Date.now()-6e4,text:'Cottage is ready to open.'},{t:Date.now()-36e5,text:'Version 1.4.2 is ready. Restart to use it.'}];localStorage.setItem('ham-deploy-v1',JSON.stringify(s))"), ('reload',), ('wait', 700), ('tab', 'activity'), ('click', '[data-act="notesel-all"]'), ('eval', "document.getElementById('notifications').scrollIntoView()")]),
     ('DeploySetup', 'Deploy Assistant, Setup: what is missing installs with Chocolatey', 1320, 880, 'light', [('tab', 'settings'), ('eval', "document.getElementById('setup').scrollIntoView()")]),
     ('DeployMinecraft', 'Deploy Assistant, Minecraft servers', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 400)]),
+    ('DeployMinecraftConsole', 'Deploy Assistant, a server console in the mini terminal', 1320, 880, 'dark', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-mcsub="console"]'), ('wait', 400)]),
     ('DeployMinecraftNew', 'Deploy Assistant, a new Minecraft server, step by step', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-act="mcnew"]')]),
     ('DeployMinecraftVersion', 'Deploy Assistant, choosing any version from the official catalogue', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-act="mcnew"]'), ('click', '[data-nwfl="fabric"]'), ('click', '#nwnext')]),
     ('DeployMinecraftPlayers', 'Deploy Assistant, operators, allowlist and bans', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-mcsub="players"]'), ('wait', 300)]),
@@ -132,7 +134,10 @@ def main():
     sizes = {}
     with sync_playwright() as p:
         br = p.chromium.launch(executable_path=os.environ.get('CHROME', '/usr/bin/google-chrome'))
+        only = set(filter(None, os.environ.get('ONLY', '').split(',')))
         for name, title, w, h, scheme, steps in BOARDS:
+            if only and name not in only:
+                continue
             ctx = br.new_context(viewport={'width': w, 'height': h or 880}, color_scheme=scheme)
             pg = ctx.new_page()
             pg.goto('file://' + os.path.join(APP, 'index.html'))
@@ -175,6 +180,10 @@ def main():
             sizes[name] = (w, hh)
             ctx.close()
         br.close()
+    if os.environ.get('ONLY'):
+        # Only some boards were drawn again; their canvases keep their layout.
+        print(json.dumps(sizes))
+        return
     for gi, (folder, gtitle) in enumerate(GROUPS):
         group = BOARDS[gi * 15:(gi + 1) * 15]
         idx = {'v': 3, 'createdOnFiles': {'v': 1, 'at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')},

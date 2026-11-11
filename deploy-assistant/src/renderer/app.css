@@ -363,3 +363,12 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
 .mcgrid{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}@media (max-width:900px){.mcgrid{grid-template-columns:1fr}}
 .mchead{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;image-rendering:pixelated;box-shadow:inset -4px -4px 0 rgba(0,0,0,.2)}
 .mcactions{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}.mcact{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:0;border-radius:18px;background:var(--sl2);color:inherit;font:inherit;font-size:13px;cursor:pointer;text-align:center}.mcact:hover:not(:disabled){background:var(--sc);color:var(--on-sc)}.mcact:disabled{opacity:.45;cursor:default}
+
+/* Buttons that cannot be used right now look it, so Start on a running server does not invite a click. */
+.btn:disabled, .btn[aria-disabled="true"], .mcact:disabled, .chip:disabled, .ib:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: saturate(.4);
+}
+.btn:disabled:hover, .mcact:disabled:hover { background-image: none; }

@@ -17,6 +17,7 @@ import {
   mdiRobot,
   mdiShape,
   mdiSofa,
+  mdiToolbox,
   mdiUndo,
   mdiViewDashboard,
 } from "@mdi/js";
@@ -107,6 +108,8 @@ import "./views/hui-view";
 import type { HUIView } from "./views/hui-view";
 import "./views/hui-view-background";
 import "./views/hui-view-container";
+import type { PreviewWidth } from "./editor/dashboard-tools-dialog/show-dashboard-tools-dialog";
+import { showDashboardToolsDialog } from "./editor/dashboard-tools-dialog/show-dashboard-tools-dialog";
 import "../../components/page/ha-page-footer";
 import "../../components/page/ha-page-lock-banner";
 import { PageLockController } from "../../common/locks/page-lock-controller";
@@ -176,6 +179,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
   @property({ type: Boolean, reflect: true }) public embedded = false;
 
   @state() private _curView?: number | "hass-unused-entities";
+
+  @state() private _previewWidth: PreviewWidth;
 
   @state() private _resourceMode: "yaml" | "storage" = "storage";
 
@@ -270,6 +275,14 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         overflowAction: this._handleViewHistory,
         visible: canShowHistory && this._editMode,
         overflow: true,
+      },
+      {
+        icon: mdiToolbox,
+        key: "ui.panel.lovelace.editor.menu.dashboard_tools",
+        overflowAction: this._handleDashboardTools,
+        buttonAction: this._handleDashboardTools,
+        visible: this._editMode,
+        overflow: this.narrow,
       },
       {
         icon: mdiFormatListBulletedTriangle,
@@ -771,7 +784,11 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           class=${classMap({
             "has-tab-bar": this._editMode,
             "has-footer": showFooter,
+            previewing: this._editMode && !!this._previewWidth,
           })}
+          data-preview=${ifDefined(
+            this._editMode ? this._previewWidth : undefined
+          )}
           .hass=${this.hass}
           .theme=${curViewConfig?.theme}
           id="view"
@@ -1140,6 +1157,20 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
             ),
           },
         });
+      },
+    });
+  };
+
+  private _handleDashboardTools = () => {
+    showDashboardToolsDialog(this, {
+      lovelace: () => this.lovelace,
+      openView: (view) => {
+        const config = this.lovelace?.config.views[view];
+        this._navigateToView(config?.path || view);
+      },
+      previewWidth: this._previewWidth,
+      setPreviewWidth: (width) => {
+        this._previewWidth = width;
       },
     });
   };
@@ -1824,6 +1855,24 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           flex-direction: column;
           flex: 1 1 100%;
           max-width: 100%;
+        }
+        /* Dashboard tools can show the view at a phone, tablet or desktop
+           width while editing. */
+        hui-view-container.previewing {
+          justify-content: center;
+        }
+        hui-view-container.previewing > * {
+          max-width: var(--dashboard-preview-width);
+          outline: 1px dashed var(--divider-color);
+        }
+        hui-view-container[data-preview="phone"] {
+          --dashboard-preview-width: 412px;
+        }
+        hui-view-container[data-preview="tablet"] {
+          --dashboard-preview-width: 820px;
+        }
+        hui-view-container[data-preview="desktop"] {
+          --dashboard-preview-width: 1440px;
         }
         /**
          * In edit mode we have the tab bar on a new line *
