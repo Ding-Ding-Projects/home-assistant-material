@@ -26,7 +26,7 @@ import {
   mdiUndo,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import {
   customElement,
@@ -287,6 +287,13 @@ export class HaPageTabs extends LitElement {
   /** Tabs closed by the last bulk close, kept so it can be undone. */
   @state() private _bulkClosed: string[] = [];
 
+  /** Which ends of the strip have tabs scrolled out of view, so they fade instead of cutting a name. */
+  @state() private _hiddenEnds = { start: false, end: false };
+
+  @query(".tabs") private _strip?: HTMLElement;
+
+  private _stripObserver?: ResizeObserver;
+
   @query("#catalog") private _catalog?: HTMLElement;
 
   @query("#catalog-search") private _search?: HaInputSearch;
@@ -315,7 +322,15 @@ export class HaPageTabs extends LitElement {
         aria-label=${this._t("ui.page_tabs.open_pages")}
         aria-owns=${open.map((_tab, index) => `page-tab-${index}`).join(" ")}
       ></div>
-      <div class="tabs" @keydown=${this._handleTabKeydown}>
+      <div
+        class=${classMap({
+          tabs: true,
+          "more-start": this._hiddenEnds.start,
+          "more-end": this._hiddenEnds.end,
+        })}
+        @keydown=${this._handleTabKeydown}
+        @scroll=${this._measureStrip}
+      >
         ${repeat(
           open,
           (tab) => tab.urlPath,
@@ -780,7 +795,35 @@ export class HaPageTabs extends LitElement {
     super.disconnectedCallback();
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
+    this._stripObserver?.disconnect();
+    this._stripObserver = undefined;
   }
+
+  protected updated(changed: PropertyValues) {
+    super.updated(changed);
+    if (this._strip && !this._stripObserver) {
+      this._stripObserver = new ResizeObserver(() => this._measureStrip());
+      this._stripObserver.observe(this._strip);
+    }
+    if (!changed.has("_hiddenEnds")) {
+      this._measureStrip();
+    }
+  }
+
+  private _measureStrip = () => {
+    const strip = this._strip;
+    if (!strip) {
+      return;
+    }
+    // scrollLeft is negative in a right-to-left strip, so the distance is measured from either side.
+    const scrolled = Math.abs(strip.scrollLeft);
+    const room = strip.scrollWidth - strip.clientWidth;
+    const start = scrolled > 1;
+    const end = room - scrolled > 1;
+    if (start !== this._hiddenEnds.start || end !== this._hiddenEnds.end) {
+      this._hiddenEnds = { start, end };
+    }
+  };
 
   private _renderIcon(tab: PageTab) {
     if (tab.iconPath) {
@@ -1062,6 +1105,29 @@ export class HaPageTabs extends LitElement {
     }
     .tabs::-webkit-scrollbar {
       display: none;
+    }
+    .tabs.more-end {
+      mask-image: linear-gradient(
+        to var(--float-end, right),
+        #000 calc(100% - 40px),
+        transparent
+      );
+    }
+    .tabs.more-start {
+      mask-image: linear-gradient(
+        to var(--float-start, left),
+        #000 calc(100% - 40px),
+        transparent
+      );
+    }
+    .tabs.more-start.more-end {
+      mask-image: linear-gradient(
+        to right,
+        transparent,
+        #000 40px,
+        #000 calc(100% - 40px),
+        transparent
+      );
     }
     .tab {
       display: flex;

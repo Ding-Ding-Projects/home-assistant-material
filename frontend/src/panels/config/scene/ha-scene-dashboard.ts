@@ -1830,7 +1830,7 @@ ${rejected
           text-align: center;
           color: var(--secondary-text-color);
         }
-        .empty ha-svg-icon {
+        .empty > ha-svg-icon {
           --mdc-icon-size: 80px;
         }
         .empty h2 {

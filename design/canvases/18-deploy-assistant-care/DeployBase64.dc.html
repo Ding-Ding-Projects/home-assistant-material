@@ -255,6 +255,11 @@ iframe.demo{width:100%;height:820px;border:0;border-radius:24px;box-shadow:0 0 0
 #scslide{width:100%;min-height:44px;accent-color:var(--err)}
 @media (max-width:560px){.sc-keys{grid-template-columns:1fr}}
 .moles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mole{aspect-ratio:1;border-radius:50%;border:0;background:var(--sl3);font-size:32px;cursor:pointer;min-height:64px}.mole.up{background:var(--tc)}
+/* A search field shows one focus ring, on its rounded edge, not a second square one around the text. */
+.focusring .find input:focus-visible{outline:none!important}
+.focusring .find:focus-within{outline:3px solid var(--p);outline-offset:2px}
+/* An empty result box says what will appear in it. */
+#cvout:empty::before{content:'Results show here.';color:var(--onv)}
 
 /* Deploy Assistant only. */
 .drag{-webkit-app-region:drag}.drag button,.drag input,.drag a,.nodrag{-webkit-app-region:no-drag}
@@ -342,7 +347,7 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
 .celebrate i{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti 2.6s linear forwards}
 @keyframes confetti{to{top:110%;transform:rotate(720deg)}}@keyframes celepop{from{transform:scale(.6);opacity:0}}
 @media (prefers-reduced-motion:reduce){.celebrate .celecard{animation:none}}
-.stepper{display:inline-flex;align-items:center;gap:4px}.stepper .ib{width:36px;height:36px}
+.numstep{display:inline-flex;align-items:center;gap:4px;padding:2px;border-radius:22px;background:var(--sl2)}.numstep .ib{width:36px;height:36px;border-radius:18px;background:var(--sl4,var(--sc));color:var(--on);font-size:18px;font-weight:600}.numstep .ib:hover{background:var(--sc)}.numstep .input{text-align:center}
 .setting.changed{box-shadow:inset 3px 0 0 var(--p)}
 .chatlog{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding:8px;border-radius:20px;background:var(--sl1)}
 .msg{padding:10px 14px;border-radius:18px;max-width:85%}.msg.user{align-self:flex-end;background:var(--pc);color:var(--on-pc)}.msg.assistant{align-self:flex-start;background:var(--surf)}
@@ -375,6 +380,24 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
 .mcgrid{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}@media (max-width:900px){.mcgrid{grid-template-columns:1fr}}
 .mchead{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;image-rendering:pixelated;box-shadow:inset -4px -4px 0 rgba(0,0,0,.2)}
 .mcactions{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}.mcact{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:0;border-radius:18px;background:var(--sl2);color:inherit;font:inherit;font-size:13px;cursor:pointer;text-align:center}.mcact:hover:not(:disabled){background:var(--sc);color:var(--on-sc)}.mcact:disabled{opacity:.45;cursor:default}
+
+/* Buttons that cannot be used right now look it, so Start on a running server does not invite a click. */
+.btn:disabled, .btn[aria-disabled="true"], .mcact:disabled, .chip:disabled, .ib:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: saturate(.4);
+}
+.btn:disabled:hover, .mcact:disabled:hover { background-image: none; }
+
+/* Polish pass, 1.5: page actions sit in the header, the AI model chat's folded prompt shows its state, the wizard steps never cut their names. */
+.pacts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-inline-start:auto}
+details.fold>summary svg{transition:transform .15s}details.fold[open]>summary svg{transform:rotate(90deg)}
+.dialog .stepper li{padding:10px 12px;gap:8px}.dialog .stepper li:not(.cur) .ll{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dialog .stepper li.cur{flex:2.6}.dialog .stepper li:not(.cur){flex:0 0 auto}
+@media (prefers-reduced-motion:reduce){details.fold>summary svg{transition:none}}
+h2#history,h2#notifications,h2#records{margin:32px 0 8px}
+.plan>label:has(#vd-path),.plan>label:has(#vd-parent){grid-column:1/-1}
 
 </style>
 </helmet>

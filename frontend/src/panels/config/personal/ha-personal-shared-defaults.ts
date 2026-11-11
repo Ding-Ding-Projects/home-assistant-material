@@ -368,7 +368,7 @@ export class HaPersonalSharedDefaults extends LitElement {
 
   private _infoLabels() {
     return {
-      // The info control fills in the setting name itself.
+      // The info button fills in {name} itself, so the placeholder is passed through unchanged.
       button: this._t("info.button", { name: "{name}" }),
       close: this._t("info.close"),
       what: this._t("info.what"),
