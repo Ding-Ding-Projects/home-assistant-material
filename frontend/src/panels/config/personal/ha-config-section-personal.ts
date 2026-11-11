@@ -133,10 +133,46 @@ export class HaConfigSectionPersonal extends LitElement {
       }),
     ];
     this._voices = listVoices();
+    window.addEventListener("hashchange", this._hashChanged);
+  }
+
+  protected firstUpdated() {
+    this._goToHashRow();
+  }
+
+  private _hashChanged = () => {
+    this._goToHashRow();
+  };
+
+  /**
+   * Opens the row named in the address hash (the search of everything links
+   * to `#<row id>`), scrolls it into view and moves focus to its label.
+   */
+  private async _goToHashRow() {
+    const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    if (!id) {
+      return;
+    }
+    if (!this._rows().some((row) => row.id === id)) {
+      return;
+    }
+    // A filter that hides the row would hide the target too.
+    this._filter = "";
+    this._open = new Set([...this._open, id]);
+    await this.updateComplete;
+    const row = this.shadowRoot?.getElementById(id);
+    if (!row) {
+      return;
+    }
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    (row.querySelector(".row-label") as HTMLElement | null)?.focus({
+      preventScroll: true,
+    });
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("hashchange", this._hashChanged);
     this._unsubs.forEach((unsub) => unsub());
     this._unsubs = [];
   }

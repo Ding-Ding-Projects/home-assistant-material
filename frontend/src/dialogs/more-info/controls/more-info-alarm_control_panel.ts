@@ -91,6 +91,7 @@ class MoreInfoAlarmControlPanel extends LitElement {
               `
             : html`
                 <ha-state-control-alarm_control_panel-modes
+                  board
                   .stateObj=${this.stateObj}
                 >
                 </ha-state-control-alarm_control_panel-modes>

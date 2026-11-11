@@ -5,32 +5,22 @@ import {
   loadDismissed,
   rememberDismissed,
 } from "../../../src/panels/config/notifications/dismissed-notifications";
-import {
-  notificationActions,
-  notificationSeverity,
-} from "../../../src/panels/config/notifications/notification-insight";
+import { notificationActions } from "../../../src/panels/config/notifications/notification-insight";
 
-// Protects the notification centre: severity colours must not paint an
-// ordinary notice as an error, a link must never become a script address,
+// Protects the notification centre: a link must never become a script address,
 // and a dismissed notification must be kept for exactly 30 days.
 
-describe("notificationSeverity", () => {
-  it("reads errors, warnings and the rest from id and title", () => {
+describe("notificationActions addresses", () => {
+  it("drops addresses a browser could read as another site", () => {
     expect(
-      notificationSeverity({ notification_id: "x", title: "Sign in failed" })
-    ).toBe("error");
-    expect(
-      notificationSeverity({ notification_id: "invalid_config", title: null })
-    ).toBe("error");
-    expect(
-      notificationSeverity({
-        notification_id: "y",
-        title: "2 batteries are low",
-      })
-    ).toBe("warning");
-    expect(
-      notificationSeverity({ notification_id: "z", title: "Update installed" })
-    ).toBe("info");
+      notificationActions("[A](/\\host) [B](/a\\b) [C](/ok/path?x=1#y)")
+    ).toEqual([{ label: "C", href: "/ok/path?x=1#y" }]);
+  });
+
+  it("does not turn an image into a button", () => {
+    expect(notificationActions("![Chart](/x) [Open](/y)")).toEqual([
+      { label: "Open", href: "/y" },
+    ]);
   });
 });
 

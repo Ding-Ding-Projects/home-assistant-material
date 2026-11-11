@@ -5,6 +5,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
   grantUnlock,
   isUnlocked,
@@ -56,6 +57,9 @@ export interface LockPromptOptions {
  */
 @customElement("ha-lock-prompt")
 export class HaLockPrompt extends LitElement {
+  // Draws the wording again when the language mode changes.
+  protected _languageMode = new LanguageModeController(this);
+
   @property({ attribute: false }) public lockKey = "";
 
   @property({ attribute: false }) public anchor?: Element;

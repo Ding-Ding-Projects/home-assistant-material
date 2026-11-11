@@ -32,6 +32,7 @@ import {
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import { documentationUrl } from "../../util/documentation-url";
+import { pipelineRunsLocally } from "./pipeline-locality";
 import type { VoiceCommandDialogParams } from "./show-ha-voice-command-dialog";
 
 @customElement("ha-voice-command-dialog")
@@ -199,8 +200,7 @@ export class HaVoiceCommandDialog extends LitElement {
                   >
                   </ha-assist-chat>
                   ${
-                    this._pipeline.conversation_engine ===
-                    "conversation.home_assistant"
+                    pipelineRunsLocally(this._pipeline)
                       ? html`<div class="privacy-note" slot="footer">
                           <ha-svg-icon
                             .path=${mdiShieldCheckOutline}

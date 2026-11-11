@@ -11,6 +11,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
   applyElementLocks,
   isUnlocked,
@@ -47,6 +48,9 @@ type Filter = "locked" | "open" | "legacy";
  */
 @customElement("ha-lock-list")
 export class HaLockList extends LitElement {
+  // Draws the wording again when the language mode changes.
+  protected _languageMode = new LanguageModeController(this);
+
   @state() private _store: LockStore = readLocks();
 
   @state() private _query = "";

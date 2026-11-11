@@ -6,6 +6,7 @@ import {
   mdiDelete,
   mdiDotsVertical,
   mdiFileEdit,
+  mdiHistory,
   mdiInformationOutline,
   mdiPlay,
   mdiPlayCircleOutline,
@@ -73,6 +74,7 @@ import { PreventUnsavedMixin } from "../../../mixins/prevent-unsaved-mixin";
 import { haStyle } from "../../../resources/styles";
 import type { Entries, ValueChangedEvent } from "../../../types";
 import { isMac } from "../../../util/is_mac";
+import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import { showEditorToast } from "./editor-toast";
 import { showAssignCategoryDialog } from "../category/show-dialog-assign-category";
 import { showAutomationModeDialog } from "./automation-mode-dialog/show-dialog-automation-mode";
@@ -381,6 +383,16 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                     slot="icon"
                     .path=${mdiTransitConnection}
                   ></ha-svg-icon>
+                </ha-dropdown-item>`
+              : nothing
+          }
+          ${
+            this.config?.id
+              ? html`<ha-dropdown-item value="history">
+                  ${this.hass.localize(
+                    "ui.panel.config.automation.editor.show_history"
+                  )}
+                  <ha-svg-icon slot="icon" .path=${mdiHistory}></ha-svg-icon>
                 </ha-dropdown-item>`
               : nothing
           }
@@ -1334,6 +1346,18 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       case "trace":
         this._showTrace();
         break;
+      case "history":
+        this._showHistory();
+        break;
+    }
+  }
+
+  private async _showHistory() {
+    if (this.config?.id) {
+      const result = await this.confirmUnsavedChanged();
+      if (result) {
+        navigate(repositoryUrl(this.config.id));
+      }
     }
   }
 

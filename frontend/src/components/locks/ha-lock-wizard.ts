@@ -12,6 +12,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { applyElementLocks } from "../../common/locks/element-lock-session";
 import {
   readLocks,
@@ -90,6 +91,9 @@ const CONFIRM = 5;
  */
 @customElement("ha-lock-wizard")
 export class HaLockWizard extends LitElement {
+  // Draws the wording again when the language mode changes.
+  protected _languageMode = new LanguageModeController(this);
+
   @property({ attribute: false }) public target!: LockWizardTarget;
 
   @state() private _policy: LockPolicy = "pin";

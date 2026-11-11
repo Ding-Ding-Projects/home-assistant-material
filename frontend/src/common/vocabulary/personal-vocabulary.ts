@@ -299,7 +299,8 @@ export const activeVocabularyEntry = (key: string): string | undefined => {
 
 /** Rewrites interface text with the wording in use. */
 export const applyPersonalVocabulary = (text: string): string => {
-  if (!active || !text) {
+  // Text with rich values (links, icons) arrives as parts, not as a string.
+  if (!active || !text || typeof text !== "string") {
     return text;
   }
   const known = memo.get(text);

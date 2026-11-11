@@ -7,6 +7,8 @@ import type { GroupEntity } from "../../../data/group";
 import { computeGroupDomain } from "../../../data/group";
 import "../../../state-summary/state-card-content";
 import type { HomeAssistant } from "../../../types";
+import { stateActive } from "../../../common/entity/state_active";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import {
   domainMoreInfoType,
@@ -74,7 +76,35 @@ class MoreInfoGroup extends LitElement {
     if (!this.hass || !this.stateObj) {
       return nothing;
     }
+    const members = this.stateObj.attributes.entity_id
+      .map((entityId) => this.hass.states[entityId])
+      .filter(Boolean);
+    const onCount = members.filter((member) => stateActive(member)).length;
+
     return html`${
+      this._moreInfoType
+        ? ""
+        : html`
+            <p class="headline">
+              ${this.hass.localize(
+                "ui.dialogs.more_info_control.group.count_on",
+                { on: onCount, total: members.length }
+              )}
+            </p>
+            <div class="chips">
+              <button type="button" class="chip" @click=${this._allOn}>
+                ${this.hass.localize(
+                  "ui.dialogs.more_info_control.group.all_on"
+                )}
+              </button>
+              <button type="button" class="chip" @click=${this._allOff}>
+                ${this.hass.localize(
+                  "ui.dialogs.more_info_control.group.all_off"
+                )}
+              </button>
+            </div>
+          `
+    }${
       this._moreInfoType
         ? dynamicElement(this._moreInfoType, {
             hass: this.hass,
@@ -96,13 +126,36 @@ class MoreInfoGroup extends LitElement {
     })}`;
   }
 
+  private _allOn() {
+    this.hass.callService("homeassistant", "turn_on", {
+      entity_id: this.stateObj!.entity_id,
+    });
+  }
+
+  private _allOff() {
+    this.hass.callService("homeassistant", "turn_off", {
+      entity_id: this.stateObj!.entity_id,
+    });
+  }
+
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
+        .headline {
+          font-size: 40px;
+          margin-bottom: var(--ha-space-3);
+        }
+        .chips {
+          margin-bottom: var(--ha-space-4);
+        }
         state-card-content {
           display: block;
           margin-top: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--secondary-background-color);
         }
       `,
     ];

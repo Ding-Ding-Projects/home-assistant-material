@@ -4,25 +4,53 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Language mode changes real text: Personal settings can be read in English, Cantonese or both. The phone bar, the locks and the wording card have their Cantonese written and will follow next."
+          "text": "Fixed: with a wording file loaded, the tip under Settings showed an error instead of its text. Text that carries links is now left as it is."
         },
         {
-          "text": "A spoken narrator, off by default, reads the name of the control in focus with the browser's own voice. Two attention modes are added: a small clock, and an offer to go back to the page you were on."
+          "text": "The choose step in the automation editor can test and run one option, the default actions, or the whole step. Automations link to their history."
         },
         {
-          "text": "Tabs can be dragged into a new order and pinned. The search of everything lists settings and entities with a live switch in the result."
+          "text": "The phone bar, the locks and the wording card follow the language mode. The phone sheet keeps the tab order and pins. Tab order and pins are kept in the page history."
         },
         {
-          "text": "Dismissed notifications are kept for thirty days and every dismissal can be undone. The page export has a tab-separated format and can take only the ticked rows. A selection bar shows what will change before it changes anything."
+          "text": "Notifications no longer guess a severity from their words. A failed dismissal is reported and not hidden. Exported cells that start a formula are made safe without turning numbers into text. Labels use the selection bar for deleting."
         },
         {
-          "text": "Entity dialogs for climate, cover, counter, lock, alarm, camera, media player, vacuum, fan, light, weather, sensor, update, person, timer, humidifier, water heater and valve are started on their boards."
+          "text": "Entity dialogs for date, time, date and time, sun, image, calendar, setup step, siren, lawn mower, remote, group, automation, script and conversation are redrawn, and the shared controls for alarm, climate, lock, fan, vacuum and water heater follow the boards."
         },
         {
-          "text": "The automation editor shows triggers, conditions and actions as three named cards."
+          "text": "Accessibility has line spacing and letter spacing. A fonts dialog lists only typefaces that ship with the app or are on the device. The appearance editor has its own colour picker."
         },
         {
-          "text": "Thirteen more defects found by review are fixed, in backups, voice assistants, energy setup, apps, automations, their history and past runs."
+          "text": "The person dialog no longer links to an outside map service. About names the install type through the wording file."
+        },
+        {
+          "text": "Language mode changes real text: Personal settings can be read in English, Cantonese or both. The phone bar, the locks and the wording card have their Cantonese written and will follow next.",
+          "commit": "5a54417d7f04"
+        },
+        {
+          "text": "A spoken narrator, off by default, reads the name of the control in focus with the browser's own voice. Two attention modes are added: a small clock, and an offer to go back to the page you were on.",
+          "commit": "5a54417d7f04"
+        },
+        {
+          "text": "Tabs can be dragged into a new order and pinned. The search of everything lists settings and entities with a live switch in the result.",
+          "commit": "5a54417d7f04"
+        },
+        {
+          "text": "Dismissed notifications are kept for thirty days and every dismissal can be undone. The page export has a tab-separated format and can take only the ticked rows. A selection bar shows what will change before it changes anything.",
+          "commit": "5a54417d7f04"
+        },
+        {
+          "text": "Entity dialogs for climate, cover, counter, lock, alarm, camera, media player, vacuum, fan, light, weather, sensor, update, person, timer, humidifier, water heater and valve are started on their boards.",
+          "commit": "5a54417d7f04"
+        },
+        {
+          "text": "The automation editor shows triggers, conditions and actions as three named cards.",
+          "commit": "5a54417d7f04"
+        },
+        {
+          "text": "Thirteen more defects found by review are fixed, in backups, voice assistants, energy setup, apps, automations, their history and past runs.",
+          "commit": "5a54417d7f04"
         },
         {
           "text": "Devices and Entities have their filters as chips beside the search, a tick box on every row and a line under the list; Labels has its Create button beside the title.",

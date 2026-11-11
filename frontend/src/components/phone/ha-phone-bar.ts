@@ -6,6 +6,7 @@ import {
   mdiHuman,
   mdiMagnify,
   mdiMenu,
+  mdiPin,
   mdiPlus,
   mdiTab,
   mdiTabPlus,
@@ -19,6 +20,7 @@ import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { storage } from "../../common/decorators/storage";
 import { fireEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { searchMatcher } from "../../common/regex/filter";
 import type { BulkCloseMode } from "../../common/tabs/bulk-close";
@@ -27,7 +29,13 @@ import { getDefaultPanelUrlPath } from "../../data/panel";
 import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../../types";
 import type { PageTab } from "../ha-page-tabs";
-import { CLOSED_TABS_STORAGE_KEY, computePageTabs } from "../ha-page-tabs";
+import {
+  CLOSED_TABS_STORAGE_KEY,
+  computePageTabs,
+  PINNED_TABS_STORAGE_KEY,
+  TABS_ORDER_STORAGE_KEY,
+} from "../ha-page-tabs";
+import { applyTabOrder } from "../tab-order";
 import "../ha-svg-icon";
 import "../ha-icon";
 import "../input/ha-input-search";
@@ -59,6 +67,19 @@ export class HaPhoneBar extends LitElement {
   @state()
   @storage({ key: CLOSED_TABS_STORAGE_KEY, state: true, subscribe: true })
   private _closed: string[] = [];
+
+  /** The order the person gave the tabs, shared with the tab bar. */
+  @state()
+  @storage({ key: TABS_ORDER_STORAGE_KEY, state: true, subscribe: true })
+  private _order: string[] = [];
+
+  /** Pinned tabs sit first and are never closed by a bulk close. */
+  @state()
+  @storage({ key: PINNED_TABS_STORAGE_KEY, state: true, subscribe: true })
+  private _pinned: string[] = [];
+
+  // Draws the bar again when the language mode changes.
+  private _lang = new LanguageModeController(this);
 
   @state() private _barHidden = false;
 
@@ -136,19 +157,34 @@ export class HaPhoneBar extends LitElement {
   };
 
   private _tabs(): PageTab[] {
-    return computePageTabs(
-      this.hass.panels,
-      getDefaultPanelUrlPath(this.hass),
-      Boolean(this.hass.user?.is_admin),
-      this.hass.localize
+    return applyTabOrder(
+      computePageTabs(
+        this.hass.panels,
+        getDefaultPanelUrlPath(this.hass),
+        Boolean(this.hass.user?.is_admin),
+        this.hass.localize
+      ),
+      this._order,
+      this._pinned
     );
+  }
+
+  /** A string in the chosen language mode. */
+  private _text = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this._lang.text(this.hass.localize, key, values);
+
+  /** Pinned ids are left out: a pinned page is never closed in bulk. */
+  private _closable(ids: string[]): string[] {
+    return ids.filter((id) => !this._pinned.includes(id));
   }
 
   protected render(): TemplateResult | typeof nothing {
     if (!this.phone || !this.hass?.panels) {
       return nothing;
     }
-    const localize = this.hass.localize;
+    const localize = this._text;
     const tabs = this._tabs();
     const closed = new Set(this._closed);
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
@@ -295,7 +331,7 @@ export class HaPhoneBar extends LitElement {
     closed: Set<string>,
     current: string | undefined
   ): TemplateResult {
-    const localize = this.hass.localize;
+    const localize = this._text;
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
     const matches = searchMatcher(this._filter);
     const listed = (this._catalog ? tabs : open).filter((tab) =>
@@ -305,7 +341,7 @@ export class HaPhoneBar extends LitElement {
       id: tab.urlPath,
       texts: [tab.title, tab.urlPath],
       open: !closed.has(tab.urlPath),
-      current: tab.urlPath === current,
+      current: tab.urlPath === current || this._pinned.includes(tab.urlPath),
     }));
     const filtering = Boolean(this._filter.trim());
     const matching = planBulkClose(candidates, this._filter, "matching");
@@ -425,6 +461,7 @@ export class HaPhoneBar extends LitElement {
   }
 
   private _renderCard(tab: PageTab, selected: boolean): TemplateResult {
+    const pinned = this._pinned.includes(tab.urlPath);
     return html`
       <div
         class=${classMap({ card: true, selected })}
@@ -450,17 +487,33 @@ export class HaPhoneBar extends LitElement {
         >
           <span class="entry-icon">${this._renderIcon(tab)}</span>
           <span class="card-title">${tab.title}</span>
+          ${
+            pinned
+              ? html`<ha-svg-icon
+                  class="pin-mark"
+                  .path=${mdiPin}
+                  role="img"
+                  aria-label=${this._text("ui.page_tabs.pinned", {
+                    name: tab.title,
+                  })}
+                ></ha-svg-icon>`
+              : nothing
+          }
         </button>
-        <button
-          class="card-close"
-          aria-label=${this.hass.localize("ui.page_tabs.close_tab", {
-            name: tab.title,
-          })}
-          .urlPath=${tab.urlPath}
-          @click=${this._closeCard}
-        >
-          <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
-        </button>
+        ${
+          pinned
+            ? nothing
+            : html`<button
+                class="card-close"
+                aria-label=${this._text("ui.page_tabs.close_tab", {
+                  name: tab.title,
+                })}
+                .urlPath=${tab.urlPath}
+                @click=${this._closeCard}
+              >
+                <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
+              </button>`
+        }
       </div>
     `;
   }
@@ -476,7 +529,7 @@ export class HaPhoneBar extends LitElement {
         <span class="entry-text">
           <span class="entry-title">${tab.title}</span>
           <span class="note"
-            >${this.hass.localize(
+            >${this._text(
               isClosed ? "ui.page_tabs.state_closed" : "ui.page_tabs.state_open"
             )}</span
           >
@@ -557,7 +610,8 @@ export class HaPhoneBar extends LitElement {
     );
   }
 
-  private _closeIds(ids: string[], name: string) {
+  private _closeIds(requested: string[], name: string) {
+    const ids = this._closable(requested);
     if (!ids.length) {
       return;
     }
@@ -592,13 +646,15 @@ export class HaPhoneBar extends LitElement {
   private _countName(ids: string[]) {
     return ids.length === 1
       ? this._titleOf(ids[0])
-      : this.hass.localize("ui.phone.pages_count", { count: ids.length });
+      : this._text("ui.phone.pages_count", { count: ids.length });
   }
 
   private _closeOthers() {
-    const ids = this._tabs()
-      .map((tab) => tab.urlPath)
-      .filter((id) => !this._closed.includes(id) && id !== this.hass.panelUrl);
+    const ids = this._closable(
+      this._tabs()
+        .map((tab) => tab.urlPath)
+        .filter((id) => !this._closed.includes(id) && id !== this.hass.panelUrl)
+    );
     this._closeIds(ids, this._countName(ids));
   }
 
@@ -610,7 +666,9 @@ export class HaPhoneBar extends LitElement {
         id: tab.urlPath,
         texts: [tab.title, tab.urlPath],
         open: !this._closed.includes(tab.urlPath),
-        current: tab.urlPath === this.hass.panelUrl,
+        current:
+          tab.urlPath === this.hass.panelUrl ||
+          this._pinned.includes(tab.urlPath),
       })),
       this._filter,
       mode
@@ -678,7 +736,11 @@ export class HaPhoneBar extends LitElement {
     const urlPath = this._dragId;
     const dx = this._dragX;
     this._cancelDrag();
-    if (!urlPath || Math.abs(dx) < SWIPE_CLOSE_PX) {
+    if (
+      !urlPath ||
+      Math.abs(dx) < SWIPE_CLOSE_PX ||
+      this._pinned.includes(urlPath)
+    ) {
       return;
     }
     // The press that ends a swipe is not a tap on the card.
@@ -1020,6 +1082,12 @@ export class HaPhoneBar extends LitElement {
       min-height: 48px;
       text-align: start;
       min-width: 0;
+    }
+    .pin-mark {
+      flex: none;
+      margin-inline-start: auto;
+      color: var(--secondary-text-color);
+      --mdc-icon-size: 18px;
     }
     .card-close {
       align-self: flex-end;

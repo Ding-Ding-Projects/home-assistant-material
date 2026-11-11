@@ -1,3 +1,4 @@
+import { mdiPlay } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -6,10 +7,13 @@ import { consumeLocalize } from "../../../common/decorators/consume-context-entr
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-button";
 import "../../../components/ha-relative-time";
+import "../../../components/ha-svg-icon";
+import "../../../components/ha-switch";
 import { apiContext } from "../../../data/context";
 import { triggerAutomationActions } from "../../../data/automation";
 import { UNAVAILABLE } from "../../../data/entity/entity";
 import type { HomeAssistantApi } from "../../../types";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-automation")
 class MoreInfoAutomation extends LitElement {
@@ -28,50 +32,85 @@ class MoreInfoAutomation extends LitElement {
       return nothing;
     }
 
+    const isOn = this.stateObj.state === "on";
+    const unavailable = this.stateObj.state === UNAVAILABLE;
+
     return html`
-      <hr />
-      <div class="flex">
-        <div>${this._localize("ui.card.automation.last_triggered")}:</div>
+      <p class="headline ${isOn ? "ok" : ""}">
+        ${
+          isOn
+            ? this._localize("ui.dialogs.more_info_control.automation.on")
+            : this._localize("ui.dialogs.more_info_control.automation.off")
+        }
+      </p>
+      <p class="subline">
+        ${this._localize("ui.card.automation.last_triggered")}:
         <ha-relative-time
           .datetime=${this.stateObj.attributes.last_triggered}
           capitalize
         ></ha-relative-time>
+      </p>
+
+      <div class="toggle-row">
+        <span class="toggle-label">
+          ${
+            isOn
+              ? this._localize("ui.dialogs.more_info_control.automation.is_on")
+              : this._localize("ui.dialogs.more_info_control.automation.is_off")
+          }
+        </span>
+        <ha-switch
+          .checked=${isOn}
+          .disabled=${unavailable}
+          @change=${this._toggled}
+        ></ha-switch>
       </div>
 
       <div class="actions">
         <ha-button
-          appearance="plain"
-          size="s"
+          appearance="filled"
           @click=${this._runActions}
-          .disabled=${this.stateObj!.state === UNAVAILABLE}
+          .disabled=${unavailable}
         >
+          <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
           ${this._localize("ui.card.automation.trigger")}
         </ha-button>
       </div>
     `;
   }
 
+  private _toggled(ev: Event) {
+    const checked = (ev.target as HTMLInputElement).checked;
+    this._api.callService("automation", checked ? "turn_on" : "turn_off", {
+      entity_id: this.stateObj!.entity_id,
+    });
+  }
+
   private _runActions() {
     triggerAutomationActions(this._api, this.stateObj!.entity_id);
   }
 
-  static styles = css`
-    .flex {
-      display: flex;
-      justify-content: space-between;
-    }
-    .actions {
-      margin: var(--ha-space-2) 0;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    hr {
-      border-color: var(--divider-color);
-      border-bottom: none;
-      margin: var(--ha-space-4) 0;
-    }
-  `;
+  static styles = [
+    moreInfoBoardStyle,
+    css`
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-2) var(--ha-space-4);
+        margin-bottom: var(--ha-space-4);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--ha-space-2);
+        margin: var(--ha-space-2) 0;
+      }
+    `,
+  ];
 }
 
 declare global {

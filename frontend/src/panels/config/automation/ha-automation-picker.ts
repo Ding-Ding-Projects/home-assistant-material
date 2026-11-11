@@ -8,6 +8,7 @@ import {
   mdiDotsVertical,
   mdiExclamationThick,
   mdiHelpCircleOutline,
+  mdiHistory,
   mdiInformationOutline,
   mdiMenuDown,
   mdiOpenInNew,
@@ -36,6 +37,7 @@ import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { stopPropagation } from "../../../common/dom/stop_propagation";
 import { navigate } from "../../../common/navigate";
+import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import {
   automationsFilterQueryParamConfig,
@@ -1119,6 +1121,16 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           <ha-svg-icon .path=${mdiTransitConnection} slot="icon"></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.automation.editor.show_trace")}
         </ha-dropdown-item>
+        ${
+          this._overflowAutomation?.attributes.id
+            ? html`<ha-dropdown-item value="show_history">
+                <ha-svg-icon .path=${mdiHistory} slot="icon"></ha-svg-icon>
+                ${this.hass.localize(
+                  "ui.panel.config.automation.picker.show_history"
+                )}
+              </ha-dropdown-item>`
+            : nothing
+        }
         <wa-divider></wa-divider>
         <ha-dropdown-item value="duplicate">
           <ha-svg-icon .path=${mdiContentDuplicate} slot="icon"></ha-svg-icon>
@@ -1345,6 +1357,11 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         break;
       case "show_trace":
         this._showTrace(this._overflowAutomation);
+        break;
+      case "show_history":
+        if (this._overflowAutomation.attributes.id) {
+          navigate(repositoryUrl(this._overflowAutomation.attributes.id));
+        }
         break;
       case "toggle":
         this._toggle(this._overflowAutomation);

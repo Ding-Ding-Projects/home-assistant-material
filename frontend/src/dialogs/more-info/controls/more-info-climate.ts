@@ -160,6 +160,7 @@ class MoreInfoClimate extends LitElement {
           this._mainControl === "temperature"
             ? html`
                 <ha-state-control-climate-temperature
+                  board
                   .stateObj=${this.stateObj}
                 ></ha-state-control-climate-temperature>
               `

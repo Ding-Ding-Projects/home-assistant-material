@@ -49,6 +49,7 @@ import { consume } from "../../common/decorators/consume";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { internationalizationContext } from "../../data/context";
 import "../ha-svg-icon";
+import "./ha-appearance-color-picker";
 
 type ScalarKey = Exclude<keyof ElementAppearance, "layers">;
 
@@ -640,33 +641,44 @@ export class HaAppearanceEditor extends LitElement {
     `;
   }
 
+  // A fill colour sits behind the text, so it is read against the text.
   private _colorField(label: string, value: string, field: string) {
-    return html`<label class="row">
+    return html`<div class="row colour">
       <span>${label}</span>
-      <input
-        type="color"
+      <ha-appearance-color-picker
+        .label=${label}
         .value=${value}
         .field=${field}
-        @input=${this._layerColor}
-      />
-      <output>${value}</output>
-    </label>`;
+        .contrastWith=${this._textHex()}
+        .contrastName=${this._l("picker_the_text")}
+        @appearance-color-changed=${this._layerColor}
+      ></ha-appearance-color-picker>
+    </div>`;
+  }
+
+  private _textHex(): string | undefined {
+    return (
+      this._appearance.textColor ??
+      (this._element
+        ? cssColorToHex(getComputedStyle(this._element).color)
+        : undefined)
+    );
   }
 
   // ---- Text, shape, accent, size ----
 
   private _scalarColor(key: "textColor" | "accentColor" | "borderColor") {
     const value = this._appearance[key];
-    return html`<div class="row">
+    return html`<div class="row colour">
       <span>${this._l(`field_${key}`)}</span>
-      <input
-        type="color"
-        aria-label=${this._l(`field_${key}`)}
-        .value=${value ?? "#000000"}
+      <ha-appearance-color-picker
+        .label=${this._l(`field_${key}`)}
+        .value=${value}
         .key=${key}
-        @input=${this._scalarColorChanged}
-      />
-      <output>${value ?? this._l("from_theme")}</output>
+        .contrastWith=${this._backgroundColor()}
+        .contrastName=${this._l("picker_the_background")}
+        @appearance-color-changed=${this._scalarColorChanged}
+      ></ha-appearance-color-picker>
       ${this._clearButton(key)}
     </div>`;
   }
@@ -938,10 +950,10 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _scalarColorChanged(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement & {
+    const picker = ev.currentTarget as HTMLElement & {
       key: "textColor" | "accentColor" | "borderColor";
     };
-    this._set(input.key, input.value);
+    this._set(picker.key, (ev as CustomEvent<{ value: string }>).detail.value);
   }
 
   private _scalarRangeChanged(ev: Event) {
@@ -1045,8 +1057,11 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _layerColor(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement & { field: string };
-    this._replaceLayer({ [input.field]: input.value }, input.field);
+    const picker = ev.currentTarget as HTMLElement & { field: string };
+    this._replaceLayer(
+      { [picker.field]: (ev as CustomEvent<{ value: string }>).detail.value },
+      picker.field
+    );
   }
 
   private _layerNumber(ev: Event) {
@@ -1350,6 +1365,16 @@ export class HaAppearanceEditor extends LitElement {
     }
     .row input.invalid {
       border-color: var(--error-color);
+    }
+    .row.colour {
+      flex-wrap: wrap;
+    }
+    .row.colour > span {
+      flex: 1;
+    }
+    .row.colour ha-appearance-color-picker {
+      order: 3;
+      flex: 1 1 100%;
     }
     .row input[type="color"] {
       width: var(--ha-space-10);

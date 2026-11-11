@@ -23,7 +23,7 @@ const table = {
     { entity_id: "b", name: "Fan", area: "Den" },
     { entity_id: "c", name: "Tv", area: "Den" },
   ],
-  _checkedRows: ["c", "a"],
+  getCheckedRowIds: () => ["c", "a"],
 } as unknown as HTMLElement;
 
 describe("readDataTable selection", () => {
@@ -37,7 +37,10 @@ describe("readDataTable selection", () => {
   });
 
   it("has no selected rows when nothing is ticked", () => {
-    const read = readDataTable({ ...table, _checkedRows: [] } as never)!;
+    const read = readDataTable({
+      ...table,
+      getCheckedRowIds: () => [],
+    } as never)!;
     expect(read.selectedRows).toBeUndefined();
   });
 });

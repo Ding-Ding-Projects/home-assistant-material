@@ -8,6 +8,22 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Fixed: with a wording file loaded, the tip under Settings showed an error instead of its
+  text. Text that carries links is now left as it is.
+- The choose step in the automation editor can test and run one option, the default actions,
+  or the whole step. Automations link to their history.
+- The phone bar, the locks and the wording card follow the language mode. The phone sheet
+  keeps the tab order and pins. Tab order and pins are kept in the page history.
+- Notifications no longer guess a severity from their words. A failed dismissal is reported
+  and not hidden. Exported cells that start a formula are made safe without turning numbers
+  into text. Labels use the selection bar for deleting.
+- Entity dialogs for date, time, date and time, sun, image, calendar, setup step, siren, lawn
+  mower, remote, group, automation, script and conversation are redrawn, and the shared
+  controls for alarm, climate, lock, fan, vacuum and water heater follow the boards.
+- Accessibility has line spacing and letter spacing. A fonts dialog lists only typefaces that
+  ship with the app or are on the device. The appearance editor has its own colour picker.
+- The person dialog no longer links to an outside map service. About names the install type
+  through the wording file.
 - Language mode changes real text: Personal settings can be read in English, Cantonese or
   both. The phone bar, the locks and the wording card have their Cantonese written and will
   follow next.

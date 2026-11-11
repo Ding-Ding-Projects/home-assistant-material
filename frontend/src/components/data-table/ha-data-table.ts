@@ -279,6 +279,14 @@ export class HaDataTable extends LitElement {
     false
   );
 
+  /**
+   * The identifiers of the rows that are ticked now, in the order they were
+   * ticked. Returns a copy, so the caller cannot change the selection.
+   */
+  public getCheckedRowIds(): string[] {
+    return [...this._checkedRows];
+  }
+
   public clearSelection(): void {
     this._checkedRows = [];
     this._lastSelectedRowId = null;

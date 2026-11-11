@@ -20,6 +20,7 @@ import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import { applyPersonalVocabulary } from "../../../common/vocabulary/personal-vocabulary";
 import type { LocalizeKeys } from "../../../common/translations/localize";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import "../../../components/ha-card";
@@ -138,7 +139,13 @@ class HaConfigInfo extends LitElement {
                         "ui.panel.config.info.installation_method"
                       )}</span
                     >
-                    <span class="sub">${this._installationMethod || "…"}</span>
+                    <span class="sub"
+                      >${
+                        this._installationMethod
+                          ? applyPersonalVocabulary(this._installationMethod)
+                          : "…"
+                      }</span
+                    >
                   </span>
                 </li>
                 <li>

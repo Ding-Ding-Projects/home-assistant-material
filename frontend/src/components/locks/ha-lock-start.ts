@@ -3,6 +3,7 @@ import { mdiLock, mdiLifebuoy } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { readLocks } from "../../common/locks/element-locks";
 import {
   clearStartupLock,
@@ -23,6 +24,9 @@ import { lockText } from "./lock-text";
  */
 @customElement("ha-lock-start")
 export class HaLockStart extends LitElement {
+  // Draws the wording again when the language mode changes.
+  protected _languageMode = new LanguageModeController(this);
+
   @state() private _keys: string[] = startupLockKeys(readLocks());
 
   private _inert: HTMLElement[] = [];

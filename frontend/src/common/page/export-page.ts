@@ -43,8 +43,8 @@ interface TableLike extends HTMLElement {
   >;
   data?: Record<string, unknown>[];
   _filteredData?: Record<string, unknown>[];
-  /** The identifiers of the ticked rows. */
-  _checkedRows?: string[];
+  /** The identifiers of the ticked rows, as the shared table reports them. */
+  getCheckedRowIds?: () => string[];
 }
 
 // Columns that hold a moment in time, by the name of their key.
@@ -122,7 +122,7 @@ export const readDataTable = (table: TableLike): ExportTable | undefined => {
     .filter((row) => !("append" in row && row.append === true));
   const toCells = (row: Record<string, unknown>) =>
     columns.map((column) => cellText(row[column.key], column.key));
-  const checked = new Set(table._checkedRows ?? []);
+  const checked = new Set(table.getCheckedRowIds?.() ?? []);
   const idKey = typeof table.id === "string" && table.id ? table.id : "id";
   const selectedRows = checked.size
     ? source.filter((row) => checked.has(String(row[idKey]))).map(toCells)
@@ -180,10 +180,14 @@ export const collectPageExport = (
 
 // A cell that starts with one of these could be run as a formula when the
 // file is opened in a spreadsheet, so it is made plain text with a quote.
-const FORMULA_START = /^[=+\-@\t\r]/;
+// A plain number such as -5 or +1.5e3 stays a number.
+const PLAIN_NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+const needsQuote = (value: string): boolean =>
+  /^[=@\t\r]/.test(value) || (/^[+-]/.test(value) && !PLAIN_NUMBER.test(value));
 
 const csvCell = (value: string): string => {
-  const safe = FORMULA_START.test(value) ? `'${value}` : value;
+  const safe = needsQuote(value) ? `'${value}` : value;
   return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 
@@ -220,7 +224,7 @@ export const toCsv = (table: ExportTable): string =>
 export const toTsv = (table: ExportTable): string => {
   const cell = (value: string) => {
     const plain = value.replace(/[\t\r\n]+/g, " ");
-    return FORMULA_START.test(plain) ? `'${plain}` : plain;
+    return needsQuote(plain) ? `'${plain}` : plain;
   };
   return [table.columns, ...table.rows]
     .map((row) => row.map(cell).join("\t"))

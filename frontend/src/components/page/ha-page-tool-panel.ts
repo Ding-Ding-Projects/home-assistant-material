@@ -517,10 +517,19 @@ export class HaPageToolPanel extends LitElement {
       0
     );
     const selected = selectedRowCount(page);
+    // The tables that can be exported now: with "selected rows only" a table
+    // without a ticked row is not part of the export, so it is not offered.
+    const offered = this._selectionOnly
+      ? selectionOnly(page).tables
+      : page.tables;
+    const tableIndex = Math.min(
+      this._tableIndex,
+      Math.max(offered.length - 1, 0)
+    );
     const { content } = exportContent(
       page,
       this._format,
-      this._tableIndex,
+      tableIndex,
       this._selectionOnly
     );
     return html`
@@ -589,21 +598,21 @@ export class HaPageToolPanel extends LitElement {
           : nothing
       }
       ${
-        this._format === "csv" && page.tables.length > 1
+        (this._format === "csv" || this._format === "tsv") && offered.length > 1
           ? html`<div
               class="chips"
               role="group"
               aria-label=${localize("ui.page_tools.export_panel.table")}
             >
-              ${page.tables.map(
+              ${offered.map(
                 (table, index) => html`
                   <button
                     type="button"
                     class=${classMap({
                       chip: true,
-                      on: index === this._tableIndex,
+                      on: index === tableIndex,
                     })}
-                    aria-pressed=${index === this._tableIndex ? "true" : "false"}
+                    aria-pressed=${index === tableIndex ? "true" : "false"}
                     data-index=${index}
                     @click=${this._pickTable}
                   >
@@ -671,6 +680,17 @@ export class HaPageToolPanel extends LitElement {
     this._tableIndex = 0;
   }
 
+  /** The picked table, kept inside the tables that are offered now. */
+  private _currentTableIndex(): number {
+    if (!this._export) {
+      return 0;
+    }
+    const count = this._selectionOnly
+      ? selectionOnly(this._export).tables.length
+      : this._export.tables.length;
+    return Math.min(this._tableIndex, Math.max(count - 1, 0));
+  }
+
   private _pickTable(ev: Event): void {
     this._tableIndex = Number((ev.currentTarget as HTMLElement).dataset.index);
   }
@@ -682,7 +702,7 @@ export class HaPageToolPanel extends LitElement {
     const { content, mime, extension } = exportContent(
       this._export,
       this._format,
-      this._tableIndex,
+      this._currentTableIndex(),
       this._selectionOnly
     );
     const url = URL.createObjectURL(new Blob([content], { type: mime }));
@@ -702,7 +722,7 @@ export class HaPageToolPanel extends LitElement {
       exportContent(
         this._export,
         this._format,
-        this._tableIndex,
+        this._currentTableIndex(),
         this._selectionOnly
       ).content
     );
@@ -940,7 +960,12 @@ export class HaPageToolPanel extends LitElement {
       noteLocalChange("appearance");
       return;
     }
-    if (subject === "accessibility" || subject === "tabs") {
+    if (
+      subject === "accessibility" ||
+      subject === "tabs" ||
+      subject === "tabOrder" ||
+      subject === "tabPins"
+    ) {
       let value: unknown;
       try {
         value = raw === null ? undefined : JSON.parse(raw);

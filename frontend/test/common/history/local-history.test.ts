@@ -4,6 +4,7 @@ import {
   addHistoryEntry,
   HISTORY_LIMIT,
   HISTORY_MERGE_MS,
+  HISTORY_SUBJECTS,
   normalizeHistory,
 } from "../../../src/common/history/local-history";
 
@@ -18,6 +19,48 @@ const change = (
   subject: HistoryEntry["subject"] = "appearance",
   page = "/config"
 ) => ({ subject, page, before, after, at });
+
+describe("tab order and pins", () => {
+  it("are listed as their own subjects with the stored order and pins kept", () => {
+    expect(HISTORY_SUBJECTS.tabOrder).toEqual({
+      key: "pageTabsOrder",
+      keep: true,
+    });
+    expect(HISTORY_SUBJECTS.tabPins).toEqual({
+      key: "pageTabsPinned",
+      keep: true,
+    });
+  });
+
+  it("note a reorder and a pin so they can be put back", () => {
+    let entries = addHistoryEntry(
+      [],
+      change(1000, '["a","b"]', '["b","a"]', "tabOrder", "/")
+    );
+    entries = addHistoryEntry(
+      entries,
+      change(9000, null, '["b"]', "tabPins", "/")
+    );
+    expect(entries).toHaveLength(2);
+    expect(entries[0]).toMatchObject({
+      subject: "tabOrder",
+      kept: true,
+      before: '["a","b"]',
+      after: '["b","a"]',
+    });
+    expect(entries[1]).toMatchObject({ subject: "tabPins", after: '["b"]' });
+  });
+
+  it("survive normalizing a stored journal", () => {
+    const stored = addHistoryEntry(
+      [],
+      change(1000, null, '["a"]', "tabPins", "/")
+    );
+    expect(normalizeHistory(JSON.parse(JSON.stringify(stored)))).toEqual(
+      stored
+    );
+  });
+});
 
 describe("addHistoryEntry", () => {
   it("adds a change with the choice before and after", () => {

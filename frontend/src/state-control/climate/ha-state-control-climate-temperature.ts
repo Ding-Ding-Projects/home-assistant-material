@@ -79,6 +79,12 @@ export class HaStateControlClimateTemperature extends LitElement {
   @property({ type: Boolean, attribute: "prevent-interaction-on-scroll" })
   public preventInteractionOnScroll = false;
 
+  /**
+   * Opt-in presentation used by the entity dialog: a large stepper row with
+   * minus, the target value and plus, instead of the circular slider.
+   */
+  @property({ type: Boolean, reflect: true }) public board = false;
+
   @state() private _targetTemperature: Partial<Record<Target, number>> = {};
 
   @state() private _selectTargetTemperature: Target = "low";
@@ -502,6 +508,52 @@ export class HaStateControlClimateTemperature extends LitElement {
     );
   }
 
+  private _renderBoardStepper() {
+    const color =
+      stateActive(this.stateObj) && this.stateObj.state !== UNAVAILABLE
+        ? stateColorCss(this.stateObj)
+        : undefined;
+    return html`
+      <div
+        class="stepper"
+        style=${styleMap({ "--stepper-color": color })}
+        role="group"
+        aria-label=${this._formatters.formatEntityAttributeName(
+          this.stateObj,
+          "temperature"
+        )}
+      >
+        <button
+          type="button"
+          class="step minus"
+          data-target="value"
+          .step=${-this._step}
+          aria-label=${this._i18n.localize(
+            "ui.components.climate-control.temperature_down"
+          )}
+          @click=${this._handleButton}
+        >
+          <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
+        </button>
+        <span class="stepper-value" role="status" aria-live="polite">
+          ${this._renderTarget(this._targetTemperature.value!, "normal", true)}
+        </span>
+        <button
+          type="button"
+          class="step plus"
+          data-target="value"
+          .step=${this._step}
+          aria-label=${this._i18n.localize(
+            "ui.components.climate-control.temperature_up"
+          )}
+          @click=${this._handleButton}
+        >
+          <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+        </button>
+      </div>
+    `;
+  }
+
   protected render() {
     const mode = this.stateObj.state;
     const action = this.stateObj.attributes.hvac_action;
@@ -522,6 +574,14 @@ export class HaStateControlClimateTemperature extends LitElement {
     const containerSizeClass = this._sizeController.value
       ? ` ${this._sizeController.value}`
       : "";
+
+    if (
+      this.board &&
+      this._supportsTargetTemperature &&
+      this.stateObj.state !== UNAVAILABLE
+    ) {
+      return this._renderBoardStepper();
+    }
 
     if (
       this._supportsTargetTemperature &&
@@ -690,6 +750,55 @@ export class HaStateControlClimateTemperature extends LitElement {
         }
         .secondary {
           direction: ltr;
+        }
+        /* Board presentation (opt-in through the board attribute) */
+        :host([board]) {
+          width: 100%;
+          max-width: 360px;
+        }
+        .stepper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--ha-space-5);
+          direction: ltr;
+        }
+        .stepper-value {
+          min-width: 3ch;
+          font-size: 48px;
+          line-height: var(--ha-line-height-condensed);
+          font-weight: var(--ha-font-weight-normal);
+          font-variant-numeric: tabular-nums;
+          color: var(--stepper-color, var(--primary-text-color));
+          text-align: center;
+        }
+        .step {
+          appearance: none;
+          border: none;
+          margin: 0;
+          padding: 0;
+          flex: none;
+          width: 64px;
+          height: 64px;
+          min-width: 44px;
+          min-height: 44px;
+          border-radius: var(--ha-border-radius-circle);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color);
+          --mdc-icon-size: 28px;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .step.plus {
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
+        }
+        .step:focus-visible {
+          outline: 2px solid var(--primary-text-color);
+          outline-offset: 2px;
         }
         ha-control-circular-slider {
           --control-circular-slider-low-color: var(

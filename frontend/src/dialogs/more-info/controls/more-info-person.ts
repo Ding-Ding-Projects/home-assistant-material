@@ -1,4 +1,4 @@
-import { mdiDirections, mdiMapMarkerPlus } from "@mdi/js";
+import { mdiMapMarkerPlus } from "@mdi/js";
 import type { HassEntities, HassEntity } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -168,20 +168,6 @@ class MoreInfoPerson extends LitElement {
                       `
                     : nothing
                 }
-                <ha-button
-                  appearance="plain"
-                  href=${this._directionsUrl(stateObj)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ha-svg-icon
-                    slot="start"
-                    .path=${mdiDirections}
-                  ></ha-svg-icon>
-                  ${this._localize(
-                    "ui.dialogs.more_info_control.person.directions"
-                  )}
-                </ha-button>
               </div>
             `
           : nothing
@@ -196,12 +182,6 @@ class MoreInfoPerson extends LitElement {
         <div class="stat-value">${value}</div>
       </div>
     `;
-  }
-
-  private _directionsUrl(stateObj: HassEntity): string {
-    const lat = encodeURIComponent(String(stateObj.attributes.latitude));
-    const lon = encodeURIComponent(String(stateObj.attributes.longitude));
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
   }
 
   private _handleAction() {

@@ -243,6 +243,12 @@ export class HomeAssistantMain extends LitElement {
       getStorage().subscribeChanges(HISTORY_SUBJECTS.tabs.key, () =>
         noteLocalChange("tabs")
       ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabOrder.key, () =>
+        noteLocalChange("tabOrder")
+      ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabPins.key, () =>
+        noteLocalChange("tabPins")
+      ),
     ];
     window.addEventListener("personal-vocabulary-changed", this._noteWording);
     window.addEventListener("keydown", this._handleAccessibilityShortcut);

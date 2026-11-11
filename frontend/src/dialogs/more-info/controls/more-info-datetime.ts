@@ -1,60 +1,151 @@
 import { format } from "date-fns";
 import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
-import { transform } from "../../../common/decorators/transform";
+import "../../../components/ha-button";
 import "../../../components/ha-date-input";
 import "../../../components/ha-time-input";
-import { apiContext, internationalizationContext } from "../../../data/context";
+import { apiContext } from "../../../data/context";
 import { setDateTimeValue } from "../../../data/datetime";
 import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
-import type { FrontendLocaleData } from "../../../data/translation";
 import type {
+  HomeAssistant,
   HomeAssistantApi,
-  HomeAssistantInternationalization,
   ValueChangedEvent,
 } from "../../../types";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-datetime")
 class MoreInfoDatetime extends LitElement {
-  @property({ attribute: false }) public stateObj?: HassEntity;
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state()
-  @consume({ context: internationalizationContext, subscribe: true })
-  @transform<HomeAssistantInternationalization, FrontendLocaleData>({
-    transformer: ({ locale }) => locale,
-  })
-  private _locale!: FrontendLocaleData;
+  @property({ attribute: false }) public stateObj?: HassEntity;
 
   @state()
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;
 
+  // The value picked here, applied only by the Set button
+  @state() private _draft?: Date;
+
+  private _syncedState?: string;
+
+  protected willUpdate(changedProps: PropertyValues<this>): void {
+    super.willUpdate(changedProps);
+    if (this.stateObj && this.stateObj.state !== this._syncedState) {
+      this._syncedState = this.stateObj.state;
+      this._resetDraft();
+    }
+  }
+
+  private _resetDraft() {
+    const current =
+      this.stateObj && this.stateObj.state !== UNKNOWN
+        ? new Date(this.stateObj.state)
+        : new Date();
+    this._draft = Number.isNaN(current.getTime()) ? new Date() : current;
+  }
+
   protected render() {
-    if (!this.stateObj || this.stateObj.state === UNAVAILABLE) {
+    if (
+      !this.hass ||
+      !this.stateObj ||
+      this.stateObj.state === UNAVAILABLE ||
+      !this._draft
+    ) {
       return nothing;
     }
+    const localize = this.hass.localize;
+    const language = this.hass.locale.language;
+    const draft = this._draft;
+    const changed =
+      this.stateObj.state === UNKNOWN ||
+      draft.getTime() !== new Date(this.stateObj.state).getTime();
 
-    const dateObj =
-      this.stateObj.state === UNKNOWN
-        ? undefined
-        : new Date(this.stateObj.state);
-    const time = dateObj ? format(dateObj, "HH:mm:ss") : undefined;
-    const date = dateObj ? format(dateObj, "yyyy-MM-dd") : undefined;
+    const headline = new Intl.DateTimeFormat(language, {
+      day: "numeric",
+      month: "short",
+      year:
+        draft.getFullYear() === new Date().getFullYear()
+          ? undefined
+          : "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(draft);
+    const startOfDay = (date: Date) =>
+      new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const diff = Math.round(
+      (startOfDay(draft) - startOfDay(new Date())) / 86400000
+    );
+    const relative = new Intl.RelativeTimeFormat(language, {
+      numeric: "auto",
+    }).format(diff, "day");
 
-    return html`<ha-date-input
-        .locale=${this._locale}
-        .value=${date}
-        @value-changed=${this._dateChanged}
-      >
-      </ha-date-input>
-      <ha-time-input
-        .value=${time}
-        .locale=${this._locale}
-        @value-changed=${this._timeChanged}
-        @click=${this._stopEventPropagation}
-      ></ha-time-input>`;
+    return html`
+      <div class="stack">
+        <h2 class="headline">${headline}</h2>
+        <p class="subline">${relative}</p>
+        <div class="fields">
+          <ha-date-input
+            .locale=${this.hass.locale}
+            .value=${format(draft, "yyyy-MM-dd")}
+            @value-changed=${this._dateChanged}
+          ></ha-date-input>
+          <ha-time-input
+            .value=${format(draft, "HH:mm:ss")}
+            .locale=${this.hass.locale}
+            @value-changed=${this._timeChanged}
+            @click=${this._stopEventPropagation}
+          ></ha-time-input>
+        </div>
+        <div class="chips">
+          <button type="button" class="chip" @click=${this._pickNow}>
+            ${localize("ui.dialogs.more_info_control.datetime.now")}
+          </button>
+          <button
+            type="button"
+            class="chip"
+            .when=${{ days: 0, hour: 20 }}
+            @click=${this._pickPreset}
+          >
+            ${localize("ui.dialogs.more_info_control.datetime.tonight", {
+              time: this._presetTime(20),
+            })}
+          </button>
+          <button
+            type="button"
+            class="chip"
+            .when=${{ days: 1, hour: 9 }}
+            @click=${this._pickPreset}
+          >
+            ${localize("ui.dialogs.more_info_control.datetime.tomorrow", {
+              time: this._presetTime(9),
+            })}
+          </button>
+        </div>
+        <div class="actions">
+          <ha-button
+            appearance="plain"
+            .disabled=${!changed}
+            @click=${this._resetDraft}
+          >
+            ${localize("ui.common.cancel")}
+          </ha-button>
+          <ha-button .disabled=${!changed} @click=${this._apply}>
+            ${localize("ui.dialogs.more_info_control.datetime.set")}
+          </ha-button>
+        </div>
+      </div>
+    `;
+  }
+
+  private _presetTime(hour: number) {
+    return new Intl.DateTimeFormat(this.hass!.locale.language, {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(2023, 0, 1, hour));
   }
 
   private _stopEventPropagation(ev: Event): void {
@@ -62,45 +153,76 @@ class MoreInfoDatetime extends LitElement {
   }
 
   private _timeChanged(ev: ValueChangedEvent<string>): void {
-    if (ev.detail.value) {
-      const dateObj = new Date(this.stateObj!.state);
-      const newTime = ev.detail.value.split(":").map(Number);
-      dateObj.setHours(newTime[0], newTime[1], newTime[2]);
-
-      setDateTimeValue(
-        this._api.callService,
-        this.stateObj!.entity_id,
-        dateObj
-      );
+    if (ev.detail.value && this._draft) {
+      const next = new Date(this._draft);
+      const [hours, minutes, seconds] = ev.detail.value.split(":").map(Number);
+      next.setHours(hours, minutes, seconds || 0);
+      this._draft = next;
     }
   }
 
   private _dateChanged(ev: ValueChangedEvent<string>): void {
-    if (ev.detail.value) {
-      const dateObj = new Date(this.stateObj!.state);
-      const newDate = ev.detail.value.split("-").map(Number);
-      dateObj.setFullYear(newDate[0], newDate[1] - 1, newDate[2]);
+    if (ev.detail.value && this._draft) {
+      const next = new Date(this._draft);
+      const [year, month, day] = ev.detail.value.split("-").map(Number);
+      next.setFullYear(year, month - 1, day);
+      this._draft = next;
+    }
+  }
 
+  private _pickNow() {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    this._draft = now;
+  }
+
+  private _pickPreset(ev: Event) {
+    const when = (
+      ev.currentTarget as HTMLElement & {
+        when: { days: number; hour: number };
+      }
+    ).when;
+    const now = new Date();
+    this._draft = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + when.days,
+      when.hour
+    );
+  }
+
+  private _apply() {
+    if (this._draft) {
       setDateTimeValue(
         this._api.callService,
         this.stateObj!.entity_id,
-        dateObj
+        this._draft
       );
     }
   }
 
-  static styles = css`
-    :host {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-    }
-    ha-date-input + ha-time-input {
-      margin-left: var(--ha-space-1);
-      margin-inline-start: var(--ha-space-1);
-      margin-inline-end: initial;
-    }
-  `;
+  static styles = [
+    moreInfoBoardStyle,
+    css`
+      :host {
+        display: block;
+      }
+      .fields {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: var(--ha-space-2);
+        align-self: stretch;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--ha-space-3);
+      }
+    `,
+  ];
 }
 
 declare global {

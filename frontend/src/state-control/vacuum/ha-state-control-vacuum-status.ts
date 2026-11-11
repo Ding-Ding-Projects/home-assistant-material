@@ -36,6 +36,13 @@ const computeVisualState = (stateObj: VacuumEntity): VacuumVisualState => {
 export class HaStateControlVacuumStatus extends LitElement {
   @property({ attribute: false }) public stateObj!: VacuumEntity;
 
+  /**
+   * Opt-in presentation used by the entity dialog: a slim activity bar instead
+   * of the illustration. The instance reports no cleaning progress, so the bar
+   * is indeterminate while the vacuum is working and empty otherwise.
+   */
+  @property({ type: Boolean, reflect: true }) public board = false;
+
   protected render(): TemplateResult {
     const visualState = computeVisualState(this.stateObj);
     const color = stateColorCss(this.stateObj);
@@ -43,6 +50,18 @@ export class HaStateControlVacuumStatus extends LitElement {
     const style = {
       "--vacuum-color": color || "var(--state-inactive-color)",
     };
+
+    if (this.board) {
+      return html`
+        <div
+          class="bar ${visualState}"
+          style=${styleMap(style)}
+          aria-hidden="true"
+        >
+          <div class="bar-fill"></div>
+        </div>
+      `;
+    }
 
     // Inspired by denysdovhan/vacuum-card SVG design
     return html`
@@ -319,6 +338,50 @@ export class HaStateControlVacuumStatus extends LitElement {
       width: 200px;
       height: 200px;
       position: relative;
+    }
+
+    /* Board presentation (opt-in through the board attribute) */
+    :host([board]) {
+      display: block;
+    }
+    .bar {
+      position: relative;
+      overflow: hidden;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--secondary-background-color);
+    }
+    .bar-fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      border-radius: 4px;
+      background: var(--vacuum-color);
+    }
+    .bar.cleaning .bar-fill,
+    .bar.returning .bar-fill {
+      width: 35%;
+      animation: bar-slide 1.8s ease-in-out infinite;
+    }
+    .bar.error .bar-fill {
+      width: 100%;
+    }
+    @keyframes bar-slide {
+      0% {
+        left: -35%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bar.cleaning .bar-fill,
+      .bar.returning .bar-fill {
+        animation: none;
+        left: 0;
+      }
     }
 
     .vacuum-svg {

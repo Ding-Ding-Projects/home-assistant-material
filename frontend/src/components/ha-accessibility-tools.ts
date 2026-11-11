@@ -5,6 +5,9 @@ import {
   mdiEyeOff,
   mdiFocusField,
   mdiFormatSize,
+  mdiFormatLineSpacing,
+  mdiFormatLetterCase,
+  mdiFormatFont,
   mdiGestureTapButton,
   mdiHuman,
   mdiKeyboard,
@@ -32,6 +35,19 @@ import {
   stopReadingAloud,
   TEXT_SCALE_STEPS,
 } from "../common/accessibility/accessibility-tools";
+import {
+  DEFAULT_READING_OPTIONS,
+  getReadingOptions,
+  isDefaultReadingOptions,
+  LINE_SPACINGS,
+  setReadingOptions,
+  startReadingOptions,
+  subscribeReadingOptions,
+} from "../common/appearance/reading-options";
+import type {
+  LineSpacing,
+  ReadingOptions,
+} from "../common/appearance/reading-options";
 import { storage } from "../common/decorators/storage";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
 import { showShortcutsDialog } from "../dialogs/shortcuts/show-shortcuts-dialog";
@@ -67,6 +83,14 @@ export class HaAccessibilityTools extends LitElement {
 
   @state() private _reading = false;
 
+  @state() private _options: ReadingOptions = getReadingOptions();
+
+  @state() private _fontsOpen = false;
+
+  private _stopReadingOptions?: () => void;
+
+  private _unsubReadingOptions?: () => void;
+
   @query("#panel") private _panel?: HTMLElement;
 
   private _closedAt = 0;
@@ -88,8 +112,21 @@ export class HaAccessibilityTools extends LitElement {
     this._panel.showPopover();
   }
 
+  public connectedCallback() {
+    super.connectedCallback();
+    // Line spacing, letter spacing and typefaces are applied from here, so
+    // they hold also while the button is hidden.
+    this._stopReadingOptions = startReadingOptions();
+    this._unsubReadingOptions = subscribeReadingOptions((options) => {
+      this._options = options;
+    });
+    this._options = getReadingOptions();
+  }
+
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._stopReadingOptions?.();
+    this._unsubReadingOptions?.();
     if (this._reading) {
       stopReadingAloud();
       this._reading = false;
@@ -110,7 +147,8 @@ export class HaAccessibilityTools extends LitElement {
     const stepIndex = TEXT_SCALE_STEPS.indexOf(settings.textScale);
     const isDefault =
       JSON.stringify(settings) ===
-      JSON.stringify(DEFAULT_ACCESSIBILITY_SETTINGS);
+        JSON.stringify(DEFAULT_ACCESSIBILITY_SETTINGS) &&
+      isDefaultReadingOptions(this._options);
 
     return html`
       <div
@@ -187,6 +225,55 @@ export class HaAccessibilityTools extends LitElement {
           </div>
         </div>
 
+        <div class="row">
+          <span class="lead"
+            ><ha-svg-icon .path=${mdiFormatLineSpacing}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name" id="spacing-label"
+              >${localize("ui.accessibility_tools.line_spacing")}</span
+            >
+          </span>
+          <div
+            class="segments"
+            role="radiogroup"
+            aria-labelledby="spacing-label"
+          >
+            ${LINE_SPACINGS.map(
+              (spacing) => html`
+                <button
+                  role="radio"
+                  aria-checked=${
+                    this._options.lineSpacing === spacing ? "true" : "false"
+                  }
+                  .spacing=${spacing}
+                  @click=${this._lineSpacingChanged}
+                >
+                  ${localize(`ui.accessibility_tools.line_spacing_${spacing}`)}
+                </button>
+              `
+            )}
+          </div>
+        </div>
+
+        <label class="row">
+          <span class="lead"
+            ><ha-svg-icon .path=${mdiFormatLetterCase}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name"
+              >${localize("ui.accessibility_tools.wide_spacing")}</span
+            >
+            <span class="note"
+              >${localize("ui.accessibility_tools.wide_spacing_note")}</span
+            >
+          </span>
+          <ha-switch
+            .checked=${this._options.wideSpacing}
+            @change=${this._wideSpacingChanged}
+          ></ha-switch>
+        </label>
+
         ${this._renderSwitch(
           "reduceMotion",
           mdiMotionPauseOutline,
@@ -228,6 +315,21 @@ export class HaAccessibilityTools extends LitElement {
             : nothing
         }
 
+        <button class="row link" @click=${this._openFonts}>
+          <span class="lead"
+            ><ha-svg-icon .path=${mdiFormatFont}></ha-svg-icon
+          ></span>
+          <span class="text">
+            <span class="name"
+              >${localize("ui.accessibility_tools.fonts")}</span
+            >
+            <span class="note"
+              >${localize("ui.accessibility_tools.fonts_note")}</span
+            >
+          </span>
+          <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
+        </button>
+
         <button class="row link" @click=${this._keyboardHelp}>
           <span class="lead"
             ><ha-svg-icon .path=${mdiKeyboard}></ha-svg-icon
@@ -263,6 +365,14 @@ export class HaAccessibilityTools extends LitElement {
         </div>
         <p class="kept">${localize("ui.accessibility_tools.kept")}</p>
       </div>
+      ${
+        this._fontsOpen
+          ? html`<ha-appearance-fonts
+              .hass=${this.hass}
+              @closed=${this._fontsClosed}
+            ></ha-appearance-fonts>`
+          : nothing
+      }
     `;
   }
 
@@ -347,12 +457,39 @@ export class HaAccessibilityTools extends LitElement {
     });
   }
 
+  private _lineSpacingChanged(ev: Event) {
+    setReadingOptions({
+      ...this._options,
+      lineSpacing: (ev.currentTarget as HTMLElement & { spacing: LineSpacing })
+        .spacing,
+    });
+  }
+
+  private _wideSpacingChanged(ev: Event) {
+    setReadingOptions({
+      ...this._options,
+      wideSpacing: (ev.currentTarget as HTMLElement & { checked: boolean })
+        .checked,
+    });
+  }
+
+  private async _openFonts() {
+    this._panel?.hidePopover();
+    await import("./appearance/ha-appearance-fonts");
+    this._fontsOpen = true;
+  }
+
+  private _fontsClosed() {
+    this._fontsOpen = false;
+  }
+
   private _keyboardHelp() {
     this._panel?.hidePopover();
     showShortcutsDialog(this);
   }
 
   private _reset() {
+    setReadingOptions({ ...DEFAULT_READING_OPTIONS });
     this._stored = {
       ...DEFAULT_ACCESSIBILITY_SETTINGS,
       hideButton: this._settings.hideButton,

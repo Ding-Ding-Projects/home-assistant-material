@@ -1,5 +1,5 @@
 import type { PropertyValues, TemplateResult } from "lit";
-import { html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -40,6 +40,9 @@ export class HaStateControlLockToggle extends LitElement {
 
   @property({ attribute: false }) public stateObj!: LockEntity;
 
+  /** Opt-in presentation used by the entity dialog: one large rounded tile. */
+  @property({ type: Boolean, reflect: true }) public board = false;
+
   @state() private _isOn = false;
 
   public willUpdate(changedProps: PropertyValues<this>): void {
@@ -57,6 +60,14 @@ export class HaStateControlLockToggle extends LitElement {
       this._turnOn();
     } else {
       this._turnOff();
+    }
+  }
+
+  private _tileClicked() {
+    if (this._isOn) {
+      this._turnOff();
+    } else {
+      this._turnOn();
     }
   }
 
@@ -125,6 +136,39 @@ export class HaStateControlLockToggle extends LitElement {
       `;
     }
 
+    if (this.board) {
+      return html`
+        <button
+          type="button"
+          class="tile"
+          role="switch"
+          aria-checked=${this._isOn ? "true" : "false"}
+          aria-label=${
+            this._isOn
+              ? this._localize("ui.card.lock.unlock")
+              : this._localize("ui.card.lock.lock")
+          }
+          style=${styleMap({ "--tile-color": color })}
+          .disabled=${this.stateObj.state === UNAVAILABLE}
+          @click=${this._tileClicked}
+        >
+          <ha-state-icon
+            .stateObj=${this.stateObj}
+            .stateValue=${
+              this._isOn
+                ? locking
+                  ? "locking"
+                  : "locked"
+                : unlocking
+                  ? "unlocking"
+                  : "unlocked"
+            }
+            class=${classMap({ pulse: locking || unlocking })}
+          ></ha-state-icon>
+        </button>
+      `;
+    }
+
     return html`
       <ha-control-switch
         touch-action="none"
@@ -159,7 +203,47 @@ export class HaStateControlLockToggle extends LitElement {
     `;
   }
 
-  static styles = [stateControlToggleStyle, stateControlPulseStyle];
+  static styles = [
+    stateControlToggleStyle,
+    stateControlPulseStyle,
+    css`
+      .tile {
+        appearance: none;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 168px;
+        height: 168px;
+        margin: 0 auto;
+        padding: 0;
+        border: none;
+        border-radius: var(--ha-border-radius-6xl);
+        background: none;
+        color: var(--tile-color, var(--primary-text-color));
+        cursor: pointer;
+        --mdc-icon-size: 40px;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .tile::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--tile-color, var(--disabled-color));
+        opacity: 0.3;
+        pointer-events: none;
+      }
+      .tile:focus-visible {
+        outline: 2px solid var(--tile-color, var(--primary-text-color));
+        outline-offset: 3px;
+      }
+      .tile:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    `,
+  ];
 }
 
 declare global {

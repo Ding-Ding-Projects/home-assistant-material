@@ -1,14 +1,16 @@
-import { css, html, LitElement, nothing } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
 import { consumeLocalize } from "../../../common/decorators/consume-context-entry";
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import type { LocalizeFunc } from "../../../common/translations/localize";
-import type { HaSelectSelectEvent } from "../../../components/ha-select";
-import "../../../components/ha-select";
+import { UNAVAILABLE } from "../../../data/entity/entity";
 import { apiContext, formattersContext } from "../../../data/context";
 import type { RemoteEntity } from "../../../data/remote";
 import { RemoteEntityFeature } from "../../../data/remote";
+import "../components/ha-more-info-state-header";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HomeAssistantApi, HomeAssistantFormatters } from "../../../types";
 
 @customElement("more-info-remote")
@@ -34,37 +36,58 @@ class MoreInfoRemote extends LitElement {
 
     const stateObj = this.stateObj;
 
+    const activities = supportsFeature(stateObj, RemoteEntityFeature.ACTIVITY)
+      ? stateObj.attributes.activity_list
+      : undefined;
+
     return html`
+      <ha-more-info-state-header
+        .stateObj=${stateObj}
+      ></ha-more-info-state-header>
       ${
-        supportsFeature(stateObj, RemoteEntityFeature.ACTIVITY)
+        activities?.length
           ? html`
-              <ha-select
-                .label=${this._localize(
+              <div
+                class="chips"
+                role="group"
+                aria-label=${this._localize(
                   "ui.dialogs.more_info_control.remote.activity"
                 )}
-                .value=${stateObj.attributes.current_activity || ""}
-                @selected=${this._handleActivityChanged}
-                .options=${stateObj.attributes.activity_list?.map(
-                  (activity) => ({
-                    value: activity,
-                    label: this._formatters.formatEntityAttributeValue(
-                      stateObj,
-                      "activity",
-                      activity
-                    ),
-                  })
-                )}
               >
-              </ha-select>
+                ${activities.map(
+                  (activity) => html`
+                    <button
+                      type="button"
+                      class="chip"
+                      aria-pressed=${
+                        stateObj.attributes.current_activity === activity
+                          ? "true"
+                          : "false"
+                      }
+                      .disabled=${stateObj.state === UNAVAILABLE}
+                      .activity=${activity}
+                      @click=${this._handleActivityClick}
+                    >
+                      ${this._formatters.formatEntityAttributeValue(
+                        stateObj,
+                        "activity",
+                        activity
+                      )}
+                    </button>
+                  `
+                )}
+              </div>
             `
           : nothing
       }
     `;
   }
 
-  private _handleActivityChanged(ev: HaSelectSelectEvent) {
+  private _handleActivityClick(ev: Event) {
+    const newVal = (
+      ev.currentTarget as HTMLButtonElement & { activity: string }
+    ).activity;
     const oldVal = this.stateObj!.attributes.current_activity;
-    const newVal = ev.detail.value;
 
     if (!newVal || oldVal === newVal) {
       return;
@@ -76,11 +99,7 @@ class MoreInfoRemote extends LitElement {
     });
   }
 
-  static styles = css`
-    ha-select {
-      width: 100%;
-    }
-  `;
+  static styles = [moreInfoControlStyle, moreInfoBoardStyle];
 }
 
 declare global {

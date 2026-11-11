@@ -22,8 +22,13 @@ import {
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
+import "../../../components/bulk/ha-bulk-bar";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import {
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../components/bulk/table-selection";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { consume } from "../../../common/decorators/consume";
@@ -957,6 +962,22 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
           ${this.hass.localize("ui.panel.config.helpers.picker.create_helper")}
         </ha-button>
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class="bulk">
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${helpers.length}
+                .matchCount=${helpers.length}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -1281,6 +1302,18 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       entityReg,
     });
   }
+
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () =>
+    invertTableRows(this._dataTable, this._selected, "id");
+
+  private _clearRows = () => this._dataTable?.clearSelection();
 
   private _handleBulkCategory = (ev: HaDropdownSelectEvent) => {
     const value = ev.detail.item.value;
@@ -1856,6 +1889,16 @@ ${rejected
         }
         hass-tabs-subpage-data-table {
           --data-table-row-height: 60px;
+        }
+        .bulk {
+          position: fixed;
+          z-index: 4;
+          top: calc(var(--header-height, 56px) + var(--ha-space-2));
+          left: 0;
+          right: 0;
+          box-sizing: border-box;
+          width: min(720px, calc(100vw - var(--ha-space-8)));
+          margin-inline: auto;
         }
         hass-tabs-subpage-data-table.narrow {
           --data-table-row-height: 72px;

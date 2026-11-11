@@ -19,6 +19,7 @@ import {
 } from "../../../data/script";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 import "../components/ha-more-info-state-header";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-script")
 class MoreInfoScript extends LitElement {
@@ -229,39 +230,46 @@ class MoreInfoScript extends LitElement {
     return false;
   }
 
-  static styles = css`
-    .queue {
-      visibility: hidden;
-      color: var(--secondary-text-color);
-      text-align: center;
-      margin-bottom: var(--ha-space-4);
-      height: 21px;
-    }
-    .queue.has-queue {
-      visibility: visible;
-    }
-    .fields {
-      padding: var(--ha-space-4);
-      border: 1px solid var(--divider-color);
-      border-radius: var(--ha-border-radius-md);
-      margin-bottom: var(--ha-space-4);
-    }
-    .fields .title {
-      font-weight: var(--ha-font-weight-bold);
-    }
-    ha-control-button ha-svg-icon {
-      z-index: -1;
-      margin-right: var(--ha-space-1);
-    }
-    ha-service-control {
-      --service-control-padding: 0;
-      --service-control-items-border-top: none;
-    }
-    ha-markdown {
-      text-align: center;
-      padding: 0 var(--ha-space-4);
-    }
-  `;
+  static styles = [
+    moreInfoBoardStyle,
+    css`
+      .queue {
+        visibility: hidden;
+        color: var(--secondary-text-color);
+        text-align: center;
+        margin-bottom: var(--ha-space-4);
+        height: 21px;
+      }
+      .queue.has-queue {
+        visibility: visible;
+      }
+      .fields {
+        padding: var(--ha-space-4);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-border-radius-xl);
+        margin-bottom: var(--ha-space-4);
+      }
+      .fields .title {
+        font-weight: var(--ha-font-weight-bold);
+      }
+      ha-control-button ha-svg-icon {
+        z-index: -1;
+        margin-right: var(--ha-space-1);
+      }
+      ha-service-control {
+        --service-control-padding: 0;
+        --service-control-items-border-top: none;
+      }
+      ha-markdown {
+        text-align: center;
+        padding: 0 var(--ha-space-4);
+      }
+      ha-control-button-group {
+        justify-content: center;
+        --control-button-border-radius: var(--ha-border-radius-3xl);
+      }
+    `,
+  ];
 }
 
 declare global {

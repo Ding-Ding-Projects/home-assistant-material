@@ -1,32 +1,33 @@
-import { TZDate } from "@date-fns/tz";
-import type { CalendarOptions } from "fullcalendar";
-import { addDays, isSameDay } from "date-fns";
-import type { HassConfig, HassEntity } from "home-assistant-js-websocket";
+import { mdiCalendar, mdiPlus } from "@mdi/js";
+import type { HassEntity } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
-import { formatDateWeekdayDay } from "../../../common/datetime/format_date";
-import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
-import type { HASSDomEvent } from "../../../common/dom/fire_event";
-import type { LocalizeFunc } from "../../../common/translations/localize";
+import { useAmPm } from "../../../common/datetime/use_am_pm";
+import { supportsFeature } from "../../../common/entity/supports-feature";
+import "../../../components/ha-button";
 import "../../../components/ha-spinner";
-import type { Calendar } from "../../../data/calendar";
-import { getCalendarColors } from "../../../data/calendar";
+import "../../../components/ha-svg-icon";
+import type { Calendar, CalendarEvent } from "../../../data/calendar";
+import {
+  CalendarEntityFeature,
+  getCalendarColors,
+} from "../../../data/calendar";
 import { CalendarEventsController } from "../../../data/calendar-events-controller";
 import type { ExtEntityRegistryEntry } from "../../../data/entity/entity_registry";
-import type { FrontendLocaleData } from "../../../data/translation";
-import "../../../panels/calendar/ha-full-calendar";
-import { haStyle } from "../../../resources/styles";
-import type {
-  CalendarViewChanged,
-  FullCalendarView,
-  HomeAssistant,
-} from "../../../types";
+import { showCalendarEventEditDialog } from "../../../panels/calendar/show-dialog-calendar-event-editor";
+import type { HomeAssistant } from "../../../types";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
-// A fixed list of the next 7 days, the calendar panel has the other views
-const VIEWS: FullCalendarView[] = ["listWeek"];
+// The list shows the next 7 days, the calendar panel has the other views
+const DAYS_AHEAD = 7;
+
+const isDateOnly = (value: string) => value.length <= 10;
+
+const parseValue = (value: string): Date =>
+  isDateOnly(value) ? new Date(`${value}T00:00:00`) : new Date(value);
 
 @customElement("more-info-calendar")
 class MoreInfoCalendar extends LitElement {
@@ -38,11 +39,9 @@ class MoreInfoCalendar extends LitElement {
 
   private _events = new CalendarEventsController(this);
 
-  private _start?: Date;
-
-  private _end?: Date;
-
   private _calendars: Calendar[] = [];
+
+  private _subscribed = false;
 
   protected willUpdate(changedProps: PropertyValues<this>): void {
     super.willUpdate(changedProps);
@@ -58,58 +57,176 @@ class MoreInfoCalendar extends LitElement {
     if (calendars !== this._calendars) {
       this._calendars = calendars;
       // Events carry the calendar colors, so they are fetched again
-      if (this._start) {
+      if (this._subscribed) {
         this._subscribe();
       }
     }
+  }
+
+  protected firstUpdated(changedProps: PropertyValues<this>): void {
+    super.firstUpdated(changedProps);
+    this._subscribe();
+  }
+
+  private async _subscribe(): Promise<void> {
+    this._subscribed = true;
+    await this._events.unsubscribeAll();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + DAYS_AHEAD);
+    this._events.subscribe(this.hass, this._calendars, start, end);
   }
 
   protected render() {
     if (!this.stateObj) {
       return nothing;
     }
-
-    // Hidden until every calendar has answered, so the list view does not
-    // show "No events to display" while the events are still loading.
+    const localize = this.hass.localize;
+    const attrs = this.stateObj.attributes;
+    const message = attrs.message as string | undefined;
     const loading = !this._events.loaded;
+    const upcoming = this._upcoming(message, attrs.start_time);
+    const canCreate = supportsFeature(
+      this.stateObj,
+      CalendarEntityFeature.CREATE_EVENT
+    );
 
     return html`
-      <div class="header">
-        <h2>
-          ${this.hass.localize(
-            "ui.dialogs.more_info_control.calendar.upcoming_events"
-          )}
-        </h2>
-        <a href="/calendar"
-          >${this.hass.localize("ui.dialogs.more_info_control.show_more")}</a
-        >
-      </div>
-      <div class="content">
-        <ha-full-calendar
-          class=${classMap({ loading })}
-          narrow
-          auto-height
-          hide-header
-          .hass=${this.hass}
-          .events=${this._events.events}
-          .calendars=${this._calendars}
-          .views=${VIEWS}
-          .initialView=${VIEWS[0]}
-          .options=${this._calendarOptions(
-            this.hass.localize,
-            this.hass.locale,
-            this.hass.config,
-            this._events.errorCalendars.length > 0
-          )}
-          @view-changed=${this._handleViewChanged}
-        ></ha-full-calendar>
+      <div class="stack">
         ${
-          loading
-            ? html`<div class="spinner"><ha-spinner></ha-spinner></div>`
+          message
+            ? html`<h2 class="headline accent">${message}</h2>
+                <p class="subline">${this._currentRange()}</p>`
             : nothing
         }
+        <div class="section">
+          <h3>
+            ${localize("ui.dialogs.more_info_control.calendar.coming_up")}
+          </h3>
+          ${
+            loading
+              ? html`<div class="status"><ha-spinner></ha-spinner></div>`
+              : upcoming.length
+                ? html`<ul class="events">
+                    ${upcoming.map((event) => this._renderEvent(event))}
+                  </ul>`
+                : html`<p class="status">
+                    ${localize(
+                      this._events.errorCalendars.length
+                        ? "ui.dialogs.more_info_control.calendar.event_retrieval_error"
+                        : "ui.dialogs.more_info_control.calendar.no_events"
+                    )}
+                  </p>`
+          }
+        </div>
+        <div class="actions">
+          ${
+            canCreate
+              ? html`<ha-button @click=${this._createEvent}>
+                  <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                  ${localize("ui.dialogs.more_info_control.calendar.new_event")}
+                </ha-button>`
+              : nothing
+          }
+          <ha-button appearance="outlined" href="/calendar">
+            <ha-svg-icon slot="start" .path=${mdiCalendar}></ha-svg-icon>
+            ${localize("ui.dialogs.more_info_control.calendar.open")}
+          </ha-button>
+        </div>
       </div>
     `;
+  }
+
+  // The event shown in the headline is left out of the list below it
+  private _upcoming(
+    message: string | undefined,
+    currentStart: string | undefined
+  ): CalendarEvent[] {
+    const now = Date.now();
+    return [...this._events.events]
+      .filter((event) => {
+        const end = event.end ? parseValue(event.end).getTime() : 0;
+        if (end && end <= now) {
+          return false;
+        }
+        return !(
+          message !== undefined &&
+          event.title === message &&
+          currentStart !== undefined &&
+          parseValue(event.start).getTime() ===
+            new Date(currentStart.replace(" ", "T")).getTime()
+        );
+      })
+      .sort(
+        (a, b) => parseValue(a.start).getTime() - parseValue(b.start).getTime()
+      );
+  }
+
+  private _currentRange(): string {
+    const attrs = this.stateObj!.attributes;
+    if (!attrs.start_time) {
+      return "";
+    }
+    const start = new Date(String(attrs.start_time).replace(" ", "T"));
+    const end = attrs.end_time
+      ? new Date(String(attrs.end_time).replace(" ", "T"))
+      : undefined;
+    const language = this.hass.locale.language;
+    const day = new Intl.DateTimeFormat(language, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+    if (attrs.all_day) {
+      return day.format(start);
+    }
+    const time = new Intl.DateTimeFormat(language, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: useAmPm(this.hass.locale),
+    });
+    return end
+      ? `${day.format(start)}, ${time.format(start)} – ${time.format(end)}`
+      : `${day.format(start)}, ${time.format(start)}`;
+  }
+
+  private _renderEvent(event: CalendarEvent) {
+    const language = this.hass.locale.language;
+    const start = parseValue(event.start);
+    const day = new Intl.DateTimeFormat(language, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(start);
+    const when = isDateOnly(event.start)
+      ? `${day}, ${this.hass.localize("ui.dialogs.more_info_control.calendar.all_day")}`
+      : `${day}, ${new Intl.DateTimeFormat(language, {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: useAmPm(this.hass.locale),
+        }).format(start)}`;
+    return html`
+      <li class="event">
+        <span
+          class="bar"
+          style=${styleMap({ background: event.color ?? "var(--primary-color)" })}
+        ></span>
+        <span class="text">
+          <span class="title">${event.title}</span>
+          <span class="when">${when}</span>
+        </span>
+      </li>
+    `;
+  }
+
+  private _createEvent() {
+    showCalendarEventEditDialog(this, {
+      calendarId: this.stateObj!.entity_id,
+      updated: () => {
+        this._subscribe();
+      },
+    });
   }
 
   // The colors are resolved against the theme, so they are computed again
@@ -128,87 +245,72 @@ class MoreInfoCalendar extends LitElement {
     ]
   );
 
-  // Days are titled "Today", "Tomorrow" and then by weekday and date, with
-  // only the start time of events to leave room for their titles.
-  private _calendarOptions = memoizeOne(
-    (
-      localize: LocalizeFunc,
-      locale: FrontendLocaleData,
-      config: HassConfig,
-      error: boolean
-    ): CalendarOptions => {
-      const timeZone = resolveTimeZone(locale.time_zone, config.time_zone);
-      return {
-        displayEventEnd: false,
-        // FullCalendar 7 shows the default date for `false`, so format it empty
-        listDayAltFormat: () => "",
-        listDayFormat: ({ date }) => {
-          const day = new TZDate(date.year, date.month, date.day, timeZone);
-          const today = TZDate.tz(timeZone);
-          if (isSameDay(day, today)) {
-            return localize("ui.dialogs.more_info_control.calendar.today");
-          }
-          if (isSameDay(day, addDays(today, 1))) {
-            return localize("ui.dialogs.more_info_control.calendar.tomorrow");
-          }
-          return formatDateWeekdayDay(day, locale, config);
-        },
-        // The dialog shows one calendar, so an error means it has no events
-        noEventsContent: localize(
-          error
-            ? "ui.dialogs.more_info_control.calendar.event_retrieval_error"
-            : "ui.dialogs.more_info_control.calendar.no_events"
-        ),
-      };
-    }
-  );
-
-  private _handleViewChanged(ev: HASSDomEvent<CalendarViewChanged>): void {
-    this._start = ev.detail.start;
-    this._end = ev.detail.end;
-    this._subscribe();
-  }
-
-  private async _subscribe(): Promise<void> {
-    await this._events.unsubscribeAll();
-    if (!this._start || !this._end) {
-      return;
-    }
-    this._events.subscribe(this.hass, this._calendars, this._start, this._end);
-  }
-
   static styles = [
-    haStyle,
+    moreInfoBoardStyle,
     css`
-      .content {
-        position: relative;
+      :host {
+        display: block;
       }
-
-      ha-full-calendar.loading {
-        visibility: hidden;
+      .stack {
+        align-items: stretch;
       }
-
-      .spinner {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      .headline {
+        align-self: center;
       }
-
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+      .subline {
+        align-self: center;
         margin-bottom: var(--ha-space-2);
       }
-
-      h2 {
-        margin: 0;
+      h3 {
+        margin: 0 0 var(--ha-space-2);
+        font-size: var(--ha-font-size-m);
+        font-weight: var(--ha-font-weight-medium);
       }
-
-      a {
-        color: var(--primary-color);
+      .section {
+        display: block;
+      }
+      .events {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-3);
+      }
+      .event {
+        display: flex;
+        gap: var(--ha-space-3);
+        align-items: stretch;
+      }
+      .bar {
+        flex: none;
+        width: 6px;
+        border-radius: var(--ha-border-radius-sm, 3px);
+      }
+      .text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .title {
+        font-weight: var(--ha-font-weight-medium);
+        overflow-wrap: anywhere;
+      }
+      .when {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .status {
+        display: flex;
+        justify-content: center;
+        margin: var(--ha-space-4) 0;
+        color: var(--secondary-text-color);
+      }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--ha-space-2);
       }
     `,
   ];

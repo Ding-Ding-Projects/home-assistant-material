@@ -334,6 +334,7 @@ class MoreInfoVacuum extends LitElement {
 
       <div class="controls">
         <ha-state-control-vacuum-status
+          board
           .stateObj=${this.stateObj}
         ></ha-state-control-vacuum-status>
 

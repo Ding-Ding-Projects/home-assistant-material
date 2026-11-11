@@ -4,7 +4,7 @@
  * them can be put back.
  *
  * It covers what is kept in this browser: appearance choices,
- * accessibility choices and closed tabs. A change to the private
+ * accessibility choices, closed tabs, the order of the tabs and pinned tabs. A change to the private
  * vocabulary is listed, but its text is never copied here, so clearing the
  * vocabulary leaves no copy behind. Locks are not listed at all: history
  * must not be a way around a lock.
@@ -25,6 +25,8 @@ export const HISTORY_SUBJECTS = {
   appearance: { key: "elementAppearance", keep: true },
   accessibility: { key: "accessibilityTools", keep: true },
   tabs: { key: "pageTabsClosed", keep: true },
+  tabOrder: { key: "pageTabsOrder", keep: true },
+  tabPins: { key: "pageTabsPinned", keep: true },
   wording: { key: "personalVocabulary", keep: false },
 } as const;
 

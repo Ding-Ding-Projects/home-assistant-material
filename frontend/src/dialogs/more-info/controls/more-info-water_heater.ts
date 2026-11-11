@@ -87,6 +87,7 @@ class MoreInfoWaterHeater extends LitElement {
       </div>
       <div class="controls">
         <ha-state-control-water_heater-temperature
+          board
           .stateObj=${stateObj}
         ></ha-state-control-water_heater-temperature>
       </div>

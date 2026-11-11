@@ -1,5 +1,6 @@
+import { mdiCheck } from "@mdi/js";
 import type { PropertyValues } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
@@ -12,6 +13,7 @@ import type { LocalizeFunc } from "../../common/translations/localize";
 import "../../components/ha-control-select";
 import type { ControlSelectOption } from "../../components/ha-control-select";
 import "../../components/ha-control-slider";
+import "../../components/ha-svg-icon";
 import type {
   AlarmControlPanelEntity,
   AlarmMode,
@@ -35,6 +37,9 @@ export class HaStateControlAlarmControlPanelModes extends LitElement {
   private _localize!: LocalizeFunc;
 
   @property({ attribute: false }) public stateObj!: AlarmControlPanelEntity;
+
+  /** Opt-in presentation used by the entity dialog: outlined mode chips. */
+  @property({ type: Boolean, reflect: true }) public board = false;
 
   @state() _currentMode?: AlarmMode;
 
@@ -73,8 +78,16 @@ export class HaStateControlAlarmControlPanelModes extends LitElement {
   private async _valueChanged(
     ev: HASSDomEvent<HASSDomEvents["value-changed"]>
   ) {
-    const mode = ev.detail.value as AlarmMode;
+    await this._changeMode(ev.detail.value as AlarmMode);
+  }
 
+  private async _chipClicked(ev: Event) {
+    await this._changeMode(
+      (ev.currentTarget as HTMLElement).dataset.mode as AlarmMode
+    );
+  }
+
+  private async _changeMode(mode: AlarmMode) {
     if (mode === this.stateObj!.state) return;
 
     const oldMode = this._getCurrentMode(this.stateObj!);
@@ -98,6 +111,39 @@ export class HaStateControlAlarmControlPanelModes extends LitElement {
       path: ALARM_MODES[mode].path,
     }));
 
+    if (this.board) {
+      const unavailable = this.stateObj!.state === UNAVAILABLE;
+      return html`
+        <div
+          class="chips"
+          role="group"
+          aria-label=${this._localize("ui.card.alarm_control_panel.modes_label")}
+        >
+          ${options.map(
+            (option) => html`
+              <button
+                type="button"
+                class="chip"
+                data-mode=${option.value}
+                aria-pressed=${
+                  this._currentMode === option.value ? "true" : "false"
+                }
+                .disabled=${unavailable}
+                @click=${this._chipClicked}
+              >
+                ${
+                  this._currentMode === option.value
+                    ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
+                    : nothing
+                }
+                ${option.label}
+              </button>
+            `
+          )}
+        </div>
+      `;
+    }
+
     return html`
       <ha-control-select
         vertical
@@ -116,6 +162,48 @@ export class HaStateControlAlarmControlPanelModes extends LitElement {
   }
 
   static styles = css`
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--ha-space-2);
+    }
+    .chip {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 var(--ha-space-4);
+      border-radius: var(--ha-border-radius-lg);
+      border: 1px solid var(--outline-color, var(--divider-color));
+      background: transparent;
+      color: var(--primary-text-color);
+      font: inherit;
+      font-weight: var(--ha-font-weight-medium);
+      cursor: pointer;
+    }
+    .chip[aria-pressed="true"] {
+      background: var(
+        --ha-color-fill-primary-quiet-resting,
+        rgba(3, 169, 244, 0.2)
+      );
+      border-color: transparent;
+    }
+    .chip:focus-visible {
+      outline: 2px solid var(--primary-text-color);
+      outline-offset: 2px;
+    }
+    .chip:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .chip ha-svg-icon {
+      --mdc-icon-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
     ha-control-select {
       height: 45vh;
       max-height: max(320px, var(--modes-count, 1) * 80px);

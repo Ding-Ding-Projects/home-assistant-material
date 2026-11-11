@@ -1,6 +1,4 @@
 import {
-  mdiAlert,
-  mdiAlertCircle,
   mdiBellOutline,
   mdiCheckboxMultipleMarkedOutline,
   mdiClose,
@@ -45,24 +43,14 @@ import {
   loadDismissed,
   rememberDismissed,
 } from "./dismissed-notifications";
-import type { NotificationSeverity } from "./notification-insight";
-import {
-  notificationActions,
-  notificationSeverity,
-} from "./notification-insight";
-
-const SEVERITY_ICONS: Record<NotificationSeverity, string> = {
-  error: mdiAlertCircle,
-  warning: mdiAlert,
-  info: mdiBellOutline,
-};
+import { notificationActions } from "./notification-insight";
 
 /** The most titles named in the preview of a bulk dismissal. */
 const PREVIEW_TITLES = 3;
 
 /**
- * Notifications as a page: every notification the instance holds, coloured by
- * how serious it reads, with the links of its message as buttons, a search,
+ * Notifications as a page: every notification the instance holds, all drawn the
+ * same way because the instance reports no severity, with the links of its message as buttons, a search,
  * and dismissing one, the selected ones, or all of them. A dismissed
  * notification is kept in this browser for 30 days and can be put back.
  */
@@ -166,7 +154,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
       ],
       changeCount: chosen.length,
       confirmLabel: this._l("bulk_dismiss"),
-      note: this._l("note", { days: DISMISSED_KEEP_DAYS }),
+      note: this._l("bulk_preview_note", { days: DISMISSED_KEEP_DAYS }),
     };
   };
 
@@ -301,11 +289,10 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
 
   private _renderRow(item: PersistentNotification) {
     const selected = this._selected.includes(item.notification_id);
-    const severity = notificationSeverity(item);
     const actions = notificationActions(item.message);
     const title = item.title || item.notification_id;
     return html`
-      <li class=${classMap({ selected, [severity]: true })}>
+      <li class=${classMap({ selected })}>
         ${
           this._selecting
             ? html`<input
@@ -316,19 +303,11 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
                 @click=${this._toggleSelected}
               />`
             : html`<span class="tile"
-                ><ha-svg-icon .path=${SEVERITY_ICONS[severity]}></ha-svg-icon
+                ><ha-svg-icon .path=${mdiBellOutline}></ha-svg-icon
               ></span>`
         }
         <div class="text">
-          <strong>
-            ${
-              severity === "info"
-                ? nothing
-                : html`<span class="visually-hidden"
-                    >${this._l(`severity.${severity}`)}:
-                  </span>`
-            }${title}
-          </strong>
+          <strong>${title}</strong>
           <span class="time"
             >${relativeTime(new Date(item.created_at), this.hass.locale)}</span
           >
@@ -397,11 +376,9 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
               ${shown.map((item) => {
                 const title = item.title || item.notification_id;
                 return html`
-                  <li class=${notificationSeverity(item)}>
+                  <li>
                     <span class="tile"
-                      ><ha-svg-icon
-                        .path=${SEVERITY_ICONS[notificationSeverity(item)]}
-                      ></ha-svg-icon
+                      ><ha-svg-icon .path=${mdiBellOutline}></ha-svg-icon
                     ></span>
                     <div class="text">
                       <strong>${title}</strong>
@@ -444,6 +421,12 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
 
   private _filterChanged(ev: Event): void {
     this._filter = (ev.target as HaInputSearch).value ?? "";
+    // A notification the search hides cannot stay selected, so the count,
+    // the preview and the action always speak about the same rows.
+    this._selected = pruneSelection(
+      this._selected,
+      this._shown().map((item) => item.notification_id)
+    );
   }
 
   private _toggleSelecting(): void {
@@ -497,9 +480,12 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   }
 
   private async _dismissSelected(): Promise<void> {
-    await this._dismissMany(this._selected);
-    this._selected = [];
-    this._selecting = false;
+    const failed = await this._dismissMany(this._selected);
+    // Only a notification that could not be dismissed stays selected.
+    this._selected = pruneSelection(this._selected, failed);
+    if (!failed.length) {
+      this._selecting = false;
+    }
   }
 
   private _dismissAll(): void {
@@ -508,30 +494,49 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     );
   }
 
-  /** Keeps the notifications as dismissed, dismisses them, offers Undo. */
-  private async _dismissMany(ids: string[]): Promise<void> {
+  /**
+   * Dismisses the notifications, keeps the ones that were dismissed in the
+   * dismissed list and offers Undo. Returns the ids that could not be
+   * dismissed; those stay active and are not put in the dismissed list.
+   */
+  private async _dismissMany(ids: string[]): Promise<string[]> {
     const chosen = (this._notifications ?? []).filter((item) =>
       ids.includes(item.notification_id)
     );
     if (!chosen.length) {
-      return;
+      return [];
     }
-    this._dismissed = rememberDismissed(chosen);
-    await Promise.all(
+    const results = await Promise.allSettled(
       chosen.map((item) =>
         this.hass.callService("persistent_notification", "dismiss", {
           notification_id: item.notification_id,
         })
       )
     );
-    showToast(this, {
-      message: this._l("dismissed_toast", { count: chosen.length }),
-      duration: 6000,
-      action: {
-        text: this._l("undo"),
-        action: () => this._restore(chosen),
-      },
-    });
+    const done = chosen.filter(
+      (_item, index) => results[index].status === "fulfilled"
+    );
+    const failed = chosen.filter(
+      (_item, index) => results[index].status === "rejected"
+    );
+    if (done.length) {
+      this._dismissed = rememberDismissed(done);
+      showToast(this, {
+        message: this._l("dismissed_toast", { count: done.length }),
+        duration: 6000,
+        action: {
+          text: this._l("undo"),
+          action: () => this._restore(done),
+        },
+      });
+    }
+    if (failed.length) {
+      showToast(this, {
+        message: this._l("dismiss_failed", { count: failed.length }),
+        severity: "error",
+      });
+    }
+    return failed.map((item) => item.notification_id);
   }
 
   private async _restore(chosen: PersistentNotification[]): Promise<void> {
@@ -631,30 +636,6 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           border-radius: var(--ha-border-radius-xl);
           background: var(--card-background-color);
         }
-        li.error {
-          background: color-mix(
-            in srgb,
-            var(--error-color) 16%,
-            var(--card-background-color)
-          );
-          color: color-mix(
-            in srgb,
-            var(--error-color) 65%,
-            var(--primary-text-color)
-          );
-        }
-        li.warning {
-          background: color-mix(
-            in srgb,
-            var(--warning-color) 26%,
-            var(--card-background-color)
-          );
-          color: color-mix(
-            in srgb,
-            var(--warning-color) 35%,
-            var(--primary-text-color)
-          );
-        }
         li.selected {
           background: color-mix(
             in srgb,
@@ -671,20 +652,6 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           height: 40px;
           border-radius: var(--ha-border-radius-lg);
           background: var(--primary-background-color);
-        }
-        li.error .tile {
-          color: var(--error-color);
-          background: var(--card-background-color);
-          border-radius: var(--ha-border-radius-circle, 50%);
-        }
-        li.warning .tile {
-          color: color-mix(
-            in srgb,
-            var(--warning-color) 60%,
-            var(--primary-text-color)
-          );
-          background: var(--card-background-color);
-          border-radius: var(--ha-border-radius-circle, 50%);
         }
         input[type="checkbox"] {
           flex: none;
@@ -705,14 +672,6 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
         }
         ha-markdown {
           overflow-wrap: anywhere;
-        }
-        .visually-hidden {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
         }
         .dismissed-head {
           display: flex;

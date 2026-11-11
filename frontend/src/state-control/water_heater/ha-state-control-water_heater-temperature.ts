@@ -1,7 +1,7 @@
 import type { ContextType } from "@lit/context";
 import { mdiMinus, mdiPlus } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
-import { LitElement, html } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { consume } from "../../common/decorators/consume";
@@ -57,6 +57,12 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
 
   @property({ type: Boolean, attribute: "prevent-interaction-on-scroll" })
   public preventInteractionOnScroll = false;
+
+  /**
+   * Opt-in presentation used by the entity dialog: a large stepper row with
+   * minus, the target value and plus, instead of the circular slider.
+   */
+  @property({ type: Boolean, reflect: true }) public board = false;
 
   @state() private _targetTemperature?: number;
 
@@ -230,6 +236,44 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
     `;
   }
 
+  private _renderBoardStepper(temperature: number, color?: string) {
+    const formatted = this._formatTarget(temperature);
+    return html`
+      <div
+        class="stepper"
+        style=${styleMap({ "--stepper-color": color })}
+        role="group"
+        aria-label=${this._localize("ui.card.water_heater.target_temperature")}
+      >
+        <button
+          type="button"
+          class="step minus"
+          .step=${-this._step}
+          aria-label=${this._localize(
+            "ui.components.climate-control.temperature_down"
+          )}
+          @click=${this._handleButton}
+        >
+          <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
+        </button>
+        <span class="stepper-value" role="status" aria-live="polite">
+          ${formatted}
+        </span>
+        <button
+          type="button"
+          class="step plus"
+          .step=${this._step}
+          aria-label=${this._localize(
+            "ui.components.climate-control.temperature_up"
+          )}
+          @click=${this._handleButton}
+        >
+          <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+        </button>
+      </div>
+    `;
+  }
+
   protected render() {
     const supportsTargetTemperature = supportsFeature(
       this.stateObj,
@@ -238,6 +282,18 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
 
     const stateColor = stateColorCss(this.stateObj);
     const active = stateActive(this.stateObj);
+
+    if (
+      this.board &&
+      supportsTargetTemperature &&
+      this._targetTemperature != null &&
+      this.stateObj.state !== UNAVAILABLE
+    ) {
+      return this._renderBoardStepper(
+        this._targetTemperature,
+        active ? stateColor : undefined
+      );
+    }
 
     const containerSizeClass = this._sizeController.value
       ? ` ${this._sizeController.value}`
@@ -310,7 +366,60 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    return stateControlCircularSliderStyle;
+    return [
+      stateControlCircularSliderStyle,
+      css`
+        /* Board presentation (opt-in through the board attribute) */
+        :host([board]) {
+          width: 100%;
+          max-width: 360px;
+        }
+        .stepper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--ha-space-5);
+          direction: ltr;
+        }
+        .stepper-value {
+          min-width: 3ch;
+          font-size: 48px;
+          line-height: var(--ha-line-height-condensed);
+          font-weight: var(--ha-font-weight-normal);
+          font-variant-numeric: tabular-nums;
+          color: var(--stepper-color, var(--primary-text-color));
+          text-align: center;
+        }
+        .step {
+          appearance: none;
+          border: none;
+          margin: 0;
+          padding: 0;
+          flex: none;
+          width: 64px;
+          height: 64px;
+          min-width: 44px;
+          min-height: 44px;
+          border-radius: var(--ha-border-radius-circle);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color);
+          --mdc-icon-size: 28px;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .step.plus {
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
+        }
+        .step:focus-visible {
+          outline: 2px solid var(--primary-text-color);
+          outline-offset: 2px;
+        }
+      `,
+    ];
   }
 }
 

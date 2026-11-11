@@ -49,6 +49,9 @@ export class HaStateControlFanSpeed extends LitElement {
 
   @property({ attribute: false }) public stateObj!: FanEntity;
 
+  /** Opt-in presentation used by the entity dialog: a slimmer, softer slider. */
+  @property({ type: Boolean, reflect: true }) public board = false;
+
   @state() sliderValue?: number;
 
   @state() speedValue?: FanSpeed;
@@ -101,7 +104,11 @@ export class HaStateControlFanSpeed extends LitElement {
   }
 
   protected render() {
-    const color = stateColorCss(this.stateObj);
+    const stateColor = stateColorCss(this.stateObj);
+    const color = this.board
+      ? `color-mix(in srgb, ${stateColor} 30%, var(--card-background-color))`
+      : stateColor;
+    const background = this.board ? "var(--secondary-text-color)" : stateColor;
 
     const speeds = computeFanSpeeds(this.stateObj);
 
@@ -136,7 +143,7 @@ export class HaStateControlFanSpeed extends LitElement {
           )}
           style=${styleMap({
             "--control-select-color": color,
-            "--control-select-background": color,
+            "--control-select-background": background,
           })}
           .disabled=${this.stateObj.state === UNAVAILABLE}
         >
@@ -162,7 +169,7 @@ export class HaStateControlFanSpeed extends LitElement {
         )}
         style=${styleMap({
           "--control-slider-color": color,
-          "--control-slider-background": color,
+          "--control-slider-background": background,
         })}
         .disabled=${this.stateObj.state === UNAVAILABLE}
         .unit=${DOMAIN_ATTRIBUTES_UNITS.fan.percentage}
@@ -183,6 +190,19 @@ export class HaStateControlFanSpeed extends LitElement {
       --control-slider-background: var(--disabled-color);
       --control-slider-background-opacity: 0.2;
       --control-slider-tooltip-font-size: var(--ha-font-size-xl);
+    }
+    :host([board]) ha-control-slider,
+    :host([board]) ha-control-select {
+      height: 240px;
+      max-height: none;
+      min-height: 200px;
+      --control-slider-thickness: 112px;
+      --control-select-thickness: 112px;
+      --control-slider-border-radius: 56px;
+      --control-select-border-radius: 56px;
+      --control-slider-background: var(--secondary-text-color);
+      --control-slider-background-opacity: 0.1;
+      --control-select-background-opacity: 0.1;
     }
     ha-control-select {
       height: 45vh;

@@ -266,7 +266,7 @@ class DialogShortcuts extends DialogMixin(LitElement) {
     css`
       .content {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
         gap: var(--ha-space-4);
         align-items: start;
       }

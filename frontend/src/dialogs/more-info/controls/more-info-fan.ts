@@ -167,7 +167,7 @@ class MoreInfoFan extends LitElement {
         ${
           supportsSpeed
             ? html`
-                <ha-state-control-fan-speed .stateObj=${this.stateObj}>
+                <ha-state-control-fan-speed board .stateObj=${this.stateObj}>
                 </ha-state-control-fan-speed>
               `
             : html`

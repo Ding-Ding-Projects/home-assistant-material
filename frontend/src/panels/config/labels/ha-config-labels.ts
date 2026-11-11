@@ -11,13 +11,22 @@ import {
   mdiScriptText,
   mdiShape,
 } from "@mdi/js";
-import type { PropertyValues } from "lit";
-import { LitElement, html } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import { storage } from "../../../common/decorators/storage";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
+import "../../../components/bulk/ha-bulk-bar";
+import type {
+  BulkAction,
+  BulkPreview,
+} from "../../../components/bulk/bulk-selection";
+import {
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../components/bulk/table-selection";
 import { navigate } from "../../../common/navigate";
 import type {
   FlattenObjectKeys,
@@ -274,12 +283,6 @@ export class HaConfigLabels extends LitElement {
           .label=${this.hass.localize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
         ></ha-icon-button>
-        <ha-assist-chip
-          slot="selection-bar"
-          .label=${this.hass.localize("ui.common.delete")}
-          .disabled=${!this._selected.length}
-          @click=${this._deleteSelected}
-        ></ha-assist-chip>
         <ha-button
           slot=${this.narrow ? "fab" : "heading-action"}
           size="l"
@@ -289,6 +292,25 @@ export class HaConfigLabels extends LitElement {
           ${this.hass.localize("ui.panel.config.labels.add_label")}
         </ha-button>
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class="bulk">
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${this._labels.length}
+                .matchCount=${this._labels.length}
+                .actions=${this._bulkActions()}
+                .getPreview=${this._bulkPreview}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+                @bulk-confirm=${this._deleteSelected}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
       <ha-dropdown
         id="overflow-menu"
         @wa-select=${this._handleOverflowAction}
@@ -410,6 +432,57 @@ export class HaConfigLabels extends LitElement {
     this._selected = ev.detail.value;
   };
 
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _bulkActions(): BulkAction[] {
+    return [
+      {
+        id: "delete",
+        label: this.hass.localize("ui.common.delete"),
+        path: mdiDelete,
+        destructive: true,
+      },
+    ];
+  }
+
+  /** What deleting the selected labels will do, shown before it is asked. */
+  private _bulkPreview = (id: string): BulkPreview | undefined => {
+    if (id !== "delete") {
+      return undefined;
+    }
+    const chosen = this._labels.filter((label) =>
+      this._selected.includes(label.label_id)
+    );
+    const names = chosen.slice(0, 3).map((label) => label.name);
+    const rest = chosen.length - names.length;
+    return {
+      title: this.hass.localize("ui.panel.config.labels.bulk_preview_title", {
+        count: chosen.length,
+      }),
+      items: [
+        {
+          kind: "change",
+          text: `${this.hass.localize(
+            "ui.panel.config.labels.bulk_preview_delete",
+            { count: chosen.length }
+          )}: ${names.join(", ")}${rest > 0 ? "…" : ""}`,
+        },
+      ],
+      changeCount: chosen.length,
+      confirmLabel: this.hass.localize("ui.common.delete"),
+    };
+  };
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () =>
+    invertTableRows(this._dataTable, this._selected, "label_id");
+
+  private _clearRows = () => this._dataTable.clearSelection();
+
   private _deleteSelected = () => {
     let deleteFailed = false;
     showConfirmationDialog(this, {
@@ -490,6 +563,19 @@ export class HaConfigLabels extends LitElement {
     this._activeColumnOrder = ev.detail.columnOrder;
     this._activeHiddenColumns = ev.detail.hiddenColumns;
   }
+
+  static styles: CSSResultGroup = css`
+    .bulk {
+      position: fixed;
+      z-index: 4;
+      top: calc(var(--header-height, 56px) + var(--ha-space-2));
+      left: 0;
+      right: 0;
+      box-sizing: border-box;
+      width: min(720px, calc(100vw - var(--ha-space-8)));
+      margin-inline: auto;
+    }
+  `;
 }
 
 declare global {

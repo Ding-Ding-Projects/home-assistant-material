@@ -1,6 +1,11 @@
+import { modeText } from "../../common/language-mode/language-mode";
 import { getLockLocalize } from "../../common/locks/element-lock-session";
 
-/** The wording of the lock surfaces. Falls back to the key when no wording is loaded yet. */
+/**
+ * The wording of the lock surfaces, in the chosen language mode. Falls back to
+ * the key when no wording is loaded yet. A host that calls this should hold a
+ * `LanguageModeController` so it draws again when the mode changes.
+ */
 export const lockText = (
   key: string,
   values?: Record<string, string | number>
@@ -8,7 +13,7 @@ export const lockText = (
   const localize = getLockLocalize() as
     | ((key: string, values?: Record<string, string | number>) => string)
     | undefined;
-  return (localize ? localize(`ui.locks.${key}`, values) : "") || key;
+  return (localize ? modeText(localize, `ui.locks.${key}`, values) : "") || key;
 };
 
 /** A readable name for what an element is, for the list of locks. */

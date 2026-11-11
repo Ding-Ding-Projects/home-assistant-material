@@ -6,6 +6,7 @@ import {
   mdiDelete,
   mdiDotsVertical,
   mdiFlask,
+  mdiPlay,
   mdiPlaylistEdit,
   mdiPlusCircleMultipleOutline,
   mdiRenameBox,
@@ -26,6 +27,7 @@ import { truncateWithEllipsis } from "../../../../common/string/truncate-with-el
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 import "../../../../components/automation/ha-automation-row";
 import type { HaAutomationRow } from "../../../../components/automation/ha-automation-row";
+import "../../../../components/ha-button";
 import "../../../../components/ha-card";
 import "../../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../../components/ha-dropdown";
@@ -41,8 +43,7 @@ import type {
   OptionSidebarConfig,
   TriggerCondition,
 } from "../../../../data/automation";
-import { getRowNote, testAllConditions } from "../../../../data/automation";
-import { validateConfig } from "../../../../data/config";
+import { getRowNote } from "../../../../data/automation";
 import { describeCondition } from "../../../../data/automation_i18n";
 import { fullEntitiesContext } from "../../../../data/context";
 import type { EntityRegistryEntry } from "../../../../data/entity/entity_registry";
@@ -70,6 +71,7 @@ import {
 } from "../styles";
 import "../trigger/ha-automation-trigger-references";
 import { getUiSupportWarnings, isConfigObject } from "../ui-support";
+import { runActions, testOption } from "./choose-run";
 
 @customElement("ha-automation-option-row")
 export default class HaAutomationOptionRow extends LitElement {
@@ -110,6 +112,108 @@ export default class HaAutomationOptionRow extends LitElement {
   @state() private _testingResult?: boolean;
 
   private _testingTimeout?: number;
+
+  @state() private _running = false;
+
+  @state() private _runResult?: {
+    variant: "success" | "danger";
+    text: string;
+  };
+
+  @state() private _testingNow = false;
+
+  /** Runs this option's actions now, without evaluating its conditions. */
+  private _runSequence = async () => {
+    if (this._running) {
+      return;
+    }
+    const actions = (
+      this.option
+        ? ensureArray(this.option.sequence)
+        : ensureArray(this.defaultActions)
+    ) as Action[];
+    const localize = this.hass.localize;
+    if (!actions.length) {
+      this._runResult = {
+        variant: "danger",
+        text: localize(
+          "ui.panel.config.automation.editor.actions.type.choose.run_no_actions"
+        ),
+      };
+      return;
+    }
+    this._running = true;
+    this._runResult = undefined;
+    const result = await runActions(this.hass, actions);
+    this._running = false;
+    this._runResult =
+      result.status === "success"
+        ? {
+            variant: "success",
+            text: localize(
+              "ui.panel.config.automation.editor.actions.type.choose.run_success"
+            ),
+          }
+        : {
+            variant: "danger",
+            text: `${localize(
+              result.status === "invalid"
+                ? "ui.panel.config.automation.editor.actions.invalid_action"
+                : "ui.panel.config.automation.editor.actions.run_action_error"
+            )}: ${result.message}`,
+          };
+  };
+
+  private _testFromToolbar = async () => {
+    if (this._testingNow) {
+      return;
+    }
+    this._testingNow = true;
+    await this._testOption();
+    this._testingNow = false;
+  };
+
+  private _renderRunToolbar() {
+    const localize = this.hass.localize;
+    return html`<div class="run-toolbar">
+      ${
+        this.option
+          ? html`<ha-button
+              appearance="plain"
+              size="s"
+              .disabled=${this._testingNow}
+              @click=${this._testFromToolbar}
+            >
+              <ha-svg-icon slot="start" .path=${mdiFlask}></ha-svg-icon>
+              ${localize(
+                "ui.panel.config.automation.editor.actions.type.choose.test_option_button"
+              )}
+            </ha-button>`
+          : nothing
+      }
+      <ha-button
+        appearance="plain"
+        size="s"
+        .disabled=${this._running}
+        @click=${this._runSequence}
+      >
+        <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+        ${localize(
+          this._running
+            ? "ui.panel.config.automation.editor.actions.type.choose.running"
+            : this.option
+              ? "ui.panel.config.automation.editor.actions.type.choose.run_option"
+              : "ui.panel.config.automation.editor.actions.type.choose.run_default"
+        )}
+      </ha-button>
+      <span
+        class="run-result ${this._runResult?.variant ?? ""}"
+        role="status"
+        aria-live="polite"
+        >${this._runResult?.text ?? ""}</span
+      >
+    </div>`;
+  }
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
@@ -189,52 +293,30 @@ export default class HaAutomationOptionRow extends LitElement {
       return;
     }
     window.clearTimeout(this._testingTimeout);
-    const conditions = ensureArray<Condition | string>(
-      option.conditions ?? []
-    ).map((condition) => {
-      if (typeof condition === "string") {
-        return condition;
-      }
-      const { enabled: _enabled, ...tested } = condition;
-      return tested;
-    });
 
-    let passes = true;
-    if (conditions.length) {
-      try {
-        const validation = await validateConfig(this.hass, {
-          conditions: conditions as Condition[],
-        });
-        if (this.option !== option) {
-          return;
-        }
-        if (!validation.conditions.valid) {
-          showAlertDialog(this, {
-            title: this.hass.localize(
-              "ui.panel.config.automation.editor.conditions.invalid_condition"
-            ),
-            text: validation.conditions.error,
-          });
-          return;
-        }
-        passes = (await testAllConditions(this.hass, conditions)).result;
-      } catch (err: unknown) {
-        if (this.option !== option) {
-          return;
-        }
-        showAlertDialog(this, {
-          title: this.hass.localize(
-            "ui.panel.config.automation.editor.conditions.test_failed"
-          ),
-          text: err instanceof Error ? err.message : String(err),
-        });
-        return;
-      }
-    }
+    const result = await testOption(this.hass, option);
     if (this.option !== option) {
       return;
     }
-    this._testingResult = passes;
+    if (result.status === "invalid") {
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.automation.editor.conditions.invalid_condition"
+        ),
+        text: result.message,
+      });
+      return;
+    }
+    if (result.status === "error") {
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.automation.editor.conditions.test_failed"
+        ),
+        text: result.message,
+      });
+      return;
+    }
+    this._testingResult = result.status === "pass";
     this._testing = true;
     this._testingTimeout = window.setTimeout(() => {
       this._testing = false;
@@ -544,10 +626,11 @@ export default class HaAutomationOptionRow extends LitElement {
         hidden: this.optionsInSidebar && this._collapsed,
       })}
     >
+      ${this._renderRunToolbar()}
       ${
         this.option
           ? html`
-              <h4 class="top">
+              <h4>
                 ${this.hass.localize(
                   "ui.panel.config.automation.editor.actions.type.choose.conditions_heading"
                 )}
@@ -565,7 +648,7 @@ export default class HaAutomationOptionRow extends LitElement {
             `
           : nothing
       }
-      <h4 class=${this.option ? "" : "top"}>
+      <h4>
         ${this.hass.localize(
           "ui.panel.config.automation.editor.actions.type.choose.sequence_heading"
         )}
@@ -910,8 +993,22 @@ export default class HaAutomationOptionRow extends LitElement {
         h4 {
           margin-bottom: 8px;
         }
-        h4.top {
-          margin-top: 0;
+        .run-toolbar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+        }
+        .run-result {
+          font-size: var(--ha-font-size-s, 0.875rem);
+          overflow-wrap: anywhere;
+          min-width: 0;
+        }
+        .run-result.success {
+          color: var(--ha-color-on-success-normal, var(--success-color));
+        }
+        .run-result.danger {
+          color: var(--ha-color-on-danger-normal, var(--error-color));
         }
         .option-chip {
           display: inline-block;

@@ -6,8 +6,12 @@ import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-markdown";
 import "../../../components/input/ha-input";
-import { apiContext } from "../../../data/context";
-import type { HomeAssistantApi } from "../../../types";
+import { apiContext, internationalizationContext } from "../../../data/context";
+import type {
+  HomeAssistantApi,
+  HomeAssistantInternationalization,
+} from "../../../types";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-configurator")
 export class MoreInfoConfigurator extends LitElement {
@@ -19,6 +23,10 @@ export class MoreInfoConfigurator extends LitElement {
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;
 
+  @state()
+  @consume({ context: internationalizationContext, subscribe: true })
+  private _i18n?: HomeAssistantInternationalization;
+
   private _fieldInput: Record<string, unknown> = {};
 
   protected render() {
@@ -28,6 +36,15 @@ export class MoreInfoConfigurator extends LitElement {
 
     return html`
       <div class="container">
+        ${
+          this._i18n
+            ? html`<h2 class="headline warn">
+                ${this._i18n.localize(
+                  "ui.dialogs.more_info_control.configurator.needs_you"
+                )}
+              </h2>`
+            : nothing
+        }
         <ha-markdown
           breaks
           .content=${this.stateObj.attributes.description}
@@ -89,32 +106,38 @@ export class MoreInfoConfigurator extends LitElement {
     );
   }
 
-  static styles = css`
-    .container {
-      display: flex;
-      flex-direction: column;
-    }
-    p {
-      margin: var(--ha-space-2) 0;
-    }
+  static styles = [
+    moreInfoBoardStyle,
+    css`
+      .container {
+        display: flex;
+        flex-direction: column;
+      }
+      p {
+        margin: var(--ha-space-2) 0;
+      }
 
-    a {
-      color: var(--primary-color);
-    }
+      a {
+        color: var(--primary-color);
+      }
 
-    p > img {
-      max-width: 100%;
-    }
+      p > img {
+        max-width: 100%;
+      }
 
-    p.center {
-      text-align: center;
-    }
+      p.center {
+        text-align: center;
+      }
 
-    p.submit {
-      text-align: center;
-      height: 41px;
-    }
-  `;
+      p.submit {
+        text-align: center;
+        height: 41px;
+      }
+      ha-input {
+        margin-bottom: var(--ha-space-3);
+      }
+    `,
+  ];
 }
 
 declare global {

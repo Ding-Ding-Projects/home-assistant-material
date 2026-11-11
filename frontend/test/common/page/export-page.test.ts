@@ -37,7 +37,16 @@ describe("toCsv", () => {
     );
   });
 
-  it.each(["=1+1", "+1", "-1", "@SUM(A1)", "\tx"])(
+  it.each(["-5", "+1.5", "-0.25e3", "42"])(
+    "keeps the number %j a number",
+    (value) => {
+      expect(toCsv({ columns: ["A"], rows: [[value]] }).split("\r\n")[1]).toBe(
+        value
+      );
+    }
+  );
+
+  it.each(["=1+1", "+SUM(A1)", "-cmd|x", "+1+2", "@SUM(A1)", "\tx"])(
     "puts a quote before %j",
     (value) => {
       expect(toCsv({ columns: ["A"], rows: [[value]] }).split("\r\n")[1]).toBe(

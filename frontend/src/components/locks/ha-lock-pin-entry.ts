@@ -9,6 +9,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { repeat } from "lit/directives/repeat";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { getStorage } from "../../common/decorators/storage";
 import { fireEvent } from "../../common/dom/fire_event";
 import { PIN_PATTERN } from "../../common/locks/lock-credentials";
@@ -60,6 +61,9 @@ const readShuffle = (): boolean => {
  */
 @customElement("ha-lock-pin-entry")
 export class HaLockPinEntry extends LitElement {
+  // Draws the wording again when the language mode changes.
+  protected _languageMode = new LanguageModeController(this);
+
   /** The label of the field. */
   @property({ attribute: false }) public label = "";
 

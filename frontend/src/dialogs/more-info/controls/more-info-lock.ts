@@ -154,6 +154,7 @@ class MoreInfoLock extends LitElement {
               `
             : html`
                 <ha-state-control-lock-toggle
+                  board
                   @lock-service-called=${this._resetButtonState}
                   .stateObj=${this.stateObj}
                 >

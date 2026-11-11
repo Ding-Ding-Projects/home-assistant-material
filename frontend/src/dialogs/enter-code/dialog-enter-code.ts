@@ -1,6 +1,7 @@
 import { mdiCheck, mdiClose } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import { fireEvent } from "../../common/dom/fire_event";
 import "../../components/ha-button";
@@ -23,10 +24,13 @@ const BUTTONS = [
   "7",
   "8",
   "9",
-  "0",
   "clear",
+  "0",
   "submit",
 ];
+
+/** Number of placeholder dots shown before the code is longer than that. */
+const MIN_DOTS = 4;
 
 @customElement("dialog-enter-code")
 export class DialogEnterCode
@@ -43,6 +47,9 @@ export class DialogEnterCode
 
   @state() private _showClearButton = false;
 
+  /** Only the length of the typed code, used to draw dots; never the code. */
+  @state() private _codeLength = 0;
+
   @state() private _narrow = false;
 
   private _closeAction?: "submit" | "cancel";
@@ -51,6 +58,7 @@ export class DialogEnterCode
     this._dialogParams = dialogParams;
     this._open = true;
     this._showClearButton = false;
+    this._codeLength = 0;
     this._closeAction = undefined;
     this._narrow = matchMedia(
       "all and (max-width: 450px), all and (max-height: 500px)"
@@ -89,17 +97,20 @@ export class DialogEnterCode
     const val = (e.currentTarget! as any).value;
     this._input!.value = (this._input!.value ?? "") + val;
     this._showClearButton = true;
+    this._codeLength = this._input!.value.length;
   }
 
   private _clear(): void {
     this._input!.value = "";
     this._showClearButton = false;
+    this._codeLength = 0;
   }
 
   private _inputValueChange(e) {
     const field = e.currentTarget as HaInput;
     const val = field.value;
     this._showClearButton = !!val;
+    this._codeLength = val?.length ?? 0;
   }
 
   private _handleKeyDown(ev: KeyboardEvent) {
@@ -178,6 +189,16 @@ export class DialogEnterCode
             password-toggle
             @keydown=${this._handleKeyDown}
           ></ha-input>
+          <div class="dots" aria-hidden="true">
+            ${Array.from(
+              { length: Math.max(MIN_DOTS, this._codeLength) },
+              (_, index) => html`
+                <span
+                  class="dot ${classMap({ filled: index < this._codeLength })}"
+                ></span>
+              `
+            )}
+          </div>
           <div class="keypad">
             ${BUTTONS.map((value) =>
               value === ""
@@ -248,9 +269,22 @@ export class DialogEnterCode
       align-items: center;
       direction: ltr;
     }
-    .clear {
-      grid-row-start: 4;
-      grid-column-start: 0;
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: var(--ha-space-4);
+      margin-top: var(--ha-space-3);
+      min-height: 14px;
+    }
+    .dot {
+      width: 14px;
+      height: 14px;
+      box-sizing: border-box;
+      border-radius: var(--ha-border-radius-circle);
+      border: 2px solid var(--primary-text-color);
+    }
+    .dot.filled {
+      background: var(--primary-text-color);
     }
     @media all and (max-height: 450px) {
       .keypad {
@@ -262,19 +296,20 @@ export class DialogEnterCode
       }
     }
     ha-control-button {
-      width: 56px;
+      width: 72px;
       height: 56px;
-      --control-button-border-radius: var(--ha-border-radius-4xl);
+      min-width: 44px;
+      min-height: 44px;
+      --control-button-border-radius: var(--ha-border-radius-xl);
+      --control-button-background-color: var(--secondary-text-color);
+      --control-button-background-opacity: 0.12;
       --mdc-icon-size: 24px;
       font-size: var(--ha-font-size-2xl);
     }
     .submit {
-      --control-button-background-color: var(--green-color);
-      --control-button-icon-color: var(--green-color);
-    }
-    .clear {
-      --control-button-background-color: var(--red-color);
-      --control-button-icon-color: var(--red-color);
+      --control-button-background-color: var(--primary-color);
+      --control-button-background-opacity: 1;
+      --control-button-icon-color: var(--text-primary-color, #fff);
     }
   `;
 }

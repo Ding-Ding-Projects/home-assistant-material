@@ -8,8 +8,6 @@ import { computeStateDomain } from "../../../common/entity/compute_state_domain"
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import { blankBeforePercent } from "../../../common/translations/blank_before_percent";
 import "../../../components/entity/ha-battery-icon";
-import "../../../components/ha-control-button";
-import "../../../components/ha-control-button-group";
 import "../../../components/ha-svg-icon";
 import {
   apiContext,
@@ -39,6 +37,7 @@ import type {
   HomeAssistantInternationalization,
 } from "../../../types";
 import "../components/ha-more-info-state-header";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
 @customElement("more-info-lawn_mower")
@@ -216,56 +215,67 @@ class MoreInfoLawnMower extends LitElement {
         ${
           hasAnyCommand
             ? html`
-                <div class="buttons">
-                  <ha-control-button-group>
-                    ${
-                      this._supportsStartPause
-                        ? html`
-                            <ha-control-button
-                              .label=${this._startPauseLabel}
-                              @click=${this._handleStartPause}
-                              .disabled=${this._startPauseDisabled}
-                            >
-                              <ha-svg-icon
-                                .path=${this._startPauseIcon}
-                              ></ha-svg-icon>
-                            </ha-control-button>
-                          `
-                        : nothing
-                    }
-                    ${
-                      supportsStop
-                        ? html`
-                            <ha-control-button
-                              .label=${this._i18n.localize(
-                                "ui.dialogs.more_info_control.lawn_mower.stop"
-                              )}
-                              @click=${this._handleStop}
-                              .disabled=${isUnavailable || !canStop(stateObj)}
-                            >
-                              <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
-                            </ha-control-button>
-                          `
-                        : nothing
-                    }
-                    ${
-                      supportsDock
-                        ? html`
-                            <ha-control-button
-                              .label=${this._i18n.localize(
-                                "ui.dialogs.more_info_control.lawn_mower.dock"
-                              )}
-                              @click=${this._handleDock}
-                              .disabled=${isUnavailable || !canDock(stateObj)}
-                            >
-                              <ha-svg-icon
-                                .path=${mdiHomeImportOutline}
-                              ></ha-svg-icon>
-                            </ha-control-button>
-                          `
-                        : nothing
-                    }
-                  </ha-control-button-group>
+                <div class="round-buttons">
+                  ${
+                    this._supportsStartPause
+                      ? html`
+                          <button
+                            type="button"
+                            class="round primary"
+                            aria-label=${this._startPauseLabel}
+                            title=${this._startPauseLabel}
+                            @click=${this._handleStartPause}
+                            .disabled=${this._startPauseDisabled}
+                          >
+                            <ha-svg-icon
+                              .path=${this._startPauseIcon}
+                            ></ha-svg-icon>
+                          </button>
+                        `
+                      : nothing
+                  }
+                  ${
+                    supportsStop
+                      ? html`
+                          <button
+                            type="button"
+                            class="round"
+                            aria-label=${this._i18n.localize(
+                              "ui.dialogs.more_info_control.lawn_mower.stop"
+                            )}
+                            title=${this._i18n.localize(
+                              "ui.dialogs.more_info_control.lawn_mower.stop"
+                            )}
+                            @click=${this._handleStop}
+                            .disabled=${isUnavailable || !canStop(stateObj)}
+                          >
+                            <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
+                          </button>
+                        `
+                      : nothing
+                  }
+                  ${
+                    supportsDock
+                      ? html`
+                          <button
+                            type="button"
+                            class="round"
+                            aria-label=${this._i18n.localize(
+                              "ui.dialogs.more_info_control.lawn_mower.dock"
+                            )}
+                            title=${this._i18n.localize(
+                              "ui.dialogs.more_info_control.lawn_mower.dock"
+                            )}
+                            @click=${this._handleDock}
+                            .disabled=${isUnavailable || !canDock(stateObj)}
+                          >
+                            <ha-svg-icon
+                              .path=${mdiHomeImportOutline}
+                            ></ha-svg-icon>
+                          </button>
+                        `
+                      : nothing
+                  }
                 </div>
               `
             : nothing
@@ -277,6 +287,7 @@ class MoreInfoLawnMower extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
         .battery {
           display: inline-flex;
@@ -294,17 +305,6 @@ class MoreInfoLawnMower extends LitElement {
 
         ha-state-control-lawn_mower-status {
           margin-bottom: var(--ha-space-4);
-        }
-
-        ha-control-button-group {
-          --control-button-group-thickness: 48px;
-          justify-content: center;
-        }
-
-        ha-control-button-group ha-control-button {
-          flex: 0 0 auto;
-          width: var(--control-button-group-thickness);
-          --control-button-border-radius: var(--ha-border-radius-lg);
         }
       `,
     ];

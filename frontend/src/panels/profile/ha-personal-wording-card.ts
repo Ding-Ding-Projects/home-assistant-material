@@ -2,6 +2,7 @@ import { mdiFileCheckOutline, mdiFolderOpen, mdiTrayArrowDown } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { VocabularyError } from "../../common/vocabulary/personal-vocabulary";
 import {
   activeVocabularyCount,
@@ -16,6 +17,7 @@ import "../../components/ha-alert";
 import "../../components/ha-button";
 import "../../components/ha-card";
 import "../../components/ha-svg-icon";
+import type { LocalizeFunc } from "../../common/translations/localize";
 import type { HomeAssistant } from "../../types";
 
 /**
@@ -38,6 +40,14 @@ export class HaPersonalWordingCard extends LitElement {
 
   @query("input") private _input!: HTMLInputElement;
 
+  // Draws the card again when the language mode changes.
+  private _languageMode = new LanguageModeController(this);
+
+  private _localize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this._languageMode.text(this.hass.localize, key, values);
+
   public connectedCallback() {
     super.connectedCallback();
     window.addEventListener(VOCABULARY_CHANGED_EVENT, this._changed);
@@ -55,7 +65,8 @@ export class HaPersonalWordingCard extends LitElement {
   };
 
   protected render(): TemplateResult {
-    const localize = this.hass.localize;
+    // Every string follows the language mode.
+    const localize = this._localize;
     return html`
       <ha-card .header=${localize("ui.personal_wording.title")}>
         <div class="card-content">
@@ -169,7 +180,8 @@ export class HaPersonalWordingCard extends LitElement {
 
   private async _import(file: File) {
     const result = await importWordingFile(file);
-    reportWordingImport(result, this.hass.localize);
+    // The toast and the celebration follow the language mode too.
+    reportWordingImport(result, this._localize as unknown as LocalizeFunc);
     this._error = result.ok ? undefined : result.error;
   }
 

@@ -10,6 +10,7 @@ import type { HomeAssistantApi } from "../../../types";
 import "../../../components/ha-assist-chat";
 import "../../../components/ha-spinner";
 import "../../../components/ha-alert";
+import "../components/ha-more-info-state-header";
 import type { AssistPipeline } from "../../../data/assist_pipeline";
 import { getAssistPipeline } from "../../../data/assist_pipeline";
 
@@ -75,6 +76,9 @@ class MoreInfoConversation extends LitElement {
     }
 
     return html`
+      <ha-more-info-state-header
+        .stateObj=${this.stateObj}
+      ></ha-more-info-state-header>
       ${
         this._errorLoadAssist
           ? html`<ha-alert alert-type="error">
@@ -99,6 +103,7 @@ class MoreInfoConversation extends LitElement {
   static styles = css`
     :host {
       display: flex;
+      flex-direction: column;
       flex: 1;
     }
     ha-assist-chat {
