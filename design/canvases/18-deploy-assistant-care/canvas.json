@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T05:11:47Z"
+    "at": "2026-11-11T16:23:14Z"
   },
   "title": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight",
   "launch": {
@@ -56,7 +56,7 @@
       "x": 0,
       "y": 1100,
       "w": 1320,
-      "h": 1344,
+      "h": 1456,
       "title": "Deploy Assistant, the history of your records",
       "expand": "fill",
       "page": "all"
@@ -90,7 +90,7 @@
     },
     "DeployConvert.dc.html": {
       "x": 0,
-      "y": 2664,
+      "y": 2776,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, converting: files typed by their bytes, every category",
@@ -99,7 +99,7 @@
     },
     "DeployConvertPdf.dc.html": {
       "x": 1420,
-      "y": 2664,
+      "y": 2776,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, PDF tools with results checked by reopening",
@@ -108,7 +108,7 @@
     },
     "DeployConvertLossy.dc.html": {
       "x": 2840,
-      "y": 2664,
+      "y": 2776,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, saying what a conversion changes first",
@@ -117,7 +117,7 @@
     },
     "DeployBase64.dc.html": {
       "x": 4260,
-      "y": 2664,
+      "y": 2776,
       "w": 1320,
       "h": 1134,
       "title": "Deploy Assistant, the Base64 toolkit",
@@ -126,7 +126,7 @@
     },
     "DeployBase64Error.dc.html": {
       "x": 0,
-      "y": 4018,
+      "y": 4130,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, strict Base64 decoding names the offset",
@@ -135,7 +135,7 @@
     },
     "DeployDraw.dc.html": {
       "x": 1420,
-      "y": 4018,
+      "y": 4130,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, drawing with seven pens",
@@ -144,7 +144,7 @@
     },
     "DeployDrawColours.dc.html": {
       "x": 2840,
-      "y": 4018,
+      "y": 4130,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the drawing toolbar turned into a palette",

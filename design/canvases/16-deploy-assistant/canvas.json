@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T05:11:47Z"
+    "at": "2026-11-11T16:23:14Z"
   },
   "title": "Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards",
   "launch": {
@@ -29,7 +29,7 @@
       "x": 1420,
       "y": 0,
       "w": 1320,
-      "h": 1164,
+      "h": 1213,
       "title": "Deploy Assistant, the deploy wizard: where on the left, the plan on the right",
       "expand": "fill",
       "page": "all"
@@ -38,7 +38,7 @@
       "x": 2840,
       "y": 0,
       "w": 1320,
-      "h": 1164,
+      "h": 1213,
       "title": "Deploy Assistant, the deploy wizard, dark",
       "expand": "fill",
       "page": "all"
@@ -54,7 +54,7 @@
     },
     "DeployNeedsSetup.dc.html": {
       "x": 0,
-      "y": 1384,
+      "y": 1433,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, VMware needs setup: how to fix it",
@@ -63,7 +63,7 @@
     },
     "DeployOptions.dc.html": {
       "x": 1420,
-      "y": 1384,
+      "y": 1433,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, more options before deploying",
@@ -72,43 +72,43 @@
     },
     "DeployProgress.dc.html": {
       "x": 2840,
-      "y": 1384,
+      "y": 1433,
       "w": 1320,
-      "h": 1906,
+      "h": 1954,
       "title": "Deploy Assistant, deploying with live steps",
       "expand": "fill",
       "page": "all"
     },
     "DeployReady.dc.html": {
       "x": 4260,
-      "y": 1384,
+      "y": 1433,
       "w": 1320,
-      "h": 1831,
+      "h": 1880,
       "title": "Deploy Assistant, ready with its link",
       "expand": "fill",
       "page": "all"
     },
     "DeployInstances.dc.html": {
       "x": 0,
-      "y": 3510,
+      "y": 3607,
       "w": 1320,
-      "h": 1534,
+      "h": 1474,
       "title": "Deploy Assistant, instance manager",
       "expand": "fill",
       "page": "all"
     },
     "DeployInstancesDark.dc.html": {
       "x": 1420,
-      "y": 3510,
+      "y": 3607,
       "w": 1320,
-      "h": 1411,
+      "h": 1351,
       "title": "Deploy Assistant, instance manager, dark",
       "expand": "fill",
       "page": "all"
     },
     "DeployInstanceMenu.dc.html": {
       "x": 2840,
-      "y": 3510,
+      "y": 3607,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the tools of one instance",
@@ -117,7 +117,7 @@
     },
     "DeployBackups.dc.html": {
       "x": 4260,
-      "y": 3510,
+      "y": 3607,
       "w": 1320,
       "h": 1027,
       "title": "Deploy Assistant, backups and their schedule",
@@ -126,16 +126,16 @@
     },
     "DeployDownloads.dc.html": {
       "x": 0,
-      "y": 5264,
+      "y": 5301,
       "w": 1320,
-      "h": 1255,
+      "h": 1195,
       "title": "Deploy Assistant, automatic downloads",
       "expand": "fill",
       "page": "all"
     },
     "DeployPiChosen.dc.html": {
       "x": 1420,
-      "y": 5264,
+      "y": 5301,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, Raspberry Pi chosen in the wizard",
@@ -144,7 +144,7 @@
     },
     "DeployPiWrite.dc.html": {
       "x": 2840,
-      "y": 5264,
+      "y": 5301,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, writing a Raspberry Pi card",

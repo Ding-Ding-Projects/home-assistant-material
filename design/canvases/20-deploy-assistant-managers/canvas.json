@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T05:11:47Z"
+    "at": "2026-11-11T16:23:14Z"
   },
   "title": "Deploy Assistant: Minecraft servers, AI models and virtual disks",
   "launch": {
@@ -20,7 +20,7 @@
       "x": 0,
       "y": 0,
       "w": 1320,
-      "h": 2051,
+      "h": 2039,
       "title": "Deploy Assistant, the world generator with a chunk grid",
       "expand": "fill",
       "page": "all"
@@ -54,7 +54,7 @@
     },
     "DeployDisks.dc.html": {
       "x": 0,
-      "y": 2271,
+      "y": 2259,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, virtual disks on Windows",
@@ -63,7 +63,7 @@
     },
     "DeployDiskCreate.dc.html": {
       "x": 1420,
-      "y": 2271,
+      "y": 2259,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, creating a virtual disk with its scripts shown",
@@ -72,7 +72,7 @@
     },
     "DeployDiskCompact.dc.html": {
       "x": 2840,
-      "y": 2271,
+      "y": 2259,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, compacting: every mode explained",
@@ -81,7 +81,7 @@
     },
     "DeployPalette.dc.html": {
       "x": 4260,
-      "y": 2271,
+      "y": 2259,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, Ctrl Shift F with live controls",
@@ -90,9 +90,9 @@
     },
     "DeployNarrow.dc.html": {
       "x": 0,
-      "y": 3371,
+      "y": 3359,
       "w": 400,
-      "h": 2386,
+      "h": 2326,
       "title": "Deploy Assistant, a narrow window",
       "expand": "fill",
       "page": "all"

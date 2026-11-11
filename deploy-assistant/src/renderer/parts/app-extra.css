@@ -84,7 +84,7 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
 .celebrate i{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti 2.6s linear forwards}
 @keyframes confetti{to{top:110%;transform:rotate(720deg)}}@keyframes celepop{from{transform:scale(.6);opacity:0}}
 @media (prefers-reduced-motion:reduce){.celebrate .celecard{animation:none}}
-.stepper{display:inline-flex;align-items:center;gap:4px}.stepper .ib{width:36px;height:36px}
+.numstep{display:inline-flex;align-items:center;gap:4px;padding:2px;border-radius:22px;background:var(--sl2)}.numstep .ib{width:36px;height:36px;border-radius:18px;background:var(--sl4,var(--sc));color:var(--on);font-size:18px;font-weight:600}.numstep .ib:hover{background:var(--sc)}.numstep .input{text-align:center}
 .setting.changed{box-shadow:inset 3px 0 0 var(--p)}
 .chatlog{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding:8px;border-radius:20px;background:var(--sl1)}
 .msg{padding:10px 14px;border-radius:18px;max-width:85%}.msg.user{align-self:flex-end;background:var(--pc);color:var(--on-pc)}.msg.assistant{align-self:flex-start;background:var(--surf)}
@@ -126,3 +126,12 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
   filter: saturate(.4);
 }
 .btn:disabled:hover, .mcact:disabled:hover { background-image: none; }
+
+/* Polish pass, 1.5: page actions sit in the header, the AI model chat's folded prompt shows its state, the wizard steps never cut their names. */
+.pacts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-inline-start:auto}
+details.fold>summary .chev{transition:transform .15s;display:inline-flex}details.fold[open]>summary .chev{transform:rotate(90deg)}
+.dialog .stepper li{padding:10px 12px;gap:8px}.dialog .stepper li:not(.cur) .ll{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dialog .stepper li.cur{flex:2.6}.dialog .stepper li:not(.cur){flex:0 0 auto}
+@media (prefers-reduced-motion:reduce){details.fold>summary .chev{transition:none}}
+h2#history,h2#notifications,h2#records{margin:32px 0 8px}
+.plan>label:has(#vd-path),.plan>label:has(#vd-parent){grid-column:1/-1}
