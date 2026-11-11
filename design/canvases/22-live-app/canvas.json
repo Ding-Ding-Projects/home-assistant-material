@@ -1,0 +1,183 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-11T16:52:26Z"
+  },
+  "title": "Home Assistant, drawn from a running copy",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "LiveHome.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 869,
+      "title": "Overview: the home page",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveHomeDark.dc.html": {
+      "x": 1540,
+      "y": 0,
+      "w": 1440,
+      "h": 869,
+      "title": "Overview, dark",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveSettings.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 1440,
+      "h": 869,
+      "title": "Settings home",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveIntegrations.dc.html": {
+      "x": 0,
+      "y": 1089,
+      "w": 1440,
+      "h": 869,
+      "title": "Integrations",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveDevices.dc.html": {
+      "x": 1540,
+      "y": 1089,
+      "w": 1440,
+      "h": 869,
+      "title": "Devices",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveAutomationEditor.dc.html": {
+      "x": 3080,
+      "y": 1089,
+      "w": 1440,
+      "h": 869,
+      "title": "A new automation",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveAutomationHistory.dc.html": {
+      "x": 0,
+      "y": 2178,
+      "w": 1440,
+      "h": 869,
+      "title": "Automation history",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveScenes.dc.html": {
+      "x": 1540,
+      "y": 2178,
+      "w": 1440,
+      "h": 869,
+      "title": "Scenes, empty",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveDashboards.dc.html": {
+      "x": 3080,
+      "y": 2178,
+      "w": 1440,
+      "h": 869,
+      "title": "Dashboards",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveUpdates.dc.html": {
+      "x": 0,
+      "y": 3267,
+      "w": 1440,
+      "h": 869,
+      "title": "Updates",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LivePersonal.dc.html": {
+      "x": 1540,
+      "y": 3267,
+      "w": 1440,
+      "h": 869,
+      "title": "Personal settings",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveIdentity.dc.html": {
+      "x": 3080,
+      "y": 3267,
+      "w": 1440,
+      "h": 869,
+      "title": "Name and logo",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveTodo.dc.html": {
+      "x": 0,
+      "y": 4356,
+      "w": 1440,
+      "h": 869,
+      "title": "To-do lists",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveUsers.dc.html": {
+      "x": 1540,
+      "y": 4356,
+      "w": 1440,
+      "h": 869,
+      "title": "Users",
+      "expand": "fill",
+      "page": "all"
+    },
+    "LiveBlueprints.dc.html": {
+      "x": 3080,
+      "y": 4356,
+      "w": 1440,
+      "h": 869,
+      "title": "Blueprints",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "LiveHome.dc.html",
+    "LiveHomeDark.dc.html",
+    "LiveSettings.dc.html",
+    "LiveIntegrations.dc.html",
+    "LiveDevices.dc.html",
+    "LiveAutomationEditor.dc.html",
+    "LiveAutomationHistory.dc.html",
+    "LiveScenes.dc.html",
+    "LiveDashboards.dc.html",
+    "LiveUpdates.dc.html",
+    "LivePersonal.dc.html",
+    "LiveIdentity.dc.html",
+    "LiveTodo.dc.html",
+    "LiveUsers.dc.html",
+    "LiveBlueprints.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Home Assistant, drawn from a running copy. 15 boards, wide and phone.",
+      "kind": "title1",
+      "maxW": 4520,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}
