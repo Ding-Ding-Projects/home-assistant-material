@@ -2279,7 +2279,9 @@ export class HaDataTable extends LitElement {
           border-top: none;
         }
         :host([row-cards])
-          .mdc-data-table__row[aria-rowindex]:not(.group-header-row) {
+          .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
+            .sticky-group-header
+          ) {
           position: relative;
           isolation: isolate;
           height: calc(var(--data-table-row-height, 52px) + var(--ha-space-2));
@@ -2287,7 +2289,9 @@ export class HaDataTable extends LitElement {
           background: none;
         }
         :host([row-cards])
-          .mdc-data-table__row[aria-rowindex]:not(.group-header-row)::before {
+          .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
+            .sticky-group-header
+          )::before {
           content: "";
           position: absolute;
           inset: 0 0 var(--ha-space-2);
