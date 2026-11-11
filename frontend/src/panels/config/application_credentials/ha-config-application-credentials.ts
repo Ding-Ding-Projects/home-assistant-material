@@ -163,6 +163,13 @@ export class HaConfigApplicationCredentials extends LitElement {
         @retry-load=${this._retryFetchApplicationCredentials}
         has-fab
         selectable
+        always-show-checkboxes
+        .summary=${this.hass.localize(
+          "ui.panel.config.application_credentials.picker.summary"
+        )}
+        .footerText=${this.hass.localize(
+          "ui.panel.config.application_credentials.picker.footer"
+        )}
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
         .initialSorting=${this._tableSettings.sorting}
@@ -205,12 +212,29 @@ export class HaConfigApplicationCredentials extends LitElement {
                 `
           }
         </div>
-        <ha-button slot="fab" size="l" @click=${this._addApplicationCredential}>
-          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-          ${this.hass.localize(
-            "ui.panel.config.application_credentials.picker.add_application_credential"
-          )}
-        </ha-button>
+        ${
+          this.narrow
+            ? html`<ha-button
+                slot="fab"
+                size="l"
+                @click=${this._addApplicationCredential}
+              >
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize(
+                  "ui.panel.config.application_credentials.picker.add_application_credential"
+                )}
+              </ha-button>`
+            : html`<ha-button
+                slot="heading-action"
+                size="l"
+                @click=${this._addApplicationCredential}
+              >
+                <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                ${this.hass.localize(
+                  "ui.panel.config.application_credentials.picker.add_application_credential"
+                )}
+              </ha-button>`
+        }
       </hass-tabs-subpage-data-table>
     `;
   }

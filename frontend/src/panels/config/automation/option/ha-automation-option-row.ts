@@ -304,10 +304,18 @@ export default class HaAutomationOptionRow extends LitElement {
       <h3 slot="header">
         ${
           this.option
-            ? `${this.hass.localize(
-                "ui.panel.config.automation.editor.actions.type.choose.option",
-                { number: this.index + 1 }
-              )}: ${this.option.alias || (this._expanded ? "" : this._getDescription(!!triggerCondition))}`
+            ? html`<span class="option-chip option-chip-${this.index % 3}"
+                  >${this.hass.localize(
+                    "ui.panel.config.automation.editor.actions.type.choose.option",
+                    { number: this.index + 1 }
+                  )}</span
+                >
+                ${
+                  this.option.alias ||
+                  (this._expanded
+                    ? ""
+                    : this._getDescription(!!triggerCondition))
+                }`
             : this.hass.localize(
                 "ui.panel.config.automation.editor.actions.type.choose.default"
               )
@@ -541,8 +549,8 @@ export default class HaAutomationOptionRow extends LitElement {
           ? html`
               <h4 class="top">
                 ${this.hass.localize(
-                  "ui.panel.config.automation.editor.actions.type.choose.conditions"
-                )}:
+                  "ui.panel.config.automation.editor.actions.type.choose.conditions_heading"
+                )}
               </h4>
               <ha-automation-condition
                 .conditions=${ensureArray<string | Condition>(
@@ -559,8 +567,8 @@ export default class HaAutomationOptionRow extends LitElement {
       }
       <h4 class=${this.option ? "" : "top"}>
         ${this.hass.localize(
-          "ui.panel.config.automation.editor.actions.type.choose.sequence"
-        )}:
+          "ui.panel.config.automation.editor.actions.type.choose.sequence_heading"
+        )}
       </h4>
       <ha-automation-action
         .actions=${
@@ -904,6 +912,22 @@ export default class HaAutomationOptionRow extends LitElement {
         }
         h4.top {
           margin-top: 0;
+        }
+        .option-chip {
+          display: inline-block;
+          margin-inline-end: var(--ha-space-2);
+          padding: 0 var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          font-size: var(--ha-font-size-s, 0.875rem);
+          font-weight: var(--ha-font-weight-medium);
+          background: var(--ha-color-fill-primary-quiet-resting);
+          color: var(--primary-text-color);
+        }
+        .option-chip-1 {
+          background: var(--ha-color-fill-success-quiet-resting);
+        }
+        .option-chip-2 {
+          background: var(--ha-color-fill-warning-quiet-resting);
         }
       `,
     ];

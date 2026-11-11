@@ -110,6 +110,10 @@ export class SSDPConfigPanel extends SubscribeMixin(LitElement) {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         .data=${this._dataWithIds(this._data)}
+        .summary=${this.hass.localize("ui.panel.config.ssdp.summary")}
+        .footerText=${this.hass.localize("ui.panel.config.ssdp.footer", {
+          count: this._data.length,
+        })}
         .noDataText=${this.hass.localize(
           "ui.panel.config.ssdp.no_devices_found"
         )}

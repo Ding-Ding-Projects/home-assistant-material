@@ -251,9 +251,11 @@ export class HaConfigAppsInstalled extends LitElement {
                     </div>
                   `
                 : nothing
-              : html`<div class="idle">
-                  ${this.hass.localize("ui.panel.config.apps.installed.idle")}
-                </div>`
+              : addon.state === "stopped"
+                ? html`<div class="idle">
+                    ${this.hass.localize("ui.panel.config.apps.installed.idle")}
+                  </div>`
+                : nothing
           }
         </div>
       </ha-card>

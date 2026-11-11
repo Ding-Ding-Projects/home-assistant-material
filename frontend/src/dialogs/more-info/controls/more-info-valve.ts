@@ -7,6 +7,7 @@ import { consumeLocalize } from "../../../common/decorators/consume-context-entr
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-icon-button-group";
+import "../../../components/ha-relative-time";
 import "../../../components/ha-icon-button-toggle";
 import { formattersContext } from "../../../data/context";
 import {
@@ -24,7 +25,6 @@ import "../../../state-control/valve/ha-state-control-valve-position";
 import "../../../state-control/valve/ha-state-control-valve-toggle";
 import type { HomeAssistantFormatters } from "../../../types";
 import "../components/valves/ha-more-info-valve-favorite-positions";
-import "../components/ha-more-info-state-header";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
 type Mode = "position" | "button";
@@ -106,10 +106,15 @@ class MoreInfoValve extends LitElement {
       !supportsPosition;
 
     return html`
-      <ha-more-info-state-header
-        .stateObj=${this.stateObj}
-        .stateOverride=${this._stateOverride}
-      ></ha-more-info-state-header>
+      <div class="hero">
+        <div class="state">${this._stateOverride}</div>
+        <div class="since">
+          ${this._localize("ui.dialogs.more_info_control.valve.changed")}
+          <ha-relative-time
+            .datetime=${this.stateObj.last_changed}
+          ></ha-relative-time>
+        </div>
+      </div>
       <div class="controls">
         <div class="main-control">
           ${
@@ -195,6 +200,23 @@ class MoreInfoValve extends LitElement {
     return [
       moreInfoControlStyle,
       css`
+        .hero {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: var(--ha-space-1);
+          margin-bottom: var(--ha-space-4);
+        }
+        .hero .state {
+          font-size: 48px;
+          line-height: 56px;
+          font-weight: var(--ha-font-weight-medium);
+          overflow-wrap: anywhere;
+        }
+        .hero .since {
+          color: var(--secondary-text-color);
+        }
         .main-control {
           display: flex;
           flex-direction: row;

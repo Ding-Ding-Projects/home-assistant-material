@@ -10,10 +10,11 @@ import "../../../components/ha-control-button";
 import "../../../components/ha-state-icon";
 import type { AlarmControlPanelEntity } from "../../../data/alarm_control_panel";
 import { setProtectedAlarmControlPanelMode } from "../../../data/alarm_control_panel";
-import { apiContext } from "../../../data/context";
+import { apiContext, formattersContext } from "../../../data/context";
 import "../../../state-control/alarm_control_panel/ha-state-control-alarm_control_panel-modes";
-import type { HomeAssistantApi } from "../../../types";
-import "../components/ha-more-info-state-header";
+import type { HomeAssistantApi, HomeAssistantFormatters } from "../../../types";
+import "../../../components/ha-relative-time";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
 @customElement("more-info-alarm_control_panel")
@@ -25,6 +26,10 @@ class MoreInfoAlarmControlPanel extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  private _formatters!: HomeAssistantFormatters;
 
   @property({ attribute: false }) public stateObj?: AlarmControlPanelEntity;
 
@@ -41,6 +46,20 @@ class MoreInfoAlarmControlPanel extends LitElement {
     );
   }
 
+  private _headlineClass() {
+    const current = this.stateObj!.state;
+    if (current === "disarmed") {
+      return "headline";
+    }
+    if (current === "triggered") {
+      return "headline bad";
+    }
+    if (current === "arming" || current === "pending") {
+      return "headline warn";
+    }
+    return "headline ok";
+  }
+
   protected render() {
     if (!this._localize || !this.stateObj) {
       return nothing;
@@ -51,9 +70,15 @@ class MoreInfoAlarmControlPanel extends LitElement {
       "--icon-color": color,
     };
     return html`
-      <ha-more-info-state-header
-        .stateObj=${this.stateObj}
-      ></ha-more-info-state-header>
+      <p class=${this._headlineClass()}>
+        ${this._formatters.formatEntityState(this.stateObj)}
+      </p>
+      <p class="subline">
+        <ha-relative-time
+          .datetime=${this.stateObj.last_changed}
+          capitalize
+        ></ha-relative-time>
+      </p>
       <div class="controls" style=${styleMap(style)}>
         ${
           ["triggered", "arming", "pending"].includes(this.stateObj.state)
@@ -89,6 +114,7 @@ class MoreInfoAlarmControlPanel extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
         :host {
           --icon-color: var(--primary-color);

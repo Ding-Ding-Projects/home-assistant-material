@@ -11,16 +11,11 @@ import type { NodeInfo } from "./hat-script-graph";
 import { conditionResult, stepDurationSeconds } from "./trace-step-info";
 
 interface Fact {
-  label: string;
+  label: string | TemplateResult;
   value: string | TemplateResult;
 }
 
 const MAX_VALUE_LENGTH = 120;
-
-const humanize = (key: string): string => {
-  const text = key.replace(/_/g, " ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
 
 const show = (value: unknown): string => {
   if (typeof value === "string") {
@@ -143,7 +138,7 @@ export class HaTraceStepFacts extends LitElement {
     const data = first.result?.params?.service_data ?? config.data;
     if (data && typeof data === "object" && !Array.isArray(data)) {
       Object.entries(data as Record<string, unknown>).forEach(([key, value]) =>
-        facts.push({ label: humanize(key), value: show(value) })
+        facts.push({ label: html`<code>${key}</code>`, value: show(value) })
       );
     }
 
@@ -200,6 +195,11 @@ export class HaTraceStepFacts extends LitElement {
       margin: 0;
       font-weight: var(--ha-font-weight-medium);
       text-align: end;
+      overflow-wrap: anywhere;
+    }
+    dt code {
+      font-family: var(--ha-font-family-code, monospace);
+      font-size: var(--ha-font-size-s);
       overflow-wrap: anywhere;
     }
     dd.error {

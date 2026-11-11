@@ -31,7 +31,10 @@ describe("normalizePersonalPreferences", () => {
       quietTo: "06:15",
       quietDays: [0, 4],
     };
-    expect(normalizePersonalPreferences(stored)).toEqual(stored);
+    expect(normalizePersonalPreferences(stored)).toEqual({
+      ...DEFAULT_PERSONAL_PREFERENCES,
+      ...stored,
+    });
   });
 
   it("clamps levels and rounds", () => {
@@ -78,5 +81,49 @@ describe("worthSpotlight", () => {
   it("is false for an empty or window-sized element", () => {
     expect(worthSpotlight({ width: 0, height: 0 }, view)).toBe(false);
     expect(worthSpotlight({ width: 1000, height: 900 }, view)).toBe(false);
+  });
+});
+
+// Protects the narrator and attention mode values read back from storage: the
+// narrator must stay off unless it was turned on, and a bad rate or voice
+// must never reach the speech engine.
+describe("narrator and attention mode values", () => {
+  it("keeps the narrator off and the modes off by default", () => {
+    const result = normalizePersonalPreferences({});
+    expect(result.narratorEnabled).toBe(false);
+    expect(result.timeAwareness).toBe(false);
+    expect(result.momentum).toBe(false);
+    expect(result.narratorSpeakIn).toBe("both");
+    expect(result.narratorRate).toBe(1);
+  });
+
+  it("keeps valid narrator choices and rounds to a tenth", () => {
+    const result = normalizePersonalPreferences({
+      narratorEnabled: true,
+      narratorSpeakIn: "cantonese",
+      narratorVoiceEnglish: "voice-a",
+      narratorRate: 1.26,
+      narratorPitch: 0.8,
+    });
+    expect(result.narratorEnabled).toBe(true);
+    expect(result.narratorSpeakIn).toBe("cantonese");
+    expect(result.narratorVoiceEnglish).toBe("voice-a");
+    expect(result.narratorRate).toBe(1.3);
+    expect(result.narratorPitch).toBe(0.8);
+  });
+
+  it("clamps the rate and pitch and drops bad values", () => {
+    const result = normalizePersonalPreferences({
+      narratorRate: 9,
+      narratorPitch: -1,
+      narratorSpeakIn: "klingon",
+      narratorVoiceCantonese: 5,
+      narratorEnabled: "yes",
+    } as never);
+    expect(result.narratorRate).toBe(2);
+    expect(result.narratorPitch).toBe(0.5);
+    expect(result.narratorSpeakIn).toBe("both");
+    expect(result.narratorVoiceCantonese).toBe("");
+    expect(result.narratorEnabled).toBe(false);
   });
 });

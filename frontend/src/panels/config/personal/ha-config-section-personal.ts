@@ -10,9 +10,22 @@ import {
   subscribeAccessibilitySettings,
 } from "../../../common/accessibility/accessibility-tools";
 import { getStorage } from "../../../common/decorators/storage";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import {
+  listVoices,
+  narrator,
+  onVoicesChanged,
+  speechAvailable,
+} from "../../../common/narration/narrator";
+import type { SpeechLanguage } from "../../../common/narration/narration";
+import {
+  narratorSilence,
+  voicesFor,
+} from "../../../common/narration/narration";
 import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
 import type {
   LanguageMode,
+  NarratorSpeakIn,
   PersonalPreferences,
 } from "../../../common/preferences/personal-preferences";
 import {
@@ -22,6 +35,11 @@ import {
   getPersonalPreferences,
   initPersonalPreferences,
   LANGUAGE_MODES,
+  NARRATOR_PITCH_MAX,
+  NARRATOR_PITCH_MIN,
+  NARRATOR_RATE_MAX,
+  NARRATOR_RATE_MIN,
+  NARRATOR_SPEAK_IN,
   resetPersonalPreferences,
   subscribePersonalPreferences,
   updatePersonalPreferences,
@@ -52,7 +70,7 @@ import {
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 
-type GroupId = "language" | "sound" | "attention";
+type GroupId = "language" | "sound" | "attention" | "narrator";
 
 interface Row {
   id: string;
@@ -71,7 +89,7 @@ interface Row {
   reset: () => void;
 }
 
-const GROUPS: GroupId[] = ["language", "sound", "attention"];
+const GROUPS: GroupId[] = ["language", "sound", "attention", "narrator"];
 
 /**
  * Personal settings: the choices that belong to one person in this browser,
@@ -92,6 +110,10 @@ export class HaConfigSectionPersonal extends LitElement {
 
   @state() private _reduceMotion = getAccessibilitySettings().reduceMotion;
 
+  @state() private _voices: SpeechSynthesisVoice[] = [];
+
+  private _lang = new LanguageModeController(this);
+
   private _unsubs: UnsubscribeFunc[] = [];
 
   public connectedCallback() {
@@ -106,7 +128,11 @@ export class HaConfigSectionPersonal extends LitElement {
       subscribeAccessibilitySettings((settings) => {
         this._reduceMotion = settings.reduceMotion;
       }),
+      onVoicesChanged(() => {
+        this._voices = listVoices();
+      }),
     ];
+    this._voices = listVoices();
   }
 
   public disconnectedCallback() {
@@ -115,10 +141,22 @@ export class HaConfigSectionPersonal extends LitElement {
     this._unsubs = [];
   }
 
+  /** Short text: both languages share a line, joined by a dot. */
   private _t(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
-      `ui.panel.config.personal.${key}` as any,
-      values as any
+    return this._lang.text(
+      this.hass.localize,
+      `ui.panel.config.personal.${key}`,
+      values
+    );
+  }
+
+  /** Longer text: both languages, one under the other. */
+  private _tl(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(
+      this.hass.localize,
+      `ui.panel.config.personal.${key}`,
+      values,
+      "\n"
     );
   }
 
@@ -214,6 +252,7 @@ export class HaConfigSectionPersonal extends LitElement {
       label: this._t(`language_mode.${mode}`),
     }));
     const silence = silenceReason(p);
+    const narrationSilence = narratorSilence(p);
     const slider = (
       value: number,
       min: number,
@@ -248,10 +287,10 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "language_mode",
         group: "language",
         label: this._t("language_mode.label"),
-        description: this._t("language_mode.description"),
+        description: this._tl("language_mode.description"),
         defaultText: this._t("language_mode.default"),
-        reach: this._t("language_mode.reach"),
-        active: false,
+        reach: this._tl("language_mode.reach"),
+        active: true,
         valueText: this._t(`language_mode.${p.languageMode}`),
         isDefault: p.languageMode === d.languageMode,
         reset: () => this._change({ languageMode: d.languageMode }, "reset"),
@@ -265,9 +304,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "funny_english",
         group: "language",
         label: this._t("funny_english.label"),
-        description: this._t("funny_english.description"),
+        description: this._tl("funny_english.description"),
         defaultText: this._t("funny_english.default"),
-        reach: this._t("funny_english.reach"),
+        reach: this._tl("funny_english.reach"),
         active: false,
         valueText: String(p.funnyEnglish),
         isDefault: p.funnyEnglish === d.funnyEnglish,
@@ -285,9 +324,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "funny_cantonese",
         group: "language",
         label: this._t("funny_cantonese.label"),
-        description: this._t("funny_cantonese.description"),
+        description: this._tl("funny_cantonese.description"),
         defaultText: this._t("funny_cantonese.default"),
-        reach: this._t("funny_cantonese.reach"),
+        reach: this._tl("funny_cantonese.reach"),
         active: false,
         valueText: String(p.funnyCantonese),
         isDefault: p.funnyCantonese === d.funnyCantonese,
@@ -308,9 +347,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "sound_effects",
         group: "sound",
         label: this._t("sound_effects.label"),
-        description: this._t("sound_effects.description"),
+        description: this._tl("sound_effects.description"),
         defaultText: this._t("sound_effects.default"),
-        reach: this._t("sound_effects.reach"),
+        reach: this._tl("sound_effects.reach"),
         active: true,
         valueText: this._onOff(p.soundEffects),
         isDefault: p.soundEffects === d.soundEffects,
@@ -339,9 +378,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "quiet_hours",
         group: "sound",
         label: this._t("quiet_hours.label"),
-        description: this._t("quiet_hours.description"),
+        description: this._tl("quiet_hours.description"),
         defaultText: this._t("quiet_hours.default"),
-        reach: this._t("quiet_hours.reach"),
+        reach: this._tl("quiet_hours.reach"),
         active: true,
         valueText: p.quietHours
           ? this._t("quiet_hours.value", {
@@ -367,9 +406,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "sound_volume",
         group: "sound",
         label: this._t("sound_volume.label"),
-        description: this._t("sound_volume.description"),
+        description: this._tl("sound_volume.description"),
         defaultText: this._t("sound_volume.default"),
-        reach: this._t("sound_volume.reach"),
+        reach: this._tl("sound_volume.reach"),
         active: true,
         valueText: String(p.soundVolume),
         isDefault: p.soundVolume === d.soundVolume,
@@ -391,9 +430,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "reduce_motion",
         group: "attention",
         label: this._t("reduce_motion.label"),
-        description: this._t("reduce_motion.description"),
+        description: this._tl("reduce_motion.description"),
         defaultText: this._t("reduce_motion.default"),
-        reach: this._t("reduce_motion.reach"),
+        reach: this._tl("reduce_motion.reach"),
         active: true,
         valueText: this._onOff(this._reduceMotion),
         isDefault: !this._reduceMotion,
@@ -408,9 +447,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "low_stimulation",
         group: "attention",
         label: this._t("low_stimulation.label"),
-        description: this._t("low_stimulation.description"),
+        description: this._tl("low_stimulation.description"),
         defaultText: this._t("low_stimulation.default"),
-        reach: this._t("low_stimulation.reach"),
+        reach: this._tl("low_stimulation.reach"),
         active: true,
         valueText: this._onOff(p.lowStimulation),
         isDefault: p.lowStimulation === d.lowStimulation,
@@ -425,9 +464,9 @@ export class HaConfigSectionPersonal extends LitElement {
         id: "focus_spotlight",
         group: "attention",
         label: this._t("focus_spotlight.label"),
-        description: this._t("focus_spotlight.description"),
+        description: this._tl("focus_spotlight.description"),
         defaultText: this._t("focus_spotlight.default"),
-        reach: this._t("focus_spotlight.reach"),
+        reach: this._tl("focus_spotlight.reach"),
         active: true,
         valueText: this._onOff(p.focusSpotlight),
         isDefault: p.focusSpotlight === d.focusSpotlight,
@@ -437,6 +476,180 @@ export class HaConfigSectionPersonal extends LitElement {
           this._t("focus_spotlight.label"),
           (ev) => this._change({ focusSpotlight: ev.target.checked })
         ),
+      },
+      {
+        id: "time_awareness",
+        group: "attention",
+        label: this._t("time_awareness.label"),
+        description: this._tl("time_awareness.description"),
+        defaultText: this._t("time_awareness.default"),
+        reach: this._tl("time_awareness.reach"),
+        active: true,
+        valueText: this._onOff(p.timeAwareness),
+        isDefault: p.timeAwareness === d.timeAwareness,
+        reset: () => this._change({ timeAwareness: d.timeAwareness }),
+        control: toggle(
+          p.timeAwareness,
+          this._t("time_awareness.label"),
+          (ev) => this._change({ timeAwareness: ev.target.checked })
+        ),
+      },
+      {
+        id: "momentum",
+        group: "attention",
+        label: this._t("momentum.label"),
+        description: this._tl("momentum.description"),
+        defaultText: this._t("momentum.default"),
+        reach: this._tl("momentum.reach"),
+        active: true,
+        valueText: this._onOff(p.momentum),
+        isDefault: p.momentum === d.momentum,
+        reset: () => this._change({ momentum: d.momentum }),
+        control: toggle(p.momentum, this._t("momentum.label"), (ev) =>
+          this._change({ momentum: ev.target.checked })
+        ),
+      },
+      {
+        id: "narrator_enabled",
+        group: "narrator",
+        label: this._t("narrator_enabled.label"),
+        description: this._tl("narrator_enabled.description"),
+        defaultText: this._t("narrator_enabled.default"),
+        reach: this._tl("narrator_enabled.reach"),
+        active: speechAvailable(),
+        valueText: this._onOff(p.narratorEnabled),
+        isDefault: p.narratorEnabled === d.narratorEnabled,
+        reset: () => this._change({ narratorEnabled: d.narratorEnabled }),
+        control: html`${toggle(
+          p.narratorEnabled,
+          this._t("narrator_enabled.label"),
+          (ev) => this._change({ narratorEnabled: ev.target.checked })
+        )}
+        ${
+          speechAvailable()
+            ? nothing
+            : html`<span class="silent" role="status"
+                >${this._t("narrator_enabled.unavailable")}</span
+              >`
+        }
+        ${
+          narrationSilence
+            ? html`<span class="silent" role="status"
+                >${this._t(`narrator_enabled.silent.${narrationSilence}`)}</span
+              >`
+            : nothing
+        }`,
+      },
+      {
+        id: "narrator_speak_in",
+        group: "narrator",
+        label: this._t("narrator_speak_in.label"),
+        description: this._tl("narrator_speak_in.description"),
+        defaultText: this._t("narrator_speak_in.default"),
+        reach: this._tl("narrator_speak_in.reach"),
+        active: true,
+        valueText: this._t(`narrator_speak_in.${p.narratorSpeakIn}`),
+        isDefault: p.narratorSpeakIn === d.narratorSpeakIn,
+        reset: () => this._change({ narratorSpeakIn: d.narratorSpeakIn }),
+        control: html`<ha-button-toggle-group
+          .buttons=${NARRATOR_SPEAK_IN.map((value) => ({
+            value,
+            label: this._t(`narrator_speak_in.${value}`),
+          }))}
+          .active=${p.narratorSpeakIn}
+          @value-changed=${this._speakInChanged}
+        ></ha-button-toggle-group>`,
+      },
+      {
+        id: "narrator_voice_english",
+        group: "narrator",
+        label: this._t("narrator_voice_english.label"),
+        description: this._tl("narrator_voice_english.description"),
+        defaultText: this._t("narrator_voice_english.default"),
+        reach: this._tl("narrator_voice_english.reach"),
+        active: true,
+        valueText: p.narratorVoiceEnglish || this._t("voice_auto"),
+        isDefault: p.narratorVoiceEnglish === d.narratorVoiceEnglish,
+        reset: () =>
+          this._change({ narratorVoiceEnglish: d.narratorVoiceEnglish }),
+        control: this._renderVoicePicker("en", p.narratorVoiceEnglish),
+      },
+      {
+        id: "narrator_voice_cantonese",
+        group: "narrator",
+        label: this._t("narrator_voice_cantonese.label"),
+        description: this._tl("narrator_voice_cantonese.description"),
+        defaultText: this._t("narrator_voice_cantonese.default"),
+        reach: this._tl("narrator_voice_cantonese.reach"),
+        active: true,
+        valueText: p.narratorVoiceCantonese || this._t("voice_auto"),
+        isDefault: p.narratorVoiceCantonese === d.narratorVoiceCantonese,
+        reset: () =>
+          this._change({ narratorVoiceCantonese: d.narratorVoiceCantonese }),
+        control: this._renderVoicePicker("yue", p.narratorVoiceCantonese),
+      },
+      {
+        id: "narrator_rate",
+        group: "narrator",
+        label: this._t("narrator_rate.label"),
+        description: this._tl("narrator_rate.description"),
+        defaultText: this._t("narrator_rate.default"),
+        reach: this._tl("narrator_rate.reach"),
+        active: true,
+        valueText: `${p.narratorRate}x`,
+        isDefault: p.narratorRate === d.narratorRate,
+        reset: () => this._change({ narratorRate: d.narratorRate }),
+        control: html`<ha-slider
+            labeled
+            .min=${NARRATOR_RATE_MIN}
+            .max=${NARRATOR_RATE_MAX}
+            .step=${0.1}
+            .value=${p.narratorRate}
+            aria-label=${this._t("narrator_rate.label")}
+            @change=${this._rateChanged}
+          ></ha-slider
+          ><span class="value">${p.narratorRate}x</span>`,
+      },
+      {
+        id: "narrator_pitch",
+        group: "narrator",
+        label: this._t("narrator_pitch.label"),
+        description: this._tl("narrator_pitch.description"),
+        defaultText: this._t("narrator_pitch.default"),
+        reach: this._tl("narrator_pitch.reach"),
+        active: true,
+        valueText: String(p.narratorPitch),
+        isDefault: p.narratorPitch === d.narratorPitch,
+        reset: () => this._change({ narratorPitch: d.narratorPitch }),
+        control: html`<ha-slider
+            labeled
+            .min=${NARRATOR_PITCH_MIN}
+            .max=${NARRATOR_PITCH_MAX}
+            .step=${0.1}
+            .value=${p.narratorPitch}
+            aria-label=${this._t("narrator_pitch.label")}
+            @change=${this._pitchChanged}
+          ></ha-slider
+          ><span class="value">${p.narratorPitch}</span>`,
+      },
+      {
+        id: "narrator_sample",
+        group: "narrator",
+        label: this._t("narrator_sample.label"),
+        description: this._tl("narrator_sample.description"),
+        defaultText: this._t("narrator_sample.default"),
+        reach: this._tl("narrator_sample.reach"),
+        active: speechAvailable(),
+        valueText: this._t("narrator_sample.label"),
+        isDefault: true,
+        reset: () => undefined,
+        control: html`<ha-button
+          appearance="plain"
+          size="small"
+          .disabled=${!speechAvailable()}
+          @click=${this._hearSample}
+          >${this._t("narrator_sample.label")}</ha-button
+        >`,
       },
     ];
   }
@@ -469,7 +682,7 @@ export class HaConfigSectionPersonal extends LitElement {
           >
         </ha-dropdown>
         <div class=${classMap({ content: true, narrow: this.narrow })}>
-          <p class="intro">${this._t("intro")}</p>
+          <p class="intro">${this._tl("intro")}</p>
           <ha-input-search
             class="search"
             appearance="outlined"
@@ -543,7 +756,7 @@ export class HaConfigSectionPersonal extends LitElement {
         .header=${this._t(`group.${group}.title`)}
       >
         <div class="card-content">
-          <p class="group-note">${this._t(`group.${group}.note`)}</p>
+          <p class="group-note">${this._tl(`group.${group}.note`)}</p>
           ${inGroup.map((row) => this._renderRow(row, searching))}
         </div>
       </ha-card>
@@ -637,6 +850,72 @@ export class HaConfigSectionPersonal extends LitElement {
       </ha-card>
     `;
   }
+
+  private _renderVoicePicker(language: SpeechLanguage, chosen: string) {
+    const voices = voicesFor(this._voices, language);
+    const label = this._t(
+      language === "yue"
+        ? "narrator_voice_cantonese.label"
+        : "narrator_voice_english.label"
+    );
+    if (!voices.length) {
+      return html`<span class="silent" role="status"
+        >${this._t(this._voices.length ? "voice_none" : "voice_loading")}</span
+      >`;
+    }
+    const picked = voices.find((voice) => voice.voiceURI === chosen);
+    const using = picked ?? voices[0];
+    return html`<select
+        class="voice"
+        aria-label=${label}
+        data-language=${language}
+        @change=${this._voiceChanged}
+      >
+        <option value="" ?selected=${!picked}>${this._t("voice_auto")}</option>
+        ${voices.map(
+          (voice) =>
+            html`<option value=${voice.voiceURI} ?selected=${voice === picked}>
+              ${voice.name} (${voice.lang})
+            </option>`
+        )}
+      </select>
+      <span class="silent"
+        >${this._t("voice_using", { name: `${using.name} (${using.lang})` })}</span
+      >`;
+  }
+
+  private _voiceChanged = (ev: Event) => {
+    const select = ev.target as HTMLSelectElement;
+    this._change(
+      select.dataset.language === "yue"
+        ? { narratorVoiceCantonese: select.value }
+        : { narratorVoiceEnglish: select.value }
+    );
+  };
+
+  private _speakInChanged = (ev: CustomEvent<{ value: string }>) => {
+    this._change({ narratorSpeakIn: ev.detail.value as NarratorSpeakIn });
+  };
+
+  private _rateChanged = (ev: Event) => {
+    this._change({
+      narratorRate:
+        (ev.target as HaSlider).value ??
+        DEFAULT_PERSONAL_PREFERENCES.narratorRate,
+    });
+  };
+
+  private _pitchChanged = (ev: Event) => {
+    this._change({
+      narratorPitch:
+        (ev.target as HaSlider).value ??
+        DEFAULT_PERSONAL_PREFERENCES.narratorPitch,
+    });
+  };
+
+  private _hearSample = () => {
+    narrator.sample(this._tl("narrator_sample.text"));
+  };
 
   private _toggleRow = (ev: Event) => {
     const id = (ev.currentTarget as HTMLElement).dataset.row as string;
@@ -933,6 +1212,26 @@ export class HaConfigSectionPersonal extends LitElement {
     .day:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
+    }
+    .voice {
+      min-height: 44px;
+      max-width: 100%;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 0 var(--ha-space-2);
+    }
+    .value {
+      min-width: 3ch;
+    }
+    .intro,
+    .group-note,
+    .row-description,
+    .row-default,
+    .reach {
+      white-space: pre-line;
     }
     .silent {
       color: var(--secondary-text-color);

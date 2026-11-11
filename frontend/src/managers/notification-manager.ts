@@ -37,6 +37,13 @@ export interface ShowToastParams {
   duration?: number;
   dismissable?: boolean;
   bottomOffset?: number;
+  /**
+   * Shows a progress bar from 0 to 100 and keeps the toast until it is closed
+   * or replaced (give it an id and show it again with a new value).
+   */
+  progress?: number;
+  /** Warnings and errors stay until dismissed, unless a duration is given. */
+  severity?: "info" | "warning" | "error";
 }
 
 export interface ToastActionParams {
@@ -80,11 +87,21 @@ class NotificationManager extends LitElement {
       return;
     }
 
+    const staysOpen =
+      parameters.progress !== undefined ||
+      (parameters.duration === undefined &&
+        (parameters.severity === "warning" || parameters.severity === "error"));
     const normalizedParameters = {
       ...parameters,
-      duration:
-        parameters.duration === undefined ||
-        (parameters.duration > 0 && parameters.duration <= 4000)
+      dismissable:
+        parameters.dismissable ??
+        (parameters.severity === "warning" || parameters.severity === "error"
+          ? true
+          : undefined),
+      duration: staysOpen
+        ? -1
+        : parameters.duration === undefined ||
+            (parameters.duration > 0 && parameters.duration <= 4000)
           ? 4000
           : parameters.duration,
     };
@@ -167,6 +184,7 @@ class NotificationManager extends LitElement {
               .stacked=${true}
               @toast-closed=${this._toastClosed}
             >
+              ${this._renderProgress(parameters)}
               ${this._renderAction(key, parameters.secondaryAction, true)}
               ${this._renderAction(key, parameters.action, false)}
               ${
@@ -186,6 +204,24 @@ class NotificationManager extends LitElement {
           `
         )}
       </div>
+    `;
+  }
+
+  private _renderProgress(parameters: ShowToastParams) {
+    if (parameters.progress === undefined) {
+      return nothing;
+    }
+    const value = Math.max(0, Math.min(100, Math.round(parameters.progress)));
+    return html`
+      <progress
+        slot="action"
+        class="progress"
+        max="100"
+        .value=${value}
+        aria-label=${this.hass.localize("ui.notification_toast.progress", {
+          percent: value,
+        })}
+      ></progress>
     `;
   }
 
@@ -286,6 +322,11 @@ class NotificationManager extends LitElement {
   }
 
   static override styles = css`
+    .progress {
+      width: 96px;
+      height: 6px;
+      accent-color: var(--ha-color-on-neutral-loud, currentColor);
+    }
     .stack {
       position: fixed;
       inset-block-start: auto;

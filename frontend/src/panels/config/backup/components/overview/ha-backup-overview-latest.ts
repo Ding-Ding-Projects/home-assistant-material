@@ -171,7 +171,11 @@ class HaBackupOverviewLatest extends LitElement {
   }
 
   private _keydown(ev: KeyboardEvent) {
-    if (ev.target === ev.currentTarget && ev.key === "Enter") {
+    if (
+      ev.target === ev.currentTarget &&
+      (ev.key === "Enter" || ev.key === " ")
+    ) {
+      ev.preventDefault();
       this._open(ev);
     }
   }
@@ -198,10 +202,9 @@ class HaBackupOverviewLatest extends LitElement {
         .head,
         .row {
           display: grid;
-          grid-template-columns: minmax(0, 3fr) minmax(0, 1.5fr) minmax(
-              0,
-              1fr
-            ) minmax(0, 2fr);
+          grid-template-columns:
+            minmax(0, 3fr) minmax(0, 1.5fr) minmax(0, 1fr)
+            minmax(0, 2fr);
           align-items: center;
           gap: var(--ha-space-4);
         }

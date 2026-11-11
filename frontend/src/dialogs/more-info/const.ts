@@ -75,6 +75,7 @@ export const DOMAINS_WITH_MORE_INFO = [
   "remote",
   "script",
   "scene",
+  "sensor",
   "siren",
   "sun",
   "switch",

@@ -242,12 +242,21 @@ export class HaConfigAutomationRepo extends LitElement {
     this._compareWith = "";
     try {
       // Against the last commit for changes waiting, and against the commit
-      // before it for a commit.
+      // before it for a commit. A version the list does not hold has nothing
+      // to be compared with.
+      const index =
+        key === WORKING ? -1 : this._commits.findIndex((c) => c.sha === key);
+      if (key !== WORKING && index === -1) {
+        this._detail = {
+          key,
+          changes: [],
+          diff: "",
+          error: this._l("vh_version_not_found"),
+        };
+        return;
+      }
       const against =
-        key === WORKING
-          ? this._info?.head
-          : this._commits[this._commits.findIndex((c) => c.sha === key) + 1]
-              ?.sha;
+        key === WORKING ? this._info?.head : this._commits[index + 1]?.sha;
       const [after, before, diff] = await Promise.all([
         this._config(key),
         against ? this._config(against) : Promise.resolve(undefined),

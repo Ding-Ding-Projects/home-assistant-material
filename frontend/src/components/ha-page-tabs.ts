@@ -4,6 +4,8 @@ import {
   mdiFormatPaint,
   mdiHuman,
   mdiTranslate,
+  mdiPin,
+  mdiPinOff,
   mdiPlus,
   mdiTabPlus,
   mdiTabRemove,
@@ -20,6 +22,7 @@ import {
   state,
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
 import {
   getAccessibilitySettings,
@@ -49,6 +52,53 @@ import "./ha-svg-icon";
 import "./user/ha-user-badge";
 
 export const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
+export const TABS_ORDER_STORAGE_KEY = "pageTabsOrder";
+export const PINNED_TABS_STORAGE_KEY = "pageTabsPinned";
+
+/**
+ * Puts the tabs in the order the person chose: pinned tabs first, then the
+ * rest. Inside each group the saved order wins, and a tab that was never
+ * placed (a page added by an update) keeps its natural position after those
+ * that were.
+ */
+export const applyTabOrder = <T extends { urlPath: string }>(
+  tabs: readonly T[],
+  order: readonly string[],
+  pinned: readonly string[]
+): T[] => {
+  const rank = (tab: T, natural: number) => {
+    const index = order.indexOf(tab.urlPath);
+    return index === -1 ? order.length + natural : index;
+  };
+  return tabs
+    .map((tab, natural) => ({
+      tab,
+      natural,
+      pinned: pinned.includes(tab.urlPath),
+      rank: rank(tab, natural),
+    }))
+    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.rank - b.rank)
+    .map((entry) => entry.tab);
+};
+
+/**
+ * Moves one id next to another in a list of ids. Returns the list unchanged
+ * when either id is missing or both are the same.
+ */
+export const moveTabId = (
+  ids: readonly string[],
+  from: string,
+  to: string,
+  after: boolean
+): string[] => {
+  if (from === to || !ids.includes(from) || !ids.includes(to)) {
+    return [...ids];
+  }
+  const rest = ids.filter((id) => id !== from);
+  const target = rest.indexOf(to);
+  rest.splice(after ? target + 1 : target, 0, from);
+  return rest;
+};
 
 declare global {
   interface HASSDomEvents {
@@ -132,6 +182,24 @@ export class HaPageTabs extends LitElement {
   @storage({ key: CLOSED_TABS_STORAGE_KEY, state: true, subscribe: true })
   private _closed: string[] = [];
 
+  /** Every tab id in the order the person put them, saved in this browser. */
+  @state()
+  @storage({ key: TABS_ORDER_STORAGE_KEY, state: true, subscribe: true })
+  private _order: string[] = [];
+
+  /** Tabs that sit first and cannot be closed by accident. */
+  @state()
+  @storage({ key: PINNED_TABS_STORAGE_KEY, state: true, subscribe: true })
+  private _pinned: string[] = [];
+
+  /** The tab being dragged, and where it would land. */
+  @state() private _dragging?: string;
+
+  @state() private _dropMark?: { id: string; after: boolean };
+
+  /** Spoken after a tab moves or is pinned. */
+  @state() private _announcement = "";
+
   @state() private _accessibilityButtonHidden =
     getAccessibilitySettings().hideButton;
 
@@ -154,12 +222,7 @@ export class HaPageTabs extends LitElement {
     if (!this.hass?.panels) {
       return nothing;
     }
-    const tabs = this._computeTabs(
-      this.hass.panels,
-      getDefaultPanelUrlPath(this.hass),
-      Boolean(this.hass.user?.is_admin),
-      this.hass.localize
-    );
+    const tabs = this._orderedTabs();
     const closed = new Set(this._closed);
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
     const current = this.hass.panelUrl;
@@ -173,33 +236,94 @@ export class HaPageTabs extends LitElement {
         aria-label=${this.hass.localize("ui.page_tabs.open_pages")}
         @keydown=${this._handleTabKeydown}
       >
-        ${open.map((tab) => {
-          const selected = tab.urlPath === current;
-          return html`
-            <div class=${classMap({ tab: true, selected })}>
-              <button
-                class="tab-button"
-                role="tab"
-                aria-selected=${selected ? "true" : "false"}
-                tabindex=${selected || (!open.some((t) => t.urlPath === current) && tab === open[0]) ? "0" : "-1"}
-                .urlPath=${tab.urlPath}
-                @click=${this._openPage}
-              >
-                <span class="label">${tab.title}</span>
-              </button>
-              <button
-                class="close"
-                aria-label=${this.hass.localize("ui.page_tabs.close_tab", {
-                  name: tab.title,
+        ${repeat(
+          open,
+          (tab) => tab.urlPath,
+          (tab) => {
+            const selected = tab.urlPath === current;
+            const pinned = this._pinned.includes(tab.urlPath);
+            const dropMark = this._dropMark;
+            const mark =
+              dropMark && dropMark.id === tab.urlPath
+                ? dropMark.after
+                  ? "after"
+                  : "before"
+                : undefined;
+            return html`
+              <div
+                class=${classMap({
+                  tab: true,
+                  selected,
+                  pinned,
+                  dragging: this._dragging === tab.urlPath,
+                  "drop-before": mark === "before",
+                  "drop-after": mark === "after",
                 })}
+                draggable="true"
                 .urlPath=${tab.urlPath}
-                @click=${this._closeTab}
+                @dragstart=${this._dragStart}
+                @dragover=${this._dragOver}
+                @drop=${this._drop}
+                @dragend=${this._dragEnd}
               >
-                <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
-              </button>
-            </div>
-          `;
-        })}
+                <button
+                  class="tab-button"
+                  role="tab"
+                  aria-selected=${selected ? "true" : "false"}
+                  aria-keyshortcuts="Control+Shift+ArrowLeft Control+Shift+ArrowRight"
+                  tabindex=${
+                    selected ||
+                    (!open.some((t) => t.urlPath === current) &&
+                      tab === open[0])
+                      ? "0"
+                      : "-1"
+                  }
+                  .urlPath=${tab.urlPath}
+                  @click=${this._openPage}
+                >
+                  ${
+                    pinned
+                      ? html`<ha-svg-icon .path=${mdiPin}></ha-svg-icon>`
+                      : nothing
+                  }
+                  <span class="label">${tab.title}</span>
+                </button>
+                <button
+                  class="pin"
+                  aria-label=${this.hass.localize(
+                    pinned ? "ui.page_tabs.unpin_tab" : "ui.page_tabs.pin_tab",
+                    { name: tab.title }
+                  )}
+                  aria-pressed=${pinned ? "true" : "false"}
+                  .urlPath=${tab.urlPath}
+                  @click=${this._togglePin}
+                >
+                  <ha-svg-icon
+                    .path=${pinned ? mdiPinOff : mdiPin}
+                  ></ha-svg-icon>
+                </button>
+                ${
+                  pinned
+                    ? nothing
+                    : html`<button
+                        class="close"
+                        aria-label=${this.hass.localize(
+                          "ui.page_tabs.close_tab",
+                          { name: tab.title }
+                        )}
+                        .urlPath=${tab.urlPath}
+                        @click=${this._closeTab}
+                      >
+                        <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
+                      </button>`
+                }
+              </div>
+            `;
+          }
+        )}
+      </div>
+      <div class="visually-hidden" role="status" aria-live="polite">
+        ${this._announcement}
       </div>
       <button
         class="new-tab"
@@ -229,6 +353,9 @@ export class HaPageTabs extends LitElement {
             ${this.hass.localize("ui.page_tabs.open_every_tab")}
           </button>
         </div>
+        <p class="catalog-note">
+          ${this.hass.localize("ui.page_tabs.catalog_intro")}
+        </p>
         <ha-input-search
           id="catalog-search"
           appearance="outlined"
@@ -275,6 +402,9 @@ export class HaPageTabs extends LitElement {
                 </p>`
           }
         </div>
+        <p class="catalog-note">
+          ${this.hass.localize("ui.page_tabs.catalog_note")}
+        </p>
       </div>
       <div class="actions">
         <ha-input-search
@@ -365,7 +495,7 @@ export class HaPageTabs extends LitElement {
       id: tab.urlPath,
       texts: [tab.title, tab.urlPath],
       open: !closed.has(tab.urlPath),
-      current: tab.urlPath === current,
+      current: tab.urlPath === current || this._pinned.includes(tab.urlPath),
     }));
     const matching = planBulkClose(candidates, this._filter, "matching");
     const others = planBulkClose(candidates, this._filter, "not_matching");
@@ -407,18 +537,15 @@ export class HaPageTabs extends LitElement {
   private _bulkClose(ev: Event) {
     const mode = (ev.currentTarget as HTMLElement & { mode: BulkCloseMode })
       .mode;
-    const tabs = this._computeTabs(
-      this.hass.panels,
-      getDefaultPanelUrlPath(this.hass),
-      Boolean(this.hass.user?.is_admin),
-      this.hass.localize
-    );
+    const tabs = this._orderedTabs();
     const { ids } = planBulkClose(
       tabs.map((tab) => ({
         id: tab.urlPath,
         texts: [tab.title, tab.urlPath],
         open: !this._closed.includes(tab.urlPath),
-        current: tab.urlPath === this.hass.panelUrl,
+        current:
+          tab.urlPath === this.hass.panelUrl ||
+          this._pinned.includes(tab.urlPath),
       })),
       this._filter,
       mode
@@ -471,9 +598,114 @@ export class HaPageTabs extends LitElement {
     ev.stopPropagation();
     const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
       .urlPath;
-    if (!this._closed.includes(urlPath)) {
+    if (!this._closed.includes(urlPath) && !this._pinned.includes(urlPath)) {
       this._closed = [...this._closed, urlPath];
     }
+  }
+
+  private _orderedTabs(): PageTab[] {
+    return applyTabOrder(
+      this._computeTabs(
+        this.hass.panels,
+        getDefaultPanelUrlPath(this.hass),
+        Boolean(this.hass.user?.is_admin),
+        this.hass.localize
+      ),
+      this._order,
+      this._pinned
+    );
+  }
+
+  private _togglePin(ev: Event) {
+    ev.stopPropagation();
+    const tab = this._tabFor(ev.currentTarget as HTMLElement);
+    if (!tab) {
+      return;
+    }
+    const pinned = this._pinned.includes(tab.urlPath);
+    // Saving the shown order keeps the tab where it is within its new group.
+    this._order = this._orderedTabs().map((t) => t.urlPath);
+    this._pinned = pinned
+      ? this._pinned.filter((id) => id !== tab.urlPath)
+      : [...this._pinned, tab.urlPath];
+    this._announcement = this.hass.localize(
+      pinned ? "ui.page_tabs.unpinned" : "ui.page_tabs.pinned",
+      { name: tab.title }
+    );
+  }
+
+  private _tabFor(element: HTMLElement): PageTab | undefined {
+    const urlPath = (element as HTMLElement & { urlPath?: string }).urlPath;
+    return this._orderedTabs().find((tab) => tab.urlPath === urlPath);
+  }
+
+  // Moves a tab beside another one. A tab never leaves its group: pinned tabs
+  // stay in front, and pinning is its own button.
+  private _moveTab(from: string, to: string, after: boolean) {
+    if (this._pinned.includes(from) !== this._pinned.includes(to)) {
+      return;
+    }
+    const ids = this._orderedTabs().map((tab) => tab.urlPath);
+    const next = moveTabId(ids, from, to, after);
+    if (next.join("\n") === ids.join("\n")) {
+      return;
+    }
+    this._order = next;
+    const open = next.filter((id) => !this._closed.includes(id));
+    const title = this._orderedTabs().find(
+      (tab) => tab.urlPath === from
+    )?.title;
+    this._announcement = this.hass.localize("ui.page_tabs.moved", {
+      name: title ?? from,
+      position: open.indexOf(from) + 1,
+      total: open.length,
+    });
+  }
+
+  private _dragStart(ev: DragEvent) {
+    const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
+      .urlPath;
+    this._dragging = urlPath;
+    if (ev.dataTransfer) {
+      ev.dataTransfer.effectAllowed = "move";
+      ev.dataTransfer.setData("text/plain", urlPath);
+    }
+  }
+
+  private _dragOver(ev: DragEvent) {
+    const from = this._dragging;
+    const target = (ev.currentTarget as HTMLElement & { urlPath: string })
+      .urlPath;
+    if (
+      !from ||
+      from === target ||
+      this._pinned.includes(from) !== this._pinned.includes(target)
+    ) {
+      return;
+    }
+    ev.preventDefault();
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    const rtl = getComputedStyle(this).direction === "rtl";
+    const before = ev.clientX < rect.left + rect.width / 2;
+    const after = before === rtl;
+    if (this._dropMark?.id !== target || this._dropMark.after !== after) {
+      this._dropMark = { id: target, after };
+    }
+  }
+
+  private _drop(ev: DragEvent) {
+    ev.preventDefault();
+    const from = this._dragging;
+    const mark = this._dropMark;
+    this._dragEnd();
+    if (from && mark) {
+      this._moveTab(from, mark.id, mark.after);
+    }
+  }
+
+  private _dragEnd() {
+    this._dragging = undefined;
+    this._dropMark = undefined;
   }
 
   private _openFromCatalog(ev: Event) {
@@ -537,6 +769,30 @@ export class HaPageTabs extends LitElement {
     }
     const buttons = Array.from(this._tabButtons ?? []);
     if (!buttons.length) {
+      return;
+    }
+    // Control and Shift with an arrow move the focused tab itself.
+    if (
+      ev.ctrlKey &&
+      ev.shiftKey &&
+      (ev.key === "ArrowLeft" || ev.key === "ArrowRight")
+    ) {
+      const focused = buttons.find((button) => button.matches(":focus")) as
+        (HTMLButtonElement & { urlPath: string }) | undefined;
+      if (!focused) {
+        return;
+      }
+      const open = buttons.map(
+        (button) => (button as HTMLButtonElement & { urlPath: string }).urlPath
+      );
+      const rtl = getComputedStyle(this).direction === "rtl";
+      const forward = (ev.key === "ArrowRight") !== rtl;
+      const neighbour =
+        open[open.indexOf(focused.urlPath) + (forward ? 1 : -1)];
+      ev.preventDefault();
+      if (neighbour) {
+        this._moveTab(focused.urlPath, neighbour, forward);
+      }
       return;
     }
     const index = buttons.findIndex((button) => button.matches(":focus"));
@@ -642,13 +898,57 @@ export class HaPageTabs extends LitElement {
     .tab:focus-within .close {
       display: flex;
     }
-    .close:hover {
+    .close:hover,
+    .pin:hover {
       background-color: rgba(127, 127, 127, 0.3);
+    }
+    /* The pin shows with the close button, and always on a pinned tab. */
+    .pin {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: var(--ha-space-8);
+      height: var(--ha-space-8);
+      margin-inline: calc(-1 * var(--ha-space-3)) var(--ha-space-1);
+      border-radius: var(--ha-border-radius-circle);
+      --mdc-icon-size: 16px;
+    }
+    .tab.selected .pin,
+    .tab:hover .pin,
+    .tab:focus-within .pin {
+      display: flex;
+    }
+    .tab.pinned .close {
+      display: none;
+    }
+    .tab.pinned .tab-button {
+      padding-inline-end: var(--ha-space-2);
+    }
+    .tab.dragging {
+      opacity: 0.5;
+    }
+    .tab.drop-before {
+      box-shadow: inset 3px 0 0 var(--primary-color);
+    }
+    .tab.drop-after {
+      box-shadow: inset -3px 0 0 var(--primary-color);
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
     /* A finger cannot hover: every tab shows its close button. */
     @media (hover: none) {
-      .tab .close {
+      .tab .close,
+      .tab .pin {
         display: flex;
+      }
+      .tab.pinned .close {
+        display: none;
       }
     }
     @media (max-width: 700px) {
@@ -846,6 +1146,12 @@ export class HaPageTabs extends LitElement {
     .entry-state {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
+    }
+    .catalog-note {
+      margin: 0;
+      padding: 0 var(--ha-space-2);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
     .empty {
       margin: 0;

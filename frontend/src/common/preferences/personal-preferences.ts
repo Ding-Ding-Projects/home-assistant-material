@@ -1,5 +1,7 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
+import { narrator } from "../narration/narrator";
+import { attentionModes } from "./attention-modes";
 import { focusSpotlight } from "./focus-spotlight";
 
 /**
@@ -21,6 +23,19 @@ export const LANGUAGE_MODES: LanguageMode[] = [
   "cantonese",
   "bilingual",
 ];
+
+export type NarratorSpeakIn = "english" | "cantonese" | "both";
+
+export const NARRATOR_SPEAK_IN: NarratorSpeakIn[] = [
+  "english",
+  "cantonese",
+  "both",
+];
+
+export const NARRATOR_RATE_MIN = 0.5;
+export const NARRATOR_RATE_MAX = 2;
+export const NARRATOR_PITCH_MIN = 0.5;
+export const NARRATOR_PITCH_MAX = 2;
 
 export const FUNNY_LEVEL_MIN = 1;
 export const FUNNY_LEVEL_MAX = 5;
@@ -47,6 +62,20 @@ export interface PersonalPreferences {
   quietTo: string;
   /** Days quiet hours start on, 0 is Sunday and 6 is Saturday. */
   quietDays: number[];
+  /** Shows the time and how long this tab has been open. */
+  timeAwareness: boolean;
+  /** Offers to take you back to the page you were last on. */
+  momentum: boolean;
+  /** Reads the name of the focused or activated control aloud. */
+  narratorEnabled: boolean;
+  narratorSpeakIn: NarratorSpeakIn;
+  /** The chosen voice by its URI, or empty to choose automatically. */
+  narratorVoiceEnglish: string;
+  narratorVoiceCantonese: string;
+  /** Speech rate, 0.5 to 2. */
+  narratorRate: number;
+  /** Speech pitch, 0.5 to 2. */
+  narratorPitch: number;
 }
 
 export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
@@ -61,6 +90,14 @@ export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
   quietFrom: "22:00",
   quietTo: "07:00",
   quietDays: [0, 1, 2, 3, 4, 5, 6],
+  timeAwareness: false,
+  momentum: false,
+  narratorEnabled: false,
+  narratorSpeakIn: "both",
+  narratorVoiceEnglish: "",
+  narratorVoiceCantonese: "",
+  narratorRate: 1,
+  narratorPitch: 1,
 };
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -92,6 +129,19 @@ const clampInt = (
   typeof value === "number" && Number.isFinite(value)
     ? Math.min(max, Math.max(min, Math.round(value)))
     : fallback;
+
+const clampTenth = (
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number
+) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, Math.round(value * 10) / 10))
+    : fallback;
+
+const asText = (value: unknown, fallback: string) =>
+  typeof value === "string" && value.length <= 300 ? value : fallback;
 
 const asBool = (value: unknown, fallback: boolean) =>
   typeof value === "boolean" ? value : fallback;
@@ -132,6 +182,34 @@ export const normalizePersonalPreferences = (
     quietFrom: asTime(source.quietFrom, d.quietFrom),
     quietTo: asTime(source.quietTo, d.quietTo),
     quietDays: asDays(source.quietDays, d.quietDays),
+    timeAwareness: asBool(source.timeAwareness, d.timeAwareness),
+    momentum: asBool(source.momentum, d.momentum),
+    narratorEnabled: asBool(source.narratorEnabled, d.narratorEnabled),
+    narratorSpeakIn: NARRATOR_SPEAK_IN.includes(
+      source.narratorSpeakIn as NarratorSpeakIn
+    )
+      ? (source.narratorSpeakIn as NarratorSpeakIn)
+      : d.narratorSpeakIn,
+    narratorVoiceEnglish: asText(
+      source.narratorVoiceEnglish,
+      d.narratorVoiceEnglish
+    ),
+    narratorVoiceCantonese: asText(
+      source.narratorVoiceCantonese,
+      d.narratorVoiceCantonese
+    ),
+    narratorRate: clampTenth(
+      source.narratorRate,
+      NARRATOR_RATE_MIN,
+      NARRATOR_RATE_MAX,
+      d.narratorRate
+    ),
+    narratorPitch: clampTenth(
+      source.narratorPitch,
+      NARRATOR_PITCH_MIN,
+      NARRATOR_PITCH_MAX,
+      d.narratorPitch
+    ),
   };
 };
 
@@ -212,6 +290,8 @@ export const applyPersonalPreferences = (
     root.removeAttribute("data-low-stimulation");
   }
   focusSpotlight.setEnabled(preferences.focusSpotlight);
+  attentionModes.apply(preferences);
+  narrator.setEnabled(preferences.narratorEnabled);
 };
 
 let initialized = false;

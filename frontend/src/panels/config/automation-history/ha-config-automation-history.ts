@@ -2031,11 +2031,16 @@ export class HaConfigAutomationHistory extends LitElement {
     }
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
       gap: var(--ha-space-4);
     }
     .remote-address {
       overflow-wrap: anywhere;
+    }
+    @media (max-width: 600px) {
+      .page {
+        padding: var(--ha-space-3);
+      }
     }
     @media (max-width: 900px) {
       .hero,
@@ -2053,7 +2058,9 @@ export class HaConfigAutomationHistory extends LitElement {
     }
     .message {
       height: var(--ha-space-10);
-      min-width: 240px;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
       padding: 0 var(--ha-space-4);
       border-radius: var(--ha-border-radius-pill);
       border: 1px solid var(--outline-color);

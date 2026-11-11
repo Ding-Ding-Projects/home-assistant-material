@@ -1,4 +1,5 @@
 import { mdiCommentProcessingOutline, mdiDevices } from "@mdi/js";
+import type { HassEntity } from "home-assistant-js-websocket";
 import Fuse from "fuse.js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -8,6 +9,15 @@ import memoizeOne from "memoize-one";
 import { consume } from "../../common/decorators/consume";
 import type { NavigationFilterOptions } from "../../common/config/filter_navigation_pages";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
+import { stopPropagation } from "../../common/dom/stop_propagation";
+import { canToggleState } from "../../common/entity/can_toggle_state";
+import { computeStateDomain } from "../../common/entity/compute_state_domain";
+import type { PersonalPreferences } from "../../common/preferences/personal-preferences";
+import {
+  getPersonalPreferences,
+  subscribePersonalPreferences,
+  updatePersonalPreferences,
+} from "../../common/preferences/personal-preferences";
 import { fireEvent } from "../../common/dom/fire_event";
 import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
 import { navigate } from "../../common/navigate";
@@ -26,6 +36,7 @@ import type {
 } from "../../components/ha-picker-combo-box";
 import "../../components/ha-spinner";
 import "../../components/ha-svg-icon";
+import "../../components/ha-switch";
 import "../../components/ha-tip";
 import { areaComboBoxKeys, getAreas } from "../../data/area/area_picker";
 import { getConfigEntries, type ConfigEntry } from "../../data/config_entries";
@@ -70,6 +81,12 @@ import {
   type QuickBarParams,
   type QuickBarSection,
 } from "./show-dialog-quick-bar";
+import {
+  generateSettingItems,
+  settingComboBoxKeys,
+  settingKeys,
+  type SettingComboBoxItem,
+} from "./quick-bar-settings";
 
 const SEPARATOR = "________";
 
@@ -83,7 +100,8 @@ type QuickBarComboBoxItem =
   | ActionCommandComboBoxItem
   | EntityComboBoxItem
   | DevicePickerItem
-  | AssistComboBoxItem;
+  | AssistComboBoxItem
+  | SettingComboBoxItem;
 
 @customElement("ha-quick-bar")
 export class QuickBar extends LitElement {
@@ -124,6 +142,11 @@ export class QuickBar extends LitElement {
   // Command that is being run after it was picked, shown with a spinner.
   @state() private _runningCommandId?: string;
 
+  // Bumped when the preferences change, so rows showing them draw again.
+  @state() private _prefsVersion = 0;
+
+  private _unsubPrefs?: () => void;
+
   // #region lifecycle
   public async showDialog(params: QuickBarParams) {
     if (!this._translationsLoaded) {
@@ -134,6 +157,11 @@ export class QuickBar extends LitElement {
     this._selectedSection = effectiveQuickBarMode(this.hass.user, params.mode);
     this._showHint = params.showHint ?? false;
     this._initialSearch = params.search;
+
+    this._unsubPrefs?.();
+    this._unsubPrefs = subscribePersonalPreferences(() => {
+      this._prefsVersion++;
+    });
 
     this._open = true;
   }
@@ -215,6 +243,8 @@ export class QuickBar extends LitElement {
     this._open = false;
     this._itemSelected = false;
     this._runningCommandId = undefined;
+    this._unsubPrefs?.();
+    this._unsubPrefs = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   };
 
@@ -242,6 +272,10 @@ export class QuickBar extends LitElement {
           ]
         : []),
       "separator" as const,
+      {
+        id: "setting",
+        label: this.hass.localize("ui.dialogs.quick-bar.settings_title"),
+      },
       {
         id: "entity",
         label: this.hass.localize("ui.components.target-picker.type.entities"),
@@ -285,7 +319,11 @@ export class QuickBar extends LitElement {
                 )}
                 .label=${this.hass.localize("ui.dialogs.quick-bar.title")}
                 .getItems=${this._getItems}
-                .rowRenderer=${this._getRowRenderer(this._runningCommandId)}
+                .rowRenderer=${this._getRowRenderer(
+                  this._runningCommandId,
+                  this.hass.states,
+                  this._prefsVersion
+                )}
                 mode="dialog"
                 .sections=${sections}
                 .selectedSection=${this._selectedSection}
@@ -294,6 +332,29 @@ export class QuickBar extends LitElement {
               ></ha-picker-combo-box>`
             : nothing
         }
+        <div
+          slot="footer"
+          class="hints"
+          aria-label=${this.hass.localize("ui.dialogs.quick-bar.hints_title")}
+        >
+          <span class="hint"
+            ><kbd>↑</kbd><kbd>↓</kbd>${this.hass.localize(
+              "ui.dialogs.quick-bar.hint_move"
+            )}</span
+          >
+          <span class="hint"
+            ><kbd>${this.hass.localize("ui.dialogs.quick-bar.key_enter")}</kbd
+            >${this.hass.localize("ui.dialogs.quick-bar.hint_go")}</span
+          >
+          <span class="hint"
+            ><kbd>${ctrlOrCmdLabel(this.hass.localize)}</kbd
+            >+<kbd>${this.hass.localize("ui.dialogs.quick-bar.key_enter")}</kbd>${this.hass.localize("ui.dialogs.quick-bar.hint_new_tab")}</span
+          >
+          <span class="hint"
+            ><kbd>${this.hass.localize("ui.dialogs.quick-bar.key_click")}</kbd
+            >${this.hass.localize("ui.dialogs.quick-bar.hint_use_here")}</span
+          >
+        </div>
         ${
           this._showHint
             ? html`<ha-tip slot="footer"
@@ -313,10 +374,81 @@ export class QuickBar extends LitElement {
     `;
   }
 
+  // The arguments after the first only make the renderer new, so the rows
+  // draw again with the current state of the thing they control.
   private _getRowRenderer = memoizeOne(
-    (runningCommandId?: string) => (item: QuickBarComboBoxItem) =>
-      this._renderRow(item, item?.id === runningCommandId)
+    (
+      runningCommandId?: string,
+      _states?: HomeAssistant["states"],
+      _prefsVersion?: number
+    ) =>
+      (item: QuickBarComboBoxItem) =>
+        this._renderRow(item, item?.id === runningCommandId)
   );
+
+  private _settingChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLInputElement & {
+      settingKey: keyof PersonalPreferences;
+    };
+    updatePersonalPreferences({ [target.settingKey]: target.checked });
+  }
+
+  private _entityToggled(ev: Event) {
+    const target = ev.currentTarget as HTMLInputElement & {
+      entityId: string;
+    };
+    this.hass.callService(
+      "homeassistant",
+      target.checked ? "turn_on" : "turn_off",
+      { entity_id: target.entityId }
+    );
+  }
+
+  private _renderLiveControl(item: QuickBarComboBoxItem) {
+    if ("settingId" in item) {
+      const key = settingKeys[item.settingId];
+      const checked = !!getPersonalPreferences()[key];
+      return html`<ha-switch
+        slot="end"
+        .checked=${checked}
+        .settingKey=${key}
+        aria-label=${item.primary ?? ""}
+        @click=${stopPropagation}
+        @keydown=${stopPropagation}
+        @change=${this._settingChanged}
+      ></ha-switch>`;
+    }
+    if ("stateObj" in item && item.stateObj) {
+      const entityId = item.stateObj.entity_id;
+      const stateObj: HassEntity = this.hass.states[entityId] ?? item.stateObj;
+      const level =
+        computeStateDomain(stateObj) === "light" &&
+        stateObj.state === "on" &&
+        typeof stateObj.attributes.brightness === "number"
+          ? `${Math.round((stateObj.attributes.brightness / 255) * 100)}%`
+          : undefined;
+      const toggleable =
+        (stateObj.state === "on" || stateObj.state === "off") &&
+        canToggleState(this.hass, stateObj);
+      return html`<span slot="end" class="live">
+        ${
+          toggleable
+            ? html`${level ? html`<span class="level">${level}</span>` : nothing}<ha-switch
+                  .checked=${stateObj.state === "on"}
+                  aria-label=${item.primary ?? entityId}
+                  @click=${stopPropagation}
+                  @keydown=${stopPropagation}
+                  .entityId=${entityId}
+                  @change=${this._entityToggled}
+                ></ha-switch>`
+            : html`<span class="level"
+                >${this.hass.formatEntityState(stateObj)}</span
+              >`
+        }
+      </span>`;
+    }
+    return nothing;
+  }
 
   private _renderRow(item: QuickBarComboBoxItem, running: boolean) {
     if (!item) {
@@ -440,7 +572,7 @@ export class QuickBar extends LitElement {
         ${
           running
             ? html`<ha-spinner slot="end" size="small"></ha-spinner>`
-            : nothing
+            : this._renderLiveControl(item)
         }
       </ha-combo-box-item>
     `;
@@ -532,6 +664,22 @@ export class QuickBar extends LitElement {
         if (assistItem) {
           items.push(assistItem);
         }
+      }
+
+      if (!section || section === "setting") {
+        let settingItems = generateSettingItems(this.hass).sort(
+          this._sortBySortingLabel
+        ) as PickerComboBoxItem[];
+
+        if (filter) {
+          settingItems = this._filterGroup("setting", settingItems, filter);
+        }
+
+        if (!section && settingItems.length) {
+          items.push(this.hass.localize("ui.dialogs.quick-bar.settings_title"));
+        }
+
+        items.push(...(settingItems as SettingComboBoxItem[]));
       }
 
       if (!section || section === "entity") {
@@ -702,6 +850,9 @@ export class QuickBar extends LitElement {
     ),
     navigate: memoizeOne((states: PickerComboBoxItem[]) =>
       this._createFuseIndex(states, navigateComboBoxKeys)
+    ),
+    setting: memoizeOne((states: PickerComboBoxItem[]) =>
+      this._createFuseIndex(states, settingComboBoxKeys)
     ),
   };
 
@@ -874,6 +1025,52 @@ export class QuickBar extends LitElement {
           --dialog-content-padding: 0;
           --safe-area-inset-bottom: 0px;
           --ha-dialog-show-duration: var(--ha-animation-duration-instant);
+        }
+
+        .hints {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: center;
+          gap: var(--ha-space-2) var(--ha-space-4);
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-top: 1px solid var(--divider-color);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .hint {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+        }
+
+        kbd {
+          display: inline-block;
+          min-width: var(--ha-space-5);
+          padding: 0 var(--ha-space-1);
+          border: 1px solid var(--divider-color);
+          border-radius: var(--ha-border-radius-sm);
+          font: inherit;
+          text-align: center;
+          color: var(--primary-text-color);
+        }
+
+        .live {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+        }
+
+        .level {
+          color: var(--secondary-text-color);
+          white-space: nowrap;
+        }
+
+        @media all and (max-width: 450px), all and (max-height: 690px) {
+          .hint:not(:first-child) {
+            display: none;
+          }
         }
 
         ha-tip {

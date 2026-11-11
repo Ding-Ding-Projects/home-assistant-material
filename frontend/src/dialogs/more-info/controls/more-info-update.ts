@@ -26,7 +26,6 @@ import {
   configContext,
   connectionContext,
   devicesContext,
-  formattersContext,
   internationalizationContext,
 } from "../../../data/context";
 import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
@@ -43,7 +42,6 @@ import type {
   CurrentUser,
   HomeAssistantApi,
   HomeAssistantConfig,
-  HomeAssistantFormatters,
 } from "../../../types";
 import { showAlertDialog } from "../../generic/show-dialog-box";
 import { showToast } from "../../../util/toast";
@@ -63,10 +61,6 @@ class MoreInfoUpdate extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
-
-  @state()
-  @consume({ context: formattersContext, subscribe: true })
-  private _formatters!: HomeAssistantFormatters;
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;
@@ -204,86 +198,31 @@ class MoreInfoUpdate extends LitElement {
                 : html`<ha-progress-bar indeterminate></ha-progress-bar>`
               : nothing
           }
-          <h3>${this.stateObj.attributes.title}</h3>
+          <div class="latest">
+            ${
+              this.stateObj.attributes.latest_version ??
+              this._localize("state.default.unavailable")
+            }
+          </div>
+          <div class="installed">
+            ${this._localize("ui.dialogs.more_info_control.update.installed", {
+              version:
+                this.stateObj.attributes.installed_version ??
+                this._localize("state.default.unavailable"),
+            })}
+          </div>
+          ${
+            this.stateObj.attributes.title
+              ? html`<div class="title">${this.stateObj.attributes.title}</div>`
+              : nothing
+          }
           ${
             this._error
               ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
               : nothing
           }
-          <div class="row">
-            <div class="key">
-              ${this._formatters.formatEntityAttributeName(
-                this.stateObj,
-                "installed_version"
-              )}
-            </div>
-            <div class="value">
-              ${
-                this.stateObj.attributes.installed_version ??
-                this._localize("state.default.unavailable")
-              }
-            </div>
-          </div>
-          <div class="row">
-            <div class="key">
-              ${this._formatters.formatEntityAttributeName(
-                this.stateObj,
-                "latest_version"
-              )}
-            </div>
-            <div class="value">
-              ${
-                this.stateObj.attributes.latest_version ??
-                this._localize("state.default.unavailable")
-              }
-            </div>
-          </div>
-
-          ${
-            releaseUrl
-              ? html`<div class="row">
-                  <div class="key">
-                    <a href=${releaseUrl} target="_blank" rel="noreferrer">
-                      ${this._localize(
-                        "ui.dialogs.more_info_control.update.release_announcement"
-                      )}
-                    </a>
-                  </div>
-                </div>`
-              : nothing
-          }
         </div>
-        ${
-          supportsFeature(this.stateObj!, UpdateEntityFeature.RELEASE_NOTES) &&
-          !this._error
-            ? this._releaseNotes === undefined
-              ? html`
-                  <hr />
-                  ${this._markdownLoading ? this._renderLoader() : nothing}
-                `
-              : this._releaseNotes
-                ? html`
-                    <hr />
-                    <ha-markdown
-                      @content-resize=${this._markdownLoaded}
-                      .content=${this._releaseNotes}
-                      class=${this._markdownLoading ? "hidden" : ""}
-                    ></ha-markdown>
-                    ${this._markdownLoading ? this._renderLoader() : nothing}
-                  `
-                : nothing
-            : this.stateObj.attributes.release_summary
-              ? html`
-                  <hr />
-                  <ha-markdown
-                    @content-resize=${this._markdownLoaded}
-                    .content=${this.stateObj.attributes.release_summary}
-                    class=${this._markdownLoading ? "hidden" : ""}
-                  ></ha-markdown>
-                  ${this._markdownLoading ? this._renderLoader() : nothing}
-                `
-              : nothing
-        }
+        ${this._renderNotes(releaseUrl)}
       </div>
       <div class="footer">
         <ha-more-info-update-backup
@@ -335,6 +274,7 @@ class MoreInfoUpdate extends LitElement {
               : html`
                   <ha-button
                     appearance="plain"
+                    variant="neutral"
                     @click=${this._handleSkip}
                     .disabled=${
                       latestVersionIsSkipped(this.stateObj) ||
@@ -350,6 +290,7 @@ class MoreInfoUpdate extends LitElement {
             supportsFeature(this.stateObj, UpdateEntityFeature.INSTALL)
               ? html`
                   <ha-button
+                    size="l"
                     @click=${this._handleInstall}
                     .loading=${updateIsInstalling(this.stateObj)}
                     .disabled=${
@@ -365,6 +306,62 @@ class MoreInfoUpdate extends LitElement {
               : nothing
           }
         </div>
+      </div>
+    `;
+  }
+
+  private _renderNotes(releaseUrl: string | undefined) {
+    const stateObj = this.stateObj!;
+    let notes: unknown = nothing;
+    if (
+      supportsFeature(stateObj, UpdateEntityFeature.RELEASE_NOTES) &&
+      !this._error
+    ) {
+      if (this._releaseNotes === undefined) {
+        notes = this._markdownLoading ? this._renderLoader() : nothing;
+      } else if (this._releaseNotes) {
+        notes = html`
+          <ha-markdown
+            @content-resize=${this._markdownLoaded}
+            .content=${this._releaseNotes}
+            class=${this._markdownLoading ? "hidden" : ""}
+          ></ha-markdown>
+          ${this._markdownLoading ? this._renderLoader() : nothing}
+        `;
+      }
+    } else if (stateObj.attributes.release_summary) {
+      notes = html`
+        <ha-markdown
+          @content-resize=${this._markdownLoaded}
+          .content=${stateObj.attributes.release_summary}
+          class=${this._markdownLoading ? "hidden" : ""}
+        ></ha-markdown>
+        ${this._markdownLoading ? this._renderLoader() : nothing}
+      `;
+    }
+    if (notes === nothing && !releaseUrl) {
+      return nothing;
+    }
+    return html`
+      <div class="notes-card">
+        <div class="notes-title">
+          ${this._localize("ui.dialogs.more_info_control.update.whats_new")}
+        </div>
+        ${notes}
+        ${
+          releaseUrl
+            ? html`<a
+                class="notes-link"
+                href=${releaseUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                ${this._localize(
+                  "ui.dialogs.more_info_control.update.release_announcement"
+                )}
+              </a>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -580,14 +577,49 @@ class MoreInfoUpdate extends LitElement {
     }
 
     .summary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--ha-space-1);
+      text-align: center;
       margin-bottom: var(--ha-space-4);
     }
 
-    .row {
-      margin: 0;
+    .summary ha-progress-bar {
+      width: 100%;
+      margin-bottom: var(--ha-space-2);
+    }
+
+    .latest {
+      font-size: 48px;
+      line-height: 56px;
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--primary-color);
+      direction: ltr;
+      overflow-wrap: anywhere;
+    }
+
+    .installed,
+    .title {
+      color: var(--secondary-text-color);
+      direction: ltr;
+    }
+
+    .notes-card {
       display: flex;
-      flex-direction: row;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-4);
+      border-radius: var(--ha-border-radius-2xl, 24px);
+      background: var(--secondary-background-color);
+    }
+
+    .notes-title {
+      font-weight: var(--ha-font-weight-semi-bold);
+    }
+
+    .notes-link {
+      font-size: var(--ha-font-size-s);
     }
 
     .footer {
@@ -622,7 +654,8 @@ class MoreInfoUpdate extends LitElement {
       display: flex;
       flex-direction: row;
       flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: center;
+      align-items: center;
       box-sizing: border-box;
       padding: var(--ha-space-4);
       z-index: 1;

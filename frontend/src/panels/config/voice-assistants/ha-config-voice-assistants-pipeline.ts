@@ -9,6 +9,7 @@ import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input";
+import type { CloudStatus } from "../../../data/cloud";
 import type {
   AssistPipeline,
   AssistPipelineMutableParams,
@@ -57,6 +58,8 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
 
   @property({ attribute: false }) public route!: Route;
 
+  @property({ attribute: false }) public cloudStatus?: CloudStatus;
+
   @state() private _pipeline?: AssistPipeline;
 
   @state() private _preferred: string | null = null;
@@ -64,6 +67,8 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
   @state() private _data?: Partial<AssistPipeline>;
 
   @state() private _notFound = false;
+
+  @state() private _loadFailed?: string;
 
   @state() private _error?: string;
 
@@ -106,14 +111,24 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
   private async _load() {
     const id = this._pipelineId;
     this._notFound = false;
+    this._loadFailed = undefined;
     this._pipeline = undefined;
     this._data = undefined;
     this._tryResult = undefined;
-    const { pipelines, preferred_pipeline: preferred } =
-      await listAssistPipelines(this.hass.callWS);
+    let result: Awaited<ReturnType<typeof listAssistPipelines>>;
+    try {
+      result = await listAssistPipelines(this.hass.callWS);
+    } catch (err: any) {
+      if (id === this._pipelineId) {
+        this._loadFailed =
+          err?.message || this.hass.localize("ui.common.unknown_error");
+      }
+      return;
+    }
     if (id !== this._pipelineId) {
       return;
     }
+    const { pipelines, preferred_pipeline: preferred } = result;
     this._preferred = preferred;
     const pipeline = pipelines.find((item) => item.id === id);
     if (!pipeline) {
@@ -145,6 +160,30 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
               ${this.hass.localize(
                 "ui.panel.config.voice_assistants.assistants.pipeline.page.not_found"
               )}
+            </ha-alert>
+          </div>
+        </hass-subpage>
+      `;
+    }
+    if (this._loadFailed !== undefined) {
+      return html`
+        <hass-subpage
+          .hass=${this.hass}
+          .narrow=${this.narrow}
+          back-path="/config/voice-assistants/assistants"
+          .header=${this.hass.localize(
+            "ui.panel.config.voice_assistants.assistants.caption"
+          )}
+        >
+          <div class="page">
+            <ha-alert alert-type="error">
+              ${this.hass.localize(
+                "ui.panel.config.voice_assistants.assistants.pipeline.page.load_failed"
+              )}:
+              ${this._loadFailed}
+              <ha-button size="s" slot="action" @click=${this._load}>
+                ${this.hass.localize("ui.common.retry")}
+              </ha-button>
             </ha-alert>
           </div>
         </hass-subpage>
@@ -183,6 +222,24 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
             keys="name,language"
             @value-changed=${this._valueChanged}
           ></assist-pipeline-detail-config>
+          ${
+            !(
+              this.cloudStatus?.logged_in &&
+              this.cloudStatus.active_subscription
+            ) &&
+            (data.tts_engine === "cloud" || data.stt_engine === "cloud")
+              ? html`<ha-alert alert-type="warning">
+                  ${this.hass.localize(
+                    "ui.panel.config.voice_assistants.assistants.pipeline.detail.no_cloud_message"
+                  )}
+                  <ha-button size="s" href="/config/cloud" slot="action">
+                    ${this.hass.localize(
+                      "ui.panel.config.voice_assistants.assistants.pipeline.detail.no_cloud_action"
+                    )}
+                  </ha-button>
+                </ha-alert>`
+              : nothing
+          }
           <div class="steps">
             ${
               showWakeWord
@@ -406,7 +463,8 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
       this._data = { ...updated };
       this._initDirtyTracking({ type: "deep" }, this._data);
     } catch (err: any) {
-      this._error = err?.message || "Unknown error";
+      this._error =
+        err?.message || this.hass.localize("ui.common.unknown_error");
     } finally {
       this._saving = false;
     }

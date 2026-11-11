@@ -27,7 +27,8 @@ import "../../../state-control/cover/ha-state-control-cover-tilt-position";
 import "../../../state-control/cover/ha-state-control-cover-toggle";
 import type { HomeAssistantFormatters } from "../../../types";
 import "../components/covers/ha-more-info-cover-favorite-positions";
-import "../components/ha-more-info-state-header";
+import "../../../components/ha-relative-time";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
 type Mode = "position" | "button";
@@ -67,18 +68,11 @@ class MoreInfoCover extends LitElement {
     }
   }
 
-  private get _stateOverride() {
-    const stateDisplay = this._formatters.formatEntityState(this.stateObj!);
-
-    const positionStateDisplay = computeCoverPositionStateDisplay(
+  private get _positionDisplay() {
+    return computeCoverPositionStateDisplay(
       this.stateObj!,
       this._formatters.formatEntityAttributeValue
     );
-
-    if (positionStateDisplay) {
-      return `${stateDisplay} · ${positionStateDisplay}`;
-    }
-    return stateDisplay;
   }
 
   protected render() {
@@ -122,10 +116,16 @@ class MoreInfoCover extends LitElement {
       !supportsTiltPosition;
 
     return html`
-      <ha-more-info-state-header
-        .stateObj=${this.stateObj}
-        .stateOverride=${this._stateOverride}
-      ></ha-more-info-state-header>
+      <p class="headline">${this._formatters.formatEntityState(this.stateObj)}</p>
+      <p class="subline">
+        ${
+          this._positionDisplay ||
+          html`<ha-relative-time
+            .datetime=${this.stateObj.last_changed}
+            capitalize
+          ></ha-relative-time>`
+        }
+      </p>
       <div class="controls">
         <div class="main-control">
           ${
@@ -220,6 +220,7 @@ class MoreInfoCover extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
         .main-control {
           display: flex;

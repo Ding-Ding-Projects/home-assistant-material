@@ -236,8 +236,16 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         .route=${this.route}
         .backCallback=${this.backTapped}
         .header=${
-          this.config.alias ||
-          this.hass.localize("ui.panel.config.automation.editor.default_name")
+          this.mode === "gui" && !useBlueprint
+            ? this.hass.localize(
+                this.automationId
+                  ? "ui.panel.config.automation.picker.edit_automation"
+                  : "ui.panel.config.automation.editor.default_name"
+              )
+            : this.config.alias ||
+              this.hass.localize(
+                "ui.panel.config.automation.editor.default_name"
+              )
         }
       >
         ${

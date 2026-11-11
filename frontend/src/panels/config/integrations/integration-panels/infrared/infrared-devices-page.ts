@@ -109,6 +109,11 @@ export class InfraredDevicesPage extends LitElement {
         clickable
         .columns=${this._columns(this.hass.localize)}
         .data=${this._data(this.devices, this.hass.localize)}
+        .summary=${this.hass.localize("ui.panel.config.infrared.devices_summary")}
+        .footerText=${this.hass.localize(
+          "ui.panel.config.infrared.devices_count",
+          { count: this.devices.length }
+        )}
         .noDataText=${this.hass.localize("ui.panel.config.infrared.no_devices")}
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}

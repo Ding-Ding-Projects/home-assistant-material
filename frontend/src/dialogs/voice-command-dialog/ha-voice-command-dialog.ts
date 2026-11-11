@@ -3,6 +3,7 @@ import {
   mdiChevronDown,
   mdiClose,
   mdiHelpCircleOutline,
+  mdiShieldCheckOutline,
   mdiStar,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
@@ -22,6 +23,7 @@ import "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
 import "../../components/ha-icon-next";
 import "../../components/ha-spinner";
+import "../../components/ha-svg-icon";
 import type { AssistPipeline } from "../../data/assist_pipeline";
 import {
   getAssistPipeline,
@@ -196,6 +198,21 @@ export class HaVoiceCommandDialog extends LitElement {
                     .submitInitialPrompt=${this._submitPrompt}
                   >
                   </ha-assist-chat>
+                  ${
+                    this._pipeline.conversation_engine ===
+                    "conversation.home_assistant"
+                      ? html`<div class="privacy-note" slot="footer">
+                          <ha-svg-icon
+                            .path=${mdiShieldCheckOutline}
+                          ></ha-svg-icon>
+                          <span
+                            >${this.hass.localize(
+                              "ui.dialogs.voice_command.local_answers_note"
+                            )}</span
+                          >
+                        </div>`
+                      : nothing
+                  }
                 `
               : html`<div class="pipelines-loading">
                   <ha-spinner size="large"></ha-spinner>
@@ -297,6 +314,26 @@ export class HaVoiceCommandDialog extends LitElement {
           ha-dropdown ha-button {
             --ha-button-theme-lighter-color: rgba(255, 255, 255, 0.1);
           }
+        }
+        ha-dropdown ha-button::part(base) {
+          border: 1px solid var(--outline-color);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          padding-inline: var(--ha-space-3);
+        }
+        .privacy-note {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          margin: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--secondary-background-color);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+        .privacy-note ha-svg-icon {
+          flex: none;
+          color: var(--primary-text-color);
         }
         ha-dropdown ha-button ha-svg-icon {
           height: var(--ha-space-7);

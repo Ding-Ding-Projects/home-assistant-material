@@ -66,6 +66,8 @@ import {
   EXPORT_FORMATS,
   exportContent,
   exportFileName,
+  selectedRowCount,
+  selectionOnly,
   toHtml,
 } from "../../common/page/export-page";
 import { FIND_LIMIT, PageFinder } from "../../common/page/find-in-page";
@@ -114,6 +116,8 @@ export class HaPageToolPanel extends LitElement {
   @state() private _format: ExportFormat = "json";
 
   @state() private _tableIndex = 0;
+
+  @state() private _selectionOnly = false;
 
   @state() private _status = "";
 
@@ -491,7 +495,11 @@ export class HaPageToolPanel extends LitElement {
     }
     this._export = collectPageExport(this._root, this._title);
     this._tableIndex = 0;
-    if (this._format === "csv" && !this._export.tables.length) {
+    if (!selectedRowCount(this._export)) {
+      this._selectionOnly = false;
+    }
+    const tabular = this._format === "csv" || this._format === "tsv";
+    if (tabular && !this._export.tables.length) {
       this._format = "json";
     } else if (this._export.tables.length && this._format === "json") {
       this._format = "csv";
@@ -508,7 +516,13 @@ export class HaPageToolPanel extends LitElement {
       (total, table) => total + table.rows.length,
       0
     );
-    const { content } = exportContent(page, this._format, this._tableIndex);
+    const selected = selectedRowCount(page);
+    const { content } = exportContent(
+      page,
+      this._format,
+      this._tableIndex,
+      this._selectionOnly
+    );
     return html`
       <p class="summary">
         ${localize("ui.page_tools.export_panel.summary", {
@@ -529,7 +543,9 @@ export class HaPageToolPanel extends LitElement {
               class=${classMap({ chip: true, on: format === this._format })}
               aria-pressed=${format === this._format ? "true" : "false"}
               data-format=${format}
-              ?disabled=${format === "csv" && !page.tables.length}
+              ?disabled=${
+                (format === "csv" || format === "tsv") && !page.tables.length
+              }
               @click=${this._pickFormat}
             >
               ${localize(`ui.page_tools.export_panel.formats.${format}`)}
@@ -537,6 +553,34 @@ export class HaPageToolPanel extends LitElement {
           `
         )}
       </div>
+      ${
+        selected
+          ? html`<div
+              class="chips"
+              role="group"
+              aria-label=${localize("ui.page_tools.export_panel.rows_group")}
+            >
+              <button
+                type="button"
+                class=${classMap({ chip: true, on: !this._selectionOnly })}
+                aria-pressed=${this._selectionOnly ? "false" : "true"}
+                @click=${this._exportAllRows}
+              >
+                ${localize("ui.page_tools.export_panel.all_rows")}
+              </button>
+              <button
+                type="button"
+                class=${classMap({ chip: true, on: this._selectionOnly })}
+                aria-pressed=${this._selectionOnly ? "true" : "false"}
+                @click=${this._exportSelectedRows}
+              >
+                ${localize("ui.page_tools.export_panel.selection_only", {
+                  count: selected,
+                })}
+              </button>
+            </div>`
+          : nothing
+      }
       ${
         !page.tables.length
           ? html`<p class="note">
@@ -617,6 +661,16 @@ export class HaPageToolPanel extends LitElement {
     this._status = "";
   }
 
+  private _exportAllRows(): void {
+    this._selectionOnly = false;
+    this._tableIndex = 0;
+  }
+
+  private _exportSelectedRows(): void {
+    this._selectionOnly = true;
+    this._tableIndex = 0;
+  }
+
   private _pickTable(ev: Event): void {
     this._tableIndex = Number((ev.currentTarget as HTMLElement).dataset.index);
   }
@@ -628,7 +682,8 @@ export class HaPageToolPanel extends LitElement {
     const { content, mime, extension } = exportContent(
       this._export,
       this._format,
-      this._tableIndex
+      this._tableIndex,
+      this._selectionOnly
     );
     const url = URL.createObjectURL(new Blob([content], { type: mime }));
     const name = exportFileName(this._export, extension);
@@ -644,7 +699,12 @@ export class HaPageToolPanel extends LitElement {
       return;
     }
     await copyToClipboard(
-      exportContent(this._export, this._format, this._tableIndex).content
+      exportContent(
+        this._export,
+        this._format,
+        this._tableIndex,
+        this._selectionOnly
+      ).content
     );
     this._status = this._i18n.localize("ui.page_tools.export_panel.copied");
   }
@@ -659,7 +719,9 @@ export class HaPageToolPanel extends LitElement {
     frame.setAttribute("sandbox", "allow-same-origin allow-modals");
     frame.style.cssText =
       "position:fixed;width:0;height:0;border:0;visibility:hidden";
-    frame.srcdoc = toHtml(this._export);
+    frame.srcdoc = toHtml(
+      this._selectionOnly ? selectionOnly(this._export) : this._export
+    );
     frame.addEventListener("load", () => {
       frame.contentWindow?.focus();
       frame.contentWindow?.print();

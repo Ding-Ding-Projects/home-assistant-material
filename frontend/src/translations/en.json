@@ -1771,6 +1771,14 @@
         "ask_assist": "Ask Assist: {query}",
         "commands_title": "Commands",
         "navigate_title": "Navigate",
+        "settings_title": "Settings",
+        "hints_title": "Keyboard hints",
+        "hint_move": "Move",
+        "hint_go": "Go to the exact page or control",
+        "hint_new_tab": "Open in a new tab",
+        "hint_use_here": "Use a control here",
+        "key_enter": "Enter",
+        "key_click": "Click",
         "commands": {
           "reload": {
             "all": "[%key:ui::panel::config::tools::tabs::yaml::section::reloading::all%]",
@@ -1888,6 +1896,7 @@
         "send_text": "Send text",
         "start_listening": "Start listening",
         "manage_assistants": "Manage assistants",
+        "local_answers_note": "Assist answers from the house itself by default. A cloud voice is used only if you pick one in Voice assistants.",
         "microphone_permission_denied": "Home Assistant doesn't have permission to use your microphone. Allow microphone access in your browser settings and try again.",
         "microphone_not_found": "No microphone was found. Connect a microphone and try again.",
         "microphone_in_use": "Your microphone could not be started. It may be in use by another app.",
@@ -1972,6 +1981,8 @@
           "setting": "Setting"
         },
         "update": {
+          "installed": "Installed: {version}",
+          "whats_new": "What is new",
           "release_announcement": "Read release announcement",
           "skip": "Skip",
           "clear_skipped": "Clear skipped",
@@ -2030,7 +2041,42 @@
           "clean_areas_order_hint": "The order in which areas are cleaned may not be supported by your vacuum.",
           "other_areas": "Other areas"
         },
+        "sensor": {
+          "changed": "Changed",
+          "last_24h": "Last 24 hours",
+          "last_7d": "Last 7 days",
+          "last_30d": "Last 30 days",
+          "range_24h": "24 h",
+          "range_7d": "7 days",
+          "range_30d": "30 days",
+          "lowest": "Lowest",
+          "average": "Average",
+          "highest": "Highest",
+          "loading": "Loading history",
+          "no_history": "No numeric history in this period",
+          "type": "Type",
+          "state_class": "Measurement kind"
+        },
+        "counter": {
+          "counts_between": "Counts from {minimum} to {maximum}, {step} at a time.",
+          "counts_step": "Counts {step} at a time.",
+          "reset_to": "Reset to {value}",
+          "lowest": "Lowest",
+          "highest": "Highest",
+          "step": "Step"
+        },
+        "humidifier": {
+          "now": "Now {value}."
+        },
+        "water_heater": {
+          "now": "Now {value}."
+        },
         "person": {
+          "since": "Since",
+          "followed_by": "Followed by",
+          "accuracy": "Accuracy",
+          "battery": "Phone battery",
+          "directions": "Directions",
           "create_zone": "Create zone from current location"
         },
         "cover": {
@@ -2120,6 +2166,7 @@
           "dock": "Return to dock"
         },
         "valve": {
+          "changed": "Changed",
           "edit_mode": "[%key:ui::dialogs::more_info_control::cover::edit_mode%]",
           "reset_favorites": "[%key:ui::dialogs::more_info_control::cover::reset_favorites%]",
           "reset_favorites_text": "Do you want to reset all favorites for this valve back to default?",
@@ -2150,6 +2197,7 @@
           "tomorrow": "[%key:ui::components::selectors::period::periods::tomorrow%]"
         },
         "camera": {
+          "live": "Live",
           "download_snapshot": "Download snapshot",
           "failed_to_download": "Failed to download snapshot. Please check the logs for more information.",
           "start_talking": "Start talking",
@@ -2169,6 +2217,7 @@
           }
         },
         "timer": {
+          "of_duration": "of {duration}",
           "edit_mode": "Edit presets",
           "reset_favorites": "Remove all presets",
           "reset_favorites_text": "Do you want to remove all presets for this timer?",
@@ -2794,38 +2843,38 @@
           "on_any_page": "On any page",
           "on_pages_with_tables": "On pages with tables",
           "search": "Quick search",
-          "search_command": "search commands",
-          "search_entities": "search entities",
-          "search_devices": "search devices",
-          "search_in_table": "to search in tables"
+          "search_command": "Run a command",
+          "search_entities": "Find an entity",
+          "search_devices": "Find a device",
+          "search_in_table": "Search in a table"
         },
         "assist": {
           "title": "Assist",
-          "open_assist": "open Assist dialog"
+          "open_assist": "Ask Assist"
         },
         "automation_script": {
           "title": "Automations / Scripts",
-          "copy": "to copy the selected item to clipboard",
-          "cut": "to cut the selected item and place it on the clipboard",
-          "delete": "to delete the selected item",
-          "paste": "to paste automation/script YAML from clipboard to editor",
-          "save": "to save automation/script",
-          "undo": "to undo last change",
-          "redo": "to redo last undone change"
+          "copy": "Copy the selected item",
+          "cut": "Cut the selected item",
+          "delete": "Delete the selected item",
+          "paste": "Paste YAML into the editor",
+          "save": "Save",
+          "undo": "Undo",
+          "redo": "Redo"
         },
         "charts": {
           "title": "Charts",
-          "drag_to_zoom": "to zoom in part of a chart",
-          "scroll_to_zoom": "to zoom in or out",
-          "scroll_to_pan": "to move through a zoomed-in chart",
-          "double_click": "to zoom in on part of the chart",
-          "click_legend_solo": "on a chart legend item to show only that series"
+          "drag_to_zoom": "Zoom in on part of a chart",
+          "scroll_to_zoom": "Zoom in or out",
+          "scroll_to_pan": "Move through a zoomed-in chart",
+          "double_click": "Zoom in on part of the chart",
+          "click_legend_solo": "Show only one series (click its legend item)"
         },
         "other": {
           "title": "Other",
-          "my_link": "get My Home Assistant link",
-          "show_shortcuts": "show keyboard shortcuts",
-          "toggle_yaml": "switch between visual and YAML editor"
+          "my_link": "Get a My Home Assistant link",
+          "show_shortcuts": "Show keyboard shortcuts",
+          "toggle_yaml": "Switch between visual and YAML editor"
         }
       }
     },
@@ -2869,6 +2918,17 @@
       "remember": "Remember",
       "log_in": "Log in"
     },
+    "bulk": {
+      "toolbar": "Actions for the selected items",
+      "selected": "{count} selected",
+      "select_page": "Select all {count} on this page",
+      "select_matches": "Select all {count} matches",
+      "invert": "Invert",
+      "clear": "Clear selection",
+      "cancel": "Cancel",
+      "confirm_again": "Press the button again to go ahead.",
+      "confirm_destructive": "Yes, {label}"
+    },
     "notification_drawer": {
       "click_to_configure": "Press button to configure {entity}",
       "empty": "No notifications",
@@ -2885,6 +2945,7 @@
       "integration_starting": "Starting {integration}. Not everything will be available until startup is finished.",
       "triggered": "Triggered {name}",
       "dismiss": "Dismiss",
+      "progress": "{percent} percent done",
       "no_matching_link_found": "No matching My link found for {path}",
       "new_version_available": "A new version of the frontend is available. This page will update in {seconds, plural, one {# second} other {# seconds}}.",
       "new_version_available_reload": "A new version of the frontend is available. It will be applied once you have finished what you are working on.",
@@ -3371,6 +3432,8 @@
       "hold_hint": "Keep holding",
       "sheet_subtitle": "On {page}",
       "menu_edit": "Edit appearance…",
+      "menu_open": "Open",
+      "menu_open_new_tab": "Open in a new tab",
       "menu_edit_kind": "Edit every {kind}…",
       "menu_reset_element": "Reset this one's appearance",
       "menu_reset_kind": "Reset every {kind}",
@@ -3390,7 +3453,14 @@
       "open_every_tab": "Open every tab",
       "search": "Search pages",
       "state_open": "Open",
-      "state_closed": "Closed, select to open",
+      "state_closed": "Closed by you, open it",
+      "catalog_intro": "Tabs you close stay closed until you open them here. Drag a tab, or press Control and Shift with an arrow key, to move it. Pin a tab to keep it first.",
+      "catalog_note": "A fresh install opens every page in order. An update opens only pages you have never been offered. Visiting a page from a menu never adds a tab by itself.",
+      "pin_tab": "Pin {name}",
+      "unpin_tab": "Unpin {name}",
+      "pinned": "{name} pinned",
+      "unpinned": "{name} unpinned",
+      "moved": "{name} moved to position {position} of {total}",
       "no_match": "No page matches that search.",
       "bulk_close_matching": "{count, plural,\n  =0 {Close matching tabs}\n  one {Close # matching tab}\n  other {Close # matching tabs}\n}",
       "bulk_close_others": "{count, plural,\n  =0 {Close the other tabs}\n  one {Close # other tab}\n  other {Close the # other tabs}\n}",
@@ -3626,12 +3696,16 @@
         "format": "Format",
         "formats": {
           "csv": "CSV",
+          "tsv": "Tab separated",
           "json": "JSON",
           "markdown": "Markdown",
           "text": "Plain text",
           "html": "HTML"
         },
-        "no_table": "This page has no table, so CSV is not offered.",
+        "no_table": "This page has no table, so CSV and tab separated files are not offered.",
+        "rows_group": "Rows",
+        "all_rows": "All rows",
+        "selection_only": "{count, plural,\n  one {Selected row only (#)}\n  other {Selected rows only (#)}\n}",
         "table": "Table",
         "table_number": "Table {number}, {rows, plural,\n  one {# row}\n  other {# rows}\n}",
         "preview": "Preview",
@@ -4281,7 +4355,7 @@
             "repositories": "Repositories",
             "registries": "Registry credentials",
             "no_results_found": "No results found in {repository}",
-            "page_summary": "{apps} apps from {repositories} repositories.",
+            "page_summary": "{apps} {apps, plural,\n  one {app}\n  other {apps}\n} from {repositories} {repositories, plural,\n  one {repository}\n  other {repositories}\n}.",
             "check_new_apps": "Check for new apps",
             "search": "Search the store",
             "filters": "Filter the store",
@@ -6585,6 +6659,7 @@
               "page": {
                 "breadcrumb": "Voice assistants",
                 "not_found": "This assistant no longer exists.",
+                "load_failed": "Could not load this assistant",
                 "try_it": "Try it",
                 "try_placeholder": "Type a command, such as turn on the lights",
                 "try_send": "Send",
@@ -7045,6 +7120,7 @@
           "vh_search_commits": "Search commits",
           "vh_by_author": "By {author}",
           "vh_uncommitted": "Not committed yet",
+          "vh_version_not_found": "This version is not in the list of versions, or is older than the list holds.",
           "vh_uncommitted_count": "{count, plural,\n  =0 {no changes}\n  one {# change}\n  other {# changes}\n}",
           "vh_footer": "{count, plural,\n  one {# commit.}\n  other {# commits.}\n} One is made each time you choose Commit, with a message written from what changed.",
           "vh_show_all": "Show all",
@@ -7318,6 +7394,7 @@
             "triggers": {
               "name": "Triggers",
               "header": "When",
+              "section_title": "Any of these happens",
               "description": "A trigger is a specific event happening in or around your home, for example: ''When the sun sets''. Any trigger added here will start your automation.",
               "learn_more": "Learn more about triggers",
               "triggered": "Triggered",
@@ -7632,6 +7709,7 @@
             "conditions": {
               "name": "Conditions",
               "header": "And if",
+              "section_title": "All of these are true",
               "description": "All conditions added here need to be satisfied for the automation to run. A condition can be satisfied or not at any given time, for example: ''If {user} is home''. You can use building blocks to create more complex conditions.",
               "learn_more": "Learn more about conditions",
               "add": "Add condition",
@@ -7837,6 +7915,7 @@
             "actions": {
               "name": "Actions",
               "header": "Then do",
+              "section_title": "These, in order",
               "description": "All actions added here will be performed in sequence when the automation runs. An action usually controls one of your areas, devices, or entities, for example: 'Turn on the lights'. You can use building blocks to create more complex sequences of actions.",
               "learn_more": "Learn more about actions",
               "add": "Add action",
@@ -8041,6 +8120,8 @@
                   "conditions": "Conditions",
                   "no_conditions": "[%key:ui::panel::config::devices::automation::conditions::no_conditions%]",
                   "sequence": "Actions",
+                  "conditions_heading": "If all of these are true",
+                  "sequence_heading": "Then do",
                   "option_label": "Option",
                   "default_option_label": "Default actions",
                   "option_description": "Choose actions based on conditions",
@@ -9799,7 +9880,9 @@
               "error_title": "Deleting application credentials failed"
             },
             "selected": "{number} selected",
-            "load_failed": "An unknown error occurred while loading application credentials."
+            "load_failed": "An unknown error occurred while loading application credentials.",
+            "summary": "Sign-in details for services that ask you to register your own app, such as Google or Spotify.",
+            "footer": "The client secret is never shown again after you save it. A credential that an integration still uses cannot be deleted."
           }
         },
         "mqtt": {
@@ -9852,7 +9935,9 @@
           "name": "Name",
           "type": "Type",
           "last_used": "Last used",
-          "no_devices": "No infrared proxies found"
+          "no_devices": "No infrared proxies found",
+          "summary": "Control older devices by replaying the signals of their remotes.",
+          "devices_summary": "The infrared proxies Home Assistant can send and receive signals through."
         },
         "bluetooth": {
           "title": "Bluetooth",
@@ -9935,6 +10020,7 @@
         },
         "serial": {
           "title": "Serial",
+          "summary": "Wired connections to meters, inverters, heat pumps and radio sticks.",
           "status_ok": "All ports connected",
           "status_disconnected": "Ports disconnected",
           "status_summary": "{in_use}/{total} connected ports in use",
@@ -9992,7 +10078,9 @@
           "mac_address": "MAC address",
           "hostname": "Hostname",
           "ip_address": "IP address",
-          "no_devices_found": "No recent DHCP requests found; no matching discoveries detected"
+          "no_devices_found": "No recent DHCP requests found; no matching discoveries detected",
+          "summary": "Addresses that devices on your network asked for, and which integration each could belong to.",
+          "footer": "{count} {count, plural,\n  one {request}\n  other {requests}\n} heard."
         },
         "thread": {
           "other_networks": "Other networks",
@@ -10069,6 +10157,8 @@
           "discovery_information": "Discovery information",
           "copy_to_clipboard": "Copy to clipboard",
           "no_devices_found": "No matching SSDP/UPnP discoveries found",
+          "summary": "Devices that announce themselves on your network, such as media players and routers.",
+          "footer": "{count} {count, plural,\n  one {announcement}\n  other {announcements}\n} heard. Select a row for everything the device said about itself.",
           "show_raw_data": "Show raw data",
           "raw_data_title": "Raw data"
         },
@@ -10080,7 +10170,9 @@
           "properties": "Properties",
           "discovery_information": "Discovery information",
           "copy_to_clipboard": "Copy to clipboard",
-          "no_devices_found": "No matching Zeroconf discoveries found"
+          "no_devices_found": "No matching Zeroconf discoveries found",
+          "summary": "Services that devices on your network advertise, such as speakers and bridges.",
+          "footer": "{count} {count, plural,\n  one {service}\n  other {services}\n} heard. Select a row for everything the device said about itself."
         },
         "zha": {
           "common": {
@@ -11353,13 +11445,18 @@
               "title": "Motion and attention",
               "chip": "Motion",
               "note": "Ways to make the interface calmer or to keep your place."
+            },
+            "narrator": {
+              "title": "Spoken narrator",
+              "chip": "Narrator",
+              "note": "Reads the name of the control you focus or activate, using your device's own voices. Nothing is sent anywhere."
             }
           },
           "language_mode": {
             "label": "Language mode",
             "description": "Choose English, playful Hong Kong Cantonese, or both together.",
             "default": "English.",
-            "reach": "Saved and applied to the preview on this page. Most of the interface is not yet shown in this mode.",
+            "reach": "Applies to this page, the phone bar, locks and the wording file. The rest of the interface is not translated into Cantonese yet and stays in English.",
             "english": "English",
             "cantonese": "Cantonese",
             "bilingual": "Both"
@@ -11380,7 +11477,7 @@
             "label": "Action sounds",
             "description": "Play a short sound when you turn a setting on, reset it, or try a sound.",
             "default": "On.",
-            "reach": "Active on this page now. Other pages do not play sounds yet.",
+            "reach": "Active on this page and when a wording file is applied. Other pages do not play sounds yet.",
             "try": "Try a sound",
             "silent": {
               "off": "Sounds are off.",
@@ -11391,9 +11488,9 @@
           },
           "quiet_hours": {
             "label": "Quiet hours",
-            "description": "Silences action sounds between two times, on the days you choose. Narration and alarms are not changed.",
+            "description": "Silences action sounds and the spoken narrator between two times, on the days you choose. Alarms are not changed.",
             "default": "Off.",
-            "reach": "Active on this page now. Other pages do not play sounds yet.",
+            "reach": "Active for action sounds and the spoken narrator.",
             "from": "From",
             "to": "To",
             "days": "Days quiet hours start on",
@@ -11413,15 +11510,15 @@
           },
           "low_stimulation": {
             "label": "Low stimulation",
-            "description": "Softens colour, shortens animations and silences action sounds.",
+            "description": "Softens colour, shortens animations and silences action sounds and the spoken narrator.",
             "default": "Off.",
-            "reach": "Active everywhere once this page has been opened in this browser session."
+            "reach": "Active everywhere."
           },
           "focus_spotlight": {
             "label": "Focus spotlight",
             "description": "Dims everything except the control that has the keyboard focus. Nothing is hidden.",
             "default": "Off.",
-            "reach": "Active everywhere once this page has been opened in this browser session."
+            "reach": "Active everywhere."
           },
           "preview": {
             "title": "Preview",
@@ -11440,6 +11537,79 @@
               "level_4": "儲存咗！所有嘢都喺你擺低嘅位置。",
               "level_5": "搞掂晒！你嘅更改安安樂樂，成間屋都為你自豪。"
             }
+          },
+          "time_awareness": {
+            "label": "Time awareness",
+            "description": "Shows the time and how long this browser tab has been open, in a small label at the bottom corner.",
+            "default": "Off.",
+            "reach": "Active everywhere. It does not know about tasks, so it shows the time and tab time only."
+          },
+          "momentum": {
+            "label": "Momentum",
+            "description": "Remembers the last page you were on. When the app opens on a different page, it offers one button to go back there.",
+            "default": "Off.",
+            "reach": "Active everywhere. It remembers the page address in this browser only, and offers it for up to 7 days."
+          },
+          "momentum_bar": {
+            "offer": "Pick up where you left off: {path}",
+            "go": "Go back",
+            "dismiss": "Not now"
+          },
+          "narrator_enabled": {
+            "label": "Spoken narrator",
+            "description": "Reads the name of the control you focus or activate. Off until you turn it on.",
+            "default": "Off.",
+            "reach": "Active everywhere when this device has speech synthesis. It follows the action sound switch, low stimulation and quiet hours.",
+            "unavailable": "This browser has no speech synthesis.",
+            "silent": {
+              "off": "Silent because action sounds are off.",
+              "low-stimulation": "Silent while low stimulation is on.",
+              "quiet-hours": "Silent during quiet hours."
+            }
+          },
+          "narrator_speak_in": {
+            "label": "Speak in",
+            "description": "Which language is read aloud when a name has both English and Cantonese.",
+            "default": "Both.",
+            "reach": "Active for names shown in both languages. English-only names are read in English; with Cantonese chosen they stay silent.",
+            "english": "English",
+            "cantonese": "Cantonese",
+            "both": "Both"
+          },
+          "narrator_voice_english": {
+            "label": "English voice",
+            "description": "The voice used for English. Automatic picks the best English voice on this device.",
+            "default": "Automatic.",
+            "reach": "Active. The list shows the voices this device offers."
+          },
+          "narrator_voice_cantonese": {
+            "label": "Cantonese voice",
+            "description": "The voice used for Cantonese. Many devices have none, and then the narrator stays silent for Cantonese.",
+            "default": "Automatic.",
+            "reach": "Active. The list shows the Cantonese voices this device offers."
+          },
+          "voice_auto": "Choose automatically",
+          "voice_none": "No voice for this language was found on this device.",
+          "voice_loading": "Voices are still loading.",
+          "voice_using": "Speaking with: {name}",
+          "narrator_rate": {
+            "label": "Speech rate",
+            "description": "How fast the narrator speaks, from 0.5 to 2 times normal.",
+            "default": "1x.",
+            "reach": "Active."
+          },
+          "narrator_pitch": {
+            "label": "Pitch",
+            "description": "How high the voice sounds, from 0.5 to 2. Some voices ignore it.",
+            "default": "1.",
+            "reach": "Active."
+          },
+          "narrator_sample": {
+            "label": "Hear a sample",
+            "description": "Speaks a short sentence with the current choices, even while the narrator is off.",
+            "default": "Nothing to reset.",
+            "reach": "Active when this device has speech synthesis. It still follows the sound switch and quiet hours.",
+            "text": "This is the narrator. It reads the name of each control."
           }
         },
         "entity_id_format": {
@@ -11807,7 +11977,29 @@
           "dismiss_selected": "{count, plural,\n  =0 {Dismiss selected}\n  one {Dismiss # selected}\n  other {Dismiss # selected}\n}",
           "no_match": "No notification matches.",
           "open_page": "Open as a page",
-          "note": "A dismissed notification is gone; the instance does not keep it."
+          "note": "Dismissed notifications are kept in this browser for {days} days. Only real decisions use a dialog.",
+          "severity": {
+            "error": "Error",
+            "warning": "Warning",
+            "info": "Information"
+          },
+          "dismissed_toast": "{count, plural,\n  one {Dismissed # notification}\n  other {Dismissed # notifications}\n}",
+          "undo": "Undo",
+          "restore_failed": "The notification could not be put back.",
+          "show_dismissed": "{count, plural,\n  =0 {Dismissed}\n  one {Dismissed (#)}\n  other {Dismissed (#)}\n}",
+          "hide_dismissed": "Back to notifications",
+          "dismissed_title": "Dismissed in the last {days} days",
+          "dismissed_empty": "Nothing was dismissed in the last {days} days.",
+          "dismissed_at": "Dismissed {time}",
+          "dismissed_search": "Search dismissed notifications",
+          "forget": "Forget {title}",
+          "clear_dismissed": "Clear dismissed",
+          "clear_dismissed_confirm": "Clear the {count, plural,\n  one {# dismissed notification}\n  other {# dismissed notifications}\n} kept in this browser?",
+          "clear_dismissed_yes": "Clear",
+          "clear_dismissed_no": "Keep",
+          "bulk_dismiss": "Dismiss",
+          "bulk_preview_title": "{count, plural,\n  one {Dismiss # notification}\n  other {Dismiss # notifications}\n}",
+          "bulk_preview_dismiss": "{count, plural,\n  one {# will be dismissed}\n  other {# will be dismissed}\n}"
         },
         "guided_setup": {
           "title": "Guided setup",
@@ -11920,6 +12112,7 @@
           "all_connections": "All connections",
           "overview": {
             "network": "My network",
+            "summary": "Far-away sensors that send a little data over a long distance.",
             "show_map": "Show map",
             "connections": "Connections",
             "total_connections": "{count} {count, plural, one {connection} other {connections}}",

@@ -72,16 +72,52 @@ export class LoRaWANOverview extends LitElement {
       back-path="/config/connectivity"
       has-fab
     >
-      <ha-button
-        slot="fab"
-        size="l"
-        @click=${this._addDevice}
-        .disabled=${!snapshot?.connections.length}
-      >
-        <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-        ${this.hass.localize("ui.panel.config.lorawan.add_device")}
-      </ha-button>
+      ${
+        this.narrow
+          ? html`<ha-button
+              slot="fab"
+              size="l"
+              @click=${this._addDevice}
+              .disabled=${!snapshot?.connections.length}
+            >
+              <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+              ${this.hass.localize("ui.panel.config.lorawan.add_device")}
+            </ha-button>`
+          : nothing
+      }
       <div class="container">
+        <div class="page-heading">
+          <div class="page-heading-text">
+            <h1>${this.hass.localize("ui.panel.config.lorawan.title")}</h1>
+            <p class="page-summary">
+              ${this.hass.localize("ui.panel.config.lorawan.overview.summary")}
+              ${
+                snapshot
+                  ? html`${this.hass.localize(
+                      "ui.panel.config.lorawan.overview.total_connections",
+                      { count: snapshot.connections.length }
+                    )},
+                    ${this.hass.localize(
+                      "ui.panel.config.lorawan.overview.devices_count",
+                      { count: snapshot.devices.length }
+                    )}`
+                  : nothing
+              }
+            </p>
+          </div>
+          ${
+            this.narrow
+              ? nothing
+              : html`<ha-button
+                  size="l"
+                  @click=${this._addDevice}
+                  .disabled=${!snapshot?.connections.length}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                  ${this.hass.localize("ui.panel.config.lorawan.add_device")}
+                </ha-button>`
+          }
+        </div>
         ${this._error ? html`<ha-alert alert-type="error">${this.hass.localize("ui.panel.config.lorawan.overview.load_error")}<ha-button slot="action" appearance="plain" @click=${this._subscribe}>${this.hass.localize("ui.common.retry")}</ha-button></ha-alert>` : nothing}
         ${!snapshot && !this._error ? html`<ha-spinner></ha-spinner>` : nothing}
         ${
@@ -180,8 +216,32 @@ export class LoRaWANOverview extends LitElement {
       margin: 0 auto var(--ha-space-4);
       max-width: 600px;
     }
-    .summary {
-      margin-top: var(--ha-space-6);
+    .page-heading {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--ha-space-4);
+      max-width: 600px;
+      margin: var(--ha-space-4) auto var(--ha-space-4);
+    }
+    .page-heading-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .page-heading h1 {
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-4xl);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: var(--ha-line-height-condensed);
+      color: var(--primary-text-color);
+    }
+    .page-heading ha-button {
+      flex-shrink: 0;
+    }
+    .page-heading .page-summary {
+      margin: var(--ha-space-1) 0 0;
+      font-size: var(--ha-font-size-l);
+      line-height: var(--ha-line-height-normal);
     }
     .summary-content {
       display: flex;

@@ -242,6 +242,8 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
   // after the page opens, so the list shows at once and fills in.
   @state() private _triggerTexts: Record<string, string> = {};
 
+  private _loadedConfigs: Record<string, AutomationConfig> = {};
+
   private _requestedTexts = new Set<string>();
 
   @state() private _selected: string[] = [];
@@ -529,6 +531,15 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
       fetchBlueprints(this.hass.callWS, "automation").then(
         (blueprints) => {
           this._blueprints = blueprints;
+          // Texts built before the blueprints arrived used the raw path
+          const rebuilt = { ...this._triggerTexts };
+          Object.entries(this._loadedConfigs).forEach(([entityId, config]) => {
+            const text = this._describeTriggers(config);
+            if (text) {
+              rebuilt[entityId] = text;
+            }
+          });
+          this._triggerTexts = rebuilt;
         },
         () => {
           // Without the list the Blueprint chip has no options to offer
@@ -555,6 +566,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
             this.hass,
             entityId
           );
+          this._loadedConfigs[entityId] = config;
           const text = this._describeTriggers(config);
           if (text) {
             this._triggerTexts = { ...this._triggerTexts, [entityId]: text };

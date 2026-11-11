@@ -122,14 +122,23 @@ class MoreInfoCamera extends LitElement {
     }
 
     return html`
-      <ha-camera-stream
-        .stateObj=${this.stateObj}
-        allow-exoplayer
-        controls
-        @microphone-changed=${this._microphoneChanged}
-        @stream-type-changed=${this._streamTypeChanged}
-        @camera-capabilities-changed=${this._capabilitiesChanged}
-      ></ha-camera-stream>
+      <div class="video">
+        <ha-camera-stream
+          .stateObj=${this.stateObj}
+          allow-exoplayer
+          controls
+          @microphone-changed=${this._microphoneChanged}
+          @stream-type-changed=${this._streamTypeChanged}
+          @camera-capabilities-changed=${this._capabilitiesChanged}
+        ></ha-camera-stream>
+        ${
+          this.stateObj.state === "streaming"
+            ? html`<span class="live-chip">
+                ${this._localize("ui.dialogs.more_info_control.camera.live")}
+              </span>`
+            : nothing
+        }
+      </div>
       ${this._supportsTwoWayAudio ? this._renderMicrophoneButton() : nothing}
     `;
   }
@@ -330,9 +339,28 @@ class MoreInfoCamera extends LitElement {
       display: block;
     }
 
+    .video {
+      position: relative;
+      border-radius: var(--ha-border-radius-3xl);
+      overflow: hidden;
+    }
+
+    .live-chip {
+      position: absolute;
+      top: var(--ha-space-3);
+      inset-inline-start: var(--ha-space-3);
+      padding: var(--ha-space-1) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      background: var(--error-color);
+      color: var(--text-primary-color, #fff);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      pointer-events: none;
+    }
+
     .buttons {
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
       padding: var(--ha-space-4);
     }
 

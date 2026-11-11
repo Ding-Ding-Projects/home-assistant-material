@@ -186,6 +186,55 @@ class MoreInfoWeather extends LitElement {
     return Array.from(grouped.values());
   });
 
+  private _stats(stateObj: WeatherEntity) {
+    const items: { icon: string; label: string; value: unknown }[] = [];
+    const attrs = stateObj.attributes;
+    if (this._showValue(attrs.wind_speed)) {
+      items.push({
+        icon: mdiWeatherWindy,
+        label: this._i18n.localize("ui.card.weather.attributes.wind_speed"),
+        value: getWind(
+          this._formatters.formatEntityAttributeValue,
+          this._i18n.localize,
+          stateObj,
+          attrs.wind_speed!,
+          attrs.wind_bearing
+        ),
+      });
+    }
+    if (this._showValue(attrs.humidity)) {
+      items.push({
+        icon: mdiWaterPercent,
+        label: this._i18n.localize("ui.card.weather.attributes.humidity"),
+        value: this._formatters.formatEntityAttributeValue(
+          stateObj,
+          "humidity"
+        ),
+      });
+    }
+    if (this._showValue(attrs.pressure)) {
+      items.push({
+        icon: mdiGauge,
+        label: this._i18n.localize("ui.card.weather.attributes.air_pressure"),
+        value: this._formatters.formatEntityAttributeValue(
+          stateObj,
+          "pressure"
+        ),
+      });
+    }
+    if (this._showValue(attrs.visibility)) {
+      items.push({
+        icon: mdiEye,
+        label: this._i18n.localize("ui.card.weather.attributes.visibility"),
+        value: this._formatters.formatEntityAttributeValue(
+          stateObj,
+          "visibility"
+        ),
+      });
+    }
+    return items;
+  }
+
   protected render() {
     if (!this._i18n || !this._formatters || !this._config || !this.stateObj) {
       return nothing;
@@ -203,164 +252,81 @@ class MoreInfoWeather extends LitElement {
 
     const weatherStateIcon = getWeatherStateIcon(this.stateObj.state, this);
 
+    const stats = this._stats(this.stateObj);
+
     return html`
-      <div class="content">
-        <div class="icon-image">
+      <div class="hero">
+        <div class="hero-main">
+          <div class="icon-image">
+            ${
+              weatherStateIcon ||
+              html`
+                <ha-state-icon
+                  class="weather-icon"
+                  .stateObj=${this.stateObj}
+                ></ha-state-icon>
+              `
+            }
+          </div>
           ${
-            weatherStateIcon ||
-            html`
-              <ha-state-icon
-                class="weather-icon"
-                .stateObj=${this.stateObj}
-              ></ha-state-icon>
-            `
+            this.stateObj.attributes.temperature !== undefined &&
+            this.stateObj.attributes.temperature !== null
+              ? html`<div class="temp">
+                  ${formatNumber(
+                    this.stateObj.attributes.temperature,
+                    this._i18n.locale
+                  )}<span
+                    >${getWeatherUnit(
+                      this._config,
+                      this.stateObj,
+                      "temperature"
+                    )}</span
+                  >
+                </div>`
+              : nothing
           }
         </div>
-        <div class="info">
-          <div class="name-state">
-            <div class="state">
-              ${this._formatters.formatEntityState(this.stateObj)}
-            </div>
-            <div class="time-ago">
+        <div class="summary">
+          ${this._formatters.formatEntityState(this.stateObj)}.
+          ${getSecondaryWeatherAttribute(
+            this._formatters.formatEntityAttributeValue,
+            this._i18n.localize,
+            this.stateObj,
+            forecast!
+          )}
+        </div>
+        <div class="time-ago">
+          <ha-relative-time
+            id="relative-time"
+            .datetime=${this.stateObj.last_changed}
+            capitalize
+          ></ha-relative-time>
+          <ha-tooltip for="relative-time">
+            <div class="row">
+              <span class="column-name">
+                ${this._i18n.localize(
+                  "ui.dialogs.more_info_control.last_changed"
+                )}:
+              </span>
               <ha-relative-time
-                id="relative-time"
                 .datetime=${this.stateObj.last_changed}
                 capitalize
               ></ha-relative-time>
-              <ha-tooltip for="relative-time">
-                <div class="row">
-                  <span class="column-name">
-                    ${this._i18n.localize(
-                      "ui.dialogs.more_info_control.last_changed"
-                    )}:
-                  </span>
-                  <ha-relative-time
-                    .datetime=${this.stateObj.last_changed}
-                    capitalize
-                  ></ha-relative-time>
-                </div>
-                <div class="row">
-                  <span>
-                    ${this._i18n.localize(
-                      "ui.dialogs.more_info_control.last_updated"
-                    )}:
-                  </span>
-                  <ha-relative-time
-                    .datetime=${this.stateObj.last_updated}
-                    capitalize
-                  ></ha-relative-time>
-                </div>
-              </ha-tooltip>
             </div>
-          </div>
-          <div class="temp-attribute">
-            <div class="temp">
-              ${
-                this.stateObj.attributes.temperature !== undefined &&
-                this.stateObj.attributes.temperature !== null
-                  ? html`
-                      ${formatNumber(
-                        this.stateObj.attributes.temperature,
-                        this._i18n.locale
-                      )}&nbsp;<span
-                        >${getWeatherUnit(
-                          this._config,
-                          this.stateObj,
-                          "temperature"
-                        )}</span
-                      >
-                    `
-                  : nothing
-              }
+            <div class="row">
+              <span>
+                ${this._i18n.localize(
+                  "ui.dialogs.more_info_control.last_updated"
+                )}:
+              </span>
+              <ha-relative-time
+                .datetime=${this.stateObj.last_updated}
+                capitalize
+              ></ha-relative-time>
             </div>
-            <div class="attribute">
-              ${getSecondaryWeatherAttribute(
-                this._formatters.formatEntityAttributeValue,
-                this._i18n.localize,
-                this.stateObj,
-                forecast!
-              )}
-            </div>
-          </div>
+          </ha-tooltip>
         </div>
       </div>
-      ${
-        this._showValue(this.stateObj.attributes.pressure)
-          ? html`
-              <div class="flex">
-                <ha-svg-icon .path=${mdiGauge}></ha-svg-icon>
-                <div class="main">
-                  ${this._i18n.localize(
-                    "ui.card.weather.attributes.air_pressure"
-                  )}
-                </div>
-                <div>
-                  ${this._formatters.formatEntityAttributeValue(
-                    this.stateObj,
-                    "pressure"
-                  )}
-                </div>
-              </div>
-            `
-          : nothing
-      }
-      ${
-        this._showValue(this.stateObj.attributes.humidity)
-          ? html`
-              <div class="flex">
-                <ha-svg-icon .path=${mdiWaterPercent}></ha-svg-icon>
-                <div class="main">
-                  ${this._i18n.localize("ui.card.weather.attributes.humidity")}
-                </div>
-                <div>
-                  ${this._formatters.formatEntityAttributeValue(
-                    this.stateObj,
-                    "humidity"
-                  )}
-                </div>
-              </div>
-            `
-          : nothing
-      }
-      ${
-        this._showValue(this.stateObj.attributes.wind_speed)
-          ? html`
-              <div class="flex">
-                <ha-svg-icon .path=${mdiWeatherWindy}></ha-svg-icon>
-                <div class="main">
-                  ${this._i18n.localize("ui.card.weather.attributes.wind_speed")}
-                </div>
-                <div>
-                  ${getWind(
-                    this._formatters.formatEntityAttributeValue,
-                    this._i18n.localize,
-                    this.stateObj,
-                    this.stateObj.attributes.wind_speed!,
-                    this.stateObj.attributes.wind_bearing
-                  )}
-                </div>
-              </div>
-            `
-          : nothing
-      }
-      ${
-        this._showValue(this.stateObj.attributes.visibility)
-          ? html`
-              <div class="flex">
-                <ha-svg-icon .path=${mdiEye}></ha-svg-icon>
-                <div class="main">
-                  ${this._i18n.localize("ui.card.weather.attributes.visibility")}
-                </div>
-                <div>
-                  ${this._formatters.formatEntityAttributeValue(
-                    this.stateObj,
-                    "visibility"
-                  )}
-                </div>
-              </div>
-            `
-          : nothing
-      }
       ${
         supportedForecasts?.length
           ? html`
@@ -503,6 +469,21 @@ class MoreInfoWeather extends LitElement {
           : nothing
       }
       ${
+        stats.length
+          ? html`<div class="stats">
+              ${stats.map(
+                (stat) => html`
+                  <div class="stat">
+                    <ha-svg-icon .path=${stat.icon}></ha-svg-icon>
+                    <div class="stat-label">${stat.label}</div>
+                    <div class="stat-value">${stat.value}</div>
+                  </div>
+                `
+              )}
+            </div>`
+          : nothing
+      }
+      ${
         this.stateObj.attributes.attribution
           ? html`
               <div class="attribution">
@@ -524,16 +505,74 @@ class MoreInfoWeather extends LitElement {
     return [
       weatherSVGStyles,
       css`
-        ha-svg-icon {
-          color: var(--state-icon-color);
-          margin-left: var(--ha-space-2);
-          margin-inline-start: var(--ha-space-2);
-          margin-inline-end: initial;
+        :host {
+          display: block;
+        }
+
+        .hero {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--ha-space-2);
+          text-align: center;
+          margin-bottom: var(--ha-space-4);
+        }
+
+        .hero-main {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--ha-space-4);
+        }
+
+        .icon-image {
+          display: flex;
+          align-items: center;
+        }
+
+        .icon-image > * {
+          flex: 0 0 64px;
+          width: 64px;
+          height: 64px;
+        }
+
+        .weather-icon {
+          --mdc-icon-size: 64px;
+        }
+
+        .temp {
+          position: relative;
+          direction: ltr;
+          font-size: 56px;
+          line-height: 64px;
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--primary-text-color);
+        }
+
+        .temp span {
+          position: absolute;
+          font-size: var(--ha-font-size-2xl);
+          top: 6px;
+        }
+
+        .summary {
+          font-size: var(--ha-font-size-m);
+          color: var(--secondary-text-color);
+          max-width: 100%;
+        }
+
+        .time-ago {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
         }
 
         .section {
           margin: var(--ha-space-4) 0 var(--ha-space-2) 0;
           font-size: 1.2em;
+        }
+
+        ha-tab-group {
+          margin-bottom: var(--ha-space-2);
         }
 
         ha-tab-group-tab {
@@ -545,20 +584,41 @@ class MoreInfoWeather extends LitElement {
           justify-content: center;
         }
 
-        .flex {
-          display: flex;
-          height: 32px;
-          align-items: center;
-        }
-        .flex > div:last-child {
-          direction: ltr;
+        .stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+          gap: var(--ha-space-2);
+          margin-top: var(--ha-space-4);
         }
 
-        .main {
-          flex: 1;
-          margin-left: var(--ha-space-6);
-          margin-inline-start: var(--ha-space-6);
-          margin-inline-end: initial;
+        .stat {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(
+            --ha-color-surface-container,
+            var(--secondary-background-color)
+          );
+        }
+
+        .stat ha-svg-icon {
+          --mdc-icon-size: 20px;
+          width: 20px;
+          height: 20px;
+          color: var(--secondary-text-color);
+        }
+
+        .stat-label {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+
+        .stat-value {
+          direction: ltr;
+          text-align: start;
+          font-weight: var(--ha-font-weight-semi-bold);
         }
 
         .attribution {
@@ -567,94 +627,10 @@ class MoreInfoWeather extends LitElement {
           direction: ltr;
         }
 
-        .time-ago,
-        .attribute {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
         .attribution,
         .templow,
-        .daynight,
-        .attribute,
-        .time-ago {
+        .daynight {
           color: var(--secondary-text-color);
-        }
-
-        .content {
-          display: flex;
-          flex-wrap: nowrap;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--ha-space-4);
-        }
-
-        .icon-image {
-          display: flex;
-          align-items: center;
-          min-width: 64px;
-          margin-right: var(--ha-space-4);
-          margin-inline-end: var(--ha-space-4);
-          margin-inline-start: initial;
-        }
-
-        .icon-image > * {
-          flex: 0 0 64px;
-          height: 64px;
-        }
-
-        .weather-icon {
-          --mdc-icon-size: 64px;
-        }
-
-        .info {
-          display: flex;
-          justify-content: space-between;
-          flex-grow: 1;
-          overflow: hidden;
-        }
-
-        .temp-attribute {
-          text-align: var(--float-end);
-        }
-
-        .temp-attribute .temp {
-          position: relative;
-          margin-right: var(--ha-space-6);
-          direction: ltr;
-        }
-
-        .temp-attribute .temp span {
-          position: absolute;
-          font-size: var(--ha-font-size-2xl);
-          top: 1px;
-        }
-
-        .state,
-        .temp-attribute .temp {
-          font-size: var(--ha-font-size-3xl);
-          line-height: var(--ha-line-height-condensed);
-        }
-
-        .attribute {
-          font-size: var(--ha-font-size-m);
-          line-height: 1;
-          direction: ltr;
-        }
-
-        .name-state {
-          overflow: hidden;
-          padding-right: var(--ha-space-3);
-          padding-inline-end: var(--ha-space-3);
-          padding-inline-start: initial;
-          width: 100%;
-        }
-
-        .state {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
         }
 
         .forecast {
@@ -709,7 +685,14 @@ class MoreInfoWeather extends LitElement {
 
         .forecast-item {
           text-align: center;
-          padding: 0 var(--ha-space-3);
+          padding: var(--ha-space-3);
+          margin: 0 var(--ha-space-1);
+          min-width: 56px;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(
+            --ha-color-surface-container,
+            var(--secondary-background-color)
+          );
         }
 
         .forecast-item-label {

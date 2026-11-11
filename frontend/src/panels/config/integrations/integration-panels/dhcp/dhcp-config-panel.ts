@@ -99,6 +99,10 @@ export class DHCPConfigPanel extends SubscribeMixin(LitElement) {
         back-path="/config/integrations/integration/dhcp"
         .columns=${this._columns(this.hass.localize)}
         .data=${this._dataWithIds(this._data)}
+        .summary=${this.hass.localize("ui.panel.config.dhcp.summary")}
+        .footerText=${this.hass.localize("ui.panel.config.dhcp.footer", {
+          count: this._data.length,
+        })}
         .noDataText=${this.hass.localize(
           "ui.panel.config.dhcp.no_devices_found"
         )}

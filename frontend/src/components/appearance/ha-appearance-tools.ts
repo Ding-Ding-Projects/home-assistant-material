@@ -9,7 +9,9 @@ import {
   mdiLock,
   mdiLockOutline,
   mdiMagnify,
+  mdiOpenInNew,
   mdiPaletteSwatch,
+  mdiTabPlus,
   mdiRestore,
   mdiVolumeHigh,
 } from "@mdi/js";
@@ -114,6 +116,8 @@ interface MenuItem {
  * in every language, so a person's fingers learn them once.
  */
 const MENU_LETTERS: Record<string, string> = {
+  open_link: "o",
+  open_link_tab: "n",
   edit: "a",
   edit_kind: "k",
   reset_element: "x",
@@ -754,15 +758,38 @@ export class HaAppearanceTools extends LitElement {
     const index = this._defaultIndex(chain);
     const element = chain[index];
     const kind = kindLabel(element.localName);
-    const items: MenuItem[] = [
-      {
-        id: "edit",
-        icon: mdiFormatPaint,
-        label: this._l("menu_edit"),
-        shortcut: shortcutLabel(SHORTCUTS.edit),
-        run: () => this._edit(chain, index, "element"),
-      },
-    ];
+    const items: MenuItem[] = [];
+    // What the element does when chosen: open the link it is or sits inside.
+    // Entries that only a page can know, like turning something off or
+    // renaming it, need the page to say so and are not offered here.
+    const link = chain.find(
+      (candidate): candidate is HTMLAnchorElement =>
+        candidate instanceof HTMLAnchorElement &&
+        !!candidate.getAttribute("href")
+    );
+    if (link) {
+      items.push(
+        {
+          id: "open_link",
+          icon: mdiOpenInNew,
+          label: this._l("menu_open"),
+          run: () => link.click(),
+        },
+        {
+          id: "open_link_tab",
+          icon: mdiTabPlus,
+          label: this._l("menu_open_new_tab"),
+          run: () => window.open(link.href, "_blank", "noreferrer"),
+        }
+      );
+    }
+    items.push({
+      id: "edit",
+      icon: mdiFormatPaint,
+      label: this._l("menu_edit"),
+      shortcut: shortcutLabel(SHORTCUTS.edit),
+      run: () => this._edit(chain, index, "element"),
+    });
     // "Every one of a kind" is offered for components only: every plain
     // block or button on every page is not a kind a person can picture.
     if (isAKind(element)) {

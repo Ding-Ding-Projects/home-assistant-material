@@ -84,6 +84,11 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
   protected renderContent() {
     return html`
       ${
+        this.config.alias
+          ? html`<h1 class="page-title">${this.config.alias}</h1>`
+          : nothing
+      }
+      ${
         this.config.description
           ? html`<ha-markdown
               class="description"
@@ -92,111 +97,138 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
             ></ha-markdown>`
           : nothing
       }
-      <div class="header">
-        <h2 id="triggers-heading" class="name">
-          ${this.hass.localize(
-            "ui.panel.config.automation.editor.triggers.header"
-          )}
-        </h2>
-      </div>
-      ${
-        !ensureArray(this.config.triggers)?.length
-          ? html`<p>
-              ${this.hass.localize(
-                "ui.panel.config.automation.editor.triggers.description"
-              )}
-            </p>`
-          : nothing
-      }
+      <section class="section">
+        <div class="header">
+          <h2 id="triggers-heading" class="name">
+            <span class="chip chip-when"
+              >${this.hass.localize(
+                "ui.panel.config.automation.editor.triggers.header"
+              )}</span
+            >
+            <span class="section-title"
+              >${this.hass.localize(
+                "ui.panel.config.automation.editor.triggers.section_title"
+              )}</span
+            >
+          </h2>
+        </div>
+        ${
+          !ensureArray(this.config.triggers)?.length
+            ? html`<p>
+                ${this.hass.localize(
+                  "ui.panel.config.automation.editor.triggers.description"
+                )}
+              </p>`
+            : nothing
+        }
 
-      <ha-automation-trigger
-        role="region"
-        aria-labelledby="triggers-heading"
-        .triggers=${this.config.triggers || []}
-        .highlightedTriggers=${this.pastedConfig?.triggers}
-        @value-changed=${this._triggerChanged}
-        .hass=${this.hass}
-        .editorDirty=${this.dirty}
-        .disabled=${this.disabled || this.saving}
-        .narrow=${this.narrow}
-        @open-sidebar=${this.openSidebar}
-        @request-close-sidebar=${this.triggerCloseSidebar}
-        @close-sidebar=${this.handleCloseSidebar}
-        root
-        sidebar
-      ></ha-automation-trigger>
+        <ha-automation-trigger
+          role="region"
+          aria-labelledby="triggers-heading"
+          .triggers=${this.config.triggers || []}
+          .highlightedTriggers=${this.pastedConfig?.triggers}
+          @value-changed=${this._triggerChanged}
+          .hass=${this.hass}
+          .editorDirty=${this.dirty}
+          .disabled=${this.disabled || this.saving}
+          .narrow=${this.narrow}
+          @open-sidebar=${this.openSidebar}
+          @request-close-sidebar=${this.triggerCloseSidebar}
+          @close-sidebar=${this.handleCloseSidebar}
+          root
+          sidebar
+        ></ha-automation-trigger>
+      </section>
 
-      <div class="header">
-        <h2 id="conditions-heading" class="name">
-          ${this.hass.localize(
-            "ui.panel.config.automation.editor.conditions.header"
-          )}
-          <span class="small"
-            >(${this.hass.localize("ui.common.optional")})</span
-          >
-        </h2>
-      </div>
-      ${
-        !ensureArray(this.config.conditions)?.length
-          ? html`<p>
-              ${this.hass.localize(
-                "ui.panel.config.automation.editor.conditions.description",
-                { user: this.hass.user?.name || "Alice" }
-              )}
-            </p>`
-          : nothing
-      }
+      <section class="section">
+        <div class="header">
+          <h2 id="conditions-heading" class="name">
+            <span class="chip chip-if"
+              >${this.hass.localize(
+                "ui.panel.config.automation.editor.conditions.header"
+              )}</span
+            >
+            <span class="section-title"
+              >${this.hass.localize(
+                "ui.panel.config.automation.editor.conditions.section_title"
+              )}</span
+            >
+            <span class="small"
+              >(${this.hass.localize("ui.common.optional")})</span
+            >
+          </h2>
+        </div>
+        ${
+          !ensureArray(this.config.conditions)?.length
+            ? html`<p>
+                ${this.hass.localize(
+                  "ui.panel.config.automation.editor.conditions.description",
+                  { user: this.hass.user?.name || "Alice" }
+                )}
+              </p>`
+            : nothing
+        }
 
-      <ha-automation-condition
-        role="region"
-        aria-labelledby="conditions-heading"
-        .conditions=${this.config.conditions || []}
-        .highlightedConditions=${this.pastedConfig?.conditions}
-        @value-changed=${this._conditionChanged}
-        .hass=${this.hass}
-        .editorDirty=${this.dirty}
-        .disabled=${this.disabled || this.saving}
-        .narrow=${this.narrow}
-        @open-sidebar=${this.openSidebar}
-        @request-close-sidebar=${this.triggerCloseSidebar}
-        @close-sidebar=${this.handleCloseSidebar}
-        root
-        sidebar
-      ></ha-automation-condition>
+        <ha-automation-condition
+          role="region"
+          aria-labelledby="conditions-heading"
+          .conditions=${this.config.conditions || []}
+          .highlightedConditions=${this.pastedConfig?.conditions}
+          @value-changed=${this._conditionChanged}
+          .hass=${this.hass}
+          .editorDirty=${this.dirty}
+          .disabled=${this.disabled || this.saving}
+          .narrow=${this.narrow}
+          @open-sidebar=${this.openSidebar}
+          @request-close-sidebar=${this.triggerCloseSidebar}
+          @close-sidebar=${this.handleCloseSidebar}
+          root
+          sidebar
+        ></ha-automation-condition>
+      </section>
 
-      <div class="header">
-        <h2 id="actions-heading" class="name">
-          ${this.hass.localize(
-            "ui.panel.config.automation.editor.actions.header"
-          )}
-        </h2>
-      </div>
-      ${
-        !ensureArray(this.config.actions)?.length
-          ? html`<p>
-              ${this.hass.localize(
-                "ui.panel.config.automation.editor.actions.description"
-              )}
-            </p>`
-          : nothing
-      }
+      <section class="section">
+        <div class="header">
+          <h2 id="actions-heading" class="name">
+            <span class="chip chip-do"
+              >${this.hass.localize(
+                "ui.panel.config.automation.editor.actions.header"
+              )}</span
+            >
+            <span class="section-title"
+              >${this.hass.localize(
+                "ui.panel.config.automation.editor.actions.section_title"
+              )}</span
+            >
+          </h2>
+        </div>
+        ${
+          !ensureArray(this.config.actions)?.length
+            ? html`<p>
+                ${this.hass.localize(
+                  "ui.panel.config.automation.editor.actions.description"
+                )}
+              </p>`
+            : nothing
+        }
 
-      <ha-automation-action
-        role="region"
-        aria-labelledby="actions-heading"
-        .actions=${this.config.actions || []}
-        .highlightedActions=${this.pastedConfig?.actions}
-        @value-changed=${this._actionChanged}
-        @open-sidebar=${this.openSidebar}
-        @request-close-sidebar=${this.triggerCloseSidebar}
-        @close-sidebar=${this.handleCloseSidebar}
-        .hass=${this.hass}
-        .editorDirty=${this.dirty}
-        .narrow=${this.narrow}
-        .disabled=${this.disabled || this.saving}
-        root
-        sidebar
-      ></ha-automation-action>
+        <ha-automation-action
+          role="region"
+          aria-labelledby="actions-heading"
+          .actions=${this.config.actions || []}
+          .highlightedActions=${this.pastedConfig?.actions}
+          @value-changed=${this._actionChanged}
+          @open-sidebar=${this.openSidebar}
+          @request-close-sidebar=${this.triggerCloseSidebar}
+          @close-sidebar=${this.handleCloseSidebar}
+          .hass=${this.hass}
+          .editorDirty=${this.dirty}
+          .narrow=${this.narrow}
+          .disabled=${this.disabled || this.saving}
+          root
+          sidebar
+        ></ha-automation-action>
+      </section>
     `;
   }
 
@@ -478,13 +510,62 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           display: flex;
           align-items: center;
         }
-        .header:first-child {
-          margin-top: -16px;
+        .page-title {
+          margin: var(--ha-space-2) 0 var(--ha-space-1);
+          font-size: var(--ha-font-size-3xl, 1.75rem);
+          font-weight: var(--ha-font-weight-normal);
+          line-height: var(--ha-line-height-condensed, 1.2);
+        }
+        .section {
+          background: var(
+            --ha-color-surface-container,
+            var(--card-background-color)
+          );
+          border-radius: var(--ha-border-radius-3xl, 28px);
+          padding: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+        }
+        .section p {
+          margin-bottom: var(--ha-space-2);
         }
         .header .name {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          font-size: var(--ha-font-size-l, 1.125rem);
           font-weight: var(--ha-font-weight-normal);
           flex: 1;
-          margin-bottom: 8px;
+          margin: 0 0 var(--ha-space-3);
+        }
+        .chip {
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          font-size: var(--ha-font-size-s, 0.875rem);
+          font-weight: var(--ha-font-weight-medium);
+          background: var(
+            --ha-color-fill-primary-quiet-resting,
+            var(--secondary-background-color)
+          );
+          color: var(--primary-text-color);
+        }
+        .chip-when {
+          background: var(
+            --ha-color-fill-primary-quiet-resting,
+            var(--secondary-background-color)
+          );
+        }
+        .chip-if {
+          background: var(--secondary-background-color);
+        }
+        .chip-do {
+          background: var(
+            --ha-color-fill-success-quiet-resting,
+            var(--secondary-background-color)
+          );
+        }
+        .section-title {
+          font-size: var(--ha-font-size-l, 1.125rem);
         }
         .header .small {
           font-size: small;

@@ -1,3 +1,4 @@
+import { mdiCheck, mdiPause, mdiPlay, mdiStop } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -5,9 +6,13 @@ import { classMap } from "lit/directives/class-map";
 import { consume } from "../../../common/decorators/consume";
 import { TimerRemainingTimeController } from "../../../common/controllers/timer-remaining-time-controller";
 import { consumeLocalize } from "../../../common/decorators/consume-context-entry";
+import durationToSeconds from "../../../common/datetime/duration_to_seconds";
+import secondsToDuration from "../../../common/datetime/seconds_to_duration";
 import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-button";
+import "../../../components/ha-control-button";
+import "../../../components/ha-svg-icon";
 import type { HaButton } from "../../../components/ha-button";
 import "../../../components/ha-duration-input";
 import type { HaDurationData } from "../../../components/ha-duration-input";
@@ -25,9 +30,11 @@ import type {
   HomeAssistantFormatters,
   ValueChangedEvent,
 } from "../../../types";
-import "../components/ha-more-info-state-header";
 import "../components/timers/ha-more-info-timer-presets";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
+
+const RING_RADIUS = 88;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 @customElement("more-info-timer")
 class MoreInfoTimer extends LitElement {
@@ -90,94 +97,116 @@ class MoreInfoTimer extends LitElement {
         shouldShowFavoriteOptions(this.entry.options?.timer?.presets))
     );
 
+    const totalSeconds = durationToSeconds(this.stateObj.attributes.duration);
+    const remaining = this._remainingTime.timeRemaining;
+    const fraction =
+      timerState === "idle" || !totalSeconds || remaining === undefined
+        ? 0
+        : Math.min(Math.max(remaining / totalSeconds, 0), 1);
+    const dash = (fraction * RING_CIRCUMFERENCE).toFixed(2);
+    const display =
+      computeDisplayTimer(
+        this._formatters.formatEntityState,
+        this.stateObj,
+        remaining
+      ) ?? "";
+
     return html`
-      <ha-more-info-state-header
-        class=${classMap({ finished: this._finished })}
-        .stateObj=${this.stateObj}
-        .stateOverride=${
-          computeDisplayTimer(
-            this._formatters.formatEntityState,
-            this.stateObj,
-            this._remainingTime.timeRemaining
-          ) ?? undefined
-        }
-        @animationend=${this._finishedAnimationEnded}
-      ></ha-more-info-state-header>
       <div class="controls">
-        <ha-duration-input
-          .data=${this._duration}
-          required
-          @value-changed=${this._durationChanged}
-        ></ha-duration-input>
-        <div class="actions">
-          ${
-            timerState === "idle"
-              ? html`
-                  <ha-button appearance="plain" size="s" @click=${this._start}>
-                    ${this._localize("ui.card.timer.actions.start")}
-                  </ha-button>
-                `
-              : nothing
-          }
-          ${
-            timerState === "active" || timerState === "paused"
-              ? html`
-                  <ha-button appearance="plain" size="s" @click=${this._start}>
-                    ${this._localize("ui.card.timer.actions.set")}
-                  </ha-button>
-                `
-              : nothing
-          }
+        <div
+          class=${classMap({ ring: true, finished: this._finished })}
+          role="img"
+          aria-label=${display}
+          @animationend=${this._finishedAnimationEnded}
+        >
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="track" cx="100" cy="100" r=${RING_RADIUS}></circle>
+            <circle
+              class="progress"
+              cx="100"
+              cy="100"
+              r=${RING_RADIUS}
+              stroke-dasharray="${dash} ${RING_CIRCUMFERENCE}"
+              transform="rotate(-90 100 100)"
+            ></circle>
+          </svg>
+          <div class="ring-text">
+            <div class="remaining">${display}</div>
+            ${
+              totalSeconds
+                ? html`<div class="of">
+                    ${this._localize(
+                      "ui.dialogs.more_info_control.timer.of_duration",
+                      { duration: secondsToDuration(totalSeconds) ?? "0" }
+                    )}
+                  </div>`
+                : nothing
+            }
+          </div>
+        </div>
+        <div class="round-actions">
           ${
             timerState === "active"
               ? html`
-                  <ha-button
-                    appearance="plain"
-                    size="s"
+                  <ha-control-button
+                    class="primary"
+                    .label=${this._localize("ui.card.timer.actions.pause")}
                     .action=${"pause"}
                     @click=${this._handleActionClick}
                   >
-                    ${this._localize("ui.card.timer.actions.pause")}
-                  </ha-button>
+                    <ha-svg-icon .path=${mdiPause}></ha-svg-icon>
+                  </ha-control-button>
                 `
               : nothing
           }
           ${
             timerState === "paused"
               ? html`
-                  <ha-button
-                    appearance="plain"
-                    size="s"
+                  <ha-control-button
+                    class="primary"
+                    .label=${this._localize("ui.card.timer.actions.start")}
                     .action=${"start"}
                     @click=${this._handleActionClick}
                   >
-                    ${this._localize("ui.card.timer.actions.start")}
-                  </ha-button>
+                    <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
+                  </ha-control-button>
                 `
               : nothing
           }
           ${
             timerState === "active" || timerState === "paused"
               ? html`
-                  <ha-button
-                    appearance="plain"
-                    size="s"
+                  <ha-control-button
+                    .label=${this._localize("ui.card.timer.actions.cancel")}
                     .action=${"cancel"}
                     @click=${this._handleActionClick}
                   >
-                    ${this._localize("ui.card.timer.actions.cancel")}
-                  </ha-button>
-                  <ha-button
-                    appearance="plain"
-                    size="s"
+                    <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
+                  </ha-control-button>
+                  <ha-control-button
+                    .label=${this._localize("ui.card.timer.actions.finish")}
                     .action=${"finish"}
                     @click=${this._handleActionClick}
                   >
-                    ${this._localize("ui.card.timer.actions.finish")}
-                  </ha-button>
+                    <ha-svg-icon .path=${mdiCheck}></ha-svg-icon>
+                  </ha-control-button>
                 `
               : nothing
           }
+        </div>
+        <ha-duration-input
+          .data=${this._duration}
+          required
+          @value-changed=${this._durationChanged}
+        ></ha-duration-input>
+        <div class="actions">
+          <ha-button appearance="filled" size="s" @click=${this._start}>
+            ${
+              timerState === "idle"
+                ? this._localize("ui.card.timer.actions.start")
+                : this._localize("ui.card.timer.actions.set")
+            }
+          </ha-button>
         </div>
         ${
           showPresets
@@ -232,16 +261,74 @@ class MoreInfoTimer extends LitElement {
         gap: var(--ha-space-2);
         justify-content: center;
       }
-      ha-more-info-state-header.finished {
+      .ring {
+        position: relative;
+        width: min(100%, 240px);
+        aspect-ratio: 1;
+      }
+      .ring svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .ring circle {
+        fill: none;
+        stroke-width: 14;
+      }
+      .ring .track {
+        stroke: var(--divider-color);
+      }
+      .ring .progress {
+        stroke: var(--primary-color);
+        stroke-linecap: round;
+      }
+      .ring-text {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: var(--ha-space-8);
+      }
+      .remaining {
+        font-size: var(--ha-font-size-4xl, 40px);
+        line-height: var(--ha-line-height-condensed);
+        font-weight: var(--ha-font-weight-medium);
+        direction: ltr;
+      }
+      .of {
+        color: var(--secondary-text-color);
+        direction: ltr;
+      }
+      .round-actions {
+        display: flex;
+        justify-content: center;
+        gap: var(--ha-space-3);
+      }
+      .round-actions ha-control-button {
+        --control-button-border-radius: 50%;
+        --control-button-icon-color: var(--primary-text-color);
+        width: 56px;
+        height: 56px;
+        flex: none;
+      }
+      .round-actions ha-control-button.primary {
+        --control-button-background-color: var(--primary-color);
+        --control-button-background-opacity: 1;
+        --control-button-icon-color: var(--text-primary-color);
+      }
+      .ring.finished {
         animation: timer-finished-pulse 0.5s ease-in-out 2;
       }
       @keyframes timer-finished-pulse {
         50% {
-          color: var(--error-color);
+          opacity: 0.4;
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        ha-more-info-state-header.finished {
+        .ring.finished {
           animation-duration: var(--ha-animation-duration-none);
         }
       }

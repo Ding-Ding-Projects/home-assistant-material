@@ -792,8 +792,8 @@ class MoreInfoMediaPlayer extends LitElement {
       max-width: 100%;
       max-height: 100%;
       object-fit: cover;
-      border-radius: var(--ha-border-radius-sm);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: var(--ha-border-radius-3xl);
+      box-shadow: none;
       position: relative;
       display: flex;
       align-items: center;
@@ -837,7 +837,8 @@ class MoreInfoMediaPlayer extends LitElement {
     }
 
     .center-control {
-      --ha-button-height: 56px;
+      --ha-button-height: 64px;
+      --ha-button-border-radius: var(--ha-border-radius-circle);
     }
 
     .spacer {
@@ -912,7 +913,8 @@ class MoreInfoMediaPlayer extends LitElement {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      margin: var(--ha-space-2) 0 var(--ha-space-2) var(--ha-space-2);
+      margin: var(--ha-space-2);
+      text-align: center;
     }
 
     .media-title {
@@ -929,8 +931,10 @@ class MoreInfoMediaPlayer extends LitElement {
 
     .controls-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: space-around;
+      justify-content: center;
+      gap: var(--ha-space-2);
     }
 
     .controls-row ha-icon-button {
@@ -953,6 +957,7 @@ class MoreInfoMediaPlayer extends LitElement {
       gap: var(--ha-space-6);
       align-self: center;
       width: 320px;
+      max-width: 100%;
     }
   `;
 }

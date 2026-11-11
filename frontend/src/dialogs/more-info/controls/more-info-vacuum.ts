@@ -1,5 +1,4 @@
 import {
-  mdiFan,
   mdiHomeImportOutline,
   mdiMapMarker,
   mdiPause,
@@ -20,8 +19,6 @@ import { blankBeforePercent } from "../../../common/translations/blank_before_pe
 import "../../../components/entity/ha-battery-icon";
 import "../../../components/ha-control-button";
 import "../../../components/ha-control-button-group";
-import "../../../components/ha-control-select-menu";
-import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-icon";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-icon-next";
@@ -56,6 +53,7 @@ import type {
 } from "../../../types";
 import "../components/ha-more-info-control-select-container";
 import "../components/ha-more-info-state-header";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import { showVacuumCleanAreasView } from "../components/vacuum/show-view-vacuum-clean-areas";
 
@@ -213,8 +211,9 @@ class MoreInfoVacuum extends LitElement {
     );
   }
 
-  private _handleFanSpeedChanged(ev: HaDropdownSelectEvent) {
-    const newVal = ev.detail.item.value;
+  private _handleFanSpeedClick(ev: Event) {
+    const newVal = (ev.currentTarget as HTMLButtonElement & { speed: string })
+      .speed;
     const oldVal = this.stateObj!.attributes.fan_speed;
 
     if (!newVal || oldVal === newVal) return;
@@ -437,31 +436,36 @@ class MoreInfoVacuum extends LitElement {
                 ${
                   supportsFanSpeed && stateObj.attributes.fan_speed_list
                     ? html`
-                        <ha-control-select-menu
-                          .label=${this._formatters.formatEntityAttributeName(
+                        <div
+                          class="segmented"
+                          role="group"
+                          aria-label=${this._formatters.formatEntityAttributeName(
                             stateObj,
                             "fan_speed"
                           )}
-                          .value=${stateObj.attributes.fan_speed}
-                          .disabled=${isUnavailable}
-                          @wa-select=${this._handleFanSpeedChanged}
-                          .options=${stateObj.attributes.fan_speed_list.map(
-                            (mode) => ({
-                              value: mode,
-                              label:
-                                this._formatters.formatEntityAttributeValue(
+                        >
+                          ${stateObj.attributes.fan_speed_list.map(
+                            (mode) => html`
+                              <button
+                                type="button"
+                                aria-pressed=${
+                                  stateObj.attributes.fan_speed === mode
+                                    ? "true"
+                                    : "false"
+                                }
+                                .disabled=${isUnavailable}
+                                .speed=${mode}
+                                @click=${this._handleFanSpeedClick}
+                              >
+                                ${this._formatters.formatEntityAttributeValue(
                                   stateObj,
                                   "fan_speed",
                                   mode
-                                ),
-                            })
+                                )}
+                              </button>
+                            `
                           )}
-                        >
-                          <ha-svg-icon
-                            slot="icon"
-                            .path=${mdiFan}
-                          ></ha-svg-icon>
-                        </ha-control-select-menu>
+                        </div>
                       `
                     : nothing
                 }
@@ -505,6 +509,7 @@ class MoreInfoVacuum extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
         .battery {
           display: inline-flex;
@@ -532,7 +537,7 @@ class MoreInfoVacuum extends LitElement {
         ha-control-button-group ha-control-button {
           flex: 0 0 auto;
           width: var(--control-button-group-thickness);
-          --control-button-border-radius: var(--ha-border-radius-lg);
+          --control-button-border-radius: var(--ha-border-radius-circle);
         }
 
         .clean-areas-button {

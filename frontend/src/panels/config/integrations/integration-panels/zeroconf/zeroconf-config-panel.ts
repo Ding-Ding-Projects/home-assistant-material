@@ -116,6 +116,10 @@ export class ZeroconfConfigPanel extends SubscribeMixin(LitElement) {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         .data=${this._dataWithIds(this._data)}
+        .summary=${this.hass.localize("ui.panel.config.zeroconf.summary")}
+        .footerText=${this.hass.localize("ui.panel.config.zeroconf.footer", {
+          count: this._data.length,
+        })}
         .noDataText=${this.hass.localize(
           "ui.panel.config.zeroconf.no_devices_found"
         )}

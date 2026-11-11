@@ -1,7 +1,10 @@
 import {
+  mdiAlert,
+  mdiAlertCircle,
   mdiBellOutline,
   mdiCheckboxMultipleMarkedOutline,
   mdiClose,
+  mdiHistory,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
@@ -9,7 +12,19 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { relativeTime } from "../../../common/datetime/relative_time";
+import { navigate } from "../../../common/navigate";
 import { searchMatcher } from "../../../common/regex/filter";
+import "../../../components/bulk/ha-bulk-bar";
+import type {
+  BulkAction,
+  BulkPreview,
+} from "../../../components/bulk/bulk-selection";
+import {
+  invertSelection,
+  pruneSelection,
+  selectRange,
+  toggleSelected,
+} from "../../../components/bulk/bulk-selection";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
@@ -22,10 +37,34 @@ import "../../../layouts/hass-subpage";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
+import { showToast } from "../../../util/toast";
+import type { DismissedNotification } from "./dismissed-notifications";
+import {
+  DISMISSED_KEEP_DAYS,
+  forgetDismissed,
+  loadDismissed,
+  rememberDismissed,
+} from "./dismissed-notifications";
+import type { NotificationSeverity } from "./notification-insight";
+import {
+  notificationActions,
+  notificationSeverity,
+} from "./notification-insight";
+
+const SEVERITY_ICONS: Record<NotificationSeverity, string> = {
+  error: mdiAlertCircle,
+  warning: mdiAlert,
+  info: mdiBellOutline,
+};
+
+/** The most titles named in the preview of a bulk dismissal. */
+const PREVIEW_TITLES = 3;
 
 /**
- * Notifications as a page: every notification the instance holds, with a
- * search, and dismissing one, the selected ones, or all of them.
+ * Notifications as a page: every notification the instance holds, coloured by
+ * how serious it reads, with the links of its message as buttons, a search,
+ * and dismissing one, the selected ones, or all of them. A dismissed
+ * notification is kept in this browser for 30 days and can be put back.
  */
 @customElement("ha-config-notifications")
 class HaConfigNotifications extends SubscribeMixin(LitElement) {
@@ -41,6 +80,19 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
 
   @state() private _selected: string[] = [];
 
+  @state() private _showDismissed = false;
+
+  @state() private _dismissed: DismissedNotification[] = [];
+
+  @state() private _confirmClear = false;
+
+  private _anchor?: string;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._dismissed = loadDismissed();
+  }
+
   public hassSubscribe(): UnsubscribeFunc[] {
     return [
       subscribeNotifications(this.hass.connection, (notifications) => {
@@ -48,8 +100,10 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
         );
         // A notification that is gone cannot stay selected.
-        const ids = new Set(notifications.map((item) => item.notification_id));
-        this._selected = this._selected.filter((id) => ids.has(id));
+        this._selected = pruneSelection(
+          this._selected,
+          notifications.map((item) => item.notification_id)
+        );
       }),
     ];
   }
@@ -61,6 +115,11 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     );
   }
 
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
   private _shown(): PersistentNotification[] {
     const matches = searchMatcher(this._filter);
     return (this._notifications ?? []).filter((item) =>
@@ -68,10 +127,54 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     );
   }
 
+  private _shownDismissed(): DismissedNotification[] {
+    const matches = searchMatcher(this._filter);
+    return this._dismissed.filter((item) =>
+      matches(item.title ?? "", item.message, item.notification_id)
+    );
+  }
+
+  private _bulkActions(): BulkAction[] {
+    return [
+      {
+        id: "dismiss",
+        label: this._l("bulk_dismiss"),
+        path: mdiClose,
+        destructive: true,
+      },
+    ];
+  }
+
+  private _bulkPreview = (id: string): BulkPreview | undefined => {
+    if (id !== "dismiss") {
+      return undefined;
+    }
+    const chosen = (this._notifications ?? []).filter((item) =>
+      this._selected.includes(item.notification_id)
+    );
+    const names = chosen
+      .slice(0, PREVIEW_TITLES)
+      .map((item) => item.title || item.notification_id);
+    const rest = chosen.length - names.length;
+    return {
+      title: this._l("bulk_preview_title", { count: chosen.length }),
+      items: [
+        {
+          kind: "change",
+          text: `${this._l("bulk_preview_dismiss", { count: chosen.length })}: ${names.join(", ")}${rest > 0 ? "…" : ""}`,
+        },
+      ],
+      changeCount: chosen.length,
+      confirmLabel: this._l("bulk_dismiss"),
+      note: this._l("note", { days: DISMISSED_KEEP_DAYS }),
+    };
+  };
+
   protected render(): TemplateResult {
     const all = this._notifications ?? [];
     const shown = this._shown();
     const search = this._l("search");
+    const dismissedShown = this._shownDismissed();
     return html`
       <hass-subpage
         .hass=${this.hass}
@@ -90,112 +193,252 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
               .placeholder=${search}
               .accessibleLabel=${search}
               .value=${this._filter}
-              .patternSamples=${all.map(
-                (item) => `${item.title ?? ""} ${item.message}`
-              )}
+              .patternSamples=${(this._showDismissed
+                ? this._dismissed
+                : all
+              ).map((item) => `${item.title ?? ""} ${item.message}`)}
               @input=${this._filterChanged}
             ></ha-input-search>
-            <ha-button
-              size="s"
-              appearance=${this._selecting ? "accent" : "outlined"}
-              ?disabled=${!all.length}
-              @click=${this._toggleSelecting}
-            >
-              <ha-svg-icon
-                slot="start"
-                .path=${mdiCheckboxMultipleMarkedOutline}
-              ></ha-svg-icon>
-              ${this._l("select")}
-            </ha-button>
             ${
-              this._selecting
+              this._showDismissed
                 ? html`<ha-button
                     size="s"
-                    appearance="filled"
-                    ?disabled=${!this._selected.length}
-                    @click=${this._dismissSelected}
+                    appearance="outlined"
+                    @click=${this._toggleDismissed}
                   >
-                    ${this._l("dismiss_selected", {
-                      count: this._selected.length,
-                    })}
+                    ${this._l("hide_dismissed")}
                   </ha-button>`
-                : html`<ha-button
-                    size="s"
-                    appearance="plain"
-                    ?disabled=${!all.length}
-                    @click=${this._dismissAll}
-                  >
-                    ${this.hass.localize("ui.notification_drawer.dismiss_all")}
-                  </ha-button>`
+                : html`
+                    <ha-button
+                      size="s"
+                      appearance=${this._selecting ? "accent" : "outlined"}
+                      ?disabled=${!all.length}
+                      @click=${this._toggleSelecting}
+                    >
+                      <ha-svg-icon
+                        slot="start"
+                        .path=${mdiCheckboxMultipleMarkedOutline}
+                      ></ha-svg-icon>
+                      ${this._l("select")}
+                    </ha-button>
+                    <ha-button
+                      size="s"
+                      appearance="plain"
+                      ?disabled=${!all.length}
+                      @click=${this._dismissAll}
+                    >
+                      ${this.hass.localize("ui.notification_drawer.dismiss_all")}
+                    </ha-button>
+                    <ha-button
+                      size="s"
+                      appearance="plain"
+                      @click=${this._toggleDismissed}
+                    >
+                      <ha-svg-icon
+                        slot="start"
+                        .path=${mdiHistory}
+                      ></ha-svg-icon>
+                      ${this._l("show_dismissed", {
+                        count: this._dismissed.length,
+                      })}
+                    </ha-button>
+                  `
             }
           </div>
           ${
-            !this._notifications
-              ? nothing
-              : !shown.length
-                ? html`<div class="empty" role="status">
-                    <ha-svg-icon .path=${mdiBellOutline}></ha-svg-icon>
-                    <p>
-                      ${
-                        all.length
-                          ? this._l("no_match")
-                          : this.hass.localize("ui.notification_drawer.empty")
-                      }
-                    </p>
-                  </div>`
-                : html`<ul>
-                    ${shown.map((item) => {
-                      const selected = this._selected.includes(
-                        item.notification_id
-                      );
-                      return html`
-                        <li class=${classMap({ selected })}>
-                          ${
-                            this._selecting
-                              ? html`<input
-                                  type="checkbox"
-                                  .checked=${selected}
-                                  aria-label=${item.title || item.notification_id}
-                                  data-id=${item.notification_id}
-                                  @change=${this._toggleSelected}
-                                />`
-                              : html`<span class="tile"
-                                  ><ha-svg-icon
-                                    .path=${mdiBellOutline}
-                                  ></ha-svg-icon
-                                ></span>`
-                          }
-                          <div class="text">
-                            <strong
-                              >${item.title || item.notification_id}</strong
-                            >
-                            <span class="time"
-                              >${relativeTime(
-                                new Date(item.created_at),
-                                this.hass.locale
-                              )}</span
-                            >
-                            <ha-markdown
-                              breaks
-                              .content=${item.message}
-                            ></ha-markdown>
-                          </div>
-                          <ha-icon-button
-                            .label=${this._l("dismiss", {
-                              title: item.title || item.notification_id,
-                            })}
-                            .path=${mdiClose}
-                            data-id=${item.notification_id}
-                            @click=${this._dismiss}
-                          ></ha-icon-button>
-                        </li>
-                      `;
-                    })}
-                  </ul>`
+            this._showDismissed
+              ? this._renderDismissed(dismissedShown)
+              : html`
+                  ${
+                    this._selecting
+                      ? html`<ha-bulk-bar
+                          .localize=${this._bulkLocalize}
+                          .count=${this._selected.length}
+                          .pageCount=${shown.length}
+                          .matchCount=${shown.length}
+                          .actions=${this._bulkActions()}
+                          .getPreview=${this._bulkPreview}
+                          @bulk-select-page=${this._selectAllShown}
+                          @bulk-select-matches=${this._selectAllShown}
+                          @bulk-invert=${this._invertShown}
+                          @bulk-clear=${this._clearSelection}
+                          @bulk-confirm=${this._dismissSelected}
+                        ></ha-bulk-bar>`
+                      : nothing
+                  }
+                  ${this._renderList(all, shown)}
+                `
           }
-          <p class="note">${this._l("note")}</p>
+          <p class="note">${this._l("note", { days: DISMISSED_KEEP_DAYS })}</p>
         </div>
       </hass-subpage>
+    `;
+  }
+
+  private _renderList(
+    all: PersistentNotification[],
+    shown: PersistentNotification[]
+  ) {
+    if (!this._notifications) {
+      return nothing;
+    }
+    if (!shown.length) {
+      return html`<div class="empty" role="status">
+        <ha-svg-icon .path=${mdiBellOutline}></ha-svg-icon>
+        <p>
+          ${
+            all.length
+              ? this._l("no_match")
+              : this.hass.localize("ui.notification_drawer.empty")
+          }
+        </p>
+      </div>`;
+    }
+    return html`<ul>
+      ${shown.map((item) => this._renderRow(item))}
+    </ul>`;
+  }
+
+  private _renderRow(item: PersistentNotification) {
+    const selected = this._selected.includes(item.notification_id);
+    const severity = notificationSeverity(item);
+    const actions = notificationActions(item.message);
+    const title = item.title || item.notification_id;
+    return html`
+      <li class=${classMap({ selected, [severity]: true })}>
+        ${
+          this._selecting
+            ? html`<input
+                type="checkbox"
+                .checked=${selected}
+                aria-label=${title}
+                data-id=${item.notification_id}
+                @click=${this._toggleSelected}
+              />`
+            : html`<span class="tile"
+                ><ha-svg-icon .path=${SEVERITY_ICONS[severity]}></ha-svg-icon
+              ></span>`
+        }
+        <div class="text">
+          <strong>
+            ${
+              severity === "info"
+                ? nothing
+                : html`<span class="visually-hidden"
+                    >${this._l(`severity.${severity}`)}:
+                  </span>`
+            }${title}
+          </strong>
+          <span class="time"
+            >${relativeTime(new Date(item.created_at), this.hass.locale)}</span
+          >
+          <ha-markdown breaks .content=${item.message}></ha-markdown>
+        </div>
+        ${actions.map(
+          (action) => html`
+            <ha-button
+              size="s"
+              appearance="filled"
+              data-href=${action.href}
+              @click=${this._openAction}
+            >
+              ${action.label}
+            </ha-button>
+          `
+        )}
+        <ha-icon-button
+          .label=${this._l("dismiss", { title })}
+          .path=${mdiClose}
+          data-id=${item.notification_id}
+          @click=${this._dismiss}
+        ></ha-icon-button>
+      </li>
+    `;
+  }
+
+  private _renderDismissed(shown: DismissedNotification[]) {
+    return html`
+      <div class="dismissed-head">
+        <h2>${this._l("dismissed_title", { days: DISMISSED_KEEP_DAYS })}</h2>
+        ${
+          this._confirmClear
+            ? html`<span class="confirm" role="alert">
+                ${this._l("clear_dismissed_confirm", {
+                  count: this._dismissed.length,
+                })}
+                <ha-button
+                  size="s"
+                  appearance="filled"
+                  @click=${this._clearDismissed}
+                >
+                  ${this._l("clear_dismissed_yes")}
+                </ha-button>
+                <ha-button
+                  size="s"
+                  appearance="plain"
+                  @click=${this._cancelClear}
+                >
+                  ${this._l("clear_dismissed_no")}
+                </ha-button>
+              </span>`
+            : html`<ha-button
+                size="s"
+                appearance="plain"
+                ?disabled=${!this._dismissed.length}
+                @click=${this._askClear}
+              >
+                ${this._l("clear_dismissed")}
+              </ha-button>`
+        }
+      </div>
+      ${
+        shown.length
+          ? html`<ul>
+              ${shown.map((item) => {
+                const title = item.title || item.notification_id;
+                return html`
+                  <li class=${notificationSeverity(item)}>
+                    <span class="tile"
+                      ><ha-svg-icon
+                        .path=${SEVERITY_ICONS[notificationSeverity(item)]}
+                      ></ha-svg-icon
+                    ></span>
+                    <div class="text">
+                      <strong>${title}</strong>
+                      <span class="time"
+                        >${this._l("dismissed_at", {
+                          time: relativeTime(
+                            new Date(item.dismissed_at),
+                            this.hass.locale
+                          ),
+                        })}</span
+                      >
+                      <ha-markdown
+                        breaks
+                        .content=${item.message}
+                      ></ha-markdown>
+                    </div>
+                    <ha-icon-button
+                      .label=${this._l("forget", { title })}
+                      .path=${mdiClose}
+                      data-id=${item.notification_id}
+                      @click=${this._forget}
+                    ></ha-icon-button>
+                  </li>
+                `;
+              })}
+            </ul>`
+          : html`<div class="empty" role="status">
+              <ha-svg-icon .path=${mdiHistory}></ha-svg-icon>
+              <p>
+                ${
+                  this._dismissed.length
+                    ? this._l("no_match")
+                    : this._l("dismissed_empty", { days: DISMISSED_KEEP_DAYS })
+                }
+              </p>
+            </div>`
+      }
     `;
   }
 
@@ -206,34 +449,130 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   private _toggleSelecting(): void {
     this._selecting = !this._selecting;
     this._selected = [];
+    this._anchor = undefined;
   }
 
-  private _toggleSelected(ev: Event): void {
-    const input = ev.currentTarget as HTMLInputElement;
-    const id = input.dataset.id!;
-    this._selected = input.checked
-      ? [...this._selected, id]
-      : this._selected.filter((item) => item !== id);
+  private _toggleDismissed(): void {
+    this._showDismissed = !this._showDismissed;
+    this._confirmClear = false;
+    this._dismissed = loadDismissed();
   }
 
-  private _dismissOne(id: string): Promise<unknown> {
-    return this.hass.callService("persistent_notification", "dismiss", {
-      notification_id: id,
-    });
+  private _toggleSelected(ev: MouseEvent): void {
+    const id = (ev.currentTarget as HTMLElement).dataset.id!;
+    const ordered = this._shown().map((item) => item.notification_id);
+    this._selected = ev.shiftKey
+      ? selectRange(ordered, this._selected, this._anchor, id)
+      : toggleSelected(this._selected, id);
+    this._anchor = id;
+  }
+
+  private _selectAllShown(): void {
+    this._selected = this._shown().map((item) => item.notification_id);
+  }
+
+  private _invertShown(): void {
+    this._selected = invertSelection(
+      this._shown().map((item) => item.notification_id),
+      this._selected
+    );
+  }
+
+  private _clearSelection(): void {
+    this._selected = [];
+    this._anchor = undefined;
+  }
+
+  private _openAction(ev: Event): void {
+    const href = (ev.currentTarget as HTMLElement).dataset.href!;
+    if (href.startsWith("/")) {
+      navigate(href);
+    } else {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
   }
 
   private _dismiss(ev: Event): void {
-    this._dismissOne((ev.currentTarget as HTMLElement).dataset.id!);
+    this._dismissMany([(ev.currentTarget as HTMLElement).dataset.id!]);
   }
 
   private async _dismissSelected(): Promise<void> {
-    await Promise.all(this._selected.map((id) => this._dismissOne(id)));
+    await this._dismissMany(this._selected);
     this._selected = [];
     this._selecting = false;
   }
 
   private _dismissAll(): void {
-    this.hass.callService("persistent_notification", "dismiss_all");
+    this._dismissMany(
+      (this._notifications ?? []).map((n) => n.notification_id)
+    );
+  }
+
+  /** Keeps the notifications as dismissed, dismisses them, offers Undo. */
+  private async _dismissMany(ids: string[]): Promise<void> {
+    const chosen = (this._notifications ?? []).filter((item) =>
+      ids.includes(item.notification_id)
+    );
+    if (!chosen.length) {
+      return;
+    }
+    this._dismissed = rememberDismissed(chosen);
+    await Promise.all(
+      chosen.map((item) =>
+        this.hass.callService("persistent_notification", "dismiss", {
+          notification_id: item.notification_id,
+        })
+      )
+    );
+    showToast(this, {
+      message: this._l("dismissed_toast", { count: chosen.length }),
+      duration: 6000,
+      action: {
+        text: this._l("undo"),
+        action: () => this._restore(chosen),
+      },
+    });
+  }
+
+  private async _restore(chosen: PersistentNotification[]): Promise<void> {
+    try {
+      await Promise.all(
+        chosen.map((item) =>
+          this.hass.callService("persistent_notification", "create", {
+            notification_id: item.notification_id,
+            message: item.message,
+            ...(item.title ? { title: item.title } : {}),
+          })
+        )
+      );
+      chosen.forEach((item) => {
+        this._dismissed = forgetDismissed(item.notification_id);
+      });
+    } catch (_err: any) {
+      showToast(this, {
+        message: this._l("restore_failed"),
+        severity: "error",
+      });
+    }
+  }
+
+  private _forget(ev: Event): void {
+    this._dismissed = forgetDismissed(
+      (ev.currentTarget as HTMLElement).dataset.id!
+    );
+  }
+
+  private _askClear(): void {
+    this._confirmClear = true;
+  }
+
+  private _cancelClear(): void {
+    this._confirmClear = false;
+  }
+
+  private _clearDismissed(): void {
+    this._dismissed = forgetDismissed();
+    this._confirmClear = false;
   }
 
   static get styles(): CSSResultGroup {
@@ -285,11 +624,36 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
         }
         li {
           display: flex;
-          align-items: flex-start;
+          flex-wrap: wrap;
+          align-items: center;
           gap: var(--ha-space-3);
           padding: var(--ha-space-3) var(--ha-space-4);
           border-radius: var(--ha-border-radius-xl);
           background: var(--card-background-color);
+        }
+        li.error {
+          background: color-mix(
+            in srgb,
+            var(--error-color) 16%,
+            var(--card-background-color)
+          );
+          color: color-mix(
+            in srgb,
+            var(--error-color) 65%,
+            var(--primary-text-color)
+          );
+        }
+        li.warning {
+          background: color-mix(
+            in srgb,
+            var(--warning-color) 26%,
+            var(--card-background-color)
+          );
+          color: color-mix(
+            in srgb,
+            var(--warning-color) 35%,
+            var(--primary-text-color)
+          );
         }
         li.selected {
           background: color-mix(
@@ -297,6 +661,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
             var(--primary-color) 20%,
             var(--primary-background-color)
           );
+          color: var(--primary-text-color);
         }
         .tile {
           flex: none;
@@ -307,6 +672,20 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           border-radius: var(--ha-border-radius-lg);
           background: var(--primary-background-color);
         }
+        li.error .tile {
+          color: var(--error-color);
+          background: var(--card-background-color);
+          border-radius: var(--ha-border-radius-circle, 50%);
+        }
+        li.warning .tile {
+          color: color-mix(
+            in srgb,
+            var(--warning-color) 60%,
+            var(--primary-text-color)
+          );
+          background: var(--card-background-color);
+          border-radius: var(--ha-border-radius-circle, 50%);
+        }
         input[type="checkbox"] {
           flex: none;
           width: 20px;
@@ -315,17 +694,44 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           accent-color: var(--primary-color);
         }
         .text {
-          flex: 1;
+          flex: 1 1 200px;
           min-width: 0;
           display: flex;
           flex-direction: column;
         }
         .time {
           font-size: var(--ha-font-size-s);
-          color: var(--secondary-text-color);
+          opacity: 0.8;
         }
         ha-markdown {
           overflow-wrap: anywhere;
+        }
+        .visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+        }
+        .dismissed-head {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+        }
+        .dismissed-head h2 {
+          margin: 0;
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .confirm {
+          display: inline-flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+          color: var(--error-color);
         }
         .empty {
           display: flex;

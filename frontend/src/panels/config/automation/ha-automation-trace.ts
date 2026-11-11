@@ -24,6 +24,7 @@ import { formatDateTimeWithSeconds } from "../../../common/datetime/format_date_
 import { formatNumber } from "../../../common/number/format_number";
 import { computeRTL } from "../../../common/util/compute_rtl";
 import { debounce } from "../../../common/util/debounce";
+import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
@@ -60,7 +61,12 @@ import type {
   AutomationTrace,
   AutomationTraceExtended,
 } from "../../../data/trace";
-import { getTracePath, loadTrace, loadTraces } from "../../../data/trace";
+import {
+  getTracePath,
+  isTriggerPath,
+  loadTrace,
+  loadTraces,
+} from "../../../data/trace";
 import { TraceRunController } from "../../../data/trace-run-controller";
 import { TraceTree } from "../../../data/trace-tree";
 import {
@@ -527,6 +533,58 @@ export class HaAutomationTrace extends LitElement {
     `;
   }
 
+  // Why a run did not start, and what went wrong in the step, stay visible
+  // outside the collapsed section.
+  private _renderRunNotices() {
+    const trace = this._trace;
+    const path = this._selected?.path;
+    if (!trace || !path) {
+      return nothing;
+    }
+    const records = (trace.trace[path] ?? []) as any[];
+    const notTriggered =
+      trace.not_triggered && isTriggerPath(path) && path in trace.trace;
+    const templateErrors = records.flatMap(
+      (record) => (record.template_errors ?? []) as string[]
+    );
+    const disabled = records.some((record) => record.result?.enabled === false);
+    if (!notTriggered && !templateErrors.length && !disabled) {
+      return nothing;
+    }
+    return html`
+      ${
+        notTriggered
+          ? html`<ha-alert alert-type="info"
+              >${this.hass.localize(
+                "ui.panel.config.automation.trace.path.not_triggered"
+              )}</ha-alert
+            >`
+          : nothing
+      }
+      ${
+        disabled
+          ? html`<ha-alert alert-type="info"
+              >${this.hass.localize(
+                "ui.panel.config.automation.trace.path.disabled_step"
+              )}</ha-alert
+            >`
+          : nothing
+      }
+      ${
+        templateErrors.length
+          ? html`<ha-alert alert-type="error"
+              >${this.hass.localize(
+                "ui.panel.config.automation.trace.path.template_errors"
+              )}
+              <ul>
+                ${templateErrors.map((error) => html`<li>${error}</li>`)}
+              </ul></ha-alert
+            >`
+          : nothing
+      }
+    `;
+  }
+
   private _renderTabBody() {
     if (this._selected === undefined || this._logbookEntries === undefined) {
       return nothing;
@@ -548,6 +606,7 @@ export class HaAutomationTrace extends LitElement {
       ></ha-trace-path-details>`;
     if (view === "details") {
       return html`
+        ${this._renderRunNotices()}
         <ha-trace-step-facts
           .hass=${this.hass}
           .trace=${this._trace}

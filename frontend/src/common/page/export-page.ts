@@ -9,6 +9,8 @@ import { collectReadableText } from "../accessibility/accessibility-tools";
 export interface ExportTable {
   columns: string[];
   rows: string[][];
+  /** The rows ticked in the table, in the same columns; empty when none are. */
+  selectedRows?: string[][];
 }
 
 export interface PageExport {
@@ -22,6 +24,7 @@ export interface PageExport {
 
 export const EXPORT_FORMATS = [
   "csv",
+  "tsv",
   "json",
   "markdown",
   "text",
@@ -40,6 +43,8 @@ interface TableLike extends HTMLElement {
   >;
   data?: Record<string, unknown>[];
   _filteredData?: Record<string, unknown>[];
+  /** The identifiers of the ticked rows. */
+  _checkedRows?: string[];
 }
 
 // Columns that hold a moment in time, by the name of their key.
@@ -112,13 +117,21 @@ export const readDataTable = (table: TableLike): ExportTable | undefined => {
   if (!columns.length) {
     return undefined;
   }
-  const rows = (table._filteredData ?? table.data ?? [])
+  const source = (table._filteredData ?? table.data ?? [])
     .slice(0, EXPORT_ROW_LIMIT)
-    .filter((row) => !("append" in row && row.append === true))
-    .map((row) =>
-      columns.map((column) => cellText(row[column.key], column.key))
-    );
-  return { columns: columns.map((column) => column.name), rows };
+    .filter((row) => !("append" in row && row.append === true));
+  const toCells = (row: Record<string, unknown>) =>
+    columns.map((column) => cellText(row[column.key], column.key));
+  const checked = new Set(table._checkedRows ?? []);
+  const idKey = typeof table.id === "string" && table.id ? table.id : "id";
+  const selectedRows = checked.size
+    ? source.filter((row) => checked.has(String(row[idKey]))).map(toCells)
+    : [];
+  return {
+    columns: columns.map((column) => column.name),
+    rows: source.map(toCells),
+    ...(selectedRows.length ? { selectedRows } : {}),
+  };
 };
 
 const findTables = (root: Element | ShadowRoot): TableLike[] => {
@@ -174,11 +187,45 @@ const csvCell = (value: string): string => {
   return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 
+/** How many rows are ticked in all the tables of a page. */
+export const selectedRowCount = (page: PageExport): number =>
+  page.tables.reduce(
+    (total, table) => total + (table.selectedRows?.length ?? 0),
+    0
+  );
+
+/**
+ * The page with only the ticked rows of its tables. A table with no ticked
+ * row is left out, and the text of the page is left out too.
+ */
+export const selectionOnly = (page: PageExport): PageExport => ({
+  ...page,
+  text: [],
+  tables: page.tables
+    .filter((table) => table.selectedRows?.length)
+    .map((table) => ({
+      columns: table.columns,
+      rows: table.selectedRows!,
+      selectedRows: table.selectedRows,
+    })),
+});
+
 /** One table as CSV: UTF-8, CRLF line ends, a header row. */
 export const toCsv = (table: ExportTable): string =>
   [table.columns, ...table.rows]
     .map((row) => row.map(csvCell).join(","))
     .join("\r\n");
+
+/** One table as tab separated values: tabs and line breaks become spaces. */
+export const toTsv = (table: ExportTable): string => {
+  const cell = (value: string) => {
+    const plain = value.replace(/[\t\r\n]+/g, " ");
+    return FORMULA_START.test(plain) ? `'${plain}` : plain;
+  };
+  return [table.columns, ...table.rows]
+    .map((row) => row.map(cell).join("\t"))
+    .join("\r\n");
+};
 
 const markdownCell = (value: string): string =>
   value
@@ -268,11 +315,19 @@ ${text}
 };
 
 export const exportContent = (
-  page: PageExport,
+  fullPage: PageExport,
   format: ExportFormat,
-  tableIndex = 0
+  tableIndex = 0,
+  onlySelection = false
 ): { content: string; mime: string; extension: string } => {
+  const page = onlySelection ? selectionOnly(fullPage) : fullPage;
   switch (format) {
+    case "tsv":
+      return {
+        content: page.tables[tableIndex] ? toTsv(page.tables[tableIndex]) : "",
+        mime: "text/tab-separated-values;charset=utf-8",
+        extension: "tsv",
+      };
     case "csv":
       return {
         content: page.tables[tableIndex] ? toCsv(page.tables[tableIndex]) : "",

@@ -11,7 +11,7 @@ import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-control-button";
 import "../../../components/ha-control-button-group";
 import "../../../components/ha-state-icon";
-import { apiContext } from "../../../data/context";
+import { apiContext, formattersContext } from "../../../data/context";
 import type { LockEntity } from "../../../data/lock";
 import {
   LockEntityFeature,
@@ -20,8 +20,9 @@ import {
   isJammed,
 } from "../../../data/lock";
 import "../../../state-control/lock/ha-state-control-lock-toggle";
-import type { HomeAssistantApi } from "../../../types";
-import "../components/ha-more-info-state-header";
+import type { HomeAssistantApi, HomeAssistantFormatters } from "../../../types";
+import "../../../components/ha-relative-time";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 
 const CONFIRM_TIMEOUT_SECOND = 5;
@@ -38,6 +39,10 @@ class MoreInfoLock extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
+
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  private _formatters!: HomeAssistantFormatters;
 
   @property({ attribute: false }) public stateObj?: LockEntity;
 
@@ -104,6 +109,16 @@ class MoreInfoLock extends LitElement {
     );
   }
 
+  private _headlineClass() {
+    if (isJammed(this.stateObj!)) {
+      return "headline bad";
+    }
+    if (this.stateObj!.state === "locked") {
+      return "headline ok";
+    }
+    return this.stateObj!.state === "unlocked" ? "headline warn" : "headline";
+  }
+
   protected render() {
     if (!this._localize || !this.stateObj) {
       return nothing;
@@ -117,9 +132,15 @@ class MoreInfoLock extends LitElement {
     };
 
     return html`
-      <ha-more-info-state-header
-        .stateObj=${this.stateObj}
-      ></ha-more-info-state-header>
+      <p class=${this._headlineClass()}>
+        ${this._formatters.formatEntityState(this.stateObj)}
+      </p>
+      <p class="subline">
+        <ha-relative-time
+          .datetime=${this.stateObj.last_changed}
+          capitalize
+        ></ha-relative-time>
+      </p>
       <div class="controls" style=${styleMap(style)}>
         ${
           isJammed(this.stateObj)
@@ -194,6 +215,7 @@ class MoreInfoLock extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
         ha-control-button {
           font-size: var(--ha-font-size-m);

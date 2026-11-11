@@ -8,6 +8,23 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Language mode changes real text: Personal settings can be read in English, Cantonese or
+  both. The phone bar, the locks and the wording card have their Cantonese written and will
+  follow next.
+- A spoken narrator, off by default, reads the name of the control in focus with the
+  browser's own voice. Two attention modes are added: a small clock, and an offer to go back
+  to the page you were on.
+- Tabs can be dragged into a new order and pinned. The search of everything lists settings
+  and entities with a live switch in the result.
+- Dismissed notifications are kept for thirty days and every dismissal can be undone. The
+  page export has a tab-separated format and can take only the ticked rows. A selection bar
+  shows what will change before it changes anything.
+- Entity dialogs for climate, cover, counter, lock, alarm, camera, media player, vacuum, fan,
+  light, weather, sensor, update, person, timer, humidifier, water heater and valve are
+  started on their boards.
+- The automation editor shows triggers, conditions and actions as three named cards.
+- Thirteen more defects found by review are fixed, in backups, voice assistants, energy
+  setup, apps, automations, their history and past runs.
 - Devices and Entities have their filters as chips beside the search, a tick box on every row
   and a line under the list; Labels has its Create button beside the title.
 - Started on their boards: Backups and backup settings, voice assistants and one assistant's

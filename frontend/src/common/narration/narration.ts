@@ -1,0 +1,211 @@
+import type {
+  NarratorSpeakIn,
+  PersonalPreferences,
+} from "../preferences/personal-preferences";
+import type { SilenceReason } from "../sound/action-sound";
+import { silenceReason } from "../sound/action-sound";
+
+/**
+ * The pure parts of the spoken narrator: which words to speak, in which
+ * language, with which voice, and when to stay silent. The browser's own
+ * speech synthesis does the speaking, see `narrator.ts`.
+ */
+
+export type SpeechLanguage = "en" | "yue";
+
+export interface SpeechPart {
+  text: string;
+  language: SpeechLanguage;
+}
+
+/** Language tag handed to the speech engine for each language. */
+export const SPEECH_LANG_TAG: Record<SpeechLanguage, string> = {
+  en: "en",
+  yue: "zh-HK",
+};
+
+const CJK = /[㐀-鿿豈-﫿]/;
+
+export const containsCantonese = (text: string): boolean => CJK.test(text);
+
+/** Longest name that is read aloud. A longer one is cut at a word. */
+export const MAX_SPOKEN_LENGTH = 120;
+
+const clean = (text: string | null | undefined): string => {
+  const flat = (text ?? "").replace(/\s+/g, " ").trim();
+  if (flat.length <= MAX_SPOKEN_LENGTH) {
+    return flat;
+  }
+  const cut = flat.slice(0, MAX_SPOKEN_LENGTH);
+  const space = cut.lastIndexOf(" ");
+  return (space > 40 ? cut.slice(0, space) : cut).trim();
+};
+
+/**
+ * Splits a name into the pieces the language mode joined together: two
+ * languages sit on separate lines or after " · ".
+ */
+export const splitSegments = (text: string): string[] =>
+  text
+    .split(/\n|\s·\s/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+/**
+ * What to speak for a text, given the "speak in" choice. English keeps the
+ * pieces without Chinese characters, Cantonese keeps the pieces with them,
+ * and both keeps everything, one piece at a time. An empty result means the
+ * text has nothing in the chosen language, so nothing is spoken.
+ */
+export const selectSpeech = (
+  text: string,
+  speakIn: NarratorSpeakIn
+): SpeechPart[] => {
+  const parts: SpeechPart[] = splitSegments(text).map((segment) => ({
+    text: segment,
+    language: containsCantonese(segment) ? "yue" : "en",
+  }));
+  if (speakIn === "english") {
+    return parts.filter((part) => part.language === "en");
+  }
+  if (speakIn === "cantonese") {
+    return parts.filter((part) => part.language === "yue");
+  }
+  return parts;
+};
+
+export interface VoiceInfo {
+  voiceURI: string;
+  name: string;
+  lang: string;
+  default?: boolean;
+}
+
+const CANTONESE_TAG = /^(yue|zh[-_]hk|zh[-_]yue)/i;
+
+export const voiceMatchesLanguage = (
+  voice: Pick<VoiceInfo, "lang">,
+  language: SpeechLanguage
+): boolean =>
+  language === "yue"
+    ? CANTONESE_TAG.test(voice.lang)
+    : /^en([-_]|$)/i.test(voice.lang);
+
+/** The voices that can speak a language, best first. */
+export const voicesFor = <T extends VoiceInfo>(
+  voices: T[],
+  language: SpeechLanguage
+): T[] =>
+  voices
+    .filter((voice) => voiceMatchesLanguage(voice, language))
+    .sort((a, b) => Number(!!b.default) - Number(!!a.default));
+
+/**
+ * The voice to use: the chosen one when it still exists and speaks the
+ * language, otherwise the best match. Undefined when none matches.
+ */
+export const pickVoice = <T extends VoiceInfo>(
+  voices: T[],
+  language: SpeechLanguage,
+  preferredUri: string
+): T | undefined => {
+  const matching = voicesFor(voices, language);
+  return (
+    matching.find((voice) => voice.voiceURI === preferredUri) ?? matching[0]
+  );
+};
+
+const INTERACTIVE_TAGS = new Set(["button", "a", "summary"]);
+const INTERACTIVE_ROLES = new Set([
+  "button",
+  "link",
+  "tab",
+  "menuitem",
+  "option",
+  "switch",
+  "checkbox",
+  "radio",
+]);
+
+/**
+ * The name of a control, the way a screen reader would find it, and never
+ * the value of a field. Empty when the element has no name of its own.
+ */
+export const accessibleNameOf = (el: Element): string => {
+  const aria = clean(el.getAttribute("aria-label"));
+  if (aria) {
+    return aria;
+  }
+  const labelledBy = el.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    const root = el.getRootNode() as Partial<Document>;
+    const named = clean(
+      labelledBy
+        .split(/\s+/)
+        .map((id) => root.getElementById?.(id)?.textContent ?? "")
+        .join(" ")
+    );
+    if (named) {
+      return named;
+    }
+  }
+  const label = (el as { label?: unknown }).label;
+  if (typeof label === "string" && clean(label)) {
+    return clean(label);
+  }
+  const attributeName = clean(
+    el.getAttribute("title") ||
+      el.getAttribute("placeholder") ||
+      el.getAttribute("alt")
+  );
+  if (attributeName) {
+    return attributeName;
+  }
+  const role = el.getAttribute("role");
+  if (
+    INTERACTIVE_TAGS.has(el.localName) ||
+    (role !== null && INTERACTIVE_ROLES.has(role))
+  ) {
+    return clean(el.textContent);
+  }
+  return "";
+};
+
+/** The first name found along the path an event took, nearest first. */
+export const nameFromPath = (path: EventTarget[], limit = 6): string => {
+  let seen = 0;
+  for (const target of path) {
+    if (!(target instanceof Element)) {
+      continue;
+    }
+    const name = accessibleNameOf(target);
+    if (name) {
+      return name;
+    }
+    seen += 1;
+    if (seen >= limit) {
+      break;
+    }
+  }
+  return "";
+};
+
+/**
+ * Why the narrator would be silent, or undefined when it would speak. It
+ * follows the sound switch, low stimulation and quiet hours. The sound
+ * volume does not apply: the narrator has its own rate and pitch.
+ */
+export const narratorSilence = (
+  preferences: Pick<
+    PersonalPreferences,
+    | "soundEffects"
+    | "lowStimulation"
+    | "quietHours"
+    | "quietFrom"
+    | "quietTo"
+    | "quietDays"
+  >,
+  now: Date = new Date()
+): Exclude<SilenceReason, "volume-zero"> | undefined =>
+  silenceReason({ ...preferences, soundVolume: 1 }, now) as
+    Exclude<SilenceReason, "volume-zero"> | undefined;

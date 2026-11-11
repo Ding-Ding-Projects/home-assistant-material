@@ -55,6 +55,10 @@ export class InfraredConfigDashboard extends LitElement {
         back-path="/config/connectivity"
       >
         <div class="container">
+          <div class="page-heading">
+            <h1>${this.hass.localize("ui.panel.config.infrared.title")}</h1>
+            <p>${this.hass.localize("ui.panel.config.infrared.summary")}</p>
+          </div>
           <ha-card class="content network-status">
             <div class="card-content">
               <div class="heading">
@@ -118,8 +122,29 @@ export class InfraredConfigDashboard extends LitElement {
           max-width: 600px;
         }
 
+        .page-heading {
+          max-width: 600px;
+          margin: var(--ha-space-4) auto 0;
+        }
+
+        .page-heading h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+          color: var(--primary-text-color);
+        }
+
+        .page-heading p {
+          margin: var(--ha-space-1) 0 0;
+          font-size: var(--ha-font-size-l);
+          line-height: var(--ha-line-height-normal);
+          color: var(--secondary-text-color);
+        }
+
         .content {
-          margin-top: var(--ha-space-6);
+          margin-top: var(--ha-space-4);
         }
 
         .network-card {

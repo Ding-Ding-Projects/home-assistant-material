@@ -5,7 +5,6 @@ import {
   mdiFan,
   mdiFanOff,
   mdiPower,
-  mdiTuneVariant,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, html, nothing } from "lit";
@@ -30,6 +29,7 @@ import "../../../state-control/ha-state-control-toggle";
 import { apiContext, formattersContext } from "../../../data/context";
 import "../components/ha-more-info-control-select-container";
 import "../components/ha-more-info-state-header";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 
@@ -81,8 +81,9 @@ class MoreInfoFan extends LitElement {
     });
   }
 
-  private _handlePresetMode(ev: HaDropdownSelectEvent) {
-    const newVal = ev.detail.item.value;
+  private _handlePresetClick(ev: Event) {
+    const newVal = (ev.currentTarget as HTMLButtonElement & { mode: string })
+      .mode;
     const oldVal = this._presetMode;
 
     if (!newVal || oldVal === newVal) return;
@@ -192,38 +193,43 @@ class MoreInfoFan extends LitElement {
             : nothing
         }
       </div>
-      <ha-more-info-control-select-container>
-        ${
-          supportsPresetMode && this.stateObj.attributes.preset_modes
-            ? html`
-                <ha-control-select-menu
-                  .label=${this._formatters.formatEntityAttributeName(
-                    this.stateObj,
-                    "preset_mode"
-                  )}
-                  .value=${this.stateObj.attributes.preset_mode}
-                  .disabled=${this.stateObj.state === UNAVAILABLE}
-                  @wa-select=${this._handlePresetMode}
-                  .options=${this.stateObj.attributes.preset_modes.map(
-                    (mode) => ({
-                      value: mode,
-                      label: this._formatters.formatEntityAttributeValue(
+      ${
+        supportsPresetMode && this.stateObj.attributes.preset_modes
+          ? html`
+              <div
+                class="chips"
+                role="group"
+                aria-label=${this._formatters.formatEntityAttributeName(
+                  this.stateObj,
+                  "preset_mode"
+                )}
+              >
+                ${this.stateObj.attributes.preset_modes.map(
+                  (mode) => html`
+                    <button
+                      type="button"
+                      class="chip"
+                      aria-pressed=${
+                        this._presetMode === mode ? "true" : "false"
+                      }
+                      .disabled=${this.stateObj!.state === UNAVAILABLE}
+                      .mode=${mode}
+                      @click=${this._handlePresetClick}
+                    >
+                      ${this._renderPresetModeIcon(mode)}
+                      ${this._formatters.formatEntityAttributeValue(
                         this.stateObj!,
                         "preset_mode",
                         mode
-                      ),
-                    })
-                  )}
-                  .renderIcon=${this._renderPresetModeIcon}
-                >
-                  <ha-svg-icon
-                    slot="icon"
-                    .path=${mdiTuneVariant}
-                  ></ha-svg-icon>
-                </ha-control-select-menu>
-              `
-            : nothing
-        }
+                      )}
+                    </button>
+                  `
+                )}
+              </div>
+            `
+          : nothing
+      }
+      <ha-more-info-control-select-container>
         ${
           supportsDirection
             ? html`
@@ -298,7 +304,7 @@ class MoreInfoFan extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    return moreInfoControlStyle;
+    return [moreInfoControlStyle, moreInfoBoardStyle];
   }
 }
 

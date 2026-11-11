@@ -401,6 +401,11 @@ class MoreInfoLight extends LitElement {
         *[disabled] .wheel {
           filter: grayscale(1) opacity(0.5);
         }
+        ha-icon-button-group {
+          flex-wrap: wrap;
+          justify-content: center;
+          max-width: 100%;
+        }
         .buttons {
           flex-wrap: wrap;
           max-width: 250px;

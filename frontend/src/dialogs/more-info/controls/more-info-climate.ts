@@ -2,8 +2,8 @@ import type { ContextType } from "@lit/context";
 import {
   mdiArrowOscillating,
   mdiFan,
+  mdiCheck,
   mdiThermometer,
-  mdiTuneVariant,
   mdiWaterPercent,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
@@ -22,7 +22,6 @@ import "../../../components/ha-switch";
 import type { ClimateEntity } from "../../../data/climate";
 import {
   ClimateEntityFeature,
-  climateHvacModeIcon,
   compareClimateHvacModes,
 } from "../../../data/climate";
 import { apiContext, formattersContext } from "../../../data/context";
@@ -30,6 +29,7 @@ import { UNAVAILABLE } from "../../../data/entity/entity";
 import "../../../state-control/climate/ha-state-control-climate-humidity";
 import "../../../state-control/climate/ha-state-control-climate-temperature";
 import "../components/ha-more-info-control-select-container";
+import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 
@@ -52,13 +52,6 @@ class MoreInfoClimate extends LitElement {
   private _formatters!: ContextType<typeof formattersContext>;
 
   @state() private _mainControl: MainControl = "temperature";
-
-  private _renderPresetModeIcon = (value: string) =>
-    html`<ha-attribute-icon
-      .stateObj=${this.stateObj}
-      attribute="preset_mode"
-      .attributeValue=${value}
-    ></ha-attribute-icon>`;
 
   private _renderFanModeIcon = (value: string) =>
     html`<ha-attribute-icon
@@ -123,49 +116,45 @@ class MoreInfoClimate extends LitElement {
     const currentTemperature = this.stateObj.attributes.current_temperature;
     const currentHumidity = this.stateObj.attributes.current_humidity;
 
+    const targetTemperature = stateObj.attributes.temperature;
+    const hvacAction = stateObj.attributes.hvac_action;
+    const headlineClass =
+      hvacAction === "heating"
+        ? "headline warn"
+        : hvacAction === "cooling"
+          ? "headline accent"
+          : "headline";
+
     return html`
-      <div class="current">
+      <p class=${headlineClass}>
+        ${
+          targetTemperature != null
+            ? this._formatters.formatEntityAttributeValue(
+                stateObj,
+                "temperature"
+              )
+            : this._formatters.formatEntityState(stateObj)
+        }
+      </p>
+      <p class="subline">
+        ${
+          hvacAction
+            ? html`${this._formatters.formatEntityAttributeValue(
+                stateObj,
+                "hvac_action"
+              )}${currentTemperature != null ? ". " : nothing}`
+            : nothing
+        }
         ${
           currentTemperature != null
-            ? html`
-                <div>
-                  <p class="label">
-                    ${this._formatters.formatEntityAttributeName(
-                      this.stateObj,
-                      "current_temperature"
-                    )}
-                  </p>
-                  <p class="value">
-                    ${this._formatters.formatEntityAttributeValue(
-                      this.stateObj,
-                      "current_temperature"
-                    )}
-                  </p>
-                </div>
-              `
+            ? html`${this._localize("ui.card.climate.currently")}
+              ${this._formatters.formatEntityAttributeValue(
+                stateObj,
+                "current_temperature"
+              )}`
             : nothing
         }
-        ${
-          currentHumidity != null
-            ? html`
-                <div>
-                  <p class="label">
-                    ${this._formatters.formatEntityAttributeName(
-                      this.stateObj,
-                      "current_humidity"
-                    )}
-                  </p>
-                  <p class="value">
-                    ${this._formatters.formatEntityAttributeValue(
-                      this.stateObj,
-                      "current_humidity"
-                    )}
-                  </p>
-                </div>
-              `
-            : nothing
-        }
-      </div>
+      </p>
       <div class="controls">
         ${
           this._mainControl === "temperature"
@@ -216,55 +205,93 @@ class MoreInfoClimate extends LitElement {
             : nothing
         }
       </div>
-      <ha-more-info-control-select-container>
-        <ha-control-select-menu
-          .label=${this._localize("ui.card.climate.mode")}
-          .value=${stateObj.state}
-          .disabled=${this.stateObj.state === UNAVAILABLE}
-          .options=${stateObj.attributes.hvac_modes
-            .concat()
-            .sort(compareClimateHvacModes)
-            .map((mode) => ({
-              value: mode,
-              iconPath: climateHvacModeIcon(mode),
-              label: this._formatters.formatEntityState(stateObj, mode),
-            }))}
-          @wa-select=${this._handleOperationModeChanged}
-        >
-          <ha-svg-icon
-            slot="icon"
-            .path=${climateHvacModeIcon(stateObj.state)}
-          ></ha-svg-icon>
-        </ha-control-select-menu>
-        ${
-          supportPresetMode && stateObj.attributes.preset_modes
-            ? html`
-                <ha-control-select-menu
-                  .label=${this._formatters.formatEntityAttributeName(
-                    stateObj,
-                    "preset_mode"
-                  )}
-                  .value=${stateObj.attributes.preset_mode}
-                  .disabled=${this.stateObj.state === UNAVAILABLE}
-                  @wa-select=${this._handlePresetmodeChanged}
-                  .options=${stateObj.attributes.preset_modes.map((mode) => ({
-                    value: mode,
-                    label: this._formatters.formatEntityAttributeValue(
+      <div
+        class="segmented"
+        role="group"
+        aria-label=${this._localize("ui.card.climate.mode")}
+      >
+        ${stateObj.attributes.hvac_modes
+          .concat()
+          .sort(compareClimateHvacModes)
+          .map(
+            (mode) => html`
+              <button
+                type="button"
+                aria-pressed=${stateObj.state === mode ? "true" : "false"}
+                .disabled=${stateObj.state === UNAVAILABLE}
+                .mode=${mode}
+                @click=${this._handleOperationModeClick}
+              >
+                ${this._formatters.formatEntityState(stateObj, mode)}
+              </button>
+            `
+          )}
+      </div>
+      ${
+        supportPresetMode && stateObj.attributes.preset_modes
+          ? html`
+              <div
+                class="chips"
+                role="group"
+                aria-label=${this._formatters.formatEntityAttributeName(
+                  stateObj,
+                  "preset_mode"
+                )}
+              >
+                ${stateObj.attributes.preset_modes.map(
+                  (mode) => html`
+                    <button
+                      type="button"
+                      class="chip"
+                      aria-pressed=${
+                        stateObj.attributes.preset_mode === mode
+                          ? "true"
+                          : "false"
+                      }
+                      .disabled=${stateObj.state === UNAVAILABLE}
+                      .mode=${mode}
+                      @click=${this._handlePresetClick}
+                    >
+                      ${
+                        stateObj.attributes.preset_mode === mode
+                          ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>`
+                          : nothing
+                      }
+                      ${this._formatters.formatEntityAttributeValue(
+                        stateObj,
+                        "preset_mode",
+                        mode
+                      )}
+                    </button>
+                  `
+                )}
+              </div>
+            `
+          : nothing
+      }
+      ${
+        currentHumidity != null
+          ? html`
+              <div class="tiles">
+                <div class="tile">
+                  <span class="label">
+                    ${this._formatters.formatEntityAttributeName(
                       stateObj,
-                      "preset_mode",
-                      mode
-                    ),
-                  }))}
-                  .renderIcon=${this._renderPresetModeIcon}
-                >
-                  <ha-svg-icon
-                    slot="icon"
-                    .path=${mdiTuneVariant}
-                  ></ha-svg-icon>
-                </ha-control-select-menu>
-              `
-            : nothing
-        }
+                      "current_humidity"
+                    )}
+                  </span>
+                  <span class="value">
+                    ${this._formatters.formatEntityAttributeValue(
+                      stateObj,
+                      "current_humidity"
+                    )}
+                  </span>
+                </div>
+              </div>
+            `
+          : nothing
+      }
+      <ha-more-info-control-select-container>
         ${
           supportFanMode && stateObj.attributes.fan_modes
             ? html`
@@ -371,8 +398,9 @@ class MoreInfoClimate extends LitElement {
     );
   }
 
-  private _handleOperationModeChanged(ev: HaDropdownSelectEvent) {
-    const newVal = ev.detail.item.value;
+  private _handleOperationModeClick(ev: Event) {
+    const newVal = (ev.currentTarget as HTMLButtonElement & { mode: string })
+      .mode;
     this._callServiceHelper(this.stateObj!.state, newVal, "set_hvac_mode", {
       hvac_mode: newVal,
     });
@@ -398,16 +426,15 @@ class MoreInfoClimate extends LitElement {
     );
   }
 
-  private _handlePresetmodeChanged(ev: HaDropdownSelectEvent) {
-    const newVal = ev.detail.item.value || null;
-    if (newVal) {
-      this._callServiceHelper(
-        this.stateObj!.attributes.preset_mode,
-        newVal,
-        "set_preset_mode",
-        { preset_mode: newVal }
-      );
-    }
+  private _handlePresetClick(ev: Event) {
+    const newVal = (ev.currentTarget as HTMLButtonElement & { mode: string })
+      .mode;
+    this._callServiceHelper(
+      this.stateObj!.attributes.preset_mode,
+      newVal,
+      "set_preset_mode",
+      { preset_mode: newVal }
+    );
   }
 
   private async _callServiceHelper(
@@ -451,49 +478,16 @@ class MoreInfoClimate extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       moreInfoControlStyle,
+      moreInfoBoardStyle,
       css`
         :host {
           color: var(--primary-text-color);
+          gap: var(--ha-space-4);
+        }
+        .controls:not(:last-child) {
+          margin-bottom: 0;
         }
 
-        .current {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          margin-bottom: var(--ha-space-10);
-        }
-
-        .current div {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          flex: 1;
-        }
-
-        .current p {
-          margin: 0;
-          text-align: center;
-          color: var(--primary-text-color);
-        }
-
-        .current .label {
-          opacity: 0.8;
-          font-size: var(--ha-font-size-m);
-          line-height: var(--ha-line-height-condensed);
-          letter-spacing: 0.4px;
-          margin-bottom: var(--ha-space-1);
-        }
-
-        .current .value {
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-medium);
-          line-height: var(--ha-line-height-condensed);
-          direction: ltr;
-        }
         ha-select {
           width: 100%;
           margin-top: var(--ha-space-2);

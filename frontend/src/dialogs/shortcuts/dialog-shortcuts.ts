@@ -201,19 +201,21 @@ class DialogShortcuts extends DialogMixin(LitElement) {
   ) {
     return html`
       <div class="shortcut">
-        ${shortcutKeys.map(
-          (shortcutKey) =>
-            html`<span
-              >${
-                shortcutKey === CTRL_CMD
-                  ? ctrlOrCmdLabel(this._i18n.localize)
-                  : typeof shortcutKey === "string"
-                    ? shortcutKey
-                    : this._i18n.localize(shortcutKey.shortcutTranslationKey)
-              }</span
-            >`
-        )}
-        ${this._i18n.localize(descriptionKey)}
+        <span class="description">${this._i18n.localize(descriptionKey)}</span>
+        <span class="keys">
+          ${shortcutKeys.map(
+            (shortcutKey) =>
+              html`<kbd
+                >${
+                  shortcutKey === CTRL_CMD
+                    ? ctrlOrCmdLabel(this._i18n.localize)
+                    : typeof shortcutKey === "string"
+                      ? shortcutKey
+                      : this._i18n.localize(shortcutKey.shortcutTranslationKey)
+                }</kbd
+              >`
+          )}
+        </span>
       </div>
     `;
   }
@@ -227,20 +229,22 @@ class DialogShortcuts extends DialogMixin(LitElement) {
         <div class="content">
           ${_SHORTCUTS.map(
             (section) => html`
-              <h3>${this._i18n.localize(section.titleTranslationKey)}</h3>
-              <div class="items">
-                ${section.items.map((item) => {
-                  if ("shortcut" in item) {
-                    return this._renderShortcut(
-                      (item as Shortcut).shortcut,
-                      (item as Shortcut).descriptionTranslationKey
-                    );
-                  }
-                  return html`<p>
-                    ${this._i18n.localize((item as Text).textTranslationKey)}
-                  </p>`;
-                })}
-              </div>
+              <section class="card">
+                <h3>${this._i18n.localize(section.titleTranslationKey)}</h3>
+                <div class="items">
+                  ${section.items.map((item) => {
+                    if ("shortcut" in item) {
+                      return this._renderShortcut(
+                        (item as Shortcut).shortcut,
+                        (item as Shortcut).descriptionTranslationKey
+                      );
+                    }
+                    return html`<p class="group-label">
+                      ${this._i18n.localize((item as Text).textTranslationKey)}
+                    </p>`;
+                  })}
+                </div>
+              </section>
             `
           )}
         </div>
@@ -260,27 +264,58 @@ class DialogShortcuts extends DialogMixin(LitElement) {
 
   static styles = [
     css`
+      .content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: var(--ha-space-4);
+        align-items: start;
+      }
+
+      .card {
+        padding: var(--ha-space-4) var(--ha-space-5);
+        border-radius: var(--ha-border-radius-xl);
+        background: var(--secondary-background-color);
+      }
+
+      .card h3 {
+        margin: 0 0 var(--ha-space-3);
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-medium);
+      }
+
       .shortcut {
-        direction: ltr;
         display: flex;
         flex-direction: row;
         align-items: center;
-        gap: var(--ha-space-2);
-        margin: 4px 0;
+        justify-content: space-between;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-2) 0;
       }
 
-      span {
-        padding: 8px;
+      .keys {
+        direction: ltr;
+        display: flex;
+        flex: none;
+        gap: var(--ha-space-1);
+      }
+
+      kbd {
+        min-width: 24px;
+        padding: var(--ha-space-1) var(--ha-space-2);
+        box-sizing: border-box;
+        text-align: center;
+        font-family: inherit;
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
         border: 1px solid var(--outline-color);
         border-radius: var(--ha-border-radius-md);
+        background: var(--card-background-color);
       }
 
-      .items p {
-        margin-bottom: 8px;
-      }
-
-      ha-svg-icon {
-        width: 12px;
+      .group-label {
+        margin: var(--ha-space-3) 0 var(--ha-space-1);
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
       }
 
       ha-alert a {

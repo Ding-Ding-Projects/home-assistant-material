@@ -3,7 +3,7 @@ import type { HomeAssistant } from "../../types";
 import { closeDialog } from "../make-dialog-manager";
 
 export type QuickBarSection =
-  "entity" | "device" | "area" | "navigate" | "command";
+  "entity" | "device" | "area" | "navigate" | "command" | "setting";
 
 export interface QuickBarParams {
   entityFilter?: string;

@@ -153,7 +153,11 @@ class HaBackupOverviewLocations extends LitElement {
   }
 
   private _keydown(ev: KeyboardEvent) {
-    if (ev.target === ev.currentTarget && ev.key === "Enter") {
+    if (
+      ev.target === ev.currentTarget &&
+      (ev.key === "Enter" || ev.key === " ")
+    ) {
+      ev.preventDefault();
       this._open(ev);
     }
   }

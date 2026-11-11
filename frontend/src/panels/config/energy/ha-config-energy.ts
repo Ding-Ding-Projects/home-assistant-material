@@ -143,6 +143,7 @@ class HaConfigEnergy extends LitElement {
           </div>
           <div class="cards">
             <ha-energy-grid-settings
+              page
               id="electricity"
               .hass=${this.hass}
               .preferences=${this._preferences!}
@@ -151,6 +152,7 @@ class HaConfigEnergy extends LitElement {
               @value-changed=${this._prefsChanged}
             ></ha-energy-grid-settings>
             <ha-energy-solar-settings
+              page
               .hass=${this.hass}
               .preferences=${this._preferences!}
               .statsMetadata=${this._statsMetadata}
@@ -159,6 +161,7 @@ class HaConfigEnergy extends LitElement {
               @value-changed=${this._prefsChanged}
             ></ha-energy-solar-settings>
             <ha-energy-battery-settings
+              page
               .hass=${this.hass}
               .preferences=${this._preferences!}
               .statsMetadata=${this._statsMetadata}
@@ -166,12 +169,14 @@ class HaConfigEnergy extends LitElement {
               @value-changed=${this._prefsChanged}
             ></ha-energy-battery-settings>
             <ha-energy-home-settings
+              page
               .hass=${this.hass}
               .preferences=${this._preferences!}
               .validationResult=${this._validationResult}
               @value-changed=${this._prefsChanged}
             ></ha-energy-home-settings>
             <ha-energy-device-settings
+              page
               .hass=${this.hass}
               .preferences=${this._preferences!}
               .statsMetadata=${this._statsMetadata}
@@ -179,6 +184,7 @@ class HaConfigEnergy extends LitElement {
               @value-changed=${this._prefsChanged}
             ></ha-energy-device-settings>
             <ha-energy-gas-settings
+              page
               id="gas"
               .hass=${this.hass}
               .preferences=${this._preferences!}
@@ -187,6 +193,7 @@ class HaConfigEnergy extends LitElement {
               @value-changed=${this._prefsChanged}
             ></ha-energy-gas-settings>
             <ha-energy-water-settings
+              page
               id="water"
               .hass=${this.hass}
               .preferences=${this._preferences!}
@@ -195,6 +202,7 @@ class HaConfigEnergy extends LitElement {
               @value-changed=${this._prefsChanged}
             ></ha-energy-water-settings>
             <ha-energy-device-settings-water
+              page
               .hass=${this.hass}
               .preferences=${this._preferences!}
               .statsMetadata=${this._statsMetadata}

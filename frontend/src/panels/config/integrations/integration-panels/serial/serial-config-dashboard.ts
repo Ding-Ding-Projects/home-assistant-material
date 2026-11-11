@@ -500,7 +500,13 @@ export class SerialConfigDashboard extends LitElement {
           .path=${mdiRefresh}
           @click=${this._handleRefresh}
         ></ha-icon-button>
-        <div class="container">${this._renderContent()}</div>
+        <div class="container">
+          <div class="page-heading">
+            <h1>${this.hass.localize("ui.panel.config.serial.title")}</h1>
+            <p>${this.hass.localize("ui.panel.config.serial.summary")}</p>
+          </div>
+          <div class="cards">${this._renderContent()}</div>
+        </div>
       </hass-subpage>
     `;
   }
@@ -597,15 +603,45 @@ export class SerialConfigDashboard extends LitElement {
           padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
         }
 
+        .page-heading {
+          margin: var(--ha-space-4) 0 var(--ha-space-4);
+        }
+
+        .page-heading h1 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-4xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
+          color: var(--primary-text-color);
+        }
+
+        .page-heading p {
+          margin: var(--ha-space-1) 0 0;
+          font-size: var(--ha-font-size-l);
+          line-height: var(--ha-line-height-normal);
+          color: var(--secondary-text-color);
+        }
+
+        .cards {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 340px), 1fr)
+          );
+          gap: var(--ha-space-4);
+          align-items: start;
+        }
+
         ha-card,
         ha-alert {
           display: block;
-          margin: 0px auto var(--ha-space-4);
-          max-width: 600px;
+          margin: 0;
         }
 
-        ha-card:first-child {
-          margin-top: var(--ha-space-6);
+        ha-card.status,
+        ha-alert {
+          grid-column: 1 / -1;
         }
 
         .loading {

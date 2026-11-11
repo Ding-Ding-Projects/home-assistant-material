@@ -182,7 +182,8 @@ export class VoiceAssistantsExpose extends LitElement {
         availableAssistants,
         entitiesToCheck,
         supportedEntities,
-        false
+        // Switch columns are hidden on narrow screens, so show the icons there.
+        narrow
       ),
       ...this._toggleColumns(
         localize,
