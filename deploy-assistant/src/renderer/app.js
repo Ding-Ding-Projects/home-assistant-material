@@ -2147,6 +2147,13 @@
     window.addEventListener('resize', function () { if (st.active === 'draw') drPaint(); });
   })();
 
+  // Docker reports memory as text such as "2.1GiB / 4GiB"; show the used part in the same units as every other size.
+  function memText(v) {
+    var m = /([\d.]+)\s*(B|KiB|MiB|GiB|TiB|kB|MB|GB|TB)/i.exec(String(v).split('/')[0]);
+    if (!m) return String(v).split('/')[0].trim();
+    var mult = { b: 1, kib: 1024, mib: 1048576, gib: 1073741824, tib: 1099511627776, kb: 1e3, mb: 1e6, gb: 1e9, tb: 1e12 }[m[2].toLowerCase()];
+    return fmtSize(parseFloat(m[1]) * mult);
+  }
   // ==========================================================================================
   // Minecraft servers, local AI models (Ollama), Windows virtual disks, and Chocolatey setup.
   // ==========================================================================================
@@ -2196,7 +2203,7 @@
       var lv = (mcv.live || {})[s.id] || (DEMO ? { state: s.lastState, online: s.lastState === 'running' ? 3 : 0, max: 20, names: s.lastState === 'running' ? ['Swift_Builder', 'Cousin_Lee', 'Grandpa_Wong'] : [], tps: 19.97, cpu: 23.4, mem: '2.1GiB / 4GiB', worldBytes: 1.84e9, uptimeSince: new Date(Date.now() - 5.2 * 3600e3).toISOString() } : {});
       var hist = (mcv.hist2 || {})[s.id] || [];
       var up = lv.uptimeSince && s.lastState === 'running' ? Math.round((Date.now() - Date.parse(lv.uptimeSince)) / 60000) : 0;
-      var tiles = [['AccountGroup', (lv.online != null ? lv.online : '–') + ' / ' + (lv.max || '–'), 'Players online'], ['Speedometer', lv.tps != null ? lv.tps.toFixed(1) : '–', 'Ticks per second' + (lv.tps != null ? (lv.tps >= 19 ? ', smooth' : lv.tps >= 15 ? ', a little slow' : ', struggling') : '')], ['Chip', lv.cpu != null ? lv.cpu.toFixed(1) + '%' : '–', 'Processor'], ['Memory', lv.mem ? String(lv.mem).split('/')[0].trim() : '–', 'Memory of ' + s.memoryMb + ' MB'], ['Earth', lv.worldBytes != null ? fmtSize(lv.worldBytes) : '–', 'World on disk'], ['BackupRestore', String((s.backups || []).length), (s.backups || [])[0] ? 'Backups, newest ' + when(s.backups[0].at) : 'Backups']];
+      var tiles = [['AccountGroup', (lv.online != null ? lv.online : '–') + ' / ' + (lv.max || '–'), 'Players online'], ['Speedometer', lv.tps != null ? lv.tps.toFixed(1) : '–', 'Ticks per second' + (lv.tps != null ? (lv.tps >= 19 ? ', smooth' : lv.tps >= 15 ? ', a little slow' : ', struggling') : '')], ['Chip', lv.cpu != null ? lv.cpu.toFixed(1) + '%' : '–', 'Processor'], ['Memory', lv.mem ? memText(lv.mem) : '–', 'Memory of ' + s.memoryMb + ' MB'], ['Earth', lv.worldBytes != null ? fmtSize(lv.worldBytes) : '–', 'World on disk'], ['BackupRestore', String((s.backups || []).length), (s.backups || [])[0] ? 'Backups, newest ' + when(s.backups[0].at) : 'Backups']];
       return '<div class="mcbanner fl-' + esc(s.flavour) + '" data-k="mcbanner"><div class="col grow" style="gap:6px"><span class="bs">' + esc(mcv.meta.flavours[s.flavour].name) + ' · ' + esc(s.version) + ' · ' + esc(mcv.meta.targets[s.target]) + '</span><span class="hs">' + esc(s.name) + '</span><span class="row" style="gap:8px;flex-wrap:wrap"><span class="mcpill ' + esc(s.lastState) + '"><i></i>' + esc(s.lastState) + (up ? ' for ' + (up < 60 ? up + ' min' : Math.floor(up / 60) + ' h ' + (up % 60) + ' min') : '') + '</span><span class="mcaddr mono">' + esc(addr) + '</span><button class="ib" data-copy="' + esc(addr) + '" aria-label="Copy the address" style="color:inherit">' + icon('ContentCopy', 's') + '</button><button class="ib" data-mcqr="' + esc(addr) + '" aria-label="Show the address as a QR code" style="color:inherit">' + icon('Qrcode', 's') + '</button></span></div><span class="mcblock" aria-hidden="true">' + icon('Minecraft') + '</span></div>' +
         '<div class="mctiles" data-k="mctiles">' + tiles.map(function (t) { return '<div class="mctile"><span class="ptile sm">' + icon(t[0], 's') + '</span><b>' + esc(t[1]) + '</b><span class="bs mu">' + esc(t[2]) + '</span></div>'; }).join('') + '</div>' +
         '<div class="mcgrid"><section class="card" style="padding:16px" data-k="mcload"><div class="row"><h3 class="tm grow">Load over the last minutes</h3><span class="bs mu">' + hist.length + ' readings</span></div>' + mcSpark(hist) + '</section>' +

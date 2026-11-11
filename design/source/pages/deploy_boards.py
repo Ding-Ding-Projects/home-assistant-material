@@ -4,6 +4,7 @@ The app's page runs in Chrome with mock.js standing in for the computer, so ever
 real interface in one state, saved as a static board. Run from the repository root after
 `node deploy-assistant/build-renderer.js`:
   python3 design/source/pages/deploy_boards.py
+Set ONLY=DeployMinecraft,DeployTools to draw just those boards again.
 """
 import datetime
 import json
@@ -133,7 +134,10 @@ def main():
     sizes = {}
     with sync_playwright() as p:
         br = p.chromium.launch(executable_path=os.environ.get('CHROME', '/usr/bin/google-chrome'))
+        only = set(filter(None, os.environ.get('ONLY', '').split(',')))
         for name, title, w, h, scheme, steps in BOARDS:
+            if only and name not in only:
+                continue
             ctx = br.new_context(viewport={'width': w, 'height': h or 880}, color_scheme=scheme)
             pg = ctx.new_page()
             pg.goto('file://' + os.path.join(APP, 'index.html'))
@@ -176,6 +180,10 @@ def main():
             sizes[name] = (w, hh)
             ctx.close()
         br.close()
+    if os.environ.get('ONLY'):
+        # Only some boards were drawn again; their canvases keep their layout.
+        print(json.dumps(sizes))
+        return
     for gi, (folder, gtitle) in enumerate(GROUPS):
         group = BOARDS[gi * 15:(gi + 1) * 15]
         idx = {'v': 3, 'createdOnFiles': {'v': 1, 'at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')},
