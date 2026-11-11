@@ -8,6 +8,15 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Fixed: refreshing the Minecraft version list always failed for Paper, because the service
+  retired the address the list came from. It now uses the service's current address. Found by
+  running the manager against a real SSH and Docker host (a throwaway container), where host
+  trust, a real start, logs, stop, restart and every refusal worked.
+- Fixed: Enter in a one-line name prompt (for example New folder) now confirms it, except in a
+  prompt that deletes something. Not yet seen in a running build.
+- Fixed: cells in the Ollama models table no longer break inside words on a narrow screen; the
+  table scrolls sideways instead. Found by running the pages against a real Ollama server, where
+  listing, pull, cancel, delete, unload and the test chat worked. The fix is not yet seen.
 - New: Activity has a permanent record. Everything the Activity page shows is also written to a Git
   repository in the configuration folder, one folder of chunk files for each day, committed in
   batches (every ten minutes and at shutdown) and never purged, rewritten or squashed. A Permanent
@@ -24,7 +33,7 @@ day can hold several releases. The interface shows this list under Settings, Abo
   is counted only on a real overflow and kept on disk, and a deleted or edited day file is restored
   from the last commit with a copy of the edited file kept beside it.
 - Changed: rows in the expanded menu are 48 px high so the whole menu fits a phone screen; the
-  collapsed rail keeps 56 px. Not yet seen in a running build.
+  collapsed rail keeps 56 px. Seen in build 106 at 390 px wide.
 - Fixed: a request naming "." as a media folder could resolve to the media directory itself, so a
   recursive delete could remove it. Any "." component and the source root are now refused; the
   counts a person confirmed are enforced, uploads and deletes no longer follow a linked directory

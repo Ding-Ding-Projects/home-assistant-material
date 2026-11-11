@@ -74,19 +74,26 @@ Later than the section below; where the two disagree, this one is newer.
   dashboard history overview with its search field and correct plural forms, and the voice
   assistants page with no cloud promotion. In build 106 the same way: the Permanent record page
   (status Recording, counts, one day listed).
-- NOT seen in any browser: the media Manage dialog and folder actions, the "Add media" fix on a real
-  phone, the version picker, the update install progress and recovery card during a real install,
-  the Minecraft server page with a real server, the Ollama pages with a real server, the test chat,
-  the editor save bar, the embedded page panel, the smaller menu rows, the converter's new
-  conversions actually run in a browser, schedules, and the activity tray.
+- Seen or run for real on 11 November 2026, in build 106 on a throwaway copy with a headless
+  browser at 390 px wide: the expanded menu's rows measure 48 px; in the media Manage dialog
+  pressing "Add media" opened a file chooser, an uploaded picture was listed and was on disk,
+  and a new folder was created; the version picker opened, listed the versions and a chosen
+  version produced a compare. The Ollama pages and test chat were run against a real Ollama
+  server, and the Minecraft manager against a real SSH and Docker host (a throwaway container
+  with its own Docker engine); see their feature pages. That run found the Paper version list
+  address retired by its service, fixed in batch 24.
+- NOT seen in any browser: the "Add media" fix on a real phone, the update install progress and recovery card during a
+  real install (no real update has been available), the editor save bar, the embedded page
+  panel, the converter's new conversions actually run in a browser, schedules, the activity
+  tray, and the two batch 24 fixes (Enter in a one-line prompt, and Ollama table cells that no
+  longer break inside words).
 - Known limits: the activity record can still lose entries in the ways its documentation lists (a
   power cut in the seconds before a flush, a real queue overflow, shutdown while the disk is
   failing) and does not import entries from before it started; reading PDFs, MP3 output and
   video-to-video conversion are not offered; the paid cloud service is hidden in the interface
   only and remains visible in a few places for someone who has it configured (an existing
-  cloud-stored backup's location name, one entity filter); the Minecraft manager has never run
-  against a real Docker host, the Ollama pages never against a real server, and passkeys never with
-  a real authenticator; no operating system image has been built since two unit files were renamed
+  cloud-stored backup's location name, one entity filter); passkeys have never been used with
+  a real authenticator; the Minecraft manager has not been run with versions newer than 1.21.8; no operating system image has been built since two unit files were renamed
   for Windows checkouts; a documentation-only push publishing no release has not been observed.
 - Closed by the owner's decision: the phone app's earlier setup problems (nothing left to fix).
 

@@ -59,16 +59,24 @@ product matching it.
 
 ## Not verified
 
-- Not seen in any browser: the media Manage dialog and folder actions, the "Add media" fix on a
-  real phone, the version picker, the update install progress and recovery card during a real
-  install, the Minecraft server detail page with a real server, the Ollama pages with a real
-  server, the test chat, the editor save bar, the embedded page panel, the smaller menu rows, the
-  converter's new conversions actually run in a browser, schedules, and the activity tray. Also
+- Seen or run for real on 11 November 2026, in build 106 on a throwaway copy with a headless
+  browser at 390 px wide: the expanded menu's rows measure 48 px; in the media Manage dialog
+  pressing "Add media" opened a file chooser, an uploaded picture was listed and was on disk,
+  and a new folder was created; the version picker opened, listed the versions and a chosen
+  version produced a compare. The Ollama pages and test chat were run against a real Ollama
+  server, and the Minecraft manager against a real SSH and Docker host (a throwaway container
+  with its own Docker engine); see their feature pages. That run found the Paper version list
+  address retired by its service, fixed in batch 24.
+- Not seen in any browser: the "Add media" fix on a real phone, the update install progress and recovery card during a
+  real install (no real update has been available), the editor save bar, the embedded page
+  panel, the converter's new conversions actually run in a browser, schedules, the activity
+  tray, and the two batch 24 fixes (Enter in a one-line prompt, and Ollama table cells that no
+  longer break inside words). Also
   unseen: the activity record's search and a push to a real Git remote, and everything from the
   earlier batches that `docs/feature-status.md` still marks "not yet seen".
 - A documentation-only push publishing no release has not been observed.
-- The Minecraft manager has never been run against a real Docker host, the Ollama pages never
-  against a real server, and passkeys never with a real authenticator.
+- Passkeys have never been used with a real authenticator. The Minecraft manager has not been run
+  with versions newer than 1.21.8.
 - No operating system image has been built since two unit files were renamed for Windows checkouts.
 - `deploy-assistant\build.bat` (another lane's) has not been run by this work.
 

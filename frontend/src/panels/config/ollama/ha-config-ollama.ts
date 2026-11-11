@@ -1119,7 +1119,9 @@ class HaConfigOllama extends LitElement {
         text-align: start;
         padding: var(--ha-space-1) var(--ha-space-2);
         border-bottom: 1px solid var(--divider-color);
-        overflow-wrap: anywhere;
+        /* Cells never break inside a word or a model name: when the columns
+           do not fit, the table scrolls sideways inside its wrapper. */
+        white-space: nowrap;
       }
       th {
         color: var(--secondary-text-color);

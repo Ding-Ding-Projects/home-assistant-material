@@ -134,8 +134,9 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       for it while it is hidden (the earlier blank strip), a group chip on the personal settings
       page no longer scrolls its title under the pinned chips, and accessibility panel buttons are
       at least 44 px. Fixed in source; not yet seen
-- [ ] Rows in the expanded menu are 48 px (collapsed rail 56 px) so the whole menu fits a phone
+- [x] Rows in the expanded menu are 48 px (collapsed rail 56 px) so the whole menu fits a phone
       screen. Built; not yet seen in a running build
+      Seen in build 106 at 390 px wide (rows measured 48 px)
 - [~] Activity has a permanent record: everything the Activity page shows is also written to a Git
       repository in the configuration folder, one folder of chunk files for each day, committed in
       batches and never purged, rewritten or squashed; a Permanent record page lists days, shows
@@ -267,7 +268,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       for Compare, and "Git remote" in full on the history and recorded problems pages. The
       dashboard history overview with its search field and plural forms was seen in build 103 at
       390 px; a tab's version count wrapped onto two lines there (fixed, not seen). The version
-      picker, with its batch 21 fixes, is not yet seen
+      picker was seen in build 106 at 390 px wide (opened, listed versions, a choice produced a
+      compare)
 - [ ] One save bar in every automation, script and scene editor mode (a read-only automation no
       longer shows an enabled Save). Built; not yet seen. The blank strip when the phone's bottom
       bar hides on scroll is fixed in source (batch 21) and not seen
@@ -335,9 +337,10 @@ matches its board, checked side by side.
 - [x] Base64 toolkit: encode, decode and data URLs for text and files, under Tools
 - [~] Minecraft server manager: definitions, SSH hosts, version lookup, the Docker over SSH
       target (start, stop, log) and a server page with overview, logs, settings and removal tabs
-      are built and covered by 217 server tests; the manager has never been run against a real
-      Docker host. The empty state was seen in build 103; the server page with a real server is
-      not seen. Not built: the other four targets, backups, the world
+      are built and covered by 217 server tests; on 11 November 2026 build 106 was run against a real
+      SSH and Docker host in a throwaway container and the pages were seen; the Paper version
+      list address, found retired there, was fixed in batch 24. Versions newer than 1.21.8 were
+      not run. Not built: the other four targets, backups, the world
       generator
 - [~] Local Ollama suite: servers, models, pull with progress and Cancel, delete, unload, model
       details with the assistants that use a model, and a test chat that cannot control the home
@@ -353,7 +356,9 @@ matches its board, checked side by side.
       remove it (the tests failed 19 times against the old code; now refused), enforced the
       confirmed counts, stopped uploads and deletes following a linked directory out of the media
       folder and limited the Manage dialog to administrators. Media sources were seen in build
-      103; the Manage dialog, folder actions and the "Add media" fix on a phone are not seen
+      103; in build 106 with a headless browser at 390 px wide "Add media" opened a file chooser, an
+      upload was listed and a new folder was created; a real phone, rename, move and delete are
+      not seen
 - [ ] Embedded page panel: reload and a notice when a page refuses framing. Built; not yet seen
 - [ ] External editor hand-off and publishing to a forge
 - [~] Drawing and annotation: a drawing board under Tools, built and not yet seen

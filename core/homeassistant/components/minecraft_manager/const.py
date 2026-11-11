@@ -106,7 +106,7 @@ CONTAINER_LOG_MAX_FILES: Final = "3"
 MOJANG_MANIFEST_URL: Final = (
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 )
-PAPER_VERSIONS_URL: Final = "https://api.papermc.io/v2/projects/paper"
+PAPER_VERSIONS_URL: Final = "https://fill.papermc.io/v3/projects/paper"
 VERSION_FETCH_TIMEOUT: Final = 20
 VERSION_MAX_BYTES: Final = 4 * 1024 * 1024
 VERSION_MAX_ENTRIES: Final = 2000

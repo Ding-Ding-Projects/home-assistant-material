@@ -38,9 +38,15 @@ def test_parse_mojang_keeps_releases_and_snapshots_only() -> None:
 
 
 def test_parse_paper_newest_first_and_validated() -> None:
-    """The list is reversed and an invalid id is dropped."""
-    result = parse_paper_versions({"versions": ["1.20", "1.21; id", "1.21.4"]})
-    assert [item["id"] for item in result] == ["1.21.4", "1.20"]
+    """The grouped list is flattened in order, pre-releases are snapshots."""
+    result = parse_paper_versions(
+        {"versions": {"1.21": ["1.21.4", "1.21; id", "1.21.4-rc1"], "1.20": ["1.20"]}}
+    )
+    assert result == [
+        {"id": "1.21.4", "type": "release"},
+        {"id": "1.21.4-rc1", "type": "snapshot"},
+        {"id": "1.20", "type": "release"},
+    ]
 
 
 @pytest.mark.parametrize("data", [None, [], {}, {"versions": "x"}, {"versions": []}])
@@ -57,7 +63,7 @@ async def test_refresh_caches_with_time(
 ) -> None:
     """A refresh fetches both fixed hosts and stores the time."""
     aioclient_mock.get(MOJANG_MANIFEST_URL, json=MANIFEST)
-    aioclient_mock.get(PAPER_VERSIONS_URL, json={"versions": ["1.21.4"]})
+    aioclient_mock.get(PAPER_VERSIONS_URL, json={"versions": {"1.21": ["1.21.4"]}})
     store = VersionStore(hass)
     assert store.cached()["fetched_at"] is None
     data = await store.async_refresh()

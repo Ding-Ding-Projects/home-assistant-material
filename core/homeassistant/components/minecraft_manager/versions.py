@@ -67,17 +67,22 @@ def parse_mojang_manifest(data: Any) -> list[dict[str, str]]:
 
 def parse_paper_versions(data: Any) -> list[dict[str, str]]:
     """Return ``{id, type}`` for each Paper version, newest first."""
-    entries = data.get("versions") if isinstance(data, dict) else None
-    if not isinstance(entries, list):
+    groups = data.get("versions") if isinstance(data, dict) else None
+    if not isinstance(groups, dict):
         raise VersionError("bad_response")
-    result = [
-        {"id": item, "type": "release"}
-        for item in entries[:VERSION_MAX_ENTRIES]
-        if isinstance(item, str) and VERSION_PATTERN.fullmatch(item)
-    ]
+    result: list[dict[str, str]] = []
+    for entries in groups.values():
+        if not isinstance(entries, list):
+            raise VersionError("bad_response")
+        for item in entries:
+            if len(result) >= VERSION_MAX_ENTRIES:
+                break
+            if isinstance(item, str) and VERSION_PATTERN.fullmatch(item):
+                result.append(
+                    {"id": item, "type": "snapshot" if "-" in item else "release"}
+                )
     if not result:
         raise VersionError("bad_response")
-    result.reverse()
     return result
 
 

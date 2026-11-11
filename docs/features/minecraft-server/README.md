@@ -77,7 +77,7 @@ The status call opens a TCP connection to the game port from this instance and r
 Only when the person presses "Refresh versions", never in the background.
 
 - Java vanilla: Mojang's version manifest at `https://piston-meta.mojang.com/mc/game/version_manifest_v2.json` (releases and snapshots).
-- Paper: `https://api.papermc.io/v2/projects/paper`.
+- Paper: `https://fill.papermc.io/v3/projects/paper` (the earlier address was retired by the service).
 - Fixed hosts over HTTPS, redirects are never followed, a 4 MB size cap and a 20 second timeout apply, every id is checked against the version pattern, and both lists are cached with the time they were fetched. If either lookup fails nothing is cached and the error code is shown.
 - The wizard's version field is a typed field with a list below it, filtered by Releases, Snapshots or All and narrowed by what is typed. A typed version is always accepted. Other flavours have no list yet and say so.
 - Downloads and hash checks of server jars are not done by this manager: the container image downloads the jar. Other flavours and Bedrock sources are still to do.
@@ -135,9 +135,41 @@ The board shows more tabs and controls than the commands support. None of these 
 
 ## What was and was not verified
 
+### Run against a real SSH and Docker host on 11 November 2026
+
+The manager in build 2026.11.1.106 was run against a real host: a throwaway container running
+its own Docker engine and an SSH server, on a private container network, with a throwaway copy
+of the product beside it. Nothing was pointed at a real machine. What was seen working:
+
+- Adding a host, the generated key pair, and the copyable `authorized_keys` command run in the
+  host's own shell (it created `~/.ssh` with mode 700 and the file with mode 600, with a
+  `restrict` line).
+- Probe, the fingerprint hint naming the right host key file, a wrong fingerprint refused, the
+  right one stored, and the host test reporting the Docker version.
+- Creating a Java server, the licence refusal, a real start (the pinned image was pulled on the
+  host, 862 MB), the container's limits and label, the port published on the host's network
+  address only and reachable from another machine on that network, status, real log lines
+  including the server's "Done" line, stop, restart, and start while already running.
+- Every refusal: rename while the container exists, remove while running, delete data with the
+  wrong name, and delete of a definition whose name collides with a container the manager did
+  not create.
+- A container and a volume created by hand with the manager's naming but without its label were
+  never touched: every operation answered `not_managed`, and the container's uptime was unbroken.
+- After the host's key was regenerated, every command answered `host_key_changed` and did not
+  connect, until the new key was trusted with `replace`.
+
+One defect was found and fixed by that run: the Paper version list address had been retired by
+its service (it answered HTTP 410), so refreshing versions always failed. The list now comes
+from the service's current address, and its grouped answer is flattened.
+
+Not covered by that run: Minecraft versions newer than 1.21.8 (the pinned image carries Java 21;
+a newer game version may need a newer image), the other four targets, and Bedrock.
+
+### Earlier checks
+
 - Run: type checks, lint, formatting and the unit tests of the validation and version helpers in the interface; the Python files compile; and a real SSH round trip with the repository's own code against a throwaway `asyncssh` server (key sign-in, trust on first use, changed key refused, a host offering only another key type, a damaged stored key, unknown key refused, a user `~/.ssh/config` with a `Hostname` redirect ignored, never-ending output bounded, a one-line 5 MB log bounded, start, status, logs, stop, remove container, delete data, foreign containers and volumes left alone, the private key never appearing in a result). The Docker side of that round trip is a stand-in that answers the commands, including `rm` and `volume create`, `inspect` and `rm`, so the real Docker behaviour, the label templates, the pinned image and the `itzg` environment variables were not exercised.
 - The websocket handlers (host trust flows, the rename, host change and delete refusals, the key permission failure) were driven directly with in-memory fakes of the websocket layer and storage, because the Home Assistant test harness could not be installed on the machine used. The tests in `test_websocket_flows.py` that use the real fixtures (each of the 22 commands refusing a non-administrator, and the same flows) were written but not run, and neither were the version-fetch tests with a mocked HTTP client.
-- Not run: any real Docker host, the real Mojang and Paper services, and the pages in a browser.
+- At the time of those earlier checks nothing had been run against a real Docker host, the real Mojang and Paper services, or a browser; the section above records the later run that did.
 
 ## Next slice
 

@@ -60,6 +60,25 @@ The page opens with this statement: only the Ollama server addresses you entered
 
 ## Verification status
 
+### Run against a real Ollama server on 11 November 2026
+
+Build 2026.11.1.106 was run against a real Ollama server (version 0.40.16, CPU only) in a
+throwaway container, with a throwaway copy of the product beside it. Seen working: the server
+listed with its version and its address reduced to scheme, host and port; models with their real
+sizes and details; running models; which assistants use a model; a download with real byte
+progress to the end, a download cancelled part way (a new one was accepted at once), a second
+download on the same server refused; delete and unload; the test chat streaming a reply with the
+speed the server reported, Stop, and the refusals (a model the server does not list, a prompt of
+4,001 characters, two chats on one connection, names that address another registry). The page,
+a model's details, a chat reply, a download in progress and the download in the activity list
+were seen at 390 and 1280 px wide. One layout defect was found there and fixed afterwards: table
+cells broke inside words when the column was narrow.
+
+Not covered by that run: a server that stops answering part way through a download, and a
+server that needs sign-in.
+
+### Earlier checks
+
 The integration was seen loading at start in a running copy on 10 November 2026 without errors; no command was driven against it.
 
 Slice 3 adds Python tests for `chat` (result before the first event, streamed text and real speed, no speed without counts, cancel frees the slot, oversize and blank prompts refused, bounded reply, plain error codes, administrator only) and `used_by`. They compile but have not been run, and no Ollama server has been contacted. The model name stored in a subentry is assumed to be the `model` key of its data, read from the stock integration's source. The page has not been seen in a browser.

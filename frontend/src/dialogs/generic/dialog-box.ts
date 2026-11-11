@@ -194,6 +194,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
                     .max=${this._params.inputMax}
                     .disabled=${this._loading}
                     @input=${this._validateInput}
+                    @keydown=${this._inputKeydown}
                   >
                     ${
                       this._params.inputSuffix
@@ -374,6 +375,25 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
     this._markDirtyStateClean();
     this._closeDialog();
+  }
+
+  /**
+   * Enter in a one-line prompt confirms it, as pressing the button would.
+   * Never for a destructive prompt: that one needs a deliberate press.
+   */
+  private _inputKeydown(ev: KeyboardEvent): void {
+    if (
+      ev.key !== "Enter" ||
+      ev.isComposing ||
+      !this._params?.prompt ||
+      this._params.destructive ||
+      this._loading ||
+      !this._validInput
+    ) {
+      return;
+    }
+    ev.preventDefault();
+    this._confirm();
   }
 
   private _validateInput(): void {
