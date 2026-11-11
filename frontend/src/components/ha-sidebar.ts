@@ -43,7 +43,10 @@ import {
 import { subscribeSharedIdentity } from "../common/identity/shared-identity";
 import { InstanceSyncStarter } from "../common/instance-sync/start-instance-sync";
 import { subscribeSharedPreferenceDefaults } from "../common/preferences/shared-preference-defaults";
-import { setScheduleZoneSetting } from "../common/preferences/preference-schedule-store";
+import {
+  setScheduleEntityStates,
+  setScheduleZoneSetting,
+} from "../common/preferences/preference-schedule-store";
 import {
   getPersonalPreferences,
   isDeveloperToolsHidden,
@@ -395,6 +398,11 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         this.hass.locale.time_zone,
         this.hass.config.time_zone
       );
+    }
+
+    if (this.hass.states && this.hass.states !== oldHass?.states) {
+      // Schedules that depend on an entity follow its state as it changes.
+      setScheduleEntityStates(this.hass.states);
     }
 
     if (

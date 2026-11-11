@@ -1,11 +1,13 @@
 import type { Connection } from "home-assistant-js-websocket";
 import { appearanceSync } from "../appearance/appearance-sync";
 import { wordingSync } from "../vocabulary/wording-sync";
+import { settingsBundleSync } from "./settings-bundle";
 import { claimSyncOwner } from "./sync-owner";
 
 /**
- * Starts saving the person's appearance choices and personal wording on this
- * instance, and loading them after sign-in. Call it once the connection is
+ * Starts saving the person's appearance choices, personal wording and every
+ * other personal setting (the settings bundle) on this instance, and loading
+ * them after sign-in. Call it once the connection is
  * up and the signed-in account is known; calling it again for the same
  * connection is counted, and each returned function lets go of its own call.
  *
@@ -42,13 +44,17 @@ export const startInstanceSync = (
   conn: Connection,
   userId: string | undefined
 ): (() => void) => {
-  if (!claimSyncOwner(userId, [wordingSync, appearanceSync])) {
+  if (
+    !claimSyncOwner(userId, [wordingSync, appearanceSync, settingsBundleSync])
+  ) {
     return () => undefined;
   }
   const stopWording = wordingSync.start(conn);
   const stopAppearance = appearanceSync.start(conn);
+  const stopSettings = settingsBundleSync.start(conn);
   return () => {
     stopWording();
     stopAppearance();
+    stopSettings();
   };
 };

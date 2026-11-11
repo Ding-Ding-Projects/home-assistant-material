@@ -29,6 +29,8 @@ import type {
   VersionPickerItem,
 } from "../../../components/history/ha-version-picker";
 import { RequestToken } from "../../../components/history/version-picker-logic";
+import "../../../components/input/ha-input";
+import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
@@ -727,15 +729,15 @@ export class HaConfigAutomationRepo extends LitElement {
           <span class="secondary">${this._l("vh_message_suggested")}</span>
           <span>${suggested || info.alias}</span>
         </p>
-        <input
+        <ha-input
           class="message"
+          appearance="outlined"
           type="text"
-          maxlength="500"
+          .maxlength=${500}
           .value=${this._message}
-          placeholder=${this._l("vh_master_message")}
-          aria-label=${this._l("vh_master_message")}
+          .label=${this._l("vh_master_message")}
           @input=${this._messageChanged}
-        />
+        ></ha-input>
         <div class="form-actions">
           <ha-button
             appearance="plain"
@@ -879,7 +881,7 @@ export class HaConfigAutomationRepo extends LitElement {
   }
 
   private _messageChanged(ev: Event) {
-    this._message = (ev.currentTarget as HTMLInputElement).value;
+    this._message = (ev.currentTarget as HaInput).value ?? "";
   }
 
   private async _commit() {
@@ -1163,8 +1165,11 @@ export class HaConfigAutomationRepo extends LitElement {
       cursor: pointer;
       text-align: start;
     }
-    button:focus-visible,
-    input:focus-visible {
+    .message {
+      display: block;
+      min-width: 0;
+    }
+    button:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
     }

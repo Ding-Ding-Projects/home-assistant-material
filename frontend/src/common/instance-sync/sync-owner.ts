@@ -111,6 +111,21 @@ export const claimSyncOwner = (
   return true;
 };
 
+/**
+ * True while the cache still belongs to the account this page claimed it for.
+ * Another tab may sign in as a different account on the same browser, clear
+ * the cache and record itself as the owner; from then on this page must not
+ * read the cache or upload anything for its own account. A page that never
+ * claimed (no account known yet) has nothing to compare and is not stopped.
+ */
+export const ownerStillClaimed = (): boolean => {
+  if (claimed === undefined) {
+    return true;
+  }
+  const stored = readOwner();
+  return stored === undefined || stored === claimed;
+};
+
 /** For tests: forgets which account this page claimed the cache for. */
 export const forgetClaimedOwner = (): void => {
   claimed = undefined;

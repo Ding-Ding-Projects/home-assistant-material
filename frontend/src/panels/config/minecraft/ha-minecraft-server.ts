@@ -7,6 +7,8 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-checkbox";
+import type { HaCheckbox } from "../../../components/ha-checkbox";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-tab-group";
@@ -281,7 +283,7 @@ class HaMinecraftServer extends LitElement {
   }
 
   private async _eulaChanged(ev: Event): Promise<void> {
-    const accepted = (ev.target as HTMLInputElement).checked;
+    const accepted = (ev.target as HaCheckbox).checked;
     try {
       const result = await setMinecraftEula(
         this.hass,
@@ -569,14 +571,12 @@ class HaMinecraftServer extends LitElement {
 
   private _renderEula(): TemplateResult {
     return html`<section class="card">
-      <label class="check">
-        <input
-          type="checkbox"
-          .checked=${Boolean(this.server.eula_accepted)}
-          @change=${this._eulaChanged}
-        />
-        <span>${this._l("detail.eula_accept")}</span>
-      </label>
+      <ha-checkbox
+        class="check"
+        .checked=${Boolean(this.server.eula_accepted)}
+        @change=${this._eulaChanged}
+        >${this._l("detail.eula_accept")}</ha-checkbox
+      >
       <p class="detail">
         ${this._l("detail.eula_text", { url: MINECRAFT_EULA_URL })}
       </p>
@@ -825,12 +825,12 @@ ${
         gap: var(--ha-space-3);
         min-height: 44px;
         cursor: pointer;
+        --ha-checkbox-min-touch-size: 44px;
       }
-      .check input {
-        width: 20px;
-        height: 20px;
-        margin: 2px 0 0;
-        flex: none;
+      .check::part(base) {
+        flex: 1;
+        min-height: 44px;
+        cursor: pointer;
       }
       .code {
         display: flex;

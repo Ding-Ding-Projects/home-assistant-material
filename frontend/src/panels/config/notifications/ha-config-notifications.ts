@@ -24,6 +24,7 @@ import {
   toggleSelected,
 } from "../../../components/bulk/bulk-selection";
 import "../../../components/ha-button";
+import "../../../components/ha-checkbox";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
 import "../../../components/ha-svg-icon";
@@ -75,6 +76,8 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   @state() private _confirmClear = false;
 
   private _anchor?: string;
+
+  private _shiftHeld = false;
 
   public connectedCallback(): void {
     super.connectedCallback();
@@ -295,13 +298,15 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
       <li class=${classMap({ selected })}>
         ${
           this._selecting
-            ? html`<input
-                type="checkbox"
+            ? html`<ha-checkbox
+                class="pick"
                 .checked=${selected}
                 aria-label=${title}
                 data-id=${item.notification_id}
-                @click=${this._toggleSelected}
-              />`
+                @pointerdown=${this._rememberShift}
+                @keydown=${this._rememberShift}
+                @change=${this._toggleSelected}
+              ></ha-checkbox>`
             : html`<span class="tile"
                 ><ha-svg-icon .path=${mdiBellOutline}></ha-svg-icon
               ></span>`
@@ -441,12 +446,26 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     this._dismissed = loadDismissed();
   }
 
-  private _toggleSelected(ev: MouseEvent): void {
-    const id = (ev.currentTarget as HTMLElement).dataset.id!;
+  /**
+   * The checkbox reports a change, not the pointer, so whether Shift was held
+   * is noted from the press or key that caused it.
+   */
+  private _rememberShift(ev: PointerEvent | KeyboardEvent): void {
+    this._shiftHeld = ev.shiftKey;
+  }
+
+  private _toggleSelected(ev: Event): void {
+    const box = ev.currentTarget as HTMLElement & { checked: boolean };
+    const id = box.dataset.id!;
     const ordered = this._shown().map((item) => item.notification_id);
-    this._selected = ev.shiftKey
-      ? selectRange(ordered, this._selected, this._anchor, id)
-      : toggleSelected(this._selected, id);
+    const shift = this._shiftHeld;
+    this._shiftHeld = false;
+    const isSelected = this._selected.includes(id);
+    if (shift && box.checked) {
+      this._selected = selectRange(ordered, this._selected, this._anchor, id);
+    } else if (box.checked !== isSelected) {
+      this._selected = toggleSelected(this._selected, id);
+    }
     this._anchor = id;
   }
 
@@ -656,12 +675,17 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           border-radius: var(--ha-border-radius-lg);
           background: var(--primary-background-color);
         }
-        input[type="checkbox"] {
+        .pick {
           flex: none;
-          width: 20px;
-          height: 20px;
-          margin: 10px;
-          accent-color: var(--primary-color);
+          margin: 0;
+          min-width: 44px;
+          min-height: 44px;
+          --ha-checkbox-min-touch-size: 44px;
+        }
+        .pick::part(base) {
+          justify-content: center;
+          width: 100%;
+          min-height: 44px;
         }
         .text {
           flex: 1 1 200px;

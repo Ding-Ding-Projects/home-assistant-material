@@ -11,6 +11,66 @@ server integrations in `core/homeassistant/components/`, boards in `design/canva
 Assistant desktop app in `deploy-assistant/`). The goal is every board built and the running
 product matching it.
 
+## Batch 27 state, 11 November 2026 (evening): read this first
+
+What landed in this batch, and exactly how far each part was checked. "Local build" below means
+the interface built from the working tree in a Linux container and served by a throwaway copy of
+build 115, driven with a headless browser at 390 px wide (and 320 px where noted); it is not a
+published build.
+
+- Every personal setting is saved on the instance for the account (`settings_bundle` in frontend
+  user data), through the same sync that appearance and personal wording use: preferences,
+  schedules, locks, table layouts, saved patterns, change history, app name and logo, tool drafts.
+  Sign-in tokens, rebuildable caches, per-device switches and typed developer-console and
+  action-tool text stay in the browser. The inventory is in
+  `docs/features/instance-sync/README.md`. Seen in the local build: a fresh browser with only the
+  sign-in received preferences, four rules, a lock and hidden columns; a second account saw none
+  of it. A review then proved two defects with failing tests (an endless upload loop, and one tab
+  uploading another account's settings after an account switch in a second tab); both are fixed
+  and covered by tests, and the fixes have NOT been seen in a browser.
+- Locks are saved with the account. Clearing browser data no longer removes a forgotten lock. The
+  way back is in `docs/features/instance-sync/README.md` (stop Home Assistant, replace the lock
+  entry with a removal notice in `.storage/frontend.user_data_<user id>`, start again). The PIN
+  check data and a lock's one-time-code secret are stored with the account on the instance; the
+  interface says so.
+- Creating a lock works on a page opened over plain http (no `crypto.subtle`): the hashing falls
+  back to the same algorithms in script (`frontend/src/common/locks/soft-crypto.ts`). Seen in the
+  local build on a non-secure address: created in 435 ms, wrong PIN refused, right PIN opens, and
+  the same lock opened on a secure address. A lock is named by its card's label, heading or first
+  line instead of all its text.
+- Schedule rules can depend on an entity (is, is not, above, below), alone or with a time window.
+  Seen in the local build: a rule on a helper switched to "Applying now" when the helper changed,
+  without a reload. A build before this one drops the condition, and a save there strips it on
+  every device.
+- No plain browser form controls: selects, sliders, checkboxes, radio buttons and colour inputs
+  in 20 files use the product's own components; a test fails when a plain select or visible input
+  comes back (`frontend/test/common/native-controls/`). Each was opened once in the local build.
+  The defects found there were fixed afterwards and those fixes are NOT seen: seven messages that
+  showed "Translation error" (a new test parses every string), info buttons named by an error
+  string, notification checkboxes that did not select, the start cover of a lock missing on some
+  loads, the YAML tools title cut short, a plural, touch targets under 44 px in the pattern
+  workbench and the appearance editor.
+- Phone layout, seen in published build 115: the YAML tools page is one column, the slim strip at
+  the top is gone, the menu has less empty space. Seen in the local build: Personal settings can
+  no longer be dragged sideways.
+- Release workflow: a release is created only by a final job that runs when every build job of
+  the run succeeded; a failed or cancelled run publishes nothing, and the update feed moves in
+  the same step. Runs are queued one at a time and a started run is never cancelled, so a new
+  push builds only after the run before it has ended (up to about two and a half hours). Container
+  images are still pushed by their own jobs. NOT run yet: the first run of this workflow is the
+  proof.
+- Operating system builds failed in builds 111, 114 and 115 because a Go module host refused
+  connections; the build now asks the official module mirror first. NOT proven until a run.
+- Building the interface on Windows itself failed on a path pattern in
+  `frontend/build-scripts/bundle.cjs`; the pattern accepts both separators now. NOT proven.
+- The build 109 operating system image was booted in a virtual machine. Its Updates page offered
+  nothing because the feed still names operating system 18.5.71, so a real update install is
+  still not seen.
+- Closed by the owner's decision without a device check: "Add media" on a real iPhone, a passkey
+  on a hardware key or phone. Release 110 (no container image) was deleted at the owner's word.
+- Frontend suite: 5,845 pass and 3 fail (`build-management.test.js`, as before). Test files that
+  used to fail to load now load; one stale test in `test/panels/marketplace/` was corrected.
+
 ## Current state
 
 - `main` holds the work up to commit `5fbf6d91b`. The batches since the last note are batch 20

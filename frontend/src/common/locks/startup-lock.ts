@@ -1,3 +1,4 @@
+import { onFirstInstanceMerge } from "../instance-sync/first-merge";
 import { isLocked, readLocks } from "./element-locks";
 import type { LockStore } from "./element-locks";
 
@@ -35,17 +36,43 @@ export const clearStartupLock = (key: string): void => {
 export const pendingStartupLocks = (): string[] => startupLockKeys(readLocks());
 
 let started = false;
+let covered = false;
 
-/** Covers the interface once per window start, when a lock asks for it. */
-export const runStartupLock = (): void => {
+const showCover = (): void => {
+  void import("../../components/locks/ha-lock-start").then((module) =>
+    module.showStartupLock()
+  );
+};
+
+/**
+ * Covers the interface once per window start, when a lock asks for it.
+ *
+ * On a fresh browser the locks only arrive with the copy of the settings saved
+ * on the instance, which is merged after the page opens. So the check runs
+ * now and once more after that first merge. The cover is shown at most once
+ * per window start, and nothing is shown when no lock asks for it.
+ */
+export const runStartupLock = (show: () => void = showCover): void => {
   if (started) {
     return;
   }
   started = true;
-  if (!pendingStartupLocks().length) {
-    return;
+  const check = (): void => {
+    if (covered || !pendingStartupLocks().length) {
+      return;
+    }
+    covered = true;
+    show();
+  };
+  check();
+  if (!covered) {
+    onFirstInstanceMerge(check);
   }
-  void import("../../components/locks/ha-lock-start").then((module) =>
-    module.showStartupLock()
-  );
+};
+
+/** For tests: lets the cover run again as on a new window start. */
+export const resetStartupLockForTests = (): void => {
+  started = false;
+  covered = false;
+  cleared.clear();
 };

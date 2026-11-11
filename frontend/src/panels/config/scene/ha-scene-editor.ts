@@ -6,7 +6,6 @@ import {
   mdiContentDuplicate,
   mdiDelete,
   mdiDotsVertical,
-  mdiEyedropper,
   mdiInformationOutline,
   mdiLightbulbOnOutline,
   mdiPencil,
@@ -34,6 +33,7 @@ import { promiseTimeout } from "../../../common/util/promise-timeout";
 import { afterNextRender } from "../../../common/util/render-status";
 import "../../../components/device/ha-device-picker";
 import "../../../components/entity/ha-entity-picker";
+import "../../../components/appearance/ha-appearance-color-picker";
 import "../../../components/ha-area-picker";
 import "../../../components/ha-button";
 import "../../../components/ha-control-slider";
@@ -701,19 +701,16 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
                     @click=${this._swatchClicked}
                   ></button>`
               )}
-              <label class="any-colour ${editable ? "" : "disabled"}">
-                <ha-svg-icon .path=${mdiEyedropper}></ha-svg-icon>
-                ${this.hass.localize(
+              <ha-appearance-color-picker
+                class="any-colour ${editable ? "" : "disabled"}"
+                .label=${this.hass.localize(
                   "ui.panel.config.scene.editor.colours.any"
                 )}
-                <input
-                  type="color"
-                  .value=${rgb ? rgbToHex(rgb) : "#ffffff"}
-                  ?disabled=${!editable}
-                  .entityId=${entityId}
-                  @change=${this._colourPicked}
-                />
-              </label>
+                .value=${rgb ? rgbToHex(rgb) : "#ffffff"}
+                .entityId=${entityId}
+                @appearance-color-changed=${this._colourChanged}
+                @appearance-color-committed=${this._colourPicked}
+              ></ha-appearance-color-picker>
             </div>`
           : nothing
       }
@@ -861,9 +858,23 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
     this._setColour(entityId, rgb);
   }
 
+  /** The colour last chosen in each "any colour" picker, applied on commit. */
+  private _pendingColours: Record<string, string> = {};
+
+  private _colourChanged(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & { entityId: string };
+    this._pendingColours[target.entityId] = (
+      ev as CustomEvent<{ value: string }>
+    ).detail.value;
+  }
+
   private _colourPicked(ev: Event) {
-    const target = ev.currentTarget as HTMLInputElement & { entityId: string };
-    this._setColour(target.entityId, hexToRgb(target.value));
+    const target = ev.currentTarget as HTMLElement & { entityId: string };
+    const hex = this._pendingColours[target.entityId];
+    delete this._pendingColours[target.entityId];
+    if (hex) {
+      this._setColour(target.entityId, hexToRgb(hex));
+    }
   }
 
   private _showEntityInfo(entityId?: string) {
@@ -1954,31 +1965,12 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
           outline-offset: 2px;
         }
         .any-colour {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-          gap: var(--ha-space-2);
+          display: inline-block;
           min-height: 44px;
-          padding: 0 var(--ha-space-4);
-          border-radius: var(--ha-border-radius-pill);
-          background: var(--ha-color-fill-primary-quiet-resting);
-          font-weight: var(--ha-font-weight-medium);
-          cursor: pointer;
         }
         .any-colour.disabled {
           opacity: var(--light-disabled-opacity, 0.5);
-          cursor: default;
-        }
-        .any-colour:focus-within {
-          outline: 2px solid var(--primary-color);
-        }
-        .any-colour input {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          opacity: 0;
-          cursor: inherit;
+          pointer-events: none;
         }
         .saved {
           display: flex;

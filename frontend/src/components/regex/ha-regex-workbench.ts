@@ -56,7 +56,11 @@ import type { LocalizeKeys } from "../../common/translations/localize";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
 import { internationalizationContext } from "../../data/context";
 import { fileDownload } from "../../util/file_download";
+import "../ha-select";
+import type { HaSelect, HaSelectSelectEvent } from "../ha-select";
 import "../ha-svg-icon";
+import "../input/ha-input";
+import type { HaInput } from "../input/ha-input";
 
 declare global {
   interface HASSDomEvents {
@@ -336,7 +340,7 @@ export class HaRegexWorkbench extends LitElement {
 
   @query("#pattern") private _patternInput?: HTMLTextAreaElement;
 
-  @query("#plain") private _plainInput?: HTMLInputElement;
+  @query("#plain") private _plainInput?: HaInput;
 
   @query("#import") private _importInput?: HTMLInputElement;
 
@@ -778,18 +782,19 @@ export class HaRegexWorkbench extends LitElement {
   private _renderPlain() {
     return html`
       <div class="body plain">
-        <label class="field">
-          <span class="label">${this._l("text_label")}</span>
-          <input
+        <div class="field">
+          <ha-input
             id="plain"
+            appearance="outlined"
             type="text"
+            .label=${this._l("text_label")}
             autocomplete="off"
             spellcheck="false"
             .value=${this._text}
             @input=${this._textChanged}
             @keydown=${this._applyOnEnter}
-          />
-        </label>
+          ></ha-input>
+        </div>
         <p class="note">${this._l("text_note")}</p>
         <div>
           <button class="tonal" @click=${this._makeRegex}>
@@ -1091,17 +1096,18 @@ export class HaRegexWorkbench extends LitElement {
             `
           )}
           <div class="literal">
-            <label class="field">
-              <span class="label">${this._l("build.literal_label")}</span>
-              <input
+            <div class="field">
+              <ha-input
+                appearance="outlined"
                 type="text"
+                .label=${this._l("build.literal_label")}
                 autocomplete="off"
                 spellcheck="false"
                 .value=${this._literal}
                 @input=${this._literalChanged}
                 @keydown=${this._literalKeydown}
-              />
-            </label>
+              ></ha-input>
+            </div>
             <button
               class="tonal"
               ?disabled=${!this._literal}
@@ -1497,17 +1503,18 @@ export class HaRegexWorkbench extends LitElement {
       <div class="columns">
         <section>
           ${this._renderSampleField()}
-          <label class="field">
-            <span class="label">${this._l("replace.replacement_label")}</span>
-            <input
+          <div class="field">
+            <ha-input
+              appearance="outlined"
               type="text"
               class="mono"
+              .label=${this._l("replace.replacement_label")}
               autocomplete="off"
               spellcheck="false"
               .value=${this._replacement}
               @input=${this._replacementChanged}
-            />
-          </label>
+            ></ha-input>
+          </div>
           <p class="note">${this._l("replace.tokens")}</p>
         </section>
         <section>
@@ -1578,32 +1585,38 @@ export class HaRegexWorkbench extends LitElement {
                     : undefined;
                   return html`
                     <li>
-                      <input
+                      <ha-input
+                        appearance="outlined"
                         type="text"
-                        class="mono"
+                        class="mono case-text"
                         autocomplete="off"
                         spellcheck="false"
-                        aria-label=${this._l("cases.text_label", {
+                        .label=${this._l("cases.text_label", {
                           number: index + 1,
                         })}
                         .value=${item.text}
                         .index=${index}
                         @input=${this._caseTextChanged}
-                      />
-                      <select
+                      ></ha-input>
+                      <ha-select
+                        class="case-expect"
                         aria-label=${this._l("cases.expect_label", {
                           number: index + 1,
                         })}
                         .index=${index}
-                        @change=${this._caseExpectChanged}
-                      >
-                        <option value="match" ?selected=${item.expect}>
-                          ${this._l("cases.expect_match")}
-                        </option>
-                        <option value="no" ?selected=${!item.expect}>
-                          ${this._l("cases.expect_no_match")}
-                        </option>
-                      </select>
+                        .value=${item.expect ? "match" : "no"}
+                        .options=${[
+                          {
+                            value: "match",
+                            label: this._l("cases.expect_match"),
+                          },
+                          {
+                            value: "no",
+                            label: this._l("cases.expect_no_match"),
+                          },
+                        ]}
+                        @selected=${this._caseExpectChanged}
+                      ></ha-select>
                       <span
                         class=${classMap({
                           verdict: true,
@@ -1806,18 +1819,17 @@ export class HaRegexWorkbench extends LitElement {
     return html`
       <div class="columns">
         <section>
-          <label class="field">
-            <span class="label">${this._l("code.target_label")}</span>
-            <select @change=${this._targetChanged}>
-              ${CODE_TARGETS.map(
-                (target) => html`
-                  <option value=${target} ?selected=${target === this._target}>
-                    ${this._l(`code.target.${target}`)}
-                  </option>
-                `
-              )}
-            </select>
-          </label>
+          <div class="field">
+            <ha-select
+              .label=${this._l("code.target_label")}
+              .value=${this._target}
+              .options=${CODE_TARGETS.map((target) => ({
+                value: target,
+                label: this._l(`code.target.${target}`),
+              }))}
+              @selected=${this._targetChanged}
+            ></ha-select>
+          </div>
           <pre class="marked code">${generated.code}</pre>
           <div>
             <button class="tonal" @click=${this._copyCode}>
@@ -1862,16 +1874,17 @@ export class HaRegexWorkbench extends LitElement {
         <section>
           <p class="note">${this._l("library.note")}</p>
           <div class="literal">
-            <label class="field">
-              <span class="label">${this._l("library.name_label")}</span>
-              <input
+            <div class="field">
+              <ha-input
+                appearance="outlined"
                 type="text"
+                .label=${this._l("library.name_label")}
                 autocomplete="off"
-                maxlength="80"
+                .maxlength=${80}
                 .value=${this._saveName}
                 @input=${this._saveNameChanged}
-              />
-            </label>
+              ></ha-input>
+            </div>
             <button
               class="tonal"
               ?disabled=${!this._saveName.trim() || !this._usable}
@@ -2069,7 +2082,7 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _textChanged(ev: InputEvent) {
-    this._text = (ev.target as HTMLInputElement).value;
+    this._text = (ev.target as HaInput).value ?? "";
   }
 
   private _patternChanged(ev: InputEvent) {
@@ -2274,7 +2287,7 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _literalChanged(ev: InputEvent) {
-    this._literal = (ev.target as HTMLInputElement).value;
+    this._literal = (ev.target as HaInput).value ?? "";
   }
 
   private _literalKeydown(ev: KeyboardEvent) {
@@ -2308,7 +2321,7 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _replacementChanged(ev: InputEvent) {
-    this._replacement = (ev.target as HTMLInputElement).value;
+    this._replacement = (ev.target as HaInput).value ?? "";
   }
 
   private _previousMatch() {
@@ -2329,17 +2342,18 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _caseTextChanged(ev: InputEvent) {
-    const target = ev.target as HTMLInputElement & { index: number };
+    const target = ev.target as HaInput & { index: number };
     this._cases = this._cases.map((item, position) =>
-      position === target.index ? { ...item, text: target.value } : item
+      position === target.index ? { ...item, text: target.value ?? "" } : item
     );
   }
 
-  private _caseExpectChanged(ev: Event) {
-    const target = ev.target as HTMLSelectElement & { index: number };
+  private _caseExpectChanged(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    const target = ev.currentTarget as HaSelect & { index: number };
     this._cases = this._cases.map((item, position) =>
       position === target.index
-        ? { ...item, expect: target.value === "match" }
+        ? { ...item, expect: ev.detail.value === "match" }
         : item
     );
   }
@@ -2403,8 +2417,9 @@ export class HaRegexWorkbench extends LitElement {
     this._busy = false;
   }
 
-  private _targetChanged(ev: Event) {
-    this._target = (ev.target as HTMLSelectElement).value as CodeTarget;
+  private _targetChanged(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    this._target = String(ev.detail.value) as CodeTarget;
   }
 
   private async _copyPattern() {
@@ -2470,7 +2485,7 @@ export class HaRegexWorkbench extends LitElement {
   }
 
   private _saveNameChanged(ev: InputEvent) {
-    this._saveName = (ev.target as HTMLInputElement).value;
+    this._saveName = (ev.target as HaInput).value ?? "";
   }
 
   private _savePattern() {
@@ -2662,8 +2677,7 @@ export class HaRegexWorkbench extends LitElement {
         opacity: 0.4;
         cursor: default;
       }
-      button:focus-visible,
-      select:focus-visible {
+      button:focus-visible {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;
       }
@@ -2982,8 +2996,6 @@ export class HaRegexWorkbench extends LitElement {
         flex: 1;
         min-width: 0;
       }
-      input[type="text"],
-      select,
       textarea.sample {
         box-sizing: border-box;
         width: 100%;
@@ -2994,7 +3006,6 @@ export class HaRegexWorkbench extends LitElement {
         background-color: var(--primary-background-color);
         outline: none;
       }
-      input[type="text"]:focus,
       textarea.sample:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 1px var(--primary-color);
@@ -3154,9 +3165,16 @@ export class HaRegexWorkbench extends LitElement {
         align-items: center;
         gap: var(--ha-space-2);
       }
-      .cases select {
-        width: auto;
-        flex: none;
+      .cases li {
+        flex-wrap: wrap;
+      }
+      .case-text {
+        flex: 1 1 200px;
+        min-width: 0;
+      }
+      .case-expect {
+        flex: 0 1 180px;
+        min-width: 0;
       }
       .verdict {
         flex: none;
@@ -3468,6 +3486,45 @@ export class HaRegexWorkbench extends LitElement {
       }
       .narrow .footer .filled {
         padding: 0 var(--ha-space-4);
+      }
+      /* Touch targets: every control is at least 44 px on a touch screen. */
+      @media (pointer: coarse) {
+        .segments button,
+        .tabs button,
+        .chip,
+        .flags-chip,
+        .text,
+        .filled,
+        .icon {
+          min-height: 44px;
+        }
+        .segments button,
+        .tabs button {
+          height: 44px;
+        }
+        .icon {
+          width: 44px;
+          height: 44px;
+        }
+        .chip {
+          min-width: 44px;
+        }
+      }
+      .narrow .segments button,
+      .narrow .tabs button,
+      .narrow .chip,
+      .narrow .flags-chip,
+      .narrow .text,
+      .narrow .filled {
+        min-height: 44px;
+      }
+      .narrow .segments button,
+      .narrow .tabs button {
+        height: 44px;
+      }
+      .narrow .icon {
+        width: 44px;
+        height: 44px;
       }
     `,
   ];

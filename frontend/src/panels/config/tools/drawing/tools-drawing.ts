@@ -77,7 +77,12 @@ import { drawPage, drawSelection } from "../../../../common/drawing/render";
 import { drawingToSvg } from "../../../../common/drawing/svg-export";
 import "../../../../components/ha-button";
 import "../../../../components/ha-icon-button";
+import "../../../../components/ha-slider";
+import type { HaSlider } from "../../../../components/ha-slider";
+import "../../../../components/appearance/ha-appearance-color-picker";
 import "../../../../components/ha-svg-icon";
+import "../../../../components/input/ha-input";
+import type { HaInput } from "../../../../components/input/ha-input";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
@@ -187,7 +192,7 @@ class ToolsDrawing extends LitElement {
 
   @query("canvas") private _canvas?: HTMLCanvasElement;
 
-  @query(".text-input") private _textEl?: HTMLInputElement;
+  @query(".text-input") private _textEl?: HaInput;
 
   @query("#file") private _fileEl?: HTMLInputElement;
 
@@ -310,12 +315,13 @@ class ToolsDrawing extends LitElement {
           ></canvas>
           ${
             this._textDraft
-              ? html`<input
+              ? html`<ha-input
                   class="text-input"
+                  appearance="outlined"
                   type="text"
-                  maxlength=${MAX_TEXT_LENGTH}
-                  aria-label=${this._l("text_label")}
-                  placeholder=${this._l("text_placeholder")}
+                  .maxlength=${MAX_TEXT_LENGTH}
+                  .label=${this._l("text_label")}
+                  .placeholder=${this._l("text_placeholder")}
                   .value=${this._textDraft.value}
                   style=${styleMap({
                     left: `${this._textDraft.at.x * this._view.scale + this._view.x}px`,
@@ -324,7 +330,7 @@ class ToolsDrawing extends LitElement {
                   @input=${this._textInput}
                   @keydown=${this._textKey}
                   @blur=${this._textBlur}
-                />`
+                ></ha-input>`
               : nothing
           }
           ${
@@ -385,15 +391,6 @@ class ToolsDrawing extends LitElement {
                 ></button>
               `
             )}
-            <label class="custom">
-              <span class="sr-only">${this._l("custom_colour")}</span>
-              <input
-                type="color"
-                .value=${this._color}
-                title=${this._l("custom_colour")}
-                @input=${this._customColor}
-              />
-            </label>
             ${
               "EyeDropper" in window
                 ? html`<button
@@ -407,18 +404,18 @@ class ToolsDrawing extends LitElement {
                   </button>`
                 : nothing
             }
-            <label class="width">
-              <span>${this._l("width")}</span>
-              <input
-                type="range"
-                min="1"
-                max="40"
-                step="1"
-                .value=${String(this._width)}
+            <div class="width">
+              <span id="width-label">${this._l("width")}</span>
+              <ha-slider
+                .min=${1}
+                .max=${40}
+                .step=${1}
+                .value=${this._width}
+                aria-labelledby="width-label"
                 aria-valuetext=${this._l("width_value", { width: this._width })}
                 @input=${this._widthInput}
-              />
-            </label>
+              ></ha-slider>
+            </div>
           </div>
           <div class="group">
             <button
@@ -479,6 +476,14 @@ class ToolsDrawing extends LitElement {
               <ha-svg-icon .path=${mdiFitToScreen}></ha-svg-icon>
             </button>
           </div>
+        </div>
+
+        <div class="custom-colour">
+          <ha-appearance-color-picker
+            .label=${this._l("custom_colour")}
+            .value=${this._color}
+            @appearance-color-changed=${this._customColor}
+          ></ha-appearance-color-picker>
         </div>
 
         <div class="actions">
@@ -1207,7 +1212,7 @@ class ToolsDrawing extends LitElement {
     if (this._textDraft) {
       this._textDraft = {
         ...this._textDraft,
-        value: (ev.currentTarget as HTMLInputElement).value,
+        value: (ev.currentTarget as HaInput).value ?? "",
       };
     }
   }
@@ -1261,11 +1266,11 @@ class ToolsDrawing extends LitElement {
   }
 
   private _customColor(ev: Event): void {
-    this._color = (ev.currentTarget as HTMLInputElement).value;
+    this._color = (ev as CustomEvent<{ value: string }>).detail.value;
   }
 
   private _widthInput(ev: Event): void {
-    this._width = Number((ev.currentTarget as HTMLInputElement).value);
+    this._width = Number((ev.currentTarget as HaSlider).value);
   }
 
   private _toggleStyle(): void {
@@ -1670,14 +1675,13 @@ class ToolsDrawing extends LitElement {
         .text-input {
           position: absolute;
           min-width: 160px;
-          min-height: 44px;
-          box-sizing: border-box;
-          padding: 0 var(--ha-space-2);
-          border: 2px solid var(--primary-color);
-          border-radius: var(--ha-border-radius-md);
+          max-width: calc(100% - var(--ha-space-2));
           background: var(--card-background-color);
           color: var(--primary-text-color);
-          font: inherit;
+        }
+        .custom-colour {
+          display: flex;
+          justify-content: center;
         }
         .toolbar {
           display: flex;
@@ -1743,25 +1747,9 @@ class ToolsDrawing extends LitElement {
           box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
         }
         button:focus-visible,
-        input:focus-visible,
         summary:focus-visible {
           outline: 3px solid var(--primary-color);
           outline-offset: 2px;
-        }
-        .custom {
-          display: inline-flex;
-          width: 44px;
-          height: 44px;
-          align-items: center;
-          justify-content: center;
-        }
-        .custom input {
-          width: 32px;
-          height: 32px;
-          padding: 0;
-          border: none;
-          background: none;
-          cursor: pointer;
         }
         .width {
           display: inline-flex;
@@ -1769,10 +1757,10 @@ class ToolsDrawing extends LitElement {
           gap: var(--ha-space-2);
           font-size: var(--ha-font-size-s);
         }
-        .width input {
+        .width ha-slider {
           width: 110px;
+          min-width: 110px;
           min-height: 44px;
-          accent-color: var(--primary-color);
         }
         .sr-only {
           position: absolute;

@@ -31,6 +31,10 @@ import {
 import { getStorage } from "../../common/decorators/storage";
 import type { HomeAssistant } from "../../types";
 import "../ha-dialog";
+import "../ha-select";
+import type { HaSelect, HaSelectSelectEvent } from "../ha-select";
+import "../ha-slider";
+import type { HaSlider } from "../ha-slider";
 import "../ha-svg-icon";
 import "../ha-switch";
 
@@ -118,19 +122,21 @@ export class HaAppearanceFonts extends LitElement {
             )}
             <p class="note">${this._l("fonts_device_only")}</p>
 
-            <label class="scale">
-              <span class="label">${this._l("fonts_scale")}</span>
-              <input
-                type="range"
-                min="0"
-                max=${TEXT_SCALE_STEPS.length - 1}
-                step="1"
-                .value=${String(TEXT_SCALE_STEPS.indexOf(this._textScale))}
-                aria-valuetext=${`${Math.round(this._textScale * 100)}%`}
-                @input=${this._scaleChanged}
-              />
+            <div class="scale">
+              <span class="label" id="scale-label"
+                >${this._l("fonts_scale")}</span
+              >
               <output>${Math.round(this._textScale * 100)}%</output>
-            </label>
+              <ha-slider
+                .min=${0}
+                .max=${TEXT_SCALE_STEPS.length - 1}
+                .step=${1}
+                .value=${Math.max(0, TEXT_SCALE_STEPS.indexOf(this._textScale))}
+                aria-labelledby="scale-label"
+                aria-valuetext=${`${Math.round(this._textScale * 100)}%`}
+                @change=${this._scaleChanged}
+              ></ha-slider>
+            </div>
             <p class="note">${this._l("fonts_scale_note")}</p>
 
             <div class="weight">
@@ -228,43 +234,38 @@ export class HaAppearanceFonts extends LitElement {
   ) {
     const selected = this._options[field] as string;
     const missing = !choices.some((choice) => choice.key === selected);
+    const options = [
+      ...(missing
+        ? [{ value: selected, label: this._l("fonts_not_on_device") }]
+        : []),
+      ...choices.map((choice) => ({
+        value: choice.key,
+        label: `${choice.name} (${this._l(`fonts_source_${choice.source}`)})`,
+      })),
+    ];
     return html`
       <div class="field">
-        <label for=${`font-${role}`}>${this._l(`fonts_${role}`)}</label>
-        <div class="select">
-          <select
-            id=${`font-${role}`}
-            .field=${field}
-            @change=${this._fontChanged}
-          >
-            ${
-              missing
-                ? html`<option value=${selected} selected>
-                    ${this._l("fonts_not_on_device")}
-                  </option>`
-                : nothing
-            }
-            ${choices.map(
-              (choice) => html`
-                <option
-                  value=${choice.key}
-                  ?selected=${choice.key === selected}
-                >
-                  ${choice.name} (${this._l(`fonts_source_${choice.source}`)})
-                </option>
-              `
-            )}
-          </select>
-        </div>
+        <ha-select
+          class="select"
+          .label=${this._l(`fonts_${role}`)}
+          .value=${selected}
+          .options=${options}
+          .field=${field}
+          @selected=${this._fontChanged}
+        ></ha-select>
       </div>
     `;
   }
 
-  private _fontChanged(ev: Event) {
-    const select = ev.currentTarget as HTMLSelectElement & {
+  private _fontChanged(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    const select = ev.currentTarget as HaSelect & {
       field: keyof ReadingOptions;
     };
-    setReadingOptions({ ...this._options, [select.field]: select.value });
+    setReadingOptions({
+      ...this._options,
+      [select.field]: String(ev.detail.value),
+    });
   }
 
   private _weightChanged(ev: Event) {
@@ -277,7 +278,7 @@ export class HaAppearanceFonts extends LitElement {
   }
 
   private _scaleChanged(ev: Event) {
-    const index = Number((ev.currentTarget as HTMLInputElement).value);
+    const index = Number((ev.currentTarget as HaSlider).value);
     getStorage().setValue(ACCESSIBILITY_STORAGE_KEY, {
       ...getAccessibilitySettings(),
       textScale: TEXT_SCALE_STEPS[index] ?? 1,
@@ -347,24 +348,9 @@ export class HaAppearanceFonts extends LitElement {
       color: var(--secondary-text-color);
     }
     .select {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    select {
-      flex: 1;
+      display: block;
       min-width: 0;
-      height: var(--ha-space-12);
-      padding: 0 var(--ha-space-4);
-      border: 1px solid var(--outline-color);
-      border-radius: var(--ha-border-radius-xl);
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      font: inherit;
-      font-size: var(--ha-font-size-l);
     }
-    select:focus-visible,
-    input:focus-visible,
     button:focus-visible {
       outline: 3px solid var(--primary-color);
       outline-offset: 2px;
@@ -380,11 +366,11 @@ export class HaAppearanceFonts extends LitElement {
       align-items: center;
       gap: var(--ha-space-1) var(--ha-space-3);
     }
-    .scale input {
+    .scale ha-slider {
       grid-column: 1 / -1;
       grid-row: 2;
       width: 100%;
-      accent-color: var(--primary-color);
+      min-width: 0;
     }
     .scale output {
       font-variant-numeric: tabular-nums;

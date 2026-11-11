@@ -36,9 +36,14 @@ import {
   totpMatches,
   totpUri,
 } from "../../common/locks/lock-credentials";
+import "../ha-checkbox";
+import type { HaCheckbox } from "../ha-checkbox";
 import "../ha-qr-code";
 import "../ha-svg-icon";
 import "../input/ha-input";
+import "../radio/ha-radio-group";
+import type { HaRadioGroup } from "../radio/ha-radio-group";
+import "../radio/ha-radio-option";
 import type { HaInput } from "../input/ha-input";
 import "./ha-lock-pin-entry";
 import type { HaLockPinEntry } from "./ha-lock-pin-entry";
@@ -181,7 +186,7 @@ export class HaLockWizard extends LitElement {
     this.updateComplete.then(() => {
       this.renderRoot
         .querySelector<HTMLElement>(
-          "ha-lock-pin-entry, ha-input, input[type='radio']:checked"
+          "ha-lock-pin-entry, ha-input, ha-radio-option[checked]"
         )
         ?.focus?.();
     });
@@ -626,6 +631,7 @@ export class HaLockWizard extends LitElement {
     const uri = totpUri(this._totpSecret, this.target.label);
     return html`${header}
       <p>${lockText("totp_intro")}</p>
+      <p>${lockText("totp_saved_note")}</p>
       <p class="secret"><code>${this._groups(this._totpSecret)}</code></p>
       <div class="totp-actions">
         <a class="linkbutton" href=${uri}>
@@ -665,57 +671,58 @@ export class HaLockWizard extends LitElement {
   }
 
   private _renderPolicy(): TemplateResult {
-    return html`<fieldset>
-      <legend class="visually-hidden">${lockText("policy_title")}</legend>
+    return html`<ha-radio-group
+      name="policy"
+      .value=${this._policy}
+      @change=${this._policyChanged}
+    >
+      <span slot="label" class="visually-hidden"
+        >${lockText("policy_title")}</span
+      >
       ${LOCK_POLICIES.map(
         (policy) =>
-          html`<label
+          html`<ha-radio-option
             class=${classMap({
               choice: true,
               card: true,
               selected: this._policy === policy,
             })}
+            .value=${policy}
           >
-            <input
-              type="radio"
-              name="policy"
-              .checked=${this._policy === policy}
-              data-policy=${policy}
-              @change=${this._policyChanged}
-            />
             <span class="card-text">
               <span class="card-title">${lockText(`policy_${policy}`)}</span>
               <span class="card-desc"
                 >${lockText(`policy_${policy}_desc`)}</span
               >
             </span>
-          </label>`
+          </ha-radio-option>`
       )}
-    </fieldset>`;
+    </ha-radio-group>`;
   }
 
   private _renderDuration(): TemplateResult {
-    return html`<fieldset>
-      <legend class="visually-hidden">${lockText("duration_title")}</legend>
+    return html`<div class="durations">
       <p class="note">${lockText("duration_title")}</p>
-      ${(["surface", "session", "minutes"] as const).map(
-        (kind) =>
-          html`<label
-            class=${classMap({
-              choice: true,
-              selected: this._durationKind === kind,
-            })}
-          >
-            <input
-              type="radio"
-              name="duration"
-              .checked=${this._durationKind === kind}
-              data-kind=${kind}
-              @change=${this._durationChanged}
-            />
-            ${lockText(`duration_${kind}`)}
-          </label>`
-      )}
+      <ha-radio-group
+        name="duration"
+        .value=${this._durationKind}
+        @change=${this._durationChanged}
+      >
+        <span slot="label" class="visually-hidden"
+          >${lockText("duration_title")}</span
+        >
+        ${(["surface", "session", "minutes"] as const).map(
+          (kind) =>
+            html`<ha-radio-option
+              class=${classMap({
+                choice: true,
+                selected: this._durationKind === kind,
+              })}
+              .value=${kind}
+              >${lockText(`duration_${kind}`)}</ha-radio-option
+            >`
+        )}
+      </ha-radio-group>
       ${
         this._durationKind === "minutes"
           ? html`<ha-input
@@ -728,20 +735,18 @@ export class HaLockWizard extends LitElement {
             ></ha-input>`
           : nothing
       }
-      <label class="check">
-        <input
-          type="checkbox"
-          .checked=${this._onStart}
-          @change=${this._onStartChanged}
-        />
-        ${lockText("on_start_label")}
-      </label>
+      <ha-checkbox
+        class="check"
+        .checked=${this._onStart}
+        @change=${this._onStartChanged}
+        >${lockText("on_start_label")}</ha-checkbox
+      >
       <p class="note">${lockText("on_start_note")}</p>
-    </fieldset>`;
+    </div>`;
   }
 
   private _onStartChanged(ev: Event): void {
-    this._onStart = (ev.target as HTMLInputElement).checked;
+    this._onStart = (ev.target as HaCheckbox).checked;
   }
 
   private _renderDisclosure(): TemplateResult {
@@ -753,14 +758,12 @@ export class HaLockWizard extends LitElement {
         <ha-svg-icon .path=${mdiLifebuoy}></ha-svg-icon>
         <span>${lockText("recovery")}</span>
       </p>
-      <label class="check">
-        <input
-          type="checkbox"
-          .checked=${this._ack}
-          @change=${this._ackChanged}
-        />
-        ${lockText("ack")}
-      </label>
+      <ha-checkbox
+        class="check"
+        .checked=${this._ack}
+        @change=${this._ackChanged}
+        >${lockText("ack")}</ha-checkbox
+      >
       <dl class="facts">
         <dt>${lockText("unlocks_with")}</dt>
         <dd>${lockText(`policy_${this._policy}`)}</dd>
@@ -770,18 +773,16 @@ export class HaLockWizard extends LitElement {
   }
 
   private _policyChanged(ev: Event): void {
-    this._choosePolicy(
-      (ev.currentTarget as HTMLElement).dataset.policy as LockPolicy
-    );
+    this._choosePolicy((ev.currentTarget as HaRadioGroup).value as LockPolicy);
   }
 
   private _durationChanged(ev: Event): void {
-    this._durationKind = (ev.currentTarget as HTMLElement).dataset
-      .kind as LockDuration["kind"];
+    this._durationKind = (ev.currentTarget as HaRadioGroup)
+      .value as LockDuration["kind"];
   }
 
   private _ackChanged(ev: Event): void {
-    this._ack = (ev.target as HTMLInputElement).checked;
+    this._ack = (ev.target as HaCheckbox).checked;
   }
 
   private _choosePolicy(policy: LockPolicy): void {
@@ -1100,11 +1101,6 @@ export class HaLockWizard extends LitElement {
         font-size: var(--ha-font-size-s, 0.85rem);
         color: var(--secondary-text-color);
       }
-      .choice:has(input:focus-visible),
-      .check:has(input:focus-visible) {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-      }
       .try-row {
         display: flex;
       }
@@ -1237,12 +1233,20 @@ export class HaLockWizard extends LitElement {
         border-radius: var(--ha-border-radius-lg);
         background: var(--secondary-background-color);
       }
-      fieldset {
+      .durations {
         border: 0;
         margin: 0;
         padding: 0;
         display: grid;
         gap: var(--ha-space-2);
+      }
+      ha-radio-group {
+        display: block;
+        min-width: 0;
+      }
+      ha-radio-option.choice {
+        display: block;
+        margin-bottom: var(--ha-space-2);
       }
       .choice {
         display: flex;
@@ -1257,17 +1261,17 @@ export class HaLockWizard extends LitElement {
       .choice.selected {
         background: color-mix(in srgb, var(--primary-color) 18%, transparent);
       }
-      .choice input,
-      .check input {
-        width: 20px;
-        height: 20px;
-        flex: none;
-      }
       .check {
         display: flex;
         align-items: center;
         gap: var(--ha-space-3);
         min-height: 44px;
+        --ha-checkbox-min-touch-size: 44px;
+      }
+      .check::part(base) {
+        flex: 1;
+        min-height: 44px;
+        cursor: pointer;
       }
       .facts {
         display: grid;

@@ -6,8 +6,14 @@ import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../components/ha-select";
 import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input";
+import type { HaInput } from "../../../components/input/ha-input";
+import "../../../components/radio/ha-radio-group";
+import type { HaRadioGroup } from "../../../components/radio/ha-radio-group";
+import "../../../components/radio/ha-radio-option";
 import type {
   MinecraftEdition,
   MinecraftFieldError,
@@ -309,7 +315,7 @@ class HaMinecraftWizard extends LitElement {
   }
 
   private _fieldInput(ev: Event): void {
-    const target = ev.target as HTMLInputElement;
+    const target = ev.target as HaInput;
     const value = target.value ?? "";
     switch (target.dataset.field) {
       case "name":
@@ -333,17 +339,17 @@ class HaMinecraftWizard extends LitElement {
 
   private _editionChanged(ev: Event): void {
     this._setEdition(
-      (ev.target as HTMLElement).dataset.value as MinecraftEdition
+      (ev.currentTarget as HaRadioGroup).value as MinecraftEdition
     );
   }
 
   private _flavourChanged(ev: Event): void {
-    this._set({ flavour: (ev.target as HTMLElement).dataset.value! });
+    this._set({ flavour: String((ev.currentTarget as HaRadioGroup).value) });
   }
 
   private _targetChanged(ev: Event): void {
     this._set({
-      target: (ev.target as HTMLElement).dataset.value as MinecraftTarget,
+      target: (ev.currentTarget as HaRadioGroup).value as MinecraftTarget,
     });
   }
 
@@ -356,27 +362,25 @@ class HaMinecraftWizard extends LitElement {
       ${this._field("name", this._l("field.name"), this._draft.name, {
         hint: this._l("hint.name"),
       })}
-      <fieldset class="choices">
-        <legend>${this._l("field.edition")}</legend>
+      <ha-radio-group
+        class="choices"
+        name="edition"
+        .label=${this._l("field.edition")}
+        .value=${this._draft.edition}
+        @change=${this._editionChanged}
+      >
         ${MINECRAFT_EDITIONS.map(
           (edition) =>
-            html`<label class="choice">
-              <input
-                type="radio"
-                name="edition"
-                data-value=${edition}
-                .checked=${this._draft.edition === edition}
-                @change=${this._editionChanged}
-              />
+            html`<ha-radio-option class="choice" .value=${edition}>
               <span class="choice-text">
                 <span>${this._l(`edition.${edition}`)}</span>
                 <span class="detail"
                   >${this._l(`edition.${edition}_hint`)}</span
                 >
               </span>
-            </label>`
+            </ha-radio-option>`
         )}
-      </fieldset>
+      </ha-radio-group>
       <div class="pair">
         ${this._field(
           "port",
@@ -409,27 +413,25 @@ class HaMinecraftWizard extends LitElement {
 
   private _renderVersion(): TemplateResult {
     return html`
-      <fieldset class="choices">
-        <legend>${this._l("field.flavour")}</legend>
+      <ha-radio-group
+        class="choices"
+        name="flavour"
+        .label=${this._l("field.flavour")}
+        .value=${this._draft.flavour}
+        @change=${this._flavourChanged}
+      >
         ${MINECRAFT_FLAVOURS[this._draft.edition].map(
           (flavour) =>
-            html`<label class="choice">
-              <input
-                type="radio"
-                name="flavour"
-                data-value=${flavour}
-                .checked=${this._draft.flavour === flavour}
-                @change=${this._flavourChanged}
-              />
+            html`<ha-radio-option class="choice" .value=${flavour}>
               <span class="choice-text">
                 <span>${this._l(`flavour.${flavour}`)}</span>
                 <span class="detail"
                   >${this._l(`flavour.${flavour}_hint`)}</span
                 >
               </span>
-            </label>`
+            </ha-radio-option>`
         )}
-      </fieldset>
+      </ha-radio-group>
       <ha-minecraft-version-picker
         .hass=${this.hass}
         .value=${this._draft.version}
@@ -469,8 +471,9 @@ class HaMinecraftWizard extends LitElement {
     }
   }
 
-  private _hostChanged(ev: Event): void {
-    this._set({ host_id: (ev.target as HTMLSelectElement).value });
+  private _hostChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._set({ host_id: String(ev.detail.value) });
     this._touch("host_id");
   }
 
@@ -484,25 +487,18 @@ class HaMinecraftWizard extends LitElement {
     }
     const error = this._errorFor("host_id");
     return html`<div class="field host-choice">
-      <label for="host-select">${this._l("field.host")}</label>
       ${
         this.hosts.length
-          ? html`<select
-              id="host-select"
+          ? html`<ha-select
+              .label=${this._l("field.host")}
               .value=${this._draft.host_id ?? ""}
-              @change=${this._hostChanged}
-            >
-              ${this.hosts.map(
-                (host) =>
-                  html`<option
-                    value=${host.id}
-                    ?selected=${host.id === this._draft.host_id}
-                  >
-                    ${host.name} (${host.user}@${host.address})
-                  </option>`
-              )}
-            </select>`
-          : nothing
+              .options=${this.hosts.map((host) => ({
+                value: host.id,
+                label: `${host.name} (${host.user}@${host.address})`,
+              }))}
+              @selected=${this._hostChanged}
+            ></ha-select>`
+          : html`<span class="detail">${this._l("field.host")}</span>`
       }
       <span class="detail">${error ?? this._l("hint.host")}</span>
       <div>
@@ -516,13 +512,15 @@ class HaMinecraftWizard extends LitElement {
   private _renderTarget(): TemplateResult {
     return html`
       <p class="lead">${this._l("target_intro")}</p>
-      <div
+      <ha-radio-group
         class="cards"
-        role="radiogroup"
-        aria-label=${this._l("field.target")}
+        name="target"
+        .label=${this._l("field.target")}
+        .value=${this._draft.target}
+        @change=${this._targetChanged}
       >
         ${MINECRAFT_TARGETS.map((id, index) => this._renderTargetCard(id, index))}
-      </div>
+      </ha-radio-group>
       ${this._renderHostChoice()}
     `;
   }
@@ -534,18 +532,12 @@ class HaMinecraftWizard extends LitElement {
     const status = this._status(id);
     const available = status?.available ?? false;
     const selected = this._draft.target === id;
-    return html`<label
+    return html`<ha-radio-option
       class=${classMap({ card: true, selected, unavailable: !available })}
+      .value=${id}
+      .disabled=${!available}
     >
       <span class="card-head">
-        <input
-          type="radio"
-          name="target"
-          .checked=${selected}
-          .disabled=${!available}
-          data-value=${id}
-          @change=${this._targetChanged}
-        />
         <span class="card-title">${this._l(`target.${id}.name`)}</span>
         ${
           index === 0
@@ -581,7 +573,7 @@ class HaMinecraftWizard extends LitElement {
             : this._l("unknown_target")
         }
       </span>
-    </label>`;
+    </ha-radio-option>`;
   }
 
   private _summaryRows(): [string, string][] {
@@ -780,32 +772,18 @@ class HaMinecraftWizard extends LitElement {
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: var(--ha-space-3);
       }
-      fieldset.choices {
+      ha-radio-group.choices {
+        display: block;
         border: 1px solid var(--divider-color);
         border-radius: var(--ha-border-radius-lg, 12px);
         margin: 0;
         padding: var(--ha-space-2) var(--ha-space-3);
-        display: flex;
-        flex-direction: column;
-      }
-      legend {
-        padding: 0 var(--ha-space-1);
-        color: var(--secondary-text-color);
+        min-width: 0;
       }
       .choice {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--ha-space-3);
+        display: block;
         min-height: 44px;
-        padding: var(--ha-space-2) 0;
-        cursor: pointer;
-      }
-      .choice input,
-      .card-head input {
-        width: 20px;
-        height: 20px;
-        margin: 2px 0 0;
-        flex: none;
+        padding: var(--ha-space-1) 0;
       }
       .choice-text {
         display: flex;
@@ -821,10 +799,15 @@ class HaMinecraftWizard extends LitElement {
         flex-direction: column;
         gap: var(--ha-space-2);
       }
+      ha-radio-group.cards {
+        display: block;
+        min-width: 0;
+      }
+      ha-radio-option.card {
+        display: block;
+        margin-bottom: var(--ha-space-2);
+      }
       .card {
-        display: flex;
-        flex-direction: column;
-        gap: var(--ha-space-1);
         padding: var(--ha-space-3);
         border: 1px solid var(--divider-color);
         border-radius: var(--ha-border-radius-lg, 12px);
@@ -837,10 +820,6 @@ class HaMinecraftWizard extends LitElement {
       .card.unavailable {
         opacity: 0.6;
         cursor: not-allowed;
-      }
-      .card:focus-within {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
       }
       .card-head {
         display: flex;
@@ -866,14 +845,8 @@ class HaMinecraftWizard extends LitElement {
         flex-direction: column;
         gap: var(--ha-space-1);
       }
-      .host-choice select {
-        min-height: 44px;
-        padding: 0 var(--ha-space-3);
-        border: 1px solid var(--divider-color);
-        border-radius: var(--ha-border-radius-lg, 12px);
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        font: inherit;
+      .host-choice ha-select {
+        min-width: 0;
       }
       .warning {
         display: flex;

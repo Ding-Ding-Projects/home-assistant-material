@@ -51,8 +51,19 @@ import { consume } from "../../common/decorators/consume";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { internationalizationContext } from "../../data/context";
 import "../instance-sync/ha-instance-sync-status";
+import "../ha-select";
+import type { HaSelect, HaSelectSelectEvent } from "../ha-select";
+import "../ha-slider";
+import type { HaSlider } from "../ha-slider";
 import "../ha-svg-icon";
+import "../ha-switch";
+import type { HaSwitch } from "../ha-switch";
+import "../input/ha-input";
+import type { HaInput } from "../input/ha-input";
 import "./ha-appearance-color-picker";
+
+/** The value of the "from the theme" choice in a select. */
+const UNSET = "__unset";
 
 type ScalarKey = Exclude<keyof ElementAppearance, "layers">;
 
@@ -610,36 +621,36 @@ export class HaAppearanceEditor extends LitElement {
             ? html`
                 ${this._colorField(this._l("gradient_from"), layer.from, "from")}
                 ${this._colorField(this._l("gradient_to"), layer.to, "to")}
-                <label class="row">
+                <div class="row">
                   <span>${this._l("gradient_angle")}</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
-                    step="5"
-                    .value=${String(layer.angle)}
+                  <ha-slider
+                    .min=${0}
+                    .max=${360}
+                    .step=${5}
+                    .value=${layer.angle}
                     .field=${"angle"}
-                    @input=${this._layerNumber}
-                  />
+                    aria-label=${this._l("gradient_angle")}
+                    @change=${this._layerNumber}
+                  ></ha-slider>
                   <output>${layer.angle}°</output>
-                </label>
+                </div>
               `
             : nothing
         }
         ${
           layer.type === "image"
             ? html`
-                <label class="row stacked">
-                  <span>${this._l("picture_url")}</span>
-                  <input
+                <div class="row stacked">
+                  <ha-input
+                    appearance="outlined"
                     type="url"
-                    class=${this._urlError ? "invalid" : ""}
-                    maxlength=${APPEARANCE_LIMITS.url}
-                    spellcheck="false"
+                    .label=${this._l("picture_url")}
+                    .invalid=${this._urlError}
+                    .maxlength=${APPEARANCE_LIMITS.url}
                     .value=${layer.url}
                     @change=${this._layerUrl}
-                  />
-                </label>
+                  ></ha-input>
+                </div>
                 ${
                   this._urlError
                     ? html`<p class="error" role="alert">
@@ -647,75 +658,76 @@ export class HaAppearanceEditor extends LitElement {
                       </p>`
                     : nothing
                 }
-                <label class="row">
+                <div class="row">
                   <span>${this._l("picture_size")}</span>
-                  <select .field=${"size"} @change=${this._layerText}>
-                    ${(["cover", "contain", "auto"] as const).map(
-                      (size) =>
-                        html`<option
-                          value=${size}
-                          ?selected=${layer.size === size}
-                        >
-                          ${this._l(`picture_size_${size}`)}
-                        </option>`
+                  <ha-select
+                    .field=${"size"}
+                    aria-label=${this._l("picture_size")}
+                    .value=${layer.size}
+                    .options=${(["cover", "contain", "auto"] as const).map(
+                      (size) => ({
+                        value: size,
+                        label: this._l(`picture_size_${size}`),
+                      })
                     )}
-                  </select>
-                </label>
-                <label class="row">
+                    @selected=${this._layerText}
+                  ></ha-select>
+                </div>
+                <div class="row">
                   <span>${this._l("picture_position")}</span>
-                  <select .field=${"position"} @change=${this._layerText}>
-                    ${(
+                  <ha-select
+                    .field=${"position"}
+                    aria-label=${this._l("picture_position")}
+                    .value=${layer.position}
+                    .options=${(
                       ["center", "top", "bottom", "left", "right"] as const
-                    ).map(
-                      (position) =>
-                        html`<option
-                          value=${position}
-                          ?selected=${layer.position === position}
-                        >
-                          ${this._l(`position_${position}`)}
-                        </option>`
-                    )}
-                  </select>
-                </label>
-                <label class="row">
+                    ).map((position) => ({
+                      value: position,
+                      label: this._l(`position_${position}`),
+                    }))}
+                    @selected=${this._layerText}
+                  ></ha-select>
+                </div>
+                <div class="row">
                   <span>${this._l("picture_repeat")}</span>
-                  <input
-                    type="checkbox"
+                  <ha-switch
                     .checked=${layer.repeat}
+                    aria-label=${this._l("picture_repeat")}
                     @change=${this._layerRepeat}
-                  />
-                </label>
+                  ></ha-switch>
+                </div>
               `
             : nothing
         }
         ${
           layer.type !== "image"
-            ? html`<label class="row">
+            ? html`<div class="row">
                 <span>${this._l("opacity")}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  .value=${String(Math.round(layer.opacity * 100))}
+                <ha-slider
+                  .min=${0}
+                  .max=${100}
+                  .step=${5}
+                  .value=${Math.round(layer.opacity * 100)}
                   .field=${"opacity"}
-                  @input=${this._layerNumber}
-                />
+                  aria-label=${this._l("opacity")}
+                  @change=${this._layerNumber}
+                ></ha-slider>
                 <output>${Math.round(layer.opacity * 100)}%</output>
-              </label>`
+              </div>`
             : nothing
         }
-        <label class="row">
+        <div class="row">
           <span>${this._l("blend")}</span>
-          <select @change=${this._layerBlend}>
-            ${BLEND_MODES.map(
-              (blend) =>
-                html`<option value=${blend} ?selected=${layer.blend === blend}>
-                  ${this._l(`blend_${blend.replace("-", "_")}`)}
-                </option>`
-            )}
-          </select>
-        </label>
+          <ha-select
+            aria-label=${this._l("blend")}
+            .value=${layer.blend}
+            .options=${BLEND_MODES.map((blend) => ({
+              value: blend,
+              label: this._l(`blend_${blend.replace("-", "_")}`),
+            }))}
+            @selected=${this._layerBlend}
+          ></ha-select>
+        </div>
       </div>
     `;
   }
@@ -790,17 +802,16 @@ export class HaAppearanceEditor extends LitElement {
     const value = this._appearance[key];
     return html`<div class="row">
       <span>${this._l(`field_${key}`)}</span>
-      <input
-        type="range"
+      <ha-slider
         aria-label=${this._l(`field_${key}`)}
-        min=${min}
-        max=${max}
-        step=${step}
-        .value=${String((value ?? fallback) * scale)}
+        .min=${min}
+        .max=${max}
+        .step=${step}
+        .value=${(value ?? fallback) * scale}
         .key=${key}
         .scale=${scale}
-        @input=${this._scalarRangeChanged}
-      />
+        @change=${this._scalarRangeChanged}
+      ></ha-slider>
       <output
         >${value === undefined ? this._l("from_theme") : format(value)}</output
       >
@@ -813,39 +824,35 @@ export class HaAppearanceEditor extends LitElement {
       <section>
         <span class="label">${this._l("text")}</span>
         ${this._scalarColor("textColor")}
-        <label class="row">
+        <div class="row">
           <span>${this._l("field_fontFamily")}</span>
-          <select .key=${"fontFamily"} @change=${this._scalarSelect}>
-            ${FONT_FAMILIES.map(
-              (family) =>
-                html`<option
-                  value=${family}
-                  ?selected=${
-                    (this._appearance.fontFamily ?? "theme") === family
-                  }
-                >
-                  ${family === "theme" ? this._l("from_theme") : family}
-                </option>`
-            )}
-          </select>
-        </label>
-        <label class="row">
+          <ha-select
+            .key=${"fontFamily"}
+            aria-label=${this._l("field_fontFamily")}
+            .value=${this._appearance.fontFamily ?? "theme"}
+            .options=${FONT_FAMILIES.map((family) => ({
+              value: family,
+              label: family === "theme" ? this._l("from_theme") : family,
+            }))}
+            @selected=${this._scalarSelect}
+          ></ha-select>
+        </div>
+        <div class="row">
           <span>${this._l("field_fontWeight")}</span>
-          <select .key=${"fontWeight"} @change=${this._scalarSelect}>
-            <option value="" ?selected=${!this._appearance.fontWeight}>
-              ${this._l("from_theme")}
-            </option>
-            ${FONT_WEIGHTS.map(
-              (weight) =>
-                html`<option
-                  value=${weight}
-                  ?selected=${this._appearance.fontWeight === weight}
-                >
-                  ${this._l(`weight_${weight}`)}
-                </option>`
-            )}
-          </select>
-        </label>
+          <ha-select
+            .key=${"fontWeight"}
+            aria-label=${this._l("field_fontWeight")}
+            .value=${String(this._appearance.fontWeight ?? UNSET)}
+            .options=${[
+              { value: UNSET, label: this._l("from_theme") },
+              ...FONT_WEIGHTS.map((weight) => ({
+                value: String(weight),
+                label: this._l(`weight_${weight}`),
+              })),
+            ]}
+            @selected=${this._scalarSelect}
+          ></ha-select>
+        </div>
       </section>
     `;
   }
@@ -871,23 +878,22 @@ export class HaAppearanceEditor extends LitElement {
           (value) => `${value} px`
         )}
         ${this._scalarColor("borderColor")}
-        <label class="row">
+        <div class="row">
           <span>${this._l("field_shadow")}</span>
-          <select .key=${"shadow"} @change=${this._scalarSelect}>
-            <option value="" ?selected=${this._appearance.shadow === undefined}>
-              ${this._l("from_theme")}
-            </option>
-            ${[0, 1, 2, 3].map(
-              (level) =>
-                html`<option
-                  value=${level}
-                  ?selected=${this._appearance.shadow === level}
-                >
-                  ${this._l(`shadow_${level}`)}
-                </option>`
-            )}
-          </select>
-        </label>
+          <ha-select
+            .key=${"shadow"}
+            aria-label=${this._l("field_shadow")}
+            .value=${String(this._appearance.shadow ?? UNSET)}
+            .options=${[
+              { value: UNSET, label: this._l("from_theme") },
+              ...[0, 1, 2, 3].map((level) => ({
+                value: String(level),
+                label: this._l(`shadow_${level}`),
+              })),
+            ]}
+            @selected=${this._scalarSelect}
+          ></ha-select>
+        </div>
       </section>
     `;
   }
@@ -1040,27 +1046,23 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _scalarRangeChanged(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement & {
+    const input = ev.currentTarget as HaSlider & {
       key: "radius" | "borderWidth" | "zoom" | "opacity";
       scale: number;
     };
     this._set(input.key, Number(input.value) / input.scale);
   }
 
-  private _scalarSelect(ev: Event) {
-    const select = ev.currentTarget as HTMLSelectElement & {
+  private _scalarSelect(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    const select = ev.currentTarget as HaSelect & {
       key: "fontFamily" | "fontWeight" | "shadow";
     };
+    const chosen = String(ev.detail.value);
     if (select.key === "fontFamily") {
-      this._set(
-        "fontFamily",
-        select.value === "theme" ? undefined : select.value
-      );
+      this._set("fontFamily", chosen === "theme" ? undefined : chosen);
     } else {
-      this._set(
-        select.key,
-        select.value === "" ? undefined : Number(select.value)
-      );
+      this._set(select.key, chosen === UNSET ? undefined : Number(chosen));
     }
   }
 
@@ -1148,7 +1150,7 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _layerNumber(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement & { field: string };
+    const input = ev.currentTarget as HaSlider & { field: string };
     const value = Number(input.value);
     this._replaceLayer(
       { [input.field]: input.field === "opacity" ? value / 100 : value },
@@ -1156,27 +1158,32 @@ export class HaAppearanceEditor extends LitElement {
     );
   }
 
-  private _layerText(ev: Event) {
-    const select = ev.currentTarget as HTMLSelectElement & { field: string };
-    this._replaceLayer({ [select.field]: select.value }, select.field);
+  private _layerText(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    const select = ev.currentTarget as HaSelect & { field: string };
+    this._replaceLayer(
+      { [select.field]: String(ev.detail.value) },
+      select.field
+    );
   }
 
-  private _layerBlend(ev: Event) {
+  private _layerBlend(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
     this._replaceLayer(
-      { blend: (ev.currentTarget as HTMLSelectElement).value as BlendMode },
+      { blend: String(ev.detail.value) as BlendMode },
       "blend"
     );
   }
 
   private _layerRepeat(ev: Event) {
     this._replaceLayer(
-      { repeat: (ev.currentTarget as HTMLInputElement).checked },
+      { repeat: (ev.currentTarget as HaSwitch).checked },
       "repeat"
     );
   }
 
   private _layerUrl(ev: Event) {
-    const url = (ev.currentTarget as HTMLInputElement).value.trim();
+    const url = ((ev.currentTarget as HaInput).value ?? "").trim();
     if (!isSafeImageUrl(url)) {
       this._urlError = true;
       return;
@@ -1300,9 +1307,7 @@ export class HaAppearanceEditor extends LitElement {
       cursor: pointer;
       padding: 0;
     }
-    button:focus-visible,
-    input:focus-visible,
-    select:focus-visible {
+    button:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
     }
@@ -1436,26 +1441,14 @@ export class HaAppearanceEditor extends LitElement {
     .row.stacked > span:first-child {
       flex: none;
     }
-    .row input[type="range"],
-    .row select,
-    .row input[type="url"] {
+    .row ha-slider,
+    .row ha-select,
+    .row ha-input {
       flex: 1;
       min-width: 0;
-      accent-color: var(--primary-color);
     }
-    .row select,
-    .row input[type="url"] {
-      height: var(--ha-space-9);
-      padding: 0 var(--ha-space-2);
-      border-radius: var(--ha-border-radius-md);
-      border: 1px solid var(--outline-color);
-      background: var(--card-background-color);
-      color: inherit;
-      font: inherit;
-      font-size: var(--ha-font-size-s);
-    }
-    .row input.invalid {
-      border-color: var(--error-color);
+    .row ha-slider {
+      min-width: 100px;
     }
     .row.colour {
       flex-wrap: wrap;
@@ -1467,30 +1460,12 @@ export class HaAppearanceEditor extends LitElement {
       order: 3;
       flex: 1 1 100%;
     }
-    .row input[type="color"] {
-      width: var(--ha-space-10);
-      height: var(--ha-space-8);
-      padding: 0;
-      border: 1px solid var(--outline-color);
-      border-radius: var(--ha-border-radius-md);
-      background: none;
-      flex: none;
-    }
-    .row input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      accent-color: var(--primary-color);
-    }
     output {
       flex: 0 0 76px;
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
       text-align: end;
       font-variant-numeric: tabular-nums;
-    }
-    .row input[type="color"] + output {
-      flex: 1;
-      text-align: start;
     }
     .error {
       margin: 0;
@@ -1510,6 +1485,35 @@ export class HaAppearanceEditor extends LitElement {
     }
     .contrast.low {
       background: var(--ha-color-fill-warning-quiet-resting);
+    }
+    /* On a phone a slider takes the full row, under its label and value. */
+    @media (max-width: 600px) {
+      .row:has(ha-slider) {
+        flex-wrap: wrap;
+      }
+      .row:has(ha-slider) > span:first-child {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+      .row ha-slider {
+        order: 3;
+        flex: 1 1 100%;
+      }
+    }
+    /* Touch targets: every control is at least 44 px on a touch screen. */
+    @media (pointer: coarse) {
+      .icon,
+      .icon.small {
+        width: 44px;
+        height: 44px;
+      }
+      .chip,
+      .text {
+        min-height: 44px;
+      }
+      .row ha-slider {
+        min-height: 44px;
+      }
     }
   `;
 }

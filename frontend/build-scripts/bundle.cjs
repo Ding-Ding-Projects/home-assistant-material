@@ -200,7 +200,7 @@ module.exports.babelOptions = ({ latestBuild, isTestBuild, sw, worker }) => ({
           "@formatjs/(?:ecma402-abstract|intl-\\w+)",
           "@webcomponents/scoped-custom-element-registry",
           "element-internals-polyfill",
-        ].map((p) => new RegExp(`/node_modules/${p}/`)),
+        ].map((p) => new RegExp(`[\\\\/]node_modules[\\\\/]${p}[\\\\/]`)),
       ],
     },
     {
@@ -219,12 +219,13 @@ module.exports.babelOptions = ({ latestBuild, isTestBuild, sw, worker }) => ({
       // (otherwise babel-plugin-polyfill-corejs3 injects bare require("core-js/modules/...") calls
       // that rspack does not transform, causing ReferenceError in browsers like Safari 14).
       sourceType: "unambiguous",
-      include: /\/node_modules\//,
+      // \\ for Windows, / for Mac OS and Linux
+      include: /[\\/]node_modules[\\/]/,
       exclude: [
         "element-internals-polyfill",
         "@?lit(?:-labs|-element|-html)?",
         "@formatjs/(?:ecma402-abstract|intl-\\w+)",
-      ].map((p) => new RegExp(`/node_modules/${p}/`)),
+      ].map((p) => new RegExp(`[\\\\/]node_modules[\\\\/]${p}[\\\\/]`)),
     },
   ].filter(Boolean),
 });

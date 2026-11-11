@@ -28,6 +28,8 @@ import {
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import { sha256, toHex } from "../../../../common/util/sha256";
 import "../../../../components/ha-button";
+import "../../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../../components/ha-select";
 import "../../../../components/ha-svg-icon";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
@@ -155,25 +157,28 @@ class ToolsBase64 extends LitElement {
           >
             ${l("padding")}
           </button>
-          <label class="select">
-            <span>${l("line_length")}</span>
-            <select
-              .value=${String(this._lineLength)}
-              ?disabled=${this._variant === "mime" || this._mode !== "encode"}
-              @change=${this._setLineLength}
-            >
-              <option value="0">${l("line_none")}</option>
-              <option value="64">64</option>
-              <option value="76">76</option>
-            </select>
-          </label>
-          <label class="select">
-            <span>${l("text_as")}</span>
-            <select .value=${this._encoding} @change=${this._setEncoding}>
-              <option value="utf-8">UTF-8</option>
-              <option value="latin1">Latin-1</option>
-            </select>
-          </label>
+          <ha-select
+            class="select"
+            .label=${l("line_length")}
+            .value=${String(this._lineLength)}
+            .disabled=${this._variant === "mime" || this._mode !== "encode"}
+            .options=${[
+              { value: "0", label: l("line_none") },
+              { value: "64", label: "64" },
+              { value: "76", label: "76" },
+            ]}
+            @selected=${this._setLineLength}
+          ></ha-select>
+          <ha-select
+            class="select"
+            .label=${l("text_as")}
+            .value=${this._encoding}
+            .options=${[
+              { value: "utf-8", label: "UTF-8" },
+              { value: "latin1", label: "Latin-1" },
+            ]}
+            @selected=${this._setEncoding}
+          ></ha-select>
         </div>
 
         <div class="panes">
@@ -358,15 +363,15 @@ class ToolsBase64 extends LitElement {
     this._work();
   }
 
-  private _setLineLength(ev: Event): void {
-    this._lineLength = Number((ev.currentTarget as HTMLSelectElement).value) as
-      0 | 64 | 76;
+  private _setLineLength(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._lineLength = Number(ev.detail.value) as 0 | 64 | 76;
     this._work();
   }
 
-  private _setEncoding(ev: Event): void {
-    this._encoding = (ev.currentTarget as HTMLSelectElement)
-      .value as TextEncoding;
+  private _setEncoding(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._encoding = String(ev.detail.value) as TextEncoding;
     this._work();
   }
 
@@ -697,23 +702,11 @@ class ToolsBase64 extends LitElement {
           cursor: default;
         }
         .select {
-          display: inline-flex;
-          align-items: center;
-          gap: var(--ha-space-2);
-          font-size: var(--ha-font-size-s);
-          color: var(--secondary-text-color);
-        }
-        select {
-          min-height: var(--ha-space-10);
-          padding: 0 var(--ha-space-3);
-          border: 1px solid var(--outline-color);
-          border-radius: var(--ha-border-radius-lg);
-          background: var(--primary-background-color);
-          color: var(--primary-text-color);
-          font: inherit;
+          flex: 1 1 160px;
+          min-width: 0;
+          max-width: 240px;
         }
         button:focus-visible,
-        select:focus-visible,
         textarea:focus-visible,
         pre:focus-visible {
           outline: 3px solid var(--primary-color);

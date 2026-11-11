@@ -1,9 +1,18 @@
 name: Release
 
-# Every push to main that changes the product publishes one new tagged release.
+# Every push to main that changes the product publishes one new tagged release,
+# but only after the whole run has succeeded.
 # This workflow runs no tests and no lint. It builds, packages and publishes.
+#
+# No GitHub release exists while the build jobs run. Each job hands its files to the
+# last job (publish) as workflow artifacts. Publish needs every other job to have
+# succeeded, then creates one normal release with every file, reads it back, and only
+# then moves the update feed. A failed or cancelled run publishes no release and does
+# not move the feed. Container images are not releases: they are pushed by their own
+# jobs, so an image tag can exist for a build that never becomes a release.
+#
 # Pushes that only touch documentation or design files build nothing and publish no
-# release. A release whose run attached no file is withdrawn when the run ends.
+# release.
 
 on:
   push:
@@ -12,16 +21,27 @@ on:
 
 permissions: {}
 
+# Runs are queued one at a time. A run that has started always finishes and can
+# publish. While one runs, at most one newer run waits; a still newer run replaces
+# the waiting one before it starts, so a replaced run never builds anything. The
+# next run compares itself with the last build that really has a release, so the code
+# of a replaced or failed run is built by the next one.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
   GH_REPO: ${{ github.repository }}
 
 jobs:
   prepare:
-    name: Create the release
+    name: Work out versions
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
+      contents: read
     outputs:
+      own_lines: ${{ steps.lines.outputs.own }}
+      files: ${{ steps.lines.outputs.files }}
       build: ${{ steps.v.outputs.build }}
       tag: ${{ steps.v.outputs.tag }}
       core: ${{ steps.v.outputs.core }}
@@ -85,62 +105,13 @@ jobs:
           echo "own=${own}" >> "$GITHUB_OUTPUT"
           echo "files=${all}" >> "$GITHUB_OUTPUT"
 
-      # A push that changed documentation or design files only builds nothing, so it
-      # publishes no release: a release with no files is only noise in the list.
-      - name: Publish the release
-        if: steps.v.outputs.heavy == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.v.outputs.tag }}
-          HEAVY: ${{ steps.v.outputs.heavy }}
-          CORE: ${{ steps.v.outputs.core }}
-          SUPERVISOR: ${{ steps.v.outputs.supervisor }}
-          OS: ${{ steps.v.outputs.os }}
-          REGISTRY: ${{ steps.v.outputs.registry }}
-          OWN_LINES: ${{ steps.lines.outputs.own }}
-          FILES: ${{ steps.lines.outputs.files }}
-        run: |
-          set -euo pipefail
-          {
-            echo "## Home Assistant Material ${CORE}"
-            echo
-            echo "Source: ${GITHUB_SHA}"
-            echo
-            if [ "${HEAVY}" = "true" ]; then
-              echo "Build files are attached to this release as each build job finishes. Until a file is listed below, it has not been built yet. A newer push replaces unfinished builds."
-              echo
-              echo "| Part | Version | Where |"
-              echo "| --- | --- | --- |"
-              echo "| Container image (amd64 and arm64) | ${CORE} | \`${REGISTRY}/home-assistant-material:${CORE}\` |"
-              echo "| Core images per machine | ${CORE} | \`${REGISTRY}/<machine>-homeassistant:${CORE}\` |"
-              echo "| Supervisor images | ${SUPERVISOR} | \`${REGISTRY}/<arch>-hassio-supervisor:${SUPERVISOR}\` |"
-              echo "| Operating system images | ${OS} | attached files named \`haos_<board>-${OS}\` |"
-              echo "| Frontend wheel | $(jq -r .frontend versions.json) | attached \`.whl\` file |"
-            else
-              echo "This push changed documentation or design files only, so no images were rebuilt. Use the build files from the most recent release that lists them."
-            fi
-            echo
-            echo "### Checks"
-            echo
-            echo "This workflow runs no tests and no lint. Nothing in this release is claimed to be tested by the release pipeline. Job results for this run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            echo
-            echo "### Size"
-            echo
-            echo "${FILES} tracked files. ${OWN_LINES} lines outside the vendored upstream folders, counted by this workflow."
-          } > notes.md
-          gh release create "${TAG}" --target "${GITHUB_SHA}" --title "Home Assistant Material ${CORE}" --notes-file notes.md
-          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,url
-
   frontend:
     name: Build the frontend
     needs: prepare
     if: needs.prepare.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
-    concurrency:
-      group: heavy-frontend
-      cancel-in-progress: false
     permissions:
-      contents: write
+      contents: read
     env:
       NODE_OPTIONS: --max_old_space_size=6144
       HUSKY: "0"
@@ -186,19 +157,14 @@ jobs:
           ls -l dist
           sha256sum dist/*.whl
 
-      - name: Keep the wheel for the image builds
+      # Used by the image builds and, at the end, attached to the release by publish.
+      - name: Keep the wheel for the image builds and the release
         uses: actions/upload-artifact@v4
         with:
           name: frontend-wheel
           path: frontend/dist/*.whl
           if-no-files-found: error
-          retention-days: 7
-
-      - name: Attach the wheel to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release upload "${TAG}" dist/*.whl --clobber
+          retention-days: 3
 
   translations:
     name: Collect integration translations
@@ -234,9 +200,6 @@ jobs:
     name: Build ${{ matrix.arch }} core images
     needs: [prepare, frontend, translations]
     runs-on: ${{ matrix.runner }}
-    concurrency:
-      group: heavy-core-${{ matrix.arch }}
-      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -346,9 +309,6 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.heavy == 'true'
     runs-on: ${{ matrix.runner }}
-    concurrency:
-      group: heavy-supervisor-${{ matrix.arch }}
-      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -399,20 +359,21 @@ jobs:
             --push
 
   container:
-    name: Publish the container image and the update feed
+    # Pushes the multi-architecture container image. This is not a release and does not
+    # wait for one: the hosted instance moves to a build by this image tag long before
+    # the operating system jobs end, so the tag can exist for a build that never
+    # becomes a release.
+    name: Publish the container image
     needs: [prepare, core, supervisor]
     runs-on: ubuntu-24.04
-    concurrency:
-      group: heavy-container
-      cancel-in-progress: false
     permissions:
-      contents: write
+      contents: read
       packages: write
+    outputs:
+      public: ${{ steps.public.outputs.public }}
     env:
       REGISTRY: ${{ needs.prepare.outputs.registry }}
       CORE: ${{ needs.prepare.outputs.core }}
-      TAG: ${{ needs.prepare.outputs.tag }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -457,42 +418,17 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Publish the update feed
-        run: scripts/ci/publish-channel.sh "${{ needs.prepare.outputs.build }}"
-
-      - name: Attach the feed and note the images on the release
-        env:
-          PUBLIC: ${{ steps.public.outputs.public }}
-        run: |
-          set -euo pipefail
-          python3 scripts/ci/make-channel-json.py "${{ needs.prepare.outputs.build }}" stable.json
-          gh release upload "${TAG}" stable.json --clobber
-          gh release view "${TAG}" --json body --jq .body > notes.md
-          {
-            echo
-            echo "### Container images"
-            echo
-            echo "Published $(date --utc +%Y-%m-%dT%H:%M:%SZ): \`docker pull ${REGISTRY}/home-assistant-material:${CORE}\`"
-            if [ "${PUBLIC}" != "true" ]; then
-              echo
-              echo "The images are currently private in the container registry. They must be made public in the organization's Packages settings before a device can pull them."
-            fi
-          } >> notes.md
-          gh release edit "${TAG}" --notes-file notes.md
-
   os:
     name: Build the ${{ matrix.board.id }} operating system image
     needs: [prepare, container]
     runs-on: ubuntu-24.04
+    # An operating system build takes one to two hours. The release waits for every
+    # board: a run whose operating system jobs fail or are cancelled publishes nothing.
+    # A run that has started is never replaced by a newer push (see the workflow-level
+    # concurrency group), so these jobs get to finish.
     timeout-minutes: 350
-    # An operating system build takes hours. A newer push waits for the running
-    # build of the same board instead of cancelling it, so images do get finished
-    # while work continues. Only the newest waiting build is kept.
-    concurrency:
-      group: heavy-os-${{ matrix.board.id }}
-      cancel-in-progress: false
     permissions:
-      contents: write
+      contents: read
       packages: read
     strategy:
       fail-fast: false
@@ -570,13 +506,12 @@ jobs:
           rm -f operating-system/.registry-auth.json
           ls -l /mnt/output/images/haos_* || true
 
-      - name: Attach the images to the release
+      - name: Write the checksums
         working-directory: /mnt/output/images
         run: |
           set -euo pipefail
           sha256sum haos_* > "SHA256SUMS.${{ matrix.board.id }}"
           cat "SHA256SUMS.${{ matrix.board.id }}"
-          gh release upload "${TAG}" haos_* "SHA256SUMS.${{ matrix.board.id }}" --clobber
           {
             echo "## ${{ matrix.board.label }} (${{ matrix.board.id }})"
             echo
@@ -584,6 +519,19 @@ jobs:
             echo "| --- | --- |"
             for f in haos_*; do echo "| ${f} | $(du -h "${f}" | cut -f1) |"; done
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # The images are already compressed, so they are stored without compressing again.
+      # The publish job attaches them to the release once every job has succeeded.
+      - name: Keep the images for the release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-os-${{ matrix.board.id }}
+          path: |
+            /mnt/output/images/haos_*
+            /mnt/output/images/SHA256SUMS.${{ matrix.board.id }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
 
       - name: Record whether updates over the air can be offered
         run: echo "${{ steps.key.outputs.persistent }}" > persistent.txt
@@ -593,7 +541,7 @@ jobs:
         with:
           name: os-signing-${{ matrix.board.id }}
           path: persistent.txt
-          retention-days: 1
+          retention-days: 3
 
       - name: Save the compiler cache
         if: success()
@@ -604,22 +552,22 @@ jobs:
 
   # The Deploy Assistant desktop app is built by its own workflow and published as
   # deploy-assistant-v* releases. Its newest files are copied onto every release
-  # here, so one release page holds the images and the app that installs them.
+  # here, so one release page holds the images and the app that installs them. The
+  # files are staged as an artifact and attached by the publish job.
   assistant:
-    name: Attach the Deploy Assistant
-    # (Changed in b64779d75, whose commit message is about another project.)
-    # Runs straight after the release is created, so the installers are on the
-    # release page within a minute instead of after the long builds.
+    name: Stage the Deploy Assistant
     needs: prepare
     if: needs.prepare.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      latest: ${{ steps.copy.outputs.latest }}
     env:
-      TAG: ${{ needs.prepare.outputs.tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Copy the newest Deploy Assistant files
+      - name: Download the newest Deploy Assistant files
+        id: copy
         run: |
           set -euo pipefail
           latest="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '[.[] | select(.tag_name | startswith("deploy-assistant-v")) | select(.draft | not) | select((.assets | length) > 0)][0].tag_name // empty')"
@@ -632,26 +580,47 @@ jobs:
           # RELEASES and SHA256SUMS are generic names: keep them apart from the image files.
           if [ -f files/SHA256SUMS ]; then mv files/SHA256SUMS files/SHA256SUMS.deploy-assistant; fi
           ls -la files
-          gh release upload "${TAG}" files/* --repo "${GITHUB_REPOSITORY}" --clobber
-          gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body > notes.md
-          {
-            echo
-            echo "### Deploy Assistant"
-            echo
-            echo "The desktop app that installs and manages this product is attached: \`HAM-Deploy-Assistant-Setup.exe\` for Windows, the \`.deb\` or Linux \`.zip\`, and the macOS \`.zip\`. These are the files of ${latest}, copied unchanged; check them against \`SHA256SUMS.deploy-assistant\`. Nothing is code-signed."
-          } >> notes.md
-          gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --notes-file notes.md
+          echo "latest=${latest}" >> "$GITHUB_OUTPUT"
 
-  finish:
-    name: Finish the release
-    needs: [prepare, frontend, core, supervisor, container, os, assistant]
-    if: always()
+      - name: Keep the files for the release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assistant
+          path: files/*
+          if-no-files-found: error
+          retention-days: 3
+
+  # The only job that creates the release. It runs only when every job above it
+  # succeeded (no always(): a failed, cancelled or skipped job skips this one), so a
+  # release is never created for a build that is partial or failed. A push that changed
+  # documentation or design files only skips every build job and therefore this one.
+  publish:
+    name: Publish the release
+    needs: [prepare, frontend, translations, core, supervisor, container, os, assistant]
+    if: needs.prepare.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
       actions: read
     env:
       TAG: ${{ needs.prepare.outputs.tag }}
+      CORE: ${{ needs.prepare.outputs.core }}
+      BUILD: ${{ needs.prepare.outputs.build }}
+      SUPERVISOR: ${{ needs.prepare.outputs.supervisor }}
+      OS: ${{ needs.prepare.outputs.os }}
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      BOARDS: ${{ needs.prepare.outputs.boards }}
+      STARTED: ${{ needs.prepare.outputs.started }}
+      OWN_LINES: ${{ needs.prepare.outputs.own_lines }}
+      FILES: ${{ needs.prepare.outputs.files }}
+      PUBLIC: ${{ needs.container.outputs.public }}
+      ASSISTANT_TAG: ${{ needs.assistant.outputs.latest }}
+      R_FRONTEND: ${{ needs.frontend.result }}
+      R_CORE: ${{ needs.core.result }}
+      R_SUPERVISOR: ${{ needs.supervisor.result }}
+      R_CONTAINER: ${{ needs.container.result }}
+      R_OS: ${{ needs.os.result }}
+      R_ASSISTANT: ${{ needs.assistant.result }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check out the repository
@@ -659,73 +628,151 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Fetch the frontend wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-wheel
+          path: staged/frontend-wheel
+
+      - name: Fetch the staged release files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: staged
+          merge-multiple: false
+
       - name: Fetch the signing results
-        if: needs.os.result == 'success'
         uses: actions/download-artifact@v4
         with:
           pattern: os-signing-*
           path: signing
           merge-multiple: false
 
-      - name: Offer the operating system update when it can be installed
-        if: needs.os.result == 'success'
+      - name: Create the release, read it back and move the update feed
         run: |
           set -euo pipefail
-          if grep -rqx "false" signing; then
-            echo "Operating system images were signed with a one-time key. The update feed keeps its operating system entries unchanged."
-          else
-            scripts/ci/publish-channel.sh "${{ needs.prepare.outputs.build }}" --os "${TAG}"
-          fi
 
-      - name: Write the results and timing into the release notes
-        if: needs.prepare.result == 'success' && needs.prepare.outputs.heavy == 'true'
-        env:
-          R_ASSISTANT: ${{ needs.assistant.result }}
-          STARTED: ${{ needs.prepare.outputs.started }}
-          HEAVY: ${{ needs.prepare.outputs.heavy }}
-          R_FRONTEND: ${{ needs.frontend.result }}
-          R_CORE: ${{ needs.core.result }}
-          R_SUPERVISOR: ${{ needs.supervisor.result }}
-          R_CONTAINER: ${{ needs.container.result }}
-          R_OS: ${{ needs.os.result }}
-        run: |
-          set -euo pipefail
-          finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
-          seconds=$(( $(date --utc --date "${finished}" +%s) - $(date --utc --date "${STARTED}" +%s) ))
-          gh release view "${TAG}" --json body --jq .body > notes.md
+          # Anything that fails after this point removes the release and its tag, so
+          # nothing partial stays. The update feed moves last, so it never points at a
+          # build without a complete release.
+          armed=0
+          rollback() {
+            status=$?
+            if [ "${armed}" = "1" ] && [ "${status}" != "0" ]; then
+              echo "::warning::Publishing failed. Removing release ${TAG} and its tag."
+              gh release delete "${TAG}" --yes --cleanup-tag || true
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" >/dev/null 2>&1 || true
+            fi
+          }
+          trap rollback EXIT
+
+          # Check the staged files before anything is created.
+          ls staged/frontend-wheel/*.whl >/dev/null
+          for id in $(jq -r '.[].id' <<< "${BOARDS}"); do
+            dir="staged/release-os-${id}"
+            test -f "${dir}/SHA256SUMS.${id}" || { echo "::error::No checksums for ${id}."; exit 1; }
+            compgen -G "${dir}/haos_*" >/dev/null || { echo "::error::No operating system image for ${id}."; exit 1; }
+          done
+          compgen -G "staged/release-assistant/*" >/dev/null || { echo "::error::No Deploy Assistant files."; exit 1; }
+
+          # The update feed file that goes with the release.
+          mkdir out
+          python3 scripts/ci/make-channel-json.py "${BUILD}" out/stable.json
+
+          find staged out -type f | LC_ALL=C sort > file-list.txt
+          duplicates="$(while IFS= read -r f; do basename "${f}"; done < file-list.txt | sort | uniq -d)"
+          if [ -n "${duplicates}" ]; then
+            echo "::error::Two staged files share a name: ${duplicates}"
+            exit 1
+          fi
+          mapfile -t files < file-list.txt
+          echo "${#files[@]} files to attach"
+
+          # Release notes.
           {
+            echo "## Home Assistant Material ${CORE}"
+            echo
+            echo "Source: ${GITHUB_SHA}"
+            echo
+            echo "This release was published after every build job of its run had succeeded, so every file listed below is attached."
+            echo
+            echo "| Part | Version | Where |"
+            echo "| --- | --- | --- |"
+            echo "| Container image (amd64 and arm64) | ${CORE} | \`${REGISTRY}/home-assistant-material:${CORE}\` |"
+            echo "| Core images per machine | ${CORE} | \`${REGISTRY}/<machine>-homeassistant:${CORE}\` |"
+            echo "| Supervisor images | ${SUPERVISOR} | \`${REGISTRY}/<arch>-hassio-supervisor:${SUPERVISOR}\` |"
+            echo "| Operating system images | ${OS} | attached files named \`haos_<board>-${OS}\` |"
+            echo "| Frontend wheel | $(jq -r .frontend versions.json) | attached \`.whl\` file |"
+            echo
+            echo "### Container images"
+            echo
+            echo "\`docker pull ${REGISTRY}/home-assistant-material:${CORE}\`"
+            echo
+            echo "Container images are pushed by their own jobs before the operating system images finish, so the tag of a build that never became a release can exist in the registry."
+            if [ "${PUBLIC}" != "true" ]; then
+              echo
+              echo "The images are currently private in the container registry. They must be made public in the organization's Packages settings before a device can pull them."
+            fi
+            echo
+            echo "### Operating system images"
+            for id in $(jq -r '.[].id' <<< "${BOARDS}"); do
+              echo
+              echo "$(jq -r --arg id "${id}" '.[] | select(.id == $id) | "**\(.label)** (\(.id))"' <<< "${BOARDS}")"
+              echo
+              echo "| File | Size |"
+              echo "| --- | --- |"
+              for f in staged/release-os-${id}/haos_*; do echo "| $(basename "${f}") | $(du -h "${f}" | cut -f1) |"; done
+            done
+            echo
+            echo "### Deploy Assistant"
+            echo
+            echo "The desktop app that installs and manages this product is attached: \`HAM-Deploy-Assistant-Setup.exe\` for Windows, the \`.deb\` or Linux \`.zip\`, and the macOS \`.zip\`. These are the files of ${ASSISTANT_TAG}, copied unchanged; check them against \`SHA256SUMS.deploy-assistant\`. Nothing is code-signed."
+            echo
+            echo "### Checks"
+            echo
+            echo "This workflow runs no tests and no lint. Nothing in this release is claimed to be tested by the release pipeline. Job results for this run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo
             echo "### Build results"
             echo
-            if [ "${HEAVY}" = "true" ]; then
-              echo "| Job | Result |"
-              echo "| --- | --- |"
-              echo "| Frontend | ${R_FRONTEND} |"
-              echo "| Core and machine images | ${R_CORE} |"
-              echo "| Supervisor images | ${R_SUPERVISOR} |"
-              echo "| Container image and update feed | ${R_CONTAINER} |"
-              echo "| Operating system images | ${R_OS} |"
-              echo "| Deploy Assistant files | ${R_ASSISTANT} |"
-              echo
-              echo "A result other than success means the files for that job are missing from this release."
-              echo
-            fi
-            echo "Workflow started ${STARTED}, finished ${finished}, ${seconds} seconds end to end."
-          } >> notes.md
-          gh release edit "${TAG}" --notes-file notes.md
-          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,assets --jq '{tagName, isDraft, isPrerelease, assets: [.assets[].name]}'
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            echo "| Frontend | ${R_FRONTEND} |"
+            echo "| Core and machine images | ${R_CORE} |"
+            echo "| Supervisor images | ${R_SUPERVISOR} |"
+            echo "| Container image | ${R_CONTAINER} |"
+            echo "| Operating system images | ${R_OS} |"
+            echo "| Deploy Assistant files | ${R_ASSISTANT} |"
+            echo
+            finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            seconds=$(( $(date --utc --date "${finished}" +%s) - $(date --utc --date "${STARTED}" +%s) ))
+            echo "Workflow started ${STARTED}, release created ${finished}, ${seconds} seconds end to end."
+            echo
+            echo "### Size"
+            echo
+            echo "${FILES} tracked files. ${OWN_LINES} lines outside the vendored upstream folders, counted by this workflow."
+          } > notes.md
 
-      # A run that was replaced or failed before any build job attached a file would
-      # leave a release with nothing of its own in it. That release is withdrawn with
-      # its tag. The copied Deploy Assistant files do not count: they are not built here.
-      - name: Withdraw the release when nothing was built
-        if: needs.prepare.result == 'success' && needs.prepare.outputs.heavy == 'true'
-        run: |
-          set -euo pipefail
-          count="$(gh release view "${TAG}" --json assets --jq '[.assets[].name | select(test("\\.whl$|^stable\\.json$|^haos_"))] | length' 2>/dev/null || echo unknown)"
-          if [ "${count}" = "0" ]; then
-            echo "Release ${TAG} has no built files. Withdrawing it."
-            gh release delete "${TAG}" --yes --cleanup-tag
-          else
-            echo "Release ${TAG} has ${count} built files."
+          # The release is a normal release: no draft and no prerelease flag.
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1 || gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag or release ${TAG} already exists. It is left untouched."
+            exit 1
           fi
+          armed=1
+          gh release create "${TAG}" "${files[@]}" --target "${GITHUB_SHA}" --title "Home Assistant Material ${CORE}" --notes-file notes.md
+
+          gh release view "${TAG}" --json isDraft,isPrerelease,assets > readback.json
+          python3 scripts/ci/check-release.py readback.json file-list.txt
+
+          # The release is complete. Move the update feed. Operating system entries
+          # advance only when the images were signed with the persistent key; with a
+          # one-time key the feed keeps its previous operating system versions (the
+          # hassos entries), so no update that cannot be installed is ever offered.
+          os_args=()
+          if grep -rqx "false" signing; then
+            echo "Operating system images were signed with a one-time key. The update feed keeps its operating system entries unchanged."
+          else
+            os_args=(--os "${TAG}")
+          fi
+          scripts/ci/publish-channel.sh "${BUILD}" "${os_args[@]}"
+          armed=0
+          gh release view "${TAG}" --json tagName,isDraft,isPrerelease,url

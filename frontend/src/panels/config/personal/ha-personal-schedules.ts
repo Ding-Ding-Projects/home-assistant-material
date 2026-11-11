@@ -18,15 +18,20 @@ import { classMap } from "lit/directives/class-map";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { repeat } from "lit/directives/repeat";
 import type { TimeZone } from "../../../data/translation";
+import { computeStateName } from "../../../common/entity/compute_state_name";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
 import type { PersonalPreferences } from "../../../common/preferences/personal-preferences";
 import { schoolHeldFields } from "../../../common/preferences/personal-preferences";
 import {
+  conditionStatus,
+  ENTITY_COMPARISONS,
   evaluateSchedules,
   findConflicts,
   isAllDay,
+  isTimed,
   isValueFor,
+  parseNumericState,
   MAX_SCHEDULE_RULES,
   newRuleId,
   nextChange,
@@ -34,7 +39,11 @@ import {
   SCHEDULABLE_PREFERENCES,
   SCHEDULE_LANGUAGE_MODES,
   SCHEDULE_NAME_MAX,
+  cleanStates,
+  watchedEntityIds,
   zoneParts,
+  type EntityComparison,
+  type EntityCondition,
   type NextChange,
   type ScheduleEvaluation,
   type ScheduleRule,
@@ -45,16 +54,22 @@ import {
   getSchedules,
   getScheduleTimeZone,
   saveSchedules,
+  setScheduleEntityStates,
   setScheduleZoneSetting,
   isScheduleZoneFallback,
   subscribeScheduleClock,
 } from "../../../common/preferences/preference-schedule-store";
+import "../../../components/entity/ha-entity-picker";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
+import "../../../components/ha-select";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
+import "../../../components/ha-time-input";
+import "../../../components/input/ha-input";
 import "../../../components/setting-info/ha-setting-info";
+import type { HaSelectSelectEvent } from "../../../components/ha-select";
 import type { HaSwitch } from "../../../components/ha-switch";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
@@ -110,6 +125,14 @@ export class HaPersonalSchedules extends LitElement {
   @state() private _summary?: Summary;
 
   @state() private _announce = "";
+
+  /** The states of the entities that rules name, to recompute when one changes. */
+  @state() private _entitySignature = "";
+
+  /** What was typed in the states and the number fields of the editor. */
+  @state() private _statesText = "";
+
+  @state() private _thresholdText = "";
 
   @query(".editor h3") private _editorTitle?: HTMLElement;
 
@@ -181,10 +204,20 @@ export class HaPersonalSchedules extends LitElement {
         this.hass.config.time_zone
       );
     }
+    if (changed.has("hass") && this.hass?.states) {
+      setScheduleEntityStates(this.hass.states);
+    }
+    if (changed.has("hass") || changed.has("_rules") || changed.has("_draft")) {
+      const signature = this._entitiesSignature();
+      if (signature !== this._entitySignature) {
+        this._entitySignature = signature;
+      }
+    }
     if (
       changed.has("prefs") ||
       changed.has("_rules") ||
-      changed.has("_minute")
+      changed.has("_minute") ||
+      changed.has("_entitySignature")
     ) {
       this._summary = this._computeSummary();
     }
@@ -219,6 +252,26 @@ export class HaPersonalSchedules extends LitElement {
     );
   }
 
+  private _lookup = (entityId: string): string | undefined =>
+    this.hass?.states?.[entityId]?.state;
+
+  /** The states of the entities the rules and the open draft name. */
+  private _entitiesSignature(): string {
+    const ids = new Set(watchedEntityIds(this._rules));
+    const draftEntity = this._draft?.rule.condition?.entityId;
+    if (draftEntity) {
+      ids.add(draftEntity);
+    }
+    return [...ids]
+      .map((id) => `${id}=${this._lookup(id) ?? "\u0000"}`)
+      .join("\u0001");
+  }
+
+  private _entityName(entityId: string): string {
+    const stateObj = this.hass?.states?.[entityId];
+    return (stateObj && computeStateName(stateObj)) || entityId;
+  }
+
   private _held(): ReadonlySet<string> {
     return schoolHeldFields(this.prefs);
   }
@@ -230,14 +283,22 @@ export class HaPersonalSchedules extends LitElement {
     const next: Summary["next"] = {};
     for (const preference of SCHEDULABLE_PREFERENCES) {
       if (this._rules.some((rule) => rule.preference === preference)) {
-        const change = nextChange(this._rules, now, zone, preference, held);
+        const change = nextChange(
+          this._rules,
+          now,
+          zone,
+          preference,
+          held,
+          8 * 1440,
+          this._lookup
+        );
         if (change) {
           next[preference] = change;
         }
       }
     }
     return {
-      evaluation: evaluateSchedules(this._rules, now, zone, held),
+      evaluation: evaluateSchedules(this._rules, now, zone, held, this._lookup),
       next,
     };
   }
@@ -288,13 +349,38 @@ export class HaPersonalSchedules extends LitElement {
       : this._t("schedules.range", { from: rule.from, to: rule.to });
   }
 
-  private _sentence(rule: ScheduleRule): string {
-    return this._t("schedules.sentence", {
-      preference: this._prefName(rule.preference),
-      value: this._valueName(rule.preference, rule.value),
-      days: this._daysText(rule.days),
-      range: this._rangeText(rule),
+  private _conditionText(condition: EntityCondition): string {
+    const entity = this._entityName(condition.entityId);
+    if (condition.comparison === "above" || condition.comparison === "below") {
+      return this._t(`schedules.condition_${condition.comparison}`, {
+        entity,
+        value: String(condition.threshold ?? ""),
+      });
+    }
+    return this._t(`schedules.condition_${condition.comparison}`, {
+      entity,
+      value: condition.states.join(this._t("schedules.states_or")),
     });
+  }
+
+  private _sentence(rule: ScheduleRule): string {
+    const base = isTimed(rule)
+      ? this._t("schedules.sentence", {
+          preference: this._prefName(rule.preference),
+          value: this._valueName(rule.preference, rule.value),
+          days: this._daysText(rule.days),
+          range: this._rangeText(rule),
+        })
+      : this._t("schedules.sentence_always", {
+          preference: this._prefName(rule.preference),
+          value: this._valueName(rule.preference, rule.value),
+        });
+    return rule.condition
+      ? this._t("schedules.sentence_condition", {
+          sentence: base,
+          condition: this._conditionText(rule.condition),
+        })
+      : base;
   }
 
   private _title(rule: ScheduleRule): string {
@@ -365,6 +451,8 @@ export class HaPersonalSchedules extends LitElement {
   private _moveDown = (ev: Event) => this._move(ev, 1);
 
   private _newRule = () => {
+    this._statesText = "";
+    this._thresholdText = "";
     this._focusAfterEditor = "new";
     this._draft = {
       isNew: true,
@@ -384,8 +472,23 @@ export class HaPersonalSchedules extends LitElement {
   private _editRule = (ev: Event) => {
     const rule = this._rules[this._indexOf(ev)];
     if (rule) {
+      this._statesText = rule.condition?.states.join(", ") ?? "";
+      this._thresholdText =
+        rule.condition?.threshold === undefined
+          ? ""
+          : String(rule.condition.threshold);
       this._focusAfterEditor = rule.id;
-      this._draft = { isNew: false, rule: { ...rule, days: [...rule.days] } };
+      this._draft = {
+        isNew: false,
+        rule: {
+          ...rule,
+          days: [...rule.days],
+          condition: rule.condition && {
+            ...rule.condition,
+            states: [...rule.condition.states],
+          },
+        },
+      };
     }
   };
 
@@ -400,9 +503,8 @@ export class HaPersonalSchedules extends LitElement {
     }
   }
 
-  private _draftPreference = (ev: Event) => {
-    const preference = (ev.target as HTMLSelectElement)
-      .value as SchedulablePreference;
+  private _draftPreference = (ev: HaSelectSelectEvent) => {
+    const preference = ev.detail.value as SchedulablePreference;
     const current = this._draft?.rule;
     if (!current || !SCHEDULABLE_PREFERENCES.includes(preference)) {
       return;
@@ -429,13 +531,116 @@ export class HaPersonalSchedules extends LitElement {
     }
   };
 
-  private _draftTime = (ev: Event) => {
-    const input = ev.target as HTMLInputElement;
-    this._patch({ [input.dataset.key as "from" | "to"]: input.value });
+  private _draftTime = (ev: CustomEvent<{ value?: string }>) => {
+    const key = (ev.currentTarget as HTMLElement).dataset.key as "from" | "to";
+    const value = ev.detail.value?.slice(0, 5);
+    if (value) {
+      this._patch({ [key]: value });
+    }
+  };
+
+  private _draftTimed = (ev: Event) => {
+    const timed = (ev.target as HaSwitch).checked;
+    const rule = this._draft?.rule;
+    if (!rule) {
+      return;
+    }
+    // A rule needs a time window or a condition, so turning off one of them
+    // while the other is off turns the other on.
+    this._patch({
+      timed: timed ? undefined : false,
+      condition:
+        !timed && !rule.condition ? this._emptyCondition() : rule.condition,
+    });
+  };
+
+  private _emptyCondition(): EntityCondition {
+    this._statesText = "";
+    this._thresholdText = "";
+    return { entityId: "", comparison: "is", states: [] };
+  }
+
+  private _draftConditionToggle = (ev: Event) => {
+    const on = (ev.target as HaSwitch).checked;
+    const rule = this._draft?.rule;
+    if (!rule) {
+      return;
+    }
+    if (on) {
+      this._patch({ condition: this._emptyCondition() });
+    } else {
+      this._patch({ condition: undefined, timed: undefined });
+    }
+  };
+
+  private _patchCondition(change: Partial<EntityCondition>) {
+    const condition = this._draft?.rule.condition;
+    if (condition) {
+      this._patch({ condition: { ...condition, ...change } });
+    }
+  }
+
+  private _draftEntity = (ev: CustomEvent<{ value?: string }>) => {
+    ev.stopPropagation();
+    this._patchCondition({ entityId: ev.detail.value ?? "" });
+  };
+
+  private _draftComparison = (ev: HaSelectSelectEvent) => {
+    const comparison = ev.detail.value as EntityComparison;
+    const condition = this._draft?.rule.condition;
+    if (!condition || !ENTITY_COMPARISONS.includes(comparison)) {
+      return;
+    }
+    const numeric = comparison === "above" || comparison === "below";
+    this._patchCondition({
+      comparison,
+      states: numeric ? [] : cleanStates(this._statesText.split(",")),
+      threshold: numeric ? this._thresholdValue() : undefined,
+    });
+  };
+
+  private _thresholdValue(): number | undefined {
+    const text = this._thresholdText.trim();
+    if (!text) {
+      return undefined;
+    }
+    const number = Number(text);
+    return Number.isFinite(number) ? number : undefined;
+  }
+
+  private _draftStates = (ev: Event) => {
+    this._statesText = (ev.target as HTMLInputElement).value ?? "";
+    this._patchCondition({ states: cleanStates(this._statesText.split(",")) });
+  };
+
+  private _draftThreshold = (ev: Event) => {
+    this._thresholdText = (ev.target as HTMLInputElement).value ?? "";
+    this._patchCondition({ threshold: this._thresholdValue() });
+  };
+
+  private _useCurrentState = () => {
+    const condition = this._draft?.rule.condition;
+    const currentState = condition
+      ? this._lookup(condition.entityId)
+      : undefined;
+    if (!condition || currentState === undefined) {
+      return;
+    }
+    if (condition.comparison === "above" || condition.comparison === "below") {
+      const number = parseNumericState(currentState);
+      if (number !== undefined) {
+        this._thresholdText = String(number);
+        this._patchCondition({ threshold: number });
+      }
+      return;
+    }
+    const states = cleanStates([...condition.states, currentState]);
+    this._statesText = states.join(", ");
+    this._patchCondition({ states });
   };
 
   private _draftName = (ev: Event) => {
-    this._patch({ name: (ev.target as HTMLInputElement).value });
+    this._patch({ name: (ev.target as HTMLInputElement).value ?? "" });
   };
 
   private _draftDay = (ev: Event) => {
@@ -656,6 +861,22 @@ export class HaPersonalSchedules extends LitElement {
     if (evaluation?.overridden[rule.id]) {
       return { text: this._t("schedules.status.overridden"), tone: "warn" };
     }
+    if (rule.condition) {
+      const entity = this._entityName(rule.condition.entityId);
+      const status = conditionStatus(rule.condition, this._lookup);
+      if (status === "unavailable") {
+        return {
+          text: this._t("schedules.status.entity_unavailable", { entity }),
+          tone: "warn",
+        };
+      }
+      if (status === "not_met") {
+        return {
+          text: this._t("schedules.status.entity_waiting", { entity }),
+          tone: "muted",
+        };
+      }
+    }
     return { text: this._t("schedules.status.waiting"), tone: "muted" };
   }
 
@@ -748,6 +969,7 @@ export class HaPersonalSchedules extends LitElement {
         ? [...SCHEDULE_LANGUAGE_MODES]
         : [true, false];
     const heldByPage = this._held().has(rule.preference);
+    const timed = isTimed(rule);
     return html`<form
       class="editor"
       aria-labelledby="schedule-editor-title"
@@ -757,15 +979,12 @@ export class HaPersonalSchedules extends LitElement {
         ${this._t(draft.isNew ? "schedules.editor_new" : "schedules.editor_edit")}
       </h3>
 
-      <label class="field">
-        <span class="label">${this._t("schedules.field_name")}</span>
-        <input
-          type="text"
-          maxlength=${SCHEDULE_NAME_MAX}
-          .value=${rule.name}
-          @input=${this._draftName}
-        />
-      </label>
+      <ha-input
+        .label=${this._t("schedules.field_name")}
+        maxlength=${SCHEDULE_NAME_MAX}
+        .value=${rule.name}
+        @input=${this._draftName}
+      ></ha-input>
 
       <div class="field">
         <span class="label"
@@ -786,21 +1005,15 @@ export class HaPersonalSchedules extends LitElement {
             .labels=${this._infoLabels()}
           ></ha-setting-info
         ></span>
-        <select
-          aria-labelledby="schedule-change-label"
+        <ha-select
+          .label=${this._t("schedules.field_change")}
           .value=${rule.preference}
-          @change=${this._draftPreference}
-        >
-          ${SCHEDULABLE_PREFERENCES.map(
-            (preference) =>
-              html`<option
-                value=${preference}
-                ?selected=${preference === rule.preference}
-              >
-                ${this._prefName(preference)}
-              </option>`
-          )}
-        </select>
+          .options=${SCHEDULABLE_PREFERENCES.map((preference) => ({
+            value: preference,
+            label: this._prefName(preference),
+          }))}
+          @selected=${this._draftPreference}
+        ></ha-select>
       </div>
 
       <div class="field" role="group" aria-labelledby="schedule-to-label">
@@ -826,52 +1039,73 @@ export class HaPersonalSchedules extends LitElement {
         </div>
       </div>
 
-      <div class="times">
-        <label class="field">
-          <span class="label">${this._t("schedules.field_from")}</span>
-          <input
-            type="time"
-            .value=${rule.from}
-            data-key="from"
-            aria-invalid=${problem === "invalid_time" ? "true" : "false"}
-            @change=${this._draftTime}
-          />
-        </label>
-        <label class="field">
-          <span class="label">${this._t("schedules.field_until")}</span>
-          <input
-            type="time"
-            .value=${rule.to}
-            data-key="to"
-            aria-invalid=${problem === "invalid_time" ? "true" : "false"}
-            @change=${this._draftTime}
-          />
-        </label>
-      </div>
-      <p class="note">${this._t("schedules.time_hint")}</p>
-
-      <div class="field" role="group" aria-labelledby="schedule-days-label">
-        <span class="label" id="schedule-days-label"
-          >${this._t("schedules.field_days")}</span
-        >
-        <div class="days">
-          ${DAY_ORDER.map(
-            (day) =>
-              html`<button
-                type="button"
-                class=${classMap({
-                  day: true,
-                  selected: rule.days.includes(day),
-                })}
-                aria-pressed=${rule.days.includes(day) ? "true" : "false"}
-                data-day=${day}
-                @click=${this._draftDay}
+      <label class="switch-row">
+        <ha-switch
+          .checked=${timed}
+          aria-label=${this._t("schedules.field_timed")}
+          @change=${this._draftTimed}
+        ></ha-switch>
+        <span>${this._t("schedules.field_timed")}</span>
+      </label>
+      ${
+        timed
+          ? html`<div class="times">
+                <ha-time-input
+                  .locale=${this.hass.locale}
+                  .label=${this._t("schedules.field_from")}
+                  .value=${`${rule.from}:00`}
+                  data-key="from"
+                  @value-changed=${this._draftTime}
+                ></ha-time-input>
+                <ha-time-input
+                  .locale=${this.hass.locale}
+                  .label=${this._t("schedules.field_until")}
+                  .value=${`${rule.to}:00`}
+                  data-key="to"
+                  @value-changed=${this._draftTime}
+                ></ha-time-input>
+              </div>
+              <p class="note">${this._t("schedules.time_hint")}</p>
+              <div
+                class="field"
+                role="group"
+                aria-labelledby="schedule-days-label"
               >
-                ${this._dayName(day)}
-              </button>`
-          )}
-        </div>
-      </div>
+                <span class="label" id="schedule-days-label"
+                  >${this._t("schedules.field_days")}</span
+                >
+                <div class="days">
+                  ${DAY_ORDER.map(
+                    (day) =>
+                      html`<button
+                        type="button"
+                        class=${classMap({
+                          day: true,
+                          selected: rule.days.includes(day),
+                        })}
+                        aria-pressed=${
+                          rule.days.includes(day) ? "true" : "false"
+                        }
+                        data-day=${day}
+                        @click=${this._draftDay}
+                      >
+                        ${this._dayName(day)}
+                      </button>`
+                  )}
+                </div>
+              </div>`
+          : nothing
+      }
+
+      <label class="switch-row">
+        <ha-switch
+          .checked=${!!rule.condition}
+          aria-label=${this._t("schedules.field_entity")}
+          @change=${this._draftConditionToggle}
+        ></ha-switch>
+        <span>${this._t("schedules.field_entity")}</span>
+      </label>
+      ${rule.condition ? this._renderCondition(rule.condition) : nothing}
 
       <p class="preview" role="status">
         ${problem ? nothing : this._sentence(rule)}
@@ -932,10 +1166,87 @@ export class HaPersonalSchedules extends LitElement {
     </form>`;
   }
 
+  private _renderCondition(condition: EntityCondition): TemplateResult {
+    const numeric =
+      condition.comparison === "above" || condition.comparison === "below";
+    const stateObj = condition.entityId
+      ? this.hass.states[condition.entityId]
+      : undefined;
+    const status = condition.entityId
+      ? conditionStatus(condition, this._lookup)
+      : undefined;
+    const current = stateObj
+      ? this.hass.formatEntityState(stateObj)
+      : undefined;
+    return html`<div class="condition">
+      <ha-entity-picker
+        .hass=${this.hass}
+        .label=${this._t("schedules.field_entity_pick")}
+        .value=${condition.entityId}
+        @value-changed=${this._draftEntity}
+      ></ha-entity-picker>
+      <ha-select
+        .label=${this._t("schedules.field_comparison")}
+        .value=${condition.comparison}
+        .options=${ENTITY_COMPARISONS.map((comparison) => ({
+          value: comparison,
+          label: this._t(`schedules.comparison.${comparison}`),
+        }))}
+        @selected=${this._draftComparison}
+      ></ha-select>
+      ${
+        numeric
+          ? html`<ha-input
+              type="number"
+              step="any"
+              .label=${this._t("schedules.field_number")}
+              .value=${this._thresholdText}
+              @input=${this._draftThreshold}
+            ></ha-input>`
+          : html`<ha-input
+              .label=${this._t("schedules.field_states")}
+              .hint=${this._t("schedules.states_hint")}
+              maxlength="700"
+              .value=${this._statesText}
+              @input=${this._draftStates}
+            ></ha-input>`
+      }
+      ${
+        stateObj
+          ? html`<div class="current">
+              <span class="note"
+                >${this._t("schedules.entity_current", {
+                  state: current ?? stateObj.state,
+                })}</span
+              >
+              <ha-button appearance="plain" @click=${this._useCurrentState}
+                >${this._t(
+                  numeric
+                    ? "schedules.use_current_number"
+                    : "schedules.use_current_state"
+                )}</ha-button
+              >
+            </div>`
+          : nothing
+      }
+      ${
+        status
+          ? html`<p
+              class=${classMap({ note: true, warn: status === "unavailable" })}
+              role="status"
+            >
+              ${this._t(`schedules.holds.${status}`)}
+            </p>`
+          : nothing
+      }
+    </div>`;
+  }
+
   /** The info panel's own words, in the language mode of this page. */
   private _infoLabels() {
     return {
-      button: this._t("info.button"),
+      // The info control fills in the setting name itself.
+      button: this._t("info.button", { name: "{name}" }),
       close: this._t("info.close"),
       what: this._t("info.what"),
       defaultValue: this._t("info.default"),
@@ -1103,24 +1414,38 @@ export class HaPersonalSchedules extends LitElement {
       font-weight: var(--ha-font-weight-medium);
       color: var(--secondary-text-color);
     }
-    input,
-    select {
-      min-height: 44px;
+    ha-input,
+    ha-select,
+    ha-time-input,
+    ha-entity-picker {
+      display: block;
       min-width: 0;
-      box-sizing: border-box;
       max-width: 100%;
-      font: inherit;
-      color: var(--primary-text-color);
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      padding: 0 var(--ha-space-2);
     }
-    input[aria-invalid="true"] {
-      border-color: var(--error-color);
+    .switch-row {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      min-height: 44px;
+      cursor: pointer;
+      overflow-wrap: anywhere;
     }
-    input:focus-visible,
-    select:focus-visible,
+    .condition {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      min-width: 0;
+    }
+    .current {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2);
+    }
+    .current .note {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
     .segment:focus-visible,
     .day:focus-visible {
       outline: 2px solid var(--primary-color);
@@ -1131,8 +1456,8 @@ export class HaPersonalSchedules extends LitElement {
       flex-wrap: wrap;
       gap: var(--ha-space-3);
     }
-    .times .field {
-      flex: 1 1 120px;
+    .times ha-time-input {
+      flex: 1 1 140px;
     }
     .segments,
     .days {

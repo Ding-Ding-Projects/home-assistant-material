@@ -451,6 +451,10 @@ export class ToolsYamlConfig extends LitElement {
           font-family: var(--ha-font-family-heading, inherit);
           font-size: var(--ha-font-size-xl);
           font-weight: var(--ha-font-weight-medium);
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
         }
 
         p {

@@ -16,16 +16,44 @@ export const lockText = (
   return (localize ? modeText(localize, `ui.locks.${key}`, values) : "") || key;
 };
 
-/** A readable name for what an element is, for the list of locks. */
+const NAME_LIMIT = 40;
+
+/** Cuts a name at a word, with an ellipsis, so it never ends mid-word. */
+const shortName = (text: string): string => {
+  if (text.length <= NAME_LIMIT) {
+    return text;
+  }
+  const cut = text.slice(0, NAME_LIMIT);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > NAME_LIMIT / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
+};
+
+const clean = (text: string | null | undefined): string =>
+  (text ?? "").replace(/\s+/g, " ").trim();
+
+/**
+ * A readable name for what an element is, for the list of locks. A card is
+ * named by its own label or heading, or by its first line of text: joining
+ * everything it shows made names like "Status Recording Entries today 14
+ * Entries kept 14 Days 1 Siz".
+ */
 export const describeElement = (element: Element): string => {
-  const named =
-    element.getAttribute("aria-label") ||
-    element.getAttribute("title") ||
-    (element as HTMLElement).innerText ||
-    element.textContent ||
-    "";
-  const text = named.replace(/\s+/g, " ").trim();
-  return text ? text.slice(0, 60) : element.localName;
+  const labelled = clean(
+    element.getAttribute("aria-label") || element.getAttribute("title")
+  );
+  if (labelled) {
+    return shortName(labelled);
+  }
+  const heading = clean(
+    element.querySelector("h1, h2, h3, h4, [role='heading'], .title, .header")
+      ?.textContent
+  );
+  if (heading) {
+    return shortName(heading);
+  }
+  const shown = (element as HTMLElement).innerText || element.textContent || "";
+  const firstLine = clean(shown.split("\n").find((line) => clean(line)));
+  return firstLine ? shortName(firstLine) : element.localName;
 };
 
 /**

@@ -14,7 +14,20 @@ import {
 } from "../../../common/preferences/shared-preference-defaults";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
+import "../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../components/ha-select";
+import "../../../components/ha-slider";
+import type { HaSlider } from "../../../components/ha-slider";
+import "../../../components/ha-switch";
+import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/setting-info/ha-setting-info";
+import {
+  DEFAULT_PERSONAL_PREFERENCES,
+  FUNNY_LEVEL_MAX,
+  FUNNY_LEVEL_MIN,
+  VOLUME_MAX,
+  VOLUME_MIN,
+} from "../../../common/preferences/personal-preferences";
 import type { HomeAssistant } from "../../../types";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import { showToast } from "../../../util/toast";
@@ -35,17 +48,22 @@ const FIELD_ROW: Record<SharedDefaultField, string> = {
 
 const LANGUAGE_MODES = ["english", "cantonese", "bilingual"] as const;
 
-const optionsFor = (
-  field: SharedDefaultField
-): (string | number | boolean)[] => {
+/** The value of the "not set" choice in a select. */
+const UNSET = "__unset";
+
+/** Fields that are a number on a slider; every other field is a select. */
+const SLIDERS: Partial<
+  Record<SharedDefaultField, { min: number; max: number; step: number }>
+> = {
+  funnyEnglish: { min: FUNNY_LEVEL_MIN, max: FUNNY_LEVEL_MAX, step: 1 },
+  funnyCantonese: { min: FUNNY_LEVEL_MIN, max: FUNNY_LEVEL_MAX, step: 1 },
+  soundVolume: { min: VOLUME_MIN, max: VOLUME_MAX, step: 10 },
+};
+
+const optionsFor = (field: SharedDefaultField): (string | boolean)[] => {
   switch (field) {
     case "languageMode":
       return [...LANGUAGE_MODES];
-    case "funnyEnglish":
-    case "funnyCantonese":
-      return [1, 2, 3, 4, 5];
-    case "soundVolume":
-      return [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
     default:
       return [true, false];
   }
@@ -127,21 +145,44 @@ export class HaPersonalSharedDefaults extends LitElement {
     return JSON.stringify(this._draft) !== JSON.stringify(this._stored);
   }
 
-  private _changed = (ev: Event) => {
-    const select = ev.target as HTMLSelectElement;
-    const field = select.dataset.field as SharedDefaultField;
+  private _set(field: SharedDefaultField, value: unknown) {
     const next: Record<string, unknown> = { ...this._draft };
-    if (select.value === "") {
+    if (value === undefined) {
       delete next[field];
     } else {
-      const option = optionsFor(field).find(
-        (item) => String(item) === select.value
-      );
-      if (option !== undefined) {
-        next[field] = option;
-      }
+      next[field] = value;
     }
     this._draft = next as SharedPreferenceDefaults;
+  }
+
+  private _selectChanged = (ev: HaSelectSelectEvent<string>) => {
+    ev.stopPropagation();
+    const field = (ev.currentTarget as HTMLElement).dataset
+      .field as SharedDefaultField;
+    const chosen = String(ev.detail.value);
+    this._set(
+      field,
+      chosen === UNSET
+        ? undefined
+        : optionsFor(field).find((item) => String(item) === chosen)
+    );
+  };
+
+  private _useDefaultChanged = (ev: Event) => {
+    const target = ev.currentTarget as HaSwitch;
+    const field = target.dataset.field as SharedDefaultField;
+    this._set(
+      field,
+      target.checked ? DEFAULT_PERSONAL_PREFERENCES[field] : undefined
+    );
+  };
+
+  private _sliderChanged = (ev: Event) => {
+    const target = ev.currentTarget as HaSlider;
+    const field = target.dataset.field as SharedDefaultField;
+    if (target.value !== undefined && target.value !== null) {
+      this._set(field, Number(target.value));
+    }
   };
 
   private _reload = () => {
@@ -257,9 +298,10 @@ export class HaPersonalSharedDefaults extends LitElement {
     const current = this._draft[field];
     const id = `shared-${field}`;
     const stored = this._stored[field];
+    const slider = SLIDERS[field];
     return html`<li class="field">
       <div class="field-label">
-        <label for=${id}>${label}</label>
+        <span id=${id}>${label}</span>
         <ha-setting-info
           .hass=${this.hass}
           .label=${label}
@@ -268,25 +310,50 @@ export class HaPersonalSharedDefaults extends LitElement {
           .labels=${this._infoLabels()}
         ></ha-setting-info>
       </div>
-      <select
-        id=${id}
-        data-field=${field}
-        .value=${current === undefined ? "" : String(current)}
-        @change=${this._changed}
-      >
-        <option value="" .selected=${current === undefined}>
-          ${this._t("shared.not_set")}
-        </option>
-        ${optionsFor(field).map(
-          (option) =>
-            html`<option
-              value=${String(option)}
-              .selected=${current === option}
-            >
-              ${this._valueText(field, option)}
-            </option>`
-        )}
-      </select>
+      ${
+        slider
+          ? html`<div class="control">
+              <ha-switch
+                data-field=${field}
+                .checked=${current !== undefined}
+                aria-label=${`${label}: ${this._t("shared.use_default")}`}
+                @change=${this._useDefaultChanged}
+              ></ha-switch>
+              <span class="switch-text">${this._t("shared.use_default")}</span>
+              <ha-slider
+                labeled
+                data-field=${field}
+                .min=${slider.min}
+                .max=${slider.max}
+                .step=${slider.step}
+                .value=${typeof current === "number" ? current : slider.min}
+                .disabled=${current === undefined}
+                aria-label=${label}
+                @change=${this._sliderChanged}
+              ></ha-slider>
+              <span class="value"
+                >${
+                  current === undefined
+                    ? this._t("shared.not_set")
+                    : String(current)
+                }</span
+              >
+            </div>`
+          : html`<ha-select
+              class="select"
+              data-field=${field}
+              aria-label=${label}
+              .value=${current === undefined ? UNSET : String(current)}
+              .options=${[
+                { value: UNSET, label: this._t("shared.not_set") },
+                ...optionsFor(field).map((option) => ({
+                  value: String(option),
+                  label: this._valueText(field, option),
+                })),
+              ]}
+              @selected=${this._selectChanged}
+            ></ha-select>`
+      }
       <span class="state">
         ${
           stored === undefined
@@ -301,7 +368,8 @@ export class HaPersonalSharedDefaults extends LitElement {
 
   private _infoLabels() {
     return {
-      button: this._t("info.button"),
+      // The info control fills in the setting name itself.
+      button: this._t("info.button", { name: "{name}" }),
       close: this._t("info.close"),
       what: this._t("info.what"),
       defaultValue: this._t("info.default"),
@@ -342,20 +410,32 @@ export class HaPersonalSharedDefaults extends LitElement {
       min-width: 0;
       overflow-wrap: anywhere;
     }
-    select {
-      min-height: 44px;
+    .select {
+      flex: 1 1 200px;
       min-width: 0;
       max-width: 100%;
-      font: inherit;
-      color: var(--primary-text-color);
-      background: var(--secondary-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      padding: 0 var(--ha-space-2);
     }
-    select:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
+    .control {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2) var(--ha-space-3);
+      flex: 1 1 260px;
+      min-width: 0;
+      min-height: 44px;
+    }
+    .control ha-slider {
+      flex: 1 1 160px;
+      min-width: 120px;
+    }
+    .switch-text,
+    .value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .value {
+      min-width: 3ch;
+      font-variant-numeric: tabular-nums;
     }
     .state {
       flex-basis: 100%;

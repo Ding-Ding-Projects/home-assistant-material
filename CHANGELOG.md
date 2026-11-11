@@ -8,18 +8,34 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Changed: every personal setting is now saved on this instance for your account and follows you to
+  every device: preferences, schedules, locks, table layouts, saved patterns, change history, the
+  app name and logo and tool drafts. Sign-in tokens, caches and a few per-device switches stay in
+  the browser. Because locks follow the account, clearing browser data no longer removes a
+  forgotten lock; the documentation gives the way back. Seen in a local build, not yet in a
+  published one.
+- Fixed: a lock could not be created when the instance is opened over plain http on the home
+  network ("The lock could not be created"). Seen working in a local build.
+- Changed: a lock is named by its card's label or heading, not by all the text on it.
+- New: a schedule rule can depend on an entity: is, is not, above or below a value, alone or
+  together with a time window.
+- Changed: dropdowns, sliders, checkboxes, radio buttons and colour choices that were plain
+  browser controls now use the product's own controls, starting with Defaults for everyone.
+- Fixed: seven messages showed "Translation error"; ticking a notification did not select it;
+  the cover of a lock that is locked on start did not always appear on a fresh browser; the
+  title on the YAML tools page was cut short. Not yet seen in a running build.
+- Changed: a release is published only after every build job of its run has succeeded. A run that
+  fails or is cancelled publishes nothing. Not yet run.
 - Fixed: Personal settings on a phone could be dragged sideways until the settings left the
   screen. The row of group chips was as wide as all its chips (666 px in a 358 px page) and made
-  the page wider than the screen; it now keeps to the page and scrolls inside itself. Measured
-  in a running copy with the rule applied; not yet seen in a published build.
+  the page wider than the screen; it now keeps to the page and scrolls inside itself. Seen
+  in a local build.
 - Changed: on a phone the slim bar at the top that named the current page is gone; the Pages
-  button in the bottom bar switches pages and every page has its own header. Not yet seen in a
-  running build.
+  button in the bottom bar switches pages and every page has its own header. Seen in build 115.
 - Changed: the menu on a phone has less empty space above its title, around the Assist button and
-  between its groups. Not yet seen in a running build.
+  between its groups. Seen in build 115.
 - Fixed: the YAML tools page showed two cramped columns on a phone, with names broken inside
-  words. It is one column until two columns of a comfortable width fit. Not yet seen in a
-  running build.
+  words. It is one column until two columns of a comfortable width fit. Seen in build 115.
 - Fixed: a Minecraft server of version 26.1 or newer could not start, because every server used
   an image with Java 21 and those versions need Java 25 (found by starting 26.3 for real). The
   image now follows the game version: Java 25 for 26.1 and newer, 21 for 1.20.5 to 1.21.x, 17

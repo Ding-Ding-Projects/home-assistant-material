@@ -18,6 +18,8 @@ import {
 import { consume } from "../common/decorators/consume";
 import { fireEvent } from "../common/dom/fire_event";
 import { internationalizationContext } from "../data/context";
+import "./ha-slider";
+import type { HaSlider } from "./ha-slider";
 import "./ha-svg-icon";
 
 declare global {
@@ -161,8 +163,8 @@ export class HaTwoKeyConfirm extends LitElement {
           `;
         })}
       </div>
-      <label class="slide-label" for="slide"
-        >${localize("ui.dialogs.two_key.slide")}</label
+      <span class="slide-label" id="slide-label"
+        >${localize("ui.dialogs.two_key.slide")}</span
       >
       <div class=${classMap({ slide: true, ready })}>
         <ha-svg-icon .path=${mdiChevronDoubleRight}></ha-svg-icon>
@@ -177,18 +179,20 @@ export class HaTwoKeyConfirm extends LitElement {
                 })
           }</span
         >
-        <input
+        <ha-slider
           id="slide"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          .value=${String(this._slide)}
-          ?disabled=${!ready || this.disabled}
+          size="m"
+          .min=${0}
+          .max=${100}
+          .step=${1}
+          .value=${this._slide}
+          .withTooltip=${false}
+          .disabled=${!ready || this.disabled}
+          aria-labelledby="slide-label"
           aria-describedby="note"
           @input=${this._slideInput}
           @change=${this._slideChange}
-        />
+        ></ha-slider>
       </div>
       <p id="note" class="note">${localize("ui.dialogs.two_key.note")}</p>
     `;
@@ -225,7 +229,7 @@ export class HaTwoKeyConfirm extends LitElement {
   }
 
   private _slideInput(ev: Event): void {
-    this._slide = Number((ev.currentTarget as HTMLInputElement).value);
+    this._slide = Number((ev.currentTarget as HaSlider).value);
     this._check();
   }
 
@@ -322,55 +326,25 @@ export class HaTwoKeyConfirm extends LitElement {
       color: var(--secondary-text-color);
       pointer-events: none;
     }
-    input[type="range"] {
+    ha-slider {
       position: absolute;
       inset: 0;
       width: 100%;
-      height: 100%;
+      min-width: 0;
       margin: 0;
-      background: none;
-      appearance: none;
-      -webkit-appearance: none;
-      cursor: grab;
+      --track-size: 56px;
+      --thumb-width: 48px;
+      --thumb-height: 48px;
+      --ha-slider-thumb-color: var(--error-color);
+      --ha-slider-track-color: transparent;
+      --ha-slider-indicator-color: transparent;
     }
-    input[type="range"]:disabled {
-      cursor: default;
-    }
-    input[type="range"]::-webkit-slider-runnable-track {
-      height: 56px;
-      background: none;
-    }
-    input[type="range"]::-moz-range-track {
-      height: 56px;
-      background: none;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 48px;
-      height: 48px;
-      margin-top: 4px;
-      border: none;
-      border-radius: 50%;
-      background: var(--error-color);
-    }
-    input[type="range"]::-moz-range-thumb {
-      width: 48px;
-      height: 48px;
-      border: none;
-      border-radius: 50%;
-      background: var(--error-color);
-    }
-    input[type="range"]:disabled::-webkit-slider-thumb {
-      background: color-mix(in srgb, var(--error-color) 40%, transparent);
-    }
-    input[type="range"]:disabled::-moz-range-thumb {
-      background: color-mix(in srgb, var(--error-color) 40%, transparent);
-    }
-    input[type="range"]:focus-visible {
-      outline: 3px solid var(--primary-color);
-      outline-offset: -3px;
-      border-radius: var(--ha-border-radius-pill);
+    ha-slider[disabled] {
+      --ha-slider-thumb-color: color-mix(
+        in srgb,
+        var(--error-color) 40%,
+        transparent
+      );
     }
     .note {
       margin: var(--ha-space-3) 0 0;

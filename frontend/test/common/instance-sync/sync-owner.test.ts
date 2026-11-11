@@ -209,8 +209,8 @@ describe("a second account on the same browser", () => {
 
     starter.ensure(conn as never, "user-a");
     starter.ensure(conn as never, "user-a");
-    // One subscription for each of the two settings, and no more.
-    expect(conn.subscribeMessage).toHaveBeenCalledTimes(2);
+    // One subscription for each of the three settings, and no more.
+    expect(conn.subscribeMessage).toHaveBeenCalledTimes(3);
 
     starter.release();
     starter.release();

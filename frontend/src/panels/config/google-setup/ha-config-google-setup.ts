@@ -7,6 +7,8 @@ import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
+import "../../../components/ha-checkbox";
+import type { HaCheckbox } from "../../../components/ha-checkbox";
 import "../../../components/ha-file-upload";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
@@ -273,7 +275,7 @@ class HaConfigGoogleSetup extends LitElement {
   }
 
   private _toggleApi(ev: Event): void {
-    const input = ev.target as HTMLInputElement;
+    const input = ev.target as HaCheckbox;
     const next = new Set(this._selectedApis);
     if (input.checked) {
       next.add(input.dataset.api!);
@@ -585,15 +587,13 @@ class HaConfigGoogleSetup extends LitElement {
         ${GOOGLE_APIS.map((api) => {
           const result = this._apiResults[api.id];
           return html`<div class="api">
-            <label class="check">
-              <input
-                type="checkbox"
-                data-api=${api.id}
-                .checked=${this._selectedApis.has(api.id)}
-                @change=${this._toggleApi}
-              />
-              <span>${this._l(`api_${api.id}`)}</span>
-            </label>
+            <ha-checkbox
+              class="check"
+              data-api=${api.id}
+              .checked=${this._selectedApis.has(api.id)}
+              @change=${this._toggleApi}
+              >${this._l(`api_${api.id}`)}</ha-checkbox
+            >
             ${
               result
                 ? html`<span
@@ -862,8 +862,7 @@ class HaConfigGoogleSetup extends LitElement {
         font-weight: var(--ha-font-weight-medium);
       }
       .stepbtn:focus-visible,
-      .link:focus-visible,
-      .check input:focus-visible {
+      .link:focus-visible {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;
       }
@@ -900,10 +899,12 @@ class HaConfigGoogleSetup extends LitElement {
         flex: 1;
         min-width: 160px;
         min-height: 44px;
+        --ha-checkbox-min-touch-size: 44px;
       }
-      .check input {
-        width: 20px;
-        height: 20px;
+      .check::part(base) {
+        flex: 1;
+        min-height: 44px;
+        cursor: pointer;
       }
       .link {
         display: inline-flex;

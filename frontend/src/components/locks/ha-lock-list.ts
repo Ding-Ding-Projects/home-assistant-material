@@ -29,6 +29,8 @@ import {
 } from "../../common/locks/element-locks";
 import { isPageLockKey, lockPageName } from "../../common/locks/lock-where";
 import { searchMatcher } from "../../common/regex/filter";
+import "../ha-checkbox";
+import type { HaCheckbox } from "../ha-checkbox";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
@@ -304,8 +306,7 @@ export class HaLockList extends LitElement {
       ${
         this._narrow
           ? nothing
-          : html`<input
-              type="checkbox"
+          : html`<ha-checkbox
               class="pick"
               data-key=${key}
               .checked=${this._selected.includes(key)}
@@ -313,7 +314,7 @@ export class HaLockList extends LitElement {
                 name: this._rowName(key),
               })}
               @change=${this._pick}
-            />`
+            ></ha-checkbox>`
       }
       <span class="icon">
         <ha-svg-icon
@@ -439,7 +440,7 @@ export class HaLockList extends LitElement {
   }
 
   private _pick(ev: Event): void {
-    const input = ev.currentTarget as HTMLInputElement;
+    const input = ev.currentTarget as HaCheckbox;
     const key = input.dataset.key ?? "";
     this._selected = input.checked
       ? [...this._selected, key]
@@ -680,8 +681,7 @@ export class HaLockList extends LitElement {
       background: var(--secondary-background-color);
     }
     .pick {
-      width: 20px;
-      height: 20px;
+      min-width: 0;
     }
     .icon {
       display: grid;

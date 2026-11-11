@@ -176,7 +176,7 @@ subfolder at a pinned release, so everything builds from one checkout.
 
 A system installed from this project updates from this project, not from upstream:
 
-- The release workflow writes an update feed to the `channel` branch after each successful build.
+- The release workflow writes an update feed to the `channel` branch only after the release for that build is complete.
 - The supervisor in `supervisor/` reads that feed and pulls core and supervisor images from
   `ghcr.io/ding-ding-projects`.
 - Every build has a version that sorts above the last one (`<core>.<build>`), so the update
@@ -197,12 +197,26 @@ A system installed from this project updates from this project, not from upstrea
 <details>
 <summary><strong>How releases work</strong></summary>
 
-Every push to `main` runs `.github/workflows/release.yml`, which publishes one new release with
-a unique tag (`v<core>.<build>`). A push that touches product files rebuilds the frontend wheel,
-the container images, the update feed and the operating system images and attaches them. A push
-that touches only `design/`, `docs/`, `deploy-assistant/` or Markdown files publishes the release
-without rebuilding, but only when no product file has changed since the last build that published
-images; the push is compared with that build, not with the previous commit.
+Every push to `main` runs `.github/workflows/release.yml`. A push that touches product files
+rebuilds the frontend wheel, the container images and the operating system images. No release
+exists while those jobs run: each job hands its files to a last job, which creates one normal
+release (never a draft or a prerelease) with a unique tag (`v<core>.<build>`) only when every
+build job of the run succeeded. That job reads the release back, checks every file and size, and
+only then moves the update feed on the `channel` branch. If anything fails, it removes the release
+and its tag, so a release is either complete or absent.
+
+The release waits for the operating system images, which take one to two hours: a run whose
+operating system jobs fail or are cancelled publishes nothing, and there is no release without
+them. Container images are not releases. They are pushed by their own jobs, so the hosted
+instance can move to a build before it finishes, and an image tag can exist for a build that never
+becomes a release. A run that publishes nothing leaves a gap in the build numbers.
+
+Runs are queued one at a time. A run that has started is never cancelled by a newer push; at
+most one newer run waits, and a still newer push replaces the waiting run before it starts. Each
+run compares itself with the last build that really has a release (the update feed names it), so
+the code of a replaced or failed run is built by the next run. A push that touches only
+`design/`, `docs/`, `deploy-assistant/` or Markdown files, with no product file changed since
+that build, builds and publishes nothing.
 
 The workflow runs no tests and no lint, and each release says so. The release notes list the
 result of every build job and the end-to-end time.

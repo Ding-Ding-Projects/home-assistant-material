@@ -26,7 +26,11 @@ import { fireEvent } from "../../common/dom/fire_event";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { internationalizationContext } from "../../data/context";
+import "../ha-slider";
+import type { HaSlider } from "../ha-slider";
 import "../ha-svg-icon";
+import "../input/ha-input";
+import type { HaInput } from "../input/ha-input";
 
 declare global {
   interface HASSDomEvents {
@@ -220,32 +224,33 @@ export class HaAppearanceColorPicker extends LitElement {
             })}
           ></span>
         </div>
-        <label class="slider">
+        <div class="slider">
           <span>${this._l("picker_hue")}</span>
-          <input
+          <ha-slider
             class="hue"
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            .value=${String(Math.round(this._hsv.h))}
+            .min=${0}
+            .max=${360}
+            .step=${1}
+            .value=${Math.round(this._hsv.h)}
+            aria-label=${this._l("picker_hue")}
             @input=${this._hueChanged}
             @change=${this._committed}
-          />
+          ></ha-slider>
           <output>${Math.round(this._hsv.h)}°</output>
-        </label>
+        </div>
         <div class="typed">
-          <input
+          <ha-input
+            appearance="outlined"
             type="text"
-            class=${classMap({ invalid: this._typedBad })}
-            aria-label=${this._l("picker_type")}
-            aria-invalid=${this._typedBad ? "true" : "false"}
+            class="typed-input"
+            accessible-label=${this._l("picker_type")}
+            .invalid=${this._typedBad}
             spellcheck="false"
             autocomplete="off"
             .value=${this._typedDirty ? this._typed : hex}
             @input=${this._typedInput}
             @change=${this._typedCommit}
-          />
+          ></ha-input>
           ${
             hasEyeDropper
               ? html`<button class="pill" @click=${this._pickFromScreen}>
@@ -428,7 +433,7 @@ export class HaAppearanceColorPicker extends LitElement {
   private _hueChanged(ev: Event) {
     this._hsv = {
       ...this._hsv,
-      h: Number((ev.currentTarget as HTMLInputElement).value),
+      h: Number((ev.currentTarget as HaSlider).value),
     };
     this._emit();
   }
@@ -437,13 +442,13 @@ export class HaAppearanceColorPicker extends LitElement {
   // committed (Enter or leaving the field), so a half-typed value is never
   // applied and the field can be emptied.
   private _typedInput(ev: Event) {
-    this._typed = (ev.currentTarget as HTMLInputElement).value;
+    this._typed = (ev.currentTarget as HaInput).value ?? "";
     this._typedDirty = true;
     this._typedBad = !!this._typed.trim() && !parseTypedColor(this._typed);
   }
 
   private _typedCommit(ev: Event) {
-    const text = (ev.currentTarget as HTMLInputElement).value;
+    const text = (ev.currentTarget as HaInput).value ?? "";
     const color = parseTypedColor(text);
     if (!color) {
       // Empty text goes back to the colour; bad text stays, flagged, to fix.
@@ -511,7 +516,6 @@ export class HaAppearanceColorPicker extends LitElement {
       color: inherit;
     }
     button:focus-visible,
-    input:focus-visible,
     .square:focus-visible {
       outline: 3px solid var(--primary-color);
       outline-offset: 2px;
@@ -592,12 +596,14 @@ export class HaAppearanceColorPicker extends LitElement {
       font-variant-numeric: tabular-nums;
       color: var(--primary-text-color);
     }
-    input.hue {
-      width: 100%;
-      height: 16px;
-      appearance: none;
-      -webkit-appearance: none;
-      border-radius: var(--ha-border-radius-pill);
+    ha-slider.hue {
+      width: auto;
+      min-width: 0;
+      /* The marker overhangs the track at either end; this keeps it off the
+         label and the value. */
+      margin-inline: var(--ha-space-3);
+    }
+    ha-slider.hue::part(track) {
       background: linear-gradient(
         to right,
         #f00,
@@ -609,42 +615,19 @@ export class HaAppearanceColorPicker extends LitElement {
         #f00
       );
     }
-    input.hue::-webkit-slider-thumb {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 10px;
-      height: 28px;
-      border: 2px solid var(--primary-text-color);
-      border-radius: var(--ha-border-radius-md);
-      background: var(--primary-background-color);
-    }
-    input.hue::-moz-range-thumb {
-      width: 10px;
-      height: 28px;
-      border: 2px solid var(--primary-text-color);
-      border-radius: var(--ha-border-radius-md);
-      background: var(--primary-background-color);
+    ha-slider.hue::part(indicator) {
+      background: transparent;
     }
     .typed {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: var(--ha-space-2);
     }
-    .typed input {
-      flex: 1;
+    .typed-input {
+      flex: 1 1 160px;
       min-width: 0;
-      height: var(--ha-space-10);
-      padding: 0 var(--ha-space-3);
-      box-sizing: border-box;
-      border: 1px solid var(--outline-color);
-      border-radius: var(--ha-border-radius-md);
-      background: var(--card-background-color);
-      color: inherit;
-      font: inherit;
       font-family: var(--ha-font-family-code);
-    }
-    .typed input.invalid {
-      border-color: var(--error-color);
     }
     .pill {
       display: inline-flex;
@@ -732,6 +715,19 @@ export class HaAppearanceColorPicker extends LitElement {
       font-size: var(--ha-font-size-s);
       font-weight: var(--ha-font-weight-medium);
       cursor: pointer;
+    }
+    /* Touch targets: every control is at least 44 px on a touch screen. */
+    @media (pointer: coarse) {
+      .trigger,
+      .pill,
+      .chip,
+      li {
+        min-height: 44px;
+      }
+      .icon {
+        width: 44px;
+        height: 44px;
+      }
     }
     .chip[aria-pressed="true"] {
       background: var(--ha-color-fill-primary-normal-resting);

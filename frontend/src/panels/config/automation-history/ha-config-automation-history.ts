@@ -43,6 +43,12 @@ import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
+import "../../../components/ha-checkbox";
+import type { HaCheckbox } from "../../../components/ha-checkbox";
+import "../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../components/ha-select";
+import "../../../components/input/ha-input";
+import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -117,6 +123,9 @@ type Filter = HistoryFilter;
 
 /** Versions listed before Load more. */
 const PAGE_SIZE = 25;
+
+/** The value of the "all automations" choice in the scope select. */
+const ALL_AUTOMATIONS = "__all";
 
 /** Which repositories the list of repositories shows. */
 type RepoFilter = "changes" | "clean";
@@ -1111,15 +1120,14 @@ export class HaConfigAutomationHistory extends LitElement {
         <div class="table" role="table" aria-label=${this._l("repo_title")}>
           <div class="row repo head" role="row">
             <span role="columnheader" class="check">
-              <input
-                type="checkbox"
+              <ha-checkbox
                 aria-label=${this._l("repo_select_all")}
                 .checked=${
                   repos.length > 0 &&
                   repos.every((item) => selected.has(item.id))
                 }
                 @change=${this._toggleAllRepos}
-              />
+              ></ha-checkbox>
             </span>
             <span role="columnheader"
               >${this._l("repo_column_automation")}</span
@@ -1149,15 +1157,14 @@ export class HaConfigAutomationHistory extends LitElement {
                         role="row"
                       >
                         <span role="cell" class="check">
-                          <input
-                            type="checkbox"
+                          <ha-checkbox
                             aria-label=${this._l("repo_select", {
                               alias: item.alias,
                             })}
                             .checked=${selected.has(item.id)}
                             .repoId=${item.id}
                             @change=${this._toggleRepo}
-                          />
+                          ></ha-checkbox>
                         </span>
                         <span role="cell" class="repo-name">
                           <span class="tile">
@@ -1243,15 +1250,15 @@ export class HaConfigAutomationHistory extends LitElement {
             `
           )}
         </ol>
-        <input
+        <ha-input
           class="message"
+          appearance="outlined"
           type="text"
-          maxlength="500"
+          .maxlength=${500}
           .value=${this._message}
-          placeholder=${this._l("message_placeholder")}
-          aria-label=${this._l("message_placeholder")}
+          .label=${this._l("message_placeholder")}
           @input=${this._messageChanged}
-        />
+        ></ha-input>
         <p class="safe">
           <ha-svg-icon .path=${mdiShieldCheck}></ha-svg-icon>
           ${this._l("steps_safe")}
@@ -1443,15 +1450,14 @@ export class HaConfigAutomationHistory extends LitElement {
       <div class="table" role="table" aria-label=${this._l("title")}>
         <div class="row head" role="row">
           <span role="columnheader" class="check">
-            <input
-              type="checkbox"
+            <ha-checkbox
               aria-label=${this._l("select_all")}
               .checked=${
                 rows.length > 0 &&
                 rows.every((row) => selected.has(versionKey(row)))
               }
               @change=${this._toggleAll}
-            />
+            ></ha-checkbox>
           </span>
           <span role="columnheader" class="version"
             >${this._l("column_version")}</span
@@ -1481,8 +1487,7 @@ export class HaConfigAutomationHistory extends LitElement {
                       role="row"
                     >
                       <span role="cell" class="check">
-                        <input
-                          type="checkbox"
+                        <ha-checkbox
                           aria-label=${this._l("select_version", {
                             alias: row.alias,
                             version: this._short(row.sha),
@@ -1490,7 +1495,7 @@ export class HaConfigAutomationHistory extends LitElement {
                           .checked=${selected.has(key)}
                           .key=${key}
                           @change=${this._toggleRow}
-                        />
+                        ></ha-checkbox>
                       </span>
                       <span role="cell" class="version">
                         <span class="primary">${this._label(row)}</span>
@@ -1631,34 +1636,32 @@ export class HaConfigAutomationHistory extends LitElement {
     const automations = this._status?.automations ?? [];
     return html`
       <div class="scope">
-        <label class="scope-field">
-          <span class="secondary">${this._l("scope_automation")}</span>
-          <select .value=${this._automation} @change=${this._automationChanged}>
-            <option value="" ?selected=${!this._automation}>
-              ${this._l("scope_all", { count: automations.length })}
-            </option>
-            ${automations.map(
-              (automation) =>
-                html`<option
-                  value=${automation.id}
-                  ?selected=${this._automation === automation.id}
-                >
-                  ${automation.alias}
-                </option>`
-            )}
-          </select>
-        </label>
-        <label class="scope-field">
-          <span class="secondary">${this._l("scope_versions")}</span>
-          <select .value=${this._range} @change=${this._rangeChanged}>
-            ${HISTORY_RANGES.map(
-              (range) =>
-                html`<option value=${range} ?selected=${this._range === range}>
-                  ${this._l(`range_${range}`)}
-                </option>`
-            )}
-          </select>
-        </label>
+        <ha-select
+          class="scope-field"
+          .label=${this._l("scope_automation")}
+          .value=${this._automation || ALL_AUTOMATIONS}
+          .options=${[
+            {
+              value: ALL_AUTOMATIONS,
+              label: this._l("scope_all", { count: automations.length }),
+            },
+            ...automations.map((automation) => ({
+              value: automation.id,
+              label: automation.alias,
+            })),
+          ]}
+          @selected=${this._automationChanged}
+        ></ha-select>
+        <ha-select
+          class="scope-field"
+          .label=${this._l("scope_versions")}
+          .value=${this._range}
+          .options=${HISTORY_RANGES.map((range) => ({
+            value: range,
+            label: this._l(`range_${range}`),
+          }))}
+          @selected=${this._rangeChanged}
+        ></ha-select>
       </div>
     `;
   }
@@ -1850,7 +1853,7 @@ export class HaConfigAutomationHistory extends LitElement {
   // ---- Handlers ----
 
   private _messageChanged(ev: Event) {
-    this._message = (ev.currentTarget as HTMLInputElement).value;
+    this._message = (ev.currentTarget as HaInput).value ?? "";
   }
 
   private _searchChanged(ev: Event) {
@@ -1869,14 +1872,17 @@ export class HaConfigAutomationHistory extends LitElement {
     this._writeUrl();
   }
 
-  private _automationChanged(ev: Event) {
-    this._automation = (ev.currentTarget as HTMLSelectElement).value;
+  private _automationChanged(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    const chosen = String(ev.detail.value);
+    this._automation = chosen === ALL_AUTOMATIONS ? "" : chosen;
     this._limit = PAGE_SIZE;
     this._writeUrl();
   }
 
-  private _rangeChanged(ev: Event) {
-    this._range = (ev.currentTarget as HTMLSelectElement).value as HistoryRange;
+  private _rangeChanged(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    this._range = String(ev.detail.value) as HistoryRange;
     this._limit = PAGE_SIZE;
     this._writeUrl();
   }
@@ -1926,7 +1932,7 @@ export class HaConfigAutomationHistory extends LitElement {
   }
 
   private _toggleRow(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement & { key: string };
+    const input = ev.currentTarget as HaCheckbox & { key: string };
     this._selected = input.checked
       ? [...new Set([...this._selected, input.key])]
       : this._selected.filter((key) => key !== input.key);
@@ -1934,7 +1940,7 @@ export class HaConfigAutomationHistory extends LitElement {
 
   private _toggleAll(ev: Event) {
     const keys = this._visibleRows().map(versionKey);
-    this._selected = (ev.currentTarget as HTMLInputElement).checked
+    this._selected = (ev.currentTarget as HaCheckbox).checked
       ? [...new Set([...this._selected, ...keys])]
       : this._selected.filter((key) => !keys.includes(key));
   }
@@ -2008,7 +2014,7 @@ export class HaConfigAutomationHistory extends LitElement {
   }
 
   private _toggleRepo(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement & { repoId: string };
+    const input = ev.currentTarget as HaCheckbox & { repoId: string };
     this._repoSelected = input.checked
       ? [...new Set([...this._repoSelected, input.repoId])]
       : this._repoSelected.filter((id) => id !== input.repoId);
@@ -2016,7 +2022,7 @@ export class HaConfigAutomationHistory extends LitElement {
 
   private _toggleAllRepos(ev: Event) {
     const ids = this._visibleRepos().map((item) => item.id);
-    this._repoSelected = (ev.currentTarget as HTMLInputElement).checked
+    this._repoSelected = (ev.currentTarget as HaCheckbox).checked
       ? [...new Set([...this._repoSelected, ...ids])]
       : this._repoSelected.filter((id) => !ids.includes(id));
   }
@@ -2211,16 +2217,9 @@ export class HaConfigAutomationHistory extends LitElement {
       }
     }
     .message {
-      height: var(--ha-space-10);
+      display: block;
       min-width: 0;
       max-width: 100%;
-      box-sizing: border-box;
-      padding: 0 var(--ha-space-4);
-      border-radius: var(--ha-border-radius-pill);
-      border: 1px solid var(--outline-color);
-      background: var(--card-background-color);
-      color: inherit;
-      font: inherit;
     }
     .archive-row {
       display: flex;
@@ -2267,8 +2266,7 @@ export class HaConfigAutomationHistory extends LitElement {
       text-decoration: underline;
       font-size: var(--ha-font-size-s);
     }
-    button:focus-visible,
-    input:focus-visible {
+    button:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
     }
@@ -2335,11 +2333,6 @@ export class HaConfigAutomationHistory extends LitElement {
     }
     .row.on {
       background: var(--ha-color-fill-primary-normal-resting);
-    }
-    .check input {
-      width: 20px;
-      height: 20px;
-      accent-color: var(--primary-color);
     }
     .version {
       display: flex;
@@ -2452,23 +2445,8 @@ export class HaConfigAutomationHistory extends LitElement {
       gap: var(--ha-space-2);
     }
     .scope-field {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-      min-width: 160px;
-    }
-    .scope-field select {
-      min-height: var(--ha-space-10);
-      padding: 0 var(--ha-space-3);
-      border-radius: var(--ha-border-radius-md);
-      border: 1px solid var(--outline-color);
-      background: var(--card-background-color);
-      color: inherit;
-      font: inherit;
-    }
-    .scope-field select:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
+      flex: 1 1 200px;
+      min-width: 0;
     }
     .list-foot {
       display: flex;

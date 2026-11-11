@@ -9,6 +9,12 @@ Operating system entries are only advanced with --os, which is passed once signe
 update bundles for that release exist. Without it the previous feed's OS entries
 are kept, or the upstream numbers on the very first run, so no OS update that
 cannot be installed is ever offered.
+
+The release workflow runs publish-channel.sh (which calls this script) only from its
+final job, after the release for the build exists and has been read back. Operating
+system images are now part of every release, so --os is passed whenever they were
+signed with the persistent key. When they were not, the "hassos" versions stay at the
+previous feed's values, which name older releases that still hold their files.
 """
 import argparse
 import json

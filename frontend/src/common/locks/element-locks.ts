@@ -2,7 +2,7 @@ import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
 import { sha256, toHex } from "../util/sha256";
 import type { LockRecord } from "./lock-credentials";
-import { normalizeLockRecord } from "./lock-credentials";
+import { clampBlockedUntil, normalizeLockRecord } from "./lock-credentials";
 import { waitForFailures } from "./lock-wait";
 
 export { waitForFailures };
@@ -89,8 +89,8 @@ export const normalizeLockStore = (raw: unknown): LockStore => {
   if (Number.isInteger(value.failures) && value.failures! > 0) {
     store.failures = Math.min(value.failures!, 1000);
   }
-  if (Number.isFinite(value.blockedUntil) && value.blockedUntil! > 0) {
-    store.blockedUntil = value.blockedUntil!;
+  if (clampBlockedUntil(value.blockedUntil) > 0) {
+    store.blockedUntil = clampBlockedUntil(value.blockedUntil);
   }
   if (value.records && typeof value.records === "object") {
     const records: Record<string, LockRecord> = {};

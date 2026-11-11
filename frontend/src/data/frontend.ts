@@ -85,6 +85,7 @@ declare global {
     esphome: ESPHomeFrontendUserData;
     personal_wording: SyncedUserData;
     appearance: SyncedUserData;
+    settings_bundle: SyncedUserData;
   }
   interface FrontendSystemData {
     core: CoreFrontendSystemData;

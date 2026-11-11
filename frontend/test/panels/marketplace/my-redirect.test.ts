@@ -3,6 +3,7 @@ import { navigate } from "../../../src/common/navigate";
 import type * as NavigateModule from "../../../src/common/navigate";
 import "../../../src/panels/marketplace/ha-marketplace-my-redirect";
 import { getMyRedirects } from "../../../src/panels/my/ha-panel-my";
+import { createMyRedirectUrl } from "../../../src/panels/my/my-redirect-plan";
 import { provideHass } from "../../../src/fake_data/provide_hass";
 
 vi.mock("../../../src/common/navigate", async (importOriginal) => ({
@@ -119,20 +120,9 @@ describe("the integration page of HACS", () => {
     { name: "hacs", domain: "hacs", url: "?domain=marketplace" },
     { name: "any other", domain: "hue", url: "?domain=hue" },
   ])("opens the Marketplace for $name", ({ domain, url }) => {
-    window.history.replaceState(
-      null,
-      "",
-      `/_my_redirect/integration?domain=${domain}`
-    );
-    const panel = document.createElement("ha-panel-my") as unknown as Record<
-      string,
-      any
-    >;
-    panel._redirect = getMyRedirects().integration;
-
-    expect(panel._createRedirectUrl()).toBe(
+    // The address is built by a plain function now, not a method of the panel.
+    expect(createMyRedirectUrl(getMyRedirects().integration, { domain })).toBe(
       `/config/integrations/integration${url}`
     );
-    window.history.replaceState(null, "", "/");
   });
 });

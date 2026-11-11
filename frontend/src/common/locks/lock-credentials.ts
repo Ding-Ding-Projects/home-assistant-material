@@ -1,5 +1,6 @@
 /* eslint-disable no-bitwise, no-await-in-loop -- RFC 4226 and base32 are bit arithmetic, and each check has to run in order */
-import { waitForFailures } from "./lock-wait";
+import { MAX_LOCK_WAIT_MS, waitForFailures } from "./lock-wait";
+import { hasNativeCrypto, softHmac, softPbkdf2 } from "./soft-crypto";
 
 /**
  * Credentials of one lock.
@@ -53,6 +54,18 @@ export const PASSWORD_MAX = 200;
 
 /** Rounds of PBKDF2 for new credentials. Stored with each hash. */
 export const PBKDF2_ROUNDS = 150000;
+
+/** Most rounds a stored lock may ask for; more would freeze the page. */
+export const MAX_PBKDF2_ROUNDS = 1000000;
+
+/**
+ * A stored wait-until time is never believed beyond the longest wait the code
+ * sets, so wrong data (or a fast clock) cannot block an unlock for days.
+ */
+export const clampBlockedUntil = (value: unknown, now = Date.now()): number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.min(value, now + MAX_LOCK_WAIT_MS)
+    : 0;
 
 export interface HashedSecret {
   salt: string;
@@ -130,6 +143,18 @@ const deriveHash = async (
   salt: string,
   rounds: number
 ): Promise<string> => {
+  if (!hasNativeCrypto()) {
+    // A page opened over plain http has no crypto.subtle; see soft-crypto.
+    return toHex(
+      await softPbkdf2(
+        "SHA-256",
+        new TextEncoder().encode(value),
+        fromHex(salt),
+        rounds,
+        32
+      )
+    );
+  }
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(value),
@@ -227,16 +252,22 @@ export const hotp = async (
   const view = new DataView(message.buffer);
   view.setUint32(0, Math.floor(counter / 0x100000000));
   view.setUint32(4, counter >>> 0);
-  const hmacKey = await crypto.subtle.importKey(
-    "raw",
-    new Uint8Array(key),
-    { name: "HMAC", hash: algorithm },
-    false,
-    ["sign"]
-  );
-  const mac = new Uint8Array(
-    await crypto.subtle.sign("HMAC", hmacKey, message)
-  );
+  let mac: Uint8Array;
+  if (hasNativeCrypto()) {
+    const hmacKey = await crypto.subtle.importKey(
+      "raw",
+      new Uint8Array(key),
+      { name: "HMAC", hash: algorithm },
+      false,
+      ["sign"]
+    );
+    mac = new Uint8Array(await crypto.subtle.sign("HMAC", hmacKey, message));
+  } else if (algorithm === "SHA-512") {
+    // Not written out in script; codes made here always use SHA-1.
+    throw new Error("SHA-512 codes need a secure page");
+  } else {
+    mac = softHmac(algorithm, key, message);
+  }
   const offset = mac[mac.length - 1] & 15;
   const binary =
     ((mac[offset] & 127) << 24) |
@@ -460,7 +491,7 @@ const normalizeSecret = (raw: unknown): HashedSecret | undefined => {
     isHex(value.hash, 64) &&
     Number.isInteger(value.rounds) &&
     value.rounds! >= 1000 &&
-    value.rounds! <= 5000000
+    value.rounds! <= MAX_PBKDF2_ROUNDS
   ) {
     return { salt: value.salt, hash: value.hash, rounds: value.rounds! };
   }
@@ -512,10 +543,7 @@ export const normalizeLockRecord = (raw: unknown): LockRecord | undefined => {
       Number.isInteger(value.failures) && value.failures! > 0
         ? Math.min(value.failures!, 1000)
         : 0,
-    blockedUntil:
-      Number.isFinite(value.blockedUntil) && value.blockedUntil! > 0
-        ? value.blockedUntil!
-        : 0,
+    blockedUntil: clampBlockedUntil(value.blockedUntil),
     created:
       Number.isFinite(value.created) && value.created! > 0 ? value.created! : 0,
     // Locks made before this choice existed keep behaving as they did.

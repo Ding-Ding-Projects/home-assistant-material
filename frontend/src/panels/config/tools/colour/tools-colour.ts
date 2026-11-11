@@ -20,6 +20,8 @@ import {
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import "../../../../components/ha-button";
 import "../../../../components/ha-icon-button";
+import "../../../../components/ha-slider";
+import type { HaSlider } from "../../../../components/ha-slider";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/input/ha-input";
 import type { HaInput } from "../../../../components/input/ha-input";
@@ -108,31 +110,31 @@ class ToolsColour extends LitElement {
               })}
             ></span>
           </div>
-          <label class="slider">
-            <span>${this._l("hue")}</span>
-            <input
+          <div class="slider">
+            <span id="hue-label">${this._l("hue")}</span>
+            <ha-slider
               class="hue"
-              type="range"
-              min="0"
-              max="360"
-              step="1"
-              .value=${String(Math.round(this._hsv.h))}
+              .min=${0}
+              .max=${360}
+              .step=${1}
+              .value=${Math.round(this._hsv.h)}
+              aria-labelledby="hue-label"
               @input=${this._hueChanged}
-            />
+            ></ha-slider>
             <output>${Math.round(this._hsv.h)}°</output>
-          </label>
-          <label class="slider">
-            <span>${this._l("alpha")}</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              .value=${String(Math.round(this._alpha * 100))}
+          </div>
+          <div class="slider">
+            <span id="alpha-label">${this._l("alpha")}</span>
+            <ha-slider
+              .min=${0}
+              .max=${100}
+              .step=${1}
+              .value=${Math.round(this._alpha * 100)}
+              aria-labelledby="alpha-label"
               @input=${this._alphaChanged}
-            />
+            ></ha-slider>
             <output>${Math.round(this._alpha * 100)}%</output>
-          </label>
+          </div>
           <div class="typed">
             <ha-input
               .label=${this._l("type")}
@@ -270,12 +272,12 @@ class ToolsColour extends LitElement {
   private _hueChanged(ev: Event): void {
     this._hsv = {
       ...this._hsv,
-      h: Number((ev.currentTarget as HTMLInputElement).value),
+      h: Number((ev.currentTarget as HaSlider).value),
     };
   }
 
   private _alphaChanged(ev: Event): void {
-    this._alpha = Number((ev.currentTarget as HTMLInputElement).value) / 100;
+    this._alpha = Number((ev.currentTarget as HaSlider).value) / 100;
   }
 
   private _typedChanged(ev: Event): void {
@@ -359,8 +361,7 @@ class ToolsColour extends LitElement {
           box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
           pointer-events: none;
         }
-        .square:focus-visible,
-        input:focus-visible {
+        .square:focus-visible {
           outline: 3px solid var(--primary-color);
           outline-offset: 2px;
         }
@@ -377,16 +378,11 @@ class ToolsColour extends LitElement {
           font-variant-numeric: tabular-nums;
           color: var(--primary-text-color);
         }
-        input[type="range"] {
+        .slider ha-slider {
           width: 100%;
-          height: 24px;
-          accent-color: var(--primary-color);
+          min-width: 0;
         }
-        input.hue {
-          appearance: none;
-          -webkit-appearance: none;
-          height: 16px;
-          border-radius: var(--ha-border-radius-pill);
+        ha-slider.hue::part(track) {
           background: linear-gradient(
             to right,
             #f00,
@@ -398,21 +394,8 @@ class ToolsColour extends LitElement {
             #f00
           );
         }
-        input.hue::-webkit-slider-thumb {
-          appearance: none;
-          -webkit-appearance: none;
-          width: 10px;
-          height: 28px;
-          border: 2px solid var(--primary-text-color);
-          border-radius: var(--ha-border-radius-md);
-          background: var(--primary-background-color);
-        }
-        input.hue::-moz-range-thumb {
-          width: 10px;
-          height: 28px;
-          border: 2px solid var(--primary-text-color);
-          border-radius: var(--ha-border-radius-md);
-          background: var(--primary-background-color);
+        ha-slider.hue::part(indicator) {
+          background: transparent;
         }
         .typed {
           display: flex;

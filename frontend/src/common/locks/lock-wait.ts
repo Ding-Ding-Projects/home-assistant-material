@@ -4,6 +4,9 @@
  * 5 minutes from then on. The wait only slows down guessing; nothing is
  * ever wiped.
  */
+/** The longest wait the code itself ever sets. */
+export const MAX_LOCK_WAIT_MS = 300000;
+
 export const waitForFailures = (failures: number): number => {
   if (failures < 3) {
     return 0;
@@ -17,5 +20,5 @@ export const waitForFailures = (failures: number): number => {
   if (failures === 5) {
     return 60000;
   }
-  return 300000;
+  return MAX_LOCK_WAIT_MS;
 };

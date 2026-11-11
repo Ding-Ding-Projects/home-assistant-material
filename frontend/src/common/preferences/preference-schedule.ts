@@ -36,6 +36,28 @@ export const SCHEDULE_LANGUAGE_MODES = [
 
 export type ScheduleValue = boolean | LanguageMode;
 
+export const ENTITY_COMPARISONS = ["is", "is_not", "above", "below"] as const;
+
+export type EntityComparison = (typeof ENTITY_COMPARISONS)[number];
+
+/** A condition on the state of one Home Assistant entity. */
+export interface EntityCondition {
+  /** The entity, as `domain.object_id`. */
+  entityId: string;
+  comparison: EntityComparison;
+  /** The states to match, for "is" and "is not". */
+  states: string[];
+  /** The number to compare with, for "above" and "below". */
+  threshold?: number;
+}
+
+export const MAX_CONDITION_STATES = 10;
+export const CONDITION_STATE_MAX = 64;
+export const ENTITY_ID_MAX = 255;
+
+/** Looks up the state of an entity; undefined when the entity is not known. */
+export type EntityStateLookup = (entityId: string) => string | undefined;
+
 export interface ScheduleRule {
   id: string;
   /** An optional title; the rule reads as a sentence when it is empty. */
@@ -49,6 +71,14 @@ export interface ScheduleRule {
   to: string;
   /** Days the rule starts on, 0 is Sunday and 6 is Saturday. */
   days: number[];
+  /**
+   * False when the rule has no time window and depends on the entity only.
+   * Missing means true, which is what rules stored before this field read as.
+   * `from`, `to` and `days` are still stored then, so the rule stays valid.
+   */
+  timed?: boolean;
+  /** An optional condition; when set it must hold as well as the time window. */
+  condition?: EntityCondition;
 }
 
 export const MAX_SCHEDULE_RULES = 30;
@@ -78,6 +108,75 @@ export const isValueFor = (
   preference === "languageMode"
     ? (SCHEDULE_LANGUAGE_MODES as readonly unknown[]).includes(value)
     : typeof value === "boolean";
+
+const ENTITY_ID_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+const NUMBER_PATTERN = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+
+export const isEntityId = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length <= ENTITY_ID_MAX &&
+  ENTITY_ID_PATTERN.test(value);
+
+export const isEntityComparison = (value: unknown): value is EntityComparison =>
+  (ENTITY_COMPARISONS as readonly unknown[]).includes(value);
+
+/** The state as a number, or undefined when it is not plainly numeric. */
+export const parseNumericState = (state: string): number | undefined => {
+  const trimmed = state.trim();
+  if (!NUMBER_PATTERN.test(trimmed)) {
+    return undefined;
+  }
+  const number = Number(trimmed);
+  return Number.isFinite(number) ? number : undefined;
+};
+
+const cleanState = (value: unknown): string =>
+  typeof value === "string"
+    ? Array.from(stripHiddenCharacters(value).replace(/\s+/g, " ").trim())
+        .slice(0, CONDITION_STATE_MAX)
+        .join("")
+    : "";
+
+/** The states of a condition: trimmed, without blanks or repeats, capped. */
+export const cleanStates = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? [...new Set(value.map(cleanState).filter((state) => state))].slice(
+        0,
+        MAX_CONDITION_STATES
+      )
+    : [];
+
+/** One stored condition, or undefined when it is not valid. */
+export const sanitizeCondition = (
+  raw: unknown
+): EntityCondition | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const source = raw as Record<string, unknown>;
+  if (!isEntityId(source.entityId) || !isEntityComparison(source.comparison)) {
+    return undefined;
+  }
+  if (source.comparison === "above" || source.comparison === "below") {
+    if (
+      typeof source.threshold !== "number" ||
+      !Number.isFinite(source.threshold)
+    ) {
+      return undefined;
+    }
+    return {
+      entityId: source.entityId,
+      comparison: source.comparison,
+      states: [],
+      threshold: source.threshold,
+    };
+  }
+  const states = cleanStates(source.states);
+  if (!states.length) {
+    return undefined;
+  }
+  return { entityId: source.entityId, comparison: source.comparison, states };
+};
 
 const cleanDays = (value: unknown): number[] =>
   Array.isArray(value)
@@ -127,7 +226,7 @@ export const sanitizeRule = (raw: unknown): ScheduleRule | undefined => {
   ) {
     return undefined;
   }
-  return {
+  const rule: ScheduleRule = {
     id: source.id,
     name: cleanName(source.name),
     enabled: source.enabled !== false,
@@ -137,6 +236,19 @@ export const sanitizeRule = (raw: unknown): ScheduleRule | undefined => {
     to: source.to,
     days: cleanDays(source.days),
   };
+  const condition = sanitizeCondition(source.condition);
+  if (condition) {
+    rule.condition = condition;
+  }
+  // A rule with no time window needs a valid condition, or it would apply
+  // always; one that has neither is dropped.
+  if (source.timed === false) {
+    if (!condition) {
+      return undefined;
+    }
+    rule.timed = false;
+  }
+  return rule;
 };
 
 /** The valid rules of a stored list, without repeats of an id, capped. */
@@ -159,17 +271,54 @@ export const sanitizeSchedules = (raw: unknown): ScheduleRule[] => {
   return rules;
 };
 
-export type RuleProblem = "no_days" | "no_value" | "invalid_time";
+export type RuleProblem =
+  | "no_days"
+  | "no_value"
+  | "invalid_time"
+  | "no_condition"
+  | "invalid_entity"
+  | "no_states"
+  | "invalid_number";
+
+/** True when the rule has a time window. */
+export const isTimed = (rule: Pick<ScheduleRule, "timed">): boolean =>
+  rule.timed !== false;
+
+/** What is wrong with a condition as it is being edited, if anything. */
+export const conditionProblem = (
+  condition: EntityCondition
+): RuleProblem | undefined => {
+  if (!isEntityId(condition.entityId)) {
+    return "invalid_entity";
+  }
+  if (condition.comparison === "above" || condition.comparison === "below") {
+    return typeof condition.threshold === "number" &&
+      Number.isFinite(condition.threshold)
+      ? undefined
+      : "invalid_number";
+  }
+  return cleanStates(condition.states).length ? undefined : "no_states";
+};
 
 /** What is wrong with a rule as it is being edited, if anything. */
 export const ruleProblem = (
-  rule: Pick<ScheduleRule, "preference" | "value" | "from" | "to" | "days">
+  rule: Pick<ScheduleRule, "preference" | "value" | "from" | "to" | "days"> &
+    Partial<Pick<ScheduleRule, "timed" | "condition">>
 ): RuleProblem | undefined => {
-  if (!isScheduleTime(rule.from) || !isScheduleTime(rule.to)) {
-    return "invalid_time";
-  }
   if (!isValueFor(rule.preference, rule.value)) {
     return "no_value";
+  }
+  if (rule.condition) {
+    const problem = conditionProblem(rule.condition);
+    if (problem) {
+      return problem;
+    }
+  }
+  if (!isTimed(rule)) {
+    return rule.condition ? undefined : "no_condition";
+  }
+  if (!isScheduleTime(rule.from) || !isScheduleTime(rule.to)) {
+    return "invalid_time";
   }
   if (!rule.days.length) {
     return "no_days";
@@ -251,14 +400,72 @@ export const zoneParts = (date: Date, zone: string): ZoneParts => {
   return { day: WEEKDAYS[weekday] ?? 0, minute: hour * 60 + minute };
 };
 
+export type ConditionStatus = "met" | "not_met" | "unavailable";
+
+/** The states that say an entity cannot be read right now. */
+const UNREADABLE_STATES = new Set(["unavailable", "unknown"]);
+
+/**
+ * Whether a condition holds. An entity that is missing, unavailable or
+ * unknown is "unavailable" and never holds, whatever the comparison. A number
+ * comparison against a state that is not a number does not hold either.
+ */
+export const conditionStatus = (
+  condition: EntityCondition,
+  lookup?: EntityStateLookup
+): ConditionStatus => {
+  const state = lookup?.(condition.entityId);
+  if (
+    typeof state !== "string" ||
+    UNREADABLE_STATES.has(state.trim().toLowerCase())
+  ) {
+    return "unavailable";
+  }
+  if (condition.comparison === "above" || condition.comparison === "below") {
+    const number = parseNumericState(state);
+    if (number === undefined || typeof condition.threshold !== "number") {
+      return "not_met";
+    }
+    return (
+      condition.comparison === "above"
+        ? number > condition.threshold
+        : number < condition.threshold
+    )
+      ? "met"
+      : "not_met";
+  }
+  const wanted = condition.states.map((item) => item.trim().toLowerCase());
+  const listed = wanted.includes(state.trim().toLowerCase());
+  return (condition.comparison === "is" ? listed : !listed) ? "met" : "not_met";
+};
+
+/** The entities the rules depend on, once each and in order. Enabled rules only. */
+export const watchedEntityIds = (rules: readonly ScheduleRule[]): string[] => [
+  ...new Set(
+    rules
+      .filter((rule) => rule.enabled && rule.condition)
+      .map((rule) => rule.condition!.entityId)
+  ),
+];
+
 /**
  * True when a rule applies at this weekday and minute. A day in `days` is the
  * day the period starts on, so 22:00 to 07:00 on Friday runs into Saturday.
  * When the start and the end are the same, the rule covers the whole day.
  */
-export const ruleApplies = (rule: ScheduleRule, parts: ZoneParts): boolean => {
+export const ruleApplies = (
+  rule: ScheduleRule,
+  parts: ZoneParts,
+  lookup?: EntityStateLookup
+): boolean => {
   if (!rule.enabled) {
     return false;
+  }
+  if (rule.condition && conditionStatus(rule.condition, lookup) !== "met") {
+    return false;
+  }
+  if (!isTimed(rule)) {
+    return true;
   }
   const from = minutesOf(rule.from);
   const to = minutesOf(rule.to);
@@ -301,7 +508,8 @@ export const evaluateSchedules = (
   rules: readonly ScheduleRule[],
   now: Date,
   zone: string,
-  held: ReadonlySet<string> = new Set()
+  held: ReadonlySet<string> = new Set(),
+  lookup?: EntityStateLookup
 ): ScheduleEvaluation => {
   const parts = zoneParts(now, zone);
   const result: ScheduleEvaluation = {
@@ -312,7 +520,7 @@ export const evaluateSchedules = (
     heldBySchool: Object.create(null),
   };
   for (const rule of rules) {
-    if (!ruleApplies(rule, parts)) {
+    if (!ruleApplies(rule, parts, lookup)) {
       continue;
     }
     if (held.has(rule.preference)) {
@@ -355,6 +563,9 @@ export const applyOverlay = <T extends PersonalPreferences>(
 
 /** The stretches of the week a rule covers, in minutes from Sunday 00:00. */
 const weeklyIntervals = (rule: ScheduleRule): [number, number][] => {
+  if (!isTimed(rule)) {
+    return [[0, WEEK_MINUTES]];
+  }
   const from = minutesOf(rule.from);
   const to = minutesOf(rule.to);
   const length = from === to ? 1440 : to > from ? to - from : 1440 - from + to;
@@ -428,7 +639,8 @@ export const nextChange = (
   zone: string,
   preference: SchedulablePreference,
   held: ReadonlySet<string> = new Set(),
-  horizonMinutes = 8 * 1440
+  horizonMinutes = 8 * 1440,
+  lookup?: EntityStateLookup
 ): NextChange | undefined => {
   if (held.has(preference)) {
     return undefined;
@@ -438,13 +650,13 @@ export const nextChange = (
     return undefined;
   }
   const valueAt = (date: Date): ScheduleValue | undefined =>
-    evaluateSchedules(relevant, date, zone, held).overlay[preference];
+    evaluateSchedules(relevant, date, zone, held, lookup).overlay[preference];
   const startMs = Math.floor(now.getTime() / 60000) * 60000;
   const endMs = startMs + horizonMinutes * 60000;
   const current = valueAt(new Date(startMs));
   const today = zoneParts(new Date(startMs), zone).minute;
   const edges = new Set<number>([0]);
-  relevant.forEach((rule) => {
+  relevant.filter(isTimed).forEach((rule) => {
     edges.add(minutesOf(rule.from));
     edges.add(minutesOf(rule.to));
   });

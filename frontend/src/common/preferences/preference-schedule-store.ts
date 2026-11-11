@@ -10,7 +10,9 @@ import {
   evaluateSchedules,
   isKnownZone,
   sanitizeSchedules,
+  watchedEntityIds,
   zoneParts,
+  type EntityStateLookup,
   type ScheduleEvaluation,
   type ScheduleRule,
 } from "./preference-schedule";
@@ -132,12 +134,70 @@ export const setScheduleZoneSetting = (
   });
 };
 
+type EntityStates = Record<string, { state: string } | undefined>;
+
+/** The states the app already holds in `hass.states`; nothing is requested. */
+let entityStates: EntityStates | undefined;
+let watchedCache: { raw: string | null; ids: string[] } | undefined;
+let watchedSignature: string | undefined;
+
+/** Looks an entity up in the states last given to `setScheduleEntityStates`. */
+export const scheduleEntityLookup: EntityStateLookup = (entityId) =>
+  Object.prototype.hasOwnProperty.call(entityStates ?? {}, entityId)
+    ? entityStates![entityId]?.state
+    : undefined;
+
+/**
+ * The entities the enabled rules depend on. Read again only when the stored
+ * text changed, because this runs on every state change of the instance.
+ */
+export const getWatchedEntityIds = (): string[] => {
+  let raw: string | null;
+  try {
+    raw = getStorage().storage.getItem(SCHEDULE_STORAGE_KEY);
+  } catch (_err) {
+    raw = null;
+  }
+  if (!watchedCache || watchedCache.raw !== raw) {
+    watchedCache = { raw, ids: watchedEntityIds(getSchedules()) };
+  }
+  return watchedCache.ids;
+};
+
+/**
+ * Gives the schedules the entity states the app already has. Call it whenever
+ * `hass.states` changes. Listeners are woken only when the state of an entity
+ * that a rule names changed (or the first time states arrive), so the rest
+ * of the instance's traffic costs one lookup per named entity.
+ */
+export const setScheduleEntityStates = (states: EntityStates): void => {
+  entityStates = states;
+  const ids = getWatchedEntityIds();
+  if (!ids.length) {
+    watchedSignature = undefined;
+    return;
+  }
+  const signature = ids
+    .map((id) => `${id}=${scheduleEntityLookup(id) ?? "\u0000"}`)
+    .join("\u0001");
+  if (signature !== watchedSignature) {
+    watchedSignature = signature;
+    tick();
+  }
+};
+
 /** What the stored rules give now, for the fields School mode leaves free. */
 export const currentScheduleEvaluation = (
   held: ReadonlySet<string> = new Set(),
   now: Date = new Date()
 ): ScheduleEvaluation =>
-  evaluateSchedules(getSchedules(), now, getScheduleTimeZone(), held);
+  evaluateSchedules(
+    getSchedules(),
+    now,
+    getScheduleTimeZone(),
+    held,
+    scheduleEntityLookup
+  );
 
 const tickListeners = new Set<() => void>();
 let timer: number | undefined;

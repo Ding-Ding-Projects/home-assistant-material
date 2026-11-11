@@ -1,5 +1,6 @@
 import type { Connection, UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { SyncedUserData, ValidUserDataKey } from "../../data/frontend";
+import { ownerStillClaimed } from "./sync-owner";
 import {
   saveFrontendUserData,
   subscribeFrontendUserData,
@@ -287,14 +288,47 @@ export class UserDataSync<T> {
     this._deferred = undefined;
   }
 
+  /**
+   * True while this page still owns the browser cache. When another tab has
+   * signed in as a different account, this page stops for good: it reads
+   * nothing and uploads nothing, so one account's cache never reaches another
+   * account.
+   */
+  protected _ownerOk(): boolean {
+    if (ownerStillClaimed()) {
+      return true;
+    }
+    this._abandon();
+    return false;
+  }
+
+  /** Stops without sending anything. */
+  protected _abandon(): void {
+    clearTimeout(this._timer);
+    this._timer = undefined;
+    window.removeEventListener("pagehide", this._flush);
+    this._unsub?.then((unsub) => unsub()).catch(() => undefined);
+    this._unsub = undefined;
+    this._conn = undefined;
+    this._starts = 0;
+    this._deferred = undefined;
+    this._set({ status: "idle" });
+  }
+
   /** Call after every change the person makes here (undefined = cleared). */
   public push(): void {
+    if (!this._ownerOk()) {
+      return;
+    }
     this._writeMeta(Math.max(Date.now(), this._lastInstance + 1));
     this._schedule();
   }
 
   /** Tries the last failed save again. */
   public retry(): void {
+    if (!this._ownerOk()) {
+      return;
+    }
     this._schedule(0);
   }
 
@@ -380,6 +414,9 @@ export class UserDataSync<T> {
   }
 
   private _onInstance(raw: unknown) {
+    if (!this._ownerOk()) {
+      return;
+    }
     if (this._timer !== undefined || this._inFlight) {
       // A change made here is waiting or on its way: it is the newest. The
       // instance copy is kept for the next merge.
@@ -435,6 +472,9 @@ export class UserDataSync<T> {
   }
 
   private async _send() {
+    if (!this._ownerOk()) {
+      return;
+    }
     const conn = this._conn;
     if (!conn) {
       this._set({ ...this._snapshot, status: "offline" });

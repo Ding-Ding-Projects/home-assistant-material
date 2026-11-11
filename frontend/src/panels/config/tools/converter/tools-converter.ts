@@ -94,6 +94,10 @@ import {
 } from "../../../../common/converter/utf8";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import "../../../../components/ha-button";
+import "../../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../../components/ha-select";
+import "../../../../components/ha-slider";
+import type { HaSlider } from "../../../../components/ha-slider";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/input/ha-input-search";
 import { haStyle } from "../../../../resources/styles";
@@ -566,45 +570,55 @@ class ToolsConverter extends LitElement {
       const png = target === "png";
       return html`
         <section class="block options">
-          <label class="field slider">
-            <span class="slider-head">
+          <div class="field slider">
+            <span class="slider-head" id="quality-label">
               <span>${this._l("quality")}</span>
               <output>${png ? "100" : this._quality}</output>
             </span>
-            <input
-              type="range"
-              min="1"
-              max="100"
-              .value=${String(this._quality)}
-              ?disabled=${png}
-              @input=${this._qualityChanged}
-            />
+            <ha-slider
+              .min=${1}
+              .max=${100}
+              .step=${1}
+              .value=${this._quality}
+              .disabled=${png}
+              aria-labelledby="quality-label"
+              @change=${this._qualityChanged}
+            ></ha-slider>
             ${png ? html`<small>${this._l("quality_png")}</small>` : nothing}
-          </label>
-          <label class="field">
-            <span>${this._l("size")}</span>
-            <select .value=${this._resize} @change=${this._resizeChanged}>
-              <option value="keep">${keep}</option>
-              <option value="scale:0.75">
-                ${this._l("size_percent", { percent: 75 })}
-              </option>
-              <option value="scale:0.5">
-                ${this._l("size_percent", { percent: 50 })}
-              </option>
-              <option value="scale:0.25">
-                ${this._l("size_percent", { percent: 25 })}
-              </option>
-              <option value="fit:1920">
-                ${this._l("size_longest", { pixels: 1920 })}
-              </option>
-              <option value="fit:1280">
-                ${this._l("size_longest", { pixels: 1280 })}
-              </option>
-              <option value="fit:640">
-                ${this._l("size_longest", { pixels: 640 })}
-              </option>
-            </select>
-          </label>
+          </div>
+          <ha-select
+            class="field"
+            .label=${this._l("size")}
+            .value=${this._resize}
+            .options=${[
+              { value: "keep", label: keep },
+              {
+                value: "scale:0.75",
+                label: this._l("size_percent", { percent: 75 }),
+              },
+              {
+                value: "scale:0.5",
+                label: this._l("size_percent", { percent: 50 }),
+              },
+              {
+                value: "scale:0.25",
+                label: this._l("size_percent", { percent: 25 }),
+              },
+              {
+                value: "fit:1920",
+                label: this._l("size_longest", { pixels: 1920 }),
+              },
+              {
+                value: "fit:1280",
+                label: this._l("size_longest", { pixels: 1280 }),
+              },
+              {
+                value: "fit:640",
+                label: this._l("size_longest", { pixels: 640 }),
+              },
+            ]}
+            @selected=${this._resizeChanged}
+          ></ha-select>
           <p class="note full">${this._l("metadata_removed")}</p>
         </section>
       `;
@@ -612,33 +626,39 @@ class ToolsConverter extends LitElement {
     if (isDataTarget(target)) {
       return html`
         <section class="block options">
-          <label class="field">
-            <span>${this._l("read_as")}</span>
-            <select .value=${this._readAs} @change=${this._readAsChanged}>
-              <option value="auto">${this._l("read_auto")}</option>
-              ${DATA_FORMATS.map(
-                (format) =>
-                  html`<option value=${format}>
-                    ${this._formatName(format)}
-                  </option>`
-              )}
-            </select>
-          </label>
+          <ha-select
+            class="field"
+            .label=${this._l("read_as")}
+            .value=${this._readAs}
+            .options=${[
+              { value: "auto", label: this._l("read_auto") },
+              ...DATA_FORMATS.map((format) => ({
+                value: format as string,
+                label: this._formatName(format),
+              })),
+            ]}
+            @selected=${this._readAsChanged}
+          ></ha-select>
           ${
             target === "json"
-              ? html`<label class="field">
-                  <span>${this._l("indent")}</span>
-                  <select .value=${this._indent} @change=${this._indentChanged}>
-                    <option value="2">
-                      ${this._l("indent_spaces", { count: 2 })}
-                    </option>
-                    <option value="4">
-                      ${this._l("indent_spaces", { count: 4 })}
-                    </option>
-                    <option value="tab">${this._l("indent_tab")}</option>
-                    <option value="0">${this._l("indent_none")}</option>
-                  </select>
-                </label>`
+              ? html`<ha-select
+                  class="field"
+                  .label=${this._l("indent")}
+                  .value=${this._indent}
+                  .options=${[
+                    {
+                      value: "2",
+                      label: this._l("indent_spaces", { count: 2 }),
+                    },
+                    {
+                      value: "4",
+                      label: this._l("indent_spaces", { count: 4 }),
+                    },
+                    { value: "tab", label: this._l("indent_tab") },
+                    { value: "0", label: this._l("indent_none") },
+                  ]}
+                  @selected=${this._indentChanged}
+                ></ha-select>`
               : nothing
           }
           <div class="switches full">
@@ -703,32 +723,32 @@ class ToolsConverter extends LitElement {
         <section class="block options">
           ${
             fromText
-              ? html`<label class="field">
-                  <span>${this._l("document_from")}</span>
-                  <select
-                    .value=${this._docMode}
-                    @change=${this._docModeChanged}
-                  >
-                    <option value="auto">
-                      ${this._l("document_from_auto")}
-                    </option>
-                    <option value="plain">
-                      ${this._l("document_from_plain")}
-                    </option>
-                    <option value="markdown">
-                      ${this._l("document_from_markdown")}
-                    </option>
-                  </select>
-                </label>`
+              ? html`<ha-select
+                  class="field"
+                  .label=${this._l("document_from")}
+                  .value=${this._docMode}
+                  .options=${[
+                    { value: "auto", label: this._l("document_from_auto") },
+                    { value: "plain", label: this._l("document_from_plain") },
+                    {
+                      value: "markdown",
+                      label: this._l("document_from_markdown"),
+                    },
+                  ]}
+                  @selected=${this._docModeChanged}
+                ></ha-select>`
               : nothing
           }
-          <label class="field">
-            <span>${this._l("paper")}</span>
-            <select .value=${this._paper} @change=${this._paperChanged}>
-              <option value="a4">${this._l("paper_a4")}</option>
-              <option value="letter">${this._l("paper_letter")}</option>
-            </select>
-          </label>
+          <ha-select
+            class="field"
+            .label=${this._l("paper")}
+            .value=${this._paper}
+            .options=${[
+              { value: "a4", label: this._l("paper_a4") },
+              { value: "letter", label: this._l("paper_letter") },
+            ]}
+            @selected=${this._paperChanged}
+          ></ha-select>
           <p class="note full">
             ${
               target === "docx"
@@ -754,30 +774,26 @@ class ToolsConverter extends LitElement {
   private _renderAudioOptions(target: TargetId): TemplateResult {
     return html`
       <section class="block options">
-        <label class="field">
-          <span>${this._l("audio_rate")}</span>
-          <select
-            .value=${String(this._audioRate)}
-            @change=${this._audioRateChanged}
-          >
-            ${SAMPLE_RATES.map(
-              (rate) =>
-                html`<option value=${String(rate)}>
-                  ${this._l("audio_rate_option", { rate })}
-                </option>`
-            )}
-          </select>
-        </label>
-        <label class="field">
-          <span>${this._l("audio_channels")}</span>
-          <select
-            .value=${String(this._audioChannels)}
-            @change=${this._audioChannelsChanged}
-          >
-            <option value="2">${this._l("audio_stereo")}</option>
-            <option value="1">${this._l("audio_mono")}</option>
-          </select>
-        </label>
+        <ha-select
+          class="field"
+          .label=${this._l("audio_rate")}
+          .value=${String(this._audioRate)}
+          .options=${SAMPLE_RATES.map((rate) => ({
+            value: String(rate),
+            label: this._l("audio_rate_option", { rate }),
+          }))}
+          @selected=${this._audioRateChanged}
+        ></ha-select>
+        <ha-select
+          class="field"
+          .label=${this._l("audio_channels")}
+          .value=${String(this._audioChannels)}
+          .options=${[
+            { value: "2", label: this._l("audio_stereo") },
+            { value: "1", label: this._l("audio_mono") },
+          ]}
+          @selected=${this._audioChannelsChanged}
+        ></ha-select>
         <p class="note full">
           ${
             target === "wav"
@@ -798,37 +814,39 @@ class ToolsConverter extends LitElement {
     const png = target === "video-png";
     return html`
       <section class="block options">
-        <label class="field slider">
-          <span class="slider-head">
+        <div class="field slider">
+          <span class="slider-head" id="frame-label">
             <span>${this._l("frame_position")}</span>
             <output
               >${this._l("percent_value", { percent: this._framePosition })}</output
             >
           </span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            .value=${String(this._framePosition)}
-            @input=${this._framePositionChanged}
-          />
-        </label>
+          <ha-slider
+            .min=${0}
+            .max=${100}
+            .step=${1}
+            .value=${this._framePosition}
+            aria-labelledby="frame-label"
+            @change=${this._framePositionChanged}
+          ></ha-slider>
+        </div>
         ${
           png
             ? nothing
-            : html`<label class="field slider">
-                <span class="slider-head">
+            : html`<div class="field slider">
+                <span class="slider-head" id="video-quality-label">
                   <span>${this._l("quality")}</span>
                   <output>${this._quality}</output>
                 </span>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  .value=${String(this._quality)}
-                  @input=${this._qualityChanged}
-                />
-              </label>`
+                <ha-slider
+                  .min=${1}
+                  .max=${100}
+                  .step=${1}
+                  .value=${this._quality}
+                  aria-labelledby="video-quality-label"
+                  @change=${this._qualityChanged}
+                ></ha-slider>
+              </div>`
         }
         <p class="note full">${this._l("video_note")}</p>
       </section>
@@ -1484,51 +1502,54 @@ class ToolsConverter extends LitElement {
   // Options.
 
   private _qualityChanged(ev: Event): void {
-    this._quality = Number((ev.currentTarget as HTMLInputElement).value);
+    this._quality = Number((ev.currentTarget as HaSlider).value);
     this._schedule();
   }
 
-  private _resizeChanged(ev: Event): void {
-    this._resize = (ev.currentTarget as HTMLSelectElement).value;
+  private _resizeChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._resize = String(ev.detail.value);
     this._schedule();
   }
 
-  private _readAsChanged(ev: Event): void {
-    this._readAs = (ev.currentTarget as HTMLSelectElement).value as
-      DataFormat | "auto";
+  private _readAsChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._readAs = String(ev.detail.value) as DataFormat | "auto";
     this._schedule();
   }
 
-  private _indentChanged(ev: Event): void {
-    this._indent = (ev.currentTarget as HTMLSelectElement).value;
+  private _indentChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._indent = String(ev.detail.value);
     this._schedule();
   }
 
-  private _docModeChanged(ev: Event): void {
-    this._docMode = (ev.currentTarget as HTMLSelectElement)
-      .value as ExtraOptions["docMode"];
+  private _docModeChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._docMode = String(ev.detail.value) as ExtraOptions["docMode"];
     this._schedule();
   }
 
-  private _paperChanged(ev: Event): void {
-    this._paper = (ev.currentTarget as HTMLSelectElement)
-      .value as ExtraOptions["paper"];
+  private _paperChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._paper = String(ev.detail.value) as ExtraOptions["paper"];
     this._schedule();
   }
 
-  private _audioRateChanged(ev: Event): void {
-    this._audioRate = Number((ev.currentTarget as HTMLSelectElement).value);
+  private _audioRateChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._audioRate = Number(ev.detail.value);
     this._schedule();
   }
 
-  private _audioChannelsChanged(ev: Event): void {
-    this._audioChannels =
-      (ev.currentTarget as HTMLSelectElement).value === "1" ? 1 : 2;
+  private _audioChannelsChanged(ev: HaSelectSelectEvent<string>): void {
+    ev.stopPropagation();
+    this._audioChannels = String(ev.detail.value) === "1" ? 1 : 2;
     this._schedule();
   }
 
   private _framePositionChanged(ev: Event): void {
-    this._framePosition = Number((ev.currentTarget as HTMLInputElement).value);
+    this._framePosition = Number((ev.currentTarget as HaSlider).value);
     this._schedule();
   }
 
@@ -2108,9 +2129,7 @@ class ToolsConverter extends LitElement {
           );
         }
         button:focus-visible,
-        select:focus-visible,
         textarea:focus-visible,
-        input:focus-visible,
         pre:focus-visible {
           outline: 3px solid var(--primary-color);
           outline-offset: 2px;
@@ -2140,20 +2159,13 @@ class ToolsConverter extends LitElement {
           display: flex;
           justify-content: space-between;
         }
-        input[type="range"] {
+        .slider ha-slider {
           width: 100%;
+          min-width: 0;
           min-height: 44px;
-          margin: 0;
-          accent-color: var(--primary-color);
         }
-        select {
-          min-height: 44px;
-          padding: 0 var(--ha-space-3);
-          border: 1px solid var(--outline-color);
-          border-radius: var(--ha-border-radius-lg);
-          background: var(--primary-background-color);
-          color: var(--primary-text-color);
-          font: inherit;
+        ha-select.field {
+          min-width: 0;
         }
         textarea {
           box-sizing: border-box;

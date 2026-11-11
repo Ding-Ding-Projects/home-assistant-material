@@ -1644,6 +1644,15 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       --ha-assist-chip-trailing-space: 8px;
     }
 
+    /* Touch targets: the toolbar chips are at least 44 px on a touch screen. */
+    @media (pointer: coarse) {
+      ha-assist-chip,
+      ha-filter-pane-chip {
+        --ha-button-height: 44px;
+        min-width: 44px;
+      }
+    }
+
     ha-adaptive-dialog {
       --dialog-content-padding: 0;
       /* Fixed height so the sheet does not resize while filtering. */

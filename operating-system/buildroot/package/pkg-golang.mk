@@ -86,9 +86,12 @@ endef
 $(2)_POST_PATCH_HOOKS += $(2)_GEN_GOMOD
 
 $(2)_DOWNLOAD_POST_PROCESS = go
+# The official module mirror is tried first and the module's own host second.
+# With "direct" alone, an outage of one module host (gopkg.in refused
+# connections for hours on 11 November 2026) failed every image build.
 $(2)_DL_ENV += \
 	$$(HOST_GO_COMMON_ENV) \
-	GOPROXY=direct \
+	GOPROXY=https://proxy.golang.org,direct \
 	$$($(2)_GO_ENV)
 
 # Because we append vendored info, we can't rely on the values being empty

@@ -100,13 +100,23 @@ import "../../../components/ha-card";
 import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
+import "../../../components/ha-checkbox";
+import type { HaCheckbox } from "../../../components/ha-checkbox";
+import "../../../components/ha-select";
+import type {
+  HaSelect,
+  HaSelectSelectEvent,
+} from "../../../components/ha-select";
 import "../../../components/ha-slider";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import "../../../components/ha-button-toggle-group";
 import type { HaSlider } from "../../../components/ha-slider";
 import type { HaSwitch } from "../../../components/ha-switch";
+import "../../../components/input/ha-input";
+import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/input/ha-input-search";
+import "../../../components/instance-sync/ha-settings-sync-status";
 import "../../../components/setting-info/ha-setting-info";
 import "./ha-personal-schedules";
 import "./ha-personal-shared-defaults";
@@ -124,6 +134,9 @@ type GroupId = "language" | "modes" | "sound" | "attention" | "narrator";
 
 /** The key School mode keeps its PIN under, in the shared lock store. */
 const SCHOOL_LOCK_KEY = "school-mode";
+
+/** The value of the "automatic" choice in a voice picker. */
+const VOICE_AUTO = "__auto";
 
 interface Row {
   id: string;
@@ -441,24 +454,24 @@ export class HaConfigSectionPersonal extends LitElement {
       ${
         p.quietHours
           ? html`<div class="quiet">
-              <label
-                >${this._t("quiet_hours.from")}
-                <input
-                  type="time"
-                  .value=${p.quietFrom}
-                  data-key="quietFrom"
-                  @change=${this._quietTime}
-                />
-              </label>
-              <label
-                >${this._t("quiet_hours.to")}
-                <input
-                  type="time"
-                  .value=${p.quietTo}
-                  data-key="quietTo"
-                  @change=${this._quietTime}
-                />
-              </label>
+              <ha-input
+                class="quiet-time"
+                appearance="outlined"
+                type="time"
+                .label=${this._t("quiet_hours.from")}
+                .value=${p.quietFrom}
+                data-key="quietFrom"
+                @change=${this._quietTime}
+              ></ha-input>
+              <ha-input
+                class="quiet-time"
+                appearance="outlined"
+                type="time"
+                .label=${this._t("quiet_hours.to")}
+                .value=${p.quietTo}
+                data-key="quietTo"
+                @change=${this._quietTime}
+              ></ha-input>
               <div
                 class="days"
                 role="group"
@@ -490,7 +503,7 @@ export class HaConfigSectionPersonal extends LitElement {
   };
 
   private _quietTime = (ev: Event) => {
-    const input = ev.target as HTMLInputElement;
+    const input = ev.target as HaInput;
     if (input.value) {
       this._change({ [input.dataset.key as string]: input.value });
     }
@@ -1018,6 +1031,9 @@ export class HaConfigSectionPersonal extends LitElement {
         </ha-dropdown>
         <div class=${classMap({ content: true, narrow: this.narrow })}>
           <p class="intro">${this._bl("intro")}</p>
+          <ha-settings-sync-status
+            .localize=${this.hass.localize}
+          ></ha-settings-sync-status>
           <ha-input-search
             class="search"
             appearance="outlined"
@@ -1236,7 +1252,8 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _infoLabels() {
     return {
-      button: this._t("info.button"),
+      // The info control fills in the setting name itself.
+      button: this._t("info.button", { name: "{name}" }),
       close: this._t("info.close"),
       what: this._t("info.what"),
       defaultValue: this._t("info.default"),
@@ -1475,28 +1492,27 @@ export class HaConfigSectionPersonal extends LitElement {
         >${this._t(p.schoolMode ? "school_mode.status_on" : "school_mode.status_off")}</span
       >
       <div class="school">
-        <label class="school-name"
-          >${this._t("school_mode.name_label")}
-          <input
-            type="text"
-            maxlength=${SCHOOL_NAME_MAX}
-            .value=${name}
-            ?disabled=${p.schoolMode}
-            @change=${this._schoolName}
-          />
-        </label>
+        <ha-input
+          class="school-name"
+          appearance="outlined"
+          type="text"
+          .label=${this._t("school_mode.name_label")}
+          .maxlength=${SCHOOL_NAME_MAX}
+          .value=${name}
+          .disabled=${p.schoolMode}
+          @change=${this._schoolName}
+        ></ha-input>
         <fieldset class="school-rules" ?disabled=${p.schoolMode}>
           <legend>${this._t("school_mode.rules_title")}</legend>
           ${SCHOOL_RULES.map(
             (rule) =>
-              html`<label class="rule"
-                ><input
-                  type="checkbox"
-                  .checked=${p.schoolRules.includes(rule)}
-                  data-rule=${rule}
-                  @change=${this._schoolRule}
-                />
-                ${this._t(`school_mode.rules.${rule}`)}</label
+              html`<ha-checkbox
+                class="rule"
+                .checked=${p.schoolRules.includes(rule)}
+                .disabled=${p.schoolMode}
+                data-rule=${rule}
+                @change=${this._schoolRule}
+                >${this._t(`school_mode.rules.${rule}`)}</ha-checkbox
               >`
           )}
         </fieldset>
@@ -1511,14 +1527,14 @@ export class HaConfigSectionPersonal extends LitElement {
   }
 
   private _schoolName = (ev: Event) => {
-    const input = ev.target as HTMLInputElement;
-    this._change({ schoolName: input.value });
+    const input = ev.target as HaInput;
+    this._change({ schoolName: input.value ?? "" });
     // Show what was kept when the typed name was empty.
     input.value = this._prefs.schoolName;
   };
 
   private _schoolRule = (ev: Event) => {
-    const input = ev.target as HTMLInputElement;
+    const input = ev.target as HaCheckbox;
     const rule = input.dataset.rule as (typeof SCHOOL_RULES)[number];
     const rules = this._prefs.schoolRules;
     this._change({
@@ -1648,31 +1664,34 @@ export class HaConfigSectionPersonal extends LitElement {
     }
     const picked = voices.find((voice) => voice.voiceURI === chosen);
     const using = picked ?? voices[0];
-    return html`<select
+    return html`<ha-select
         class="voice"
         aria-label=${label}
         data-language=${language}
-        @change=${this._voiceChanged}
-      >
-        <option value="" ?selected=${!picked}>${this._t("voice_auto")}</option>
-        ${voices.map(
-          (voice) =>
-            html`<option value=${voice.voiceURI} ?selected=${voice === picked}>
-              ${voice.name} (${voice.lang})
-            </option>`
-        )}
-      </select>
+        .value=${picked ? picked.voiceURI : VOICE_AUTO}
+        .options=${[
+          { value: VOICE_AUTO, label: this._t("voice_auto") },
+          ...voices.map((voice) => ({
+            value: voice.voiceURI,
+            label: `${voice.name} (${voice.lang})`,
+          })),
+        ]}
+        @selected=${this._voiceChanged}
+      ></ha-select>
       <span class="silent"
         >${this._t("voice_using", { name: `${using.name} (${using.lang})` })}</span
       >`;
   }
 
-  private _voiceChanged = (ev: Event) => {
-    const select = ev.target as HTMLSelectElement;
+  private _voiceChanged = (ev: HaSelectSelectEvent<string>) => {
+    ev.stopPropagation();
+    const select = ev.currentTarget as HaSelect;
+    const value =
+      ev.detail.value === VOICE_AUTO ? "" : String(ev.detail.value ?? "");
     this._change(
       select.dataset.language === "yue"
-        ? { narratorVoiceCantonese: select.value }
-        : { narratorVoiceEnglish: select.value }
+        ? { narratorVoiceCantonese: value }
+        : { narratorVoiceEnglish: value }
     );
   };
 
@@ -2022,19 +2041,9 @@ export class HaConfigSectionPersonal extends LitElement {
       gap: var(--ha-space-2) var(--ha-space-4);
       flex-basis: 100%;
     }
-    .quiet label {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2);
-    }
-    .quiet input {
-      min-height: 44px;
-      font: inherit;
-      color: var(--primary-text-color);
-      background: var(--secondary-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      padding: 0 var(--ha-space-2);
+    .quiet-time {
+      flex: 1 1 140px;
+      min-width: 0;
     }
     .days {
       display: flex;
@@ -2061,14 +2070,9 @@ export class HaConfigSectionPersonal extends LitElement {
       outline-offset: 2px;
     }
     .voice {
-      min-height: 44px;
+      flex: 1 1 200px;
+      min-width: 0;
       max-width: 100%;
-      font: inherit;
-      color: var(--primary-text-color);
-      background: var(--secondary-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      padding: 0 var(--ha-space-2);
     }
     .value {
       min-width: 3ch;
@@ -2162,21 +2166,8 @@ export class HaConfigSectionPersonal extends LitElement {
       flex-basis: 100%;
     }
     .school-name {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ha-space-2);
-    }
-    .school-name input {
-      min-height: 44px;
+      display: block;
       min-width: 0;
-      flex: 1 1 160px;
-      font: inherit;
-      color: var(--primary-text-color);
-      background: var(--secondary-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-      padding: 0 var(--ha-space-2);
     }
     .school-rules {
       margin: 0;
@@ -2193,11 +2184,14 @@ export class HaConfigSectionPersonal extends LitElement {
       align-items: center;
       gap: var(--ha-space-2);
       min-height: 44px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      --ha-checkbox-min-touch-size: 44px;
     }
-    .rule input {
-      width: 24px;
-      height: 24px;
-      flex: none;
+    .rule::part(base) {
+      flex: 1;
+      min-height: 44px;
+      cursor: pointer;
     }
     .info {
       padding: var(--ha-space-3) var(--ha-space-4);
