@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-10T21:32:25Z"
+    "at": "2026-11-11T00:45:36Z"
   },
   "title": "Project page: every tab, wide and phone, light and dark",
   "launch": {
@@ -38,7 +38,7 @@
       "x": 3080,
       "y": 0,
       "w": 1440,
-      "h": 3080,
+      "h": 3198,
       "title": "Project page, Features filtered to built, wide",
       "expand": "fill",
       "page": "all"
@@ -54,7 +54,7 @@
     },
     "SiteSettings.dc.html": {
       "x": 0,
-      "y": 3300,
+      "y": 3418,
       "w": 1440,
       "h": 4281,
       "title": "Project page, Settings, wide",
@@ -63,7 +63,7 @@
     },
     "SiteTools.dc.html": {
       "x": 1540,
-      "y": 3300,
+      "y": 3418,
       "w": 1440,
       "h": 1782,
       "title": "Project page, Tools, wide, dark",
@@ -72,7 +72,7 @@
     },
     "SitePalette.dc.html": {
       "x": 3080,
-      "y": 3300,
+      "y": 3418,
       "w": 1440,
       "h": 900,
       "title": "Project page, Ctrl Shift F search with live controls",
@@ -81,7 +81,7 @@
     },
     "SiteMenu.dc.html": {
       "x": 4620,
-      "y": 3300,
+      "y": 3418,
       "w": 1440,
       "h": 900,
       "title": "Project page, the menu on any element",
@@ -90,7 +90,7 @@
     },
     "SiteAppearance.dc.html": {
       "x": 0,
-      "y": 7801,
+      "y": 7919,
       "w": 1440,
       "h": 900,
       "title": "Project page, editing the appearance of an element",
@@ -99,7 +99,7 @@
     },
     "SiteWorkbench.dc.html": {
       "x": 1540,
-      "y": 7801,
+      "y": 7919,
       "w": 1440,
       "h": 1100,
       "title": "Project page, the pattern workbench from a search",
@@ -108,7 +108,7 @@
     },
     "SiteUnlock.dc.html": {
       "x": 3080,
-      "y": 7801,
+      "y": 7919,
       "w": 1440,
       "h": 900,
       "title": "Project page, a lock and its keypad",
@@ -117,16 +117,16 @@
     },
     "SitePhone.dc.html": {
       "x": 4620,
-      "y": 7801,
+      "y": 7919,
       "w": 360,
-      "h": 2900,
+      "h": 2964,
       "title": "Project page, phone, light",
       "expand": "fill",
       "page": "all"
     },
     "SitePhoneSettings.dc.html": {
       "x": 0,
-      "y": 10921,
+      "y": 11103,
       "w": 360,
       "h": 6810,
       "title": "Project page, phone, Settings, dark",
@@ -135,7 +135,7 @@
     },
     "SitePhoneBoth.dc.html": {
       "x": 460,
-      "y": 10921,
+      "y": 11103,
       "w": 360,
       "h": 1573,
       "title": "Project page, phone, English and Cantonese together",

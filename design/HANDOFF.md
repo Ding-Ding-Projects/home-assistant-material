@@ -254,3 +254,11 @@ each with its own article and its honest state in the product.
   three phone boards (light, dark Settings, and English and Cantonese together).
 - Open: Cantonese covers the page's own labels and messages; the 69 articles are English, and the
   page says so in Cantonese mode. The QR code for one-time codes is still to build.
+
+### Deploy Assistant (10 November 2026)
+
+`canvases/16-deploy-assistant` holds 15 boards drawn from the Deploy Assistant's own window by
+`source/pages/deploy_boards.py`, in demo mode. The app is in `deploy-assistant/`; its page is built
+from the shared parts of the project page, so both keep one design. The project page gains three
+tabs: Deploy Assistant (downloads and a live demo of its window), Status (the status page) and a
+Design gallery of every board, so nothing on it links away except downloads.

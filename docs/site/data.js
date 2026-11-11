@@ -70,8 +70,8 @@ window.SITE = {
   "Sleep": "M23,12H17V10L20.39,6H17V4H23V6L19.62,10H23V12M15,16H9V14L12.39,10H9V8H15V10L11.62,14H15V16M7,20H1V18L4.39,14H1V12H7V14L3.62,18H7V20Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T16:08:08-05:00",
- "commit": "63ebb4e1",
+ "updated": "2026-11-10T19:21:09-05:00",
+ "commit": "738628d1",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -606,6 +606,16 @@ window.SITE = {
    "try": "home:top"
   },
   {
+   "id": "deploy-assistant",
+   "group": "Tools",
+   "name": "Deploy Assistant",
+   "what": "A desktop app that deploys Home Assistant Material in one click to Docker on this computer, an SSH host, VirtualBox or VMware, writes Raspberry Pi cards, manages every instance with backups, and keeps all images downloaded.",
+   "here": "Deploy Assistant: download it, or try the real window running as a demo.",
+   "state": "written",
+   "product": "Docker on this computer was run end to end in a test: two instances, backup, restore and removal. SSH, VirtualBox, VMware and writing a real card are written and not yet seen working.",
+   "try": "deploy:top"
+  },
+  {
    "id": "product-evidence",
    "group": "Evidence",
    "name": "Real pictures of the product",
@@ -622,7 +632,7 @@ window.SITE = {
    "what": "Every page is drawn as a board, and the build is compared with its board.",
    "here": "Design.",
    "state": "built",
-   "product": "197 boards on 15 canvases.",
+   "product": "212 boards on 16 canvases.",
    "try": "design:top"
   },
   {
@@ -670,10 +680,10 @@ window.SITE = {
    "group": "Page",
    "name": "Download",
    "what": "A download button that points only at a published release file.",
-   "here": "Run it: the release page and the container image. No installer file exists for this product.",
-   "state": "na",
-   "product": "The product ships a container and operating system images, not an installer.",
-   "try": "run:top"
+   "here": "Deploy Assistant: one button per system, each pointing at a file of the newest Deploy Assistant release.",
+   "state": "built",
+   "product": "The Deploy Assistant is released with Setup.exe, a .deb and zips; the product itself is a container and operating system images.",
+   "try": "deploy:top"
   },
   {
    "id": "feature-articles",
@@ -767,6 +777,66 @@ window.SITE = {
   }
  ],
  "changes": [
+  {
+   "sha": "738628d1",
+   "date": "2026-11-10T19:21:09-05:00",
+   "title": "Choose step can test and run, wording tip fixed, more dialogs and controls redrawn",
+   "body": "- Fix: a loaded wording file broke text that carries links (the Settings tip\n  showed an error). Non-string text is now left alone.\n- Automation editor: test or run one choose option, the default actions or the\n  whole step; automations link to their history.\n- Language mode reaches the phone bar, locks and wording card; the phone sheet\n  keeps tab order and pins; both are kept in the page history.\n- Notifications: no guessed severity, failed dismissals reported, safer links.\n  Export: correct table picker, formula cells made safe. Labels use the\n  selection bar.\n- Entity dialogs: date, time, datetime, sun, image, calendar, setup step,\n  default, siren, lawn mower, remote, group, automation, script, conversation.\n  Shared controls for alarm, climate, lock, fan, vacuum and water heater.\n- Accessibility: line and letter spacing, a fonts dialog, a colour picker.\n- Person dialog no longer links to an outside map service. About passes the\n  install type through the wording file. Shortcuts dialog fits 320 px.\n\nNot yet seen in a running build.\n\n今次連 choose 步驟都識得試同跑，個 tip 唔再喺度嘈交彈 error，\n十幾個對話框換晒新衫。未開過嚟睇，照直講。"
+  },
+  {
+   "sha": "5a54417d",
+   "date": "2026-11-10T19:05:09-05:00",
+   "title": "Language mode, narrator, tab pinning, notification history, entity dialogs, review fixes",
+   "body": "Language mode changes real text: a mechanism beside the main translations\nlets this project's own surfaces be read in English, Cantonese or both, with\n242 strings written in Cantonese. Personal settings follow it; the phone\nbar, the locks and the wording card do not yet, and the status page says so.\nA spoken narrator, off by default, reads the name of the focused control\nwith the browser's own voice. Two attention modes are added.\n\nTabs can be dragged and pinned. The search of everything lists settings and\nswitchable entities with a live switch in the row. Dismissed notifications\nare kept for thirty days with Undo; the page export gains a tab-separated\nformat and \"selected rows only\"; a reusable selection bar previews a\ndestructive action before it runs.\n\nEighteen entity dialogs are started on their boards, and a sensor now opens\nits own body. The automation editor shows triggers, conditions and actions\nas three named cards.\n\nThirteen defects from the last two reviews are fixed.\n\nKnown and recorded in docs/feature-status.md: notification colours are\nguessed from words because the instance sends no severity, which is to be\nremoved or marked; a numeric sensor shows two charts for now; several\nprotocol boards need data the server does not supply.\n\nNone of the interface work has been seen in a running build yet.\n\n語言模式而家真係會改字：個人設定可以睇英文、廣東話或者兩樣一齊，\n寫咗二百四十二句廣東話。有個朗讀員，預設熄咗，會讀出你揀緊嗰粒掣嘅名。\n分頁可以拖可以釘，通知消咗三十日內搵得返仲可以復原。\n十八個實體對話框開始跟設計稿，覆核搵到嗰十三個瑕疵執晒。\n通知顏色係靠估嘅，文件寫明要改。"
+  },
+  {
+   "sha": "99a1e4e5",
+   "date": "2026-11-10T18:46:56-05:00",
+   "title": "List pages use filter chips; backups, voice, cloud, apps, automations, radios started",
+   "body": "Devices and Entities put their filters beside the search as chips, show a\ntick box on every row and a line under the list; Labels has its Create\nbutton beside the title. They use the opt-in parts added to the shared list\nlayout, which no other page is affected by.\n\nStarted on their boards, all partly: Backups and backup settings, voice\nassistants and one assistant's page, what is exposed to assistants, the\ncloud account, energy setup (one page for electricity, gas and water; the\nold addresses still open and scroll to their part), apps and the app store,\nthe list of automations, the history manager, the repository of one\nautomation, past runs, MQTT, Thread and Bluetooth.\n\nSix defects from the last review are fixed. This review found one fault\nthat would have broken the Bluetooth page, a guard that read the wrong\nname and was always true; fixed here. Its other findings are open and\nlisted in docs/feature-status.md.\n\nThe Analytics board is obsolete, since nothing is sent out any more, and\nwill not be built.\n\nNone of the interface work has been seen in a running build yet.\n\n裝置同實體頁啲篩選變咗搜尋旁邊嘅 chip，每行都有剔格，清單底有一行字。\n備份、語音助理、雲端、能源設定、應用程式、自動化同佢哋嘅歷史、MQTT、Thread、\n藍牙全部開始跟設計稿，仲係部分完成。覆核捉到藍牙頁有個判斷永遠係真，\n寫錯咗變數名，已經執返。其餘瑕疵寫晒落文件。"
+  },
+  {
+   "sha": "c52c94f4",
+   "date": "2026-11-10T18:15:42-05:00",
+   "title": "Review defects fixed; sorting and grouping restored; shared list layout; more boards",
+   "body": "Nine defects that an independent review found are fixed: a button inside a\nbutton on People; on Zones two create buttons on a phone, an empty required\nfield that could be saved and a failed save that threw away what was typed;\na link with no visible focus on Blueprints; a health tile that could wait\nfor ever on Repairs; a blank card on Logs with both levels off; a note on\nUpdates that pointed at the wrong place; an unnamed switch in the scene\neditor.\n\nStatistics and Scenes became cards and lost sorting and grouping; both have\nthem back, and Statistics keeps its search, sorting and grouping in the page\naddress again. Not restored: column settings, and area as a sort or group on\nStatistics.\n\nThe layout that list pages share can take, only when a page asks: a button\nbeside the title, filter chips on the search row, a line under the list, and\nrow checkboxes that always show. No page uses them yet.\n\nStarted on their boards, all partly: sign-in and first-run setup, About,\nProfile, Helpers, the settings of one entity, the device list inside an\nintegration entry, and the Zigbee, Z-Wave and Matter pages. A review of\nthese found nothing broken and four defects, recorded in\ndocs/feature-status.md and still open.\n\nNone of the interface work has been seen in a running build yet.\n\n覆核搵到嗰九個瑕疵執晒：人仔卡唔再係掣入面有掣，地帶唔會儲空白欄位，\n失敗咗唔會掉咗你打嘅嘢，修復頁唔會永遠話「檢查中」。\n統計同場景變咗卡片之後唔見咗排序同分組，而家搵返晒。\n清單版面多咗四樣可選配件，冇頁面開口要就一啲都唔變。\n登入、初次設定、關於、個人檔案、Zigbee、Z-Wave、Matter 開始跟設計稿，仲有四個瑕疵未執。"
+  },
+  {
+   "sha": "ecf31694",
+   "date": "2026-11-10T18:00:57-05:00",
+   "title": "Settings and tools pages on their boards; action form rows; analytics entry cleared",
+   "body": "Canvases 03 to 06, written to their boards and all still partly built:\nIntegrations, an integration's page, Add integration, Devices, one device,\nEntities, Areas, one area, Labels, Scenes as cards, the scene editor,\nScripts with Run and Stop, Zones, Blueprints, Dashboards, People, Users,\nTags, Updates, Repairs, Logs, and the developer tools Events, YAML,\nStatistics and Assist. Labs and Restart are built to their boards. The form\nthat runs an action draws each field as a row with its own switch, and the\nnetwork adapter chooser has a \"Choose for me\" row.\n\nAn independent review of twelve of these pages found nothing broken and\nnine defects, listed in docs/feature-status.md and being fixed. Two known\nregressions are recorded there too: Statistics and Scenes lost sorting and\ngrouping when they became cards; both are being restored.\n\nAn installation set up by an earlier build held a configuration entry for\nanalytics, whose setup code is gone, so every start logged an error. The\nintegration now removes that entry. Run in a container seeded with such an\ninstallation's stored entries: no error, and the entry is gone afterwards.\n\nNone of the interface work has been seen in a running build yet.\n\n設定同工具頁面大批跟設計稿：整合、裝置、實體、區域、標籤、場景、腳本、\n地帶、藍圖、儀表板、人、用戶、標籤卡、更新、修復、日誌，全部仲係「部分完成」。\n獨立覆核搵到九個瑕疵，冇嘢爆，寫晒落文件度慢慢執。\n舊機開機嗰句 analytics 錯誤唔會再出，因為件遺物已經自動清走。"
+  },
+  {
+   "sha": "ef8c3f0c",
+   "date": "2026-11-10T17:12:08-05:00",
+   "title": "Send nothing out and keep a problem log; wording celebration; tools pages",
+   "body": "Nothing is sent out any more. The analytics integration is a no-op with\nits page, switch and first-run step removed; stored preferences from\nearlier builds still load. The supervisor's crash reporter and diagnostics\nare off and cannot be turned on. Buttons that reported an issue or gave\nfeedback are gone.\n\nProblems are kept on the system instead: a new integration writes each\nwarning and error, with passwords, tokens, addresses and other private\nvalues removed, as a file in a Git repository at <config>/problem_log/,\ncommitting at most once a minute, and a page lists them. Nothing leaves the\nsystem unless the owner adds a remote. Started in a container from these\nfiles: clean start, three first-run steps, and a forced error produced\nfiles and a commit.\n\nA wording file that loads gets a celebration over the whole window and a\nsound; one that is refused gets a different sound and a message.\n\nStorage, General, Hardware and Network, and the States, Actions and\nTemplate developer tools, are drawn to their boards; figures the instance\ndoes not report are left out.\n\nThe interface work has not been seen in a running build yet, and the\nsupervisor's own tests still expect the removed crash reporter.\n\n而家乜都唔會寄出去：分析、當機報告、診斷、「回報問題」掣全部執走。\n有問題就寫落本機一個 Git repo 度，密碼、token、電郵呢啲會先刪走，\n除非你自己加 remote，否則一粒字都唔會離開部機。\n字詞檔成功載入會全螢幕慶祝兼有聲，唔啱格式就另一下聲同埋講明原因。\n儲存、一般、硬件、網絡同開發者工具幾版跟返設計稿，系統報唔到嘅數字留空唔作。"
+  },
+  {
+   "sha": "9825c61d",
+   "date": "2026-11-10T16:42:03-05:00",
+   "title": "Merge branch 'main' of https://github.com/Ding-Ding-Projects/home-assistant-material",
+   "body": ""
+  },
+  {
+   "sha": "d1ff6a68",
+   "date": "2026-11-10T16:41:50-05:00",
+   "title": "Start the everyday pages on their boards; Network in two columns",
+   "body": "Canvas 01: Lights opens with a summary, all on and all off, and a card per\nroom; Security shows each alarm with arm and disarm through the existing\ncode dialog; Climate draws the first thermostat large; the Map lists where\neveryone is; Activity, History, To-do, Calendar and Energy gain a large\ntitle and a line of facts worked out from what the page already has; Home\nshows power use when the energy setup names a sensor. Figures the instance\ncannot report (a usual day to compare with, the power lights draw, done\nto-do counts) are left out, not invented. The dashboard title row and the\ncard picker are not started.\n\nCanvas 06: the Network page lays its cards out in two columns. The other\ntools boards are not started.\n\nNone of this has been seen in a running build yet.\n\n日常頁面開始跟設計稿：燈頁一開就話你知開咗幾多盞，每間房一張卡；\n保安頁有上鎖解鎖；地圖列出邊個喺邊。系統報唔到嘅數字唔會作出嚟，留空。\n網絡頁闊螢幕分兩欄。全部都未喺真機睇過。"
+  },
+  {
+   "sha": "51672cef",
+   "date": "2026-11-10T16:32:53-05:00",
+   "title": "Project page carries every feature it owes, drawn on canvas 15",
+   "body": "The first project page was one static scroll. It is now an app-like\npage in docs/site/ that runs entirely in the browser and requests\nnothing outside its own folder:\n\n- ten tabs, all open by default, closable, pinnable, movable and\n  dockable on any edge, with a New tab catalog that reopens them\n- Ctrl Shift F search over pages, settings, articles and actions,\n  with settings changeable in the results and a jump to the element\n- the pattern workbench on every search field, and as a tool\n- a menu on every element (right-click, Shift F10, the menu key or a\n  long press) with its own search, appearance editing and toy locks\n  with a keypad and waits after wrong tries\n- English, Cantonese or both, two playfulness levels, the dialog\n  emoji switch, and the personal wording file with the product's checks\n- settings that explain themselves, history with undo, export as\n  JSON, CSV, Markdown and text, notifications, two-step confirmation\n- Base64, convert, colour and one-time-code tools, a support desk,\n  the changelog, a live chart of the visit, version and updated-at\n- one article for each of 69 features, with its state in the product\n\ncheck_site.py fails when a feature disappears from the page or when\nthe page errors, scrolls sideways at 360 px or makes an outside\nrequest. The four first boards on canvas 15 are replaced by 14 boards\ndrawn from the live page by site_boards.py. social-preview.png is the\npicture shown when the link is shared."
+  },
+  {
+   "sha": "e830cae4",
+   "date": "2026-11-10T16:27:48-05:00",
+   "title": "Build the polish pass boards: phone bar, workbench, menus, locks, settings, dialogs",
+   "body": "Built to the design boards on canvases 12 to 14.\n\nPhone: a bottom bar (Home, Search, Pages, Access, Menu), a sheet of the open\npages with search, New tab, swipe to close and Undo, and a slim top bar that\nswitches pages. The accessibility panel opens as a sheet above the bar.\n\nPattern workbench: on a phone three tabs and More, one chip for the flags,\na footer that leaves when the keyboard comes; wide, named flag chips and\ntabs that wrap. Bracket errors name the character.\n\nElement menu: a hold ring and a sheet on a phone; beside the element with\none-letter shortcuts on a wide screen. Media search drops its Search button\non a phone and gains kind chips.\n\nLocks: a six-step wizard with a QR code drawn locally, a prompt that counts\ndown a wait, a list with filters, selection and time left, older locks that\ncan be opened and removed, locked on start, and a support desk that is\nplainly fictional, sends nothing and explains how to clear the site's data.\n\nPersonal settings are grouped and gain quiet hours. Guided setup lists what\nis set up first and ends in one action. The guidance note opens as a sheet.\n\nFifteen of eighteen blocking browser boxes are replaced, and eleven\ndestructive actions ask twice.\n\nNone of this has been seen in a running build yet; docs/feature-status.md\nsays so and lists the known gaps.\n\n手機底部有咗一條 bar，開咗嘅頁面可以碌、搵、掃走、後悔。樣式工作台喺手機\n唔再打橫碌到天光。鎖有六步精靈同 QR code，仲有個擺明係假嘅客服台，\n乜都唔會寄出去，淨係教你點清資料。十五個彈出嚟阻住晒嘅瀏覽器對話框換走咗，\n十一個危險動作要問兩次。全部未喺真機睇過，文件照直講。"
+  },
   {
    "sha": "63ebb4e1",
    "date": "2026-11-10T16:08:08-05:00",
@@ -905,5 +975,1475 @@ window.SITE = {
    "title": "List pages drawn like their boards: breadcrumb, large title, row cards",
    "body": "Every list page under Settings now shows where it sits and its title in\nthe header, a large title with a summary line, its rows as rounded cards,\nand an export button beside the table settings. The footer reads like the\nboard: product, version, build time, language and the right-click hint.\n\n- The data table gets `row-cards`: the card is drawn behind each row, so\n  rows and columns keep their geometry.\n- The breadcrumb is the panel and then the section. The settings panel\n  resolves the section from the tabs a page passes.\n- Devices say how many have a low battery; automations say how many are\n  on. Other counted lists use their own noun.\n- The menu on any element has Export this page, History of changes and\n  Lock this page.\n\nSeen side by side with the Devices, Entities and Automations boards in a\nrunning instance. Filters are still a side pane, rows have no icon tile\nor second line, and checkboxes appear only in selection mode."
   }
- ]
+ ],
+ "status": [
+  {
+   "title": "Product",
+   "head": [
+    "Feature",
+    "State",
+    "Where"
+   ],
+   "rows": [
+    [
+     "Upstream sources in one repository",
+     "Done",
+     "UPSTREAM.md"
+    ],
+    [
+     "Release on every push with a unique tag",
+     "Done, build 1 verified through the container image",
+     ".github/workflows/release.yml"
+    ],
+    [
+     "Container image for amd64 and arm64",
+     "Done, publicly pullable",
+     "release notes"
+    ],
+    [
+     "Core, machine, landing page and supervisor images",
+     "Done, built in build 1",
+     "release notes"
+    ],
+    [
+     "Update feed and updater pointed at this project",
+     "Done, feed live; an update between two builds is not yet observed",
+     "docs/material-changes.md"
+    ],
+    [
+     "Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox",
+     "Built. haos_ova-18.5.33.ova started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed the first-run setup on port 80, reached from a second device. ovftool needs --skipManifestCheck (see the README). Not yet booted in VirtualBox or on a Raspberry Pi",
+     "release workflow, README"
+    ],
+    [
+     "Operating system updates over the air",
+     "Wired, and the two signing secrets are set since 10 November 2026. Not yet observed: no build has finished its operating system images since, and no update between two such builds has been watched",
+     "README"
+    ],
+    [
+     "build.sh, build.bat, build-installer.bat, dependency installers",
+     "Written; not yet run end to end",
+     "repository root"
+    ],
+    [
+     "Deploy Assistant (one-click deploys, instances, backups, automatic downloads, Raspberry Pi cards)",
+     "Written. Docker on this computer was run end to end in a test on 10 November 2026: two instances side by side, a backup, a restore and a removal. The card writer wrote and read back a test image through the packaged app. SSH hosts, VirtualBox, VMware and a real card are not yet seen working.",
+     "deploy-assistant/"
+    ],
+    [
+     "Dedicated build application",
+     "Not started",
+     ""
+    ],
+    [
+     "Project website",
+     "Built and published on GitHub Pages; checked in Chrome at 1440 and 360 px by docs/site/check_site.py: twelve tabs open by default, including the Deploy Assistant with its downloads and a demo of its window, the status page and every design board. Nothing links away except downloads.",
+     "docs/site/"
+    ]
+   ]
+  },
+  {
+   "title": "Checked in published images",
+   "head": [
+    "Build",
+    "What was checked in the running image"
+   ],
+   "rows": [
+    [
+     "2026.11.1.26",
+     "Starts, first-run setup completes, the interface loads; the pattern workbench on the Entities table; host.sh end to end"
+    ],
+    [
+     "2026.11.1.29",
+     "The version shown is 29; the menu on an element and the appearance tools; the private vocabulary card"
+    ],
+    [
+     "2026.11.1.32",
+     "The automation repositories integration is built in and answers (no custom integration); the release has the VirtualBox image and the Raspberry Pi 3, 4 and 5 images"
+    ],
+    [
+     "2026.11.1.35",
+     "Run the same way: the breadcrumb, the large title with its count, rows as cards and the export button are in it"
+    ],
+    [
+     "2026.11.1.38",
+     "Run the same way with a small demo home: the Home greeting and its sentence, the settings home grid with live counts, the compact rail, and the row of tools in an entity dialog are in it"
+    ],
+    [
+     "2026.11.1.46",
+     "Started on Windows 11 by host.bat --detached with nothing but its configuration folder: healthy, the first-run setup answers, and it was reached from a second device on the network. The features added after build 38 were not checked in it"
+    ],
+    [
+     "2026.11.1.34",
+     "Run with only its configuration folder mounted (docs/screenshots/published-34-export.png): the page tools, the tools panel and the footer are in it; a CSV export downloaded, a page locked and unlocked by a hold, a PIN was set and the wait after three wrong PINs was shown, and the help articles opened"
+    ]
+   ]
+  },
+  {
+   "title": "Interface",
+   "head": [
+    "Feature",
+    "State",
+    "Where"
+   ],
+   "rows": [
+    [
+     "Material Design 3 shell: rail, pane, pill tabs, tokens",
+     "Partly built: colour scales, surfaces, typeface, navigation rail, floating pane, borderless cards and pill tabs are in the frontend and seen working in its demo build (docs/screenshots/). The tab bar of open pages, its search button and the accessibility button are built (see the Tabs and Accessibility rows). Not built: the redesigned Home, the dark theme check, the phone layout.",
+     "Main, Energy, Settings, Phone, Tokens"
+    ],
+    [
+     "Dark theme",
+     "Checked on Home, Settings home, Devices and the Base64 toolkit with the dark colour scheme (docs/screenshots/dark-theme.jpg): the new cards, rows, banners and tools read correctly. Other pages and the boards' own dark versions are not checked.",
+     "Tokens"
+    ],
+    [
+     "Motion with a reduced-motion path",
+     "Designed",
+     "Settings, Accessibility"
+    ],
+    [
+     "Live charts",
+     "Designed",
+     "Energy"
+    ],
+    [
+     "First-run wizard",
+     "Designed",
+     "Onboarding"
+    ],
+    [
+     "Language modes, playfulness sliders, dialog emoji switch",
+     "Designed",
+     "Language"
+    ],
+    [
+     "Private vocabulary file and drop to apply",
+     "Built and seen working in a running instance. A card on Profile, Localization chooses, replaces or clears a JSON file (schema version 1, up to 256 KiB, UTF-8); a file can also be dropped anywhere in the window. The file is checked in full first: size, encoding, nesting depth, duplicate keys, unsafe keys, unknown fields, version, key and value lengths, control characters. A file that fails changes nothing and the message names the kind of problem without repeating anything from the file. Wording is applied where text is localized, so addresses, paths, identifiers and stored names stay literal. Only the checked entries are cached in the browser; nothing about the file is kept and nothing is sent anywhere. A short confirmation shows after a load. Checked by 31 unit tests. Seen in the running instance: an invalid file refused, a 324-entry file loaded, labels on Settings changed, the wording still in place after a reload. Changed on 10 November and not yet seen running: a key written in small letters also matches the same words with a capital first letter, as at the start of a label (\"Push\" for a key \"push\"), and its replacement then starts with a capital; checked by a unit test and against a 324-entry file outside the browser. Not built: an entry in the command search, the Cantonese copy, School mode.",
+     "Vocabulary"
+    ],
+    [
+     "Spoken narrator and action sounds",
+     "Designed",
+     "Narration"
+    ],
+    [
+     "School mode and focus modes",
+     "Designed",
+     "Modes"
+    ],
+    [
+     "Scheduled and external settings sources",
+     "Designed",
+     "Schedule"
+    ],
+    [
+     "Renaming the app and logo customization",
+     "Designed",
+     "Identity"
+    ],
+    [
+     "Dim sum surprise",
+     "Designed",
+     "DimSum"
+    ],
+    [
+     "Per-element appearance editor",
+     "Built and seen working in a running instance (docs/screenshots/appearance-editor.png, appearance-pick.png). Any element can be picked three ways: the menu on right-click, Ctrl+Shift+E on the focused element, or the pick tool behind the paint button in the top bar. The editor opens beside the element with: which part (the element or what contains it), apply to this one or to every element of the same kind, fill layers (colour, gradient, picture; reorder, hide, opacity, blend), text colour, typeface and weight, corners, border, shadow, accent colour, size and opacity, and a text contrast reading. Changes apply as they are made, are saved in the browser, survive a reload, and have Undo, Reset this and Reset everything. Stored choices are validated: only named styles, hex colours, and picture addresses that cannot run script. Checked by 16 unit tests. Seen in the running instance: a gradient, text colour and corner radius on one dashboard card, still there after a reload; corners for every card of a kind; the pick tool. **Not seen**: inside a modal dialog, on a phone, with the keyboard only. Not built: masks, per-state layers (hover, focus, pressed), levels and filters on pictures, export and import of choices, sync between browsers.",
+     "AppearanceType, AppearanceLayers"
+    ],
+    [
+     "Colour picker and translator",
+     "Partly built and seen working in a running instance beside the board (docs/screenshots/colour-tool.png). A Colour tab under Tools picks a colour in a square with hue and alpha sliders, from the screen where the browser allows it, or from typed hex, rgb() or hsl(). It writes the colour as HEX, HEX8, RGB, HSL, HSV, HWB, OKLCH, CIELAB and an approximate CMYK, each with a copy button, names the nearest CSS named colour, and gives the contrast of white and of black text with what it is good for. The OKLCH and CIELAB numbers are the ones Chrome computes for the same colour. It is a page of its own: the appearance editor does not use it yet, and the board's named palette, gamut chips and animated rainbow are not built.",
+     "ColorPicker"
+    ],
+    [
+     "Fonts and type scale",
+     "Designed",
+     "Fonts"
+    ],
+    [
+     "Accessibility tools",
+     "Built on wide screens and seen working in the demo build (docs/screenshots/accessibility.png, contrast.png): a top bar button and Alt+A open the panel; text size from 100% to 200%, three contrast levels for light and dark, reduce motion, a focus ring that follows the focused control, larger targets, keyboard help, reset, and hiding the button with a confirmation. Choices are kept in the browser. Limits: text size and larger targets reach everything that uses the theme's size tokens, not components with fixed pixel sizes; reduce motion reaches animations that use the theme's duration tokens. Read aloud is built but not heard working (the test browser has no speech voices). No button on a phone yet; Alt+A works there with a keyboard.",
+     "Accessibility"
+    ],
+    [
+     "Resizable panels, collapsible filters and statistics",
+     "Designed",
+     "Panels"
+    ],
+    [
+     "Tabs open by default and the New tab catalog",
+     "Built for pages on wide screens and seen working in the demo build (docs/screenshots/tabs.png): every page starts open in page order, a closed tab stays closed, a page added later opens by default, close buttons show on the active tab and on hover or focus, the New tab catalog lists every page with search, and Open every tab reopens them all. Arrow, Home and End keys move between tabs. The catalog search is the shared search field and accepts patterns (seen working in the demo build). Bulk close is built and seen working in the demo build (docs/screenshots/tabs-bulk-close.png): with text in the catalog search, one button closes the open tabs that match and one closes those that do not, each showing its count; the list under the field is the preview; nothing closes for an empty search or an unusable pattern; the page in use stays open; Undo reopens what was closed. Not built: tabs on a phone, drag to reorder, pinned tabs, separate searches per group.",
+     "Tabs"
+    ],
+    [
+     "Command palette on Ctrl+Shift+F",
+     "The existing quick bar is rebound to Ctrl+Shift+F and opens from the Search button in the top bar (seen working in the demo build). The key press itself is not yet seen working: the demo build does not register shortcuts. The redesigned palette with live controls is not built.",
+     "CommandPalette"
+    ],
+    [
+     "Pattern workbench on every search",
+     "Partly built. Every search field (38 places, listed in frontend/src/common/regex/search-surfaces.ts) has a workbench button, and every list behind them accepts a regular expression written as /pattern/flags: tables, filter panes, pickers, the add dialogs, logs, the network maps, the state tool and the New tab catalog. Plain text stays the default. The engine is the browser's JavaScript engine; patterns are limited to 2,000 characters, values to 4,000, and a pattern that static screening marks as runaway is refused. A test walks the source and fails when a search field is added without a catalogue entry. Checked by unit tests (99 passing), lint and the type check. Seen working in the demo build on the New tab catalog (docs/screenshots/pattern-workbench.png, pattern-search.png): the button opens the workbench beside the field, the Test tab shows which items of the list match, Use writes the pattern back and the list filters, an invalid or runaway pattern shows nothing and turns the button red with the reason, Escape closes only the workbench, and focus returns to the field. Also seen working on a real table: in a running instance of the published image (build 26), a pattern on the Entities list left exactly the two matching rows, the workbench's list preview named the same two, and an invalid pattern showed nothing. Not yet seen in a build: filter panes, pickers and logs; those paths are covered by unit tests only. Not built: per-group tab searches.",
+     "Regex"
+    ],
+    [
+     "Automation tests: every condition and every Choose option",
+     "Built and seen working in a running instance (docs/screenshots/automation-option-test.png). Each condition row has a visible test button, and each Choose option has a test button that checks all of the option's conditions now and reports whether the option would run. Nothing is run or saved by a test. Not built: named test cases, the dry run of a whole automation.",
+     "AutomationChoose, AutomationEditor"
+    ],
+    [
+     "A Git repository for each automation, and a master repository",
+     "Built and seen working in a running instance. See docs/automation-repositories.md. Every save commits the automation in its own repository with a message naming what changed. Commit everything checks every automation, commits each that changed, then commits the master, which records the commit each automation is at, and pushes to remotes where one is set. 20 tests with real Git. Seen in the instance: two automations and the master committed by one push, and a commit on each save. **Not checked**: a push to a real remote host; the integration as part of a built image (it was loaded into a running image as a custom integration). Not built: the per-automation repository page, the repository strip in the editor, remote settings in the interface, pull, scripts and scenes.",
+     "AutomationRepo, AutomationsMaster"
+    ],
+    [
+     "Automation history manager",
+     "Built and seen working in a running instance (docs/screenshots/automation-history-run.png, automation-history-compare.png). A History tab beside Automations lists every version of every automation with search (and the pattern workbench) and filters for failing, live and never tested. A version can be tested alone or many at once: whether it loads, and whether its conditions pass right now; four at a time, ten seconds each, with Stop; nothing in the house changes. Versions can be run for real, one after another, after a confirmation that names them, optionally asking before each one and leaving out anything that touches a lock, door, alarm, valve or siren. Two versions can be compared, an old version made live again, versions exported, and everything committed to the master with a message. Seen in the instance: test every live version, a correct condition failure with its reason, compare, a run of two versions with confirmations, commit everything. Not seen: make live, export, Stop during a long test, a narrow screen. Not built: named test cases and their columns, a simulated run that pretends the actions, schedules.",
+     "AutomationHistory"
+    ],
+    [
+     "Context menus with working shortcuts",
+     "Partly built and seen working in a running instance (docs/screenshots/element-menu.png). The menu also has Export this page, History of changes and Lock this page for the page the element is on (docs/screenshots/element-menu-page-tools.png). Right-click, long press, the menu key or Shift+F10 on anything opens a menu for that element with a filter field (which has the pattern workbench), arrow keys, Enter and Escape. Entries: edit appearance, edit every one of the kind, reset, read aloud, copy the text, search and commands. Shortcuts shown in the menu come from the same list the key handler reads. Shift with a right-click gives the browser's menu; text fields keep theirs. Not built: entries specific to what was clicked (turn off, open, rename, hide), lock, history and export entries.",
+     "ContextMenu"
+    ],
+    [
+     "Guided forms and per-control information buttons",
+     "Designed",
+     "GuidedForm"
+    ],
+    [
+     "Settings that explain themselves",
+     "Designed",
+     "Settings"
+    ],
+    [
+     "Extension support",
+     "Designed",
+     "Extensions"
+    ],
+    [
+     "Starting points for blank editors",
+     "Designed",
+     "BlankEditor"
+    ],
+    [
+     "Two-key confirmation",
+     "Built and seen working in a running instance (docs/screenshots/two-key-confirmation.png). Every question the interface marks as destructive, 104 places such as deleting an automation, a device or a backup, shows two keys and a slider in place of a confirm button. A key is turned by holding Q or P, or by pressing and holding its tile; it stays turned for 6 seconds after it is let go, so both can be turned one after the other with one hand or a switch. The slider works only while both are turned, goes back if let go early, and confirms at its end. Emergency exit and Escape leave. Deleting a throwaway automation was tried: one key did nothing, half a slide did nothing, a full slide deleted it.",
+     "SuperConfirm"
+    ],
+    [
+     "Page tools in every page header",
+     "Partly built and seen working in a running instance (docs/screenshots/page-tools-find.png). The two shared page layouts, which most settings pages use, have a header cluster: Search this page, Edit appearance, Read aloud, History, Export, Lock and Help. On a narrow screen it is one button that opens the same tools in a panel. Section tabs sit in a row under the header, and wide screens have a footer line with the version, build time, language and a hint. History, activity, media, to-do lists, calendar and the developer tools have them too. Dashboards (Home, Energy, Map and your own) have the footer and the lock, and reach export, history and lock from the right-click menu, but have no cluster in their header. Dialogs have none of it.",
+     "Devices, SettingsHome"
+    ],
+    [
+     "Home greeting",
+     "Built and seen working in a running instance beside the board (docs/screenshots/home-greeting.png). Home opens with a greeting for the time of day and one sentence made from what the instance reports: how many lights are on, the mean of the temperatures the areas point at, and whether every lock is locked. A part that cannot be known is left out. Up to three scenes are offered as buttons, the most recently used first, and pressing one starts it. Under it are large cards, each shown only when the home has such a thing: the lights of the room that has the most, with a switch for all of them, a chip for each, and a brightness slider when a light can be dimmed; the first thermostat with its temperature and cooler and warmer buttons; the locks, with Lock all when one is open; and whatever is playing. Every control was pressed in a running instance and the entity changed. The board's power card is not built, and the rooms are still the existing area cards.",
+     "Main"
+    ],
+    [
+     "Settings home drawn like its board",
+     "Built and seen working in a running instance beside the board (docs/screenshots/settings-home.png). A large title with a line under it, a search of the sections with the pattern workbench, one-line banners for updates and repairs, and the sections as a grid of cards, three across at most. Cards say what the section holds now where that can be counted: devices and integrations, automations and scenes, areas and floors, dashboards, people, the version. The page tools and the footer are there; on a phone it is one column. The board's cards for appearance, language and locks have no page to open yet and are not shown.",
+     "SettingsHome"
+    ],
+    [
+     "System page drawn like its board",
+     "Built and seen working in a running instance beside the board (docs/screenshots/system-page.png). A card says what is running and in which state (running, starting, safe mode, recovery mode), with facts the instance reports: the version, how many integrations are loaded, storage used where the host reports it, and the time zone. The board's processor, memory and temperature figures are not shown, because a plain container does not report them. The sections are a grid of cards, two across. Every page reached from Settings shows where it sits above its title.",
+     "System"
+    ],
+    [
+     "Rail and top bar",
+     "The rail is compact by default (icons with their names under them); the menu button opens the full list and that choice is kept. The top bar has a language button that opens Profile, Localization, and the user's picture, which opens the profile. An Assist button at the top of the rail opens Assist when it is set up.",
+     "Main"
+    ],
+    [
+     "List pages drawn like their boards",
+     "Partly built and seen working in a running instance (docs/screenshots/list-page-devices.png). Every list page under Settings shows where it sits and its title in the header, a large title with a summary line (devices: how many, and how many have a low battery; automations: how many, and how many are on), rows as rounded cards and an export button. The icon of a row sits on a tile, and a device row names its maker and model. Filters are still a side pane, automation rows have no second line, and checkboxes appear only in selection mode.",
+     "Devices, Entities, Automations"
+    ],
+    [
+     "Dialog tools",
+     "Built and seen working in a running instance (docs/screenshots/dialog-tools-find.png, dialog-tools-locked.png). Every dialog except a plain question has a row at its foot: Search this dialog, with the pattern workbench and a count; Edit appearance; and Lock. A locked dialog can be read and closed, but its content, header actions and buttons take no input; the lock is for that kind of dialog and is kept in this browser. Unlocking takes a hold, or the PIN, which is asked for inside the dialog. The first Escape clears a search and the next closes the dialog. Not on the sheets that replace dialogs on a phone.",
+     "More1 to More12"
+    ],
+    [
+     "Search this page",
+     "Built and seen working in a running instance. Marks every match on the page through component boundaries without changing the page, shows the count, and steps with Enter, Shift+Enter and the arrow buttons; Escape clears. Plain text ignores case; /pattern/flags is a regular expression, and the field has the pattern workbench. Up to 2000 matches. A long list only draws the rows in view, so only those are marked.",
+     "every page"
+    ],
+    [
+     "Page locks",
+     "Partly built and seen working in a running instance (docs/screenshots/page-tools-lock.png). The lock button or Ctrl+Shift+L locks the page: its content, toolbar actions and floating button stop taking input, and a line says so. Unlocking takes a 1.5 second hold, or the PIN when one is set (4 to 12 digits, stored as a salted hash). The lock is kept in this browser and is a guard against accidents, not a replacement for accounts. Locks on single elements are not built.",
+     "Locks"
+    ],
+    [
+     "Unlock ladder",
+     "Partly built and seen working in a running instance: the third wrong PIN in a row waits 5 seconds, then 15 seconds, 1 minute and 5 minutes; tries during a wait are refused. The other rungs of the board (a second person, recovery) are not built.",
+     "Ladder"
+    ],
+    [
+     "Locks on single elements",
+     "Partly built and seen working in a running instance (docs/screenshots/element-lock.png). Lock this element in the right-click menu makes that element stop taking clicks and keys and outlines it with dashes: a switch inside a locked card did not change its light when clicked. The lock was still there after a reload. The Lock tool lists the locked elements of the page, and a hold unlocked one. Unlocking elements with the PIN is written but was not exercised. Kept in this browser only."
+    ],
+    [
+     "Locks with their own credentials",
+     "Written, not yet seen in a running build. A lock on an element chooses one of six ways in (PIN, password, PIN and password, password and one-time code, PIN and one-time code, all three) with its own credentials, stored as salted hashes in the browser. A wizard beside the element, a prompt with a keypad and manual entry sharing one count of tries, and a searchable list of locks in the Lock tool. Checked by unit tests only (the six ways in, hashing, one-time codes against the published test values, the shared count of tries, one lock not opening another). Not built: locks on tabs and on appearance values, the support desk, locked items in searches, a QR code for the one-time secret, lock changes in history. Page and dialog locks still use the shared PIN",
+     "Locks"
+    ],
+    [
+     "Personal settings page",
+     "Written, not yet seen in a running build. Settings, Personal settings: sounds with volume, low stimulation, focus spotlight and reduced motion take effect; language mode and the two playfulness levels are saved and only change a preview on that page. Each control says what it reaches today, has a reset, and is found by the search. Checked by unit tests only",
+     "Settings, Language, Modes"
+    ],
+    [
+     "Guided setup for integrations without a setup screen",
+     "Partly built. Run in a container built from this repository's files: it starts, and the list holds 240 integrations. 223 of them get drawn fields and 17 get one YAML box that is checked against the integration's own rules before saving (8 because a package they need is not in the image, the rest because their options are named by the person). Inside the drawn forms, about one field in sixteen is still a YAML box. Checking and saving were run through the interface's own connection for two integrations and wrote the expected files. The wizard, the saved file and the reload have not been seen working in the interface. The guidance note in setup dialogs is written and not yet seen",
+     "Integrations"
+    ],
+    [
+     "Polish pass boards (canvases 12 to 14)",
+     "Written to the boards, not yet seen in a running build: the phone bar and the sheet of open pages; the pattern workbench on a phone and wide; the element menu by touch and hold; the lock wizard, unlock prompt and list; personal settings with quiet hours; the guided setup list and wizard; the guidance note; replacements for 15 of 18 blocking browser boxes; two-step confirmation on 11 destructive actions. Checked by lint, the type check and unit tests only. Known gaps: the bar hides on scroll only on pages that scroll the window; two-language labels on the bar; older shared-PIN locks in the list; a hold button for the two-step confirmation; three blocking boxes in first-run setup; line-by-line YAML errors in guided setup",
+     "12-polish, 13-polish, 14-decisions"
+    ],
+    [
+     "Everyday pages (canvas 01)",
+     "Started, not yet seen in a running build. Partly built: Lights (summary, all on and off, a card per room), Security (each alarm with arm and disarm), Climate (first thermostat large), Map (where everyone is), Activity, History, To-do, Calendar and Energy (large title and a line of facts), Home (power use when energy is set up). Not started: the dashboard title row and the card picker. Left out because the instance does not report them: comparison with a usual day, the power lights draw, how many to-do items are done. Checked by lint, the type check and unit tests only",
+     "01-everyday"
+    ],
+    [
+     "Tools pages (canvas 06)",
+     "Written to their boards, not yet seen in a running build: Storage, General, Labs, Restart and Events (built apart from what the instance does not report), Hardware, Network, States, Actions, Template, YAML, Statistics and Assist (partly). Statistics has its sorting, grouping and address parameters back; sorting and grouping by area and the column settings are not restored. Not started: the AI and entity IDs page and the debug page",
+     "06-tools"
+    ],
+    [
+     "Settings pages (canvases 03 to 05)",
+     "Written to their boards, all partly, not yet seen in a running build: Integrations, an integration's page, Add integration, Devices, one device, Entities, Areas, one area, Labels, Scenes, the scene editor, Scripts, Zones, Blueprints, Dashboards, People, Users, Tags, Updates, Repairs, Logs. An independent review of the last twelve found nothing broken and nine defects, all since fixed in source. Scenes has its sorting and grouping back; collapsing a group is not restored. Helpers, the settings of one entity and the device list inside an integration entry are also started",
+     "03-settings, 04-settings, 05-system"
+    ],
+    [
+     "Shared list layout",
+     "The layout that list pages use can now take, when a page asks for them: a button beside the title, filter chips on the search row, a line under the list, and row checkboxes that always show. Devices, Entities, Labels and the list of automations use them. Reviewed in source; nothing changes for pages that do not ask",
+     "Devices, Entities, Labels"
+    ],
+    [
+     "Sign-in, first-run setup, About, Profile (canvas 02) and Zigbee, Z-Wave, Matter (canvas 07)",
+     "Started, all partly, not yet seen in a running build. A review found nothing broken and four defects, all since fixed in source",
+     "02-everyday, 07-protocols"
+    ],
+    [
+     "Backups, voice assistants, cloud, energy setup, apps, automations and their history, MQTT, Thread, Bluetooth",
+     "Started, all partly, not yet seen in a running build. A review found one fault that would have broken the Bluetooth page and thirteen defects; all are fixed in source. The Analytics board is obsolete and will not be built",
+     "03-settings, 04-settings, 05-system, 07-protocols"
+    ],
+    [
+     "Language mode, attention modes, spoken narrator",
+     "Written, not yet seen in a running build. Language mode (English, Cantonese, both) changes the text of Personal settings; 242 strings are written in Cantonese for this project's own surfaces, and the phone bar, the locks and the wording card do not use them yet, so the page's line about what follows the mode is ahead of the truth for those three. The two playfulness levels still only change a preview. Two attention modes are added (a clock, and an offer to go back to the last page); School mode and \"one thing at a time\" are not built. The narrator reads the name of the focused control with the browser's own voice, off by default; Cantonese speech needs a Cantonese voice on the device. Checked by unit tests only",
+     "Language, Modes, Narration"
+    ],
+    [
+     "Search of everything, tabs, context menu",
+     "Written, not yet seen in a running build. The search lists settings and switchable entities with a live switch in the row (by pointer only; not yet from the keyboard) and a row of key hints. Tabs can be dragged and pinned; the phone sheet of open pages does not follow the new order yet, and order and pins are not in History. On a link, the element menu offers Open and Open in a new tab",
+     "CommandPalette, Tabs, ContextMenu"
+    ],
+    [
+     "Notifications, export, selection bar",
+     "Written, not yet seen in a running build. Dismissed notifications are kept for 30 days with Undo. Every notification row is neutral, because the instance sends no severity. A failed dismissal is reported. Export has a tab-separated format and \"selected rows only\". A reusable selection bar with a preview before a destructive action is used on Notifications and Labels; Helpers has the bar without actions",
+     "Notifications, Export, Bulk"
+    ],
+    [
+     "Entity dialogs (canvas 08)",
+     "35 of 36 started, not yet seen in a running build (date, time, date and time, sun, image, calendar, setup step, default, siren, lawn mower, remote, group, automation, script and conversation added; shared controls for alarm, climate, lock, fan, vacuum and water heater follow the boards behind an opt-in). Open review findings: water heater switch name, state shown by colour alone on humidifier, weather unit at 320 px, sensor attributes. First batch: climate, cover and counter are built apart from shared controls; lock, alarm, camera, media player, vacuum, fan, light, weather, sensor, update, person, timer, humidifier, water heater and valve are partly built. A numeric sensor shows two charts for now (its own and the dialog's history). Not redrawn: the shared controls inside the dialogs and the dialog frame",
+     "08-dialogs"
+    ],
+    [
+     "Automation editor",
+     "Started: the name as a large title and three named cards for triggers, conditions and actions; in a Choose step, numbered option chips. Not built: the enable switch beside the title, the bottom bar, dry run, the repository strip, \"test every option\" and the test panel",
+     "AutomationEditor, AutomationChoose"
+    ],
+    [
+     "Assist, shortcuts, release notes; credentials, discovery, infrared, serial, LoRaWAN",
+     "Started, all partly. The Assist note that answers come from the house checks only the conversation engine and can overstate. No Help page for shortcuts and no release notes page exist yet. Several boards need data the server does not supply: what uses a credential, which integration a discovery matches, learned infrared commands, reading a Modbus register",
+     "02-everyday, 07-protocols"
+    ],
+    [
+     "No data sent out, and a problem log instead",
+     "Analytics, crash reports, diagnostics and report buttons are removed. Started in a container from these files: it starts clean, first-run setup has three steps, and a forced error produced files and a commit in the problem log repository. The page that lists problems has not been seen in a running build. The supervisor's own tests still expect the removed crash reporter and need rewriting",
+     "Settings, System"
+    ],
+    [
+     "Wording file celebration and sounds",
+     "Written, not yet seen in a running build. Checked by unit tests with invented sample entries",
+     "Vocabulary"
+    ],
+    [
+     "Support Tickets",
+     "Designed",
+     "SupportTickets"
+    ],
+    [
+     "Authenticator and QR pairing",
+     "Designed",
+     "Authenticator, QrPairing"
+    ],
+    [
+     "Local version history",
+     "Partly built and seen working in a running instance (docs/screenshots/page-tools-history.png). The History tool lists changes made in this browser to appearance, accessibility and open tabs, newest first, with the page each was made on; a search with the pattern workbench; this page or everywhere; undo a change or go back to a version; clear with a second confirmation. A burst of changes is one entry. A change to the private vocabulary is listed without its text. Locks are never listed. Newest 100 entries. Nothing is kept on the server, and dialogs have no history.",
+     "History"
+    ],
+    [
+     "Export in every format",
+     "Partly built and seen working in a running instance (docs/screenshots/page-tools-export.png). The Export tool makes a file from what the page shows: CSV for a table (with the list's current filter, formulas disarmed), JSON, Markdown, plain text and HTML, with a preview, download, copy and print. A table exports its stored values, so a column the page formats specially can read differently; moments in time are written as ISO 8601. No spreadsheet or PDF files.",
+     "Export"
+    ],
+    [
+     "Bulk actions",
+     "Designed",
+     "Bulk"
+    ],
+    [
+     "Changelog viewer",
+     "Built and seen working in a running instance (docs/screenshots/what-changed.png). Settings, About, What changed lists CHANGELOG.md by day, with the commit that added each entry as a link, a search with the pattern workbench, a range of days (all, this week, this month, or chosen days) and export of the view. The list is bundled with the build, so it opens without a connection; a test fails when the bundled list and CHANGELOG.md differ. Entries are grouped by day and not by version, because one day holds several releases.",
+     "Changelog"
+    ],
+    [
+     "Offline help articles",
+     "Partly built and seen working in a running instance (docs/screenshots/page-tools-help.png). The Help tool has 12 articles that ship with the interface, with a search that has the pattern workbench. There is not yet an article for each page.",
+     "Docs"
+    ],
+    [
+     "Rendered provider text",
+     "Designed",
+     "ReleaseNotes"
+    ],
+    [
+     "Notification centre and toasts",
+     "Partly built and seen working in a running instance (docs/screenshots/notifications-page.png). Notifications are a page at Settings, Notifications, reached from the drawer: every notification the instance holds, newest first, with a search that has the pattern workbench, a selection mode to dismiss several, and dismiss for one or all. Three notifications were created, found with a pattern, two dismissed by selection and the last by its button. The board's colours by severity, action buttons on a notification, keeping dismissed ones for 30 days, and the stacked toasts with progress and undo are not built.",
+     "Notifications"
+    ],
+    [
+     "File converter",
+     "Designed",
+     "Converter"
+    ],
+    [
+     "Base64 toolkit",
+     "Built and seen working in a running instance beside the board (docs/screenshots/base64-toolkit.png). A Base64 tab under Tools encodes text or a file, decodes it back, and writes data URLs, with the Standard, URL-safe and MIME alphabets, padding on or off, lines of 64 or 76 characters, and text read as UTF-8 or Latin-1. Each encoding is decoded again and compared, with a SHA-256 of both. Strict decoding stops at the first character that does not belong and says where; lenient decoding skips it. A file over 1 MB is encoded in pieces with pause and cancel, and saved as a file: a 3 MB file was encoded in four pieces and the saved text decoded to the same file outside the browser. Everything happens in the browser.",
+     "Base64"
+    ],
+    [
+     "Minecraft server manager and world generator",
+     "Designed",
+     "Minecraft, WorldGen"
+    ],
+    [
+     "Local Ollama suite",
+     "Designed",
+     "Ollama"
+    ],
+    [
+     "External editor hand-off and publishing to a forge",
+     "Designed",
+     "Handoff"
+    ],
+    [
+     "Drawing and annotation",
+     "Designed",
+     "Drawing"
+    ],
+    [
+     "Progress and recovery",
+     "Designed",
+     "Progress"
+    ],
+    [
+     "Version and updated-at on the first screen",
+     "Built: version, date and time with seconds and time zone at the foot of the rail, from build-time constants. Seen in the demo build.",
+     "Main, About"
+    ],
+    [
+     "Free, with nothing to buy",
+     "Built and seen working in a running instance (docs/screenshots/about-page.png). About shows this project's version and when the build was made, read from the build itself; the versions of the parts; where updates come from and how this kind of install is updated; a card that says every feature is included and nothing is sold; and that the project is independent of the Open Home Foundation. The upstream claim of being part of the foundation, the merchandise link and the upstream issue links are removed. The board's channel switch, automatic install switch and reachability check are not built.",
+     "About"
+    ]
+   ]
+  },
+  {
+   "title": "Not applicable to this product",
+   "head": [
+    "Feature",
+    "State",
+    "Where"
+   ],
+   "rows": [
+    [
+     "Windows virtual disk manager",
+     "Not applicable",
+     "A web application served from Linux has no Windows host to manage"
+    ],
+    [
+     "Browser-extension download hand-off",
+     "Not applicable",
+     "No browser extension in this product"
+    ],
+    [
+     "Job document wording",
+     "Not applicable",
+     "Applies to job-related products"
+    ],
+    [
+     "Frameless desktop title bar",
+     "Not applicable",
+     "Runs in a browser or companion app"
+    ]
+   ]
+  }
+ ],
+ "canvases": [
+  {
+   "id": "01-everyday",
+   "title": "Everyday app pages, part 1",
+   "boards": [
+    {
+     "name": "Main",
+     "title": "Home, Material Design 3 light"
+    },
+    {
+     "name": "Energy",
+     "title": "Energy with live chart, Material Design 3 dark"
+    },
+    {
+     "name": "Phone",
+     "title": "Phone home"
+    },
+    {
+     "name": "Dashboard",
+     "title": "A dashboard of your own, with views"
+    },
+    {
+     "name": "DashboardEdit",
+     "title": "Dashboard, edit mode with the card editor"
+    },
+    {
+     "name": "CardPicker",
+     "title": "Card picker"
+    },
+    {
+     "name": "Map",
+     "title": "Map, people and zones"
+    },
+    {
+     "name": "Activity",
+     "title": "Activity, the logbook"
+    },
+    {
+     "name": "PageHistory",
+     "title": "History, graphs and state timelines"
+    },
+    {
+     "name": "Media",
+     "title": "Media browser and player"
+    },
+    {
+     "name": "Todo",
+     "title": "To-do lists"
+    },
+    {
+     "name": "Calendar",
+     "title": "Calendar, month view"
+    },
+    {
+     "name": "Lights",
+     "title": "Lights, every room at once"
+    },
+    {
+     "name": "ClimatePage",
+     "title": "Climate, thermostat and rooms"
+    },
+    {
+     "name": "SecurityPage",
+     "title": "Security, alarm, locks and cameras"
+    }
+   ]
+  },
+  {
+   "id": "02-everyday",
+   "title": "Everyday app pages, part 2, with sign-in, first run and About",
+   "boards": [
+    {
+     "name": "Maintenance",
+     "title": "Maintenance, batteries, updates and offline devices"
+    },
+    {
+     "name": "Embedded",
+     "title": "An app or web page inside the pane"
+    },
+    {
+     "name": "Profile",
+     "title": "Profile, general"
+    },
+    {
+     "name": "ProfileSecurity",
+     "title": "Profile, security"
+    },
+    {
+     "name": "Assist",
+     "title": "Assist, typed and spoken"
+    },
+    {
+     "name": "Shortcuts",
+     "title": "Keyboard shortcuts"
+    },
+    {
+     "name": "States",
+     "title": "Empty, lost and loading states"
+    },
+    {
+     "name": "MyLink",
+     "title": "A link from the web asks to open a page"
+    },
+    {
+     "name": "SignIn",
+     "title": "Sign in, second step, and trusted devices"
+    },
+    {
+     "name": "Onboarding",
+     "title": "First-run wizard on a Raspberry Pi"
+    },
+    {
+     "name": "OnboardingSteps",
+     "title": "First run, all six steps"
+    },
+    {
+     "name": "Landing",
+     "title": "The preparing page, before the first start"
+    },
+    {
+     "name": "About",
+     "title": "About, provenance and updates from this fork"
+    },
+    {
+     "name": "ReleaseNotes",
+     "title": "Provider text rendered, and its empty state"
+    }
+   ]
+  },
+  {
+   "id": "03-settings",
+   "title": "Settings pages, part 1: devices, and automations with tests, history and their Git repositories",
+   "boards": [
+    {
+     "name": "Integrations",
+     "title": "Integrations"
+    },
+    {
+     "name": "IntegrationPage",
+     "title": "One integration"
+    },
+    {
+     "name": "AddIntegration",
+     "title": "Add integration, pick, set up, assign areas"
+    },
+    {
+     "name": "Devices",
+     "title": "Devices"
+    },
+    {
+     "name": "Device",
+     "title": "One device"
+    },
+    {
+     "name": "Entities",
+     "title": "Entities"
+    },
+    {
+     "name": "EntitySettings",
+     "title": "Entity settings"
+    },
+    {
+     "name": "Helpers",
+     "title": "Helpers"
+    },
+    {
+     "name": "Automations",
+     "title": "Automations"
+    },
+    {
+     "name": "AutomationEditor",
+     "title": "Automation editor"
+    },
+    {
+     "name": "AutomationChoose",
+     "title": "Choose between options, with a test on every option and condition"
+    },
+    {
+     "name": "AutomationHistory",
+     "title": "History manager for automations: test and run versions in bulk"
+    },
+    {
+     "name": "AutomationRepo",
+     "title": "One repository for each automation"
+    },
+    {
+     "name": "AutomationsMaster",
+     "title": "The master repository of all automations"
+    },
+    {
+     "name": "AutomationTrace",
+     "title": "Automation trace, one past run"
+    }
+   ]
+  },
+  {
+   "id": "04-settings",
+   "title": "Settings pages, part 2: Settings home, scenes, scripts, areas and apps",
+   "boards": [
+    {
+     "name": "SettingsHome",
+     "title": "Settings, the home of settings"
+    },
+    {
+     "name": "Settings",
+     "title": "app settings that explain themselves"
+    },
+    {
+     "name": "Scenes",
+     "title": "Scenes"
+    },
+    {
+     "name": "SceneEditor",
+     "title": "Scene editor"
+    },
+    {
+     "name": "Scripts",
+     "title": "Scripts"
+    },
+    {
+     "name": "ScriptEditor",
+     "title": "Script editor"
+    },
+    {
+     "name": "Blueprints",
+     "title": "Blueprints"
+    },
+    {
+     "name": "Areas",
+     "title": "Areas and floors"
+    },
+    {
+     "name": "Area",
+     "title": "One area"
+    },
+    {
+     "name": "Labels",
+     "title": "Labels"
+    },
+    {
+     "name": "Zones",
+     "title": "Zones on the map"
+    },
+    {
+     "name": "Apps",
+     "title": "Apps, installed"
+    },
+    {
+     "name": "AppStore",
+     "title": "App store"
+    },
+    {
+     "name": "AppPage",
+     "title": "One app"
+    },
+    {
+     "name": "Dashboards",
+     "title": "Dashboards and resources"
+    }
+   ]
+  },
+  {
+   "id": "05-system",
+   "title": "Settings pages, part 3: voice, people, cloud, and the first System pages",
+   "boards": [
+    {
+     "name": "VoiceAssistants",
+     "title": "Voice assistants"
+    },
+    {
+     "name": "VoicePipeline",
+     "title": "One voice assistant, its four stages"
+    },
+    {
+     "name": "Expose",
+     "title": "Expose entities to assistants"
+    },
+    {
+     "name": "Tags",
+     "title": "Tags"
+    },
+    {
+     "name": "People",
+     "title": "People"
+    },
+    {
+     "name": "Users",
+     "title": "Users"
+    },
+    {
+     "name": "EnergyConfig",
+     "title": "Energy setup"
+    },
+    {
+     "name": "Cloud",
+     "title": "Home Assistant Cloud"
+    },
+    {
+     "name": "System",
+     "title": "System"
+    },
+    {
+     "name": "Updates",
+     "title": "Updates"
+    },
+    {
+     "name": "Repairs",
+     "title": "Repairs"
+    },
+    {
+     "name": "Logs",
+     "title": "Logs"
+    },
+    {
+     "name": "Backups",
+     "title": "Backups"
+    },
+    {
+     "name": "BackupSettings",
+     "title": "Backup settings"
+    },
+    {
+     "name": "Analytics",
+     "title": "Analytics"
+    }
+   ]
+  },
+  {
+   "id": "06-tools",
+   "title": "System pages, part 2, and Developer tools",
+   "boards": [
+    {
+     "name": "Network",
+     "title": "Network"
+    },
+    {
+     "name": "Storage",
+     "title": "Storage"
+    },
+    {
+     "name": "Hardware",
+     "title": "Hardware"
+    },
+    {
+     "name": "General",
+     "title": "General"
+    },
+    {
+     "name": "Labs",
+     "title": "Labs"
+    },
+    {
+     "name": "AiIds",
+     "title": "AI and entity IDs"
+    },
+    {
+     "name": "Restart",
+     "title": "Restart options"
+    },
+    {
+     "name": "DevYaml",
+     "title": "Developer tools, YAML"
+    },
+    {
+     "name": "DevStates",
+     "title": "Developer tools, States"
+    },
+    {
+     "name": "DevActions",
+     "title": "Developer tools, Actions"
+    },
+    {
+     "name": "DevTemplate",
+     "title": "Developer tools, Template"
+    },
+    {
+     "name": "DevEvents",
+     "title": "Developer tools, Events"
+    },
+    {
+     "name": "DevStatistics",
+     "title": "Developer tools, Statistics"
+    },
+    {
+     "name": "DevAssist",
+     "title": "Developer tools, Assist"
+    },
+    {
+     "name": "DevDebug",
+     "title": "Developer tools, Debug and action history"
+    }
+   ]
+  },
+  {
+   "id": "07-protocols",
+   "title": "Radios and protocols",
+   "boards": [
+    {
+     "name": "Zigbee",
+     "title": "Zigbee network"
+    },
+    {
+     "name": "ZWave",
+     "title": "Z-Wave network"
+    },
+    {
+     "name": "Matter",
+     "title": "Matter"
+    },
+    {
+     "name": "Thread",
+     "title": "Thread networks"
+    },
+    {
+     "name": "BluetoothPage",
+     "title": "Bluetooth"
+    },
+    {
+     "name": "Mqtt",
+     "title": "MQTT"
+    },
+    {
+     "name": "Infrared",
+     "title": "Infrared and radio remotes"
+    },
+    {
+     "name": "Lorawan",
+     "title": "LoRaWAN"
+    },
+    {
+     "name": "Serial",
+     "title": "Serial ports and Modbus"
+    },
+    {
+     "name": "Discovery",
+     "title": "Network discovery browsers"
+    },
+    {
+     "name": "AppCredentials",
+     "title": "Application credentials"
+    }
+   ]
+  },
+  {
+   "id": "08-dialogs",
+   "title": "Entity dialogs, all 34 kinds",
+   "boards": [
+    {
+     "name": "More1",
+     "title": "Entity dialogs: light, climate, cover"
+    },
+    {
+     "name": "More2",
+     "title": "Entity dialogs: lock, alarm, camera"
+    },
+    {
+     "name": "More3",
+     "title": "Entity dialogs: media player, vacuum, fan"
+    },
+    {
+     "name": "More4",
+     "title": "Entity dialogs: weather, sensor, update"
+    },
+    {
+     "name": "More5",
+     "title": "Entity dialogs: person, timer, counter"
+    },
+    {
+     "name": "More6",
+     "title": "Entity dialogs: humidifier, water heater, valve"
+    },
+    {
+     "name": "More7",
+     "title": "Entity dialogs: siren, lawn mower, remote"
+    },
+    {
+     "name": "More8",
+     "title": "Entity dialogs: switch, toggle, group"
+    },
+    {
+     "name": "More9",
+     "title": "Entity dialogs: automation, script, conversation"
+    },
+    {
+     "name": "More10",
+     "title": "Entity dialogs: date, time, date and time"
+    },
+    {
+     "name": "More11",
+     "title": "Entity dialogs: sun, image, calendar"
+    },
+    {
+     "name": "More12",
+     "title": "Entity dialogs: setup step, any other entity, and what every dialog shares"
+    }
+   ]
+  },
+  {
+   "id": "09-features",
+   "title": "required features: language, voice, Material Design 3 appearance and tokens",
+   "boards": [
+    {
+     "name": "Language",
+     "title": "Language modes and playfulness"
+    },
+    {
+     "name": "Vocabulary",
+     "title": "Personal wording file and drop celebration"
+    },
+    {
+     "name": "Narration",
+     "title": "Spoken narrator and action sounds"
+    },
+    {
+     "name": "Modes",
+     "title": "School mode and focus modes"
+    },
+    {
+     "name": "Schedule",
+     "title": "Scheduled settings"
+    },
+    {
+     "name": "Identity",
+     "title": "Renaming the app and its logo"
+    },
+    {
+     "name": "DimSum",
+     "title": "Dim sum surprise"
+    },
+    {
+     "name": "AppearanceType",
+     "title": "Edit appearance, type at Word depth"
+    },
+    {
+     "name": "AppearanceLayers",
+     "title": "Edit appearance, layered fills"
+    },
+    {
+     "name": "ColorPicker",
+     "title": "Infinite colour picker and translator"
+    },
+    {
+     "name": "Fonts",
+     "title": "Fonts and type scale"
+    },
+    {
+     "name": "Accessibility",
+     "title": "Accessibility tools everywhere"
+    },
+    {
+     "name": "Panels",
+     "title": "Resizable panels and folding filters"
+    },
+    {
+     "name": "Tokens",
+     "title": "Material Design 3 tokens"
+    }
+   ]
+  },
+  {
+   "id": "10-features",
+   "title": "required features: navigation, search, safety and locks",
+   "boards": [
+    {
+     "name": "Tabs",
+     "title": "Every tab open, and the New tab catalog"
+    },
+    {
+     "name": "CommandPalette",
+     "title": "Command palette with live controls"
+    },
+    {
+     "name": "Regex",
+     "title": "Pattern workbench on every search"
+    },
+    {
+     "name": "ContextMenu",
+     "title": "Context menu on every element"
+    },
+    {
+     "name": "GuidedForm",
+     "title": "Guided forms and per-control help"
+    },
+    {
+     "name": "Extensions",
+     "title": "Extension manager and permission consent"
+    },
+    {
+     "name": "BlankEditor",
+     "title": "Starting points for a blank editor"
+    },
+    {
+     "name": "SuperConfirm",
+     "title": "Two-key super confirmation"
+    },
+    {
+     "name": "Locks",
+     "title": "Toy lock wizard, six credential mixes"
+    },
+    {
+     "name": "Ladder",
+     "title": "Unlock prompt and the unlock ladder"
+    },
+    {
+     "name": "SupportTickets",
+     "title": "Support Tickets recovery desk"
+    },
+    {
+     "name": "Authenticator",
+     "title": "Built-in authenticator"
+    },
+    {
+     "name": "QrPairing",
+     "title": "QR pairing for an authenticator"
+    }
+   ]
+  },
+  {
+   "id": "11-features",
+   "title": "required features: records, history and built-in tools",
+   "boards": [
+    {
+     "name": "History",
+     "title": "Local version history"
+    },
+    {
+     "name": "Export",
+     "title": "Export everything, every format"
+    },
+    {
+     "name": "Bulk",
+     "title": "Bulk actions on any list"
+    },
+    {
+     "name": "Changelog",
+     "title": "Changelog viewer with date range"
+    },
+    {
+     "name": "Docs",
+     "title": "Offline help articles"
+    },
+    {
+     "name": "Notifications",
+     "title": "Notification centre and toasts"
+    },
+    {
+     "name": "Converter",
+     "title": "Universal local file converter"
+    },
+    {
+     "name": "Base64",
+     "title": "Base64 toolkit"
+    },
+    {
+     "name": "Ollama",
+     "title": "Local Ollama suite manager"
+    },
+    {
+     "name": "Handoff",
+     "title": "External editor and publishing to a forge"
+    },
+    {
+     "name": "Minecraft",
+     "title": "Minecraft server manager"
+    },
+    {
+     "name": "WorldGen",
+     "title": "Minecraft world generator"
+    },
+    {
+     "name": "Drawing",
+     "title": "Drawing and annotation board"
+    },
+    {
+     "name": "Progress",
+     "title": "Progress where it started, recovery where it broke"
+    }
+   ]
+  },
+  {
+   "id": "12-polish",
+   "title": "Polish pass: pattern workbench, element tools and locks",
+   "boards": [
+    {
+     "name": "WorkbenchPhone",
+     "title": "Pattern workbench on a phone"
+    },
+    {
+     "name": "WorkbenchWide",
+     "title": "Pattern workbench in a wide window"
+    },
+    {
+     "name": "ElementMenuPhone",
+     "title": "Element tools on a phone, opened by touch and hold"
+    },
+    {
+     "name": "ElementMenuWide",
+     "title": "Element tools in a wide window"
+    },
+    {
+     "name": "LockWizardPhone",
+     "title": "Lock wizard on a phone"
+    },
+    {
+     "name": "LockWizardWide",
+     "title": "Lock wizard in a wide window"
+    },
+    {
+     "name": "UnlockPhone",
+     "title": "Unlock prompt and PIN keypad on a phone"
+    },
+    {
+     "name": "UnlockWide",
+     "title": "Unlock prompt in a wide window"
+    },
+    {
+     "name": "LockListPhone",
+     "title": "List of locks on a phone"
+    },
+    {
+     "name": "LockListWide",
+     "title": "List of locks in a wide window"
+    }
+   ]
+  },
+  {
+   "id": "13-polish",
+   "title": "Polish pass: personal settings, guided setup, guidance, rail and media search",
+   "boards": [
+    {
+     "name": "PersonalPhone",
+     "title": "Personal settings on a phone"
+    },
+    {
+     "name": "PersonalWide",
+     "title": "Personal settings in a wide window"
+    },
+    {
+     "name": "SetupListPhone",
+     "title": "Guided setup list on a phone"
+    },
+    {
+     "name": "SetupListWide",
+     "title": "Guided setup list in a wide window"
+    },
+    {
+     "name": "SetupWizardPhone",
+     "title": "Guided setup wizard on a phone"
+    },
+    {
+     "name": "SetupWizardWide",
+     "title": "Guided setup wizard in a wide window"
+    },
+    {
+     "name": "GuidancePhone",
+     "title": "Guidance note in setup dialogs, on a phone"
+    },
+    {
+     "name": "GuidanceWide",
+     "title": "Guidance note in setup dialogs, wide"
+    },
+    {
+     "name": "RailDevTools",
+     "title": "Developer tools on the rail"
+    },
+    {
+     "name": "MediaSearchPhone",
+     "title": "Media search with the workbench, on a phone"
+    },
+    {
+     "name": "MediaSearchWide",
+     "title": "Media search with the workbench, wide"
+    }
+   ]
+  },
+  {
+   "id": "14-decisions",
+   "title": "Decisions the audit asked for: phone reach, tabs, picking, dialogs, confirmation, locks, workbench, settings",
+   "boards": [
+    {
+     "name": "PhoneReach",
+     "title": "Search, accessibility and New tab on a phone"
+    },
+    {
+     "name": "PhoneTabs",
+     "title": "Open pages on a phone, with one hand"
+    },
+    {
+     "name": "PickTouch",
+     "title": "Choosing an element by touch"
+    },
+    {
+     "name": "AlertReplacements",
+     "title": "Replacing the browser's blocking boxes"
+    },
+    {
+     "name": "TwoStepPhone",
+     "title": "Two-step confirmation on a phone"
+    },
+    {
+     "name": "LocksMore",
+     "title": "Locks still to build, part 1"
+    },
+    {
+     "name": "LocksMore2",
+     "title": "Locks still to build, part 2"
+    },
+    {
+     "name": "WorkbenchMore",
+     "title": "Pattern workbench, gaps against the reference tool"
+    },
+    {
+     "name": "SettingsMore",
+     "title": "Settings controls still to build"
+    }
+   ]
+  },
+  {
+   "id": "15-site",
+   "title": "Project page: every tab, wide and phone, light and dark",
+   "boards": [
+    {
+     "name": "SiteHome",
+     "title": "Project page, Home, wide, light"
+    },
+    {
+     "name": "SiteHomeDark",
+     "title": "Project page, Home, wide, dark"
+    },
+    {
+     "name": "SiteFeatures",
+     "title": "Project page, Features filtered to built, wide"
+    },
+    {
+     "name": "SiteArticle",
+     "title": "Project page, one article per feature, wide"
+    },
+    {
+     "name": "SiteSettings",
+     "title": "Project page, Settings, wide"
+    },
+    {
+     "name": "SiteTools",
+     "title": "Project page, Tools, wide, dark"
+    },
+    {
+     "name": "SitePalette",
+     "title": "Project page, Ctrl Shift F search with live controls"
+    },
+    {
+     "name": "SiteMenu",
+     "title": "Project page, the menu on any element"
+    },
+    {
+     "name": "SiteAppearance",
+     "title": "Project page, editing the appearance of an element"
+    },
+    {
+     "name": "SiteWorkbench",
+     "title": "Project page, the pattern workbench from a search"
+    },
+    {
+     "name": "SiteUnlock",
+     "title": "Project page, a lock and its keypad"
+    },
+    {
+     "name": "SitePhone",
+     "title": "Project page, phone, light"
+    },
+    {
+     "name": "SitePhoneSettings",
+     "title": "Project page, phone, Settings, dark"
+    },
+    {
+     "name": "SitePhoneBoth",
+     "title": "Project page, phone, English and Cantonese together"
+    }
+   ]
+  },
+  {
+   "id": "16-deploy-assistant",
+   "title": "Deploy Assistant: one-click deploys, instances, backups, downloads and Raspberry Pi cards",
+   "boards": [
+    {
+     "name": "DeployWelcome",
+     "title": "Deploy Assistant, first run: what this computer can run"
+    },
+    {
+     "name": "DeployHome",
+     "title": "Deploy Assistant, one click per target"
+    },
+    {
+     "name": "DeployHomeDark",
+     "title": "Deploy Assistant, one click per target, dark"
+    },
+    {
+     "name": "DeployOptions",
+     "title": "Deploy Assistant, options before deploying"
+    },
+    {
+     "name": "DeployProgress",
+     "title": "Deploy Assistant, deploying with live steps"
+    },
+    {
+     "name": "DeployReady",
+     "title": "Deploy Assistant, ready with its link"
+    },
+    {
+     "name": "DeployInstances",
+     "title": "Deploy Assistant, instance manager"
+    },
+    {
+     "name": "DeployInstancesDark",
+     "title": "Deploy Assistant, instance manager, dark"
+    },
+    {
+     "name": "DeployInstanceMenu",
+     "title": "Deploy Assistant, the tools of one instance"
+    },
+    {
+     "name": "DeployBackups",
+     "title": "Deploy Assistant, backups and their schedule"
+    },
+    {
+     "name": "DeployDownloads",
+     "title": "Deploy Assistant, automatic downloads"
+    },
+    {
+     "name": "DeployPiWrite",
+     "title": "Deploy Assistant, writing a Raspberry Pi card"
+    },
+    {
+     "name": "DeployPiProgress",
+     "title": "Deploy Assistant, writing and checking the card"
+    },
+    {
+     "name": "DeployPalette",
+     "title": "Deploy Assistant, Ctrl Shift F with live controls"
+    },
+    {
+     "name": "DeployNarrow",
+     "title": "Deploy Assistant, a narrow window"
+    }
+   ]
+  }
+ ],
+ "deployVersion": "1.0.0"
 };

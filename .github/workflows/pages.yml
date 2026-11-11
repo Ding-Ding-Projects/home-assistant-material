@@ -35,6 +35,15 @@ jobs:
           persist-credentials: false
           sparse-checkout: docs/site
 
+      - name: Point the download buttons at the newest Deploy Assistant
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases?per_page=50" \
+            --jq '[.[] | select(.tag_name | startswith("deploy-assistant-v"))][0] // {} | {tag: .tag_name, version: (.tag_name // "" | ltrimstr("deploy-assistant-v")), published: .published_at, assets: [(.assets // [])[] | {name, url: .browser_download_url, size}]}' \
+            | { printf 'window.DEPLOY_RELEASE = '; cat; printf ';\n'; } > docs/site/deploy-release.js
+          cat docs/site/deploy-release.js
+
       - name: Set up Pages
         uses: actions/configure-pages@v5
 

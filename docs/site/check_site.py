@@ -46,7 +46,7 @@ with sync_playwright() as p:
         pg.goto(base + 'index.html')
         pg.wait_for_timeout(500)
         pg.keyboard.press('Escape')
-        for t in ['home', 'run', 'features', 'articles', 'design', 'changes', 'tools', 'settings', 'history', 'support']:
+        for t in ['home', 'run', 'deploy', 'features', 'status', 'articles', 'design', 'changes', 'tools', 'settings', 'history', 'support']:
             pg.click('#t-' + t)
             assert pg.locator('#p-' + t).inner_text().strip(), t + ' is empty'
         sw = pg.evaluate('document.documentElement.scrollWidth')

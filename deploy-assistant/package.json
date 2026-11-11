@@ -1,0 +1,30 @@
+{
+  "name": "ham-deploy-assistant",
+  "productName": "Home Assistant Material Deploy Assistant",
+  "version": "1.0.0",
+  "description": "Deploy Home Assistant Material in one click: on this computer with Docker, on an SSH host, or in VirtualBox or VMware. Manage every instance and its backups.",
+  "main": "src/main.js",
+  "license": "Apache-2.0",
+  "author": "Ding Ding Projects",
+  "homepage": "https://ding-ding-projects.github.io/home-assistant-material/",
+  "scripts": {
+    "start": "node build-renderer.js && electron .",
+    "test": "node --test test/*.test.js",
+    "package": "electron-forge package",
+    "make": "node build-renderer.js && electron-forge make",
+    "build": "node build-renderer.js"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "ssh2": "^1.16.0",
+    "tar": "^7.4.3",
+    "xz-decompress": "^0.2.3"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.6.0",
+    "@electron-forge/maker-deb": "^7.6.0",
+    "@electron-forge/maker-squirrel": "^7.6.0",
+    "@electron-forge/maker-zip": "^7.6.0",
+    "electron": "^33.2.0"
+  }
+}

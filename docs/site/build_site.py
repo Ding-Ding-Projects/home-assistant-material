@@ -76,13 +76,14 @@ F = [
  # Evidence and the page itself
  ('completeness-parity', 'Evidence', 'What is and is not done', 'Every feature has an honest state, from designed to seen working.', 'Features: every feature with its state in the product.', 'built', 'The status page in the repository.', 'features:top'),
  ('front-provenance', 'Evidence', 'Version and updated-at on the first screen', 'The version and the date and time it was made are shown on the first screen.', 'The foot of every tab.', 'built', 'Built.', 'home:top'),
+ ('deploy-assistant', 'Tools', 'Deploy Assistant', 'A desktop app that deploys Home Assistant Material in one click to Docker on this computer, an SSH host, VirtualBox or VMware, writes Raspberry Pi cards, manages every instance with backups, and keeps all images downloaded.', 'Deploy Assistant: download it, or try the real window running as a demo.', 'written', 'Docker on this computer was run end to end in a test: two instances, backup, restore and removal. SSH, VirtualBox, VMware and writing a real card are written and not yet seen working.', 'deploy:top'),
  ('product-evidence', 'Evidence', 'Real pictures of the product', 'Pictures of the product are taken from running builds, never mockups.', 'Home and the feature articles use pictures from running builds.', 'built', 'Pictures are in docs/screenshots.', 'home:built'),
- ('design-reference-parity', 'Evidence', 'The design in the repository', 'Every page is drawn as a board, and the build is compared with its board.', 'Design.', 'built', '197 boards on 15 canvases.', 'design:top'),
+ ('design-reference-parity', 'Evidence', 'The design in the repository', 'Every page is drawn as a board, and the build is compared with its board.', 'Design.', 'built', '212 boards on 16 canvases.', 'design:top'),
  ('nothing-cut-off', 'Evidence', 'Nothing cut off at any size', 'Every surface is checked at phone and wide sizes, larger text and both languages, with nothing cut off.', 'This page works from 320 px wide, at 200% text, in both languages.', 'partly', 'Checked for the built surfaces.', 'home:top'),
  ('picture-gallery', 'Evidence', 'Picture gallery', 'A gallery of pictures from running builds.', 'Design, Pictures.', 'partly', 'Pictures are in docs/screenshots.', 'design:pictures'),
  ('landing-site', 'Page', 'This page', 'A project page that carries every feature it can, on its own content and in your browser.', 'All of it.', 'built', 'This page.', 'home:top'),
  ('phone-site', 'Page', 'Works on a phone', 'From 320 px wide, with no sideways scroll and touch targets of at least 44 px.', 'Open this page on a phone.', 'built', 'This page.', 'home:top'),
- ('installer-download-button', 'Page', 'Download', 'A download button that points only at a published release file.', 'Run it: the release page and the container image. No installer file exists for this product.', 'na', 'The product ships a container and operating system images, not an installer.', 'run:top'),
+ ('installer-download-button', 'Page', 'Download', 'A download button that points only at a published release file.', 'Deploy Assistant: one button per system, each pointing at a file of the newest Deploy Assistant release.', 'built', 'The Deploy Assistant is released with Setup.exe, a .deb and zips; the product itself is a container and operating system images.', 'deploy:top'),
  ('feature-articles', 'Page', 'One article per feature', 'Each feature has its own article with what it does, how to use it here, its state, and articles to read next.', 'Articles.', 'built', 'This page.', 'articles:top'),
  ('vendored-fonts', 'Page', 'Fonts served from this page', 'The typeface is served from this page, checked by its SHA-256 sums, and never loaded from another site.', 'Google Sans Flex, from this page.', 'built', 'scripts/vendor-fonts.sh.', 'home:top'),
  ('shared-link-embed', 'Page', 'A real picture when the link is shared', 'Pasting the link in a chat shows a picture of the product.', 'This page carries its preview picture and tags.', 'built', 'This page.', 'home:top'),
@@ -97,6 +98,73 @@ F = [
 
 def git(*a):
     return subprocess.run(['git', '-C', ROOT] + list(a), capture_output=True, text=True).stdout.strip()
+
+
+def status_sections():
+    """The status page (docs/feature-status.md) as sections of rows, so the project page can show it."""
+    out, cur, head = [], None, None
+    for line in open(os.path.join(ROOT, 'docs', 'feature-status.md'), encoding='utf-8'):
+        line = line.rstrip('\n')
+        if line.startswith('## '):
+            cur = {'title': line[3:].strip(), 'head': [], 'rows': []}
+            out.append(cur)
+            head = None
+        elif cur is not None and line.startswith('|'):
+            cells = [c.strip().replace('`', '') for c in line.strip().strip('|').split('|')]
+            if set(''.join(cells)) <= set('-: '):
+                continue
+            if head is None:
+                head = cells
+                cur['head'] = cells
+            else:
+                cur['rows'].append(cells)
+    return [x for x in out if x['rows']]
+
+
+def boards():
+    """Every design board with a picture, by canvas, for the gallery on the project page."""
+    from PIL import Image
+    dest = os.path.join(HERE, 'boards')
+    os.makedirs(dest, exist_ok=True)
+    out = []
+    cdir = os.path.join(ROOT, 'design', 'canvases')
+    for c in sorted(os.listdir(cdir)):
+        f = os.path.join(cdir, c, 'canvas.json')
+        if not os.path.exists(f):
+            continue
+        idx = json.load(open(f))
+        items = []
+        for k in idx.get('order', []):
+            name = k.replace('.dc.html', '')
+            frame = os.path.join(ROOT, 'design', 'frames', name + '.png')
+            if not os.path.exists(frame):
+                continue
+            webp = os.path.join(dest, name + '.webp')
+            if not os.path.exists(webp) or os.path.getmtime(webp) < os.path.getmtime(frame):
+                im = Image.open(frame).convert('RGB')
+                if im.width > 1000:
+                    im = im.resize((1000, round(im.height * 1000 / im.width)), Image.LANCZOS)
+                im.save(webp, 'WEBP', quality=72)
+            items.append({'name': name, 'title': idx['boards'][k].get('title', name)})
+        out.append({'id': c, 'title': idx.get('title', c), 'boards': items})
+    keep = {b['name'] + '.webp' for c in out for b in c['boards']}
+    for f in os.listdir(dest):
+        if f not in keep:
+            os.remove(os.path.join(dest, f))
+    return out
+
+
+def deploy_demo():
+    """Copies the Deploy Assistant's page here, so the project page can run it as a demo."""
+    import shutil
+    src = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
+    dest = os.path.join(HERE, 'deploy-assistant')
+    os.makedirs(os.path.join(dest, 'fonts'), exist_ok=True)
+    for f in ['index.html', 'app.js', 'app.css', 'icons.js', 'mock.js']:
+        shutil.copy(os.path.join(src, f), os.path.join(dest, f))
+    for f in os.listdir(os.path.join(src, 'fonts')):
+        shutil.copy(os.path.join(src, 'fonts', f), os.path.join(dest, 'fonts', f))
+    return json.load(open(os.path.join(ROOT, 'deploy-assistant', 'package.json')))['version']
 
 
 def main():
@@ -123,7 +191,7 @@ def main():
     icons = {k: icons_all[k] for k in want if k in icons_all}
     data = {'icons': icons, 'version': versions['core'], 'updated': changes[0]['date'] if changes else '', 'commit': changes[0]['sha'] if changes else '',
             'repo': 'https://github.com/' + versions['repository'], 'image': 'ghcr.io/' + versions['registry_owner'] + '/home-assistant-material',
-            'features': feats, 'changes': changes}
+            'features': feats, 'changes': changes, 'status': status_sections(), 'canvases': boards(), 'deployVersion': deploy_demo()}
     out = os.path.join(HERE, 'data.js')
     open(out, 'w').write('// Written by build_site.py. Do not edit by hand.\nwindow.SITE = ' + json.dumps(data, ensure_ascii=False, indent=1) + ';\n')
     print(out, len(feats), 'features', len(changes), 'changes')
