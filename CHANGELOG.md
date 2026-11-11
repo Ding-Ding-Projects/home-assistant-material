@@ -13,7 +13,7 @@ day can hold several releases. The interface shows this list under Settings, Abo
   running the manager against a real SSH and Docker host (a throwaway container), where host
   trust, a real start, logs, stop, restart and every refusal worked.
 - Fixed: Enter in a one-line name prompt (for example New folder) now confirms it, except in a
-  prompt that deletes something. Not yet seen in a running build.
+  prompt that deletes something. Seen in build 109.
 - Fixed: cells in the Ollama models table no longer break inside words on a narrow screen; the
   table scrolls sideways instead. Found by running the pages against a real Ollama server, where
   listing, pull, cancel, delete, unload and the test chat worked. The fix is not yet seen.

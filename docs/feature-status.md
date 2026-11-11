@@ -86,8 +86,8 @@ address retired by its service, fixed in batch 24.
 Not seen in any browser, as of build 106: the "Add media" fix on a real phone, the update install progress and recovery card during a
 real install (no real update has been available), the editor save bar, the embedded page
 panel, the converter's new conversions actually run in a browser, schedules, the activity
-tray, and the two batch 24 fixes (Enter in a one-line prompt, and Ollama table cells that no
-longer break inside words).
+tray, and the batch 24 fix to Ollama table cells. Enter in a one-line prompt was seen
+working in build 109 (New folder in the media Manage dialog, 390 px wide).
 
 ## What was checked for batches 20 to 23 (commits `d68fda3b1`, `88b36b5d8`, `ba7a6a431`, `e0f2d7235`, `5fbf6d91b`)
 

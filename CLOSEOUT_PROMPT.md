@@ -70,8 +70,8 @@ product matching it.
 - Not seen in any browser: the "Add media" fix on a real phone, the update install progress and recovery card during a
   real install (no real update has been available), the editor save bar, the embedded page
   panel, the converter's new conversions actually run in a browser, schedules, the activity
-  tray, and the two batch 24 fixes (Enter in a one-line prompt, and Ollama table cells that no
-  longer break inside words). Also
+  tray, and the batch 24 fix to Ollama table cells. Enter in a one-line prompt was seen
+  working in build 109 (New folder in the media Manage dialog, 390 px wide). Also
   unseen: the activity record's search and a push to a real Git remote, and everything from the
   earlier batches that `docs/feature-status.md` still marks "not yet seen".
 - A documentation-only push publishing no release has not been observed.

@@ -4,13 +4,16 @@
       "date": "2026-11-11",
       "items": [
         {
-          "text": "Fixed: refreshing the Minecraft version list always failed for Paper, because the service retired the address the list came from. It now uses the service's current address. Found by running the manager against a real SSH and Docker host (a throwaway container), where host trust, a real start, logs, stop, restart and every refusal worked."
+          "text": "Fixed: refreshing the Minecraft version list always failed for Paper, because the service retired the address the list came from. It now uses the service's current address. Found by running the manager against a real SSH and Docker host (a throwaway container), where host trust, a real start, logs, stop, restart and every refusal worked.",
+          "commit": "56505e0f2aa6"
         },
         {
-          "text": "Fixed: Enter in a one-line name prompt (for example New folder) now confirms it, except in a prompt that deletes something. Not yet seen in a running build."
+          "text": "Fixed: Enter in a one-line name prompt (for example New folder) now confirms it, except in a prompt that deletes something. Seen in build 109.",
+          "commit": "56505e0f2aa6"
         },
         {
-          "text": "Fixed: cells in the Ollama models table no longer break inside words on a narrow screen; the table scrolls sideways instead. Found by running the pages against a real Ollama server, where listing, pull, cancel, delete, unload and the test chat worked. The fix is not yet seen."
+          "text": "Fixed: cells in the Ollama models table no longer break inside words on a narrow screen; the table scrolls sideways instead. Found by running the pages against a real Ollama server, where listing, pull, cancel, delete, unload and the test chat worked. The fix is not yet seen.",
+          "commit": "56505e0f2aa6"
         },
         {
           "text": "New: Activity has a permanent record. Everything the Activity page shows is also written to a Git repository in the configuration folder, one folder of chunk files for each day, committed in batches (every ten minutes and at shutdown) and never purged, rewritten or squashed. A Permanent record page lists the days, shows a day, searches one day or all days and holds the Git remote settings; nothing leaves the instance unless an administrator sets a remote and pushes. It grows for ever by design, and the folder is included in backups. It can still lose entries in the ways its documentation lists (a power cut in the seconds before a flush, a real queue overflow, shutdown while the disk is failing) and it does not import entries from before it started. Run for real on a throwaway copy across two restarts, and on the hosted instance (build 106) where it created its repository and first day file. The page was seen in build 106 at 390 px wide, showing status Recording, counts and one day.",

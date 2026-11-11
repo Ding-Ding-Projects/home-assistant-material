@@ -85,8 +85,8 @@ Later than the section below; where the two disagree, this one is newer.
 - NOT seen in any browser: the "Add media" fix on a real phone, the update install progress and recovery card during a
   real install (no real update has been available), the editor save bar, the embedded page
   panel, the converter's new conversions actually run in a browser, schedules, the activity
-  tray, and the two batch 24 fixes (Enter in a one-line prompt, and Ollama table cells that no
-  longer break inside words).
+  tray, and the batch 24 fix to Ollama table cells. Enter in a one-line prompt was seen
+  working in build 109 (New folder in the media Manage dialog, 390 px wide).
 - Known limits: the activity record can still lose entries in the ways its documentation lists (a
   power cut in the seconds before a flush, a real queue overflow, shutdown while the disk is
   failing) and does not import entries from before it started; reading PDFs, MP3 output and
