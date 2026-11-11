@@ -44,7 +44,7 @@
     wiz.loading[t] = true;
     API.defaults(t, t === 'ssh' ? (D.hosts[0] || {}).id : '').then(function (d) { wiz.defs[t] = d; wiz.vals[t] = Object.assign({ backupsOn: true, hostId: (D.hosts[0] || {}).id || '' }, d); wiz.loading[t] = false; if (st.active === 'deploy') soon(); }, function (e) { wiz.loading[t] = false; toast(e.message); });
   }
-  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + (about.codeName ? ' · ' + esc(about.codeName) : '') + ' · built ' + esc(b) + '</span>'; }
+  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + (about.codeName && !st.school ? ' · ' + esc(about.codeName) : '') + ' · built ' + esc(b) + '</span>'; }
   function wizField(t, key, label, type, hint, extra) {
     var v = (wiz.vals[t] || {})[key]; return '<label><span class="ll">' + label + '</span><input class="input' + (type === 'mono' ? ' mono' : '') + '" id="wz-' + t + '-' + key + '" data-wiz="' + key + '" type="' + (type === 'number' ? 'number' : 'text') + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '>' + (hint ? '<span class="bs mu">' + hint + '</span>' : '') + '</label>';
   }
@@ -150,7 +150,12 @@
       '<dl class="kv bs"><dt>Created</dt><dd>' + esc(when(i.created)) + '</dd><dt>Port</dt><dd>' + (i.port || 'set by VMware') + '</dd><dt>Data</dt><dd class="mono">' + esc(i.dir || '') + '</dd>' + (i.lanUrl ? '<dt>Other devices</dt><dd class="mono">' + esc(i.lanUrl) + '</dd>' : '') + '</dl>' +
       ((i.backups || []).slice(0, 5).map(function (b) { return '<div class="row" style="gap:8px"><span class="bs grow">' + esc(when(b.at)) + (b.note ? ' · ' + esc(b.note) : '') + (b.size ? ' · ' + fmtSize(b.size) : b.kind === 'snapshot' ? ' · snapshot' : '') + '</span><button class="btn text sm" data-restore="' + i.id + ':' + b.id + '">' + L('restore') + '</button></div>'; }).join('') || '<p class="bs mu">No backups yet.</p>') + '</details></article>';
   }
-  var bsel = {};
+  var bsel = {}, nsel = {};
+  function notesList() {
+    var n = Object.keys(nsel).filter(function (k) { return nsel[k]; }).length;
+    return (n ? '<div class="selbar" role="region" aria-label="Selected notifications"><span class="ll grow">' + n + ' selected</span><button class="btn tonal sm" data-act="notesel-rm">' + icon('DeleteOutline', 's') + 'Remove</button><button class="btn text sm" data-act="notesel-export">' + icon('Export', 's') + L('export') + '</button></div>' : '') +
+      (st.notes.length ? '<div class="row" style="gap:8px"><button class="btn text sm" data-act="notesel-all">Select all ' + st.notes.length + '</button></div><div class="col" style="gap:2px;max-height:260px;overflow:auto">' + st.notes.slice(0, 200).map(function (x, i) { return '<label class="row-item"><input type="checkbox" data-nsel="' + i + '"' + (nsel[i] ? ' checked' : '') + ' aria-label="Select: ' + esc(x.text) + '"><span class="col grow"><span class="bm">' + esc(x.text) + '</span><span class="bs mu">' + esc(when(new Date(x.t).toISOString())) + '</span></span></label>'; }).join('') + '</div>' : '<p class="bm mu">No notifications.</p>');
+  }
   R.backups = function () {
     var m = matcher(q.backups); var rows = [];
     D.instances.forEach(function (i) { (i.backups || []).forEach(function (b) { if (m.test(i.name + ' ' + (b.note || '') + ' ' + b.at)) rows.push([i, b]); }); });
@@ -206,7 +211,7 @@
       '<select class="select" data-logfor aria-label="Instance"><option value="all">Every instance</option>' + D.instances.map(function (i) { return '<option value="' + i.id + '"' + (view.logFor === i.id ? ' selected' : '') + '>' + esc(i.name) + '</option>'; }).join('') + '</select><span class="grow"></span><button class="btn text sm" data-act="export-activity">' + icon('Export', 's') + L('export') + '</button></div>' +
       (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
       '<pre class="logbox tall" tabindex="0" aria-label="Activity log">' + (list.length ? list.map(function (a) { return esc(new Date(a.t).toLocaleTimeString() + '  ' + instName(a.id) + '  ' + a.line); }).join('\n') : 'Nothing yet.') + '</pre>' +
-      '<h2 class="tl" id="history">Changes to settings</h2>' + (st.history.length ? st.history.slice(0, 50).map(function (h, i) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.label) + '</span><span class="bs mu">' + esc(new Date(h.t).toLocaleString()) + '</span></span><button class="btn text sm" data-undo="' + i + '">' + L('undo') + '</button></div>'; }).join('') : '<p class="bm mu">' + esc(msg('emptyHistory')) + '</p>') + '</div>' + '<h2 class="tl" id="records">History of your records</h2><p class="bm mu">Every change to instance names and notes, SSH hosts (never their passwords) and the backup schedule. Restoring adds a new revision, so it can be undone too.</p><div id="rhist" class="col" style="gap:6px"></div>' + foot();
+      '<h2 class="tl" id="history">Changes to settings</h2>' + (st.history.length ? st.history.slice(0, 50).map(function (h, i) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.label) + '</span><span class="bs mu">' + esc(new Date(h.t).toLocaleString()) + '</span></span><button class="btn text sm" data-undo="' + i + '">' + L('undo') + '</button></div>'; }).join('') : '<p class="bm mu">' + esc(msg('emptyHistory')) + '</p>') + '</div>' + '<h2 class="tl" id="notifications">Notifications</h2>' + notesList() + '<h2 class="tl" id="records">History of your records</h2><p class="bm mu">Every change to instance names and notes, SSH hosts (never their passwords) and the backup schedule. Restoring adds a new revision, so it can be undone too.</p><div id="rhist" class="col" style="gap:6px"></div>' + foot();
   };
   function srow(id, title, desc, def, reach, ctl, path) {
     return '<div class="setting" id="s-' + id + '" data-k="s-' + id + '" data-search="' + esc(title + ' ' + desc) + '"><div class="col" style="gap:2px"><span class="stitle"><span class="ll">' + esc(title) + '</span><button class="ib" style="width:32px;height:32px" data-info="' + id + '" aria-label="' + esc(w('explain')) + ': ' + esc(title) + '" aria-expanded="false">' + icon('InformationOutline', 's') + '</button></span><span class="bs mu">' + esc(desc) + '</span></div>' +
@@ -226,8 +231,8 @@
         srow('funYue', 'Playfulness in Cantonese', 'From 1 to 5, separate from English.', '5', 'Messages', seg('funYue', lv, 'Playfulness in Cantonese'), 'funYue'),
         srow('emoji', 'Emoji in dialogs', 'One emoji in dialog titles, never in buttons or names.', 'On', 'Dialog titles', sw('emoji', 'Emoji in dialogs'), 'emoji'),
         srow('vocab', 'Your wording file', st.vocab ? Object.keys(st.vocab).length + ' entries in use.' : 'A JSON file with schemaVersion 1 and entries replaces words in this window. You can also drop it on the window.', 'No file', 'Every label', '<label class="btn tonal sm">' + icon('Upload', 's') + 'Choose a file<input type="file" accept="application/json,.json" id="vocabfile" hidden></label>' + (st.vocab ? '<button class="btn text sm" data-act="vocab-clear">' + L('clear') + '</button>' : ''), '')]],
-      ['modes', 'modes', [srow('school', 'School mode', 'Plain wording, playfulness 1, no sounds, no surprise.', 'Off', 'Language, sound and the surprise', sw('school', 'School mode'), 'school'),
-        srow('dimsum', 'Dim sum surprise', 'At start, now and then, a dim sum dish with its photo from the public dim sum catalog, named in English and Cantonese. It is part of the app: the switch stays on.', 'On', 'A card at the bottom of the window', '<button class="sw on" role="switch" aria-checked="true" aria-label="Dim sum surprise" data-dimtroll><i></i></button><button class="btn text sm" data-act="dimsum">Show me one now</button>', '')]],
+      ['modes', 'modes', [srow('school', schoolInfo.name || 'School mode', 'Plain wording, playfulness 1, no sounds, and nothing about dim sum. Shared with every Ding Ding Projects app on this computer: switching it here switches it in each of them.' + (schoolInfo.locked ? ' A PIN is needed to switch it off.' : '') + (schoolInfo.by && schoolInfo.at ? ' Last changed by ' + schoolInfo.by + ', ' + when(schoolInfo.at) + '.' : ''), 'Off', 'Every app on this computer', '<button class="sw' + (st.school ? ' on' : '') + '" role="switch" aria-checked="' + !!st.school + '" aria-label="' + esc(schoolInfo.name || 'School mode') + '" data-school><i></i></button><button class="btn text sm" data-act="schoolset">Name and PIN</button>', 'school'),
+        st.school ? '' : srow('dimsum', 'Dim sum surprise', 'At start, now and then, a dim sum dish with its photo from the public dim sum catalog, named in English and Cantonese. It is part of the app: the switch stays on.', 'On', 'A card at the bottom of the window', '<button class="sw on" role="switch" aria-checked="true" aria-label="Dim sum surprise" data-dimtroll><i></i></button><button class="btn text sm" data-act="dimsum">Show me one now</button>', '')]],
       ['adhd', 'adhd', [srow('adhdnote', 'About these modes', 'Interface accommodations for attention, each off until you turn it on. They are not a diagnosis or a treatment, and nothing here assesses you.', 'All off', 'This window', '', '')].concat(ADHD.map(function (a) { return srow('adhd-' + a[0], a[1], a[2], 'Off', 'This window', sw('adhd.' + a[0], a[1]), 'adhd.' + a[0]); })).concat([srow('adhd-low', 'Low stimulation', 'Softer colour, no animation, no sounds, no narrator.', 'Off', 'The window', sw('lowStim', 'Low stimulation'), 'lowStim')])],
       ['sound', 'sound', [srow('sounds', 'Action sounds', 'A short sound when something finishes.', 'On', 'Deploys, backups, settings', sw('sounds', 'Action sounds'), 'sounds'),
         srow('voice', 'Reading voice', 'The voice for Read aloud on any element.', 'The system default', 'Read aloud', '<select class="select" data-select="voice" aria-label="Reading voice"><option value="">System default</option>' + (('speechSynthesis' in window) ? speechSynthesis.getVoices() : []).map(function (v) { return '<option' + (v.name === st.voice ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="voice-test">Try it</button>', 'voice'),
@@ -242,7 +247,7 @@
       ['updatesSet', 'updates', [srow('upd', 'Updates', DEMO ? 'The app checks the project\'s releases every four hours.' : (upd.state === 'ready' ? 'Version ' + upd.version + ' is ready; restart to use it.' : upd.state === 'downloading' ? 'Downloading version ' + upd.version + '…' : upd.state === 'available' ? 'Version ' + upd.version + ' is out.' : upd.state === 'offline' ? 'Could not reach the releases: ' + (upd.error || '') : 'You have the newest version.') + ' Updates are not code-signed.', 'Checks every four hours', 'This app', '<button class="btn tonal sm" data-act="checkupd">' + icon('Refresh', 's') + 'Check now</button>', ''),
         srow('selftest', 'Update self-test', 'Downloads the newest update package, checks its size and checksums against the feed, lets the installer stage it on Windows, and shows whether an update was seen applied after a restart.', '', 'Nothing changes unless a newer version is staged', '<button class="btn tonal sm" data-act="selftest">' + icon('PlayCircle', 's') + 'Run the self-test</button>', ''),
         srow('free', 'Free to use', 'This app costs nothing, shows no adverts, and never asks for payment, donations or reviews.', '', 'This app', '', ''),
-        srow('about', 'About this build', (about.codeName ? 'Code name ' + about.codeName + '. ' : '') + 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
+        srow('about', 'About this build', (about.codeName && !st.school ? 'Code name ' + about.codeName + '. ' : '') + 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
       ['appearance', 'appearance', [srow('theme', 'Theme', 'Light, dark, or follow the system.', 'System', 'The window', seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], 'Theme'), 'theme'),
         srow('seed', 'Main colour', 'The colour of buttons and selections.', '#00639B', 'The window', '<input type="color" value="' + st.seed + '" data-color="seed" aria-label="Main colour" style="width:48px;height:40px;border:0;background:none">', 'seed'),
         srow('density', 'Density', 'How much room rows take.', 'Comfortable', 'Lists', seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], 'Density'), 'density'),
@@ -283,18 +288,19 @@
   };
 
   // ---------- Extensions, tools, support, changes ----------
-  var exts = [];
+  var exts = [], extRuns = [], schoolInfo = { name: 'School mode', locked: false };
   R.extensions = function () {
     var m = matcher(q.extensions); var list = exts.filter(function (x) { return m.test([x.name, x.description, x.id].join(' ')); });
-    return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('extensions') + '</h1><button class="btn tonal" data-act="extfolder">' + icon('FolderOpen', 's') + 'Open the extensions folder</button><button class="btn text" data-go="help:h-extensions">' + icon('BookOpenVariant', 's') + 'How to write one</button></div>' +
-      '<p class="bl mu">Small helpers that add commands to this app. Each says what it may see, asks before it runs and again when that changes, runs in its own process for at most 15 seconds, and never gets passwords or keys.</p>' + findField('xsearch', 'Search extensions', q.extensions) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' +
+    return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('extensions') + '</h1><button class="btn fill" data-act="extadd">' + icon('Plus', 's') + 'Add from a folder</button><button class="btn tonal" data-act="extfolder">' + icon('FolderOpen', 's') + 'Open the extensions folder</button><button class="btn text" data-go="help:h-extensions">' + icon('BookOpenVariant', 's') + 'How to write one</button></div>' +
+      '<div class="setting" data-k="extmaster"><span class="col grow"><span class="ll">Extensions</span><span class="bs mu">Switching this off stops every extension at once; what each one was allowed stays recorded.</span></span><button class="sw' + (exts.length && exts[0].master === false ? '' : ' on') + '" role="switch" aria-checked="' + !(exts.length && exts[0].master === false) + '" aria-label="Every extension" data-extmaster><i></i></button></div>' + '<p class="bl mu">Small helpers that add commands to this app. Each says what it may see, asks before it runs and again when that changes, runs in its own process for at most 15 seconds, and never gets passwords or keys.</p>' + findField('xsearch', 'Search extensions', q.extensions) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' +
       '<div class="igrid">' + (list.length ? list.map(function (x) {
         if (x.error) return '<article class="extcard" data-k="ext-' + esc(x.id) + '"><h2 class="tm">' + esc(x.name) + '</h2><div class="note" style="background:var(--errc);color:var(--on-errc)"><span>' + icon('AlertCircle') + '</span><span class="bm">This extension cannot be loaded: ' + esc(x.error) + '</span></div></article>';
         return '<article class="extcard" id="ext-' + esc(x.id) + '" data-k="ext-' + esc(x.id) + '"><div class="row" style="gap:12px"><span class="sq">' + icon('PuzzleOutline') + '</span><span class="col grow"><h2 class="tm">' + esc(x.name) + '</h2><span class="bs mu">' + esc(x.id) + ' · version ' + esc(x.version) + '</span></span>' + sw2('ext:' + x.id, x.enabled, 'Turn on ' + x.name) + '</div><p class="bm">' + esc(x.description) + '</p>' +
           (x.needsConsent ? '<div class="note"><span>' + icon('ShieldAlertOutline') + '</span><span class="bm">It now asks for more. Turn it on again to agree.</span></div>' : '') +
           '<div class="col" style="gap:4px"><span class="ll">It may</span>' + (x.permissionText.length ? x.permissionText.map(function (pt) { return '<span class="bs mu row" style="gap:6px;align-items:flex-start">' + icon('Check', 's') + '<span>' + esc(pt) + '</span></span>'; }).join('') : '<span class="bs mu">Nothing beyond running.</span>') + '</div>' +
-          '<div class="row" style="gap:8px;flex-wrap:wrap">' + x.commands.map(function (c) { return '<button class="btn tonal sm" data-extrun="' + esc(x.id) + ':' + esc(c.id) + '"' + (x.enabled ? '' : ' disabled') + '>' + icon('Play', 's') + esc(c.title) + '</button>'; }).join('') + '</div></article>';
-      }).join('') : '<div class="empty"><p class="bm mu">' + (exts.length ? L('noMatch') : 'No extensions yet.') + '</p></div>') + '</div>' + foot();
+          '<div class="row" style="gap:8px;flex-wrap:wrap">' + (/^(health-report|link-sheet)$/.test(x.id) ? '' : '<button class="btn text sm" data-extrm="' + esc(x.id) + '">' + icon('DeleteOutline', 's') + 'Remove</button>') + x.commands.map(function (c) { return '<button class="btn tonal sm" data-extrun="' + esc(x.id) + ':' + esc(c.id) + '"' + (x.enabled ? '' : ' disabled') + '>' + icon('Play', 's') + esc(c.title) + '</button>'; }).join('') + '</div></article>';
+      }).join('') : '<div class="empty"><p class="bm mu">' + (exts.length ? L('noMatch') : 'No extensions yet.') + '</p></div>') + '</div>' +
+      '<section class="section" id="extruns" data-k="extruns"><h2 class="tl">Recent runs</h2>' + (extRuns.length ? extRuns.map(function (r) { return '<div class="row-item"><span class="tag ' + (r.ok ? 'g' : 'a') + '">' + (r.ok ? 'Answered' : 'Failed') + '</span><span class="col grow"><span class="ll">' + esc(r.name) + ', ' + esc(r.command) + '</span><span class="bs mu">' + esc(when(r.at)) + (r.text ? ' · ' + esc(r.text) : '') + '</span></span></div>'; }).join('') : '<p class="bm mu">No extension has run yet.</p>') + '</section>' + foot();
   };
   function sw2(key, on, label) { return '<button class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + !!on + '" aria-label="' + esc(label) + '" data-sw2="' + esc(key) + '"><i></i></button>'; }
   async function extToggle(id, on) {
@@ -312,7 +318,8 @@
   R.tools = function () {
     return '<div class="section" id="top"><h1 class="hl">' + L('tools') + '</h1><p class="bl mu">Small tools that run entirely in this window.</p><div class="chipline">' + [['regex', 'Pattern workbench'], ['base64', 'Base64'], ['convert', 'Convert'], ['colour', 'Colour'], ['otp', 'Authenticator']].map(function (x) { return '<button class="chip" data-go="tools:' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       '<section class="section" id="regex" data-k="t-regex"><h2 class="tl">Pattern workbench</h2><p class="bm mu">The same workbench every search here opens.</p><div><button class="btn tonal" data-regex="">Open the workbench</button></div></section>' +
-      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64</h2><textarea class="input" id="b64in" aria-label="Base64 input">Home Assistant Material</textarea><div class="chipline"><button class="btn tonal sm" data-act="b64enc">Encode</button><button class="btn tonal sm" data-act="b64dec">Decode</button><label class="row bm" style="gap:8px"><input type="checkbox" id="b64url"> URL-safe</label><label class="row bm" style="gap:8px"><input type="checkbox" id="b64pad" checked> Padding</label><label class="btn text sm">' + icon('Upload', 's') + 'A file<input type="file" id="b64file" hidden></label></div><pre class="wb-test" id="b64out" aria-live="polite"></pre></section>' +
+      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64, converting and drawing</h2><p class="bm mu">Each has its own tab now.</p><div class="chipline"><button class="btn tonal sm" data-go="base64:top">Base64</button><button class="btn tonal sm" data-go="convert:top">Convert</button><button class="btn tonal sm" data-go="draw:top">Draw</button></div></section>' +
+      '<section class="section" id="qrmake" data-k="t-qr"><h2 class="tl">Make a QR code</h2><p class="bm mu">From any text or link, or from a one-time code you added below.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input grow" id="qrtext" aria-label="Text for the QR code" placeholder="http://homeassistant.local:8123"><button class="btn tonal sm" data-act="qrmake">Make it</button>' + (st.otp.length ? '<select class="select" id="qrotp" aria-label="One-time code">' + st.otp.map(function (o2, i2) { return '<option value="' + i2 + '">' + esc(o2.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="qrotp">Show its QR code</button>' : '') + '</div></section>' +
       '<section class="section" id="convert" data-k="t-conv"><h2 class="tl">Convert</h2><p class="bm mu">Paste JSON (a list of objects) or CSV, then convert. Progress and errors show here.</p><textarea class="input" id="cvin" aria-label="Text to convert">[{"name": "Kitchen", "port": 8123}, {"name": "Garage", "port": 8124}]</textarea><div class="chipline"><button class="btn tonal sm" data-conv="csv">To CSV</button><button class="btn tonal sm" data-conv="json">To JSON</button><button class="btn tonal sm" data-conv="yaml">To YAML</button><button class="btn tonal sm" data-conv="md">To Markdown</button></div><div id="cvstat" class="bs mu" aria-live="polite"></div><pre class="wb-test" id="cvout"></pre></section>' +
       '<section class="section" id="colour" data-k="t-col"><h2 class="tl">Colour</h2><div class="row" style="gap:16px;flex-wrap:wrap"><input type="color" id="colin" value="#00639b" aria-label="Pick a colour" style="width:64px;height:48px;border:0;background:none"><input class="input mono" id="coltext" value="#00639B" aria-label="Type a colour as hex, rgb() or hsl()"><span class="swatch" id="colsw" style="background:#00639B"></span></div><div id="colout" class="bm"></div></section>' +
       '<section class="section" id="otp" data-k="t-otp"><h2 class="tl">Authenticator</h2><p class="bm mu">Add a one-time code secret (Base32). Codes are worked out here every 30 seconds. Or scan the QR code a site shows you: from an image, a pasted screenshot, or the camera. Nothing leaves this computer.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" id="otpname" placeholder="Name" aria-label="Name"><input class="input mono" id="otpsecret" placeholder="JBSWY3DPEHPK3PXP" aria-label="Secret"><button class="btn tonal sm" data-act="otpadd">Add</button></div><div class="chipline"><label class="btn tonal sm">' + icon('QrcodeScan', 's') + 'QR code from an image<input type="file" id="qrfile" accept="image/*" hidden></label><button class="btn tonal sm" data-act="qrcam">Use the camera</button><span class="bs mu">or paste a screenshot here</span></div><video id="qrvideo" class="qrvideo" hidden playsinline muted aria-label="Camera view for scanning a QR code"></video><div id="qrout" class="bs mu" aria-live="polite"></div><div id="otplist"></div></section>' + foot();
@@ -420,7 +427,7 @@
   // ---------- Shell ----------
   function shell() {
     var app = $('#app');
-    var winBtns = DEMO ? '' : '<span class="winctl"><button class="ib" data-win="min" aria-label="Minimize">' + icon('WindowMinimize', 's') + '</button><button class="ib" data-win="max" aria-label="Maximize">' + icon('WindowMaximize', 's') + '</button><button class="ib wclose" data-win="close" aria-label="Close the window">' + icon('Close', 's') + '</button></span>';
+    var winBtns = DEMO || API.platform === 'win32' ? (API.platform === 'win32' ? '<span class="wcospace" aria-hidden="true"></span>' : '') : '<span class="winctl"><button class="ib" data-win="min" aria-label="Minimize">' + icon('WindowMinimize', 's') + '</button><button class="ib" data-win="max" aria-label="Maximize">' + icon('WindowMaximize', 's') + '</button><button class="ib wclose" data-win="close" aria-label="Close the window">' + icon('Close', 's') + '</button></span>';
     app.innerHTML = '<a class="skip" href="#main">Skip to the page</a><div class="shell edge-' + st.edge + '">' +
       '<header class="topbar drag" data-k="topbar"><span class="brand"><span class="logo ' + st.logo.shape + '" aria-hidden="true">' + icon('RocketLaunch', 's') + '</span><b>' + esc(st.name) + '</b>' + (DEMO ? '<span class="tag a">Demo</span>' : '') + '</span>' +
       '<button class="btn tonal sm nodrag" data-act="palette" aria-label="' + esc(w('palette')) + ', Ctrl Shift F">' + icon('Magnify', 's') + '<span class="opt">' + L('search') + '</span><span class="kbd opt">Ctrl Shift F</span></button>' +
@@ -453,6 +460,8 @@
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
     if (st.active === 'tools') { otpDraw(); colour(); }
     if (st.active === 'instances') lcFrame();
+    if (st.active === 'draw') drPaint();
+    if (API.overlay && API.platform === 'win32') API.overlay(isDark());
     if (st.active === 'activity') historyPanel();
     document.title = st.name + ' · ' + w(st.active);
   }
@@ -552,7 +561,7 @@
     items.push({ kind: 'Deploy', label: 'Write a Raspberry Pi card', act: 'pi' });
     exts.forEach(function (x) { (x.commands || []).forEach(function (c) { items.push({ kind: 'Extension', label: c.title, sub: x.name + (x.enabled ? '' : ' (off)'), go: 'extensions:ext-' + x.id }); }); });
     [['Add a schedule rule', 'ruleadd'], ['Change the logo', 'logo'], ['Home Assistant connection', 'haconn'], ['Choose your next step', 'nextset'], ['Export the activity', 'export-activity'], ['Export the backups', 'export-backups'], ['Export your settings', 'export-settings'], ['Show a dim sum', 'dimsum'], ['Check for a new version', 'checkupd'], ['Open the extensions folder', 'extfolder']].forEach(function (a2) { items.push({ kind: 'Action', label: a2[0], act: a2[1] }); });
-    [['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
+    [['Convert files', 'convert:top'], ['Convert, PDF tools', 'convert:cv-pdf'], ['Base64, files', 'base64:b64files'], ['Draw', 'draw:top'], ['Tools, Make a QR code', 'tools:qrmake'], ['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
     ['docker', 'ssh', 'virtualbox', 'vmware'].forEach(function (t) { items.push({ kind: 'Deploy', label: 'Deploy in one click: ' + w(t), act: 'deploy-' + t }); items.push({ kind: 'Deploy', label: 'Deploy with options: ' + w(t), act: 'options-' + t }); });
     D.instances.forEach(function (i) { items.push({ kind: 'Instance', label: i.name, sub: (i.url || '') + ' · ' + w(i.state), go: 'instances:inst-' + i.id }); if (i.url) items.push({ kind: 'Open', label: 'Open ' + i.name, act: 'open-' + i.id }); items.push({ kind: 'Backup', label: 'Back up ' + i.name, act: 'backup-' + i.id }); });
     D.hosts.forEach(function (h) { items.push({ kind: 'Host', label: h.name, sub: h.user + '@' + h.address, go: 'hosts:host-' + h.id }); });
@@ -646,6 +655,7 @@
         else if (!p.ok) toast(name + ': ' + p.error);
         reload().then(soon);
       }
+      if (ch === 'school') { schoolApply(p); return; }
       if (ch === 'selftest') { if (selftest) { selftest.steps = p.steps; selftest.draw(); } return; }
       if (ch === 'update' && p.state === 'applied') { toast('Updated from ' + p.from + ' to ' + p.version + '. The update is applied and running.', { emoji: '✅' }); return; }
       if (ch === 'update') { if (upd.state !== 'later' || p.state === 'ready') upd = p; if (p.state === 'ready') { toast('Version ' + p.version + ' is ready. Restart to use it; it is not code-signed.', { emoji: '⬆️' }); narrate('update', 'Version ' + p.version + ' is ready. Restart to use it.', p.version + ' 版本準備好，重新開就用得。'); } soon(); }
@@ -669,6 +679,15 @@
       if ((b = t.closest('[data-rmticket]'))) { st.tickets.splice(+b.dataset.rmticket, 1); save(); render(); return; }
       if ((b = t.closest('[data-conv]'))) { convert(b.dataset.conv); return; }
       if ((b = t.closest('[data-rmotp]'))) { st.otp.splice(+b.dataset.rmotp, 1); save(); otpDraw(); return; }
+      if ((b = t.closest('[data-school]'))) { schoolToggle(); return; }
+      if ((b = t.closest('[data-extmaster]'))) { var on2 = b.getAttribute('aria-checked') !== 'true'; if (DEMO) { exts.forEach(function (x) { x.master = on2; }); render(); return; } API.extMaster(on2).then(function (l) { exts = l; render(); toast(on2 ? 'Extensions are on again.' : 'Every extension is off.'); }); return; }
+      if ((b = t.closest('[data-extrm]'))) { var xid = b.dataset.extrm; superConfirm('Remove the extension ' + xid, ['Its folder is deleted from this app.', 'What it was allowed is forgotten.'], 'REMOVE', function () { API.extRemove(xid).then(function (l) { exts = l; render(); }, function (er) { toast(er.message); }); }); return; }
+      if ((b = t.closest('[data-adapter]'))) { cvRun(b.dataset.adapter); return; }
+      if ((b = t.closest('[data-cvsave]'))) { var cs = b.dataset.cvsave.split(':'), cx = conv.files[+cs[0]], co = cx && cx.out[+cs[1]]; if (co) { if (co.path && API.showFile) API.showFile(co.path).catch(function (er) { toast(er.message); }); else { var an = document.createElement('a'); an.href = URL.createObjectURL(co.blob); an.download = co.name; an.click(); } } return; }
+      if ((b = t.closest('[data-b64o]'))) { var bk = b.dataset.b64o; b64.o[bk] = !b64.o[bk]; render(); return; }
+      if ((b = t.closest('[data-drtool]'))) { dr.tool = b.dataset.drtool; dr.mode = 'tools'; render(); return; }
+      if ((b = t.closest('[data-drmode]'))) { dr.mode = b.dataset.drmode; render(); return; }
+      if ((b = t.closest('[data-drink]'))) { dr.color = b.dataset.drink; dr.mode = 'tools'; render(); return; }
       if ((b = t.closest('[data-dimtroll]'))) { dimsumTroll(); return; }
       if ((b = t.closest('[data-rule]'))) { ruleDialog((st.rules || []).filter(function (r) { return r.id === b.dataset.rule; })[0]); return; }
       if ((b = t.closest('[data-ruleon]'))) { var rl = (st.rules || []).map(function (r) { return r.id === b.dataset.ruleon ? Object.assign({}, r, { on: !r.on }) : r; }); setVal('rules', rl, 'Schedule rule switched'); runRules(); render(); return; }
@@ -707,6 +726,34 @@
       else if (a === 'pi') piDialog();
       else if (a === 'wizgo') wizGo();
       else if (a === 'qrcam') qrCamera();
+      else if (a === 'qrmake') { var qt = $('#qrtext').value.trim(); if (!qt) { toast('Type the text or link first.'); $('#qrtext').focus(); } else qrShow('QR code', qt); }
+      else if (a === 'qrotp') { var oo = st.otp[+$('#qrotp').value]; if (oo) qrShow(oo.name, 'otpauth://totp/' + encodeURIComponent(oo.name) + '?secret=' + oo.secret + '&issuer=' + encodeURIComponent(oo.name.split(':')[0])); }
+      else if (a === 'extadd') { if (DEMO) toast('In the app this adds an extension from a folder.'); else API.extAdd().then(function (l) { exts = l; render(); toast('Added. Turn it on to see what it asks for.'); }, function (er) { toast(er.message); }); }
+      else if (a === 'schoolset') schoolDialog();
+      else if (a === 'notesel-rm') { var keep2 = st.notes.filter(function (n2, i2) { return !nsel[i2]; }); setVal('notes', keep2, 'Notifications removed'); nsel = {}; render(); }
+      else if (a === 'notesel-all') { st.notes.forEach(function (n2, i2) { nsel[i2] = true; }); render(); }
+      else if (a === 'notesel-export') exportDialog('Export notifications', 'notifications', st.notes.filter(function (n2, i2) { return !Object.keys(nsel).length || nsel[i2]; }).map(function (n2) { return { at: new Date(n2.t).toISOString(), text: n2.text }; }));
+      else if (a === 'cvclear') { conv.files = []; render(); }
+      else if (a === 'cvpause') { conv.paused = !conv.paused; render(); }
+      else if (a === 'cvcancel') { conv.cancel = true; conv.paused = false; toast('Cancelling: files already written stay; the rest are not started.'); }
+      else if (a === 'cvdest') { API.pickFolder('Choose where converted files go').then(function (d) { if (d) { conv.dest = d; render(); } }); }
+      else if (a === 'cvhistexport') exportDialog('Export the conversion history', 'conversions', st.convHistory || []);
+      else if (a === 'cvhistclear') superConfirm('Clear the conversion history', [(st.convHistory || []).length + ' entries are removed from this window.', 'The converted files stay where they are.'], 'CLEAR', function () { setVal('convHistory', [], 'Conversion history cleared'); render(); });
+      else if (a === 'b64e' || a === 'b64d') { b64Push(); try { if (a === 'b64e') { b64.output = b64Encode(encText(b64.input, b64.o.enc), b64.o); b64.preview = null; b64.note = 'Encoded ' + encText(b64.input, b64.o.enc).length + ' bytes.'; } else { var by = b64Decode(b64.input, b64.o); try { b64.output = decText(by, b64.o.enc); } catch (ee) { b64.output = ''; } b64Preview(by); b64.note = 'Decoded ' + by.length + ' bytes' + (b64.output ? '.' : '; they are not ' + b64.o.enc + ' text, so see the preview.'); } } catch (er) { b64.undo.pop(); b64.note = er.message; } render(); }
+      else if (a === 'b64swap') { b64Push(); var tmp2 = b64.input; b64.input = b64.output; b64.output = tmp2; render(); }
+      else if (a === 'b64url') { b64Push(); try { var bs = encText(b64.input, b64.o.enc); b64.output = 'data:text/plain;charset=' + (b64.o.enc === 'latin1' ? 'ISO-8859-1' : b64.o.enc.toUpperCase()) + ';base64,' + b64Encode(bs, { pad: true }); b64.note = 'A data: URL of ' + bs.length + ' bytes.'; } catch (er) { b64.note = er.message; } render(); }
+      else if (a === 'b64parse') { var pd = parseDataUrl(b64.input); if (!pd) b64.note = 'That is not a data: URL. It starts with data:, then a type, then a comma.'; else { b64Push(); try { b64.output = decText(pd.bytes, (pd.params.charset || 'utf-8').toLowerCase() === 'iso-8859-1' ? 'latin1' : 'utf-8'); } catch (ee) { b64.output = ''; } b64Preview(pd.bytes); b64.note = 'Type ' + pd.mime + (Object.keys(pd.params).length ? ', ' + Object.keys(pd.params).map(function (k) { return k + '=' + pd.params[k]; }).join(', ') : '') + ', ' + pd.bytes.length + ' bytes' + (pd.base64 ? ', Base64.' : ', percent-encoded.'); } render(); }
+      else if (a === 'b64paste') { navigator.clipboard.readText().then(function (tx) { b64Push(); b64.input = tx; render(); }, function () { toast('The clipboard could not be read. Paste into the box instead.'); }); }
+      else if (a === 'b64undo') { var u = b64.undo.pop(); if (u) { b64.redo.push({ input: b64.input, output: b64.output }); b64.input = u.input; b64.output = u.output; render(); } }
+      else if (a === 'b64redo') { var r2 = b64.redo.pop(); if (r2) { b64.undo.push({ input: b64.input, output: b64.output }); b64.input = r2.input; b64.output = r2.output; render(); } }
+      else if (a === 'b64record') { var by2 = new TextEncoder().encode(b64.output); sha256(by2).then(function (h) { saveText('base64-record.json', JSON.stringify({ variant: b64.o.url ? 'base64url' : 'base64', padding: b64.o.pad, mime: b64.o.mime, wrap: b64.o.wrap || 0, strict: b64.o.strict, encoding: b64.o.enc, inputBytes: encText(b64.input, b64.o.enc).length, outputBytes: by2.length, outputSha256: h, at: new Date().toISOString() }, null, 2)); }); }
+      else if (a === 'b64zip') { var zf = {}; zf['base64-results.json'] = new TextEncoder().encode(JSON.stringify(b64.files.map(function (f) { return { source: f.name, result: f.result, ok: !!f.ok, bytes: f.size || 0, sha256: f.sha || '', message: f.msg }; }), null, 2)); var zb = window.fflate.zipSync(zf); var za = document.createElement('a'); za.href = URL.createObjectURL(new Blob([zb])); za.download = 'base64-results.zip'; za.click(); }
+      else if (a === 'b64fclear') { b64.files = []; render(); }
+      else if (a === 'drundo') { if (dr.undo.length) { dr.redo.push(JSON.stringify(dr.strokes)); dr.strokes = JSON.parse(dr.undo.pop()); drSave(); render(); } }
+      else if (a === 'drredo') { if (dr.redo.length) { dr.undo.push(JSON.stringify(dr.strokes)); dr.strokes = JSON.parse(dr.redo.pop()); drSave(); render(); } }
+      else if (a === 'drclear') superConfirm('Clear the drawing', [dr.strokes.length + ' saved strokes are removed.', 'Export it first if you want to keep it.'], 'CLEAR', function () { drSnap(); dr.strokes = []; drSave(); render(); });
+      else if (a === 'drsvg') saveText('drawing.svg', drSvg());
+      else if (a === 'drpng1' || a === 'drpng2' || a === 'drpng3') drExportPng(+a.slice(-1));
       else if (a === 'nextset') { dialog('Your next step', '<label class="col" style="gap:4px"><span class="ll">What is the one thing to do next?</span><input class="input" id="nsin" maxlength="80" value="' + esc(st.nextStep || '') + '"></label><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="nsok">Keep it in view</button></div>', { emoji: '👉', focus: '#nsin' }); $('#nsok').onclick = function () { setVal('nextStep', $('#nsin').value.trim(), 'Next step'); closeDialog(); render(); }; }
       else if (a === 'nextdone') { setVal('nextStep', '', 'Next step done'); finishedOne(); render(); toast(msg('saved')); }
       else if (a === 'ruleadd') ruleDialog(null);
@@ -740,6 +787,10 @@
     app.addEventListener('input', function (e) {
       var t = e.target, map = { dsearch: 'downloads', isearch: 'instances', bsearch: 'backups', hsearch: 'hosts', asearch: 'activity', ssearch: 'settings', hpsearch: 'help' };
       if (map[t.id]) { q[map[t.id]] = t.value; render(); return; }
+      if (t.id === 'b64i') { b64.input = t.value; return; }
+      if (t.dataset.cvopt) { conv.opts[t.dataset.cvopt] = t.value; return; }
+      if (t.id && t.id.indexOf('cvq-') === 0) { conv.q[t.id.slice(4)] = t.value; render(); var cf = $('#' + t.id); if (cf) { cf.focus(); cf.setSelectionRange(cf.value.length, cf.value.length); } return; }
+      if (t.dataset.drsize != null) { dr.size = +t.value; return; }
       if (t.id === 'rhsearch') { q.rhist = t.value; if (historyPanel.draw) { historyPanel.draw(); var rf = $('#rhsearch'); rf.focus(); rf.setSelectionRange(rf.value.length, rf.value.length); } return; }
       if (t.dataset.nrange) { st.narrator[t.dataset.nrange] = +t.value; save(); return; }
       if (t.dataset.wiz) { var wv = wiz.vals[wizTarget()]; if (wv) wv[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; return; }
@@ -750,6 +801,13 @@
     });
     app.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.id === 'cvfiles' && t.files.length) { cvAdd(Array.prototype.slice.call(t.files)); return; }
+      if (t.dataset.b64file && t.files.length) { Array.prototype.forEach.call(t.files, function (f) { b64File(f, t.dataset.b64file); }); return; }
+      if (t.dataset.b64wrap != null) { b64.o.wrap = t.value; return; }
+      if (t.dataset.b64enc != null) { b64.o.enc = t.value; render(); return; }
+      if (t.dataset.drinkc != null) { dr.color = t.value; render(); return; }
+      if (t.id === 'drbg' && t.files[0]) { createImageBitmap(t.files[0]).then(function (bm) { dr.bg = bm; drPaint(); }, function () { toast('That picture could not be opened.'); }); return; }
+      if (t.dataset.nsel != null) { nsel[t.dataset.nsel] = t.checked; render(); return; }
       if (t.dataset.bksel) { bsel[t.dataset.bksel] = t.checked; render(); return; }
       if (t.dataset.bkall != null) { $$('[data-bksel]').forEach(function (c) { bsel[c.dataset.bksel] = t.checked; }); render(); return; }
       if (t.dataset.hsel) { hsel[t.dataset.hsel] = t.checked; render(); return; }
@@ -801,9 +859,18 @@
       var g = e.target.closest('.panel [data-go]'); if (g) { $('.panel').remove(); go(g.dataset.go); }
     });
     var dz = null;
-    document.addEventListener('dragover', function (e) { if (dragged) return; if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); if (!dz) { dz = document.createElement('div'); dz.className = 'dropzone'; dz.textContent = 'Drop your wording file to use it'; $('#app').appendChild(dz); } } });
+    document.addEventListener('dragover', function (e) { if (dragged) return; if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); if (!dz) { dz = document.createElement('div'); dz.className = 'dropzone'; dz.textContent = st.active === 'base64' ? 'Drop to encode or decode' : st.active === 'draw' ? 'Drop a picture to draw on it' : st.active === 'convert' ? 'Drop files to convert' : 'Drop a wording file, files to convert, or a virtual disk'; $('#app').appendChild(dz); } } });
     document.addEventListener('dragleave', function (e) { if (dz && !e.relatedTarget) { dz.remove(); dz = null; } });
-    document.addEventListener('drop', function (e) { if (dragged) return; if (dz) { dz.remove(); dz = null; } var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) { e.preventDefault(); loadVocabFile(f); } });
+    document.addEventListener('drop', function (e) {
+      if (dragged) return; if (dz) { dz.remove(); dz = null; } var fl = e.dataTransfer && e.dataTransfer.files; if (!fl || !fl.length) return; e.preventDefault();
+      var arr = Array.prototype.slice.call(fl), zone = e.target.closest && e.target.closest('[data-b64drop]');
+      if (arr.some(function (f) { return /\.(vhdx?|vhds|avhdx?|iso)$/i.test(f.name); }) && window.vdDrop) { window.vdDrop(arr); return; }
+      if (zone || st.active === 'base64') { arr.forEach(function (f) { b64File(f, zone ? zone.dataset.b64drop : (/\.(base64\.txt|b64)$/i.test(f.name) ? 'dec' : 'enc')); }); if (st.active !== 'base64') go('base64:b64files'); return; }
+      if (st.active === 'convert') { cvAdd(arr); return; }
+      if (st.active === 'draw' && /^image\//.test(arr[0].type)) { createImageBitmap(arr[0]).then(function (bm) { dr.bg = bm; drPaint(); }); return; }
+      if (/\.json$/i.test(arr[0].name)) { loadVocabFile(arr[0]); return; }
+      cvAdd(arr); go('convert:queue');
+    });
     if (mq.addEventListener) mq.addEventListener('change', apply);
   }
   function closeTab(t) {
@@ -823,7 +890,7 @@
   function loadVocabFile(file) {
     if (file.size > VL.bytes) { toast('That file is larger than 256 KiB. Nothing changed.'); return; }
     var fr = new FileReader();
-    fr.onload = function () { var r = parseVocab(String(fr.result)); if (!r.ok) { toast(r.error + ' Nothing changed.'); beep('bad'); return; } st.vocab = r.entries; st.history.unshift({ t: Date.now(), path: 'vocab', label: 'Your wording file (' + r.count + ' entries)', before: null, after: '(your file)' }); save(); apply(); shell(); render(); var c = document.createElement('div'); c.className = 'celebrate'; c.setAttribute('role', 'status'); c.innerHTML = '<div class="hl">' + esc(msg('vocab')) + '</div><p class="bm">' + r.count + ' words in use.</p>'; $('#app').appendChild(c); setTimeout(function () { c.remove(); }, 3000); beep('on'); };
+    fr.onload = function () { var r = parseVocab(String(fr.result)); if (!r.ok) { toast(r.error + ' Nothing changed.'); beep('bad'); return; } setTimeout(function () { celebrate('Your words are in: ' + Object.keys(r.entries).length + ' of them.'); }, 50); st.vocab = r.entries; st.history.unshift({ t: Date.now(), path: 'vocab', label: 'Your wording file (' + r.count + ' entries)', before: null, after: '(your file)' }); save(); apply(); shell(); render(); var c = document.createElement('div'); c.className = 'celebrate'; c.setAttribute('role', 'status'); c.innerHTML = '<div class="hl">' + esc(msg('vocab')) + '</div><p class="bm">' + r.count + ' words in use.</p>'; $('#app').appendChild(c); setTimeout(function () { c.remove(); }, 3000); beep('on'); };
     fr.readAsText(file);
   }
 
@@ -833,6 +900,8 @@
     try { dls = await API.downloads(); } catch (e) { dls = []; }
     await reload(); apply(); shell(); render(); wire();
     try { exts = await API.extensions(); } catch (e) { exts = []; }
+    try { extRuns = API.extRuns ? await API.extRuns() : []; } catch (e) { extRuns = []; }
+    try { if (API.school) schoolApply(await API.school()); } catch (e) { /* the shared folder may be unreadable */ }
     checkAll();
     // One fresh draw per start, 1 in 10, never during the first run.
     if (st.welcomed && Math.random() < 0.1) setTimeout(function () { if (!$('#ov')) dimsum(false); }, 5000);

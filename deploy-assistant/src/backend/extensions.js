@@ -49,10 +49,35 @@ class Extensions {
         const x = readManifest(dir);
         const g = this.grants[x.id];
         const granted = g && x.permissions.every((p) => g.permissions.includes(p));
-        return { ...x, dir, enabled: !!(g && g.enabled && granted), needsConsent: !!(g && g.enabled && !granted), permissionText: x.permissions.map((p) => PERMS[p]) };
+        return { ...x, dir, master: !this.m.db.extensionsOff, enabled: !!(g && g.enabled && granted), needsConsent: !!(g && g.enabled && !granted), permissionText: x.permissions.map((p) => PERMS[p]) };
       } catch (e) { return { id: d, name: d, error: e.message, dir, enabled: false, permissions: [], commands: [] }; }
     });
   }
+
+  // Adds an extension from a folder: the manifest is checked first, it is copied in, and it stays off
+  // until you agree to what it asks for. An extension with the same id is replaced only when the
+  // new one has a different version, and its agreement is withdrawn.
+  addFrom(src) {
+    const x = readManifest(src);
+    const files = fs.readdirSync(src).filter((f) => fs.statSync(path.join(src, f)).isFile());
+    if (files.length > 50) throw new Error('An extension folder may hold at most 50 files.');
+    const total = files.reduce((n, f) => n + fs.statSync(path.join(src, f)).size, 0);
+    if (total > 5 * 1024 * 1024) throw new Error('An extension may be at most 5 MB.');
+    if (!files.includes(x.main)) throw new Error('The main file ' + x.main + ' is not in that folder.');
+    const dest = path.join(this.dir, x.id);
+    fs.rmSync(dest, { recursive: true, force: true }); fs.mkdirSync(dest, { recursive: true });
+    for (const f of files) fs.copyFileSync(path.join(src, f), path.join(dest, f));
+    delete this.grants[x.id]; this.m.save();
+    return this.list();
+  }
+
+  remove(id) { const x = this.list().find((e) => e.id === id); if (!x) throw new Error('There is no such extension.'); fs.rmSync(x.dir, { recursive: true, force: true }); delete this.grants[id]; this.m.save(); return this.list(); }
+
+  setMaster(on) { this.m.db.extensionsOff = !on; this.m.save(); return this.list(); }
+
+  runs() { return (this.m.db.extensionRuns || []).slice(0, 50); }
+
+  logRun(x, cmd, ok, text) { const l = this.m.db.extensionRuns = this.m.db.extensionRuns || []; l.unshift({ at: new Date().toISOString(), id: x.id, name: x.name, command: cmd, ok, text: String(text).slice(0, 200) }); l.length = Math.min(l.length, 50); this.m.save(); }
 
   setEnabled(id, on) {
     const x = this.list().find((e) => e.id === id);
@@ -63,6 +88,7 @@ class Extensions {
 
   run(id, commandId) {
     const x = this.list().find((e) => e.id === id);
+    if (this.m.db.extensionsOff) throw new Error('Every extension is switched off. Turn them on again at the top of the Extensions tab.');
     if (!x || !x.enabled) throw new Error('Turn the extension on first.');
     if (!x.commands.some((c) => c.id === commandId)) throw new Error('That extension has no such command.');
     const input = { command: commandId, app: 'deploy-assistant' };
@@ -80,9 +106,10 @@ class Extensions {
       child.on('close', () => {
         clearTimeout(timer);
         const line = out.split('\n').find((l) => l.trim().startsWith('{'));
-        if (!line) { reject(new Error(x.name + ' gave no answer. ' + err.trim().split('\n').pop())); return; }
+        if (!line) { this.logRun(x, commandId, false, 'No answer'); reject(new Error(x.name + ' gave no answer. ' + err.trim().split('\n').pop())); return; }
         try {
           const r = JSON.parse(line);
+          this.logRun(x, commandId, true, r.title || '');
           resolve({ title: String(r.title || x.name), text: String(r.text || ''), notify: x.permissions.includes('notify') && r.notify ? String(r.notify).slice(0, 200) : '' });
         } catch (e) { reject(new Error(x.name + ' answered with something that is not JSON.')); }
       });

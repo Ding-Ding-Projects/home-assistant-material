@@ -162,6 +162,10 @@ def deploy_demo():
     os.makedirs(os.path.join(dest, 'fonts'), exist_ok=True)
     for f in ['index.html', 'app.js', 'app.css', 'icons.js', 'mock.js', 'jsQR.js', 'jsQR-LICENSE.txt', 'site-data.js']:
         shutil.copy(os.path.join(src, f), os.path.join(dest, f))
+    shutil.rmtree(os.path.join(dest, 'vendor'), ignore_errors=True)
+    shutil.copytree(os.path.join(src, 'vendor'), os.path.join(dest, 'vendor'))
+    for f in []:
+        shutil.copy(os.path.join(src, f), os.path.join(dest, f))
     shutil.rmtree(os.path.join(dest, 'boards'), ignore_errors=True)
     shutil.copytree(os.path.join(src, 'boards'), os.path.join(dest, 'boards'))
     for f in os.listdir(os.path.join(src, 'fonts')):
@@ -193,7 +197,7 @@ def main():
             'Check', 'CheckCircle', 'Alert', 'AlertCircle', 'ProgressClock', 'Home', 'PlayCircle', 'FormatListBulleted', 'BookOpenVariant', 'PaletteSwatch', 'Update',
             'Toolbox', 'Lifebuoy', 'Translate', 'Download', 'Upload', 'OpenInNew', 'DotsVertical', 'Backspace', 'Shuffle', 'Keyboard', 'TimerSand', 'Fullscreen',
             'Palette', 'SwapHorizontal', 'CodeBraces', 'ShieldKey', 'TicketConfirmation', 'FileSwap', 'Eyedropper', 'TabPlus', 'DragVertical', 'VolumeHigh', 'CalendarClock',
-            'School', 'MotionPauseOutline', 'FormatSize', 'ContrastCircle', 'EmoticonHappyOutline', 'Docker' if 'Docker' in icons_all else 'PackageDown', 'GestureTap', 'Sleep', 'QrcodeScan']
+            'School', 'MotionPauseOutline', 'FormatSize', 'ContrastCircle', 'EmoticonHappyOutline', 'Docker' if 'Docker' in icons_all else 'PackageDown', 'GestureTap', 'Sleep', 'QrcodeScan', 'GamepadVariant']
     icons = {k: icons_all[k] for k in want if k in icons_all}
     data = {'icons': icons, 'version': versions['core'], 'updated': changes[0]['date'] if changes else '', 'commit': changes[0]['sha'] if changes else '',
             'repo': 'https://github.com/' + versions['repository'], 'image': 'ghcr.io/' + versions['registry_owner'] + '/home-assistant-material',

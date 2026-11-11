@@ -15,7 +15,7 @@
   function icon(n, cls) { var p = S.icons[n] || S.icons.InformationOutline; return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + p + '"></path></svg>'; }
 
   // ---------- Stored choices (this window only; instances live in the app's data folder) ----------
-  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'extensions', 'tools', 'support', 'changes', 'run', 'features', 'articles', 'status', 'design', 'settings', 'help'];
+  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'extensions', 'tools', 'convert', 'base64', 'draw', 'support', 'changes', 'run', 'features', 'articles', 'status', 'design', 'settings', 'help'];
   var DEF = {
     lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, dimsum: true, tickets: [], otp: [], lowStim: false, spotlight: false,
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
@@ -40,7 +40,7 @@
 
   // ---------- Words ----------
   var W = {
-    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], run: ['Run it', '點樣行'], features: ['Features', '功能'], articles: ['Articles', '文章'], status: ['Status', '狀態'], design: ['Design', '設計'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'], adhd: ['ADHD modes', 'ADHD 模式'],
+    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], run: ['Run it', '點樣行'], convert: ['Convert', '轉換'], base64: ['Base64', 'Base64'], draw: ['Draw', '畫畫'], features: ['Features', '功能'], articles: ['Articles', '文章'], status: ['Status', '狀態'], design: ['Design', '設計'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'], adhd: ['ADHD modes', 'ADHD 模式'],
     search: ['Search', '搵嘢'], newtab: ['New tab', '新分頁'], openall: ['Open every tab', '打開晒所有分頁'], close: ['Close', '閂'], cancel: ['Cancel', '取消'], next: ['Next', '下一步'], back: ['Back', '返轉頭'],
     skip: ['Skip', '跳過'], done: ['Done', '搞掂'], reset: ['Reset', '還原'], copy: ['Copy', '複製'], export: ['Export', '匯出'], undo: ['Undo', '還原返'], clear: ['Clear', '清除'],
     notifications: ['Notifications', '通知'], access: ['Accessibility tools', '無障礙工具'], theme: ['Switch light and dark', '轉光暗'], palette: ['Search everything', '搵晒所有嘢'],
@@ -76,7 +76,7 @@
     return st.lang === 'yue' ? yue : st.lang === 'both' ? en + ' ' + yue : en;
   }
 
-  var CHANGES = [{"version":"1.3","commit":"","items":["ADHD modes, each off by default: Focus, Low stimulation, Time awareness, One thing at a time and Momentum.","A narrator for what happens, off by default, in English, Cantonese or both, with a voice picker per language, speed and pitch.","Schedule rules: change the theme, language, density, motion or colour by days, times and dates, or while a Home Assistant switch is on; your own settings come back afterwards.","The dim sum surprise shows a photo from the public dim sum catalog, 1 time in 10 at start; its switch stays on. Each release has a dim sum code name.","Deleting now takes two keys and a slider, with an emergency exit.","The accessibility button gains read-aloud pause and stop, keyboard help, reset and a way to hide it.","Your own logo from a picture, export in eleven text formats with Open in VS Code, bulk actions on backups and hosts, a history of your records with restore, a clear button in every text box, a live processor chart, and changelog links to each commit.","FEATURES.md lists every feature the interface contract asks for and where the app stands."]},{"version":"1.2","commit":"1c3cc844825a106bbaa37f4497692e839b39309b","items":["New tabs that work offline: Run it, Features, Articles, Status, and Design, which shows every board of this app's design full size.","Tools, Authenticator: scan a one-time code's QR code from an image, a pasted screenshot or the camera.","Settings, Updates: an update self-test walks the releases, the feed, the package and its checksums, the installer, and whether an update was seen applied after a restart, and lets you copy the result.","After an update is applied, the app says so on its next start and keeps a record.","Only the camera and clipboard writing are allowed to the window; every other permission is refused."]},{"version":"1.1","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["The Deploy tab is a two-pane app: pick where it runs on the left, see and change everything it will do on the right, and deploy with one button or Ctrl Enter.","New tabs: Extensions, Tools, Support and Changes.","Extensions: add small helpers in their own folder. Each one says what it may see, asks before it starts and again when that changes, runs in its own process, and never receives passwords or keys. Health report and Link sheet come built in.","Updates: on Windows the app updates itself in the background and asks you to restart. The update is not code-signed, and the banner says so. On macOS and Linux it tells you a new version is out.","Settings: school mode, a reading voice, a dark theme on a schedule, your own name and logo, and the dim sum surprise (names only).","The version and build time show on the first screen and in About.","Open an instance's Compose file in VS Code, or its folder, from its menu.","The filters and totals on Instances fold away."]},{"version":"1.0","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["One-click deploys to Docker on this computer, an SSH host, VirtualBox and VMware, with a free port and name chosen for you and the link at the end.","Raspberry Pi card writer for the Pi 3, 4 and 5, with a read-back check.","Instance manager with start, stop, restart, update, logs, live processor use and backups on a schedule.","Every image downloaded and checked automatically, here and on your SSH hosts."]}];
+  var CHANGES = [{"version":"1.3","commit":"847f8541063a05e978830f9cde8aa8ba79a73625","items":["ADHD modes, each off by default: Focus, Low stimulation, Time awareness, One thing at a time and Momentum.","A narrator for what happens, off by default, in English, Cantonese or both, with a voice picker per language, speed and pitch.","Schedule rules: change the theme, language, density, motion or colour by days, times and dates, or while a Home Assistant switch is on; your own settings come back afterwards.","The dim sum surprise shows a photo from the public dim sum catalog, 1 time in 10 at start; its switch stays on. Each release has a dim sum code name.","Deleting now takes two keys and a slider, with an emergency exit.","The accessibility button gains read-aloud pause and stop, keyboard help, reset and a way to hide it.","Your own logo from a picture, export in eleven text formats with Open in VS Code, bulk actions on backups and hosts, a history of your records with restore, a clear button in every text box, a live processor chart, and changelog links to each commit.","FEATURES.md lists every feature the interface contract asks for and where the app stands."]},{"version":"1.2","commit":"1c3cc844825a106bbaa37f4497692e839b39309b","items":["New tabs that work offline: Run it, Features, Articles, Status, and Design, which shows every board of this app's design full size.","Tools, Authenticator: scan a one-time code's QR code from an image, a pasted screenshot or the camera.","Settings, Updates: an update self-test walks the releases, the feed, the package and its checksums, the installer, and whether an update was seen applied after a restart, and lets you copy the result.","After an update is applied, the app says so on its next start and keeps a record.","Only the camera and clipboard writing are allowed to the window; every other permission is refused."]},{"version":"1.1","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["The Deploy tab is a two-pane app: pick where it runs on the left, see and change everything it will do on the right, and deploy with one button or Ctrl Enter.","New tabs: Extensions, Tools, Support and Changes.","Extensions: add small helpers in their own folder. Each one says what it may see, asks before it starts and again when that changes, runs in its own process, and never receives passwords or keys. Health report and Link sheet come built in.","Updates: on Windows the app updates itself in the background and asks you to restart. The update is not code-signed, and the banner says so. On macOS and Linux it tells you a new version is out.","Settings: school mode, a reading voice, a dark theme on a schedule, your own name and logo, and the dim sum surprise (names only).","The version and build time show on the first screen and in About.","Open an instance's Compose file in VS Code, or its folder, from its menu.","The filters and totals on Instances fold away."]},{"version":"1.0","commit":"6271ef36ece5a1e10c6745f57e9f33a129547ea7","items":["One-click deploys to Docker on this computer, an SSH host, VirtualBox and VMware, with a free port and name chosen for you and the link at the end.","Raspberry Pi card writer for the Pi 3, 4 and 5, with a read-back check.","Instance manager with start, stop, restart, update, logs, live processor use and backups on a schedule.","Every image downloaded and checked automatically, here and on your SSH hosts."]}];
   // ---------- Personal wording (same checks as the product) ----------
   var VL = { bytes: 262144, depth: 8, key: 160, value: 1000 };
   function parseVocab(text) {
@@ -367,6 +367,43 @@
     });
   }
   var LADDER = [0, 0, 0, 5, 15, 60, 300];
+
+  // The unlock ladder: during a lockout wait, a game ends the wait (and only the wait: the lock stays
+  // locked and the PIN is still needed). Dim sum first, then ten sums after five wrong dishes, then
+  // whack-a-mole after one wrong sum, then the clock. School mode starts at the sums.
+  var LDISH = [['Har gow', 'Shrimp in a thin, see-through wrapper, pleated by hand'], ['Siu mai', 'Open-topped pork and shrimp dumplings'], ['Char siu bao', 'Soft steamed buns with sweet barbecued pork'], ['Cheung fun', 'Rice noodle rolls with soy sauce'], ['Lo mai gai', 'Sticky rice steamed in a lotus leaf'], ['Dan tat', 'Egg tarts with wobbly custard'], ['Lo bak go', 'Pan-fried turnip cake'], ['Fung zao', 'Braised chicken feet in black bean sauce']];
+  function ladderStart() { return st.school ? 'sums' : 'dimsum'; }
+  window.HAM_LADDER = function (k, back) { ladder(k, back || function () {}); };
+  function ladder(k, back) {
+    var lk = st.locks[k]; if (!lk) return; if (!lk.ladder) { lk.ladder = ladderStart(); lk.wrongDish = 0; save(); }
+    var won = function () { lk.until = Date.now(); lk.ladder = ''; save(); toast('The wait is over. The lock still needs its PIN.'); beep('on'); closeDialog(); back(); };
+    var fall = function (to, why) { lk.ladder = to; save(); toast(why); closeDialog(); if (to === 'clock') back(); else ladder(k, back); };
+    var left = function () { return Math.max(0, Math.ceil((lk.until - Date.now()) / 1000)); };
+    if (lk.ladder === 'dimsum') {
+      var pick = LDISH.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4), right = pick[Math.floor(Math.random() * 4)];
+      dialog('Which dish is this?', '<p class="bl">' + esc(right[1]) + '.</p><div class="col" style="gap:8px" role="group" aria-label="Choices">' + pick.map(function (d, i) { return '<button class="btn tonal" data-ld="' + i + '">' + esc(d[0]) + '</button>'; }).join('') + '</div><p class="bs mu" role="status">Right ends the ' + left() + '-second wait. ' + (5 - lk.wrongDish) + ' wrong answers left before the sums.</p>', { emoji: '🥟' });
+      $('#ov').addEventListener('click', function (e) { var b = e.target.closest('[data-ld]'); if (!b) return; if (pick[+b.dataset.ld] === right) won(); else { lk.wrongDish++; save(); if (lk.wrongDish >= 5) fall('sums', 'Five wrong dishes. On to ten easy sums: every one must be right.'); else { closeDialog(); ladder(k, back); toast('Not that one. ' + (5 - lk.wrongDish) + ' left.'); } } });
+      return;
+    }
+    if (lk.ladder === 'sums') {
+      var qs = Array.from({ length: 10 }, function () { var a = 1 + Math.floor(Math.random() * 20), b = 1 + Math.floor(Math.random() * 20), plus = Math.random() < 0.5 || a < b; return { q: a + (plus ? ' + ' : ' − ') + b, a: plus ? a + b : a - b }; }), n = 0;
+      var ask = function () { $('#lsq').textContent = 'Sum ' + (n + 1) + ' of 10: ' + qs[n].q + ' ='; $('#lsa').value = ''; $('#lsa').focus(); };
+      dialog('Ten easy sums', '<p class="bm mu">All ten right ends the ' + left() + '-second wait. One wrong goes to whack-a-mole.</p><label class="col" style="gap:6px"><span class="tl" id="lsq" aria-live="polite"></span><input class="input" id="lsa" inputmode="numeric" aria-labelledby="lsq" autocomplete="off"></label><div class="row"><span class="grow"></span><button class="btn fill" id="lsgo">Answer</button></div>', { emoji: '➕' });
+      var go2 = function () { var v = $('#lsa').value.trim(); if (!/^-?\d+$/.test(v)) { toast('Type a whole number.'); return; } if (+v !== qs[n].a) { fall('moles', qs[n].q + ' = ' + qs[n].a + '. On to whack-a-mole.'); return; } n++; if (n === 10) won(); else ask(); };
+      $('#lsgo').onclick = go2; $('#lsa').addEventListener('keydown', function (e) { if (e.key === 'Enter') go2(); }); ask(); return;
+    }
+    if (lk.ladder === 'moles') {
+      var hits = 0, need = 8, end = Date.now() + 20000, mole = -1, last = {}, timer;
+      dialog('Whack-a-mole', '<p class="bm mu">Hit ' + need + ' moles in 20 seconds. Click, tap, or press 1 to 9 for the holes, top left to bottom right.</p><div class="moles" id="moles" role="grid" aria-label="Holes">' + Array.from({ length: 9 }, function (_, i) { return '<button class="mole" data-mole="' + i + '" aria-label="Hole ' + (i + 1) + '"></button>'; }).join('') + '</div><p class="bm" id="molest" role="status" aria-live="polite">Score 0 of ' + need + '. 20 seconds left.</p>', { emoji: '🔨' });
+      var draw = function () { $$('.mole').forEach(function (b, i) { b.classList.toggle('up', i === mole); b.setAttribute('aria-label', 'Hole ' + (i + 1) + (i === mole ? ', a mole is up' : '')); b.textContent = i === mole ? '🐹' : ''; }); };
+      var tick = function () { if (!$('#moles')) { clearInterval(timer); return; } var s2 = Math.ceil((end - Date.now()) / 1000); if (s2 <= 0) { clearInterval(timer); if (hits >= need) won(); else fall('clock', 'Round lost with ' + hits + ' of ' + need + '. The games are done for this wait; the clock carries on.'); return; } var nx; do { nx = Math.floor(Math.random() * 9); } while (nx === mole); mole = nx; draw(); $('#molest').textContent = 'Score ' + hits + ' of ' + need + '. ' + s2 + ' seconds left.'; };
+      var whack = function (i) { if (Date.now() > end) return; if (i === mole && !last[mole]) { hits++; last = {}; last[mole] = 1; mole = -1; draw(); beep('on'); $('#molest').textContent = 'Score ' + hits + ' of ' + need + '.'; if (hits >= need) { clearInterval(timer); won(); } } };
+      $('#moles').addEventListener('click', function (e) { var b = e.target.closest('[data-mole]'); if (b) whack(+b.dataset.mole); });
+      $('#ov').addEventListener('keydown', function (e) { if (/^[1-9]$/.test(e.key)) whack(+e.key - 1); });
+      timer = setInterval(tick, st.reduceMotion ? 1400 : 900); tick(); return;
+    }
+    back();
+  }
   function askUnlock(k, after) {
     var lk = st.locks[k]; if (!lk) return; var entered = '';
     var order = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -374,7 +411,12 @@
       '<label class="col" style="gap:4px"><span class="bs mu">Or type it</span><input class="input mono" id="pintype" inputmode="numeric" type="password" aria-label="PIN" maxlength="12"></label><div class="bm" id="pinmsg" role="status"></div>' +
       '<div class="row" style="gap:8px"><button class="btn text sm" id="shuf">' + icon('Shuffle', 's') + 'Shuffle the keys</button><span class="grow"></span><button class="btn out" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="pinsub">Submit</button></div>', { focus: '#pintype', emoji: '🔑' });
     function dots() { $('#pdots').innerHTML = Array.from({ length: Math.max(4, entered.length) }).map(function (_, i) { return '<span class="' + (i < entered.length ? 'on' : '') + '"></span>'; }).join(''); }
-    function wait() { var left = Math.ceil((lk.until - Date.now()) / 1000); var sub = $('#pinsub'); if (!sub) return; if (left > 0) { sub.disabled = true; $('#pinmsg').textContent = 'Too many tries. Wait ' + left + ' seconds.'; setTimeout(wait, 500); } else { sub.disabled = false; if (/Wait/.test($('#pinmsg').textContent)) $('#pinmsg').textContent = ''; } }
+    function wait() {
+      var left = Math.ceil((lk.until - Date.now()) / 1000); var sub = $('#pinsub'); if (!sub) return;
+      var lb = $('#ladbtn');
+      if (left > 0) { sub.disabled = true; $('#pinmsg').textContent = 'Too many tries. Wait ' + left + ' seconds' + (lk.ladder === 'clock' ? ', or play no more: the games are used up for this wait.' : ', or play your way out.'); if (!lb && lk.ladder !== 'clock') { $('#pinmsg').insertAdjacentHTML('afterend', '<button class="btn tonal sm" id="ladbtn">' + icon('GamepadVariant', 's') + 'Play your way out</button>'); $('#ladbtn').onclick = function () { closeDialog(); ladder(k, function () { askUnlock(k, after); }); }; } setTimeout(wait, 500); }
+      else { sub.disabled = false; if (lb) lb.remove(); if (/Wait/.test($('#pinmsg').textContent)) $('#pinmsg').textContent = ''; }
+    }
     dots(); wait();
     $('#kp').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; var d = b.dataset.d; if (d === 'C') entered = ''; else if (d === 'B') entered = entered.slice(0, -1); else if (entered.length < 12) entered += d; $('#pintype').value = entered; dots(); });
     $('#pintype').addEventListener('input', function () { entered = this.value.replace(/\D/g, ''); dots(); });
@@ -567,7 +609,7 @@
     wiz.loading[t] = true;
     API.defaults(t, t === 'ssh' ? (D.hosts[0] || {}).id : '').then(function (d) { wiz.defs[t] = d; wiz.vals[t] = Object.assign({ backupsOn: true, hostId: (D.hosts[0] || {}).id || '' }, d); wiz.loading[t] = false; if (st.active === 'deploy') soon(); }, function (e) { wiz.loading[t] = false; toast(e.message); });
   }
-  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + (about.codeName ? ' · ' + esc(about.codeName) : '') + ' · built ' + esc(b) + '</span>'; }
+  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + (about.codeName && !st.school ? ' · ' + esc(about.codeName) : '') + ' · built ' + esc(b) + '</span>'; }
   function wizField(t, key, label, type, hint, extra) {
     var v = (wiz.vals[t] || {})[key]; return '<label><span class="ll">' + label + '</span><input class="input' + (type === 'mono' ? ' mono' : '') + '" id="wz-' + t + '-' + key + '" data-wiz="' + key + '" type="' + (type === 'number' ? 'number' : 'text') + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '>' + (hint ? '<span class="bs mu">' + hint + '</span>' : '') + '</label>';
   }
@@ -673,7 +715,12 @@
       '<dl class="kv bs"><dt>Created</dt><dd>' + esc(when(i.created)) + '</dd><dt>Port</dt><dd>' + (i.port || 'set by VMware') + '</dd><dt>Data</dt><dd class="mono">' + esc(i.dir || '') + '</dd>' + (i.lanUrl ? '<dt>Other devices</dt><dd class="mono">' + esc(i.lanUrl) + '</dd>' : '') + '</dl>' +
       ((i.backups || []).slice(0, 5).map(function (b) { return '<div class="row" style="gap:8px"><span class="bs grow">' + esc(when(b.at)) + (b.note ? ' · ' + esc(b.note) : '') + (b.size ? ' · ' + fmtSize(b.size) : b.kind === 'snapshot' ? ' · snapshot' : '') + '</span><button class="btn text sm" data-restore="' + i.id + ':' + b.id + '">' + L('restore') + '</button></div>'; }).join('') || '<p class="bs mu">No backups yet.</p>') + '</details></article>';
   }
-  var bsel = {};
+  var bsel = {}, nsel = {};
+  function notesList() {
+    var n = Object.keys(nsel).filter(function (k) { return nsel[k]; }).length;
+    return (n ? '<div class="selbar" role="region" aria-label="Selected notifications"><span class="ll grow">' + n + ' selected</span><button class="btn tonal sm" data-act="notesel-rm">' + icon('DeleteOutline', 's') + 'Remove</button><button class="btn text sm" data-act="notesel-export">' + icon('Export', 's') + L('export') + '</button></div>' : '') +
+      (st.notes.length ? '<div class="row" style="gap:8px"><button class="btn text sm" data-act="notesel-all">Select all ' + st.notes.length + '</button></div><div class="col" style="gap:2px;max-height:260px;overflow:auto">' + st.notes.slice(0, 200).map(function (x, i) { return '<label class="row-item"><input type="checkbox" data-nsel="' + i + '"' + (nsel[i] ? ' checked' : '') + ' aria-label="Select: ' + esc(x.text) + '"><span class="col grow"><span class="bm">' + esc(x.text) + '</span><span class="bs mu">' + esc(when(new Date(x.t).toISOString())) + '</span></span></label>'; }).join('') + '</div>' : '<p class="bm mu">No notifications.</p>');
+  }
   R.backups = function () {
     var m = matcher(q.backups); var rows = [];
     D.instances.forEach(function (i) { (i.backups || []).forEach(function (b) { if (m.test(i.name + ' ' + (b.note || '') + ' ' + b.at)) rows.push([i, b]); }); });
@@ -729,7 +776,7 @@
       '<select class="select" data-logfor aria-label="Instance"><option value="all">Every instance</option>' + D.instances.map(function (i) { return '<option value="' + i.id + '"' + (view.logFor === i.id ? ' selected' : '') + '>' + esc(i.name) + '</option>'; }).join('') + '</select><span class="grow"></span><button class="btn text sm" data-act="export-activity">' + icon('Export', 's') + L('export') + '</button></div>' +
       (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
       '<pre class="logbox tall" tabindex="0" aria-label="Activity log">' + (list.length ? list.map(function (a) { return esc(new Date(a.t).toLocaleTimeString() + '  ' + instName(a.id) + '  ' + a.line); }).join('\n') : 'Nothing yet.') + '</pre>' +
-      '<h2 class="tl" id="history">Changes to settings</h2>' + (st.history.length ? st.history.slice(0, 50).map(function (h, i) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.label) + '</span><span class="bs mu">' + esc(new Date(h.t).toLocaleString()) + '</span></span><button class="btn text sm" data-undo="' + i + '">' + L('undo') + '</button></div>'; }).join('') : '<p class="bm mu">' + esc(msg('emptyHistory')) + '</p>') + '</div>' + '<h2 class="tl" id="records">History of your records</h2><p class="bm mu">Every change to instance names and notes, SSH hosts (never their passwords) and the backup schedule. Restoring adds a new revision, so it can be undone too.</p><div id="rhist" class="col" style="gap:6px"></div>' + foot();
+      '<h2 class="tl" id="history">Changes to settings</h2>' + (st.history.length ? st.history.slice(0, 50).map(function (h, i) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.label) + '</span><span class="bs mu">' + esc(new Date(h.t).toLocaleString()) + '</span></span><button class="btn text sm" data-undo="' + i + '">' + L('undo') + '</button></div>'; }).join('') : '<p class="bm mu">' + esc(msg('emptyHistory')) + '</p>') + '</div>' + '<h2 class="tl" id="notifications">Notifications</h2>' + notesList() + '<h2 class="tl" id="records">History of your records</h2><p class="bm mu">Every change to instance names and notes, SSH hosts (never their passwords) and the backup schedule. Restoring adds a new revision, so it can be undone too.</p><div id="rhist" class="col" style="gap:6px"></div>' + foot();
   };
   function srow(id, title, desc, def, reach, ctl, path) {
     return '<div class="setting" id="s-' + id + '" data-k="s-' + id + '" data-search="' + esc(title + ' ' + desc) + '"><div class="col" style="gap:2px"><span class="stitle"><span class="ll">' + esc(title) + '</span><button class="ib" style="width:32px;height:32px" data-info="' + id + '" aria-label="' + esc(w('explain')) + ': ' + esc(title) + '" aria-expanded="false">' + icon('InformationOutline', 's') + '</button></span><span class="bs mu">' + esc(desc) + '</span></div>' +
@@ -749,8 +796,8 @@
         srow('funYue', 'Playfulness in Cantonese', 'From 1 to 5, separate from English.', '5', 'Messages', seg('funYue', lv, 'Playfulness in Cantonese'), 'funYue'),
         srow('emoji', 'Emoji in dialogs', 'One emoji in dialog titles, never in buttons or names.', 'On', 'Dialog titles', sw('emoji', 'Emoji in dialogs'), 'emoji'),
         srow('vocab', 'Your wording file', st.vocab ? Object.keys(st.vocab).length + ' entries in use.' : 'A JSON file with schemaVersion 1 and entries replaces words in this window. You can also drop it on the window.', 'No file', 'Every label', '<label class="btn tonal sm">' + icon('Upload', 's') + 'Choose a file<input type="file" accept="application/json,.json" id="vocabfile" hidden></label>' + (st.vocab ? '<button class="btn text sm" data-act="vocab-clear">' + L('clear') + '</button>' : ''), '')]],
-      ['modes', 'modes', [srow('school', 'School mode', 'Plain wording, playfulness 1, no sounds, no surprise.', 'Off', 'Language, sound and the surprise', sw('school', 'School mode'), 'school'),
-        srow('dimsum', 'Dim sum surprise', 'At start, now and then, a dim sum dish with its photo from the public dim sum catalog, named in English and Cantonese. It is part of the app: the switch stays on.', 'On', 'A card at the bottom of the window', '<button class="sw on" role="switch" aria-checked="true" aria-label="Dim sum surprise" data-dimtroll><i></i></button><button class="btn text sm" data-act="dimsum">Show me one now</button>', '')]],
+      ['modes', 'modes', [srow('school', schoolInfo.name || 'School mode', 'Plain wording, playfulness 1, no sounds, and nothing about dim sum. Shared with every Ding Ding Projects app on this computer: switching it here switches it in each of them.' + (schoolInfo.locked ? ' A PIN is needed to switch it off.' : '') + (schoolInfo.by && schoolInfo.at ? ' Last changed by ' + schoolInfo.by + ', ' + when(schoolInfo.at) + '.' : ''), 'Off', 'Every app on this computer', '<button class="sw' + (st.school ? ' on' : '') + '" role="switch" aria-checked="' + !!st.school + '" aria-label="' + esc(schoolInfo.name || 'School mode') + '" data-school><i></i></button><button class="btn text sm" data-act="schoolset">Name and PIN</button>', 'school'),
+        st.school ? '' : srow('dimsum', 'Dim sum surprise', 'At start, now and then, a dim sum dish with its photo from the public dim sum catalog, named in English and Cantonese. It is part of the app: the switch stays on.', 'On', 'A card at the bottom of the window', '<button class="sw on" role="switch" aria-checked="true" aria-label="Dim sum surprise" data-dimtroll><i></i></button><button class="btn text sm" data-act="dimsum">Show me one now</button>', '')]],
       ['adhd', 'adhd', [srow('adhdnote', 'About these modes', 'Interface accommodations for attention, each off until you turn it on. They are not a diagnosis or a treatment, and nothing here assesses you.', 'All off', 'This window', '', '')].concat(ADHD.map(function (a) { return srow('adhd-' + a[0], a[1], a[2], 'Off', 'This window', sw('adhd.' + a[0], a[1]), 'adhd.' + a[0]); })).concat([srow('adhd-low', 'Low stimulation', 'Softer colour, no animation, no sounds, no narrator.', 'Off', 'The window', sw('lowStim', 'Low stimulation'), 'lowStim')])],
       ['sound', 'sound', [srow('sounds', 'Action sounds', 'A short sound when something finishes.', 'On', 'Deploys, backups, settings', sw('sounds', 'Action sounds'), 'sounds'),
         srow('voice', 'Reading voice', 'The voice for Read aloud on any element.', 'The system default', 'Read aloud', '<select class="select" data-select="voice" aria-label="Reading voice"><option value="">System default</option>' + (('speechSynthesis' in window) ? speechSynthesis.getVoices() : []).map(function (v) { return '<option' + (v.name === st.voice ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="voice-test">Try it</button>', 'voice'),
@@ -765,7 +812,7 @@
       ['updatesSet', 'updates', [srow('upd', 'Updates', DEMO ? 'The app checks the project\'s releases every four hours.' : (upd.state === 'ready' ? 'Version ' + upd.version + ' is ready; restart to use it.' : upd.state === 'downloading' ? 'Downloading version ' + upd.version + '…' : upd.state === 'available' ? 'Version ' + upd.version + ' is out.' : upd.state === 'offline' ? 'Could not reach the releases: ' + (upd.error || '') : 'You have the newest version.') + ' Updates are not code-signed.', 'Checks every four hours', 'This app', '<button class="btn tonal sm" data-act="checkupd">' + icon('Refresh', 's') + 'Check now</button>', ''),
         srow('selftest', 'Update self-test', 'Downloads the newest update package, checks its size and checksums against the feed, lets the installer stage it on Windows, and shows whether an update was seen applied after a restart.', '', 'Nothing changes unless a newer version is staged', '<button class="btn tonal sm" data-act="selftest">' + icon('PlayCircle', 's') + 'Run the self-test</button>', ''),
         srow('free', 'Free to use', 'This app costs nothing, shows no adverts, and never asks for payment, donations or reviews.', '', 'This app', '', ''),
-        srow('about', 'About this build', (about.codeName ? 'Code name ' + about.codeName + '. ' : '') + 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
+        srow('about', 'About this build', (about.codeName && !st.school ? 'Code name ' + about.codeName + '. ' : '') + 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
       ['appearance', 'appearance', [srow('theme', 'Theme', 'Light, dark, or follow the system.', 'System', 'The window', seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], 'Theme'), 'theme'),
         srow('seed', 'Main colour', 'The colour of buttons and selections.', '#00639B', 'The window', '<input type="color" value="' + st.seed + '" data-color="seed" aria-label="Main colour" style="width:48px;height:40px;border:0;background:none">', 'seed'),
         srow('density', 'Density', 'How much room rows take.', 'Comfortable', 'Lists', seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], 'Density'), 'density'),
@@ -806,18 +853,19 @@
   };
 
   // ---------- Extensions, tools, support, changes ----------
-  var exts = [];
+  var exts = [], extRuns = [], schoolInfo = { name: 'School mode', locked: false };
   R.extensions = function () {
     var m = matcher(q.extensions); var list = exts.filter(function (x) { return m.test([x.name, x.description, x.id].join(' ')); });
-    return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('extensions') + '</h1><button class="btn tonal" data-act="extfolder">' + icon('FolderOpen', 's') + 'Open the extensions folder</button><button class="btn text" data-go="help:h-extensions">' + icon('BookOpenVariant', 's') + 'How to write one</button></div>' +
-      '<p class="bl mu">Small helpers that add commands to this app. Each says what it may see, asks before it runs and again when that changes, runs in its own process for at most 15 seconds, and never gets passwords or keys.</p>' + findField('xsearch', 'Search extensions', q.extensions) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' +
+    return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('extensions') + '</h1><button class="btn fill" data-act="extadd">' + icon('Plus', 's') + 'Add from a folder</button><button class="btn tonal" data-act="extfolder">' + icon('FolderOpen', 's') + 'Open the extensions folder</button><button class="btn text" data-go="help:h-extensions">' + icon('BookOpenVariant', 's') + 'How to write one</button></div>' +
+      '<div class="setting" data-k="extmaster"><span class="col grow"><span class="ll">Extensions</span><span class="bs mu">Switching this off stops every extension at once; what each one was allowed stays recorded.</span></span><button class="sw' + (exts.length && exts[0].master === false ? '' : ' on') + '" role="switch" aria-checked="' + !(exts.length && exts[0].master === false) + '" aria-label="Every extension" data-extmaster><i></i></button></div>' + '<p class="bl mu">Small helpers that add commands to this app. Each says what it may see, asks before it runs and again when that changes, runs in its own process for at most 15 seconds, and never gets passwords or keys.</p>' + findField('xsearch', 'Search extensions', q.extensions) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' +
       '<div class="igrid">' + (list.length ? list.map(function (x) {
         if (x.error) return '<article class="extcard" data-k="ext-' + esc(x.id) + '"><h2 class="tm">' + esc(x.name) + '</h2><div class="note" style="background:var(--errc);color:var(--on-errc)"><span>' + icon('AlertCircle') + '</span><span class="bm">This extension cannot be loaded: ' + esc(x.error) + '</span></div></article>';
         return '<article class="extcard" id="ext-' + esc(x.id) + '" data-k="ext-' + esc(x.id) + '"><div class="row" style="gap:12px"><span class="sq">' + icon('PuzzleOutline') + '</span><span class="col grow"><h2 class="tm">' + esc(x.name) + '</h2><span class="bs mu">' + esc(x.id) + ' · version ' + esc(x.version) + '</span></span>' + sw2('ext:' + x.id, x.enabled, 'Turn on ' + x.name) + '</div><p class="bm">' + esc(x.description) + '</p>' +
           (x.needsConsent ? '<div class="note"><span>' + icon('ShieldAlertOutline') + '</span><span class="bm">It now asks for more. Turn it on again to agree.</span></div>' : '') +
           '<div class="col" style="gap:4px"><span class="ll">It may</span>' + (x.permissionText.length ? x.permissionText.map(function (pt) { return '<span class="bs mu row" style="gap:6px;align-items:flex-start">' + icon('Check', 's') + '<span>' + esc(pt) + '</span></span>'; }).join('') : '<span class="bs mu">Nothing beyond running.</span>') + '</div>' +
-          '<div class="row" style="gap:8px;flex-wrap:wrap">' + x.commands.map(function (c) { return '<button class="btn tonal sm" data-extrun="' + esc(x.id) + ':' + esc(c.id) + '"' + (x.enabled ? '' : ' disabled') + '>' + icon('Play', 's') + esc(c.title) + '</button>'; }).join('') + '</div></article>';
-      }).join('') : '<div class="empty"><p class="bm mu">' + (exts.length ? L('noMatch') : 'No extensions yet.') + '</p></div>') + '</div>' + foot();
+          '<div class="row" style="gap:8px;flex-wrap:wrap">' + (/^(health-report|link-sheet)$/.test(x.id) ? '' : '<button class="btn text sm" data-extrm="' + esc(x.id) + '">' + icon('DeleteOutline', 's') + 'Remove</button>') + x.commands.map(function (c) { return '<button class="btn tonal sm" data-extrun="' + esc(x.id) + ':' + esc(c.id) + '"' + (x.enabled ? '' : ' disabled') + '>' + icon('Play', 's') + esc(c.title) + '</button>'; }).join('') + '</div></article>';
+      }).join('') : '<div class="empty"><p class="bm mu">' + (exts.length ? L('noMatch') : 'No extensions yet.') + '</p></div>') + '</div>' +
+      '<section class="section" id="extruns" data-k="extruns"><h2 class="tl">Recent runs</h2>' + (extRuns.length ? extRuns.map(function (r) { return '<div class="row-item"><span class="tag ' + (r.ok ? 'g' : 'a') + '">' + (r.ok ? 'Answered' : 'Failed') + '</span><span class="col grow"><span class="ll">' + esc(r.name) + ', ' + esc(r.command) + '</span><span class="bs mu">' + esc(when(r.at)) + (r.text ? ' · ' + esc(r.text) : '') + '</span></span></div>'; }).join('') : '<p class="bm mu">No extension has run yet.</p>') + '</section>' + foot();
   };
   function sw2(key, on, label) { return '<button class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + !!on + '" aria-label="' + esc(label) + '" data-sw2="' + esc(key) + '"><i></i></button>'; }
   async function extToggle(id, on) {
@@ -835,7 +883,8 @@
   R.tools = function () {
     return '<div class="section" id="top"><h1 class="hl">' + L('tools') + '</h1><p class="bl mu">Small tools that run entirely in this window.</p><div class="chipline">' + [['regex', 'Pattern workbench'], ['base64', 'Base64'], ['convert', 'Convert'], ['colour', 'Colour'], ['otp', 'Authenticator']].map(function (x) { return '<button class="chip" data-go="tools:' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       '<section class="section" id="regex" data-k="t-regex"><h2 class="tl">Pattern workbench</h2><p class="bm mu">The same workbench every search here opens.</p><div><button class="btn tonal" data-regex="">Open the workbench</button></div></section>' +
-      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64</h2><textarea class="input" id="b64in" aria-label="Base64 input">Home Assistant Material</textarea><div class="chipline"><button class="btn tonal sm" data-act="b64enc">Encode</button><button class="btn tonal sm" data-act="b64dec">Decode</button><label class="row bm" style="gap:8px"><input type="checkbox" id="b64url"> URL-safe</label><label class="row bm" style="gap:8px"><input type="checkbox" id="b64pad" checked> Padding</label><label class="btn text sm">' + icon('Upload', 's') + 'A file<input type="file" id="b64file" hidden></label></div><pre class="wb-test" id="b64out" aria-live="polite"></pre></section>' +
+      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64, converting and drawing</h2><p class="bm mu">Each has its own tab now.</p><div class="chipline"><button class="btn tonal sm" data-go="base64:top">Base64</button><button class="btn tonal sm" data-go="convert:top">Convert</button><button class="btn tonal sm" data-go="draw:top">Draw</button></div></section>' +
+      '<section class="section" id="qrmake" data-k="t-qr"><h2 class="tl">Make a QR code</h2><p class="bm mu">From any text or link, or from a one-time code you added below.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input grow" id="qrtext" aria-label="Text for the QR code" placeholder="http://homeassistant.local:8123"><button class="btn tonal sm" data-act="qrmake">Make it</button>' + (st.otp.length ? '<select class="select" id="qrotp" aria-label="One-time code">' + st.otp.map(function (o2, i2) { return '<option value="' + i2 + '">' + esc(o2.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="qrotp">Show its QR code</button>' : '') + '</div></section>' +
       '<section class="section" id="convert" data-k="t-conv"><h2 class="tl">Convert</h2><p class="bm mu">Paste JSON (a list of objects) or CSV, then convert. Progress and errors show here.</p><textarea class="input" id="cvin" aria-label="Text to convert">[{"name": "Kitchen", "port": 8123}, {"name": "Garage", "port": 8124}]</textarea><div class="chipline"><button class="btn tonal sm" data-conv="csv">To CSV</button><button class="btn tonal sm" data-conv="json">To JSON</button><button class="btn tonal sm" data-conv="yaml">To YAML</button><button class="btn tonal sm" data-conv="md">To Markdown</button></div><div id="cvstat" class="bs mu" aria-live="polite"></div><pre class="wb-test" id="cvout"></pre></section>' +
       '<section class="section" id="colour" data-k="t-col"><h2 class="tl">Colour</h2><div class="row" style="gap:16px;flex-wrap:wrap"><input type="color" id="colin" value="#00639b" aria-label="Pick a colour" style="width:64px;height:48px;border:0;background:none"><input class="input mono" id="coltext" value="#00639B" aria-label="Type a colour as hex, rgb() or hsl()"><span class="swatch" id="colsw" style="background:#00639B"></span></div><div id="colout" class="bm"></div></section>' +
       '<section class="section" id="otp" data-k="t-otp"><h2 class="tl">Authenticator</h2><p class="bm mu">Add a one-time code secret (Base32). Codes are worked out here every 30 seconds. Or scan the QR code a site shows you: from an image, a pasted screenshot, or the camera. Nothing leaves this computer.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" id="otpname" placeholder="Name" aria-label="Name"><input class="input mono" id="otpsecret" placeholder="JBSWY3DPEHPK3PXP" aria-label="Secret"><button class="btn tonal sm" data-act="otpadd">Add</button></div><div class="chipline"><label class="btn tonal sm">' + icon('QrcodeScan', 's') + 'QR code from an image<input type="file" id="qrfile" accept="image/*" hidden></label><button class="btn tonal sm" data-act="qrcam">Use the camera</button><span class="bs mu">or paste a screenshot here</span></div><video id="qrvideo" class="qrvideo" hidden playsinline muted aria-label="Camera view for scanning a QR code"></video><div id="qrout" class="bs mu" aria-live="polite"></div><div id="otplist"></div></section>' + foot();
@@ -943,7 +992,7 @@
   // ---------- Shell ----------
   function shell() {
     var app = $('#app');
-    var winBtns = DEMO ? '' : '<span class="winctl"><button class="ib" data-win="min" aria-label="Minimize">' + icon('WindowMinimize', 's') + '</button><button class="ib" data-win="max" aria-label="Maximize">' + icon('WindowMaximize', 's') + '</button><button class="ib wclose" data-win="close" aria-label="Close the window">' + icon('Close', 's') + '</button></span>';
+    var winBtns = DEMO || API.platform === 'win32' ? (API.platform === 'win32' ? '<span class="wcospace" aria-hidden="true"></span>' : '') : '<span class="winctl"><button class="ib" data-win="min" aria-label="Minimize">' + icon('WindowMinimize', 's') + '</button><button class="ib" data-win="max" aria-label="Maximize">' + icon('WindowMaximize', 's') + '</button><button class="ib wclose" data-win="close" aria-label="Close the window">' + icon('Close', 's') + '</button></span>';
     app.innerHTML = '<a class="skip" href="#main">Skip to the page</a><div class="shell edge-' + st.edge + '">' +
       '<header class="topbar drag" data-k="topbar"><span class="brand"><span class="logo ' + st.logo.shape + '" aria-hidden="true">' + icon('RocketLaunch', 's') + '</span><b>' + esc(st.name) + '</b>' + (DEMO ? '<span class="tag a">Demo</span>' : '') + '</span>' +
       '<button class="btn tonal sm nodrag" data-act="palette" aria-label="' + esc(w('palette')) + ', Ctrl Shift F">' + icon('Magnify', 's') + '<span class="opt">' + L('search') + '</span><span class="kbd opt">Ctrl Shift F</span></button>' +
@@ -976,6 +1025,8 @@
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
     if (st.active === 'tools') { otpDraw(); colour(); }
     if (st.active === 'instances') lcFrame();
+    if (st.active === 'draw') drPaint();
+    if (API.overlay && API.platform === 'win32') API.overlay(isDark());
     if (st.active === 'activity') historyPanel();
     document.title = st.name + ' · ' + w(st.active);
   }
@@ -1075,7 +1126,7 @@
     items.push({ kind: 'Deploy', label: 'Write a Raspberry Pi card', act: 'pi' });
     exts.forEach(function (x) { (x.commands || []).forEach(function (c) { items.push({ kind: 'Extension', label: c.title, sub: x.name + (x.enabled ? '' : ' (off)'), go: 'extensions:ext-' + x.id }); }); });
     [['Add a schedule rule', 'ruleadd'], ['Change the logo', 'logo'], ['Home Assistant connection', 'haconn'], ['Choose your next step', 'nextset'], ['Export the activity', 'export-activity'], ['Export the backups', 'export-backups'], ['Export your settings', 'export-settings'], ['Show a dim sum', 'dimsum'], ['Check for a new version', 'checkupd'], ['Open the extensions folder', 'extfolder']].forEach(function (a2) { items.push({ kind: 'Action', label: a2[0], act: a2[1] }); });
-    [['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
+    [['Convert files', 'convert:top'], ['Convert, PDF tools', 'convert:cv-pdf'], ['Base64, files', 'base64:b64files'], ['Draw', 'draw:top'], ['Tools, Make a QR code', 'tools:qrmake'], ['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
     ['docker', 'ssh', 'virtualbox', 'vmware'].forEach(function (t) { items.push({ kind: 'Deploy', label: 'Deploy in one click: ' + w(t), act: 'deploy-' + t }); items.push({ kind: 'Deploy', label: 'Deploy with options: ' + w(t), act: 'options-' + t }); });
     D.instances.forEach(function (i) { items.push({ kind: 'Instance', label: i.name, sub: (i.url || '') + ' · ' + w(i.state), go: 'instances:inst-' + i.id }); if (i.url) items.push({ kind: 'Open', label: 'Open ' + i.name, act: 'open-' + i.id }); items.push({ kind: 'Backup', label: 'Back up ' + i.name, act: 'backup-' + i.id }); });
     D.hosts.forEach(function (h) { items.push({ kind: 'Host', label: h.name, sub: h.user + '@' + h.address, go: 'hosts:host-' + h.id }); });
@@ -1169,6 +1220,7 @@
         else if (!p.ok) toast(name + ': ' + p.error);
         reload().then(soon);
       }
+      if (ch === 'school') { schoolApply(p); return; }
       if (ch === 'selftest') { if (selftest) { selftest.steps = p.steps; selftest.draw(); } return; }
       if (ch === 'update' && p.state === 'applied') { toast('Updated from ' + p.from + ' to ' + p.version + '. The update is applied and running.', { emoji: '✅' }); return; }
       if (ch === 'update') { if (upd.state !== 'later' || p.state === 'ready') upd = p; if (p.state === 'ready') { toast('Version ' + p.version + ' is ready. Restart to use it; it is not code-signed.', { emoji: '⬆️' }); narrate('update', 'Version ' + p.version + ' is ready. Restart to use it.', p.version + ' 版本準備好，重新開就用得。'); } soon(); }
@@ -1192,6 +1244,15 @@
       if ((b = t.closest('[data-rmticket]'))) { st.tickets.splice(+b.dataset.rmticket, 1); save(); render(); return; }
       if ((b = t.closest('[data-conv]'))) { convert(b.dataset.conv); return; }
       if ((b = t.closest('[data-rmotp]'))) { st.otp.splice(+b.dataset.rmotp, 1); save(); otpDraw(); return; }
+      if ((b = t.closest('[data-school]'))) { schoolToggle(); return; }
+      if ((b = t.closest('[data-extmaster]'))) { var on2 = b.getAttribute('aria-checked') !== 'true'; if (DEMO) { exts.forEach(function (x) { x.master = on2; }); render(); return; } API.extMaster(on2).then(function (l) { exts = l; render(); toast(on2 ? 'Extensions are on again.' : 'Every extension is off.'); }); return; }
+      if ((b = t.closest('[data-extrm]'))) { var xid = b.dataset.extrm; superConfirm('Remove the extension ' + xid, ['Its folder is deleted from this app.', 'What it was allowed is forgotten.'], 'REMOVE', function () { API.extRemove(xid).then(function (l) { exts = l; render(); }, function (er) { toast(er.message); }); }); return; }
+      if ((b = t.closest('[data-adapter]'))) { cvRun(b.dataset.adapter); return; }
+      if ((b = t.closest('[data-cvsave]'))) { var cs = b.dataset.cvsave.split(':'), cx = conv.files[+cs[0]], co = cx && cx.out[+cs[1]]; if (co) { if (co.path && API.showFile) API.showFile(co.path).catch(function (er) { toast(er.message); }); else { var an = document.createElement('a'); an.href = URL.createObjectURL(co.blob); an.download = co.name; an.click(); } } return; }
+      if ((b = t.closest('[data-b64o]'))) { var bk = b.dataset.b64o; b64.o[bk] = !b64.o[bk]; render(); return; }
+      if ((b = t.closest('[data-drtool]'))) { dr.tool = b.dataset.drtool; dr.mode = 'tools'; render(); return; }
+      if ((b = t.closest('[data-drmode]'))) { dr.mode = b.dataset.drmode; render(); return; }
+      if ((b = t.closest('[data-drink]'))) { dr.color = b.dataset.drink; dr.mode = 'tools'; render(); return; }
       if ((b = t.closest('[data-dimtroll]'))) { dimsumTroll(); return; }
       if ((b = t.closest('[data-rule]'))) { ruleDialog((st.rules || []).filter(function (r) { return r.id === b.dataset.rule; })[0]); return; }
       if ((b = t.closest('[data-ruleon]'))) { var rl = (st.rules || []).map(function (r) { return r.id === b.dataset.ruleon ? Object.assign({}, r, { on: !r.on }) : r; }); setVal('rules', rl, 'Schedule rule switched'); runRules(); render(); return; }
@@ -1230,6 +1291,34 @@
       else if (a === 'pi') piDialog();
       else if (a === 'wizgo') wizGo();
       else if (a === 'qrcam') qrCamera();
+      else if (a === 'qrmake') { var qt = $('#qrtext').value.trim(); if (!qt) { toast('Type the text or link first.'); $('#qrtext').focus(); } else qrShow('QR code', qt); }
+      else if (a === 'qrotp') { var oo = st.otp[+$('#qrotp').value]; if (oo) qrShow(oo.name, 'otpauth://totp/' + encodeURIComponent(oo.name) + '?secret=' + oo.secret + '&issuer=' + encodeURIComponent(oo.name.split(':')[0])); }
+      else if (a === 'extadd') { if (DEMO) toast('In the app this adds an extension from a folder.'); else API.extAdd().then(function (l) { exts = l; render(); toast('Added. Turn it on to see what it asks for.'); }, function (er) { toast(er.message); }); }
+      else if (a === 'schoolset') schoolDialog();
+      else if (a === 'notesel-rm') { var keep2 = st.notes.filter(function (n2, i2) { return !nsel[i2]; }); setVal('notes', keep2, 'Notifications removed'); nsel = {}; render(); }
+      else if (a === 'notesel-all') { st.notes.forEach(function (n2, i2) { nsel[i2] = true; }); render(); }
+      else if (a === 'notesel-export') exportDialog('Export notifications', 'notifications', st.notes.filter(function (n2, i2) { return !Object.keys(nsel).length || nsel[i2]; }).map(function (n2) { return { at: new Date(n2.t).toISOString(), text: n2.text }; }));
+      else if (a === 'cvclear') { conv.files = []; render(); }
+      else if (a === 'cvpause') { conv.paused = !conv.paused; render(); }
+      else if (a === 'cvcancel') { conv.cancel = true; conv.paused = false; toast('Cancelling: files already written stay; the rest are not started.'); }
+      else if (a === 'cvdest') { API.pickFolder('Choose where converted files go').then(function (d) { if (d) { conv.dest = d; render(); } }); }
+      else if (a === 'cvhistexport') exportDialog('Export the conversion history', 'conversions', st.convHistory || []);
+      else if (a === 'cvhistclear') superConfirm('Clear the conversion history', [(st.convHistory || []).length + ' entries are removed from this window.', 'The converted files stay where they are.'], 'CLEAR', function () { setVal('convHistory', [], 'Conversion history cleared'); render(); });
+      else if (a === 'b64e' || a === 'b64d') { b64Push(); try { if (a === 'b64e') { b64.output = b64Encode(encText(b64.input, b64.o.enc), b64.o); b64.preview = null; b64.note = 'Encoded ' + encText(b64.input, b64.o.enc).length + ' bytes.'; } else { var by = b64Decode(b64.input, b64.o); try { b64.output = decText(by, b64.o.enc); } catch (ee) { b64.output = ''; } b64Preview(by); b64.note = 'Decoded ' + by.length + ' bytes' + (b64.output ? '.' : '; they are not ' + b64.o.enc + ' text, so see the preview.'); } } catch (er) { b64.undo.pop(); b64.note = er.message; } render(); }
+      else if (a === 'b64swap') { b64Push(); var tmp2 = b64.input; b64.input = b64.output; b64.output = tmp2; render(); }
+      else if (a === 'b64url') { b64Push(); try { var bs = encText(b64.input, b64.o.enc); b64.output = 'data:text/plain;charset=' + (b64.o.enc === 'latin1' ? 'ISO-8859-1' : b64.o.enc.toUpperCase()) + ';base64,' + b64Encode(bs, { pad: true }); b64.note = 'A data: URL of ' + bs.length + ' bytes.'; } catch (er) { b64.note = er.message; } render(); }
+      else if (a === 'b64parse') { var pd = parseDataUrl(b64.input); if (!pd) b64.note = 'That is not a data: URL. It starts with data:, then a type, then a comma.'; else { b64Push(); try { b64.output = decText(pd.bytes, (pd.params.charset || 'utf-8').toLowerCase() === 'iso-8859-1' ? 'latin1' : 'utf-8'); } catch (ee) { b64.output = ''; } b64Preview(pd.bytes); b64.note = 'Type ' + pd.mime + (Object.keys(pd.params).length ? ', ' + Object.keys(pd.params).map(function (k) { return k + '=' + pd.params[k]; }).join(', ') : '') + ', ' + pd.bytes.length + ' bytes' + (pd.base64 ? ', Base64.' : ', percent-encoded.'); } render(); }
+      else if (a === 'b64paste') { navigator.clipboard.readText().then(function (tx) { b64Push(); b64.input = tx; render(); }, function () { toast('The clipboard could not be read. Paste into the box instead.'); }); }
+      else if (a === 'b64undo') { var u = b64.undo.pop(); if (u) { b64.redo.push({ input: b64.input, output: b64.output }); b64.input = u.input; b64.output = u.output; render(); } }
+      else if (a === 'b64redo') { var r2 = b64.redo.pop(); if (r2) { b64.undo.push({ input: b64.input, output: b64.output }); b64.input = r2.input; b64.output = r2.output; render(); } }
+      else if (a === 'b64record') { var by2 = new TextEncoder().encode(b64.output); sha256(by2).then(function (h) { saveText('base64-record.json', JSON.stringify({ variant: b64.o.url ? 'base64url' : 'base64', padding: b64.o.pad, mime: b64.o.mime, wrap: b64.o.wrap || 0, strict: b64.o.strict, encoding: b64.o.enc, inputBytes: encText(b64.input, b64.o.enc).length, outputBytes: by2.length, outputSha256: h, at: new Date().toISOString() }, null, 2)); }); }
+      else if (a === 'b64zip') { var zf = {}; zf['base64-results.json'] = new TextEncoder().encode(JSON.stringify(b64.files.map(function (f) { return { source: f.name, result: f.result, ok: !!f.ok, bytes: f.size || 0, sha256: f.sha || '', message: f.msg }; }), null, 2)); var zb = window.fflate.zipSync(zf); var za = document.createElement('a'); za.href = URL.createObjectURL(new Blob([zb])); za.download = 'base64-results.zip'; za.click(); }
+      else if (a === 'b64fclear') { b64.files = []; render(); }
+      else if (a === 'drundo') { if (dr.undo.length) { dr.redo.push(JSON.stringify(dr.strokes)); dr.strokes = JSON.parse(dr.undo.pop()); drSave(); render(); } }
+      else if (a === 'drredo') { if (dr.redo.length) { dr.undo.push(JSON.stringify(dr.strokes)); dr.strokes = JSON.parse(dr.redo.pop()); drSave(); render(); } }
+      else if (a === 'drclear') superConfirm('Clear the drawing', [dr.strokes.length + ' saved strokes are removed.', 'Export it first if you want to keep it.'], 'CLEAR', function () { drSnap(); dr.strokes = []; drSave(); render(); });
+      else if (a === 'drsvg') saveText('drawing.svg', drSvg());
+      else if (a === 'drpng1' || a === 'drpng2' || a === 'drpng3') drExportPng(+a.slice(-1));
       else if (a === 'nextset') { dialog('Your next step', '<label class="col" style="gap:4px"><span class="ll">What is the one thing to do next?</span><input class="input" id="nsin" maxlength="80" value="' + esc(st.nextStep || '') + '"></label><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="nsok">Keep it in view</button></div>', { emoji: '👉', focus: '#nsin' }); $('#nsok').onclick = function () { setVal('nextStep', $('#nsin').value.trim(), 'Next step'); closeDialog(); render(); }; }
       else if (a === 'nextdone') { setVal('nextStep', '', 'Next step done'); finishedOne(); render(); toast(msg('saved')); }
       else if (a === 'ruleadd') ruleDialog(null);
@@ -1263,6 +1352,10 @@
     app.addEventListener('input', function (e) {
       var t = e.target, map = { dsearch: 'downloads', isearch: 'instances', bsearch: 'backups', hsearch: 'hosts', asearch: 'activity', ssearch: 'settings', hpsearch: 'help' };
       if (map[t.id]) { q[map[t.id]] = t.value; render(); return; }
+      if (t.id === 'b64i') { b64.input = t.value; return; }
+      if (t.dataset.cvopt) { conv.opts[t.dataset.cvopt] = t.value; return; }
+      if (t.id && t.id.indexOf('cvq-') === 0) { conv.q[t.id.slice(4)] = t.value; render(); var cf = $('#' + t.id); if (cf) { cf.focus(); cf.setSelectionRange(cf.value.length, cf.value.length); } return; }
+      if (t.dataset.drsize != null) { dr.size = +t.value; return; }
       if (t.id === 'rhsearch') { q.rhist = t.value; if (historyPanel.draw) { historyPanel.draw(); var rf = $('#rhsearch'); rf.focus(); rf.setSelectionRange(rf.value.length, rf.value.length); } return; }
       if (t.dataset.nrange) { st.narrator[t.dataset.nrange] = +t.value; save(); return; }
       if (t.dataset.wiz) { var wv = wiz.vals[wizTarget()]; if (wv) wv[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; return; }
@@ -1273,6 +1366,13 @@
     });
     app.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.id === 'cvfiles' && t.files.length) { cvAdd(Array.prototype.slice.call(t.files)); return; }
+      if (t.dataset.b64file && t.files.length) { Array.prototype.forEach.call(t.files, function (f) { b64File(f, t.dataset.b64file); }); return; }
+      if (t.dataset.b64wrap != null) { b64.o.wrap = t.value; return; }
+      if (t.dataset.b64enc != null) { b64.o.enc = t.value; render(); return; }
+      if (t.dataset.drinkc != null) { dr.color = t.value; render(); return; }
+      if (t.id === 'drbg' && t.files[0]) { createImageBitmap(t.files[0]).then(function (bm) { dr.bg = bm; drPaint(); }, function () { toast('That picture could not be opened.'); }); return; }
+      if (t.dataset.nsel != null) { nsel[t.dataset.nsel] = t.checked; render(); return; }
       if (t.dataset.bksel) { bsel[t.dataset.bksel] = t.checked; render(); return; }
       if (t.dataset.bkall != null) { $$('[data-bksel]').forEach(function (c) { bsel[c.dataset.bksel] = t.checked; }); render(); return; }
       if (t.dataset.hsel) { hsel[t.dataset.hsel] = t.checked; render(); return; }
@@ -1324,9 +1424,18 @@
       var g = e.target.closest('.panel [data-go]'); if (g) { $('.panel').remove(); go(g.dataset.go); }
     });
     var dz = null;
-    document.addEventListener('dragover', function (e) { if (dragged) return; if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); if (!dz) { dz = document.createElement('div'); dz.className = 'dropzone'; dz.textContent = 'Drop your wording file to use it'; $('#app').appendChild(dz); } } });
+    document.addEventListener('dragover', function (e) { if (dragged) return; if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); if (!dz) { dz = document.createElement('div'); dz.className = 'dropzone'; dz.textContent = st.active === 'base64' ? 'Drop to encode or decode' : st.active === 'draw' ? 'Drop a picture to draw on it' : st.active === 'convert' ? 'Drop files to convert' : 'Drop a wording file, files to convert, or a virtual disk'; $('#app').appendChild(dz); } } });
     document.addEventListener('dragleave', function (e) { if (dz && !e.relatedTarget) { dz.remove(); dz = null; } });
-    document.addEventListener('drop', function (e) { if (dragged) return; if (dz) { dz.remove(); dz = null; } var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) { e.preventDefault(); loadVocabFile(f); } });
+    document.addEventListener('drop', function (e) {
+      if (dragged) return; if (dz) { dz.remove(); dz = null; } var fl = e.dataTransfer && e.dataTransfer.files; if (!fl || !fl.length) return; e.preventDefault();
+      var arr = Array.prototype.slice.call(fl), zone = e.target.closest && e.target.closest('[data-b64drop]');
+      if (arr.some(function (f) { return /\.(vhdx?|vhds|avhdx?|iso)$/i.test(f.name); }) && window.vdDrop) { window.vdDrop(arr); return; }
+      if (zone || st.active === 'base64') { arr.forEach(function (f) { b64File(f, zone ? zone.dataset.b64drop : (/\.(base64\.txt|b64)$/i.test(f.name) ? 'dec' : 'enc')); }); if (st.active !== 'base64') go('base64:b64files'); return; }
+      if (st.active === 'convert') { cvAdd(arr); return; }
+      if (st.active === 'draw' && /^image\//.test(arr[0].type)) { createImageBitmap(arr[0]).then(function (bm) { dr.bg = bm; drPaint(); }); return; }
+      if (/\.json$/i.test(arr[0].name)) { loadVocabFile(arr[0]); return; }
+      cvAdd(arr); go('convert:queue');
+    });
     if (mq.addEventListener) mq.addEventListener('change', apply);
   }
   function closeTab(t) {
@@ -1346,7 +1455,7 @@
   function loadVocabFile(file) {
     if (file.size > VL.bytes) { toast('That file is larger than 256 KiB. Nothing changed.'); return; }
     var fr = new FileReader();
-    fr.onload = function () { var r = parseVocab(String(fr.result)); if (!r.ok) { toast(r.error + ' Nothing changed.'); beep('bad'); return; } st.vocab = r.entries; st.history.unshift({ t: Date.now(), path: 'vocab', label: 'Your wording file (' + r.count + ' entries)', before: null, after: '(your file)' }); save(); apply(); shell(); render(); var c = document.createElement('div'); c.className = 'celebrate'; c.setAttribute('role', 'status'); c.innerHTML = '<div class="hl">' + esc(msg('vocab')) + '</div><p class="bm">' + r.count + ' words in use.</p>'; $('#app').appendChild(c); setTimeout(function () { c.remove(); }, 3000); beep('on'); };
+    fr.onload = function () { var r = parseVocab(String(fr.result)); if (!r.ok) { toast(r.error + ' Nothing changed.'); beep('bad'); return; } setTimeout(function () { celebrate('Your words are in: ' + Object.keys(r.entries).length + ' of them.'); }, 50); st.vocab = r.entries; st.history.unshift({ t: Date.now(), path: 'vocab', label: 'Your wording file (' + r.count + ' entries)', before: null, after: '(your file)' }); save(); apply(); shell(); render(); var c = document.createElement('div'); c.className = 'celebrate'; c.setAttribute('role', 'status'); c.innerHTML = '<div class="hl">' + esc(msg('vocab')) + '</div><p class="bm">' + r.count + ' words in use.</p>'; $('#app').appendChild(c); setTimeout(function () { c.remove(); }, 3000); beep('on'); };
     fr.readAsText(file);
   }
 
@@ -1551,11 +1660,12 @@
     var f = 'json', stamp = new Date().toISOString().slice(0, 10);
     function draw() {
       dialog(title, '<p class="bm mu">' + rows.length + ' rows. Passwords, keys and your wording file are never included.</p><div class="chipline" role="group" aria-label="Format">' + FORMATS.map(function (x) { return '<button class="chip' + (x === f ? ' sel' : '') + '" data-xf="' + x + '" aria-pressed="' + (x === f) + '">' + x.toUpperCase() + '</button>'; }).join('') + '</div><pre class="wb-test" style="max-height:220px;overflow:auto" tabindex="0">' + esc(fmtRows(rows.slice(0, 5), f, name)) + (rows.length > 5 ? '\n…' : '') + '</pre>' +
-        '<div class="row" style="gap:8px;flex-wrap:wrap"><span class="grow"></span><button class="btn text" id="xcopy">' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn tonal" id="xcode">' + icon('CodeBraces', 's') + 'Open in VS Code</button><button class="btn fill" id="xsave">' + icon('Export', 's') + 'Save</button></div>', { emoji: '📦' });
+        '<div class="row" style="gap:8px;flex-wrap:wrap"><span class="grow"></span><button class="btn text" id="xcopy">' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn tonal" id="xcode">' + icon('CodeBraces', 's') + 'Open in VS Code</button><button class="btn text" id="xzip">' + icon('FolderZipOutline', 's') + 'ZIP of every format</button><button class="btn fill" id="xsave">' + icon('Export', 's') + 'Save</button></div>', { emoji: '📦' });
       $('#ov').addEventListener('click', function (e) { var b = e.target.closest('[data-xf]'); if (b) { f = b.dataset.xf; draw(); } });
       var text = function () { return fmtRows(rows, f, name); }, file = name + '-' + stamp + '.' + f;
       $('#xcopy').onclick = function () { copy(text()); };
       $('#xsave').onclick = function () { saveText(file, text()); closeDialog(); };
+      $('#xzip').onclick = function () { zipAll(name, rows); closeDialog(); };
       $('#xcode').onclick = function () { if (DEMO) { toast('In the app this opens ' + file + ' in VS Code.'); return; } API.exportOpen(file, text()).then(function (r) { toast(r); closeDialog(); }, function (er) { toast(er.message); }); };
     }
     draw();
@@ -1637,12 +1747,353 @@
     toast(st.lang === 'yue' ? '點心驚喜熄唔到㗎，佢返咗嚟喇。' : st.funEn >= 3 ? 'Nice try. The dim sum surprise cannot be turned off; it slid back on.' : 'The dim sum surprise cannot be turned off.', { emoji: '🥟' });
   }
 
+  // ---------- School mode, shared with every app on this computer ----------
+  function schoolApply(v) {
+    var was = st.school; schoolInfo = v; if (!!v.on !== !!st.school) { st.school = !!v.on; save(); apply(); }
+    if (was !== st.school) toast((v.name || 'School mode') + (st.school ? ' is on' : ' is off') + (v.by && v.by !== 'Deploy Assistant' ? ', switched in ' + v.by : '') + '.');
+    shell(); render();
+  }
+  function schoolToggle() {
+    if (DEMO || !API.schoolSet) { setVal('school', !st.school, 'School mode'); render(); return; }
+    var want = !st.school;
+    var go2 = function (pin) { API.schoolSet({ on: want, pin: pin }).then(schoolApply, function (e) { toast(e.message); beep('bad'); }); };
+    if (!want && schoolInfo.locked) { dialog('Switch off ' + (schoolInfo.name || 'School mode'), '<p class="bm">This needs its PIN. It is the same in every app.</p><input class="input mono" id="scpin" type="password" inputmode="numeric" maxlength="12" aria-label="PIN" autocomplete="off"><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="scok">Switch off</button></div>', { focus: '#scpin' }); $('#scok').onclick = function () { var v = $('#scpin').value; closeDialog(); go2(v); }; return; }
+    go2('');
+  }
+  function schoolDialog() {
+    dialog('Name and PIN', '<p class="bm mu">Shared with every Ding Ding Projects app on this computer.</p><label class="col" style="gap:4px"><span class="ll">Its name</span><input class="input" id="scname" maxlength="40" value="' + esc(schoolInfo.name || 'School mode') + '"></label><label class="col" style="gap:4px"><span class="ll">New PIN to switch it off (4 to 12 digits; empty removes it)</span><input class="input mono" id="scnew" type="password" inputmode="numeric" maxlength="12" autocomplete="new-password"></label>' + (schoolInfo.locked ? '<label class="col" style="gap:4px"><span class="ll">Current PIN</span><input class="input mono" id="sccur" type="password" inputmode="numeric" maxlength="12" autocomplete="off"></label>' : '') + '<span class="field-err" id="scerr" role="alert"></span><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="scsave">Save</button></div>', { emoji: '🎒' });
+    $('#scsave').onclick = function () {
+      if (DEMO) { closeDialog(); toast('In the app this changes the shared name and PIN.'); return; }
+      var o = { name: $('#scname').value, pin: $('#sccur') ? $('#sccur').value : '' }; var np = $('#scnew').value; if (np || schoolInfo.locked) o.newPin = np;
+      if (!np && schoolInfo.locked && !o.pin) delete o.newPin;
+      API.schoolSet(o).then(function (v) { closeDialog(); schoolApply(v); toast(msg('saved')); }, function (e) { $('#scerr').textContent = e.message; });
+    };
+  }
+
+  // ---------- A celebration when your wording file is taken in ----------
+  function celebrate(text) {
+    var calm = st.reduceMotion || st.lowStim || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var c = document.createElement('div'); c.className = 'celebrate'; c.setAttribute('role', 'status'); c.innerHTML = '<div class="celecard"><span class="hl">' + (st.emoji && !st.school ? '🎉 ' : '') + esc(text) + '</span></div>';
+    if (!calm) for (var i = 0; i < 80; i++) { var bit = document.createElement('i'); bit.style.left = Math.random() * 100 + '%'; bit.style.background = ['var(--p)', 'var(--t)', 'var(--amber)', 'var(--green)', 'var(--err)'][i % 5]; bit.style.animationDelay = Math.random() * 0.6 + 's'; bit.style.transform = 'rotate(' + Math.random() * 360 + 'deg)'; c.appendChild(bit); }
+    $('#app').appendChild(c); c.addEventListener('click', function () { c.remove(); }); setTimeout(function () { c.remove(); }, calm ? 2500 : 3200);
+  }
+  // ==========================================================================================
+  // Converter, Base64 toolkit, QR codes, ZIP and drawing. Everything runs in this window with the
+  // bundled libraries in vendor/ (pdf-lib, fflate, qrcode-generator, jsQR); nothing is uploaded.
+  // ==========================================================================================
+  var MB = 1024 * 1024;
+  function hex(b, n) { return Array.prototype.map.call(b.slice(0, n || b.length), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+  async function sha256(bytes) { var d = await crypto.subtle.digest('SHA-256', bytes); return hex(new Uint8Array(d)); }
+  function fmtSize(n) { return n < 1024 ? n + ' B' : n < MB ? (n / 1024).toFixed(1) + ' KB' : (n / MB).toFixed(1) + ' MB'; }
+  function readBytes(blob, start, end) { return blob.slice(start || 0, end == null ? blob.size : end).arrayBuffer().then(function (b) { return new Uint8Array(b); }); }
+  function baseName(n) { var i = n.lastIndexOf('.'); return i > 0 ? n.slice(0, i) : n; }
+
+  // Type from the first bytes, never from the name alone.
+  var SIGS = [['png', 'image/png', '89504e470d0a1a0a'], ['jpeg', 'image/jpeg', 'ffd8ff'], ['gif', 'image/gif', '47494638'], ['webp', 'image/webp', /^52494646.{8}57454250/], ['bmp', 'image/bmp', '424d'], ['pdf', 'application/pdf', '25504446'], ['zip', 'application/zip', '504b0304'], ['gzip', 'application/gzip', '1f8b'], ['mp3', 'audio/mpeg', /^(494433|fffb|fff3)/], ['wav', 'audio/wav', /^52494646.{8}57415645/], ['ogg', 'audio/ogg', '4f676753'], ['flac', 'audio/flac', '664c6143'], ['mp4', 'video/mp4', /^.{8}66747970/], ['webm', 'video/webm', '1a45dfa3'], ['7z', 'application/x-7z-compressed', '377abcaf271c'], ['rar', 'application/vnd.rar', '526172211a07']];
+  async function detect(file) {
+    var b = await readBytes(file, 0, 4096), h = hex(b, 16);
+    for (var i = 0; i < SIGS.length; i++) { var s = SIGS[i]; if (typeof s[2] === 'string' ? h.indexOf(s[2]) === 0 : s[2].test(h)) { var t = { kind: s[0], mime: s[1] }; if (t.kind === 'zip' && /\.(docx|xlsx|pptx|odt|ods)$/i.test(file.name)) t.office = true; return t; } }
+    var text; try { text = new TextDecoder('utf-8', { fatal: true }).decode(b.slice(0, b.length - (b.length === 4096 ? 4 : 0))); } catch (e) { return { kind: 'binary', mime: 'application/octet-stream' }; }
+    var tt = text.replace(/^﻿/, '').trimStart();
+    if (/^<svg[\s>]|^<\?xml[^>]*>\s*<svg/i.test(tt)) return { kind: 'svg', mime: 'image/svg+xml', text: true };
+    if (/^[[{]/.test(tt)) return { kind: 'json', mime: 'application/json', text: true };
+    if (/^<\?xml|^</.test(tt)) return { kind: 'xml', mime: 'application/xml', text: true };
+    if (/^data:[\w.+-]+\/[\w.+-]+[;,]/.test(tt)) return { kind: 'dataurl', mime: 'text/plain', text: true };
+    var first = tt.split(/\r?\n/)[0] || '';
+    if (/\t/.test(first)) return { kind: 'tsv', mime: 'text/tab-separated-values', text: true };
+    if (/,/.test(first) && tt.split(/\r?\n/).length > 1) return { kind: 'csv', mime: 'text/csv', text: true };
+    if (/^[A-Za-z0-9+/=_\-\s]+$/.test(tt) && tt.replace(/\s/g, '').length >= 8 && tt.replace(/\s/g, '').length % 4 !== 1) return { kind: 'base64', mime: 'text/plain', text: true };
+    return { kind: 'text', mime: 'text/plain', text: true };
+  }
+
+  // ---------- Adapter registry: category, sources, target, what can change, and how it runs ----------
+  var CATS = [['pdf', 'Documents and PDF'], ['image', 'Images'], ['audio', 'Audio'], ['video', 'Video'], ['archive', 'Archives'], ['data', 'Structured data'], ['text', 'Code and text'], ['binary', 'Binary encodings']];
+  var IMG = ['png', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
+  function A(id, cat, from, to, name, lossy, run, opts) { return Object.assign({ id: id, cat: cat, from: from, to: to, name: name, lossy: lossy, run: run, enabled: !!run }, opts || {}); }
+  function off(id, cat, from, to, name, why) { return A(id, cat, from, to, name, '', null, { why: why }); }
+  async function toBitmap(file, t) {
+    if (t.kind === 'svg') { var url = URL.createObjectURL(new Blob([await file.text()], { type: 'image/svg+xml' })); try { var img = new Image(); img.src = url; await img.decode(); var c = document.createElement('canvas'); c.width = Math.min(8000, img.naturalWidth || 1024); c.height = Math.min(8000, img.naturalHeight || 1024); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c; } finally { URL.revokeObjectURL(url); } }
+    var bm = await createImageBitmap(file); if (bm.width * bm.height > 100e6) throw new Error('The picture has more than 100 million pixels.'); return bm;
+  }
+  function imgTo(mime, q) {
+    return async function (file, t, o) {
+      var bm = await toBitmap(file, t), c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; var x = c.getContext('2d');
+      if (mime === 'image/jpeg') { x.fillStyle = o.bg || '#ffffff'; x.fillRect(0, 0, c.width, c.height); }
+      x.drawImage(bm, 0, 0); var blob = await new Promise(function (r) { c.toBlob(r, mime, q); });
+      if (!blob || blob.type !== mime) throw new Error('This window cannot write ' + mime + '.');
+      return [{ name: baseName(file.name) + '.' + ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' })[mime], blob: blob }];
+    };
+  }
+  async function pdfDoc(file) { var PDF = window.PDFLib; if (!PDF) throw new Error('The PDF library did not load.'); try { return await PDF.PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false }); } catch (e) { if (/encrypt/i.test(e.message)) throw new Error('This PDF is encrypted. Encrypted PDFs are not opened here.'); throw new Error('This PDF could not be read: ' + e.message.slice(0, 120)); } }
+  function parseRange(s, n) {
+    var out = []; String(s || '').split(',').forEach(function (p) { p = p.trim(); if (!p) return; var m = /^(\d+)(?:\s*-\s*(\d+))?$/.exec(p); if (!m) throw new Error('"' + p + '" is not a page or a range like 2-5.'); var a = +m[1], b = m[2] ? +m[2] : a; if (a < 1 || b > n || a > b) throw new Error('Pages ' + p + ' are outside 1 to ' + n + '.'); for (var i = a; i <= b; i++) out.push(i - 1); });
+    if (!out.length) throw new Error('Give at least one page.'); return out;
+  }
+  async function pdfSave(doc, name, check) {
+    var bytes = await doc.save(); var again = await window.PDFLib.PDFDocument.load(bytes, { updateMetadata: false });
+    if (check) check(again); return { name: name, blob: new Blob([bytes], { type: 'application/pdf' }), note: again.getPageCount() + ' pages, checked by reopening' };
+  }
+  var PDFTOOLS = {
+    inspect: async function (file) { var d = await pdfDoc(file); var info = { pages: d.getPageCount(), title: d.getTitle() || '', author: d.getAuthor() || '', subject: d.getSubject() || '', keywords: d.getKeywords() || '', creator: d.getCreator() || '', producer: d.getProducer() || '', created: d.getCreationDate() ? d.getCreationDate().toISOString() : '', modified: d.getModificationDate() ? d.getModificationDate().toISOString() : '', sizes: d.getPages().slice(0, 50).map(function (p, i) { return (i + 1) + ': ' + Math.round(p.getWidth()) + ' x ' + Math.round(p.getHeight()) + ' pt, rotated ' + p.getRotation().angle; }) }; return [{ name: baseName(file.name) + '.inspect.json', blob: new Blob([JSON.stringify(info, null, 2)], { type: 'application/json' }), note: info.pages + ' pages' }]; },
+    split: async function (file) { var d = await pdfDoc(file), n = d.getPageCount(), files = {}; if (n > 2000) throw new Error('More than 2000 pages.'); for (var i = 0; i < n; i++) { var o = await window.PDFLib.PDFDocument.create(); var pg = await o.copyPages(d, [i]); o.addPage(pg[0]); var r = await pdfSave(o, '', function (a) { if (a.getPageCount() !== 1) throw new Error('Page ' + (i + 1) + ' did not split cleanly.'); }); files[baseName(file.name) + '-page-' + String(i + 1).padStart(String(n).length, '0') + '.pdf'] = new Uint8Array(await r.blob.arrayBuffer()); } return [{ name: baseName(file.name) + '-pages.zip', blob: new Blob([window.fflate.zipSync(files, { level: 0 })], { type: 'application/zip' }), note: n + ' one-page PDFs in a ZIP' }]; },
+    extract: async function (file, t, o) { var d = await pdfDoc(file), idx = parseRange(o.pages, d.getPageCount()), out = await window.PDFLib.PDFDocument.create(); (await out.copyPages(d, idx)).forEach(function (p) { out.addPage(p); }); return [await pdfSave(out, baseName(file.name) + '-pages-' + o.pages.replace(/\s/g, '') + '.pdf', function (a) { if (a.getPageCount() !== idx.length) throw new Error('The page count came out wrong.'); })]; },
+    reorder: async function (file, t, o) { var d = await pdfDoc(file), idx = parseRange(o.order, d.getPageCount()), out = await window.PDFLib.PDFDocument.create(); (await out.copyPages(d, idx)).forEach(function (p) { out.addPage(p); }); return [await pdfSave(out, baseName(file.name) + '-reordered.pdf', function (a) { if (a.getPageCount() !== idx.length) throw new Error('The page count came out wrong.'); })]; },
+    rotate: async function (file, t, o) { var d = await pdfDoc(file), idx = o.pages ? parseRange(o.pages, d.getPageCount()) : d.getPageIndices(), deg = +o.angle || 90, want = {}; idx.forEach(function (i) { var p = d.getPage(i); var a = (p.getRotation().angle + deg) % 360; p.setRotation(window.PDFLib.degrees(a)); want[i] = a; }); return [await pdfSave(d, baseName(file.name) + '-rotated.pdf', function (a) { Object.keys(want).forEach(function (i) { if (a.getPage(+i).getRotation().angle !== want[i]) throw new Error('Page ' + (+i + 1) + ' did not rotate.'); }); })]; },
+    metadata: async function (file, t, o) { var d = await pdfDoc(file); ['Title', 'Author', 'Subject', 'Creator'].forEach(function (k) { var v = o['meta' + k]; if (v != null && v !== '') d['set' + k](v); }); if (o.metaKeywords) d.setKeywords(o.metaKeywords.split(',').map(function (x) { return x.trim(); }).filter(Boolean)); d.setModificationDate(new Date()); return [await pdfSave(d, baseName(file.name) + '-metadata.pdf', function (a) { if (o.metaTitle && a.getTitle() !== o.metaTitle) throw new Error('The title did not stick.'); })]; },
+    merge: async function (files) { var out = await window.PDFLib.PDFDocument.create(), total = 0; for (var i = 0; i < files.length; i++) { var d = await pdfDoc(files[i]); total += d.getPageCount(); (await out.copyPages(d, d.getPageIndices())).forEach(function (p) { out.addPage(p); }); } return [await pdfSave(out, 'merged-' + files.length + '-pdfs.pdf', function (a) { if (a.getPageCount() !== total) throw new Error('The merged page count came out wrong.'); })]; },
+    fromImages: async function (files) { var out = await window.PDFLib.PDFDocument.create(); for (var i = 0; i < files.length; i++) { var f = files[i], t = await detect(f), img; if (t.kind === 'png') img = await out.embedPng(await f.arrayBuffer()); else if (t.kind === 'jpeg') img = await out.embedJpg(await f.arrayBuffer()); else { var png = (await imgTo('image/png')(f, t, {}))[0].blob; img = await out.embedPng(await png.arrayBuffer()); } var pg = out.addPage([img.width, img.height]); pg.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height }); } return [await pdfSave(out, 'images-' + files.length + '.pdf', function (a) { if (a.getPageCount() !== files.length) throw new Error('One page per picture did not come out.'); })]; }
+  };
+  function textOut(name, s, mime) { return [{ name: name, blob: new Blob([s], { type: mime || 'text/plain' }) }]; }
+  function parseCsv(s, sep) { var rows = [], row = [], cell = '', q = false; for (var i = 0; i < s.length; i++) { var ch = s[i]; if (q) { if (ch === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; } else if (ch === '"') q = true; else if (ch === sep) { row.push(cell); cell = ''; } else if (ch === '\n' || ch === '\r') { if (ch === '\r' && s[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; } else cell += ch; } if (cell || row.length) { row.push(cell); rows.push(row); } var head = rows.shift() || []; return rows.filter(function (r) { return r.length > 1 || r[0]; }).map(function (r) { var o = {}; head.forEach(function (h, i) { o[h] = r[i] == null ? '' : r[i]; }); return o; }); }
+  async function rowsOf(file, t) { var s = (await file.text()).replace(/^﻿/, ''); if (t.kind === 'json') { var j = JSON.parse(s); if (!Array.isArray(j)) j = [j]; return j.map(function (r) { return r && typeof r === 'object' ? r : { value: r }; }); } if (t.kind === 'csv') return parseCsv(s, ','); if (t.kind === 'tsv') return parseCsv(s, '\t'); throw new Error('Not a table.'); }
+  function dataTo(f) { return async function (file, t) { var rows = await rowsOf(file, t); if (!rows.length) throw new Error('No rows were found.'); return textOut(baseName(file.name) + '.' + f, fmtRows(rows, f, baseName(file.name).replace(/\W/g, '_') || 'rows')); }; }
+  function textConv(fn, suffix) { return async function (file) { return textOut(baseName(file.name) + suffix, fn(await file.text())); }; }
+  var ADAPTERS = [
+    A('pdf-inspect', 'pdf', ['pdf'], 'json', 'Inspect a PDF: pages, sizes, rotation, metadata', '', function (f) { return PDFTOOLS.inspect(f); }),
+    A('pdf-split', 'pdf', ['pdf'], 'zip', 'Split a PDF into one file per page', '', function (f) { return PDFTOOLS.split(f); }),
+    A('pdf-extract', 'pdf', ['pdf'], 'pdf', 'Extract pages', '', function (f, t, o) { return PDFTOOLS.extract(f, t, o); }, { needs: 'pages' }),
+    A('pdf-reorder', 'pdf', ['pdf'], 'pdf', 'Reorder pages', '', function (f, t, o) { return PDFTOOLS.reorder(f, t, o); }, { needs: 'order' }),
+    A('pdf-rotate', 'pdf', ['pdf'], 'pdf', 'Rotate pages', '', function (f, t, o) { return PDFTOOLS.rotate(f, t, o); }, { needs: 'rotate' }),
+    A('pdf-metadata', 'pdf', ['pdf'], 'pdf', 'Change title, author, subject and keywords', 'The modification date is set to now.', function (f, t, o) { return PDFTOOLS.metadata(f, t, o); }, { needs: 'meta' }),
+    A('pdf-merge', 'pdf', ['pdf'], 'pdf', 'Merge every chosen PDF into one, in queue order', '', null, { batch: function (fs2) { return PDFTOOLS.merge(fs2); }, enabled: true }),
+    A('img-pdf', 'pdf', IMG, 'pdf', 'Pictures into one PDF, a page each', 'GIF and WebP pictures become PNG pages; animation keeps its first frame.', null, { batch: function (fs2) { return PDFTOOLS.fromImages(fs2); }, enabled: true }),
+    off('docx-pdf', 'pdf', ['docx', 'odt'], 'pdf', 'Word or OpenDocument to PDF', 'No document layout engine is bundled with this app.'),
+    off('pdf-docx', 'pdf', ['pdf'], 'docx', 'PDF to Word', 'No PDF text-layout reader is bundled with this app.'),
+    A('img-png', 'image', IMG, 'png', 'To PNG', 'Animation keeps its first frame. Colour profiles and metadata (EXIF) are not kept.', imgTo('image/png')),
+    A('img-jpeg', 'image', IMG, 'jpeg', 'To JPEG (quality 90)', 'JPEG has no transparency: see-through parts become white. It is lossy. Animation keeps its first frame; metadata is not kept.', imgTo('image/jpeg', 0.9)),
+    A('img-webp', 'image', IMG, 'webp', 'To WebP (quality 90)', 'Lossy at quality 90. Animation keeps its first frame; metadata is not kept.', imgTo('image/webp', 0.9)),
+    off('img-heic', 'image', ['heic', 'avif'], 'png', 'HEIC or AVIF to PNG', 'No HEIC decoder is bundled with this app.'),
+    off('img-tiff', 'image', ['tiff'], 'png', 'TIFF to PNG', 'No TIFF decoder is bundled with this app.'),
+    off('audio-any', 'audio', ['mp3', 'wav', 'ogg', 'flac'], 'mp3', 'Between MP3, WAV, OGG and FLAC', 'No audio encoder (such as FFmpeg) is bundled with this app.'),
+    off('video-any', 'video', ['mp4', 'webm'], 'mp4', 'Between MP4 and WebM', 'No video encoder (such as FFmpeg) is bundled with this app.'),
+    A('zip-make', 'archive', ['*'], 'zip', 'Every chosen file into one ZIP', '', null, { batch: async function (fs2) { var files = {}; for (var i = 0; i < fs2.length; i++) { var n = fs2[i].name, k = 1; while (files[n]) n = baseName(fs2[i].name) + ' (' + (k++) + ')' + fs2[i].name.slice(baseName(fs2[i].name).length); files[n] = new Uint8Array(await fs2[i].arrayBuffer()); } var z = window.fflate.zipSync(files); var back = window.fflate.unzipSync(z); if (Object.keys(back).length !== fs2.length) throw new Error('The ZIP did not reopen with every file.'); return [{ name: 'files-' + fs2.length + '.zip', blob: new Blob([z], { type: 'application/zip' }), note: fs2.length + ' files, checked by reopening' }]; }, enabled: true }),
+    A('zip-list', 'archive', ['zip'], 'txt', 'List what is inside a ZIP', '', async function (f) { var names = []; window.fflate.unzipSync(new Uint8Array(await f.arrayBuffer()), { filter: function (e) { names.push(e.name + '  ' + fmtSize(e.originalSize)); return false; } }); return textOut(baseName(f.name) + '.contents.txt', names.join('\n') || '(empty)'); }),
+    A('zip-extract', 'archive', ['zip'], '*', 'Take every file out of a ZIP', 'Folders inside become part of each file name, joined with " - ".', async function (f) { var u = window.fflate.unzipSync(new Uint8Array(await f.arrayBuffer())); var out = []; Object.keys(u).forEach(function (n) { if (/\/$/.test(n)) return; if (out.length > 5000) throw new Error('More than 5000 files inside.'); out.push({ name: n.replace(/\//g, ' - '), blob: new Blob([u[n]]) }); }); return out; }),
+    A('gzip-make', 'archive', ['*'], 'gz', 'Compress with gzip', '', async function (f) { return [{ name: f.name + '.gz', blob: new Blob([window.fflate.gzipSync(new Uint8Array(await f.arrayBuffer()), { filename: f.name })], { type: 'application/gzip' }) }]; }),
+    A('gzip-open', 'archive', ['gzip'], '*', 'Uncompress gzip', '', async function (f) { return [{ name: f.name.replace(/\.gz$/i, '') || 'uncompressed.bin', blob: new Blob([window.fflate.gunzipSync(new Uint8Array(await f.arrayBuffer()))]) }]; }),
+    off('7z-rar', 'archive', ['7z', 'rar'], '*', 'Open 7z or RAR', 'No 7z or RAR reader is bundled with this app.'),
+    A('json-csv', 'data', ['json', 'csv', 'tsv'], 'csv', 'To CSV', 'Nested values are written as JSON text in their cell.', dataTo('csv')),
+    A('json-tsv', 'data', ['json', 'csv', 'tsv'], 'tsv', 'To TSV', 'Tabs and line breaks inside values become spaces.', dataTo('tsv')),
+    A('any-json', 'data', ['json', 'csv', 'tsv'], 'json', 'To JSON', 'From CSV or TSV, every value becomes text.', dataTo('json')),
+    A('any-jsonl', 'data', ['json', 'csv', 'tsv'], 'jsonl', 'To JSON Lines', '', dataTo('jsonl')),
+    A('any-yaml', 'data', ['json', 'csv', 'tsv'], 'yaml', 'To YAML', 'Nested values are written as JSON text.', dataTo('yaml')),
+    A('any-toml', 'data', ['json', 'csv', 'tsv'], 'toml', 'To TOML', 'Nested values are written as JSON text.', dataTo('toml')),
+    A('any-xml', 'data', ['json', 'csv', 'tsv'], 'xml', 'To XML', 'Names are made safe for XML tags.', dataTo('xml')),
+    A('any-md', 'data', ['json', 'csv', 'tsv'], 'md', 'To a Markdown table', '', dataTo('md')),
+    A('any-html', 'data', ['json', 'csv', 'tsv'], 'html', 'To an HTML table', '', dataTo('html')),
+    A('any-sql', 'data', ['json', 'csv', 'tsv'], 'sql', 'To SQL inserts', 'Every column becomes TEXT.', dataTo('sql')),
+    off('xlsx', 'data', ['xlsx', 'ods'], 'csv', 'Excel or OpenDocument spreadsheets', 'No spreadsheet reader is bundled with this app.'),
+    A('txt-lf', 'text', ['text', 'json', 'csv', 'tsv', 'xml', 'svg'], 'txt', 'Line endings to LF (Linux, macOS)', 'Every CRLF and CR becomes LF.', textConv(function (s) { return s.replace(/\r\n?/g, '\n'); }, '.lf.txt')),
+    A('txt-crlf', 'text', ['text', 'json', 'csv', 'tsv', 'xml', 'svg'], 'txt', 'Line endings to CRLF (Windows)', 'Every line ending becomes CRLF.', textConv(function (s) { return s.replace(/\r\n?|\n/g, '\r\n'); }, '.crlf.txt')),
+    A('txt-trim', 'text', ['text', 'json', 'csv', 'tsv', 'xml', 'svg'], 'txt', 'Remove spaces at line ends', 'Trailing spaces and tabs are removed.', textConv(function (s) { return s.replace(/[ \t]+$/gm, ''); }, '.trimmed.txt')),
+    A('txt-utf16', 'text', ['text', 'json', 'csv', 'tsv', 'xml'], 'txt', 'UTF-8 to UTF-16 LE with a byte order mark', 'The character encoding changes; the text does not.', async function (f) { var s = await f.text(), b = new Uint8Array(2 + s.length * 2); b[0] = 0xff; b[1] = 0xfe; for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); b[2 + i * 2] = c & 255; b[3 + i * 2] = c >> 8; } return [{ name: baseName(f.name) + '.utf16.txt', blob: new Blob([b]) }]; }),
+    A('json-pretty', 'text', ['json'], 'json', 'Format JSON neatly', 'Spacing changes; numbers past 15 digits may round.', textConv(function (s) { return JSON.stringify(JSON.parse(s), null, 2) + '\n'; }, '.formatted.json')),
+    A('bin-b64', 'binary', ['*'], 'txt', 'To Base64 text', '', async function (f) { return textOut(f.name + '.base64.txt', await b64OfBlob(f, {})); }),
+    A('b64-bin', 'binary', ['base64', 'dataurl'], '*', 'Base64 text back to the file', '', async function (f) { var s = await f.text(), p = parseDataUrl(s), bytes = p ? p.bytes : b64Decode(s, { lenient: true }); var t = sigOf(bytes); return [{ name: restoredName(f.name, p && p.mime, t), blob: new Blob([bytes]) }]; }),
+    A('bin-hex', 'binary', ['*'], 'txt', 'To a hex dump', 'Files over 16 MB are not dumped.', async function (f) { if (f.size > 16 * MB) throw new Error('Over 16 MB.'); return textOut(f.name + '.hex.txt', hexDump(new Uint8Array(await f.arrayBuffer()))); })
+  ];
+  var conv = { files: [], cat: 'pdf', q: {}, opts: { pages: '1', order: '', angle: '90', metaTitle: '', metaAuthor: '', metaSubject: '', metaKeywords: '' }, running: false, paused: false, cancel: false, dest: '' };
+  function adaptersFor(t) { return ADAPTERS.filter(function (a) { return a.from.indexOf('*') >= 0 || (t && a.from.indexOf(t.kind) >= 0); }); }
+  R.convert = function () {
+    var qd = conv.files.map(function (x) { return x.t; });
+    var cats = CATS.map(function (c) {
+      var m = matcher(conv.q[c[0]] || ''); var list = ADAPTERS.filter(function (a) { return a.cat === c[0] && m.test(a.name + ' ' + a.from.join(' ') + ' ' + a.to + ' ' + (a.why || '')); });
+      return '<section class="section" id="cv-' + c[0] + '" data-k="cv-' + c[0] + '"><h2 class="tl">' + c[1] + ' <span class="bs mu">' + ADAPTERS.filter(function (a) { return a.cat === c[0] && a.enabled; }).length + ' available</span></h2>' + findField('cvq-' + c[0], 'Search ' + c[1].toLowerCase(), conv.q[c[0]] || '') + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
+        '<div class="col" style="gap:4px">' + (list.length ? list.map(function (a) { var fits = conv.files.length && (a.batch || conv.files.some(function (x) { return a.from.indexOf('*') >= 0 || a.from.indexOf(x.t.kind) >= 0; })); return '<div class="row-item" data-k="ad-' + a.id + '"><span class="col grow"><span class="ll">' + esc(a.name) + (a.enabled ? '' : ' <span class="tag">Not available</span>') + '</span><span class="bs mu">' + esc(a.from.join(', ').replace('*', 'any file')) + ' → ' + esc(a.to === '*' ? 'the original files' : a.to) + (a.enabled ? (a.lossy ? ' · Changes: ' + esc(a.lossy) : ' · Nothing is lost.') : ' · ' + esc(a.why)) + '</span></span>' + (a.enabled ? '<button class="btn ' + (fits ? 'tonal' : 'text') + ' sm" data-adapter="' + a.id + '"' + (fits && !conv.running ? '' : ' disabled') + '>' + (a.batch ? 'Run on the queue' : 'Convert') + '</button>' : '') + '</div>'; }).join('') : '<p class="bm mu">' + L('noMatch') + '</p>') + '</div></section>';
+    }).join('');
+    var counts = { done: 0, failed: 0, skipped: 0, cancelled: 0 }; conv.files.forEach(function (x) { if (counts[x.state] != null) counts[x.state]++; });
+    var queue = '<section class="section card" id="queue" data-k="cvqueue" style="padding:20px"><div class="row" style="gap:8px;flex-wrap:wrap"><h2 class="tl grow">Files <span class="bs mu">' + conv.files.length + '</span></h2><label class="btn fill sm">' + icon('FilePlusOutline', 's') + 'Add files<input type="file" id="cvfiles" multiple hidden></label>' + (conv.files.length ? '<button class="btn text sm" data-act="cvclear"' + (conv.running ? ' disabled' : '') + '>' + L('clear') + '</button>' : '') + '</div>' +
+      (conv.files.length ? '<p class="bs mu" aria-live="polite">' + counts.done + ' converted · ' + counts.failed + ' failed · ' + counts.skipped + ' skipped · ' + counts.cancelled + ' cancelled</p>' + (conv.running ? '<div class="row" style="gap:8px"><button class="btn tonal sm" data-act="cvpause">' + (conv.paused ? 'Resume' : 'Pause') + '</button><button class="btn text sm" data-act="cvcancel">' + L('cancel') + '</button></div>' : '') +
+        '<div class="col" style="gap:2px;max-height:280px;overflow:auto">' + conv.files.slice(0, 500).map(function (x, i) { return '<div class="row-item" data-k="cvf-' + i + '"><span class="col grow" style="min-width:0"><span class="ll ell">' + esc(x.file.name) + '</span><span class="bs mu">' + esc(x.t.kind.toUpperCase()) + ' by its bytes · ' + fmtSize(x.file.size) + (x.msg ? ' · ' + esc(x.msg) : '') + '</span></span><span class="tag ' + (x.state === 'done' ? 'g' : x.state === 'failed' ? 'a' : x.state === 'working' ? 'p' : '') + '">' + esc(x.state) + '</span>' + (x.out ? x.out.map(function (o, j) { return '<button class="btn text sm" data-cvsave="' + i + ':' + j + '">' + icon('Download', 's') + esc(o.name) + '</button>'; }).join('') : '') + '</div>'; }).join('') + (conv.files.length > 500 ? '<p class="bs mu">And ' + (conv.files.length - 500) + ' more.</p>' : '') + '</div>'
+        : '<div class="empty" style="padding:24px"><p class="bm mu">Add or drop files here. Their type is read from their first bytes, then only the conversions that fit light up below.</p></div>') +
+      '<details class="fold"><summary class="ll">' + icon('Tune', 's') + 'Options for pages, rotation and metadata</summary><div class="plan" style="padding-top:8px"><label><span class="ll">Pages to extract</span><input class="input" data-cvopt="pages" value="' + esc(conv.opts.pages) + '" placeholder="1-3, 7"></label><label><span class="ll">New order</span><input class="input" data-cvopt="order" value="' + esc(conv.opts.order) + '" placeholder="3, 1, 2"></label><label><span class="ll">Rotate by</span><select class="select" data-cvopt="angle">' + ['90', '180', '270'].map(function (a) { return '<option' + (conv.opts.angle === a ? ' selected' : '') + '>' + a + '</option>'; }).join('') + '</select></label>' + ['Title', 'Author', 'Subject', 'Keywords'].map(function (k) { return '<label><span class="ll">' + k + '</span><input class="input" data-cvopt="meta' + k + '" value="' + esc(conv.opts['meta' + k]) + '"></label>'; }).join('') + '</div></details>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap"><span class="bs mu grow">' + (DEMO ? 'Results download.' : conv.dest ? 'Results go to ' + esc(conv.dest) + '.' : 'Results are saved beside each source file, never over an existing one.') + '</span>' + (DEMO ? '' : '<button class="btn text sm" data-act="cvdest">' + icon('FolderOpen', 's') + (conv.dest ? 'Change the folder' : 'Choose a folder instead') + '</button>') + '</div></section>';
+    var hist = (st.convHistory || []).slice(0, 30);
+    return '<div class="section" id="top"><h1 class="hl">Convert</h1><p class="bl mu">Files are read and converted on this computer by libraries inside the app. Formats it cannot convert are listed too, with the reason.</p></div>' + queue + cats +
+      '<section class="section" id="cvhist" data-k="cvhist"><div class="row"><h2 class="tl grow">History</h2>' + (hist.length ? '<button class="btn text sm" data-act="cvhistexport">' + icon('Export', 's') + L('export') + '</button><button class="btn text sm" data-act="cvhistclear">' + L('clear') + '</button>' : '') + '</div>' + (hist.length ? hist.map(function (h) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.source) + ' → ' + esc(h.result) + '</span><span class="bs mu">' + esc(when(h.at)) + ' · ' + esc(h.adapter) + ' · ' + fmtSize(h.size) + ' · SHA-256 ' + esc(h.sha.slice(0, 16)) + '…</span></span></div>'; }).join('') : '<p class="bm mu">Nothing converted yet.</p>') + '</section>' + foot();
+  };
+  async function cvAdd(list) { for (var i = 0; i < list.length; i++) { var f = list[i]; if (f.size > 500 * MB) { toast(f.name + ' is over 500 MB and was skipped.'); continue; } conv.files.push({ file: f, t: await detect(f), state: 'waiting' }); } render(); }
+  async function cvDeliver(x, o) {
+    var bytes = new Uint8Array(await o.blob.arrayBuffer());
+    if (DEMO || !API.writeBeside) { var a = document.createElement('a'); a.href = URL.createObjectURL(o.blob); a.download = o.name; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000); return o.name; }
+    return conv.dest ? API.writeInto(conv.dest, o.name, bytes) : API.writeBeside(x.file, o.name, bytes);
+  }
+  function cvRecord(x, a, o, sha) { st.convHistory = [{ at: new Date().toISOString(), source: x ? x.file.name : 'the queue', result: o.name, adapter: a.name, size: o.blob.size, sha: sha }].concat(st.convHistory || []).slice(0, 200); save(); }
+  async function cvRun(id) {
+    var a = ADAPTERS.filter(function (z) { return z.id === id; })[0]; if (!a || !a.enabled) return;
+    var go2 = async function () {
+      conv.running = true; conv.cancel = false; render();
+      if (a.batch) {
+        var fit = conv.files.filter(function (x) { return a.from.indexOf('*') >= 0 || a.from.indexOf(x.t.kind) >= 0; });
+        conv.files.forEach(function (x) { if (fit.indexOf(x) < 0) { x.state = 'skipped'; x.msg = 'Not a fit for ' + a.name; } else { x.state = 'working'; x.msg = ''; } }); render();
+        try { var outs = await a.batch(fit.map(function (x) { return x.file; })); for (var j = 0; j < outs.length; j++) { var where = await cvDeliver(fit[0], outs[j]); cvRecord(null, a, outs[j], await sha256(await outs[j].blob.arrayBuffer())); toast('Saved ' + outs[j].name + (outs[j].note ? ' (' + outs[j].note + ')' : '') + '.'); if (!DEMO) cvShow(where); } fit.forEach(function (x) { x.state = 'done'; x.msg = 'In ' + outs[0].name; }); finishedOne(); }
+        catch (e) { fit.forEach(function (x) { x.state = 'failed'; x.msg = e.message; }); toast(a.name + ': ' + e.message); }
+      } else {
+        var pending = conv.files.filter(function (x) { return x.state !== 'done' || x.adapter !== a.id; }), i = 0;
+        var worker = async function () {
+          while (i < pending.length) {
+            var x = pending[i++];
+            if (conv.cancel) { x.state = 'cancelled'; continue; }
+            while (conv.paused && !conv.cancel) await new Promise(function (r) { setTimeout(r, 300); });
+            if (a.from.indexOf('*') < 0 && a.from.indexOf(x.t.kind) < 0) { x.state = 'skipped'; x.msg = 'Its bytes say ' + x.t.kind.toUpperCase() + ', which this does not take'; continue; }
+            x.state = 'working'; x.msg = ''; soon();
+            try { var outs = await a.run(x.file, x.t, conv.opts); x.out = []; for (var j = 0; j < outs.length; j++) { var p2 = await cvDeliver(x, outs[j]); outs[j].path = p2; x.out.push(outs[j]); cvRecord(x, a, outs[j], await sha256(await outs[j].blob.arrayBuffer())); } x.state = 'done'; x.adapter = a.id; x.msg = outs.length + ' file' + (outs.length > 1 ? 's' : '') + (outs[0] && outs[0].note ? ', ' + outs[0].note : ''); }
+            catch (e) { x.state = 'failed'; x.msg = e.message; }
+            soon();
+          }
+        };
+        await Promise.all([worker(), worker()]);
+        var nd = conv.files.filter(function (x) { return x.state === 'done'; }).length; toast(nd + ' converted. Each result was written whole or not at all.'); if (nd) finishedOne();
+      }
+      conv.running = false; conv.paused = false; render();
+    };
+    if (a.lossy) { dialog(a.name, '<p class="bm">Before it runs, what can change:</p><div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm">' + esc(a.lossy) + '</span></div><p class="bs mu">The source files stay as they are. Results never replace an existing file.</p><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="cvok">Convert</button></div>', { emoji: '🔁' }); $('#cvok').onclick = function () { closeDialog(); go2(); }; }
+    else go2();
+  }
+  function cvShow(p) { if (p && API.showFile) toast(p, { emoji: '📁' }); }
+
+  // ---------- Base64 toolkit ----------
+  var B64A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  function b64Encode(bytes, o) {
+    var out = '', i;
+    for (i = 0; i + 2 < bytes.length; i += 3) { var n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]; out += B64A[n >> 18 & 63] + B64A[n >> 12 & 63] + B64A[n >> 6 & 63] + B64A[n & 63]; }
+    var r = bytes.length - i; if (r === 1) { var a = bytes[i] << 16; out += B64A[a >> 18 & 63] + B64A[a >> 12 & 63] + '=='; } else if (r === 2) { var b = (bytes[i] << 16) | (bytes[i + 1] << 8); out += B64A[b >> 18 & 63] + B64A[b >> 12 & 63] + B64A[b >> 6 & 63] + '='; }
+    if (o.url) out = out.replace(/\+/g, '-').replace(/\//g, '_'); if (o.pad === false) out = out.replace(/=+$/, '');
+    var wrap = o.mime ? 76 : +o.wrap || 0; if (wrap) out = out.match(new RegExp('.{1,' + wrap + '}', 'g')).join('\r\n');
+    return out;
+  }
+  function b64Decode(s, o) {
+    o = o || {}; var src = String(s), clean = '', url = o.url;
+    for (var k = 0; k < src.length; k++) { var ch = src[k]; if (/\s/.test(ch)) { if (o.strict && !(o.mime && (ch === '\r' || ch === '\n'))) throw new Error('A space or line break at offset ' + k + ' is not allowed in strict mode.'); continue; } clean += ch; }
+    if (!o.strict) { clean = clean.replace(/-/g, '+').replace(/_/g, '/'); }
+    else if (url) { var bad = /[+/]/.exec(clean); if (bad) throw new Error('"' + bad[0] + '" at offset ' + bad.index + ' is not in the URL-safe alphabet.'); clean = clean.replace(/-/g, '+').replace(/_/g, '/'); }
+    var m = /[^A-Za-z0-9+/=]/.exec(clean); if (m) throw new Error('"' + m[0] + '" at offset ' + m.index + ' is not Base64.');
+    var eq = clean.indexOf('='); if (eq >= 0 && /[^=]/.test(clean.slice(eq))) throw new Error('Padding "=" at offset ' + eq + ' is followed by more characters.');
+    if (clean.length % 4) { if (o.strict && o.pad !== false) throw new Error('The length is not a multiple of 4: padding is missing.'); if (clean.length % 4 === 1) throw new Error('The text ends with one stray character.'); clean += '===='.slice(clean.length % 4); }
+    var bin = atob(clean), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out;
+  }
+  function encText(s, enc) { if (enc === 'utf-8') return new TextEncoder().encode(s); var b = []; for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); if (enc === 'latin1') { if (c > 255) throw new Error('"' + s[i] + '" at position ' + i + ' does not exist in Latin-1.'); b.push(c); } else if (enc === 'utf-16le') b.push(c & 255, c >> 8); else b.push(c >> 8, c & 255); } return new Uint8Array(b); }
+  function decText(b, enc) { return new TextDecoder(enc === 'latin1' ? 'iso-8859-1' : enc, { fatal: true }).decode(b); }
+  async function b64OfBlob(blob, o, progress) { var parts = [], CH = 3 * MB; for (var i = 0; i < blob.size; i += CH) { if (o.cancel && o.cancel()) throw new Error('Cancelled.'); parts.push(b64Encode(await readBytes(blob, i, i + CH), { url: o.url, pad: true })); if (progress) progress(Math.min(1, (i + CH) / blob.size)); } var out = parts.join(''); if (o.pad === false) out = out.replace(/=+$/, ''); var wrap = o.mime ? 76 : +o.wrap || 0; if (wrap && out) out = out.match(new RegExp('.{1,' + wrap + '}', 'g')).join('\r\n'); return out; }
+  function parseDataUrl(s) { var m = /^\s*data:([\w.+-]+\/[\w.+-]+)?((?:;[\w-]+=[^;,]*)*)(;base64)?,(.*)$/s.exec(s); if (!m) return null; var params = {}; (m[2] || '').split(';').filter(Boolean).forEach(function (p) { var kv = p.split('='); params[kv[0]] = kv[1]; }); return { mime: m[1] || 'text/plain', params: params, base64: !!m[3], bytes: m[3] ? b64Decode(m[4], { lenient: true }) : new TextEncoder().encode(decodeURIComponent(m[4])) }; }
+  function sigOf(b) { var h = hex(b, 16); for (var i = 0; i < SIGS.length; i++) { var s = SIGS[i]; if (typeof s[2] === 'string' ? h.indexOf(s[2]) === 0 : s[2].test(h)) return { kind: s[0], mime: s[1] }; } try { new TextDecoder('utf-8', { fatal: true }).decode(b.slice(0, 4096)); return { kind: 'txt', mime: 'text/plain' }; } catch (e) { return { kind: 'bin', mime: 'application/octet-stream' }; } }
+  function restoredName(name, mime, t) { var m = /^(.*)\.base64\.txt$/i.exec(name) || /^(.*)\.b64$/i.exec(name); if (m && /\.[\w]{1,8}$/.test(m[1])) return m[1]; var ext = mime && { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'application/pdf': 'pdf', 'text/plain': 'txt', 'application/json': 'json', 'application/zip': 'zip' }[mime]; return (m ? m[1] : baseName(name)) + '.' + (ext || (t && t.kind !== 'bin' ? (t.kind === 'jpeg' ? 'jpg' : t.kind) : 'bin')); }
+  function hexDump(b) { var lines = []; for (var i = 0; i < b.length; i += 16) { var row = b.slice(i, i + 16); lines.push(('0000000' + i.toString(16)).slice(-8) + '  ' + hex(row).replace(/(..)/g, '$1 ').padEnd(48) + ' ' + Array.prototype.map.call(row, function (c) { return c >= 32 && c < 127 ? String.fromCharCode(c) : '.'; }).join('')); } return lines.join('\n'); }
+  var b64 = { o: { url: false, pad: true, mime: false, wrap: '', strict: false, enc: 'utf-8' }, input: '', output: '', note: '', undo: [], redo: [], preview: null, files: [] };
+  function b64Push() { b64.undo.push({ input: b64.input, output: b64.output }); b64.redo = []; }
+  R.base64 = function () {
+    var o = b64.o, inB = 0, outB = 0; try { inB = encText(b64.input, o.enc).length; } catch (e) { inB = '?'; } outB = new TextEncoder().encode(b64.output).length;
+    var chip = function (k, label) { return '<button class="chip' + (o[k] ? ' sel' : '') + '" aria-pressed="' + !!o[k] + '" data-b64o="' + k + '">' + label + '</button>'; };
+    return '<div class="section" id="top"><h1 class="hl">Base64</h1><p class="bl mu">Encode and decode text and files on this computer. Nothing is uploaded.</p></div>' +
+      '<section class="section card" id="b64opts" data-k="b64opts" style="padding:20px"><h2 class="tl">Options</h2><div class="chipline">' + chip('url', 'URL-safe (RFC 4648 §5)') + chip('pad', 'Padding') + chip('mime', 'MIME lines (76, CRLF)') + chip('strict', 'Strict decoding') + '<label class="row bs" style="gap:6px">Line length <input class="input" style="width:90px" type="number" min="0" max="1000" data-b64wrap value="' + esc(o.wrap) + '" aria-label="Custom line length, 0 for none"' + (o.mime ? ' disabled' : '') + '></label><label class="row bs" style="gap:6px">Text encoding <select class="select" data-b64enc aria-label="Text encoding">' + [['utf-8', 'UTF-8'], ['utf-16le', 'UTF-16 LE'], ['utf-16be', 'UTF-16 BE'], ['latin1', 'Latin-1']].map(function (e) { return '<option value="' + e[0] + '"' + (o.enc === e[0] ? ' selected' : '') + '>' + e[1] + '</option>'; }).join('') + '</select></label></div></section>' +
+      '<section class="section" id="b64text" data-k="b64text"><h2 class="tl">Text</h2><div class="grid2"><label class="col" style="gap:4px"><span class="ll">Input <span class="bs mu">' + inB + ' bytes</span></span><textarea class="input" id="b64i" rows="7" aria-label="Base64 input">' + esc(b64.input) + '</textarea></label><label class="col" style="gap:4px"><span class="ll">Output <span class="bs mu">' + outB + ' bytes</span></span><textarea class="input mono" id="b64o" rows="7" readonly aria-label="Base64 output">' + esc(b64.output) + '</textarea></label></div>' +
+      '<div class="chipline"><button class="btn fill sm" data-act="b64e">Encode</button><button class="btn tonal sm" data-act="b64d">Decode</button><button class="btn text sm" data-act="b64swap">' + icon('SwapHorizontal', 's') + 'Swap</button><button class="btn text sm" data-act="b64url">Make a data: URL</button><button class="btn text sm" data-act="b64parse">Read a data: URL</button><button class="btn text sm" data-act="b64paste">' + icon('ContentPaste', 's') + 'Paste</button><button class="btn text sm" data-copy="' + esc(b64.output) + '"' + (b64.output ? '' : ' disabled') + '>' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn text sm" data-act="b64undo"' + (b64.undo.length ? '' : ' disabled') + '>Undo</button><button class="btn text sm" data-act="b64redo"' + (b64.redo.length ? '' : ' disabled') + '>Redo</button><button class="btn text sm" data-act="b64record"' + (b64.output ? '' : ' disabled') + '>Save a record (JSON)</button></div><p class="bs" id="b64note" role="status" aria-live="polite">' + esc(b64.note) + '</p>' +
+      (b64.preview ? '<div class="card" style="padding:12px" data-k="b64prev"><span class="ll">Preview: ' + esc(b64.preview.kind) + ', ' + b64.preview.size + ' bytes</span>' + b64.preview.html + '</div>' : '') + '</section>' +
+      '<section class="section" id="b64files" data-k="b64files"><h2 class="tl">Files</h2><p class="bm mu">' + (DEMO ? 'Results download as report.pdf.base64.txt, or with the original name restored.' : 'Encoding writes report.pdf.base64.txt beside report.pdf; decoding restores the original name beside the .txt. Nothing is ever overwritten; each result is checked by decoding it again and comparing SHA-256.') + '</p><div class="grid2"><label class="b64drop" data-b64drop="enc" tabindex="0">' + icon('FileUploadOutline') + '<span class="ll">Encode</span><span class="bs mu">Drop files or choose</span><input type="file" multiple hidden data-b64file="enc"></label><label class="b64drop" data-b64drop="dec" tabindex="0">' + icon('FileDownloadOutline') + '<span class="ll">Decode</span><span class="bs mu">Drop .base64.txt or .b64 files, or choose</span><input type="file" multiple hidden data-b64file="dec"></label></div>' +
+      (b64.files.length ? '<div class="col" style="gap:2px">' + b64.files.slice(-50).reverse().map(function (f) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(f.name) + ' → ' + esc(f.result || '…') + '</span><span class="bs mu">' + esc(f.msg) + '</span></span>' + (f.fraction != null && f.fraction < 1 && !f.done ? '<span class="pbar" role="progressbar" aria-valuenow="' + Math.round(f.fraction * 100) + '" aria-valuemin="0" aria-valuemax="100" style="width:120px"><i style="width:' + Math.round(f.fraction * 100) + '%"></i></span>' : '<span class="tag ' + (f.ok ? 'g' : f.done ? 'a' : '') + '">' + (f.ok ? 'Verified' : f.done ? 'Failed' : 'Working') + '</span>') + '</div>'; }).join('') + '</div><div class="row" style="gap:8px"><button class="btn text sm" data-act="b64zip">' + icon('FolderZipOutline', 's') + 'Export the results as a ZIP record</button><button class="btn text sm" data-act="b64fclear">' + L('clear') + '</button></div>' : '') + '</section>' + foot();
+  };
+  function b64Note(t) { b64.note = t; var n = $('#b64note'); if (n) n.textContent = t; }
+  function b64Preview(bytes) {
+    var t = sigOf(bytes), html = '';
+    if (/^(png|jpeg|gif|webp|bmp)$/.test(t.kind)) { var url = URL.createObjectURL(new Blob([bytes], { type: t.mime })); html = '<img src="' + url + '" alt="The decoded picture" style="max-width:100%;max-height:240px;display:block;margin-top:8px;border-radius:12px">'; }
+    else if (t.kind === 'txt') html = '<pre class="wb-test" style="max-height:200px;overflow:auto">' + esc(new TextDecoder().decode(bytes.slice(0, 8192))) + (bytes.length > 8192 ? '\n…' : '') + '</pre>';
+    else html = '<pre class="wb-test" style="max-height:200px;overflow:auto">' + esc(hexDump(bytes.slice(0, 1024))) + (bytes.length > 1024 ? '\n…' : '') + '</pre>';
+    b64.preview = { kind: t.kind.toUpperCase(), size: bytes.length, html: html };
+  }
+  async function b64File(file, mode) {
+    var rec = { name: file.name, msg: 'Starting', fraction: 0 }; b64.files.push(rec); render();
+    try {
+      var out, outName;
+      if (mode === 'enc') {
+        if (file.size > 1024 * MB) throw new Error('Over 1 GB.');
+        var text = await b64OfBlob(file, Object.assign({}, b64.o), function (f) { rec.fraction = f; rec.msg = Math.round(f * 100) + '%'; soon(); });
+        out = new TextEncoder().encode(text); outName = file.name + '.base64.txt';
+        var back = b64Decode(text, { lenient: true }); if (await sha256(back) !== await sha256(await file.arrayBuffer())) throw new Error('Decoding the result again did not give the same bytes.');
+      } else {
+        var s = await file.text(), p = parseDataUrl(s); var bytes = p ? p.bytes : b64Decode(s, Object.assign({}, b64.o));
+        var t = sigOf(bytes); outName = restoredName(file.name, p && p.mime, t); out = bytes;
+        var re = b64Encode(bytes, { url: false, pad: true }); if (await sha256(b64Decode(re, {})) !== await sha256(bytes)) throw new Error('The round trip did not match.');
+      }
+      rec.result = await cvDeliver({ file: file }, { name: outName, blob: new Blob([out]) });
+      rec.ok = true; rec.done = true; rec.sha = await sha256(out); rec.size = out.length; rec.msg = fmtSize(out.length) + ' · SHA-256 ' + rec.sha.slice(0, 16) + '… matches after a round trip';
+      st.convHistory = [{ at: new Date().toISOString(), source: file.name, result: outName, adapter: mode === 'enc' ? 'Base64 encode' : 'Base64 decode', size: out.length, sha: rec.sha }].concat(st.convHistory || []).slice(0, 200); save();
+    } catch (e) { rec.done = true; rec.msg = e.message; }
+    rec.fraction = 1; render();
+  }
+
+  // ---------- QR codes: make one from any text, and show an authenticator code's QR ----------
+  function qrSvg(text, size) {
+    if (!window.qrcode) throw new Error('The QR maker did not load.');
+    var q = window.qrcode(0, 'M'); q.addData(unescape(encodeURIComponent(text)), 'Byte'); q.make();
+    var n = q.getModuleCount(), cell = Math.max(2, Math.floor((size || 240) / (n + 8))), dim = (n + 8) * cell, d = '';
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + ((c + 4) * cell) + ' ' + ((r + 4) * cell) + 'h' + cell + 'v' + cell + 'h-' + cell + 'z';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + dim + ' ' + dim + '" width="' + dim + '" height="' + dim + '" role="img" aria-label="QR code"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+  }
+  function qrShow(title, text) {
+    var svg; try { svg = qrSvg(text, 280); } catch (e) { toast(e.message); return; }
+    dialog(title, '<div style="display:grid;place-items:center">' + svg + '</div><p class="bs mu" style="word-break:break-all">' + esc(text.length > 160 ? text.slice(0, 160) + '…' : text) + '</p><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" id="qrsvg">Save as SVG</button><button class="btn tonal" id="qrpng">Save as PNG</button><button class="btn fill" data-act="dlg-close">' + L('done') + '</button></div>', { emoji: '🔳' });
+    $('#qrsvg').onclick = function () { saveText('qr-code.svg', svg); };
+    $('#qrpng').onclick = function () { var img = new Image(); img.onload = function () { var c = document.createElement('canvas'); c.width = img.width * 2; c.height = img.height * 2; var x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, c.width, c.height); c.toBlob(function (b) { var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'qr-code.png'; a.click(); }); }; img.src = 'data:image/svg+xml;base64,' + btoa(svg); };
+  }
+
+  // ---------- ZIP of an export in every format ----------
+  function zipAll(name, rows) {
+    var files = {}; FORMATS.forEach(function (f) { files[name + '.' + f] = new TextEncoder().encode(fmtRows(rows, f, name)); });
+    var z = window.fflate.zipSync(files); var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([z], { type: 'application/zip' })); a.download = name + '-' + new Date().toISOString().slice(0, 10) + '.zip'; a.click(); toast('Saved a ZIP with ' + FORMATS.length + ' formats.');
+  }
+
+  // ---------- Drawing (Drawesome-style): seven pens, an area eraser, SVG and PNG export ----------
+  var PENS = [['pencil', 'Pencil', 'P', 2, 0.9, 'speed'], ['pen', 'Pen', 'N', 3, 1, 'speed'], ['fineliner', 'Fineliner', 'F', 2, 1, 'const'], ['marker', 'Marker', 'M', 8, 1, 'const'], ['highlighter', 'Highlighter', 'H', 18, 0.35, 'const'], ['brush', 'Brush', 'B', 10, 1, 'speed'], ['fountain', 'Fountain Pen', 'O', 5, 1, 'angle']];
+  var INKS = ['#1c1b1f', '#00639b', '#b3261e', '#2e7d32', '#e8a600', '#7b1fa2', '#ffffff'];
+  var dr = { strokes: null, undo: [], redo: [], tool: 'pen', color: '#1c1b1f', size: 1, mode: 'tools', bg: null, cur: null };
+  function drLoad() { if (dr.strokes) return; try { dr.strokes = JSON.parse(localStorage.getItem('ham-draw-v1') || '[]'); } catch (e) { dr.strokes = []; } }
+  function drSave() { try { localStorage.setItem('ham-draw-v1', JSON.stringify(dr.strokes.slice(-2000))); } catch (e) { toast('The drawing is too large to keep; export it to save it.'); } }
+  function drSnap() { dr.undo.push(JSON.stringify(dr.strokes)); if (dr.undo.length > 200) dr.undo.shift(); dr.redo = []; }
+  // Each point gets a width from the pen's character: faster strokes thin, the fountain pen follows direction.
+  function drWidth(pen, p, prev, size) { var base = pen[3] * size; if (!prev) return base; if (pen[5] === 'speed') { var v = Math.hypot(p[0] - prev[0], p[1] - prev[1]) / Math.max(1, p[2] - prev[2]); return Math.max(base * 0.35, base * (1.3 - Math.min(1, v / 2.5))); } if (pen[5] === 'angle') { var a = Math.atan2(p[1] - prev[1], p[0] - prev[0]); return base * (0.35 + 0.9 * Math.abs(Math.sin(a - Math.PI / 4))); } return base; }
+  function drPath(s) { var pen = PENS.filter(function (x) { return x[0] === s.tool; })[0] || PENS[1], out = []; for (var i = 1; i < s.pts.length; i++) out.push({ a: s.pts[i - 1], b: s.pts[i], w: drWidth(pen, s.pts[i], s.pts[i - 1], s.size) }); return { pen: pen, segs: out }; }
+  function drPaint() {
+    var c = $('#drawc'); if (!c) return; var dpr = devicePixelRatio || 1, W2 = c.clientWidth, H = c.clientHeight; c.width = W2 * dpr; c.height = H * dpr; var x = c.getContext('2d'); x.scale(dpr, dpr); x.clearRect(0, 0, W2, H);
+    if (dr.bg) x.drawImage(dr.bg, 0, 0, Math.min(W2, dr.bg.width), Math.min(H, dr.bg.height * Math.min(W2, dr.bg.width) / dr.bg.width));
+    dr.strokes.concat(dr.cur ? [dr.cur] : []).forEach(function (s) { var p = drPath(s); x.globalAlpha = p.pen[4]; x.strokeStyle = s.color; x.lineCap = p.pen[0] === 'highlighter' || p.pen[0] === 'marker' ? 'square' : 'round'; x.lineJoin = 'round'; if (s.pts.length === 1) { x.fillStyle = s.color; x.beginPath(); x.arc(s.pts[0][0], s.pts[0][1], p.pen[3] * s.size / 2, 0, 7); x.fill(); } if (p.pen[5] === 'const' && p.segs.length) { x.lineWidth = p.segs[0].w; x.beginPath(); x.moveTo(s.pts[0][0], s.pts[0][1]); s.pts.slice(1).forEach(function (q2) { x.lineTo(q2[0], q2[1]); }); x.stroke(); } else p.segs.forEach(function (g) { x.lineWidth = g.w; x.beginPath(); x.moveTo(g.a[0], g.a[1]); x.lineTo(g.b[0], g.b[1]); x.stroke(); }); });
+    x.globalAlpha = 1;
+  }
+  function drSvg() { var c = $('#drawc'), W2 = c ? c.clientWidth : 1000, H = c ? c.clientHeight : 700; return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W2 + '" height="' + H + '" viewBox="0 0 ' + W2 + ' ' + H + '">' + dr.strokes.map(function (s) { var p = drPath(s); if (s.pts.length === 1) return '<circle cx="' + s.pts[0][0] + '" cy="' + s.pts[0][1] + '" r="' + p.pen[3] * s.size / 2 + '" fill="' + s.color + '" opacity="' + p.pen[4] + '"/>'; if (p.pen[5] === 'const') return '<polyline points="' + s.pts.map(function (q2) { return q2[0].toFixed(1) + ',' + q2[1].toFixed(1); }).join(' ') + '" stroke="' + s.color + '" stroke-width="' + (p.segs[0] ? p.segs[0].w : 2) + '" opacity="' + p.pen[4] + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'; return '<g stroke="' + s.color + '" opacity="' + p.pen[4] + '" stroke-linecap="round" fill="none">' + p.segs.map(function (g) { return '<line x1="' + g.a[0].toFixed(1) + '" y1="' + g.a[1].toFixed(1) + '" x2="' + g.b[0].toFixed(1) + '" y2="' + g.b[1].toFixed(1) + '" stroke-width="' + g.w.toFixed(2) + '"/>'; }).join('') + '</g>'; }).join('') + '</svg>'; }
+  // The eraser removes only the points it covers, splitting a stroke in two where needed.
+  function drErase(px, py, r) { var changed = false, out = []; dr.strokes.forEach(function (s) { var run = []; s.pts.forEach(function (p) { if (Math.hypot(p[0] - px, p[1] - py) <= r) { changed = true; if (run.length) out.push(Object.assign({}, s, { pts: run })); run = []; } else run.push(p); }); if (run.length) out.push(Object.assign({}, s, { pts: run })); }); if (changed) dr.strokes = out; return changed; }
+  R.draw = function () {
+    drLoad(); var pen = PENS.filter(function (x) { return x[0] === dr.tool; })[0];
+    var bar = dr.mode === 'min' ? '<button class="drawdisc" data-drmode="tools" aria-label="Open the drawing toolbar. Active: ' + (pen ? pen[1] : 'Eraser') + '"><span style="background:' + dr.color + '"></span>' + icon(dr.tool === 'eraser' ? 'Eraser' : 'Draw', 's') + '</button>' :
+      '<div class="drawbar" role="toolbar" aria-label="Drawing tools" data-k="drawbar">' + (dr.mode === 'colors' ? INKS.map(function (c) { return '<button class="ink' + (c === dr.color ? ' sel' : '') + '" data-drink="' + c + '" aria-label="Ink ' + c + '" aria-pressed="' + (c === dr.color) + '" style="background:' + c + '"></button>'; }).join('') + '<input type="color" data-drinkc value="' + dr.color + '" aria-label="Any ink colour">' :
+        dr.mode === 'size' ? '<label class="row bs" style="gap:8px">Size <input type="range" min="0.25" max="4" step="0.25" value="' + dr.size + '" data-drsize aria-label="Pen size"> ' + dr.size + '×</label>' :
+        PENS.map(function (p) { return '<button class="ib' + (dr.tool === p[0] ? ' sel' : '') + '" data-drtool="' + p[0] + '" aria-pressed="' + (dr.tool === p[0]) + '" title="' + p[1] + ' (' + p[2] + ')" aria-label="' + p[1] + ', shortcut ' + p[2] + '"><span class="penmark" style="height:' + Math.min(14, p[3]) + 'px;opacity:' + p[4] + ';background:' + dr.color + '"></span></button>'; }).join('') + '<button class="ib' + (dr.tool === 'eraser' ? ' sel' : '') + '" data-drtool="eraser" aria-pressed="' + (dr.tool === 'eraser') + '" title="Eraser (E)" aria-label="Eraser, shortcut E">' + icon('Eraser', 's') + '</button>') +
+        '<span class="drsep"></span><button class="ib" data-drmode="' + (dr.mode === 'colors' ? 'tools' : 'colors') + '" aria-label="Colours" title="Colours (C)"><span class="inkdot" style="background:' + dr.color + '"></span></button><button class="ib" data-drmode="' + (dr.mode === 'size' ? 'tools' : 'size') + '" aria-label="Size" title="Size (S)">' + icon('FormatLineWeight', 's') + '</button><button class="ib" data-act="drundo" aria-label="Undo" title="Undo (Ctrl Z)"' + (dr.undo.length ? '' : ' disabled') + '>' + icon('Undo', 's') + '</button><button class="ib" data-act="drredo" aria-label="Redo" title="Redo (Ctrl Y)"' + (dr.redo.length ? '' : ' disabled') + '>' + icon('Redo', 's') + '</button><button class="ib" data-drmode="min" aria-label="Make the toolbar small" title="Minimise">' + icon('ChevronDown', 's') + '</button></div>';
+    return '<div class="section" id="top"><div class="row" style="gap:8px;flex-wrap:wrap"><h1 class="hl grow">Draw</h1><label class="btn text sm">' + icon('ImageOutline', 's') + 'Draw on a picture<input type="file" accept="image/*" hidden id="drbg"></label><button class="btn text sm" data-act="drsvg">SVG</button><button class="btn text sm" data-act="drpng1">PNG 1×</button><button class="btn text sm" data-act="drpng2">2×</button><button class="btn text sm" data-act="drpng3">3×</button><button class="btn text sm" data-act="drclear"' + (dr.strokes.length ? '' : ' disabled') + '>' + L('clear') + '</button></div><p class="bs mu">Shift keeps a stroke to one of eight directions. Your strokes stay on this computer and come back next time. ' + dr.strokes.length + ' strokes.</p></div>' +
+      '<div class="drawwrap" data-k="drawwrap"><canvas id="drawc" tabindex="0" aria-label="Drawing surface. Use the pens with a mouse, pen or finger; keys P, N, F, M, H, B, O choose pens and E the eraser." style="cursor:crosshair"></canvas>' + bar + '</div>' + foot();
+  };
+  function drExportPng(scale) { var c = $('#drawc'); var o = document.createElement('canvas'); o.width = c.clientWidth * scale; o.height = c.clientHeight * scale; var x = o.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, o.width, o.height); var img = new Image(); img.onload = function () { x.drawImage(img, 0, 0, o.width, o.height); o.toBlob(function (b) { var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'drawing-' + scale + 'x.png'; a.click(); }); }; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(drSvg()); }
+  (function drInput() {
+    var down = false, start = null;
+    document.addEventListener('pointerdown', function (e) { if (e.target.id !== 'drawc') return; e.target.setPointerCapture(e.pointerId); var r = e.target.getBoundingClientRect(), p = [e.clientX - r.left, e.clientY - r.top, e.timeStamp]; down = true; drSnap(); if (dr.tool === 'eraser') { drErase(p[0], p[1], 14 * dr.size); drPaint(); return; } start = p; dr.cur = { tool: dr.tool, color: dr.color, size: dr.size, pts: [p] }; drPaint(); });
+    document.addEventListener('pointermove', function (e) { if (!down || e.target.id !== 'drawc') return; var r = e.target.getBoundingClientRect(), p = [e.clientX - r.left, e.clientY - r.top, e.timeStamp]; if (dr.tool === 'eraser') { if (drErase(p[0], p[1], 14 * dr.size)) drPaint(); return; } if (e.shiftKey && start) { var a = Math.round(Math.atan2(p[1] - start[1], p[0] - start[0]) / (Math.PI / 4)) * (Math.PI / 4), d = Math.hypot(p[0] - start[0], p[1] - start[1]); dr.cur.pts = [start, [start[0] + Math.cos(a) * d, start[1] + Math.sin(a) * d, p[2]]]; } else dr.cur.pts.push(p); drPaint(); });
+    document.addEventListener('pointerup', function () { if (!down) return; down = false; if (dr.cur) { dr.strokes.push(dr.cur); dr.cur = null; } drSave(); render(); });
+    document.addEventListener('keydown', function (e) {
+      if (st.active !== 'draw' || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || $('#ov')) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); action('drundo'); return; } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); action('drredo'); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return; var k = e.key.toUpperCase(), pen = PENS.filter(function (p) { return p[2] === k; })[0];
+      if (pen) { dr.tool = pen[0]; render(); } else if (k === 'E') { dr.tool = 'eraser'; render(); } else if (k === 'C') { dr.mode = dr.mode === 'colors' ? 'tools' : 'colors'; render(); } else if (k === 'S') { dr.mode = dr.mode === 'size' ? 'tools' : 'size'; render(); }
+    });
+    window.addEventListener('resize', function () { if (st.active === 'draw') drPaint(); });
+  })();
+
   // ---------- Start ----------
   (async function () {
     try { about = await API.about(); } catch (e) { about = {}; }
     try { dls = await API.downloads(); } catch (e) { dls = []; }
     await reload(); apply(); shell(); render(); wire();
     try { exts = await API.extensions(); } catch (e) { exts = []; }
+    try { extRuns = API.extRuns ? await API.extRuns() : []; } catch (e) { extRuns = []; }
+    try { if (API.school) schoolApply(await API.school()); } catch (e) { /* the shared folder may be unreadable */ }
     checkAll();
     // One fresh draw per start, 1 in 10, never during the first run.
     if (st.welcomed && Math.random() < 0.1) setTimeout(function () { if (!$('#ov')) dimsum(false); }, 5000);

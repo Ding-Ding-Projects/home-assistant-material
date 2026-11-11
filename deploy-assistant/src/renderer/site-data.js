@@ -71,8 +71,8 @@ window.SITE = {
   "QrcodeScan": "M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T20:33:18-05:00",
- "commit": "1c3cc844",
+ "updated": "2026-11-10T23:12:05-05:00",
+ "commit": "5e033806",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -779,6 +779,84 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "5e033806",
+   "date": "2026-11-10T23:12:05-05:00",
+   "title": "Deploy Assistant: build.bat for Windows",
+   "body": "Installs, tests, builds the window and makes the unsigned Squirrel\ninstaller, checks it reports NotSigned and prints its SHA-256. Also\nrun, clean and notest modes."
+  },
+  {
+   "sha": "2af35b5b",
+   "date": "2026-11-10T22:21:46-05:00",
+   "title": "The frontend half of the previous batch, left out by a truncated file list",
+   "body": "The batch commit two commits back staged its files through one long\nargument list that was cut off part way, so the server code landed without\nmost of the frontend changes that belong with it. This commit adds the\nremaining 73 files from the same checked tree: converter and drawing fixes,\nidentity, import summary, help reader, Minecraft, Ollama and history pages,\ntranslations and their tests. The tree now matches what was type-checked\nand unit-tested (4,926 tests passing).\n\n上次條名單斷咗，frontend 嗰半冇跟車。而家補返晒，棵樹同驗過嗰棵一模一樣。"
+  },
+  {
+   "sha": "0abf657a",
+   "date": "2026-11-10T22:21:17-05:00",
+   "title": "Help bundle: the rest of the regenerated integration pages",
+   "body": "The previous commit staged the regenerated pages in one long argument list\nand the tail of it was cut off. These are the remaining pages from the same\nsync run, so the bundle on disk and the index agree again.\n\n上一次 add 條名單太長，尾段啲幫助文章漏咗冇跟車，而家補返齊。"
+  },
+  {
+   "sha": "8e119edd",
+   "date": "2026-11-10T22:20:57-05:00",
+   "title": "Minecraft over SSH, Ollama pull and delete, history hardening, help bundle repaired",
+   "body": "- Minecraft manager: hosts with a per-host key and trust on first use, start,\n  stop, logs and a reachability check on the SSH Docker target; version\n  discovery on request. Exercised against a throwaway SSH server; no real\n  Docker host or image yet.\n- Ollama: pull with progress and cancel, delete. Driven with fake streams.\n- automation_repos and dashboard_repos: shared strict remote rule, loopback\n  refused, masked errors, forget history, archives listed and removable,\n  restore refuses when a save arrived meanwhile. 45 and 93 tests pass.\n- Help bundle regenerated: zero live outside links (test over all pages),\n  dropped words restored, real titles, empty pages removed, notice accurate.\n- Import summary: host from the URL parser, old-style service actions listed,\n  risky items never capped, long hosts keep their end. Tests written first.\n- Identity for everyone, hidden characters stripped, logo checked by bytes.\n  Release notes replace the older changes page. Converter and drawing fixes.\n- Records brought up to date: feature status, roadmap, handoff, feature docs.\n\nSeen in build 80: Overview header at phone width and the editable copy\nopening in edit mode. The rest of this commit is not yet seen running.\n\nMC server 可以經 SSH 喺第二部機開；Ollama 識拉 model；歷史簿加固；幫助\n文章啲字唔再甩。紀錄都對返數。"
+  },
+  {
+   "sha": "ae652436",
+   "date": "2026-11-10T21:20:59-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "c9b9d007",
+   "date": "2026-11-10T21:20:57-05:00",
+   "title": "Offline help everywhere, dashboard import summary and remote, new tools and pages",
+   "body": "- Fix: on a narrow screen the welcome banner covered the Overview header, and\n  a page that cannot be edited swallowed the request to open the editable\n  copy in edit mode. Seen and confirmed in a running build.\n- Dashboard import shows a summary before anything is created; imports start\n  off the rail and for administrators only. Undo is precise.\n- dashboard_repos: stricter remote address rule, remote and push screen,\n  forget history, deleted dashboards archived, restore by tab key, one\n  queued snapshot per dashboard. Driven end to end in a running copy.\n- Help: the door is installed at every entry point; 1,392 integration pages\n  and 189 images bundled under CC BY-NC-SA 4.0 with source and notice;\n  community links removed; outside links in articles are plain text.\n- Passkey: replay set only records verified sign-ins; removal needs a fresh\n  password session. 143 server tests pass in a running copy.\n- New: file converter and drawing board tools, Ollama servers and models,\n  identity (name and logo), release notes, Language and Modes boards.\n- Fixes from review: expansion panel completion, first-run setup stall,\n  list header checkbox, backup setup double press, Minecraft validation.\n- Entry points for dashboard history, Google setup, Minecraft and Ollama.\n\nThe new pages are not yet seen in a running build.\n\nOverview 喺手機度畀個 banner 遮住個 header，而家搬開咗；幫助文章全部\n留喺屋企睇；dashboard 拖入嚟先畀你睇清楚先至 import。"
+  },
+  {
+   "sha": "c32de408",
+   "date": "2026-11-10T20:54:29-05:00",
+   "title": "Deploy Assistant workflow: pass the code name through the environment",
+   "body": "Keeps the release title to the version and reports the token's push\npermission before creating the release, to find why GitHub refused it."
+  },
+  {
+   "sha": "4ffaeb0a",
+   "date": "2026-11-10T20:50:20-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "18d1481a",
+   "date": "2026-11-10T20:49:19-05:00",
+   "title": "Release: build whenever code changed since the last published images",
+   "body": "The check compared only the newest commit with the one before it. A\ndocumentation or design push landing on top of a code push made the code\npush's build be skipped or dropped, so that code was never built: builds 72\nto 76 published no images although real changes were waiting.\n\nThe workflow now compares with the build named in the update feed, which\nis the last one that published images. Without that it builds.\n\n之前淨係睇最新嗰個 commit，文檔一疊上去，下面啲 code 就冇人理。而家同上次\n真係出過 image 嗰版比，有 code 改過就一定 build。"
+  },
+  {
+   "sha": "847f8541",
+   "date": "2026-11-10T20:48:00-05:00",
+   "title": "Deploy Assistant 1.3: accommodations, narrator, schedule rules and more",
+   "body": "Adds ADHD modes (focus, low stimulation, time awareness, one thing at a\ntime, momentum), a narrator with per-language voice pickers, schedule\nrules by time or by a Home Assistant switch, the dim sum surprise with\npublic catalog photos and release code names, a two-key super\nconfirmation with a slider (shared with the project page), accessibility\nread-aloud controls and a hide action, logo upload checked by its bytes,\nexports in eleven text formats with Open in VS Code, bulk actions on\nbackups and hosts, an append-only history of records with restore,\nclear buttons on every text box, a live processor chart and changelog\nlinks to commits. FEATURES.md lists every contract feature and its\nstate. Boards redrawn across canvases 16 to 18."
+  },
+  {
+   "sha": "93388eab",
+   "date": "2026-11-10T20:35:51-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "a42736fb",
+   "date": "2026-11-10T20:35:33-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "bcbe9634",
+   "date": "2026-11-10T20:35:32-05:00",
+   "title": "Dashboards: edit built-in pages, export, import by drop, history per dashboard and tab",
+   "body": "- Built-in pages such as Overview get \"Edit cards and layout\": an editable\n  copy that opens in the editor. A visible edit button on narrow screens.\n- Dashboards and single tabs export to a file; a dropped dashboard file is\n  imported at once as a new dashboard, with Undo. Wording files still take\n  the same path as before.\n- dashboard_repos: a repository per dashboard with every tab's content and\n  history carried inside it; history page with compare and restore.\n- Help links open bundled offline articles inside the interface (44 so far).\n- Passkey sign-in as an addition to the password. 131 server tests pass in a\n  running copy; no real authenticator has been used yet.\n- Minecraft server manager, first slice: server definitions and target\n  detection. Automation editor motion. First-run setup without cloud restore\n  or outside links. Backup, link card, wizard secret masking, selection bar,\n  Google setup and read-aloud fixes from review.\n- websocket debug log hides the Google setup key file.\n\nThe four new integrations were loaded in a running copy without errors.\nThe interface changes are not yet seen in a running build.\n\nOverview 終於有得改 card；dashboard 拖入嚟就即刻 import；每個 dashboard 同\n每個 tab 都有自己本歷史簿。幫助連結唔再彈去出面，留喺屋企睇。"
+  },
+  {
    "sha": "1c3cc844",
    "date": "2026-11-10T20:33:18-05:00",
    "title": "Deploy Assistant 1.2: offline project pages, QR scanning, update self-test",
@@ -939,84 +1017,6 @@ window.SITE = {
    "date": "2026-11-10T14:00:43-05:00",
    "title": "Design handoff for the polish pass",
    "body": "A brief for the design tool: the surfaces built in code today that have no\nboard to match (phone workbench, touch-and-hold menu, lock wizard, keypad and\nlist, personal settings, guided setup, guidance notes, the rail item), what\nthe audit found that still needs a design decision, who owns which folder,\nand what to hand back. Design-only, so no build runs for it.\n\n畀設計工具嘅交接筆記：今日寫咗但未有設計稿嘅畫面、審查搵到嘅漏洞、\n邊個管邊個資料夾，同埋交返啲乜。淨係文件，唔會觸發 build，慳返啲電。"
-  },
-  {
-   "sha": "dabcd2dd",
-   "date": "2026-11-10T13:59:51-05:00",
-   "title": "Guided setup, locks with their own credentials, personal settings, phone fixes",
-   "body": "Guided setup: a new integration and page let integrations that were only\nconfigurable by hand-written YAML be created from the interface, with a\nstep-by-step wizard, a review of what is written and an honest note on\nreload or restart. Entries live in <config>/guided_setup/ and are merged as\npackages; configuration.yaml is never touched. Started in a container from\nthese files: 240 integrations listed, 10 with drawn fields, 228 with one\nchecked YAML box, 2 failing to load. The drawn-field count is the next\nthing to raise. Setup dialogs gain a short guidance note.\n\nLocks: an element lock picks one of six ways in and keeps its own\ncredentials as salted hashes; a wizard opens beside the element, the PIN\ngoes in by keypad or keyboard against one count of tries, and the Lock\ntool lists every lock. It says plainly that it is a speed bump for fun.\n\nPersonal settings: a page for sounds, low stimulation, the focus spotlight\nand reduced motion, applied at start. Language mode and the playfulness\nlevels are saved and only previewed for now, and the page says so.\n\nPhone: the element menu scrolls inside the screen and respects the\nkeyboard, the New tab list stays on screen, tabs show their close button\non touch, side panels use the visible height. The event filter in\nDeveloper tools uses the pattern workbench.\n\nNone of the interface work here has been seen in a running build yet;\ndocs/feature-status.md says so row by row.\n\n以前要人手寫 YAML 嘅整合，而家有精靈一步步帶住整，寫乜落去都畀你睇清楚先。\n240 個入面暫時得 10 個有靚表格，其餘 228 個畀你一格 YAML 再幫你驗，唔扮晒識做。\n每把鎖有自己嘅 PIN、密碼或者一次性碼，唔再一條鎖匙開晒全屋，仲老實講明係玩具鎖。\n個人設定有咗聲效、低刺激、專注光圈；手機上啲選單同分頁終於唔再走出畫面。"
-  },
-  {
-   "sha": "35a0478c",
-   "date": "2026-11-10T13:38:04-05:00",
-   "title": "Developer tools back on the navigation rail, above Settings",
-   "body": "Administrators get a Developer tools item on the rail again, directly above\nSettings. The tools are pages of the settings panel, so the rail now watches\nthe address to decide which of the two items to highlight, instead of\nlighting up Settings for both like an overeager usher.\n\n開發者工具返嚟喇，喺設定上面企定定。入咗工具頁就只會亮工具嗰粒，\n唔會再兩粒一齊搶住話「我先係你揀嗰個」。"
-  },
-  {
-   "sha": "4ba6c5e4",
-   "date": "2026-11-10T13:36:25-05:00",
-   "title": "Phone fixes for the pattern workbench and element menu; host.bat waits; build 46",
-   "body": "The pattern workbench used to squeeze itself under the search field on a\nphone and leave one line to scroll in. It now takes the visible screen and\nfollows the keyboard, and its switches start at the left instead of hiding\non the right like shy guests.\n\nA finger resting on an element opens its menu, since phones do not always\nsend a right-click for a long press. Text fields and cards with their own\nhold are left alone.\n\nThe media library search gets the workbench back: a pattern is tested\nagainst the titles in the open folder, plain text still goes to the source.\n\nhost.bat called a bare \"timeout\", which from a Git shell is a different\nprogram that fails at once, so the five-minute wait lasted about a second\nand reported a failure over a container that had started fine. It now\nnames ping by full path. compose.yaml runs build 46, which was started\nthis way on Windows 11 and reached from a second device.\n\nThe README records the VMware Workstation start of the operating system\nimage and how to clone on Windows without deleting two files by accident.\nhui-root.ts imports the event type it was already using.\n\n手機版樣式工作台唔再縮埋喺搜尋欄下面扮隱形，而家佔晒成個畫面，鍵盤彈出嚟都跟得貼。\n撳實一樣嘢就彈選單，唔使再搵右鍵。媒體搜尋有返樣式工作台。\nhost.bat 以前等一秒就話衰咗，其實個 container 好地地；而家真係等足五分鐘。\ncompose 行 build 46，VMware 開機同 Windows clone 嘅伏都寫低晒。"
-  },
-  {
-   "sha": "bb5629c7",
-   "date": "2026-11-10T11:14:07-05:00",
-   "title": "Locks on single elements, README captures from a running instance, handoff",
-   "body": "Right-click an element and choose Lock this element: it stops taking clicks\nand keys and gets a dashed outline. The Lock tool lists the locked elements\nof the page and unlocks each by a hold, or all of them with the PIN.\n\nCheckpoint, not the end of the work. Seen working with a hold; unlocking\nelements with the PIN is written but was not exercised. The backup check\nfor the automation repositories is not done and is the first step in\nHANDOFF.md. ROADMAP.md lists everything still open."
-  },
-  {
-   "sha": "42f1f4c0",
-   "date": "2026-11-10T11:01:43-05:00",
-   "title": "Tools: a Colour tab that reads one colour in every notation",
-   "body": "The Colour tab picks a colour in a square with hue and alpha sliders,\nfrom the screen where the browser allows it, or from typed hex, rgb() or\nhsl(). It writes the colour as HEX, HEX8, RGB, HSL, HSV, HWB, OKLCH,\nCIELAB and an approximate CMYK, each with a copy button, names the\nnearest CSS named colour, and gives the contrast of white and of black\ntext on it with what that is good for.\n\nThe OKLCH and CIELAB numbers were compared with what Chrome computes for\nthe same colours and match. Text that is not a colour is refused and the\ncolour is kept.\n\nSeen in a running instance. It is a page of its own: the appearance\neditor does not use it yet."
-  },
-  {
-   "sha": "f97acba7",
-   "date": "2026-11-10T10:56:04-05:00",
-   "title": "Notifications as a page",
-   "body": "Settings, Notifications lists every notification the instance holds,\nnewest first, with a search that has the pattern workbench, a selection\nmode to dismiss several, and dismiss for one or for all. The notification\ndrawer links to it.\n\nSeen in a running instance: three notifications were created, a pattern\nleft the two that match, two were dismissed by selection and the last by\nits button. Colours by severity, action buttons and stacked toasts from\nthe board are not built."
-  },
-  {
-   "sha": "607e28fa",
-   "date": "2026-11-10T10:51:39-05:00",
-   "title": "An Assist button at the top of the rail",
-   "body": "The rail gets the button its board has at the top. It opens Assist with\nthe last used pipeline and is shown only when Assist is set up. In the\nopen rail it carries its name.\n\nSeen in a running instance: the button opened the Assist dialog."
-  },
-  {
-   "sha": "fcdf322c",
-   "date": "2026-11-10T10:50:09-05:00",
-   "title": "Lists: row icons on a tile, makers under device names; compose runs build 38",
-   "body": "In lists drawn as cards, the icon of each row sits on a small tile, and a\ndevice row names its maker and model under the device, as on the boards.\n\nThe compose file now runs build 38. Builds 35 and 38 were pulled and run\nwith only their configuration folder mounted; what was seen in each is in\nthe feature status. The new pages were also checked in the dark scheme."
-  },
-  {
-   "sha": "44c2e0c1",
-   "date": "2026-11-10T10:45:02-05:00",
-   "title": "What changed inside the interface; About is about this project",
-   "body": "Settings, About, What changed lists the changelog by day, with the commit\nthat added each entry, a search with the pattern workbench, a range of\ndays and export. The list is bundled with the build, so it opens without\na connection. CHANGELOG.md now has a heading for each day, and a script\nwrites the bundled list from it; a test fails when the two differ.\n\nAbout shows this project's version and when the build was made, the\nversions of its parts, where updates come from and how this kind of\ninstall is updated, that every feature is included and nothing is sold,\nand that the project is independent of the Open Home Foundation. The\ncard that said it was part of the foundation, the merchandise link and\nthe links to the upstream issue tracker are removed; Report a problem\nopens this project's issues.\n\nSeen in a running instance: 47 entries listed, a pattern search left the\ntwo that match, each with its commit."
-  },
-  {
-   "sha": "cf187ff4",
-   "date": "2026-11-10T10:38:19-05:00",
-   "title": "Tools: a Base64 toolkit for text and files",
-   "body": "A Base64 tab under Tools encodes text or a file, decodes it back, and\nwrites data URLs. The alphabet is Standard, URL-safe or MIME; padding can\nbe left out; lines can be 64 or 76 characters; text is read as UTF-8 or\nLatin-1.\n\n- Each encoding is decoded again and compared with the input, with a\n  SHA-256 of both.\n- Strict decoding stops at the first character that does not belong and\n  says where. Lenient decoding skips it and reads either alphabet.\n- A file over 1 MB is encoded in pieces, with pause and cancel, and is\n  saved as a file. Each piece is checked.\n- Everything is worked out in the browser.\n\nSeen in a running instance: the text matched what Node writes for the\nsame input, a strict failure named character 5, and a 3 MB file encoded\nin four pieces decoded outside the browser to the same file."
-  },
-  {
-   "sha": "c058e8ba",
-   "date": "2026-11-10T10:31:44-05:00",
-   "title": "Home: large cards for a room's lights, the thermostat, the locks and what is playing",
-   "body": "Under the greeting, Home shows the large cards of its board, each only\nwhen the home has such a thing:\n\n- the lights of the room that has the most, with a switch for all of\n  them, a chip for each, and a brightness slider when a light can be\n  dimmed;\n- the first thermostat, with its temperature and cooler and warmer\n  buttons that stay within its limits;\n- the locks, saying whether all are locked, with Lock all when one is\n  open;\n- whatever is playing, with play, pause and next.\n\nSeen in a running instance with a small demo home: a chip switched one\nlight, the switch switched the room, plus and minus moved the target by\nhalf a degree, and Lock all locked the open door. The power card of the\nboard is not built."
-  },
-  {
-   "sha": "8f151a50",
-   "date": "2026-11-10T10:25:33-05:00",
-   "title": "Two-key confirmation for everything that destroys data",
-   "body": "A question the interface marks as destructive no longer has a confirm\nbutton. It shows two keys and a slider: turn both keys, then move the\nslider to its end. This covers the 104 places that ask such a question,\nsuch as deleting an automation, a device or a backup.\n\nA key is turned by holding Q or P, or by pressing and holding its tile.\nIt stays turned for six seconds after it is let go, so both can be turned\none after the other with one hand, one pointer or a switch. The slider\nworks only while both keys are turned and goes back to the start if it\nis let go early. Emergency exit and Escape leave.\n\nSeen in a running instance, deleting a throwaway automation: one key did\nnothing, half a slide did nothing, and a full slide deleted it."
-  },
-  {
-   "sha": "26d48cce",
-   "date": "2026-11-10T10:20:28-05:00",
-   "title": "System page drawn like its board; breadcrumb on every settings subpage",
-   "body": "System opens with a card that says what is running and in which state,\nwith facts the instance reports about itself: the version, how many\nintegrations are loaded, storage used where the host reports it, and the\ntime zone. The board's processor, memory and temperature figures are left\nout, because a plain container does not report them. The sections are a\ngrid of cards, two across.\n\nPlain subpages reached from Settings show where they sit above their\ntitle, as the tabbed pages already do.\n\nSeen beside the System board in a running instance."
   }
  ],
  "status": [
@@ -1025,63 +1025,68 @@ window.SITE = {
    "head": [
     "Feature",
     "State",
-    "Where"
+    "Evidence and where"
    ],
    "rows": [
     [
      "Upstream sources in one repository",
-     "Done",
-     "UPSTREAM.md"
+     "Built and seen in a running build",
+     "The published images are made from it; the pinned releases are listed in UPSTREAM.md."
     ],
     [
      "Release on every push with a unique tag",
-     "Done, build 1 verified through the container image",
-     ".github/workflows/release.yml"
+     "Built and seen in a running build",
+     "Build 1 was verified through its container image; .github/workflows/release.yml."
+    ],
+    [
+     "Release workflow: documentation-only pushes and the comparison with the last published images",
+     "Built, not yet seen in a running build",
+     "Builds 64 and 65 were published without images because a push that changed many files was mistaken for a documentation-only push; the workflow now compares with the build that last published images (.github/workflows/release.yml, the version step), and no push since has shown the new comparison working. Build 66 is the first with images again."
     ],
     [
      "Container image for amd64 and arm64",
-     "Done, publicly pullable",
-     "release notes"
+     "Built and seen in a running build",
+     "Publicly pullable and run from the registry (see the table below)."
     ],
     [
      "Core, machine, landing page and supervisor images",
-     "Done, built in build 1",
-     "release notes"
+     "Built and seen in a running build",
+     "Built in build 1; the core image has been run many times. The others were built and published; only the core was driven."
     ],
     [
      "Update feed and updater pointed at this project",
-     "Done, feed live; an update between two builds is not yet observed",
-     "docs/material-changes.md"
+     "Built, not yet seen in a running build",
+     "The feed is live (channel branch); an update between two builds has not been observed. docs/material-changes.md."
     ],
     [
      "Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox",
-     "Built. haos_ova-18.5.33.ova started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed the first-run setup on port 80, reached from a second device. ovftool needs --skipManifestCheck (see the README). Not yet booted in VirtualBox or on a Raspberry Pi",
-     "release workflow, README"
+     "Built and seen in a running build",
+     "haos_ova-18.5.33.ova started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed first-run setup on port 80, reached from a second device (ovftool needs --skipManifestCheck, see the README). It has not been booted in VirtualBox or on a Raspberry Pi."
     ],
     [
      "Operating system updates over the air",
-     "Wired, and the two signing secrets are set since 10 November 2026. Not yet observed: no build has finished its operating system images since, and no update between two such builds has been watched",
-     "README"
+     "Built, not yet seen in a running build",
+     "Wired; the two signing secrets are set since 10 November 2026. No build has finished its operating system images since, and no update between two such builds has been watched."
     ],
     [
      "build.sh, build.bat, build-installer.bat, dependency installers",
-     "Written; not yet run end to end",
-     "repository root"
+     "Built, not yet seen in a running build",
+     "Written at the repository root; not run end to end."
     ],
     [
-     "Deploy Assistant (one-click deploys, instances, backups, automatic downloads, Raspberry Pi cards)",
-     "Written. Docker on this computer was run end to end in a test on 10 November 2026: two instances side by side, a backup, a restore and a removal. The card writer wrote and read back a test image through the packaged app. SSH hosts, VirtualBox, VMware and a real card are not yet seen working.",
-     "deploy-assistant/ Version 1.1 (10 November 2026): the Deploy tab is a two-pane wizard; extensions with permission prompts, tools, support, changes, school mode, voice, scheduled dark theme, name and logo, dim sum surprise, Windows background updates with an unsigned-update banner, and the build shown on the first screen. Checked in the browser demo and in Electron on Linux; three extension tests pass. Not yet proven on Windows or macOS hardware, and auto-update has not been seen applying a real release."
+     "Deploy Assistant (deploy-assistant/, version 1.3.0)",
+     "Partly built",
+     "Docker on this computer was run end to end in a test on 10 November 2026: two instances side by side, a backup, a restore and a removal; the card writer wrote and read back a test image through the packaged app. Versions 1.1 to 1.3 add the two-pane deploy wizard, extensions, offline project pages, QR scanning, an update self-test, ADHD modes, a narrator, schedule rules, two-key confirmation, logo upload, exports in eleven formats, record history and a live chart; they were checked in the browser demo and in Electron on Linux. Not seen on Windows or macOS hardware, auto-update has not been seen applying a real release, and SSH hosts, VirtualBox, VMware and a real card are not seen working. deploy-assistant/FEATURES.md lists every contract feature, including those not started (virtual disks, game servers, local models, drawing). Open review findings are in HANDOFF.md."
     ],
     [
      "Dedicated build application",
      "Not started",
-     ""
+     "Nothing exists in the repository."
     ],
     [
      "Project website",
-     "Built and published on GitHub Pages; checked in Chrome at 1440 and 360 px by docs/site/check_site.py: twelve tabs open by default, including the Deploy Assistant with its downloads and a demo of its window, the status page and every design board. Nothing links away except downloads.",
-     "docs/site/"
+     "Built and seen in a running build",
+     "Published on GitHub Pages; docs/site/check_site.py opened it in Chrome at 1440 and 360 px: twelve tabs open by default, including the Deploy Assistant with its downloads and a demo of its window, the status page and every design board. Nothing links away except downloads. docs/site/."
     ]
    ]
   },
@@ -1106,11 +1111,11 @@ window.SITE = {
     ],
     [
      "2026.11.1.35",
-     "Run the same way: the breadcrumb, the large title with its count, rows as cards and the export button are in it"
+     "The breadcrumb, the large title with its count, rows as cards and the export button are in it"
     ],
     [
      "2026.11.1.38",
-     "Run the same way with a small demo home: the Home greeting and its sentence, the settings home grid with live counts, the compact rail, and the row of tools in an entity dialog are in it"
+     "Run with a small demo home: the Home greeting and its sentence, the settings home grid with live counts, the compact rail, and the row of tools in an entity dialog are in it"
     ],
     [
      "2026.11.1.46",
@@ -1127,387 +1132,493 @@ window.SITE = {
    "head": [
     "Feature",
     "State",
-    "Where"
+    "Evidence and where"
    ],
    "rows": [
     [
      "Material Design 3 shell: rail, pane, pill tabs, tokens",
-     "Partly built: colour scales, surfaces, typeface, navigation rail, floating pane, borderless cards and pill tabs are in the frontend and seen working in its demo build (docs/screenshots/). The tab bar of open pages, its search button and the accessibility button are built (see the Tabs and Accessibility rows). Not built: the redesigned Home, the dark theme check, the phone layout.",
-     "Main, Energy, Settings, Phone, Tokens"
+     "Partly built",
+     "Colour scales, surfaces, typeface, navigation rail, floating pane, borderless cards and pill tabs are in the frontend and were seen in its demo build (docs/screenshots/). Not built: the dark theme check on every page, motion tokens. See Home greeting and Phone layout rows."
     ],
     [
      "Dark theme",
-     "Checked on Home, Settings home, Devices and the Base64 toolkit with the dark colour scheme (docs/screenshots/dark-theme.jpg): the new cards, rows, banners and tools read correctly. Other pages and the boards' own dark versions are not checked.",
-     "Tokens"
+     "Partly built",
+     "Home, Settings home, Devices and the Base64 toolkit were seen in the dark colour scheme (docs/screenshots/dark-theme.jpg). Other pages and the boards' own dark versions are not checked."
     ],
     [
      "Motion with a reduced-motion path",
-     "Designed",
-     "Settings, Accessibility"
+     "Partly built",
+     "Reduced motion is honoured by the accessibility tools, the personal settings and the automation editor's motion (frontend/src/panels/config/automation/motion-styles.ts, motion-helpers.ts); the board's motion tokens are not built, and none of it was seen moving in a running build."
     ],
     [
      "Live charts",
      "Designed",
-     "Energy"
+     "Board Energy; nothing built beyond upstream charts."
     ],
     [
-     "First-run wizard",
-     "Designed",
-     "Onboarding"
+     "First-run setup (wizard, review, password strength, date and unit preview)",
+     "Built, not yet seen in a running build",
+     "frontend/src/onboarding/: three steps, password strength, a preview of dates and units, a review step, no cloud restore and no outside links, and nothing contacts an outside map service until a button that says so is pressed. The Welcome screen was seen on 10 November showing the old upstream items; the fix is in source and unseen. Open: the location step's lookup behind a confirmation dialog, the integrations step is not interactive, and a review found that a failed flow can leave both buttons off (see HANDOFF.md)."
     ],
     [
-     "Language modes, playfulness sliders, dialog emoji switch",
-     "Designed",
-     "Language"
+     "Setup wizards: guided setup, lock wizard, Google setup, backup setup",
+     "Built, not yet seen in a running build",
+     "Each has real controls, live validation, a review of what will be written and Back and Next (frontend/src/panels/config/guided-setup/, frontend/src/components/locks/ha-lock-wizard.ts, frontend/src/panels/config/google-setup/, frontend/src/panels/config/backup/dialogs/dialog-backup-onboarding.ts). Whether each wizard has save and resume, jump to a step and a test of the new value has not been confirmed."
+    ],
+    [
+     "Language modes (English, Cantonese, both)",
+     "Built, not yet seen in a running build",
+     "frontend/src/common/language-mode/; Cantonese copy for this project's own surfaces is in frontend/src/translations/yue-own.json (tabs, the search of everything, the phone bar, locks, the wording card and Personal settings). Cantonese for pages not written by this project is not written. Checked by unit tests only."
+    ],
+    [
+     "Playfulness levels",
+     "Built, not yet seen in a running build",
+     "Two sliders in Personal settings change real messages (frontend/src/common/playful/playful-text.ts)."
+    ],
+    [
+     "Dialog emoji switch",
+     "Built, not yet seen in a running build",
+     "A switch in Personal settings; dialogs that provide an emoji show one (frontend/src/dialogs/generic/dialog-box.ts, common/preferences/personal-preferences.ts)."
+    ],
+    [
+     "School mode",
+     "Built, not yet seen in a running build",
+     "A switch with rules that each have an effect, and a name (SCHOOL_RULES in frontend/src/common/preferences/personal-preferences.ts). The shared switch across other apps and an unlock credential are not built."
+    ],
+    [
+     "One thing at a time",
+     "Built, not yet seen in a running build",
+     "frontend/src/common/preferences/one-thing.ts, a switch in Personal settings."
+    ],
+    [
+     "Attention modes",
+     "Built, not yet seen in a running build",
+     "A small clock, and an offer to go back to the last page (frontend/src/common/preferences/attention-modes.ts); also the focus spotlight and low stimulation."
+    ],
+    [
+     "Spoken narrator",
+     "Built, not yet seen in a running build",
+     "Off by default; it reads the name of the focused control and uses only a voice that runs on the device, and stays silent when there is none (frontend/src/common/narration/). Cantonese speech needs a Cantonese voice on the device. Unit tests only."
+    ],
+    [
+     "Action sounds",
+     "Built, not yet seen in a running build",
+     "Sounds with volume and quiet hours, applied at start (frontend/src/common/sound/action-sound.ts)."
     ],
     [
      "Private vocabulary file and drop to apply",
-     "Built and seen working in a running instance. A card on Profile, Localization chooses, replaces or clears a JSON file (schema version 1, up to 256 KiB, UTF-8); a file can also be dropped anywhere in the window. The file is checked in full first: size, encoding, nesting depth, duplicate keys, unsafe keys, unknown fields, version, key and value lengths, control characters. A file that fails changes nothing and the message names the kind of problem without repeating anything from the file. Wording is applied where text is localized, so addresses, paths, identifiers and stored names stay literal. Only the checked entries are cached in the browser; nothing about the file is kept and nothing is sent anywhere. A short confirmation shows after a load. Checked by 31 unit tests. Seen in the running instance: an invalid file refused, a 324-entry file loaded, labels on Settings changed, the wording still in place after a reload. Changed on 10 November and not yet seen running: a key written in small letters also matches the same words with a capital first letter, as at the start of a label (\"Push\" for a key \"push\"), and its replacement then starts with a capital; checked by a unit test and against a 324-entry file outside the browser. Not built: an entry in the command search, the Cantonese copy, School mode.",
-     "Vocabulary"
-    ],
-    [
-     "Spoken narrator and action sounds",
-     "Designed",
-     "Narration"
-    ],
-    [
-     "School mode and focus modes",
-     "Designed",
-     "Modes"
+     "Built and seen in a running build",
+     "A card on Profile, Localization chooses, replaces or clears a JSON file (schema version 1, up to 256 KiB, UTF-8), or a file can be dropped anywhere in the window. The file is checked in full first and a refused file changes nothing; wording applies only where text is localized, so addresses, paths and identifiers stay literal; nothing is sent anywhere. Seen: an invalid file refused, a 324-entry file loaded, labels on Settings changed and still in place after a reload. frontend/src/common/vocabulary/, 31 unit tests. Changed since, not yet seen: a key in small letters also matches a capital-first word, the celebration and its sounds, and text that carries links keeps the wording on its plain parts. Not built: an entry in the command search."
     ],
     [
      "Scheduled and external settings sources",
      "Designed",
-     "Schedule"
+     "Board Schedule. (The Deploy Assistant has scheduled settings.)"
     ],
     [
      "Renaming the app and logo customization",
-     "Designed",
-     "Identity"
+     "Built, not yet seen in a running build",
+     "Settings, name and logo, saved in this browser only (frontend/src/panels/config/identity/, frontend/src/common/identity/); About keeps the product name."
     ],
     [
      "Dim sum surprise",
      "Designed",
-     "DimSum"
+     "Board DimSum; built only in the Deploy Assistant."
     ],
     [
      "Per-element appearance editor",
-     "Built and seen working in a running instance (docs/screenshots/appearance-editor.png, appearance-pick.png). Any element can be picked three ways: the menu on right-click, Ctrl+Shift+E on the focused element, or the pick tool behind the paint button in the top bar. The editor opens beside the element with: which part (the element or what contains it), apply to this one or to every element of the same kind, fill layers (colour, gradient, picture; reorder, hide, opacity, blend), text colour, typeface and weight, corners, border, shadow, accent colour, size and opacity, and a text contrast reading. Changes apply as they are made, are saved in the browser, survive a reload, and have Undo, Reset this and Reset everything. Stored choices are validated: only named styles, hex colours, and picture addresses that cannot run script. Checked by 16 unit tests. Seen in the running instance: a gradient, text colour and corner radius on one dashboard card, still there after a reload; corners for every card of a kind; the pick tool. **Not seen**: inside a modal dialog, on a phone, with the keyboard only. Not built: masks, per-state layers (hover, focus, pressed), levels and filters on pictures, export and import of choices, sync between browsers.",
-     "AppearanceType, AppearanceLayers"
+     "Built and seen in a running build",
+     "Any element can be picked by the menu, Ctrl+Shift+E or the pick tool; fill layers, text, corners, border, shadow, accent, size and opacity; saved in the browser (docs/screenshots/appearance-editor.png, appearance-pick.png; frontend/src/common/appearance/, components/appearance/; 16 unit tests). Not seen: inside a modal dialog, on a phone, with the keyboard only. Not built: masks, per-state layers, picture filters, export and import, sync. Added since and not seen: the editor's own colour picker (ha-appearance-color-picker.ts)."
     ],
     [
      "Colour picker and translator",
-     "Partly built and seen working in a running instance beside the board (docs/screenshots/colour-tool.png). A Colour tab under Tools picks a colour in a square with hue and alpha sliders, from the screen where the browser allows it, or from typed hex, rgb() or hsl(). It writes the colour as HEX, HEX8, RGB, HSL, HSV, HWB, OKLCH, CIELAB and an approximate CMYK, each with a copy button, names the nearest CSS named colour, and gives the contrast of white and of black text with what it is good for. The OKLCH and CIELAB numbers are the ones Chrome computes for the same colour. It is a page of its own: the appearance editor does not use it yet, and the board's named palette, gamut chips and animated rainbow are not built.",
-     "ColorPicker"
+     "Partly built",
+     "The Colour tab was seen in a running instance (docs/screenshots/colour-tool.png). Since then a typed colour is applied when typing ends and a drag is stored a few times, not at every move (not seen). The board's named palette, gamut chips and animated rainbow are not built."
     ],
     [
      "Fonts and type scale",
-     "Designed",
-     "Fonts"
+     "Partly built",
+     "A fonts dialog lists only typefaces that ship with the app or are on the device (frontend/src/components/appearance/ha-appearance-fonts.ts); not seen in a running build; the type scale board is not built."
     ],
     [
      "Accessibility tools",
-     "Built on wide screens and seen working in the demo build (docs/screenshots/accessibility.png, contrast.png): a top bar button and Alt+A open the panel; text size from 100% to 200%, three contrast levels for light and dark, reduce motion, a focus ring that follows the focused control, larger targets, keyboard help, reset, and hiding the button with a confirmation. Choices are kept in the browser. Limits: text size and larger targets reach everything that uses the theme's size tokens, not components with fixed pixel sizes; reduce motion reaches animations that use the theme's duration tokens. Read aloud is built but not heard working (the test browser has no speech voices). No button on a phone yet; Alt+A works there with a keyboard.",
-     "Accessibility"
+     "Built and seen in a running build",
+     "Panel on wide screens: text size, contrast, reduced motion, focus ring, larger targets, keyboard help, reset (docs/screenshots/accessibility.png, contrast.png). Added since and not seen: line spacing and letter spacing, narrow-screen and focus fixes. Read aloud is built and now uses only an on-device voice; not heard working. No button on a phone yet; Alt+A works there with a keyboard."
     ],
     [
      "Resizable panels, collapsible filters and statistics",
      "Designed",
-     "Panels"
+     "Board Panels."
     ],
     [
      "Tabs open by default and the New tab catalog",
-     "Built for pages on wide screens and seen working in the demo build (docs/screenshots/tabs.png): every page starts open in page order, a closed tab stays closed, a page added later opens by default, close buttons show on the active tab and on hover or focus, the New tab catalog lists every page with search, and Open every tab reopens them all. Arrow, Home and End keys move between tabs. The catalog search is the shared search field and accepts patterns (seen working in the demo build). Bulk close is built and seen working in the demo build (docs/screenshots/tabs-bulk-close.png): with text in the catalog search, one button closes the open tabs that match and one closes those that do not, each showing its count; the list under the field is the preview; nothing closes for an empty search or an unusable pattern; the page in use stays open; Undo reopens what was closed. Not built: tabs on a phone, drag to reorder, pinned tabs, separate searches per group.",
-     "Tabs"
+     "Built and seen in a running build",
+     "Seen in the demo build (docs/screenshots/tabs.png, tabs-bulk-close.png); the catalog search accepts patterns and bulk close with Undo works. Added since and not seen: dragging into a new order, pinning, the order and pins kept in page history, the phone sheet following the order, the tools listed in Open a tab, screen reader and keyboard fixes, and the search shrinking to a button on a narrow screen (frontend/src/components/ha-page-tabs.ts). Not built: separate searches per group."
+    ],
+    [
+     "Phone layout: bottom bar and sheet of open pages",
+     "Built, not yet seen in a running build",
+     "frontend/src/components/phone/ha-phone-bar.ts; a bar at the bottom (Home, Search, Pages, Access, Menu) and a slim bar at the top. The bar hides on scroll only on pages that scroll the window."
     ],
     [
      "Command palette on Ctrl+Shift+F",
-     "The existing quick bar is rebound to Ctrl+Shift+F and opens from the Search button in the top bar (seen working in the demo build). The key press itself is not yet seen working: the demo build does not register shortcuts. The redesigned palette with live controls is not built.",
-     "CommandPalette"
+     "Partly built",
+     "The quick bar opens from the Search button (seen in the demo build); the key press is not seen, because the demo build does not register shortcuts."
+    ],
+    [
+     "Search of everything",
+     "Built, not yet seen in a running build",
+     "Lists settings and switchable entities with a live switch in the row (pointer only, not yet from the keyboard) and key hints; works for people who are not administrators (frontend/src/common/search/, the command palette)."
     ],
     [
      "Pattern workbench on every search",
-     "Partly built. Every search field (38 places, listed in frontend/src/common/regex/search-surfaces.ts) has a workbench button, and every list behind them accepts a regular expression written as /pattern/flags: tables, filter panes, pickers, the add dialogs, logs, the network maps, the state tool and the New tab catalog. Plain text stays the default. The engine is the browser's JavaScript engine; patterns are limited to 2,000 characters, values to 4,000, and a pattern that static screening marks as runaway is refused. A test walks the source and fails when a search field is added without a catalogue entry. Checked by unit tests (99 passing), lint and the type check. Seen working in the demo build on the New tab catalog (docs/screenshots/pattern-workbench.png, pattern-search.png): the button opens the workbench beside the field, the Test tab shows which items of the list match, Use writes the pattern back and the list filters, an invalid or runaway pattern shows nothing and turns the button red with the reason, Escape closes only the workbench, and focus returns to the field. Also seen working on a real table: in a running instance of the published image (build 26), a pattern on the Entities list left exactly the two matching rows, the workbench's list preview named the same two, and an invalid pattern showed nothing. Not yet seen in a build: filter panes, pickers and logs; those paths are covered by unit tests only. Not built: per-group tab searches.",
-     "Regex"
+     "Built and seen in a running build",
+     "38 search fields (listed in frontend/src/common/regex/search-surfaces.ts) have a workbench button and accept /pattern/flags; a test fails when a field is added without an entry. Seen on the New tab catalog in the demo build and on the Entities table in the published build 26 (docs/screenshots/pattern-workbench.png, pattern-search.png). Not seen: filter panes, pickers and logs (unit tests only)."
     ],
     [
      "Automation tests: every condition and every Choose option",
-     "Built and seen working in a running instance (docs/screenshots/automation-option-test.png). Each condition row has a visible test button, and each Choose option has a test button that checks all of the option's conditions now and reports whether the option would run. Nothing is run or saved by a test. Not built: named test cases, the dry run of a whole automation.",
-     "AutomationChoose, AutomationEditor"
+     "Built and seen in a running build",
+     "A test button on each condition and each Choose option (docs/screenshots/automation-option-test.png). Since then not seen: the Choose step can test and run one option, the default actions or the whole step, a disabled condition is left out of a test, old results clear when the step is edited, an impossible option is marked, and Run asks first (frontend/src/panels/config/automation/option/, run-helpers.ts)."
+    ],
+    [
+     "Automation editor: motion, status bar, enable switch",
+     "Built, not yet seen in a running build",
+     "Three named cards; cards open and close smoothly, new steps slide in, results fade in, with reduced motion respected; an on and off switch, a Check button and a history strip (frontend/src/panels/config/automation/ha-automation-status-bar.ts, motion-styles.ts, motion-helpers.ts). Review findings still open (see HANDOFF.md). Not built: the bottom bar, a dry run of the whole automation, the repository strip."
+    ],
+    [
+     "Script editor",
+     "Built, not yet seen in a running build",
+     "Redrawn with a mode selector, Run now and See past runs (frontend/src/panels/config/script/ha-script-editor.ts). Open: Save in a bottom bar needs the shared editor mixin, and fields_empty is unused."
+    ],
+    [
+     "Run now for automations and scripts",
+     "Built, not yet seen in a running build",
+     "Says that the saved version runs, asks first, reports the result, and is off while there are unsaved changes (frontend/src/panels/config/automation/run-helpers.ts)."
     ],
     [
      "A Git repository for each automation, and a master repository",
-     "Built and seen working in a running instance. See docs/automation-repositories.md. Every save commits the automation in its own repository with a message naming what changed. Commit everything checks every automation, commits each that changed, then commits the master, which records the commit each automation is at, and pushes to remotes where one is set. 20 tests with real Git. Seen in the instance: two automations and the master committed by one push, and a commit on each save. **Not checked**: a push to a real remote host; the integration as part of a built image (it was loaded into a running image as a custom integration). Not built: the per-automation repository page, the repository strip in the editor, remote settings in the interface, pull, scripts and scenes.",
-     "AutomationRepo, AutomationsMaster"
+     "Built and seen in a running build",
+     "See docs/automation-repositories.md: every save commits; Commit everything commits each changed automation, then the master, and pushes where a remote is set; 20 tests with real Git; seen in a running instance. Not checked: a push to a real remote host. Not built: the per-automation repository page, the repository strip, remote settings in the interface, pull, scripts and scenes."
+    ],
+    [
+     "Backups carry the automation repositories",
+     "Not started",
+     "Only read so far: neither exclude list names automation_repos/. No backup has been made and restored to prove it (HANDOFF.md, item 1)."
     ],
     [
      "Automation history manager",
-     "Built and seen working in a running instance (docs/screenshots/automation-history-run.png, automation-history-compare.png). A History tab beside Automations lists every version of every automation with search (and the pattern workbench) and filters for failing, live and never tested. A version can be tested alone or many at once: whether it loads, and whether its conditions pass right now; four at a time, ten seconds each, with Stop; nothing in the house changes. Versions can be run for real, one after another, after a confirmation that names them, optionally asking before each one and leaving out anything that touches a lock, door, alarm, valve or siren. Two versions can be compared, an old version made live again, versions exported, and everything committed to the master with a message. Seen in the instance: test every live version, a correct condition failure with its reason, compare, a run of two versions with confirmations, commit everything. Not seen: make live, export, Stop during a long test, a narrow screen. Not built: named test cases and their columns, a simulated run that pretends the actions, schedules.",
-     "AutomationHistory"
+     "Built and seen in a running build",
+     "A History tab lists every version with test one, test many, run many with confirmations, compare and commit everything (docs/screenshots/automation-history-run.png, automation-history-compare.png). Not seen: make live, export, Stop during a long test, a narrow screen. Not built: named test cases, a simulated run. Automations now link to their history (not seen)."
     ],
     [
      "Context menus with working shortcuts",
-     "Partly built and seen working in a running instance (docs/screenshots/element-menu.png). The menu also has Export this page, History of changes and Lock this page for the page the element is on (docs/screenshots/element-menu-page-tools.png). Right-click, long press, the menu key or Shift+F10 on anything opens a menu for that element with a filter field (which has the pattern workbench), arrow keys, Enter and Escape. Entries: edit appearance, edit every one of the kind, reset, read aloud, copy the text, search and commands. Shortcuts shown in the menu come from the same list the key handler reads. Shift with a right-click gives the browser's menu; text fields keep theirs. Not built: entries specific to what was clicked (turn off, open, rename, hide), lock, history and export entries.",
-     "ContextMenu"
+     "Partly built",
+     "Seen (docs/screenshots/element-menu.png, element-menu-page-tools.png): filter, arrow keys, edit appearance, reset, read aloud, copy, search, commands, plus export, history and lock for the page. Since then not seen: Open and Open in a new tab on a link, and the phone sheet. Not built: entries specific to what was clicked (turn off, rename, hide)."
     ],
     [
      "Guided forms and per-control information buttons",
      "Designed",
-     "GuidedForm"
+     "Board GuidedForm."
     ],
     [
      "Settings that explain themselves",
-     "Designed",
-     "Settings"
+     "Partly built",
+     "Personal settings says what each control reaches and has a reset (not seen); the board for other pages is not built."
     ],
     [
      "Extension support",
      "Designed",
-     "Extensions"
+     "Board Extensions; built only in the Deploy Assistant."
     ],
     [
      "Starting points for blank editors",
      "Designed",
-     "BlankEditor"
+     "Board BlankEditor."
     ],
     [
      "Two-key confirmation",
-     "Built and seen working in a running instance (docs/screenshots/two-key-confirmation.png). Every question the interface marks as destructive, 104 places such as deleting an automation, a device or a backup, shows two keys and a slider in place of a confirm button. A key is turned by holding Q or P, or by pressing and holding its tile; it stays turned for 6 seconds after it is let go, so both can be turned one after the other with one hand or a switch. The slider works only while both are turned, goes back if let go early, and confirms at its end. Emergency exit and Escape leave. Deleting a throwaway automation was tried: one key did nothing, half a slide did nothing, a full slide deleted it.",
-     "SuperConfirm"
+     "Built and seen in a running build",
+     "104 destructive questions show two keys and a slider; seen deleting a throwaway automation (docs/screenshots/two-key-confirmation.png). Since then not seen: eleven more destructive actions use it, and fifteen of the browser's own blocking boxes are replaced by messages and dialogs."
     ],
     [
      "Page tools in every page header",
-     "Partly built and seen working in a running instance (docs/screenshots/page-tools-find.png). The two shared page layouts, which most settings pages use, have a header cluster: Search this page, Edit appearance, Read aloud, History, Export, Lock and Help. On a narrow screen it is one button that opens the same tools in a panel. Section tabs sit in a row under the header, and wide screens have a footer line with the version, build time, language and a hint. History, activity, media, to-do lists, calendar and the developer tools have them too. Dashboards (Home, Energy, Map and your own) have the footer and the lock, and reach export, history and lock from the right-click menu, but have no cluster in their header. Dialogs have none of it.",
-     "Devices, SettingsHome"
+     "Partly built",
+     "Search this page, Edit appearance, Read aloud, History, Export, Lock and Help on the two shared page layouts, with a footer line (seen, docs/screenshots/page-tools-find.png). Dashboards have the footer, the lock and menu entries, but no header cluster."
     ],
     [
      "Home greeting",
-     "Built and seen working in a running instance beside the board (docs/screenshots/home-greeting.png). Home opens with a greeting for the time of day and one sentence made from what the instance reports: how many lights are on, the mean of the temperatures the areas point at, and whether every lock is locked. A part that cannot be known is left out. Up to three scenes are offered as buttons, the most recently used first, and pressing one starts it. Under it are large cards, each shown only when the home has such a thing: the lights of the room that has the most, with a switch for all of them, a chip for each, and a brightness slider when a light can be dimmed; the first thermostat with its temperature and cooler and warmer buttons; the locks, with Lock all when one is open; and whatever is playing. Every control was pressed in a running instance and the entity changed. The board's power card is not built, and the rooms are still the existing area cards.",
-     "Main"
+     "Built and seen in a running build",
+     "Greeting, one sentence made from what the instance reports, scene buttons and large cards (docs/screenshots/home-greeting.png). The board's power card is not built."
     ],
     [
      "Settings home drawn like its board",
-     "Built and seen working in a running instance beside the board (docs/screenshots/settings-home.png). A large title with a line under it, a search of the sections with the pattern workbench, one-line banners for updates and repairs, and the sections as a grid of cards, three across at most. Cards say what the section holds now where that can be counted: devices and integrations, automations and scenes, areas and floors, dashboards, people, the version. The page tools and the footer are there; on a phone it is one column. The board's cards for appearance, language and locks have no page to open yet and are not shown.",
-     "SettingsHome"
+     "Built and seen in a running build",
+     "Large title, search of sections, banners and a grid of cards with live counts (docs/screenshots/settings-home.png). The board's cards for appearance, language and locks have no page to open yet."
     ],
     [
      "System page drawn like its board",
-     "Built and seen working in a running instance beside the board (docs/screenshots/system-page.png). A card says what is running and in which state (running, starting, safe mode, recovery mode), with facts the instance reports: the version, how many integrations are loaded, storage used where the host reports it, and the time zone. The board's processor, memory and temperature figures are not shown, because a plain container does not report them. The sections are a grid of cards, two across. Every page reached from Settings shows where it sits above its title.",
-     "System"
+     "Built and seen in a running build",
+     "docs/screenshots/system-page.png. Processor, memory and temperature figures are not shown because a plain container does not report them."
     ],
     [
      "Rail and top bar",
-     "The rail is compact by default (icons with their names under them); the menu button opens the full list and that choice is kept. The top bar has a language button that opens Profile, Localization, and the user's picture, which opens the profile. An Assist button at the top of the rail opens Assist when it is set up.",
-     "Main"
+     "Built, not yet seen in a running build",
+     "Compact rail by default, a language button and the user's picture in the top bar, an Assist button at the top of the rail (frontend/src/components/ha-sidebar.ts, ha-page-tabs.ts); the compact rail was seen in build 38."
     ],
     [
      "List pages drawn like their boards",
-     "Partly built and seen working in a running instance (docs/screenshots/list-page-devices.png). Every list page under Settings shows where it sits and its title in the header, a large title with a summary line (devices: how many, and how many have a low battery; automations: how many, and how many are on), rows as rounded cards and an export button. The icon of a row sits on a tile, and a device row names its maker and model. Filters are still a side pane, automation rows have no second line, and checkboxes appear only in selection mode.",
-     "Devices, Entities, Automations"
+     "Partly built",
+     "Seen on Devices (docs/screenshots/list-page-devices.png): large title with a summary line, rows as cards, export button. Since then not seen: filter chips beside the search, a tick box on every row and a line under the list on Devices and Entities. Automation rows have no second line."
     ],
     [
      "Dialog tools",
-     "Built and seen working in a running instance (docs/screenshots/dialog-tools-find.png, dialog-tools-locked.png). Every dialog except a plain question has a row at its foot: Search this dialog, with the pattern workbench and a count; Edit appearance; and Lock. A locked dialog can be read and closed, but its content, header actions and buttons take no input; the lock is for that kind of dialog and is kept in this browser. Unlocking takes a hold, or the PIN, which is asked for inside the dialog. The first Escape clears a search and the next closes the dialog. Not on the sheets that replace dialogs on a phone.",
-     "More1 to More12"
+     "Built and seen in a running build",
+     "Search this dialog, Edit appearance and Lock at the foot of every dialog except a plain question (docs/screenshots/dialog-tools-find.png, dialog-tools-locked.png). Not on the sheets that replace dialogs on a phone. The entity dialog no longer repeats the lock and appearance tools (not seen)."
     ],
     [
      "Search this page",
-     "Built and seen working in a running instance. Marks every match on the page through component boundaries without changing the page, shows the count, and steps with Enter, Shift+Enter and the arrow buttons; Escape clears. Plain text ignores case; /pattern/flags is a regular expression, and the field has the pattern workbench. Up to 2000 matches. A long list only draws the rows in view, so only those are marked.",
-     "every page"
+     "Built and seen in a running build",
+     "Marks matches through component boundaries; plain text or /pattern/flags (frontend/src/common/page/find-in-page.ts)."
     ],
     [
      "Page locks",
-     "Partly built and seen working in a running instance (docs/screenshots/page-tools-lock.png). The lock button or Ctrl+Shift+L locks the page: its content, toolbar actions and floating button stop taking input, and a line says so. Unlocking takes a 1.5 second hold, or the PIN when one is set (4 to 12 digits, stored as a salted hash). The lock is kept in this browser and is a guard against accidents, not a replacement for accounts. Locks on single elements are not built.",
-     "Locks"
+     "Partly built",
+     "Seen working (docs/screenshots/page-tools-lock.png): a hold or a PIN unlocks. The shared PIN is still used for pages and dialogs."
     ],
     [
      "Unlock ladder",
-     "Partly built and seen working in a running instance: the third wrong PIN in a row waits 5 seconds, then 15 seconds, 1 minute and 5 minutes; tries during a wait are refused. The other rungs of the board (a second person, recovery) are not built.",
-     "Ladder"
+     "Partly built",
+     "Seen: the third wrong PIN waits 5 seconds, then 15 seconds, 1 minute and 5 minutes. The board's other rungs are not built."
     ],
     [
      "Locks on single elements",
-     "Partly built and seen working in a running instance (docs/screenshots/element-lock.png). Lock this element in the right-click menu makes that element stop taking clicks and keys and outlines it with dashes: a switch inside a locked card did not change its light when clicked. The lock was still there after a reload. The Lock tool lists the locked elements of the page, and a hold unlocked one. Unlocking elements with the PIN is written but was not exercised. Kept in this browser only."
+     "Partly built",
+     "Seen working with a hold (docs/screenshots/element-lock.png). Unlocking elements with the PIN is written but was not exercised."
     ],
     [
      "Locks with their own credentials",
-     "Written, not yet seen in a running build. A lock on an element chooses one of six ways in (PIN, password, PIN and password, password and one-time code, PIN and one-time code, all three) with its own credentials, stored as salted hashes in the browser. A wizard beside the element, a prompt with a keypad and manual entry sharing one count of tries, and a searchable list of locks in the Lock tool. Checked by unit tests only (the six ways in, hashing, one-time codes against the published test values, the shared count of tries, one lock not opening another). Not built: locks on tabs and on appearance values, the support desk, locked items in searches, a QR code for the one-time secret, lock changes in history. Page and dialog locks still use the shared PIN",
-     "Locks"
+     "Built, not yet seen in a running build",
+     "Six ways in (PIN, password, PIN and password, password and one-time code, PIN and one-time code, all three), a six-step wizard with a QR code, a prompt that counts down a wait, and a searchable list of locks (frontend/src/components/locks/, common/locks/lock-credentials.ts). Unit tests only. Not built: locks on tabs and appearance values, the support desk, QR code for the one-time secret in history."
     ],
     [
      "Personal settings page",
-     "Written, not yet seen in a running build. Settings, Personal settings: sounds with volume, low stimulation, focus spotlight and reduced motion take effect; language mode and the two playfulness levels are saved and only change a preview on that page. Each control says what it reaches today, has a reset, and is found by the search. Checked by unit tests only",
-     "Settings, Language, Modes"
+     "Built, not yet seen in a running build",
+     "Grouped, each control says what it reaches, with a search, quiet hours, a reset and the language and attention items above (frontend/src/panels/config/personal/ha-config-section-personal.ts, common/preferences/)."
     ],
     [
      "Guided setup for integrations without a setup screen",
-     "Partly built. Run in a container built from this repository's files: it starts, and the list holds 240 integrations. 223 of them get drawn fields and 17 get one YAML box that is checked against the integration's own rules before saving (8 because a package they need is not in the image, the rest because their options are named by the person). Inside the drawn forms, about one field in sixteen is still a YAML box. Checking and saving were run through the interface's own connection for two integrations and wrote the expected files. The wizard, the saved file and the reload have not been seen working in the interface. The guidance note in setup dialogs is written and not yet seen",
-     "Integrations"
+     "Partly built",
+     "Run in a container made from this repository's files: it starts and lists 240 integrations; 223 get drawn fields and 17 get one checked YAML box; two integrations were checked and saved through the interface's connection and wrote the expected files. The wizard, the saved file and the reload have not been seen in the interface. core/homeassistant/components/guided_setup/, frontend/src/panels/config/guided-setup/."
     ],
     [
-     "Polish pass boards (canvases 12 to 14)",
-     "Written to the boards, not yet seen in a running build: the phone bar and the sheet of open pages; the pattern workbench on a phone and wide; the element menu by touch and hold; the lock wizard, unlock prompt and list; personal settings with quiet hours; the guided setup list and wizard; the guidance note; replacements for 15 of 18 blocking browser boxes; two-step confirmation on 11 destructive actions. Checked by lint, the type check and unit tests only. Known gaps: the bar hides on scroll only on pages that scroll the window; two-language labels on the bar; older shared-PIN locks in the list; a hold button for the two-step confirmation; three blocking boxes in first-run setup; line-by-line YAML errors in guided setup",
-     "12-polish, 13-polish, 14-decisions"
+     "Google setup",
+     "Built, exercised on a running copy",
+     "Server commands were driven: google_setup/status, and a bad service account key refused without being echoed or logged. Enabling the needed services with a real key, the client file, the sign-in and the status of connected Google integrations are not exercised. core/homeassistant/components/google_setup/, frontend/src/panels/config/google-setup/. Nest registration guidance is not built."
     ],
     [
-     "Everyday pages (canvas 01)",
-     "Started, not yet seen in a running build. Partly built: Lights (summary, all on and off, a card per room), Security (each alarm with arm and disarm), Climate (first thermostat large), Map (where everyone is), Activity, History, To-do, Calendar and Energy (large title and a line of facts), Home (power use when energy is set up). Not started: the dashboard title row and the card picker. Left out because the instance does not report them: comparison with a usual day, the power lights draw, how many to-do items are done. Checked by lint, the type check and unit tests only",
-     "01-everyday"
+     "Dashboards: Overview and other built-in pages made editable",
+     "Built and seen in a running build",
+     "Seen at phone width: the dashboards settings page and its Add dashboard dialog, edit mode on a created dashboard, and \"Edit cards and layout\" on Overview making an editable copy (confirmation, default-page question, the copy opening). Fixed in source, not yet seen: opening the copy straight in edit mode and the welcome banner covering the Overview header (the banner fix was confirmed only by applying its rule in the open page). frontend/src/panels/lovelace/import-export/, frontend/src/panels/config/dashboard/."
     ],
     [
-     "Tools pages (canvas 06)",
-     "Written to their boards, not yet seen in a running build: Storage, General, Labs, Restart and Events (built apart from what the instance does not report), Hardware, Network, States, Actions, Template, YAML, Statistics and Assist (partly). Statistics has its sorting, grouping and address parameters back; sorting and grouping by area and the column settings are not restored. Not started: the AI and entity IDs page and the debug page",
-     "06-tools"
+     "Dashboards: export, import by drop, import summary",
+     "Built, not yet seen in a running build",
+     "Export a dashboard; a dropped dashboard file shows outside addresses, custom cards and buttons that would call a service before anything is made; imports start hidden from the rail and visible to administrators only, with Undo (frontend/src/panels/lovelace/import-export/)."
     ],
     [
-     "Settings pages (canvases 03 to 05)",
-     "Written to their boards, all partly, not yet seen in a running build: Integrations, an integration's page, Add integration, Devices, one device, Entities, Areas, one area, Labels, Scenes, the scene editor, Scripts, Zones, Blueprints, Dashboards, People, Users, Tags, Updates, Repairs, Logs. An independent review of the last twelve found nothing broken and nine defects, all since fixed in source. Scenes has its sorting and grouping back; collapsing a group is not restored. Helpers, the settings of one entity and the device list inside an integration entry are also started",
-     "03-settings, 04-settings, 05-system"
+     "Dashboards: history per dashboard and tab, remote and push",
+     "Built, exercised on a running copy",
+     "Every dashboard and every tab has its own Git repository and history page; the server commands for two saves, history, restore and deleting an archived history were driven in a running copy; 41 tests with real Git. The page, set remote and push are not seen; no push to a real remote. core/homeassistant/components/dashboard_repos/, docs/features/dashboard-history/README.md."
     ],
     [
-     "Shared list layout",
-     "The layout that list pages use can now take, when a page asks for them: a button beside the title, filter chips on the search row, a line under the list, and row checkboxes that always show. Devices, Entities, Labels and the list of automations use them. Reviewed in source; nothing changes for pages that do not ask",
-     "Devices, Entities, Labels"
+     "Backups: encryption off by default",
+     "Built, not yet seen in a running build",
+     "A storage location that needs encryption is off while encryption is off, and a stored key is never replaced or removed without asking (frontend/src/panels/config/backup/). Review findings on the setup dialog are open (see HANDOFF.md)."
     ],
     [
-     "Sign-in, first-run setup, About, Profile (canvas 02) and Zigbee, Z-Wave, Matter (canvas 07)",
-     "Started, all partly, not yet seen in a running build. A review found nothing broken and four defects, all since fixed in source",
-     "02-everyday, 07-protocols"
+     "Link confirmation",
+     "Built, not yet seen in a running build",
+     "A link that opens a page of the interface from outside asks first, shows where it goes and what it passes on, and does nothing until chosen (frontend/src/panels/my/)."
     ],
     [
-     "Backups, voice assistants, cloud, energy setup, apps, automations and their history, MQTT, Thread, Bluetooth",
-     "Started, all partly, not yet seen in a running build. A review found one fault that would have broken the Bluetooth page and thirteen defects; all are fixed in source. The Analytics board is obsolete and will not be built",
-     "03-settings, 04-settings, 05-system, 07-protocols"
+     "Not-found screen",
+     "Built, not yet seen in a running build",
+     "Unknown pages under Settings show a not-found screen (frontend/src/panels/notfound/, frontend/src/layouts/hass-not-found-screen.ts)."
     ],
     [
-     "Language mode, attention modes, spoken narrator",
-     "Written, not yet seen in a running build. Language mode (English, Cantonese, both) changes the text of Personal settings; 242 strings are written in Cantonese for this project's own surfaces, and the phone bar, the locks and the wording card do not use them yet, so the page's line about what follows the mode is ahead of the truth for those three. The two playfulness levels still only change a preview. Two attention modes are added (a clock, and an offer to go back to the last page); School mode and \"one thing at a time\" are not built. The narrator reads the name of the focused control with the browser's own voice, off by default; Cantonese speech needs a Cantonese voice on the device. Checked by unit tests only",
-     "Language, Modes, Narration"
+     "Status screens: starting, connection lost, no access, loading, error",
+     "Built, not yet seen in a running build",
+     "Redrawn (frontend/src/layouts/ha-init-page.ts, hass-error-screen.ts, hass-loading-screen.ts)."
     ],
     [
-     "Search of everything, tabs, context menu",
-     "Written, not yet seen in a running build. The search lists settings and switchable entities with a live switch in the row (by pointer only; not yet from the keyboard) and a row of key hints. Tabs can be dragged and pinned; the phone sheet of open pages does not follow the new order yet, and order and pins are not in History. On a link, the element menu offers Open and Open in a new tab",
-     "CommandPalette, Tabs, ContextMenu"
+     "Maintenance",
+     "Built, not yet seen in a running build",
+     "Opens with what needs you; counts one row per device (frontend/src/panels/maintenance/)."
     ],
     [
-     "Notifications, export, selection bar",
-     "Written, not yet seen in a running build. Dismissed notifications are kept for 30 days with Undo. Every notification row is neutral, because the instance sends no severity. A failed dismissal is reported. Export has a tab-separated format and \"selected rows only\". A reusable selection bar with a preview before a destructive action is used on Notifications and Labels; Helpers has the bar without actions",
-     "Notifications, Export, Bulk"
+     "Offline help reader and bundled articles",
+     "Built, not yet seen in a running build",
+     "Every help link opens a copy inside the interface, on the sign-in page too; nothing opens a new tab. 40 articles, 1,392 integration pages and 189 images ship with the interface, with source and commit recorded; licence Creative Commons Attribution-NonCommercial-ShareAlike 4.0 with attribution to the Home Assistant documentation authors (frontend/public/static/help/LICENSE-NOTICE.md; frontend/src/components/help/; frontend/build-scripts/sync-help-articles.mjs). The Help tool with 12 articles was seen earlier (docs/screenshots/page-tools-help.png). Open review findings DD1 to DD10 (see HANDOFF.md)."
     ],
     [
-     "Entity dialogs (canvas 08)",
-     "35 of 36 started, not yet seen in a running build (date, time, date and time, sun, image, calendar, setup step, default, siren, lawn mower, remote, group, automation, script and conversation added; shared controls for alarm, climate, lock, fan, vacuum and water heater follow the boards behind an opt-in). Open review findings: water heater switch name, state shown by colour alone on humidifier, weather unit at 320 px, sensor attributes. First batch: climate, cover and counter are built apart from shared controls; lock, alarm, camera, media player, vacuum, fan, light, weather, sensor, update, person, timer, humidifier, water heater and valve are partly built. A numeric sensor shows two charts for now (its own and the dialog's history). Not redrawn: the shared controls inside the dialogs and the dialog frame",
-     "08-dialogs"
-    ],
-    [
-     "Automation editor",
-     "Started: the name as a large title and three named cards for triggers, conditions and actions; in a Choose step, numbered option chips. Not built: the enable switch beside the title, the bottom bar, dry run, the repository strip, \"test every option\" and the test panel",
-     "AutomationEditor, AutomationChoose"
-    ],
-    [
-     "Assist, shortcuts, release notes; credentials, discovery, infrared, serial, LoRaWAN",
-     "Started, all partly. The Assist note that answers come from the house checks only the conversation engine and can overstate. No Help page for shortcuts and no release notes page exist yet. Several boards need data the server does not supply: what uses a credential, which integration a discovery matches, learned infrared commands, reading a Modbus register",
-     "02-everyday, 07-protocols"
+     "Passkeys",
+     "Built, exercised on a running copy",
+     "Sign in with a fingerprint, face or security key on a secure address, beside the password; add and remove passkeys on the profile page; removal needs a recent password sign-in. The server tests, 143 passing, ran in a running copy; no real authenticator was used and the sign-in page and card were not seen. core/homeassistant/components/passkey/, frontend/src/auth/ha-passkey-login.ts, frontend/src/panels/profile/ha-passkeys-card.ts."
     ],
     [
      "No data sent out, and a problem log instead",
-     "Analytics, crash reports, diagnostics and report buttons are removed. Started in a container from these files: it starts clean, first-run setup has three steps, and a forced error produced files and a commit in the problem log repository. The page that lists problems has not been seen in a running build. The supervisor's own tests still expect the removed crash reporter and need rewriting",
-     "Settings, System"
+     "Built, exercised on a running copy",
+     "Analytics, crash reports, diagnostics and report buttons are removed. Started in a container from these files: it starts clean, first-run setup has three steps, and a forced error produced files and a commit in the problem log repository. The page that lists problems has not been seen. core/homeassistant/components/problem_log/, frontend/src/panels/config/problem-log/. The supervisor's own tests still expect the removed crash reporter and need rewriting."
+    ],
+    [
+     "Minecraft server manager: first slice",
+     "Partly built",
+     "Definitions only: minecraft_manager/targets, list, create, update and delete, a create wizard and a list at Settings, Minecraft servers. The integration loaded at start in a running copy without errors; its commands were not driven and the page was not seen. Not built in the committed code: version lookup, start, stop, logs, backups and the world generator. Work on version lookup and an SSH and Docker target was in progress in the working tree when this was written and is not recorded here until it is committed and checked. core/homeassistant/components/minecraft_manager/, frontend/src/panels/config/minecraft/, docs/features/minecraft-server/README.md."
+    ],
+    [
+     "Local Ollama suite: first slice",
+     "Partly built",
+     "Read only: servers, models, running models and model details for servers already set up through the Ollama integration (core/homeassistant/components/ollama_suite/, frontend/src/panels/config/ollama/). The integration loaded at start in a running copy without errors; no Ollama server has been contacted and the page was not seen. Not built: model download, chat, helpers."
+    ],
+    [
+     "Release notes page",
+     "Built, not yet seen in a running build",
+     "Lists the changelog by day with a Fixed and New filter and links to the page a note is about (frontend/src/panels/config/release-notes/)."
+    ],
+    [
+     "File converter",
+     "Partly built",
+     "Tools, Convert: JSON, YAML, CSV, TSV and Markdown tables; PNG, JPEG and WebP images; text transforms such as Base64, hex, URL encoding and line endings. Documents, audio, video and archives are listed as unavailable. Not seen in a running build (frontend/src/panels/config/tools/converter/, frontend/src/common/converter/)."
+    ],
+    [
+     "Drawing and annotation",
+     "Partly built",
+     "Tools, Drawing: pen, marker, lines, arrows, shapes, text, eraser, eyedropper, undo and redo, zoom, saving as an image or SVG (frontend/src/panels/config/tools/drawing/, frontend/src/common/drawing/). Not seen in a running build."
+    ],
+    [
+     "Everyday pages (canvas 01)",
+     "Partly built",
+     "Lights, Security, Climate, Map, Activity, History, To-do, Calendar, Energy and Home are started; not seen in a running build. Not started: the dashboard title row and the card picker. Left out because the instance does not report them: comparison with a usual day, the power lights draw, how many to-do items are done."
+    ],
+    [
+     "Tools pages (canvas 06)",
+     "Partly built",
+     "Storage, General, Labs, Restart, Events, Hardware, Network, States, Actions, Template, YAML, Statistics and Assist are written to their boards; not seen. Statistics has its sorting, grouping and address parameters back; sorting and grouping by area and the column settings are not restored. Not started: the AI and entity IDs page. The debug page is not drawn to its board."
+    ],
+    [
+     "Settings pages (canvases 03 to 05)",
+     "Partly built",
+     "Integrations, an integration's page, Add integration, Devices, one device, Entities, Areas, Labels, Scenes, the scene editor, Scripts, Zones, Blueprints, Dashboards, People, Users, Tags, Updates, Repairs and Logs are written to their boards; not seen except as listed above. A review found nine defects, all fixed in source. Collapsing a group is not restored on Scenes."
+    ],
+    [
+     "Shared list layout",
+     "Built, not yet seen in a running build",
+     "A button beside the title, filter chips on the search row, a line under the list and row checkboxes that always show, when a page asks; used by Devices, Entities, Labels and the list of automations (frontend/src/layouts/hass-tabs-subpage-data-table.ts)."
+    ],
+    [
+     "Sign-in, first-run setup, About, Profile (canvas 02) and Zigbee, Z-Wave, Matter (canvas 07)",
+     "Partly built",
+     "Started on their boards; a review found four defects, all fixed in source. About was seen in a running build on 10 November (docs/screenshots/about-page.png); the rest was not."
+    ],
+    [
+     "Backups, voice assistants, cloud, energy setup, apps, automations and their history, MQTT, Thread, Bluetooth",
+     "Partly built",
+     "Started on their boards; not seen. A review found one fault that would have broken the Bluetooth page and thirteen defects, all fixed in source. The Analytics board is obsolete and will not be built."
+    ],
+    [
+     "Entity dialogs (canvas 08) and the dialog frame",
+     "Partly built",
+     "35 of 36 entity dialogs are redrawn, each with a tab row and a tools block (lock, appearance, read aloud, export) and the state shown once (frontend/src/dialogs/more-info/). The row of tools in an entity dialog was seen in build 38; the redraws were not. Open review findings: water heater switch name, state shown by colour alone on humidifier, weather unit at 320 px, sensor attributes. A numeric sensor still shows two charts."
+    ],
+    [
+     "Shared state controls in entity dialogs",
+     "Built, not yet seen in a running build",
+     "Alarm, climate, lock, fan, vacuum and water heater follow the boards, behind an opt-in (frontend/src/dialogs/more-info/components/more-info-control-style.ts, more-info-board-style.ts)."
+    ],
+    [
+     "Group dialogs and the image dialog",
+     "Built, not yet seen in a running build",
+     "Group dialogs ask before switching covers, locks or valves; the image dialog has no share button because the shared address carried an access code."
+    ],
+    [
+     "Date, time and calendar dialogs",
+     "Built, not yet seen in a running build",
+     "They follow the time zone chosen in the profile; the time dialog has spin controls and the date grid can be walked with the arrow keys."
+    ],
+    [
+     "Assist, shortcuts, release notes; credentials, discovery, infrared, serial, LoRaWAN",
+     "Partly built",
+     "Started; not seen. The Assist note says answers come from the house checks only the conversation engine. No Help page for shortcuts exists. Several boards need data the server does not supply: what uses a credential, which integration a discovery matches, learned infrared commands, reading a Modbus register."
     ],
     [
      "Wording file celebration and sounds",
-     "Written, not yet seen in a running build. Checked by unit tests with invented sample entries",
-     "Vocabulary"
+     "Built, not yet seen in a running build",
+     "A short celebration over the whole window and a sound when a file loads, a different sound and message when refused (frontend/src/components/wording/ha-wording-celebration.ts). Unit tests with invented sample entries."
     ],
     [
      "Support Tickets",
      "Designed",
-     "SupportTickets"
+     "Board SupportTickets; a support desk component exists (frontend/src/components/support/) and is not wired to a page."
     ],
     [
      "Authenticator and QR pairing",
      "Designed",
-     "Authenticator, QrPairing"
+     "Boards Authenticator, QrPairing; built only in the Deploy Assistant."
     ],
     [
      "Local version history",
-     "Partly built and seen working in a running instance (docs/screenshots/page-tools-history.png). The History tool lists changes made in this browser to appearance, accessibility and open tabs, newest first, with the page each was made on; a search with the pattern workbench; this page or everywhere; undo a change or go back to a version; clear with a second confirmation. A burst of changes is one entry. A change to the private vocabulary is listed without its text. Locks are never listed. Newest 100 entries. Nothing is kept on the server, and dialogs have no history.",
-     "History"
+     "Partly built",
+     "Changes made in this browser to appearance, accessibility and open tabs, with undo (seen, docs/screenshots/page-tools-history.png). Tab order and pins were added since and are not seen. Nothing is kept on the server and dialogs have no history."
     ],
     [
      "Export in every format",
-     "Partly built and seen working in a running instance (docs/screenshots/page-tools-export.png). The Export tool makes a file from what the page shows: CSV for a table (with the list's current filter, formulas disarmed), JSON, Markdown, plain text and HTML, with a preview, download, copy and print. A table exports its stored values, so a column the page formats specially can read differently; moments in time are written as ISO 8601. No spreadsheet or PDF files.",
-     "Export"
+     "Partly built",
+     "CSV, JSON, Markdown, plain text and HTML, preview, download, copy and print (seen, docs/screenshots/page-tools-export.png). Since then not seen: a tab-separated format, selected rows only, formula cells made safe, duplicate column names kept apart, and a note when rows were cut. No spreadsheet or PDF files."
     ],
     [
-     "Bulk actions",
-     "Designed",
-     "Bulk"
+     "Selection bar and bulk actions",
+     "Built, not yet seen in a running build",
+     "A bar at the bottom that counts only the rows shown, says when ticked rows are hidden by a filter and previews a destructive change; used on Notifications, Labels, Automations and Scripts (frontend/src/layouts/hass-tabs-subpage-data-table.ts). A header checkbox review finding is open (see HANDOFF.md). Bulk actions on every table are not built."
     ],
     [
      "Changelog viewer",
-     "Built and seen working in a running instance (docs/screenshots/what-changed.png). Settings, About, What changed lists CHANGELOG.md by day, with the commit that added each entry as a link, a search with the pattern workbench, a range of days (all, this week, this month, or chosen days) and export of the view. The list is bundled with the build, so it opens without a connection; a test fails when the bundled list and CHANGELOG.md differ. Entries are grouped by day and not by version, because one day holds several releases.",
-     "Changelog"
-    ],
-    [
-     "Offline help articles",
-     "Partly built and seen working in a running instance (docs/screenshots/page-tools-help.png). The Help tool has 12 articles that ship with the interface, with a search that has the pattern workbench. There is not yet an article for each page.",
-     "Docs"
+     "Built and seen in a running build",
+     "Settings, About, What changed lists CHANGELOG.md by day with the commit that added each entry, a search with the pattern workbench, and export (docs/screenshots/what-changed.png); a test fails when the bundled list and CHANGELOG.md differ."
     ],
     [
      "Rendered provider text",
      "Designed",
-     "ReleaseNotes"
+     "Board ReleaseNotes."
     ],
     [
      "Notification centre and toasts",
-     "Partly built and seen working in a running instance (docs/screenshots/notifications-page.png). Notifications are a page at Settings, Notifications, reached from the drawer: every notification the instance holds, newest first, with a search that has the pattern workbench, a selection mode to dismiss several, and dismiss for one or all. Three notifications were created, found with a pattern, two dismissed by selection and the last by its button. The board's colours by severity, action buttons on a notification, keeping dismissed ones for 30 days, and the stacked toasts with progress and undo are not built.",
-     "Notifications"
-    ],
-    [
-     "File converter",
-     "Designed",
-     "Converter"
+     "Partly built",
+     "The Notifications page was seen (docs/screenshots/notifications-page.png). Since then not seen: dismissed notifications kept for 30 days with Undo, no severity guessed from words, a failed dismissal reported, outside links showing their host (frontend/src/panels/config/notifications/). Not built: colours by severity, action buttons and stacked toasts."
     ],
     [
      "Base64 toolkit",
-     "Built and seen working in a running instance beside the board (docs/screenshots/base64-toolkit.png). A Base64 tab under Tools encodes text or a file, decodes it back, and writes data URLs, with the Standard, URL-safe and MIME alphabets, padding on or off, lines of 64 or 76 characters, and text read as UTF-8 or Latin-1. Each encoding is decoded again and compared, with a SHA-256 of both. Strict decoding stops at the first character that does not belong and says where; lenient decoding skips it. A file over 1 MB is encoded in pieces with pause and cancel, and saved as a file: a 3 MB file was encoded in four pieces and the saved text decoded to the same file outside the browser. Everything happens in the browser.",
-     "Base64"
-    ],
-    [
-     "Minecraft server manager and world generator",
-     "Designed",
-     "Minecraft, WorldGen"
-    ],
-    [
-     "Local Ollama suite",
-     "Designed",
-     "Ollama"
+     "Built and seen in a running build",
+     "Encode, decode and data URLs for text and files with several alphabets (docs/screenshots/base64-toolkit.png)."
     ],
     [
      "External editor hand-off and publishing to a forge",
      "Designed",
-     "Handoff"
-    ],
-    [
-     "Drawing and annotation",
-     "Designed",
-     "Drawing"
+     "Board Handoff."
     ],
     [
      "Progress and recovery",
      "Designed",
-     "Progress"
+     "Board Progress."
     ],
     [
      "Version and updated-at on the first screen",
-     "Built: version, date and time with seconds and time zone at the foot of the rail, from build-time constants. Seen in the demo build.",
-     "Main, About"
+     "Built and seen in a running build",
+     "At the foot of the rail, from build-time constants; seen in the demo build."
     ],
     [
      "Free, with nothing to buy",
-     "Built and seen working in a running instance (docs/screenshots/about-page.png). About shows this project's version and when the build was made, read from the build itself; the versions of the parts; where updates come from and how this kind of install is updated; a card that says every feature is included and nothing is sold; and that the project is independent of the Open Home Foundation. The upstream claim of being part of the foundation, the merchandise link and the upstream issue links are removed. The board's channel switch, automatic install switch and reachability check are not built.",
-     "About"
+     "Built and seen in a running build",
+     "About shows this project's version and build time, where updates come from, that every feature is included and nothing is sold, and that the project is independent of the Open Home Foundation (docs/screenshots/about-page.png; seen again on 10 November 2026). The channel switch, automatic install switch and reachability check are not built. The launch screen no longer names the Open Home Foundation (not seen)."
     ]
    ]
   },
