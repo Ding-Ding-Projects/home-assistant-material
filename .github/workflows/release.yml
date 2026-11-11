@@ -607,8 +607,10 @@ jobs:
   # here, so one release page holds the images and the app that installs them.
   assistant:
     name: Attach the Deploy Assistant
-    needs: [prepare, frontend]
-    if: needs.prepare.outputs.heavy == 'true' && needs.frontend.result == 'success'
+    # Runs straight after the release is created, so the installers are on the
+    # release page within a minute instead of after the long builds.
+    needs: prepare
+    if: needs.prepare.outputs.heavy == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -712,16 +714,17 @@ jobs:
           gh release edit "${TAG}" --notes-file notes.md
           gh release view "${TAG}" --json tagName,isDraft,isPrerelease,assets --jq '{tagName, isDraft, isPrerelease, assets: [.assets[].name]}'
 
-      # A run that was replaced or failed before any job attached a file would leave
-      # a release with nothing in it. That release is withdrawn with its tag.
+      # A run that was replaced or failed before any build job attached a file would
+      # leave a release with nothing of its own in it. That release is withdrawn with
+      # its tag. The copied Deploy Assistant files do not count: they are not built here.
       - name: Withdraw the release when nothing was built
         if: needs.prepare.result == 'success' && needs.prepare.outputs.heavy == 'true'
         run: |
           set -euo pipefail
-          count="$(gh release view "${TAG}" --json assets --jq '.assets | length' 2>/dev/null || echo unknown)"
+          count="$(gh release view "${TAG}" --json assets --jq '[.assets[].name | select(test("\\.whl$|^stable\\.json$|^haos_"))] | length' 2>/dev/null || echo unknown)"
           if [ "${count}" = "0" ]; then
-            echo "Release ${TAG} has no files. Withdrawing it."
+            echo "Release ${TAG} has no built files. Withdrawing it."
             gh release delete "${TAG}" --yes --cleanup-tag
           else
-            echo "Release ${TAG} has ${count} files."
+            echo "Release ${TAG} has ${count} built files."
           fi
