@@ -1,0 +1,73 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-11T05:08:18Z"
+  },
+  "title": "Dashboard editor: Dashboard tools",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "DashToolsOutline.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1500,
+      "title": "Dashboard tools: outline and bulk actions",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DashToolsReplaceCheck.dc.html": {
+      "x": 1540,
+      "y": 0,
+      "w": 1440,
+      "h": 944,
+      "title": "Dashboard tools: find and replace, and the check",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DashToolsTemplatesStats.dc.html": {
+      "x": 3080,
+      "y": 0,
+      "w": 1440,
+      "h": 1621,
+      "title": "Dashboard tools: templates, statistics and the preview width",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DashToolsPhone.dc.html": {
+      "x": 4620,
+      "y": 0,
+      "w": 1120,
+      "h": 1028,
+      "title": "Dashboard tools on a phone",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "DashToolsOutline.dc.html",
+    "DashToolsReplaceCheck.dc.html",
+    "DashToolsTemplatesStats.dc.html",
+    "DashToolsPhone.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Dashboard editor: Dashboard tools. 4 boards.",
+      "kind": "title1",
+      "maxW": 5740,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

@@ -16584,7 +16584,7 @@
             "failed": "Could not save the dashboard: {error}",
             "tabs": {
               "outline": "Outline",
-              "replace": "Find and replace",
+              "replace": "Replace",
               "check": "Check",
               "templates": "Templates",
               "stats": "Statistics"

@@ -1,7 +1,7 @@
 # Design
 
 Design files for the Material Design 3 interface, kept in the repository so every canvas can be
-read back from here alone. 265 boards on 20 canvases, at most 15 boards on each.
+read back from here alone. 269 boards on 21 canvases, at most 15 boards on each.
 
 | Folder | Boards | What it holds |
 | --- | --- | --- |
@@ -25,6 +25,7 @@ read back from here alone. 265 boards on 20 canvases, at most 15 boards on each.
 | `canvases/18-deploy-assistant-care` | 15 | Deploy Assistant: accommodations, schedule rules, the logo, exports, record history, two-key confirmation, the live chart, dim sum, converting and Base64; same script |
 | `canvases/19-deploy-assistant-tools` | 15 | Deploy Assistant: drawing, QR codes, the unlock ladder, School mode, the extension manager, notifications, Chocolatey setup and Minecraft servers; same script |
 | `canvases/20-deploy-assistant-managers` | 8 | Deploy Assistant: the Minecraft world generator, AI models, virtual disks, Ctrl Shift F and a narrow window; same script |
+| `canvases/21-dashboard-editor` | 4 | The dashboard editor's Dashboard tools: outline and bulk actions, replacing an entity, the check, templates, statistics, the preview width and a phone; drawn by `source/pages/p_editor.py` |
 
 In each canvas folder, `canvas.json` is the index (one entry per board with its frame and title)
 and every `*.dc.html` is one board, a self-contained page.
