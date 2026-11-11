@@ -62,12 +62,16 @@ jobs:
             echo "boards=$(jq -c .os_boards versions.json)"
           } >> "$GITHUB_OUTPUT"
           heavy=true
-          if [ "${EVENT}" = "push" ] && git rev-parse --verify --quiet HEAD^ >/dev/null; then
-            # Collected first and tested after: a pipe into "grep -q" ends early
-            # on a long list and, with pipefail, reads as "nothing changed".
-            code_changes="$(git diff --name-only HEAD^ HEAD | grep -Ev '^(design/|docs/|deploy-assistant/|\.github/workflows/(pages|deploy-assistant)\.yml$|social-preview\.png$|[^/]+\.md$)' || true)"
-            if [ -z "${code_changes}" ]; then
-              heavy=false
+          if [ "${EVENT}" = "push" ]; then
+            # Compared with the last build that published images, not with the
+            # previous commit: a documentation-only push on top of unbuilt code
+            # must still build that code. The update feed names that build.
+            last="$(curl -fsSL --max-time 20 "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/channel/stable.json" 2>/dev/null | jq -r '.homeassistant.default // empty' 2>/dev/null || true)"
+            if [ -n "${last}" ] && git fetch --quiet --depth=1 origin "refs/tags/v${last}:refs/tags/v${last}" 2>/dev/null; then
+              code_changes="$(git diff --name-only "v${last}" HEAD | grep -Ev '^(design/|docs/|deploy-assistant/|\.github/workflows/(pages|deploy-assistant)\.yml$|social-preview\.png$|[^/]+\.md$)' || true)"
+              if [ -z "${code_changes}" ]; then
+                heavy=false
+              fi
             fi
           fi
           echo "heavy=${heavy}" >> "$GITHUB_OUTPUT"
