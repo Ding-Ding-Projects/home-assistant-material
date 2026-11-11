@@ -59,6 +59,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-automation-history",
         load: () => import("./automation-history/ha-config-automation-history"),
       },
+      dashboard_history: {
+        tag: "ha-config-dashboard-history",
+        load: () => import("./dashboard-history/ha-config-dashboard-history"),
+      },
       backup: {
         tag: "ha-config-backup",
         load: () => import("./backup/ha-config-backup"),
@@ -136,6 +140,10 @@ class HaPanelConfig extends HassRouterPage {
       "guided-setup": {
         tag: "ha-config-guided-setup",
         load: () => import("./guided-setup/ha-config-guided-setup"),
+      },
+      minecraft: {
+        tag: "ha-config-minecraft",
+        load: () => import("./minecraft/ha-config-minecraft"),
       },
       hardware: {
         tag: "ha-config-hardware",

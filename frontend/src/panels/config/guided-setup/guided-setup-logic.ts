@@ -1,3 +1,9 @@
+import {
+  isSecretFieldLike,
+  isSecretName,
+  maskYamlSecrets,
+  stripSecretValues,
+} from "../../../common/secret-fields";
 import type { GuidedSetupField } from "../../../data/guided_setup";
 
 /** The wizard steps, in order. */
@@ -33,9 +39,11 @@ export interface FieldMessage {
 export interface SummaryLine {
   key: string;
   label: string;
-  /** Null for a secret: its value is never shown. */
+  /** Null for a secret or a structured value: it is never printed. */
   value: string | null;
   secret: boolean;
+  /** For a structured value: how many entries it holds, never its content. */
+  entries?: number;
 }
 
 export const pathKey = (path: string[]): string => path.join(".");
@@ -51,8 +59,16 @@ export const humanize = (name: string): string => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-export const isSecretSelector = (selector?: Loose): boolean =>
-  selector?.text?.type === "password";
+export { isSecretSelector } from "../../../common/secret-fields";
+
+/** A value that is a secret by selector, by its own name or by a group it sits in. */
+const isSecretLeaf = (field: Loose, path: string[]): boolean =>
+  isSecretFieldLike({
+    name: field.name,
+    format: field.format,
+    autocomplete: field.autocomplete,
+    selector: field.selector,
+  }) || path.some(isSecretName);
 
 /** Flattens grids and expandable groups into the values they hold. */
 export const leafFields = (
@@ -85,7 +101,7 @@ export const leafFields = (
         default: field.default,
         selector: field.selector,
         freeForm: field.free_form === true,
-        secret: isSecretSelector(field.selector),
+        secret: isSecretLeaf(field, [...parent, field.name]),
       });
     }
   }
@@ -249,17 +265,40 @@ export const validateAll = (
   return result;
 };
 
+const isStructured = (value: unknown): boolean =>
+  value !== null &&
+  typeof value === "object" &&
+  (!Array.isArray(value) ||
+    value.some((item) => item !== null && typeof item === "object"));
+
+const structuredSize = (value: unknown): number =>
+  Array.isArray(value) ? value.length : Object.keys(value as Loose).length;
+
 const display = (value: unknown): string => {
   if (Array.isArray(value)) {
     return value.map(display).join(", ");
   }
-  if (value !== null && typeof value === "object") {
-    return JSON.stringify(value);
-  }
   return String(value);
 };
 
-/** The values that will be written. A secret only says that it is set. */
+/**
+ * A default worth printing in a helper text, or undefined. Structured
+ * defaults are never printed: they can hold a nested secret.
+ */
+export const defaultText = (
+  value: unknown,
+  secret: boolean
+): string | undefined => {
+  if (secret || value === undefined || value === null || isStructured(value)) {
+    return undefined;
+  }
+  return display(value);
+};
+
+/**
+ * The values that will be written. A secret only says that it is set, and a
+ * structured value only says how many entries it holds.
+ */
 export const buildSummary = (
   leaves: readonly LeafField[],
   data: Loose,
@@ -267,33 +306,33 @@ export const buildSummary = (
 ): SummaryLine[] =>
   leaves
     .filter((leaf) => !isEmptyValue(getAt(data, leaf.path)))
-    .map((leaf) => ({
-      key: pathKey(leaf.path),
-      label: labelOf(leaf),
-      value: leaf.secret ? null : display(getAt(data, leaf.path)),
-      secret: leaf.secret,
-    }));
+    .map((leaf) => {
+      const value = getAt(data, leaf.path);
+      const structured = !leaf.secret && isStructured(value);
+      return {
+        key: pathKey(leaf.path),
+        label: labelOf(leaf),
+        value: leaf.secret || structured ? null : display(value),
+        secret: leaf.secret,
+        ...(structured ? { entries: structuredSize(value) } : {}),
+      };
+    });
 
-const escapeRegExp = (text: string): string =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** Hides the value of every secret line of a YAML preview. */
+/**
+ * Hides the value of every secret key of a YAML preview: the keys of the
+ * secret fields and every key whose name looks like a secret, with the whole
+ * block under it.
+ */
 export const maskYaml = (
   yaml: string,
   leaves: readonly LeafField[],
   mask: string
-): string => {
-  let result = yaml;
-  for (const name of new Set(
+): string =>
+  maskYamlSecrets(
+    yaml,
+    mask,
     leaves.filter((leaf) => leaf.secret).map((leaf) => leaf.name)
-  )) {
-    result = result.replace(
-      new RegExp(`^(\\s*(?:- )?${escapeRegExp(name)}:[ \\t]+).*$`, "gm"),
-      `$1${mask}`
-    );
-  }
-  return result;
-};
+  );
 
 /** The names of the secrets that hold a value, for the resume notice. */
 export const filledSecrets = (
@@ -321,14 +360,34 @@ const cloneWithout = (data: Loose, paths: string[][]): Loose => {
   return copy;
 };
 
+/**
+ * The data without the secret fields and without free-form values. A free-form
+ * value is typed YAML of any shape and can hold a secret under any key.
+ */
 export const withoutSecrets = (
   data: Loose,
   leaves: readonly LeafField[]
 ): Loose =>
   cloneWithout(
     data,
-    leaves.filter((leaf) => leaf.secret).map((leaf) => leaf.path)
+    leaves
+      .filter((leaf) => leaf.secret || leaf.freeForm)
+      .map((leaf) => leaf.path)
   );
+
+/** Path keys of the values that were left out of a draft and must be asked again. */
+const clearedPaths = (
+  data: Loose,
+  leaves: readonly LeafField[],
+  removed: readonly string[]
+): string[] => {
+  const filled = filledSecrets(leaves, data);
+  const extra = removed.filter(
+    (path) =>
+      !filled.some((item) => item === path || item.startsWith(`${path}.`))
+  );
+  return [...filled, ...extra];
+};
 
 /** What is kept in the browser. Secret values are never part of it. */
 export interface GuidedDraft {
@@ -361,11 +420,16 @@ export const saveDraft = (
   if (!storage) {
     return false;
   }
+  // Leaves know the declared secrets; the key-name pass catches every other
+  // key that looks like one, at any depth, even before the form has loaded.
+  const { data, removed } = stripSecretValues(
+    withoutSecrets(draft.data, leaves)
+  );
   const stored: GuidedDraft = {
     ...draft,
     version: 1,
-    data: withoutSecrets(draft.data, leaves),
-    clearedSecrets: filledSecrets(leaves, draft.data),
+    data,
+    clearedSecrets: clearedPaths(draft.data, leaves, removed),
     savedAt: now,
   };
   try {

@@ -440,16 +440,47 @@ export const stopReadingAloud = () => {
 export const readAloud = (
   chunks: string[],
   language: string,
-  onDone: () => void
+  onDone: () => void,
+  onNoVoice?: () => void
 ): boolean => {
   if (!canReadAloud() || !chunks.length) {
     onDone();
     return false;
   }
-  const voice = localVoicesForTag(
-    window.speechSynthesis.getVoices(),
-    language
-  )[0];
+  const synth = window.speechSynthesis;
+  const voices = synth.getVoices();
+  if (!voices.length && typeof synth.addEventListener === "function") {
+    // Chromium fills the voice list after the first call: wait briefly for it
+    // before deciding that no voice exists.
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      synth.removeEventListener("voiceschanged", finish);
+      window.clearTimeout(timer);
+      if (!speakWith(synth.getVoices(), chunks, language, onDone)) {
+        onNoVoice?.();
+      }
+    };
+    const timer = window.setTimeout(finish, VOICES_WAIT_MS);
+    synth.addEventListener("voiceschanged", finish);
+    return true;
+  }
+  return speakWith(voices, chunks, language, onDone);
+};
+
+/** How long to wait for the engine to report its voices, in milliseconds. */
+const VOICES_WAIT_MS = 1500;
+
+const speakWith = (
+  voices: SpeechSynthesisVoice[],
+  chunks: string[],
+  language: string,
+  onDone: () => void
+): boolean => {
+  const voice = localVoicesForTag(voices, language)[0];
   if (!voice) {
     onDone();
     return false;

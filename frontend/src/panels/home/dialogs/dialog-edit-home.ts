@@ -102,6 +102,32 @@ export class DialogEditHome
           })}
         </ha-alert>
 
+        ${
+          this._params.editCardsAndLayout
+            ? html`<div class="edit-layout">
+                <div class="edit-layout-text">
+                  <strong
+                    >${this.hass.localize(
+                      "ui.panel.lovelace.import_export.edit_cards_layout"
+                    )}</strong
+                  >
+                  <span
+                    >${this.hass.localize("ui.panel.home.editor.edit_layout_hint")}</span
+                  >
+                </div>
+                <ha-button
+                  class="edit-layout-button"
+                  appearance="filled"
+                  @click=${this._editCardsAndLayout}
+                >
+                  ${this.hass.localize(
+                    "ui.panel.lovelace.import_export.edit_cards_layout"
+                  )}
+                </ha-button>
+              </div>`
+            : nothing
+        }
+
         <ha-expansion-panel
           outlined
           expanded
@@ -189,6 +215,12 @@ export class DialogEditHome
         </ha-dialog-footer>
       </ha-dialog>
     `;
+  }
+
+  private _editCardsAndLayout(): void {
+    const edit = this._params?.editCardsAndLayout;
+    this.closeDialog();
+    edit?.();
   }
 
   private _suggestedSchema = memoizeOne(
@@ -297,6 +329,29 @@ export class DialogEditHome
         --expansion-panel-content-padding: 0;
         border-radius: var(--ha-border-radius-md);
         --ha-card-border-radius: var(--ha-border-radius-md);
+      }
+
+      .edit-layout {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-3);
+        margin-bottom: var(--ha-space-4);
+        padding: var(--ha-space-4);
+        border-radius: var(--ha-border-radius-md);
+        background: var(--secondary-background-color);
+      }
+
+      .edit-layout-text {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        flex: 1 1 220px;
+        min-width: 0;
+      }
+
+      .edit-layout-button {
+        --ha-button-height: 44px;
       }
 
       ha-expansion-panel + ha-expansion-panel {

@@ -1,3 +1,4 @@
+import { installHelpLinkDoor } from "../components/help/open-help-article";
 import type { HomeAssistantConfig } from "../types";
 
 const DOCUMENTATION_DOMAIN = "home-assistant.io";
@@ -12,7 +13,14 @@ export const documentationUrl = (
   path: string
 ) => documentationUrlForVersion(config.version, path);
 
-export const documentationUrlForVersion = (version: string, path: string) =>
-  `https://${
+/**
+ * The address of a documentation page. Clicks on it never leave the
+ * interface: the help link door opens the offline copy of the article in
+ * the reader instead (see components/help/open-help-article.ts).
+ */
+export const documentationUrlForVersion = (version: string, path: string) => {
+  installHelpLinkDoor();
+  return `https://${
     version.includes("b") ? "rc" : version.includes("dev") ? "next" : "www"
   }.${DOCUMENTATION_DOMAIN}${path}`;
+};

@@ -7,7 +7,7 @@ import type { HaSwitch } from "../../../../../components/ha-switch";
 import "../../../../../components/item/ha-list-item-base";
 import "../../../../../components/list/ha-list-base";
 import type { HomeAssistant } from "../../../../../types";
-import { showConfirmationDialog } from "../../../../../dialogs/generic/show-dialog-box";
+import { confirmTurnOffEncryption } from "../../helper/confirm-turn-off-encryption";
 import { showChangeBackupEncryptionKeyDialog } from "../../dialogs/show-dialog-change-backup-encryption-key";
 import { showSetBackupEncryptionKeyDialog } from "../../dialogs/show-dialog-set-backup-encryption-key";
 
@@ -19,6 +19,9 @@ class HaBackupConfigEncryptionKey extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public value?: string | null;
+
+  // True when a location that needs encryption is currently selected.
+  @property({ attribute: false }) public cloudSelected = false;
 
   private get _value() {
     return this.value ?? "";
@@ -132,18 +135,12 @@ class HaBackupConfigEncryptionKey extends LitElement {
       this._set();
       return;
     }
-    const confirmed = await showConfirmationDialog(this, {
-      title: this.hass.localize(
-        "ui.panel.config.backup.encryption_key.turn_off_title"
-      ),
-      text: this.hass.localize(
-        "ui.panel.config.backup.encryption_key.turn_off_text"
-      ),
-      confirmText: this.hass.localize(
-        "ui.panel.config.backup.encryption_key.turn_off_action"
-      ),
-      destructive: true,
-    });
+    const confirmed = await confirmTurnOffEncryption(
+      this,
+      this.hass,
+      this._value,
+      this.cloudSelected
+    );
     if (confirmed) {
       fireEvent(this, "value-changed", { value: null });
     }

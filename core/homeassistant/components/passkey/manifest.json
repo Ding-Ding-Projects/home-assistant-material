@@ -1,0 +1,10 @@
+{
+  "domain": "passkey",
+  "name": "Passkey",
+  "codeowners": ["@home-assistant/core"],
+  "dependencies": ["auth", "http", "websocket_api"],
+  "documentation": "https://www.home-assistant.io/docs/authentication/",
+  "integration_type": "system",
+  "quality_scale": "internal",
+  "requirements": ["webauthn==2.7.0"]
+}

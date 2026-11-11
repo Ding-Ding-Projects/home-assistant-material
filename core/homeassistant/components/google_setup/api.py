@@ -4,7 +4,9 @@ import asyncio
 import base64
 from dataclasses import dataclass
 import json
+import re
 import time
+from urllib.parse import quote
 from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -22,6 +24,9 @@ from .const import (
 )
 
 MAX_KEY_SIZE = 20000
+MAX_FIELD_SIZE = 320
+MAX_RESPONSE_SIZE = 64 * 1024
+PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 
 
 class GoogleSetupError(Exception):
@@ -48,7 +53,7 @@ def parse_service_account_key(raw: object) -> ServiceAccount:
             raise GoogleSetupError("The key file is too large")
         try:
             data = json.loads(raw)
-        except ValueError:
+        except (ValueError, RecursionError):
             raise GoogleSetupError("The key file is not valid JSON") from None
     else:
         data = raw
@@ -59,6 +64,12 @@ def parse_service_account_key(raw: object) -> ServiceAccount:
     pem = data.get("private_key")
     if not all(isinstance(v, str) and v for v in (project_id, client_email, pem)):
         raise GoogleSetupError("The key is missing project_id, client_email or key")
+    if len(pem) > MAX_KEY_SIZE:
+        raise GoogleSetupError("The key file is too large")
+    if len(client_email) > MAX_FIELD_SIZE:
+        raise GoogleSetupError("The client email in the key is not valid")
+    if not PROJECT_ID_RE.fullmatch(project_id):
+        raise GoogleSetupError("The project id in the key is not valid")
     try:
         key = serialization.load_pem_private_key(pem.encode(), password=None)
     except (ValueError, TypeError, UnsupportedAlgorithm):
@@ -106,7 +117,8 @@ def _reason(body: Any) -> str:
     parts: list[str] = []
     if isinstance(status := error.get("status"), str):
         parts.append(status)
-    for detail in error.get("details") or []:
+    details = error.get("details")
+    for detail in details if isinstance(details, list) else []:
         if isinstance(detail, dict) and isinstance(detail.get("reason"), str):
             parts.append(detail["reason"])
             break
@@ -114,24 +126,52 @@ def _reason(body: Any) -> str:
 
 
 async def _json(response: Any) -> Any:
+    """Read a small JSON body, or None when it is large or not JSON."""
+    chunks: list[bytes] = []
+    size = 0
     try:
-        return await response.json(content_type=None)
-    except (ValueError, ClientError):
+        async for chunk in response.content.iter_chunked(8192):
+            size += len(chunk)
+            if size > MAX_RESPONSE_SIZE:
+                return None
+            chunks.append(chunk)
+        return json.loads(b"".join(chunks))
+    except (ValueError, RecursionError, ClientError):
         return None
+
+
+def _check_status(response: Any) -> None:
+    """Treat a redirect as an error and never follow it."""
+    if 300 <= response.status < 400:
+        raise GoogleSetupError("Google answered with an unexpected redirect")
+
+
+def _service_url(project: str, service: str) -> str:
+    return (
+        f"{SERVICE_USAGE_URL}/projects/{quote(project, safe='')}"
+        f"/services/{quote(service, safe='')}"
+    )
 
 
 async def async_get_access_token(
     session: ClientSession, account: ServiceAccount
 ) -> str:
     """Exchange the signed assertion for an access token."""
+    assertion = await asyncio.get_running_loop().run_in_executor(
+        None, build_assertion, account
+    )
     form = {
         "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "assertion": build_assertion(account),
+        "assertion": assertion,
     }
     try:
         async with session.post(
-            TOKEN_URL, data=form, timeout=ClientTimeout(total=REQUEST_TIMEOUT)
+            TOKEN_URL,
+            data=form,
+            timeout=ClientTimeout(total=REQUEST_TIMEOUT),
+            allow_redirects=False,
         ) as response:
+            _check_status(response)
             body = await _json(response)
             if response.status != 200 or not isinstance(body, dict):
                 raise GoogleSetupError(f"Google refused the key: {_reason(body)}")
@@ -147,10 +187,13 @@ async def _service_state(
     session: ClientSession, headers: dict[str, str], project: str, service: str
 ) -> str:
     """Return ENABLED, DISABLED or raise with the reason."""
-    url = f"{SERVICE_USAGE_URL}/projects/{project}/services/{service}"
     async with session.get(
-        url, headers=headers, timeout=ClientTimeout(total=REQUEST_TIMEOUT)
+        _service_url(project, service),
+        headers=headers,
+        timeout=ClientTimeout(total=REQUEST_TIMEOUT),
+        allow_redirects=False,
     ) as response:
+        _check_status(response)
         body = await _json(response)
         if response.status != 200 or not isinstance(body, dict):
             raise GoogleSetupError(_reason(body))
@@ -167,13 +210,14 @@ async def _enable_one(
         if await _service_state(session, headers, project, service) == "ENABLED":
             result["state"] = "enabled"
             return result
-        url = f"{SERVICE_USAGE_URL}/projects/{project}/services/{service}:enable"
         async with session.post(
-            url,
+            f"{_service_url(project, service)}:enable",
             headers=headers,
             json={},
             timeout=ClientTimeout(total=REQUEST_TIMEOUT),
+            allow_redirects=False,
         ) as response:
+            _check_status(response)
             body = await _json(response)
             if response.status != 200:
                 raise GoogleSetupError(_reason(body))

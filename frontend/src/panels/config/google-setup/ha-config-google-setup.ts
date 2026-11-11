@@ -96,6 +96,20 @@ class HaConfigGoogleSetup extends LitElement {
 
   @state() private _storeResults: Record<string, string> = {};
 
+  /** Bumped on every pick so a slow earlier file read cannot overwrite a later one. */
+  private _keyGeneration = 0;
+
+  private _clientGeneration = 0;
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._keyGeneration++;
+    this._clientGeneration++;
+    this._keyText = undefined;
+    this._keyProject = undefined;
+    this._client = undefined;
+  }
+
   protected firstUpdated(): void {
     try {
       const raw = localStorage.getItem(GOOGLE_SETUP_DRAFT_KEY);
@@ -144,6 +158,11 @@ class HaConfigGoogleSetup extends LitElement {
   }
 
   private _setDraft(changes: Partial<GoogleSetupDraft>): void {
+    if (changes.step && changes.step !== "helper") {
+      this._keyGeneration++;
+      this._keyText = undefined;
+      this._keyProject = undefined;
+    }
     this._draft = { ...this._draft, ...changes };
     try {
       localStorage.setItem(GOOGLE_SETUP_DRAFT_KEY, serializeDraft(this._draft));
@@ -160,6 +179,8 @@ class HaConfigGoogleSetup extends LitElement {
     }
     this._draft = emptyDraft();
     this._restored = false;
+    this._keyGeneration++;
+    this._clientGeneration++;
     this._client = undefined;
     this._keyText = undefined;
     this._keyProject = undefined;
@@ -217,6 +238,7 @@ class HaConfigGoogleSetup extends LitElement {
 
   private async _keyPicked(ev: FilePickedEvent): Promise<void> {
     const file = Array.from(ev.detail.files)[0];
+    const generation = ++this._keyGeneration;
     this._keyText = undefined;
     this._keyProject = undefined;
     this._keyError = undefined;
@@ -228,6 +250,9 @@ class HaConfigGoogleSetup extends LitElement {
       return;
     }
     const text = await file.text();
+    if (generation !== this._keyGeneration) {
+      return;
+    }
     try {
       const data = JSON.parse(text);
       if (
@@ -275,13 +300,17 @@ class HaConfigGoogleSetup extends LitElement {
     } catch (err: any) {
       this._enableError = err?.message ?? String(err);
     } finally {
-      this._keyText = undefined;
+      if (this._keyText === key) {
+        this._keyText = undefined;
+        this._keyProject = undefined;
+      }
       this._enabling = false;
     }
   }
 
   private async _clientPicked(ev: FilePickedEvent): Promise<void> {
     const file = Array.from(ev.detail.files)[0];
+    const generation = ++this._clientGeneration;
     this._client = undefined;
     this._storeResults = {};
     if (!file) {
@@ -291,9 +320,14 @@ class HaConfigGoogleSetup extends LitElement {
       this._client = { ok: false, error: "too_large" };
       return;
     }
-    this._client = parseGoogleClientJson(await file.text());
-    if (this._client.ok) {
-      this._setDraft({ clientId: this._client.clientId });
+    const text = await file.text();
+    if (generation !== this._clientGeneration) {
+      return;
+    }
+    const parsed = parseGoogleClientJson(text);
+    this._client = parsed;
+    if (parsed.ok) {
+      this._setDraft({ clientId: parsed.clientId });
     }
   }
 
@@ -313,6 +347,7 @@ class HaConfigGoogleSetup extends LitElement {
               item.domain === domain && item.client_id === client.clientId
           )
         ) {
+          results[domain] = this._l("credential_kept");
           return;
         }
         try {

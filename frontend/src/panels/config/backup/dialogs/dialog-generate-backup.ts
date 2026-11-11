@@ -34,6 +34,10 @@ import type { HomeAssistant, ValueChangedEvent } from "../../../../types";
 import "../components/config/ha-backup-config-data";
 import type { BackupConfigData } from "../components/config/ha-backup-config-data";
 import "../components/ha-backup-agents-picker";
+import {
+  agentsBlockedWithoutKey,
+  dropAgentsRequiringEncryption,
+} from "../helper/backup-encryption";
 import type { GenerateBackupDialogParams } from "./show-dialog-generate-backup";
 
 interface FormData {
@@ -349,7 +353,7 @@ class DialogGenerateBackup
         ></ha-select>
       </ha-row-item>
       ${
-        disabledAgentIds.length
+        this._noHaDisabledAgentIds().length
           ? html`
               <ha-alert
                 alert-type="info"
@@ -359,6 +363,22 @@ class DialogGenerateBackup
               >
                 ${this.hass.localize(
                   "ui.panel.config.backup.dialogs.generate.sync.ha_cloud_alert.description"
+                )}
+              </ha-alert>
+            `
+          : nothing
+      }
+      ${
+        this._needsKeyAgentIds().length
+          ? html`
+              <ha-alert
+                alert-type="info"
+                .title=${this.hass.localize(
+                  "ui.panel.config.backup.dialogs.generate.sync.needs_encryption_alert.title"
+                )}
+              >
+                ${this.hass.localize(
+                  "ui.panel.config.backup.dialogs.generate.sync.needs_encryption_alert.description"
                 )}
               </ha-alert>
             `
@@ -413,7 +433,7 @@ class DialogGenerateBackup
     this._updateDirtyState(this._formData);
   }
 
-  private _disabledAgentIds() {
+  private _noHaDisabledAgentIds() {
     if (!this._formData) {
       return [];
     }
@@ -421,6 +441,25 @@ class DialogGenerateBackup
     return !this._formData.data.include_homeassistant
       ? DISALLOWED_AGENTS_NO_HA.filter((agentId) => allAgents.includes(agentId))
       : [];
+  }
+
+  private _needsKeyAgentIds() {
+    return agentsBlockedWithoutKey(
+      this._allAgentIds,
+      !!this._backupConfig?.create_backup.password
+    );
+  }
+
+  private _disabledAgentIds() {
+    if (!this._formData) {
+      return [];
+    }
+    return [
+      ...new Set([
+        ...this._noHaDisabledAgentIds(),
+        ...this._needsKeyAgentIds(),
+      ]),
+    ];
   }
 
   private async _submit() {
@@ -454,6 +493,12 @@ class DialogGenerateBackup
         (agentId) => !DISALLOWED_AGENTS_NO_HA.includes(agentId)
       );
     }
+
+    // Locations that refuse an unencrypted backup are left out without a key.
+    params.agent_ids = dropAgentsRequiringEncryption(
+      params.agent_ids,
+      !!password
+    );
 
     this._params!.submit?.(params);
     this._markDirtyStateClean();

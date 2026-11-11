@@ -1,7 +1,6 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { css, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { extractSearchParam } from "../../src/common/url/search-params";
 import "../../src/components/animation/ha-fade-in";
 import "../../src/components/ha-alert";
 import "../../src/components/ha-button";
@@ -10,7 +9,6 @@ import "../../src/components/ha-svg-icon";
 import "../../src/components/progress/ha-progress-bar";
 import { makeDialogManager } from "../../src/dialogs/make-dialog-manager";
 import { provideLiteI18nMixin } from "../../src/mixins/provide-lite-i18n-mixin";
-import "../../src/onboarding/onboarding-welcome-links";
 import { onBoardingStyles } from "../../src/onboarding/styles";
 import { haStyle } from "../../src/resources/styles";
 import "./components/landing-page-logs";
@@ -44,9 +42,6 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
   @state() private _coreCheckActive = false;
 
   @state() private _progress = -1;
-
-  private _mobileApp =
-    extractSearchParam("redirect_uri") === "homeassistant://auth-callback";
 
   render() {
     const networkIssue = this._networkInfo && !this._networkInfo.host_internet;
@@ -111,9 +106,6 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
           ></landing-page-logs>
         </div>
       </ha-card>
-      <onboarding-welcome-links
-        .mobileApp=${this._mobileApp}
-      ></onboarding-welcome-links>
       <div class="footer">
         <ha-language-picker
           .value=${this.language}

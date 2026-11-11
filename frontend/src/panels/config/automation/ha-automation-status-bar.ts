@@ -3,6 +3,7 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { keyed } from "lit/directives/keyed";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import "../../../components/ha-button";
@@ -16,6 +17,8 @@ import type { HomeAssistant } from "../../../types";
 import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import type { AutomationCheckResult } from "./automation-check";
 import { checkAutomation } from "./automation-check";
+import { motionAppearStyles, motionKeyframes } from "./motion-styles";
+import { beginRun, getErrorMessage } from "./run-helpers";
 
 const PREFIX = "ui.panel.config.automation.editor.status_bar.";
 
@@ -194,7 +197,14 @@ export class HaAutomationStatusBar extends LitElement {
           }"
           role="status"
           aria-live="polite"
-          >${message ? message.text : result ? this._resultText(result) : ""}</span
+          >${keyed(
+            message ? message.text : result ? result.status : "",
+            html`<span class="motion-appear"
+              >${
+                message ? message.text : result ? this._resultText(result) : ""
+              }</span
+            >`
+          )}</span
         >
       </div>
     `;
@@ -224,6 +234,10 @@ export class HaAutomationStatusBar extends LitElement {
   private async _runNow() {
     const stateObj = this.stateObj;
     if (!stateObj || this._running || this.dirty) {
+      return;
+    }
+    const release = beginRun(stateObj.entity_id);
+    if (!release) {
       return;
     }
     const localize = this.hass.localize;
@@ -258,11 +272,12 @@ export class HaAutomationStatusBar extends LitElement {
         this._runMessage = {
           danger: true,
           text: localize(`${PREFIX}run_failed`, {
-            message: err instanceof Error ? err.message : String(err),
+            message: getErrorMessage(err),
           }),
         };
       }
     } finally {
+      release();
       this._running = false;
     }
   }
@@ -296,11 +311,16 @@ export class HaAutomationStatusBar extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      motionKeyframes,
+      motionAppearStyles,
       css`
         :host {
           display: block;
         }
         .repo {
+          animation: ha-automation-enter
+            var(--ha-animation-duration-normal, 250ms)
+            var(--ha-automation-ease-enter) backwards;
           display: flex;
           flex-wrap: wrap;
           align-items: center;

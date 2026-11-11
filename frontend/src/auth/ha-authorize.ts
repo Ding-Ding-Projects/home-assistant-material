@@ -15,6 +15,7 @@ import { litLocalizeLiteMixin } from "../mixins/lit-localize-lite-mixin";
 import { provideLiteI18nMixin } from "../mixins/provide-lite-i18n-mixin";
 import { registerServiceWorker } from "../util/register-service-worker";
 import "./ha-auth-flow";
+import "./ha-passkey-login";
 
 import("./ha-pick-auth-provider");
 
@@ -198,6 +199,14 @@ export class HaAuthorize extends provideLiteI18nMixin(
                   .authProvider=${this._authProvider}
                   .initStoreToken=${this._preselectStoreToken}
                 ></ha-auth-flow>
+                <ha-passkey-login
+                  .clientId=${this.clientId}
+                  .redirectUri=${this.redirectUri}
+                  .oauth2State=${this.oauth2State}
+                  .codeChallenge=${this.codeChallenge}
+                  .codeChallengeMethod=${this.codeChallengeMethod}
+                  .initStoreToken=${this._preselectStoreToken}
+                ></ha-passkey-login>
                 ${
                   inactiveProviders!.length > 0
                     ? html`

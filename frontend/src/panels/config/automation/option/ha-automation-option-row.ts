@@ -15,6 +15,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { keyed } from "lit/directives/keyed";
 import { assert } from "superstruct";
 import { ensureArray } from "../../../../common/array/ensure-array";
 import { consume } from "../../../../common/decorators/consume";
@@ -241,7 +242,7 @@ export default class HaAutomationOptionRow extends LitElement {
       return nothing;
     }
     const { kind, by } = this.unreachable;
-    return html`<ha-alert alert-type="warning">
+    return html`<ha-alert alert-type="warning" class="motion-appear">
       ${this.hass.localize(
         `ui.panel.config.automation.editor.actions.type.choose.never_runs_${kind}`,
         { number: by + 1 }
@@ -290,10 +291,18 @@ export default class HaAutomationOptionRow extends LitElement {
           class="run-result ${this._runResult?.variant ?? ""}"
           role="status"
           aria-live="polite"
-          >${this._runResult?.text ?? ""}</span
+          >${keyed(
+            this._runResult?.text ?? "",
+            html`<span class="motion-appear"
+              >${this._runResult?.text ?? ""}</span
+            >`
+          )}</span
         >
         <span class="run-result neutral" role="status" aria-live="polite"
-          >${this._testNote ?? ""}</span
+          >${keyed(
+            this._testNote ?? "",
+            html`<span class="motion-appear">${this._testNote ?? ""}</span>`
+          )}</span
         >
       </div>
       <p class="run-note">

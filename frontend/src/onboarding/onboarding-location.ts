@@ -4,6 +4,7 @@ import {
   mdiMagnify,
   mdiMapMarker,
   mdiMapSearchOutline,
+  mdiWeb,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -21,6 +22,7 @@ import "../components/ha-button";
 import "../components/ha-list";
 import "../components/ha-list-item";
 import "../components/ha-spinner";
+import "../components/ha-svg-icon";
 import "../components/input/ha-input";
 import type { HaInput } from "../components/input/ha-input";
 import "../components/map/ha-locations-editor";
@@ -59,7 +61,7 @@ class OnboardingLocation extends LitElement {
 
   @state() private _error?: string;
 
-  @state() private _search = false;
+  @state() private _query = "";
 
   @state() private _highlightedMarker?: number;
 
@@ -78,26 +80,6 @@ class OnboardingLocation extends LitElement {
   @query("ha-input") private _input?: HTMLElement;
 
   protected render(): TemplateResult {
-    const addressAttribution = this._localize(
-      "ui.panel.page-onboarding.core-config.location_address",
-      {
-        openstreetmap: html`<a
-          href="https://www.openstreetmap.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-          >OpenStreetMap</a
-        >`,
-        osm_privacy_policy: html`<a
-          href="https://wiki.osmfoundation.org/wiki/Privacy_Policy"
-          target="_blank"
-          rel="noopener noreferrer"
-          >${this._localize(
-            "ui.panel.page-onboarding.core-config.osm_privacy_policy"
-          )}</a
-        >`,
-      }
-    );
-
     return html`
       <h1>
         ${this._localize(
@@ -114,33 +96,64 @@ class OnboardingLocation extends LitElement {
         ${this._localize("ui.panel.page-onboarding.core-config.intro_location")}
       </p>
 
+      <div class="choices">
+        <ha-button
+          appearance="outlined"
+          .disabled=${this._working}
+          @click=${this._detectFromDevice}
+        >
+          <ha-svg-icon slot="start" .path=${mdiCrosshairsGps}></ha-svg-icon>
+          ${this._localize("ui.panel.page-onboarding.core-config.use_device")}
+        </ha-button>
+        <p class="note">
+          ${this._localize(
+            "ui.panel.page-onboarding.core-config.use_device_note"
+          )}
+        </p>
+        <ha-button
+          appearance="outlined"
+          .disabled=${this._working}
+          @click=${this._whoAmI}
+        >
+          <ha-svg-icon slot="start" .path=${mdiWeb}></ha-svg-icon>
+          ${this._localize("ui.panel.page-onboarding.core-config.use_internet")}
+        </ha-button>
+        <p class="note">
+          ${this._localize(
+            "ui.panel.page-onboarding.core-config.use_internet_note"
+          )}
+        </p>
+      </div>
+
       <div class="location-search">
         <ha-input
           label=${this._localize(
             "ui.panel.page-onboarding.core-config.address_label"
           )}
+          .value=${this._query}
           .disabled=${this._working}
-          @keyup=${this._addressSearch}
+          @input=${this._queryChanged}
+          @keyup=${this._stopKeyup}
         >
           <ha-svg-icon slot="start" .path=${mdiMagnify}></ha-svg-icon>
           ${
             this._working
               ? html`<ha-spinner slot="end" size="small"></ha-spinner>`
-              : html`
-                  <ha-icon-button
-                    @click=${this._handleButtonClick}
-                    slot="end"
-                    .disabled=${this._working}
-                    .label=${this._localize(
-                      this._search
-                        ? "ui.common.search"
-                        : "ui.panel.page-onboarding.core-config.button_detect"
-                    )}
-                    .path=${this._search ? mdiMapSearchOutline : mdiCrosshairsGps}
-                  ></ha-icon-button>
-                `
+              : nothing
           }
         </ha-input>
+        <ha-button
+          class="outside"
+          appearance="outlined"
+          .disabled=${this._working || this._query.trim() === ""}
+          @click=${this._runSearch}
+        >
+          <ha-svg-icon slot="start" .path=${mdiMapSearchOutline}></ha-svg-icon>
+          ${this._localize("ui.panel.page-onboarding.core-config.search_osm")}
+        </ha-button>
+        <p class="note">
+          ${this._localize("ui.panel.page-onboarding.core-config.search_note")}
+        </p>
         ${
           this._places !== undefined
             ? html`
@@ -182,7 +195,11 @@ class OnboardingLocation extends LitElement {
                         })
                       : html`<ha-list-item noninteractive
                           >${
-                            this._places === null ? "" : "No results"
+                            this._places === null
+                              ? ""
+                              : this._localize(
+                                  "ui.panel.page-onboarding.core-config.no_results"
+                                )
                           }</ha-list-item
                         >`
                   }
@@ -206,7 +223,19 @@ class OnboardingLocation extends LitElement {
         @marker-clicked=${this._markerClicked}
       ></ha-locations-editor>
 
-      <p class="attribution">${addressAttribution}</p>
+      <div class="lookup">
+        <ha-button
+          appearance="outlined"
+          .disabled=${this._working}
+          @click=${this._reverseGeocode}
+        >
+          <ha-svg-icon slot="start" .path=${mdiMapMarker}></ha-svg-icon>
+          ${this._localize("ui.panel.page-onboarding.core-config.lookup_osm")}
+        </ha-button>
+        <p class="note">
+          ${this._localize("ui.panel.page-onboarding.core-config.lookup_note")}
+        </p>
+      </div>
 
       <div class="footer">
         <ha-button @click=${this._save} .disabled=${this._working}>
@@ -302,9 +331,6 @@ class OnboardingLocation extends LitElement {
 
   private _locationChanged(ev) {
     this._location = ev.detail.location;
-    if (ev.detail.id !== LOCATION_MARKER_ID) {
-      this._reverseGeocode();
-    }
   }
 
   private _markerClicked(ev) {
@@ -328,13 +354,19 @@ class OnboardingLocation extends LitElement {
     this._country = place.address.country_code.toUpperCase();
   }
 
-  private async _addressSearch(ev: KeyboardEvent) {
+  private _queryChanged(ev: Event) {
+    this._query = (ev.target as HaInput).value ?? "";
+  }
+
+  // Pressing Enter in the field never contacts the outside service; only the
+  // labelled button does. The key is kept from reaching the step's own
+  // Enter handler as well.
+  private _stopKeyup(ev: KeyboardEvent) {
     ev.stopPropagation();
-    this._search = ((ev.currentTarget as HaInput).value ?? "").length > 0;
-    if (ev.key !== "Enter") {
-      return;
-    }
-    this._searchAddress((ev.currentTarget as HaInput).value ?? "");
+  }
+
+  private _runSearch() {
+    this._searchAddress(this._query);
   }
 
   private async _searchAddress(address: string) {
@@ -373,64 +405,64 @@ class OnboardingLocation extends LitElement {
     }
   }
 
+  // Contacts the outside address service, and only when the person asks.
   private async _reverseGeocode() {
     if (!this._location) {
       return;
     }
+    this._working = true;
+    this._error = undefined;
     this._places = null;
-    const reverse = await reverseGeocode(this._location, this.hass);
-    this._country = reverse.address.country_code.toUpperCase();
-    this._places = [reverse];
-    this._highlightedMarker = reverse.place_id;
+    try {
+      const reverse = await reverseGeocode(this._location, this.hass);
+      this._country = reverse.address.country_code.toUpperCase();
+      this._places = [reverse];
+      this._highlightedMarker = reverse.place_id;
+    } catch (e: any) {
+      this._places = undefined;
+      this._error = e.message;
+    } finally {
+      this._working = false;
+    }
   }
 
-  private async _handleButtonClick(ev) {
-    if (this._search) {
-      this._searchAddress(ev.target.parentElement.value);
+  // Uses the position the browser reports. Nothing is looked up afterwards.
+  private _detectFromDevice() {
+    this._error = undefined;
+    if (!window.isSecureContext || !navigator.geolocation) {
+      this._error = this._localize(
+        "ui.panel.page-onboarding.core-config.device_unavailable"
+      );
       return;
     }
-    this._detectLocation();
-  }
-
-  private _detectLocation() {
-    if (window.isSecureContext && navigator.geolocation) {
-      this._working = true;
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0,
-      };
-      navigator.geolocation.getCurrentPosition(
-        async (result) => {
-          this.map.addEventListener(
-            "markers-updated",
-            () => {
-              this.map.fitMarker(LOCATION_MARKER_ID);
-            },
-            {
-              once: true,
-            }
-          );
-          this._location = [result.coords.latitude, result.coords.longitude];
-          if (result.coords.altitude) {
-            this._elevation = String(Math.round(result.coords.altitude));
+    this._working = true;
+    navigator.geolocation.getCurrentPosition(
+      (result) => {
+        this.map.addEventListener(
+          "markers-updated",
+          () => {
+            this.map.fitMarker(LOCATION_MARKER_ID);
+          },
+          {
+            once: true,
           }
-          try {
-            await this._reverseGeocode();
-          } finally {
-            this._working = false;
-          }
-        },
-        () => {
-          // GPS is not available, get location based on IP
-          this._working = false;
-          this._whoAmI();
-        },
-        options
-      );
-    } else {
-      this._whoAmI();
-    }
+        );
+        this._places = undefined;
+        this._highlightedMarker = undefined;
+        this._location = [result.coords.latitude, result.coords.longitude];
+        if (result.coords.altitude) {
+          this._elevation = String(Math.round(result.coords.altitude));
+        }
+        this._working = false;
+      },
+      () => {
+        this._working = false;
+        this._error = this._localize(
+          "ui.panel.page-onboarding.core-config.device_unavailable"
+        );
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
   }
 
   private async _whoAmI() {
@@ -477,7 +509,10 @@ class OnboardingLocation extends LitElement {
         this._country = values.country;
       }
     } catch (err: any) {
-      this._error = `Failed to detect location information: ${err.message}`;
+      this._error = this._localize(
+        "ui.panel.page-onboarding.core-config.detect_failed",
+        { error: err.message }
+      );
     } finally {
       this._working = false;
     }
@@ -504,9 +539,36 @@ class OnboardingLocation extends LitElement {
     return [
       onBoardingStyles,
       css`
+        .choices,
+        .location-search,
+        .lookup {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: var(--ha-space-2);
+        }
+        .choices {
+          margin-top: var(--ha-space-4);
+        }
         .location-search {
-          margin-top: 32px;
-          margin-bottom: 32px;
+          margin-top: var(--ha-space-6);
+          margin-bottom: var(--ha-space-4);
+        }
+        .location-search ha-input {
+          width: 100%;
+        }
+        .lookup {
+          margin-top: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+        }
+        ha-button {
+          --ha-button-height: 44px;
+        }
+        .note {
+          margin: 0 0 var(--ha-space-3);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          line-height: var(--ha-line-height-normal);
         }
         ha-locations-editor {
           display: block;
@@ -526,21 +588,6 @@ class OnboardingLocation extends LitElement {
         }
         ha-list-item {
           height: 72px;
-        }
-        .attribution {
-          /* input helper style */
-          margin: 0;
-          padding: 4px 16px 12px 16px;
-          color: var(--mdc-text-field-label-ink-color, rgba(0, 0, 0, 0.6));
-          font-family: var(--ha-font-family-body);
-          font-size: var(--ha-font-size-xs);
-          font-weight: var(--ha-font-weight-normal);
-          letter-spacing: 0.0333333333em;
-          text-decoration: inherit;
-          text-transform: inherit;
-        }
-        .attribution a {
-          color: inherit;
         }
       `,
     ];

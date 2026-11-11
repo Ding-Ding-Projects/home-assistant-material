@@ -1,5 +1,5 @@
 import { ResizeController } from "@lit-labs/observers/resize-controller";
-import { mdiPencil } from "@mdi/js";
+import { mdiPencil, mdiViewDashboardEdit } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -36,7 +36,8 @@ import {
 import type { Lovelace } from "../lovelace/types";
 import { showEditHomeDialog } from "./dialogs/show-dialog-edit-home";
 import { showNewOverviewDialog } from "./dialogs/show-dialog-new-overview";
-import { hasLegacyOverviewPanel } from "../../data/panel";
+import { getPanelTitle, hasLegacyOverviewPanel } from "../../data/panel";
+import { makeEditableCopy } from "../lovelace/import-export/dashboard-actions";
 
 @customElement("ha-panel-home")
 class PanelHome extends SubscribeMixin(LitElement) {
@@ -236,9 +237,24 @@ class PanelHome extends SubscribeMixin(LitElement) {
 
   private _updateExtraActionItems() {
     const path = this.route?.path?.split("/")[1];
+    // The generated page cannot be edited itself. Editing makes a copy.
+    const editCopy: ExtraActionItem[] =
+      this.hass.user?.is_admin &&
+      !this.hass.kioskMode &&
+      !this.hass.config.recovery_mode
+        ? [
+            {
+              icon: mdiViewDashboardEdit,
+              labelKey: "ui.panel.lovelace.import_export.edit_cards_layout",
+              action: this._editCardsAndLayout,
+              promoteOnNarrow: true,
+            },
+          ]
+        : [];
 
     if (path?.startsWith("areas-")) {
       this._extraActionItems = [
+        ...editCopy,
         {
           icon: mdiPencil,
           labelKey: "ui.panel.lovelace.menu.edit_area",
@@ -247,6 +263,7 @@ class PanelHome extends SubscribeMixin(LitElement) {
       ];
     } else if (!path || path === "overview") {
       this._extraActionItems = [
+        ...editCopy,
         {
           icon: mdiPencil,
           labelKey: "ui.panel.lovelace.menu.edit_overview",
@@ -254,13 +271,26 @@ class PanelHome extends SubscribeMixin(LitElement) {
         },
       ];
     } else {
-      this._extraActionItems = undefined;
+      this._extraActionItems = editCopy.length ? editCopy : undefined;
     }
   }
+
+  private _editCardsAndLayout = () => {
+    void makeEditableCopy(
+      { hass: this.hass, element: this },
+      {
+        urlPath: "home",
+        title: (this.panel && getPanelTitle(this.hass, this.panel)) || "home",
+      }
+    );
+  };
 
   private _editHome = () => {
     showEditHomeDialog(this, {
       config: this._config ?? {},
+      editCardsAndLayout: this.hass.user?.is_admin
+        ? this._editCardsAndLayout
+        : undefined,
       saveConfig: async (config) => {
         await this._saveConfig(config);
       },

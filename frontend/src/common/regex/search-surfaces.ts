@@ -107,6 +107,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
       "The page from the tools panel on a small screen, the local history, and the help articles",
   },
   {
+    file: "components/help/dialog-help-article.ts",
+    searches: "Titles and paths of the offline documentation articles",
+  },
+  {
     file: "components/media-player/ha-media-player-browse.ts",
     searches:
       "Titles in a media folder. The second field on this page sends plain text to the media source and tests a pattern against the titles in the open folder",
@@ -154,6 +158,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/automation-history/ha-config-automation-repo.ts",
     searches: "Commits of one automation, by message, author and commit",
+  },
+  {
+    file: "panels/config/dashboard-history/ha-config-dashboard-history.ts",
+    searches:
+      "Commits of one dashboard or one of its views, by message, author and commit",
   },
   {
     file: "panels/config/automation/add-automation-element-dialog.ts",

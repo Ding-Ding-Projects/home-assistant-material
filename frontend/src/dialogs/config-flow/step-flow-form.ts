@@ -243,9 +243,14 @@ class StepFlowForm extends LitElement {
                   ? localize(
                       "ui.panel.config.integrations.config_flow.summary_secret_set"
                     )
-                  : entry.kind === "boolean"
-                    ? localize(`ui.common.${entry.bool ? "yes" : "no"}`)
-                    : entry.text
+                  : entry.kind === "entries"
+                    ? localize(
+                        "ui.panel.config.integrations.config_flow.summary_entries",
+                        { count: entry.count ?? 0 }
+                      )
+                    : entry.kind === "boolean"
+                      ? localize(`ui.common.${entry.bool ? "yes" : "no"}`)
+                      : entry.text
               }
             </dd>
           </div>`;

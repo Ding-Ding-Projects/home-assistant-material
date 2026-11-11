@@ -4,6 +4,7 @@ import {
   mdiCommentProcessingOutline,
   mdiDevices,
   mdiDotsVertical,
+  mdiDownload,
   mdiFileMultiple,
   mdiFormatListBulletedTriangle,
   mdiHelpCircleOutline,
@@ -90,6 +91,11 @@ import { showPersonDetailDialog } from "../config/person/show-dialog-person-deta
 import { swapView } from "./editor/config-util";
 import { showDashboardStrategyEditorDialog } from "./editor/dashboard-strategy-editor/dialogs/show-dialog-dashboard-strategy-editor";
 import { showSaveDialog } from "./editor/show-save-config-dialog";
+import {
+  exportDashboard,
+  exportView,
+  isGeneratedPage,
+} from "./import-export/dashboard-actions";
 import { showEditViewDialog } from "./editor/view-editor/show-edit-view-dialog";
 import { getLovelaceStrategy } from "./strategies/get-strategy";
 import { isLegacyStrategyConfig } from "./strategies/legacy-strategy";
@@ -119,6 +125,8 @@ export interface ExtraActionItem {
   icon: string;
   labelKey: LocalizeKeys;
   action: () => void;
+  /** Also shown as its own visible button on a narrow screen. */
+  promoteOnNarrow?: boolean;
 }
 
 interface SubActionItem {
@@ -232,6 +240,13 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
 
     const isLovelaceDashboard = this.panel?.component_name === "lovelace";
 
+    const canExport =
+      !!this.hass.user?.is_admin &&
+      !this.hass.kioskMode &&
+      !this.embedded &&
+      !__DEMO__ &&
+      !!this.lovelace;
+
     const items: ActionItem[] = [
       {
         icon: mdiFormatListBulletedTriangle,
@@ -326,6 +341,20 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         visible:
           !this._editMode && this._conversation(this.hass.config.components),
         overflow: this.narrow,
+      },
+      {
+        icon: mdiDownload,
+        key: "ui.panel.lovelace.import_export.export_dashboard",
+        overflowAction: this._handleExportDashboard,
+        visible: canExport,
+        overflow: true,
+      },
+      {
+        icon: mdiDownload,
+        key: "ui.panel.lovelace.import_export.export_view",
+        overflowAction: this._handleExportView,
+        visible: canExport && typeof this._curView === "number",
+        overflow: true,
       },
       {
         icon: mdiRefresh,
@@ -435,6 +464,33 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           `;
       result.push(button);
     });
+
+    // On a narrow screen only the menu shows, so editing gets its own button.
+    if (this.narrow && !overflowCanPromote) {
+      const editItem = items.find(
+        (i) => i.visible && i.key === "ui.panel.lovelace.menu.configure_ui"
+      );
+      const promoted = this.extraActionItems?.find((i) => i.promoteOnNarrow);
+      const narrowAction = editItem?.buttonAction ?? promoted?.action;
+      const narrowIcon = editItem ? editItem.icon : promoted?.icon;
+      const narrowLabel = editItem
+        ? this.hass!.localize(editItem.key)
+        : promoted
+          ? this.hass!.localize(promoted.labelKey)
+          : undefined;
+      if (narrowAction && narrowIcon && narrowLabel) {
+        result.push(
+          html`<ha-icon-button
+            slot="actionItems"
+            class="narrow-edit"
+            .path=${narrowIcon}
+            .label=${narrowLabel}
+            hide-title
+            @click=${narrowAction}
+          ></ha-icon-button>`
+        );
+      }
+    }
 
     if (overflowItems.length && !overflowCanPromote) {
       result.push(html`
@@ -1151,6 +1207,32 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
       return;
     }
     this.lovelace!.setEditMode(true);
+  };
+
+  private _urlPath(): string {
+    return this.route?.prefix.slice(1) ?? "lovelace";
+  }
+
+  private _handleExportDashboard = () => {
+    const urlPath = this._urlPath();
+    void exportDashboard({ hass: this.hass!, element: this }, urlPath, {
+      rawConfig: isGeneratedPage(urlPath)
+        ? undefined
+        : this.lovelace?.rawConfig,
+    });
+  };
+
+  private _handleExportView = () => {
+    const urlPath = this._urlPath();
+    if (typeof this._curView !== "number") {
+      return;
+    }
+    void exportView(
+      { hass: this.hass!, element: this },
+      urlPath,
+      isGeneratedPage(urlPath) ? undefined : this.lovelace?.rawConfig,
+      this._curView
+    );
   };
 
   private _handleHelp = () => {

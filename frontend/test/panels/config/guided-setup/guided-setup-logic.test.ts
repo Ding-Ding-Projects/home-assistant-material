@@ -3,6 +3,7 @@ import {
   buildSummary,
   canJumpTo,
   decorateField,
+  defaultText,
   draftKey,
   leafFields,
   loadDraft,
@@ -116,9 +117,102 @@ describe("guided setup logic", () => {
     expect(raw).not.toContain("hunter2");
     expect(raw).not.toContain("abc");
     const draft = loadDraft(storage, draftKey("x", null));
-    expect(draft?.data).toEqual({ name: "n", auth: { user: "u" } });
-    expect(draft?.clearedSecrets.sort()).toEqual(["auth.token", "password"]);
+    // The group is named like a secret, so everything in it is left out.
+    expect(draft?.data).toEqual({ name: "n" });
+    expect(draft?.clearedSecrets.sort()).toEqual([
+      "auth.token",
+      "auth.user",
+      "password",
+    ]);
     expect(withoutSecrets(data, leaves).password).toBeUndefined();
+  });
+
+  it("detects secrets by name and autocomplete as well as selector", () => {
+    const found = leafFields([
+      { name: "access_code", selector: { text: {} } },
+      { name: "wifi_psk", selector: { text: {} } },
+      {
+        name: "code_in",
+        selector: { text: { autocomplete: "one-time-code" } },
+      },
+      { name: "host", selector: { text: {} } },
+    ] as any[]);
+    expect(found.map((leaf) => leaf.secret)).toEqual([true, true, true, false]);
+  });
+
+  it("masks keys that look secret even without a secret leaf, with their blocks", () => {
+    const yaml = [
+      "name: n",
+      "api_keys:",
+      "  - one",
+      "  - two",
+      "note: |",
+      "  fine",
+      "",
+    ].join("\n");
+    const masked = maskYaml(yaml, [], "(hidden)");
+    expect(masked).not.toContain("one");
+    expect(masked).not.toContain("two");
+    expect(masked).toContain("note: |");
+  });
+
+  it("only counts the entries of a structured value", () => {
+    const free = leafFields([
+      { name: "options", free_form: true, selector: { object: {} } },
+    ] as any[]);
+    const lines = buildSummary(
+      free,
+      { options: { a: { password: "hunter2" }, b: 1 } },
+      (leaf) => leaf.name
+    );
+    expect(lines).toEqual([
+      {
+        key: "options",
+        label: "options",
+        value: null,
+        secret: false,
+        entries: 2,
+      },
+    ]);
+    expect(defaultText({ password: "x" }, false)).toBe(undefined);
+    expect(defaultText("a", true)).toBe(undefined);
+    expect(defaultText(5, false)).toBe("5");
+  });
+
+  it("keeps free-form values and unlisted secret keys out of drafts", () => {
+    const storage = memory();
+    const free = leafFields([
+      { name: "options", free_form: true, selector: { object: {} } },
+    ] as any[]);
+    saveDraft(
+      storage,
+      draftKey("y", null),
+      {
+        step: "options",
+        entityDomain: null,
+        data: {
+          options: { token: "abc" },
+          extra: { client_secret: "zzz", k: 1 },
+        },
+      },
+      free,
+      5
+    );
+    const raw = storage.map.get(draftKey("y", null)) ?? "";
+    expect(raw).not.toContain("abc");
+    expect(raw).not.toContain("zzz");
+    expect(loadDraft(storage, draftKey("y", null))?.data).toEqual({
+      extra: { k: 1 },
+    });
+    // Without any leaf the key-name pass still protects the draft.
+    saveDraft(
+      storage,
+      draftKey("z", null),
+      { step: "options", entityDomain: null, data: { password: "p", ok: 1 } },
+      [],
+      5
+    );
+    expect(storage.map.get(draftKey("z", null))).not.toContain('"p"');
   });
 
   it("rejects a damaged draft", () => {

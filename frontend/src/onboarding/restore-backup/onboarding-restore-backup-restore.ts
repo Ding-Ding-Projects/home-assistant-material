@@ -35,8 +35,6 @@ class OnboardingRestoreBackupRestore extends LitElement {
 
   @property() public error?: string;
 
-  @property() public mode!: "upload" | "cloud";
-
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
@@ -145,17 +143,51 @@ class OnboardingRestoreBackupRestore extends LitElement {
               ${this._localize(
                 "ui.panel.page-onboarding.restore.details.apps_unsupported"
               )}
-              <ha-button
-                slot="action"
-                href="https://www.home-assistant.io/installation/#advanced-installation-methods"
-                target="_blank"
-                rel="noreferrer noopener"
-                size="s"
-              >
+            </ha-alert>`
+          : nothing
+      }
+
+      <ha-row-item>
+        <span slot="headline">
+          ${this._localize(
+            "ui.panel.page-onboarding.restore.details.summary.created"
+          )}
+        </span>
+        <span slot="supporting-text">${formattedDate}</span>
+      </ha-row-item>
+      ${
+        onlyHomeAssistantBackup
+          ? html`<ha-row-item>
+              <span slot="headline">
                 ${this._localize(
-                  "ui.panel.page-onboarding.restore.ha-cloud.learn_more"
-                )}</ha-button
-              >
+                  "ui.panel.page-onboarding.restore.details.summary.content"
+                )}
+              </span>
+              <ha-backup-formfield-label
+                slot="supporting-text"
+                .version=${this.backup.homeassistant_version}
+                .label=${this._localize(
+                  `ui.panel.page-onboarding.restore.data_picker.${this.backup.database_included ? "settings_and_history" : "settings"}`
+                )}
+              ></ha-backup-formfield-label>
+            </ha-row-item>`
+          : nothing
+      }
+      ${
+        !onlyHomeAssistantBackup
+          ? html`<h2>
+              ${this._localize("ui.panel.page-onboarding.restore.select_type")}
+            </h2>`
+          : nothing
+      }
+      ${
+        this.backup.homeassistant_included &&
+        !this.supervisor &&
+        this.backup.addons.length > 0
+          ? html`<ha-alert class="supervisor-warning">
+              ${this._localize(
+                "ui.panel.page-onboarding.restore.details.apps_unsupported"
+              )}
             </ha-alert>`
           : nothing
       }
@@ -186,7 +218,7 @@ class OnboardingRestoreBackupRestore extends LitElement {
               </h2>
               <span>
                 ${this._localize(
-                  `ui.panel.page-onboarding.restore.details.restore.encryption.description${this.mode === "cloud" ? "_cloud" : ""}`
+                  "ui.panel.page-onboarding.restore.details.restore.encryption.description"
                 )}
               </span>
               <ha-input
@@ -206,16 +238,7 @@ class OnboardingRestoreBackupRestore extends LitElement {
           : nothing
       }
 
-      <div class="actions${this.mode === "cloud" ? " cloud" : ""}">
-        ${
-          this.mode === "cloud"
-            ? html`<ha-button appearance="plain" @click=${this._signOut}>
-                ${this._localize(
-                  "ui.panel.page-onboarding.restore.ha-cloud.sign_out"
-                )}
-              </ha-button>`
-            : nothing
-        }
+      <div class="actions">
         <ha-progress-button
           .progress=${this._loading}
           .disabled=${
@@ -249,10 +272,6 @@ class OnboardingRestoreBackupRestore extends LitElement {
     if (ev.key === "Enter" && this._encryptionKey !== "") {
       this._progressButtonElement.click();
     }
-  }
-
-  private _signOut() {
-    fireEvent(this, "sign-out");
   }
 
   private _selectedBackupChanged(ev: ValueChangedEvent<BackupData>) {
@@ -367,9 +386,6 @@ class OnboardingRestoreBackupRestore extends LitElement {
         .actions {
           display: flex;
           justify-content: flex-end;
-        }
-        .actions.cloud {
-          justify-content: space-between;
         }
         a ha-button {
           --mdc-theme-primary: var(--primary-color);

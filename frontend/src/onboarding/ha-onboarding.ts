@@ -50,7 +50,6 @@ import "./onboarding-create-user";
 import "./onboarding-loading";
 import { buildRail } from "./onboarding-logic";
 import "./onboarding-welcome";
-import "./onboarding-welcome-links";
 
 type OnboardingEvent =
   | {
@@ -110,9 +109,6 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
 
   @state() private _page = extractSearchParam("page");
 
-  private _mobileApp =
-    extractSearchParam("redirect_uri") === "homeassistant://auth-callback";
-
   connectedCallback() {
     super.connectedCallback();
     mainWindow.addEventListener("location-changed", this._updatePage);
@@ -138,13 +134,6 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
         </div>
       </ha-card>
       ${this._renderSavedNote()}
-      ${
-        this._init && !this._restoring
-          ? html`<onboarding-welcome-links
-              .mobileApp=${this._mobileApp}
-            ></onboarding-welcome-links>`
-          : nothing
-      }
       <div class="footer">
         <ha-language-picker
           .value=${this.language}
@@ -152,12 +141,6 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
           native-name
           @value-changed=${this._languageChanged}
         ></ha-language-picker>
-        <a
-          href="https://www.home-assistant.io/getting-started/onboarding/"
-          target="_blank"
-          rel="noreferrer noopener"
-          >${this.localize("ui.panel.page-onboarding.help") || "Help"}</a
-        >
       </div>`;
   }
 

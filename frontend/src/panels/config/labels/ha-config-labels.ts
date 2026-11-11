@@ -277,6 +277,7 @@ export class HaConfigLabels extends LitElement {
         id="label_id"
         selectable
         .selected=${this._selected.length}
+        ?bulk-bar=${this._selected.length > 0}
         @selection-changed=${this._handleSelectionChanged}
         @filtered-rows-changed=${this._filteredRowsChanged}
       >
@@ -462,6 +463,7 @@ export class HaConfigLabels extends LitElement {
     );
     const names = chosen.slice(0, 3).map((label) => label.name);
     const rest = chosen.length - names.length;
+    const hidden = hiddenTableSelection(this._dataTable);
     return {
       title: this.hass.localize("ui.panel.config.labels.bulk_preview_title", {
         count: chosen.length,
@@ -474,6 +476,16 @@ export class HaConfigLabels extends LitElement {
             { count: chosen.length }
           )}: ${names.join(", ")}${rest > 0 ? "…" : ""}`,
         },
+        ...(hidden > 0
+          ? [
+              {
+                kind: "same" as const,
+                text: this.hass.localize("ui.bulk.preview_hidden", {
+                  count: hidden,
+                }),
+              },
+            ]
+          : []),
       ],
       changeCount: chosen.length,
       confirmLabel: this.hass.localize("ui.common.delete"),
@@ -513,9 +525,16 @@ export class HaConfigLabels extends LitElement {
     );
     this._dataTable?.setCheckedRowIds(ids.filter((id) => !deletedIds.has(id)));
     if (hasRejectedItems(results)) {
+      const failedNames = this._labels
+        .filter((label) => ids.includes(label.label_id))
+        .map((label) => label.name || label.label_id);
       showAlertDialog(this, {
         title: this.hass.localize("ui.panel.config.labels.delete_failed_title"),
-        text: this.hass.localize("ui.panel.config.labels.delete_failed"),
+        text: failedNames.length
+          ? this.hass.localize("ui.panel.config.labels.delete_failed_named", {
+              names: failedNames.join(", "),
+            })
+          : this.hass.localize("ui.panel.config.labels.delete_failed"),
       });
     }
   };

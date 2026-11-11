@@ -101,6 +101,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
+  /**
+   * Set while the page shows the bulk selection bar over the bottom of the
+   * list, so the last rows can scroll clear of it.
+   */
+  @property({ attribute: "bulk-bar", type: Boolean, reflect: true })
+  public bulkBar = false;
+
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
   @property({ type: Boolean, attribute: "main-page" }) public mainPage = false;
@@ -1267,6 +1274,21 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
        when using narrow layout with bottom tabs. */
     :host([narrow][show-tabs][has-fab]) ha-data-table {
       --data-table-empty-row-height: calc(48px + 28px * 2);
+    }
+
+    /* The bulk bar floats over the bottom of the list: leave room under the
+       last row for the bar, and for the bar to wrap to more lines on a phone. */
+    :host([bulk-bar]) ha-data-table {
+      --data-table-empty-row-height: calc(
+        112px + var(--ha-phone-bar-height, 0px) +
+          var(--safe-area-inset-bottom, 0px)
+      ) !important;
+    }
+    :host([bulk-bar][narrow]) ha-data-table {
+      --data-table-empty-row-height: calc(
+        176px + var(--ha-phone-bar-height, 0px) +
+          var(--safe-area-inset-bottom, 0px)
+      ) !important;
     }
 
     .pane-content {

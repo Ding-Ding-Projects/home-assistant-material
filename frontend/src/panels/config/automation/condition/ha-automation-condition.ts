@@ -66,6 +66,7 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
   }
 
   protected updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
     if (!this.hass) {
       return;
     }

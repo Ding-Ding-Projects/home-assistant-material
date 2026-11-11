@@ -65,6 +65,8 @@ import { haStyle } from "../../../resources/styles";
 import type { Entries } from "../../../types";
 import { isMac } from "../../../util/is_mac";
 import { showEditorToast } from "../automation/editor-toast";
+import { motionAlertStyles } from "../automation/motion-styles";
+import { beginRun, getErrorMessage } from "../automation/run-helpers";
 import { showAutomationModeDialog } from "../automation/automation-mode-dialog/show-dialog-automation-mode";
 import { showAutomationSaveDialog } from "../automation/automation-save-dialog/show-dialog-automation-save";
 import { showAutomationSaveTimeoutDialog } from "../automation/automation-save-timeout-dialog/show-dialog-automation-save-timeout";
@@ -682,23 +684,21 @@ export class HaScriptEditor extends SubscribeMixin(
     });
   }
 
-  private _runningScript = false;
-
   /** Runs the saved script, never what is currently on screen. */
   private async _runScript() {
-    if (!this.scriptId || this._runningScript) {
+    if (!this.scriptId) {
       return;
     }
-    if (hasScriptFields(this.hass.services, this.currentEntityId!)) {
-      showMoreInfoDialog(this, {
-        entityId: this.currentEntityId!,
-      });
+    const release = beginRun(`script.${this.scriptId}`);
+    if (!release) {
       return;
     }
+    // The entity is not registered yet for a script that was just created.
+    const entityId = this.currentEntityId ?? `script.${this.scriptId}`;
+    const hasFields = hasScriptFields(this.hass.services, entityId);
 
     const localize = this.hass.localize;
     const name = this.config?.alias || this.scriptId;
-    this._runningScript = true;
     try {
       const confirmed = await showConfirmationDialog(this, {
         title: localize("ui.panel.config.script.editor.run_confirm_title"),
@@ -714,13 +714,18 @@ export class HaScriptEditor extends SubscribeMixin(
       if (!confirmed) {
         return;
       }
+      if (hasFields) {
+        // The fields are filled in the more-info dialog, which runs the script.
+        showMoreInfoDialog(this, { entityId });
+        return;
+      }
       try {
         await triggerScript(this.hass, this.scriptId);
       } catch (err: unknown) {
         showEditorToast(this, {
           message: localize("ui.panel.config.script.editor.run_failed", {
             name,
-            message: err instanceof Error ? err.message : String(err),
+            message: getErrorMessage(err),
           }),
           duration: 6000,
         });
@@ -730,7 +735,7 @@ export class HaScriptEditor extends SubscribeMixin(
         message: localize("ui.notification_toast.triggered", { name }),
       });
     } finally {
-      this._runningScript = false;
+      release();
     }
   }
 
@@ -1233,6 +1238,7 @@ export class HaScriptEditor extends SubscribeMixin(
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      motionAlertStyles,
       automationScriptEditorStyles,
       css`
         manual-script-editor,

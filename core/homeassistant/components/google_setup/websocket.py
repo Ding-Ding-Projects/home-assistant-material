@@ -59,13 +59,17 @@ async def ws_enable_apis(
     requested = msg.get("apis")
     if requested is None:
         selected = dict(GOOGLE_APIS)
-    elif isinstance(requested, list) and all(a in GOOGLE_APIS for a in requested):
+    elif isinstance(requested, list) and all(
+        isinstance(a, str) and a in GOOGLE_APIS for a in requested
+    ):
         selected = {a: GOOGLE_APIS[a] for a in requested}
     else:
         connection.send_error(msg["id"], "invalid_format", "Unknown API requested")
         return
     try:
-        account = parse_service_account_key(msg["service_account_key"])
+        account = await hass.async_add_executor_job(
+            parse_service_account_key, msg["service_account_key"]
+        )
         results = await async_enable_apis(
             async_get_clientsession(hass), account, selected
         )

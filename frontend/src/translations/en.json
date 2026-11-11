@@ -75,6 +75,21 @@
     }
   },
   "ui": {
+    "help": {
+      "title": "Help article",
+      "search": "Search help articles",
+      "back": "Back",
+      "contents": "In this article",
+      "loading": "Loading the article…",
+      "error": "The article could not be loaded.",
+      "no_results": "No help article matches.",
+      "not_bundled_title": "This article is not included in this build",
+      "not_bundled_body": "The offline copy of {path} has not been bundled with this interface yet. Help never opens the website, so there is nothing to show here until the article is added.",
+      "not_included": "not included in this build",
+      "source": "Source: {path}, commit {commit}, fetched {date}.",
+      "license": "Text from the Home Assistant documentation, © Home Assistant, licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0. This copy was converted from Markdown for offline reading.",
+      "images_note": "Images in the original article are not included."
+    },
     "init": {
       "loading": "Loading...",
       "migration": "Database upgrade is in progress, Home Assistant will not start until the upgrade is completed.\n\nThe upgrade may need a long time to complete, please be patient.",
@@ -3028,7 +3043,8 @@
       "select_page": "Select all {count} on this page",
       "select_matches": "Select all {count} matches",
       "invert": "Invert",
-      "hidden_selected": "{count, plural, one {# selected item is hidden by the filter} other {# selected items are hidden by the filter}}",
+      "hidden_selected": "{count, plural, one {# selected item is hidden by the search, a filter or a collapsed group} other {# selected items are hidden by the search, a filter or a collapsed group}}",
+      "preview_hidden": "{count, plural, one {# of the selected items is hidden right now and is included} other {# of the selected items are hidden right now and are included}}",
       "clear": "Clear selection",
       "cancel": "Cancel",
       "confirm_again": "Press the button again to go ahead.",
@@ -4120,6 +4136,7 @@
       },
       "home": {
         "editor": {
+          "edit_layout_hint": "This page is generated, so editing makes an editable copy with everything it shows today. This page stays as it is.",
           "title": "Edit Overview page",
           "description": "Configure your Overview page display preferences.",
           "personalize": "Personalize",
@@ -4195,6 +4212,7 @@
         "external_app_name": "the Companion app settings",
         "path_label": "Opens",
         "params_label": "Passed on",
+        "param_set": "set (hidden)",
         "instance_label": "This Home Assistant",
         "cancel": "Not this time",
         "open": "Open it"
@@ -4890,7 +4908,8 @@
           "bulk_preview_title": "{count, plural,\n  one {Delete # label}\n  other {Delete # labels}\n}",
           "bulk_preview_delete": "{count, plural,\n  one {# label will be deleted}\n  other {# labels will be deleted}\n}",
           "delete_failed_title": "Delete failed",
-          "delete_failed": "Some labels could not be deleted. Check system logs for more information."
+          "delete_failed": "Some labels could not be deleted. Check system logs for more information.",
+          "delete_failed_named": "These labels could not be deleted: {names}. Check system logs for more information."
         },
         "areas": {
           "caption": "Areas",
@@ -5078,6 +5097,10 @@
                 "ha_cloud_alert": {
                   "title": "Home Assistant Cloud cannot synchronize",
                   "description": "Add Home Assistant settings data to synchronize this backup to Home Assistant Cloud."
+                },
+                "needs_encryption_alert": {
+                  "title": "Home Assistant Cloud needs encryption",
+                  "description": "Turn on backup encryption in the backup settings to send backups to Home Assistant Cloud."
                 }
               },
               "data": {
@@ -5207,6 +5230,7 @@
             "unavailable_agents": "Unavailable locations",
             "no_agents": "No locations configured",
             "encryption_turned_off": "Encryption turned off",
+            "needs_encryption": "Needs encryption. Turn on backup encryption to use this location.",
             "local_agent": "This system",
             "retention_all": "Keep all backups",
             "retention_backups": "Keep {count} {count, plural,\n one {backup}\n other {backups}\n}",
@@ -5301,10 +5325,12 @@
             "set_encryption_key_description": "Set an encryption key for your backups.",
             "set_encryption_key_action": "Set",
             "encrypt_backups": "Encrypt backups",
-            "encrypt_backups_off_description": "Off: anyone who gets a backup file can read it, and nothing is lost if a key is forgotten.",
+            "encrypt_backups_off_description": "Off: anyone who gets a backup file can read it, and nothing is lost if a key is forgotten. Home Assistant Cloud only accepts encrypted backups, so it is not available while this is off.",
             "encrypt_backups_on_description": "On: a backup file can only be opened with your encryption key, and losing the key means losing those backups.",
             "turn_off_title": "Turn off encryption?",
             "turn_off_text": "New backups will not be encrypted. Backups you already made with encryption still need their old key to be restored.",
+            "turn_off_cloud_text": "Home Assistant Cloud only accepts encrypted backups, so it will be removed from your backup locations.",
+            "turn_off_save_key_text": "Turning this off removes the key from this system. Download the emergency kit first if you may need to restore older backups.",
             "turn_off_action": "Turn off"
           },
           "emergency_kit_file": {
@@ -7208,6 +7234,48 @@
               "failed_rename": "Failed to rename the voice satellite: {error}"
             }
           }
+        },
+        "dashboard_history": {
+          "caption": "Dashboard history",
+          "title": "Dashboard history",
+          "description": "Every dashboard keeps its own history, and every tab of a dashboard keeps its own. Pick a dashboard or a tab to see its versions, compare them or go back.",
+          "load_failed": "The history could not be read.",
+          "loading": "Reading the history…",
+          "not_found": "This dashboard has no history. Only dashboards kept in storage are recorded.",
+          "no_dashboards": "No dashboard has a history yet. A dashboard is recorded the first time it is saved.",
+          "skipped": "Not recorded: {list}. Dashboards written in YAML or generated automatically have no saved configuration to keep.",
+          "dashboard_summary": "{commits} versions, {views} tabs",
+          "commit_count": "{count} versions",
+          "whole_dashboard": "Whole dashboard",
+          "scope": "Show the history of",
+          "history_of_dashboard": "History of the whole dashboard, every tab included",
+          "history_of_view": "History of one tab of {dashboard}",
+          "view_removed": "This tab was deleted from the dashboard. Its history is kept here.",
+          "removed_views": "Deleted tabs whose history is kept: {list}",
+          "open_dashboard": "Open dashboard",
+          "last_error": "The last save was not recorded: {error}",
+          "search_commits": "Search versions",
+          "no_commits": "No versions are recorded yet.",
+          "no_commit_match": "No version matches the search.",
+          "show_all": "Show all versions",
+          "latest": "Latest",
+          "loading_changes": "Reading this version…",
+          "changes_failed": "The changes could not be read.",
+          "changes_heading": "What changed",
+          "content_heading": "Content at this version",
+          "first_commit": "This is the first version, so there is nothing before it to compare with.",
+          "diff_empty": "There are no differences.",
+          "compare": "Compare",
+          "compare_with": "Compare this version with",
+          "restore": "Go back to this version",
+          "restore_hint": "Replaces the whole dashboard with this version. The current state stays in the history.",
+          "restore_view_hint": "Replaces only this tab. Other tabs are not changed. The current state stays in the history.",
+          "restore_title": "Go back to this version of {title}?",
+          "restore_text": "This replaces the whole dashboard {dashboard}, including all {count} tabs, with how it was at version {version}. Nothing is deleted from the history: the current state is kept and can be restored again.",
+          "restore_view_title": "Go back to this version of the tab {title}?",
+          "restore_view_text": "This replaces only the tab {view} of the dashboard {dashboard} with how it was at version {version}. The other tabs are not changed. Nothing is deleted from the history.",
+          "restore_done": "Version {version} was put back. The new state is recorded as a new version.",
+          "action_failed": "That did not work"
         },
         "automation_history": {
           "caption": "History",
@@ -10075,6 +10143,7 @@
             "field_invalid_option": "Choose one of the available options.",
             "fields_need_attention": "{count, plural,\n one {1 field needs attention}\n other {# fields need attention}\n}",
             "step_number": "Step {number}",
+            "summary_entries": "{count, plural,\n one {1 entry}\n other {# entries}\n}",
             "step_final": "Final step",
             "step_more_follow": "More steps follow",
             "summary_title": "Your entries",
@@ -12339,6 +12408,127 @@
           "bulk_preview_title": "{count, plural,\n  one {Dismiss # notification}\n  other {Dismiss # notifications}\n}",
           "bulk_preview_dismiss": "{count, plural,\n  one {# will be dismissed}\n  other {# will be dismissed}\n}"
         },
+        "minecraft": {
+          "title": "Minecraft servers",
+          "intro": "Create and manage Minecraft servers. Pick where each one runs, and Home Assistant keeps its settings together.",
+          "loading": "Loading Minecraft servers",
+          "summary_count": "{count, plural,\n  one {# server defined}\n  other {# servers defined}\n}",
+          "not_started_note": "Not started yet: starting servers comes in the next step. For now you can define servers and choose where they will run.",
+          "empty_title": "No servers yet",
+          "empty_text": "Create your first server. You choose the edition, the type, the version and where it runs.",
+          "new_server": "New server",
+          "created": "Server defined",
+          "deleted": "{name} was removed",
+          "delete": "Delete",
+          "delete_named": "Delete {name}",
+          "delete_title": "Delete this server?",
+          "delete_text": "{name} will be removed from this list. Nothing has been started, so no files are deleted.",
+          "cancel": "Cancel",
+          "back": "Back",
+          "next": "Next",
+          "create": "Create server",
+          "state_defined": "Defined",
+          "start_unavailable": "Start (next step)",
+          "server_detail": "{edition}, {flavour} {version}, port {port}, {target}",
+          "steps": "Steps",
+          "step": {
+            "basics": "Basics",
+            "version": "Type and version",
+            "target": "Where it runs",
+            "review": "Review"
+          },
+          "summary": "Summary",
+          "field": {
+            "name": "Server name",
+            "edition": "Edition",
+            "flavour": "Server type",
+            "version": "Version",
+            "port": "Port",
+            "memory": "Memory",
+            "target": "Where it runs"
+          },
+          "hint": {
+            "name": "Letters, numbers, spaces, dots, dashes and underscores.",
+            "port": "The port players connect to. Default: 25565 for Java, 19132 for Bedrock.",
+            "memory": "In megabytes.",
+            "version": "A release such as 1.21.4, a snapshot, or latest."
+          },
+          "version_note": "Looking up the list of versions needs a network request that you start yourself. It comes in a later step, so type the version for now.",
+          "edition": {
+            "java": "Java",
+            "java_hint": "For the Java version of the game on computers.",
+            "bedrock": "Bedrock",
+            "bedrock_hint": "For phones, tablets and consoles."
+          },
+          "flavour": {
+            "vanilla": "Vanilla",
+            "vanilla_hint": "The official server from Mojang.",
+            "paper": "Paper",
+            "paper_hint": "Faster, and takes Bukkit and Spigot plugins.",
+            "purpur": "Purpur",
+            "purpur_hint": "Paper with extra settings.",
+            "spigot": "Spigot",
+            "spigot_hint": "Takes Bukkit and Spigot plugins.",
+            "fabric": "Fabric",
+            "fabric_hint": "Light, for Fabric mods.",
+            "forge": "Forge",
+            "forge_hint": "For Forge mods.",
+            "neoforge": "NeoForge",
+            "neoforge_hint": "For NeoForge mods."
+          },
+          "target_intro": "A container cannot start another container by itself, so pick where the server will run. The first choice is the safest.",
+          "recommended": "Recommended",
+          "unavailable": "Not available here: {reason}",
+          "unknown_target": "Availability is not known",
+          "target": {
+            "ssh_docker": {
+              "name": "A Docker host over SSH",
+              "needs": "Needs another computer with Docker and an SSH sign-in. The server runs in its own container there."
+            },
+            "supervisor": {
+              "name": "Home Assistant supervisor",
+              "needs": "Only on Home Assistant OS installs. The supervisor runs the server as a managed container."
+            },
+            "docker_socket": {
+              "name": "Docker socket on this host",
+              "needs": "Needs the host's Docker socket mounted into this container on purpose.",
+              "warning": "This gives this app control of the whole host. Only choose it if you understand and accept that."
+            },
+            "local_process": {
+              "name": "A process inside this container",
+              "needs": "Runs Java inside the Home Assistant container. Needs Java to be installed here.",
+              "warning": "This shares memory with Home Assistant, so a busy server can slow it down."
+            },
+            "ssh_process": {
+              "name": "A Java process over SSH",
+              "needs": "Needs another computer with Java and an SSH sign-in. The server runs directly on it."
+            }
+          },
+          "reason": {
+            "ssh_always": "SSH can always be set up. The sign-in details are asked when the server starts.",
+            "supervisor_present": "The supervisor was found.",
+            "supervisor_missing": "No supervisor was found. This is not a Home Assistant OS install.",
+            "socket_present": "The Docker socket is mounted and readable.",
+            "socket_not_mounted": "The Docker socket is not mounted into this container.",
+            "socket_not_accessible": "The Docker socket is mounted but this app cannot use it.",
+            "java_present": "Java was found.",
+            "java_missing": "Java is not installed here."
+          },
+          "review_intro": "Check the summary, then create the server. This saves the definition only.",
+          "review_errors": "Some settings need attention. Go back to the step with the message.",
+          "error": {
+            "required": "This is required.",
+            "too_long": "Use at most {max} characters.",
+            "invalid_characters": "Use letters, numbers, spaces, dots, dashes and underscores, starting with a letter or number.",
+            "invalid_choice": "Pick one of the choices.",
+            "invalid_version": "Enter a release such as 1.21.4, a snapshot name, or latest.",
+            "out_of_range": "Enter a whole number from {min} to {max}.",
+            "duplicate_name": "A server with this name already exists.",
+            "port_in_use": "Another server already uses this port on the same target.",
+            "limit": "The server limit was reached.",
+            "unknown_field": "This setting is not recognised."
+          }
+        },
         "google_setup": {
           "title": "Google setup",
           "loading": "Loading Google setup",
@@ -12413,6 +12603,8 @@
           "storing": "Storing…",
           "credential_name": "Google",
           "credential_stored": "Client stored",
+          "credential_kept": "Already stored with this client ID, so the secret was not changed",
+          "open_from_integrations": "Set up Google integrations",
           "credential_missing": "No client stored yet",
           "integrations_title": "Add your Google integrations",
           "integrations_text": "Each Add button starts the normal setup, where Google asks you to sign in.",
@@ -12526,6 +12718,7 @@
           "summary_title": "What will be written",
           "summary_empty": "Nothing set yet. Options you fill in appear here.",
           "summary_set": "Set",
+          "summary_entries": "{count, plural,\n one {1 entry}\n other {# entries}\n}",
           "summary_not_set": "Not set",
           "summary_file": "Into {file}.",
           "secret_mask": "(hidden)",
@@ -13060,6 +13253,54 @@
           "add_person": "Add person",
           "edit_overview": "Edit overview",
           "edit_area": "Edit area"
+        },
+        "import_export": {
+          "edit_cards_layout": "Edit cards and layout",
+          "export_dashboard": "Export dashboard",
+          "export_view": "Export this view",
+          "import_dashboard": "Import dashboard",
+          "drop_to_import": "Drop to import",
+          "not_imported": "Nothing was imported.",
+          "imported": "Imported \"{title}\".",
+          "view_imported": "View added.",
+          "stripped_note": "Extra resource and module entries in the file were left out.",
+          "open": "Open",
+          "undo": "Undo",
+          "undone": "Import undone.",
+          "undo_failed": "Could not undo: {error}",
+          "export": {
+            "failed": "Could not export the dashboard. {error}"
+          },
+          "edit_copy": {
+            "title": "Edit cards and layout",
+            "text": "This page is generated by Home Assistant, so its cards cannot be edited directly. Editing makes an editable copy with everything the page shows today. This page stays as it is, so you can always go back.",
+            "confirm": "Make editable copy",
+            "name": "{title} (edited)",
+            "default_title": "Make this your default page?",
+            "default_text": "The editable copy can open first when Home Assistant starts. You can change this later in the dashboard settings.",
+            "default_yes": "Make default",
+            "default_no": "Not now",
+            "default_failed": "The copy was made, but it could not be set as the default page. {error}",
+            "failed": "The editable copy could not be made. Nothing was changed. {error}"
+          },
+          "view_target": {
+            "title": "Add view to a dashboard",
+            "text": "Choose the dashboard that gets this view as a new view at the end.",
+            "label": "Dashboard",
+            "none": "There is no dashboard here that you can edit.",
+            "action": "Add view"
+          },
+          "errors": {
+            "unreadable": "The file could not be read.",
+            "too_large": "The file is too large.",
+            "not_dashboard": "The file is not a dashboard file.",
+            "unsupported_version": "The file was made by a newer version and cannot be read.",
+            "invalid_file": "The file does not hold a valid dashboard.",
+            "too_many_views": "The file has too many views.",
+            "too_complex": "The file is too complex to import.",
+            "admin_only": "Only administrators can import dashboards.",
+            "failed": "The dashboard could not be created."
+          }
         },
         "reload_resources": {
           "refresh_header": "Do you want to refresh?",
@@ -15264,7 +15505,13 @@
           "rename_failed": "The passkey could not be renamed.",
           "confirm_delete_title": "Delete passkey?",
           "confirm_delete_text": "The passkey ''{name}'' will be deleted. You will no longer be able to sign in with it.",
-          "delete_failed": "The passkey could not be deleted."
+          "delete_failed": "The passkey could not be deleted.",
+          "delete_all": "Remove all passkeys",
+          "confirm_delete_all_title": "Remove all passkeys?",
+          "confirm_delete_all_text": "All of your passkeys will be removed. You will no longer be able to sign in with any of them.",
+          "sign_in_again": "For your security, a passkey can only be added soon after you sign in. Sign out, sign in again, and then add the passkey.",
+          "mfa_note": "Signing in with a passkey does not ask for a second factor, because the passkey already checks that it is you with your device.",
+          "persistence_note": "A passkey keeps working after you sign out other sessions or revoke tokens. To stop it working, remove it here."
         },
         "mfa_setup": {
           "title_aborted": "Aborted",
@@ -15640,7 +15887,18 @@
             "units": "Units and currency",
             "time_zone": "Time zone"
           },
-          "save_and_continue": "Save and continue"
+          "save_and_continue": "Save and continue",
+          "use_device": "Use this device’s location",
+          "use_device_note": "Asks your browser for its position. Your browser may contact its own location provider; this product sends nothing.",
+          "use_internet": "Detect from the internet address",
+          "use_internet_note": "Your Home Assistant asks an outside location service about the public internet address of this network. You are asked to confirm first.",
+          "search_osm": "Search with OpenStreetMap",
+          "search_note": "Nothing is sent until you press this button. It sends the text you typed, your language and this network’s address to nominatim.openstreetmap.org.",
+          "lookup_osm": "Look up this spot with OpenStreetMap",
+          "lookup_note": "Optional. Sends the map position, your language and this network’s address to nominatim.openstreetmap.org to fill in the country.",
+          "device_unavailable": "This device could not give its location. You can place the pin on the map yourself.",
+          "detect_failed": "Failed to detect location information: {error}",
+          "no_results": "No results"
         },
         "integration": {
           "header": "We found compatible devices!",
@@ -15651,7 +15909,33 @@
           "more_integrations": "+{count} more",
           "finish": "Finish",
           "all_set": "All set!",
-          "lets_start": "Let’s start your private smart home adventure."
+          "lets_start": "Let’s start your private smart home adventure.",
+          "found_devices": "We found {count, plural,\n one {# device}\n other {# devices}\n}",
+          "devices_intro": "Pick the ones to set up now. Anything you skip stays available under Settings, Devices & services.",
+          "chosen_count": "{count, plural,\n one {# item chosen to set up now}\n other {# items chosen to set up now}\n}",
+          "set_up": "Set up {count, plural,\n one {# chosen item}\n other {# chosen items}\n}",
+          "status_running": "Setting up",
+          "status_unfinished": "Not finished",
+          "choose_label": "Set up {name} now",
+          "item_detail": "{integration}, found by {source}",
+          "scan_usb": "Scan USB devices again",
+          "scanning": "Scanning",
+          "source": {
+            "bluetooth": "Bluetooth",
+            "dhcp": "a network scan",
+            "discovery": "discovery",
+            "esphome": "ESPHome",
+            "hardware": "this hardware",
+            "hassio": "an app",
+            "homekit": "HomeKit",
+            "integration_discovery": "an integration",
+            "mqtt": "MQTT",
+            "ssdp": "the network",
+            "unignore": "an earlier skip",
+            "usb": "USB",
+            "zeroconf": "the network",
+            "other": "the network"
+          }
         },
         "restore": {
           "header": "Restore a backup",

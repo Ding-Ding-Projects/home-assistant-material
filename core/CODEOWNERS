@@ -1484,6 +1484,8 @@ CLAUDE.md @home-assistant/core
 /tests/components/panel_custom/ @home-assistant/frontend
 /homeassistant/components/paperless_ngx/ @fvgarrel
 /tests/components/paperless_ngx/ @fvgarrel
+/homeassistant/components/passkey/ @home-assistant/core
+/tests/components/passkey/ @home-assistant/core
 /homeassistant/components/peblar/ @frenck
 /tests/components/peblar/ @frenck
 /homeassistant/components/peco/ @IceBotYT

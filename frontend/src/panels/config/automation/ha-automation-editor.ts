@@ -75,6 +75,8 @@ import type { Entries, ValueChangedEvent } from "../../../types";
 import { isMac } from "../../../util/is_mac";
 import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import { showEditorToast } from "./editor-toast";
+import { motionAlertStyles } from "./motion-styles";
+import { beginRun, getErrorMessage } from "./run-helpers";
 import { showAssignCategoryDialog } from "../category/show-dialog-assign-category";
 import { showAutomationModeDialog } from "./automation-mode-dialog/show-dialog-automation-mode";
 import { showAutomationSaveDialog } from "./automation-save-dialog/show-dialog-automation-save";
@@ -902,27 +904,33 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     }
   }
 
-  private _runningActions = false;
-
   /** Runs the saved automation, never what is currently on screen. */
   private async _runActions() {
     const stateObj = this.currentEntityId
       ? this.hass?.states[this.currentEntityId]
       : undefined;
-    if (!stateObj || this._runningActions) {
+    if (!stateObj) {
       return;
     }
     const prefix = "ui.panel.config.automation.editor.status_bar.";
     const localize = this.hass.localize;
+    if (this.isDirtyState) {
+      // Same rule as the status bar: a run uses the saved version only.
+      showEditorToast(this, {
+        message: localize(`${prefix}run_dirty`),
+        duration: 6000,
+      });
+      return;
+    }
+    const release = beginRun(stateObj.entity_id);
+    if (!release) {
+      return;
+    }
     const name = this.config?.alias || stateObj.attributes.friendly_name || "";
-    this._runningActions = true;
     try {
       const notes = [localize(`${prefix}run_confirm_text`, { name })];
       if (stateObj.state === "off") {
         notes.push(localize(`${prefix}run_confirm_off`));
-      }
-      if (this.isDirtyState) {
-        notes.push(localize(`${prefix}run_confirm_unsaved`));
       }
       const confirmed = await showConfirmationDialog(this, {
         title: localize(`${prefix}run_confirm_title`),
@@ -946,13 +954,13 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       } catch (err: unknown) {
         showEditorToast(this, {
           message: localize(`${prefix}run_failed`, {
-            message: err instanceof Error ? err.message : String(err),
+            message: getErrorMessage(err),
           }),
           duration: 6000,
         });
       }
     } finally {
-      this._runningActions = false;
+      release();
     }
   }
 
@@ -1415,6 +1423,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      motionAlertStyles,
       automationScriptEditorStyles,
       css`
         manual-automation-editor,

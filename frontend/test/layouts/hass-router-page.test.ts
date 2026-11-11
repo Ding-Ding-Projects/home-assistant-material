@@ -494,12 +494,11 @@ describe("shouldShowNotFound", () => {
   const base = {
     hasRoute: true,
     path: "/missing",
-    defaultPage: undefined,
     hasRouteOptions: false,
     hasHass: true,
   };
 
-  it("shows for an unknown sub-route with no default page", () => {
+  it("shows for an unknown sub-route", () => {
     expect(shouldShowNotFound(base)).toBe(true);
   });
 
@@ -507,19 +506,118 @@ describe("shouldShowNotFound", () => {
     expect(shouldShowNotFound({ ...base, hasRouteOptions: true })).toBe(false);
   });
 
-  it("does not show for the empty path", () => {
+  it("does not show for the empty page, with or without a slash", () => {
     expect(shouldShowNotFound({ ...base, path: "" })).toBe(false);
-  });
-
-  it("does not show when a default page exists", () => {
-    expect(shouldShowNotFound({ ...base, defaultPage: "dashboard" })).toBe(
-      false
-    );
+    expect(shouldShowNotFound({ ...base, path: "/" })).toBe(false);
   });
 
   it("does not show without a route or without hass", () => {
     expect(shouldShowNotFound({ ...base, hasRoute: false })).toBe(false);
     expect(shouldShowNotFound({ ...base, hasHass: false })).toBe(false);
+  });
+});
+
+let resolveSlowImport: () => void;
+const slowImport = new Promise<void>((resolve) => {
+  resolveSlowImport = resolve;
+});
+
+class HomePanel extends HTMLElement {}
+class SlowPanel extends HTMLElement {}
+class NotFoundStub extends HTMLElement {}
+
+// A router with a default page, like nearly every router in the app.
+class DefaultPageRouter extends HassRouterPage {
+  @property({ attribute: false }) public hass: object = {};
+
+  protected routerOptions: RouterOptions = {
+    defaultPage: "home",
+    routes: {
+      home: { tag: "test-home-panel" },
+      slow: { tag: "test-slow-panel", load: () => slowImport },
+      old: "home",
+    },
+  };
+
+  protected createNotFoundScreen() {
+    return document.createElement("test-not-found-stub") as never;
+  }
+}
+
+// A router that redirects unknown pages itself, as the marketplace one does.
+class RedirectingRouter extends HassRouterPage {
+  @property({ attribute: false }) public hass: object = {};
+
+  protected routerOptions: RouterOptions = {
+    defaultPage: "home",
+    beforeRender: (page) => (page === "home" ? undefined : "home"),
+    routes: { home: { tag: "test-home-panel" } },
+  };
+
+  protected createNotFoundScreen() {
+    return document.createElement("test-not-found-stub") as never;
+  }
+}
+
+customElements.define("test-home-panel", HomePanel);
+customElements.define("test-slow-panel", SlowPanel);
+customElements.define("test-not-found-stub", NotFoundStub);
+customElements.define("test-default-page-router", DefaultPageRouter);
+customElements.define("test-redirecting-router", RedirectingRouter);
+
+describe("HassRouterPage with a default page", () => {
+  const mount = async <T extends HassRouterPage>(tag: string, path: string) => {
+    const element = document.createElement(tag) as T;
+    element.route = { prefix: "/x", path };
+    document.body.append(element);
+    await element.updateComplete;
+    return element;
+  };
+
+  it("shows the default page for the empty page, with or without a slash", async () => {
+    const elements = await Promise.all(
+      ["", "/"].map((path) => mount("test-default-page-router", path))
+    );
+    elements.forEach((element) => {
+      expect(element.lastElementChild).toBeInstanceOf(HomePanel);
+      element.remove();
+    });
+  });
+
+  it("shows the not found screen for an unknown page", async () => {
+    const element = await mount("test-default-page-router", "/xyz");
+    expect(element.lastElementChild).toBeInstanceOf(NotFoundStub);
+    expect(element.children.length).toBe(1);
+
+    // Navigating on to a known page replaces it.
+    element.route = { prefix: "/x", path: "/home" };
+    await element.updateComplete;
+    expect(element.lastElementChild).toBeInstanceOf(HomePanel);
+    expect(element.children.length).toBe(1);
+    element.remove();
+  });
+
+  it("does not flash the not found screen while a page loads or redirects", async () => {
+    const element = await mount("test-default-page-router", "/slow");
+    // The page is shown right away while its module loads.
+    expect(element.lastElementChild).toBeInstanceOf(SlowPanel);
+    expect(element.querySelector("test-not-found-stub")).toBeNull();
+    resolveSlowImport();
+    await slowImport;
+
+    // A redirect alias to a known page resolves to that page.
+    element.route = { prefix: "/x", path: "/old" };
+    await element.updateComplete;
+    expect(element.lastElementChild).toBeInstanceOf(HomePanel);
+    expect(element.querySelector("test-not-found-stub")).toBeNull();
+    element.remove();
+  });
+
+  it("keeps a router that redirects unknown pages itself", async () => {
+    const element = await mount("test-redirecting-router", "/xyz");
+    expect(element.lastElementChild).toBeInstanceOf(HomePanel);
+    expect(element.querySelector("test-not-found-stub")).toBeNull();
+    element.remove();
   });
 });
 

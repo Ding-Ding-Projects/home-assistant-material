@@ -1,5 +1,5 @@
 import deepClone from "deep-clone-simple";
-import type { LitElement } from "lit";
+import type { LitElement, PropertyValues } from "lit";
 import { property, state } from "lit/decorators";
 import { ensureArray } from "../../../common/array/ensure-array";
 import { storage } from "../../../common/decorators/storage";
@@ -7,6 +7,11 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import { nextRender } from "../../../common/util/render-status";
 import type { AutomationClipboard } from "../../../data/automation";
 import type { Constructor, HomeAssistant } from "../../../types";
+import {
+  animateRowMoves,
+  markEnteringRows,
+  measureRows,
+} from "./motion-helpers";
 
 const rowKeys = new WeakMap<object, string>();
 
@@ -90,6 +95,8 @@ export const AutomationSortableListMixin = <T extends object>(
 
     protected focusItemIndexOnChange?: number;
 
+    private _knownRowKeys?: Set<string>;
+
     protected get items(): T[] {
       throw new Error("Not implemented");
     }
@@ -102,12 +109,46 @@ export const AutomationSortableListMixin = <T extends object>(
       return getAutomationRowKey(item);
     }
 
+    private _getRows(): HTMLElement[] {
+      return Array.from(
+        this.renderRoot.querySelectorAll<HTMLElement>(".rows > *:not(.buttons)")
+      );
+    }
+
+    protected updated(changedProps: PropertyValues<this>) {
+      super.updated(changedProps);
+      const items = this.items;
+      if (!Array.isArray(items)) {
+        return;
+      }
+      this._knownRowKeys = markEnteringRows(
+        this._getRows(),
+        items.map((item) => this.getKey(item)),
+        this._knownRowKeys
+      );
+    }
+
+    // Moves a row by keyboard and plays the move, since no drag animates it.
+    private _moveWithMotion(oldIndex: number, newIndex: number) {
+      const rows = this._getRows();
+      const before = measureRows(
+        rows.slice(
+          Math.max(0, Math.min(oldIndex, newIndex) - 1),
+          Math.max(oldIndex, newIndex) + 2
+        )
+      );
+      this.move(oldIndex, newIndex);
+      this.updateComplete.then(() => {
+        animateRowMoves(this._getRows(), before);
+      });
+    }
+
     protected moveUp(ev) {
       ev.stopPropagation();
       const index = (ev.target as any).index;
       if (!(ev.target as any).first) {
         const newIndex = index - 1;
-        this.move(index, newIndex);
+        this._moveWithMotion(index, newIndex);
         if (this.rowSortSelected === index) {
           this.rowSortSelected = newIndex;
         }
@@ -120,7 +161,7 @@ export const AutomationSortableListMixin = <T extends object>(
       const index = (ev.target as any).index;
       if (!(ev.target as any).last) {
         const newIndex = index + 1;
-        this.move(index, newIndex);
+        this._moveWithMotion(index, newIndex);
         if (this.rowSortSelected === index) {
           this.rowSortSelected = newIndex;
         }

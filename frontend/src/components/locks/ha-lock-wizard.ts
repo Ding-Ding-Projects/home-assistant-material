@@ -131,6 +131,9 @@ export class HaLockWizard extends LitElement {
 
   @state() private _trying = false;
 
+  /** Bumped whenever credentials or the step change, to drop a late result. */
+  private _tryGeneration = 0;
+
   @state() private _totpSecret = newTotpSecret();
 
   @state() private _totpChecked = false;
@@ -516,9 +519,10 @@ export class HaLockWizard extends LitElement {
     const read = (name: string) =>
       this.renderRoot.querySelector<HaInput>(`ha-input[name='${name}']`)
         ?.value ?? "";
+    const generation = this._tryGeneration;
     this._trying = true;
     try {
-      this._tryResult = await tryNewLock(
+      const result = await tryNewLock(
         {
           key: this.target.key,
           label: this.target.label,
@@ -539,9 +543,22 @@ export class HaLockWizard extends LitElement {
         },
         Date.now()
       );
+      // A result for credentials the person has since changed or left behind
+      // must not mark the new ones as tried.
+      if (generation === this._tryGeneration) {
+        this._tryResult = result;
+      }
     } finally {
-      this._trying = false;
+      if (generation === this._tryGeneration) {
+        this._trying = false;
+      }
     }
+  }
+
+  /** Drops any "Try it" still running: its result is ignored when it arrives. */
+  private _invalidateTry(): void {
+    this._tryGeneration += 1;
+    this._trying = false;
   }
 
   private _renderCreate(): TemplateResult {
@@ -773,6 +790,7 @@ export class HaLockWizard extends LitElement {
   }
 
   private _resetCredentials(): void {
+    this._invalidateTry();
     this._pin = "";
     this._password = "";
     this._passwordRepeat = "";
@@ -853,6 +871,7 @@ export class HaLockWizard extends LitElement {
   private _openStep(ev: Event): void {
     const index = Number((ev.currentTarget as HTMLElement).dataset.step);
     this._error = "";
+    this._invalidateTry();
     if (index === CREATE) {
       // Credentials are made again, in order.
       this._resetCredentials();
@@ -863,6 +882,7 @@ export class HaLockWizard extends LitElement {
 
   private _back(): void {
     this._error = "";
+    this._invalidateTry();
     if (this._step === TARGET) {
       this._close();
       return;
@@ -889,6 +909,9 @@ export class HaLockWizard extends LitElement {
 
   private async _next(): Promise<void> {
     this._error = "";
+    if (this._step !== TRY) {
+      this._invalidateTry();
+    }
     if (this._step === CREATE) {
       await this._nextCredential();
       return;

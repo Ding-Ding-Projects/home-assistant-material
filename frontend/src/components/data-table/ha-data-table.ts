@@ -258,7 +258,9 @@ export class HaDataTable extends LitElement {
 
   @state() private _lastSelectedRowId: string | null = null;
 
-  private _checkableRowsCount?: number;
+  // Counts how often the search and filters produced a new set of rows, so
+  // the ids derived from them are computed once per change.
+  private _filteredVersion = 0;
 
   private _checkedRows: string[] = [];
 
@@ -293,17 +295,52 @@ export class HaDataTable extends LitElement {
     this._checkedRowsChanged();
   }
 
-  /** How many rows the search and filters leave in the table now. */
+  /**
+   * How many rows the search and filters leave in the table now, not counting
+   * rows inside collapsed groups.
+   */
   public get filteredRowCount(): number {
-    return (this._filteredData || []).filter((row) => !row.append).length;
+    return this._shownRows(
+      this._filteredVersion,
+      this._collapsedGroups,
+      this.groupColumn,
+      this.id
+    ).count;
   }
 
-  /** The identifiers of the selectable rows the table shows now. */
+  /**
+   * The identifiers of the selectable rows the table shows now. Rows inside
+   * collapsed groups are left out, as the person cannot see them. The list is
+   * computed once per change of the filtered rows or the collapsed groups.
+   */
   public getFilteredRowIds(): string[] {
-    return (this._filteredData || [])
-      .filter((row) => !row.append && row.selectable !== false)
-      .map((row) => String(row[this.id]));
+    return this._shownRows(
+      this._filteredVersion,
+      this._collapsedGroups,
+      this.groupColumn,
+      this.id
+    ).ids;
   }
+
+  private _shownRows = memoizeOne(
+    (
+      _version: number,
+      collapsedGroups: string[],
+      groupColumn: string | undefined,
+      idKey: string
+    ) => {
+      const collapsed = new Set(collapsedGroups);
+      const rows = (this._filteredData || []).filter(
+        (row) =>
+          !row.append &&
+          !(groupColumn && collapsed.has(dataTableGroupKey(row[groupColumn])))
+      );
+      const ids = rows
+        .filter((row) => row.selectable !== false)
+        .map((row) => String(row[idKey]));
+      return { count: rows.length, ids, idSet: new Set(ids) };
+    }
+  );
 
   /** Replaces the ticked rows with exactly these identifiers. */
   public setCheckedRowIds(ids: string[]): void {
@@ -440,10 +477,6 @@ export class HaDataTable extends LitElement {
           this._checkedRowsChanged();
         }
       }
-
-      this._checkableRowsCount = this.data.filter(
-        (row) => row.selectable !== false
-      ).length;
     }
 
     if (!this.hasUpdated && this.initialCollapsedGroups) {
@@ -544,6 +577,9 @@ export class HaDataTable extends LitElement {
         )
       : [];
 
+    // The header checkbox covers the rows the table shows, like the bulk bar
+    const headerCheckState = this._headerCheckState();
+
     // The pinned group header is the same row as its group's header
     const stickyGroupIndex =
       this._stickyGroup === undefined
@@ -603,15 +639,9 @@ export class HaDataTable extends LitElement {
                           class="mdc-data-table__row-checkbox"
                           @change=${this._handleHeaderRowCheckboxClick}
                           .indeterminate=${
-                            !!this._checkedRows.length &&
-                            this._checkedRows.length !==
-                              this._checkableRowsCount
+                            headerCheckState.some && !headerCheckState.all
                           }
-                          .checked=${
-                            !!this._checkedRows.length &&
-                            this._checkedRows.length ===
-                              this._checkableRowsCount
-                          }
+                          .checked=${headerCheckState.all}
                         >
                         </ha-checkbox>
                       </div>
@@ -1088,6 +1118,7 @@ export class HaDataTable extends LitElement {
 
     this._lastUpdate = startTime;
     this._filteredData = data;
+    this._filteredVersion += 1;
     this._filteredDataSourceLength = sourceData.length;
     fireEvent(this, "filtered-rows-changed");
   }
@@ -1269,14 +1300,39 @@ export class HaDataTable extends LitElement {
     }
   }
 
+  /** Whether none, some or all of the shown rows are ticked. */
+  private _headerCheckState(): { some: boolean; all: boolean } {
+    if (!this.selectable || !this._checkedRows.length) {
+      return { some: false, all: false };
+    }
+    const { ids, idSet } = this._shownRows(
+      this._filteredVersion,
+      this._collapsedGroups,
+      this.groupColumn,
+      this.id
+    );
+    if (!ids.length) {
+      return { some: false, all: false };
+    }
+    const ticked = this._checkedRows.filter((id) => idSet.has(id)).length;
+    return { some: ticked > 0, all: ticked === ids.length };
+  }
+
   private _handleHeaderRowCheckboxClick(ev: HASSDomTargetEvent<HaCheckbox>) {
+    const { ids, idSet } = this._shownRows(
+      this._filteredVersion,
+      this._collapsedGroups,
+      this.groupColumn,
+      this.id
+    );
     if (ev.target.checked) {
-      this.selectAll();
+      // Rows the search or filters hide keep the state they had
+      this._checkedRows = [...new Set([...this._checkedRows, ...ids])];
     } else {
-      this._checkedRows = [];
-      this._checkedRowsChanged();
+      this._checkedRows = this._checkedRows.filter((id) => !idSet.has(id));
     }
     this._lastSelectedRowId = null;
+    this._checkedRowsChanged();
   }
 
   private _handleRowCheckboxClicked = (ev: MouseEvent) => {

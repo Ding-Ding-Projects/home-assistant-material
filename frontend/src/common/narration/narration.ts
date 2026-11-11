@@ -107,6 +107,8 @@ const THREE_LETTER: Record<string, string> = {
   kor: "ko",
   swe: "sv",
   nor: "no",
+  nob: "nb",
+  nno: "nn",
   dan: "da",
   fin: "fi",
   pol: "pl",
@@ -125,14 +127,56 @@ const THREE_LETTER: Record<string, string> = {
   cat: "ca",
 };
 
+/** Three-letter region codes that some engines report, mapped to two letters. */
+const THREE_LETTER_REGION: Record<string, string> = {
+  hkg: "hk",
+  twn: "tw",
+  chn: "cn",
+  sgp: "sg",
+  mac: "mo",
+  usa: "us",
+  gbr: "gb",
+  aus: "au",
+  can: "ca",
+  irl: "ie",
+  nzl: "nz",
+  ind: "in",
+  zaf: "za",
+  deu: "de",
+  aut: "at",
+  che: "ch",
+  fra: "fr",
+  bel: "be",
+  esp: "es",
+  mex: "mx",
+  arg: "ar",
+  prt: "pt",
+  bra: "br",
+  ita: "it",
+  nld: "nl",
+  nor: "no",
+  swe: "se",
+  dnk: "dk",
+  fin: "fi",
+  pol: "pl",
+  rus: "ru",
+  jpn: "jp",
+  kor: "kr",
+};
+
 /**
  * Splits a language tag into lower-case subtags, using `-` for `_`, and maps
- * a three-letter language code to its two-letter form.
+ * a three-letter language code or region code to its two-letter form.
  */
 export const languageSubtags = (tag: string): string[] => {
   const parts = (tag || "").toLowerCase().split(/[-_]/).filter(Boolean);
   if (parts.length) {
     parts[0] = THREE_LETTER[parts[0]] ?? parts[0];
+  }
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i].length === 3) {
+      parts[i] = THREE_LETTER_REGION[parts[i]] ?? parts[i];
+    }
   }
   return parts;
 };

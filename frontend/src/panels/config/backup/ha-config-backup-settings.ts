@@ -35,6 +35,10 @@ import type { BackupConfigData } from "./components/config/ha-backup-config-data
 import "./components/config/ha-backup-config-schedule";
 import type { BackupConfigSchedule } from "./components/config/ha-backup-config-schedule";
 import { showLocalBackupLocationDialog } from "./dialogs/show-dialog-local-backup-location";
+import {
+  agentsBlockedWithoutKey,
+  dropAgentsRequiringEncryption,
+} from "./helper/backup-encryption";
 
 @customElement("ha-config-backup-settings")
 class HaConfigBackupSettings extends LitElement {
@@ -226,6 +230,7 @@ class HaConfigBackupSettings extends LitElement {
                   .hass=${this.hass}
                   .value=${this._config.create_backup.agent_ids}
                   .agentsConfig=${this._config.agents}
+                  .hasEncryptionKey=${!!this._config.create_backup.password}
                   .cloudStatus=${this.cloudStatus}
                   .agents=${this.agents}
                   @value-changed=${this._agentsConfigChanged}
@@ -347,6 +352,12 @@ class HaConfigBackupSettings extends LitElement {
                 <ha-backup-config-encryption-key
                   .hass=${this.hass}
                   .value=${this._config.create_backup.password}
+                  .cloudSelected=${
+                    agentsBlockedWithoutKey(
+                      this._config.create_backup.agent_ids,
+                      false
+                    ).length > 0
+                  }
                   @value-changed=${this._encryptionKeyChanged}
                 ></ha-backup-config-encryption-key>
               </div>
@@ -364,6 +375,10 @@ class HaConfigBackupSettings extends LitElement {
       create_backup: {
         ...this._config!.create_backup,
         password,
+        agent_ids: dropAgentsRequiringEncryption(
+          this._config!.create_backup.agent_ids,
+          !!password
+        ),
       },
     };
     this._debounceSave();

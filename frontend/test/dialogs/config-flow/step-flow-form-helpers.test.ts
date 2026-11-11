@@ -121,6 +121,74 @@ describe("secrets", () => {
   });
 });
 
+describe("wider secret detection and structured values", () => {
+  it.each([
+    "pin",
+    "passphrase",
+    "key",
+    "access_code",
+    "psk",
+    "otp",
+    "credentials",
+    "private_key",
+  ])("treats %s as secret", (name) => {
+    expect(isSecretField({ name, type: "string" })).toBe(true);
+  });
+
+  it("treats a one-time-code autocomplete as secret", () => {
+    expect(
+      isSecretField({
+        name: "x",
+        selector: { text: { autocomplete: "one-time-code" } },
+      })
+    ).toBe(true);
+    expect(isSecretField({ name: "keypad_name", type: "string" })).toBe(false);
+  });
+
+  it("says how many entries an object or list of objects has", () => {
+    const schema: HaFormSchema[] = [
+      { name: "extra", selector: { object: {} } },
+      { name: "rows", selector: { object: {} } },
+      { name: "tags", type: "string" },
+    ];
+    const entries = buildSummary(
+      schema,
+      {
+        extra: { password: "hunter2", a: 1 },
+        rows: [{ pin: "1234" }, { pin: "5678" }, { pin: "9" }],
+        tags: ["a", "b"],
+      },
+      new Set()
+    );
+    expect(entries).toEqual([
+      { name: "extra", kind: "entries", count: 2 },
+      { name: "rows", kind: "entries", count: 3 },
+      { name: "tags", kind: "text", text: "a, b" },
+    ]);
+    expect(JSON.stringify(entries)).not.toMatch(/hunter2|1234/);
+  });
+});
+
+describe("validateField edge cases", () => {
+  it("treats null as empty and an optionless select as valid", () => {
+    expect(
+      validateField({ name: "a", type: "string", required: true }, null)
+    ).toEqual({
+      code: "required",
+    });
+    expect(validateField({ name: "a", type: "string" }, null)).toBe(undefined);
+    expect(
+      validateField({ name: "a", selector: { select: { options: [] } } }, "x")
+    ).toBe(undefined);
+    expect(
+      validateField(
+        { name: "a", selector: { select: { options: ["b"] } } },
+        "x"
+      )
+    ).toEqual({ code: "invalid_option" });
+  });
+});
+
 describe("describeStepProgress", () => {
   it("never invents a total", () => {
     expect(describeStepProgress(2, null)).toEqual({

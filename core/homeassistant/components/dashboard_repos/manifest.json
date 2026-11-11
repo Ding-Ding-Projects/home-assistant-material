@@ -1,0 +1,9 @@
+{
+  "domain": "dashboard_repos",
+  "name": "Dashboard repositories",
+  "codeowners": [],
+  "dependencies": ["automation_repos", "lovelace", "websocket_api"],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/dashboard-history/README.md",
+  "integration_type": "system",
+  "quality_scale": "internal"
+}

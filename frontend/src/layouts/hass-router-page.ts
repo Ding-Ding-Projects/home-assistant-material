@@ -8,8 +8,11 @@ import type { HomeAssistant, Route } from "../types";
 import { recoverFromStaleBuild } from "../util/recover-stale-build";
 import { PanelReady } from "./panel-ready";
 
+/** The empty page: no page named at all, with or without a trailing slash. */
+const isEmptyPage = (path: string) => path === "" || path === "/";
+
 const extractPage = (path: string, defaultPage: string) => {
-  if (path === "") {
+  if (isEmptyPage(path)) {
     return defaultPage;
   }
   const subpathStart = path.indexOf("/", 1);
@@ -50,23 +53,21 @@ export interface RouterOptions {
  * Decide whether an unknown sub-route should show the page not found screen.
  *
  * It shows only when the router was mounted on a route, the requested page
- * has no route entry (after redirects and `beforeRender`), the path is not
- * empty, the router has no default page to fall back to, and the router can
- * provide `hass` for the screen's text. An empty path is left alone because
- * it redirects to the default page or is deliberately blank, and a page that
- * is still loading always has a route entry, so it never reaches this check.
+ * has no route entry (after redirects and `beforeRender`), the path names a
+ * page, and the router can provide `hass` for the screen's text. A default
+ * page never hides it: the empty page (path "" or "/") is the one that takes
+ * the default page, an unknown page is not found. A page that is still loading
+ * always has a route entry, so it never reaches this check.
  */
 export const shouldShowNotFound = (options: {
   hasRoute: boolean;
   path: string;
-  defaultPage?: string;
   hasRouteOptions: boolean;
   hasHass: boolean;
 }): boolean =>
   options.hasRoute &&
   !options.hasRouteOptions &&
-  options.path !== "" &&
-  options.defaultPage === undefined &&
+  !isEmptyPage(options.path) &&
   options.hasHass;
 
 // Time to wait for code to load before we show loading screen.
@@ -192,7 +193,6 @@ export class HassRouterPage extends ReactiveElement {
         shouldShowNotFound({
           hasRoute: true,
           path: route.path,
-          defaultPage,
           hasRouteOptions: false,
           hasHass: this._getHass() !== undefined,
         })

@@ -8,6 +8,7 @@ import type { HomeAssistant, Route } from "../../types";
 import "./ha-change-password-card";
 import "./ha-long-lived-access-tokens-card";
 import "./ha-mfa-modules-card";
+import "./ha-passkeys-card";
 import "./ha-profile-tabs";
 import "./ha-refresh-tokens-card";
 
@@ -64,6 +65,7 @@ class HaProfileSectionSecurity extends LitElement {
                 .hass=${this.hass}
                 .mfaModules=${this.hass.user!.mfa_modules}
               ></ha-mfa-modules-card>
+              <ha-passkeys-card .hass=${this.hass}></ha-passkeys-card>
             </div>
             <div class="column">
               <ha-refresh-tokens-card

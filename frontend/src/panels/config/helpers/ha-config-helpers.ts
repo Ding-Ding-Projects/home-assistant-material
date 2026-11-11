@@ -793,6 +793,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         @clear-filter=${this._clearFilter}
         @row-click=${this._openEditDialog}
         @filtered-rows-changed=${this._filteredRowsChanged}
+        ?bulk-bar=${this._selected.length > 0}
         sync-url
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}

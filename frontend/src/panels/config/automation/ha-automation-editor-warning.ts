@@ -2,6 +2,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-alert";
+import { motionAlertStyles } from "./motion-styles";
 
 @customElement("ha-automation-editor-warning")
 export class HaAutomationEditorWarning extends LitElement {
@@ -32,14 +33,17 @@ export class HaAutomationEditorWarning extends LitElement {
     `;
   }
 
-  static styles = css`
-    ul {
-      max-height: 160px;
-      overflow-y: auto;
-      overflow-wrap: anywhere;
-      outline-offset: -2px;
-    }
-  `;
+  static styles = [
+    motionAlertStyles,
+    css`
+      ul {
+        max-height: 160px;
+        overflow-y: auto;
+        overflow-wrap: anywhere;
+        outline-offset: -2px;
+      }
+    `,
+  ];
 }
 
 declare global {

@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { isSecretFieldLike } from "../../../common/secret-fields";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-form/ha-form";
@@ -35,12 +36,14 @@ import type {
   GuidedDraft,
   GuidedStep,
   LeafField,
+  SummaryLine,
 } from "./guided-setup-logic";
 import {
   buildSummary,
   canJumpTo,
   clearDraft,
   decorateField,
+  defaultText,
   draftKey,
   fieldHint,
   getAt,
@@ -137,6 +140,8 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private _checkRun = 0;
 
+  private _reviewRun = 0;
+
   private _initialData = "{}";
 
   public connectedCallback(): void {
@@ -175,6 +180,13 @@ export class HaGuidedSetupWizard extends LitElement {
   };
 
   private _reset(): void {
+    // A timer from the previous integration must not store or check anything
+    // for the new one, and a reply still on its way is stale.
+    window.clearTimeout(this._checkTimer);
+    window.clearTimeout(this._draftTimer);
+    this._checkRun++;
+    this._reviewRun++;
+    this._checking = false;
     this._form = undefined;
     this._kind = undefined;
     this._errors = [];
@@ -354,19 +366,12 @@ export class HaGuidedSetupWizard extends LitElement {
     if (leaf) {
       parts.push(this._msg(fieldHint(leaf)));
     }
-    if (
-      loose.default !== undefined &&
-      loose.default !== null &&
-      !leaf?.secret
-    ) {
-      parts.push(
-        this._l("default", {
-          value:
-            typeof loose.default === "object"
-              ? JSON.stringify(loose.default)
-              : String(loose.default),
-        })
-      );
+    const shown = defaultText(
+      loose.default,
+      leaf?.secret ?? isSecretFieldLike(loose)
+    );
+    if (shown !== undefined) {
+      parts.push(this._l("default", { value: shown }));
     }
     return parts.join(". ");
   };
@@ -404,6 +409,10 @@ export class HaGuidedSetupWizard extends LitElement {
   }
 
   private _dataEdited(): void {
+    // Anything still on its way was asked about older data.
+    this._checkRun++;
+    this._reviewRun++;
+    this._checking = false;
     this._scheduleCheck();
     this._scheduleDraft();
   }
@@ -425,6 +434,8 @@ export class HaGuidedSetupWizard extends LitElement {
       return;
     }
     const run = ++this._checkRun;
+    const payload = this._payload();
+    const sent = JSON.stringify(payload);
     this._checking = true;
     try {
       const result = await validateGuidedSetup(
@@ -433,9 +444,10 @@ export class HaGuidedSetupWizard extends LitElement {
           domain: this.integration.domain,
           entity_domain: this._entityDomain,
         },
-        this._payload()
+        payload
       );
-      if (run === this._checkRun) {
+      // Only a reply to the data that is on screen now may paint errors.
+      if (run === this._checkRun && sent === JSON.stringify(this._payload())) {
         this._errors = result.errors;
       }
     } catch (_err) {
@@ -449,13 +461,18 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private _scheduleDraft(): void {
     window.clearTimeout(this._draftTimer);
-    if (this.entry || this._saved) {
+    // Typed YAML is free-form and can hold a secret under any key, so a form
+    // that is not serializable never gets a draft in browser storage.
+    if (this.entry || this._saved || !this._form?.serializable) {
       return;
     }
     this._draftTimer = window.setTimeout(() => this._storeDraft(), DRAFT_DELAY);
   }
 
   private _storeDraft(): void {
+    if (!this._form?.serializable) {
+      return;
+    }
     const key = draftKey(this.integration.domain, this._entityDomain);
     if (!hasContent(this._data)) {
       clearDraft(browserStorage(), key);
@@ -626,8 +643,10 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private async _review(): Promise<void> {
     this._busy = true;
+    const run = ++this._reviewRun;
     try {
       const data = this._payload();
+      const sent = JSON.stringify(data);
       const result = await validateGuidedSetup(
         this.hass,
         {
@@ -636,6 +655,11 @@ export class HaGuidedSetupWizard extends LitElement {
         },
         data
       );
+      // The options changed while the server was asked: this reply and its
+      // YAML belong to older data, so it must not move the wizard on.
+      if (run !== this._reviewRun || sent !== JSON.stringify(this._payload())) {
+        return;
+      }
       this._errors = result.errors;
       this._yaml = result.yaml;
       if (result.valid) {
@@ -742,6 +766,16 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private _close(): void {
     fireEvent(this, "guided-setup-closed");
+  }
+
+  private _summaryValue(line: SummaryLine): string {
+    if (line.secret) {
+      return this._l("summary_set");
+    }
+    if (line.entries !== undefined) {
+      return this._l("summary_entries", { count: line.entries });
+    }
+    return line.value ?? "";
   }
 
   private _formatWhen(time: number): string {
@@ -909,7 +943,7 @@ export class HaGuidedSetupWizard extends LitElement {
                       const leaf = leaves.find(
                         (item) => pathKey(item.path) === key
                       );
-                      return leaf ? this._labelOf(leaf) : key;
+                      return leaf ? this._labelOf(leaf) : humanize(key);
                     })
                     .join(", "),
                 })}
@@ -981,14 +1015,9 @@ export class HaGuidedSetupWizard extends LitElement {
                 ${this._l(leaf.required ? "required" : "optional")}.
                 ${this._msg(fieldHint(leaf))}
                 ${
-                  leaf.default !== undefined &&
-                  leaf.default !== null &&
-                  !leaf.secret
+                  defaultText(leaf.default, leaf.secret) !== undefined
                     ? html` ${this._l("default", {
-                        value:
-                          typeof leaf.default === "object"
-                            ? JSON.stringify(leaf.default)
-                            : String(leaf.default),
+                        value: defaultText(leaf.default, leaf.secret)!,
                       })}`
                     : nothing
                 }
@@ -1006,7 +1035,7 @@ export class HaGuidedSetupWizard extends LitElement {
             (line) =>
               html`<div class="line">
                 <dt>${line.label}</dt>
-                <dd>${line.secret ? this._l("summary_set") : line.value}</dd>
+                <dd>${this._summaryValue(line)}</dd>
               </div>`
           )}
         </dl>`
@@ -1107,7 +1136,7 @@ export class HaGuidedSetupWizard extends LitElement {
             (line) =>
               html`<div class="line">
                 <dt>${line.label}</dt>
-                <dd>${line.secret ? this._l("summary_set") : line.value}</dd>
+                <dd>${this._summaryValue(line)}</dd>
               </div>`
           )}
         </dl>

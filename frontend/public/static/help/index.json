@@ -1,0 +1,227 @@
+{
+ "repo": "home-assistant/home-assistant.io",
+ "commit": "6f38b5b48d737b455deeeeed2e82be53b0cee294",
+ "fetched": "2026-11-11",
+ "articles": [
+  {
+   "path": "/common-tasks/os",
+   "title": "Common tasks - Home Assistant Operating System",
+   "source": "source/common-tasks/os.markdown"
+  },
+  {
+   "path": "/dashboards",
+   "title": "Dashboards",
+   "source": "source/dashboards/index.markdown"
+  },
+  {
+   "path": "/docs/authentication",
+   "title": "Authentication",
+   "source": "source/_docs/authentication.markdown"
+  },
+  {
+   "path": "/docs/automation/editor",
+   "title": "Automation editors",
+   "source": "source/_docs/automation/editor.markdown"
+  },
+  {
+   "path": "/docs/automation/modes",
+   "title": "Automation modes",
+   "source": "source/_docs/automation/modes.markdown"
+  },
+  {
+   "path": "/docs/automation/trigger",
+   "title": "Automation triggers",
+   "source": "source/_docs/automation/trigger.markdown"
+  },
+  {
+   "path": "/docs/automation/using_blueprints",
+   "title": "Using automation blueprints",
+   "source": "source/_docs/automation/using_blueprints.markdown"
+  },
+  {
+   "path": "/docs/configuration/events",
+   "title": "Events",
+   "source": "source/_docs/configuration/events.markdown"
+  },
+  {
+   "path": "/docs/configuration/securing",
+   "title": "Securing your Home Assistant",
+   "source": "source/_docs/configuration/securing.markdown"
+  },
+  {
+   "path": "/docs/energy/battery",
+   "title": "Integrating your home batteries",
+   "source": "source/_docs/energy/battery.markdown"
+  },
+  {
+   "path": "/docs/energy/electricity-grid",
+   "title": "Integrating your electricity grid",
+   "source": "source/_docs/energy/electricity-grid.markdown"
+  },
+  {
+   "path": "/docs/energy/gas",
+   "title": "Integrating your gas usage",
+   "source": "source/_docs/energy/gas.markdown"
+  },
+  {
+   "path": "/docs/energy/individual-devices",
+   "title": "Integrating individual device energy usage",
+   "source": "source/_docs/energy/individual-devices.markdown"
+  },
+  {
+   "path": "/docs/energy/solar-panels",
+   "title": "Integrating your solar panels",
+   "source": "source/_docs/energy/solar-panels.markdown"
+  },
+  {
+   "path": "/docs/energy/water",
+   "title": "Integrating your water usage",
+   "source": "source/_docs/energy/water.markdown"
+  },
+  {
+   "path": "/docs/locked_out",
+   "title": "I'm locked out!",
+   "source": "source/_docs/locked_out.md"
+  },
+  {
+   "path": "/docs/quality_scale",
+   "title": "Quality scale",
+   "source": "source/_docs/quality_scale.markdown"
+  },
+  {
+   "path": "/docs/z-wave/controllers",
+   "title": "Z-Wave adapters",
+   "source": "source/_docs/z-wave/controllers.markdown"
+  },
+  {
+   "path": "/faq/release",
+   "title": "When is the next Home Assistant release?",
+   "source": "source/_faq/release.markdown"
+  },
+  {
+   "path": "/faq/unique_id",
+   "title": "Why does this entity not have a unique ID?",
+   "source": "source/_faq/unique_id.markdown"
+  },
+  {
+   "path": "/getting-started/onboarding",
+   "title": "Onboarding Home Assistant",
+   "source": "source/getting-started/onboarding.markdown"
+  },
+  {
+   "path": "/help",
+   "title": "Get help with Home Assistant",
+   "source": "source/help/index.markdown"
+  },
+  {
+   "path": "/integrations/ai_task",
+   "title": "/integrations/ai_task",
+   "source": "source/_integrations/ai_task.markdown"
+  },
+  {
+   "path": "/integrations/application_credentials",
+   "title": "/integrations/application_credentials",
+   "source": "source/_integrations/application_credentials.markdown"
+  },
+  {
+   "path": "/integrations/backup",
+   "title": "/integrations/backup",
+   "source": "source/_integrations/backup.markdown"
+  },
+  {
+   "path": "/integrations/frontend",
+   "title": "/integrations/frontend",
+   "source": "source/_integrations/frontend.markdown"
+  },
+  {
+   "path": "/integrations/labs",
+   "title": "/integrations/labs",
+   "source": "source/_integrations/labs.markdown"
+  },
+  {
+   "path": "/integrations/marketplace",
+   "title": "/integrations/marketplace",
+   "source": "source/_integrations/marketplace.markdown"
+  },
+  {
+   "path": "/integrations/matter",
+   "title": "/integrations/matter",
+   "source": "source/_integrations/matter.markdown"
+  },
+  {
+   "path": "/integrations/mcp_server",
+   "title": "/integrations/mcp_server",
+   "source": "source/_integrations/mcp_server.markdown"
+  },
+  {
+   "path": "/integrations/person",
+   "title": "/integrations/person",
+   "source": "source/_integrations/person.markdown"
+  },
+  {
+   "path": "/integrations/recorder",
+   "title": "/integrations/recorder",
+   "source": "source/_integrations/recorder.markdown"
+  },
+  {
+   "path": "/integrations/script",
+   "title": "/integrations/script",
+   "source": "source/_integrations/script.markdown"
+  },
+  {
+   "path": "/integrations/tag",
+   "title": "/integrations/tag",
+   "source": "source/_integrations/tag.markdown"
+  },
+  {
+   "path": "/integrations/thread",
+   "title": "/integrations/thread",
+   "source": "source/_integrations/thread.markdown"
+  },
+  {
+   "path": "/integrations/zha",
+   "title": "/integrations/zha",
+   "source": "source/_integrations/zha.markdown"
+  },
+  {
+   "path": "/integrations/zwave_js",
+   "title": "/integrations/zwave_js",
+   "source": "source/_integrations/zwave_js.markdown"
+  },
+  {
+   "path": "/more-info/backup-emergency-kit",
+   "title": "Backup emergency kit",
+   "source": "source/more-info/backup-emergency-kit.markdown"
+  },
+  {
+   "path": "/more-info/local-media/setup-media",
+   "title": "Setting up local media sources",
+   "source": "source/more-info/local-media/setup-media.markdown"
+  },
+  {
+   "path": "/tag",
+   "title": "URL-Based Tag",
+   "source": "source/tag/index.markdown"
+  },
+  {
+   "path": "/voice_control",
+   "title": "Assist - Talk to your smart home with Home Assistant",
+   "source": "source/voice_control/index.markdown"
+  },
+  {
+   "path": "/voice_control/contribute-voice",
+   "title": "Contribute to the Voice initiative",
+   "source": "source/voice_control/contribute-voice.markdown"
+  },
+  {
+   "path": "/voice_control/troubleshooting",
+   "title": "Troubleshooting Assist",
+   "source": "source/voice_control/troubleshooting.markdown"
+  },
+  {
+   "path": "/voice_control/voice_remote_local_assistant",
+   "title": "Set up a fully local voice assistant",
+   "source": "source/voice_control/voice_remote_local_assistant.markdown"
+  }
+ ]
+}

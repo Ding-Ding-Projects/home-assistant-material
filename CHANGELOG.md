@@ -8,6 +8,29 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Dashboards: built-in pages such as Overview have "Edit cards and layout", which makes an
+  editable copy and opens it in the editor. On a phone the edit button sits beside the menu.
+- Dashboards can be exported and imported, and a dashboard file dropped anywhere on the
+  window is imported at once as a new dashboard, with Undo.
+- Every dashboard has its own history, and so has every tab: see what changed, compare two
+  versions and go back. The dashboard's repository carries its tabs with it.
+- Help links open a copy of the article inside the interface. Nothing opens a new tab or
+  another browser for help. The first 44 articles are included, with their source and licence.
+- Passkeys: sign in with a fingerprint, face or security key on a secure address, beside the
+  password, which stays. Add and remove passkeys on the profile page.
+- The automation editor moves: cards open and close smoothly, new steps slide in, results fade
+  in. All of it respects the reduce-motion setting.
+- A page for Minecraft servers under Settings: define servers with a guided form. Starting
+  them comes next.
+- First-run setup no longer offers a cloud restore or links to outside sites, and nothing
+  contacts an outside map service until you press a button that says so.
+- Backups: a storage location that needs encryption is off while encryption is off, and a
+  stored key is never replaced or removed without asking.
+- The selection bar is on the Automations and Scripts lists and no longer covers the last
+  rows. Unknown pages under Settings show a not-found screen.
+- Fixed: a debug log could have contained the key file used by Google setup. Secrets are
+  masked more widely in the setup wizards.
+- The launch screen no longer says the project is from the Open Home Foundation.
 - Google setup: a wizard under Settings sets Google up once for every Google integration.
   A service account key file can switch on the needed services (used once, never stored),
   the page shows the return address to copy, and the client file is read by dropping it.

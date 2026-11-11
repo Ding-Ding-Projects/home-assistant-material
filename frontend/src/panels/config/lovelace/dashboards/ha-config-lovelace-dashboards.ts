@@ -1,11 +1,14 @@
 import {
   mdiDelete,
   mdiDotsVertical,
+  mdiDownload,
   mdiHomeEdit,
   mdiInformationOutline,
   mdiPencil,
   mdiPlus,
+  mdiUpload,
   mdiViewDashboard,
+  mdiViewDashboardEdit,
 } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
@@ -66,6 +69,12 @@ import "../../../../layouts/hass-loading-screen";
 import "../../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../../layouts/hass-tabs-subpage-data-table";
 import type { HomeAssistant, Route } from "../../../../types";
+import {
+  exportDashboard,
+  isGeneratedPage,
+  makeEditableCopy,
+} from "../../../lovelace/import-export/dashboard-actions";
+import { importChosenFile } from "../../../lovelace/import-export/dashboard-file-import";
 import { loadLovelaceResources } from "../../../lovelace/common/load-resources";
 import { loadDashboardStrategyWithCreateSuggestions } from "../../../lovelace/strategies/get-strategy";
 import type { NewDashboardSelection } from "../../dashboard/show-dialog-new-dashboard";
@@ -114,6 +123,9 @@ export class HaConfigLovelaceDashboards extends LitElement {
 
   // How many extra card files are loaded, for the line under the list
   @state() private _resourceCount?: number;
+
+  @query(".import-input")
+  private _importInput?: HTMLInputElement;
 
   @query("hass-tabs-subpage-data-table", true)
   private _dataTable!: HaTabsSubpageDataTable;
@@ -318,6 +330,29 @@ export class HaConfigLovelaceDashboards extends LitElement {
                 action: () => this._handleSetAsDefault(dashboard),
                 disabled: dashboard.default,
               },
+              ...(dashboard.type === "built_in" &&
+              isGeneratedPage(dashboard.url_path)
+                ? [
+                    {
+                      path: mdiViewDashboardEdit,
+                      label: this.hass.localize(
+                        "ui.panel.lovelace.import_export.edit_cards_layout"
+                      ),
+                      action: () => this._handleEditCopy(dashboard),
+                    },
+                  ]
+                : []),
+              ...(dashboard.url_path !== "energy"
+                ? [
+                    {
+                      path: mdiDownload,
+                      label: this.hass.localize(
+                        "ui.panel.lovelace.import_export.export_dashboard"
+                      ),
+                      action: () => this._handleExport(dashboard),
+                    },
+                  ]
+                : []),
               ...(dashboard.type === "built_in"
                 ? [
                     {
@@ -470,12 +505,21 @@ export class HaConfigLovelaceDashboards extends LitElement {
         has-fab
         clickable
       >
-        <ha-dropdown slot="toolbar-icon">
+        <ha-dropdown
+          slot="toolbar-icon"
+          @wa-select=${this._handleToolbarSelect}
+        >
           <ha-icon-button
             slot="trigger"
             .label=${this.hass.localize("ui.common.menu")}
             .path=${mdiDotsVertical}
           ></ha-icon-button>
+          <ha-dropdown-item value="import">
+            <ha-svg-icon slot="icon" .path=${mdiUpload}></ha-svg-icon>
+            ${this.hass.localize(
+              "ui.panel.lovelace.import_export.import_dashboard"
+            )}
+          </ha-dropdown-item>
           <a href="/config/lovelace/resources">
             <ha-dropdown-item>
               ${this.hass.localize(
@@ -490,6 +534,15 @@ export class HaConfigLovelaceDashboards extends LitElement {
           .disabled=${!this._deletableSelected().length}
           @click=${this._removeSelected}
         ></ha-assist-chip>
+        <input
+          slot="toolbar-icon"
+          type="file"
+          class="import-input"
+          accept=".json,.yaml,.yml,application/json"
+          tabindex="-1"
+          aria-hidden="true"
+          @change=${this._handleImportFileChosen}
+        />
         <ha-button slot="fab" size="l" @click=${this._addDashboard}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize(
@@ -586,6 +639,40 @@ export class HaConfigLovelaceDashboards extends LitElement {
   private _retryGetDashboards() {
     this._loading = true;
     this._getDashboards();
+  }
+
+  private _handleToolbarSelect = (ev: CustomEvent) => {
+    if ((ev.detail as { item?: { value?: string } }).item?.value === "import") {
+      this._importInput?.click();
+    }
+  };
+
+  private _handleImportFileChosen = async (ev: Event) => {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Allow choosing the same file again later.
+    input.value = "";
+    if (!file) {
+      return;
+    }
+    await importChosenFile({ hass: this.hass, element: this }, file);
+    await this._getDashboards();
+  };
+
+  private _handleExport(item: DataTableItem) {
+    const dashboard = this._dashboards.find(
+      (res) => res.url_path === item.url_path
+    );
+    void exportDashboard({ hass: this.hass, element: this }, item.url_path, {
+      dashboard,
+    });
+  }
+
+  private async _handleEditCopy(item: DataTableItem) {
+    await makeEditableCopy(
+      { hass: this.hass, element: this },
+      { urlPath: item.url_path, title: item.title }
+    );
   }
 
   private _handleRowClicked(ev: CustomEvent) {
@@ -877,6 +964,9 @@ export class HaConfigLovelaceDashboards extends LitElement {
   }
 
   static styles = css`
+    .import-input {
+      display: none;
+    }
     ha-dropdown a {
       text-decoration: none;
     }

@@ -575,6 +575,13 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
               ${this.hass.localize("ui.panel.config.integrations.caption")}
             </h1>
             <p>${this.hass.localize("ui.panel.config.integrations.summary")}</p>
+            <p>
+              <a href="/config/google-setup"
+                >${this.hass.localize(
+                  "ui.panel.config.google_setup.open_from_integrations"
+                )}</a
+              >
+            </p>
           </header>
           ${
             configEntriesInProgress.length
@@ -1103,6 +1110,9 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         .page-head p {
           margin: var(--ha-space-2) 0 0;
           color: var(--secondary-text-color);
+        }
+        .page-head a {
+          color: var(--primary-color);
         }
         .container {
           display: grid;

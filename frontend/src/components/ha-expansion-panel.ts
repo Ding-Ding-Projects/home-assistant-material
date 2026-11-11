@@ -88,7 +88,12 @@ export class HaExpansionPanel extends LitElement {
     }
   }
 
-  private _handleTransitionEnd() {
+  private _handleTransitionEnd(ev: TransitionEvent) {
+    // Only the panel's own height transition ends the toggle; transitions of
+    // slotted content bubble up here and must not cut the animation short.
+    if (ev.target !== this._container || ev.propertyName !== "height") {
+      return;
+    }
     this._container.style.removeProperty("height");
     this._container.style.overflow = this.expanded ? "initial" : "hidden";
     this._showContent = this.expanded;
@@ -168,7 +173,8 @@ export class HaExpansionPanel extends LitElement {
     }
 
     .summary-icon {
-      transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform var(--ha-animation-duration-fast, 150ms)
+        var(--ha-expansion-easing, cubic-bezier(0.2, 0, 0, 1));
       direction: var(--direction);
       margin-left: 8px;
       margin-inline-start: 8px;
@@ -217,12 +223,18 @@ export class HaExpansionPanel extends LitElement {
     .container {
       padding: var(--expansion-panel-content-padding, 0 8px);
       overflow: hidden;
-      transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition:
+        height var(--ha-animation-duration-normal, 250ms)
+          var(--ha-expansion-easing, cubic-bezier(0.2, 0, 0, 1)),
+        opacity var(--ha-animation-duration-normal, 250ms)
+          var(--ha-expansion-easing, cubic-bezier(0.2, 0, 0, 1));
       height: 0px;
+      opacity: 0;
     }
 
     .container.expanded {
       height: auto;
+      opacity: 1;
     }
 
     .secondary {

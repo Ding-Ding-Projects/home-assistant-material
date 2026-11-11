@@ -62,7 +62,10 @@ const offsetMs = (date: Date, timeZone: string): number => {
 /**
  * The instant at which the wall clock of the given zone reads the given
  * time. A reading skipped by a daylight-saving jump resolves to the moment
- * just after the jump; a repeated reading resolves to its first occurrence.
+ * the clock would have shown that reading had the jump not happened, which is
+ * that reading moved forward by the length of the jump (02:30 becomes 03:30
+ * for a one hour jump, and 03:00 for a 30 minute one). A repeated reading
+ * resolves to its first occurrence.
  */
 export const zonedWallTimeToDate = (
   timeZone: string,
@@ -94,7 +97,7 @@ export const zonedWallTimeToDate = (
   if (matching.length) {
     return new Date(matching[0]);
   }
-  // Skipped reading: use the offset from before the jump, which lands after it
+  // Skipped reading: the offset from before the jump puts it after the jump
   return new Date(wall - before);
 };
 
@@ -144,6 +147,17 @@ export const parseCalendarValue = (
     return new Date(`${value}T00:00:00`);
   }
   if (/(Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
+    // Not every browser parses an offset without a colon or a space between
+    // the date and the time, so write the value in the one form all accept
+    const withOffset =
+      /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}):?(\d{2})?$/i.exec(
+        value
+      );
+    if (withOffset) {
+      const [, date, time, zone, zoneMinutes] = withOffset;
+      const offset = /^z$/i.test(zone) ? "Z" : `${zone}:${zoneMinutes ?? "00"}`;
+      return new Date(`${date}T${time}${offset}`);
+    }
     return new Date(value);
   }
   const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(

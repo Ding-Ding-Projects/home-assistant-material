@@ -15,6 +15,7 @@ import { onboardUserStep } from "../data/onboarding";
 import {
   accountComplete,
   accountErrors,
+  errorText,
   PASSWORD_MIN_LENGTH,
   reportPassword,
 } from "./onboarding-logic";
@@ -106,7 +107,7 @@ class OnboardingCreateUser extends LitElement {
               style=${styleMap({ width: `${Math.round(report.score * 100)}%` })}
             ></span>
           </div>
-          <p id="password-note" class="msg" aria-live="polite">
+          <p id="password-note" class="msg">
             ${
               errors.password
                 ? html`<span class="error"
@@ -122,6 +123,20 @@ class OnboardingCreateUser extends LitElement {
                     })
             }
           </p>
+          <!-- Announces the strength level only; its text changes when the
+               level changes, never on each keystroke, and never carries the
+               length or the password. -->
+          <span class="visually-hidden" aria-live="polite">
+            ${
+              errors.password
+                ? this._t("error.password_too_short", {
+                    min: PASSWORD_MIN_LENGTH,
+                  })
+                : report.strength === "empty"
+                  ? nothing
+                  : this._t(`strength_level.${report.strength}`)
+            }
+          </span>
         </div>
         <div class="field">
           <ha-input
@@ -198,6 +213,12 @@ class OnboardingCreateUser extends LitElement {
     super.firstUpdated(changedProps);
     setTimeout(() => this._nameInput?.focus(), 100);
     this.addEventListener("keypress", (ev) => {
+      // Enter on a button (such as the show password button) acts on that
+      // button and does not submit the account.
+      const target = ev.composedPath()[0];
+      if (target instanceof Element && target.closest("button")) {
+        return;
+      }
       if (ev.key === "Enter" && accountComplete(this._values)) {
         this._submitForm(ev);
       }
@@ -262,7 +283,8 @@ class OnboardingCreateUser extends LitElement {
       // eslint-disable-next-line
       console.error(err);
       this._loading = false;
-      this._errorMsg = err.body.message;
+      this._errorMsg =
+        errorText(err) ?? this._i18n.localize("ui.common.unknown_error");
     }
   }
 
@@ -286,6 +308,14 @@ class OnboardingCreateUser extends LitElement {
           min-height: 1.25em;
           font-size: var(--ha-font-size-s);
           color: var(--secondary-text-color);
+        }
+        .visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
         }
         .msg .error {
           color: var(--error-color);

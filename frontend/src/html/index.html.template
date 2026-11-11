@@ -132,13 +132,6 @@
         <img class="ha-logo" src="/static/images/home-assistant-logo-loading.svg" alt="Home Assistant">
       </div>
       <div id="ha-launch-screen-info-box" class="ha-launch-screen-spacer-bottom"></div>
-      <div class="ohf-logo">
-        <span id="ha-launch-screen-attribution">A project from the</span>
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="/static/images/open-home-foundation-on-dark.svg">
-          <img src="/static/images/open-home-foundation-on-light.svg" alt="Open Home Foundation" width="237" height="24">
-        </picture>
-      </div>
     </div>
     <home-assistant></home-assistant>
     <%= renderTemplate("_js_base.html.template") %>

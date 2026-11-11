@@ -3,6 +3,8 @@ import type { HomeFrontendSystemData } from "../../../data/frontend";
 
 export interface EditHomeDialogParams {
   config: HomeFrontendSystemData;
+  /** Makes an editable copy of the generated page, when the person may. */
+  editCardsAndLayout?: () => void;
   saveConfig: (config: HomeFrontendSystemData) => Promise<void>;
 }
 

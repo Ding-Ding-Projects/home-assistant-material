@@ -24,11 +24,8 @@ import type {
 } from "../../../../data/backup";
 import {
   BackupScheduleRecurrence,
-  CLOUD_AGENT,
-  CORE_LOCAL_AGENT,
   downloadEmergencyKit,
   generateEncryptionKey,
-  HASSIO_LOCAL_AGENT,
   updateBackupConfig,
 } from "../../../../data/backup";
 import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
@@ -40,6 +37,13 @@ import "../components/config/ha-backup-config-data";
 import type { BackupConfigData } from "../components/config/ha-backup-config-data";
 import "../components/config/ha-backup-config-schedule";
 import type { BackupConfigSchedule } from "../components/config/ha-backup-config-schedule";
+import {
+  agentsBlockedWithoutKey,
+  defaultBackupAgentIds,
+  dropAgentsRequiringEncryption,
+  encryptionToggleAction,
+} from "../helper/backup-encryption";
+import { confirmTurnOffEncryption } from "../helper/confirm-turn-off-encryption";
 import type { BackupOnboardingDialogParams } from "./show-dialog-backup_onboarding";
 
 const STEPS = [
@@ -119,7 +123,9 @@ class DialogBackupOnboarding
         ...RECOMMENDED_CONFIG,
         create_backup: {
           ...RECOMMENDED_CONFIG.create_backup,
-          agent_ids: this._defaultAgents,
+          agent_ids: this._defaultAgents(
+            !!this._params.config?.create_backup.password
+          ),
           password: this._params.config?.create_backup.password ?? null,
         },
       };
@@ -147,6 +153,15 @@ class DialogBackupOnboarding
 
   private get _firstStep(): Step {
     return this._params?.skipWelcome ? STEPS[1] : STEPS[0];
+  }
+
+  private _saveQueue: Promise<unknown> = Promise.resolve();
+
+  // Saves run one after another, in the order they were requested.
+  private _enqueueSave(done = false): Promise<void> {
+    const run = this._saveQueue.then(() => this._save(done));
+    this._saveQueue = run.catch(() => undefined);
+    return run;
   }
 
   private async _save(done = false) {
@@ -179,7 +194,7 @@ class DialogBackupOnboarding
 
   private async _done() {
     try {
-      await this._save(true);
+      await this._enqueueSave(true);
       this._params?.submit!(true);
       this._markDirtyStateClean();
       this.closeDialog();
@@ -198,9 +213,14 @@ class DialogBackupOnboarding
     this._step = STEPS[index - 1];
   }
 
-  private _nextStep() {
+  private async _nextStep() {
     if (this._step && SAVE_STEPS.has(this._step)) {
-      this._save();
+      try {
+        await this._enqueueSave();
+      } catch (err: any) {
+        showToast(this, { message: err?.message ?? String(err) });
+        return;
+      }
     }
     const index = STEPS.indexOf(this._step!);
     if (index === STEPS.length - 1) {
@@ -277,28 +297,23 @@ class DialogBackupOnboarding
     `;
   }
 
-  private get _defaultAgents(): string[] {
-    const agents: string[] = [];
-    // Enable local location by default
-    if (isComponentLoaded(this.hass.config, "hassio")) {
-      agents.push(HASSIO_LOCAL_AGENT);
-    } else {
-      agents.push(CORE_LOCAL_AGENT);
-    }
-    // Enable cloud location if logged in
-    if (this._params?.cloudStatus?.logged_in) {
-      agents.push(CLOUD_AGENT);
-    }
-    return agents;
+  // The local location, plus the cloud one when signed in and a key is set.
+  private _defaultAgents(hasKey: boolean): string[] {
+    return defaultBackupAgentIds(
+      isComponentLoaded(this.hass.config, "hassio"),
+      !!this._params?.cloudStatus?.logged_in,
+      hasKey
+    );
   }
 
   private _useRecommended() {
+    const password = this._config!.create_backup.password;
     this._config = {
       ...RECOMMENDED_CONFIG,
       create_backup: {
         ...RECOMMENDED_CONFIG.create_backup,
-        agent_ids: this._defaultAgents,
-        password: this._config!.create_backup.password,
+        agent_ids: this._defaultAgents(!!password),
+        password,
       },
     };
     this._updateDirtyState(this._config);
@@ -506,6 +521,7 @@ class DialogBackupOnboarding
             .hass=${this.hass}
             .value=${this._config.create_backup.agent_ids}
             .cloudStatus=${this._params!.cloudStatus}
+            .hasEncryptionKey=${!!this._config.create_backup.password}
             @value-changed=${this._agentsConfigChanged}
           ></ha-backup-config-agents>
         `;
@@ -514,17 +530,50 @@ class DialogBackupOnboarding
   }
 
   private async _encryptionToggled(ev: Event) {
-    const enabled = (ev.target as HaSwitch).checked;
+    const target = ev.target as HaSwitch;
+    const wantsOn = target.checked;
+    const currentKey = this._config!.create_backup.password;
+    // The switch follows the stored key, never the click.
+    target.checked = !!currentKey;
+
+    const action = encryptionToggleAction(!!currentKey, wantsOn);
+    if (action === "none") {
+      return;
+    }
+
+    let password: string | null;
+    if (action === "generate") {
+      password = generateEncryptionKey();
+    } else {
+      const cloudWillBeRemoved =
+        agentsBlockedWithoutKey(this._config!.create_backup.agent_ids, false)
+          .length > 0;
+      const confirmed = await confirmTurnOffEncryption(
+        this,
+        this.hass,
+        currentKey!,
+        cloudWillBeRemoved
+      );
+      if (!confirmed) {
+        return;
+      }
+      password = null;
+    }
+
     this._config = {
       ...this._config!,
       create_backup: {
         ...this._config!.create_backup,
-        password: enabled ? generateEncryptionKey() : null,
+        password,
+        agent_ids: dropAgentsRequiringEncryption(
+          this._config!.create_backup.agent_ids,
+          !!password
+        ),
       },
     };
     this._updateDirtyState(this._config);
     try {
-      await this._save();
+      await this._enqueueSave();
     } catch (err: any) {
       showToast(this, { message: err?.message ?? String(err) });
     }

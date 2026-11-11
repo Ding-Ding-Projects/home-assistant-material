@@ -63,7 +63,7 @@ describe("more-info time zone helpers", () => {
     expect((next.getTime() - start.getTime()) / 3600000).toBe(23);
   });
 
-  it("moves a skipped reading to just after the jump and keeps the first of a repeated one", () => {
+  it("moves a skipped reading forward by the length of the jump and keeps the first of a repeated one", () => {
     // 02:30 does not exist on 2026-03-08 in New York
     expect(
       zonedWallTimeToDate("America/New_York", 2026, 3, 8, 2, 30).toISOString()
@@ -102,5 +102,12 @@ describe("more-info time zone helpers", () => {
     expect(
       parseCalendarValue("2026-11-10 08:00:00", "Asia/Tokyo").toISOString()
     ).toBe("2026-11-09T23:00:00.000Z");
+    // An offset without a colon, or a space before the time, is understood
+    expect(
+      parseCalendarValue("2026-11-10T08:00:00+0100", "Asia/Tokyo").toISOString()
+    ).toBe("2026-11-10T07:00:00.000Z");
+    expect(
+      parseCalendarValue("2026-11-10 08:00:00-0530", "Asia/Tokyo").toISOString()
+    ).toBe("2026-11-10T13:30:00.000Z");
   });
 });

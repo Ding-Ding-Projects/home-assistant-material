@@ -8,6 +8,11 @@ import {
   looksLikeWordingFile,
   reportWordingImport,
 } from "../common/vocabulary/wording-import";
+import { handleDroppedDashboardFile } from "../panels/lovelace/import-export/dashboard-file-import";
+import {
+  hideFileDropIndicator,
+  showFileDropIndicator,
+} from "../panels/lovelace/import-export/ha-file-drop-indicator";
 import { showToast } from "../util/toast";
 import {
   applyAccessibilitySettings,
@@ -290,16 +295,32 @@ export class HomeAssistantMain extends LitElement {
   private _handleWordingDragOver = (ev: DragEvent) => {
     if (!ev.defaultPrevented && ev.dataTransfer?.types.includes("Files")) {
       ev.preventDefault();
+      showFileDropIndicator(
+        this.hass?.localize("ui.panel.lovelace.import_export.drop_to_import") ??
+          ""
+      );
     }
   };
 
   private _handleWordingDrop = async (ev: DragEvent) => {
+    hideFileDropIndicator();
     const files = ev.dataTransfer?.files;
     if (ev.defaultPrevented || !files?.length) {
       return;
     }
     // Never let a dropped file replace the page.
     ev.preventDefault();
+    // A dashboard file is imported as a dashboard. Any other file goes on to
+    // the wording import below, unchanged.
+    if (
+      files.length === 1 &&
+      (await handleDroppedDashboardFile(
+        { hass: this.hass, element: this },
+        files[0]
+      ))
+    ) {
+      return;
+    }
     const result =
       files.length === 1 && looksLikeWordingFile(files[0])
         ? await importWordingFile(files[0])

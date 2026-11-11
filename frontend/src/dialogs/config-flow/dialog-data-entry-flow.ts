@@ -692,15 +692,22 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
     this._initDirtyTracking({ type: "deep" });
     this._step = _step;
     if (
-      (_step.type === "form" ||
-        _step.type === "menu" ||
-        _step.type === "external") &&
-      `${_step.flow_id}/${_step.step_id}` !== this._lastCountedStepId
+      _step.type === "form" ||
+      _step.type === "menu" ||
+      _step.type === "external"
     ) {
-      // The same step shown again (for example after a validation error from
-      // the flow) is not a new step.
-      this._lastCountedStepId = `${_step.flow_id}/${_step.step_id}`;
-      this._stepNumber += 1;
+      const stepId = `${_step.flow_id}/${_step.step_id}`;
+      // Only the same step shown again because the flow reported errors for
+      // it is a retry. A flow that returns to a step after it succeeded (a
+      // loop) is a new step, so the number keeps counting.
+      const isRetry =
+        stepId === this._lastCountedStepId &&
+        _step.type === "form" &&
+        Object.keys(_step.errors ?? {}).length > 0;
+      if (!isRetry) {
+        this._stepNumber += 1;
+      }
+      this._lastCountedStepId = stepId;
     }
     if (
       (_step.type === "create_entry" || _step.type === "abort") &&

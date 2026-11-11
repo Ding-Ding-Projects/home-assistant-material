@@ -45,6 +45,7 @@ import {
   PASTED_CONFIG_TOAST_ID,
 } from "./ha-manual-editor-mixin";
 import { showPasteReplaceDialog } from "./paste-replace-dialog/show-dialog-paste-replace";
+import { getErrorMessage } from "./run-helpers";
 import { manualEditorStyles, saveFabStyles } from "./styles";
 import "./trigger/ha-automation-trigger";
 import {
@@ -107,7 +108,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
       toggle.checked = !checked;
       this._toggleError = this.hass.localize(
         "ui.panel.config.automation.editor.status_bar.enabled_changed_failed",
-        { message: err instanceof Error ? err.message : String(err) }
+        { message: getErrorMessage(err) }
       );
     } finally {
       this._toggling = false;
@@ -580,8 +581,12 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         .enabled-switch {
           min-height: 44px;
           min-width: 44px;
+          transition: opacity var(--ha-animation-duration-fast, 150ms);
         }
         .toggle-error {
+          animation: ha-automation-enter
+            var(--ha-animation-duration-normal, 250ms)
+            var(--ha-automation-ease-enter) backwards;
           color: var(--ha-color-on-danger-normal, var(--error-color));
         }
         .page-title {

@@ -140,6 +140,9 @@ async def test_enable_apis_maps_results_and_never_leaks_the_key(
 ) -> None:
     """Each API gets its own result and the key stays out of everything."""
     caplog.set_level(logging.DEBUG)
+    logging.getLogger("homeassistant.components.websocket_api").setLevel(
+        logging.DEBUG
+    )
     assert await async_setup_component(hass, "google_setup", {})
     _mock_google(aioclient_mock, {GOOGLE_APIS["gmail"]: "DISABLED"})
     client = await hass_ws_client(hass)
@@ -163,12 +166,109 @@ async def test_enable_apis_maps_results_and_never_leaks_the_key(
     assert by_id["gmail"]["reason"] == "PERMISSION_DENIED / SERVICE_DISABLED"
 
     serialized = json.dumps(response)
+    assert "**REDACTED**" in caplog.text
     for secret in (SECRET_MARKER, "BEGIN PRIVATE KEY", "token-value"):
         assert secret not in serialized
         assert secret not in caplog.text
     sent = aioclient_mock.mock_calls[0][2]
     assert sent["assertion"].count(".") == 2
     assert "evil.example" not in str(aioclient_mock.mock_calls)
+
+
+@pytest.mark.parametrize(
+    "project_id", ["../evil", "A-Bad-Id", "a/b/c/d/e", "short", "x" * 40, "ok-id?x=1"]
+)
+def test_hostile_project_id_is_refused(key_json: str, project_id: str) -> None:
+    """A project id that is not a Google project id never reaches a URL."""
+    data = json.loads(key_json)
+    data["project_id"] = project_id
+    with pytest.raises(GoogleSetupError):
+        parse_service_account_key(data)
+
+
+def test_oversized_key_in_object_form_is_refused(key_json: str) -> None:
+    """The size limit also holds when the key arrives as an object."""
+    data = json.loads(key_json)
+    data["private_key"] = data["private_key"] + "x" * 30000
+    with pytest.raises(GoogleSetupError):
+        parse_service_account_key(data)
+
+
+def test_deeply_nested_key_is_refused() -> None:
+    """Nested brackets give a clean refusal, not a recursion error."""
+    with pytest.raises(GoogleSetupError):
+        parse_service_account_key("[" * 10000 + "]" * 10000)
+
+
+@pytest.mark.parametrize("apis", [[[1]], [{"a": 1}], "drive", [None], 5])
+async def test_unhashable_or_wrong_api_list_is_refused(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    key_json: str,
+    apis: Any,
+) -> None:
+    """A malformed list of APIs is refused with a format error."""
+    assert await async_setup_component(hass, "google_setup", {})
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id(
+        {
+            "type": "google_setup/enable_apis",
+            "service_account_key": key_json,
+            "apis": apis,
+        }
+    )
+    response = await client.receive_json()
+
+    assert not response["success"]
+    assert response["error"]["code"] == "invalid_format"
+
+
+@pytest.mark.parametrize("details", [5, "text", {"reason": "x"}, [1, None]])
+async def test_odd_google_error_details_are_tolerated(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    aioclient_mock: AiohttpClientMocker,
+    key_json: str,
+    details: Any,
+) -> None:
+    """Google error details that are not a list never break the call."""
+    assert await async_setup_component(hass, "google_setup", {})
+    aioclient_mock.post(TOKEN_URL, status=400, json={"error": {"status": "X", "details": details}})
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id(
+        {"type": "google_setup/enable_apis", "service_account_key": key_json}
+    )
+    response = await client.receive_json()
+
+    assert response["error"]["code"] == "google_setup_failed"
+
+
+async def test_redirect_and_oversized_responses_are_errors(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    aioclient_mock: AiohttpClientMocker,
+    key_json: str,
+) -> None:
+    """A redirect or a huge body from Google is refused, not followed or read."""
+    assert await async_setup_component(hass, "google_setup", {})
+    client = await hass_ws_client(hass)
+
+    aioclient_mock.post(TOKEN_URL, status=302, headers={"Location": "https://evil.example/"})
+    await client.send_json_auto_id(
+        {"type": "google_setup/enable_apis", "service_account_key": key_json}
+    )
+    response = await client.receive_json()
+    assert response["error"]["message"] == "Google answered with an unexpected redirect"
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.post(TOKEN_URL, content=b'{"access_token": "' + b"a" * 70000 + b'"}')
+    await client.send_json_auto_id(
+        {"type": "google_setup/enable_apis", "service_account_key": key_json}
+    )
+    response = await client.receive_json()
+    assert response["error"]["message"] == "Google refused the key: unknown"
 
 
 async def test_token_refusal_reports_only_google_reason(

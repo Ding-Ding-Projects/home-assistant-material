@@ -24,6 +24,7 @@ import {
 import type { CloudStatus } from "../../../../../data/cloud";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
+import { isAgentSelectable } from "../../helper/backup-encryption";
 
 const DEFAULT_AGENTS = [];
 
@@ -39,6 +40,8 @@ class HaBackupConfigAgents extends LitElement {
 
   @property({ type: Boolean, attribute: "show-settings" }) public showSettings =
     false;
+
+  @property({ attribute: false }) public hasEncryptionKey = false;
 
   @state() private value?: string[];
 
@@ -56,9 +59,21 @@ class HaBackupConfigAgents extends LitElement {
           "ui.panel.config.backup.agents.cloud_agent_no_subcription"
         );
       }
-      return this.hass.localize(
+      const description = this.hass.localize(
         "ui.panel.config.backup.agents.cloud_agent_description"
       );
+      if (!isAgentSelectable(agentId, this.hasEncryptionKey)) {
+        return html`${description}
+          <div class="unencrypted-warning">
+            <span class="dot warning"></span>
+            <span>
+              ${this.hass.localize(
+                "ui.panel.config.backup.agents.needs_encryption"
+              )}
+            </span>
+          </div>`;
+      }
+      return description;
     }
 
     const texts: (TemplateResult | string)[] = [];
@@ -224,7 +239,12 @@ class HaBackupConfigAgents extends LitElement {
                         id=${agentId}
                         .checked=${this._value.includes(agentId)}
                         .disabled=${
-                          noCloudSubscription && !this._value.includes(agentId)
+                          (noCloudSubscription ||
+                            !isAgentSelectable(
+                              agentId,
+                              this.hasEncryptionKey
+                            )) &&
+                          !this._value.includes(agentId)
                         }
                         @change=${this._agentToggled}
                       ></ha-switch>

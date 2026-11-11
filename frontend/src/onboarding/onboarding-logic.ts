@@ -7,6 +7,30 @@
 
 export const PASSWORD_MIN_LENGTH = 8;
 
+/**
+ * The message a failed request carries, or undefined when it carries none (a
+ * dropped network connection has no body). Reads the server body, an error
+ * message or a plain string, in that order, and never throws.
+ */
+export const errorText = (err: unknown): string | undefined => {
+  const pick = (value: unknown): string | undefined =>
+    typeof value === "string" && value.trim() ? value : undefined;
+  if (typeof err === "string") {
+    return pick(err);
+  }
+  if (err && typeof err === "object") {
+    const { body, message } = err as { body?: unknown; message?: unknown };
+    if (body && typeof body === "object") {
+      const fromBody = pick((body as { message?: unknown }).message);
+      if (fromBody) {
+        return fromBody;
+      }
+    }
+    return pick(message);
+  }
+  return undefined;
+};
+
 export type PasswordStrength = "empty" | "weak" | "fair" | "strong";
 
 export interface PasswordReport {

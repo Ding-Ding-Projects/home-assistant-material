@@ -1,4 +1,9 @@
-import { css } from "lit";
+import { css, unsafeCSS } from "lit";
+import {
+  MOTION_ENTERING_ATTRIBUTE,
+  motionAppearStyles,
+  motionKeyframes,
+} from "./motion-styles";
 
 export const SIDEBAR_MIN_WIDTH = 375;
 export const CONTENT_MIN_WIDTH = 350;
@@ -23,6 +28,8 @@ export const rowSummaryStyles = css`
 `;
 
 export const rowStyles = css`
+  ${motionKeyframes}
+  ${motionAppearStyles}
   ha-icon-button {
     --mdc-theme-text-primary-on-background: var(--primary-text-color);
   }
@@ -44,7 +51,7 @@ export const rowStyles = css`
   }
 
   ha-card {
-    transition: outline 0.2s;
+    transition: outline var(--ha-animation-duration-fast, 150ms);
   }
   .warning ul {
     margin: 4px 0;
@@ -178,7 +185,8 @@ export const saveFabStyles = css`
     position: absolute;
     right: calc(16px + var(--safe-area-inset-right, 0px));
     bottom: calc(-80px - var(--safe-area-inset-bottom));
-    transition: bottom 0.3s;
+    transition: bottom var(--ha-animation-duration-normal, 250ms)
+      var(--ha-automation-ease-standard, cubic-bezier(0.2, 0, 0, 1));
     --ha-button-box-shadow: var(--ha-box-shadow-l);
   }
   ha-button[slot="fab"].dirty {
@@ -187,6 +195,7 @@ export const saveFabStyles = css`
 `;
 
 export const manualEditorStyles = css`
+  ${motionKeyframes}
   :host {
     display: block;
     --sidebar-width: 0;
@@ -213,7 +222,8 @@ export const manualEditorStyles = css`
     right: unset;
     left: unset;
     bottom: calc(-80px - var(--safe-area-inset-bottom));
-    transition: bottom 0.3s;
+    transition: bottom var(--ha-animation-duration-normal, 250ms)
+      var(--ha-automation-ease-standard, cubic-bezier(0.2, 0, 0, 1));
   }
   .fab-positioner ha-button[slot="fab"].dirty {
     bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
@@ -269,6 +279,13 @@ export const manualEditorStyles = css`
     display: none;
   }
 
+  /* Plays each time the sidebar goes from hidden to shown */
+  .has-sidebar ha-automation-sidebar:not(.hidden) {
+    animation: ha-automation-slide-in-end
+      var(--ha-animation-duration-normal, 250ms)
+      var(--ha-automation-ease-enter, cubic-bezier(0.05, 0.7, 0.1, 1)) backwards;
+  }
+
   .sidebar-positioner {
     display: flex;
     justify-content: flex-end;
@@ -283,6 +300,11 @@ export const manualEditorStyles = css`
 `;
 
 export const automationRowsStyles = css`
+  ${motionKeyframes}
+  .rows > [${unsafeCSS(MOTION_ENTERING_ATTRIBUTE)}] {
+    animation: ha-automation-enter var(--ha-animation-duration-normal, 250ms)
+      var(--ha-automation-ease-enter, cubic-bezier(0.05, 0.7, 0.1, 1)) backwards;
+  }
   .rows {
     display: flex;
     flex-direction: column;

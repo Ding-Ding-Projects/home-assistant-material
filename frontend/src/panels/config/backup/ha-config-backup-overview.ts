@@ -46,6 +46,10 @@ import { showBackupOnboardingDialog } from "./dialogs/show-dialog-backup_onboard
 import { showGenerateBackupDialog } from "./dialogs/show-dialog-generate-backup";
 import { showNewBackupDialog } from "./dialogs/show-dialog-new-backup";
 import { showUploadBackupDialog } from "./dialogs/show-dialog-upload-backup";
+import {
+  agentsBlockedWithoutKey,
+  dropAgentsRequiringEncryption,
+} from "./helper/backup-encryption";
 
 @customElement("ha-config-backup-overview")
 class HaConfigBackupOverview extends LitElement {
@@ -114,6 +118,10 @@ class HaConfigBackupOverview extends LitElement {
       create_backup: {
         ...this._config.create_backup,
         password,
+        agent_ids: dropAgentsRequiringEncryption(
+          this._config.create_backup.agent_ids,
+          !!password
+        ),
       },
     };
 
@@ -364,6 +372,12 @@ class HaConfigBackupOverview extends LitElement {
                         <ha-backup-config-encryption-key
                           .hass=${this.hass}
                           .value=${this._config.create_backup.password}
+                          .cloudSelected=${
+                            agentsBlockedWithoutKey(
+                              this._config.create_backup.agent_ids,
+                              false
+                            ).length > 0
+                          }
                           @value-changed=${this._encryptionKeyChanged}
                         ></ha-backup-config-encryption-key>
                       </div>

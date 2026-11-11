@@ -23,6 +23,7 @@ import { getLocalLanguage } from "../util/common-translation";
 import {
   buildReview,
   defaultUnitSystem,
+  errorText,
   previewRegion,
 } from "./onboarding-logic";
 import type { UnitSystemChoice } from "./onboarding-logic";
@@ -78,6 +79,12 @@ class OnboardingCoreConfig extends LitElement {
   private _unitChosen = false;
 
   private _currencyChosen = false;
+
+  private _countryChosen = false;
+
+  private _languageChosen = false;
+
+  private _timeZoneChosen = false;
 
   private _progressed = false;
 
@@ -339,11 +346,18 @@ class OnboardingCoreConfig extends LitElement {
     const value = ev.detail.value;
     if (value.country !== (this._country ?? "")) {
       this._country = value.country || undefined;
+      this._countryChosen = true;
     }
     if (value.time_zone) {
+      if (value.time_zone !== this._timeZone) {
+        this._timeZoneChosen = true;
+      }
       this._timeZone = value.time_zone;
     }
     if (value.language) {
+      if (value.language !== this._language) {
+        this._languageChosen = true;
+      }
       this._language = value.language;
     }
     if (value.unit_system && value.unit_system !== this._effectiveUnit) {
@@ -365,17 +379,17 @@ class OnboardingCoreConfig extends LitElement {
     if (value.currency && !this._currencyChosen) {
       this._currency = value.currency;
     }
-    if (value.language) {
+    if (value.language && !this._languageChosen) {
       this._language = value.language;
     }
     const timeZone = value.time_zone || value.timezone;
-    if (timeZone) {
+    if (timeZone && !this._timeZoneChosen) {
       this._timeZone = timeZone;
     }
     if (value.unit_system && !this._unitChosen) {
       this._unitSystem = value.unit_system;
     }
-    if (value.country) {
+    if (value.country && !this._countryChosen) {
       this._country = value.country;
     } else if (!this._country && navigator.language) {
       // Suggest the country of the browser language.
@@ -430,7 +444,7 @@ class OnboardingCoreConfig extends LitElement {
       });
     } catch (err: any) {
       this._working = false;
-      this._error = err.message;
+      this._error = errorText(err) ?? this._localize("ui.common.unknown_error");
     }
   }
 

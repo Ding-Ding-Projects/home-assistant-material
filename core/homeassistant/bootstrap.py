@@ -230,7 +230,9 @@ DEFAULT_INTEGRATIONS = {
     "labs",
     "logger",
     "marketplace",
+    "minecraft_manager",
     "network",
+    "passkey",
     "problem_log",
     "system_health",
     #

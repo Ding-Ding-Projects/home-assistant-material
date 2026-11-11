@@ -16,9 +16,9 @@ const voice = (lang: string, localService: boolean, isDefault = false) => ({
 
 describe("three-letter language tags", () => {
   it("maps ISO 639-2 codes to the two-letter form", () => {
-    expect(languageSubtags("eng-USA")).toEqual(["en", "usa"]);
-    expect(languageSubtags("eng_GBR")).toEqual(["en", "gbr"]);
-    expect(languageSubtags("deu-DEU")).toEqual(["de", "deu"]);
+    expect(languageSubtags("eng-USA")).toEqual(["en", "us"]);
+    expect(languageSubtags("eng_GBR")).toEqual(["en", "gb"]);
+    expect(languageSubtags("deu-DEU")).toEqual(["de", "de"]);
     expect(languageSubtags("yue-HK")).toEqual(["yue", "hk"]);
   });
 

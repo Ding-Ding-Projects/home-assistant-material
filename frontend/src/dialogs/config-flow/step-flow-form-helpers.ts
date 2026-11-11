@@ -1,3 +1,4 @@
+import { isSecretFieldLike } from "../../common/secret-fields";
 import type { HaFormSchema } from "../../components/ha-form/types";
 
 /**
@@ -18,7 +19,6 @@ export interface FieldIssue {
 type LooseSelector = Record<string, Record<string, unknown> | null> | undefined;
 
 const SKIPPED_TYPES = ["constant", "divider"];
-const MASKED_NAME = /password|passwd|secret|token|api[_-]?key/i;
 
 const selectorOf = (field: HaFormSchema): LooseSelector =>
   "selector" in field ? (field.selector as LooseSelector) : undefined;
@@ -29,7 +29,7 @@ const selectorConfig = (
 ): Record<string, unknown> | undefined => selectorOf(field)?.[key] ?? undefined;
 
 const isEmpty = (value: unknown): boolean =>
-  value === undefined || value === "";
+  value === undefined || value === null || value === "";
 
 /**
  * Leaf fields that live directly in the submitted data object: top level
@@ -119,7 +119,8 @@ export const validateField = (
   }
 
   const options = optionValues(field);
-  if (options) {
+  // A select without options has nothing to be invalid against.
+  if (options && options.length > 0) {
     const values = Array.isArray(value) ? value : [value];
     if (values.some((item) => !options.includes(String(item)))) {
       return { code: "invalid_option" };
@@ -177,36 +178,25 @@ export const parseLiveErrorId = (id: string): FieldIssue | undefined => {
  * Password-like fields: the selector says so, or the name does. A value of
  * such a field must never reach a label, a summary, a log or a live region.
  */
-export const isSecretField = (field: HaFormSchema): boolean => {
-  const text = selectorConfig(field, "text");
-  if (text) {
-    const type = text.type;
-    const autocomplete = text.autocomplete;
-    if (
-      type === "password" ||
-      autocomplete === "current-password" ||
-      autocomplete === "new-password"
-    ) {
-      return true;
-    }
-  }
-  if (field.type === "string") {
-    if (
-      field.format === "password" ||
-      field.autocomplete === "current-password" ||
-      field.autocomplete === "new-password"
-    ) {
-      return true;
-    }
-  }
-  return MASKED_NAME.test(field.name);
-};
+export const isSecretField = (field: HaFormSchema): boolean =>
+  isSecretFieldLike({
+    name: field.name,
+    selector: selectorOf(field) as Record<string, unknown> | undefined,
+    format:
+      "format" in field ? (field.format as string | undefined) : undefined,
+    autocomplete:
+      "autocomplete" in field
+        ? (field.autocomplete as string | undefined)
+        : undefined,
+  });
 
 export interface SummaryEntry {
   name: string;
-  kind: "secret" | "boolean" | "text";
+  kind: "secret" | "boolean" | "text" | "entries";
   text?: string;
   bool?: boolean;
+  /** For a structured value: how many entries, never the content. */
+  count?: number;
 }
 
 const summaryText = (field: HaFormSchema, value: unknown): string => {
@@ -219,11 +209,14 @@ const summaryText = (field: HaFormSchema, value: unknown): string => {
       return match[1];
     }
   }
-  if (value !== null && typeof value === "object") {
-    return JSON.stringify(value);
-  }
   return String(value);
 };
+
+const isStructured = (value: unknown): boolean =>
+  value !== null &&
+  typeof value === "object" &&
+  (!Array.isArray(value) ||
+    value.some((item) => item !== null && typeof item === "object"));
 
 /** One entry per field that has a value; secret values are never included. */
 export const buildSummary = (
@@ -239,6 +232,16 @@ export const buildSummary = (
     }
     if (isSecretField(field)) {
       entries.push({ name: field.name, kind: "secret" });
+    } else if (isStructured(value)) {
+      // Objects and lists of objects can hold a nested secret; only say how
+      // many entries there are.
+      entries.push({
+        name: field.name,
+        kind: "entries",
+        count: Array.isArray(value)
+          ? value.length
+          : Object.keys(value as object).length,
+      });
     } else if (typeof value === "boolean") {
       entries.push({ name: field.name, kind: "boolean", bool: value });
     } else {

@@ -17,7 +17,7 @@ import "../../layouts/hass-error-screen";
 import type { HomeAssistant, Route } from "../../types";
 import { documentationUrl } from "../../util/documentation-url";
 import type { MyRedirectPlan } from "./my-redirect-plan";
-import { planMyRedirect } from "./my-redirect-plan";
+import { lookupMyRedirect, planMyRedirect } from "./my-redirect-plan";
 
 // When a user presses "m", the user is redirected to the first redirect
 // for which holds true currentPath.startsWith(redirect.redirect)
@@ -701,14 +701,10 @@ export const getMyRedirects = (): Redirects => ({
   },
 });
 
-const getRedirect = (path: string): Redirect | undefined => {
-  // Only names in the list itself count; "constructor" and the like are
-  // inherited from every object and are not redirects.
-  const redirects = getMyRedirects();
-  return redirects && Object.hasOwn(redirects, path)
-    ? redirects[path]
-    : undefined;
-};
+// Only names in the list itself count; "constructor" and the like are
+// inherited from every object and are not redirects.
+const getRedirect = (path: string): Redirect | undefined =>
+  lookupMyRedirect(getMyRedirects(), path);
 
 // The backups table reads these from the link
 const backupsTableParams = {
@@ -775,9 +771,14 @@ class HaPanelMy extends LitElement {
       !component || isComponentLoaded(this.hass.config, component);
 
     if (component) {
-      this.hass.loadBackendTranslation("title", component).then(() => {
-        this.requestUpdate();
-      });
+      // Only needed to show the destination's name on the card; a failure
+      // leaves the card with the plain name and must not surface as an error.
+      this.hass
+        .loadBackendTranslation("title", component)
+        .then(() => {
+          this.requestUpdate();
+        })
+        .catch(() => undefined);
     }
 
     const plan = planMyRedirect(this._redirect, {
@@ -895,7 +896,7 @@ class HaPanelMy extends LitElement {
                     <span class="label"
                       >${this.hass.localize("ui.panel.my.path_label")}</span
                     >
-                    <span class="value">${plan.path}</span>
+                    <span class="value" dir="ltr">${plan.path}</span>
                   </div>
                 `
           }
@@ -906,10 +907,16 @@ class HaPanelMy extends LitElement {
                     <span class="label"
                       >${this.hass.localize("ui.panel.my.params_label")}</span
                     >
-                    <ul class="params">
+                    <ul class="params" tabindex="0">
                       ${plan.params.map(
                         ([key, value]) =>
-                          html`<li class="value">${`${key}=${value}`}</li>`
+                          html`<li class="value" dir="ltr">
+                            ${`${key}=${
+                              plan.maskedParams?.includes(key)
+                                ? this.hass.localize("ui.panel.my.param_set")
+                                : value
+                            }`}
+                          </li>`
                       )}
                     </ul>
                   </div>
@@ -996,6 +1003,13 @@ class HaPanelMy extends LitElement {
     .value {
       font-family: var(--ha-font-family-code);
       overflow-wrap: anywhere;
+      unicode-bidi: isolate;
+    }
+    /* Long values scroll inside their field so the buttons stay reachable. */
+    .field > .value,
+    .params {
+      max-height: 30vh;
+      overflow-y: auto;
     }
     .params {
       margin: 0;

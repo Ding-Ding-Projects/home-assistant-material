@@ -43,6 +43,29 @@ const DOMAINS_WITH_OWN_HEADLINE = [
 /** Kinds whose body draws its own chart, so the frame draws none. */
 const DOMAINS_WITH_OWN_CHART = ["sensor"];
 
+/**
+ * Whether a kind's body draws nothing for this state, so the frame must keep
+ * its own state card. Bodies for a date, a date and time, and a time draw
+ * nothing when the state is unavailable or unknown (a time only when it is
+ * unavailable); an image body draws nothing when there is no picture. Every
+ * other body draws its own headline for any state, which was checked body by
+ * body; a kind added here must match what its body does.
+ */
+const bodyDrawsNothing = (domain: string, stateObj: HassEntity): boolean => {
+  const state = stateObj.state;
+  switch (domain) {
+    case "date":
+    case "datetime":
+      return state === UNAVAILABLE || state === UNKNOWN;
+    case "time":
+      return state === UNAVAILABLE;
+    case "image":
+      return !computeImageUrl(stateObj);
+    default:
+      return false;
+  }
+};
+
 @customElement("ha-more-info-info")
 export class MoreInfoInfo extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -61,16 +84,10 @@ export class MoreInfoInfo extends LitElement {
     const entityRegObj = this.hass.entities[entityId];
     const domain = computeDomain(entityId);
     const isNewMoreInfo = stateObj && computeShowNewMoreInfo(stateObj);
-    // These bodies draw nothing when the state is unavailable or unknown
-    // (a date, a date and time), or when there is no picture (an image), so
-    // the frame's state card stays to show it.
-    const bodyDrawsNothing =
-      !!stateObj &&
-      (((domain === "date" || domain === "datetime") &&
-        (stateObj.state === UNAVAILABLE || stateObj.state === UNKNOWN)) ||
-        (domain === "image" && !computeImageUrl(stateObj)));
+    // A body that draws nothing leaves the frame's state card to show the
+    // state, so the state is never missing from the dialog.
     const hasOwnHeadline =
-      !bodyDrawsNothing &&
+      !(stateObj && bodyDrawsNothing(domain, stateObj)) &&
       (DOMAINS_WITH_OWN_HEADLINE.includes(domain) ||
         domainMoreInfoType(domain) === "default");
     const hasOwnChart = DOMAINS_WITH_OWN_CHART.includes(domain);
