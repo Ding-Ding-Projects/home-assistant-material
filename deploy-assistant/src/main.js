@@ -11,6 +11,10 @@ const updates = require('./backend/updates');
 const { DimSum } = require('./backend/dimsum');
 const ha = require('./backend/ha');
 const school = require('./backend/school');
+const { Choco } = require('./backend/choco');
+const { Minecraft } = require('./backend/minecraft');
+const { Ollama, fit } = require('./backend/ollama');
+const { VDisk } = require('./backend/vdisk');
 
 if (require('node:os').platform() === 'win32' && require('./squirrel-events')(app)) app.quit();
 
@@ -92,6 +96,41 @@ app.whenReady().then(() => {
     const f = freeName(dir, name); const tmp = f + '.partial-' + process.pid;
     fs.writeFileSync(tmp, buf); fs.renameSync(tmp, f); written.add(f); return f;
   };
+  const choco = new Choco(); choco.on('line', (l) => send('choco', l));
+  h('chocoStatus', () => choco.status());
+  h('chocoInstall', (keys) => choco.install(keys));
+  const mc = new Minecraft(mgr); mc.on('console', (p) => send('mc-console', p)); mc.on('state', (p) => send('mc-state', p)); mc.on('progress', (p) => send('mc-progress', p)); mc.on('generate', (p) => send('mc-generate', p));
+  h('mc', (fn, ...args) => {
+    const allowed = ['list', 'catalog', 'create', 'start', 'stop', 'restart', 'command', 'status', 'stats', 'logs', 'players', 'playerAction', 'properties', 'setProperties', 'gamerule', 'search', 'install', 'addons', 'toggleAddon', 'removeAddon', 'backup', 'restore', 'deleteBackup', 'switchVersion', 'remove', 'presets', 'setSchedule'];
+    if (!allowed.includes(fn)) throw new Error('Unknown action.'); return mc[fn](...args);
+  });
+  setInterval(() => mc.tick().catch(() => {}), 60000);
+  h('mcMeta', () => { const m = require('./backend/minecraft'); return { flavours: m.FLAVOURS, targets: m.TARGETS, props: m.PROPS, rules: m.RULES }; });
+  h('mcGenerate', async (o) => mc.generate(o, async (worldDir, output, slug) => {
+    if (!pickedDirs.has(output.dir)) throw new Error('Choose the folder first.');
+    if (output.kind === 'zip') {
+      const { zipSync } = require('./renderer/vendor/fflate.js'); const files = {}; let total = 0;
+      const walk = (d, rel) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const f = path.join(d, e.name); const r = rel ? rel + '/' + e.name : e.name; if (e.isDirectory()) walk(f, r); else { total += fs.statSync(f).size; if (total > 4 * 1024 ** 3) throw new Error('The world is over 4 GB; choose a folder instead.'); files['world/' + r] = fs.readFileSync(f); } } };
+      walk(worldDir, ''); const z = zipSync(files); const out = writeAtomic(output.dir, slug + '-world.zip', z);
+      const back = require('./renderer/vendor/fflate.js').unzipSync(fs.readFileSync(out), { filter: () => true }); if (Object.keys(back).length !== Object.keys(files).length) throw new Error('The ZIP did not reopen with every file.');
+      return out;
+    }
+    if (!pickedDirs.has(output.dir)) throw new Error('Choose the folder first.');
+    let dest = path.join(output.dir, slug + '-world'); let n = 1; while (fs.existsSync(dest)) dest = path.join(output.dir, slug + '-world (' + (n++) + ')');
+    fs.cpSync(worldDir, dest, { recursive: true }); if (!fs.existsSync(path.join(dest, 'level.dat'))) throw new Error('The copied world has no level.dat.');
+    return dest;
+  }));
+  const ol = new Ollama(mgr); ['pull', 'chat', 'install', 'log', 'state'].forEach((ev) => ol.on(ev, (p) => send('ol-' + ev, p)));
+  h('ol', (fn, ...args) => {
+    const allowed = ['health', 'install', 'start', 'stop', 'installed', 'show', 'remove', 'copy', 'unload', 'pull', 'cancel', 'setCart', 'chat', 'stopChat', 'library', 'tags', 'hardware'];
+    if (!allowed.includes(fn)) throw new Error('Unknown action.'); return ol[fn](...args);
+  });
+  h('olFit', (size, hw) => fit(size, hw));
+  const vd = new VDisk(mgr);
+  h('vd', (fn, ...args) => { const allowed = ['routes', 'library', 'addFiles', 'forget', 'scan', 'plan', 'execute', 'supported']; if (!allowed.includes(fn)) throw new Error('Unknown action.'); return vd[fn](...args); });
+  h('vdLog', () => mgr.db.vdisk ? mgr.db.vdisk.log : []);
+  h('pickFiles', async (title, exts) => { const r = await dialog.showOpenDialog(win, { title, properties: ['openFile', 'multiSelections'], filters: exts ? [{ name: 'Files', extensions: exts }] : [] }); return r.canceled ? [] : r.filePaths; });
+  h('saveAs', async (title, name) => { const r = await dialog.showSaveDialog(win, { title, defaultPath: name }); return r.canceled ? '' : r.filePath; });
   h('school', () => school.read());
   h('schoolSet', (o) => school.set(o));
   school.watch((v) => send('school', v));

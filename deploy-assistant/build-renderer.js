@@ -25,7 +25,7 @@ const commitOf = (v) => { try { return execFileSync('git', ['log', '-S', '## ' +
 const changes = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf8').split(/^## /m).slice(1).map((b) => { const lines = b.split('\n'); const version = lines[0].trim(); return { version, commit: commitOf(version), items: lines.filter((l) => l.startsWith('- ')).map((l) => l.slice(2)) }; });
 const out = '// Written by build-renderer.js. Edit parts/head.js, parts/tail.js or docs/site/app.js instead.\n' +
   fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'head.js'), 'utf8') + '\n  var CHANGES = ' + JSON.stringify(changes) + ';\n' + shared + '\n' +
-  fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tail.js'), 'utf8').replace('  // ---------- Start ----------', () => fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'more.js'), 'utf8') + fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tools2.js'), 'utf8') + '  // ---------- Start ----------');
+  fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tail.js'), 'utf8').replace('  // ---------- Start ----------', () => fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'more.js'), 'utf8') + fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tools2.js'), 'utf8') + fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'managers.js'), 'utf8') + '  // ---------- Start ----------');
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'app.js'), out);
 const css = '/* Written by build-renderer.js from the project page styles and parts/app-extra.css. */\n' +
   fs.readFileSync(path.join(site, 'm3.css'), 'utf8') + '\n' +

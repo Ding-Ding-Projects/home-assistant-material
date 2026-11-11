@@ -29,7 +29,7 @@ function exec(c, cmd, { onLine, input } = {}) {
       stream.on('data', (d) => { out += d; if (onLine) String(d).split(/\r?\n/).filter(Boolean).forEach(onLine); });
       stream.stderr.on('data', (d) => { errOut += d; if (onLine) String(d).split(/\r?\n/).filter(Boolean).forEach(onLine); });
       stream.on('close', (code) => resolve({ code, out, err: errOut }));
-      if (input) input.pipe(stream); else stream.end();
+      if (input && typeof input.pipe === 'function') input.pipe(stream); else if (input != null) stream.end(input); else stream.end();
     });
   });
 }
@@ -114,4 +114,4 @@ async function remove(inst, { keepData = false } = {}) {
   await withHost(inst, (c) => exec(c, 'cd ' + remoteDir(inst) + ' && docker compose down' + (keepData ? '' : ' && cd .. && rm -rf ' + q(inst.slug))));
 }
 
-module.exports = { id: 'ssh', check, deploy, status, stats, start, stop, restart, update, logs, backup, restore, deleteBackup, remove, urls, connect, exec };
+module.exports = { exec, withHost, connect, id: 'ssh', check, deploy, status, stats, start, stop, restart, update, logs, backup, restore, deleteBackup, remove, urls, connect, exec };

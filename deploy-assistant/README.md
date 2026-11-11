@@ -42,7 +42,9 @@ are encrypted with the system keychain. Nothing is sent anywhere except what a d
 
 ## Build it on Windows
 
-From this folder, run `build.bat`. It checks for Node.js 20 or newer, installs the packages, runs
+From this folder, run `build.bat`. On a fresh Windows it needs nothing else: if Node.js 20 or newer,
+Git or Python is missing it installs them with Chocolatey, and installs Chocolatey first when that is
+missing too (Windows asks once for administrator rights). Then it installs the packages, runs
 the tests, builds the window and makes the installer at
 `out\make\squirrel.windows\x64\HAM-Deploy-Assistant-Setup.exe`, then confirms the installer is not
 signed and prints its SHA-256. `build.bat run` starts the app from source instead, `build.bat clean`

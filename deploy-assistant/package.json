@@ -1,7 +1,7 @@
 {
   "name": "ham-deploy-assistant",
   "productName": "Home Assistant Material Deploy Assistant",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Deploy Home Assistant Material in one click: on this computer with Docker, on an SSH host, or in VirtualBox or VMware. Manage every instance and its backups.",
   "main": "src/main.js",
   "license": "Apache-2.0",

@@ -5,7 +5,7 @@
   var MB = 1024 * 1024;
   function hex(b, n) { return Array.prototype.map.call(b.slice(0, n || b.length), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
   async function sha256(bytes) { var d = await crypto.subtle.digest('SHA-256', bytes); return hex(new Uint8Array(d)); }
-  function fmtSize(n) { return n < 1024 ? n + ' B' : n < MB ? (n / 1024).toFixed(1) + ' KB' : (n / MB).toFixed(1) + ' MB'; }
+  function fmtSize(n) { n = +n || 0; return n < 1024 ? n + ' B' : n < MB ? (n / 1024).toFixed(1) + ' KB' : n < 1024 * MB ? (n / MB).toFixed(1) + ' MB' : n < 1024 * 1024 * MB ? (n / MB / 1024).toFixed(1) + ' GB' : (n / MB / 1024 / 1024).toFixed(2) + ' TB'; }
   function readBytes(blob, start, end) { return blob.slice(start || 0, end == null ? blob.size : end).arrayBuffer().then(function (b) { return new Uint8Array(b); }); }
   function baseName(n) { var i = n.lastIndexOf('.'); return i > 0 ? n.slice(0, i) : n; }
 
