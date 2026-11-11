@@ -15,8 +15,8 @@ import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import type { PersonalPreferences } from "../../common/preferences/personal-preferences";
 import {
   getPersonalPreferences,
+  savePersonalPreferences,
   subscribePersonalPreferences,
-  updatePersonalPreferences,
 } from "../../common/preferences/personal-preferences";
 import { fireEvent } from "../../common/dom/fire_event";
 import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
@@ -73,6 +73,7 @@ import {
 import { buttonLinkStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import { isIosApp } from "../../util/is_ios";
+import { showToast } from "../../util/toast";
 import { showConfirmationDialog } from "../generic/show-dialog-box";
 import "../restart/automation-restart-status";
 import { showShortcutsDialog } from "../shortcuts/show-shortcuts-dialog";
@@ -417,7 +418,17 @@ export class QuickBar extends LitElement {
     const target = ev.currentTarget as HTMLInputElement & {
       settingKey: keyof PersonalPreferences;
     };
-    updatePersonalPreferences({ [target.settingKey]: target.checked });
+    this._saveSetting({ [target.settingKey]: target.checked });
+  }
+
+  // Tells the person when the browser could not keep the choice.
+  private _saveSetting(change: Partial<PersonalPreferences>) {
+    const { saved } = savePersonalPreferences(change);
+    if (!saved) {
+      showToast(this, {
+        message: this._t("ui.dialogs.quick-bar.setting_not_saved"),
+      });
+    }
   }
 
   private _entityToggled(ev: Event) {
@@ -954,7 +965,7 @@ export class QuickBar extends LitElement {
       // toggle the choice in place and keep the search open
       if (item && "settingId" in item && (!item.path || newTab)) {
         const key = settingKeys[item.settingId];
-        updatePersonalPreferences({ [key]: !getPersonalPreferences()[key] });
+        this._saveSetting({ [key]: !getPersonalPreferences()[key] });
         this._itemSelected = false;
         return;
       }

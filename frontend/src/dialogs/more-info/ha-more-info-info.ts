@@ -2,6 +2,8 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { computeDomain } from "../../common/entity/compute_domain";
+import { UNAVAILABLE, UNKNOWN } from "../../data/entity/entity";
+import { computeImageUrl } from "../../data/image";
 import type { ExtEntityRegistryEntry } from "../../data/entity/entity_registry";
 import type { HomeAssistant } from "../../types";
 import {
@@ -59,9 +61,18 @@ export class MoreInfoInfo extends LitElement {
     const entityRegObj = this.hass.entities[entityId];
     const domain = computeDomain(entityId);
     const isNewMoreInfo = stateObj && computeShowNewMoreInfo(stateObj);
+    // These bodies draw nothing when the state is unavailable or unknown
+    // (a date, a date and time), or when there is no picture (an image), so
+    // the frame's state card stays to show it.
+    const bodyDrawsNothing =
+      !!stateObj &&
+      (((domain === "date" || domain === "datetime") &&
+        (stateObj.state === UNAVAILABLE || stateObj.state === UNKNOWN)) ||
+        (domain === "image" && !computeImageUrl(stateObj)));
     const hasOwnHeadline =
-      DOMAINS_WITH_OWN_HEADLINE.includes(domain) ||
-      domainMoreInfoType(domain) === "default";
+      !bodyDrawsNothing &&
+      (DOMAINS_WITH_OWN_HEADLINE.includes(domain) ||
+        domainMoreInfoType(domain) === "default");
     const hasOwnChart = DOMAINS_WITH_OWN_CHART.includes(domain);
     const isFullHeight =
       isNewMoreInfo || DOMAINS_FULL_HEIGHT_MORE_INFO.includes(domain);

@@ -34,6 +34,7 @@ import {
 import { consume } from "../../common/decorators/consume";
 import { getStorage } from "../../common/decorators/storage";
 import { fireEvent } from "../../common/dom/fire_event";
+import { showToast } from "../../util/toast";
 import type {
   HistoryEntry,
   HistorySubject,
@@ -484,9 +485,14 @@ export class HaPageToolPanel extends LitElement {
       return;
     }
     this._reading = true;
-    readAloud(chunks, this._i18n.language, () => {
+    const started = readAloud(chunks, this._i18n.language, () => {
       this._reading = false;
     });
+    if (!started) {
+      showToast(this, {
+        message: this._i18n.localize("ui.page_tools.no_device_voice"),
+      });
+    }
   }
 
   private _readPage(): void {

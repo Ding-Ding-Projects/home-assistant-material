@@ -316,7 +316,10 @@ export class HaChooseAction extends LitElement implements ActionElement {
     this._runBusy = true;
     const confirmed = await showConfirmationDialog(this, {
       title: localize(`${prefix}run_confirm_title`),
-      text: localize(`${prefix}run_confirm_text`),
+      text:
+        this.action.enabled === false
+          ? `${localize(`${prefix}run_confirm_text`)} ${localize(`${prefix}run_confirm_switched_off`)}`
+          : localize(`${prefix}run_confirm_text`),
       confirmText: localize(`${prefix}run_all`),
       dismissText: localize("ui.common.cancel"),
       destructive: true,

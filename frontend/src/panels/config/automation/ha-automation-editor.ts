@@ -54,7 +54,6 @@ import {
   normalizeAutomationConfig,
   saveAutomationConfig,
   showAutomationEditor,
-  triggerAutomationActions,
 } from "../../../data/automation";
 import { substituteBlueprint } from "../../../data/blueprint";
 import { validateConfig } from "../../../data/config";
@@ -903,14 +902,58 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     }
   }
 
-  private _runActions() {
-    if (!this.hass || !this.currentEntityId) {
+  private _runningActions = false;
+
+  /** Runs the saved automation, never what is currently on screen. */
+  private async _runActions() {
+    const stateObj = this.currentEntityId
+      ? this.hass?.states[this.currentEntityId]
+      : undefined;
+    if (!stateObj || this._runningActions) {
       return;
     }
-    triggerAutomationActions(
-      this.hass,
-      this.hass.states[this.currentEntityId].entity_id
-    );
+    const prefix = "ui.panel.config.automation.editor.status_bar.";
+    const localize = this.hass.localize;
+    const name = this.config?.alias || stateObj.attributes.friendly_name || "";
+    this._runningActions = true;
+    try {
+      const notes = [localize(`${prefix}run_confirm_text`, { name })];
+      if (stateObj.state === "off") {
+        notes.push(localize(`${prefix}run_confirm_off`));
+      }
+      if (this.isDirtyState) {
+        notes.push(localize(`${prefix}run_confirm_unsaved`));
+      }
+      const confirmed = await showConfirmationDialog(this, {
+        title: localize(`${prefix}run_confirm_title`),
+        text: notes.join(" "),
+        confirmText: localize(`${prefix}run_now`),
+        dismissText: localize("ui.common.cancel"),
+        destructive: true,
+      });
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await this.hass.callService("automation", "trigger", {
+          entity_id: stateObj.entity_id,
+          skip_condition: true,
+        });
+        showEditorToast(this, {
+          message: localize(`${prefix}run_success`),
+          duration: 4000,
+        });
+      } catch (err: unknown) {
+        showEditorToast(this, {
+          message: localize(`${prefix}run_failed`, {
+            message: err instanceof Error ? err.message : String(err),
+          }),
+          duration: 6000,
+        });
+      }
+    } finally {
+      this._runningActions = false;
+    }
   }
 
   private async _toggle(): Promise<void> {

@@ -50,17 +50,24 @@ class HassErrorScreen extends LitElement {
   private _renderContent(): TemplateResult {
     // Inline as this._localize once the custom panel iframe provides contexts
     const localize = this._localize ?? this.hass?.localize;
+    const title = localize?.("ui.status_screens.error_title") || "";
     return html`
       <div class="content">
-        <div class="panel" role="alert">
-          <div class="tile">
-            <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
-          </div>
-          <h2 class="title">
-            ${localize?.("ui.status_screens.error_title") ?? nothing}
-          </h2>
-          <div class="message">${this.error}</div>
-        </div>
+        ${
+          title || this.error
+            ? html`<div class="panel" role="alert">
+                <div class="tile">
+                  <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
+                </div>
+                ${title ? html`<h2 class="title">${title}</h2>` : nothing}
+                ${
+                  this.error
+                    ? html`<div class="message">${this.error}</div>`
+                    : nothing
+                }
+              </div>`
+            : nothing
+        }
         <slot>
           ${
             this.showReload

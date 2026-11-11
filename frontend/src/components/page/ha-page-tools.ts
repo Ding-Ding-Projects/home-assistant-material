@@ -24,6 +24,7 @@ import {
 } from "../../common/accessibility/accessibility-tools";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
+import { showToast } from "../../util/toast";
 import {
   isLocked,
   pageLockKey,
@@ -370,9 +371,14 @@ export class HaPageTools extends LitElement {
       return;
     }
     this._reading = true;
-    readAloud(chunks, this._i18n.language, () => {
+    const started = readAloud(chunks, this._i18n.language, () => {
       this._reading = false;
     });
+    if (!started) {
+      showToast(this, {
+        message: this._i18n.localize("ui.page_tools.no_device_voice"),
+      });
+    }
   }
 
   private _openTools(): void {

@@ -1,4 +1,5 @@
 import { ensureArray } from "../../../../common/array/ensure-array";
+import { hasTemplate } from "../../../../common/string/has-template";
 import type { Condition } from "../../../../data/automation";
 import { testAllConditions } from "../../../../data/automation";
 import { validateConfig } from "../../../../data/config";
@@ -126,7 +127,9 @@ const alwaysPasses = (option: Option): boolean =>
  *   disabled), because the first passing option wins;
  * - an option whose conditions are identical to those of an earlier option,
  *   because both are evaluated against the same state.
- * Nothing is guessed: anything that depends on live state is left alone.
+ * Nothing is guessed: anything that depends on live state is left alone, and
+ * so is an option whose conditions contain a template, as a template can
+ * evaluate differently each time.
  */
 export const getUnreachableOptions = (
   options: readonly Option[]
@@ -141,6 +144,10 @@ export const getUnreachableOptions = (
     }
     if (alwaysPasses(option)) {
       firstAlwaysPasses = index;
+      return;
+    }
+    if (hasTemplate(getTestableConditions(option))) {
+      // A template can give a different answer on each evaluation.
       return;
     }
     const key = getConditionsKey(option);

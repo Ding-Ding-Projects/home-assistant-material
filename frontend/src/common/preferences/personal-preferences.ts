@@ -222,16 +222,52 @@ export const getPersonalPreferences = (): PersonalPreferences =>
     )
   );
 
-/** Saves a change on top of the stored choices and returns the result. */
-export const updatePersonalPreferences = (
+/** Fired on the window when a change could not be kept in browser storage. */
+export const PERSONAL_PREFERENCES_NOT_SAVED_EVENT =
+  "personal-preferences-not-saved";
+
+/** True when the browser storage now holds exactly this value. */
+const storedAs = (value: unknown): boolean => {
+  try {
+    return (
+      getStorage().storage.getItem(PERSONAL_PREFERENCES_STORAGE_KEY) ===
+      JSON.stringify(value)
+    );
+  } catch (_err) {
+    return false;
+  }
+};
+
+/**
+ * Saves a change on top of the stored choices. `saved` is false when browser
+ * storage is blocked or full: the choice still applies until the page is
+ * closed, but it will not be there next time, and the caller should say so.
+ */
+export const savePersonalPreferences = (
   change: Partial<PersonalPreferences>
-): PersonalPreferences => {
+): { preferences: PersonalPreferences; saved: boolean } => {
   const next = normalizePersonalPreferences({
     ...getPersonalPreferences(),
     ...change,
   });
-  safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, next);
-  return next;
+  const saved =
+    safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, next) && storedAs(next);
+  return { preferences: next, saved };
+};
+
+/**
+ * Saves a change on top of the stored choices and returns the result. When
+ * the change cannot be kept, the window gets a
+ * `personal-preferences-not-saved` event.
+ */
+export const updatePersonalPreferences = (
+  change: Partial<PersonalPreferences>
+): PersonalPreferences => {
+  const { preferences, saved } = savePersonalPreferences(change);
+  if (!saved && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(PERSONAL_PREFERENCES_NOT_SAVED_EVENT));
+  }
+  return preferences;
 };
 
 /** Removes every stored choice, so the defaults apply again. */

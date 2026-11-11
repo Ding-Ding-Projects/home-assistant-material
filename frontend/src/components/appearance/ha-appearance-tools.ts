@@ -818,12 +818,16 @@ export class HaAppearanceTools extends LitElement {
         id: "read",
         icon: mdiVolumeHigh,
         label: this._l("menu_read"),
-        run: () =>
-          readAloud(
+        run: () => {
+          const started = readAloud(
             collectReadableText(element),
             this._i18n?.locale?.language ?? navigator.language,
             () => undefined
-          ),
+          );
+          if (!started) {
+            this._announce(this._l("no_device_voice"));
+          }
+        },
       });
     }
     items.push(

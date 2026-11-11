@@ -53,6 +53,7 @@ import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
 import { showShortcutsDialog } from "../dialogs/shortcuts/show-shortcuts-dialog";
 import type { HomeAssistant } from "../types";
 import { isMac } from "../util/is_mac";
+import { showToast } from "../util/toast";
 import "./ha-svg-icon";
 import "./ha-switch";
 
@@ -470,9 +471,18 @@ export class HaAccessibilityTools extends LitElement {
       return;
     }
     this._reading = true;
-    readAloud(collectReadableText(root), this.hass.language, () => {
-      this._reading = false;
-    });
+    const started = readAloud(
+      collectReadableText(root),
+      this.hass.language,
+      () => {
+        this._reading = false;
+      }
+    );
+    if (!started) {
+      showToast(this, {
+        message: this.hass.localize("ui.accessibility_tools.no_device_voice"),
+      });
+    }
   }
 
   private _lineSpacingChanged(ev: Event) {

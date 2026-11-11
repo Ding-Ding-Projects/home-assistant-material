@@ -682,7 +682,13 @@ export class HaScriptEditor extends SubscribeMixin(
     });
   }
 
+  private _runningScript = false;
+
+  /** Runs the saved script, never what is currently on screen. */
   private async _runScript() {
+    if (!this.scriptId || this._runningScript) {
+      return;
+    }
     if (hasScriptFields(this.hass.services, this.currentEntityId!)) {
       showMoreInfoDialog(this, {
         entityId: this.currentEntityId!,
@@ -690,12 +696,42 @@ export class HaScriptEditor extends SubscribeMixin(
       return;
     }
 
-    await triggerScript(this.hass, this.scriptId!);
-    showEditorToast(this, {
-      message: this.hass.localize("ui.notification_toast.triggered", {
-        name: this.config!.alias,
-      }),
-    });
+    const localize = this.hass.localize;
+    const name = this.config?.alias || this.scriptId;
+    this._runningScript = true;
+    try {
+      const confirmed = await showConfirmationDialog(this, {
+        title: localize("ui.panel.config.script.editor.run_confirm_title"),
+        text: localize(
+          this.isDirtyState
+            ? "ui.panel.config.script.editor.run_confirm_text_unsaved"
+            : "ui.panel.config.script.editor.run_confirm_text",
+          { name }
+        ),
+        confirmText: localize("ui.panel.config.script.picker.run_script"),
+        dismissText: localize("ui.common.cancel"),
+      });
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await triggerScript(this.hass, this.scriptId);
+      } catch (err: unknown) {
+        showEditorToast(this, {
+          message: localize("ui.panel.config.script.editor.run_failed", {
+            name,
+            message: err instanceof Error ? err.message : String(err),
+          }),
+          duration: 6000,
+        });
+        return;
+      }
+      showEditorToast(this, {
+        message: localize("ui.notification_toast.triggered", { name }),
+      });
+    } finally {
+      this._runningScript = false;
+    }
   }
 
   private _editCategory() {

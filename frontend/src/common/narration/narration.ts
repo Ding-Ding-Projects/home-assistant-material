@@ -83,15 +83,99 @@ export interface VoiceInfo {
   localService: boolean;
 }
 
-const CANTONESE_TAG = /^(yue|zh[-_]hk|zh[-_]yue)/i;
+/**
+ * Three-letter (ISO 639-2) language codes that some engines report, mapped
+ * to the two-letter code the rest of the page uses. `yue` has no two-letter
+ * form and stays as it is.
+ */
+const THREE_LETTER: Record<string, string> = {
+  eng: "en",
+  zho: "zh",
+  chi: "zh",
+  cmn: "zh",
+  deu: "de",
+  ger: "de",
+  fra: "fr",
+  fre: "fr",
+  spa: "es",
+  ita: "it",
+  nld: "nl",
+  dut: "nl",
+  por: "pt",
+  rus: "ru",
+  jpn: "ja",
+  kor: "ko",
+  swe: "sv",
+  nor: "no",
+  dan: "da",
+  fin: "fi",
+  pol: "pl",
+  ces: "cs",
+  cze: "cs",
+  tur: "tr",
+  ell: "el",
+  gre: "el",
+  heb: "he",
+  ara: "ar",
+  hin: "hi",
+  ukr: "uk",
+  hun: "hu",
+  ron: "ro",
+  rum: "ro",
+  cat: "ca",
+};
+
+/**
+ * Splits a language tag into lower-case subtags, using `-` for `_`, and maps
+ * a three-letter language code to its two-letter form.
+ */
+export const languageSubtags = (tag: string): string[] => {
+  const parts = (tag || "").toLowerCase().split(/[-_]/).filter(Boolean);
+  if (parts.length) {
+    parts[0] = THREE_LETTER[parts[0]] ?? parts[0];
+  }
+  return parts;
+};
 
 export const voiceMatchesLanguage = (
   voice: Pick<VoiceInfo, "lang">,
   language: SpeechLanguage
-): boolean =>
-  language === "yue"
-    ? CANTONESE_TAG.test(voice.lang)
-    : /^en([-_]|$)/i.test(voice.lang);
+): boolean => {
+  const [primary, ...rest] = languageSubtags(voice.lang);
+  if (language === "yue") {
+    return (
+      primary === "yue" ||
+      (primary === "zh" && (rest.includes("hk") || rest.includes("yue")))
+    );
+  }
+  return primary === "en";
+};
+
+/**
+ * The voices that run on this device and speak a language tag, best first:
+ * a full match (`de-AT`) before a same-language match (`de-DE`), then the
+ * engine's default voice. A network voice is never offered.
+ */
+export const localVoicesForTag = <T extends VoiceInfo>(
+  voices: T[],
+  tag: string
+): T[] => {
+  const wanted = languageSubtags(tag);
+  if (!wanted.length) {
+    return [];
+  }
+  const score = (voice: T): number => {
+    const have = languageSubtags(voice.lang);
+    if (have[0] !== wanted[0]) {
+      return -1;
+    }
+    const exact = wanted.length > 1 && have.join("-") === wanted.join("-");
+    return (exact ? 2 : 0) + (voice.default ? 1 : 0);
+  };
+  return voices
+    .filter((voice) => voice.localService === true && score(voice) >= 0)
+    .sort((a, b) => score(b) - score(a));
+};
 
 /**
  * The voices that can speak a language, best first. Only voices that run on

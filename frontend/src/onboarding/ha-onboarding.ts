@@ -48,6 +48,7 @@ import { storeState } from "../util/ha-pref-storage";
 import { registerServiceWorker } from "../util/register-service-worker";
 import "./onboarding-create-user";
 import "./onboarding-loading";
+import { buildRail } from "./onboarding-logic";
 import "./onboarding-welcome";
 import "./onboarding-welcome-links";
 
@@ -200,6 +201,8 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
     const steps = this._steps;
     const current = steps.findIndex((step) => !step.done);
     const currentNumber = current === -1 ? steps.length : current + 1;
+    // The server accepts each step once, so a finished step is read only.
+    const rail = buildRail(steps);
     return html`
       <div class="stepper-header">
         ${this.localize("ui.panel.page-onboarding.step_of", {
@@ -207,13 +210,12 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
           total: steps.length,
         })}
       </div>
-      <ol class="stepper">
+      <ol
+        class="stepper"
+        aria-label=${this.localize("ui.panel.page-onboarding.steps_label")}
+      >
         ${steps.map((step, index) => {
-          const stepState = step.done
-            ? "done"
-            : index === current
-              ? "current"
-              : "todo";
+          const stepState = rail[index].state;
           const summary = this._stepSummary(step);
           return html`
             <li
@@ -231,12 +233,24 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
                 <span class="step-name">
                   ${this.localize(`ui.panel.page-onboarding.steps.${step.step}`)}
                 </span>
+                <span class="state-text">
+                  ${this.localize(
+                    `ui.panel.page-onboarding.steps_state.${stepState}`
+                  )}
+                </span>
                 ${summary ? html`<span class="summary">${summary}</span>` : nothing}
               </span>
             </li>
           `;
         })}
       </ol>
+      ${
+        rail.some((item) => item.state === "done")
+          ? html`<p class="locked-note">
+              ${this.localize("ui.panel.page-onboarding.steps_locked_note")}
+            </p>`
+          : nothing
+      }
     `;
   }
 
@@ -700,6 +714,15 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
       .summary {
         display: none;
       }
+    }
+    .state-text {
+      font-size: var(--ha-font-size-xs, 12px);
+      color: var(--secondary-text-color);
+    }
+    .locked-note {
+      margin: calc(-1 * var(--ha-space-3)) 0 var(--ha-space-4);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
     .saved-note {
       margin: var(--ha-space-3) var(--ha-space-2) 0;

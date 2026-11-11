@@ -224,6 +224,7 @@ DEFAULT_INTEGRATIONS = {
     "backup",
     "brands",
     "frontend",
+    "google_setup",
     "guided_setup",
     "hardware",
     "labs",

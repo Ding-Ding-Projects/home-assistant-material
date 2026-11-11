@@ -227,7 +227,6 @@ export class HaMoreInfoUpdateBackup extends LitElement {
       const isBackupConfigValid =
         !!this._backupConfig &&
         !!this._backupConfig.automatic_backups_configured &&
-        !!this._backupConfig.create_backup.password &&
         this._backupConfig.create_backup.agent_ids.length > 0;
 
       if (!isBackupConfigValid) {

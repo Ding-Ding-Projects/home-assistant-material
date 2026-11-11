@@ -190,12 +190,30 @@ describe("getUnreachableOptions", () => {
     expect(getUnreachableOptions([]).size).toBe(0);
   });
 
-  it("accepts a single template string as conditions", () => {
+  it("does not flag identical conditions that are templates", () => {
+    expect(
+      getUnreachableOptions([
+        { conditions: "{{ true }}", sequence: [] } as any,
+        { conditions: "{{ true }}", sequence: [] } as any,
+      ]).size
+    ).toBe(0);
+    expect(
+      getUnreachableOptions([
+        opt([{ condition: "template", value_template: "{{ now().second }}" }]),
+        opt([{ condition: "template", value_template: "{{ now().second }}" }]),
+      ]).size
+    ).toBe(0);
+  });
+
+  it("still flags identical conditions without templates after a templated one", () => {
     const result = getUnreachableOptions([
-      { conditions: "{{ true }}", sequence: [] } as any,
-      { conditions: "{{ true }}", sequence: [] } as any,
+      opt([{ condition: "template", value_template: "{{ true }}" }]),
+      opt([{ condition: "sun" }]),
+      opt([{ condition: "sun" }]),
     ]);
-    expect(result.get(1)).toEqual({ kind: "same_conditions", by: 0 });
+    expect([...result.entries()]).toEqual([
+      [2, { kind: "same_conditions", by: 1 }],
+    ]);
   });
 });
 

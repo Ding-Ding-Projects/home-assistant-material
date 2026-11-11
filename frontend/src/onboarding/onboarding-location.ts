@@ -44,6 +44,9 @@ const LOCATION_MARKER_ID = "location";
 class OnboardingLocation extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  /** Where the map starts, when the person comes back to this stage. */
+  @property({ attribute: false }) public initial?: [number, number];
+
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
@@ -211,6 +214,13 @@ class OnboardingLocation extends LitElement {
         </ha-button>
       </div>
     `;
+  }
+
+  protected willUpdate(changedProps: PropertyValues<this>) {
+    super.willUpdate(changedProps);
+    if (changedProps.has("initial") && this.initial) {
+      this._location = this.initial;
+    }
   }
 
   protected firstUpdated(changedProps: PropertyValues<this>) {

@@ -201,17 +201,46 @@ const phoneBarHeight = (): string => {
     const value = main
       ? getComputedStyle(main).getPropertyValue("--ha-phone-bar-height").trim()
       : "";
-    return /^\d+(\.\d+)?px$/.test(value) ? value : "0px";
+    return isUsableLength(value) ? value : "0px";
   } catch (_err) {
     return "0px";
   }
 };
+
+/**
+ * A plain length such as `56px`, or a `calc()`/`env()`/`min()`/`max()`
+ * expression built from lengths, which is how the layout defines the bar on a
+ * phone with a safe-area inset. Anything that refers to another custom
+ * property is refused, because it would not resolve outside the layout.
+ */
+export const isUsableLength = (value: string): boolean =>
+  value.length > 0 &&
+  value.length <= 200 &&
+  !/var\(/i.test(value) &&
+  (/^\d+(\.\d+)?(px|rem|em)$/.test(value) ||
+    /^(calc|min|max|clamp|env)\([\d.a-z\s+\-*/,%()]+\)$/i.test(value));
 
 const placeAbovePhoneBar = (el: HTMLElement) => {
   el.style.setProperty("--ha-phone-bar-height", phoneBarHeight());
 };
 
 class AttentionModes {
+  constructor() {
+    if (typeof window !== "undefined") {
+      // The phone bar changes height with the window and the orientation.
+      window.addEventListener("resize", this._reposition);
+    }
+  }
+
+  private _reposition = () => {
+    if (this._clock) {
+      placeAbovePhoneBar(this._clock);
+    }
+    if (this._bar) {
+      placeAbovePhoneBar(this._bar);
+    }
+  };
+
   private _startedAt = Date.now();
 
   private _clock?: HTMLElement;

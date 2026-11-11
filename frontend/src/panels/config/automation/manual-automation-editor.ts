@@ -86,12 +86,16 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
 
   @state() private _toggleError?: string;
 
+  @state() private _toggling = false;
+
   private async _toggleEnabled(ev: Event) {
-    const checked = (ev.currentTarget as HaSwitch).checked;
-    if (!this.stateObj) {
+    const toggle = ev.currentTarget as HaSwitch;
+    const checked = toggle.checked;
+    if (!this.stateObj || this._toggling) {
       return;
     }
     this._toggleError = undefined;
+    this._toggling = true;
     try {
       await this.hass.callService(
         "automation",
@@ -99,10 +103,14 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         { entity_id: this.stateObj.entity_id }
       );
     } catch (err: unknown) {
+      // The switch moved before the call; put it back to the real state.
+      toggle.checked = !checked;
       this._toggleError = this.hass.localize(
         "ui.panel.config.automation.editor.status_bar.enabled_changed_failed",
         { message: err instanceof Error ? err.message : String(err) }
       );
+    } finally {
+      this._toggling = false;
     }
   }
 
@@ -120,7 +128,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
             ? html`<ha-switch
                 class="enabled-switch"
                 .checked=${this.stateObj!.state === "on"}
-                .disabled=${this.disabled}
+                .disabled=${this.disabled || this._toggling}
                 aria-label=${this.hass.localize(
                   "ui.panel.config.automation.editor.status_bar.enabled_switch"
                 )}
@@ -279,6 +287,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         .hass=${this.hass}
         .config=${this.config}
         .stateObj=${this.stateObj}
+        .dirty=${this.dirty}
       ></ha-automation-status-bar>
     `;
   }

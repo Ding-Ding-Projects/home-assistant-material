@@ -4,22 +4,46 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "A link that opens a page of this interface from outside now asks first, shows where it goes and what it passes on, and does nothing until you choose."
+          "text": "Google setup: a wizard under Settings sets Google up once for every Google integration. A service account key file can switch on the needed services (used once, never stored), the page shows the return address to copy, and the client file is read by dropping it."
         },
         {
-          "text": "Date, time and calendar dialogs follow the time zone chosen in the profile. The time dialog has real spin controls and the date grid can be walked with the arrow keys."
+          "text": "Read aloud only ever uses a voice that runs on the device, like the narrator."
         },
         {
-          "text": "The colour picker applies a typed colour when you finish typing, not at every letter, and stores a drag a few times instead of at every move. Fonts and accessibility: fixes for narrow screens, focus, and a font that is not on the device."
+          "text": "First-run setup shows password strength and a preview of dates and units, and asks you to review before saving. The lock wizard can try the new lock before it is saved."
         },
         {
-          "text": "The selection bar sits at the bottom, counts only the rows shown, and says when ticked rows are hidden by the filter. Exports keep duplicate column names apart and say when rows were cut. Outside links in notifications show their host."
+          "text": "Run now, for automations and scripts, says that the saved version runs, asks first, and reports the result. It is off while there are unsaved changes."
         },
         {
-          "text": "Group dialogs ask before switching covers, locks or valves. The image dialog no longer has a share button, because the shared address carried an access code."
+          "text": "The entity dialog no longer repeats the lock and appearance tools, and an unavailable date no longer leaves it empty. Maintenance counts one row per device."
         },
         {
-          "text": "Tabs and the search of everything follow the language mode, with Cantonese written. Open a tab lists the tools. Starting, connection lost and no-access screens are redrawn."
+          "text": "Fixed: a crafted link name could leave the link page blank."
+        },
+        {
+          "text": "A link that opens a page of this interface from outside now asks first, shows where it goes and what it passes on, and does nothing until you choose.",
+          "commit": "de8fa0864ecf"
+        },
+        {
+          "text": "Date, time and calendar dialogs follow the time zone chosen in the profile. The time dialog has real spin controls and the date grid can be walked with the arrow keys.",
+          "commit": "de8fa0864ecf"
+        },
+        {
+          "text": "The colour picker applies a typed colour when you finish typing, not at every letter, and stores a drag a few times instead of at every move. Fonts and accessibility: fixes for narrow screens, focus, and a font that is not on the device.",
+          "commit": "de8fa0864ecf"
+        },
+        {
+          "text": "The selection bar sits at the bottom, counts only the rows shown, and says when ticked rows are hidden by the filter. Exports keep duplicate column names apart and say when rows were cut. Outside links in notifications show their host.",
+          "commit": "de8fa0864ecf"
+        },
+        {
+          "text": "Group dialogs ask before switching covers, locks or valves. The image dialog no longer has a share button, because the shared address carried an access code.",
+          "commit": "de8fa0864ecf"
+        },
+        {
+          "text": "Tabs and the search of everything follow the language mode, with Cantonese written. Open a tab lists the tools. Starting, connection lost and no-access screens are redrawn.",
+          "commit": "de8fa0864ecf"
         },
         {
           "text": "Fixed: builds 64 and 65 were published without images, because a push that changed many files was mistaken for a documentation-only push. Build 66 is the first with images again.",

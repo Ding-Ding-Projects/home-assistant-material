@@ -8,7 +8,7 @@ import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import "../../../components/ha-button";
 import "../../../components/ha-svg-icon";
 import type { ManualAutomationConfig } from "../../../data/automation";
-import { triggerAutomationActions } from "../../../data/automation";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { AutomationRepository } from "../../../data/automation_repos";
 import { fetchAutomationReposStatus } from "../../../data/automation_repos";
 import { haStyle } from "../../../resources/styles";
@@ -32,11 +32,18 @@ export class HaAutomationStatusBar extends LitElement {
 
   @property({ attribute: false }) public stateObj?: HassEntity;
 
+  /** True while the editor holds changes that are not saved yet. */
+  @property({ type: Boolean }) public dirty = false;
+
   @state() private _repository?: AutomationRepository;
 
   @state() private _checking = false;
 
+  @state() private _running = false;
+
   @state() private _checkResult?: AutomationCheckResult;
+
+  @state() private _runMessage?: { danger: boolean; text: string };
 
   private _checkedKey?: string;
 
@@ -53,19 +60,23 @@ export class HaAutomationStatusBar extends LitElement {
   }
 
   protected updated(changedProps: PropertyValues<this>) {
+    let reload = false;
     if (changedProps.has("config")) {
       const oldId = (
         changedProps.get("config") as ManualAutomationConfig | undefined
       )?.id;
-      if (oldId !== this.config?.id) {
-        this._loadRepository();
+      reload = oldId !== this.config?.id;
+      if (reload) {
+        this._repository = undefined;
       }
     }
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    this._loadRepository();
+    // Saving clears the unsaved changes, and the repository moved on with it.
+    if (changedProps.get("dirty") === true && !this.dirty) {
+      reload = true;
+    }
+    if (reload) {
+      this._loadRepository();
+    }
   }
 
   private _configKey() {
@@ -75,8 +86,8 @@ export class HaAutomationStatusBar extends LitElement {
 
   private async _loadRepository() {
     const id = this.config?.id;
-    this._repository = undefined;
     if (!id || !this.hass) {
+      this._repository = undefined;
       return;
     }
     try {
@@ -132,12 +143,15 @@ export class HaAutomationStatusBar extends LitElement {
   private _renderBar() {
     const localize = this.hass.localize;
     const result = this._checkResult;
+    const message = this._runMessage;
     return html`
       <div class="bar">
         <ha-button
           appearance="plain"
-          .disabled=${!this.stateObj}
-          title=${localize(`${PREFIX}run_now_hint`)}
+          .disabled=${!this.stateObj || this.dirty || this._running}
+          title=${localize(
+            `${PREFIX}${this.dirty ? "run_dirty" : "run_now_hint"}`
+          )}
           @click=${this._runNow}
         >
           <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
@@ -165,11 +179,22 @@ export class HaAutomationStatusBar extends LitElement {
               </ha-button>`
             : nothing
         }
+        ${
+          this.dirty
+            ? html`<span class="result"
+                >${localize(`${PREFIX}run_dirty`)}</span
+              >`
+            : nothing
+        }
         <span
-          class="result ${result && result.status !== "ok" ? "danger" : ""}"
+          class="result ${
+            message?.danger || (!message && result && result.status !== "ok")
+              ? "danger"
+              : ""
+          }"
           role="status"
           aria-live="polite"
-          >${result ? this._resultText(result) : ""}</span
+          >${message ? message.text : result ? this._resultText(result) : ""}</span
         >
       </div>
     `;
@@ -190,9 +215,55 @@ export class HaAutomationStatusBar extends LitElement {
     }
   }
 
-  private _runNow() {
-    if (this.stateObj) {
-      triggerAutomationActions(this.hass, this.stateObj.entity_id);
+  /**
+   * Runs the SAVED automation: the trigger service uses the config the server
+   * holds, ignores whether the automation is on, and skips its conditions.
+   * Unsaved edits are never part of the run, so the button is off while there
+   * are any.
+   */
+  private async _runNow() {
+    const stateObj = this.stateObj;
+    if (!stateObj || this._running || this.dirty) {
+      return;
+    }
+    const localize = this.hass.localize;
+    const name = this.config?.alias || stateObj.attributes.friendly_name || "";
+    this._running = true;
+    try {
+      const switchedOff = stateObj.state === "off";
+      const confirmed = await showConfirmationDialog(this, {
+        title: localize(`${PREFIX}run_confirm_title`),
+        text: `${localize(`${PREFIX}run_confirm_text`, { name })}${
+          switchedOff ? ` ${localize(`${PREFIX}run_confirm_off`)}` : ""
+        }`,
+        confirmText: localize(`${PREFIX}run_now`),
+        dismissText: localize("ui.common.cancel"),
+        destructive: true,
+      });
+      if (!confirmed) {
+        return;
+      }
+      this._checkResult = undefined;
+      this._runMessage = undefined;
+      try {
+        await this.hass.callService("automation", "trigger", {
+          entity_id: stateObj.entity_id,
+          skip_condition: true,
+        });
+        this._runMessage = {
+          danger: false,
+          text: localize(`${PREFIX}run_success`),
+        };
+      } catch (err: unknown) {
+        this._runMessage = {
+          danger: true,
+          text: localize(`${PREFIX}run_failed`, {
+            message: err instanceof Error ? err.message : String(err),
+          }),
+        };
+      }
+    } finally {
+      this._running = false;
     }
   }
 
@@ -203,6 +274,7 @@ export class HaAutomationStatusBar extends LitElement {
     const key = this._configKey();
     this._checking = true;
     this._checkResult = undefined;
+    this._runMessage = undefined;
     const result = await checkAutomation(this.hass, this.config);
     this._checking = false;
     if (key !== this._configKey()) {

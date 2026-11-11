@@ -3,7 +3,6 @@ import {
   mdiAccountVoice,
   mdiBackupRestore,
   mdiChartBoxOutline,
-  mdiChevronRight,
   mdiClose,
   mdiCodeBraces,
   mdiCogOutline,
@@ -12,11 +11,8 @@ import {
   mdiDotsVertical,
   mdiDownload,
   mdiExportVariant,
-  mdiFormatPaint,
   mdiInformationOutline,
   mdiLinkVariant,
-  mdiLock,
-  mdiLockOpenVariantOutline,
   mdiPencil,
   mdiPencilOff,
   mdiPencilOutline,
@@ -29,6 +25,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { cache } from "lit/directives/cache";
 import { classMap } from "lit/directives/class-map";
+import { ifDefined } from "lit/directives/if-defined";
 import { keyed } from "lit/directives/keyed";
 import type { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item";
 import { dynamicElement } from "../../common/dom/dynamic-element-directive";
@@ -43,13 +40,6 @@ import {
   computeEntityNameParts,
   type EntityNameType,
 } from "../../common/entity/compute_entity_name_display";
-import {
-  isLocked,
-  readLocks,
-  subscribeLocks,
-  withLock,
-  writeLocks,
-} from "../../common/locks/element-locks";
 import {
   collectPageExport,
   exportContent,
@@ -158,9 +148,6 @@ declare global {
 
 const DEFAULT_VIEW: MoreInfoView = "info";
 
-/** The key the tools at the foot of a dialog lock this dialog under. */
-const DIALOG_LOCK_KEY = "dialog:ha-more-info-dialog";
-
 const TAB_VIEWS: MoreInfoView[] = ["info", "history", "settings", "related"];
 
 const BREADCRUMB_NAME: EntityNameType[] = [
@@ -192,6 +179,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   @query("ha-adaptive-dialog") private _dialogElement?: HTMLElement;
 
+  @query(".tools") private _toolsElement?: HTMLElement;
+
   @state() private _entityId?: string | null;
 
   @state() private _data?: Record<string, any>;
@@ -216,19 +205,14 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   @state() private _isEscapeEnabled = true;
 
-  @state() private _locked = false;
-
   @state() private _narratorOn = false;
 
   @state() private _exportedName = "";
-
-  private _unsubscribeLocks?: () => void;
 
   private _unsubscribePreferences?: () => void;
 
   public connectedCallback(): void {
     super.connectedCallback();
-    this._unsubscribeLocks = subscribeLocks(this._syncTools);
     this._unsubscribePreferences = subscribePersonalPreferences(
       this._syncTools
     );
@@ -237,14 +221,11 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
-    this._unsubscribeLocks?.();
     this._unsubscribePreferences?.();
-    this._unsubscribeLocks = undefined;
     this._unsubscribePreferences = undefined;
   }
 
   private _syncTools = (): void => {
-    this._locked = isLocked(readLocks(), DIALOG_LOCK_KEY);
     this._narratorOn = getPersonalPreferences().narratorEnabled;
   };
 
@@ -723,18 +704,27 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     target.click();
   }
 
-  private _renderTabs() {
+  /** The tabs that are shown, or none when the row is not shown. */
+  private _shownTabs(): MoreInfoView[] {
     if (
       !this._entityId ||
       this._childView ||
       !(TAB_VIEWS as string[]).includes(this._currView)
     ) {
-      return nothing;
+      return [];
     }
     const tabs = this._availableTabs();
-    if (tabs.length < 2) {
+    return tabs.length < 2 ? [] : tabs;
+  }
+
+  private _renderTabs() {
+    const tabs = this._shownTabs();
+    if (!tabs.length) {
       return nothing;
     }
+    // When the current view is not among the tabs, the first tab takes the
+    // tab stop so the row can still be reached with the keyboard.
+    const focusable = tabs.includes(this._currView) ? this._currView : tabs[0];
     return html`
       <div
         class="tabs"
@@ -749,9 +739,11 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
               type="button"
               role="tab"
               class=${classMap({ tab: true, active: view === this._currView })}
+              id=${`more-info-tab-${view}`}
               data-view=${view}
               aria-selected=${view === this._currView ? "true" : "false"}
-              tabindex=${view === this._currView ? 0 : -1}
+              aria-controls="more-info-tabpanel"
+              tabindex=${view === focusable ? 0 : -1}
               @click=${this._tabClick}
               @keydown=${this._tabKeydown}
             >
@@ -761,17 +753,6 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         )}
       </div>
     `;
-  }
-
-  private _toggleLock() {
-    if (this._locked) {
-      return;
-    }
-    writeLocks(withLock(readLocks(), DIALOG_LOCK_KEY, true));
-  }
-
-  private _pickAppearance() {
-    fireEvent(this, "hass-pick-appearance");
   }
 
   private _toggleNarrator(ev: Event) {
@@ -790,7 +771,16 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     const title = stateObj
       ? computeEntityNameParts(stateObj, this.hass).entity || this._entityId
       : this._entityId;
-    const page = collectPageExport(this._contentElement, title);
+    // The frame's own tools are not part of what the dialog shows about the
+    // entity, so they are left out of the export.
+    const tools = this._toolsElement;
+    tools?.setAttribute("hidden", "");
+    let page;
+    try {
+      page = collectPageExport(this._contentElement, title);
+    } finally {
+      tools?.removeAttribute("hidden");
+    }
     const { content, mime, extension } = exportContent(page, format);
     const name = exportFileName(page, extension);
     fileDownload(
@@ -806,41 +796,6 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       localize(`ui.dialogs.more_info_control.frame.${name}` as LocalizeKeys);
     return html`
       <section class="tools" aria-label=${key("tools_title")}>
-        <button
-          type="button"
-          class="tool"
-          ?disabled=${this._locked}
-          @click=${this._toggleLock}
-        >
-          <span class="tool-icon"
-            ><ha-svg-icon
-              .path=${this._locked ? mdiLock : mdiLockOpenVariantOutline}
-            ></ha-svg-icon
-          ></span>
-          <span class="tool-text">
-            <span class="tool-title"
-              >${key(this._locked ? "unlock" : "lock")}</span
-            >
-            <span class="tool-description"
-              >${key(
-                this._locked ? "unlock_description" : "lock_description"
-              )}</span
-            >
-          </span>
-          <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
-        </button>
-        <button type="button" class="tool" @click=${this._pickAppearance}>
-          <span class="tool-icon"
-            ><ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon
-          ></span>
-          <span class="tool-text">
-            <span class="tool-title">${key("appearance")}</span>
-            <span class="tool-description"
-              >${key("appearance_description")}</span
-            >
-          </span>
-          <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
-        </button>
         <label class="tool">
           <span class="tool-icon"
             ><ha-svg-icon .path=${mdiAccountVoice}></ha-svg-icon
@@ -975,6 +930,8 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       this.hass.language,
       this.hass.translationMetadata.translations
     );
+
+    const tabsShown = this._shownTabs().includes(this._currView);
 
     const childViewContent = this._childView
       ? html`
@@ -1274,6 +1231,11 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
             html`
               <div
                 class="content ha-scrollbar"
+                id="more-info-tabpanel"
+                role=${ifDefined(tabsShown ? "tabpanel" : undefined)}
+                aria-labelledby=${ifDefined(
+                  tabsShown ? `more-info-tab-${this._currView}` : undefined
+                )}
                 tabindex="-1"
                 @entity-entry-updated=${this._entryUpdated}
                 @toggle-edit-mode=${this._handleToggleInfoEditModeEvent}

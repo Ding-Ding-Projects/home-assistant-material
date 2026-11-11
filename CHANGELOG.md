@@ -8,6 +8,17 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Google setup: a wizard under Settings sets Google up once for every Google integration.
+  A service account key file can switch on the needed services (used once, never stored),
+  the page shows the return address to copy, and the client file is read by dropping it.
+- Read aloud only ever uses a voice that runs on the device, like the narrator.
+- First-run setup shows password strength and a preview of dates and units, and asks you to
+  review before saving. The lock wizard can try the new lock before it is saved.
+- Run now, for automations and scripts, says that the saved version runs, asks first, and
+  reports the result. It is off while there are unsaved changes.
+- The entity dialog no longer repeats the lock and appearance tools, and an unavailable date
+  no longer leaves it empty. Maintenance counts one row per device.
+- Fixed: a crafted link name could leave the link page blank.
 - A link that opens a page of this interface from outside now asks first, shows where it
   goes and what it passes on, and does nothing until you choose.
 - Date, time and calendar dialogs follow the time zone chosen in the profile. The time dialog

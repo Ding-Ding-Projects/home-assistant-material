@@ -129,6 +129,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-problem-log",
         load: () => import("./problem-log/ha-config-problem-log"),
       },
+      "google-setup": {
+        tag: "ha-config-google-setup",
+        load: () => import("./google-setup/ha-config-google-setup"),
+      },
       "guided-setup": {
         tag: "ha-config-guided-setup",
         load: () => import("./guided-setup/ha-config-guided-setup"),

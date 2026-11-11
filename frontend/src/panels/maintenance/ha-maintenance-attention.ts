@@ -15,10 +15,10 @@ import type { UpdateEntity } from "../../data/update";
 import { filterUpdateEntities, updateAvailable } from "../../data/update";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import type { HomeAssistant } from "../../types";
+import { computeDomain } from "../../common/entity/compute_domain";
+import { sameItems, summarizeMaintenance } from "./maintenance-summary";
 import {
   filterLowBatteryEntities,
-  filterProblemEntities,
-  filterUnavailableBatteryEntities,
   findMaintenanceEntityIds,
 } from "./strategies/maintenance-view-strategy";
 
@@ -47,44 +47,72 @@ const ICONS: Record<AttentionKind, string> = {
 export class HaMaintenanceAttention extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  // Keyed on the state objects of the entities this page reads (battery,
+  // problem and charging sensors, and updates) plus the registries, so an
+  // unrelated state change does not recompute anything.
   private _compute = memoizeOne(
     (
-      states: HomeAssistant["states"],
+      _relevantStates: readonly unknown[],
       entities: HomeAssistant["entities"],
       devices: HomeAssistant["devices"],
       _localize: HomeAssistant["localize"]
     ) => {
+      const { states } = this.hass;
       const ids = findMaintenanceEntityIds(this.hass);
+      const summary = summarizeMaintenance(
+        states,
+        entities,
+        ids,
+        filterLowBatteryEntities(states, entities, ids)
+      );
       return {
-        low: filterLowBatteryEntities(states, entities, ids),
-        problems: filterProblemEntities(states, ids),
-        offline: filterUnavailableBatteryEntities(states, ids),
-        batteryCount: ids.filter(
-          (id) =>
-            states[id]?.attributes?.device_class === "battery" &&
-            states[id]?.state !== "unavailable"
-        ).length,
+        summary,
         updates: filterUpdateEntities(
           states,
           this.hass.formatEntityName
         ).filter((entity) => updateAvailable(entity)),
         devices,
       };
-    }
+    },
+    (newArgs, lastArgs) =>
+      sameItems(newArgs[0], lastArgs[0]) &&
+      newArgs.slice(1).every((arg, index) => arg === lastArgs[index + 1])
   );
+
+  private _relevantStates(): unknown[] {
+    const { states } = this.hass;
+    const result: unknown[] = [];
+    for (const [entityId, stateObj] of Object.entries(states)) {
+      const domain = computeDomain(entityId);
+      if (domain === "update") {
+        result.push(stateObj);
+      } else if (domain === "sensor" || domain === "binary_sensor") {
+        const deviceClass = stateObj.attributes?.device_class;
+        if (
+          deviceClass === "battery" ||
+          deviceClass === "problem" ||
+          deviceClass === "battery_charging"
+        ) {
+          result.push(stateObj);
+        }
+      }
+    }
+    return result;
+  }
 
   protected render(): TemplateResult {
     const data = this._compute(
-      this.hass.states,
+      this._relevantStates(),
       this.hass.entities,
       this.hass.devices,
       this.hass.localize
     );
+    const { summary } = data;
     const localize = this.hass.localize;
     const prefix = "ui.panel.lovelace.strategy.maintenance";
 
     const items: AttentionItem[] = [
-      ...data.low.map((entityId) =>
+      ...summary.lowDevices.map((entityId) =>
         this._item("battery", entityId, `${prefix}.low_battery`)
       ),
       ...data.updates.map((entity: UpdateEntity) => ({
@@ -98,13 +126,19 @@ export class HaMaintenanceAttention extends LitElement {
           version: entity.attributes.installed_version || "",
         }),
       })),
-      ...data.offline.map((entityId) =>
+      ...summary.offlineDevices.map((entityId) =>
         this._item("offline", entityId, `${prefix}.offline`)
       ),
-      ...data.problems.map((entityId) =>
+      ...summary.offlineSensors.map((entityId) =>
+        this._item("offline", entityId, `${prefix}.sensor_offline`)
+      ),
+      ...summary.problemDevices.map((entityId) =>
         this._item("problem", entityId, `${prefix}.problem`)
       ),
     ];
+    const lowCount = summary.lowDevices.length;
+    const offlineCount =
+      summary.offlineDevices.length + summary.offlineSensors.length;
 
     const count = items.length;
 
@@ -120,24 +154,32 @@ export class HaMaintenanceAttention extends LitElement {
         </p>
       </div>
       <div class="cards">
-        <div class="card battery ${data.low.length ? "alert" : "fine"}">
+        <div class="card battery ${lowCount ? "alert" : "fine"}">
           <div class="card-label">
             <ha-svg-icon .path=${mdiBatteryAlertVariantOutline}></ha-svg-icon>
             ${localize(`${prefix}.batteries`)}
           </div>
           <div class="card-value">
             ${
-              data.low.length
+              lowCount
                 ? localize(`${prefix}.batteries_low`, {
-                    count: data.low.length,
+                    count: lowCount,
                   })
-                : localize(`${prefix}.all_fine`)
+                : summary.fineCount || !summary.unknownCount
+                  ? localize(`${prefix}.all_fine`)
+                  : localize(`${prefix}.batteries_unknown_value`)
             }
           </div>
           <div class="card-note">
             ${localize(`${prefix}.batteries_fine`, {
-              count: Math.max(data.batteryCount - data.low.length, 0),
-            })}
+              count: summary.fineCount,
+            })}${
+              summary.unknownCount
+                ? html` ${localize(`${prefix}.batteries_unknown`, {
+                    count: summary.unknownCount,
+                  })}`
+                : nothing
+            }
           </div>
         </div>
         <div class="card updates ${data.updates.length ? "alert" : "fine"}">
@@ -155,20 +197,33 @@ export class HaMaintenanceAttention extends LitElement {
             }
           </div>
         </div>
-        <div class="card offline ${data.offline.length ? "alert" : "fine"}">
+        <div class="card offline ${offlineCount ? "alert" : "fine"}">
           <div class="card-label">
             <ha-svg-icon .path=${mdiLanDisconnect}></ha-svg-icon>
             ${localize(`${prefix}.offline_label`)}
           </div>
           <div class="card-value">
             ${
-              data.offline.length
+              summary.offlineDevices.length
                 ? localize(`${prefix}.offline_devices`, {
-                    count: data.offline.length,
+                    count: summary.offlineDevices.length,
                   })
-                : localize(`${prefix}.all_fine`)
+                : offlineCount
+                  ? localize(`${prefix}.offline_sensors`, {
+                      count: summary.offlineSensors.length,
+                    })
+                  : localize(`${prefix}.all_fine`)
             }
           </div>
+          ${
+            summary.offlineDevices.length && summary.offlineSensors.length
+              ? html`<div class="card-note">
+                  ${localize(`${prefix}.offline_sensors`, {
+                    count: summary.offlineSensors.length,
+                  })}
+                </div>`
+              : nothing
+          }
         </div>
       </div>
       ${

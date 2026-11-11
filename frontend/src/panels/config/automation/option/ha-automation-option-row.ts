@@ -141,13 +141,13 @@ export default class HaAutomationOptionRow extends LitElement {
   // Synchronous guard; state updates are asynchronous.
   private _runBusy = false;
 
+  // Says a test answer was dropped; kept apart from the result of a run.
+  @state() private _testNote?: string;
+
   private _configChanged() {
-    this._runResult = {
-      variant: "neutral",
-      text: this.hass.localize(
-        "ui.panel.config.automation.editor.actions.type.choose.config_changed"
-      ),
-    };
+    this._testNote = this.hass.localize(
+      "ui.panel.config.automation.editor.actions.type.choose.config_changed"
+    );
   }
 
   /** Runs this option's actions now, without evaluating its conditions. */
@@ -200,7 +200,12 @@ export default class HaAutomationOptionRow extends LitElement {
       : ensureArray(this.defaultActions);
     if (getConfigKey(current) !== ranKey) {
       // The actions were edited while running, so the answer would be stale.
-      this._configChanged();
+      this._runResult = {
+        variant: "neutral",
+        text: localize(
+          "ui.panel.config.automation.editor.actions.type.choose.config_changed"
+        ),
+      };
       return;
     }
     this._ranKey = ranKey;
@@ -286,6 +291,9 @@ export default class HaAutomationOptionRow extends LitElement {
           role="status"
           aria-live="polite"
           >${this._runResult?.text ?? ""}</span
+        >
+        <span class="run-result neutral" role="status" aria-live="polite"
+          >${this._testNote ?? ""}</span
         >
       </div>
       <p class="run-note">
@@ -393,6 +401,7 @@ export default class HaAutomationOptionRow extends LitElement {
       return;
     }
     window.clearTimeout(this._testingTimeout);
+    this._testNote = undefined;
 
     const result = await testOption(this.hass, option);
     if (this.option !== option) {

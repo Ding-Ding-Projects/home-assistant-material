@@ -44,6 +44,11 @@ import "./ha-lock-pin-entry";
 import type { HaLockPinEntry } from "./ha-lock-pin-entry";
 import { lockPanelStyles } from "./lock-panel-styles";
 import {
+  buildLockSummary,
+  passwordRules,
+  tryNewLock,
+} from "./lock-wizard-logic";
+import {
   anchorStyle,
   besideStyle,
   isNarrow,
@@ -64,13 +69,14 @@ export interface LockWizardTarget {
   onCreated?: () => void;
 }
 
-/** The six steps, in order. The names are lock wording keys. */
+/** The seven steps, in order. The names are lock wording keys. */
 const STEPS = [
   "step_target",
   "policy_title",
   "step_create",
   "step_duration",
   "step_disclosure",
+  "step_try",
   "step_confirm",
 ] as const;
 
@@ -79,13 +85,15 @@ const POLICY = 1;
 const CREATE = 2;
 const DURATION = 3;
 const DISCLOSURE = 4;
-const CONFIRM = 5;
+const TRY = 5;
+const CONFIRM = 6;
 
 /**
- * The wizard that makes one lock in six steps: what is locked, what unlocks
+ * The wizard that makes one lock in seven steps: what is locked, what unlocks
  * it, each credential made in the order it will be asked for, how long an
- * unlock lasts, the plain disclosure and recovery line, and the
- * confirmation. Wide, it floats beside the element with the steps listed;
+ * unlock lasts, the plain disclosure and recovery line, an optional try of
+ * the lock before it is saved, and the confirmation. Wide, it floats beside
+ * the element with the steps listed;
  * on a phone it is a full-height sheet with a segmented line. It does not
  * darken the page. Nothing is carried over from another lock.
  */
@@ -115,6 +123,13 @@ export class HaLockWizard extends LitElement {
   @state() private _pin = "";
 
   @state() private _password = "";
+
+  @state() private _passwordRepeat = "";
+
+  /** The outcome of the try step. Only the outcome is kept, never what was typed. */
+  @state() private _tryResult?: "ok" | "wrong" | "invalid";
+
+  @state() private _trying = false;
 
   @state() private _totpSecret = newTotpSecret();
 
@@ -320,22 +335,44 @@ export class HaLockWizard extends LitElement {
   private _renderButtons(): TemplateResult {
     const last = this._step === CONFIRM;
     const pinStage = this._step === CREATE && this._factor === "pin";
+    const passwordStage = this._step === CREATE && this._factor === "password";
     const blocked =
       this._busy ||
+      this._trying ||
       (last && !this._ack) ||
       (this._step === DISCLOSURE && !this._ack) ||
-      (pinStage && !this._pinValid);
+      (pinStage && !this._pinValid) ||
+      (passwordStage && !this._rules.ok);
+    // The try step is optional: without a good try the button says Skip.
+    const skipping = this._step === TRY && this._tryResult !== "ok";
     return html`<div class="buttons">
-      <button type="button" class="text" @click=${this._back}>
-        ${this._step === TARGET ? lockText("cancel") : lockText("back")}
-      </button>
+      ${
+        this._step === TARGET
+          ? html`<button type="button" class="text" @click=${this._close}>
+              ${lockText("cancel")}
+            </button>`
+          : html`<span class="left">
+              <button type="button" class="text" @click=${this._back}>
+                ${lockText("back")}
+              </button>
+              <button type="button" class="text" @click=${this._close}>
+                ${lockText("cancel")}
+              </button>
+            </span>`
+      }
       <button
         type="button"
         class="primary"
         ?disabled=${blocked}
         @click=${last ? this._create : this._next}
       >
-        ${last ? lockText("create") : lockText("next")}
+        ${
+          last
+            ? lockText("create")
+            : skipping
+              ? lockText("skip")
+              : lockText("next")
+        }
       </button>
     </div>`;
   }
@@ -353,13 +390,157 @@ export class HaLockWizard extends LitElement {
         return this._renderDuration();
       case DISCLOSURE:
         return this._renderDisclosure();
+      case TRY:
+        return this._renderTry();
       default:
-        return html`<p>
-          ${lockText("summary", {
-            name: this.target.label,
-            policy: lockText(`policy_${this._policy}`),
-          })}
-        </p>`;
+        return this._renderSummary();
+    }
+  }
+
+  private get _rules() {
+    return passwordRules(
+      this._password,
+      this._passwordRepeat,
+      PASSWORD_MIN,
+      PASSWORD_MAX
+    );
+  }
+
+  /** One rule of a live list, with its state said in words as well as shown. */
+  private _renderRule(met: boolean, text: string): TemplateResult {
+    return html`<li class=${met ? "met" : "unmet"}>
+      <ha-svg-icon .path=${met ? mdiCheck : mdiClose}></ha-svg-icon>
+      <span>${text}</span>
+      <span class="visually-hidden"
+        >${met ? lockText("rule_met") : lockText("rule_unmet")}</span
+      >
+    </li>`;
+  }
+
+  private _renderSummary(): TemplateResult {
+    const summary = buildLockSummary({
+      policy: this._policy,
+      duration: this._duration,
+      onStart: this._onStart,
+    });
+    return html`<p>
+        ${lockText("summary", {
+          name: this.target.label,
+          policy: lockText(`policy_${this._policy}`),
+        })}
+      </p>
+      <dl class="facts">
+        <dt>${lockText("summary_locks")}</dt>
+        <dd>${this.target.label}</dd>
+        <dt>${lockText("unlocks_with")}</dt>
+        <dd>
+          ${summary.factors.map((f) => lockText(`factor_${f}`)).join(", ")}
+        </dd>
+        <dt>${lockText("unlock_lasts")}</dt>
+        <dd>${this._durationText()}</dd>
+        <dt>${lockText("on_start_label")}</dt>
+        <dd>
+          ${summary.onStart ? lockText("summary_yes") : lockText("summary_no")}
+        </dd>
+        <dt>${lockText("step_try")}</dt>
+        <dd>
+          ${
+            this._tryResult === "ok"
+              ? lockText("try_summary_ok")
+              : lockText("try_summary_skipped")
+          }
+        </dd>
+      </dl>
+      <p class="note">${lockText("summary_secret_note")}</p>`;
+  }
+
+  private _renderTry(): TemplateResult {
+    return html`<p class="note">${lockText("try_intro")}</p>
+      ${this._factors.map((factor) => {
+        if (factor === "totp") {
+          return html`<ha-input
+            name="try_totp"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="6"
+            .label=${lockText("factor_totp_field")}
+            .disabled=${this._trying}
+          ></ha-input>`;
+        }
+        return html`<ha-input
+          name=${`try_${factor}`}
+          type="password"
+          password-toggle
+          autocomplete="off"
+          inputmode=${factor === "pin" ? "numeric" : "text"}
+          .label=${lockText(`factor_${factor}_label`)}
+          .disabled=${this._trying}
+        ></ha-input>`;
+      })}
+      <div class="try-row">
+        <button
+          type="button"
+          class="linkbutton"
+          ?disabled=${this._trying}
+          @click=${this._runTry}
+        >
+          ${this._trying ? lockText("try_running") : lockText("try_action")}
+        </button>
+      </div>
+      <p
+        class=${
+          this._tryResult === "ok"
+            ? "callout ok"
+            : this._tryResult
+              ? "callout bad"
+              : "visually-hidden"
+        }
+        role="status"
+      >
+        ${
+          this._tryResult === "ok"
+            ? lockText("try_ok")
+            : this._tryResult === "wrong"
+              ? lockText("try_wrong")
+              : this._tryResult === "invalid"
+                ? lockText("create_failed")
+                : ""
+        }
+      </p>`;
+  }
+
+  private async _runTry(): Promise<void> {
+    if (this._trying) {
+      return;
+    }
+    const read = (name: string) =>
+      this.renderRoot.querySelector<HaInput>(`ha-input[name='${name}']`)
+        ?.value ?? "";
+    this._trying = true;
+    try {
+      this._tryResult = await tryNewLock(
+        {
+          key: this.target.key,
+          label: this.target.label,
+          policy: this._policy,
+          duration: this._duration,
+          pin: this._factors.includes("pin") ? this._pin : undefined,
+          password: this._factors.includes("password")
+            ? this._password
+            : undefined,
+          totpSecret: this._factors.includes("totp")
+            ? this._totpSecret
+            : undefined,
+        },
+        {
+          pin: read("try_pin"),
+          password: read("try_password"),
+          totp: read("try_totp"),
+        },
+        Date.now()
+      );
+    } finally {
+      this._trying = false;
     }
   }
 
@@ -383,13 +564,18 @@ export class HaLockWizard extends LitElement {
           }
           @lock-pin-change=${this._pinChanged}
           @lock-pin-submit=${this._pinSubmitted}
-        ></ha-lock-pin-entry>`;
+        ></ha-lock-pin-entry>
+        <ul class="rules" aria-label=${lockText("rules_label")}>
+          ${this._renderRule(this._pinValid, lockText("pin_rule"))}
+        </ul>`;
     }
     if (factor === "password") {
+      const rules = this._rules;
       return html`${header}
         <ha-input
           name="password"
           type="password"
+          password-toggle
           autocomplete="new-password"
           maxlength=${PASSWORD_MAX}
           .label=${lockText("password_new")}
@@ -399,10 +585,26 @@ export class HaLockWizard extends LitElement {
         <ha-input
           name="password_repeat"
           type="password"
+          password-toggle
           autocomplete="new-password"
           maxlength=${PASSWORD_MAX}
           .label=${lockText("password_repeat")}
-        ></ha-input>`;
+          .value=${this._passwordRepeat}
+          @input=${this._passwordRepeatInput}
+        ></ha-input>
+        <ul class="rules" aria-label=${lockText("rules_label")}>
+          ${this._renderRule(
+            rules.lengthOk,
+            lockText("password_rule_length", {
+              min: PASSWORD_MIN,
+              max: PASSWORD_MAX,
+            })
+          )}
+          ${this._renderRule(rules.matchOk, lockText("password_rule_match"))}
+        </ul>
+        <p class="visually-hidden" role="status">
+          ${rules.ok ? lockText("rules_all_met") : ""}
+        </p>`;
     }
     const uri = totpUri(this._totpSecret, this.target.label);
     return html`${header}
@@ -453,6 +655,7 @@ export class HaLockWizard extends LitElement {
           html`<label
             class=${classMap({
               choice: true,
+              card: true,
               selected: this._policy === policy,
             })}
           >
@@ -463,7 +666,12 @@ export class HaLockWizard extends LitElement {
               data-policy=${policy}
               @change=${this._policyChanged}
             />
-            ${lockText(`policy_${policy}`)}
+            <span class="card-text">
+              <span class="card-title">${lockText(`policy_${policy}`)}</span>
+              <span class="card-desc"
+                >${lockText(`policy_${policy}_desc`)}</span
+              >
+            </span>
           </label>`
       )}
     </fieldset>`;
@@ -567,6 +775,8 @@ export class HaLockWizard extends LitElement {
   private _resetCredentials(): void {
     this._pin = "";
     this._password = "";
+    this._passwordRepeat = "";
+    this._tryResult = undefined;
     this._totpChecked = false;
     this._totpSecret = newTotpSecret();
     this._credIndex = 0;
@@ -580,6 +790,10 @@ export class HaLockWizard extends LitElement {
 
   private _passwordInput(ev: Event): void {
     this._password = (ev.target as HaInput).value ?? "";
+  }
+
+  private _passwordRepeatInput(ev: Event): void {
+    this._passwordRepeat = (ev.target as HaInput).value ?? "";
   }
 
   private async _totpInput(ev: Event): Promise<void> {
@@ -698,6 +912,9 @@ export class HaLockWizard extends LitElement {
       this._resetCredentials();
     }
     this._step += 1;
+    if (this._step === TRY) {
+      this._tryResult = undefined;
+    }
     this._focusFirst();
   }
 
@@ -710,10 +927,7 @@ export class HaLockWizard extends LitElement {
       return;
     }
     if (factor === "password") {
-      const repeat =
-        this.renderRoot.querySelector<HaInput>(
-          "ha-input[name='password_repeat']"
-        )?.value ?? "";
+      const repeat = this._passwordRepeat;
       if (
         this._password.length < PASSWORD_MIN ||
         this._password.length > PASSWORD_MAX
@@ -766,6 +980,7 @@ export class HaLockWizard extends LitElement {
       applyElementLocks();
       this._pin = "";
       this._password = "";
+      this._passwordRepeat = "";
       this._totpSecret = "";
       const done = this.target.onCreated;
       this._close();
@@ -819,9 +1034,65 @@ export class HaLockWizard extends LitElement {
         font-size: var(--ha-font-size-m, 1rem);
         font-weight: 500;
       }
+      .left {
+        display: inline-flex;
+        gap: var(--ha-space-1);
+      }
+      .rules {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--ha-space-1);
+      }
+      .rules li {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
+        font-size: var(--ha-font-size-s, 0.85rem);
+        color: var(--secondary-text-color);
+      }
+      .rules li ha-svg-icon {
+        --mdc-icon-size: 18px;
+      }
+      .rules li.met {
+        color: var(--success-color);
+      }
+      .rules li.unmet ha-svg-icon {
+        color: var(--error-color);
+      }
+      .choice.card {
+        align-items: flex-start;
+        padding: var(--ha-space-3);
+        min-height: 56px;
+      }
+      .card-text {
+        display: grid;
+        gap: 2px;
+      }
+      .card-title {
+        font-weight: 500;
+      }
+      .card-desc {
+        font-size: var(--ha-font-size-s, 0.85rem);
+        color: var(--secondary-text-color);
+      }
+      .choice:has(input:focus-visible),
+      .check:has(input:focus-visible) {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .try-row {
+        display: flex;
+      }
+      .callout.bad {
+        background: color-mix(in srgb, var(--error-color) 18%, transparent);
+        color: var(--primary-text-color);
+      }
       .segments {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
         gap: var(--ha-space-1);
       }
       .segments span {

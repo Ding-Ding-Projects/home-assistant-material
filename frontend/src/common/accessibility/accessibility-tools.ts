@@ -1,6 +1,7 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
 import { isNotShown } from "../dom/is-not-shown";
+import { localVoicesForTag } from "../narration/narration";
 
 /**
  * Accessibility tools: text size, contrast, motion, a focus ring that follows
@@ -429,23 +430,40 @@ export const stopReadingAloud = () => {
   }
 };
 
+/**
+ * Reads the chunks aloud with a voice that runs on this device. The engine's
+ * default voice is never used, because it can be a network voice that sends
+ * the page text to a server. Returns false, speaking nothing and calling
+ * `onDone`, when there is nothing to read or no on-device voice for the
+ * language; the caller then tells the person that no on-device voice exists.
+ */
 export const readAloud = (
   chunks: string[],
   language: string,
   onDone: () => void
-) => {
+): boolean => {
   if (!canReadAloud() || !chunks.length) {
     onDone();
-    return;
+    return false;
+  }
+  const voice = localVoicesForTag(
+    window.speechSynthesis.getVoices(),
+    language
+  )[0];
+  if (!voice) {
+    onDone();
+    return false;
   }
   window.speechSynthesis.cancel();
   chunks.forEach((chunk, index) => {
     const utterance = new SpeechSynthesisUtterance(chunk);
-    utterance.lang = language;
+    utterance.voice = voice;
+    utterance.lang = voice.lang || language;
     if (index === chunks.length - 1) {
       utterance.onend = onDone;
       utterance.onerror = onDone;
     }
     window.speechSynthesis.speak(utterance);
   });
+  return true;
 };

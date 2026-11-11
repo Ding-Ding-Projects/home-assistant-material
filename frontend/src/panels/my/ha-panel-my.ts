@@ -701,8 +701,14 @@ export const getMyRedirects = (): Redirects => ({
   },
 });
 
-const getRedirect = (path: string): Redirect | undefined =>
-  getMyRedirects()?.[path];
+const getRedirect = (path: string): Redirect | undefined => {
+  // Only names in the list itself count; "constructor" and the like are
+  // inherited from every object and are not redirects.
+  const redirects = getMyRedirects();
+  return redirects && Object.hasOwn(redirects, path)
+    ? redirects[path]
+    : undefined;
+};
 
 // The backups table reads these from the link
 const backupsTableParams = {

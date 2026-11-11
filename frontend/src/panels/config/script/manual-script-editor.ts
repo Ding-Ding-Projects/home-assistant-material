@@ -2,18 +2,15 @@ import { mdiHelpCircleOutline, mdiPlay, mdiTransitConnection } from "@mdi/js";
 import { load, YAML11_SCHEMA } from "js-yaml";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, query, queryAll } from "lit/decorators";
-import memoizeOne from "memoize-one";
 import {
-  any,
-  array,
-  assert,
-  enums,
-  number,
-  object,
-  optional,
-  string,
-} from "superstruct";
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
+import memoizeOne from "memoize-one";
+import { assert } from "superstruct";
 import { ensureArray } from "../../../common/array/ensure-array";
 import { canOverrideAlphanumericInput } from "../../../common/dom/can-override-input";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -53,17 +50,7 @@ import { showPasteReplaceDialog } from "../automation/paste-replace-dialog/show-
 import { manualEditorStyles, saveFabStyles } from "../automation/styles";
 import "./ha-script-fields";
 import type HaScriptFields from "./ha-script-fields";
-
-const scriptConfigStruct = object({
-  alias: optional(string()),
-  description: optional(string()),
-  sequence: optional(array(any())),
-  icon: optional(string()),
-  mode: optional(enums([typeof MODES])),
-  max: optional(number()),
-  fields: optional(object()),
-  variables: optional(object()),
-});
+import { parseMaxRuns, scriptConfigStruct } from "./script-config-struct";
 
 @customElement("manual-script-editor")
 export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
@@ -78,6 +65,8 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   >;
 
   @property({ attribute: false }) public scriptId: string | null = null;
+
+  @state() private _maxInvalid = false;
 
   private _openFields = false;
 
@@ -110,7 +99,13 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   protected renderContent() {
     const mode = this.config.mode || AUTOMATION_DEFAULT_MODE;
-    const canRun = !!this.scriptId && !this.disabled;
+    // A read-only script can still be run, as the menu already allows.
+    const canRun = !!this.scriptId && !this.dirty;
+    const runHint = !this.scriptId
+      ? "ui.panel.config.script.editor.board.run_unsaved"
+      : this.dirty
+        ? "ui.panel.config.script.editor.board.run_dirty"
+        : undefined;
     return html`
       <div class="title-block">
         <h1 class="title">
@@ -166,6 +161,15 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
                   `ui.panel.config.script.editor.board.max_${mode}`
                 )}
                 .value=${String(this.config.max ?? AUTOMATION_DEFAULT_MAX)}
+                min="1"
+                .invalid=${this._maxInvalid}
+                .hint=${
+                  this._maxInvalid
+                    ? this.hass.localize(
+                        "ui.panel.config.script.editor.board.max_invalid"
+                      )
+                    : undefined
+                }
                 .disabled=${this.disabled}
                 @input=${this._maxChanged}
               ></ha-input>`
@@ -249,18 +253,19 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
           appearance="outlined"
           variant="neutral"
           .disabled=${!canRun}
-          title=${
-            this.scriptId
-              ? ""
-              : this.hass.localize(
-                  "ui.panel.config.script.editor.board.run_unsaved"
-                )
-          }
+          title=${runHint ? this.hass.localize(runHint) : ""}
           @click=${this._runClicked}
         >
           <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.script.editor.board.run_now")}
         </ha-button>
+        ${
+          runHint
+            ? html`<span class="run-hint" role="status"
+                >${this.hass.localize(runHint)}</span
+              >`
+            : nothing
+        }
         ${
           this.scriptId
             ? html`<ha-button appearance="plain" @click=${this._traceClicked}>
@@ -304,6 +309,7 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     if (!mode || mode === (this.config.mode || AUTOMATION_DEFAULT_MODE)) {
       return;
     }
+    this._maxInvalid = false;
     const value: ScriptConfig = { ...this.config, mode };
     if (isMaxMode(mode)) {
       value.max = this.config.max || AUTOMATION_DEFAULT_MAX;
@@ -315,12 +321,13 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   private _maxChanged(ev: Event) {
     ev.stopPropagation();
-    const max = Number((ev.target as HaInput).value);
-    if (!Number.isFinite(max) || max < 1) {
+    const parsed = parseMaxRuns(String((ev.target as HaInput).value ?? ""));
+    this._maxInvalid = !parsed.valid;
+    if (!parsed.valid) {
       return;
     }
     fireEvent(this, "value-changed", {
-      value: { ...this.config, max: Math.floor(max) },
+      value: { ...this.config, max: parsed.max },
     });
   }
 
@@ -596,6 +603,13 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
           align-items: center;
           gap: var(--ha-space-3);
           margin-bottom: var(--ha-space-8);
+        }
+        .run-hint {
+          flex: 1 1 200px;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
         }
         .bottom-bar ha-button,
         ha-button-toggle-group {
