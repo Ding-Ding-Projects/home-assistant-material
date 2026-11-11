@@ -16,7 +16,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 APP = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
 CANVASES = os.path.join(ROOT, 'design', 'canvases')
 # At most 15 boards on a canvas: the first 15 go on canvas 16, the rest on canvas 17.
-GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, support, changes, settings and more')]
+GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more')]
 FRAMES = os.path.join(ROOT, 'design', 'frames')
 CSS = re.sub(r'@font-face\{[^}]*\}', '', open(os.path.join(APP, 'app.css')).read())
 DONE = "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true}))"
@@ -45,6 +45,11 @@ BOARDS = [
     ('DeploySupport', 'Deploy Assistant, support and tickets', 1320, None, 'light', [('tab', 'support'), ('click', '[data-preset="0"]')]),
     ('DeployChanges', 'Deploy Assistant, changes with the build it is', 1320, None, 'light', [('tab', 'changes')]),
     ('DeploySettings', 'Deploy Assistant, settings: modes, voice, schedule, name, updates', 1320, None, 'light', [('tab', 'settings')]),
+    ('DeployDesign', 'Deploy Assistant, its own design boards, offline', 1320, 880, 'light', [('tab', 'design'), ('wait', 600)]),
+    ('DeployFeatures', 'Deploy Assistant, the project\'s features and their state', 1320, 880, 'light', [('tab', 'features'), ('wait', 300)]),
+    ('DeployStatus', 'Deploy Assistant, the status page, offline', 1320, 880, 'dark', [('tab', 'status'), ('wait', 300)]),
+    ('DeployQr', 'Deploy Assistant, a one-time code added from its QR code', 1320, 880, 'light', [('tab', 'tools'), ('files', '#qrfile', os.path.join(os.path.dirname(__file__), 'sample-otp-qr.png')), ('wait', 800), ('eval', "document.getElementById('otp').scrollIntoView()")]),
+    ('DeploySelfTest', 'Deploy Assistant, the update self-test', 1320, 880, 'light', [('tab', 'settings'), ('click', '[data-act="selftest"]'), ('wait', 600)]),
     ('DeployPalette', 'Deploy Assistant, Ctrl Shift F with live controls', 1320, 880, 'light', [('wait', 400), ('key', 'Control+Shift+F'), ('fill', '#palq', 'deploy')]),
     ('DeployNarrow', 'Deploy Assistant, a narrow window', 400, None, 'light', [('tab', 'instances')]),
 ]
@@ -102,6 +107,8 @@ def main():
                     pg.click('#t-' + s[1])
                 elif k == 'click':
                     pg.click(s[1])
+                elif k == 'files':
+                    pg.set_input_files(s[1], s[2])
                 elif k == 'fill':
                     pg.fill(s[1], s[2])
                 elif k == 'key':

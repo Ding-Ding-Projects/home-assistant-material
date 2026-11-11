@@ -34,4 +34,13 @@ for (const f of fs.readdirSync(path.join(site, 'fonts'))) fs.copyFileSync(path.j
 const build = { version: require('./package.json').version, builtAt: new Date().toISOString() };
 fs.writeFileSync(path.join(__dirname, 'src', 'build-info.json'), JSON.stringify(build) + '\n');
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'build-info.js'), '// Written by build-renderer.js: the version and build time shown on the first screen.\nwindow.HAM_BUILD = ' + JSON.stringify(build) + ';\n');
+// The project page's data (features, status, design boards), its QR reader, and the boards of
+// this app, so the Run it, Features, Articles, Status and Design tabs work offline.
+const R = path.join(__dirname, 'src', 'renderer');
+fs.copyFileSync(path.join(site, 'data.js'), path.join(R, 'site-data.js'));
+fs.copyFileSync(path.join(site, 'vendor', 'jsQR.js'), path.join(R, 'jsQR.js'));
+fs.copyFileSync(path.join(site, 'vendor', 'jsQR-LICENSE.txt'), path.join(R, 'jsQR-LICENSE.txt'));
+fs.rmSync(path.join(R, 'boards'), { recursive: true, force: true });
+fs.mkdirSync(path.join(R, 'boards'));
+for (const f of fs.readdirSync(path.join(site, 'boards'))) if (/^Deploy/.test(f)) fs.copyFileSync(path.join(site, 'boards', f), path.join(R, 'boards', f));
 console.log('renderer built:', out.length, 'bytes of script');

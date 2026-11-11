@@ -2,9 +2,9 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T01:06:05Z"
+    "at": "2026-11-11T01:32:59Z"
   },
-  "title": "Deploy Assistant: extensions, tools, support, changes, settings and more",
+  "title": "Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more",
   "launch": {
     "view": "canvas",
     "page": "all"
@@ -56,7 +56,7 @@
       "x": 0,
       "y": 1829,
       "w": 1320,
-      "h": 1762,
+      "h": 1846,
       "title": "Deploy Assistant, tools",
       "expand": "fill",
       "page": "all"
@@ -74,7 +74,7 @@
       "x": 2840,
       "y": 1829,
       "w": 1320,
-      "h": 920,
+      "h": 1130,
       "title": "Deploy Assistant, changes with the build it is",
       "expand": "fill",
       "page": "all"
@@ -83,14 +83,59 @@
       "x": 4260,
       "y": 1829,
       "w": 1320,
-      "h": 4058,
+      "h": 4170,
       "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates",
       "expand": "fill",
       "page": "all"
     },
-    "DeployPalette.dc.html": {
+    "DeployDesign.dc.html": {
       "x": 0,
-      "y": 6107,
+      "y": 6219,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, its own design boards, offline",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployFeatures.dc.html": {
+      "x": 1420,
+      "y": 6219,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the project's features and their state",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployStatus.dc.html": {
+      "x": 2840,
+      "y": 6219,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the status page, offline",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployQr.dc.html": {
+      "x": 4260,
+      "y": 6219,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, a one-time code added from its QR code",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeploySelfTest.dc.html": {
+      "x": 0,
+      "y": 7319,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the update self-test",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployPalette.dc.html": {
+      "x": 1420,
+      "y": 7319,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, Ctrl Shift F with live controls",
@@ -98,8 +143,8 @@
       "page": "all"
     },
     "DeployNarrow.dc.html": {
-      "x": 1420,
-      "y": 6107,
+      "x": 2840,
+      "y": 7319,
       "w": 400,
       "h": 2018,
       "title": "Deploy Assistant, a narrow window",
@@ -116,6 +161,11 @@
     "DeploySupport.dc.html",
     "DeployChanges.dc.html",
     "DeploySettings.dc.html",
+    "DeployDesign.dc.html",
+    "DeployFeatures.dc.html",
+    "DeployStatus.dc.html",
+    "DeployQr.dc.html",
+    "DeploySelfTest.dc.html",
     "DeployPalette.dc.html",
     "DeployNarrow.dc.html"
   ],
@@ -123,7 +173,7 @@
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Deploy Assistant: extensions, tools, support, changes, settings and more. 10 boards drawn from the app.",
+      "text": "Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more. 15 boards drawn from the app.",
       "kind": "title1",
       "maxW": 5580,
       "page": "all"

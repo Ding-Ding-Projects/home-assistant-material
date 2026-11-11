@@ -1,1 +1,1 @@
-window.HAM_BUILD = {"version": "1.1.0", "builtAt": "2026-11-10T19:46:22-05:00"};
+window.HAM_BUILD = {"version": "1.2.0", "builtAt": "2026-11-10T20:07:02-05:00"};

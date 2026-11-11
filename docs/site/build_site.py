@@ -58,7 +58,7 @@ F = [
  ('support-tickets', 'Safety', 'Support desk', 'A support desk for forgotten lock PINs and other trouble: what happened, what to try, and a ticket kept locally.', 'Support.', 'designed', 'Designed; not built.', 'support:top'),
  ('unlock-ladder', 'Safety', 'Waits after wrong tries', 'After wrong tries the next try waits a little longer each time: 5 seconds, 15 seconds, 1 minute, 5 minutes.', 'Try a wrong PIN on a lock on this page.', 'partly', 'Partly built and seen working.', 'settings:locks'),
  ('authenticator', 'Safety', 'Built-in authenticator', 'One-time codes from a secret you add, shown with the time left, kept on this device.', 'Tools, Authenticator: add a secret and see its codes.', 'designed', 'Designed; not built.', 'tools:otp'),
- ('qr-pairing', 'Safety', 'QR pairing for one-time codes', 'A QR code to add a one-time code secret to an app.', 'Not yet on this page: drawing the QR code locally is still to build. The secret can be copied instead.', 'designed', 'Designed; not built.', 'tools:otp'),
+ ('qr-pairing', 'Safety', 'QR pairing for one-time codes', 'A QR code to add a one-time code secret to an app.', 'Scanning works here: Tools, Authenticator reads a QR code from an image, a pasted screenshot or the camera and adds its secret. Drawing a QR code from a secret is still to build; copy the secret instead.', 'designed', 'Designed; not built.', 'tools:otp'),
  ('honest-monetization', 'Safety', 'Free, with nothing to buy', 'Everything is free. There is no paid tier, no advert and no tracking, and nothing nags.', 'This page has no analytics, no cookies and no requests to other sites.', 'built', 'Built and seen working in a running instance.', 'home:free'),
  # Records
  ('local-history', 'Records', 'History of your changes', 'Every change you make here is listed, newest first, and can be undone.', 'History.', 'partly', 'Partly built and seen working.', 'history:top'),
@@ -160,8 +160,10 @@ def deploy_demo():
     src = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
     dest = os.path.join(HERE, 'deploy-assistant')
     os.makedirs(os.path.join(dest, 'fonts'), exist_ok=True)
-    for f in ['index.html', 'app.js', 'app.css', 'icons.js', 'mock.js']:
+    for f in ['index.html', 'app.js', 'app.css', 'icons.js', 'mock.js', 'jsQR.js', 'jsQR-LICENSE.txt', 'site-data.js']:
         shutil.copy(os.path.join(src, f), os.path.join(dest, f))
+    shutil.rmtree(os.path.join(dest, 'boards'), ignore_errors=True)
+    shutil.copytree(os.path.join(src, 'boards'), os.path.join(dest, 'boards'))
     for f in os.listdir(os.path.join(src, 'fonts')):
         shutil.copy(os.path.join(src, 'fonts', f), os.path.join(dest, 'fonts', f))
     version = json.load(open(os.path.join(ROOT, 'deploy-assistant', 'package.json')))['version']
@@ -191,7 +193,7 @@ def main():
             'Check', 'CheckCircle', 'Alert', 'AlertCircle', 'ProgressClock', 'Home', 'PlayCircle', 'FormatListBulleted', 'BookOpenVariant', 'PaletteSwatch', 'Update',
             'Toolbox', 'Lifebuoy', 'Translate', 'Download', 'Upload', 'OpenInNew', 'DotsVertical', 'Backspace', 'Shuffle', 'Keyboard', 'TimerSand', 'Fullscreen',
             'Palette', 'SwapHorizontal', 'CodeBraces', 'ShieldKey', 'TicketConfirmation', 'FileSwap', 'Eyedropper', 'TabPlus', 'DragVertical', 'VolumeHigh', 'CalendarClock',
-            'School', 'MotionPauseOutline', 'FormatSize', 'ContrastCircle', 'EmoticonHappyOutline', 'Docker' if 'Docker' in icons_all else 'PackageDown', 'GestureTap', 'Sleep']
+            'School', 'MotionPauseOutline', 'FormatSize', 'ContrastCircle', 'EmoticonHappyOutline', 'Docker' if 'Docker' in icons_all else 'PackageDown', 'GestureTap', 'Sleep', 'QrcodeScan']
     icons = {k: icons_all[k] for k in want if k in icons_all}
     data = {'icons': icons, 'version': versions['core'], 'updated': changes[0]['date'] if changes else '', 'commit': changes[0]['sha'] if changes else '',
             'repo': 'https://github.com/' + versions['repository'], 'image': 'ghcr.io/' + versions['registry_owner'] + '/home-assistant-material',

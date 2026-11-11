@@ -1,6 +1,6 @@
 'use strict';
 // The app's main process: one window, the instance manager, and a narrow bridge to the page.
-const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, nativeTheme, autoUpdater } = require('electron');
+const { app, session, BrowserWindow, ipcMain, shell, dialog, safeStorage, nativeTheme, autoUpdater } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { Manager, LABEL } = require('./backend/manager');
@@ -49,11 +49,13 @@ async function editor(id) {
 function send(channel, payload) { if (win && !win.isDestroyed()) win.webContents.send('ham', { channel, payload }); }
 
 app.whenReady().then(() => {
+  // Only the camera (for scanning a QR code in Tools) and writing to the clipboard are allowed.
+  session.defaultSession.setPermissionRequestHandler((wc, perm, cb, details) => cb((perm === 'media' && !((details && details.mediaTypes) || []).includes('audio')) || perm === 'clipboard-sanitized-write'));
   mgr = new Manager(path.join(app.getPath('userData'), 'data'), { encrypt: enc, decrypt: dec });
   ['changed', 'log', 'step', 'busy', 'done', 'downloads'].forEach((ev) => mgr.on(ev, (p) => send(ev, p)));
   const dl = new Downloads(mgr);
   const ext = new Extensions(mgr, path.join(__dirname, 'extensions'));
-  const checkUpdates = updates.start({ app, autoUpdater, send });
+  const upd = updates.start({ app, autoUpdater, send, dir: mgr.dir });
   const h = (name, fn) => ipcMain.handle(name, async (_e, ...a) => { try { return { ok: true, value: await fn(...a) }; } catch (e) { return { ok: false, error: e.message }; } });
   h('snapshot', () => mgr.snapshot());
   h('labels', () => LABEL);
@@ -81,7 +83,9 @@ app.whenReady().then(() => {
   h('extEnable', (id, on) => { ext.setEnabled(id, on); return ext.list(); });
   h('extRun', (id, c) => ext.run(id, c));
   h('extFolder', () => shell.openPath(ext.dir));
-  h('checkUpdates', () => { checkUpdates(); return true; });
+  h('checkUpdates', () => { upd.check(); return true; });
+  h('updateTest', () => upd.selfTest());
+  h('updateHistory', () => upd.history());
   h('restartToUpdate', () => { autoUpdater.quitAndInstall(); return true; });
   h('editor', (id) => editor(id));
   h('about', () => { let built = ''; try { built = require('./build-info.json').builtAt; } catch { /* a development run */ } return { version: app.getVersion(), builtAt: built, platform: process.platform, data: mgr.dir, electron: process.versions.electron }; });
