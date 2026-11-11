@@ -2278,6 +2278,24 @@ export class HaDataTable extends LitElement {
         :host([row-cards]) .mdc-data-table__row ~ .mdc-data-table__row {
           border-top: none;
         }
+        /* On a phone a row holds its columns stacked, so it grows with them
+           instead of letting a second line spill into the next row. */
+        :host([narrow])
+          .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
+            .sticky-group-header
+          ) {
+          height: auto;
+          min-height: var(--data-table-row-height, 52px);
+        }
+        :host([narrow][row-cards])
+          .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
+            .sticky-group-header
+          ) {
+          height: auto;
+          min-height: calc(
+            var(--data-table-row-height, 52px) + var(--ha-space-2)
+          );
+        }
         :host([row-cards])
           .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(
             .sticky-group-header

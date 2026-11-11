@@ -1236,7 +1236,8 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _infoLabels() {
     return {
-      button: this._t("info.button"),
+      // The info button fills in {name} itself, so the placeholder is passed through unchanged.
+      button: this._t("info.button", { name: "{name}" }),
       close: this._t("info.close"),
       what: this._t("info.what"),
       defaultValue: this._t("info.default"),

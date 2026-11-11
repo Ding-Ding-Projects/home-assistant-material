@@ -477,6 +477,13 @@ class PanelTodo extends LitElement {
           inset-inline-start: initial;
           --ha-button-box-shadow: var(--ha-box-shadow-l);
         }
+        /* Above the page footer, which wide layouts show. */
+        :host(:not([narrow])) .fab {
+          bottom: calc(
+            16px + var(--ha-page-footer-height, 40px) +
+              var(--safe-area-inset-bottom, 0px)
+          );
+        }
 
         ha-dropdown.lists ha-dropdown-item {
           max-width: 80vw;
