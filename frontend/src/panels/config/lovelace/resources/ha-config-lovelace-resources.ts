@@ -1,14 +1,27 @@
 import { mdiDelete, mdiPlus, mdiRefresh } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, query, state } from "lit/decorators";
 import memoize from "memoize-one";
+import "../../../../components/bulk/ha-bulk-bar";
+import type {
+  BulkAction,
+  BulkPreview,
+} from "../../../../components/bulk/bulk-selection";
+import {
+  filteredTableCount,
+  hiddenTableSelection,
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../../components/bulk/table-selection";
+import type { HASSDomEvent } from "../../../../common/dom/fire_event";
 import { DataTableSettingsController } from "../../../../common/controllers/data-table-settings-controller";
 import { stringCompare } from "../../../../common/string/compare";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 import type {
   DataTableColumnContainer,
   RowClickedEvent,
+  SelectionChangedEvent,
 } from "../../../../components/data-table/ha-data-table";
 import "../../../../components/ha-card";
 import "../../../../components/ha-button";
@@ -32,12 +45,17 @@ import {
 import "../../../../layouts/hass-loading-screen";
 import "../../../../layouts/hass-subpage";
 import "../../../../layouts/hass-tabs-subpage-data-table";
+import type { HaTabsSubpageDataTable } from "../../../../layouts/hass-tabs-subpage-data-table";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../types";
 import { loadLovelaceResources } from "../../../lovelace/common/load-resources";
 import { lovelaceResourcesTabs } from "../ha-config-lovelace";
 import { showResourceDetailDialog } from "./show-dialog-lovelace-resource-detail";
 import { storage } from "../../../../common/decorators/storage";
+import {
+  buildResourceDeletePreview,
+  summarizeResourceDelete,
+} from "./resource-bulk-actions";
 
 @customElement("ha-config-lovelace-resources")
 export class HaConfigLovelaceResources extends LitElement {
@@ -54,6 +72,12 @@ export class HaConfigLovelaceResources extends LitElement {
   @state() private _loaded = false;
 
   @state() private _lovelaceInfo?: LovelaceInfo;
+
+  @state() private _selected: string[] = [];
+
+  // Not cached, the table only renders once the resources have loaded
+  @query("hass-tabs-subpage-data-table")
+  private _dataTable?: HaTabsSubpageDataTable;
 
   private _tableSettings = new DataTableSettingsController(this, {
     search: "lovelace-resources-table-search",
@@ -181,6 +205,12 @@ export class HaConfigLovelaceResources extends LitElement {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         sync-url
+        ?selectable=${!isYamlMode}
+        keep-hidden-selection
+        .selected=${this._selected.length}
+        @selection-changed=${this._handleSelectionChanged}
+        @filtered-rows-changed=${this._filteredRowsChanged}
+        ?bulk-bar=${this._selected.length > 0}
         @row-click=${this._editResource}
         has-fab
         clickable
@@ -206,8 +236,130 @@ export class HaConfigLovelaceResources extends LitElement {
           )}
         </ha-button>
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
+                .actions=${this._bulkActions()}
+                .getPreview=${this._bulkPreview}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+                @bulk-confirm=${this._deleteSelected}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
     `;
   }
+
+  private _handleSelectionChanged(
+    ev: HASSDomEvent<SelectionChangedEvent>
+  ): void {
+    this._selected = ev.detail.value;
+  }
+
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _bulkActions(): BulkAction[] {
+    return [
+      {
+        id: "delete",
+        label: this.hass.localize("ui.common.delete"),
+        path: mdiDelete,
+        destructive: true,
+      },
+    ];
+  }
+
+  /**
+   * What deleting the selected resources will do. Which dashboards load a
+   * resource is not part of the data this page loads, so no usage is passed
+   * and the preview says that it cannot be known.
+   */
+  private _bulkPreview = (id: string): BulkPreview | undefined => {
+    if (id !== "delete") {
+      return undefined;
+    }
+    return buildResourceDeletePreview(
+      {
+        resources: this._resources,
+        selectedIds: this._selected,
+        hiddenCount: hiddenTableSelection(this._dataTable),
+        ownHost: location.host,
+      },
+      this._bulkLocalize
+    );
+  };
+
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
+  };
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () => invertTableRows(this._dataTable);
+
+  private _clearRows = () => this._dataTable?.clearSelection();
+
+  /**
+   * The bar already showed what will be deleted and asked twice, so no
+   * further dialog asks again. Each resource is handled on its own, and the
+   * ones that fail stay selected.
+   */
+  private _deleteSelected = async () => {
+    if (this._lovelaceInfo?.resource_mode !== "storage") {
+      return;
+    }
+    const ids = [...this._selected];
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteResource(this.hass, id))
+    );
+    const { deletedIds, failedIds } = summarizeResourceDelete(ids, results);
+    const deleted = new Set(deletedIds);
+    const failedAddresses = this._resources
+      .filter((res) => failedIds.includes(res.id))
+      .map((res) => res.url);
+    this._resources = this._resources.filter(({ id }) => !deleted.has(id));
+    this._dataTable?.setCheckedRowIds(failedIds);
+    if (failedIds.length) {
+      // The alert and the refresh prompt share one dialog element, so wait
+      // for the failure notice to be dismissed before asking about refresh.
+      await showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.lovelace.resources.bulk_delete_failed_title"
+        ),
+        text: this.hass.localize(
+          "ui.panel.config.lovelace.resources.bulk_delete_failed_named",
+          { addresses: failedAddresses.join(", ") }
+        ),
+      });
+    }
+    if (deletedIds.length) {
+      showConfirmationDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.lovelace.resources.refresh_header"
+        ),
+        text: this.hass.localize(
+          "ui.panel.config.lovelace.resources.refresh_body"
+        ),
+        confirmText: this.hass.localize("ui.common.refresh"),
+        dismissText: this.hass.localize("ui.common.not_now"),
+        confirm: () => location.reload(),
+      });
+    }
+  };
 
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
@@ -354,6 +506,22 @@ export class HaConfigLovelaceResources extends LitElement {
         }
         p {
           margin: 0;
+        }
+        .bulk {
+          position: fixed;
+          z-index: 4;
+          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          inset-inline: var(--ha-sidebar-width, 0px) 0;
+          box-sizing: border-box;
+          width: min(
+            720px,
+            calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+          );
+          margin-inline: auto;
+        }
+        .bulk.narrow {
+          inset-inline: 0;
+          width: calc(100% - var(--ha-space-8));
         }
       `,
     ];

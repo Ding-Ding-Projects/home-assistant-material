@@ -38,10 +38,16 @@ import {
   scenesLinkFromUrl,
 } from "../../../common/url/scenes-query-params";
 import { deepEqual } from "../../../common/util/deep-equal";
+import type {
+  BulkAction,
+  BulkPreview,
+} from "../../../components/bulk/bulk-selection";
 import {
-  hasRejectedItems,
-  rejectedItems,
-} from "../../../common/util/promise-all-settled-results";
+  invertVisible,
+  pruneSelection,
+  selectVisible,
+} from "../../../components/bulk/bulk-selection";
+import "../../../components/bulk/ha-bulk-bar";
 import "../../../components/chips/ha-assist-chip";
 import type { SortingChangedEvent } from "../../../components/data-table/ha-data-table";
 import "../../../components/ha-button";
@@ -79,10 +85,7 @@ import {
   isRelatedItemsFilterUsed,
   serializeFilters,
 } from "../../../data/data_table_filters";
-import type {
-  EntityRegistryEntry,
-  UpdateEntityRegistryEntryResult,
-} from "../../../data/entity/entity_registry";
+import type { EntityRegistryEntry } from "../../../data/entity/entity_registry";
 import { updateEntityRegistryEntry } from "../../../data/entity/entity_registry";
 import { getEntityVoiceAssistantsIds } from "../../../data/expose";
 import { forwardHaptic } from "../../../data/haptics";
@@ -112,6 +115,15 @@ import { showAssignCategoryDialog } from "../category/show-dialog-assign-categor
 import { showCategoryRegistryDetailDialog } from "../category/show-dialog-category-registry-detail";
 import { configSections } from "../config-sections";
 import { showLabelDetailDialog } from "../labels/show-dialog-label-detail";
+import type { BulkScene, SceneBulkActionId } from "./scene-bulk-actions";
+import {
+  buildSceneBulkPreview,
+  failureLines,
+  hiddenSceneSelection,
+  planSceneBulkAction,
+  selectionAfterBulk,
+  summarizeBulkResults,
+} from "./scene-bulk-actions";
 import { showSceneSaveDialog } from "./scene-save-dialog/show-dialog-scene-save";
 
 // The card colours, taken from the theme's colour scales
@@ -293,6 +305,16 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
       this._filters = this._storageFilters;
       this._applyLink();
     }
+    if (changedProps.has("scenes") && this._selected.length) {
+      // A scene that was deleted elsewhere cannot stay selected
+      const kept = pruneSelection(
+        this._selected,
+        this.scenes.map((scene) => scene.entity_id)
+      );
+      if (kept.length !== this._selected.length) {
+        this._selected = kept;
+      }
+    }
   }
 
   // Links, like the ones on a device or area page, say in the URL what to
@@ -452,6 +474,7 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
                     }
                   </div>`
           }
+          ${this._selected.length ? this._renderBulkBar() : nothing}
         </div>
         <ha-button href="/config/scene/edit/new" size="l" slot="fab">
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
@@ -810,43 +833,265 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
           selected: this._selected.length || "0",
         })}
       </p>
-      <ha-dropdown @wa-select=${this._handleBulkCategory}>
-        <ha-assist-chip
-          slot="trigger"
-          .disabled=${!this._selected.length}
-          .label=${this.hass.localize(
-            "ui.panel.config.automation.picker.bulk_actions.move_category"
-          )}
-        >
-          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
-        </ha-assist-chip>
-        ${this._renderCategoryItems()}
-      </ha-dropdown>
-      <ha-dropdown @wa-select=${this._handleBulkLabel}>
-        <ha-assist-chip
-          slot="trigger"
-          .disabled=${!this._selected.length}
-          .label=${this.hass.localize(
-            "ui.panel.config.automation.picker.bulk_actions.add_label"
-          )}
-        >
-          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
-        </ha-assist-chip>
-        ${this._renderLabelItems()}
-      </ha-dropdown>
-      <ha-dropdown @wa-select=${this._handleBulkArea}>
-        <ha-assist-chip
-          slot="trigger"
-          .disabled=${!this._selected.length}
-          .label=${this.hass.localize(
-            "ui.panel.config.devices.picker.bulk_actions.move_area"
-          )}
-        >
-          <ha-svg-icon slot="trailing-icon" .path=${mdiMenuDown}></ha-svg-icon>
-        </ha-assist-chip>
-        ${this._renderAreaItems()}
-      </ha-dropdown>
     </div>`;
+  }
+
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _bulkScenes(): BulkScene[] {
+    return this.scenes.map((scene) => ({
+      entityId: scene.entity_id,
+      name: this.hass.formatEntityName(scene),
+      editable: Boolean(scene.attributes.id),
+      unavailable: scene.state === "unavailable",
+    }));
+  }
+
+  // The scenes the list shows after the search and filters
+  private _visibleIds(): string[] {
+    const matches = searchMatcher(this._tableSettings.search);
+    return this._scenes(
+      this.scenes,
+      this._entityReg,
+      this.hass.areas,
+      this.hass.formatEntityName,
+      this._categories,
+      this._labels,
+      this._filteredSceneEntityIds
+    )
+      .filter(
+        (scene) =>
+          scene.selectable &&
+          matches(scene.name, scene.area, scene.category, ...scene.labels)
+      )
+      .map((scene) => scene.entity_id);
+  }
+
+  private _bulkActions(): BulkAction[] {
+    return [
+      {
+        id: "apply",
+        label: this.hass.localize("ui.panel.config.scene.picker.bulk.apply"),
+        path: mdiPlay,
+        preview: true,
+      },
+      {
+        id: "delete",
+        label: this.hass.localize("ui.panel.config.scene.picker.bulk.delete"),
+        path: mdiDelete,
+        preview: true,
+        destructive: true,
+      },
+    ];
+  }
+
+  private _bulkPreview = (id: string): BulkPreview | undefined =>
+    id === "apply" || id === "delete"
+      ? buildSceneBulkPreview(
+          id,
+          this._bulkScenes(),
+          this._selected,
+          this._bulkLocalize
+        )
+      : undefined;
+
+  private _renderBulkBar() {
+    const visible = this._visibleIds();
+    return html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
+      <ha-bulk-bar
+        .localize=${this._bulkLocalize}
+        .count=${this._selected.length}
+        .pageCount=${visible.length}
+        .matchCount=${visible.length}
+        .hiddenCount=${hiddenSceneSelection(visible, this._selected)}
+        .actions=${this._bulkActions()}
+        .getPreview=${this._bulkPreview}
+        @bulk-select-page=${this._selectVisible}
+        @bulk-select-matches=${this._selectVisible}
+        @bulk-invert=${this._invertVisible}
+        @bulk-clear=${this._clearSelection}
+        @bulk-confirm=${this._bulkConfirmed}
+      >
+        <ha-dropdown slot="actions" @wa-select=${this._handleBulkCategory}>
+          <ha-button
+            slot="trigger"
+            size="s"
+            appearance="outlined"
+            variant="brand"
+          >
+            ${this.hass.localize(
+              "ui.panel.config.automation.picker.bulk_actions.move_category"
+            )}
+            <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+          </ha-button>
+          ${this._renderCategoryItems()}
+        </ha-dropdown>
+        <ha-dropdown slot="actions" @wa-select=${this._handleBulkLabelAdd}>
+          <ha-button
+            slot="trigger"
+            size="s"
+            appearance="outlined"
+            variant="brand"
+          >
+            ${this.hass.localize(
+              "ui.panel.config.automation.picker.bulk_actions.add_label"
+            )}
+            <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+          </ha-button>
+          ${this._renderLabelItems("add")}
+        </ha-dropdown>
+        <ha-dropdown slot="actions" @wa-select=${this._handleBulkLabelRemove}>
+          <ha-button
+            slot="trigger"
+            size="s"
+            appearance="outlined"
+            variant="brand"
+          >
+            ${this.hass.localize(
+              "ui.panel.config.scene.picker.bulk.remove_label"
+            )}
+            <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+          </ha-button>
+          ${this._renderLabelItems("remove")}
+        </ha-dropdown>
+        <ha-dropdown slot="actions" @wa-select=${this._handleBulkArea}>
+          <ha-button
+            slot="trigger"
+            size="s"
+            appearance="outlined"
+            variant="brand"
+          >
+            ${this.hass.localize(
+              "ui.panel.config.devices.picker.bulk_actions.move_area"
+            )}
+            <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+          </ha-button>
+          ${this._renderAreaItems()}
+        </ha-dropdown>
+      </ha-bulk-bar>
+    </div>`;
+  }
+
+  private _selectVisible = () => {
+    this._selected = selectVisible(this._visibleIds(), this._selected);
+  };
+
+  private _invertVisible = () => {
+    this._selected = invertVisible(this._visibleIds(), this._selected);
+  };
+
+  private _clearSelection = () => {
+    this._selected = [];
+  };
+
+  private _bulkConfirmed = (ev: HASSDomEvent<{ id: string }>) => {
+    const id = ev.detail.id as SceneBulkActionId;
+    if (id === "apply") {
+      this._bulkApply();
+    } else if (id === "delete") {
+      this._bulkDelete();
+    }
+  };
+
+  // Runs one call for each scene and reports every failure by scene name.
+  // `release` lets the scenes that worked leave the selection; the ones that
+  // failed always stay selected.
+  private async _runBulk(
+    scenes: BulkScene[],
+    call: (scene: BulkScene) => Promise<unknown>,
+    release: boolean,
+    sequential = false
+  ) {
+    let results: PromiseSettledResult<unknown>[];
+    if (sequential) {
+      // Scenes that touch the same devices must land in selection order.
+      results = [];
+      for (const scene of scenes) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          results.push({ status: "fulfilled", value: await call(scene) });
+        } catch (reason) {
+          results.push({ status: "rejected", reason });
+        }
+      }
+    } else {
+      results = await Promise.allSettled(
+        scenes.map(async (scene) => call(scene))
+      );
+    }
+    const outcome = summarizeBulkResults(scenes, results);
+    if (release) {
+      this._selected = selectionAfterBulk(this._selected, outcome);
+    }
+    if (outcome.failed.length) {
+      const lines = failureLines(outcome.failed, this._bulkLocalize);
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.scene.picker.bulk.failed_title",
+          { count: outcome.failed.length }
+        ),
+        text: html`<pre>${lines.join("\r\n")}</pre>
+          <p>
+            ${this.hass.localize("ui.panel.config.scene.picker.bulk.failed_note")}
+          </p>`,
+      });
+    }
+    return outcome;
+  }
+
+  private async _bulkApply() {
+    const { actionable } = planSceneBulkAction(
+      "apply",
+      this._bulkScenes(),
+      this._selected
+    );
+    const outcome = await this._runBulk(
+      actionable,
+      (scene) => activateScene(this.hass.callService, scene.entityId),
+      true,
+      true
+    );
+    if (outcome.succeeded.length) {
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.scene.picker.bulk.applied",
+          { count: outcome.succeeded.length }
+        ),
+      });
+      forwardHaptic(this, "light");
+    }
+  }
+
+  private async _bulkDelete() {
+    const { actionable } = planSceneBulkAction(
+      "delete",
+      this._bulkScenes(),
+      this._selected
+    );
+    const outcome = await this._runBulk(
+      actionable,
+      (scene) => {
+        const configId = this.scenes.find(
+          (item) => item.entity_id === scene.entityId
+        )?.attributes.id;
+        if (!configId) {
+          return Promise.reject(new Error("No scene id"));
+        }
+        return deleteScene(this.hass, configId);
+      },
+      true
+    );
+    if (outcome.succeeded.length) {
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.scene.picker.bulk.deleted",
+          { count: outcome.succeeded.length }
+        ),
+      });
+    }
   }
 
   private _renderFilterPanes() {
@@ -1271,69 +1516,53 @@ class HaSceneDashboard extends SubscribeMixin(LitElement) {
   };
 
   private async _bulkAddCategory(category: string | null) {
-    const promises: Promise<UpdateEntityRegistryEntryResult>[] = [];
-    this._selected.forEach((entityId) => {
-      promises.push(
-        updateEntityRegistryEntry(this.hass, entityId, {
+    await this._runBulk(
+      this._selectedBulkScenes(),
+      (scene) =>
+        updateEntityRegistryEntry(this.hass, scene.entityId, {
           categories: { scene: category },
-        })
-      );
-    });
-    const result = await Promise.allSettled(promises);
-    if (hasRejectedItems(result)) {
-      const rejected = rejectedItems(result);
-      showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
-          number: rejected.length,
         }),
-        text: html`<pre>
-${rejected
-            .map((r) => r.reason.message || r.reason.code || r.reason)
-            .join("\r\n")}</pre>`,
-      });
-    }
+      false
+    );
   }
 
-  private _handleBulkLabel = (ev: HaDropdownSelectEvent) => {
-    ev.preventDefault();
+  private _selectedBulkScenes(): BulkScene[] {
+    const selected = new Set(this._selected);
+    return this._bulkScenes().filter((scene) => selected.has(scene.entityId));
+  }
+
+  private _handleBulkLabelAdd = (ev: HaDropdownSelectEvent) => {
     const value = ev.detail.item.value;
     if (value === "label_create") {
       this._bulkCreateLabel();
-      return;
+    } else if (value?.startsWith("label_")) {
+      this._bulkLabel(value.substring(6), "add");
     }
+  };
+
+  private _handleBulkLabelRemove = (ev: HaDropdownSelectEvent) => {
+    const value = ev.detail.item.value;
     if (value?.startsWith("label_")) {
-      const action = (ev.detail.item as any).action;
-      this._bulkLabel(value.substring(6), action);
+      this._bulkLabel(value.substring(6), "remove");
     }
   };
 
   private async _bulkLabel(label: string, action: "add" | "remove") {
-    const promises: Promise<UpdateEntityRegistryEntryResult>[] = [];
-    this._selected.forEach((entityId) => {
-      promises.push(
-        updateEntityRegistryEntry(this.hass, entityId, {
+    await this._runBulk(
+      this._selectedBulkScenes(),
+      (scene) => {
+        const current = this.hass.entities[scene.entityId].labels;
+        return updateEntityRegistryEntry(this.hass, scene.entityId, {
           labels:
             action === "add"
-              ? this.hass.entities[entityId].labels.concat(label)
-              : this.hass.entities[entityId].labels.filter(
-                  (lbl) => lbl !== label
-                ),
-        })
-      );
-    });
-    const result = await Promise.allSettled(promises);
-    if (hasRejectedItems(result)) {
-      const rejected = rejectedItems(result);
-      showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
-          number: rejected.length,
-        }),
-        text: html`<pre>
-${rejected
-            .map((r) => r.reason.message || r.reason.code || r.reason)
-            .join("\r\n")}</pre>`,
-      });
-    }
+              ? current.includes(label)
+                ? current
+                : current.concat(label)
+              : current.filter((lbl) => lbl !== label),
+        });
+      },
+      false
+    );
   }
 
   private _handleBulkArea = (ev: HaDropdownSelectEvent) => {
@@ -1352,27 +1581,14 @@ ${rejected
   };
 
   private async _bulkAddArea(area: string | null) {
-    const promises: Promise<UpdateEntityRegistryEntryResult>[] = [];
-    this._selected.forEach((entityId) => {
-      promises.push(
-        updateEntityRegistryEntry(this.hass, entityId, {
+    await this._runBulk(
+      this._selectedBulkScenes(),
+      (scene) =>
+        updateEntityRegistryEntry(this.hass, scene.entityId, {
           area_id: area,
-        })
-      );
-    });
-    const result = await Promise.allSettled(promises);
-    if (hasRejectedItems(result)) {
-      const rejected = rejectedItems(result);
-      showAlertDialog(this, {
-        title: this.hass.localize("ui.panel.config.common.multiselect.failed", {
-          number: rejected.length,
         }),
-        text: html`<pre>
-${rejected
-            .map((r) => r.reason.message || r.reason.code || r.reason)
-            .join("\r\n")}</pre>`,
-      });
-    }
+      false
+    );
   }
 
   private _bulkCreateArea = () => {
@@ -1560,25 +1776,19 @@ ${rejected
         ${this.hass.localize("ui.panel.config.category.editor.add")}
       </ha-dropdown-item>`;
 
-  private _renderLabelItems = () =>
-    html`${this._labels?.map((label) => {
-        const selected = this._selected.every((entityId) =>
-          this.hass.entities[entityId]?.labels.includes(label.label_id)
-        );
-        const partial =
-          !selected &&
-          this._selected.some((entityId) =>
-            this.hass.entities[entityId]?.labels.includes(label.label_id)
-          );
-        return html`<ha-dropdown-item
-          .value=${`label_${label.label_id}`}
-          .action=${selected ? "remove" : "add"}
-        >
-          <ha-checkbox
-            slot="icon"
-            .checked=${selected}
-            .indeterminate=${partial}
-          ></ha-checkbox>
+  private _renderLabelItems = (action: "add" | "remove") => {
+    const has = (entityId: string, labelId: string) =>
+      Boolean(this.hass.entities[entityId]?.labels.includes(labelId));
+    // Adding lists the labels not yet on every selected scene; removing lists
+    // the labels at least one selected scene carries
+    const labels = (this._labels ?? []).filter((label) =>
+      action === "add"
+        ? !this._selected.every((id) => has(id, label.label_id))
+        : this._selected.some((id) => has(id, label.label_id))
+    );
+    return html`${labels.map(
+      (label) =>
+        html`<ha-dropdown-item .value=${`label_${label.label_id}`}>
           <ha-label .color=${label.color} .description=${label.description}>
             ${
               label.icon
@@ -1587,12 +1797,17 @@ ${rejected
             }
             ${label.name}
           </ha-label>
-        </ha-dropdown-item>`;
-      })}
-      <wa-divider></wa-divider>
-      <ha-dropdown-item value="label_create">
-        ${this.hass.localize("ui.panel.config.labels.add_label")}
-      </ha-dropdown-item>`;
+        </ha-dropdown-item>`
+    )}
+    ${
+      action === "add"
+        ? html`<wa-divider></wa-divider>
+            <ha-dropdown-item value="label_create">
+              ${this.hass.localize("ui.panel.config.labels.add_label")}
+            </ha-dropdown-item>`
+        : nothing
+    }`;
+  };
 
   private _renderAreaItems = () =>
     html`${Object.values(this.hass.areas).map(
@@ -1840,6 +2055,22 @@ ${rejected
           font-weight: var(--ha-font-weight-normal);
           line-height: var(--ha-line-height-condensed);
           color: var(--primary-text-color);
+        }
+        .bulk {
+          position: fixed;
+          z-index: 4;
+          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          inset-inline: var(--ha-sidebar-width, 0px) 0;
+          box-sizing: border-box;
+          width: min(
+            720px,
+            calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+          );
+          margin-inline: auto;
+        }
+        .bulk.narrow {
+          inset-inline: 0;
+          width: calc(100% - var(--ha-space-8));
         }
         ha-dropdown::part(menu),
         ha-dropdown::part(submenu) {

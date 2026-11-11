@@ -11,9 +11,20 @@ import {
   mdiShareVariant,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { LitElement, css, html } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import "../../../components/bulk/ha-bulk-bar";
+import type {
+  BulkAction,
+  BulkPreview,
+} from "../../../components/bulk/bulk-selection";
+import {
+  filteredTableCount,
+  hiddenTableSelection,
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../components/bulk/table-selection";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import { storage } from "../../../common/decorators/storage";
 import type {
@@ -26,7 +37,6 @@ import { navigate, replaceCurrentUrl } from "../../../common/navigate";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import { currentPath } from "../../../common/url/current-path";
 import { extractSearchParam } from "../../../common/url/search-params";
-import { hasRejectedItems } from "../../../common/util/promise-all-settled-results";
 import type {
   DataTableColumnContainer,
   RowClickedEvent,
@@ -49,7 +59,6 @@ import {
 } from "../../../data/blueprint";
 import { showScriptEditor } from "../../../data/script";
 import { findRelated } from "../../../data/search";
-import "../../../components/chips/ha-assist-chip";
 import "../../../components/chips/ha-chip-set";
 import "../../../components/chips/ha-filter-chip";
 import {
@@ -63,6 +72,19 @@ import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import { showToast } from "../../../util/toast";
 import { configSections } from "../config-sections";
+import type {
+  BlueprintBulkPlan,
+  BulkBlueprintItem,
+} from "./blueprint-bulk-actions";
+import {
+  blueprintDeletePreview,
+  blueprintReImportPreview,
+  blueprintResultLine,
+  planBlueprintDelete,
+  planBlueprintReImport,
+  reImportBlueprints,
+  summarizeBlueprintResults,
+} from "./blueprint-bulk-actions";
 import { showAddBlueprintDialog } from "./show-dialog-import-blueprint";
 
 const BARE_PATH = "/config/blueprint";
@@ -473,8 +495,11 @@ class HaBlueprintOverview extends LitElement {
         clickable
         @row-click=${this._handleRowClicked}
         selectable
+        keep-hidden-selection
         .selected=${this._selected.length}
+        ?bulk-bar=${this._selected.length > 0}
         @selection-changed=${this._handleSelectionChanged}
+        @filtered-rows-changed=${this._filteredRowsChanged}
         .appendRow=${html`<div
           role="cell"
           style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; box-sizing: border-box; padding: 12px 16px; margin-top: 8px; border-radius: 16px; background: var(--secondary-background-color);"
@@ -535,12 +560,6 @@ class HaBlueprintOverview extends LitElement {
           .path=${mdiHelpCircleOutline}
           @click=${this._showHelp}
         ></ha-icon-button>
-        <ha-assist-chip
-          slot="selection-bar"
-          .label=${this.hass.localize("ui.common.delete")}
-          .disabled=${this._usageCountsLoading || !this._selected.length}
-          @click=${this._removeSelected}
-        ></ha-assist-chip>
         <ha-button slot="fab" size="l" @click=${this._addBlueprintClicked}>
           <ha-svg-icon slot="start" .path=${mdiDownload}></ha-svg-icon>
           ${this.hass.localize(
@@ -548,6 +567,26 @@ class HaBlueprintOverview extends LitElement {
           )}
         </ha-button>
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
+                .actions=${this._bulkActions()}
+                .getPreview=${this._bulkPreview}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+                @bulk-confirm=${this._bulkConfirm}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -853,23 +892,110 @@ class HaBlueprintOverview extends LitElement {
     this._selected = ev.detail.value;
   };
 
-  private _removeSelected = async () => {
-    const rows = this._processedBlueprints(
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
+  };
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () => invertTableRows(this._dataTable);
+
+  private _clearRows = () => this._dataTable?.clearSelection();
+
+  private _bulkActions(): BulkAction[] {
+    // The usage of each blueprint decides what can be deleted, so the actions
+    // wait for it
+    const disabled = this._usageCountsLoading;
+    return [
+      {
+        id: "reimport",
+        label: this.hass.localize(
+          "ui.panel.config.blueprint.overview.re_import_blueprint"
+        ),
+        path: mdiDownload,
+        preview: true,
+        disabled,
+      },
+      {
+        id: "delete",
+        label: this.hass.localize("ui.common.delete"),
+        path: mdiDelete,
+        destructive: true,
+        disabled,
+      },
+    ];
+  }
+
+  private _selectedItems(): BulkBlueprintItem[] {
+    return this._processedBlueprints(
       this.blueprints,
       this.hass.localize,
       this._usageCounts,
       this._deletedFullpaths,
       []
-    );
-    const selectedRows = rows.filter((row) =>
-      this._selected.includes(row.fullpath)
-    );
-    const usageChecks = await Promise.allSettled(
-      selectedRows.map((row) =>
-        findRelated(this.hass, `${row.type}_blueprint`, row.path)
+    )
+      .filter((row) => this._selected.includes(row.fullpath))
+      .map((row) => ({
+        fullpath: row.fullpath,
+        type: row.type,
+        path: row.path,
+        name: row.error ? row.path : row.name,
+        error: row.error,
+        sourceUrl: row.source_url,
+        usageAutomations: row.usageAutomations ?? 0,
+        usageScripts: row.usageScripts ?? 0,
+      }));
+  }
+
+  /** What the action will do to the selected blueprints, shown first. */
+  private _bulkPreview = (id: string): BulkPreview | undefined => {
+    const hidden = hiddenTableSelection(this._dataTable);
+    if (id === "delete") {
+      return blueprintDeletePreview(
+        this._bulkLocalize,
+        this._selectedItems(),
+        hidden
+      );
+    }
+    if (id === "reimport") {
+      return blueprintReImportPreview(
+        this._bulkLocalize,
+        this._selectedItems(),
+        hidden
+      );
+    }
+    return undefined;
+  };
+
+  /**
+   * The bar already showed the effect and asked (twice for a delete), so no
+   * further dialog follows: the work starts at once.
+   */
+  private _bulkConfirm = (ev: CustomEvent<{ id: string }>) => {
+    if (ev.detail.id === "delete") {
+      this._deleteSelected();
+    } else if (ev.detail.id === "reimport") {
+      this._reImportSelected();
+    }
+  };
+
+  private async _deleteSelected() {
+    // Look at the usage once more now, so a blueprint that became used since
+    // the table read it is never sent to the delete call
+    const items = this._selectedItems();
+    const checks = await Promise.allSettled(
+      items.map((item) =>
+        findRelated(this.hass, `${item.type}_blueprint`, item.path)
       )
     );
-    if (usageChecks.some((check) => check.status === "rejected")) {
+    if (checks.some((check) => check.status === "rejected")) {
       showAlertDialog(this, {
         title: this.hass.localize(
           "ui.panel.config.blueprint.overview.delete_check_failed_title"
@@ -880,69 +1006,72 @@ class HaBlueprintOverview extends LitElement {
       });
       return;
     }
-    const deletable = selectedRows.filter((_row, index) => {
-      const check = usageChecks[index];
-      return (
-        check.status === "fulfilled" &&
-        !check.value.automation?.length &&
-        !check.value.script?.length
-      );
+    const fresh = items.map((item, index) => {
+      const check = checks[index];
+      const related = check.status === "fulfilled" ? check.value : undefined;
+      return {
+        ...item,
+        usageAutomations: related?.automation?.length ?? 0,
+        usageScripts: related?.script?.length ?? 0,
+      };
     });
-    if (!deletable.length) {
-      showAlertDialog(this, {
-        title: this.hass.localize(
-          "ui.panel.config.blueprint.overview.delete_none_deletable_title"
-        ),
-        text: this.hass.localize(
-          "ui.panel.config.blueprint.overview.delete_none_deletable"
-        ),
-      });
+    const plan = planBlueprintDelete(fresh);
+    const results = await Promise.allSettled(
+      plan.run.map((item) => deleteBlueprint(this.hass, item.type, item.path))
+    );
+    const summary = summarizeBlueprintResults(plan, results);
+    this._deletedFullpaths = [
+      ...this._deletedFullpaths,
+      ...summary.succeeded.map((item) => item.fullpath),
+    ];
+    this._dataTable?.setCheckedRowIds(
+      this._selected.filter(
+        (id) => !summary.succeeded.some((item) => item.fullpath === id)
+      )
+    );
+    fireEvent(this, "reload-blueprints");
+    this._reportBulk(summary, "delete");
+  }
+
+  private async _reImportSelected() {
+    const plan: BlueprintBulkPlan = planBlueprintReImport(
+      this._selectedItems()
+    );
+    const results = await reImportBlueprints(plan, {
+      importFn: (url) => importBlueprint(this.hass, url),
+      saveFn: (item, raw, url) =>
+        saveBlueprint(this.hass, item.type, item.path, raw, url, true),
+    });
+    const summary = summarizeBlueprintResults(plan, results);
+    if (summary.succeeded.length) {
+      fireEvent(this, "reload-blueprints");
+    }
+    this._reportBulk(summary, "reimport");
+  }
+
+  /** One line for the whole outcome, and an alert that names any failures. */
+  private _reportBulk(
+    summary: ReturnType<typeof summarizeBlueprintResults>,
+    kind: "delete" | "reimport"
+  ) {
+    const line = blueprintResultLine(this._bulkLocalize, summary, kind);
+    if (!summary.failed.length) {
+      showToast(this, { message: line });
       return;
     }
-    const allDeletable = deletable.length === selectedRows.length;
-    let deleteFailed = false;
-    showConfirmationDialog(this, {
+    showAlertDialog(this, {
       title: this.hass.localize(
-        "ui.panel.config.blueprint.overview.confirm_delete_selected_title"
+        kind === "delete"
+          ? "ui.panel.config.blueprint.overview.delete_failed_title"
+          : "ui.panel.config.blueprint.overview.bulk_reimport_failed_title"
       ),
-      text: this.hass.localize(
-        allDeletable
-          ? "ui.panel.config.blueprint.overview.confirm_delete_selected"
-          : "ui.panel.config.blueprint.overview.confirm_delete_selected_partly",
-        allDeletable
-          ? { count: deletable.length }
-          : { deletable: deletable.length, selected: selectedRows.length }
-      ),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
-      destructive: true,
-      action: async () => {
-        const results = await Promise.allSettled(
-          deletable.map((row) => deleteBlueprint(this.hass, row.type, row.path))
-        );
-        const deleted = new Set(
-          deletable
-            .filter((_row, index) => results[index].status === "fulfilled")
-            .map((row) => row.fullpath)
-        );
-        this._deletedFullpaths = [...this._deletedFullpaths, ...deleted];
-        deleteFailed = hasRejectedItems(results);
-        this._dataTable.clearSelection();
-        fireEvent(this, "reload-blueprints");
-      },
-    }).then((confirmed) => {
-      if (confirmed && deleteFailed) {
-        showAlertDialog(this, {
-          title: this.hass.localize(
-            "ui.panel.config.blueprint.overview.delete_failed_title"
-          ),
-          text: this.hass.localize(
-            "ui.panel.config.blueprint.overview.delete_failed"
-          ),
-        });
-      }
+      text: `${line} ${summary.failed
+        .map(({ item, message }) =>
+          message ? `${item.name} (${message})` : item.name
+        )
+        .join(", ")}`,
     });
-  };
+  }
 
   private _handleCollapseChanged(ev: CustomEvent) {
     this._activeCollapsed = ev.detail.value;
@@ -959,6 +1088,22 @@ class HaBlueprintOverview extends LitElement {
       css`
         .filter-chips {
           padding: var(--ha-space-2) var(--ha-space-4);
+        }
+        .bulk {
+          position: fixed;
+          z-index: 4;
+          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          inset-inline: var(--ha-sidebar-width, 0px) 0;
+          box-sizing: border-box;
+          width: min(
+            720px,
+            calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+          );
+          margin-inline: auto;
+        }
+        .bulk.narrow {
+          inset-inline: 0;
+          width: calc(100% - var(--ha-space-8));
         }
       `,
     ];

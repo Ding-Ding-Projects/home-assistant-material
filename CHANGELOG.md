@@ -8,6 +8,14 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: the shared selection bar is on six more tables. Tags (delete, with a warning for tags an
+  automation tag trigger still uses), Dashboards (show in the sidebar, hide from it, delete),
+  Resources (delete, with the address or outside host of each), Scenes (move to a category, add or
+  remove a label, move to an area, apply, delete), Blueprints (re-import from the saved address,
+  delete, skipping blueprints still in use) and Backups (delete, with a line for the newest backup
+  and one for backups held in a single location). Every destructive action shows a preview of
+  names first, asks twice, runs each item separately and names any that failed, which stay
+  selected. Not yet seen in a running build.
 - Fixed: on a touch screen a slider reacted only in its middle 32 px, a compact text field was
   32 px high and the filter chips beside a table's search field were 32 px high; all are 44 px
   for a finger now. The colour field's marker no longer covers the Hue label when the colour is

@@ -14,6 +14,7 @@ import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
+import { formatDateTime } from "../../../common/datetime/format_date_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { storage } from "../../../common/decorators/storage";
 import { fireEvent, type HASSDomEvent } from "../../../common/dom/fire_event";
@@ -34,6 +35,18 @@ import type {
   RowClickedEvent,
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
+import "../../../components/bulk/ha-bulk-bar";
+import type {
+  BulkAction,
+  BulkPreview,
+  BulkPreviewItem,
+} from "../../../components/bulk/bulk-selection";
+import {
+  filteredTableCount,
+  hiddenTableSelection,
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../components/bulk/table-selection";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type {
@@ -84,6 +97,7 @@ import { bytesToString } from "../../../util/bytes-to-string";
 import { showGenerateBackupDialog } from "./dialogs/show-dialog-generate-backup";
 import { showNewBackupDialog } from "./dialogs/show-dialog-new-backup";
 import { showUploadBackupDialog } from "./dialogs/show-dialog-upload-backup";
+import { planBackupDelete, summarizeBackupDelete } from "./backup-bulk-actions";
 import { downloadBackup } from "./helper/download_backup";
 
 interface BackupRow extends DataTableRowData, BackupContent {
@@ -458,6 +472,8 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         @grouping-changed=${this._tableSettings.groupingChanged}
         @collapsed-changed=${this._handleCollapseChanged}
         @selection-changed=${this._handleSelectionChanged}
+        @filtered-rows-changed=${this._filteredRowsChanged}
+        ?bulk-bar=${this._selected.length > 0}
         @clear-filter=${this._clearFilter}
         .route=${this.route}
         sync-url
@@ -488,33 +504,6 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
               )}
             </ha-dropdown-item>
           </ha-dropdown>
-        </div>
-
-        <div slot="selection-bar">
-          ${
-            !this.narrow
-              ? html`
-                  <ha-button
-                    appearance="plain"
-                    @click=${this._deleteSelected}
-                    variant="danger"
-                  >
-                    ${this.hass.localize(
-                      "ui.panel.config.backup.backups.delete_selected"
-                    )}
-                  </ha-button>
-                `
-              : html`
-                  <ha-icon-button
-                    .label=${this.hass.localize(
-                      "ui.panel.config.backup.backups.delete_selected"
-                    )}
-                    .path=${mdiDelete}
-                    class="warning"
-                    @click=${this._deleteSelected}
-                  ></ha-icon-button>
-                `
-          }
         </div>
 
         <ha-filter-states
@@ -564,6 +553,26 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
             : nothing
         }
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
+                .actions=${this._bulkActions(this.hass.localize)}
+                .getPreview=${this._getBulkPreview}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+                @bulk-confirm=${this._deleteSelected}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
       <ha-dropdown
         id="overflow-menu"
         @wa-select=${this._handleOverflowAction}
@@ -740,38 +749,143 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     fireEvent(this, "ha-refresh-backup-info");
   };
 
-  private async _deleteSelected() {
-    const confirm = await showConfirmationDialog(this, {
-      title: this.hass.localize(
-        "ui.panel.config.backup.dialogs.delete_selected.title"
-      ),
-      text: this.hass.localize(
-        "ui.panel.config.backup.dialogs.delete_selected.text"
-      ),
-      confirmText: this.hass.localize("ui.common.delete"),
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
+  };
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () => invertTableRows(this._dataTable);
+
+  private _clearRows = () => this._dataTable?.clearSelection();
+
+  private _bulkActions = memoizeOne((localize: LocalizeFunc): BulkAction[] => [
+    {
+      id: "delete",
+      label: localize("ui.panel.config.backup.backups.delete_selected"),
+      path: mdiDelete,
       destructive: true,
+      preview: true,
+    },
+  ]);
+
+  // Locked backups are not reported by the instance, and a backup that is
+  // still being created is not in the list yet, so nothing is passed here.
+  private _deletePlan() {
+    return planBackupDelete(this._selected, this.backups);
+  }
+
+  private _getBulkPreview = (id: string): BulkPreview | undefined => {
+    if (id !== "delete") {
+      return undefined;
+    }
+    const localize = this.hass.localize;
+    const plan = this._deletePlan();
+    const items: BulkPreviewItem[] = [];
+
+    plan.deletable.forEach((entry) => {
+      const parts = [
+        localize("ui.panel.config.backup.backups.bulk.entry", {
+          name: entry.name,
+          date: formatDateTime(
+            new Date(entry.date),
+            this.hass.locale,
+            this.hass.config
+          ),
+          size: bytesToString(entry.size),
+        }),
+      ];
+      if (entry.newest) {
+        parts.push(localize("ui.panel.config.backup.backups.bulk.newest"));
+      }
+      if (entry.onlyCopy) {
+        parts.push(
+          localize("ui.panel.config.backup.backups.bulk.only_copy", {
+            location: computeBackupAgentName(
+              localize,
+              entry.agentIds[0],
+              this.agents
+            ),
+          })
+        );
+      }
+      items.push({ kind: "change", text: parts.join(" ") });
     });
 
-    if (!confirm) {
+    plan.skipped.forEach((entry) => {
+      items.push({
+        kind: "skip",
+        text: localize(
+          `ui.panel.config.backup.backups.bulk.skipped_${entry.reason}`,
+          { name: entry.name }
+        ),
+      });
+    });
+
+    const count = plan.deletable.length;
+    const hidden = hiddenTableSelection(this._dataTable);
+    const notes = [localize("ui.panel.config.backup.backups.bulk.note")];
+    if (hidden > 0) {
+      notes.push(localize("ui.bulk.preview_hidden", { count: hidden }));
+    }
+    return {
+      title: localize("ui.panel.config.backup.backups.bulk.title", { count }),
+      items,
+      changeCount: count,
+      confirmLabel: localize("ui.common.delete"),
+      note: notes.join(" "),
+    };
+  };
+
+  // Runs after the bar's two confirmations, so no further dialog asks again
+  private _deleteSelected = async () => {
+    const plan = this._deletePlan();
+    const ids = plan.deletable.map((entry) => entry.backupId);
+    if (!ids.length) {
       return;
     }
 
-    try {
-      await Promise.all(
-        this._selected.map((slug) => deleteBackup(this.hass, slug))
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteBackup(this.hass, id))
+    );
+    const outcome = summarizeBackupDelete(ids, results);
+
+    if (outcome.deleted.length) {
+      fireEvent(this, "ha-refresh-backup-info");
+    }
+
+    const deleted = new Set(outcome.deleted);
+    this._dataTable?.setCheckedRowIds(
+      this._selected.filter((id) => !deleted.has(id))
+    );
+
+    if (outcome.failed.length) {
+      const names = new Map(
+        plan.deletable.map((entry) => [entry.backupId, entry.name])
       );
-    } catch (err: any) {
       showAlertDialog(this, {
         title: this.hass.localize(
           "ui.panel.config.backup.dialogs.delete_selected.failed"
         ),
-        text: extractApiErrorMessage(err),
+        text: `${this.hass.localize(
+          "ui.panel.config.backup.backups.bulk.partly_deleted",
+          { deleted: outcome.deleted.length, total: ids.length }
+        )}\n${outcome.failed
+          .map(
+            ({ backupId, error }) =>
+              `${names.get(backupId) ?? backupId}: ${extractApiErrorMessage(error)}`
+          )
+          .join("\n")}`,
       });
-      return;
     }
-    fireEvent(this, "ha-refresh-backup-info");
-    this._dataTable.clearSelection();
-  }
+  };
 
   private _handleDropdownSelect(ev: HaDropdownSelectEvent) {
     const action = ev.detail?.item.value;
@@ -787,6 +901,22 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
       css`
         .loading {
           display: flex;
+        }
+        .bulk {
+          position: fixed;
+          z-index: 4;
+          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          inset-inline: var(--ha-sidebar-width, 0px) 0;
+          box-sizing: border-box;
+          width: min(
+            720px,
+            calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+          );
+          margin-inline: auto;
+        }
+        .bulk.narrow {
+          inset-inline: 0;
+          width: calc(100% - var(--ha-space-8));
         }
         ha-spinner {
           --ha-spinner-indicator-color: var(--mdc-theme-on-secondary);

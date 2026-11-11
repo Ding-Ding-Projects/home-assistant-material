@@ -328,6 +328,9 @@ export class HaBulkBar extends LitElement {
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-2);
+      max-height: 40vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
     .preview li {
       display: flex;

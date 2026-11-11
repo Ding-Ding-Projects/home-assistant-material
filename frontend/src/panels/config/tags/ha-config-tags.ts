@@ -7,15 +7,27 @@ import {
   mdiPlus,
   mdiRobot,
 } from "@mdi/js";
-import type { PropertyValues } from "lit";
-import { html, LitElement, nothing } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { DataTableSettingsController } from "../../../common/controllers/data-table-settings-controller";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
+import { computeStateDomain } from "../../../common/entity/compute_state_domain";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import { hasRejectedItems } from "../../../common/util/promise-all-settled-results";
-import "../../../components/chips/ha-assist-chip";
+import type {
+  BulkAction,
+  BulkPreview,
+  BulkPreviewItem,
+} from "../../../components/bulk/bulk-selection";
+import "../../../components/bulk/ha-bulk-bar";
+import {
+  filteredTableCount,
+  hiddenTableSelection,
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../components/bulk/table-selection";
 import type {
   DataTableColumnContainer,
   RowClickedEvent,
@@ -27,7 +39,10 @@ import "../../../components/ha-icon-overflow-menu";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
 import type { TagTrigger } from "../../../data/automation";
-import { showAutomationEditor } from "../../../data/automation";
+import {
+  getAutomationStateConfig,
+  showAutomationEditor,
+} from "../../../data/automation";
 import type { Tag, TagScannedEvent, UpdateTagParams } from "../../../data/tag";
 import {
   createTag,
@@ -47,6 +62,14 @@ import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import { configSections } from "../config-sections";
 import { showTagDetailDialog } from "./show-dialog-tag-detail";
+import {
+  buildTagDeletePreview,
+  shortNameList,
+  summarizeTagDelete,
+  tagDisplayName,
+  tagIdsInAutomationConfig,
+  tagUsageById,
+} from "./tag-bulk-actions";
 import "./tag-image";
 
 export interface TagRowData extends Tag {
@@ -71,6 +94,13 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   @state() private _loadFailed = false;
 
   @state() private _selected: string[] = [];
+
+  // Which automations use which tag, read when a selection is first made
+  @state() private _usage?: Record<string, string[]>;
+
+  @state() private _usageFailed = false;
+
+  private _usageLoading = false;
 
   @query("hass-tabs-subpage-data-table", true)
   private _dataTable!: HaTabsSubpageDataTable;
@@ -270,8 +300,11 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         @search-changed=${this._tableSettings.searchChanged}
         sync-url
         selectable
+        keep-hidden-selection
         .selected=${this._selected.length}
+        ?bulk-bar=${this._selected.length > 0}
         @selection-changed=${this._handleSelectionChanged}
+        @filtered-rows-changed=${this._filteredRowsChanged}
         has-fab
         clickable
         @row-click=${this._editTag}
@@ -283,17 +316,31 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           .label=${this.hass.localize("ui.common.help")}
           .path=${mdiHelpCircleOutline}
         ></ha-icon-button>
-        <ha-assist-chip
-          slot="selection-bar"
-          .label=${this.hass.localize("ui.common.delete")}
-          .disabled=${!this._selected.length}
-          @click=${this._removeSelected}
-        ></ha-assist-chip>
         <ha-button slot="fab" size="l" @click=${this._addTag}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.tag.add_tag")}
         </ha-button>
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
+                .actions=${this._bulkActions()}
+                .getPreview=${this._bulkPreview}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+                @bulk-confirm=${this._deleteSelected}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -457,42 +504,215 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     ev: HASSDomEvent<SelectionChangedEvent>
   ): void => {
     this._selected = ev.detail.value;
+    if (this._selected.length) {
+      this._loadUsage();
+    }
   };
 
-  private _removeSelected = () => {
-    let deleteFailed = false;
-    showConfirmationDialog(this, {
-      title: this.hass.localize(
-        "ui.panel.config.tag.confirm_delete_selected_title"
-      ),
-      text: this.hass.localize("ui.panel.config.tag.confirm_delete_selected", {
-        count: this._selected.length,
-      }),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
-      destructive: true,
-      action: async () => {
-        const results = await Promise.allSettled(
-          this._selected.map((id) => deleteTag(this.hass, id))
-        );
-        const deletedIds = new Set(
-          this._selected.filter(
-            (_id, index) => results[index].status === "fulfilled"
-          )
-        );
-        this._tags = this._tags.filter((tag) => !deletedIds.has(tag.id));
-        deleteFailed = hasRejectedItems(results);
-        this._dataTable.clearSelection();
+  private _bulkLocalize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string => this.hass.localize(key as any, values);
+
+  private _bulkActions(): BulkAction[] {
+    return [
+      {
+        id: "delete",
+        label: this.hass.localize("ui.common.delete"),
+        path: mdiDelete,
+        destructive: true,
       },
-    }).then((confirmed) => {
-      if (confirmed && deleteFailed) {
-        showAlertDialog(this, {
-          title: this.hass.localize("ui.panel.config.tag.delete_failed_title"),
-          text: this.hass.localize("ui.panel.config.tag.delete_failed"),
-        });
+    ];
+  }
+
+  /** Reads which automations have a tag trigger, once, for the preview. */
+  private async _loadUsage() {
+    if (this._usage || this._usageLoading) {
+      return;
+    }
+    this._usageLoading = true;
+    this._usageFailed = false;
+    try {
+      // Automations written in YAML without an id have no stored config to
+      // read, so they are left out instead of counted as failures.
+      const automations = Object.values(this.hass.states).filter(
+        (stateObj) =>
+          computeStateDomain(stateObj) === "automation" &&
+          Boolean(stateObj.attributes.id)
+      );
+      // Ask in small batches so a large instance does not flood the
+      // connection, which matters most on a phone.
+      const results: PromiseSettledResult<
+        Awaited<ReturnType<typeof getAutomationStateConfig>>
+      >[] = [];
+      for (let start = 0; start < automations.length; start += 10) {
+        results.push(
+          // eslint-disable-next-line no-await-in-loop
+          ...(await Promise.allSettled(
+            automations
+              .slice(start, start + 10)
+              .map((stateObj) =>
+                getAutomationStateConfig(this.hass, stateObj.entity_id)
+              )
+          ))
+        );
       }
+      this._usageFailed = hasRejectedItems(results);
+      this._usage = tagUsageById(
+        results.flatMap((result, index) =>
+          result.status === "fulfilled"
+            ? [
+                {
+                  name:
+                    automations[index].attributes.friendly_name ||
+                    automations[index].entity_id,
+                  tagIds: tagIdsInAutomationConfig(result.value.config),
+                },
+              ]
+            : []
+        )
+      );
+    } finally {
+      this._usageLoading = false;
+    }
+  }
+
+  /** What deleting the selected tags will do, shown before it is asked. */
+  private _bulkPreview = (id: string): BulkPreview | undefined => {
+    if (id !== "delete") {
+      return undefined;
+    }
+    const localize = this.hass.localize;
+    const preview = buildTagDeletePreview(
+      this._tags,
+      this._selected,
+      this._usage ?? {},
+      hiddenTableSelection(this._dataTable)
+    );
+    const count = preview.deletable.length;
+    const items: BulkPreviewItem[] = [];
+    if (count) {
+      items.push({
+        kind: "change",
+        text: `${localize("ui.panel.config.tag.bulk_preview_delete", {
+          count,
+        })}: ${shortNameList(preview.deletable.map(tagDisplayName))}`,
+      });
+    }
+    if (preview.skipped.length) {
+      items.push({
+        kind: "same",
+        text: localize("ui.panel.config.tag.bulk_preview_skipped", {
+          count: preview.skipped.length,
+        }),
+      });
+    }
+    if (preview.hiddenCount > 0) {
+      items.push({
+        kind: "same",
+        text: localize("ui.bulk.preview_hidden", {
+          count: preview.hiddenCount,
+        }),
+      });
+    }
+    if (!this._usage) {
+      items.push({
+        kind: "same",
+        text: localize("ui.panel.config.tag.bulk_preview_checking"),
+      });
+    } else if (this._usageFailed) {
+      items.push({
+        kind: "same",
+        text: localize("ui.panel.config.tag.bulk_preview_usage_unknown"),
+      });
+    }
+    preview.warnings.slice(0, 5).forEach((warning) => {
+      items.push({
+        kind: "skip",
+        text: localize("ui.panel.config.tag.bulk_preview_used", {
+          tag: tagDisplayName(warning.tag),
+          automations: warning.automations.join(", "),
+        }),
+      });
     });
+    if (preview.warnings.length > 5) {
+      items.push({
+        kind: "skip",
+        text: localize("ui.panel.config.tag.bulk_preview_used_more", {
+          count: preview.warnings.length - 5,
+        }),
+      });
+    }
+    return {
+      title: localize("ui.panel.config.tag.bulk_preview_title", { count }),
+      items,
+      changeCount: count,
+      confirmLabel: localize("ui.common.delete"),
+      note: localize("ui.panel.config.tag.confirm_delete_selected", {
+        count,
+      }),
+    };
   };
+
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
+  };
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () => invertTableRows(this._dataTable);
+
+  private _clearRows = () => this._dataTable?.clearSelection();
+
+  /**
+   * The bar already showed what will be deleted and asked twice, so no
+   * further dialog follows. A tag that could not be deleted stays selected
+   * and is named; success offers no Undo.
+   */
+  private _deleteSelected = async () => {
+    const ids = [...this._selected];
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteTag(this.hass, id))
+    );
+    const { deletedIds, failedIds } = summarizeTagDelete(ids, results);
+    const deleted = new Set(deletedIds);
+    const failedNames = this._tags
+      .filter((tag) => failedIds.includes(tag.id))
+      .map(tagDisplayName);
+    this._tags = this._tags.filter((tag) => !deleted.has(tag.id));
+    this._dataTable?.setCheckedRowIds(failedIds);
+    if (failedIds.length) {
+      showAlertDialog(this, {
+        title: this.hass.localize("ui.panel.config.tag.delete_failed_title"),
+        text: failedNames.length
+          ? this.hass.localize("ui.panel.config.tag.delete_failed_named", {
+              names: failedNames.join(", "),
+            })
+          : this.hass.localize("ui.panel.config.tag.delete_failed"),
+      });
+    }
+  };
+
+  static styles: CSSResultGroup = css`
+    .bulk {
+      position: fixed;
+      z-index: 4;
+      bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+      inset-inline: var(--ha-sidebar-width, 0px) 0;
+      box-sizing: border-box;
+      width: min(
+        720px,
+        calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+      );
+      margin-inline: auto;
+    }
+    .bulk.narrow {
+      inset-inline: 0;
+      width: calc(100% - var(--ha-space-8));
+    }
+  `;
 }
 
 declare global {

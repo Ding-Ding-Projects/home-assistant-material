@@ -2,6 +2,8 @@ import {
   mdiDelete,
   mdiDotsVertical,
   mdiDownload,
+  mdiEye,
+  mdiEyeOff,
   mdiHistory,
   mdiHomeEdit,
   mdiInformationOutline,
@@ -22,13 +24,19 @@ import { isComponentLoaded } from "../../../../common/config/is_component_loaded
 import { navigate } from "../../../../common/navigate";
 import { stringCompare } from "../../../../common/string/compare";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
-import { hasRejectedItems } from "../../../../common/util/promise-all-settled-results";
+import type { BulkAction } from "../../../../components/bulk/bulk-selection";
+import {
+  filteredTableCount,
+  hiddenTableSelection,
+  invertTableRows,
+  selectAllTableRows,
+} from "../../../../components/bulk/table-selection";
+import "../../../../components/bulk/ha-bulk-bar";
 import type {
   DataTableColumnContainer,
   RowClickedEvent,
   SelectionChangedEvent,
 } from "../../../../components/data-table/ha-data-table";
-import "../../../../components/chips/ha-assist-chip";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-dropdown";
@@ -86,6 +94,17 @@ import { lovelaceTabs } from "../ha-config-lovelace";
 import { showDashboardConfigureStrategyDialog } from "./show-dialog-lovelace-dashboard-configure-strategy";
 import { showDashboardDetailDialog } from "./show-dialog-lovelace-dashboard-detail";
 import { showPanelDetailDialog } from "./show-dialog-panel-detail";
+import type {
+  BulkDashboardRow,
+  BulkLocalize,
+  DashboardBulkActionId,
+  DashboardBulkPlan,
+} from "./dashboard-bulk-actions";
+import {
+  buildDashboardBulkPreview,
+  planDashboardBulkAction,
+  runBulkRequests,
+} from "./dashboard-bulk-actions";
 
 export const PANEL_DASHBOARDS = [
   "home",
@@ -502,8 +521,11 @@ export class HaConfigLovelaceDashboards extends LitElement {
         ?sync-url=${!this._loading && !this._loadFailed}
         @row-click=${this._handleRowClicked}
         selectable
+        keep-hidden-selection
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
+        @filtered-rows-changed=${this._filteredRowsChanged}
+        ?bulk-bar=${this._selected.length > 0}
         .loadError=${
           this._loadFailed
             ? this.hass.localize(
@@ -543,12 +565,6 @@ export class HaConfigLovelaceDashboards extends LitElement {
             </ha-dropdown-item>
           </a>
         </ha-dropdown>
-        <ha-assist-chip
-          slot="selection-bar"
-          .label=${this.hass.localize("ui.common.delete")}
-          .disabled=${!this._deletableSelected().length}
-          @click=${this._removeSelected}
-        ></ha-assist-chip>
         <input
           slot="toolbar-icon"
           type="file"
@@ -565,6 +581,26 @@ export class HaConfigLovelaceDashboards extends LitElement {
           )}
         </ha-button>
       </hass-tabs-subpage-data-table>
+      ${
+        this._selected.length
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
+              <ha-bulk-bar
+                .localize=${this._bulkLocalize}
+                .count=${this._selected.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
+                .actions=${this._bulkActions(this.hass.language)}
+                .getPreview=${this._bulkPreview}
+                @bulk-select-page=${this._selectAllRows}
+                @bulk-select-matches=${this._selectAllRows}
+                @bulk-invert=${this._invertRows}
+                @bulk-clear=${this._clearRows}
+                @bulk-confirm=${this._handleBulkConfirm}
+              ></ha-bulk-bar>
+            </div>`
+          : nothing
+      }
     `;
   }
 
@@ -901,69 +937,157 @@ export class HaConfigLovelaceDashboards extends LitElement {
     }
   }
 
-  private _deletableSelected = () =>
-    this._dashboards.filter(
-      (dashboard) =>
-        this._selected.includes(dashboard.url_path) &&
-        dashboard.mode === "storage"
+  private _bulkLocalize: BulkLocalize = (key, values) =>
+    this.hass.localize(key as any, values);
+
+  private _bulkActions = memoize((_language: string): BulkAction[] => [
+    {
+      id: "show",
+      label: this.hass.localize(
+        "ui.panel.config.lovelace.dashboards.bulk.show"
+      ),
+      path: mdiEye,
+      preview: true,
+    },
+    {
+      id: "hide",
+      label: this.hass.localize(
+        "ui.panel.config.lovelace.dashboards.bulk.hide"
+      ),
+      path: mdiEyeOff,
+      preview: true,
+    },
+    {
+      id: "delete",
+      label: this.hass.localize("ui.common.delete"),
+      path: mdiDelete,
+      destructive: true,
+      preview: true,
+    },
+  ]);
+
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
+  };
+
+  private _selectAllRows = () => selectAllTableRows(this._dataTable);
+
+  private _invertRows = () => invertTableRows(this._dataTable);
+
+  private _clearRows = () => this._dataTable?.clearSelection();
+
+  /** The ticked rows, in the shape the bulk rules read. */
+  private _selectedRows(): BulkDashboardRow[] {
+    const defaultPanel = this.hass.systemData?.default_panel || DEFAULT_PANEL;
+    const rows: BulkDashboardRow[] = [];
+    for (const urlPath of this._selected) {
+      const dashboard = this._dashboards.find(
+        (res) => res.url_path === urlPath
+      );
+      if (dashboard) {
+        rows.push({
+          url_path: dashboard.url_path,
+          title: dashboard.title,
+          show_in_sidebar: dashboard.show_in_sidebar,
+          mode: dashboard.mode,
+          type: "user_created",
+          default: dashboard.url_path === defaultPanel,
+          id: dashboard.id,
+        });
+        continue;
+      }
+      const panelInfo = this.hass.panels[urlPath];
+      if (panelInfo) {
+        rows.push({
+          url_path: urlPath,
+          title: getPanelTitle(this.hass, panelInfo) || urlPath,
+          show_in_sidebar: panelInfo.show_in_sidebar || false,
+          mode: "storage",
+          type: "built_in",
+          default: urlPath === defaultPanel,
+        });
+      }
+    }
+    return rows;
+  }
+
+  private _bulkPlan(id: string): DashboardBulkPlan {
+    return planDashboardBulkAction(
+      id as DashboardBulkActionId,
+      this._selectedRows(),
+      new Set(this._dataTable?.getFilteredRowIds() ?? [])
     );
+  }
+
+  private _bulkPreview = (id: string) =>
+    buildDashboardBulkPreview(
+      this._bulkPlan(id),
+      this._bulkLocalize,
+      isComponentLoaded(this.hass.config, "dashboard_repos")
+    );
+
+  private _handleBulkConfirm = async (ev: CustomEvent<{ id: string }>) => {
+    const action = ev.detail.id as DashboardBulkActionId;
+    const plan = this._bulkPlan(action);
+    if (!plan.change.length) {
+      return;
+    }
+    const updated = new Map<string, LovelaceDashboard>();
+    const result = await runBulkRequests(plan.change, async (row) => {
+      if (action === "delete") {
+        await deleteDashboard(this.hass, row.id!);
+        return;
+      }
+      updated.set(
+        row.id!,
+        await updateDashboard(this.hass, row.id!, {
+          show_in_sidebar: action === "show",
+        })
+      );
+    });
+    const doneIds = new Set(result.succeeded.map((row) => row.id));
+    if (action === "delete") {
+      const gone = new Set(result.succeeded.map((row) => row.url_path));
+      this._dashboards = this._dashboards.filter(
+        (dashboard) => !gone.has(dashboard.url_path)
+      );
+      // Ticked rows the search hides stay ticked.
+      this._dataTable?.setCheckedRowIds(
+        this._selected.filter((urlPath) => !gone.has(urlPath))
+      );
+    } else {
+      this._dashboards = this._dashboards.map((dashboard) =>
+        doneIds.has(dashboard.id)
+          ? (updated.get(dashboard.id) ?? dashboard)
+          : dashboard
+      );
+    }
+    if (result.failed.length) {
+      showAlertDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.config.lovelace.dashboards.bulk.failed_title"
+        ),
+        text: this.hass.localize(
+          "ui.panel.config.lovelace.dashboards.bulk.failed",
+          {
+            count: result.failed.length,
+            names: result.failed
+              .map(({ item, message }) =>
+                message ? `${item.title} (${message})` : item.title
+              )
+              .join(", "),
+          }
+        ),
+      });
+    }
+  };
 
   private _handleSelectionChanged = (
     ev: HASSDomEvent<SelectionChangedEvent>
   ): void => {
     this._selected = ev.detail.value;
-  };
-
-  private _removeSelected = () => {
-    const deletable = this._deletableSelected();
-    const allDeletable = deletable.length === this._selected.length;
-    let deleteFailed = false;
-    showConfirmationDialog(this, {
-      title: this.hass.localize(
-        "ui.panel.config.lovelace.dashboards.confirm_delete_selected_title"
-      ),
-      text: this.hass.localize(
-        allDeletable
-          ? "ui.panel.config.lovelace.dashboards.confirm_delete_selected"
-          : "ui.panel.config.lovelace.dashboards.confirm_delete_selected_partly",
-        allDeletable
-          ? { count: deletable.length }
-          : { deletable: deletable.length, selected: this._selected.length }
-      ),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
-      destructive: true,
-      action: async () => {
-        const results = await Promise.allSettled(
-          deletable.map((dashboard) =>
-            deleteDashboard(this.hass!, dashboard.id)
-          )
-        );
-        const deletedUrlPaths = new Set(
-          deletable
-            .filter(
-              (_dashboard, index) => results[index].status === "fulfilled"
-            )
-            .map((dashboard) => dashboard.url_path)
-        );
-        this._dashboards = this._dashboards.filter(
-          (dashboard) => !deletedUrlPaths.has(dashboard.url_path)
-        );
-        deleteFailed = hasRejectedItems(results);
-        this._dataTable.clearSelection();
-      },
-    }).then((confirmed) => {
-      if (confirmed && deleteFailed) {
-        showAlertDialog(this, {
-          title: this.hass.localize(
-            "ui.panel.config.lovelace.dashboards.delete_failed_title"
-          ),
-          text: this.hass.localize(
-            "ui.panel.config.lovelace.dashboards.delete_failed"
-          ),
-        });
-      }
-    });
   };
 
   private _handleColumnsChanged(ev: CustomEvent) {
@@ -976,6 +1100,23 @@ export class HaConfigLovelaceDashboards extends LitElement {
   }
 
   static styles = css`
+    .bulk {
+      position: fixed;
+      z-index: 4;
+      bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+      inset-inline: var(--ha-sidebar-width, 0px) 0;
+      box-sizing: border-box;
+      width: min(
+        720px,
+        calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+      );
+      margin-inline: auto;
+      --ha-button-height: 44px;
+    }
+    .bulk.narrow {
+      inset-inline: 0;
+      width: calc(100% - var(--ha-space-8));
+    }
     .import-input {
       display: none;
     }

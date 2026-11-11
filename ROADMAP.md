@@ -112,8 +112,10 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [~] Export from every page that has the page tools: CSV, JSON, Markdown, plain text, HTML and
       print; a tab-separated format and selected-rows-only are built and not yet seen. No
       spreadsheet or PDF file formats
-- [ ] Selection bar and bulk actions on every table. The bar is built on Notifications, Labels,
-      Automations and Scripts and not yet seen; the other tables do not have it
+- [~] Selection bar and bulk actions on every table. The bar is built on Notifications, Labels,
+      Automations, Scripts, Tags, Dashboards, Resources, Scenes, Blueprints and Backups and not
+      yet seen; the Resources preview cannot tell which dashboards use a resource. The other
+      tables do not have it
 - [~] Guided forms and per-control information buttons: the information buttons are built and not
       yet seen. Not built: the worked example and the practise control
 - [ ] Settings that explain themselves. Personal settings does and the information buttons exist
