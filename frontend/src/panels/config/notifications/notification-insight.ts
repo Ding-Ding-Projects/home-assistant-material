@@ -12,6 +12,75 @@ const LINK = /(?<!!)\[([^\]\n]{1,60})\]\(([^)\s]+)\)/g;
 // could read as another site (such as "/\host") and no control characters.
 const APP_PATH = /^\/(?![/\\])[A-Za-z0-9\-._~!$&'()*+,;=:@%/?#[\]]*$/;
 
+export type NotificationSeverity = "error" | "warning" | "info" | "neutral";
+
+/** Severities from most to least urgent; the order of sorting and of chips. */
+export const SEVERITIES: readonly NotificationSeverity[] = [
+  "error",
+  "warning",
+  "info",
+  "neutral",
+];
+
+// An explicit level written at the start of a notification id, such as
+// "error.backup_failed" or "warning-low-disk".
+const LEVEL_MARKER = /^(error|warning|info)[._:-]/i;
+
+// Sources that always report a problem, matched on the start of the id.
+const SOURCE_MARKERS: { prefix: RegExp; severity: NotificationSeverity }[] = [
+  { prefix: /^update[._-]?fail/i, severity: "error" },
+  { prefix: /^repairs?[._:-]/i, severity: "warning" },
+  { prefix: /^system[._:-]/i, severity: "info" },
+];
+
+/**
+ * The severity of a notification. It is read only from the explicit marker in
+ * the notification id: a level written at its start wins, then a known source
+ * (a repair, an update failure, the system). The words of the title or message
+ * are never read, so everything else stays neutral.
+ */
+export const notificationSeverity = (
+  notificationId: string
+): NotificationSeverity => {
+  const level = LEVEL_MARKER.exec(notificationId);
+  if (level) {
+    return level[1].toLowerCase() as NotificationSeverity;
+  }
+  return (
+    SOURCE_MARKERS.find((source) => source.prefix.test(notificationId))
+      ?.severity ?? "neutral"
+  );
+};
+
+/** Rank of a severity, 0 for the most urgent. */
+export const severityRank = (severity: NotificationSeverity): number =>
+  SEVERITIES.indexOf(severity);
+
+/** Most urgent first, then newest first, then by id so the order is stable. */
+export const sortBySeverity = <
+  T extends { notification_id: string; created_at: string },
+>(
+  items: readonly T[]
+): T[] =>
+  [...items].sort(
+    (a, b) =>
+      severityRank(notificationSeverity(a.notification_id)) -
+        severityRank(notificationSeverity(b.notification_id)) ||
+      (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0) ||
+      a.notification_id.localeCompare(b.notification_id)
+  );
+
+/** Keeps the notifications of the chosen severities; none chosen keeps all. */
+export const filterBySeverity = <T extends { notification_id: string }>(
+  items: readonly T[],
+  chosen: readonly NotificationSeverity[]
+): T[] =>
+  chosen.length
+    ? items.filter((item) =>
+        chosen.includes(notificationSeverity(item.notification_id))
+      )
+    : [...items];
+
 /** The most action buttons shown on one notification. */
 export const MAX_NOTIFICATION_ACTIONS = 2;
 

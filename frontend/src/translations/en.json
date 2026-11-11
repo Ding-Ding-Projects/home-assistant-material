@@ -1044,6 +1044,21 @@
         "errors": "{count, plural, one {# problem to fix} other {# problems to fix}}",
         "shortcut": "Shortcut: {keys}"
       },
+      "draft_recovery": {
+        "heading": "Restore unsaved changes from {time}?",
+        "stale": "The saved version changed after this draft was started. Restoring replaces what is in the editor now.",
+        "restore": "Restore",
+        "compare": "Compare",
+        "hide_compare": "Hide comparison",
+        "discard": "Discard",
+        "current": "In the editor now",
+        "draft": "Draft"
+      },
+      "collapsible-statistics": {
+        "label": "Statistics",
+        "hide": "Collapse the statistics",
+        "show": "Expand the statistics"
+      },
       "split_panels": {
         "start": "First panel",
         "end": "Second panel",
@@ -3173,6 +3188,10 @@
       "dismiss": "Dismiss",
       "dismiss_finished": "Clear finished",
       "failed_heading": "{title} did not finish",
+      "update_row": {
+        "show": "Show update",
+        "show_label": "Show the update for {title}"
+      },
       "state": {
         "done": "Finished.",
         "failed": "Failed.",
@@ -3285,6 +3304,7 @@
       "triggered": "Triggered {name}",
       "dismiss": "Dismiss",
       "progress": "{percent} percent done",
+      "more_waiting": "{count, plural, one {# more notification waiting} other {# more notifications waiting}}",
       "no_matching_link_found": "No matching My link found for {path}",
       "new_version_available": "A new version of the frontend is available. This page will update in {seconds, plural, one {# second} other {# seconds}}.",
       "new_version_available_reload": "A new version of the frontend is available. It will be applied once you have finished what you are working on.",
@@ -3890,6 +3910,17 @@
       "menu_edit": "Edit appearance…",
       "menu_open": "Open",
       "menu_open_new_tab": "Open in a new tab",
+      "menu_entity_details": "Open details",
+      "menu_entity_turn_on": "Turn on {name}",
+      "menu_entity_turn_off": "Turn off {name}",
+      "menu_entity_copy_id": "Copy entity ID",
+      "menu_entity_rename": "Rename {name}…",
+      "menu_entity_hide": "Hide {name}",
+      "entity_hidden": "{name} is hidden.",
+      "menu_device_details": "Open the page of {name}",
+      "menu_device_copy_id": "Copy device ID",
+      "menu_area_details": "Open the page of {name}",
+      "menu_area_copy_id": "Copy area ID",
       "menu_edit_kind": "Edit every {kind}…",
       "menu_reset_element": "Reset this one's appearance",
       "menu_reset_kind": "Reset every {kind}",
@@ -3899,6 +3930,7 @@
       "menu_search": "Search and commands",
       "reset_done": "The appearance is back to the theme.",
       "copied": "Copied.",
+      "action_failed": "That did not work. Nothing was changed.",
       "pick_hint": "Select anything to edit its appearance. Escape cancels.",
       "pick_cancel": "Cancel"
     },
@@ -13593,7 +13625,12 @@
           "clear_dismissed_no": "Keep",
           "bulk_dismiss": "Dismiss",
           "bulk_preview_title": "{count, plural,\n  one {Dismiss # notification}\n  other {Dismiss # notifications}\n}",
-          "bulk_preview_dismiss": "{count, plural,\n  one {# will be dismissed}\n  other {# will be dismissed}\n}"
+          "bulk_preview_dismiss": "{count, plural,\n  one {# will be dismissed}\n  other {# will be dismissed}\n}",
+          "severity_filter": "Filter by severity",
+          "severity_error": "Error",
+          "severity_warning": "Warning",
+          "severity_info": "Information",
+          "severity_neutral": "Neutral"
         },
         "ollama": {
           "caption": "Ollama",

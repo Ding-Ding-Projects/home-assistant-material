@@ -8,6 +8,28 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: toasts stack. Up to three show at once with the newest nearest the bottom edge and older
+  ones scaled down; the rest wait in a queue behind an "N more waiting" chip. Each toast has its
+  own timer that pauses on hover or focus, an identical anonymous message within two seconds is
+  dropped, errors, warnings and progress stay until dismissed, and one polite live region reads
+  only the newest. Under reduced motion toasts fade only. Not yet seen in a running build.
+- New: notifications are coloured by severity. The level comes only from an explicit marker at the
+  start of the notification id (error, warning or info), or from the known prefixes update_fail,
+  repair_ and system_; words in the title or message are never read. Rows show an edge, an icon
+  and the severity word, a chip group filters by severity and the list sorts by severity, then
+  newest first. Not yet seen in a running build.
+- New: a collapsible statistics strip is available on list layouts through an optional
+  statistics property. The folded or open choice is kept per page. Not yet seen in a running
+  build.
+- New: draft recovery for the template editor. A draft is saved shortly after typing stops and a
+  banner offers Restore, Compare and Discard. Text that looks like a secret, empty text and
+  text over 200 KB are never stored. Not yet seen in a running build.
+- New: update installs appear as rows in the activity tray with the stage, a progress bar when a
+  percentage is reported, a recovery card with Try again after a failure, and Show update to
+  reopen the update dialog. Not yet seen in a running build.
+- New: the menu on an element gains entries for what was clicked: Open details, Turn on or Turn
+  off, Copy entity ID, Rename and Hide for entities, and Open the page and Copy ID for devices
+  and areas. Not yet seen in a running build.
 - New: the shared selection bar is on six more tables. Tags (delete, with a warning for tags an
   automation tag trigger still uses), Dashboards (show in the sidebar, hide from it, delete),
   Resources (delete, with the address or outside host of each), Scenes (move to a category, add or

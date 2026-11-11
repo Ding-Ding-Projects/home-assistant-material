@@ -82,6 +82,66 @@ describe("ha-toast", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it("pauses its timer while hovered and resumes with the time left", async () => {
+    const element = await mountToast({ timeoutMs: 1000 });
+    const listener = vi.fn();
+    element.addEventListener("toast-closed", listener);
+    await showToast(element);
+    const surface = element.shadowRoot!.querySelector(".toast")!;
+
+    await vi.advanceTimersByTimeAsync(600);
+    surface.dispatchEvent(new Event("pointerenter"));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(listener).not.toHaveBeenCalled();
+
+    surface.dispatchEvent(new Event("pointerleave"));
+    await vi.advanceTimersByTimeAsync(300);
+    expect(listener).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(150);
+    expect(listener.mock.calls[0][0].detail).toEqual({ reason: "timeout" });
+  });
+
+  it("stays paused while focus is inside the toast and resumes when it leaves", async () => {
+    const element = await mountToast({ timeoutMs: 1000 });
+    const listener = vi.fn();
+    element.addEventListener("toast-closed", listener);
+    await showToast(element);
+    const surface = element.shadowRoot!.querySelector(".toast")!;
+
+    surface.dispatchEvent(new Event("focusin"));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(listener).not.toHaveBeenCalled();
+
+    surface.dispatchEvent(new FocusEvent("focusout", { relatedTarget: null }));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("does not resume while it is still hovered after focus leaves", async () => {
+    const element = await mountToast({ timeoutMs: 1000 });
+    const listener = vi.fn();
+    element.addEventListener("toast-closed", listener);
+    await showToast(element);
+    const surface = element.shadowRoot!.querySelector(".toast")!;
+
+    surface.dispatchEvent(new Event("pointerenter"));
+    surface.dispatchEvent(new Event("focusin"));
+    surface.dispatchEvent(new FocusEvent("focusout", { relatedTarget: null }));
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("leaves announcing to its stack when silent", async () => {
+    const element = await mountToast({ timeoutMs: -1, silent: true });
+    await showToast(element);
+    await element.updateComplete;
+
+    const message = element.shadowRoot!.querySelector(".assistive-message")!;
+    expect(message.getAttribute("aria-live")).toBe("off");
+    expect(message.textContent!.trim()).toBe("");
+  });
+
   it("does not emit a close event when already hidden", async () => {
     const element = await mountToast();
     const listener = vi.fn();

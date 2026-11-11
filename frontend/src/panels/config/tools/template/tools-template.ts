@@ -10,6 +10,15 @@ import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { formatDateTime } from "../../../../common/datetime/format_date_time";
+import {
+  DRAFT_MAX_BYTES,
+  discardDraft,
+  getDraft,
+  hashDraftText,
+  saveDraft,
+} from "../../../../common/drafts/draft-store";
+import type { DraftLookup } from "../../../../common/drafts/draft-store";
 import type { HASSDomTargetEvent } from "../../../../common/dom/fire_event";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { modeText } from "../../../../common/language-mode/language-mode";
@@ -20,6 +29,7 @@ import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-card";
+import "../../../../components/drafts/ha-draft-recovery";
 import "../../../../components/ha-code-editor";
 import "../../../../components/ha-expansion-panel";
 import "../../../../components/ha-label";
@@ -75,6 +85,10 @@ const STORAGE_KEY_TEMPLATE = "panel-dev-template-template";
 const STORAGE_KEY_SPLIT_POSITION = "panel-dev-template-split-position";
 const STORAGE_KEY_SPLIT_ORIENTATION = "panel-dev-template-split-orientation";
 const DEFAULT_SPLIT_POSITION = 50;
+// The template tool has one working template, so one draft entry.
+const DRAFT_KIND = "template";
+const DRAFT_ITEM_ID = "default";
+const DRAFT_SAVE_DELAY_MS = 300;
 
 type SplitOrientation = "horizontal" | "vertical";
 
@@ -102,7 +116,13 @@ class HaPanelDevTemplate extends LitElement {
 
   @state() private _splitOrientation: SplitOrientation = "horizontal";
 
+  // A draft found on open that the person has not yet restored or discarded.
+  @state() private _pendingDraft?: DraftLookup;
+
   private _template = "";
+
+  // Fingerprint of the template the editor opened with; drafts record it.
+  private _baseVersion: string | null = null;
 
   private _inited = false;
 
@@ -120,6 +140,9 @@ class HaPanelDevTemplate extends LitElement {
   public disconnectedCallback() {
     super.disconnectedCallback();
     this._unsubscribeTemplate();
+    // Leaving the tool must not lose the last edits waiting for the delay.
+    this._debounceDraft.cancel();
+    this._writeDraft();
   }
 
   protected firstUpdated() {
@@ -138,6 +161,8 @@ class HaPanelDevTemplate extends LitElement {
     if (localStorage?.[STORAGE_KEY_SPLIT_ORIENTATION] === "vertical") {
       this._splitOrientation = "vertical";
     }
+    this._baseVersion = hashDraftText(this._template);
+    this._findDraft();
     this._subscribeTemplate();
     this._inited = true;
   }
@@ -207,6 +232,8 @@ class HaPanelDevTemplate extends LitElement {
         </ha-expansion-panel>
       </div>
 
+      ${this._renderDraftRecovery()}
+
       <ha-split-panel
         class="panes ${orientation === "vertical" ? "vertical" : ""}"
         .position=${this._splitPosition}
@@ -222,6 +249,41 @@ class HaPanelDevTemplate extends LitElement {
         </div>
         ${this.narrow ? nothing : this._renderOrientationToggle()}
       </ha-split-panel>
+    `;
+  }
+
+  private _renderDraftRecovery() {
+    const draft = this._pendingDraft;
+    if (!draft) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    return html`
+      <div class="draft-recovery">
+        <ha-draft-recovery
+          .labels=${{
+            heading: localize("ui.components.draft_recovery.heading", {
+              time: formatDateTime(
+                new Date(draft.savedAt),
+                this.hass.locale,
+                this.hass.config
+              ),
+            }),
+            stale: localize("ui.components.draft_recovery.stale"),
+            restore: localize("ui.components.draft_recovery.restore"),
+            compare: localize("ui.components.draft_recovery.compare"),
+            hideCompare: localize("ui.components.draft_recovery.hide_compare"),
+            discard: localize("ui.components.draft_recovery.discard"),
+            current: localize("ui.components.draft_recovery.current"),
+            draft: localize("ui.components.draft_recovery.draft"),
+          }}
+          .draft=${draft.content}
+          .current=${this._template}
+          .stale=${draft.baseMismatch}
+          @draft-restore=${this._restoreDraft}
+          @draft-discard=${this._discardDraft}
+        ></ha-draft-recovery>
+      </div>
     `;
   }
 
@@ -524,6 +586,11 @@ ${
 
         .about a {
           color: var(--primary-color);
+        }
+
+        .draft-recovery {
+          flex: none;
+          padding: var(--ha-space-4) var(--ha-space-4) 0;
         }
 
         .panes {
@@ -830,6 +897,72 @@ ${
       this._errorLevel = undefined;
     }
     this._debounceRender();
+    this._debounceDraft();
+  }
+
+  // Draft recovery: the text being edited is kept on this device a moment after
+  // each change, and only ever offered back, never applied on its own.
+  private _debounceDraft = debounce(
+    () => this._writeDraft(),
+    DRAFT_SAVE_DELAY_MS,
+    false
+  );
+
+  // The draft belongs to the signed-in person, so another person using the
+  // same browser is never offered it.
+  private get _draftItemId(): string {
+    return `${DRAFT_ITEM_ID}:${this.hass?.user?.id ?? "anonymous"}`;
+  }
+
+  private _writeDraft() {
+    // While an earlier draft waits for a decision it is left untouched, so
+    // new typing cannot overwrite what is on offer.
+    if (!this._inited || this._pendingDraft) {
+      return;
+    }
+    const text = this._template;
+    if (
+      !text.trim() ||
+      text === DEMO_TEMPLATE ||
+      // A text over the cap is refused by the store; do not hash it first.
+      (text.length <= DRAFT_MAX_BYTES &&
+        hashDraftText(text) === this._baseVersion)
+    ) {
+      // Nothing worth recovering.
+      discardDraft(DRAFT_KIND, this._draftItemId);
+      return;
+    }
+    saveDraft(DRAFT_KIND, this._draftItemId, text, this._baseVersion);
+  }
+
+  private _findDraft() {
+    const draft = getDraft(DRAFT_KIND, this._draftItemId, this._baseVersion);
+    if (!draft) {
+      return;
+    }
+    if (draft.content === this._template || !draft.content.trim()) {
+      discardDraft(DRAFT_KIND, this._draftItemId);
+      return;
+    }
+    this._pendingDraft = draft;
+  }
+
+  private _restoreDraft() {
+    const draft = this._pendingDraft;
+    if (!draft) {
+      return;
+    }
+    this._pendingDraft = undefined;
+    discardDraft(DRAFT_KIND, this._draftItemId);
+    this._template = draft.content;
+    this._baseVersion = hashDraftText(draft.content);
+    this._subscribeTemplate();
+    this._storeTemplate();
+  }
+
+  private _discardDraft() {
+    this._pendingDraft = undefined;
+    discardDraft(DRAFT_KIND, this._draftItemId);
   }
 
   private async _subscribeTemplate() {
@@ -943,6 +1076,7 @@ ${
       return;
     }
     this._template = DEMO_TEMPLATE;
+    this._clearDraft();
     this._subscribeTemplate();
     delete localStorage[STORAGE_KEY_TEMPLATE];
   }
@@ -960,8 +1094,16 @@ ${
     }
     this._unsubscribeTemplate();
     this._template = "";
+    this._clearDraft();
     // An empty template shows the placeholder empty state.
     this._templateResult = undefined;
+  }
+
+  // An explicit clear or reset ends the draft, including any waiting edit.
+  private _clearDraft() {
+    this._debounceDraft.cancel();
+    this._pendingDraft = undefined;
+    discardDraft(DRAFT_KIND, this._draftItemId);
   }
 }
 

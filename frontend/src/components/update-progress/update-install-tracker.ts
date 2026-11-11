@@ -9,6 +9,7 @@ import {
   startActivity,
   updateActivity,
 } from "../../common/activity/activity-store";
+import { redactDetails } from "../../common/activity/redact-details";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import { supportsFeature } from "../../common/entity/supports-feature";
@@ -77,12 +78,15 @@ export interface UpdateRun {
   generation: number;
   /** The install has stayed on "getting ready" for a long time. */
   slow?: boolean;
+  /** The entry of this run in the shared activity list. */
+  activityId: string;
+  /** When the run last reached `done` or `failed`, absent while it runs. */
+  finishedAt?: number;
 }
 
 interface RunInternal extends UpdateRun {
   deps: UpdateTrackerDeps;
   entity: UpdateEntity;
-  activityId: string;
   installData?: Record<string, unknown>;
   backupState?: string;
   disconnected: boolean;
@@ -123,10 +127,20 @@ class UpdateInstallTracker {
     return this._runs.get(entityId);
   }
 
+  /** Copies of every run being followed or just finished. */
+  public list(): UpdateRun[] {
+    return [...this._runs.values()].map(
+      ({ deps: _deps, entity: _entity, unsubs: _unsubs, ...run }) => ({
+        ...run,
+      })
+    );
+  }
+
   /** Forget a finished run, for example when the card is dismissed. */
   public dismiss(entityId: string): void {
     const run = this._runs.get(entityId);
     if (run && (run.stage === "done" || run.stage === "failed")) {
+      activityStore.dismiss(run.activityId);
       this._close(run);
       this._runs.delete(entityId);
       this._notify();
@@ -389,6 +403,12 @@ class UpdateInstallTracker {
       entityState: run.entity.state,
       restarted: run.restarted,
     });
+    const finalStage = result.stage === "done" || result.stage === "failed";
+    if (!finalStage) {
+      run.finishedAt = undefined;
+    } else if (run.stage !== result.stage || run.finishedAt === undefined) {
+      run.finishedAt = Date.now();
+    }
     run.stage = result.stage;
     run.percent = result.percent;
     run.slow = startIsSlow(run.stage, run.startedAt, Date.now());
@@ -497,6 +517,69 @@ class UpdateInstallTracker {
 }
 
 export const updateInstallTracker = new UpdateInstallTracker();
+
+/** How long a finished install stays in the tray, unless it failed. */
+export const UPDATE_ROW_LINGER_MS = 60 * 1000;
+
+export interface UpdateTrayRow {
+  entityId: string;
+  title: string;
+  /** The tracker's own activity entry, which the tray row replaces. */
+  activityId: string;
+  state: "running" | "done" | "failed";
+  stage: UpdateStage;
+  /** Only when the update entity reported one. */
+  percent?: number;
+  /** The install stays on "getting ready" for a long time. */
+  slow: boolean;
+  /** Error text with credentials hidden, only for a failed install. */
+  details?: string;
+  canRetry: boolean;
+  /** When a finished row leaves the tray, absent while it stays. */
+  expiresAt?: number;
+}
+
+/**
+ * The rows the activity tray shows for update installs. A run is "failed"
+ * only when the tracker says so, so a slow restart (stages "waiting" and
+ * "checking") stays a running row. A finished row leaves a minute after it
+ * finished, a failed one stays until it is dismissed or tried again.
+ */
+export const deriveUpdateTrayRows = (
+  runs: readonly UpdateRun[],
+  now: number
+): UpdateTrayRow[] => {
+  const rows: UpdateTrayRow[] = [];
+  for (const run of [...runs].sort((a, b) => a.startedAt - b.startedAt)) {
+    const state =
+      run.stage === "done"
+        ? "done"
+        : run.stage === "failed"
+          ? "failed"
+          : "running";
+    let expiresAt: number | undefined;
+    if (state === "done") {
+      expiresAt = (run.finishedAt ?? now) + UPDATE_ROW_LINGER_MS;
+      if (now >= expiresAt) {
+        continue;
+      }
+    }
+    rows.push({
+      entityId: run.entityId,
+      title: run.title,
+      activityId: run.activityId,
+      state,
+      stage: run.stage,
+      percent: state === "running" ? run.percent : undefined,
+      slow: state === "running" && !!run.slow,
+      details:
+        state === "failed" && run.error ? redactDetails(run.error) : undefined,
+      canRetry: state === "failed" && run.canRetry,
+      expiresAt,
+    });
+  }
+  return rows;
+};
 
 const depsFromHass = (hass: HomeAssistant): UpdateTrackerDeps => ({
   connection: hass.connection,

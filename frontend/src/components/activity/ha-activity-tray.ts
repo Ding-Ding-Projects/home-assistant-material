@@ -22,12 +22,18 @@ import {
   activityStore,
   sanitizeProgress,
 } from "../../common/activity/activity-store";
+import { fireEvent } from "../../common/dom/fire_event";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import "../ha-button";
 import "../ha-svg-icon";
+import type { UpdateTrayRow } from "../update-progress/update-install-tracker";
+import {
+  deriveUpdateTrayRows,
+  updateInstallTracker,
+} from "../update-progress/update-install-tracker";
 import "./ha-recovery-card";
 
 declare global {
@@ -49,19 +55,59 @@ export class HaActivityTray extends LitElement {
 
   private _lang = new LanguageModeController(this);
 
+  @state() private _updateRows: readonly UpdateTrayRow[] = [];
+
   private _unsub?: () => void;
+
+  private _unsubUpdates?: () => void;
+
+  private _expiryTimer?: ReturnType<typeof setTimeout>;
 
   public connectedCallback(): void {
     super.connectedCallback();
     this._unsub = activityStore.subscribe((items) => {
       this._items = items;
     });
+    this._unsubUpdates = updateInstallTracker.subscribe(() =>
+      this._syncUpdates()
+    );
+    this._syncUpdates();
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._unsub?.();
     this._unsub = undefined;
+    this._unsubUpdates?.();
+    this._unsubUpdates = undefined;
+    clearTimeout(this._expiryTimer);
+    this._expiryTimer = undefined;
+  }
+
+  // Reads the update installs the tracker follows and schedules the moment the
+  // first finished row has to leave, so the tray empties by itself.
+  private _syncUpdates(): void {
+    clearTimeout(this._expiryTimer);
+    const now = Date.now();
+    this._updateRows = deriveUpdateTrayRows(updateInstallTracker.list(), now);
+    const next = Math.min(
+      ...this._updateRows.map((row) => row.expiresAt ?? Infinity)
+    );
+    if (Number.isFinite(next)) {
+      this._expiryTimer = setTimeout(
+        () => this._syncUpdates(),
+        Math.max(next - now, 0) + 50
+      );
+    }
+  }
+
+  // The tracker has an activity entry of its own for each install. The row
+  // below replaces it, so it is left out of the plain list.
+  private _plainItems(): Activity[] {
+    const covered = new Set(
+      updateInstallTracker.list().map((run) => run.activityId)
+    );
+    return this._items.filter((item) => !covered.has(item.id));
   }
 
   protected willUpdate(changedProps: PropertyValues<this>): void {
@@ -102,11 +148,17 @@ export class HaActivityTray extends LitElement {
   }
 
   protected render(): TemplateResult | typeof nothing {
-    if (!this._items.length) {
+    const plain = this._plainItems();
+    const rows = this._updateRows;
+    if (!plain.length && !rows.length) {
       return nothing;
     }
-    const running = activityStore.runningCount;
-    const hasFinished = this._items.some((item) => item.state !== "running");
+    const running =
+      plain.filter((item) => item.state === "running").length +
+      rows.filter((row) => row.state === "running").length;
+    const hasFinished =
+      plain.some((item) => item.state !== "running") ||
+      rows.some((row) => row.state !== "running");
     return html`<section aria-label=${this._l("title")}>
       <div class="head">
         <h2 tabindex="-1">
@@ -122,9 +174,143 @@ export class HaActivityTray extends LitElement {
         }
       </div>
       <ul>
-        ${this._items.map((item) => this._renderItem(item))}
+        ${rows.map((row) => this._renderUpdateRow(row))}
+        ${plain.map((item) => this._renderItem(item))}
       </ul>
     </section>`;
+  }
+
+  private _t(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(this.hass.localize as any, key, values);
+  }
+
+  private _renderBar(
+    percent: number | undefined,
+    label: string
+  ): TemplateResult {
+    return html`<div
+      class=${classMap({ bar: true, unknown: percent === undefined })}
+      role="progressbar"
+      aria-label=${label}
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow=${percent ?? nothing}
+      aria-valuetext=${
+        percent === undefined
+          ? this._l("working")
+          : this._l("percent", { percent })
+      }
+    >
+      <span
+        class="fill"
+        style=${styleMap({
+          width: percent === undefined ? "" : `${percent}%`,
+        })}
+      ></span>
+    </div>`;
+  }
+
+  // One update install, from the tracker. Selecting the row shows the update
+  // dialog of that entity again.
+  private _renderUpdateRow(row: UpdateTrayRow): TemplateResult {
+    const name = this._t("ui.update_progress.activity_title", {
+      name: row.title,
+    });
+    const stage = this._t(`ui.update_progress.stage.${row.stage}`);
+    return html`<li
+      class=${classMap({ item: true, update: true, [row.state]: true })}
+    >
+      <div class="title">
+        ${
+          row.state === "done"
+            ? html`<ha-svg-icon .path=${mdiCheckCircle}></ha-svg-icon>`
+            : row.state === "failed"
+              ? html`<ha-svg-icon .path=${mdiAlertCircle}></ha-svg-icon>`
+              : nothing
+        }
+        <span class="name">${name}</span>
+      </div>
+      ${
+        row.state === "running"
+          ? html`${this._renderBar(
+                row.percent,
+                this._t("ui.update_progress.progress_label", {
+                  name: row.title,
+                })
+              )}
+              <p class="detail">${stage}</p>
+              ${
+                row.slow
+                  ? html`<p class="detail">
+                      ${this._t("ui.update_progress.slow_start")}
+                    </p>`
+                  : nothing
+              }`
+          : html`<p class="detail">
+              ${
+                row.state === "failed"
+                  ? this._t("ui.update_progress.failed_message")
+                  : stage
+              }
+            </p>`
+      }
+      ${
+        row.state === "failed"
+          ? html`<ha-recovery-card
+              .hass=${this.hass}
+              .heading=${this._t("ui.update_progress.failed_heading", {
+                name: row.title,
+              })}
+              .message=${this._t("ui.update_progress.failed_message")}
+              .details=${row.details ?? ""}
+              .canRetry=${row.canRetry}
+              data-entity-id=${row.entityId}
+              @recovery-retry=${this._retryUpdate}
+            ></ha-recovery-card>`
+          : nothing
+      }
+      <div class="actions">
+        <ha-button
+          appearance="plain"
+          data-entity-id=${row.entityId}
+          aria-label=${this._l("update_row.show_label", { title: row.title })}
+          @click=${this._showUpdate}
+          >${this._l("update_row.show")}</ha-button
+        >
+        ${
+          row.state !== "running"
+            ? html`<ha-button
+                appearance="plain"
+                data-entity-id=${row.entityId}
+                @click=${this._dismissUpdate}
+                >${this._l("dismiss")}</ha-button
+              >`
+            : nothing
+        }
+      </div>
+    </li>`;
+  }
+
+  private _showUpdate(ev: Event): void {
+    const entityId = (ev.currentTarget as HTMLElement).dataset.entityId;
+    if (entityId) {
+      fireEvent(this, "hass-more-info", { entityId });
+    }
+  }
+
+  private _retryUpdate(ev: Event): void {
+    const entityId = (ev.currentTarget as HTMLElement).dataset.entityId;
+    if (entityId) {
+      void updateInstallTracker.retry(entityId);
+    }
+  }
+
+  private _dismissUpdate(ev: Event): void {
+    const entityId = (ev.currentTarget as HTMLElement).dataset.entityId;
+    if (entityId) {
+      updateInstallTracker.dismiss(entityId);
+      void this._keepFocus(0);
+    }
   }
 
   private _renderItem(item: Activity): TemplateResult {
@@ -282,6 +468,9 @@ export class HaActivityTray extends LitElement {
 
   private _clearFinished(): void {
     activityStore.dismissFinished();
+    this._updateRows
+      .filter((row) => row.state !== "running")
+      .forEach((row) => updateInstallTracker.dismiss(row.entityId));
     void this._keepFocus(0);
   }
 
@@ -384,7 +573,7 @@ export class HaActivityTray extends LitElement {
         gap: var(--ha-space-2);
       }
       .actions ha-button {
-        min-height: 44px;
+        --ha-button-height: 44px;
       }
       ha-recovery-card {
         margin-top: var(--ha-space-2);

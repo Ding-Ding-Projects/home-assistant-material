@@ -1,8 +1,11 @@
 import {
+  mdiAlertCircleOutline,
+  mdiAlertOutline,
   mdiBellOutline,
   mdiCheckboxMultipleMarkedOutline,
   mdiClose,
   mdiHistory,
+  mdiInformationOutline,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
@@ -23,6 +26,7 @@ import {
   selectRange,
   toggleSelected,
 } from "../../../components/bulk/bulk-selection";
+import "../../../components/chips/ha-filter-chip";
 import "../../../components/ha-button";
 import "../../../components/ha-checkbox";
 import "../../../components/ha-icon-button";
@@ -44,14 +48,29 @@ import {
   loadDismissed,
   rememberDismissed,
 } from "./dismissed-notifications";
-import { notificationActions } from "./notification-insight";
+import type { NotificationSeverity } from "./notification-insight";
+import {
+  filterBySeverity,
+  notificationActions,
+  notificationSeverity,
+  SEVERITIES,
+  sortBySeverity,
+} from "./notification-insight";
 
 /** The most titles named in the preview of a bulk dismissal. */
 const PREVIEW_TITLES = 3;
 
+const SEVERITY_ICON: Record<NotificationSeverity, string> = {
+  error: mdiAlertCircleOutline,
+  warning: mdiAlertOutline,
+  info: mdiInformationOutline,
+  neutral: mdiBellOutline,
+};
+
 /**
- * Notifications as a page: every notification the instance holds, all drawn the
- * same way because the instance reports no severity, with the links of its message as buttons, a search,
+ * Notifications as a page: every notification the instance holds, with a
+ * severity read only from an explicit marker in its id (everything else is
+ * neutral), the links of its message as buttons, a search, a severity filter,
  * and dismissing one, the selected ones, or all of them. A dismissed
  * notification is kept in this browser for 30 days and can be put back.
  */
@@ -68,6 +87,8 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   @state() private _selecting = false;
 
   @state() private _selected: string[] = [];
+
+  @state() private _severities: NotificationSeverity[] = [];
 
   @state() private _showDismissed = false;
 
@@ -87,9 +108,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   public hassSubscribe(): UnsubscribeFunc[] {
     return [
       subscribeNotifications(this.hass.connection, (notifications) => {
-        this._notifications = [...notifications].sort(
-          (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
-        );
+        this._notifications = sortBySeverity(notifications);
         // A notification that is gone cannot stay selected.
         this._selected = pruneSelection(
           this._selected,
@@ -113,8 +132,8 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
 
   private _shown(): PersistentNotification[] {
     const matches = searchMatcher(this._filter);
-    return (this._notifications ?? []).filter((item) =>
-      matches(item.title ?? "", item.message, item.notification_id)
+    return filterBySeverity(this._notifications ?? [], this._severities).filter(
+      (item) => matches(item.title ?? "", item.message, item.notification_id)
     );
   }
 
@@ -238,6 +257,26 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           </div>
           ${
             this._showDismissed
+              ? nothing
+              : html`<div
+                  class="severity-chips"
+                  role="group"
+                  aria-label=${this._l("severity_filter")}
+                >
+                  ${SEVERITIES.map(
+                    (severity) => html`
+                      <ha-filter-chip
+                        data-severity=${severity}
+                        .label=${this._l(`severity_${severity}`)}
+                        .selected=${this._severities.includes(severity)}
+                        @click=${this._toggleSeverity}
+                      ></ha-filter-chip>
+                    `
+                  )}
+                </div>`
+          }
+          ${
+            this._showDismissed
               ? this._renderDismissed(dismissedShown)
               : html`
                   ${
@@ -294,8 +333,9 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     const selected = this._selected.includes(item.notification_id);
     const actions = notificationActions(item.message);
     const title = item.title || item.notification_id;
+    const severity = notificationSeverity(item.notification_id);
     return html`
-      <li class=${classMap({ selected })}>
+      <li class=${classMap({ selected, [`severity-${severity}`]: true })}>
         ${
           this._selecting
             ? html`<ha-checkbox
@@ -308,13 +348,16 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
                 @change=${this._toggleSelected}
               ></ha-checkbox>`
             : html`<span class="tile"
-                ><ha-svg-icon .path=${mdiBellOutline}></ha-svg-icon
+                ><ha-svg-icon .path=${SEVERITY_ICON[severity]}></ha-svg-icon
               ></span>`
         }
         <div class="text">
           <strong>${title}</strong>
           <span class="time"
-            >${relativeTime(new Date(item.created_at), this.hass.locale)}</span
+            ><span class="severity-word"
+              >${this._l(`severity_${severity}`)}</span
+            >
+            · ${relativeTime(new Date(item.created_at), this.hass.locale)}</span
           >
           <ha-markdown breaks .content=${item.message}></ha-markdown>
         </div>
@@ -428,6 +471,18 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
     this._filter = (ev.target as HaInputSearch).value ?? "";
     // A notification the search hides cannot stay selected, so the count,
     // the preview and the action always speak about the same rows.
+    this._selected = pruneSelection(
+      this._selected,
+      this._shown().map((item) => item.notification_id)
+    );
+  }
+
+  private _toggleSeverity(ev: Event): void {
+    const severity = (ev.currentTarget as HTMLElement).dataset
+      .severity as NotificationSeverity;
+    this._severities = this._severities.includes(severity)
+      ? this._severities.filter((item) => item !== severity)
+      : [...this._severities, severity];
     this._selected = pruneSelection(
       this._selected,
       this._shown().map((item) => item.notification_id)
@@ -657,6 +712,43 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
           padding: var(--ha-space-3) var(--ha-space-4);
           border-radius: var(--ha-border-radius-xl);
           background: var(--card-background-color);
+        }
+        .severity-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+        .severity-chips ha-filter-chip {
+          --ha-button-height: 44px;
+        }
+        li {
+          border-inline-start: 4px solid transparent;
+          --severity-color: var(--secondary-text-color);
+        }
+        li.severity-error {
+          --severity-color: var(--error-color);
+        }
+        li.severity-warning {
+          --severity-color: var(--warning-color);
+        }
+        li.severity-info {
+          --severity-color: var(--info-color);
+        }
+        li[class*="severity-"]:not(.severity-neutral) {
+          border-inline-start-color: var(--severity-color);
+        }
+        /* The icon and word mix the severity colour with the text colour so
+           they stay readable on the card in light and dark themes. */
+        li .tile ha-svg-icon,
+        .severity-word {
+          color: color-mix(
+            in srgb,
+            var(--severity-color) 55%,
+            var(--primary-text-color)
+          );
+        }
+        .severity-word {
+          font-weight: var(--ha-font-weight-medium);
         }
         li.selected {
           background: color-mix(

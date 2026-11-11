@@ -977,6 +977,9 @@
       "settings_dropped": "有 {count} 個設定太大，無法儲存到實例，只會留喺呢個瀏覽器：{names}。",
       "replaced_invalid": "呢個實例上面嗰份通唔過檢查，所以用咗呢個瀏覽器嗰份取代。"
     },
+    "notification_toast": {
+      "more_waiting": "仲有 {count} 個通知喺度等"
+    },
     "activity": {
       "title": "活動",
       "running_count": "{count} 項進行中",
@@ -988,6 +991,10 @@
       "dismiss": "關閉",
       "dismiss_finished": "清除已完成",
       "failed_heading": "{title} 未能完成",
+      "update_row": {
+        "show": "睇更新",
+        "show_label": "睇 {title} 嘅更新"
+      },
       "state": {
         "done": "已完成。",
         "failed": "失敗。",
@@ -1031,6 +1038,11 @@
       }
     },
     "components": {
+      "collapsible-statistics": {
+        "label": "統計",
+        "hide": "收埋統計",
+        "show": "展開統計"
+      },
       "split_panels": {
         "start": "第一個面板",
         "end": "第二個面板",
@@ -1040,6 +1052,16 @@
         "collapsed": "{name}已收埋",
         "expanded": "{name}已展開",
         "reset": "分隔線已返回預設位置"
+      },
+      "draft_recovery": {
+        "heading": "要唔要還原{time}嘅未儲存改動？",
+        "stale": "呢份草稿開始之後，已儲存嘅版本改過。還原會取代編輯器而家嘅內容。",
+        "restore": "還原",
+        "compare": "比較",
+        "hide_compare": "收埋比較",
+        "discard": "放棄",
+        "current": "編輯器而家嘅內容",
+        "draft": "草稿"
       },
       "starting_points": {
         "heading": "由範例開始",

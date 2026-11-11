@@ -19,6 +19,11 @@ import type { LocalizeKeys } from "../common/translations/localize";
 import "../components/ha-button";
 import "../components/ha-icon-button";
 import "../components/ha-toast";
+import {
+  normalizeToastDuration,
+  ToastStack,
+} from "../common/toast/toast-stack";
+import type { ToastStackItem } from "../common/toast/toast-stack";
 import type { ToastClosedEventDetail } from "../components/ha-toast";
 import type { HomeAssistant } from "../types";
 
@@ -54,32 +59,49 @@ export interface ToastActionParams {
     | { translationKey: LocalizeKeys; args?: Record<string, string | number> };
 }
 
-interface Notification {
-  key: string;
-  parameters: ShowToastParams;
-}
+type Notification = ToastStackItem<ShowToastParams>;
 
 @customElement("notification-manager")
 class NotificationManager extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  /** The visible toasts, oldest first (the newest is nearest the edge). */
   @state() private _notifications: Notification[] = [];
+
+  @state() private _queuedCount = 0;
+
+  @state() private _announcement = "";
 
   @query(".stack") private _stack?: HTMLDivElement;
 
   @queryAll("ha-toast")
   private _toasts!: NodeListOf<HTMLElementTagNameMap["ha-toast"]>;
 
+  private _toastStack = new ToastStack<ShowToastParams>();
+
+  private _announced = new Map<string, string>();
+
   private _anonymousId = 0;
+
+  private _text(
+    value: NonNullable<ShowToastParams["message"]> | undefined
+  ): string {
+    if (value === undefined) {
+      return "";
+    }
+    return typeof value !== "string"
+      ? this.hass.localize(value.translationKey, value.args)
+      : value;
+  }
 
   public async showDialog(parameters: ShowToastParams) {
     if (parameters.duration === 0) {
       if (parameters.id) {
         await this._closeNotification(`identified-${parameters.id}`);
       } else {
-        const notification = [...this._notifications]
+        const notification = [...this._toastStack.all]
           .reverse()
-          .find(({ parameters: { id } }) => !id);
+          .find(({ identified }) => !identified);
         if (notification) {
           await this._closeNotification(notification.key);
         }
@@ -87,10 +109,6 @@ class NotificationManager extends LitElement {
       return;
     }
 
-    const staysOpen =
-      parameters.progress !== undefined ||
-      (parameters.duration === undefined &&
-        (parameters.severity === "warning" || parameters.severity === "error"));
     const normalizedParameters = {
       ...parameters,
       dismissable:
@@ -98,34 +116,57 @@ class NotificationManager extends LitElement {
         (parameters.severity === "warning" || parameters.severity === "error"
           ? true
           : undefined),
-      duration: staysOpen
-        ? -1
-        : parameters.duration === undefined ||
-            (parameters.duration > 0 && parameters.duration <= 4000)
-          ? 4000
-          : parameters.duration,
+      duration: normalizeToastDuration(
+        parameters.duration,
+        parameters.severity,
+        parameters.progress !== undefined
+      ),
     };
     const key = parameters.id
       ? `identified-${parameters.id}`
-      : `anonymous-${++this._anonymousId}`;
-    const existingIndex = parameters.id
-      ? this._notifications.findIndex(
-          (notification) => notification.key === key
-        )
-      : -1;
+      : `anonymous-${this._anonymousId + 1}`;
+    const { outcome } = this._toastStack.push({
+      key,
+      text: this._text(parameters.message),
+      identified: Boolean(parameters.id),
+      data: normalizedParameters,
+    });
+    if (outcome === "duplicate") {
+      return;
+    }
+    if (!parameters.id) {
+      this._anonymousId += 1;
+    }
+    this._syncFromStack();
 
-    this._notifications =
-      existingIndex === -1
-        ? [...this._notifications, { key, parameters: normalizedParameters }]
-        : this._notifications.map((notification, index) =>
-            index === existingIndex
-              ? { key, parameters: normalizedParameters }
-              : notification
-          );
+    if (outcome === "queued" || outcome === "updated-queued") {
+      return;
+    }
 
+    this._announceIfChanged(key, normalizedParameters);
     await this.updateComplete;
     this._showStack();
     this._getToast(key)?.show();
+  }
+
+  private _announceIfChanged(key: string, parameters: ShowToastParams) {
+    const text = this._text(parameters.announceMessage ?? parameters.message);
+    if (this._announced.get(key) === text) {
+      return;
+    }
+    this._announced.set(key, text);
+    // Clear first so an identical text arriving again is still read out.
+    this._announcement = "";
+    this.updateComplete.then(() => {
+      if (this._announced.get(key) === text) {
+        this._announcement = text;
+      }
+    });
+  }
+
+  private _syncFromStack() {
+    this._notifications = [...this._toastStack.visible];
+    this._queuedCount = this._toastStack.queued.length;
   }
 
   private _toastClosed(
@@ -134,21 +175,29 @@ class NotificationManager extends LitElement {
   ) {
     const key = ev.currentTarget.dataset.notificationKey!;
     if (ev.detail.reason === "dismiss") {
-      this._getNotification(key)?.parameters.dismiss?.();
+      this._getNotification(key)?.data.dismiss?.();
     }
     this._removeNotification(key);
   }
 
   protected render() {
+    const live = html`<div
+      class="live"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      ${this._announcement}
+    </div>`;
     if (!this._notifications.length) {
-      return nothing;
+      return live;
     }
     const bottomOffset = Math.max(
-      ...this._notifications.map(
-        ({ parameters }) => parameters.bottomOffset ?? 0
-      )
+      ...this._notifications.map(({ data }) => data.bottomOffset ?? 0)
     );
+    const count = this._notifications.length;
     return html`
+      ${live}
       <div
         class="stack"
         style=${styleMap({
@@ -156,32 +205,31 @@ class NotificationManager extends LitElement {
         })}
         popover=${ifDefined(popoverSupported ? "manual" : undefined)}
       >
+        ${
+          this._queuedCount > 0
+            ? html`<div class="more">
+                ${this.hass.localize("ui.notification_toast.more_waiting", {
+                  count: this._queuedCount,
+                })}
+              </div>`
+            : nothing
+        }
         ${repeat(
           this._notifications,
           (notification) => notification.key,
-          ({ key, parameters }) => html`
+          ({ key, data: parameters }, index) => html`
             <ha-toast
               data-notification-key=${key}
-              .labelText=${
-                typeof parameters.message !== "string"
-                  ? this.hass.localize(
-                      parameters.message.translationKey,
-                      parameters.message.args
-                    )
-                  : parameters.message
-              }
+              .labelText=${this._text(parameters.message)}
               .announceText=${
                 parameters.announceMessage
-                  ? typeof parameters.announceMessage !== "string"
-                    ? this.hass.localize(
-                        parameters.announceMessage.translationKey,
-                        parameters.announceMessage.args
-                      )
-                    : parameters.announceMessage
+                  ? this._text(parameters.announceMessage)
                   : undefined
               }
               .timeoutMs=${parameters.duration!}
               .stacked=${true}
+              .silent=${true}
+              .depth=${count - 1 - index}
               @toast-closed=${this._toastClosed}
             >
               ${this._renderProgress(parameters)}
@@ -255,7 +303,7 @@ class NotificationManager extends LitElement {
   ) {
     const key = ev.currentTarget.dataset.notificationKey!;
     this._getToast(key)?.hide("action");
-    this._getNotification(key)?.parameters.action?.action();
+    this._getNotification(key)?.data.action?.action();
   }
 
   private _secondaryButtonClicked(
@@ -263,7 +311,7 @@ class NotificationManager extends LitElement {
   ) {
     const key = ev.currentTarget.dataset.notificationKey!;
     this._getToast(key)?.hide("action");
-    this._getNotification(key)?.parameters.secondaryAction?.action();
+    this._getNotification(key)?.data.secondaryAction?.action();
   }
 
   private _dismissClicked(
@@ -273,7 +321,7 @@ class NotificationManager extends LitElement {
   }
 
   private _getNotification(key: string) {
-    return this._notifications.find((notification) => notification.key === key);
+    return this._toastStack.get(key);
   }
 
   private _getToast(key: string) {
@@ -294,11 +342,18 @@ class NotificationManager extends LitElement {
   }
 
   private _removeNotification(key: string) {
-    this._notifications = this._notifications.filter(
-      (notification) => notification.key !== key
-    );
+    this._announced.delete(key);
+    const promoted = this._toastStack.remove(key);
+    this._syncFromStack();
     if (!this._notifications.length) {
       this._hideStack();
+    }
+    if (promoted) {
+      this._announceIfChanged(promoted.key, promoted.data);
+      this.updateComplete.then(() => {
+        this._showStack();
+        this._getToast(promoted.key)?.show();
+      });
     }
   }
 
@@ -327,13 +382,33 @@ class NotificationManager extends LitElement {
       height: 6px;
       accent-color: var(--ha-color-on-neutral-loud, currentColor);
     }
+    .live {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .more {
+      padding: var(--ha-space-1) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill, 999px);
+      color: var(--ha-color-on-neutral-loud);
+      background-color: var(--ha-color-neutral-10);
+      font-size: var(--ha-font-size-s, 0.8125rem);
+      opacity: 0.85;
+    }
     .stack {
       position: fixed;
       inset-block-start: auto;
       inset-inline-end: auto;
       inset-block-end: calc(
         var(--safe-area-inset-bottom, 0px) + var(--ha-space-4) +
-          var(--notification-stack-bottom-offset, 0px)
+          var(--notification-stack-bottom-offset, 0px) +
+          var(--ha-toast-bottom-bar-height, 0px)
       );
       inset-inline-start: 50%;
       margin: 0;
@@ -355,6 +430,12 @@ class NotificationManager extends LitElement {
       flex-direction: column;
       align-items: center;
       gap: var(--ha-space-2);
+    }
+    /* On a phone the page can carry a bottom bar of tabs; stay above it. */
+    @media all and (max-width: 870px) {
+      .stack {
+        --ha-toast-bottom-bar-height: var(--ha-bottom-bar-height, 0px);
+      }
     }
   `;
 }

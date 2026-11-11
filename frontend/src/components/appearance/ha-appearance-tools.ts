@@ -5,12 +5,18 @@ import {
   mdiExportVariant,
   mdiFormatPaint,
   mdiGestureTapHold,
+  mdiEyeOff,
   mdiHistory,
+  mdiIdentifier,
+  mdiInformationOutline,
   mdiLock,
   mdiLockOutline,
   mdiMagnify,
   mdiOpenInNew,
   mdiPaletteSwatch,
+  mdiPower,
+  mdiPowerOff,
+  mdiRenameBox,
   mdiTabPlus,
   mdiRestore,
   mdiVolumeHigh,
@@ -50,11 +56,28 @@ import {
 } from "../../common/locks/element-locks";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
+import { canToggleState } from "../../common/entity/can_toggle_state";
+import { computeDomain } from "../../common/entity/compute_domain";
+import { computeStateName } from "../../common/entity/compute_state_name";
+import { getToggleAction } from "../../common/entity/get_toggle_action";
+import { navigate } from "../../common/navigate";
 import { searchMatcher } from "../../common/regex/filter";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
-import { internationalizationContext } from "../../data/context";
+import {
+  apiContext,
+  areasContext,
+  devicesContext,
+  entitiesContext,
+  internationalizationContext,
+  servicesContext,
+  statesContext,
+  userContext,
+} from "../../data/context";
+import { updateEntityRegistryEntry } from "../../data/entity/entity_registry";
+import { showMoreInfoDialog } from "../../dialogs/more-info/show-ha-more-info-dialog";
 import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
+import type { HomeAssistant } from "../../types";
 import { isMac } from "../../util/is_mac";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
@@ -62,6 +85,12 @@ import { isHelpArticleAddress } from "../help/help-article-path";
 import { openHelpUrl } from "../help/open-help-article";
 import type { HaInputSearch } from "../input/ha-input-search";
 import type { PageTool } from "../page/ha-page-tools";
+import type {
+  ContextEntry,
+  ContextEntryId,
+  ContextTarget,
+} from "./context-menu-entries";
+import { findTarget, resolveContextEntries } from "./context-menu-entries";
 import "./ha-appearance-editor";
 import type { HaAppearanceEditor } from "./ha-appearance-editor";
 
@@ -131,6 +160,20 @@ const MENU_LETTERS: Record<string, string> = {
   page_export: "e",
   page_history: "h",
   page_lock: "p",
+};
+
+const CONTEXT_ICONS: Record<ContextEntryId, string> = {
+  open_details: mdiInformationOutline,
+  turn_on: mdiPower,
+  turn_off: mdiPowerOff,
+  copy_entity_id: mdiIdentifier,
+  rename: mdiRenameBox,
+  hide: mdiEyeOff,
+  open_device: mdiInformationOutline,
+  copy_device_id: mdiIdentifier,
+  open_area: mdiInformationOutline,
+  copy_area_id: mdiIdentifier,
+  open_new_tab: mdiTabPlus,
 };
 
 /** Below this window width the menu is a bottom sheet, not an anchored one. */
@@ -206,6 +249,29 @@ export class HaAppearanceTools extends LitElement {
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n?: ContextType<typeof internationalizationContext>;
+
+  // What the entries for a clicked entity, device or area need. They are read
+  // when the menu opens, so they are kept current without a render each time.
+  @consume({ context: statesContext, subscribe: true })
+  private _states?: ContextType<typeof statesContext>;
+
+  @consume({ context: servicesContext, subscribe: true })
+  private _services?: ContextType<typeof servicesContext>;
+
+  @consume({ context: entitiesContext, subscribe: true })
+  private _entities?: ContextType<typeof entitiesContext>;
+
+  @consume({ context: devicesContext, subscribe: true })
+  private _devices?: ContextType<typeof devicesContext>;
+
+  @consume({ context: areasContext, subscribe: true })
+  private _areas?: ContextType<typeof areasContext>;
+
+  @consume({ context: userContext, subscribe: true })
+  private _user?: ContextType<typeof userContext>;
+
+  @consume({ context: apiContext, subscribe: true })
+  private _api?: ContextType<typeof apiContext>;
 
   protected willUpdate(): void {
     if (this._i18n) {
@@ -752,6 +818,127 @@ export class HaAppearanceTools extends LitElement {
     this._sheetOffset = 0;
   }
 
+  /** The target the closest ancestor with an identity says it stands for. */
+  private _contextTarget(chain: HTMLElement[]): ContextTarget | undefined {
+    const parentOf = (element: HTMLElement): HTMLElement | undefined => {
+      let node: Node | null = composedParent(element);
+      while (node && !(node instanceof HTMLElement)) {
+        node = composedParent(node);
+      }
+      return node ?? undefined;
+    };
+    return findTarget(
+      chain[0],
+      parentOf,
+      (element) =>
+        PAGE_LAYOUTS.has(element.localName) ||
+        element instanceof HTMLDialogElement
+    );
+  }
+
+  private _contextItems(chain: HTMLElement[], hasLink: boolean): MenuItem[] {
+    let target = this._contextTarget(chain);
+    if (!target || !this._i18n) {
+      return [];
+    }
+    if (hasLink && target.href) {
+      target = { ...target, href: undefined };
+    }
+    const states = this._states;
+    const stateObj = target.entityId ? states?.[target.entityId] : undefined;
+    const registry = target.entityId
+      ? this._entities?.[target.entityId]
+      : undefined;
+    const device = target.deviceId
+      ? this._devices?.[target.deviceId]
+      : undefined;
+    const area = target.areaId ? this._areas?.[target.areaId] : undefined;
+    const entries = resolveContextEntries(target, {
+      state: stateObj,
+      entityName: stateObj ? computeStateName(stateObj) : registry?.name,
+      // canToggleState reads only the states and the services.
+      canToggle:
+        stateObj && states && this._services
+          ? canToggleState(
+              { states, services: this._services } as unknown as HomeAssistant,
+              stateObj
+            )
+          : false,
+      registry: registry ? { hidden: registry.hidden } : undefined,
+      isAdmin: this._user?.is_admin,
+      deviceName: device ? device.name_by_user || device.name || "" : undefined,
+      areaName: area?.name,
+      origin: window.location.origin,
+    });
+    return entries.map((entry) => ({
+      id: `context_${entry.id}`,
+      icon: CONTEXT_ICONS[entry.id],
+      label: this._l(
+        entry.labelKey,
+        entry.name ? { name: entry.name } : undefined
+      ),
+      run: () => this._runContextEntry(entry),
+    }));
+  }
+
+  private async _runContextEntry(entry: ContextEntry): Promise<void> {
+    // The menu is already closed, so a failure must be said out loud.
+    try {
+      await this._performContextEntry(entry);
+    } catch (_err) {
+      this._announce(this._l("action_failed"));
+    }
+  }
+
+  private async _performContextEntry(entry: ContextEntry): Promise<void> {
+    const { value } = entry;
+    switch (entry.id) {
+      case "open_details":
+        showMoreInfoDialog(this, { entityId: value });
+        break;
+      case "rename":
+        // The settings view of the details has the name field.
+        showMoreInfoDialog(this, { entityId: value, view: "settings" });
+        break;
+      case "turn_on":
+      case "turn_off": {
+        const turnOn = entry.id === "turn_on";
+        const domain = computeDomain(value);
+        await this._api?.callService(
+          domain === "group" ? "homeassistant" : domain,
+          getToggleAction(domain, turnOn),
+          { entity_id: value }
+        );
+        break;
+      }
+      case "hide":
+        if (this._api) {
+          await updateEntityRegistryEntry(this._api, value, {
+            hidden_by: "user",
+          });
+          this._announce(
+            this._l("entity_hidden", { name: entry.name ?? value })
+          );
+        }
+        break;
+      case "copy_entity_id":
+      case "copy_device_id":
+      case "copy_area_id":
+        await copyToClipboard(value);
+        this._announce(this._l("copied"));
+        break;
+      case "open_device":
+        navigate(`/config/devices/device/${value}`);
+        break;
+      case "open_area":
+        navigate(`/config/areas/area/${value}`);
+        break;
+      case "open_new_tab":
+        window.open(value, "_blank", "noreferrer");
+        break;
+    }
+  }
+
   private _menuItems(filtered = true): MenuItem[] {
     const chain = this._menuChain;
     if (!chain?.length) {
@@ -760,15 +947,15 @@ export class HaAppearanceTools extends LitElement {
     const index = this._defaultIndex(chain);
     const element = chain[index];
     const kind = kindLabel(element.localName);
-    const items: MenuItem[] = [];
     // What the element does when chosen: open the link it is or sits inside.
-    // Entries that only a page can know, like turning something off or
-    // renaming it, need the page to say so and are not offered here.
     const link = chain.find(
       (candidate): candidate is HTMLAnchorElement =>
         candidate instanceof HTMLAnchorElement &&
         !!candidate.getAttribute("href")
     );
+    // The entries for the thing that was clicked come first. An anchor has
+    // its own open entries below, so a link is not offered twice.
+    const items: MenuItem[] = this._contextItems(chain, !!link);
     if (link) {
       items.push(
         {

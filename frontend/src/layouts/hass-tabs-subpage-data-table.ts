@@ -52,6 +52,9 @@ import "../components/ha-icon-button";
 import "../components/ha-svg-icon";
 import "../components/input/ha-input-search";
 import type { HaInputSearch } from "../components/input/ha-input-search";
+import "../components/layout/ha-collapsible-statistics";
+import type { CollapsibleStatistic } from "../components/layout/collapsible-statistics-logic";
+import { statisticsStorageKey } from "../components/layout/collapsible-statistics-logic";
 import "../components/layout/ha-split-divider";
 import type { SplitDividerMoveDetail } from "../components/layout/ha-split-divider";
 import {
@@ -93,6 +96,8 @@ const PANE_MAX_WIDTH = 560;
  *   chips sit beside it and the remaining tools stay at the end of the row.
  *
  * Properties
+ * - `statistics`: up to five `{ label, value }` numbers shown in a strip above
+ *   the table that folds to one summary line. The choice is kept per page.
  * - `footer-text` (`footerText`): a line of text under the list, such as a
  *   count. Setting it reserves a footer row under the list.
  * - `footer-select` (`footerSelect`): adds a "Select" button at the end of the
@@ -224,6 +229,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
    */
   @property({ attribute: "always-show-checkboxes", type: Boolean })
   public alwaysShowCheckboxes = false;
+
+  /**
+   * Up to five labelled numbers, such as total, shown and selected, shown in a
+   * strip above the table that can be folded to one line. Without it no strip
+   * is shown. The folded state is kept in this browser for each page.
+   */
+  @property({ attribute: false }) public statistics?: CollapsibleStatistic[];
 
   @state() private _hasFilterChips = false;
 
@@ -675,6 +687,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         </div>`
       : nothing;
 
+    const statisticsStrip = this.statistics?.length
+      ? html`<ha-collapsible-statistics
+          .statistics=${this.statistics}
+          .storageKey=${statisticsStorageKey(this.route?.prefix) ?? ""}
+        ></ha-collapsible-statistics>`
+      : nothing;
+
     const chipsSlot = html`<slot
       name="filter-chips"
       @slotchange=${this._chipsSlotChanged}
@@ -872,7 +891,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                     !this.narrow
                       ? html`
                           <div slot="header">
-                            ${heading}
+                            ${heading}${statisticsStrip}
                             <slot name="top-header"></slot>
                             <slot name="header">
                               <div
@@ -896,6 +915,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                         `
                       : html`
                           <div slot="header">
+                            ${statisticsStrip}
                             <slot name="top-header"></slot>
                           </div>
                           <div slot="header-row" class="narrow-header-row">

@@ -1,4 +1,4 @@
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
 import {
   customElement,
@@ -33,6 +33,18 @@ export class HaToast extends LitElement {
 
   @property({ type: Boolean }) public stacked = false;
 
+  /**
+   * Position in a stack: 0 is the newest toast, higher numbers are older and
+   * are drawn slightly smaller.
+   */
+  @property({ type: Number }) public depth = 0;
+
+  /**
+   * Leaves announcing to the owner of the stack (one shared live region), so
+   * older toasts are not read out again.
+   */
+  @property({ type: Boolean }) public silent = false;
+
   @query(".toast")
   private _toast?: HTMLDivElement;
 
@@ -47,6 +59,18 @@ export class HaToast extends LitElement {
   @state() private _visible = false;
 
   private _dismissTimer?: ReturnType<typeof setTimeout>;
+
+  private _timerArmed = false;
+
+  private _timerRunning = false;
+
+  private _timerStartedAt = 0;
+
+  private _remainingMs = 0;
+
+  private _hovered = false;
+
+  private _focused = false;
 
   private _closeReason: ToastCloseReason = "programmatic";
 
@@ -95,6 +119,8 @@ export class HaToast extends LitElement {
 
   public async hide(reason: ToastCloseReason = "programmatic"): Promise<void> {
     clearTimeout(this._dismissTimer);
+    this._timerArmed = false;
+    this._timerRunning = false;
     this._closeReason = reason;
 
     if (!this._active) {
@@ -130,11 +156,74 @@ export class HaToast extends LitElement {
   }
 
   private _setDismissTimer() {
+    clearTimeout(this._dismissTimer);
+    this._timerRunning = false;
     if (this.timeoutMs > 0) {
-      this._dismissTimer = setTimeout(() => {
-        this.hide("timeout");
-      }, this.timeoutMs);
+      this._timerArmed = true;
+      this._remainingMs = this.timeoutMs;
+      if (!this._paused) {
+        this._startTimer();
+      }
+    } else {
+      this._timerArmed = false;
     }
+  }
+
+  private get _paused(): boolean {
+    return this._hovered || this._focused;
+  }
+
+  private _startTimer() {
+    clearTimeout(this._dismissTimer);
+    this._timerStartedAt = Date.now();
+    this._timerRunning = true;
+    this._dismissTimer = setTimeout(() => {
+      this._timerRunning = false;
+      this.hide("timeout");
+    }, this._remainingMs);
+  }
+
+  private _pauseTimer() {
+    if (!this._timerArmed || !this._timerRunning) {
+      return;
+    }
+    clearTimeout(this._dismissTimer);
+    this._timerRunning = false;
+    this._remainingMs = Math.max(
+      1,
+      this._remainingMs - (Date.now() - this._timerStartedAt)
+    );
+  }
+
+  private _resumeTimer() {
+    if (this._paused || !this._timerArmed || this._timerRunning) {
+      return;
+    }
+    this._startTimer();
+  }
+
+  private _pointerEnter() {
+    this._hovered = true;
+    this._pauseTimer();
+  }
+
+  private _pointerLeave() {
+    this._hovered = false;
+    this._resumeTimer();
+  }
+
+  private _focusIn() {
+    this._focused = true;
+    this._pauseTimer();
+  }
+
+  private _focusOut(ev: FocusEvent) {
+    const next = ev.relatedTarget;
+    if (next instanceof Node && this.contains(next)) {
+      return;
+    }
+    this._focused = false;
+    this._resumeTimer();
   }
 
   private _isPopoverOpen(): boolean {
@@ -204,10 +293,15 @@ export class HaToast extends LitElement {
         })}
         style=${styleMap({
           "--ha-toast-bottom-offset": `${this.bottomOffset}px`,
+          "--ha-toast-depth": `${this.depth}`,
         })}
         popover=${ifDefined(
           popoverSupported && !this.stacked ? "manual" : undefined
         )}
+        @pointerenter=${this._pointerEnter}
+        @pointerleave=${this._pointerLeave}
+        @focusin=${this._focusIn}
+        @focusout=${this._focusOut}
       >
         <span class="message">${this.labelText}</span>
         <div class=${classMap({ actions: true, "has-action": hasAction })}>
@@ -218,10 +312,10 @@ export class HaToast extends LitElement {
       <span
         class="assistive-message"
         role="status"
-        aria-live=${this._active ? "polite" : "off"}
+        aria-live=${this._active && !this.silent ? "polite" : "off"}
         aria-atomic="true"
       >
-        ${this.announceText ?? this.labelText}
+        ${this.silent ? nothing : (this.announceText ?? this.labelText)}
       </span>
     `;
   }
@@ -275,6 +369,47 @@ export class HaToast extends LitElement {
 
     .toast.stacked.visible {
       transform: translateY(0);
+    }
+
+    /* Older toasts in a stack are drawn slightly smaller. */
+    .toast.stacked {
+      transform-origin: bottom center;
+      scale: calc(1 - var(--ha-toast-depth, 0) * 0.04);
+      transition:
+        opacity var(--ha-animation-duration-fast, 150ms) ease,
+        transform var(--ha-animation-duration-fast, 150ms) ease,
+        scale var(--ha-animation-duration-fast, 150ms) ease;
+    }
+
+    .toast:focus-within {
+      outline: 2px solid var(--ha-color-on-neutral-loud);
+      outline-offset: 2px;
+    }
+
+    ::slotted(ha-button) {
+      --ha-button-height: 44px;
+      min-width: 44px;
+    }
+
+    ::slotted(ha-icon-button) {
+      --ha-icon-button-size: 44px;
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .toast,
+      .toast.stacked {
+        transition: opacity 1ms linear;
+      }
+      .toast,
+      .toast.visible {
+        transform: translate(calc(-50% * var(--scale-direction)), 0);
+      }
+      .toast.stacked,
+      .toast.stacked.visible {
+        transform: none;
+      }
     }
 
     .toast:not(.active) {

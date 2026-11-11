@@ -94,7 +94,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       every one of its kind; menu, shortcut and pick tool
 - [~] Context menus on every element: the menu, its filter and shortcuts are in, with export,
       history and lock for the page the element is on, and a lock for the element itself;
-      entries specific to what was clicked are not
+      entries specific to what was clicked (entity, device, area, link) are built and not yet seen
 - [~] Page tools in every page header: search this page, edit appearance, read aloud, history,
       export, lock and help, with a footer line on every page. Dashboards have the footer, the
       lock and the tools in the right-click menu, but no header cluster. Dialogs have their own
@@ -121,14 +121,15 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Settings that explain themselves. Personal settings does and the information buttons exist
       (built, not yet seen); other pages do not
 - [~] Resizable panels, collapsible filters and statistics: split panes and a resizable filter
-      pane are built and not yet seen. Not built: collapsible statistics
+      pane and the collapsible statistics strip are built and not yet seen. No page sets the
+      strip's data yet
 - [~] Notification centre and toasts: notifications are a page with a search and selection;
-      30-day history with Undo is built and not yet seen; the board's colours by severity,
-      action buttons and stacked toasts are not built
+      30-day history with Undo, colours and filter by severity, and stacked toasts with action
+      buttons are built and not yet seen
 - [~] Progress where it started, recovery where it broke: the activity tray and the recovery card
       are built and not yet seen; update installs show real stages and a recovery card with
-      actions (built, not seen). Not built: the update dialog in the tray; draft recovery is
-      design only
+      actions and update rows in the tray (built, not seen); draft recovery is built for the
+      template editor only (not seen)
 - [x] Phone fixes seen in build 96 at 390 px: the Marketplace list scrolls with its group header
       pinned, the Personal settings preview scrolls away, the accessibility panel's rows no
       longer overlap. Not seen: the "+" text size button staying on one line (batch 19)
