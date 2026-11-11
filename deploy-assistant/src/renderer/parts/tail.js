@@ -44,7 +44,7 @@
     wiz.loading[t] = true;
     API.defaults(t, t === 'ssh' ? (D.hosts[0] || {}).id : '').then(function (d) { wiz.defs[t] = d; wiz.vals[t] = Object.assign({ backupsOn: true, hostId: (D.hosts[0] || {}).id || '' }, d); wiz.loading[t] = false; if (st.active === 'deploy') soon(); }, function (e) { wiz.loading[t] = false; toast(e.message); });
   }
-  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + ' · built ' + esc(b) + '</span>'; }
+  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + (about.codeName ? ' · ' + esc(about.codeName) : '') + ' · built ' + esc(b) + '</span>'; }
   function wizField(t, key, label, type, hint, extra) {
     var v = (wiz.vals[t] || {})[key]; return '<label><span class="ll">' + label + '</span><input class="input' + (type === 'mono' ? ' mono' : '') + '" id="wz-' + t + '-' + key + '" data-wiz="' + key + '" type="' + (type === 'number' ? 'number' : 'text') + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '>' + (hint ? '<span class="bs mu">' + hint + '</span>' : '') + '</label>';
   }
@@ -110,7 +110,7 @@
     var done = p.done ? (p.ok ? '<div class="readybox" data-k="ready-' + id + '"><span class="tl">' + esc(msg('deployed')) + '</span><a class="mono bl" href="' + esc(inst.url) + '" data-ext="' + esc(inst.url) + '">' + esc(inst.url) + '</a>' + (inst.lanUrl ? '<span class="bs">Other devices: <a class="mono" href="' + esc(inst.lanUrl) + '" data-ext="' + esc(inst.lanUrl) + '">' + esc(inst.lanUrl) + '</a></span>' : '') + '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn fill" data-ext="' + esc(inst.url) + '">' + icon('OpenInNew', 's') + 'Open Home Assistant</button><button class="btn tonal" data-copy="' + esc(inst.url) + '">' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn text" data-dismiss="' + id + '">' + L('done') + '</button></div></div>'
       : '<div class="note" style="background:var(--errc);color:var(--on-errc)"><span>' + icon('AlertCircle') + '</span><span class="bm"><b>' + esc(msg('failedMsg')) + '</b> ' + esc(p.error || '') + '</span></div><div class="row" style="gap:8px"><button class="btn tonal sm" data-retry="' + id + '">Try again</button><button class="btn text sm" data-dismiss="' + id + '">' + L('close') + '</button></div>') : '';
     var log = p.log.slice(-200).map(esc).join('\n');
-    return '<article class="pcard" data-k="progress-' + id + '"><div class="row" style="gap:10px"><span class="sq">' + icon(TICON[inst.target] || 'Docker') + '</span><h3 class="tm grow">' + esc(inst.name) + ' · ' + L(inst.target) + '</h3>' + (p.done ? '' : '<span class="tag p">' + L('deploying') + '</span>') + '</div><ol class="col steps" style="gap:10px;margin:0;padding:0;list-style:none">' + rows + '</ol>' + done +
+    return '<article class="pcard" data-k="progress-' + id + '"><div class="row" style="gap:10px"><span class="sq">' + icon(TICON[inst.target] || 'Docker') + '</span><h3 class="tm grow">' + esc(inst.name) + ' · ' + L(inst.target) + '</h3>' + (adhd('time') && p.t0 ? '<span class="tag">' + icon('TimerSand', 's') + Math.max(1, Math.round(((p.t1 || Date.now()) - p.t0) / 1000)) + ' s</span>' : '') + (p.done ? '' : '<span class="tag p">' + L('deploying') + '</span>') + '</div><ol class="col steps" style="gap:10px;margin:0;padding:0;list-style:none">' + rows + '</ol>' + done +
       '<details' + (p.done && !p.ok ? ' open' : '') + '><summary class="ll" style="cursor:pointer;min-height:40px">Details (' + p.log.length + ' lines)</summary><pre class="logbox" tabindex="0">' + log + '</pre></details></article>';
   }
   function instMatches(i, m) { return m.test([i.name, i.target, w(i.target), i.url, i.state, i.tag, i.notes].join(' ')); }
@@ -125,7 +125,7 @@
       fold('stats', 'Totals') + '<div class="stats">' + [['All', D.instances.length], [w('running'), counts.running || 0], [w('stopped'), counts.stopped || 0], [w('failed'), counts.failed || 0], ['Backups', D.instances.reduce(function (n, i) { return n + (i.backups || []).length; }, 0)]].map(function (s) { return '<div class="stat"><span class="hs">' + s[1] + '</span><span class="bs mu">' + esc(s[0]) + '</span></div>'; }).join('') + '</div></details>' +
       '<div class="toolbar">' + findField('isearch', 'Search instances', q.instances) + '<select class="select" data-isort aria-label="Sort">' + [['name', 'By name'], ['newest', 'Newest first'], ['state', 'By state']].map(function (o) { return '<option value="' + o[0] + '"' + (view.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<span class="grow"></span><button class="btn text sm" data-act="refresh">' + icon('Refresh', 's') + 'Refresh</button><button class="btn text sm" data-act="export-instances">' + icon('Export', 's') + L('export') + '</button></div>' +
-      fold('filters', 'Filters') + '<div class="chipline" role="group" aria-label="Target">' + chip('ft', 'all', 'Every target', view.filterTarget) + ['docker', 'ssh', 'virtualbox', 'vmware'].map(function (t) { return chip('ft', t, L(t), view.filterTarget); }).join('') + '</div>' +
+      fold('live', 'Live chart') + liveChart() + '</details>' + fold('filters', 'Filters') + '<div class="chipline" role="group" aria-label="Target">' + chip('ft', 'all', 'Every target', view.filterTarget) + ['docker', 'ssh', 'virtualbox', 'vmware'].map(function (t) { return chip('ft', t, L(t), view.filterTarget); }).join('') + '</div>' +
       '<div class="chipline" role="group" aria-label="State">' + chip('fs', 'all', 'Any state', view.filterState) + ['running', 'stopped', 'deploying', 'failed', 'unreachable'].map(function (s) { return chip('fs', s, L(s), view.filterState); }).join('') + '</div></details>' +
       (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
       (nsel ? '<div class="selbar" role="region" aria-label="Selected instances"><span class="ll grow">' + nsel + ' selected</span><button class="btn tonal sm" data-bulk="start">' + L('start') + '</button><button class="btn tonal sm" data-bulk="stop">' + L('stop') + '</button><button class="btn tonal sm" data-bulk="backup">' + L('backupNow') + '</button><button class="btn text sm" data-bulk="clear">' + L('clear') + '</button></div>' : '') +
@@ -150,6 +150,7 @@
       '<dl class="kv bs"><dt>Created</dt><dd>' + esc(when(i.created)) + '</dd><dt>Port</dt><dd>' + (i.port || 'set by VMware') + '</dd><dt>Data</dt><dd class="mono">' + esc(i.dir || '') + '</dd>' + (i.lanUrl ? '<dt>Other devices</dt><dd class="mono">' + esc(i.lanUrl) + '</dd>' : '') + '</dl>' +
       ((i.backups || []).slice(0, 5).map(function (b) { return '<div class="row" style="gap:8px"><span class="bs grow">' + esc(when(b.at)) + (b.note ? ' · ' + esc(b.note) : '') + (b.size ? ' · ' + fmtSize(b.size) : b.kind === 'snapshot' ? ' · snapshot' : '') + '</span><button class="btn text sm" data-restore="' + i.id + ':' + b.id + '">' + L('restore') + '</button></div>'; }).join('') || '<p class="bs mu">No backups yet.</p>') + '</details></article>';
   }
+  var bsel = {};
   R.backups = function () {
     var m = matcher(q.backups); var rows = [];
     D.instances.forEach(function (i) { (i.backups || []).forEach(function (b) { if (m.test(i.name + ' ' + (b.note || '') + ' ' + b.at)) rows.push([i, b]); }); });
@@ -158,9 +159,10 @@
     return '<div class="section" id="top"><h1 class="hl">' + L('backups') + '</h1><p class="bl mu">Docker and SSH instances are backed up as an archive of their config folder on this computer; virtual machines as snapshots. Restoring keeps the current config beside it, so nothing is lost.</p>' +
       '<section class="card col" id="schedule" data-k="schedule" style="padding:20px;gap:12px"><h2 class="tm">Every day, on a schedule</h2><div class="row" style="gap:12px;flex-wrap:wrap"><button class="sw' + (s.on ? ' on' : '') + '" role="switch" aria-checked="' + !!s.on + '" aria-label="Daily backups" data-sched="on"><i></i></button><span class="bm">Back up every instance at</span><input class="input" type="time" value="' + esc(s.time) + '" data-schedtime aria-label="Time of day"><span class="bm">and keep the newest</span><input class="input" type="number" min="1" max="365" value="' + s.keep + '" data-schedkeep aria-label="How many scheduled backups to keep" style="width:90px"></div>' +
       '<label class="row bm" style="gap:10px"><input type="checkbox" data-schedcons' + (s.consistent ? ' checked' : '') + '> Stop the container for a moment while backing up, so the database is consistent</label><p class="bs mu">Instances whose own backups are turned off are skipped. The app must be open at the time.</p></section>' +
-      '<div class="toolbar">' + findField('bsearch', 'Search backups', q.backups) + '<span class="grow"></span><button class="btn tonal sm" data-act="backup-all">' + icon('BackupRestore', 's') + 'Back up every instance now</button></div>' +
+      (function () { var n = Object.keys(bsel).filter(function (k) { return bsel[k]; }).length; return n ? '<div class="selbar" role="region" aria-label="Selected backups"><span class="ll grow">' + n + ' selected</span><button class="btn tonal sm" data-act="bkdel">' + icon('DeleteOutline', 's') + 'Delete</button><button class="btn text sm" data-act="bkclear">' + L('clear') + '</button></div>' : ''; })() +
+      '<div class="toolbar">' + findField('bsearch', 'Search backups', q.backups) + '<button class="btn text sm" data-act="export-backups">' + icon('Export', 's') + L('export') + '</button><span class="grow"></span><button class="btn tonal sm" data-act="backup-all">' + icon('BackupRestore', 's') + 'Back up every instance now</button></div>' +
       (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
-      (rows.length ? '<div class="scrollbox"><table class="t"><thead><tr><th>Instance</th><th>Made</th><th>Kind</th><th>Size</th><th></th></tr></thead><tbody>' + rows.map(function (r) { return '<tr data-k="bk-' + r[1].id + '"><td class="ll">' + esc(r[0].name) + '</td><td class="bs">' + esc(when(r[1].at)) + (r[1].note ? ' · ' + esc(r[1].note) : '') + '</td><td class="bs">' + (r[1].kind === 'snapshot' ? 'Snapshot' : 'Archive') + '</td><td class="bs">' + (r[1].size ? fmtSize(r[1].size) : '') + '</td><td><button class="btn text sm" data-restore="' + r[0].id + ':' + r[1].id + '">' + L('restore') + '</button><button class="btn text sm" data-delbackup="' + r[0].id + ':' + r[1].id + '">' + L('remove') + '</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="bm mu">No backups yet. Use Back up now on an instance, or turn on the schedule.</p>') + '</div>' + foot();
+      (rows.length ? '<div class="scrollbox"><table class="t"><thead><tr><th><input type="checkbox" data-bkall aria-label="Select every backup shown"' + (rows.length && rows.every(function (r) { return bsel[r[0].id + ':' + r[1].id]; }) ? ' checked' : '') + '></th><th>Instance</th><th>Made</th><th>Kind</th><th>Size</th><th></th></tr></thead><tbody>' + rows.map(function (r) { var key = r[0].id + ':' + r[1].id; return '<tr data-k="bk-' + r[1].id + '"><td><input type="checkbox" data-bksel="' + key + '" aria-label="Select the backup of ' + esc(r[0].name) + ' from ' + esc(when(r[1].at)) + '"' + (bsel[key] ? ' checked' : '') + '></td><td class="ll">' + esc(r[0].name) + '</td><td class="bs">' + esc(when(r[1].at)) + (r[1].note ? ' · ' + esc(r[1].note) : '') + '</td><td class="bs">' + (r[1].kind === 'snapshot' ? 'Snapshot' : 'Archive') + '</td><td class="bs">' + (r[1].size ? fmtSize(r[1].size) : '') + '</td><td><button class="btn text sm" data-restore="' + r[0].id + ':' + r[1].id + '">' + L('restore') + '</button><button class="btn text sm" data-delbackup="' + r[0].id + ':' + r[1].id + '">' + L('remove') + '</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="bm mu">No backups yet. Use Back up now on an instance, or turn on the schedule.</p>') + '</div>' + foot();
   };
   R.downloads = function () {
     var m = matcher(q.downloads); var list = dls.filter(function (d) { return m.test(d.label + ' ' + (d.release || '') + ' ' + d.state); });
@@ -191,10 +193,11 @@
       });
     };
   }
+  var hsel = {};
   R.hosts = function () {
     var m = matcher(q.hosts); var list = D.hosts.filter(function (h) { return m.test(h.name + ' ' + h.address + ' ' + h.user); });
     return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('hosts') + '</h1><button class="btn fill" data-act="addhost">' + icon('Plus', 's') + 'Add a host</button></div><p class="bl mu">Linux computers with Docker that you reach over SSH. Passwords are encrypted with your system\'s keychain; a key file or the SSH agent is better.</p>' +
-      findField('hsearch', 'Search hosts', q.hosts) + (list.length ? list.map(function (h) { var n = D.instances.filter(function (i) { return i.hostId === h.id; }).length; return '<div class="row-item" data-k="host-' + h.id + '"><span class="sq">' + icon('ServerNetwork') + '</span><span class="col grow"><span class="ll">' + esc(h.name) + '</span><span class="bs mu mono">' + esc(h.user) + '@' + esc(h.address) + ':' + h.port + ' · ' + (h.keyFile ? 'key ' + esc(h.keyFile) : h.password ? 'password saved' : 'SSH agent') + ' · ' + n + ' instances</span></span><button class="btn text sm" data-testhost="' + h.id + '">Test</button><button class="btn text sm" data-edithost="' + h.id + '">Edit</button><button class="btn text sm" data-rmhost="' + h.id + '">' + L('remove') + '</button></div>'; }).join('') : '<p class="bm mu">No hosts yet.</p>') + '</div>' + foot();
+      '<div class="toolbar">' + findField('hsearch', 'Search hosts', q.hosts) + '<button class="btn text sm" data-act="export-hosts">' + icon('Export', 's') + L('export') + '</button></div>' + (function () { var n = Object.keys(hsel).filter(function (k) { return hsel[k]; }).length; return n ? '<div class="selbar" role="region" aria-label="Selected hosts"><span class="ll grow">' + n + ' selected</span><button class="btn tonal sm" data-act="hstest">Test each</button><button class="btn tonal sm" data-act="hsdel">' + icon('DeleteOutline', 's') + 'Remove</button><button class="btn text sm" data-act="hsclear">' + L('clear') + '</button></div>' : ''; })() + (list.length ? list.map(function (h) { var n = D.instances.filter(function (i) { return i.hostId === h.id; }).length; return '<div class="row-item" data-k="host-' + h.id + '"><input type="checkbox" data-hsel="' + h.id + '" aria-label="Select ' + esc(h.name) + '"' + (hsel[h.id] ? ' checked' : '') + '><span class="sq">' + icon('ServerNetwork') + '</span><span class="col grow"><span class="ll">' + esc(h.name) + '</span><span class="bs mu mono">' + esc(h.user) + '@' + esc(h.address) + ':' + h.port + ' · ' + (h.keyFile ? 'key ' + esc(h.keyFile) : h.password ? 'password saved' : 'SSH agent') + ' · ' + n + ' instances</span></span><button class="btn text sm" data-testhost="' + h.id + '">Test</button><button class="btn text sm" data-edithost="' + h.id + '">Edit</button><button class="btn text sm" data-rmhost="' + h.id + '">' + L('remove') + '</button></div>'; }).join('') : '<p class="bm mu">No hosts yet.</p>') + '</div>' + foot();
   };
   R.activity = function () {
     var m = matcher(q.activity);
@@ -203,7 +206,7 @@
       '<select class="select" data-logfor aria-label="Instance"><option value="all">Every instance</option>' + D.instances.map(function (i) { return '<option value="' + i.id + '"' + (view.logFor === i.id ? ' selected' : '') + '>' + esc(i.name) + '</option>'; }).join('') + '</select><span class="grow"></span><button class="btn text sm" data-act="export-activity">' + icon('Export', 's') + L('export') + '</button></div>' +
       (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
       '<pre class="logbox tall" tabindex="0" aria-label="Activity log">' + (list.length ? list.map(function (a) { return esc(new Date(a.t).toLocaleTimeString() + '  ' + instName(a.id) + '  ' + a.line); }).join('\n') : 'Nothing yet.') + '</pre>' +
-      '<h2 class="tl" id="history">Changes to settings</h2>' + (st.history.length ? st.history.slice(0, 50).map(function (h, i) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.label) + '</span><span class="bs mu">' + esc(new Date(h.t).toLocaleString()) + '</span></span><button class="btn text sm" data-undo="' + i + '">' + L('undo') + '</button></div>'; }).join('') : '<p class="bm mu">' + esc(msg('emptyHistory')) + '</p>') + '</div>' + foot();
+      '<h2 class="tl" id="history">Changes to settings</h2>' + (st.history.length ? st.history.slice(0, 50).map(function (h, i) { return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(h.label) + '</span><span class="bs mu">' + esc(new Date(h.t).toLocaleString()) + '</span></span><button class="btn text sm" data-undo="' + i + '">' + L('undo') + '</button></div>'; }).join('') : '<p class="bm mu">' + esc(msg('emptyHistory')) + '</p>') + '</div>' + '<h2 class="tl" id="records">History of your records</h2><p class="bm mu">Every change to instance names and notes, SSH hosts (never their passwords) and the backup schedule. Restoring adds a new revision, so it can be undone too.</p><div id="rhist" class="col" style="gap:6px"></div>' + foot();
   };
   function srow(id, title, desc, def, reach, ctl, path) {
     return '<div class="setting" id="s-' + id + '" data-k="s-' + id + '" data-search="' + esc(title + ' ' + desc) + '"><div class="col" style="gap:2px"><span class="stitle"><span class="ll">' + esc(title) + '</span><button class="ib" style="width:32px;height:32px" data-info="' + id + '" aria-label="' + esc(w('explain')) + ': ' + esc(title) + '" aria-expanded="false">' + icon('InformationOutline', 's') + '</button></span><span class="bs mu">' + esc(desc) + '</span></div>' +
@@ -224,15 +227,22 @@
         srow('emoji', 'Emoji in dialogs', 'One emoji in dialog titles, never in buttons or names.', 'On', 'Dialog titles', sw('emoji', 'Emoji in dialogs'), 'emoji'),
         srow('vocab', 'Your wording file', st.vocab ? Object.keys(st.vocab).length + ' entries in use.' : 'A JSON file with schemaVersion 1 and entries replaces words in this window. You can also drop it on the window.', 'No file', 'Every label', '<label class="btn tonal sm">' + icon('Upload', 's') + 'Choose a file<input type="file" accept="application/json,.json" id="vocabfile" hidden></label>' + (st.vocab ? '<button class="btn text sm" data-act="vocab-clear">' + L('clear') + '</button>' : ''), '')]],
       ['modes', 'modes', [srow('school', 'School mode', 'Plain wording, playfulness 1, no sounds, no surprise.', 'Off', 'Language, sound and the surprise', sw('school', 'School mode'), 'school'),
-        srow('dimsum', 'Dim sum surprise', 'Now and then, a small dim sum card. Names only: no photos are loaded.', 'On', 'A card at the bottom of the window', sw('dimsum', 'Dim sum surprise') + '<button class="btn text sm" data-act="dimsum">Show me one now</button>', 'dimsum')]],
+        srow('dimsum', 'Dim sum surprise', 'At start, now and then, a dim sum dish with its photo from the public dim sum catalog, named in English and Cantonese. It is part of the app: the switch stays on.', 'On', 'A card at the bottom of the window', '<button class="sw on" role="switch" aria-checked="true" aria-label="Dim sum surprise" data-dimtroll><i></i></button><button class="btn text sm" data-act="dimsum">Show me one now</button>', '')]],
+      ['adhd', 'adhd', [srow('adhdnote', 'About these modes', 'Interface accommodations for attention, each off until you turn it on. They are not a diagnosis or a treatment, and nothing here assesses you.', 'All off', 'This window', '', '')].concat(ADHD.map(function (a) { return srow('adhd-' + a[0], a[1], a[2], 'Off', 'This window', sw('adhd.' + a[0], a[1]), 'adhd.' + a[0]); })).concat([srow('adhd-low', 'Low stimulation', 'Softer colour, no animation, no sounds, no narrator.', 'Off', 'The window', sw('lowStim', 'Low stimulation'), 'lowStim')])],
       ['sound', 'sound', [srow('sounds', 'Action sounds', 'A short sound when something finishes.', 'On', 'Deploys, backups, settings', sw('sounds', 'Action sounds'), 'sounds'),
-        srow('voice', 'Reading voice', 'The voice for Read aloud on any element.', 'The system default', 'Read aloud', '<select class="select" data-select="voice" aria-label="Reading voice"><option value="">System default</option>' + (('speechSynthesis' in window) ? speechSynthesis.getVoices() : []).map(function (v) { return '<option' + (v.name === st.voice ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="voice-test">Try it</button>', 'voice')]],
-      ['schedule', 'schedule', [srow('sched', 'Dark theme on a schedule', 'Uses the dark theme between two times each day.', 'Off, 20:00 to 07:00', 'The theme', sw('schedule.on', 'Dark theme on a schedule') + '<input class="input" type="time" value="' + st.schedule.from + '" data-time="schedule.from" aria-label="From"><input class="input" type="time" value="' + st.schedule.to + '" data-time="schedule.to" aria-label="To">', 'schedule')]],
+        srow('voice', 'Reading voice', 'The voice for Read aloud on any element.', 'The system default', 'Read aloud', '<select class="select" data-select="voice" aria-label="Reading voice"><option value="">System default</option>' + (('speechSynthesis' in window) ? speechSynthesis.getVoices() : []).map(function (v) { return '<option' + (v.name === st.voice ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="voice-test">Try it</button>', 'voice'),
+        srow('narrator', 'Narrator', 'Speaks what happens: a deploy finishing or failing, a backup made, an update ready. One line at a time, at most one per kind every 20 seconds; failures are always spoken.', 'Off', 'Spoken events', sw('narrator.on', 'Narrator'), 'narrator.on'),
+        srow('nlang', 'Narrator language', 'English, Cantonese, or both, one after the other.', 'English', 'Spoken events', seg('narrator.lang', [['en', 'English'], ['yue', '廣東話'], ['both', 'Both']], 'Narrator language'), 'narrator.lang'),
+        srow('nvoiceEn', 'English voice', voiceStatus('en'), 'Choose automatically', 'Spoken English', voicePicker('en'), 'narrator.voiceEn'),
+        srow('nvoiceYue', 'Cantonese voice', voiceStatus('yue'), 'Choose automatically', 'Spoken Cantonese', voicePicker('yue'), 'narrator.voiceYue'),
+        srow('nrate', 'Speed and pitch', 'Speed from 0.5 to 2, pitch from 0 to 2; 1 is the voice\'s own.', '1 and 1', 'Spoken events', '<label class="row bs" style="gap:6px">Speed <input type="range" min="0.5" max="2" step="0.1" value="' + (st.narrator.rate || 1) + '" data-nrange="rate" aria-label="Narrator speed"></label><label class="row bs" style="gap:6px">Pitch <input type="range" min="0" max="2" step="0.1" value="' + (st.narrator.pitch == null ? 1 : st.narrator.pitch) + '" data-nrange="pitch" aria-label="Narrator pitch"></label><button class="btn text sm" data-act="ntest">Try it</button>', 'narrator.rate')]],
+      ['schedule', 'schedule', ['<div class="col" style="gap:8px" data-search="schedule rules time day home assistant switch" id="s-rules">' + rulesList() + '<div><button class="btn text sm" data-act="haconn">' + icon('HomeAutomation', 's') + 'Home Assistant connection</button></div></div>', srow('sched', 'Dark theme on a schedule', 'Uses the dark theme between two times each day.', 'Off, 20:00 to 07:00', 'The theme', sw('schedule.on', 'Dark theme on a schedule') + '<input class="input" type="time" value="' + st.schedule.from + '" data-time="schedule.from" aria-label="From"><input class="input" type="time" value="' + st.schedule.to + '" data-time="schedule.to" aria-label="To">', 'schedule')]],
       ['identity', 'identity', [srow('name', 'Name', 'What the window calls this app, at the top and in the title.', 'Deploy Assistant', 'The top bar and the title', '<input class="input" value="' + esc(st.name) + '" data-text="name" aria-label="Name" maxlength="60">', 'name'),
-        srow('logo', 'Logo', 'The shape and colour of the mark at the top.', 'Rounded, main colour', 'The top bar', seg('logo.shape', [['rounded', 'Rounded'], ['circle', 'Circle'], ['square', 'Square'], ['leaf', 'Leaf']], 'Logo shape') + '<input type="color" value="' + (st.logo.color || '#CEE5FF') + '" data-logocolor="1" aria-label="Logo colour" style="width:48px;height:40px;border:0;background:none">', 'logo')]],
+        srow('logo', 'Logo', 'A preset mark, or your own picture made into one, plus its shape.', 'Rocket, rounded', 'The top bar', '<button class="btn tonal sm" data-act="logo">' + logoMark() + 'Change the logo</button>' + seg('logo.shape', [['rounded', 'Rounded'], ['circle', 'Circle'], ['square', 'Square'], ['leaf', 'Leaf']], 'Logo shape'), 'logo')]],
       ['updatesSet', 'updates', [srow('upd', 'Updates', DEMO ? 'The app checks the project\'s releases every four hours.' : (upd.state === 'ready' ? 'Version ' + upd.version + ' is ready; restart to use it.' : upd.state === 'downloading' ? 'Downloading version ' + upd.version + '…' : upd.state === 'available' ? 'Version ' + upd.version + ' is out.' : upd.state === 'offline' ? 'Could not reach the releases: ' + (upd.error || '') : 'You have the newest version.') + ' Updates are not code-signed.', 'Checks every four hours', 'This app', '<button class="btn tonal sm" data-act="checkupd">' + icon('Refresh', 's') + 'Check now</button>', ''),
         srow('selftest', 'Update self-test', 'Downloads the newest update package, checks its size and checksums against the feed, lets the installer stage it on Windows, and shows whether an update was seen applied after a restart.', '', 'Nothing changes unless a newer version is staged', '<button class="btn tonal sm" data-act="selftest">' + icon('PlayCircle', 's') + 'Run the self-test</button>', ''),
-        srow('about', 'About this build', 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
+        srow('free', 'Free to use', 'This app costs nothing, shows no adverts, and never asks for payment, donations or reviews.', '', 'This app', '', ''),
+        srow('about', 'About this build', (about.codeName ? 'Code name ' + about.codeName + '. ' : '') + 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
       ['appearance', 'appearance', [srow('theme', 'Theme', 'Light, dark, or follow the system.', 'System', 'The window', seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], 'Theme'), 'theme'),
         srow('seed', 'Main colour', 'The colour of buttons and selections.', '#00639B', 'The window', '<input type="color" value="' + st.seed + '" data-color="seed" aria-label="Main colour" style="width:48px;height:40px;border:0;background:none">', 'seed'),
         srow('density', 'Density', 'How much room rows take.', 'Comfortable', 'Lists', seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], 'Density'), 'density'),
@@ -240,7 +250,8 @@
         srow('reduceMotion', 'Reduce motion', 'Stops animations; your system setting is followed too.', 'Off', 'The window', sw('reduceMotion', 'Reduce motion'), 'reduceMotion'),
         srow('contrast', 'More contrast', 'Darker secondary text and lines.', 'Off', 'The window', sw('contrast', 'More contrast'), 'contrast'),
         srow('lowStim', 'Low stimulation', 'Softer colour, no animation, no sounds.', 'Off', 'The window', sw('lowStim', 'Low stimulation'), 'lowStim'),
-        srow('spotlight', 'Focus spotlight', 'Dims everything but the part with the keyboard focus.', 'Off', 'The window', sw('spotlight', 'Focus spotlight'), 'spotlight')]],
+        srow('spotlight', 'Focus spotlight', 'Dims everything but the part with the keyboard focus.', 'Off', 'The window', sw('spotlight', 'Focus spotlight'), 'spotlight'),
+        srow('axshow', 'Show accessibility button', 'The button at the top for text size, contrast, motion, focus, read aloud and keyboard help. Hiding it keeps what you set.', 'On', 'The top bar', sw2b(), 'axHidden')]],
       ['tabsSet', 'tabs', [srow('edge', 'Where the tabs sit', 'Any edge of the window.', 'Top', 'The tab strip', seg('edge', [['top', 'Top'], ['left', 'Left'], ['right', 'Right'], ['bottom', 'Bottom']], 'Tab strip edge'), 'edge'),
         srow('openall', 'Open every tab', 'Reopens tabs you closed.', '', 'The tab strip', '<button class="btn tonal sm" data-act="openall">' + L('openall') + '</button>', '')]],
       ['locks', 'locks', [Object.keys(st.locks).length ? Object.keys(st.locks).map(function (k) { var o = st.locks[k]; return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(o.label) + '</span><span class="bs mu">' + (unlocked[k] ? 'Unlocked until the window closes' : 'Locked') + '</span></span><button class="btn text sm" data-rmlock="' + esc(k) + '">Remove</button></div>'; }).join('') : '<p class="bm mu">Nothing is locked. Right-click any card, for example an instance, and choose Lock this element, so it cannot be stopped or removed by accident.</p>', '<p class="bs mu">A lock is a speed bump for fun, not security.</p>']],
@@ -327,8 +338,6 @@
     if (upd.state === 'available') return '<div class="updbar" role="status" data-k="update"><span>' + icon('Update') + '</span><span class="bm grow"><b>Version ' + esc(upd.version) + ' is out.</b> On this system the app does not update itself; download the new one. It is not code-signed.</span><button class="btn fill sm" data-ext="' + esc(upd.url) + '">Download</button><button class="btn text sm" data-act="updlater">Later</button></div>';
     return '';
   }
-  var DIM = [['Har gow', 'Shrimp in a thin, see-through wrapper, pleated by hand.'], ['Siu mai', 'Open-topped pork and shrimp dumplings, often with a dot of roe.'], ['Char siu bao', 'Soft steamed buns with sweet barbecued pork inside.'], ['Cheung fun', 'Rice noodle rolls with soy sauce poured over at the table.'], ['Lo mai gai', 'Sticky rice with chicken, steamed in a lotus leaf.'], ['Dan tat', 'Egg tarts with a wobbly custard and flaky pastry.'], ['Lo bak go', 'Turnip cake, pan-fried until the edges crisp.']];
-  function dimsum(force) { if ((!st.dimsum || st.school) && !force) return; var d = DIM[Math.floor(Math.random() * DIM.length)]; toast(d[0] + ': ' + d[1] + ' (Names only: no photos are loaded.)', { emoji: '🥟' }); }
 
   // ---------- The project's own pages, offline: Run it, Features, Articles, Status, Design ----------
   var SITE = window.SITE || { features: [], status: [], canvases: [], image: 'ghcr.io/ding-ding-projects/home-assistant-material', version: '' };
@@ -375,7 +384,7 @@
   };
   R.design = function () {
     var m = matcher(q.design), total = 0;
-    var cvs = SITE.canvases.filter(function (c) { return /^1[67]-deploy/.test(c.id); });
+    var cvs = SITE.canvases.filter(function (c) { return /^1[678]-deploy/.test(c.id); });
     var out = cvs.map(function (c) {
       var list = c.boards.filter(function (b) { return m.test(c.title + ' ' + b.title + ' ' + b.name); }); total += list.length; if (!list.length) return '';
       return '<section class="section" id="cv-' + c.id + '" data-k="cv-' + c.id + '"><h2 class="tl">' + esc(c.title) + ' <span class="bs mu">' + c.boards.length + ' boards</span></h2><div class="thumbs">' + list.map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('') + '</div></section>';
@@ -384,7 +393,7 @@
     return '<div class="section" id="top"><h1 class="hl">' + L('design') + '</h1><p class="bl mu">The design of this app: ' + n + ' boards, each drawn from the app itself in one state. Choose one to see it full size.</p>' + findField('dgsearch', 'Search the boards', q.design) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '<p class="bs mu" aria-live="polite">' + total + ' shown</p></div>' + (out || '<p class="bm mu">' + L('noMatch') + '</p>') + foot();
   };
   function boardDialog(name, title) {
-    var all = SITE.canvases.filter(function (c) { return /^1[67]-deploy/.test(c.id); }).reduce(function (a, c) { return a.concat(c.boards); }, []);
+    var all = SITE.canvases.filter(function (c) { return /^1[678]-deploy/.test(c.id); }).reduce(function (a, c) { return a.concat(c.boards); }, []);
     var i = all.map(function (b) { return b.name; }).indexOf(name);
     dialog(title, '<img src="boards/' + esc(name) + '.webp" alt="' + esc(title) + '" style="width:100%;height:auto;border-radius:16px;box-shadow:0 0 0 1px var(--outv)"><div class="row" style="gap:8px"><button class="btn text" id="bprev"' + (i > 0 ? '' : ' disabled') + '>' + icon('ChevronLeft', 's') + L('back') + '</button><span class="grow bs mu" style="text-align:center">' + (i + 1) + ' of ' + all.length + '</span><button class="btn text" id="bnext"' + (i < all.length - 1 ? '' : ' disabled') + '>' + L('next') + icon('ChevronRight', 's') + '</button></div>', { wide: true });
     var nav = function (d) { var b = all[i + d]; if (b) boardDialog(b.name, b.title); };
@@ -415,7 +424,7 @@
     app.innerHTML = '<a class="skip" href="#main">Skip to the page</a><div class="shell edge-' + st.edge + '">' +
       '<header class="topbar drag" data-k="topbar"><span class="brand"><span class="logo ' + st.logo.shape + '" aria-hidden="true">' + icon('RocketLaunch', 's') + '</span><b>' + esc(st.name) + '</b>' + (DEMO ? '<span class="tag a">Demo</span>' : '') + '</span>' +
       '<button class="btn tonal sm nodrag" data-act="palette" aria-label="' + esc(w('palette')) + ', Ctrl Shift F">' + icon('Magnify', 's') + '<span class="opt">' + L('search') + '</span><span class="kbd opt">Ctrl Shift F</span></button>' +
-      '<button class="ib nodrag opt" data-act="theme" aria-label="' + esc(w('theme')) + '">' + icon('ThemeLightDark') + '</button><button class="ib nodrag" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>' +
+      '<button class="ib nodrag opt" data-act="theme" aria-label="' + esc(w('theme')) + '">' + icon('ThemeLightDark') + '</button>' + (st.axHidden ? '' : '<button class="ib nodrag" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>') + '' +
       '<button class="ib nodrag" data-act="bell" aria-label="' + esc(w('notifications')) + '" style="position:relative">' + icon('Bell') + '<span class="badge" id="bellcount" hidden>0</span></button>' + winBtns + '</header>' +
       '<div id="updslot"></div><nav class="tabstrip" role="tablist" aria-label="Pages" data-k="tabs"></nav><main class="main" id="main">' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div><div class="toasts" aria-live="polite"></div>';
     tabstrip(); bell();
@@ -435,7 +444,7 @@
     if (!st.tabs.open.length) { st.tabs.open = ['deploy']; st.active = 'deploy'; }
     var a = document.activeElement, fid = a && a.id, pos = a && a.selectionStart, scroll = window.scrollY;
     var openDetails = $$('#p-' + st.active + ' details[open]').map(function (d) { return d.closest('[data-k]') ? d.closest('[data-k]').dataset.k : ''; });
-    tabstrip(); var us = $('#updslot'); if (us) us.innerHTML = updBar();
+    tabstrip(); var us = $('#updslot'); if (us) us.innerHTML = updBar() + adhdBar(); $('#app').classList.toggle('adhd-focus', adhd('focus'));
     TABS.forEach(function (t) { var p = $('#p-' + t); p.hidden = t !== st.active; p.innerHTML = t === st.active ? R[t]() : ''; });
     openDetails.forEach(function (k) { var d = $('[data-k="' + k + '"] details'); if (d) d.open = true; });
     decorate(); applyVocab($('#app'));
@@ -443,6 +452,8 @@
     window.scrollTo(0, scroll);
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
     if (st.active === 'tools') { otpDraw(); colour(); }
+    if (st.active === 'instances') lcFrame();
+    if (st.active === 'activity') historyPanel();
     document.title = st.name + ' · ' + w(st.active);
   }
   var renderQueued = false;
@@ -469,7 +480,7 @@
     var hostId = target === 'ssh' ? (($('#sshhost') || {}).value || (D.hosts[0] || {}).id) : '';
     try {
       var id = await API.deploy(Object.assign({ target: target, hostId: hostId }, overrides || {}));
-      progress[id] = { step: (STEPS[target] || [])[0], text: 'Starting', fraction: 0, log: [], done: false };
+      progress[id] = { step: (STEPS[target] || [])[0], text: 'Starting', fraction: 0, log: [], done: false, t0: Date.now() };
       addActivity(id, 'Deploy started (' + w(target) + ')', 'action'); beep('on');
       st.active = 'deploy'; save(); await reload(); render();
     } catch (e) { toast(e.message); beep('bad'); }
@@ -540,8 +551,8 @@
     TABS.forEach(function (t) { items.push({ kind: 'Page', label: w(t), go: t + ':top' }); });
     items.push({ kind: 'Deploy', label: 'Write a Raspberry Pi card', act: 'pi' });
     exts.forEach(function (x) { (x.commands || []).forEach(function (c) { items.push({ kind: 'Extension', label: c.title, sub: x.name + (x.enabled ? '' : ' (off)'), go: 'extensions:ext-' + x.id }); }); });
-    [['Show a dim sum', 'dimsum'], ['Check for a new version', 'checkupd'], ['Open the extensions folder', 'extfolder']].forEach(function (a2) { items.push({ kind: 'Action', label: a2[0], act: a2[1] }); });
-    [['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
+    [['Add a schedule rule', 'ruleadd'], ['Change the logo', 'logo'], ['Home Assistant connection', 'haconn'], ['Choose your next step', 'nextset'], ['Export the activity', 'export-activity'], ['Export the backups', 'export-backups'], ['Export your settings', 'export-settings'], ['Show a dim sum', 'dimsum'], ['Check for a new version', 'checkupd'], ['Open the extensions folder', 'extfolder']].forEach(function (a2) { items.push({ kind: 'Action', label: a2[0], act: a2[1] }); });
+    [['Settings, ADHD modes', 'settings:adhd'], ['Activity, History of your records', 'activity:records'], ['Instances, Live chart', 'instances:top'], ['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
     ['docker', 'ssh', 'virtualbox', 'vmware'].forEach(function (t) { items.push({ kind: 'Deploy', label: 'Deploy in one click: ' + w(t), act: 'deploy-' + t }); items.push({ kind: 'Deploy', label: 'Deploy with options: ' + w(t), act: 'options-' + t }); });
     D.instances.forEach(function (i) { items.push({ kind: 'Instance', label: i.name, sub: (i.url || '') + ' · ' + w(i.state), go: 'instances:inst-' + i.id }); if (i.url) items.push({ kind: 'Open', label: 'Open ' + i.name, act: 'open-' + i.id }); items.push({ kind: 'Backup', label: 'Back up ' + i.name, act: 'backup-' + i.id }); });
     D.hosts.forEach(function (h) { items.push({ kind: 'Host', label: h.name, sub: h.user + '@' + h.address, go: 'hosts:host-' + h.id }); });
@@ -586,9 +597,15 @@
     if (a === 'wb') return workbench('');
     if (a === 'welcome') return welcome(true);
     if (a === 'openall') { var before = st.tabs.open.slice(); st.tabs.open = TABS.slice(); save(); render(); toast('Every tab is open.', { undo: function () { st.tabs.open = before; save(); render(); } }); return; }
-    if (a === 'export-instances') { var rows = await API.exportList(); dialog('Export the list of instances', ['json', 'csv', 'md', 'txt'].map(function (f) { return '<button class="btn tonal" data-fx="' + f + '">' + f.toUpperCase() + '</button>'; }).join(' ')); $('#ov').addEventListener('click', function (e) { var b = e.target.closest('[data-fx]'); if (!b) return; var f = b.dataset.fx; closeDialog(); saveText('instances.' + f, f === 'json' ? JSON.stringify(rows, null, 2) : f === 'csv' ? rows2csv(rows) : f === 'md' ? rows2md(rows) : rows.map(function (r) { return r.name + ': ' + r.address + ' (' + r.state + ')'; }).join('\n')); }); return; }
-    if (a === 'export-activity') return saveText('activity.txt', activity.map(function (x) { return new Date(x.t).toISOString() + '  ' + instName(x.id) + '  ' + x.line; }).join('\n'));
-    if (a === 'export-settings') return saveText('deploy-assistant-settings.json', JSON.stringify(st, null, 2));
+    if (a === 'export-instances') { var rows = await API.exportList(); return exportDialog('Export the list of instances', 'instances', rows); }
+    if (a === 'export-activity') return exportDialog('Export the activity', 'activity', activity.map(function (x) { return { at: new Date(x.t).toISOString(), instance: instName(x.id), kind: x.kind, line: x.line }; }));
+    if (a === 'export-activity-old') return saveText('activity.txt', activity.map(function (x) { return new Date(x.t).toISOString() + '  ' + instName(x.id) + '  ' + x.line; }).join('\n'));
+    if (a === 'export-settings') return exportDialog('Export your settings', 'settings', Object.keys(DEF).filter(function (k) { return ['vocab', 'otp', 'history', 'notes', 'tickets', 'look', 'locks'].indexOf(k) < 0; }).map(function (k) { return { setting: k, value: st[k] }; }));
+    if (a === 'export-backups') { var br = []; D.instances.forEach(function (i) { (i.backups || []).forEach(function (b) { br.push({ instance: i.name, made: b.at, kind: b.kind, size: b.size || 0, note: b.note || '' }); }); }); return exportDialog('Export the list of backups', 'backups', br); }
+    if (a === 'export-hosts') return exportDialog('Export the SSH hosts', 'hosts', D.hosts.map(function (h) { return { name: h.name, address: h.address, user: h.user, port: h.port, keyFile: h.keyFile || '' }; }));
+    if (a === 'export-downloads') return exportDialog('Export the downloads', 'downloads', (dls || []).map(function (d) { return { name: d.name || d.label, file: d.file || '', state: d.state || '', size: d.size || 0 }; }));
+    if (a === 'export-tickets') return exportDialog('Export your tickets', 'tickets', st.tickets.map(function (x) { return { created: new Date(x.t).toISOString(), title: x.title, what: x.what, tried: x.tried }; }));
+    if (a === 'rhexport') return exportDialog('Export the record history', 'history', (historyPanel.list ? historyPanel.list() : []).map(function (r) { return { revision: r.rev, at: r.at, action: r.action, change: r.text, instances: r.records.instances.length, hosts: r.records.hosts.length }; }));
     if (a === 'resetall') superConfirm('Reset everything in this window', ['Settings, locks and history of this window go back to the start.', 'Instances, hosts and backups are not touched.'], 'RESET', function () { try { localStorage.removeItem(KEY); } catch (e) { /* off */ } st = load(); apply(); shell(); render(); toast(msg('reset')); });
   }
   function openUrl(u) { if (DEMO) { toast('In the app this opens ' + u + ' in your browser.'); return; } API.open(u).catch(function (e) { toast(e.message); }); }
@@ -623,15 +640,15 @@
       if (ch === 'done') {
         var name = instName(p.id);
         addActivity(p.id, p.action + (p.ok ? ' finished' : ' failed: ' + p.error), 'action');
-        if (p.action === 'deploy') { var pr = progress[p.id] = progress[p.id] || { log: [] }; pr.done = true; pr.ok = p.ok; pr.error = p.error; if (p.ok) { beep('on'); toast(name + ': ' + msg('deployed'), { emoji: '🎉' }); reload().then(function () { var i = D.instances.filter(function (x) { return x.id === p.id; })[0]; if (st.openAfter && i && i.url) openUrl(i.url); render(); }); } else { beep('bad'); toast(name + ': ' + msg('failedMsg') + ' ' + p.error); } }
-        else if (p.action === 'backup') toast(name + ': ' + (p.ok ? msg('backedUp') : p.error));
+        if (p.action === 'deploy') { var pr = progress[p.id] = progress[p.id] || { log: [] }; pr.done = true; pr.ok = p.ok; pr.error = p.error; pr.t1 = Date.now(); if (p.ok) { finishedOne(); narrate('deploy', name + ' is ready to open.', name + ' 已經準備好，可以打開。'); } else narrate('deployfail', name + ' did not deploy: ' + p.error, name + ' 部署唔到：' + p.error, true); if (p.ok) { beep('on'); toast(name + ': ' + msg('deployed'), { emoji: '🎉' }); reload().then(function () { var i = D.instances.filter(function (x) { return x.id === p.id; })[0]; if (st.openAfter && i && i.url) openUrl(i.url); render(); }); } else { beep('bad'); toast(name + ': ' + msg('failedMsg') + ' ' + p.error); } }
+        else if (p.action === 'backup') { toast(name + ': ' + (p.ok ? msg('backedUp') : p.error)); if (p.ok) { finishedOne(); narrate('backup', name + ' is backed up.', name + ' 備份好喇。'); } else narrate('backupfail', name + ' backup failed: ' + p.error, name + ' 備份失敗：' + p.error, true); }
         else if (p.action === 'remove') toast(p.ok ? name + ' removed.' : p.error);
         else if (!p.ok) toast(name + ': ' + p.error);
         reload().then(soon);
       }
       if (ch === 'selftest') { if (selftest) { selftest.steps = p.steps; selftest.draw(); } return; }
       if (ch === 'update' && p.state === 'applied') { toast('Updated from ' + p.from + ' to ' + p.version + '. The update is applied and running.', { emoji: '✅' }); return; }
-      if (ch === 'update') { if (upd.state !== 'later' || p.state === 'ready') upd = p; if (p.state === 'ready') toast('Version ' + p.version + ' is ready. Restart to use it; it is not code-signed.', { emoji: '⬆️' }); soon(); }
+      if (ch === 'update') { if (upd.state !== 'later' || p.state === 'ready') upd = p; if (p.state === 'ready') { toast('Version ' + p.version + ' is ready. Restart to use it; it is not code-signed.', { emoji: '⬆️' }); narrate('update', 'Version ' + p.version + ' is ready. Restart to use it.', p.version + ' 版本準備好，重新開就用得。'); } soon(); }
       if (ch === 'downloads') { dls = p; if (st.active === 'downloads') soon(); }
       if (ch === 'window') { var b = $('[data-win="max"]'); if (b) b.innerHTML = icon(p.maximized ? 'WindowRestore' : 'WindowMaximize', 's'); }
     });
@@ -652,6 +669,11 @@
       if ((b = t.closest('[data-rmticket]'))) { st.tickets.splice(+b.dataset.rmticket, 1); save(); render(); return; }
       if ((b = t.closest('[data-conv]'))) { convert(b.dataset.conv); return; }
       if ((b = t.closest('[data-rmotp]'))) { st.otp.splice(+b.dataset.rmotp, 1); save(); otpDraw(); return; }
+      if ((b = t.closest('[data-dimtroll]'))) { dimsumTroll(); return; }
+      if ((b = t.closest('[data-rule]'))) { ruleDialog((st.rules || []).filter(function (r) { return r.id === b.dataset.rule; })[0]); return; }
+      if ((b = t.closest('[data-ruleon]'))) { var rl = (st.rules || []).map(function (r) { return r.id === b.dataset.ruleon ? Object.assign({}, r, { on: !r.on }) : r; }); setVal('rules', rl, 'Schedule rule switched'); runRules(); render(); return; }
+      if ((b = t.closest('[data-restorerev]'))) { var rv = b.dataset.restorerev; if (DEMO) { toast('In the app this restores revision ' + rv + ' as a new revision.'); return; } API.restoreRevision(rv).then(function (r) { toast(r.text); return reload(); }).then(function () { render(); }, function (er) { toast(er.message); }); return; }
+      if ((b = t.closest('[data-axshow]'))) { setVal('axHidden', !st.axHidden, 'Accessibility button'); shell(); render(); return; }
       if ((b = t.closest('[data-fst]'))) { fview.state = b.dataset.fst; render(); return; }
       if ((b = t.closest('[data-fgr]'))) { fview.group = b.dataset.fgr; render(); return; }
       if ((b = t.closest('[data-article]'))) { fview.article = b.dataset.article || null; if (st.active !== 'articles') go('articles:top'); else { render(); window.scrollTo(0, 0); } return; }
@@ -685,6 +707,17 @@
       else if (a === 'pi') piDialog();
       else if (a === 'wizgo') wizGo();
       else if (a === 'qrcam') qrCamera();
+      else if (a === 'nextset') { dialog('Your next step', '<label class="col" style="gap:4px"><span class="ll">What is the one thing to do next?</span><input class="input" id="nsin" maxlength="80" value="' + esc(st.nextStep || '') + '"></label><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="nsok">Keep it in view</button></div>', { emoji: '👉', focus: '#nsin' }); $('#nsok').onclick = function () { setVal('nextStep', $('#nsin').value.trim(), 'Next step'); closeDialog(); render(); }; }
+      else if (a === 'nextdone') { setVal('nextStep', '', 'Next step done'); finishedOne(); render(); toast(msg('saved')); }
+      else if (a === 'ruleadd') ruleDialog(null);
+      else if (a === 'haconn') haDialog();
+      else if (a === 'logo') logoDialog();
+      else if (a === 'ntest') { var nn = st.narrator.on; st.narrator.on = true; nlast = {}; narrate('test', 'This is the narrator.', '我係旁白。', true); st.narrator.on = nn; }
+      else if (a === 'bkclear') { bsel = {}; render(); }
+      else if (a === 'bkdel') { var ks = Object.keys(bsel).filter(function (k) { return bsel[k]; }); superConfirm('Delete ' + ks.length + ' backups', [ks.length + ' backup files or snapshots are deleted from this computer.', 'The instances themselves keep running.'], 'DELETE', function () { ks.forEach(function (k) { var pr = k.split(':'); doAction(pr[0], 'deleteBackup', pr[1]); }); bsel = {}; render(); }); }
+      else if (a === 'hsclear') { hsel = {}; render(); }
+      else if (a === 'hstest') { Object.keys(hsel).filter(function (k) { return hsel[k]; }).forEach(function (id) { var hh = D.hosts.filter(function (h) { return h.id === id; })[0]; API.check('ssh', id).then(function (r) { toast((hh ? hh.name + ': ' : '') + (r.ok ? '✓ ' : '') + r.detail); }); }); }
+      else if (a === 'hsdel') { var ids = Object.keys(hsel).filter(function (k) { return hsel[k]; }); superConfirm('Remove ' + ids.length + ' hosts', ['They are removed from this app with their saved passwords.', 'Nothing on the hosts changes.'], 'REMOVE', function () { Promise.all(ids.map(function (id) { return API.removeHost(id); })).then(reload).then(function () { hsel = {}; render(); }, function (er) { toast(er.message); }); }); }
       else if (a === 'selftest') selftestDialog();
       else if (a === 'b64enc') b64(true); else if (a === 'b64dec') b64(false);
       else if (a === 'otpadd') { var nm = $('#otpname').value.trim() || 'Code', sc = $('#otpsecret').value.trim(); try { if (!sc) throw new Error(); b32(sc); } catch (er2) { toast('That secret is not Base32 (letters A to Z and digits 2 to 7).'); return; } st.otp.push({ name: nm, secret: sc }); save(); render(); }
@@ -707,6 +740,8 @@
     app.addEventListener('input', function (e) {
       var t = e.target, map = { dsearch: 'downloads', isearch: 'instances', bsearch: 'backups', hsearch: 'hosts', asearch: 'activity', ssearch: 'settings', hpsearch: 'help' };
       if (map[t.id]) { q[map[t.id]] = t.value; render(); return; }
+      if (t.id === 'rhsearch') { q.rhist = t.value; if (historyPanel.draw) { historyPanel.draw(); var rf = $('#rhsearch'); rf.focus(); rf.setSelectionRange(rf.value.length, rf.value.length); } return; }
+      if (t.dataset.nrange) { st.narrator[t.dataset.nrange] = +t.value; save(); return; }
       if (t.dataset.wiz) { var wv = wiz.vals[wizTarget()]; if (wv) wv[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; return; }
       if (t.dataset.isel) { view.sel[t.dataset.isel] = t.checked; render(); return; }
       if (t.dataset.color) { st.seed = t.value; save(); apply(); }
@@ -715,6 +750,15 @@
     });
     app.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.dataset.bksel) { bsel[t.dataset.bksel] = t.checked; render(); return; }
+      if (t.dataset.bkall != null) { $$('[data-bksel]').forEach(function (c) { bsel[c.dataset.bksel] = t.checked; }); render(); return; }
+      if (t.dataset.hsel) { hsel[t.dataset.hsel] = t.checked; render(); return; }
+      if (t.dataset.nvoice) { setVal('narrator.' + (t.dataset.nvoice === 'yue' ? 'voiceYue' : 'voiceEn'), t.value, t.getAttribute('aria-label')); render(); return; }
+      if (t.dataset.nrange) { setVal('narrator.' + t.dataset.nrange, +t.value, 'Narrator ' + t.dataset.nrange); return; }
+      if (t.dataset.rhact != null) { hview.action = t.value; historyPanel.draw(); return; }
+      if (t.dataset.rhfrom != null) { hview.from = t.value; historyPanel.draw(); return; }
+      if (t.dataset.rhto != null) { hview.to = t.value; historyPanel.draw(); return; }
+      if (t.dataset.lcinst != null) { lc.id = t.value; lc.shown = []; return; }
       if (t.dataset.wiz) { var wv2 = wiz.vals[wizTarget()]; if (wv2) wv2[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; }
       if (t.dataset.isort != null) { view.sort = t.value; render(); }
       if (t.dataset.logfor != null) { view.logFor = t.value; render(); }
@@ -790,7 +834,9 @@
     await reload(); apply(); shell(); render(); wire();
     try { exts = await API.extensions(); } catch (e) { exts = []; }
     checkAll();
-    setTimeout(function () { if (Math.random() < 0.25) dimsum(false); }, 45000);
+    // One fresh draw per start, 1 in 10, never during the first run.
+    if (st.welcomed && Math.random() < 0.1) setTimeout(function () { if (!$('#ov')) dimsum(false); }, 5000);
+    runRules(); pollHa();
     setInterval(function () { if (st.schedule.on) apply(); }, 60000);
     if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = function () { if (st.active === 'settings') render(); };
     if (!st.welcomed) setTimeout(function () { welcome(false); }, 300);

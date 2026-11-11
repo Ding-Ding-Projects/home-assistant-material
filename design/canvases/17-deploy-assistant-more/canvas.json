@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T01:32:59Z"
+    "at": "2026-11-11T01:47:01Z"
   },
   "title": "Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more",
   "launch": {
@@ -74,7 +74,7 @@
       "x": 2840,
       "y": 1829,
       "w": 1320,
-      "h": 1130,
+      "h": 1401,
       "title": "Deploy Assistant, changes with the build it is",
       "expand": "fill",
       "page": "all"
@@ -83,14 +83,14 @@
       "x": 4260,
       "y": 1829,
       "w": 1320,
-      "h": 4170,
+      "h": 5612,
       "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates",
       "expand": "fill",
       "page": "all"
     },
     "DeployDesign.dc.html": {
       "x": 0,
-      "y": 6219,
+      "y": 7661,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, its own design boards, offline",
@@ -99,7 +99,7 @@
     },
     "DeployFeatures.dc.html": {
       "x": 1420,
-      "y": 6219,
+      "y": 7661,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the project's features and their state",
@@ -108,7 +108,7 @@
     },
     "DeployStatus.dc.html": {
       "x": 2840,
-      "y": 6219,
+      "y": 7661,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the status page, offline",
@@ -117,7 +117,7 @@
     },
     "DeployQr.dc.html": {
       "x": 4260,
-      "y": 6219,
+      "y": 7661,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, a one-time code added from its QR code",
@@ -126,28 +126,28 @@
     },
     "DeploySelfTest.dc.html": {
       "x": 0,
-      "y": 7319,
+      "y": 8761,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the update self-test",
       "expand": "fill",
       "page": "all"
     },
-    "DeployPalette.dc.html": {
+    "DeployAdhd.dc.html": {
       "x": 1420,
-      "y": 7319,
+      "y": 8761,
       "w": 1320,
       "h": 880,
-      "title": "Deploy Assistant, Ctrl Shift F with live controls",
+      "title": "Deploy Assistant, ADHD modes on: clock, next step, focus",
       "expand": "fill",
       "page": "all"
     },
-    "DeployNarrow.dc.html": {
+    "DeployAdhdSettings.dc.html": {
       "x": 2840,
-      "y": 7319,
-      "w": 400,
-      "h": 2018,
-      "title": "Deploy Assistant, a narrow window",
+      "y": 8761,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, ADHD modes and the narrator in Settings",
       "expand": "fill",
       "page": "all"
     }
@@ -166,8 +166,8 @@
     "DeployStatus.dc.html",
     "DeployQr.dc.html",
     "DeploySelfTest.dc.html",
-    "DeployPalette.dc.html",
-    "DeployNarrow.dc.html"
+    "DeployAdhd.dc.html",
+    "DeployAdhdSettings.dc.html"
   ],
   "notes": {
     "t-all": {

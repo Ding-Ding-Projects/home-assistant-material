@@ -71,8 +71,8 @@ window.SITE = {
   "QrcodeScan": "M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T20:14:59-05:00",
- "commit": "a095c7b5",
+ "updated": "2026-11-10T20:33:18-05:00",
+ "commit": "1c3cc844",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -779,6 +779,12 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "1c3cc844",
+   "date": "2026-11-10T20:33:18-05:00",
+   "title": "Deploy Assistant 1.2: offline project pages, QR scanning, update self-test",
+   "body": "Adds Run it, Features, Articles, Status and Design tabs built from the\nproject page's data, a QR reader for one-time codes (image, paste or\ncamera, with jsQR under Apache-2.0) shared with the project page, and\nan update self-test that checks the releases, the Squirrel feed, the\npackage size and checksums, staging on Windows, and whether an update\nwas seen applied after a restart. The window may use only the camera\nand clipboard writing. Boards redrawn: 15 on canvas 16, 15 on 17."
+  },
+  {
    "sha": "a095c7b5",
    "date": "2026-11-10T20:14:59-05:00",
    "title": "Deploy Assistant workflow: take major and minor from package.json",
@@ -1011,12 +1017,6 @@ window.SITE = {
    "date": "2026-11-10T10:20:28-05:00",
    "title": "System page drawn like its board; breadcrumb on every settings subpage",
    "body": "System opens with a card that says what is running and in which state,\nwith facts the instance reports about itself: the version, how many\nintegrations are loaded, storage used where the host reports it, and the\ntime zone. The board's processor, memory and temperature figures are left\nout, because a plain container does not report them. The sections are a\ngrid of cards, two across.\n\nPlain subpages reached from Settings show where they sit above their\ntitle, as the tabbed pages already do.\n\nSeen beside the System board in a running instance."
-  },
-  {
-   "sha": "81609536",
-   "date": "2026-11-10T10:16:55-05:00",
-   "title": "Dialog tools: search this dialog, edit appearance and lock at the foot of every dialog",
-   "body": "The shared dialog gets a row of tools under its content, as on the dialog\nboards. Search this dialog marks matches in the dialog, takes a pattern\nand shows a count. Edit appearance starts the pick tool. Lock stops input\nto the dialog's content, header actions and buttons; it is for that kind\nof dialog and is kept in this browser. Unlocking takes a hold, or the\nPIN, which is asked for inside the dialog because nothing outside an open\ndialog takes input. The first Escape clears a search; the next closes the\ndialog. Alerts and the plain question dialog have no row.\n\nFixed: reading the text of a page stopped at any element without a box of\nits own, which includes every slot. Read aloud, copy the text and export\nleft out most of a page. Search this page had the same fault after it\nbegan to follow slots.\n\nSeen in a running instance on the dialog of a light: a pattern search\nmarked two matches, a click on the locked dialog did not switch the\nlight, and after a hold the same click did."
   }
  ],
  "status": [
@@ -2544,6 +2544,52 @@ window.SITE = {
      "title": "Deploy Assistant, the update self-test"
     },
     {
+     "name": "DeployAdhd",
+     "title": "Deploy Assistant, ADHD modes on: clock, next step, focus"
+    },
+    {
+     "name": "DeployAdhdSettings",
+     "title": "Deploy Assistant, ADHD modes and the narrator in Settings"
+    }
+   ]
+  },
+  {
+   "id": "18-deploy-assistant-care",
+   "title": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight",
+   "boards": [
+    {
+     "name": "DeployRule",
+     "title": "Deploy Assistant, a schedule rule by day and time"
+    },
+    {
+     "name": "DeployRuleHa",
+     "title": "Deploy Assistant, a schedule rule following a Home Assistant switch"
+    },
+    {
+     "name": "DeployLogo",
+     "title": "Deploy Assistant, the logo: presets or your own picture"
+    },
+    {
+     "name": "DeployExport",
+     "title": "Deploy Assistant, export in every text format"
+    },
+    {
+     "name": "DeployRecords",
+     "title": "Deploy Assistant, the history of your records"
+    },
+    {
+     "name": "DeploySuper",
+     "title": "Deploy Assistant, two keys and a slider before anything is deleted"
+    },
+    {
+     "name": "DeployLive",
+     "title": "Deploy Assistant, the live processor chart"
+    },
+    {
+     "name": "DeployDimSum",
+     "title": "Deploy Assistant, a dim sum surprise"
+    },
+    {
      "name": "DeployPalette",
      "title": "Deploy Assistant, Ctrl Shift F with live controls"
     },
@@ -2554,5 +2600,5 @@ window.SITE = {
    ]
   }
  ],
- "deployVersion": "1.2.0"
+ "deployVersion": "1.3.0"
 };

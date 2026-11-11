@@ -16,7 +16,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 APP = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
 CANVASES = os.path.join(ROOT, 'design', 'canvases')
 # At most 15 boards on a canvas: the first 15 go on canvas 16, the rest on canvas 17.
-GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more')]
+GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more'), ('18-deploy-assistant-care', 'Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight')]
 FRAMES = os.path.join(ROOT, 'design', 'frames')
 CSS = re.sub(r'@font-face\{[^}]*\}', '', open(os.path.join(APP, 'app.css')).read())
 DONE = "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true}))"
@@ -37,7 +37,7 @@ BOARDS = [
     ('DeployDownloads', 'Deploy Assistant, automatic downloads', 1320, None, 'dark', [('tab', 'downloads')]),
     ('DeployPiChosen', 'Deploy Assistant, Raspberry Pi chosen in the wizard', 1320, 880, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('wait', 300)]),
     ('DeployPiWrite', 'Deploy Assistant, writing a Raspberry Pi card', 1320, 880, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('click', '#wizgo'), ('wait', 900)]),
-    ('DeployPiProgress', 'Deploy Assistant, writing and checking the card', 1320, None, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('click', '#wizgo'), ('wait', 900), ('click', '#pigo'), ('click', '#sc1'), ('fill', '#sc2in', 'ERASE'), ('click', '#sc2'), ('wait', 5200)]),
+    ('DeployPiProgress', 'Deploy Assistant, writing and checking the card', 1320, None, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('click', '#wizgo'), ('wait', 900), ('click', '#pigo'), ('click', '#sc1'), ('fill', '#sc2in', 'ERASE'), ('eval', "const r = document.getElementById('scslide'); r.value = 100; r.dispatchEvent(new Event('input', {bubbles: true}))"), ('click', '#sc2'), ('wait', 5200)]),
     ('DeployExtensions', 'Deploy Assistant, extensions with their permissions', 1320, None, 'light', [('tab', 'extensions'), ('wait', 300)]),
     ('DeployExtConsent', 'Deploy Assistant, asking before an extension runs', 1320, 880, 'light', [('tab', 'extensions'), ('wait', 300), ('click', '[data-sw2="ext:link-sheet"]')]),
     ('DeployExtResult', 'Deploy Assistant, an extension\'s answer', 1320, 880, 'dark', [('tab', 'extensions'), ('wait', 300), ('click', '[data-extrun="health-report:report"]'), ('wait', 500)]),
@@ -50,6 +50,16 @@ BOARDS = [
     ('DeployStatus', 'Deploy Assistant, the status page, offline', 1320, 880, 'dark', [('tab', 'status'), ('wait', 300)]),
     ('DeployQr', 'Deploy Assistant, a one-time code added from its QR code', 1320, 880, 'light', [('tab', 'tools'), ('files', '#qrfile', os.path.join(os.path.dirname(__file__), 'sample-otp-qr.png')), ('wait', 800), ('eval', "document.getElementById('otp').scrollIntoView()")]),
     ('DeploySelfTest', 'Deploy Assistant, the update self-test', 1320, 880, 'light', [('tab', 'settings'), ('click', '[data-act="selftest"]'), ('wait', 600)]),
+    ('DeployAdhd', 'Deploy Assistant, ADHD modes on: clock, next step, focus', 1320, 880, 'light', [('eval', "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true, adhd: {focus: true, time: true, one: true, momentum: true}, nextStep: 'Back up the cottage instance', doneToday: {day: new Date().toDateString(), n: 3}}))"), ('reload',), ('wait', 900)]),
+    ('DeployAdhdSettings', 'Deploy Assistant, ADHD modes and the narrator in Settings', 1320, 880, 'light', [('tab', 'settings'), ('wait', 300), ('eval', "document.getElementById('adhd').scrollIntoView()")]),
+    ('DeployRule', 'Deploy Assistant, a schedule rule by day and time', 1320, 880, 'light', [('tab', 'settings'), ('click', '[data-act="ruleadd"]'), ('fill', '#rl-label', 'Evenings')]),
+    ('DeployRuleHa', 'Deploy Assistant, a schedule rule following a Home Assistant switch', 1320, 880, 'dark', [('tab', 'settings'), ('click', '[data-act="ruleadd"]'), ('click', '[data-rsrc="ha"]'), ('fill', '#rl-label', 'Movie night'), ('fill', '#rl-entity', 'input_boolean.movie_night')]),
+    ('DeployLogo', 'Deploy Assistant, the logo: presets or your own picture', 1320, 880, 'light', [('tab', 'settings'), ('click', '[data-act="logo"]')]),
+    ('DeployExport', 'Deploy Assistant, export in every text format', 1320, 880, 'light', [('tab', 'instances'), ('click', '[data-act="export-instances"]'), ('click', '[data-xf="yaml"]')]),
+    ('DeployRecords', 'Deploy Assistant, the history of your records', 1320, None, 'light', [('tab', 'activity'), ('wait', 500)]),
+    ('DeploySuper', 'Deploy Assistant, two keys and a slider before anything is deleted', 1320, 880, 'light', [('tab', 'backups'), ('click', '[data-bkall]'), ('click', '[data-act="bkdel"]'), ('click', '#sc1'), ('fill', '#sc2in', 'DELETE'), ('eval', "const r = document.getElementById('scslide'); r.value = 100; r.dispatchEvent(new Event('input', {bubbles: true}))")]),
+    ('DeployLive', 'Deploy Assistant, the live processor chart', 1320, 880, 'dark', [('tab', 'instances'), ('wait', 9000)]),
+    ('DeployDimSum', 'Deploy Assistant, a dim sum surprise', 1320, 880, 'light', [('click', '[data-tab="settings"]'), ('click', '[data-act="dimsum"]'), ('wait', 600)]),
     ('DeployPalette', 'Deploy Assistant, Ctrl Shift F with live controls', 1320, 880, 'light', [('wait', 400), ('key', 'Control+Shift+F'), ('fill', '#palq', 'deploy')]),
     ('DeployNarrow', 'Deploy Assistant, a narrow window', 400, None, 'light', [('tab', 'instances')]),
 ]

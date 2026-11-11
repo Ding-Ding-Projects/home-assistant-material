@@ -24,11 +24,73 @@ class Manager extends EventEmitter {
     this.busy = {};
   }
 
-  save() {
+  save(label) {
     const tmp = this.file + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(this.db, null, 2));
     fs.renameSync(tmp, this.file);
+    this.record(label);
     this.emit('changed', this.snapshot());
+  }
+
+  // Local history of the records a person manages: instance names, notes and settings, SSH hosts
+  // (never their passwords) and the backup schedule. Append-only; restoring adds a new revision.
+  records() {
+    return {
+      instances: this.db.instances.map((i) => ({ id: i.id, name: i.name, notes: i.notes || '', target: i.target, port: i.port, tag: i.tag || '', backupsOn: i.backupsOn !== false })),
+      hosts: this.db.hosts.map((h) => ({ id: h.id, name: h.name, address: h.address, user: h.user, port: h.port, keyFile: h.keyFile || '' })),
+      schedule: Object.assign({}, this.db.schedule)
+    };
+  }
+
+  historyFile() { return path.join(this.dir, 'history.jsonl'); }
+
+  history() {
+    try { return fs.readFileSync(this.historyFile(), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; }
+  }
+
+  record(label) {
+    const now = this.records();
+    const json = JSON.stringify(now);
+    if (json === this.lastRecord && !label) return;
+    const before = this.lastRecord ? JSON.parse(this.lastRecord) : null;
+    this.lastRecord = json;
+    if (!before && !label) { if (!this.history().length) this.appendHistory('started', 'The first record of this list', now); return; }
+    const ids = (l) => new Set(l.map((x) => x.id));
+    let action = label || 'updated'; let text = '';
+    if (!label && before) {
+      const bi = ids(before.instances); const ni = ids(now.instances); const bh = ids(before.hosts); const nh = ids(now.hosts);
+      const addI = now.instances.filter((x) => !bi.has(x.id)); const remI = before.instances.filter((x) => !ni.has(x.id));
+      const addH = now.hosts.filter((x) => !bh.has(x.id)); const remH = before.hosts.filter((x) => !nh.has(x.id));
+      if (addI.length) { action = 'created'; text = 'Instance ' + addI.map((x) => x.name).join(', ') + ' added'; }
+      else if (remI.length) { action = 'deleted'; text = 'Instance ' + remI.map((x) => x.name).join(', ') + ' removed'; }
+      else if (addH.length) { action = 'created'; text = 'Host ' + addH.map((x) => x.name).join(', ') + ' added'; }
+      else if (remH.length) { action = 'deleted'; text = 'Host ' + remH.map((x) => x.name).join(', ') + ' removed'; }
+      else if (JSON.stringify(before.schedule) !== JSON.stringify(now.schedule)) { action = 'settings changed'; text = 'Backup schedule changed'; }
+      else text = 'Instance or host details changed';
+    }
+    this.appendHistory(action, text || label, now);
+  }
+
+  appendHistory(action, text, recs) {
+    const list = this.history();
+    const rev = { rev: (list.length ? list[list.length - 1].rev : 0) + 1, at: new Date().toISOString(), action, text, records: recs };
+    list.push(rev);
+    const keep = list.slice(-500);
+    fs.writeFileSync(this.historyFile(), keep.map((x) => JSON.stringify(x)).join('\n') + '\n');
+  }
+
+  restoreRevision(n) {
+    const rev = this.history().find((x) => x.rev === Number(n));
+    if (!rev) throw new Error('There is no revision ' + n + '.');
+    const r = rev.records;
+    for (const i of this.db.instances) { const o = r.instances.find((x) => x.id === i.id); if (o) { i.name = o.name; i.notes = o.notes; i.backupsOn = o.backupsOn; } }
+    const old = new Map(this.db.hosts.map((h) => [h.id, h]));
+    this.db.hosts = r.hosts.map((h) => Object.assign({ password: '', passphrase: '' }, old.get(h.id) ? { password: old.get(h.id).password, passphrase: old.get(h.id).passphrase } : {}, h));
+    this.db.schedule = Object.assign({}, this.db.schedule, r.schedule);
+    this.save('restored');
+    const h = this.history(); h[h.length - 1].text = 'Restored revision ' + rev.rev + ' (' + rev.text + '). Instances that no longer exist, and passwords, are not brought back.';
+    fs.writeFileSync(this.historyFile(), h.map((x) => JSON.stringify(x)).join('\n') + '\n');
+    return h[h.length - 1];
   }
 
   snapshot() {
