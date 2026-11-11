@@ -72,8 +72,8 @@ window.SITE = {
   "GamepadVariant": "M7,6H17A6,6 0 0,1 23,12A6,6 0 0,1 17,18C15.22,18 13.63,17.23 12.53,16H11.47C10.37,17.23 8.78,18 7,18A6,6 0 0,1 1,12A6,6 0 0,1 7,6M6,9V11H4V13H6V15H8V13H10V11H8V9H6M15.5,12A1.5,1.5 0 0,0 14,13.5A1.5,1.5 0 0,0 15.5,15A1.5,1.5 0 0,0 17,13.5A1.5,1.5 0 0,0 15.5,12M18.5,9A1.5,1.5 0 0,0 17,10.5A1.5,1.5 0 0,0 18.5,12A1.5,1.5 0 0,0 20,10.5A1.5,1.5 0 0,0 18.5,9Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T23:32:16-05:00",
- "commit": "cfe95c10",
+ "updated": "2026-11-10T23:41:27-05:00",
+ "commit": "915595cc",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -780,6 +780,12 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "915595cc",
+   "date": "2026-11-10T23:41:27-05:00",
+   "title": "Deploy Assistant 1.4: Minecraft servers, AI models, virtual disks, Chocolatey",
+   "body": "Minecraft: four targets (Java or Docker, here or over SSH), every Mojang\nversion plus the Paper, Purpur and Fabric catalogues, typed settings\nthat keep unknown keys, game rules, player lists, Modrinth add-ons\nchecked by SHA-512, backups, version changes with a backup first, a\nschedule, and a world generator that pre-generates a drawn chunk area\nwith Chunky into a folder or ZIP. AI models: Ollama installed from its\nofficial release by SHA-256 and run as an owned process, the full\nollama.com library with every variant, fit verdicts, a pull list, model\ndetails and a local chat. Virtual disks: a Windows library and every\noperation built as PowerShell and DiskPart scripts, run through one\nUAC prompt. Chocolatey installs anything missing in one click and is\ninstalled first when needed. FEATURES.md updated."
+  },
+  {
    "sha": "cfe95c10",
    "date": "2026-11-10T23:32:16-05:00",
    "title": "build.bat: install Node.js, Git and Python with Chocolatey when missing",
@@ -1012,12 +1018,6 @@ window.SITE = {
    "date": "2026-11-10T16:41:50-05:00",
    "title": "Start the everyday pages on their boards; Network in two columns",
    "body": "Canvas 01: Lights opens with a summary, all on and all off, and a card per\nroom; Security shows each alarm with arm and disarm through the existing\ncode dialog; Climate draws the first thermostat large; the Map lists where\neveryone is; Activity, History, To-do, Calendar and Energy gain a large\ntitle and a line of facts worked out from what the page already has; Home\nshows power use when the energy setup names a sensor. Figures the instance\ncannot report (a usual day to compare with, the power lights draw, done\nto-do counts) are left out, not invented. The dashboard title row and the\ncard picker are not started.\n\nCanvas 06: the Network page lays its cards out in two columns. The other\ntools boards are not started.\n\nNone of this has been seen in a running build yet.\n\n日常頁面開始跟設計稿：燈頁一開就話你知開咗幾多盞，每間房一張卡；\n保安頁有上鎖解鎖；地圖列出邊個喺邊。系統報唔到嘅數字唔會作出嚟，留空。\n網絡頁闊螢幕分兩欄。全部都未喺真機睇過。"
-  },
-  {
-   "sha": "51672cef",
-   "date": "2026-11-10T16:32:53-05:00",
-   "title": "Project page carries every feature it owes, drawn on canvas 15",
-   "body": "The first project page was one static scroll. It is now an app-like\npage in docs/site/ that runs entirely in the browser and requests\nnothing outside its own folder:\n\n- ten tabs, all open by default, closable, pinnable, movable and\n  dockable on any edge, with a New tab catalog that reopens them\n- Ctrl Shift F search over pages, settings, articles and actions,\n  with settings changeable in the results and a jump to the element\n- the pattern workbench on every search field, and as a tool\n- a menu on every element (right-click, Shift F10, the menu key or a\n  long press) with its own search, appearance editing and toy locks\n  with a keypad and waits after wrong tries\n- English, Cantonese or both, two playfulness levels, the dialog\n  emoji switch, and the personal wording file with the product's checks\n- settings that explain themselves, history with undo, export as\n  JSON, CSV, Markdown and text, notifications, two-step confirmation\n- Base64, convert, colour and one-time-code tools, a support desk,\n  the changelog, a live chart of the visit, version and updated-at\n- one article for each of 69 features, with its state in the product\n\ncheck_site.py fails when a feature disappears from the page or when\nthe page errors, scrolls sideways at 360 px or makes an outside\nrequest. The four first boards on canvas 15 are replaced by 14 boards\ndrawn from the live page by site_boards.py. social-preview.png is the\npicture shown when the link is shared."
   }
  ],
  "status": [
@@ -2700,6 +2700,130 @@ window.SITE = {
     {
      "name": "DeployDimSum",
      "title": "Deploy Assistant, a dim sum surprise"
+    },
+    {
+     "name": "DeployConvert",
+     "title": "Deploy Assistant, converting: files typed by their bytes, every category"
+    },
+    {
+     "name": "DeployConvertPdf",
+     "title": "Deploy Assistant, PDF tools with results checked by reopening"
+    },
+    {
+     "name": "DeployConvertLossy",
+     "title": "Deploy Assistant, saying what a conversion changes first"
+    },
+    {
+     "name": "DeployBase64",
+     "title": "Deploy Assistant, the Base64 toolkit"
+    },
+    {
+     "name": "DeployBase64Error",
+     "title": "Deploy Assistant, strict Base64 decoding names the offset"
+    },
+    {
+     "name": "DeployDraw",
+     "title": "Deploy Assistant, drawing with seven pens"
+    },
+    {
+     "name": "DeployDrawColours",
+     "title": "Deploy Assistant, the drawing toolbar turned into a palette"
+    }
+   ]
+  },
+  {
+   "id": "19-deploy-assistant-tools",
+   "title": "Deploy Assistant: converting, Base64, drawing, QR codes, School mode and the unlock ladder",
+   "boards": [
+    {
+     "name": "DeployQrMake",
+     "title": "Deploy Assistant, making a QR code"
+    },
+    {
+     "name": "DeployLadderDish",
+     "title": "Deploy Assistant, the unlock ladder: which dish is this?"
+    },
+    {
+     "name": "DeployLadderSums",
+     "title": "Deploy Assistant, the unlock ladder: ten easy sums"
+    },
+    {
+     "name": "DeployLadderMoles",
+     "title": "Deploy Assistant, the unlock ladder: whack-a-mole"
+    },
+    {
+     "name": "DeploySchool",
+     "title": "Deploy Assistant, School mode shared across apps, with a name and PIN"
+    },
+    {
+     "name": "DeployExtManager",
+     "title": "Deploy Assistant, the extension manager with recent runs"
+    },
+    {
+     "name": "DeployNotifications",
+     "title": "Deploy Assistant, notifications with bulk actions"
+    },
+    {
+     "name": "DeploySetup",
+     "title": "Deploy Assistant, Setup: what is missing installs with Chocolatey"
+    },
+    {
+     "name": "DeployMinecraft",
+     "title": "Deploy Assistant, Minecraft servers"
+    },
+    {
+     "name": "DeployMinecraftNew",
+     "title": "Deploy Assistant, a new Minecraft server, step by step"
+    },
+    {
+     "name": "DeployMinecraftVersion",
+     "title": "Deploy Assistant, choosing any version from the official catalogue"
+    },
+    {
+     "name": "DeployMinecraftPlayers",
+     "title": "Deploy Assistant, operators, allowlist and bans"
+    },
+    {
+     "name": "DeployMinecraftAddons",
+     "title": "Deploy Assistant, plugins and mods from Modrinth"
+    },
+    {
+     "name": "DeployMinecraftRules",
+     "title": "Deploy Assistant, game rules with their own controls"
+    },
+    {
+     "name": "DeployWorldGen",
+     "title": "Deploy Assistant, the world generator with a chunk grid"
+    }
+   ]
+  },
+  {
+   "id": "20-deploy-assistant-managers",
+   "title": "Deploy Assistant: Minecraft servers, AI models and virtual disks",
+   "boards": [
+    {
+     "name": "DeployModels",
+     "title": "Deploy Assistant, local AI models"
+    },
+    {
+     "name": "DeployModelStore",
+     "title": "Deploy Assistant, the model library with fit verdicts"
+    },
+    {
+     "name": "DeployModelChat",
+     "title": "Deploy Assistant, chatting with a local model"
+    },
+    {
+     "name": "DeployDisks",
+     "title": "Deploy Assistant, virtual disks on Windows"
+    },
+    {
+     "name": "DeployDiskCreate",
+     "title": "Deploy Assistant, creating a virtual disk with its scripts shown"
+    },
+    {
+     "name": "DeployDiskCompact",
+     "title": "Deploy Assistant, compacting: every mode explained"
     },
     {
      "name": "DeployPalette",

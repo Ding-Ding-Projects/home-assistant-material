@@ -101,7 +101,7 @@ app.whenReady().then(() => {
   h('chocoInstall', (keys) => choco.install(keys));
   const mc = new Minecraft(mgr); mc.on('console', (p) => send('mc-console', p)); mc.on('state', (p) => send('mc-state', p)); mc.on('progress', (p) => send('mc-progress', p)); mc.on('generate', (p) => send('mc-generate', p));
   h('mc', (fn, ...args) => {
-    const allowed = ['list', 'catalog', 'create', 'start', 'stop', 'restart', 'command', 'status', 'stats', 'logs', 'players', 'playerAction', 'properties', 'setProperties', 'gamerule', 'search', 'install', 'addons', 'toggleAddon', 'removeAddon', 'backup', 'restore', 'deleteBackup', 'switchVersion', 'remove', 'presets', 'setSchedule'];
+    const allowed = ['list', 'catalog', 'create', 'start', 'stop', 'restart', 'command', 'status', 'stats', 'logs', 'players', 'playerAction', 'properties', 'setProperties', 'gamerule', 'search', 'install', 'addons', 'toggleAddon', 'removeAddon', 'backup', 'restore', 'deleteBackup', 'switchVersion', 'remove', 'presets', 'setSchedule', 'live'];
     if (!allowed.includes(fn)) throw new Error('Unknown action.'); return mc[fn](...args);
   });
   setInterval(() => mc.tick().catch(() => {}), 60000);

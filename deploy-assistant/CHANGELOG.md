@@ -1,5 +1,11 @@
 # Deploy Assistant changes
 
+## 1.5
+
+- A small terminal shows every running job as it happens: deploys, Raspberry Pi cards, Minecraft consoles, the world generator and Chocolatey. Coloured lines, it follows new output unless you scroll up, and you can filter it, copy it, unwrap long lines or fill the window with it.
+- The Minecraft overview is a dashboard: who is playing (with message and kick), ticks per second, processor and memory, world size, backups, a live load chart, quick actions, the last console lines with a command line, and the address as a QR code.
+- Every tab has a header with an icon and its key facts.
+
 ## 1.4
 
 - Minecraft servers: create Vanilla, Paper, Purpur, Fabric, Quilt, Forge, NeoForge or Bedrock servers from the official catalogues (every Mojang version, with channel filters), on Java or Docker, here or on an SSH host. Start, stop, restart, a live console with history, every server setting with its own control, game rules, operators, allowlist and bans, plugins and mods from Modrinth checked by SHA-512, backups and restore, version changes with a backup first, a daily schedule, and a world generator with a chunk grid you draw on, writing to a folder or a ZIP.
