@@ -27,7 +27,7 @@ import {
   fetchMinecraftStatus,
   isMinecraftFailure,
   MINECRAFT_EULA_URL,
-  MINECRAFT_IMAGE,
+  minecraftImageFor,
   MinecraftPollGuard,
   minecraftJoinAddress,
   runMinecraftAction,
@@ -562,7 +562,7 @@ class HaMinecraftServer extends LitElement {
       </section>
       ${this._renderEula()} ${this._renderAddress(this._status)}
       <p class="detail">
-        ${this._l("detail.image_note", { image: MINECRAFT_IMAGE })}
+        ${this._l("detail.image_note", { image: minecraftImageFor(server.version) })}
       </p>
     `;
   }

@@ -8,6 +8,19 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Fixed: a Minecraft server of version 26.1 or newer could not start, because every server used
+  an image with Java 21 and those versions need Java 25 (found by starting 26.3 for real). The
+  image now follows the game version: Java 25 for 26.1 and newer, 21 for 1.20.5 to 1.21.x, 17
+  for 1.17 to 1.20.4 and 8 for older versions. The Java 25 image was run by hand and started
+  vanilla 26.3 and Paper 26.3; the change has not been run through the manager.
+- New: the embedded page panel has a "Page not showing?" button. A page that refuses to be shown
+  inside another page looks loaded to the browser, so no notice appeared by itself; the button
+  explains it. Not yet seen in a running build.
+- Fixed: when no Ollama server answers, the Models section says so. It used to say the server
+  had no models. Not yet seen in a running build.
+- Changed: the passkey documentation and message now say that a fresh sign-in, with the password
+  or with a passkey, is what allows adding a passkey; that is how it has always behaved. Passkeys
+  were run end to end in build 109 with a browser virtual authenticator.
 - Fixed: refreshing the Minecraft version list always failed for Paper, because the service
   retired the address the list came from. It now uses the service's current address. Found by
   running the manager against a real SSH and Docker host (a throwaway container), where host

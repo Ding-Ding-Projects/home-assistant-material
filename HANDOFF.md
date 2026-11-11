@@ -82,18 +82,28 @@ Later than the section below; where the two disagree, this one is newer.
   server, and the Minecraft manager against a real SSH and Docker host (a throwaway container
   with its own Docker engine); see their feature pages. That run found the Paper version list
   address retired by its service, fixed in batch 24.
-- NOT seen in any browser: the "Add media" fix on a real phone, the update install progress and recovery card during a
-  real install (no real update has been available), the editor save bar, the embedded page
-  panel, the converter's new conversions actually run in a browser, schedules, the activity
-  tray, and the batch 24 fix to Ollama table cells. Enter in a one-line prompt was seen
-  working in build 109 (New folder in the media Manage dialog, 390 px wide).
+- Seen or run for real on 11 November 2026 in build 109, at 390 px wide with a headless browser:
+  the save bar in the automation, script and scene editors (Saved, Unsaved changes, Saved);
+  schedules (a rule made, applied and kept after a reload); the converter (zip, tar, gzip, PDF,
+  DOCX and WAV conversions each produced a real file); the embedded page panel's reload and its
+  slow-page notice; a finished entry in the activity tray with Open, Undo and Dismiss; the Ollama
+  models table scrolling sideways with no word broken, and a download failing cleanly when the
+  server was stopped part way; passkeys with a browser virtual authenticator (add, sign in
+  without the password, remove, clean failures); Enter confirming the New folder prompt; and the
+  Minecraft version lists refreshing for real, with vanilla 1.21.8 starting.
+- NOT seen in any browser: the "Add media" fix on a real phone; the update install progress and
+  recovery card during a real install (no real update has been available); an activity tray
+  entry while it is still running; and the three batch 25 changes, which were made after that
+  run: the "Page not showing?" control in the embedded page panel (a page that refuses framing
+  showed no notice in build 109), the notice on the Ollama page when no server answers (it said
+  the server had no models), and the Minecraft image following the game version (26.3 could not
+  start on the Java 21 image in build 109; the Java 25 image was run by hand and started it).
 - Known limits: the activity record can still lose entries in the ways its documentation lists (a
   power cut in the seconds before a flush, a real queue overflow, shutdown while the disk is
   failing) and does not import entries from before it started; reading PDFs, MP3 output and
   video-to-video conversion are not offered; the paid cloud service is hidden in the interface
   only and remains visible in a few places for someone who has it configured (an existing
-  cloud-stored backup's location name, one entity filter); passkeys have never been used with
-  a real authenticator; the Minecraft manager has not been run with versions newer than 1.21.8; no operating system image has been built since two unit files were renamed
+  cloud-stored backup's location name, one entity filter); passkeys were run with a browser virtual authenticator, never with a hardware key or a phone; Minecraft 26.3 failed on the Java 21 image in build 109 and the per-version image that fixes it has not been run through the manager; no operating system image has been built since two unit files were renamed
   for Windows checkouts; a documentation-only push publishing no release has not been observed.
 - Closed by the owner's decision: the phone app's earlier setup problems (nothing left to fix).
 

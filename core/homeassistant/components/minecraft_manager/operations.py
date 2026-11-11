@@ -15,7 +15,6 @@ from .const import (
     COMMAND_TIMEOUT,
     EDITION_JAVA,
     LOG_REMOTE_BYTES,
-    MINECRAFT_IMAGE,
     PULL_TIMEOUT,
     REACHABLE_POLL_SECONDS,
     REACHABLE_WAIT_SECONDS,
@@ -239,10 +238,11 @@ async def async_start(
         if current["state"] == "absent":
             if (problem := await _ensure_volume(server, session)) is not None:
                 return problem
-            present = await session.run(commands.image_inspect())
+            image = commands.image_for_version(server.get("version"))
+            present = await session.run(commands.image_inspect(image))
             if present.exit_status != 0:
                 pulled = await session.run(
-                    commands.image_pull(), timeout=PULL_TIMEOUT
+                    commands.image_pull(image), timeout=PULL_TIMEOUT
                 )
                 if pulled.exit_status != 0:
                     return _command_failed(pulled)
@@ -264,7 +264,7 @@ async def async_start(
             "address": session.peer_ip,
             "port": server["port"],
             "reachable": reachable,
-            "image": MINECRAFT_IMAGE,
+            "image": commands.image_for_version(server.get("version")),
         }
 
     async with manager.lock(server["id"]):

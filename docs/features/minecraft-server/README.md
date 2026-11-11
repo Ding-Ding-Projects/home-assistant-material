@@ -53,7 +53,7 @@ The SSH library is `asyncssh`, which core already ships. Both the connection and
 
 ## Server container
 
-- Image: `itzg/minecraft-server:2026.11.0-java21`, fixed in `const.py` and shown on the server page. Newer Minecraft releases that need a newer Java may need a different tag; change it in `const.py` when needed. The tag is never `latest`.
+- Image: release `itzg/minecraft-server:2026.11.0`, fixed in `const.py`, in the Java variant the game version needs (`image_for_version` in `commands.py`): `-java25` for 26.1 and newer and for `latest`, `-java21` for 1.20.5 to 1.21.x, `-java17` for 1.17 to 1.20.4, `-java8` for older versions. The chosen image is shown on the server page. The tag is never `latest`. Until build 109 every server used the Java 21 variant, and a real run showed 26.3 crash-looping on it; the Java 25 variant was then run by hand on the same host and started vanilla 26.3 and Paper 26.3. The Java 17 and Java 8 variants have not been run.
 - The tag pins the image; it is not a digest, and no digest is recorded.
 - Container name `mc-<slug of the name>`; data in the named volume `mc-<slug>-data` mounted at `/data`. The container and the volume both carry the label `minecraft_manager.server_id=<server id>`. The volume is created first with `docker volume create --label`. Before any start, stop, restart, remove, status or data delete, the label is read (`docker inspect --type container`, `docker volume inspect`); an object whose label is missing or names another server is never adopted, stopped, removed or deleted, and the operation fails with `not_managed` ("not created by this manager"). A volume made without the label by an earlier build is treated the same way.
 - The container is started with `--security-opt no-new-privileges`, `--pids-limit 1024`, and the `json-file` log driver limited to three files of 10 MB.
@@ -162,8 +162,13 @@ One defect was found and fixed by that run: the Paper version list address had b
 its service (it answered HTTP 410), so refreshing versions always failed. The list now comes
 from the service's current address, and its grouped answer is flattened.
 
-Not covered by that run: Minecraft versions newer than 1.21.8 (the pinned image carries Java 21;
-a newer game version may need a newer image), the other four targets, and Bedrock.
+A second run the same day, on build 109, refreshed both version lists for real (850 vanilla
+entries, 68 Paper entries), started vanilla 1.21.8, and found that vanilla 26.3 and Paper 26.3
+could not start on the Java 21 image. The image now follows the game version; that change has
+not itself been run through the manager.
+
+Not covered: the Java 17 and Java 8 image variants, the other four targets, and Bedrock. A
+server whose container keeps restarting is still reported as running, with reachable false.
 
 ### Earlier checks
 

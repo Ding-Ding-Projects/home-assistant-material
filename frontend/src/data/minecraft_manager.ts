@@ -335,8 +335,45 @@ export const deleteMinecraftServer = (
 /** The EULA page the person has to accept. Shown as text, never opened here. */
 export const MINECRAFT_EULA_URL = "https://www.minecraft.net/eula";
 
-/** The container image every server uses. Fixed on the server in const.py. */
-export const MINECRAFT_IMAGE = "itzg/minecraft-server:2026.11.0-java21";
+const MINECRAFT_IMAGE_RELEASE = "itzg/minecraft-server:2026.11.0";
+
+/**
+ * The container image a server of this game version uses. Mirrors
+ * image_for_version in the integration's commands.py: the release is fixed,
+ * the Java variant follows the game version.
+ */
+export const minecraftImageFor = (version: string): string => {
+  let java = "java21";
+  const release = /^(\d+)\.(\d+)(?:\.(\d+))?/.exec(version);
+  const weekly = /^(\d\d)w\d\d/.exec(version);
+  if (version === "latest") {
+    java = "java25";
+  } else if (release) {
+    const major = Number(release[1]);
+    const minor = Number(release[2]);
+    const patch = Number(release[3] ?? 0);
+    if (major >= 2) {
+      java = "java25";
+    } else if (minor >= 21 || (minor === 20 && patch >= 5)) {
+      java = "java21";
+    } else if (minor >= 17) {
+      java = "java17";
+    } else {
+      java = "java8";
+    }
+  } else if (weekly) {
+    const year = Number(weekly[1]);
+    java =
+      year >= 26
+        ? "java25"
+        : year >= 24
+          ? "java21"
+          : year >= 21
+            ? "java17"
+            : "java8";
+  }
+  return `${MINECRAFT_IMAGE_RELEASE}-${java}`;
+};
 
 export const HOST_LIMITS = { portMin: 1, portMax: 65535 };
 

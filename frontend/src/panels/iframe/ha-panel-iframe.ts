@@ -3,6 +3,7 @@ import {
   mdiAlertCircleOutline,
   mdiClose,
   mdiContentCopy,
+  mdiHelpCircleOutline,
   mdiInformationOutline,
   mdiOpenInNew,
   mdiRefresh,
@@ -45,6 +46,10 @@ class HaPanelIframe extends LitElement {
   // The person closed the notice; it stays closed until the next reload
   @state() private _noticeDismissed = false;
 
+  // A refused page still reports that it loaded, so the person can ask for
+  // the explanation themselves; it stays until dismissed or reloaded
+  @state() private _helpAsked = false;
+
   @state() private _copyState?: "copied" | "failed";
 
   private _loadTimer?: number;
@@ -64,6 +69,7 @@ class HaPanelIframe extends LitElement {
   protected willUpdate(changed: Map<PropertyKey, unknown>) {
     if (changed.has("panel")) {
       this._notShown = false;
+      this._helpAsked = false;
       this._noticeDismissed = false;
     }
   }
@@ -97,10 +103,17 @@ class HaPanelIframe extends LitElement {
 
   private _dismissNotice() {
     this._noticeDismissed = true;
+    this._helpAsked = false;
+  }
+
+  private _askHelp() {
+    this._helpAsked = true;
+    this._noticeDismissed = false;
   }
 
   private _reload() {
     this._notShown = false;
+    this._helpAsked = false;
     this._noticeDismissed = false;
     this._reloadKey++;
   }
@@ -190,6 +203,12 @@ class HaPanelIframe extends LitElement {
         }
         <ha-icon-button
           slot="toolbar-icon"
+          .path=${mdiHelpCircleOutline}
+          .label=${this._text("not_showing")}
+          @click=${this._askHelp}
+        ></ha-icon-button>
+        <ha-icon-button
+          slot="toolbar-icon"
           .path=${mdiRefresh}
           .label=${this._text("reload")}
           @click=${this._reload}
@@ -227,11 +246,13 @@ class HaPanelIframe extends LitElement {
                 </div>`
           }
           ${
-            this._notShown && !this._noticeDismissed
+            (this._notShown || this._helpAsked) && !this._noticeDismissed
               ? html`<div class="notice warn" role="status">
                   <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
                   <span class="notice-text">
-                    ${this._text("not_shown")}
+                    ${this._text(
+                      this._notShown ? "not_shown" : "not_shown_help"
+                    )}
                     ${this._text(own ? "not_shown_open" : "not_shown_outside")}
                   </span>
                   <ha-icon-button

@@ -18,6 +18,10 @@ from .const import (
     MEMORY_MAX_MB,
     MEMORY_MIN_MB,
     MINECRAFT_IMAGE,
+    MINECRAFT_IMAGE_JAVA8,
+    MINECRAFT_IMAGE_JAVA17,
+    MINECRAFT_IMAGE_JAVA21,
+    MINECRAFT_IMAGE_JAVA25,
     CONTAINER_LOG_MAX_FILES,
     CONTAINER_LOG_MAX_SIZE,
     CONTAINER_PIDS_LIMIT,
@@ -86,14 +90,52 @@ def docker_version() -> list[str]:
     return ["docker", "version", "--format", "{{.Server.Version}}"]
 
 
-def image_inspect() -> list[str]:
-    """Check that the pinned image is already on the host."""
-    return ["docker", "image", "inspect", "--format", "{{.Id}}", MINECRAFT_IMAGE]
+_RELEASE_VERSION = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?")
+_WEEKLY_SNAPSHOT = re.compile(r"^(\d\d)w\d\d")
 
 
-def image_pull() -> list[str]:
-    """Pull the pinned image."""
-    return ["docker", "pull", MINECRAFT_IMAGE]
+def image_for_version(version: object) -> str:
+    """Return the pinned image whose Java suits a game version.
+
+    Minecraft 26.1 and newer need Java 25, 1.20.5 to 1.21.x need Java 21,
+    1.17 to 1.20.4 run on Java 17 and older versions on Java 8. The word
+    "latest" means the newest release. A version that cannot be read gets the
+    Java 21 variant.
+    """
+    if not isinstance(version, str):
+        return MINECRAFT_IMAGE
+    if version == "latest":
+        return MINECRAFT_IMAGE_JAVA25
+    if match := _RELEASE_VERSION.match(version):
+        major, minor = int(match[1]), int(match[2])
+        patch = int(match[3] or 0)
+        if major >= 2:
+            return MINECRAFT_IMAGE_JAVA25
+        if minor >= 21 or (minor == 20 and patch >= 5):
+            return MINECRAFT_IMAGE_JAVA21
+        if minor >= 17:
+            return MINECRAFT_IMAGE_JAVA17
+        return MINECRAFT_IMAGE_JAVA8
+    if match := _WEEKLY_SNAPSHOT.match(version):
+        year = int(match[1])
+        if year >= 26:
+            return MINECRAFT_IMAGE_JAVA25
+        if year >= 24:
+            return MINECRAFT_IMAGE_JAVA21
+        if year >= 21:
+            return MINECRAFT_IMAGE_JAVA17
+        return MINECRAFT_IMAGE_JAVA8
+    return MINECRAFT_IMAGE
+
+
+def image_inspect(image: str = MINECRAFT_IMAGE) -> list[str]:
+    """Check that a pinned image is already on the host."""
+    return ["docker", "image", "inspect", "--format", "{{.Id}}", image]
+
+
+def image_pull(image: str = MINECRAFT_IMAGE) -> list[str]:
+    """Pull a pinned image."""
+    return ["docker", "pull", image]
 
 
 def inspect(name: str) -> list[str]:
@@ -260,7 +302,7 @@ def run(server: dict[str, Any], bind_ip: str) -> list[str]:
     ]
     if version != "latest":
         command += ["--env", f"VERSION={version}"]
-    command.append(MINECRAFT_IMAGE)
+    command.append(image_for_version(version))
     return command
 
 

@@ -677,6 +677,16 @@ class HaConfigOllama extends LitElement {
     const shown = this._shownModels();
     const total = this._models?.length ?? 0;
     const search = this._l("search_n", { count: total });
+    if (!this._serverId) {
+      // No server answers, so there is no model list to show; saying "no
+      // models yet" here would read as an empty server.
+      return html`<section class="models">
+        <h2>${this._l("models")}</h2>
+        <ha-alert alert-type="warning">
+          ${this._l("no_reachable_server")}
+        </ha-alert>
+      </section>`;
+    }
     return html`<section class="models">
       <h2>${this._l("models")}</h2>
       ${

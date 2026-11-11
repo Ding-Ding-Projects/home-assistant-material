@@ -46,6 +46,42 @@ def test_run_command_shape() -> None:
     assert not MINECRAFT_IMAGE.endswith(":latest")
 
 
+
+@pytest.mark.parametrize(
+    ("version", "java"),
+    [
+        ("latest", "java25"),
+        ("26.1", "java25"),
+        ("26.3", "java25"),
+        ("26.4-snapshot-8", "java25"),
+        ("1.21.8", "java21"),
+        ("1.21", "java21"),
+        ("1.20.5", "java21"),
+        ("1.20.4", "java17"),
+        ("1.17", "java17"),
+        ("1.16.5", "java8"),
+        ("1.8.9", "java8"),
+        ("26w03a", "java25"),
+        ("24w14a", "java21"),
+        ("21w19a", "java17"),
+        ("13w16a", "java8"),
+        ("b1.7.3", "java21"),
+    ],
+)
+def test_image_follows_game_version(version: str, java: str) -> None:
+    """A game version starts only on its own Java, so the image follows it.
+
+    Found by running 26.3 for real: the single Java 21 image crash-looped with
+    an unsupported class version.
+    """
+    image = commands.image_for_version(version)
+    assert image == f"itzg/minecraft-server:2026.11.0-{java}"
+    assert commands.image_inspect(image)[-1] == image
+    assert commands.image_pull(image)[-1] == image
+    if commands.VERSION_PATTERN.fullmatch(version):
+        assert commands.run({**SERVER, "version": version}, "10.0.0.5")[-1] == image
+
+
 def test_latest_version_sets_no_version() -> None:
     """The word latest leaves the choice to the image."""
     command = commands.run({**SERVER, "version": "latest"}, "10.0.0.5")

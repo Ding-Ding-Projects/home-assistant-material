@@ -68,9 +68,18 @@ MAX_HOSTS: Final = 50
 HOST_PORT_MIN: Final = 1
 HOST_PORT_MAX: Final = 65535
 
-# The image every server container uses. The tag is explicit and fixed here so
-# a person can see it before starting; it is never "latest".
-MINECRAFT_IMAGE: Final = "itzg/minecraft-server:2026.11.0-java21"
+# The image release every server container uses. The release is explicit and
+# fixed here so a person can see it before starting; it is never "latest". The
+# Java variant of that release follows the game version (see
+# commands.image_for_version), because a game version only starts on the Java
+# it was built for.
+MINECRAFT_IMAGE_RELEASE: Final = "itzg/minecraft-server:2026.11.0"
+MINECRAFT_IMAGE_JAVA25: Final = f"{MINECRAFT_IMAGE_RELEASE}-java25"
+MINECRAFT_IMAGE_JAVA21: Final = f"{MINECRAFT_IMAGE_RELEASE}-java21"
+MINECRAFT_IMAGE_JAVA17: Final = f"{MINECRAFT_IMAGE_RELEASE}-java17"
+MINECRAFT_IMAGE_JAVA8: Final = f"{MINECRAFT_IMAGE_RELEASE}-java8"
+# The variant used when a version cannot be read.
+MINECRAFT_IMAGE: Final = MINECRAFT_IMAGE_JAVA21
 CONTAINER_PREFIX: Final = "mc-"
 CONTAINER_GAME_PORT: Final = 25565
 STOP_GRACE_SECONDS: Final = 60

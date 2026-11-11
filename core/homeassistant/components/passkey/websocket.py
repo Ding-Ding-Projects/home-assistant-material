@@ -72,8 +72,10 @@ def _signed_in_recently(
 
     A passkey outlives every session, so only a normal session that was created
     a moment ago may add or remove one. A long-lived access token never can.
-    The session must also come from a password login: a provider that asks for
-    no secret, such as trusted networks, proves nothing about the person.
+    The session must also belong to the password provider's credential: a
+    provider that asks for no secret, such as trusted networks, proves nothing
+    about the person. A passkey sign-in is recorded against that same
+    credential, so a fresh passkey sign-in qualifies too.
     """
     if connection.refresh_token_id is None:
         return False
