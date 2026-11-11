@@ -20,7 +20,7 @@
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
     sounds: true, volume: 40, voice: '', schedule: { on: false, from: '20:00', to: '07:00' }, name: 'Deploy Assistant', logo: { shape: 'rounded', color: '' },
     tabs: { open: TABS.slice(), pinned: [], offered: TABS.slice() }, active: 'deploy', edge: 'top', paletteFull: false, openAfter: true, defaultTarget: 'docker',
-    look: {}, locks: {}, folds: {}, wizTarget: '', history: [], notes: [], welcomed: false, welcomeStep: 0, view: 'cards'
+    look: {}, locks: {}, folds: {}, wizTarget: '', axHidden: false, adhd: { focus: false, time: false, one: false, momentum: false }, nextStep: '', doneToday: null, narrator: { on: false, lang: 'en', voiceEn: '', voiceYue: '', rate: 1, pitch: 1 }, rules: [], history: [], notes: [], welcomed: false, welcomeStep: 0, view: 'cards'
   };
   var st = load();
   function load() {
@@ -32,13 +32,14 @@
     s.tabs.open = s.tabs.open.filter(function (t) { return TABS.indexOf(t) >= 0; });
     return s;
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* storage may be off */ } }
+  // Scheduled rules change settings only in memory: what is saved is always your own base value.
+  function save() { try { var b = window.HAM_BASE ? window.HAM_BASE() : {}; var out = Object.assign({}, st); Object.keys(b).forEach(function (k) { out[k] = b[k]; }); localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) { /* storage may be off */ } }
   var unlocked = {};
   try { unlocked = JSON.parse(sessionStorage.getItem(KEY + '-open') || '{}'); } catch (e) { unlocked = {}; }
 
   // ---------- Words ----------
   var W = {
-    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], run: ['Run it', '點樣行'], features: ['Features', '功能'], articles: ['Articles', '文章'], status: ['Status', '狀態'], design: ['Design', '設計'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'],
+    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], run: ['Run it', '點樣行'], features: ['Features', '功能'], articles: ['Articles', '文章'], status: ['Status', '狀態'], design: ['Design', '設計'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'], adhd: ['ADHD modes', 'ADHD 模式'],
     search: ['Search', '搵嘢'], newtab: ['New tab', '新分頁'], openall: ['Open every tab', '打開晒所有分頁'], close: ['Close', '閂'], cancel: ['Cancel', '取消'], next: ['Next', '下一步'], back: ['Back', '返轉頭'],
     skip: ['Skip', '跳過'], done: ['Done', '搞掂'], reset: ['Reset', '還原'], copy: ['Copy', '複製'], export: ['Export', '匯出'], undo: ['Undo', '還原返'], clear: ['Clear', '清除'],
     notifications: ['Notifications', '通知'], access: ['Accessibility tools', '無障礙工具'], theme: ['Switch light and dark', '轉光暗'], palette: ['Search everything', '搵晒所有嘢'],

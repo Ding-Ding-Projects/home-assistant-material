@@ -271,4 +271,8 @@ separate process with time and size limits, no secrets handed over, two built-in
 Tools, Support, Changes, school mode, a reading voice, a dark theme on a schedule, its own name
 and logo, the dim sum surprise, background updates on Windows with an unsigned-update banner, the
 version and build time on the first screen, and opening an instance's Compose file in VS Code. The
-boards now fill `canvases/16-deploy-assistant` (15) and `canvases/17-deploy-assistant-more` (10).
+boards now fill `canvases/16-deploy-assistant` (15), `canvases/17-deploy-assistant-more` (15) and
+`canvases/18-deploy-assistant-care` (10). Versions 1.2 and 1.3 add the offline project pages, QR scanning,
+the update self-test, ADHD modes, the narrator, schedule rules (including a Home Assistant switch), the
+two-key confirmation, logo upload, exports in eleven formats, record history and the live chart.
+`deploy-assistant/FEATURES.md` lists every contract feature with its honest state.

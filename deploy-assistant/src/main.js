@@ -8,6 +8,8 @@ const { Downloads } = require('./backend/downloads');
 const pi = require('./backend/pi-writer');
 const { Extensions } = require('./backend/extensions');
 const updates = require('./backend/updates');
+const { DimSum } = require('./backend/dimsum');
+const ha = require('./backend/ha');
 
 if (require('node:os').platform() === 'win32' && require('./squirrel-events')(app)) app.quit();
 
@@ -88,7 +90,24 @@ app.whenReady().then(() => {
   h('updateHistory', () => upd.history());
   h('restartToUpdate', () => { autoUpdater.quitAndInstall(); return true; });
   h('editor', (id) => editor(id));
-  h('about', () => { let built = ''; try { built = require('./build-info.json').builtAt; } catch { /* a development run */ } return { version: app.getVersion(), builtAt: built, platform: process.platform, data: mgr.dir, electron: process.versions.electron }; });
+  const dim = new DimSum(mgr.dir);
+  h('dimsum', () => dim.surprise());
+  h('history', () => mgr.history().map((r) => ({ rev: r.rev, at: r.at, action: r.action, text: r.text, records: r.records })));
+  h('restoreRevision', (n) => mgr.restoreRevision(n));
+  h('haSave', (o) => { ha.checkBase(o.base); mgr.db.ha = { base: o.base, token: o.token === '(saved)' && mgr.db.ha ? mgr.db.ha.token : o.token ? enc(o.token) : '' }; mgr.save(); return { base: o.base, saved: !!mgr.db.ha.token }; });
+  h('haInfo', () => ({ base: (mgr.db.ha || {}).base || '', saved: !!(mgr.db.ha || {}).token }));
+  h('haState', (entity) => { const c = mgr.db.ha || {}; return ha.entityState(c.base || '', c.token ? dec(c.token) : '', entity); });
+  // Saves an export into the exports folder and opens it in VS Code, or its folder without VS Code.
+  h('exportOpen', async (name, text) => {
+    if (!/^[\w .()-]{1,120}$/.test(name)) throw new Error('That file name is not allowed.');
+    const dir = path.join(mgr.dir, 'exports'); fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, name); fs.writeFileSync(file, String(text).slice(0, 50 * 1024 * 1024));
+    const { run } = require('./backend/util');
+    const r = await run(process.platform === 'win32' ? 'code.cmd' : 'code', [file]).catch(() => ({ code: 1 }));
+    if (r.code === 0) return 'Opened ' + name + ' in VS Code';
+    shell.showItemInFolder(file); return 'Saved ' + name + '; VS Code was not found, so its folder is open';
+  });
+  h('about', () => { let bi = {}; try { bi = require('./build-info.json'); } catch { /* a development run */ } return { version: app.getVersion(), builtAt: bi.builtAt || '', codeName: bi.codeName || '', platform: process.platform, data: mgr.dir, electron: process.versions.electron }; });
   h('win', (a) => { if (a === 'min') win.minimize(); if (a === 'max') { if (win.isMaximized()) win.unmaximize(); else win.maximize(); } if (a === 'close') win.close(); return win.isMaximized(); });
   createWindow();
   setInterval(() => mgr.refresh().catch(() => {}), 5000);

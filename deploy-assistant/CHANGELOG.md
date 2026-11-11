@@ -1,5 +1,16 @@
 # Deploy Assistant changes
 
+## 1.3
+
+- ADHD modes, each off by default: Focus, Low stimulation, Time awareness, One thing at a time and Momentum.
+- A narrator for what happens, off by default, in English, Cantonese or both, with a voice picker per language, speed and pitch.
+- Schedule rules: change the theme, language, density, motion or colour by days, times and dates, or while a Home Assistant switch is on; your own settings come back afterwards.
+- The dim sum surprise shows a photo from the public dim sum catalog, 1 time in 10 at start; its switch stays on. Each release has a dim sum code name.
+- Deleting now takes two keys and a slider, with an emergency exit.
+- The accessibility button gains read-aloud pause and stop, keyboard help, reset and a way to hide it.
+- Your own logo from a picture, export in eleven text formats with Open in VS Code, bulk actions on backups and hosts, a history of your records with restore, a clear button in every text box, a live processor chart, and changelog links to each commit.
+- FEATURES.md lists every feature the interface contract asks for and where the app stands.
+
 ## 1.2
 
 - New tabs that work offline: Run it, Features, Articles, Status, and Design, which shows every board of this app's design full size.

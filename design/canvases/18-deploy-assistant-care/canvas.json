@@ -1,0 +1,133 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-11T01:47:01Z"
+  },
+  "title": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "DeployRule.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, a schedule rule by day and time",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployRuleHa.dc.html": {
+      "x": 1420,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, a schedule rule following a Home Assistant switch",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployLogo.dc.html": {
+      "x": 2840,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the logo: presets or your own picture",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployExport.dc.html": {
+      "x": 4260,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, export in every text format",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployRecords.dc.html": {
+      "x": 0,
+      "y": 1100,
+      "w": 1320,
+      "h": 1259,
+      "title": "Deploy Assistant, the history of your records",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeploySuper.dc.html": {
+      "x": 1420,
+      "y": 1100,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, two keys and a slider before anything is deleted",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployLive.dc.html": {
+      "x": 2840,
+      "y": 1100,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the live processor chart",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployDimSum.dc.html": {
+      "x": 4260,
+      "y": 1100,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, a dim sum surprise",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployPalette.dc.html": {
+      "x": 0,
+      "y": 2579,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, Ctrl Shift F with live controls",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployNarrow.dc.html": {
+      "x": 1420,
+      "y": 2579,
+      "w": 400,
+      "h": 2298,
+      "title": "Deploy Assistant, a narrow window",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "DeployRule.dc.html",
+    "DeployRuleHa.dc.html",
+    "DeployLogo.dc.html",
+    "DeployExport.dc.html",
+    "DeployRecords.dc.html",
+    "DeploySuper.dc.html",
+    "DeployLive.dc.html",
+    "DeployDimSum.dc.html",
+    "DeployPalette.dc.html",
+    "DeployNarrow.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight. 10 boards drawn from the app.",
+      "kind": "title1",
+      "maxW": 5580,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

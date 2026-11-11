@@ -17,7 +17,7 @@
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
     sounds: true, volume: 40, voice: '', schedule: { on: false, from: '20:00', to: '07:00' }, name: 'Home Assistant Material', logo: { shape: 'rounded', color: '' },
     tabs: { open: TABS.slice(), pinned: [], offered: TABS.slice() }, active: 'home', edge: 'top', paletteFull: false,
-    look: {}, locks: {}, history: [], notes: [], tickets: [], otp: [], welcomed: false, welcomeStep: 0
+    look: {}, locks: {}, history: [], notes: [], tickets: [], otp: [], axHidden: false, welcomed: false, welcomeStep: 0
   };
   var st = load();
   function load() {
@@ -309,7 +309,7 @@
       '<div class="grid2" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">' + cards + '</div>' + (rel.tag ? '<p class="bs mu">Files of release ' + esc(rel.tag) + '. <a href="' + S.repo + '/releases/tag/' + esc(rel.tag) + '">All files and SHA256SUMS</a>.</p>' : '') + '</div>' +
       '<section class="section" id="demo"><h2 class="hs">Try it here</h2><p class="bm mu">The real app\'s window, running in this page with nothing behind it: press anything. Deploying here only plays the steps.</p><iframe class="demo" src="deploy-assistant/index.html" title="Deploy Assistant demo" loading="lazy"></iframe></section>' +
       '<section class="section"><h2 class="hs">What it does</h2><div class="grid3">' + feats.map(function (f) { return '<div class="feat" style="padding:20px;gap:8px"><span class="tm">' + f[0] + '</span><span class="bm mu">' + f[1] + '</span></div>'; }).join('') + '</div></section>' +
-      '<section class="section"><h2 class="hs">Its design</h2><div class="thumbs">' + (S.canvases.filter(function (c) { return /^1[67]-deploy/.test(c.id); }).reduce(function (a, c) { return a.concat(c.boards); }, []).map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('')) + '</div></section>' + foot();
+      '<section class="section"><h2 class="hs">Its design</h2><div class="thumbs">' + (S.canvases.filter(function (c) { return /^1[678]-deploy/.test(c.id); }).reduce(function (a, c) { return a.concat(c.boards); }, []).map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('')) + '</div></section>' + foot();
   };
   function md(t) { return esc(t).split(/\n\s*\n/).map(function (p) { return '<p class="bm">' + p.replace(/\n/g, ' ') + '</p>'; }).join(''); }
   R.changes = function () {
@@ -350,7 +350,7 @@
         srow('seed', 'Main colour', 'The colour buttons and selections are drawn in.', '#00639B', 'The whole page', '<input type="color" value="' + st.seed + '" data-color="seed" aria-label="Main colour" style="width:48px;height:40px;border:0;background:none">', 'seed'),
         srow('density', 'Density', 'How much room rows take.', 'Comfortable', 'Lists and settings', seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], 'Density'), 'density'),
         srow('reduceMotion', 'Reduce motion', 'Stops animations. Your system setting is followed too.', 'Off', 'The whole page', sw('reduceMotion', 'Reduce motion'), 'reduceMotion')]],
-      ['access', [srow('textScale', 'Text size', 'Makes every text larger without cutting anything off.', '100%', 'The whole page', seg('textScale', [['1', '100%'], ['1.25', '125%'], ['1.5', '150%'], ['2', '200%']], 'Text size'), 'textScale'),
+      ['access', [srow('axshow', 'Show accessibility button', 'The button at the top that opens text size, contrast, motion, focus, read aloud and keyboard help. Hiding it keeps everything you set.', 'On', 'The top bar', sw2b(), 'axHidden'), srow('textScale', 'Text size', 'Makes every text larger without cutting anything off.', '100%', 'The whole page', seg('textScale', [['1', '100%'], ['1.25', '125%'], ['1.5', '150%'], ['2', '200%']], 'Text size'), 'textScale'),
         srow('contrast', 'More contrast', 'Darker secondary text and lines.', 'Off', 'The whole page', sw('contrast', 'More contrast'), 'contrast'),
         srow('focusRing', 'Visible focus', 'A clear ring around what has the keyboard focus.', 'On', 'The whole page', sw('focusRing', 'Visible focus'), 'focusRing'),
         srow('bigTargets', 'Larger targets', 'Larger buttons for touch and pointer.', 'Off', 'Buttons', sw('bigTargets', 'Larger targets'), 'bigTargets'),
@@ -408,7 +408,7 @@
       '<header class="topbar" data-k="topbar"><a class="brand" href="#home" data-go="home:top"><span class="logo ' + st.logo.shape + '" style="' + (st.logo.color ? 'background:' + st.logo.color : '') + '" aria-hidden="true">' + esc((st.name || 'H').trim()[0] || 'H') + '</span><b>' + esc(st.name) + '</b></a>' +
       '<button class="btn tonal sm" data-act="palette" aria-label="' + esc(w('palette')) + ', Ctrl Shift F">' + icon('Magnify', 's') + '<span class="opt">' + L('search') + '</span><span class="kbd opt">Ctrl Shift F</span></button>' +
       '<button class="ib opt" data-act="theme" aria-label="' + esc(w('theme')) + '">' + icon('ThemeLightDark') + '</button>' +
-      '<button class="ib" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>' +
+      (st.axHidden ? '' : '<button class="ib" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>') +
       '<button class="ib opt" data-act="lang" aria-label="' + esc(w('language')) + ': ' + st.lang + '">' + icon('Translate') + '</button>' +
       '<button class="ib" data-act="bell" aria-label="' + esc(w('notifications')) + '" style="position:relative">' + icon('Bell') + '<span class="badge" id="bellcount" hidden>0</span></button></header>' +
       '<nav class="tabstrip" role="tablist" aria-label="Pages" aria-orientation="' + (st.edge === 'left' || st.edge === 'right' ? 'vertical' : 'horizontal') + '" data-k="tabs"></nav>' +
@@ -467,13 +467,31 @@
   function closeDialog() { var o = $('#ov'); if (o) { o.remove(); if (lastFocus && lastFocus.focus) lastFocus.focus(); } }
 
   // Two-step confirmation: what will happen, then the name typed.
+  // Super confirmation: names the action and what is lost, then needs two separate keys before the
+  // slider unlocks; only a slider pushed all the way acts. Emergency exit and Escape always cancel,
+  // and focus goes back to the control that asked.
+  function sw2b() { return '<button class="sw' + (st.axHidden ? '' : ' on') + '" role="switch" aria-checked="' + !st.axHidden + '" aria-label="Show accessibility button" data-axshow><i></i></button>'; }
   function superConfirm(what, items, word, done) {
-    dialog(what, '<ul class="bm" style="margin:0;padding-left:20px">' + items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '<li>This cannot be undone.</li></ul><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn tonal" id="sc1">Continue</button></div>', { emoji: '⚠️' });
-    $('#sc1').addEventListener('click', function () {
-      dialog('Type ' + word + ' to confirm', '<p class="bm">Step 2 of 2. Type <b class="mono">' + esc(word) + '</b> exactly.</p><input class="input" id="sc2in" aria-label="Type ' + esc(word) + '" autocomplete="off"><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn err" id="sc2" disabled>' + esc(what) + '</button></div>');
-      var inp = $('#sc2in'), b = $('#sc2'); inp.addEventListener('input', function () { b.disabled = inp.value !== word; });
-      b.addEventListener('click', function () { closeDialog(); done(); });
-    });
+    var origin = document.activeElement, keys = { a: false, b: false };
+    dialog(what, '<div class="sc-warn" role="note"><b>' + esc(what) + '</b></div><ul class="bm" style="margin:0;padding-left:20px">' + items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '<li>This cannot be undone.</li></ul>' +
+      '<div class="sc-keys"><button class="sc-key" id="sc1" aria-pressed="false">' + icon('Lock', 's') + '<span>Key 1: I know what is lost</span></button>' +
+      '<label class="sc-key" id="sc2k"><span>Key 2: type <b class="mono">' + esc(word) + '</b></span><input class="input" id="sc2in" aria-label="Key 2: type ' + esc(word) + '" autocomplete="off" spellcheck="false"></label></div>' +
+      '<label class="col" style="gap:4px"><span class="ll" id="sclab">Slide all the way to confirm</span><input type="range" id="scslide" min="0" max="100" value="0" disabled aria-labelledby="sclab" aria-describedby="scstate"></label><span class="bs mu" id="scstate" aria-live="polite">Both keys are needed before the slider moves.</span>' +
+      '<div class="row" style="gap:8px"><button class="btn tonal" id="scexit">' + icon('Close', 's') + 'Emergency exit</button><span class="grow"></span><button class="btn err" id="sc2" disabled>' + esc(what) + '</button></div>', { emoji: '⚠️' });
+    var slide = $('#scslide'), go2 = $('#sc2'), stt = $('#scstate');
+    var sync = function () {
+      $('#sc1').setAttribute('aria-pressed', keys.a); $('#sc1').classList.toggle('on', keys.a); $('#sc2k').classList.toggle('on', keys.b);
+      var both = keys.a && keys.b; slide.disabled = !both; if (!both) slide.value = 0;
+      go2.disabled = !(both && +slide.value === 100);
+      stt.textContent = !both ? (keys.a || keys.b ? 'One key turned. Turn the other one.' : 'Both keys are needed before the slider moves.') : +slide.value === 100 ? 'Armed. Press the red button, or Enter on the slider.' : 'Keys turned. Slide all the way: ' + slide.value + '%.';
+    };
+    var finish = function () { if (go2.disabled) return; closeDialog(); done(); if (origin && document.body.contains(origin)) origin.focus(); };
+    var cancel = function () { closeDialog(); if (origin && document.body.contains(origin)) origin.focus(); };
+    $('#sc1').addEventListener('click', function () { keys.a = !keys.a; sync(); });
+    $('#sc2in').addEventListener('input', function () { keys.b = this.value === word; sync(); });
+    slide.addEventListener('input', sync); slide.addEventListener('keydown', function (e) { if (e.key === 'Enter') finish(); });
+    go2.addEventListener('click', finish); $('#scexit').addEventListener('click', cancel);
+    sync();
   }
 
   // ---------- Pattern workbench ----------
@@ -664,14 +682,27 @@
     var old = $('.panel'); if (old) { old.remove(); return; }
     var p = document.createElement('div'); p.className = 'panel'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', w('access'));
     function draw() {
+      var talking = 'speechSynthesis' in window && speechSynthesis.speaking, paused = talking && speechSynthesis.paused;
       p.innerHTML = '<div class="row" style="gap:8px"><h2 class="tl grow">' + L('access') + '</h2><button class="ib" data-ax aria-label="' + esc(w('close')) + '">' + icon('Close', 's') + '</button></div>' +
         [['textScale', 'Text size'], ['contrast', 'More contrast'], ['reduceMotion', 'Reduce motion'], ['focusRing', 'Visible focus'], ['bigTargets', 'Larger targets'], ['spotlight', 'Focus spotlight']].map(function (s) { return '<div class="setting"><span class="ll">' + s[1] + '</span><div class="ctl">' + (s[0] === 'textScale' ? seg('textScale', [['1', '100%'], ['1.25', '125%'], ['1.5', '150%'], ['2', '200%']], 'Text size') : sw(s[0], s[1])) + '</div></div>'; }).join('') +
-        '<button class="btn text sm" data-axread>' + icon('AccountVoice', 's') + 'Read this page aloud</button><button class="btn text sm" data-go="settings:accessibility">All accessibility settings</button>';
+        '<div class="setting"><span class="ll">Read aloud</span><div class="ctl"><button class="btn tonal sm" data-axread>' + icon('AccountVoice', 's') + 'Read this page</button>' + (talking ? '<button class="btn text sm" data-axpause>' + (paused ? 'Resume' : 'Pause') + '</button><button class="btn text sm" data-axstop>Stop</button>' : '') + '</div></div>' +
+        '<details class="fold"><summary class="ll">' + icon('Keyboard', 's') + 'Keyboard help</summary><ul class="bs" style="margin:6px 0 0;padding-left:18px"><li>Tab and Shift Tab move between controls; Enter or Space acts.</li><li>Arrow keys move between tabs; Delete closes one.</li><li>Ctrl Shift F searches everything; Escape closes what is open.</li><li>Shift F10 or the Menu key opens the menu of the focused element.</li></ul></details>' +
+        '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn text sm" data-axreset>' + icon('Restore', 's') + 'Reset these</button><button class="btn text sm" data-go="settings:accessibility">All accessibility settings</button></div>' +
+        '<hr style="border:0;border-top:1px solid var(--outv);margin:4px 0"><button class="btn text sm" data-axhide>Hide accessibility button…</button>';
     }
     draw(); $('#app').appendChild(p);
-    p.addEventListener('click', function (e) { if (e.target.closest('[data-ax]')) p.remove(); if (e.target.closest('[data-axread]')) speak($('#p-' + st.active).innerText); setTimeout(draw, 0); });
+    p.addEventListener('click', function (e) {
+      if (e.target.closest('[data-ax]')) { p.remove(); return; }
+      if (e.target.closest('[data-axread]')) speak($('#p-' + st.active).innerText);
+      if (e.target.closest('[data-axpause]')) { if (speechSynthesis.paused) speechSynthesis.resume(); else speechSynthesis.pause(); }
+      if (e.target.closest('[data-axstop]')) speechSynthesis.cancel();
+      if (e.target.closest('[data-axreset]')) { ['textScale', 'contrast', 'reduceMotion', 'focusRing', 'bigTargets', 'spotlight'].forEach(function (k) { st[k] = DEF[k]; }); save(); apply(); }
+      if (e.target.closest('[data-axhide]')) { dialog('Hide the accessibility button?', '<p class="bm">The button leaves the top bar. Everything you set stays applied. Settings, Accessibility, Show accessibility button brings it back at any time.</p><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="axhideok">Hide it</button></div>'); $('#axhideok').onclick = function () { setVal('axHidden', true, 'Accessibility button hidden'); closeDialog(); p.remove(); shell(); render(); }; return; }
+      setTimeout(draw, 0);
+    });
     $('[data-ax]', p).focus();
   }
+
 
   // ---------- Small helpers ----------
   function copy(t) { if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast(msg('copied')); }, function () { toast('The browser did not allow copying.'); }); }
@@ -828,6 +859,7 @@
       b = t.closest('[data-regex]'); if (b) { workbench(b.dataset.regex); return; }
       b = t.closest('[data-copy]'); if (b) { copy(b.dataset.copy); return; }
       b = t.closest('[data-board]'); if (b) { dialog(b.dataset.btitle, '<img src="boards/' + esc(b.dataset.board) + '.webp" alt="' + esc(b.dataset.btitle) + '" style="width:100%;height:auto;border-radius:16px;box-shadow:0 0 0 1px var(--outv)">', { full: true }); return; }
+      b = t.closest('[data-axshow]'); if (b) { setVal('axHidden', !st.axHidden, 'Accessibility button'); shell(); render(); return; }
       b = t.closest('[data-toggle]'); if (b) { setVal(b.dataset.toggle, !get(b.dataset.toggle), labelOf(b)); if (b.dataset.toggle === 'school' && st.school) { st.funEn = 1; st.funYue = 1; save(); } render(); return; }
       b = t.closest('[data-set]'); if (b) { var v = b.dataset.val; if (/^(funEn|funYue|textScale)$/.test(b.dataset.set)) v = +v; setVal(b.dataset.set, v, b.closest('[role=group]').getAttribute('aria-label')); if (b.dataset.set === 'edge') shell(); render(); return; }
       b = t.closest('[data-reset]'); if (b) { var p = b.dataset.reset, dv = p.split('.').reduce(function (o, k) { return o == null ? o : o[k]; }, DEF); setVal(p, JSON.parse(JSON.stringify(dv)), 'Reset ' + p); if (p === 'edge' || p === 'name' || p === 'logo') shell(); render(); toast(msg('saved')); return; }

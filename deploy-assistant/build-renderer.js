@@ -19,10 +19,13 @@ const shared = [
 ].map(section).join('\n')
   .replace(/  function findField\([\s\S]*?\n  \}\n/, '');
 // The changelog is shown in the Changes tab: sections of '## version' with '- ' items.
-const changes = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf8').split(/^## /m).slice(1).map((b) => { const lines = b.split('\n'); return { version: lines[0].trim(), items: lines.filter((l) => l.startsWith('- ')).map((l) => l.slice(2)) }; });
+// Each version links to the commit that first wrote its heading.
+const { execFileSync } = require('node:child_process');
+const commitOf = (v) => { try { return execFileSync('git', ['log', '-S', '## ' + v, '--format=%H', '--reverse', '--', 'CHANGELOG.md'], { cwd: __dirname, encoding: 'utf8' }).trim().split('\n')[0] || ''; } catch { return ''; } };
+const changes = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf8').split(/^## /m).slice(1).map((b) => { const lines = b.split('\n'); const version = lines[0].trim(); return { version, commit: commitOf(version), items: lines.filter((l) => l.startsWith('- ')).map((l) => l.slice(2)) }; });
 const out = '// Written by build-renderer.js. Edit parts/head.js, parts/tail.js or docs/site/app.js instead.\n' +
   fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'head.js'), 'utf8') + '\n  var CHANGES = ' + JSON.stringify(changes) + ';\n' + shared + '\n' +
-  fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tail.js'), 'utf8');
+  fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tail.js'), 'utf8').replace('  // ---------- Start ----------', () => fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'more.js'), 'utf8') + '  // ---------- Start ----------');
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'app.js'), out);
 const css = '/* Written by build-renderer.js from the project page styles and parts/app-extra.css. */\n' +
   fs.readFileSync(path.join(site, 'm3.css'), 'utf8') + '\n' +
@@ -31,7 +34,7 @@ const css = '/* Written by build-renderer.js from the project page styles and pa
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'app.css'), css);
 fs.mkdirSync(path.join(__dirname, 'src', 'renderer', 'fonts'), { recursive: true });
 for (const f of fs.readdirSync(path.join(site, 'fonts'))) fs.copyFileSync(path.join(site, 'fonts', f), path.join(__dirname, 'src', 'renderer', 'fonts', f));
-const build = { version: require('./package.json').version, builtAt: new Date().toISOString() };
+const build = { version: require('./package.json').version, builtAt: new Date().toISOString(), codeName: process.env.HAM_CODENAME || '' };
 fs.writeFileSync(path.join(__dirname, 'src', 'build-info.json'), JSON.stringify(build) + '\n');
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'build-info.js'), '// Written by build-renderer.js: the version and build time shown on the first screen.\nwindow.HAM_BUILD = ' + JSON.stringify(build) + ';\n');
 // The project page's data (features, status, design boards), its QR reader, and the boards of

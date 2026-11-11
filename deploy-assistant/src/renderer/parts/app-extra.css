@@ -55,3 +55,15 @@
 details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:center;gap:8px;list-style:none}details.fold>summary::-webkit-details-marker{display:none}
 @media (max-width:760px){.wizgrid{grid-template-columns:1fr}.tlist{flex-direction:row;overflow-x:auto}.trow{flex:none}.stepper li span.ll{display:none}}
 .wpanel .row .col>.tag{align-self:flex-start;width:auto;max-width:100%}
+.adhdbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 16px}
+.adhd-focus .pane>*{transition:opacity .2s}.adhd-focus .pane>*:not(:focus-within):not(:hover){opacity:.45}
+@media (prefers-reduced-motion:reduce){.adhd-focus .pane>*{transition:none}}
+.clrwrap{position:relative;display:flex;align-items:center;min-width:0;flex:1 1 auto}.clrwrap>input,.clrwrap>textarea{flex:1;min-width:0;padding-right:40px}
+.clrwrap .clr{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:0;border-radius:16px;background:none;color:var(--onv);display:grid;place-items:center;cursor:pointer}
+.clrwrap.ta .clr{top:6px;transform:none}.clrwrap .clr:hover,.clrwrap .clr:focus-visible{background:var(--sl3)}
+.clrwrap>input:placeholder-shown+.clr{opacity:.35}
+.find .clrwrap{flex:1}
+.dimcard{position:fixed;left:16px;bottom:16px;z-index:60;display:flex;gap:12px;align-items:center;padding:10px 12px 10px 10px;border-radius:24px;background:var(--surf);color:var(--on);box-shadow:var(--e3);max-width:min(420px,calc(100vw - 32px));animation:dimin .35s ease-out}
+.dimcard img{width:72px;height:72px;border-radius:16px;object-fit:cover}
+@keyframes dimin{from{transform:translateY(16px);opacity:0}}@media (prefers-reduced-motion:reduce){.dimcard{animation:none}}
+.lcbadge{padding:4px 12px;border-radius:12px;background:var(--pc);color:var(--on-pc);font:600 13px/20px 'Roboto Mono',ui-monospace,monospace}

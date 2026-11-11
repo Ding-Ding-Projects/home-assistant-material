@@ -19,8 +19,52 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Every build has a dim sum code name from the public catalog (Ding-Ding-Projects/dim-sum-photos):
+  # the first dish, in catalog order, whose photo is published and that no earlier Deploy Assistant
+  # release used. If none can be resolved, the build ships with its version alone.
+  codename:
+    name: Choose the code name
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      name: ${{ steps.pick.outputs.name }}
+      photo: ${{ steps.pick.outputs.photo }}
+    steps:
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          curl -fsSL https://raw.githubusercontent.com/Ding-Ding-Projects/dim-sum-photos/main/catalog/index.json -o catalog.json || exit 0
+          gh api "repos/Ding-Ding-Projects/dim-sum-photos/releases?per_page=100" > photos.json || exit 0
+          gh api "repos/${REPO}/releases?per_page=100" --paginate > ours.json || echo '[]' > ours.json
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json, os
+          cat = json.load(open('catalog.json'))
+          assets = {}
+          for r in json.load(open('photos.json')):
+              if r['tag_name'].startswith('catalog-v1') and not r.get('draft'):
+                  for a in r.get('assets', []):
+                      assets[a['name']] = a['browser_download_url']
+          used = set()
+          for r in json.load(open('ours.json')):
+              if r['tag_name'].startswith('deploy-assistant-v'):
+                  for line in (r.get('body') or '').splitlines():
+                      if line.startswith('Code name: '):
+                          used.add(line[len('Code name: '):].split(' (')[0].strip())
+          for d in cat.get('dishes', []):
+              name = d['name']['en'] + ' · ' + d['name']['zhHant']
+              url = assets.get(os.path.basename(d.get('image', {}).get('path', '')))
+              if url and name not in used:
+                  print('name=' + name)
+                  print('photo=' + url)
+                  break
+          EOF
   build:
     name: Build on ${{ matrix.os }}
+    needs: codename
     strategy:
       fail-fast: false
       matrix:
@@ -64,6 +108,7 @@ jobs:
       - name: Build the installers
         shell: bash
         env:
+          HAM_CODENAME: ${{ needs.codename.outputs.name }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           CSC_LINK: ""
           WIN_CSC_LINK: ""
@@ -85,7 +130,7 @@ jobs:
 
   release:
     name: Publish the release
-    needs: build
+    needs: [codename, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -106,7 +151,11 @@ jobs:
           TAG="deploy-assistant-v${VERSION}"
           cd files
           sha256sum * > SHA256SUMS
+          CODENAME="${{ needs.codename.outputs.name }}"
+          PHOTO="${{ needs.codename.outputs.photo }}"
           {
+            if [ -n "$CODENAME" ]; then echo "Code name: ${CODENAME} (photo: ${PHOTO})"; else echo "No dim sum code name could be resolved from the public catalog for this build; it ships with its version alone."; fi
+            echo
             echo "Home Assistant Material Deploy Assistant ${VERSION}: deploy Home Assistant Material in one click to Docker on this computer, an SSH host, VirtualBox or VMware, or write a Raspberry Pi card; manage every instance and its backups."
             echo
             echo "- Windows: HAM-Deploy-Assistant-Setup.exe (Squirrel; it updates itself from RELEASES and the .nupkg)."
@@ -116,8 +165,8 @@ jobs:
             echo "Nothing here is code-signed. Windows SmartScreen and macOS Gatekeeper warn on first start; check the files against SHA256SUMS."
             echo
             echo "Commit ${GITHUB_SHA}."
-          } > notes.md
-          gh release create "$TAG" --repo "$REPO" --title "Deploy Assistant ${VERSION}" --notes-file notes.md --latest=false --target "$GITHUB_SHA" ./*
+          } > ../notes.md
+          gh release create "$TAG" --repo "$REPO" --title "Deploy Assistant ${VERSION}${CODENAME:+ · ${CODENAME}}" --notes-file ../notes.md --latest=false --target "$GITHUB_SHA" ./*
       - name: Rebuild the project page
         env:
           GH_TOKEN: ${{ github.token }}

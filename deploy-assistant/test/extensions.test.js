@@ -52,3 +52,30 @@ test('the update feed is read line by line and bad lines are skipped', () => {
   assert.ok(newer('1.1.10', '1.1.9'));
   assert.ok(!newer('1.1.4', '1.1.4'));
 });
+
+test('record history is append-only and a restore adds a revision', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-hist-'));
+  const m = new Manager(dir);
+  m.save();
+  m.db.hosts.push({ id: 'h1', name: 'Pi', address: '10.0.0.2', user: 'pi', port: 22, password: 'enc:x' });
+  m.save();
+  m.db.hosts[0].name = 'Garage Pi';
+  m.save();
+  const h = m.history();
+  assert.deepEqual(h.map((r) => r.action), ['started', 'created', 'updated']);
+  assert.doesNotMatch(JSON.stringify(h), /enc:x/);
+  const r = m.restoreRevision(2);
+  assert.equal(m.db.hosts[0].name, 'Pi');
+  assert.equal(m.db.hosts[0].password, 'enc:x');
+  assert.equal(r.action, 'restored');
+  assert.equal(m.history().length, 4);
+});
+
+test('Home Assistant addresses must be HTTPS or this computer', () => {
+  const { checkBase, entityState } = require('../src/backend/ha');
+  assert.ok(checkBase('https://ha.example.com:8123'));
+  assert.ok(checkBase('http://localhost:8123'));
+  assert.throws(() => checkBase('http://192.168.1.5:8123'), /https/);
+  assert.throws(() => checkBase('https://user:pw@ha.example.com'), /user name/);
+  assert.throws(() => entityState('https://ha.example.com', 't', 'light.kitchen'), /binary_sensor or input_boolean/);
+});
