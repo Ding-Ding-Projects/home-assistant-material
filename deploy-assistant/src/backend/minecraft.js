@@ -208,7 +208,7 @@ class Minecraft extends EventEmitter {
       const want = s.java || 21; const have = Number((/version "(?:1\.)?(\d+)/.exec((chk.err || '') + (chk.out || '')) || [])[1] || 0);
       if (have && have < want) throw new Error('This server needs Java ' + want + '; this computer has Java ' + have + '.');
       const p = spawn(java, ['-Xms' + Math.min(1024, s.memoryMb) + 'M', '-Xmx' + s.memoryMb + 'M', '-jar', 'server.jar', 'nogui'], { cwd: this.localDir(s), windowsHide: true });
-      this.procs.set(id, p); s.lastState = 'starting'; this.m.save();
+      this.procs.set(id, p); s.lastState = 'starting'; s.startedAt = new Date().toISOString(); this.m.save();
       const lines = (d) => String(d).split(/\r?\n/).filter(Boolean).forEach((l) => { this.say(id, l); if (/Done \(/.test(l)) { s.lastState = 'running'; this.m.save(); this.emit('state', { id, state: 'running' }); } });
       p.stdout.on('data', lines); p.stderr.on('data', lines);
       p.on('exit', (code) => { this.procs.delete(id); s.lastState = code === 0 ? 'stopped' : 'crashed'; this.m.save(); this.say(id, '[Deploy Assistant] The server stopped' + (code ? ' with code ' + code : '') + '.'); this.emit('state', { id, state: s.lastState }); });
@@ -218,7 +218,7 @@ class Minecraft extends EventEmitter {
       const exists = await run('docker', ['inspect', this.container(s)]).catch(() => ({ code: 1 }));
       const r = exists.code === 0 ? await run('docker', ['start', this.container(s)]) : await run('docker', this.dockerArgs(s), { onLine: log });
       if (r.code !== 0) throw new Error((r.err || r.out || 'Docker did not start it.').trim().split('\n').pop());
-      s.lastState = 'starting'; this.m.save(); this.follow(s); return 'starting';
+      s.lastState = 'starting'; s.startedAt = new Date().toISOString(); this.m.save(); this.follow(s); return 'starting';
     }
     if (s.target === 'ssh-docker') {
       const r = await this.remote(s, 'docker start ' + this.container(s) + ' 2>/dev/null || docker ' + this.dockerArgs(s).map((a) => (/^[\w./:=@%+-]+$/.test(a) ? a : "'" + a.replace(/'/g, "'\\''") + "'")).join(' ').replace("'" + this.remoteDir(s) + ":/data'", '"' + this.remoteDir(s) + ':/data"'), { onLine: log });
@@ -263,6 +263,23 @@ class Minecraft extends EventEmitter {
     if (s.target === 'docker') { const r = await run('docker', ['stats', '--no-stream', '--format', '{{.CPUPerc}};{{.MemUsage}}', this.container(s)]).catch(() => ({ code: 1 })); if (r.code) return null; const [cpu, mem] = r.out.trim().split(';'); return { cpu: parseFloat(cpu) || 0, mem: mem }; }
     if (s.target === 'process') { const p = this.procs.get(id); if (!p) return null; return { pid: p.pid }; }
     return null;
+  }
+  // Live facts for the overview, gathered quietly (nothing is written to the console).
+  async live(id) {
+    const s = this.get(id); const out = { state: (await this.status(id)).state, at: Date.now() };
+    const parse = (t) => { const m = /There are (\d+) (?:of a max of|\/) ?(\d+) players online:?\s*(.*)$/m.exec(t || ''); return m ? { online: +m[1], max: +m[2], names: m[3].split(',').map((x) => x.trim()).filter(Boolean) } : null; };
+    if (out.state === 'running') {
+      try {
+        if (s.target === 'docker') { const r = await run('docker', ['exec', this.container(s), 'rcon-cli', 'list'], { timeout: 8000 }); Object.assign(out, parse(r.out) || {}); if (s.flavour === 'paper' || s.flavour === 'purpur') { const t = await run('docker', ['exec', this.container(s), 'rcon-cli', 'tps'], { timeout: 8000 }); const m = /:\s*\*?([\d.]+)/.exec((t.out || '').replace(/\u00a7./g, '')); if (m) out.tps = +m[1]; } }
+        else if (s.target === 'ssh-docker') { const r = await this.remote(s, 'docker exec ' + this.container(s) + ' rcon-cli list'); Object.assign(out, parse(r.out) || {}); }
+        else { const c = (this.consoles.get(id) || []).slice().reverse().find((l) => /There are \d+/.test(l)); Object.assign(out, parse(c) || {}); }
+      } catch { /* the facts stay unknown */ }
+      const st = await this.stats(id).catch(() => null); if (st) Object.assign(out, st);
+    }
+    if (!/^ssh/.test(s.target)) { let size = 0, n = 0; const walk = (d) => { let es = []; try { es = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of es) { if (++n > 200000) return; const f = path.join(d, e.name); if (e.isDirectory()) walk(f); else { try { size += fs.statSync(f).size; } catch { /* gone */ } } } }; walk(path.join(this.localDir(s), 'world')); out.worldBytes = size; }
+    if (!out.max) { try { out.max = +(propsObject(await this.readFile(s, 'server.properties'))['max-players'] || 20); } catch { out.max = 20; } }
+    out.uptimeSince = s.startedAt || null;
+    return out;
   }
   logs(id) { return (this.consoles.get(id) || []).slice(-500); }
 

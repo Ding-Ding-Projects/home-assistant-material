@@ -16,7 +16,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 APP = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
 CANVASES = os.path.join(ROOT, 'design', 'canvases')
 # At most 15 boards on a canvas: the first 15 go on canvas 16, the rest on canvas 17.
-GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more'), ('18-deploy-assistant-care', 'Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight')]
+GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more'), ('18-deploy-assistant-care', 'Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight'), ('19-deploy-assistant-tools', 'Deploy Assistant: converting, Base64, drawing, QR codes, School mode and the unlock ladder'), ('20-deploy-assistant-managers', 'Deploy Assistant: Minecraft servers, AI models and virtual disks')]
 FRAMES = os.path.join(ROOT, 'design', 'frames')
 CSS = re.sub(r'@font-face\{[^}]*\}', '', open(os.path.join(APP, 'app.css')).read())
 DONE = "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true}))"
@@ -60,6 +60,34 @@ BOARDS = [
     ('DeploySuper', 'Deploy Assistant, two keys and a slider before anything is deleted', 1320, 880, 'light', [('tab', 'backups'), ('click', '[data-bkall]'), ('click', '[data-act="bkdel"]'), ('click', '#sc1'), ('fill', '#sc2in', 'DELETE'), ('eval', "const r = document.getElementById('scslide'); r.value = 100; r.dispatchEvent(new Event('input', {bubbles: true}))")]),
     ('DeployLive', 'Deploy Assistant, the live processor chart', 1320, 880, 'dark', [('tab', 'instances'), ('wait', 9000)]),
     ('DeployDimSum', 'Deploy Assistant, a dim sum surprise', 1320, 880, 'light', [('click', '[data-tab="settings"]'), ('click', '[data-act="dimsum"]'), ('wait', 600)]),
+    ('DeployConvert', 'Deploy Assistant, converting: files typed by their bytes, every category', 1320, 880, 'light', [('tab', 'convert'), ('files', '#cvfiles', ['/tmp/cvt/three.pdf', '/tmp/cvt/pic.png', '/tmp/cvt/rows.json']), ('wait', 700)]),
+    ('DeployConvertPdf', 'Deploy Assistant, PDF tools with results checked by reopening', 1320, 880, 'light', [('tab', 'convert'), ('files', '#cvfiles', ['/tmp/cvt/three.pdf']), ('wait', 500), ('eval', "document.getElementById('cv-pdf').scrollIntoView()")]),
+    ('DeployConvertLossy', 'Deploy Assistant, saying what a conversion changes first', 1320, 880, 'light', [('tab', 'convert'), ('files', '#cvfiles', ['/tmp/cvt/pic.png']), ('wait', 500), ('click', '[data-adapter="img-jpeg"]')]),
+    ('DeployBase64', 'Deploy Assistant, the Base64 toolkit', 1320, None, 'light', [('tab', 'base64'), ('fill', '#b64i', 'Hello, 世界'), ('click', '[data-act="b64e"]')]),
+    ('DeployBase64Error', 'Deploy Assistant, strict Base64 decoding names the offset', 1320, 880, 'dark', [('tab', 'base64'), ('click', '[data-b64o="strict"]'), ('fill', '#b64i', 'SGVsbG8@'), ('click', '[data-act="b64d"]')]),
+    ('DeployDraw', 'Deploy Assistant, drawing with seven pens', 1320, 880, 'light', [('tab', 'draw'), ('eval', "localStorage.setItem('ham-draw-v1', JSON.stringify([0,1,2,3,4,5,6].map(function(i){var t=['pencil','pen','fineliner','marker','highlighter','brush','fountain'][i];var pts=[];for(var k=0;k<40;k++)pts.push([80+k*22,90+i*60+Math.sin(k/4)*18,k*14]);return {tool:t,color:['#1c1b1f','#00639b','#b3261e','#2e7d32','#e8a600','#7b1fa2','#1c1b1f'][i],size:1,pts:pts};})))"), ('reload',), ('wait', 700), ('tab', 'draw'), ('wait', 400)]),
+    ('DeployDrawColours', 'Deploy Assistant, the drawing toolbar turned into a palette', 1320, 880, 'light', [('tab', 'draw'), ('click', '[data-drmode="colors"]')]),
+    ('DeployQrMake', 'Deploy Assistant, making a QR code', 1320, 880, 'light', [('tab', 'tools'), ('fill', '#qrtext', 'http://homeassistant.local:8123'), ('click', '[data-act="qrmake"]')]),
+    ('DeployLadderDish', 'Deploy Assistant, the unlock ladder: which dish is this?', 1320, 880, 'light', [('eval', "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true, locks: {'deploy-title': {label: 'New instance', hash: 'x', salt: 'y', tries: 3, until: Date.now() + 120000}}}))"), ('reload',), ('wait', 700), ('eval', "window.HAM_LADDER('deploy-title')")]),
+    ('DeployLadderSums', 'Deploy Assistant, the unlock ladder: ten easy sums', 1320, 880, 'light', [('eval', "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true, locks: {'deploy-title': {label: 'New instance', hash: 'x', salt: 'y', tries: 3, until: Date.now() + 120000}}}))"), ('reload',), ('wait', 700), ('eval', "var s=JSON.parse(localStorage.getItem('ham-deploy-v1'));s.locks['deploy-title'].ladder='sums';localStorage.setItem('ham-deploy-v1',JSON.stringify(s))"), ('reload',), ('wait', 600), ('eval', "window.HAM_LADDER('deploy-title')")]),
+    ('DeployLadderMoles', 'Deploy Assistant, the unlock ladder: whack-a-mole', 1320, 880, 'dark', [('eval', "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true, locks: {'deploy-title': {label: 'New instance', hash: 'x', salt: 'y', tries: 3, until: Date.now() + 120000}}}))"), ('reload',), ('wait', 700), ('eval', "var s=JSON.parse(localStorage.getItem('ham-deploy-v1'));s.locks['deploy-title'].ladder='moles';localStorage.setItem('ham-deploy-v1',JSON.stringify(s))"), ('reload',), ('wait', 600), ('eval', "window.HAM_LADDER('deploy-title')"), ('wait', 1200)]),
+    ('DeploySchool', 'Deploy Assistant, School mode shared across apps, with a name and PIN', 1320, 880, 'light', [('tab', 'settings'), ('click', '[data-act="schoolset"]')]),
+    ('DeployExtManager', 'Deploy Assistant, the extension manager with recent runs', 1320, None, 'light', [('tab', 'extensions'), ('wait', 300)]),
+    ('DeployNotifications', 'Deploy Assistant, notifications with bulk actions', 1320, 880, 'light', [('eval', "var s=JSON.parse(localStorage.getItem('ham-deploy-v1')||'{}');s.welcomed=true;s.notes=[{t:Date.now(),text:'Home is backed up.'},{t:Date.now()-6e4,text:'Cottage is ready to open.'},{t:Date.now()-36e5,text:'Version 1.4.2 is ready. Restart to use it.'}];localStorage.setItem('ham-deploy-v1',JSON.stringify(s))"), ('reload',), ('wait', 700), ('tab', 'activity'), ('click', '[data-act="notesel-all"]'), ('eval', "document.getElementById('notifications').scrollIntoView()")]),
+    ('DeploySetup', 'Deploy Assistant, Setup: what is missing installs with Chocolatey', 1320, 880, 'light', [('tab', 'settings'), ('eval', "document.getElementById('setup').scrollIntoView()")]),
+    ('DeployMinecraft', 'Deploy Assistant, Minecraft servers', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 400)]),
+    ('DeployMinecraftNew', 'Deploy Assistant, a new Minecraft server, step by step', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-act="mcnew"]')]),
+    ('DeployMinecraftVersion', 'Deploy Assistant, choosing any version from the official catalogue', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-act="mcnew"]'), ('click', '[data-nwfl="fabric"]'), ('click', '#nwnext')]),
+    ('DeployMinecraftPlayers', 'Deploy Assistant, operators, allowlist and bans', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-mcsub="players"]'), ('wait', 300)]),
+    ('DeployMinecraftAddons', 'Deploy Assistant, plugins and mods from Modrinth', 1320, 880, 'dark', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-mcsub="addons"]'), ('wait', 300)]),
+    ('DeployMinecraftRules', 'Deploy Assistant, game rules with their own controls', 1320, 880, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-mcsub="rules"]')]),
+    ('DeployWorldGen', 'Deploy Assistant, the world generator with a chunk grid', 1320, None, 'light', [('tab', 'minecraft'), ('wait', 300), ('click', '[data-mcsub="generate"]'), ('wait', 300)]),
+    ('DeployModels', 'Deploy Assistant, local AI models', 1320, 880, 'light', [('tab', 'models'), ('wait', 400)]),
+    ('DeployModelStore', 'Deploy Assistant, the model library with fit verdicts', 1320, 880, 'light', [('tab', 'models'), ('wait', 300), ('click', '[data-olsub="store"]'), ('wait', 300), ('click', '[data-oltags="qwen3"]'), ('wait', 300)]),
+    ('DeployModelChat', 'Deploy Assistant, chatting with a local model', 1320, 880, 'dark', [('tab', 'models'), ('wait', 300), ('click', '[data-olsub="chat"]'), ('fill', '#olin', 'What can you do offline?'), ('click', '[data-act="olsend"]'), ('wait', 1800)]),
+    ('DeployDisks', 'Deploy Assistant, virtual disks on Windows', 1320, 880, 'light', [('tab', 'disks'), ('wait', 400)]),
+    ('DeployDiskCreate', 'Deploy Assistant, creating a virtual disk with its scripts shown', 1320, 880, 'light', [('tab', 'disks'), ('wait', 300), ('click', '[data-act="vdcreate"]'), ('click', '#vdplan'), ('wait', 400)]),
+    ('DeployDiskCompact', 'Deploy Assistant, compacting: every mode explained', 1320, 880, 'light', [('tab', 'disks'), ('wait', 300), ('click', '[data-vdop="compact"]')]),
     ('DeployPalette', 'Deploy Assistant, Ctrl Shift F with live controls', 1320, 880, 'light', [('wait', 400), ('key', 'Control+Shift+F'), ('fill', '#palq', 'deploy')]),
     ('DeployNarrow', 'Deploy Assistant, a narrow window', 400, None, 'light', [('tab', 'instances')]),
 ]
@@ -119,6 +147,8 @@ def main():
                     pg.click(s[1])
                 elif k == 'files':
                     pg.set_input_files(s[1], s[2])
+                elif k == 'reload':
+                    pg.reload()
                 elif k == 'fill':
                     pg.fill(s[1], s[2])
                 elif k == 'key':

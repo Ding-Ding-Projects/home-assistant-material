@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T01:47:01Z"
+    "at": "2026-11-11T04:47:53Z"
   },
   "title": "Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards",
   "launch": {
@@ -92,7 +92,7 @@
       "x": 0,
       "y": 3471,
       "w": 1320,
-      "h": 1440,
+      "h": 1446,
       "title": "Deploy Assistant, instance manager",
       "expand": "fill",
       "page": "all"
@@ -126,7 +126,7 @@
     },
     "DeployDownloads.dc.html": {
       "x": 0,
-      "y": 5131,
+      "y": 5137,
       "w": 1320,
       "h": 1167,
       "title": "Deploy Assistant, automatic downloads",
@@ -135,7 +135,7 @@
     },
     "DeployPiChosen.dc.html": {
       "x": 1420,
-      "y": 5131,
+      "y": 5137,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, Raspberry Pi chosen in the wizard",
@@ -144,7 +144,7 @@
     },
     "DeployPiWrite.dc.html": {
       "x": 2840,
-      "y": 5131,
+      "y": 5137,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, writing a Raspberry Pi card",

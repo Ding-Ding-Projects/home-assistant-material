@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T01:47:01Z"
+    "at": "2026-11-11T04:47:53Z"
   },
   "title": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight",
   "launch": {
@@ -56,7 +56,7 @@
       "x": 0,
       "y": 1100,
       "w": 1320,
-      "h": 1259,
+      "h": 1308,
       "title": "Deploy Assistant, the history of your records",
       "expand": "fill",
       "page": "all"
@@ -88,21 +88,66 @@
       "expand": "fill",
       "page": "all"
     },
-    "DeployPalette.dc.html": {
+    "DeployConvert.dc.html": {
       "x": 0,
-      "y": 2579,
+      "y": 2628,
       "w": 1320,
       "h": 880,
-      "title": "Deploy Assistant, Ctrl Shift F with live controls",
+      "title": "Deploy Assistant, converting: files typed by their bytes, every category",
       "expand": "fill",
       "page": "all"
     },
-    "DeployNarrow.dc.html": {
+    "DeployConvertPdf.dc.html": {
       "x": 1420,
-      "y": 2579,
-      "w": 400,
-      "h": 2298,
-      "title": "Deploy Assistant, a narrow window",
+      "y": 2628,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, PDF tools with results checked by reopening",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployConvertLossy.dc.html": {
+      "x": 2840,
+      "y": 2628,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, saying what a conversion changes first",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployBase64.dc.html": {
+      "x": 4260,
+      "y": 2628,
+      "w": 1320,
+      "h": 1103,
+      "title": "Deploy Assistant, the Base64 toolkit",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployBase64Error.dc.html": {
+      "x": 0,
+      "y": 3951,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, strict Base64 decoding names the offset",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployDraw.dc.html": {
+      "x": 1420,
+      "y": 3951,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, drawing with seven pens",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployDrawColours.dc.html": {
+      "x": 2840,
+      "y": 3951,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the drawing toolbar turned into a palette",
       "expand": "fill",
       "page": "all"
     }
@@ -116,14 +161,19 @@
     "DeploySuper.dc.html",
     "DeployLive.dc.html",
     "DeployDimSum.dc.html",
-    "DeployPalette.dc.html",
-    "DeployNarrow.dc.html"
+    "DeployConvert.dc.html",
+    "DeployConvertPdf.dc.html",
+    "DeployConvertLossy.dc.html",
+    "DeployBase64.dc.html",
+    "DeployBase64Error.dc.html",
+    "DeployDraw.dc.html",
+    "DeployDrawColours.dc.html"
   ],
   "notes": {
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight. 10 boards drawn from the app.",
+      "text": "Deploy Assistant: accommodations, schedules, logo, exports, history, safety and delight. 15 boards drawn from the app.",
       "kind": "title1",
       "maxW": 5580,
       "page": "all"

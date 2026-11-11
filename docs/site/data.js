@@ -72,8 +72,8 @@ window.SITE = {
   "GamepadVariant": "M7,6H17A6,6 0 0,1 23,12A6,6 0 0,1 17,18C15.22,18 13.63,17.23 12.53,16H11.47C10.37,17.23 8.78,18 7,18A6,6 0 0,1 1,12A6,6 0 0,1 7,6M6,9V11H4V13H6V15H8V13H10V11H8V9H6M15.5,12A1.5,1.5 0 0,0 14,13.5A1.5,1.5 0 0,0 15.5,15A1.5,1.5 0 0,0 17,13.5A1.5,1.5 0 0,0 15.5,12M18.5,9A1.5,1.5 0 0,0 17,10.5A1.5,1.5 0 0,0 18.5,12A1.5,1.5 0 0,0 20,10.5A1.5,1.5 0 0,0 18.5,9Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T23:32:16-05:00",
- "commit": "cfe95c10",
+ "updated": "2026-11-10T23:49:12-05:00",
+ "commit": "11a3fe47",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -780,6 +780,36 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "11a3fe47",
+   "date": "2026-11-10T23:49:12-05:00",
+   "title": "Design: redraw the Deploy Assistant boards across canvases 16 to 20",
+   "body": "Adds boards for converting, Base64, drawing, QR codes, the unlock\nladder, School mode, the extension manager, notifications, Chocolatey\nsetup, Minecraft servers and the world generator, AI models and virtual\ndisks; 68 boards drawn from the app."
+  },
+  {
+   "sha": "3ce9e087",
+   "date": "2026-11-10T23:47:52-05:00",
+   "title": "Correct the record for b64779d75: it attaches the Deploy Assistant early",
+   "body": "Commit b64779d75 carries a message that belongs to another project\n(\"Raise the LAN model drop service to 1.1.1\"). Nothing in it concerns that\nservice. What b64779d75 really changed, in .github/workflows/release.yml:\n\n- The Deploy Assistant installers are copied onto a release straight after\n  the release is created, instead of after the frontend build, so a new\n  release page is not empty while the long builds wait in a queue.\n- A release is withdrawn when no build job of its own attached a file; the\n  copied installers do not count.\n\nHistory is not rewritten, so the wrong message stays on that commit. This\ncommit adds the matching note in the workflow.\n\n上一個 commit 個標題貼錯咗第二個 project 嘅，內容其實係：安裝助手一開\nrelease 就夾上去，唔使等 frontend build；自己乜都冇 build 到嘅 release\n照收返檔。歷史唔改寫，喺度補返個更正。"
+  },
+  {
+   "sha": "fbbd0021",
+   "date": "2026-11-10T23:47:05-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "b64779d7",
+   "date": "2026-11-10T23:47:04-05:00",
+   "title": "Raise the LAN model drop service to 1.1.1",
+   "body": "The review fixes to the sender page (the level-up banner under reduced\nmotion, the forced-colours border, the clear button's focus) changed the\nservice's inputs after 1.1.0 had been published. Version tags are published\nonce, so every release run since then was refused at \"Build and publish\nimmutable version\" and the Windows release stopped with it. The service is\nnow 1.1.1; its digest gets pinned once it is published.\n\n又係同一單嘢：改咗投遞頁，版本號冇郁，發佈流程又鎖門。今次升做 1.1.1，\n以後凡係掂到個容器嘅嘢，一定要同時升版本。"
+  },
+  {
+   "sha": "915595cc",
+   "date": "2026-11-10T23:41:27-05:00",
+   "title": "Deploy Assistant 1.4: Minecraft servers, AI models, virtual disks, Chocolatey",
+   "body": "Minecraft: four targets (Java or Docker, here or over SSH), every Mojang\nversion plus the Paper, Purpur and Fabric catalogues, typed settings\nthat keep unknown keys, game rules, player lists, Modrinth add-ons\nchecked by SHA-512, backups, version changes with a backup first, a\nschedule, and a world generator that pre-generates a drawn chunk area\nwith Chunky into a folder or ZIP. AI models: Ollama installed from its\nofficial release by SHA-256 and run as an owned process, the full\nollama.com library with every variant, fit verdicts, a pull list, model\ndetails and a local chat. Virtual disks: a Windows library and every\noperation built as PowerShell and DiskPart scripts, run through one\nUAC prompt. Chocolatey installs anything missing in one click and is\ninstalled first when needed. FEATURES.md updated."
+  },
+  {
    "sha": "cfe95c10",
    "date": "2026-11-10T23:32:16-05:00",
    "title": "build.bat: install Node.js, Git and Python with Chocolatey when missing",
@@ -988,36 +1018,6 @@ window.SITE = {
    "date": "2026-11-10T18:15:42-05:00",
    "title": "Review defects fixed; sorting and grouping restored; shared list layout; more boards",
    "body": "Nine defects that an independent review found are fixed: a button inside a\nbutton on People; on Zones two create buttons on a phone, an empty required\nfield that could be saved and a failed save that threw away what was typed;\na link with no visible focus on Blueprints; a health tile that could wait\nfor ever on Repairs; a blank card on Logs with both levels off; a note on\nUpdates that pointed at the wrong place; an unnamed switch in the scene\neditor.\n\nStatistics and Scenes became cards and lost sorting and grouping; both have\nthem back, and Statistics keeps its search, sorting and grouping in the page\naddress again. Not restored: column settings, and area as a sort or group on\nStatistics.\n\nThe layout that list pages share can take, only when a page asks: a button\nbeside the title, filter chips on the search row, a line under the list, and\nrow checkboxes that always show. No page uses them yet.\n\nStarted on their boards, all partly: sign-in and first-run setup, About,\nProfile, Helpers, the settings of one entity, the device list inside an\nintegration entry, and the Zigbee, Z-Wave and Matter pages. A review of\nthese found nothing broken and four defects, recorded in\ndocs/feature-status.md and still open.\n\nNone of the interface work has been seen in a running build yet.\n\n覆核搵到嗰九個瑕疵執晒：人仔卡唔再係掣入面有掣，地帶唔會儲空白欄位，\n失敗咗唔會掉咗你打嘅嘢，修復頁唔會永遠話「檢查中」。\n統計同場景變咗卡片之後唔見咗排序同分組，而家搵返晒。\n清單版面多咗四樣可選配件，冇頁面開口要就一啲都唔變。\n登入、初次設定、關於、個人檔案、Zigbee、Z-Wave、Matter 開始跟設計稿，仲有四個瑕疵未執。"
-  },
-  {
-   "sha": "ecf31694",
-   "date": "2026-11-10T18:00:57-05:00",
-   "title": "Settings and tools pages on their boards; action form rows; analytics entry cleared",
-   "body": "Canvases 03 to 06, written to their boards and all still partly built:\nIntegrations, an integration's page, Add integration, Devices, one device,\nEntities, Areas, one area, Labels, Scenes as cards, the scene editor,\nScripts with Run and Stop, Zones, Blueprints, Dashboards, People, Users,\nTags, Updates, Repairs, Logs, and the developer tools Events, YAML,\nStatistics and Assist. Labs and Restart are built to their boards. The form\nthat runs an action draws each field as a row with its own switch, and the\nnetwork adapter chooser has a \"Choose for me\" row.\n\nAn independent review of twelve of these pages found nothing broken and\nnine defects, listed in docs/feature-status.md and being fixed. Two known\nregressions are recorded there too: Statistics and Scenes lost sorting and\ngrouping when they became cards; both are being restored.\n\nAn installation set up by an earlier build held a configuration entry for\nanalytics, whose setup code is gone, so every start logged an error. The\nintegration now removes that entry. Run in a container seeded with such an\ninstallation's stored entries: no error, and the entry is gone afterwards.\n\nNone of the interface work has been seen in a running build yet.\n\n設定同工具頁面大批跟設計稿：整合、裝置、實體、區域、標籤、場景、腳本、\n地帶、藍圖、儀表板、人、用戶、標籤卡、更新、修復、日誌，全部仲係「部分完成」。\n獨立覆核搵到九個瑕疵，冇嘢爆，寫晒落文件度慢慢執。\n舊機開機嗰句 analytics 錯誤唔會再出，因為件遺物已經自動清走。"
-  },
-  {
-   "sha": "ef8c3f0c",
-   "date": "2026-11-10T17:12:08-05:00",
-   "title": "Send nothing out and keep a problem log; wording celebration; tools pages",
-   "body": "Nothing is sent out any more. The analytics integration is a no-op with\nits page, switch and first-run step removed; stored preferences from\nearlier builds still load. The supervisor's crash reporter and diagnostics\nare off and cannot be turned on. Buttons that reported an issue or gave\nfeedback are gone.\n\nProblems are kept on the system instead: a new integration writes each\nwarning and error, with passwords, tokens, addresses and other private\nvalues removed, as a file in a Git repository at <config>/problem_log/,\ncommitting at most once a minute, and a page lists them. Nothing leaves the\nsystem unless the owner adds a remote. Started in a container from these\nfiles: clean start, three first-run steps, and a forced error produced\nfiles and a commit.\n\nA wording file that loads gets a celebration over the whole window and a\nsound; one that is refused gets a different sound and a message.\n\nStorage, General, Hardware and Network, and the States, Actions and\nTemplate developer tools, are drawn to their boards; figures the instance\ndoes not report are left out.\n\nThe interface work has not been seen in a running build yet, and the\nsupervisor's own tests still expect the removed crash reporter.\n\n而家乜都唔會寄出去：分析、當機報告、診斷、「回報問題」掣全部執走。\n有問題就寫落本機一個 Git repo 度，密碼、token、電郵呢啲會先刪走，\n除非你自己加 remote，否則一粒字都唔會離開部機。\n字詞檔成功載入會全螢幕慶祝兼有聲，唔啱格式就另一下聲同埋講明原因。\n儲存、一般、硬件、網絡同開發者工具幾版跟返設計稿，系統報唔到嘅數字留空唔作。"
-  },
-  {
-   "sha": "9825c61d",
-   "date": "2026-11-10T16:42:03-05:00",
-   "title": "Merge branch 'main' of https://github.com/Ding-Ding-Projects/home-assistant-material",
-   "body": ""
-  },
-  {
-   "sha": "d1ff6a68",
-   "date": "2026-11-10T16:41:50-05:00",
-   "title": "Start the everyday pages on their boards; Network in two columns",
-   "body": "Canvas 01: Lights opens with a summary, all on and all off, and a card per\nroom; Security shows each alarm with arm and disarm through the existing\ncode dialog; Climate draws the first thermostat large; the Map lists where\neveryone is; Activity, History, To-do, Calendar and Energy gain a large\ntitle and a line of facts worked out from what the page already has; Home\nshows power use when the energy setup names a sensor. Figures the instance\ncannot report (a usual day to compare with, the power lights draw, done\nto-do counts) are left out, not invented. The dashboard title row and the\ncard picker are not started.\n\nCanvas 06: the Network page lays its cards out in two columns. The other\ntools boards are not started.\n\nNone of this has been seen in a running build yet.\n\n日常頁面開始跟設計稿：燈頁一開就話你知開咗幾多盞，每間房一張卡；\n保安頁有上鎖解鎖；地圖列出邊個喺邊。系統報唔到嘅數字唔會作出嚟，留空。\n網絡頁闊螢幕分兩欄。全部都未喺真機睇過。"
-  },
-  {
-   "sha": "51672cef",
-   "date": "2026-11-10T16:32:53-05:00",
-   "title": "Project page carries every feature it owes, drawn on canvas 15",
-   "body": "The first project page was one static scroll. It is now an app-like\npage in docs/site/ that runs entirely in the browser and requests\nnothing outside its own folder:\n\n- ten tabs, all open by default, closable, pinnable, movable and\n  dockable on any edge, with a New tab catalog that reopens them\n- Ctrl Shift F search over pages, settings, articles and actions,\n  with settings changeable in the results and a jump to the element\n- the pattern workbench on every search field, and as a tool\n- a menu on every element (right-click, Shift F10, the menu key or a\n  long press) with its own search, appearance editing and toy locks\n  with a keypad and waits after wrong tries\n- English, Cantonese or both, two playfulness levels, the dialog\n  emoji switch, and the personal wording file with the product's checks\n- settings that explain themselves, history with undo, export as\n  JSON, CSV, Markdown and text, notifications, two-step confirmation\n- Base64, convert, colour and one-time-code tools, a support desk,\n  the changelog, a live chart of the visit, version and updated-at\n- one article for each of 69 features, with its state in the product\n\ncheck_site.py fails when a feature disappears from the page or when\nthe page errors, scrolls sideways at 360 px or makes an outside\nrequest. The four first boards on canvas 15 are replaced by 14 boards\ndrawn from the live page by site_boards.py. social-preview.png is the\npicture shown when the link is shared."
   }
  ],
  "status": [
@@ -2702,6 +2702,130 @@ window.SITE = {
      "title": "Deploy Assistant, a dim sum surprise"
     },
     {
+     "name": "DeployConvert",
+     "title": "Deploy Assistant, converting: files typed by their bytes, every category"
+    },
+    {
+     "name": "DeployConvertPdf",
+     "title": "Deploy Assistant, PDF tools with results checked by reopening"
+    },
+    {
+     "name": "DeployConvertLossy",
+     "title": "Deploy Assistant, saying what a conversion changes first"
+    },
+    {
+     "name": "DeployBase64",
+     "title": "Deploy Assistant, the Base64 toolkit"
+    },
+    {
+     "name": "DeployBase64Error",
+     "title": "Deploy Assistant, strict Base64 decoding names the offset"
+    },
+    {
+     "name": "DeployDraw",
+     "title": "Deploy Assistant, drawing with seven pens"
+    },
+    {
+     "name": "DeployDrawColours",
+     "title": "Deploy Assistant, the drawing toolbar turned into a palette"
+    }
+   ]
+  },
+  {
+   "id": "19-deploy-assistant-tools",
+   "title": "Deploy Assistant: converting, Base64, drawing, QR codes, School mode and the unlock ladder",
+   "boards": [
+    {
+     "name": "DeployQrMake",
+     "title": "Deploy Assistant, making a QR code"
+    },
+    {
+     "name": "DeployLadderDish",
+     "title": "Deploy Assistant, the unlock ladder: which dish is this?"
+    },
+    {
+     "name": "DeployLadderSums",
+     "title": "Deploy Assistant, the unlock ladder: ten easy sums"
+    },
+    {
+     "name": "DeployLadderMoles",
+     "title": "Deploy Assistant, the unlock ladder: whack-a-mole"
+    },
+    {
+     "name": "DeploySchool",
+     "title": "Deploy Assistant, School mode shared across apps, with a name and PIN"
+    },
+    {
+     "name": "DeployExtManager",
+     "title": "Deploy Assistant, the extension manager with recent runs"
+    },
+    {
+     "name": "DeployNotifications",
+     "title": "Deploy Assistant, notifications with bulk actions"
+    },
+    {
+     "name": "DeploySetup",
+     "title": "Deploy Assistant, Setup: what is missing installs with Chocolatey"
+    },
+    {
+     "name": "DeployMinecraft",
+     "title": "Deploy Assistant, Minecraft servers"
+    },
+    {
+     "name": "DeployMinecraftNew",
+     "title": "Deploy Assistant, a new Minecraft server, step by step"
+    },
+    {
+     "name": "DeployMinecraftVersion",
+     "title": "Deploy Assistant, choosing any version from the official catalogue"
+    },
+    {
+     "name": "DeployMinecraftPlayers",
+     "title": "Deploy Assistant, operators, allowlist and bans"
+    },
+    {
+     "name": "DeployMinecraftAddons",
+     "title": "Deploy Assistant, plugins and mods from Modrinth"
+    },
+    {
+     "name": "DeployMinecraftRules",
+     "title": "Deploy Assistant, game rules with their own controls"
+    },
+    {
+     "name": "DeployWorldGen",
+     "title": "Deploy Assistant, the world generator with a chunk grid"
+    }
+   ]
+  },
+  {
+   "id": "20-deploy-assistant-managers",
+   "title": "Deploy Assistant: Minecraft servers, AI models and virtual disks",
+   "boards": [
+    {
+     "name": "DeployModels",
+     "title": "Deploy Assistant, local AI models"
+    },
+    {
+     "name": "DeployModelStore",
+     "title": "Deploy Assistant, the model library with fit verdicts"
+    },
+    {
+     "name": "DeployModelChat",
+     "title": "Deploy Assistant, chatting with a local model"
+    },
+    {
+     "name": "DeployDisks",
+     "title": "Deploy Assistant, virtual disks on Windows"
+    },
+    {
+     "name": "DeployDiskCreate",
+     "title": "Deploy Assistant, creating a virtual disk with its scripts shown"
+    },
+    {
+     "name": "DeployDiskCompact",
+     "title": "Deploy Assistant, compacting: every mode explained"
+    },
+    {
      "name": "DeployPalette",
      "title": "Deploy Assistant, Ctrl Shift F with live controls"
     },
@@ -2712,5 +2836,5 @@ window.SITE = {
    ]
   }
  ],
- "deployVersion": "1.4.0"
+ "deployVersion": "1.5.0"
 };

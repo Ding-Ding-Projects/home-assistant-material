@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T01:47:01Z"
+    "at": "2026-11-11T04:47:53Z"
   },
   "title": "Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more",
   "launch": {
@@ -29,7 +29,7 @@
       "x": 1420,
       "y": 0,
       "w": 1320,
-      "h": 880,
+      "h": 969,
       "title": "Deploy Assistant, extensions with their permissions",
       "expand": "fill",
       "page": "all"
@@ -56,7 +56,7 @@
       "x": 0,
       "y": 1829,
       "w": 1320,
-      "h": 1846,
+      "h": 1789,
       "title": "Deploy Assistant, tools",
       "expand": "fill",
       "page": "all"
@@ -74,7 +74,7 @@
       "x": 2840,
       "y": 1829,
       "w": 1320,
-      "h": 1401,
+      "h": 1734,
       "title": "Deploy Assistant, changes with the build it is",
       "expand": "fill",
       "page": "all"
@@ -83,14 +83,14 @@
       "x": 4260,
       "y": 1829,
       "w": 1320,
-      "h": 5612,
+      "h": 5729,
       "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates",
       "expand": "fill",
       "page": "all"
     },
     "DeployDesign.dc.html": {
       "x": 0,
-      "y": 7661,
+      "y": 7778,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, its own design boards, offline",
@@ -99,7 +99,7 @@
     },
     "DeployFeatures.dc.html": {
       "x": 1420,
-      "y": 7661,
+      "y": 7778,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the project's features and their state",
@@ -108,7 +108,7 @@
     },
     "DeployStatus.dc.html": {
       "x": 2840,
-      "y": 7661,
+      "y": 7778,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the status page, offline",
@@ -117,7 +117,7 @@
     },
     "DeployQr.dc.html": {
       "x": 4260,
-      "y": 7661,
+      "y": 7778,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, a one-time code added from its QR code",
@@ -126,7 +126,7 @@
     },
     "DeploySelfTest.dc.html": {
       "x": 0,
-      "y": 8761,
+      "y": 8878,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the update self-test",
@@ -135,7 +135,7 @@
     },
     "DeployAdhd.dc.html": {
       "x": 1420,
-      "y": 8761,
+      "y": 8878,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, ADHD modes on: clock, next step, focus",
@@ -144,7 +144,7 @@
     },
     "DeployAdhdSettings.dc.html": {
       "x": 2840,
-      "y": 8761,
+      "y": 8878,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, ADHD modes and the narrator in Settings",

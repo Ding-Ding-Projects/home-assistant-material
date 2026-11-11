@@ -1,0 +1,183 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-11T04:47:53Z"
+  },
+  "title": "Deploy Assistant: converting, Base64, drawing, QR codes, School mode and the unlock ladder",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "DeployQrMake.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, making a QR code",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployLadderDish.dc.html": {
+      "x": 1420,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the unlock ladder: which dish is this?",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployLadderSums.dc.html": {
+      "x": 2840,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the unlock ladder: ten easy sums",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployLadderMoles.dc.html": {
+      "x": 4260,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, the unlock ladder: whack-a-mole",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeploySchool.dc.html": {
+      "x": 0,
+      "y": 1100,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, School mode shared across apps, with a name and PIN",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployExtManager.dc.html": {
+      "x": 1420,
+      "y": 1100,
+      "w": 1320,
+      "h": 969,
+      "title": "Deploy Assistant, the extension manager with recent runs",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployNotifications.dc.html": {
+      "x": 2840,
+      "y": 1100,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, notifications with bulk actions",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeploySetup.dc.html": {
+      "x": 4260,
+      "y": 1100,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, Setup: what is missing installs with Chocolatey",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployMinecraft.dc.html": {
+      "x": 0,
+      "y": 2289,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, Minecraft servers",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployMinecraftNew.dc.html": {
+      "x": 1420,
+      "y": 2289,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, a new Minecraft server, step by step",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployMinecraftVersion.dc.html": {
+      "x": 2840,
+      "y": 2289,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, choosing any version from the official catalogue",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployMinecraftPlayers.dc.html": {
+      "x": 4260,
+      "y": 2289,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, operators, allowlist and bans",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployMinecraftAddons.dc.html": {
+      "x": 0,
+      "y": 3389,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, plugins and mods from Modrinth",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployMinecraftRules.dc.html": {
+      "x": 1420,
+      "y": 3389,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, game rules with their own controls",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployWorldGen.dc.html": {
+      "x": 2840,
+      "y": 3389,
+      "w": 1320,
+      "h": 1968,
+      "title": "Deploy Assistant, the world generator with a chunk grid",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "DeployQrMake.dc.html",
+    "DeployLadderDish.dc.html",
+    "DeployLadderSums.dc.html",
+    "DeployLadderMoles.dc.html",
+    "DeploySchool.dc.html",
+    "DeployExtManager.dc.html",
+    "DeployNotifications.dc.html",
+    "DeploySetup.dc.html",
+    "DeployMinecraft.dc.html",
+    "DeployMinecraftNew.dc.html",
+    "DeployMinecraftVersion.dc.html",
+    "DeployMinecraftPlayers.dc.html",
+    "DeployMinecraftAddons.dc.html",
+    "DeployMinecraftRules.dc.html",
+    "DeployWorldGen.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Deploy Assistant: converting, Base64, drawing, QR codes, School mode and the unlock ladder. 15 boards drawn from the app.",
+      "kind": "title1",
+      "maxW": 5580,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

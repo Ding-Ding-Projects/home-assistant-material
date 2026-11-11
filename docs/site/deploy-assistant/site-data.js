@@ -72,8 +72,8 @@ window.SITE = {
   "GamepadVariant": "M7,6H17A6,6 0 0,1 23,12A6,6 0 0,1 17,18C15.22,18 13.63,17.23 12.53,16H11.47C10.37,17.23 8.78,18 7,18A6,6 0 0,1 1,12A6,6 0 0,1 7,6M6,9V11H4V13H6V15H8V13H10V11H8V9H6M15.5,12A1.5,1.5 0 0,0 14,13.5A1.5,1.5 0 0,0 15.5,15A1.5,1.5 0 0,0 17,13.5A1.5,1.5 0 0,0 15.5,12M18.5,9A1.5,1.5 0 0,0 17,10.5A1.5,1.5 0 0,0 18.5,12A1.5,1.5 0 0,0 20,10.5A1.5,1.5 0 0,0 18.5,9Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T23:19:37-05:00",
- "commit": "c5b1c8a2",
+ "updated": "2026-11-10T23:41:27-05:00",
+ "commit": "915595cc",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -780,6 +780,36 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "915595cc",
+   "date": "2026-11-10T23:41:27-05:00",
+   "title": "Deploy Assistant 1.4: Minecraft servers, AI models, virtual disks, Chocolatey",
+   "body": "Minecraft: four targets (Java or Docker, here or over SSH), every Mojang\nversion plus the Paper, Purpur and Fabric catalogues, typed settings\nthat keep unknown keys, game rules, player lists, Modrinth add-ons\nchecked by SHA-512, backups, version changes with a backup first, a\nschedule, and a world generator that pre-generates a drawn chunk area\nwith Chunky into a folder or ZIP. AI models: Ollama installed from its\nofficial release by SHA-256 and run as an owned process, the full\nollama.com library with every variant, fit verdicts, a pull list, model\ndetails and a local chat. Virtual disks: a Windows library and every\noperation built as PowerShell and DiskPart scripts, run through one\nUAC prompt. Chocolatey installs anything missing in one click and is\ninstalled first when needed. FEATURES.md updated."
+  },
+  {
+   "sha": "cfe95c10",
+   "date": "2026-11-10T23:32:16-05:00",
+   "title": "build.bat: install Node.js, Git and Python with Chocolatey when missing",
+   "body": "Chocolatey itself is installed first from community.chocolatey.org when\nit is not there. One administrator prompt; a cancelled prompt or failed\ninstall stops before building and changes nothing else. PATH is reloaded\nso the same run uses what it installed."
+  },
+  {
+   "sha": "fd656ab9",
+   "date": "2026-11-10T23:25:32-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "0d9dc73d",
+   "date": "2026-11-10T23:25:31-05:00",
+   "title": "Batch 17: review fixes, instance-saved appearance and wording, new boards",
+   "body": "Review fixes\n- Minecraft manager: the SSH config file is never read, remote output is\n  read in bounded chunks, containers and volumes are acted on only when\n  they carry this manager's label, host key type changes are reported as\n  a changed key, rename and delete are refused while a container exists.\n- Automation history: a missing, empty or truncated automations file can\n  no longer set aside every history; archives can be listed and brought\n  back; unchanged automations start no git process; a push sends only the\n  ticked repositories and asks first.\n- Ollama: a stream that ends without success is reported as incomplete;\n  the server slot is released on every path.\n- Shared identity: the logo's pixel size is read from its header before\n  use and the server caps the stored value.\n- Dashboard import summary: addresses are normalised the way a browser\n  does before the host is shown; toggles on locks and covers are listed.\n\nNew\n- Appearance choices and the personal wording file are saved on the\n  instance for the signed-in account, with the browser copy as a cache.\n- Authenticator app card on the profile page, activity tray and recovery\n  card, schedules and shared defaults for personal settings, information\n  buttons on settings, resizable panes, starting points for empty editors.\n- Fixes for defects seen in build 80: language cards, plural forms, page\n  titles, converter search label, drawing board height.\n\nChecked: 623 server tests pass in a Linux container; frontend type check\nclean; 5,093 frontend tests pass (the 3 failures and 46 files that do not\nload are unchanged from before); the production frontend build completes.\nNone of the new pages has been seen in a browser yet.\n\n第十七批：reviewer 捉到嘅蟲逐隻拍死。Minecraft 管理員唔再偷睇 SSH config，\n又唔會俾一行 120 MiB 嘅 log 撐爆；自動化歷史唔會因為個檔空咗一陣就成\n堆搬走；Ollama 斷咗線唔再扮完成。外觀同個人用字而家儲喺 instance，換\n部機都跟住你。仲有新卡、新 tray、排程設定，同 build 80 見到嘅甩漏。\n未喺瀏覽器睇過，唔好當佢靚仔住。"
+  },
+  {
+   "sha": "83722fb7",
+   "date": "2026-11-10T23:23:41-05:00",
+   "title": "Deploy Assistant: shared School mode, unlock ladder, Snap, extension manager",
+   "body": "School mode is one shared file for every Ding Ding Projects app on the\ncomputer, followed live, with a name and an optional PIN (PBKDF2) to\nswitch it off; it hides everything about dim sum. A lockout wait can be\nplayed away: dim sum, then ten sums, then whack-a-mole, then the clock\n(School mode starts at the sums); clearing it ends the wait only. On\nWindows the system draws the window buttons, so Snap layouts work.\nExtensions can be added from a folder, removed, switched off together,\nand their recent runs are listed. Notifications have bulk select,\nremove and export. A wording file is greeted with a celebration."
+  },
+  {
    "sha": "c5b1c8a2",
    "date": "2026-11-10T23:19:37-05:00",
    "title": "Deploy Assistant: converter, Base64 toolkit, QR maker, ZIP export, drawing",
@@ -988,36 +1018,6 @@ window.SITE = {
    "date": "2026-11-10T16:41:50-05:00",
    "title": "Start the everyday pages on their boards; Network in two columns",
    "body": "Canvas 01: Lights opens with a summary, all on and all off, and a card per\nroom; Security shows each alarm with arm and disarm through the existing\ncode dialog; Climate draws the first thermostat large; the Map lists where\neveryone is; Activity, History, To-do, Calendar and Energy gain a large\ntitle and a line of facts worked out from what the page already has; Home\nshows power use when the energy setup names a sensor. Figures the instance\ncannot report (a usual day to compare with, the power lights draw, done\nto-do counts) are left out, not invented. The dashboard title row and the\ncard picker are not started.\n\nCanvas 06: the Network page lays its cards out in two columns. The other\ntools boards are not started.\n\nNone of this has been seen in a running build yet.\n\n日常頁面開始跟設計稿：燈頁一開就話你知開咗幾多盞，每間房一張卡；\n保安頁有上鎖解鎖；地圖列出邊個喺邊。系統報唔到嘅數字唔會作出嚟，留空。\n網絡頁闊螢幕分兩欄。全部都未喺真機睇過。"
-  },
-  {
-   "sha": "51672cef",
-   "date": "2026-11-10T16:32:53-05:00",
-   "title": "Project page carries every feature it owes, drawn on canvas 15",
-   "body": "The first project page was one static scroll. It is now an app-like\npage in docs/site/ that runs entirely in the browser and requests\nnothing outside its own folder:\n\n- ten tabs, all open by default, closable, pinnable, movable and\n  dockable on any edge, with a New tab catalog that reopens them\n- Ctrl Shift F search over pages, settings, articles and actions,\n  with settings changeable in the results and a jump to the element\n- the pattern workbench on every search field, and as a tool\n- a menu on every element (right-click, Shift F10, the menu key or a\n  long press) with its own search, appearance editing and toy locks\n  with a keypad and waits after wrong tries\n- English, Cantonese or both, two playfulness levels, the dialog\n  emoji switch, and the personal wording file with the product's checks\n- settings that explain themselves, history with undo, export as\n  JSON, CSV, Markdown and text, notifications, two-step confirmation\n- Base64, convert, colour and one-time-code tools, a support desk,\n  the changelog, a live chart of the visit, version and updated-at\n- one article for each of 69 features, with its state in the product\n\ncheck_site.py fails when a feature disappears from the page or when\nthe page errors, scrolls sideways at 360 px or makes an outside\nrequest. The four first boards on canvas 15 are replaced by 14 boards\ndrawn from the live page by site_boards.py. social-preview.png is the\npicture shown when the link is shared."
-  },
-  {
-   "sha": "e830cae4",
-   "date": "2026-11-10T16:27:48-05:00",
-   "title": "Build the polish pass boards: phone bar, workbench, menus, locks, settings, dialogs",
-   "body": "Built to the design boards on canvases 12 to 14.\n\nPhone: a bottom bar (Home, Search, Pages, Access, Menu), a sheet of the open\npages with search, New tab, swipe to close and Undo, and a slim top bar that\nswitches pages. The accessibility panel opens as a sheet above the bar.\n\nPattern workbench: on a phone three tabs and More, one chip for the flags,\na footer that leaves when the keyboard comes; wide, named flag chips and\ntabs that wrap. Bracket errors name the character.\n\nElement menu: a hold ring and a sheet on a phone; beside the element with\none-letter shortcuts on a wide screen. Media search drops its Search button\non a phone and gains kind chips.\n\nLocks: a six-step wizard with a QR code drawn locally, a prompt that counts\ndown a wait, a list with filters, selection and time left, older locks that\ncan be opened and removed, locked on start, and a support desk that is\nplainly fictional, sends nothing and explains how to clear the site's data.\n\nPersonal settings are grouped and gain quiet hours. Guided setup lists what\nis set up first and ends in one action. The guidance note opens as a sheet.\n\nFifteen of eighteen blocking browser boxes are replaced, and eleven\ndestructive actions ask twice.\n\nNone of this has been seen in a running build yet; docs/feature-status.md\nsays so and lists the known gaps.\n\n手機底部有咗一條 bar，開咗嘅頁面可以碌、搵、掃走、後悔。樣式工作台喺手機\n唔再打橫碌到天光。鎖有六步精靈同 QR code，仲有個擺明係假嘅客服台，\n乜都唔會寄出去，淨係教你點清資料。十五個彈出嚟阻住晒嘅瀏覽器對話框換走咗，\n十一個危險動作要問兩次。全部未喺真機睇過，文件照直講。"
-  },
-  {
-   "sha": "63ebb4e1",
-   "date": "2026-11-10T16:08:08-05:00",
-   "title": "Record that the operating system signing secrets are set",
-   "body": "The two repository secrets now hold a self-signed certificate and key made\nfor this project, so builds after 55 sign their operating system images\nwith it and offer them over the air. The notes say which installs need one\nfresh install first and that no such update has been observed yet.\nDocumentation only.\n\n系統更新條簽名鎖匙已經擺好喺 repo 嘅秘密設定入面，build 55 之後嘅系統映像\n會用佢簽，裝咗嘅機自己會見到更新。舊機要重裝一次，仲未有人親眼睇過更新成功。"
-  },
-  {
-   "sha": "2b416c31",
-   "date": "2026-11-10T16:02:38-05:00",
-   "title": "Wording file matches a capital first letter; publish the project page",
-   "body": "A key written in small letters in a personal wording file now also\nmatches the same words with a capital first letter, as at the start\nof a label, and its replacement starts with a capital too. A key the\nfile spells with a capital keeps its own entry. Before, \"push\" in the\nfile left \"Push\" on a button unchanged. Checked by a new unit test and\nagainst a 324-entry file outside the browser; not yet seen running.\n\npages.yml publishes docs/site/ to GitHub Pages when it changes."
-  },
-  {
-   "sha": "d6eed194",
-   "date": "2026-11-10T16:02:38-05:00",
-   "title": "Design: polish pass boards and the project page",
-   "body": "34 boards on four new canvases answer the designer handoff of\n10 November. Canvases 12 and 13 draw every surface built in code\nwithout a board (pattern workbench, element tools, lock wizard,\nunlock keypad, list of locks, personal settings, guided setup,\nsetup guidance, developer tools on the rail, media search), each on\na 320 px phone and in a wide window, light and dark. Canvas 14 makes\nthe eight decisions the audit asked for, among them a bottom bar on\nphones and a searchable sheet of open pages. Canvas 15 is the\nproject page.\n\nEach board says what it settles and where the build should change.\nEvery search field on them keeps the pattern workbench button.\n\ndocs/site/ is the project page itself, generated from the same\nmarkup as its boards, with the typeface and pictures served locally."
   }
  ],
  "status": [
@@ -2702,6 +2702,130 @@ window.SITE = {
      "title": "Deploy Assistant, a dim sum surprise"
     },
     {
+     "name": "DeployConvert",
+     "title": "Deploy Assistant, converting: files typed by their bytes, every category"
+    },
+    {
+     "name": "DeployConvertPdf",
+     "title": "Deploy Assistant, PDF tools with results checked by reopening"
+    },
+    {
+     "name": "DeployConvertLossy",
+     "title": "Deploy Assistant, saying what a conversion changes first"
+    },
+    {
+     "name": "DeployBase64",
+     "title": "Deploy Assistant, the Base64 toolkit"
+    },
+    {
+     "name": "DeployBase64Error",
+     "title": "Deploy Assistant, strict Base64 decoding names the offset"
+    },
+    {
+     "name": "DeployDraw",
+     "title": "Deploy Assistant, drawing with seven pens"
+    },
+    {
+     "name": "DeployDrawColours",
+     "title": "Deploy Assistant, the drawing toolbar turned into a palette"
+    }
+   ]
+  },
+  {
+   "id": "19-deploy-assistant-tools",
+   "title": "Deploy Assistant: converting, Base64, drawing, QR codes, School mode and the unlock ladder",
+   "boards": [
+    {
+     "name": "DeployQrMake",
+     "title": "Deploy Assistant, making a QR code"
+    },
+    {
+     "name": "DeployLadderDish",
+     "title": "Deploy Assistant, the unlock ladder: which dish is this?"
+    },
+    {
+     "name": "DeployLadderSums",
+     "title": "Deploy Assistant, the unlock ladder: ten easy sums"
+    },
+    {
+     "name": "DeployLadderMoles",
+     "title": "Deploy Assistant, the unlock ladder: whack-a-mole"
+    },
+    {
+     "name": "DeploySchool",
+     "title": "Deploy Assistant, School mode shared across apps, with a name and PIN"
+    },
+    {
+     "name": "DeployExtManager",
+     "title": "Deploy Assistant, the extension manager with recent runs"
+    },
+    {
+     "name": "DeployNotifications",
+     "title": "Deploy Assistant, notifications with bulk actions"
+    },
+    {
+     "name": "DeploySetup",
+     "title": "Deploy Assistant, Setup: what is missing installs with Chocolatey"
+    },
+    {
+     "name": "DeployMinecraft",
+     "title": "Deploy Assistant, Minecraft servers"
+    },
+    {
+     "name": "DeployMinecraftNew",
+     "title": "Deploy Assistant, a new Minecraft server, step by step"
+    },
+    {
+     "name": "DeployMinecraftVersion",
+     "title": "Deploy Assistant, choosing any version from the official catalogue"
+    },
+    {
+     "name": "DeployMinecraftPlayers",
+     "title": "Deploy Assistant, operators, allowlist and bans"
+    },
+    {
+     "name": "DeployMinecraftAddons",
+     "title": "Deploy Assistant, plugins and mods from Modrinth"
+    },
+    {
+     "name": "DeployMinecraftRules",
+     "title": "Deploy Assistant, game rules with their own controls"
+    },
+    {
+     "name": "DeployWorldGen",
+     "title": "Deploy Assistant, the world generator with a chunk grid"
+    }
+   ]
+  },
+  {
+   "id": "20-deploy-assistant-managers",
+   "title": "Deploy Assistant: Minecraft servers, AI models and virtual disks",
+   "boards": [
+    {
+     "name": "DeployModels",
+     "title": "Deploy Assistant, local AI models"
+    },
+    {
+     "name": "DeployModelStore",
+     "title": "Deploy Assistant, the model library with fit verdicts"
+    },
+    {
+     "name": "DeployModelChat",
+     "title": "Deploy Assistant, chatting with a local model"
+    },
+    {
+     "name": "DeployDisks",
+     "title": "Deploy Assistant, virtual disks on Windows"
+    },
+    {
+     "name": "DeployDiskCreate",
+     "title": "Deploy Assistant, creating a virtual disk with its scripts shown"
+    },
+    {
+     "name": "DeployDiskCompact",
+     "title": "Deploy Assistant, compacting: every mode explained"
+    },
+    {
      "name": "DeployPalette",
      "title": "Deploy Assistant, Ctrl Shift F with live controls"
     },
@@ -2712,5 +2836,5 @@ window.SITE = {
    ]
   }
  ],
- "deployVersion": "1.3.0"
+ "deployVersion": "1.4.0"
 };
