@@ -59,18 +59,6 @@ export class CloudICEServersPref extends LitElement {
                 )}
               </p>
             </div>
-            <div class="card-actions">
-              <ha-button
-                appearance="plain"
-                href="https://www.nabucasa.com/config/webrtc/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ${this.hass.localize(
-                  "ui.panel.config.cloud.account.ice_servers.link_learn_more"
-                )}
-              </ha-button>
-            </div>
           </ha-card>
         </div>
       </hass-subpage>

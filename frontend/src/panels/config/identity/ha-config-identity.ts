@@ -13,8 +13,10 @@ import type {
 } from "../../../common/identity/identity";
 import {
   cropRect,
+  imageTypeFromBytes,
   isAcceptableLogoUrl,
   isAllowedImageType,
+  isWithinPixelCap,
   LOGO_ACCENTS,
   LOGO_MARKS,
   LOGO_MAX_BYTES,
@@ -22,14 +24,22 @@ import {
   LOGO_SOURCE_MAX_BYTES,
   NAME_MAX_LENGTH,
   normalizeName,
+  IDENTITY_CHANGED_EVENT,
+  isEmptyIdentity,
   PRODUCT_NAME,
-  readIdentity,
+  readLocalIdentity,
+  readSharedIdentity,
   SHORT_NAME_MAX_LENGTH,
   tabTitleSuffix,
   writeIdentity,
 } from "../../../common/identity/identity";
+import {
+  applyIdentityForEveryone,
+  removeIdentityForEveryone,
+} from "../../../common/identity/shared-identity";
 import "../../../components/ha-button";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-switch";
 import "../../../components/input/ha-input";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
@@ -48,7 +58,8 @@ interface PickedPicture {
   element: HTMLImageElement;
 }
 
-type PictureError = "type" | "too_large" | "unreadable" | "too_big_after";
+type PictureError =
+  "type" | "too_large" | "too_many_pixels" | "unreadable" | "too_big_after";
 
 const ACCENT_STYLE: Record<LogoAccent, string> = {
   tonal:
@@ -70,6 +81,10 @@ class HaConfigIdentity extends LitElement {
 
   @state() private _saved: Identity = {};
 
+  @state() private _shared: Identity = {};
+
+  @state() private _sharing = false;
+
   @state() private _name = "";
 
   @state() private _shortName = "";
@@ -90,8 +105,18 @@ class HaConfigIdentity extends LitElement {
 
   @query("#file") private _file?: HTMLInputElement;
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener(IDENTITY_CHANGED_EVENT, this._sharedChanged);
+    this._shared = readSharedIdentity();
+  }
+
+  private _sharedChanged = () => {
+    this._shared = readSharedIdentity();
+  };
+
   protected firstUpdated(): void {
-    this._saved = readIdentity();
+    this._saved = readLocalIdentity();
     this._name = this._saved.name ?? "";
     this._shortName = this._saved.shortName ?? "";
     this._accent = this._saved.accent ?? "tonal";
@@ -100,6 +125,7 @@ class HaConfigIdentity extends LitElement {
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.removeEventListener(IDENTITY_CHANGED_EVENT, this._sharedChanged);
     this._forgetPicture();
   }
 
@@ -452,9 +478,87 @@ class HaConfigIdentity extends LitElement {
               <p class="note">${this._l("checked_note")}</p>
             </section>
           </div>
+          ${this._renderShared()}
         </div>
       </hass-subpage>
     `;
+  }
+
+  private _renderShared(): TemplateResult | typeof nothing {
+    if (!this.hass.user?.is_admin) {
+      return nothing;
+    }
+    const on = !isEmptyIdentity(this._shared);
+    const stale =
+      on &&
+      JSON.stringify(this._shared) !== JSON.stringify(this._saved) &&
+      !isEmptyIdentity(this._saved);
+    return html`
+      <section class="card shared" aria-labelledby="shared-title">
+        <h2 id="shared-title">${this._l("shared_title")}</h2>
+        <p class="help">${this._l("shared_help")}</p>
+        <label class="shared-row">
+          <ha-switch
+            .checked=${on}
+            .disabled=${this._sharing || (!on && isEmptyIdentity(this._saved))}
+            @change=${this._sharedSwitch}
+          ></ha-switch>
+          <span>${this._l("shared_switch")}</span>
+        </label>
+        ${
+          !on && isEmptyIdentity(this._saved)
+            ? html`<p class="note">${this._l("shared_nothing")}</p>`
+            : nothing
+        }
+        ${
+          stale
+            ? html`<p class="note">${this._l("shared_differs")}</p>
+                <div class="actions">
+                  <ha-button
+                    @click=${this._updateShared}
+                    .disabled=${this._sharing}
+                    >${this._l("shared_update")}</ha-button
+                  >
+                </div>`
+            : nothing
+        }
+      </section>
+    `;
+  }
+
+  private async _sharedSwitch(ev: Event): Promise<void> {
+    const checked = (ev.target as HTMLInputElement).checked;
+    if (checked) {
+      await this._updateShared();
+    } else {
+      await this._removeShared();
+    }
+    // Show what the server really holds if the change did not go through.
+    (ev.target as HTMLInputElement).checked = !isEmptyIdentity(this._shared);
+  }
+
+  private async _updateShared(): Promise<void> {
+    this._sharing = true;
+    try {
+      await applyIdentityForEveryone(this.hass.connection, this._saved);
+      showToast(this, { message: this._l("shared_applied") });
+    } catch (_err: any) {
+      showToast(this, { message: this._l("shared_failed") });
+    } finally {
+      this._sharing = false;
+    }
+  }
+
+  private async _removeShared(): Promise<void> {
+    this._sharing = true;
+    try {
+      await removeIdentityForEveryone(this.hass.connection);
+      showToast(this, { message: this._l("shared_removed") });
+    } catch (_err: any) {
+      showToast(this, { message: this._l("shared_failed") });
+    } finally {
+      this._sharing = false;
+    }
   }
 
   private _renderCropper(): TemplateResult {
@@ -544,7 +648,7 @@ class HaConfigIdentity extends LitElement {
       showToast(this, { message: this._l("not_saved") });
       return;
     }
-    this._saved = readIdentity();
+    this._saved = readLocalIdentity();
     this._updateTitle(previous);
     showToast(this, { message });
   }
@@ -619,7 +723,7 @@ class HaConfigIdentity extends LitElement {
     const file = input.files?.[0];
     input.value = "";
     if (file) {
-      this._loadFile(file);
+      void this._loadFile(file);
     }
   }
 
@@ -642,11 +746,11 @@ class HaConfigIdentity extends LitElement {
     this._dragging = false;
     const file = ev.dataTransfer?.files?.[0];
     if (file) {
-      this._loadFile(file);
+      void this._loadFile(file);
     }
   }
 
-  private _loadFile(file: File): void {
+  private async _loadFile(file: File): Promise<void> {
     this._pictureError = undefined;
     if (!isAllowedImageType(file.type)) {
       this._pictureError = "type";
@@ -654,6 +758,18 @@ class HaConfigIdentity extends LitElement {
     }
     if (file.size > LOGO_SOURCE_MAX_BYTES) {
       this._pictureError = "too_large";
+      return;
+    }
+    // The name and the declared type come from the browser's guess. The
+    // first bytes say what the file really is.
+    try {
+      const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+      if (imageTypeFromBytes(head) !== file.type.toLowerCase()) {
+        this._pictureError = "type";
+        return;
+      }
+    } catch (_err: any) {
+      this._pictureError = "unreadable";
       return;
     }
     const url = URL.createObjectURL(file);
@@ -672,6 +788,13 @@ class HaConfigIdentity extends LitElement {
       if (!element.naturalWidth || !element.naturalHeight) {
         this._forgetPicture();
         this._pictureError = "unreadable";
+        this._choice = this._choiceFromSaved(this._saved);
+      } else if (
+        !isWithinPixelCap(element.naturalWidth, element.naturalHeight)
+      ) {
+        // Too many pixels to draw safely: never put it on a canvas.
+        this._forgetPicture();
+        this._pictureError = "too_many_pixels";
         this._choice = this._choiceFromSaved(this._saved);
       } else if (!this._renderPicture()) {
         this._pictureError = "too_big_after";
@@ -753,6 +876,14 @@ class HaConfigIdentity extends LitElement {
         }
         :host([narrow]) .columns {
           grid-template-columns: minmax(0, 1fr);
+        }
+        .shared {
+          margin-top: var(--ha-space-4);
+        }
+        .shared-row {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
         }
         .card {
           display: flex;

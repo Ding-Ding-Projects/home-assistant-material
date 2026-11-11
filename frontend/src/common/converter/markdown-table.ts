@@ -1,11 +1,19 @@
 import type { ConvertError } from "./types";
 
 export type MarkdownParse =
-  { ok: true; rows: string[][] } | { ok: false; error: ConvertError };
+  | {
+      ok: true;
+      rows: string[][];
+      /** Cells where a written <br> was turned into a line break. */
+      lineBreaksRead: number;
+    }
+  | { ok: false; error: ConvertError };
 
 const SEPARATOR = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
 
 /** Splits a line on pipes that are not escaped, dropping the outer ones. */
+const BREAK = /<br\s*\/?>/gi;
+
 const splitCells = (line: string): string[] => {
   const cells: string[] = [];
   let current = "";
@@ -28,7 +36,7 @@ const splitCells = (line: string): string[] => {
   if (cells.length && cells[cells.length - 1].trim() === "") {
     cells.pop();
   }
-  return cells.map((cell) => cell.trim().replace(/<br\s*\/?>/gi, "\n"));
+  return cells.map((cell) => cell.trim());
 };
 
 /** Reads one Markdown table: a header line, a separator line, then rows. */
@@ -63,7 +71,16 @@ export const parseMarkdownTable = (text: string): MarkdownParse => {
     }
     rows.push(splitCells(lines[at]));
   }
-  return { ok: true, rows };
+  let lineBreaksRead = 0;
+  const converted = rows.map((row) =>
+    row.map((cell) =>
+      cell.replace(BREAK, () => {
+        lineBreaksRead++;
+        return "\n";
+      })
+    )
+  );
+  return { ok: true, rows: converted, lineBreaksRead };
 };
 
 /** Writes rows as a Markdown table. The first row is the header. */

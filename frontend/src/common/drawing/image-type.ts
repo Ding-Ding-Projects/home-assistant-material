@@ -1,3 +1,5 @@
+import { MAX_PIXELS, readImageSize } from "../converter/image-size";
+
 export type DrawingImageType = "image/png" | "image/jpeg" | "image/webp";
 
 /** The largest picture file taken, in bytes. */
@@ -55,7 +57,11 @@ export const sniffImageType = (
 };
 
 export type ImageCheck =
-  { ok: true } | { ok: false; reason: "too_big" | "not_image" | "dimensions" };
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "too_big" | "not_image" | "dimensions" | "unreadable";
+    };
 
 /** Check a picture's size in bytes and pixels. */
 export const checkImageLimits = (
@@ -66,10 +72,41 @@ export const checkImageLimits = (
   if (byteLength > MAX_IMAGE_BYTES) {
     return { ok: false, reason: "too_big" };
   }
-  if (!width || !height || Math.max(width, height) > MAX_SOURCE_SIDE) {
+  if (
+    !width ||
+    !height ||
+    Math.max(width, height) > MAX_SOURCE_SIDE ||
+    width * height > MAX_PIXELS
+  ) {
     return { ok: false, reason: "dimensions" };
   }
   return { ok: true };
+};
+
+const KIND_OF_TYPE: Record<DrawingImageType, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpeg",
+  "image/webp": "webp",
+};
+
+/**
+ * Judge a picture from its first bytes, before the browser decodes it. A file
+ * whose size cannot be read is refused: it could decode to anything.
+ */
+export const inspectImageHeader = (
+  head: Uint8Array,
+  byteLength: number
+): ImageCheck | { ok: true; width: number; height: number } => {
+  const type = sniffImageType(head);
+  if (!type) {
+    return { ok: false, reason: "not_image" };
+  }
+  const size = readImageSize(head, KIND_OF_TYPE[type]);
+  if (!size) {
+    return { ok: false, reason: "unreadable" };
+  }
+  const check = checkImageLimits(byteLength, size.width, size.height);
+  return check.ok ? { ok: true, ...size } : check;
 };
 
 /** The size a page takes for a picture, scaled down to fit the limit. */

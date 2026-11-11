@@ -130,10 +130,6 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Installed apps",
   },
   {
-    file: "panels/config/changelog/ha-config-changelog.ts",
-    searches: "Entries of What changed, by text, commit and day",
-  },
-  {
     file: "panels/config/release-notes/ha-config-release-notes.ts",
     searches: "Release notes, by text, commit and day",
   },

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PERSONAL_PREFERENCES,
   effectivePreferences,
+  isDeveloperToolsHidden,
   normalizePersonalPreferences,
   schoolHeldFields,
 } from "../../../src/common/preferences/personal-preferences";
@@ -64,5 +65,19 @@ describe("panelsToClose", () => {
     const b = { expanded: true };
     const c = { expanded: false };
     expect(panelsToClose([a, b, c], b)).toEqual([a]);
+  });
+});
+
+describe("hide Developer tools rule", () => {
+  it("hides the entry only while the mode is on and the rule is chosen", () => {
+    const base = normalizePersonalPreferences({
+      schoolMode: true,
+      schoolRules: ["hide_developer_tools"],
+    });
+    expect(isDeveloperToolsHidden(base)).toBe(true);
+    expect(isDeveloperToolsHidden({ ...base, schoolMode: false })).toBe(false);
+    expect(
+      isDeveloperToolsHidden({ ...base, schoolRules: ["one_thing"] })
+    ).toBe(false);
   });
 });

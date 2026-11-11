@@ -5,6 +5,10 @@
  * the About page. Files, updates, diagnostics, the web app manifest and the
  * legal notes keep the product's own name.
  */
+import {
+  limitCombiningMarks,
+  stripHiddenCharacters,
+} from "../string/hidden-characters";
 
 export const PRODUCT_NAME = "Home Assistant Material";
 
@@ -18,6 +22,10 @@ export const LOGO_MAX_BYTES = 200 * 1024;
 /** A picture that is picked may not be larger than this before resizing. */
 export const LOGO_SOURCE_MAX_BYTES = 8 * 1024 * 1024;
 export const LOGO_SIZE = 192;
+/** A picked picture may not have more pixels than this when it is drawn. */
+export const LOGO_SOURCE_MAX_PIXELS = 24_000_000;
+/** At most this many combining marks are kept after a letter in a name. */
+const MAX_COMBINING_MARKS = 2;
 
 export const LOGO_MARKS = ["house", "heart", "network", "bulb"] as const;
 export type LogoMark = (typeof LOGO_MARKS)[number];
@@ -48,22 +56,56 @@ export interface Identity {
 const clip = (text: string, max: number): string =>
   Array.from(text).slice(0, max).join("");
 
-/** Collapses white space, drops control characters and applies the limit. */
-export const normalizeName = (value: string, max = NAME_MAX_LENGTH): string =>
-  clip(
-    Array.from(value)
-      .map((char) => {
-        const code = char.codePointAt(0)!;
-        return code < 32 || code === 127 ? " " : char;
-      })
-      .join("")
-      .replace(/\s+/g, " ")
-      .trim(),
-    max
-  );
+/**
+ * Collapses white space and applies the limit. Control characters below 32 become
+ * spaces. Direction overrides, zero-width and other hidden characters are
+ * removed, and a letter keeps only a few combining marks. A name that holds
+ * nothing visible is empty.
+ */
+export const normalizeName = (value: string, max = NAME_MAX_LENGTH): string => {
+  const spaced = Array.from(value)
+    .map((char) => {
+      const code = char.codePointAt(0)!;
+      return code < 32 || code === 127 ? " " : char;
+    })
+    .join("");
+  const visible = limitCombiningMarks(
+    stripHiddenCharacters(spaced),
+    MAX_COMBINING_MARKS
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+  return /[^\p{M}\s]/u.test(visible) ? clip(visible, max) : "";
+};
 
 export const isAllowedImageType = (type: string): boolean =>
   (ALLOWED_IMAGE_TYPES as readonly string[]).includes(type.toLowerCase());
+
+/** The picture type a file really is, from its first bytes, if allowed. */
+export const imageTypeFromBytes = (bytes: Uint8Array): string | undefined => {
+  const starts = (...values: number[]) =>
+    values.every((value, index) => bytes[index] === value);
+  if (starts(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) {
+    return "image/png";
+  }
+  if (starts(0xff, 0xd8, 0xff)) {
+    return "image/jpeg";
+  }
+  if (
+    starts(0x52, 0x49, 0x46, 0x46) &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return undefined;
+};
+
+/** True when a picture's size in pixels is within what may be drawn. */
+export const isWithinPixelCap = (width: number, height: number): boolean =>
+  width > 0 && height > 0 && width * height <= LOGO_SOURCE_MAX_PIXELS;
 
 const DATA_URL =
   /^data:image\/(?:png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
@@ -85,7 +127,23 @@ export const isAcceptableLogoUrl = (url: unknown): url is string => {
     return false;
   }
   const bytes = dataUrlBytes(url);
-  return bytes > 0 && bytes <= LOGO_MAX_BYTES;
+  if (bytes <= 0 || bytes > LOGO_MAX_BYTES) {
+    return false;
+  }
+  // The first bytes must be the type the URL says it is.
+  const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+)/.exec(
+    url
+  );
+  if (!match) {
+    return false;
+  }
+  try {
+    const head = atob(match[2].slice(0, 16));
+    const bytesHead = Uint8Array.from(head, (char) => char.charCodeAt(0));
+    return imageTypeFromBytes(bytesHead) === match[1];
+  } catch (_err: any) {
+    return false;
+  }
 };
 
 export interface CropRect {
@@ -182,7 +240,17 @@ export const sanitizeIdentity = (raw: unknown): Identity => {
   return identity;
 };
 
-export const readIdentity = (): Identity => {
+/** True when no field of the identity is set. */
+export const isEmptyIdentity = (identity: Identity): boolean =>
+  Object.keys(identity).length === 0;
+
+/** The key under which the shared identity is stored in system data. */
+export const SHARED_IDENTITY_KEY = "identity";
+
+let sharedIdentity: Identity = {};
+
+/** What this browser itself stored, ignoring any shared value. */
+export const readLocalIdentity = (): Identity => {
   try {
     const stored = window.localStorage.getItem(IDENTITY_STORAGE_KEY);
     return stored ? sanitizeIdentity(JSON.parse(stored)) : {};
@@ -191,8 +259,43 @@ export const readIdentity = (): Identity => {
   }
 };
 
+/** The identity stored for everyone, as last received from the server. */
+export const readSharedIdentity = (): Identity => sharedIdentity;
+
+/**
+ * The identity in effect: this browser's own choice when it has one,
+ * otherwise the one stored for everyone.
+ */
+export const readIdentity = (): Identity => {
+  const local = readLocalIdentity();
+  return isEmptyIdentity(local) ? sharedIdentity : local;
+};
+
 const announce = () => {
   window.dispatchEvent(new CustomEvent(IDENTITY_CHANGED_EVENT));
+};
+
+// Another tab of this browser may change the stored identity. Tell this tab,
+// so nothing keeps showing the old name until a reload.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (ev: StorageEvent) => {
+    if (ev.key === IDENTITY_STORAGE_KEY || ev.key === null) {
+      announce();
+    }
+  });
+}
+
+/**
+ * Takes the value received from system data. Another administrator wrote it,
+ * so it is validated exactly like a locally stored value.
+ */
+export const setSharedIdentity = (raw: unknown): void => {
+  const clean = sanitizeIdentity(raw);
+  if (JSON.stringify(clean) === JSON.stringify(sharedIdentity)) {
+    return;
+  }
+  sharedIdentity = clean;
+  announce();
 };
 
 /** Saves the identity. Returns false when the browser refuses the write. */

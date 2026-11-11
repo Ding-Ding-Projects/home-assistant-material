@@ -44,6 +44,8 @@ export interface MinecraftServerDraft {
   port: number | undefined;
   memory_mb: number | undefined;
   target: MinecraftTarget;
+  /** The SSH host that runs the server; only used by the SSH Docker target. */
+  host_id?: string;
 }
 
 export interface MinecraftServer {
@@ -55,8 +57,10 @@ export interface MinecraftServer {
   port: number;
   memory_mb: number;
   target: MinecraftTarget;
-  /** Only "defined" exists until starting servers is built. */
+  /** The stored definition state; the live state comes from the status call. */
   state: string;
+  host_id?: string;
+  eula_accepted?: boolean;
 }
 
 export interface MinecraftTargetStatus {
@@ -139,10 +143,14 @@ export const parseMinecraftNumber = (text: string): number | undefined => {
 };
 
 /** The definition sent to the server, with the name trimmed. */
-export const minecraftDraftPayload = (draft: MinecraftServerDraft) => ({
-  ...draft,
-  name: draft.name.trim(),
-});
+export const minecraftDraftPayload = (draft: MinecraftServerDraft) => {
+  const { host_id: hostId, ...rest } = draft;
+  return {
+    ...rest,
+    name: draft.name.trim(),
+    ...(hostId ? { host_id: hostId } : {}),
+  };
+};
 
 export const fetchMinecraftTargets = (hass: HomeAssistant) =>
   hass.callWS<{ targets: MinecraftTargetStatus[] }>({
@@ -178,4 +186,310 @@ export const deleteMinecraftServer = (hass: HomeAssistant, serverId: string) =>
   hass.callWS<null>({
     type: "minecraft_manager/delete",
     server_id: serverId,
+  });
+
+/** The EULA page the person has to accept. Shown as text, never opened here. */
+export const MINECRAFT_EULA_URL = "https://www.minecraft.net/eula";
+
+/** The container image every server uses. Fixed on the server in const.py. */
+export const MINECRAFT_IMAGE = "itzg/minecraft-server:2026.11.0-java21";
+
+export const HOST_LIMITS = { portMin: 1, portMax: 65535 };
+
+const HOSTNAME_PATTERN =
+  /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/;
+const IPV4_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_PATTERN = /^[0-9A-Fa-f:]+$/;
+const USER_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]{0,31}$/;
+
+export interface MinecraftHost {
+  id: string;
+  name: string;
+  address: string;
+  port: number;
+  user: string;
+  /** The public key to add to authorized_keys on the host. */
+  public_key: string;
+  host_key_fingerprint: string | null;
+}
+
+export interface MinecraftHostDraft {
+  name: string;
+  address: string;
+  port: number | undefined;
+  user: string;
+}
+
+export const emptyMinecraftHostDraft = (): MinecraftHostDraft => ({
+  name: "",
+  address: "",
+  port: 22,
+  user: "",
+});
+
+const isValidAddress = (value: string): boolean => {
+  if (!value || value.length > 253) {
+    return false;
+  }
+  const v4 = IPV4_PATTERN.exec(value);
+  if (v4) {
+    return v4.slice(1).every((part) => Number(part) <= 255);
+  }
+  if (value.includes(":")) {
+    return IPV6_PATTERN.test(value) && value.length >= 2;
+  }
+  return HOSTNAME_PATTERN.test(value) && !/^[\d.]+$/.test(value);
+};
+
+/** The same rules the server applies; the server remains the authority. */
+export const validateMinecraftHostDraft = (
+  draft: MinecraftHostDraft
+): MinecraftFieldError[] => {
+  const errors: MinecraftFieldError[] = [];
+  const name = draft.name.trim();
+  if (!name) {
+    errors.push({ field: "name", code: "required" });
+  } else if (name.length > MINECRAFT_LIMITS.nameMax) {
+    errors.push({ field: "name", code: "too_long" });
+  } else if (!NAME_PATTERN.test(name)) {
+    errors.push({ field: "name", code: "invalid_characters" });
+  }
+  const address = draft.address.trim();
+  if (!address) {
+    errors.push({ field: "address", code: "required" });
+  } else if (!isValidAddress(address)) {
+    errors.push({ field: "address", code: "invalid_address" });
+  }
+  if (
+    !isInt(draft.port) ||
+    draft.port < HOST_LIMITS.portMin ||
+    draft.port > HOST_LIMITS.portMax
+  ) {
+    errors.push({ field: "port", code: "out_of_range" });
+  }
+  const user = draft.user.trim();
+  if (!user) {
+    errors.push({ field: "user", code: "required" });
+  } else if (!USER_PATTERN.test(user)) {
+    errors.push({ field: "user", code: "invalid_user" });
+  }
+  return errors;
+};
+
+/** The one line that lets this instance sign in: add it to authorized_keys. */
+export const authorizedKeysCommand = (publicKey: string): string =>
+  `echo '${publicKey}' >> ~/.ssh/authorized_keys`;
+
+export interface MinecraftHostSaveResult {
+  saved: boolean;
+  errors: MinecraftFieldError[];
+  host?: MinecraftHost;
+}
+
+/** An operation that failed carries a stable code and never remote text. */
+export interface MinecraftFailure {
+  ok: false;
+  code: string;
+}
+
+export interface MinecraftProbeResult {
+  ok: true;
+  fingerprint: string;
+  status: "new" | "match" | "changed";
+  trusted_fingerprint: string | null;
+}
+
+export interface MinecraftTestResult {
+  ok: true;
+  docker_version: string | null;
+  address: string;
+  lan: boolean;
+}
+
+export type MinecraftRunState = "running" | "starting" | "stopped" | "absent";
+
+export interface MinecraftStatus {
+  ok: true;
+  state: MinecraftRunState;
+  started_at: string | null;
+  health: string | null;
+  /** The host's LAN address as this instance reaches it. */
+  address: string;
+  port: number;
+  /** null when the server is not running, so nothing was checked. */
+  reachable: boolean | null;
+  already_running?: boolean;
+  image?: string;
+}
+
+export interface MinecraftLogResult {
+  ok: true;
+  lines: string[];
+}
+
+export type MinecraftResult<T> = T | MinecraftFailure;
+
+export const isMinecraftFailure = <T extends { ok: true }>(
+  result: MinecraftResult<T>
+): result is MinecraftFailure => result.ok === false;
+
+/** The address to type into Minecraft: address and port. */
+export const minecraftJoinAddress = (address: string, port: number): string =>
+  address.includes(":") ? `[${address}]:${port}` : `${address}:${port}`;
+
+export interface MinecraftVersionEntry {
+  id: string;
+  type: "release" | "snapshot";
+  released?: string;
+}
+
+export interface MinecraftVersionLists {
+  fetched_at: string | null;
+  vanilla: MinecraftVersionEntry[];
+  paper: MinecraftVersionEntry[];
+}
+
+export type MinecraftVersionKind = "all" | "release" | "snapshot";
+
+/** The list that matches a flavour, or undefined when it has none. */
+export const versionsForFlavour = (
+  lists: MinecraftVersionLists | undefined,
+  flavour: string
+): MinecraftVersionEntry[] | undefined => {
+  if (!lists) {
+    return undefined;
+  }
+  if (flavour === "vanilla") {
+    return lists.vanilla;
+  }
+  if (flavour === "paper") {
+    return lists.paper;
+  }
+  return undefined;
+};
+
+/** Filters by kind and by what the person typed. Plain text, ignoring case. */
+export const filterMinecraftVersions = (
+  entries: MinecraftVersionEntry[],
+  kind: MinecraftVersionKind,
+  query: string
+): MinecraftVersionEntry[] => {
+  const needle = query.trim().toLowerCase();
+  return entries.filter(
+    (entry) =>
+      (kind === "all" || entry.type === kind) &&
+      (!needle || entry.id.toLowerCase().includes(needle))
+  );
+};
+
+export const fetchMinecraftHosts = (hass: HomeAssistant) =>
+  hass.callWS<{ hosts: MinecraftHost[] }>({
+    type: "minecraft_manager/hosts/list",
+  });
+
+export const createMinecraftHost = (
+  hass: HomeAssistant,
+  draft: MinecraftHostDraft
+) =>
+  hass.callWS<MinecraftHostSaveResult>({
+    type: "minecraft_manager/hosts/create",
+    host: {
+      ...draft,
+      name: draft.name.trim(),
+      address: draft.address.trim(),
+      user: draft.user.trim(),
+    },
+  });
+
+export const deleteMinecraftHost = (hass: HomeAssistant, hostId: string) =>
+  hass.callWS<MinecraftResult<{ ok: true }>>({
+    type: "minecraft_manager/hosts/delete",
+    host_id: hostId,
+  });
+
+export const probeMinecraftHost = (hass: HomeAssistant, hostId: string) =>
+  hass.callWS<MinecraftResult<MinecraftProbeResult>>({
+    type: "minecraft_manager/hosts/probe",
+    host_id: hostId,
+  });
+
+export const trustMinecraftHost = (
+  hass: HomeAssistant,
+  hostId: string,
+  fingerprint: string,
+  replace = false
+) =>
+  hass.callWS<MinecraftResult<{ ok: true; host: MinecraftHost }>>({
+    type: "minecraft_manager/hosts/trust",
+    host_id: hostId,
+    fingerprint,
+    replace,
+  });
+
+export const testMinecraftHost = (hass: HomeAssistant, hostId: string) =>
+  hass.callWS<MinecraftResult<MinecraftTestResult>>({
+    type: "minecraft_manager/hosts/test",
+    host_id: hostId,
+  });
+
+export const fetchMinecraftVersions = (hass: HomeAssistant) =>
+  hass.callWS<MinecraftVersionLists>({
+    type: "minecraft_manager/versions/list",
+  });
+
+export const refreshMinecraftVersions = (hass: HomeAssistant) =>
+  hass.callWS<MinecraftResult<{ ok: true } & MinecraftVersionLists>>({
+    type: "minecraft_manager/versions/refresh",
+  });
+
+export const setMinecraftEula = (
+  hass: HomeAssistant,
+  serverId: string,
+  accepted: boolean
+) =>
+  hass.callWS<{ server: MinecraftServer }>({
+    type: "minecraft_manager/set_eula",
+    server_id: serverId,
+    accepted,
+  });
+
+export type MinecraftServerAction =
+  "start" | "stop" | "restart" | "remove_container";
+
+export const runMinecraftAction = (
+  hass: HomeAssistant,
+  serverId: string,
+  action: MinecraftServerAction
+) =>
+  hass.callWS<MinecraftResult<MinecraftStatus | { ok: true }>>({
+    type: `minecraft_manager/${action}`,
+    server_id: serverId,
+  });
+
+export const fetchMinecraftStatus = (hass: HomeAssistant, serverId: string) =>
+  hass.callWS<MinecraftResult<MinecraftStatus>>({
+    type: "minecraft_manager/status",
+    server_id: serverId,
+  });
+
+export const fetchMinecraftLogs = (
+  hass: HomeAssistant,
+  serverId: string,
+  lines: number
+) =>
+  hass.callWS<MinecraftResult<MinecraftLogResult>>({
+    type: "minecraft_manager/logs",
+    server_id: serverId,
+    lines,
+  });
+
+export const deleteMinecraftData = (
+  hass: HomeAssistant,
+  serverId: string,
+  confirmName: string
+) =>
+  hass.callWS<MinecraftResult<{ ok: true }>>({
+    type: "minecraft_manager/delete_data",
+    server_id: serverId,
+    confirm_name: confirmName,
   });

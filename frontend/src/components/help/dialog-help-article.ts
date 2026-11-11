@@ -26,6 +26,7 @@ import {
   rewriteArticleLinks,
   splitSections,
 } from "./help-article-path";
+import { HELP_LITERAL_TEXT } from "./help-literal-text";
 import type {
   HelpArticleDialogParams,
   HelpArticleNavigateDetail,
@@ -145,7 +146,9 @@ export class DialogHelpArticle
     if (own) {
       return own as string;
     }
-    const text = this._fallbackText?.[key];
+    // The translation file loads after the reader opens; until then the
+    // literal English keeps the labels from being empty.
+    const text = this._fallbackText?.[key] ?? HELP_LITERAL_TEXT[key];
     if (text === undefined) {
       return "";
     }

@@ -1,5 +1,5 @@
-import type { Point, Shape } from "./model";
-import { highlighterWidth, shapeBounds, textBounds } from "./model";
+import type { Point, Shape, TextMeasure } from "./model";
+import { shapeBounds, strokeStyle, textBounds } from "./model";
 
 /** Distance from a point to the segment a-b. */
 export const distanceToSegment = (p: Point, a: Point, b: Point): number => {
@@ -35,16 +35,19 @@ const nearPolyline = (p: Point, points: Point[], reach: number): boolean => {
 export const hitShape = (
   shape: Shape,
   p: Point,
-  tolerance: number
+  tolerance: number,
+  measure?: TextMeasure
 ): boolean => {
   switch (shape.kind) {
     case "pen":
       return nearPolyline(p, shape.points, shape.width / 2 + tolerance);
+    case "pencil":
+    case "brush":
     case "highlighter":
       return nearPolyline(
         p,
         shape.points,
-        highlighterWidth(shape.width) / 2 + tolerance
+        strokeStyle(shape.kind, shape.width).width / 2 + tolerance
       );
     case "line":
     case "arrow":
@@ -92,7 +95,7 @@ export const hitShape = (
       return outer <= 1 && inner >= 1;
     }
     case "text": {
-      const b = textBounds(shape);
+      const b = textBounds(shape, measure);
       return (
         p.x >= b.minX - tolerance &&
         p.x <= b.maxX + tolerance &&
@@ -109,10 +112,11 @@ export const hitShape = (
 export const hitTest = (
   shapes: Shape[],
   p: Point,
-  tolerance: number
+  tolerance: number,
+  measure?: TextMeasure
 ): string | undefined => {
   for (let i = shapes.length - 1; i >= 0; i--) {
-    if (hitShape(shapes[i], p, tolerance)) {
+    if (hitShape(shapes[i], p, tolerance, measure)) {
       return shapes[i].id;
     }
   }

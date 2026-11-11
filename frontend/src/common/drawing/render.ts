@@ -1,5 +1,5 @@
-import type { Shape, StrokePoint } from "./model";
-import { highlighterWidth, shapeBounds } from "./model";
+import type { Shape, StrokePoint, TextMeasure } from "./model";
+import { hasPressure, pressureWidth, shapeBounds, strokeStyle } from "./model";
 import { arrowHead } from "./svg-export";
 
 type Ctx = CanvasRenderingContext2D;
@@ -33,21 +33,22 @@ export const drawShape = (ctx: Ctx, shape: Shape): void => {
   ctx.lineJoin = "round";
   ctx.lineWidth = shape.width;
   switch (shape.kind) {
-    case "pen": {
+    case "pen":
+    case "pencil":
+    case "brush":
+    case "highlighter": {
       const pts = shape.points;
       if (!pts.length) {
         break;
       }
-      if (pts.some((p) => p.p !== undefined && p.p > 0)) {
+      const style = strokeStyle(shape.kind, shape.width);
+      ctx.globalAlpha = style.opacity;
+      ctx.lineCap = style.cap;
+      ctx.lineWidth = style.width;
+      if (style.pressure && hasPressure(pts) && pts.length > 1) {
         // A pen that reports pressure draws segment by segment.
-        if (pts.length === 1) {
-          smoothPath(ctx, pts);
-          ctx.stroke();
-          break;
-        }
         for (let i = 1; i < pts.length; i++) {
-          const pressure = ((pts[i - 1].p ?? 0.5) + (pts[i].p ?? 0.5)) / 2;
-          ctx.lineWidth = shape.width * (0.4 + pressure * 1.2);
+          ctx.lineWidth = pressureWidth(style.width, pts[i - 1].p, pts[i].p);
           ctx.beginPath();
           ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
           ctx.lineTo(pts[i].x, pts[i].y);
@@ -59,15 +60,6 @@ export const drawShape = (ctx: Ctx, shape: Shape): void => {
       }
       break;
     }
-    case "highlighter":
-      if (shape.points.length) {
-        ctx.globalAlpha = 0.4;
-        ctx.lineCap = "butt";
-        ctx.lineWidth = highlighterWidth(shape.width);
-        smoothPath(ctx, shape.points);
-        ctx.stroke();
-      }
-      break;
     case "line":
       ctx.beginPath();
       ctx.moveTo(shape.from.x, shape.from.y);
@@ -146,8 +138,13 @@ export const drawPage = (
 };
 
 /** A dashed outline around a shape, for the selection. */
-export const drawSelection = (ctx: Ctx, shape: Shape, scale: number): void => {
-  const b = shapeBounds(shape);
+export const drawSelection = (
+  ctx: Ctx,
+  shape: Shape,
+  scale: number,
+  measure?: TextMeasure
+): void => {
+  const b = shapeBounds(shape, measure);
   const pad = 6 / scale;
   ctx.save();
   ctx.strokeStyle = "#1a73e8";

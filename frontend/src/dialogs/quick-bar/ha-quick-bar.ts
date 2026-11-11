@@ -15,7 +15,9 @@ import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import type { PersonalPreferences } from "../../common/preferences/personal-preferences";
 import {
   getPersonalPreferences,
+  getStoredPreferences,
   savePersonalPreferences,
+  schoolHeldFields,
   subscribePersonalPreferences,
 } from "../../common/preferences/personal-preferences";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -414,10 +416,20 @@ export class QuickBar extends LitElement {
     }
   }
 
+  // True while School mode holds this setting, so a change here would only
+  // alter the stored choice behind the mode and show nothing.
+  private _settingHeld(key: keyof PersonalPreferences): boolean {
+    return schoolHeldFields(getStoredPreferences()).has(key);
+  }
+
   private _settingChanged(ev: Event) {
     const target = ev.currentTarget as HTMLInputElement & {
       settingKey: keyof PersonalPreferences;
     };
+    if (this._settingHeld(target.settingKey)) {
+      target.checked = !!getPersonalPreferences()[target.settingKey];
+      return;
+    }
     this._saveSetting({ [target.settingKey]: target.checked });
   }
 
@@ -446,11 +458,14 @@ export class QuickBar extends LitElement {
     if ("settingId" in item) {
       const key = settingKeys[item.settingId];
       const checked = !!getPersonalPreferences()[key];
+      const held = this._settingHeld(key);
       return html`<ha-switch
         slot="end"
         .checked=${checked}
+        .disabled=${held}
         .settingKey=${key}
-        aria-label=${item.primary ?? ""}
+        title=${held ? this._t("ui.dialogs.quick-bar.setting_held") : ""}
+        aria-label=${held ? `${item.primary ?? ""}. ${this._t("ui.dialogs.quick-bar.setting_held")}` : (item.primary ?? "")}
         @click=${stopPropagation}
         @keydown=${this._switchKeydown}
         @change=${this._settingChanged}
@@ -965,7 +980,13 @@ export class QuickBar extends LitElement {
       // toggle the choice in place and keep the search open
       if (item && "settingId" in item && (!item.path || newTab)) {
         const key = settingKeys[item.settingId];
-        this._saveSetting({ [key]: !getPersonalPreferences()[key] });
+        if (this._settingHeld(key)) {
+          showToast(this, {
+            message: this._t("ui.dialogs.quick-bar.setting_held"),
+          });
+        } else {
+          this._saveSetting({ [key]: !getPersonalPreferences()[key] });
+        }
         this._itemSelected = false;
         return;
       }

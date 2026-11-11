@@ -4,31 +4,64 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Fixed: on a phone the welcome banner covered the Overview header, so its menu and edit button could not be reached. \"Edit cards and layout\" now opens the copy in the editor."
+          "text": "Minecraft servers can be started on another computer that runs Docker, reached over SSH: add the host with its own key, confirm its fingerprint, then start, stop, read the log and see the address to join. Versions are looked up only when you press Refresh."
         },
         {
-          "text": "A dropped dashboard file shows what it contains before anything is made: outside addresses, custom cards and buttons that would call a service. Imports start hidden from the rail and visible to administrators only."
+          "text": "Ollama: pull a model with real progress and Cancel, and delete a model."
         },
         {
-          "text": "Dashboard history: set an address and push a dashboard with all its tabs, forget a dashboard's history, and a deleted dashboard's history is set aside, not reused."
+          "text": "Help articles: outside links inside articles are plain text, words that had gone missing are back, and every page has a proper title."
         },
         {
-          "text": "Help: every remaining help link opens inside the interface, including on the sign-in page. All 1,392 integration pages and their pictures are included. Community links are removed."
+          "text": "A dropped dashboard file can no longer hide a risky button or disguise where a link goes."
         },
         {
-          "text": "Passkeys: a flood of empty attempts can no longer stop passkey sign-in, and removing a passkey needs a recent password sign-in."
+          "text": "Automation history is held to the same rules as dashboard history: a strict address for pushing, a plain warning that anything typed into an automation is kept, and a way to forget an automation's history. History of deleted dashboards can be listed and removed."
         },
         {
-          "text": "New tools: a file converter and a drawing board. New pages: Ollama servers and models, renaming the app and its logo, and release notes."
+          "text": "The app's name and logo can be applied for everyone. The release notes page replaces the older changes page. School mode can hide the Developer tools entry."
         },
         {
-          "text": "Personal settings: language cards, playfulness sliders that change real messages, a switch for emojis in dialogs, one thing at a time, and School mode."
+          "text": "Drawing board: pencil and brush, and very large pictures are refused before they are opened. Converter: YAML merge keys are merged."
         },
         {
-          "text": "Fixed: a section could stay stuck half open, first-run setup could leave both buttons off, and a list's header checkbox could leave hidden rows selected."
+          "text": "Seen in a running build: the Overview header on a phone, and the editable copy opening straight in the editor."
         },
         {
-          "text": "Builds: a documentation push on top of code no longer leaves that code unbuilt."
+          "text": "Fixed: on a phone the welcome banner covered the Overview header, so its menu and edit button could not be reached. \"Edit cards and layout\" now opens the copy in the editor.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "A dropped dashboard file shows what it contains before anything is made: outside addresses, custom cards and buttons that would call a service. Imports start hidden from the rail and visible to administrators only.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "Dashboard history: set an address and push a dashboard with all its tabs, forget a dashboard's history, and a deleted dashboard's history is set aside, not reused.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "Help: every remaining help link opens inside the interface, including on the sign-in page. All 1,392 integration pages and their pictures are included. Community links are removed.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "Passkeys: a flood of empty attempts can no longer stop passkey sign-in, and removing a passkey needs a recent password sign-in.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "New tools: a file converter and a drawing board. New pages: Ollama servers and models, renaming the app and its logo, and release notes.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "Personal settings: language cards, playfulness sliders that change real messages, a switch for emojis in dialogs, one thing at a time, and School mode.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "Fixed: a section could stay stuck half open, first-run setup could leave both buttons off, and a list's header checkbox could leave hidden rows selected.",
+          "commit": "c9b9d007a016"
+        },
+        {
+          "text": "Builds: a documentation push on top of code no longer leaves that code unbuilt.",
+          "commit": "c9b9d007a016"
         },
         {
           "text": "Dashboards: built-in pages such as Overview have \"Edit cards and layout\", which makes an editable copy and opens it in the editor. On a phone the edit button sits beside the menu.",

@@ -106,10 +106,8 @@ class HaPanelConfig extends HassRouterPage {
         load: () => import("./info/ha-config-info"),
         waitForReady: true,
       },
-      changelog: {
-        tag: "ha-config-changelog",
-        load: () => import("./changelog/ha-config-changelog"),
-      },
+      // The older What changed page was merged into the release notes.
+      changelog: "release-notes",
       identity: {
         tag: "ha-config-identity",
         load: () => import("./identity/ha-config-identity"),

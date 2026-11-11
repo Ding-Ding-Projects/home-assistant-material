@@ -60,6 +60,19 @@ class PanelHome extends SubscribeMixin(LitElement) {
 
   @query(".banner") private _banner?: HTMLElement;
 
+  @query("hui-root") private _root?: HTMLElement;
+
+  // The header of the page can have a second row (a page lock notice, for
+  // example), so the banner goes under the real bottom edge of the header.
+  private _observedHeader?: Element;
+
+  private _headerBottom = new ResizeController(this, {
+    target: null,
+    callback: (entries) =>
+      (entries[0]?.target as HTMLElement | undefined)?.getBoundingClientRect()
+        .bottom ?? 0,
+  });
+
   private _loadConfigPromise?: Promise<void>;
 
   private _securityConfigRevision = 0;
@@ -383,7 +396,14 @@ class PanelHome extends SubscribeMixin(LitElement) {
     }
 
     return html`
-      <div class="banner">
+      <div
+        class="banner"
+        style=${styleMap({
+          top: this._headerBottom.value
+            ? `${this._headerBottom.value}px`
+            : undefined,
+        })}
+      >
         <div class="banner-content">
           <ha-svg-icon .path=${mdiHomeAssistant}></ha-svg-icon>
           <span class="banner-text">
@@ -405,6 +425,18 @@ class PanelHome extends SubscribeMixin(LitElement) {
       if (this._banner) {
         this._bannerHeight.observe(this._banner);
       }
+    }
+    void this._observeHeader();
+  }
+
+  private async _observeHeader() {
+    const root = this._root as
+      (HTMLElement & { updateComplete?: Promise<unknown> }) | undefined;
+    await root?.updateComplete;
+    const header = root?.shadowRoot?.querySelector(".header");
+    if (header && header !== this._observedHeader) {
+      this._observedHeader = header;
+      this._headerBottom.observe(header);
     }
   }
 

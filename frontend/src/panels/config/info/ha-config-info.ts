@@ -21,7 +21,10 @@ import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { applyPersonalVocabulary } from "../../../common/vocabulary/personal-vocabulary";
 import type { LocalizeKeys } from "../../../common/translations/localize";
-import { readIdentity } from "../../../common/identity/identity";
+import {
+  IDENTITY_CHANGED_EVENT,
+  readIdentity,
+} from "../../../common/identity/identity";
 import "../identity/ha-identity-logo";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import "../../../components/ha-card";
@@ -92,6 +95,21 @@ class HaConfigInfo extends LitElement {
   @state() private _hassioInfo?: HassioInfo;
 
   @state() private _installationMethod?: string;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    // Also fired when another tab changes the stored name.
+    window.addEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+  }
+
+  private _identityChanged = () => {
+    this.requestUpdate();
+  };
 
   protected render(): TemplateResult {
     const hass = this.hass;
@@ -275,8 +293,8 @@ class HaConfigInfo extends LitElement {
                     "ui.panel.config.info.material.check_updates"
                   )}</a
                 >
-                <a class="pill" href="/config/changelog"
-                  >${this.hass.localize("ui.panel.config.changelog.title")}</a
+                <a class="pill" href="/config/release-notes"
+                  >${this.hass.localize("ui.panel.config.release_notes.title")}</a
                 >
                 <a
                   class="pill plain"

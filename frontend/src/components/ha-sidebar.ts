@@ -38,6 +38,12 @@ import {
   IDENTITY_CHANGED_EVENT,
   readIdentity,
 } from "../common/identity/identity";
+import { subscribeSharedIdentity } from "../common/identity/shared-identity";
+import {
+  getPersonalPreferences,
+  isDeveloperToolsHidden,
+  subscribePersonalPreferences,
+} from "../common/preferences/personal-preferences";
 import "../panels/config/identity/ha-identity-logo";
 import { actionHandler } from "../panels/lovelace/common/directives/action-handler-directive";
 import { haStyleScrollbar } from "../resources/styles";
@@ -194,6 +200,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   @state() private _identityName?: string;
 
+  @state() private _hideDeveloperTools = false;
+
+  private _unsubPreferences?: () => void;
+
   private _unsubPersistentNotifications: UnsubscribeFunc | undefined;
 
   @query(".before-spacer") private _scrollableList?: HTMLDivElement;
@@ -204,6 +214,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   public hassSubscribe() {
     return [
+      subscribeSharedIdentity(this.hass.connection),
       subscribeFrontendUserData(
         this.hass.connection,
         "sidebar",
@@ -239,6 +250,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     window.addEventListener("location-changed", this._pathChanged);
     window.addEventListener("popstate", this._pathChanged);
     window.addEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+    this._hideDeveloperTools = isDeveloperToolsHidden(getPersonalPreferences());
+    this._unsubPreferences = subscribePersonalPreferences((preferences) => {
+      this._hideDeveloperTools = isDeveloperToolsHidden(preferences);
+    });
     this._identityChanged();
     this._pathChanged();
   }
@@ -249,6 +264,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._unsubPreferences?.();
+    this._unsubPreferences = undefined;
     window.removeEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
     window.removeEventListener("location-changed", this._pathChanged);
     window.removeEventListener("popstate", this._pathChanged);
@@ -538,7 +555,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   }
 
   private _renderDeveloperTools() {
-    if (!this.hass.user?.is_admin) {
+    // School mode only leaves the entry out; the page itself stays reachable.
+    if (!this.hass.user?.is_admin || this._hideDeveloperTools) {
       return nothing;
     }
     const title = this.hass.localize("ui.sidebar.developer_tools");

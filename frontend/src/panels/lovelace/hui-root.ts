@@ -868,17 +868,16 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
   private _handleUrlChanged() {
     // Check for requested edit mode
     const searchParams = extractSearchParamsObject();
-    if (searchParams.edit === "1") {
-      // A page that cannot be edited leaves the request alone: it is meant
-      // for the dashboard being navigated to, which has not mounted yet.
-      if (this.noEdit) {
-        return;
-      }
+    // A page that cannot be edited leaves the edit request alone: it is
+    // meant for the dashboard being navigated to, which has not mounted yet.
+    // The conversation request is separate and is handled either way.
+    if (searchParams.edit === "1" && !this.noEdit) {
       this._clearParam("edit");
       if (this.hass!.user?.is_admin && this.lovelace!.mode === "storage") {
         this.lovelace!.setEditMode(true);
       }
-    } else if (searchParams.conversation === "1") {
+    }
+    if (searchParams.conversation === "1") {
       this._clearParam("conversation");
       this._showVoiceCommandDialog();
     }

@@ -97,6 +97,8 @@ export const describeShape = (
   const color = colorKey(shape.color);
   switch (shape.kind) {
     case "pen":
+    case "pencil":
+    case "brush":
     case "highlighter": {
       const first = shape.points[0] ?? { x: 0, y: 0 };
       const last = shape.points[shape.points.length - 1] ?? first;

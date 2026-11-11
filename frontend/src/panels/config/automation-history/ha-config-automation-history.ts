@@ -69,6 +69,7 @@ import {
   fetchAutomationReposStatus,
   fetchAutomationVersion,
   pushAutomationRepos,
+  recordAutomation,
   setAutomationRemote,
 } from "../../../data/automation_repos";
 import { validateConfig } from "../../../data/config";
@@ -602,6 +603,7 @@ export class HaConfigAutomationHistory extends LitElement {
     }
     try {
       const config = await this._config(ref);
+      await recordAutomation(this.hass, ref.automationId, "Before going back");
       await saveAutomationConfig(this.hass, ref.automationId, config);
       // Saving reloads automations, and the reload commits the change.
       window.setTimeout(() => this._load(), 1500);
@@ -858,9 +860,11 @@ export class HaConfigAutomationHistory extends LitElement {
                   : this._l("master_empty")
               }
               ${
-                status.master.remote
-                  ? this._l("master_remote", { remote: status.master.remote })
-                  : this._l("master_no_remote")
+                status.master.remote_unsafe
+                  ? this._l("remote_unsafe")
+                  : status.master.remote
+                    ? this._l("master_remote", { remote: status.master.remote })
+                    : this._l("master_no_remote")
               }
             </span>
           </div>
@@ -1111,6 +1115,10 @@ export class HaConfigAutomationHistory extends LitElement {
           <ha-svg-icon .path=${mdiShieldCheck}></ha-svg-icon>
           ${this._l("steps_safe")}
         </p>
+        <p class="safe">
+          <ha-svg-icon .path=${mdiShieldCheck}></ha-svg-icon>
+          ${this._l("push_secrets_note")}
+        </p>
         <div class="panel-actions">
           <ha-button
             appearance="plain"
@@ -1146,7 +1154,12 @@ export class HaConfigAutomationHistory extends LitElement {
             </span>
             <span class="setting-text">
               <span class="primary remote-address"
-                >${remote ?? this._l("card_remote_none")}</span
+                >${
+                  remote ??
+                  (status.master.remote_unsafe
+                    ? this._l("remote_unsafe")
+                    : this._l("card_remote_none"))
+                }</span
               >
               <span class="secondary">
                 ${

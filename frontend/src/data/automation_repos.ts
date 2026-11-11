@@ -16,6 +16,8 @@ export interface AutomationRepository {
   /** True when the automation differs from its last commit. */
   dirty: boolean;
   remote: string | null;
+  /** True when a remote is set but its address is not allowed, so it is hidden. */
+  remote_unsafe: boolean;
 }
 
 export interface AutomationReposStatus {
@@ -25,6 +27,7 @@ export interface AutomationReposStatus {
     /** Seconds since 1970. */
     last_commit: number | null;
     remote: string | null;
+    remote_unsafe: boolean;
   };
 }
 
@@ -104,4 +107,32 @@ export const setAutomationRemote = (
     type: "automation_repos/set_remote",
     automation_id: automationId,
     url,
+  });
+
+/**
+ * Deletes every saved version of one automation and starts a new history from
+ * the automation as it is now. The automation itself does not change.
+ */
+export const forgetAutomationHistory = (
+  hass: HomeAssistant,
+  automationId: string
+) =>
+  hass.callWS<{ commit: string | null }>({
+    type: "automation_repos/forget",
+    automation_id: automationId,
+  });
+
+/**
+ * Commits the automation as it is now, if it differs from its last commit, so
+ * putting back an older version never loses a change that was not recorded.
+ */
+export const recordAutomation = (
+  hass: HomeAssistant,
+  automationId: string,
+  message?: string
+) =>
+  hass.callWS<{ commit: string | null }>({
+    type: "automation_repos/record",
+    automation_id: automationId,
+    ...(message ? { message } : {}),
   });

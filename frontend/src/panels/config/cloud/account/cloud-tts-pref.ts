@@ -270,18 +270,6 @@ export class CloudTTSPref extends LitElement {
                 </div>
               </div>
             </div>
-            <div class="card-actions">
-              <ha-button
-                appearance="plain"
-                href="https://support.nabucasa.com/hc/en-us/articles/25619386304541"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ${this.hass.localize(
-                  "ui.panel.config.cloud.account.tts.link_learn_more"
-                )}
-              </ha-button>
-            </div>
           </ha-card>
           <ha-card
             outlined
@@ -295,18 +283,6 @@ export class CloudTTSPref extends LitElement {
                   "ui.panel.config.cloud.account.stt.description"
                 )}
               </p>
-            </div>
-            <div class="card-actions">
-              <ha-button
-                appearance="plain"
-                href="https://support.nabucasa.com/hc/en-us/articles/29718084245149"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ${this.hass.localize(
-                  "ui.panel.config.cloud.account.stt.link_learn_more"
-                )}
-              </ha-button>
             </div>
           </ha-card>
           <ha-tip>

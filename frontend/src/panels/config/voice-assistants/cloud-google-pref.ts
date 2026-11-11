@@ -1,4 +1,3 @@
-import { mdiHelpCircleOutline } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
@@ -78,16 +77,6 @@ export class CloudGooglePref extends LitElement {
           >${this.hass.localize("ui.panel.config.cloud.account.google.title")}
         </h1>
         <div class="header-actions">
-          <ha-icon-button
-            .label=${this.hass.localize(
-              "ui.panel.config.cloud.account.google.link_learn_how_it_works"
-            )}
-            .path=${mdiHelpCircleOutline}
-            href="https://www.nabucasa.com/config/google_assistant/"
-            target="_blank"
-            rel="noreferrer"
-            class="icon-link"
-          ></ha-icon-button>
           <ha-switch
             .checked=${google_enabled}
             @change=${this._enabledToggleChanged}
@@ -121,20 +110,6 @@ export class CloudGooglePref extends LitElement {
                             ${this.hass.localize(
                               "ui.panel.config.cloud.account.google.not_configured_text"
                             )}
-
-                            <ul>
-                              <li>
-                                <a
-                                  href="https://www.nabucasa.com/config/google_assistant/"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  ${this.hass.localize(
-                                    "ui.panel.config.cloud.account.google.config_documentation"
-                                  )}
-                                </a>
-                              </li>
-                            </ul>
                           </ha-alert>
                         `
                       : nothing
@@ -172,14 +147,6 @@ export class CloudGooglePref extends LitElement {
                                     ${this.hass.localize(
                                       "ui.panel.config.cloud.account.google.http_use_ssl_warning_text"
                                     )}
-                                    <a
-                                      href="https://www.nabucasa.com/config/google_assistant/#local-communication"
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      >${this.hass.localize(
-                                        "ui.panel.config.common.learn_more"
-                                      )}</a
-                                    >
                                   </ha-alert>
                                 `
                               : nothing

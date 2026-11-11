@@ -1,5 +1,5 @@
 import type { Shape, StrokePoint } from "./model";
-import { highlighterWidth } from "./model";
+import { hasPressure, pressureWidth, strokeStyle } from "./model";
 
 /** Escape text for an XML text node or a double-quoted attribute. */
 export const escapeXml = (value: string): string => {
@@ -31,8 +31,11 @@ const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 export const safeColor = (color: string): string =>
   HEX_COLOR.test(color) ? color : "#000000";
 
-const num = (n: number): string =>
-  Number.isFinite(n) ? String(Math.round(n * 100) / 100) : "0";
+const num = (n: number): string => {
+  const rounded = Math.round(n * 100) / 100;
+  // Rounding a huge value can overflow, so the rounded result is checked.
+  return Number.isFinite(rounded) ? String(rounded) : "0";
+};
 
 const strokePath = (points: StrokePoint[]): string => {
   if (!points.length) {
@@ -80,9 +83,27 @@ const shapeToSvg = (shape: Shape): string => {
   const stroke = `fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"`;
   switch (shape.kind) {
     case "pen":
-      return `<path d="${strokePath(shape.points)}" ${stroke}/>`;
-    case "highlighter":
-      return `<path d="${strokePath(shape.points)}" fill="none" stroke="${color}" stroke-width="${num(highlighterWidth(shape.width))}" stroke-linecap="butt" stroke-linejoin="round" stroke-opacity="0.4"/>`;
+    case "pencil":
+    case "brush":
+    case "highlighter": {
+      const style = strokeStyle(shape.kind, shape.width);
+      if (
+        style.pressure &&
+        hasPressure(shape.points) &&
+        shape.points.length > 1
+      ) {
+        // Pen pressure is kept by drawing one segment at a time, as the canvas does.
+        const pts = shape.points;
+        let segments = "";
+        for (let i = 1; i < pts.length; i++) {
+          segments += `<line x1="${num(pts[i - 1].x)}" y1="${num(pts[i - 1].y)}" x2="${num(pts[i].x)}" y2="${num(pts[i].y)}" stroke-width="${num(pressureWidth(style.width, pts[i - 1].p, pts[i].p))}"/>`;
+        }
+        return `<g fill="none" stroke="${color}" stroke-linecap="${style.cap}" stroke-linejoin="round">${segments}</g>`;
+      }
+      const opacity =
+        style.opacity < 1 ? ` stroke-opacity="${style.opacity}"` : "";
+      return `<path d="${strokePath(shape.points)}" fill="none" stroke="${color}" stroke-width="${num(style.width)}" stroke-linecap="${style.cap}" stroke-linejoin="round"${opacity}/>`;
+    }
     case "line":
       return `<line x1="${num(shape.from.x)}" y1="${num(shape.from.y)}" x2="${num(shape.to.x)}" y2="${num(shape.to.y)}" ${stroke}/>`;
     case "arrow": {
@@ -100,13 +121,14 @@ const shapeToSvg = (shape: Shape): string => {
       return `<ellipse cx="${num((shape.from.x + shape.to.x) / 2)}" cy="${num((shape.from.y + shape.to.y) / 2)}" rx="${num(Math.abs(shape.to.x - shape.from.x) / 2)}" ry="${num(Math.abs(shape.to.y - shape.from.y) / 2)}" ${stroke}/>`;
     case "text": {
       const lines = shape.text.split("\n");
+      // Each line has its own y, so an empty line still takes up its height.
       const spans = lines
         .map(
           (line, i) =>
-            `<tspan x="${num(shape.at.x)}" dy="${i === 0 ? "0" : "1.2em"}">${escapeXml(line)}</tspan>`
+            `<tspan x="${num(shape.at.x)}" y="${num(shape.at.y + i * shape.size * 1.2)}">${escapeXml(line)}</tspan>`
         )
         .join("");
-      return `<text x="${num(shape.at.x)}" y="${num(shape.at.y)}" font-family="sans-serif" font-size="${num(shape.size)}" dominant-baseline="hanging" fill="${color}">${spans}</text>`;
+      return `<text xml:space="preserve" x="${num(shape.at.x)}" y="${num(shape.at.y)}" font-family="sans-serif" font-size="${num(shape.size)}" dominant-baseline="hanging" fill="${color}">${spans}</text>`;
     }
     default:
       return "";

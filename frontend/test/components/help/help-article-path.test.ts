@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   helpArticleSlug,
+  isBlockedHelpAddress,
   isHelpArticleAddress,
   parseHelpAddress,
   rewriteArticleLinks,
@@ -35,17 +36,31 @@ describe("parseHelpAddress", () => {
 });
 
 describe("isHelpArticleAddress", () => {
-  it("sends documentation to the reader but not blog posts or files", () => {
-    expect(isHelpArticleAddress("https://www.home-assistant.io/docs/x/")).toBe(
-      true
-    );
-    expect(isHelpArticleAddress("https://www.home-assistant.io/blog/x")).toBe(
-      false
-    );
-    expect(
-      isHelpArticleAddress("https://www.home-assistant.io/images/a.png")
-    ).toBe(false);
-    expect(isHelpArticleAddress("https://www.home-assistant.io/")).toBe(false);
+  it("owns the whole documentation host: no page of it opens the website", () => {
+    for (const url of [
+      "https://www.home-assistant.io/docs/x/",
+      "https://www.home-assistant.io/blog/2024/01/01/x",
+      "https://www.home-assistant.io/latest-release-notes",
+      "https://www.home-assistant.io/changelog/",
+      "https://www.home-assistant.io/images/a.png",
+      "https://www.home-assistant.io/",
+      "https://next.home-assistant.io",
+    ]) {
+      expect(isHelpArticleAddress(url)).toBe(true);
+      expect(isBlockedHelpAddress(url)).toBe(false);
+    }
+  });
+
+  it("blocks what the reader has nothing to show for", () => {
+    for (const url of [
+      "https://www.home-assistant.io/join-chat",
+      "https://www.home-assistant.io/socials/",
+      "https://www.home-assistant.io/shop",
+      "https://www.home-assistant.io/docs/a b/%00",
+    ]) {
+      expect(isHelpArticleAddress(url)).toBe(false);
+      expect(isBlockedHelpAddress(url)).toBe(true);
+    }
   });
 });
 

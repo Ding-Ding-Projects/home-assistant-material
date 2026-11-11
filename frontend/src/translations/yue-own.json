@@ -229,7 +229,8 @@
               "low_stimulation": "低刺激",
               "quiet_sounds": "冇操作提示音",
               "no_emojis": "對話框唔顯示表情符號",
-              "one_thing": "一次一件事"
+              "one_thing": "一次一件事",
+              "hide_developer_tools": "收埋開發者工具入口（只係收埋連結，頁面照樣去得到）"
             },
             "held": "{name}開咗期間由佢控制。",
             "locked_note": "要先關閉模式，先可以改名或者改規則。",

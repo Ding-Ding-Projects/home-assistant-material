@@ -11,6 +11,8 @@ import "../../../components/input/ha-input";
 import type {
   MinecraftEdition,
   MinecraftFieldError,
+  MinecraftHost,
+  MinecraftVersionLists,
   MinecraftServerDraft,
   MinecraftTarget,
   MinecraftTargetStatus,
@@ -18,15 +20,19 @@ import type {
 import {
   createMinecraftServer,
   emptyMinecraftDraft,
+  isMinecraftFailure,
   MINECRAFT_EDITIONS,
   MINECRAFT_FLAVOURS,
   MINECRAFT_LIMITS,
   MINECRAFT_TARGETS,
   parseMinecraftNumber,
+  refreshMinecraftVersions,
   validateMinecraftDraft,
+  versionsForFlavour,
 } from "../../../data/minecraft_manager";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
+import "./ha-minecraft-version-picker";
 
 const STEPS = ["basics", "version", "target", "review"] as const;
 type Step = (typeof STEPS)[number];
@@ -38,7 +44,7 @@ const SERVER_FIELD = "server";
 const STEP_FIELDS: Record<Step, string[]> = {
   basics: ["name", "edition", "port", "memory_mb"],
   version: ["flavour", "version"],
-  target: ["target"],
+  target: ["target", "host_id"],
   review: [],
 };
 
@@ -47,6 +53,17 @@ class HaMinecraftWizard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public targets: MinecraftTargetStatus[] = [];
+
+  @property({ attribute: false }) public hosts: MinecraftHost[] = [];
+
+  /** The cached version lists; a refresh happens only on request. */
+  @property({ attribute: false }) public versions?: MinecraftVersionLists;
+
+  @state() private _versions?: MinecraftVersionLists;
+
+  @state() private _versionsBusy = false;
+
+  @state() private _versionsError?: string;
 
   @state() private _draft: MinecraftServerDraft = emptyMinecraftDraft();
 
@@ -72,8 +89,24 @@ class HaMinecraftWizard extends LitElement {
     return this.targets.find((item) => item.id === id);
   }
 
+  protected willUpdate(changed: Map<string, unknown>): void {
+    if (changed.has("versions") && this.versions && !this._versions) {
+      this._versions = this.versions;
+    }
+    if (changed.has("hosts") && !this._draft.host_id && this.hosts.length) {
+      this._draft = { ...this._draft, host_id: this.hosts[0].id };
+    }
+  }
+
   private _errors(): MinecraftFieldError[] {
-    return [...validateMinecraftDraft(this._draft), ...this._serverErrors];
+    const errors = [
+      ...validateMinecraftDraft(this._draft),
+      ...this._serverErrors,
+    ];
+    if (this._draft.target === "ssh_docker" && !this._draft.host_id) {
+      errors.push({ field: "host_id", code: "host_required" });
+    }
+    return errors;
   }
 
   /** Errors tied to a setting; the ones about the whole request are separate. */
@@ -397,11 +430,87 @@ class HaMinecraftWizard extends LitElement {
             </label>`
         )}
       </fieldset>
-      ${this._field("version", this._l("field.version"), this._draft.version, {
-        hint: this._l("hint.version"),
-      })}
+      <ha-minecraft-version-picker
+        .hass=${this.hass}
+        .value=${this._draft.version}
+        .versions=${versionsForFlavour(this._versions, this._draft.flavour)}
+        .fetchedAt=${this._versions?.fetched_at ?? null}
+        .busy=${this._versionsBusy}
+        .error=${this._versionsError}
+        .hint=${this._l("hint.version")}
+        .invalidText=${this._errorFor("version")}
+        @value-changed=${this._versionChanged}
+        @refresh-versions=${this._refreshVersions}
+      ></ha-minecraft-version-picker>
       <ha-alert alert-type="info">${this._l("version_note")}</ha-alert>
     `;
+  }
+
+  private _versionChanged(ev: CustomEvent<{ value: string }>): void {
+    ev.stopPropagation();
+    this._set({ version: ev.detail.value });
+    this._touch("version");
+  }
+
+  private async _refreshVersions(): Promise<void> {
+    this._versionsBusy = true;
+    this._versionsError = undefined;
+    try {
+      const result = await refreshMinecraftVersions(this.hass);
+      if (isMinecraftFailure(result)) {
+        this._versionsError = this._l(`op_error.${result.code}`);
+      } else {
+        this._versions = result;
+      }
+    } catch (err: any) {
+      this._versionsError = err?.message ?? String(err);
+    } finally {
+      this._versionsBusy = false;
+    }
+  }
+
+  private _hostChanged(ev: Event): void {
+    this._set({ host_id: (ev.target as HTMLSelectElement).value });
+    this._touch("host_id");
+  }
+
+  private _openHosts(): void {
+    fireEvent(this, "minecraft-wizard-open-hosts");
+  }
+
+  private _renderHostChoice(): TemplateResult | typeof nothing {
+    if (this._draft.target !== "ssh_docker") {
+      return nothing;
+    }
+    const error = this._errorFor("host_id");
+    return html`<div class="field host-choice">
+      <label for="host-select">${this._l("field.host")}</label>
+      ${
+        this.hosts.length
+          ? html`<select
+              id="host-select"
+              .value=${this._draft.host_id ?? ""}
+              @change=${this._hostChanged}
+            >
+              ${this.hosts.map(
+                (host) =>
+                  html`<option
+                    value=${host.id}
+                    ?selected=${host.id === this._draft.host_id}
+                  >
+                    ${host.name} (${host.user}@${host.address})
+                  </option>`
+              )}
+            </select>`
+          : nothing
+      }
+      <span class="detail">${error ?? this._l("hint.host")}</span>
+      <div>
+        <ha-button appearance="plain" @click=${this._openHosts}
+          >${this._l("manage_hosts")}</ha-button
+        >
+      </div>
+    </div>`;
   }
 
   private _renderTarget(): TemplateResult {
@@ -414,6 +523,7 @@ class HaMinecraftWizard extends LitElement {
       >
         ${MINECRAFT_TARGETS.map((id, index) => this._renderTargetCard(id, index))}
       </div>
+      ${this._renderHostChoice()}
     `;
   }
 
@@ -487,6 +597,14 @@ class HaMinecraftWizard extends LitElement {
         d.memory_mb === undefined ? "-" : `${d.memory_mb} MB`,
       ],
       [this._l("field.target"), this._l(`target.${d.target}.name`)],
+      ...(d.target === "ssh_docker"
+        ? ([
+            [
+              this._l("field.host"),
+              this.hosts.find((host) => host.id === d.host_id)?.name ?? "-",
+            ],
+          ] as [string, string][])
+        : []),
     ];
   }
 
@@ -515,7 +633,7 @@ class HaMinecraftWizard extends LitElement {
             })}</ha-alert
           >`
       )}
-      <ha-alert alert-type="warning">${this._l("not_started_note")}</ha-alert>
+      <ha-alert alert-type="warning">${this._l("review_note")}</ha-alert>
       ${
         errors.length
           ? html`<ha-alert alert-type="error"
@@ -743,6 +861,20 @@ class HaMinecraftWizard extends LitElement {
         font-size: var(--ha-font-size-xs, 12px);
         color: var(--secondary-text-color);
       }
+      .host-choice {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+      }
+      .host-choice select {
+        min-height: 44px;
+        padding: 0 var(--ha-space-3);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-border-radius-lg, 12px);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        font: inherit;
+      }
       .warning {
         display: flex;
         gap: var(--ha-space-2);
@@ -792,5 +924,6 @@ declare global {
   }
   interface HASSDomEvents {
     "minecraft-wizard-closed": { created: boolean };
+    "minecraft-wizard-open-hosts": undefined;
   }
 }

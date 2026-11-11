@@ -8,20 +8,28 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import type {
+  MinecraftHost,
   MinecraftServer,
   MinecraftTargetStatus,
+  MinecraftVersionLists,
 } from "../../../data/minecraft_manager";
 import {
   deleteMinecraftServer,
+  fetchMinecraftHosts,
   fetchMinecraftServers,
   fetchMinecraftTargets,
+  fetchMinecraftVersions,
 } from "../../../data/minecraft_manager";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
+import "./ha-minecraft-hosts";
+import "./ha-minecraft-server";
 import "./ha-minecraft-wizard";
+
+type View = "list" | "create" | "hosts" | "server";
 
 @customElement("ha-config-minecraft")
 class HaConfigMinecraft extends LitElement {
@@ -33,9 +41,15 @@ class HaConfigMinecraft extends LitElement {
 
   @state() private _targets: MinecraftTargetStatus[] = [];
 
+  @state() private _hosts: MinecraftHost[] = [];
+
+  @state() private _versions?: MinecraftVersionLists;
+
   @state() private _error?: string;
 
-  @state() private _creating = false;
+  @state() private _view: View = "list";
+
+  @state() private _selectedId?: string;
 
   protected firstUpdated(): void {
     this._load();
@@ -43,15 +57,27 @@ class HaConfigMinecraft extends LitElement {
 
   private async _load(): Promise<void> {
     try {
-      const [servers, targets] = await Promise.all([
+      const [servers, targets, hosts, versions] = await Promise.all([
         fetchMinecraftServers(this.hass),
         fetchMinecraftTargets(this.hass),
+        fetchMinecraftHosts(this.hass),
+        fetchMinecraftVersions(this.hass),
       ]);
       this._servers = servers.servers;
       this._targets = targets.targets;
+      this._hosts = hosts.hosts;
+      this._versions = versions;
       this._error = undefined;
     } catch (err: any) {
       this._error = err?.message ?? String(err);
+    }
+  }
+
+  private async _reloadHosts(): Promise<void> {
+    try {
+      this._hosts = (await fetchMinecraftHosts(this.hass)).hosts;
+    } catch (err: any) {
+      showToast(this, { message: err?.message ?? String(err) });
     }
   }
 
@@ -62,12 +88,30 @@ class HaConfigMinecraft extends LitElement {
     );
   }
 
+  private _show(view: View): void {
+    this._view = view;
+  }
+
   private _startCreate(): void {
-    this._creating = true;
+    this._show("create");
+  }
+
+  private _openHosts(): void {
+    this._show("hosts");
+  }
+
+  private async _closeSubview(): Promise<void> {
+    this._show("list");
+    await this._load();
+  }
+
+  private _open(ev: Event): void {
+    this._selectedId = (ev.currentTarget as HTMLElement).dataset.server;
+    this._show("server");
   }
 
   private async _wizardClosed(ev: CustomEvent<{ created: boolean }>) {
-    this._creating = false;
+    this._show("list");
     if (ev.detail.created) {
       showToast(this, { message: this._l("created") });
       await this._load();
@@ -108,17 +152,53 @@ class HaConfigMinecraft extends LitElement {
         back-path="/config"
         .header=${this._l("title")}
       >
-        ${
-          this._creating
-            ? html`<ha-minecraft-wizard
-                .hass=${this.hass}
-                .targets=${this._targets}
-                @minecraft-wizard-closed=${this._wizardClosed}
-              ></ha-minecraft-wizard>`
-            : this._renderList()
-        }
+        ${this._renderView()}
       </hass-subpage>
     `;
+  }
+
+  private _renderView(): TemplateResult {
+    if (this._view === "create") {
+      return html`<ha-minecraft-wizard
+        .hass=${this.hass}
+        .targets=${this._targets}
+        .hosts=${this._hosts}
+        .versions=${this._versions}
+        @minecraft-wizard-closed=${this._wizardClosed}
+        @minecraft-wizard-open-hosts=${this._openHosts}
+      ></ha-minecraft-wizard>`;
+    }
+    if (this._view === "hosts") {
+      return html`<div class="content">
+        <div class="row">
+          <ha-button appearance="plain" @click=${this._closeSubview}
+            >${this._l("back_to_servers")}</ha-button
+          >
+        </div>
+        <h2>${this._l("hosts_title")}</h2>
+        <ha-minecraft-hosts
+          .hass=${this.hass}
+          .hosts=${this._hosts}
+          .usedHostIds=${(this._servers ?? [])
+            .map((server) => server.host_id)
+            .filter((id): id is string => Boolean(id))}
+          @minecraft-hosts-changed=${this._reloadHosts}
+        ></ha-minecraft-hosts>
+      </div>`;
+    }
+    const selected = this._servers?.find(
+      (item) => item.id === this._selectedId
+    );
+    if (this._view === "server" && selected) {
+      return html`<ha-minecraft-server
+        .hass=${this.hass}
+        .server=${selected}
+        .hosts=${this._hosts}
+        @minecraft-server-close=${this._closeSubview}
+        @minecraft-server-changed=${this._load}
+      ></ha-minecraft-server>`;
+    }
+    return this._renderList();
   }
 
   private _renderList(): TemplateResult {
@@ -135,20 +215,26 @@ class HaConfigMinecraft extends LitElement {
     const servers = this._servers;
     return html`<div class="content">
       <p class="lead">
-        ${servers.length ? this._l("summary_count", { count: servers.length }) : this._l("intro")}
+        ${
+          servers.length
+            ? this._l("summary_count", { count: servers.length })
+            : this._l("intro")
+        }
       </p>
-      <ha-alert alert-type="info">${this._l("not_started_note")}</ha-alert>
       ${servers.length ? this._renderServers(servers) : this._renderEmpty()}
-      ${
-        servers.length
-          ? html`<div class="add">
-              <ha-button @click=${this._startCreate}>
+      <div class="row">
+        ${
+          servers.length
+            ? html`<ha-button @click=${this._startCreate}>
                 <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
                 ${this._l("new_server")}
-              </ha-button>
-            </div>`
-          : nothing
-      }
+              </ha-button>`
+            : nothing
+        }
+        <ha-button appearance="plain" @click=${this._openHosts}
+          >${this._l("hosts_manage", { count: this._hosts.length })}</ha-button
+        >
+      </div>
     </div>`;
   }
 
@@ -180,9 +266,11 @@ class HaConfigMinecraft extends LitElement {
                 })}</span
               >
             </div>
-            <span class="tag">${this._l("state_defined")}</span>
-            <ha-button appearance="plain" disabled
-              >${this._l("start_unavailable")}</ha-button
+            <ha-button
+              appearance="plain"
+              data-server=${server.id}
+              @click=${this._open}
+              >${this._l("open")}</ha-button
             >
             <ha-icon-button
               .path=${mdiDelete}
@@ -211,6 +299,16 @@ class HaConfigMinecraft extends LitElement {
         display: flex;
         justify-content: center;
         padding: var(--ha-space-8, 32px);
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+      }
+      h2 {
+        margin: 0;
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-medium);
       }
       .lead {
         margin: 0;
@@ -260,17 +358,6 @@ class HaConfigMinecraft extends LitElement {
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-s);
         overflow-wrap: anywhere;
-      }
-      .tag {
-        flex: none;
-        padding: 0 var(--ha-space-2);
-        border-radius: 12px;
-        background: var(--card-background-color);
-        font-size: var(--ha-font-size-xs, 12px);
-        color: var(--secondary-text-color);
-      }
-      .add {
-        display: flex;
       }
     `,
   ];

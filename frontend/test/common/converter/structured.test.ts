@@ -84,7 +84,11 @@ describe("Markdown tables", () => {
     ];
     const written = writeMarkdownTable(rows);
     expect(written.lineBreaks).toBe(1);
-    expect(parseMarkdownTable(written.text)).toEqual({ ok: true, rows });
+    expect(parseMarkdownTable(written.text)).toEqual({
+      ok: true,
+      rows,
+      lineBreaksRead: 1,
+    });
   });
 
   it("needs a separator line", () => {

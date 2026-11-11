@@ -42,6 +42,9 @@ export class DialogImportSummary
 
   @state() private _showInSidebar = DEFAULT_IMPORT_VISIBILITY.showInSidebar;
 
+  // The lists the person has opened in full.
+  @state() private _expanded: ReadonlySet<string> = new Set();
+
   // Set by the confirm button, acted on once the dialog has closed.
   private _confirmed?: ImportVisibility;
 
@@ -51,6 +54,7 @@ export class DialogImportSummary
     this._requireAdmin = DEFAULT_IMPORT_VISIBILITY.requireAdmin;
     this._showInSidebar = DEFAULT_IMPORT_VISIBILITY.showInSidebar;
     this._urlPath = params.summary.urlPath;
+    this._expanded = new Set();
     this._open = true;
     if (params.summary.kind === "dashboard") {
       void this._loadAddress(params);
@@ -99,10 +103,25 @@ export class DialogImportSummary
     return this.hass.localize(`${T}.${suffix}` as LocalizeKeys, values);
   }
 
-  private _more<Item>(list: Capped<Item>): TemplateResult | typeof nothing {
+  private _showAll(ev: Event): void {
+    const id = (ev.currentTarget as HTMLElement).dataset.list;
+    if (id) {
+      this._expanded = new Set([...this._expanded, id]);
+    }
+  }
+
+  private _more<Item>(
+    id: string,
+    list: Capped<Item>
+  ): TemplateResult | typeof nothing {
     const rest = list.total - list.items.length;
-    return rest > 0
-      ? html`<li class="more">${this._t("and_more", { count: rest })}</li>`
+    return rest > 0 && !this._expanded.has(id)
+      ? html`<li class="more">
+          ${this._t("and_more", { count: rest })}
+          <ha-button appearance="plain" data-list=${id} @click=${this._showAll}
+            >${this._t("show_all")}</ha-button
+          >
+        </li>`
       : nothing;
   }
 
@@ -112,14 +131,15 @@ export class DialogImportSummary
     list: Capped<Item>,
     item: (value: Item) => TemplateResult
   ): TemplateResult {
+    const shown = this._expanded.has(titleKey) ? list.all : list.items;
     return html`<section>
       <h3>${this._t(titleKey, { count: list.total })}</h3>
       <p class="help">${this._t(helpKey)}</p>
       ${
         list.total
           ? html`<ul>
-              ${list.items.map((value) => html`<li>${item(value)}</li>`)}
-              ${this._more(list)}
+              ${shown.map((value) => html`<li>${item(value)}</li>`)}
+              ${this._more(titleKey, list)}
             </ul>`
           : html`<p class="none">${this._t("none")}</p>`
       }
@@ -168,6 +188,13 @@ export class DialogImportSummary
           summary.addresses,
           (address) =>
             html`<span class="host">${address.host}</span>
+              ${
+                address.problem
+                  ? html`<span class="warn"
+                      >${this._t(`address_${address.problem}`)}</span
+                    >`
+                  : nothing
+              }
               <span class="detail code">${address.address}</span>
               ${
                 address.where
@@ -217,13 +244,7 @@ export class DialogImportSummary
           "removed_help",
           summary.removed,
           (removed) =>
-            html`<span class="host"
-                >${this._t(
-                  removed.kind === "resource"
-                    ? "removed_resource"
-                    : "removed_module"
-                )}</span
-              >
+            html`<span class="host">${this._t(`removed_${removed.kind}`)}</span>
               ${
                 removed.address
                   ? html`<span class="detail code">${removed.address}</span>`
@@ -338,6 +359,14 @@ export class DialogImportSummary
       .host {
         font-weight: var(--ha-font-weight-medium);
         margin-inline-end: var(--ha-space-1);
+      }
+      .warn {
+        color: var(--error-color);
+        font-weight: var(--ha-font-weight-medium);
+        margin-inline-end: var(--ha-space-1);
+      }
+      .more ha-button {
+        --ha-button-height: 44px;
       }
       .code {
         font-family: var(--ha-font-family-code, monospace);

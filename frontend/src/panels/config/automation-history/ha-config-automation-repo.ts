@@ -2,6 +2,7 @@ import {
   mdiChevronRight,
   mdiCloudUpload,
   mdiCompare,
+  mdiDelete,
   mdiMinus,
   mdiPencil,
   mdiPlus,
@@ -44,10 +45,12 @@ import type {
 } from "../../../data/automation_repos";
 import {
   fetchAutomationDiff,
+  forgetAutomationHistory,
   fetchAutomationHistory,
   fetchAutomationReposStatus,
   fetchAutomationVersion,
   pushAutomationRepos,
+  recordAutomation,
 } from "../../../data/automation_repos";
 import { fullEntitiesContext, manifestsContext } from "../../../data/context";
 import type { EntityRegistryEntry } from "../../../data/entity/entity_registry";
@@ -416,12 +419,24 @@ export class HaConfigAutomationRepo extends LitElement {
           <code>${info.repository}</code>
           <span class="secondary">
             ${
-              info.remote
-                ? this._l("vh_remote", { remote: info.remote })
-                : this._l("vh_no_remote")
+              info.remote_unsafe
+                ? this._l("vh_remote_unsafe")
+                : info.remote
+                  ? this._l("vh_remote", { remote: info.remote })
+                  : this._l("vh_no_remote")
             }
           </span>
+          <span class="secondary">${this._l("vh_secrets_note")}</span>
         </div>
+        <ha-button
+          appearance="plain"
+          variant="danger"
+          ?disabled=${this._busy}
+          @click=${this._forget}
+        >
+          <ha-svg-icon slot="start" .path=${mdiDelete}></ha-svg-icon>
+          ${this._l("forget")}
+        </ha-button>
         <ha-button
           appearance="filled"
           href=${`/config/automation/edit/${encodeURIComponent(info.id)}`}
@@ -859,6 +874,39 @@ export class HaConfigAutomationRepo extends LitElement {
     await this._saveVersion(head);
   }
 
+  private async _forget() {
+    const info = this._info;
+    if (!info) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("forget_title", { alias: info.alias }),
+      text: this._l("forget_text"),
+      confirmText: this._l("forget"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = true;
+    try {
+      await forgetAutomationHistory(this.hass, this.automationId);
+      this._detail = undefined;
+      this._configs.clear();
+      await this._load();
+      fireEvent(this, "automation-repo-commit-selected", {
+        sha: this._commits[0]?.sha ?? "",
+      });
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    } finally {
+      this._busy = false;
+    }
+  }
+
   private async _goBack() {
     const key = this._selectedKey;
     if (!key || key === WORKING) {
@@ -880,6 +928,7 @@ export class HaConfigAutomationRepo extends LitElement {
     this._busy = true;
     try {
       const config = await this._config(sha);
+      await recordAutomation(this.hass, this.automationId, "Before going back");
       await saveAutomationConfig(this.hass, this.automationId, config);
       window.setTimeout(async () => {
         this._detail = undefined;

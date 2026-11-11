@@ -46,6 +46,7 @@ export const SCHOOL_RULES = [
   "quiet_sounds",
   "no_emojis",
   "one_thing",
+  "hide_developer_tools",
 ] as const;
 
 export type SchoolRule = (typeof SCHOOL_RULES)[number];
@@ -281,6 +282,8 @@ export const SCHOOL_RULE_FIELDS: Record<
   quiet_sounds: ["soundEffects"],
   no_emojis: ["dialogEmojis"],
   one_thing: ["oneThingAtATime"],
+  // Only hides an entry; there is no preference field to hold.
+  hide_developer_tools: [],
 };
 
 /** The fields School mode holds fixed right now. */
@@ -322,6 +325,13 @@ export const effectivePreferences = (
       : preferences.oneThingAtATime,
   };
 };
+
+/** True while School mode is on and its rule to leave out Developer tools is chosen. */
+export const isDeveloperToolsHidden = (
+  preferences: PersonalPreferences
+): boolean =>
+  preferences.schoolMode &&
+  preferences.schoolRules.includes("hide_developer_tools");
 
 /** The stored choices as everything else in the interface reads them. */
 export const getPersonalPreferences = (): PersonalPreferences =>

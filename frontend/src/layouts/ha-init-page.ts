@@ -49,19 +49,13 @@ export class HaInitPage extends LitElement {
             ? html`<p class="message">
                 ${
                   this.localize?.("ui.init.error.nabu_casa", {
-                    account_link: html`<a href="https://account.nabucasa.com/"
-                      >${
-                        this.localize?.("ui.init.error.nabu_casa_account") ||
-                        "Nabu Casa account page"
-                      }</a
-                    >`,
+                    account_link:
+                      this.localize?.("ui.init.error.nabu_casa_account") ||
+                      "Nabu Casa account page",
                   }) ||
                   html`It is possible that you are seeing this screen because
-                    your Home Assistant is not currently connected. You can ask
-                    it to come online from your
-                    <a href="https://account.nabucasa.com/"
-                      >Nabu Casa account page</a
-                    >.`
+                  your Home Assistant is not currently connected. You can ask it
+                  to come online from your Nabu Casa account page.`
                 }
               </p>`
             : nothing

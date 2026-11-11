@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   articleSlug,
+  checkConverted,
   convertArticle,
   extractDocumentationPaths,
   sanitizeMarkdown,
@@ -22,6 +23,88 @@ describe("convertArticle", () => {
     expect(body).toContain("Open **Settings** (x icon) now.");
     expect(body).toContain("> **Tip:**\n> Be careful");
     expect(body).not.toContain("{%");
+  });
+});
+
+describe("convertArticle, dropped words and structure", () => {
+  it("keeps the word of a bare or quoted glossary term", () => {
+    const { body } = convertArticle(
+      'An {% term automation %} runs. Each {% term "config entry" %} is one. Many {% term entity text="entities" %} exist.\n'
+    );
+    expect(body).toBe(
+      "An automation runs. Each config entry is one. Many entities exist."
+    );
+  });
+
+  it("leaves no gap where an inline tag stood", () => {
+    const { body } = convertArticle(
+      "See {% include a.md %} here, and {% include b.md %}.\nEnd {% include c.md %}\n"
+    );
+    expect(body).not.toMatch(/\S {2,}\S/);
+    expect(body).toBe("See here, and.\nEnd");
+  });
+
+  it("fails the check on a doubled space and an empty bold run", () => {
+    expect(checkConverted("An  runs here.")).toEqual([
+      "line 1: doubled space (a dropped word?)",
+    ]);
+    expect(checkConverted("- **** - QR code")).toContain(
+      "line 1: empty bold run"
+    );
+    expect(checkConverted("```\na  b\n```\n| a  b | c |\n| - | - |")).toEqual(
+      []
+    );
+  });
+
+  it("does not blame a double space that the source itself has", () => {
+    expect(checkConverted("It said:     done", "It said:     done")).toEqual(
+      []
+    );
+    expect(checkConverted("An  runs", "An {% term automation %} runs")).toEqual(
+      ["line 1: doubled space (a dropped word?)"]
+    );
+  });
+
+  it("keeps placeholders as text and removes real tags", () => {
+    const { body } = convertArticle(
+      'Open <domain> or <thermostat-ip>.<br/>Next <b>bold</b> and <lite-youtube videoid="x"></lite-youtube>.\n'
+    );
+    expect(body).toBe(
+      "Open &lt;domain&gt; or &lt;thermostat-ip&gt;.Next bold and."
+    );
+    expect(checkConverted(body)).toEqual([]);
+  });
+
+  it("evens out ragged table rows", () => {
+    const { body } = convertArticle(
+      "| a | b | c |\n| - | - | - |\n| 1 | 2 |\n| 1 | 2 | 3 | 4 |\n"
+    );
+    expect(body).toBe(
+      "| a | b | c |\n| - | - | - |\n| 1 | 2 | |\n| 1 | 2 | 3 \\| 4 |"
+    );
+    expect(checkConverted(body)).toEqual([]);
+  });
+
+  it("turns a link to a missing section into text", () => {
+    const { body } = convertArticle(
+      "## Real one\n\nSee [here](#real-one), [gone](#nope) and `[x](#nope)`.\n"
+    );
+    expect(body).toContain("See [here](#real-one), gone and `[x](#nope)`.");
+  });
+
+  it("takes the title from the front matter, a fallback or the first heading", () => {
+    expect(convertArticle("---\ntitle: T\n---\n# H\ntext").title).toBe("T");
+    expect(convertArticle("# **Heading** one\ntext").title).toBe("Heading one");
+    expect(convertArticle("## Events\ntext", undefined, "Abode").title).toBe(
+      "Abode"
+    );
+  });
+
+  it("does not treat inline triple backticks as a fence", () => {
+    const { body } = convertArticle(
+      "```inline``` then {% term device %} words\n"
+    );
+    expect(body).toBe("```inline``` then device words");
   });
 });
 

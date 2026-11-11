@@ -10,8 +10,10 @@ import {
   mdiFileImage,
   mdiFormatText,
   mdiHandBackRight,
+  mdiBrush,
   mdiHelpCircleOutline,
   mdiImagePlus,
+  mdiLeadPencil,
   mdiMagnifyMinus,
   mdiMagnifyPlus,
   mdiMarker,
@@ -40,25 +42,31 @@ import {
   undo,
 } from "../../../../common/drawing/history";
 import { hitTest } from "../../../../common/drawing/hit-test";
+import { isEditableTarget } from "../../../../common/drawing/editable-target";
 import {
   MAX_IMAGE_BYTES,
   MAX_PAGE_SIDE,
   MAX_SOURCE_SIDE,
   checkImageLimits,
+  inspectImageHeader,
   pageSizeForImage,
-  sniffImageType,
 } from "../../../../common/drawing/image-type";
+import { MAX_PIXELS } from "../../../../common/converter/image-size";
 import type {
   Point,
   Shape,
   ShapeKind,
   StrokePoint,
+  TextMeasure,
 } from "../../../../common/drawing/model";
 import {
+  MAX_GALLERY_ITEMS,
   MAX_TEXT_LENGTH,
   addShape,
   clampPoint,
+  closeIfUnused,
   constrainEnd,
+  isStrokeKind,
   moveShape,
   newShapeId,
   removeShape,
@@ -85,6 +93,8 @@ interface ToolDef {
 const TOOLS: ToolDef[] = [
   { tool: "select", key: "V", icon: mdiCursorDefault },
   { tool: "pen", key: "P", icon: mdiPencil },
+  { tool: "pencil", key: "N", icon: mdiLeadPencil },
+  { tool: "brush", key: "B", icon: mdiBrush },
   { tool: "highlighter", key: "H", icon: mdiMarker },
   { tool: "line", key: "L", icon: mdiVectorLine },
   { tool: "arrow", key: "A", icon: mdiArrowTopRight },
@@ -206,6 +216,21 @@ class ToolsDrawing extends LitElement {
   private _frame = 0;
 
   private _needsFit = true;
+
+  private _measureCtx?: CanvasRenderingContext2D | null;
+
+  /** Text width measured with the canvas, so wide characters are counted. */
+  private _measure: TextMeasure | undefined = (line, size) => {
+    if (this._measureCtx === undefined) {
+      this._measureCtx = document.createElement("canvas").getContext("2d");
+    }
+    const ctx = this._measureCtx;
+    if (!ctx) {
+      return line.length * size * 0.6;
+    }
+    ctx.font = `${size}px sans-serif`;
+    return ctx.measureText(line).width;
+  };
 
   private _l(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(
@@ -607,6 +632,7 @@ class ToolsDrawing extends LitElement {
           <li><kbd>Shift</kbd> ${this._l("help_shift")}</li>
           <li><kbd>Esc</kbd> ${this._l("help_escape")}</li>
           <li>${this._l("help_pointer")}</li>
+          <li>${this._l("help_focus")}</li>
         </ul>
       </section>
     `;
@@ -675,7 +701,7 @@ class ToolsDrawing extends LitElement {
     drawPage(ctx, shapes, this._page, this._background);
     const selected = this._shapes.find((s) => s.id === this._selected);
     if (selected) {
-      drawSelection(ctx, selected, scale);
+      drawSelection(ctx, selected, scale, this._measure);
     }
     if (this._canvasFocused) {
       const c = this._cursor;
@@ -792,7 +818,12 @@ class ToolsDrawing extends LitElement {
     const tolerance = 6 / this._view.scale;
     switch (this._tool) {
       case "select": {
-        const id = hitTest(this._history.present, point, tolerance);
+        const id = hitTest(
+          this._history.present,
+          point,
+          tolerance,
+          this._measure
+        );
         this._selected = id;
         if (id) {
           this._gesture = {
@@ -813,6 +844,8 @@ class ToolsDrawing extends LitElement {
         this._openText(point);
         break;
       case "pen":
+      case "pencil":
+      case "brush":
       case "highlighter": {
         const shape: Shape = {
           id: newShapeId(),
@@ -895,7 +928,7 @@ class ToolsDrawing extends LitElement {
       );
     } else {
       const shape = gesture.shape;
-      if (shape.kind === "pen" || shape.kind === "highlighter") {
+      if (isStrokeKind(shape.kind) && "points" in shape) {
         if (ev.shiftKey) {
           const first = shape.points[0];
           shape.points = [first, constrainEnd(shape.kind, first, point)];
@@ -923,7 +956,7 @@ class ToolsDrawing extends LitElement {
     this._gesture = undefined;
     if (gesture.kind === "draw") {
       let shape = gesture.shape;
-      if (shape.kind === "pen" || shape.kind === "highlighter") {
+      if (isStrokeKind(shape.kind) && "points" in shape) {
         shape = {
           ...shape,
           points: simplifyStroke(shape.points, 0.5 / this._view.scale),
@@ -954,7 +987,7 @@ class ToolsDrawing extends LitElement {
 
   private _eraseAt(point: Point): void {
     const base = this._working ?? this._history.present;
-    const id = hitTest(base, point, 6 / this._view.scale);
+    const id = hitTest(base, point, 6 / this._view.scale, this._measure);
     if (id) {
       this._working = removeShape(base, id);
       if (this._selected === id) {
@@ -980,8 +1013,9 @@ class ToolsDrawing extends LitElement {
   }
 
   private _onKeyDown(ev: KeyboardEvent): void {
-    const origin = ev.composedPath()[0] as HTMLElement | undefined;
-    if (origin?.tagName === "INPUT" || origin?.tagName === "TEXTAREA") {
+    const path = ev.composedPath();
+    const origin = path[0] as HTMLElement | undefined;
+    if (isEditableTarget(path)) {
       return;
     }
     const mod = ev.ctrlKey || ev.metaKey;
@@ -1039,6 +1073,11 @@ class ToolsDrawing extends LitElement {
       }
       return;
     }
+    // Single-character shortcuts act only while the canvas has focus, so
+    // typing on a toolbar button or a link never changes the tool by accident.
+    if (!onCanvas) {
+      return;
+    }
     if (key === "+" || key === "=") {
       handled();
       this._zoomIn();
@@ -1083,6 +1122,8 @@ class ToolsDrawing extends LitElement {
     let shape: Shape | undefined;
     switch (this._tool) {
       case "pen":
+      case "pencil":
+      case "brush":
       case "highlighter":
         shape = {
           ...base,
@@ -1115,7 +1156,12 @@ class ToolsDrawing extends LitElement {
         this._openText(c);
         return;
       case "eraser": {
-        const id = hitTest(this._history.present, c, 6 / this._view.scale);
+        const id = hitTest(
+          this._history.present,
+          c,
+          6 / this._view.scale,
+          this._measure
+        );
         if (id) {
           this._history = commit(
             this._history,
@@ -1320,8 +1366,7 @@ class ToolsDrawing extends LitElement {
     if (!this.getClientRects().length) {
       return;
     }
-    const origin = ev.composedPath()[0] as HTMLElement | undefined;
-    if (origin?.tagName === "INPUT" || origin?.tagName === "TEXTAREA") {
+    if (isEditableTarget(ev.composedPath())) {
       return;
     }
     const file = [...(ev.clipboardData?.files ?? [])][0];
@@ -1340,9 +1385,12 @@ class ToolsDrawing extends LitElement {
       });
       return;
     }
-    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
-    if (!sniffImageType(head)) {
-      this._error = this._l("error_not_image");
+    // The size is read from the file header, so a picture that would take
+    // far too much memory is refused before the browser decodes it.
+    const head = new Uint8Array(await file.slice(0, 262144).arrayBuffer());
+    const header = inspectImageHeader(head, file.size);
+    if (!header.ok) {
+      this._error = this._headerError(header.reason);
       return;
     }
     let bitmap: ImageBitmap;
@@ -1355,12 +1403,7 @@ class ToolsDrawing extends LitElement {
     const check = checkImageLimits(file.size, bitmap.width, bitmap.height);
     if (!check.ok) {
       bitmap.close();
-      this._error =
-        check.reason === "too_big"
-          ? this._l("error_too_big", {
-              size: Math.round(MAX_IMAGE_BYTES / 1024 / 1024),
-            })
-          : this._l("error_dimensions", { side: MAX_SOURCE_SIDE });
+      this._error = this._headerError(check.reason);
       return;
     }
     if (this._history.present.length) {
@@ -1376,7 +1419,7 @@ class ToolsDrawing extends LitElement {
       }
     }
     const page = pageSizeForImage(bitmap.width, bitmap.height);
-    this._background = bitmap;
+    this._replaceBackground(bitmap);
     this._page = page;
     this._history = createHistory<Shape[]>([]);
     this._selected = undefined;
@@ -1391,6 +1434,33 @@ class ToolsDrawing extends LitElement {
           });
   }
 
+  private _headerError(
+    reason: "too_big" | "not_image" | "dimensions" | "unreadable"
+  ): string {
+    switch (reason) {
+      case "too_big":
+        return this._l("error_too_big", {
+          size: Math.round(MAX_IMAGE_BYTES / 1024 / 1024),
+        });
+      case "not_image":
+        return this._l("error_not_image");
+      case "unreadable":
+        return this._l("error_decode");
+      default:
+        return this._l("error_dimensions", {
+          side: MAX_SOURCE_SIDE,
+          megapixels: Math.round(MAX_PIXELS / 1_000_000),
+        });
+    }
+  }
+
+  /** Swap the background picture, closing the old bitmap if nothing else uses it. */
+  private _replaceBackground(next: ImageBitmap | undefined): void {
+    const previous = this._background;
+    this._background = next;
+    closeIfUnused(previous, [next, ...this._gallery.map((g) => g.background)]);
+  }
+
   private async _removeImage(): Promise<void> {
     const ok = await showConfirmationDialog(this, {
       title: this._l("remove_image_title"),
@@ -1401,7 +1471,7 @@ class ToolsDrawing extends LitElement {
     if (!ok) {
       return;
     }
-    this._background = undefined;
+    this._replaceBackground(undefined);
     this._page = { ...DEFAULT_PAGE };
     this._history = createHistory<Shape[]>([]);
     this._selected = undefined;
@@ -1473,6 +1543,11 @@ class ToolsDrawing extends LitElement {
   // --------------------------------------------------------------- gallery
 
   private _saveToGallery(): void {
+    if (this._gallery.length >= MAX_GALLERY_ITEMS) {
+      this._error = this._l("gallery_full", { count: MAX_GALLERY_ITEMS });
+      return;
+    }
+    this._error = "";
     const full = this._renderToCanvas();
     if (!full) {
       return;
@@ -1515,7 +1590,7 @@ class ToolsDrawing extends LitElement {
       }
     }
     this._page = { ...item.page };
-    this._background = item.background;
+    this._replaceBackground(item.background);
     this._history = createHistory(item.shapes);
     this._selected = undefined;
     this._cursor = { x: item.page.width / 2, y: item.page.height / 2 };
@@ -1524,7 +1599,12 @@ class ToolsDrawing extends LitElement {
 
   private _removeGallery(ev: Event): void {
     const id = (ev.currentTarget as HTMLElement).dataset.id;
+    const removed = this._gallery.find((g) => g.id === id);
     this._gallery = this._gallery.filter((g) => g.id !== id);
+    closeIfUnused(removed?.background, [
+      this._background,
+      ...this._gallery.map((g) => g.background),
+    ]);
   }
 
   static get styles(): CSSResultGroup {

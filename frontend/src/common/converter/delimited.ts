@@ -124,10 +124,16 @@ export const writeDelimited = (
 ): string =>
   rows
     .map((row) =>
-      row
-        .map((cell) =>
-          needsQuotes(cell, delimiter) ? `"${cell.replace(/"/g, '""')}"` : cell
-        )
-        .join(delimiter)
+      // A line holding one empty cell would read back as a blank line, which
+      // is skipped, so that cell is written as an empty quoted value.
+      row.length === 1 && row[0] === ""
+        ? '""'
+        : row
+            .map((cell) =>
+              needsQuotes(cell, delimiter)
+                ? `"${cell.replace(/"/g, '""')}"`
+                : cell
+            )
+            .join(delimiter)
     )
     .join("\n") + (rows.length ? "\n" : "");

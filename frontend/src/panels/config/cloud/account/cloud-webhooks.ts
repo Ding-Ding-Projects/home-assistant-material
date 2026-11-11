@@ -102,18 +102,6 @@ export class CloudWebhooks extends LitElement {
                       )
               }
             </div>
-            <div class="card-actions">
-              <ha-button
-                appearance="plain"
-                href="https://www.nabucasa.com/config/webhooks"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ${this.hass!.localize(
-                  "ui.panel.config.cloud.account.webhooks.link_learn_more"
-                )}
-              </ha-button>
-            </div>
           </ha-card>
 
           ${

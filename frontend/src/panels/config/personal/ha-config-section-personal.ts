@@ -1366,9 +1366,7 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private async _schoolTurnOff() {
     const name = this._prefs.schoolName;
-    const store = readLocks();
-    const record = store.records?.[SCHOOL_LOCK_KEY];
-    if (record) {
+    if (readLocks().records?.[SCHOOL_LOCK_KEY]) {
       const pin = await showPromptDialog(this, {
         title: this._t("school_mode.pin_off_title", { name }),
         text: this._t("school_mode.pin_off_text"),
@@ -1380,24 +1378,29 @@ export class HaConfigSectionPersonal extends LitElement {
       if (pin === null) {
         return;
       }
-      const result = await checkAll(record, { pin }, Date.now());
-      // A wrong try is counted, so the next ones have to wait.
-      writeLocks(withUpdatedRecord(store, result.record));
-      if (result.outcome === "wait") {
-        await showAlertDialog(this, {
-          title: this._t("school_mode.label"),
-          text: this._t("school_mode.pin_wait", {
-            seconds: Math.ceil(result.waitMs / 1000),
-          }),
-        });
-        return;
-      }
-      if (result.outcome === "wrong") {
-        await showAlertDialog(this, {
-          title: this._t("school_mode.label"),
-          text: this._t("school_mode.pin_wrong", { name }),
-        });
-        return;
+      // The store is read again after the prompt, so attempt counts and waits
+      // recorded meanwhile (for example in another tab) are the ones checked.
+      const record = readLocks().records?.[SCHOOL_LOCK_KEY];
+      if (record) {
+        const result = await checkAll(record, { pin }, Date.now());
+        // A wrong try is counted on the freshest store, so the next ones wait.
+        writeLocks(withUpdatedRecord(readLocks(), result.record));
+        if (result.outcome === "wait") {
+          await showAlertDialog(this, {
+            title: this._t("school_mode.label"),
+            text: this._t("school_mode.pin_wait", {
+              seconds: Math.ceil(result.waitMs / 1000),
+            }),
+          });
+          return;
+        }
+        if (result.outcome === "wrong") {
+          await showAlertDialog(this, {
+            title: this._t("school_mode.label"),
+            text: this._t("school_mode.pin_wrong", { name }),
+          });
+          return;
+        }
       }
     }
     writeLocks(withLock(readLocks(), SCHOOL_LOCK_KEY, false));

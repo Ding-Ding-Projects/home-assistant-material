@@ -56,6 +56,10 @@ export const convertImage = async (
   options: ImageOptions
 ): Promise<ImageResult> => {
   const header = readImageSize(bytes, sourceKind);
+  if (!header && sourceKind === "avif") {
+    // Without a readable size nothing says how large the decoded picture is.
+    return { ok: false, error: { code: "image_size_unknown" } };
+  }
   if (header && header.width * header.height > MAX_PIXELS) {
     return {
       ok: false,

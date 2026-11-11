@@ -148,18 +148,6 @@ export class CloudRemotePref extends LitElement {
                         )}
                       ></ha-input-copy>
                     </div>
-                    <div class="card-actions">
-                      <ha-button
-                        appearance="plain"
-                        href="https://www.nabucasa.com/config/remote/"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        ${this.hass.localize(
-                          "ui.panel.config.cloud.account.remote.link_learn_how_it_works"
-                        )}
-                      </ha-button>
-                    </div>
                   </ha-card>
 
                   <ha-card
@@ -230,14 +218,6 @@ export class CloudRemotePref extends LitElement {
                     ${this.hass.localize(
                       "ui.panel.config.cloud.account.remote.tip_custom_domain"
                     )}
-                    <a
-                      href="https://support.nabucasa.com/hc/en-us/articles/26497540527517"
-                      target="_blank"
-                      rel="noreferrer"
-                      >${this.hass.localize(
-                        "ui.panel.config.cloud.account.remote.tip_custom_domain_link"
-                      )}</a
-                    >
                   </ha-tip>
                 `
           }

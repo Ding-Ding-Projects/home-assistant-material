@@ -18,20 +18,11 @@ const DOCS_HOST = /^(?:(?:www|rc|next)\.)?home-assistant\.io$/i;
 const BLOCKED_HOST =
   /^(?:community|contributors|companion|newsletter|forum)\.home-assistant\.io$|^newsletter\.openhomefoundation\.org$/i;
 
-/** Top-level sections of the website that are not documentation articles. */
-const NOT_DOCUMENTATION = [
-  "blog",
-  "latest-release-notes",
-  "newsletter",
-  "images",
-  "assets",
-  "feed.xml",
-  "changelog",
-  "join-the-team",
-  "privacy",
-  "terms",
-  "suggest-improvement",
-];
+/**
+ * Sections of the website that have nothing the reader could show: chat,
+ * social, shop and newsletter pages. Their addresses open nothing.
+ */
+const NOT_SHOWN_SECTIONS = ["socials", "join-chat", "shop", "newsletter"];
 
 export interface HelpArticleRef {
   /** Normalized path, for example `/docs/automation/modes`. */
@@ -89,21 +80,27 @@ export const parseHelpAddress = (value: string): HelpArticleRef | undefined => {
   return { path: rest || "/", hash: decodeSafely(hash) };
 };
 
-/** Whether an address is a documentation article that the reader shows. */
+/**
+ * Whether an address belongs to the reader. The whole documentation host
+ * does: an article, but also the home page, blog posts, release notes, the
+ * changelog and files. What is not bundled is shown as "not included in this
+ * build", so such an address never opens the website.
+ */
 export const isHelpArticleAddress = (value: string): boolean => {
   const ref = parseHelpAddress(value);
-  if (!ref || ref.path === "/") {
+  if (!ref) {
     return false;
   }
-  const first = ref.path.split("/")[1]?.toLowerCase();
-  return !NOT_DOCUMENTATION.includes(first) && !/\.[a-z0-9]+$/i.test(ref.path);
+  const first = ref.path.split("/")[1]?.toLowerCase() ?? "";
+  return !NOT_SHOWN_SECTIONS.includes(first);
 };
 
 /**
  * Whether an address is an outside help or community page that is never
  * shown and must never open: the community forum, developer documentation,
- * the companion app site, the newsletter, the My Home Assistant FAQ, and
- * documentation paths that cannot be bundled.
+ * the companion app site, the newsletter, the My Home Assistant FAQ, chat,
+ * social and shop pages, and any documentation host address the reader
+ * cannot take (odd characters).
  */
 export const isBlockedHelpAddress = (value: string): boolean => {
   const absolute = /^(?:https?:)?\/\/([^/?#]+)(.*)$/i.exec(value.trim());
@@ -117,17 +114,7 @@ export const isBlockedHelpAddress = (value: string): boolean => {
   if (host === "my.home-assistant.io") {
     return /^\/(?:faq|$)/i.test(absolute[2]);
   }
-  if (DOCS_HOST.test(host)) {
-    const first = absolute[2].split(/[/?#]/)[1]?.toLowerCase() ?? "";
-    return (
-      ["socials", "join-chat", "shop", "newsletter"].includes(first) ||
-      (first !== "" &&
-        !NOT_DOCUMENTATION.includes(first) &&
-        !isHelpArticleAddress(value) &&
-        !/\.[a-z0-9]+(?:[?#]|$)/i.test(absolute[2]))
-    );
-  }
-  return false;
+  return DOCS_HOST.test(host) && !isHelpArticleAddress(value);
 };
 
 /** The file name, without extension, that an article path is stored under. */
@@ -209,7 +196,10 @@ export interface HelpSection {
 /**
  * For each line, whether it is part of a fenced code block (the fence lines
  * included). A fence closes only with the same character and at least as
- * many of them, so `~~~` inside a backtick fence does not end it.
+ * many of them, so `~~~` inside a backtick fence does not end it. A line is
+ * an opening fence only when no further run of the same fence character
+ * follows on it (a triple backtick pair on one line is inline code), and a
+ * fence that never closes runs to the end of the page.
  */
 export const fenceFlags = (lines: string[]): boolean[] => {
   const flags: boolean[] = [];
@@ -217,7 +207,12 @@ export const fenceFlags = (lines: string[]): boolean[] => {
   for (const line of lines) {
     const match = /^\s*(`{3,}|~{3,})/.exec(line);
     if (!open) {
-      if (match) {
+      if (
+        match &&
+        !line
+          .slice(line.indexOf(match[1]) + match[1].length)
+          .includes(match[1][0])
+      ) {
         open = { char: match[1][0], length: match[1].length };
         flags.push(true);
       } else {
@@ -275,14 +270,43 @@ const LOCAL_IMAGE = /^\/static\/help\/images\/[A-Za-z0-9._-]+$/;
 
 const escapeColon = (text: string): string => text.replace(/:/g, "&#58;");
 
+// Placeholders protect inline code, kept images and finished links while the
+// link passes run, so a code span inside link text cannot hide a link.
+const TOKEN = /\uE000(\d+)\uE001/g;
+
+const INLINE_CODE = /(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)/g;
+
+const TITLE = String.raw`(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?`;
+
+// An image: alt text, address (maybe in angle brackets), optional title.
+const IMAGE = new RegExp(
+  String.raw`!\[([^\]]*)\]\(\s*<?([^)\s>]*)>?${TITLE}\s*\)`,
+  "g"
+);
+
+// An inline link; the text may hold one level of brackets, the address is
+// plain (one level of parentheses allowed) or in angle brackets.
+const INLINE_LINK = new RegExp(
+  String.raw`(?<!!)\[((?:(?!\n[ \t]*\n)[^\[\]]|\[[^\[\]]*\])*)\]\(\s*(<[^>]*>|(?:[^()\s]|\([^()\s]*\))*)${TITLE}\s*\)`,
+  "g"
+);
+
+/**
+ * Raw tags never reach the renderer, whatever the converter let through (a
+ * tag may span lines): media, scripts, and everything that carries an
+ * address or could navigate.
+ */
+const STRIP_TAGS =
+  /<\/?(?:img|picture|video|audio|source|iframe|object|embed|script|style|svg|a|area|link|base|form|button|input|meta|frame|frameset|applet|lite-youtube)\b[^>]*>/gi;
+
 /**
  * Turns links in a converted article into reader links or plain text.
  * Bundled targets stay as website-shaped addresses that the reader
  * intercepts; targets that are not bundled become plain text followed by
  * the given note, and addresses of other sites (inline, reference style,
- * automatic and bare) become plain text, never a link that could open the
- * website or another site. Images are kept only when they are bundled
- * copies. Code blocks and inline code are left alone.
+ * automatic, raw anchors and bare) become plain text, never a link that
+ * could open the website or another site. Images are kept only when they
+ * are bundled copies. Code blocks and inline code are left alone.
  */
 export const rewriteArticleLinks = (
   markdown: string,
@@ -308,15 +332,31 @@ export const rewriteArticleLinks = (
   });
   const keptFlags = fenceFlags(kept);
 
-  const outcome = (text: string, target: string): string => {
+  const parts: string[] = [];
+  const stash = (value: string): string => {
+    parts.push(value);
+    return `\uE000${parts.length - 1}\uE001`;
+  };
+  const restore = (text: string): string => {
+    let current = text;
+    for (let i = 0; i < 8 && current.includes("\uE000"); i++) {
+      current = current.replace(TOKEN, (_all, n: string) => parts[Number(n)]);
+    }
+    return current;
+  };
+
+  const outcome = (text: string, rawTarget: string): string => {
+    const target = rawTarget.replace(/^<|>$/g, "");
+    const link = (href: string): string =>
+      `${stash("[")}${text}${stash(`](${href})`)}`;
     if (target.startsWith("#")) {
-      return `[${text}](${target})`;
+      return link(target);
     }
     const ref = parseHelpAddress(target);
     if (ref && isBundled(ref.path)) {
-      return `[${text}](https://www.home-assistant.io${ref.path}${
-        ref.hash ? `#${ref.hash}` : ""
-      })`;
+      return link(
+        `https://www.home-assistant.io${ref.path}${ref.hash ? `#${ref.hash}` : ""}`
+      );
     }
     return ref ? `${text} (${notBundledNote}: ${ref.path})` : text;
   };
@@ -324,16 +364,13 @@ export const rewriteArticleLinks = (
   const rewriteProse = (prose: string): string =>
     prose
       // Images: bundled copies stay, everything else is its description.
-      .replace(
-        /!\[([^\]]*)\]\(\s*<?([^)\s>]*)>?(?:\s+"[^"]*")?\s*\)/g,
-        (_all, alt: string, src: string) =>
-          LOCAL_IMAGE.test(src) ? `![${alt}](${src})` : alt
+      .replace(IMAGE, (_all, alt: string, src: string) =>
+        LOCAL_IMAGE.test(src) ? stash(`![${alt}](${src})`) : alt
       )
       .replace(/!\[([^\]]*)\]\[[^\]]*\]/g, (_all, alt: string) => alt)
-      // Inline links, one level of parentheses allowed in the address.
-      .replace(
-        /(?<!!)\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+"[^"]*")?\)/g,
-        (_all, text: string, target: string) => outcome(text, target)
+      // Inline links.
+      .replace(INLINE_LINK, (_all, text: string, target: string) =>
+        outcome(text, target)
       )
       // Reference style links, `[text][ref]` and `[ref][]`.
       .replace(
@@ -348,40 +385,33 @@ export const rewriteArticleLinks = (
         const target = definitions.get(text.toLowerCase());
         return target ? outcome(text, target) : all;
       })
-      // Automatic links.
-      .replace(/<(https?:\/\/[^>\s]+)>/gi, (_all, target: string) => {
+      // Automatic links: addresses of any scheme, and e-mail addresses.
+      .replace(/<([a-z][a-z0-9+.-]*:[^>\s]*)>/gi, (_all, target: string) => {
         const ref = parseHelpAddress(target);
         return ref && isBundled(ref.path)
           ? outcome(target, target)
           : escapeColon(target);
       })
-      // Bare addresses would be turned into links by the renderer.
-      .replace(/(?<![\w([<"'/=])https?:\/\/[^\s<>)\]]+/gi, (target: string) =>
-        escapeColon(target)
+      .replace(/<([^>\s@]+@[^>\s]+)>/g, (_all, mail: string) =>
+        mail.replace(/@/g, "&#64;")
+      )
+      // Bare addresses would be turned into links by the renderer, in
+      // prose and in parentheses alike.
+      .replace(/https?:\/\/[^\s<>]*/gi, (target: string) => escapeColon(target))
+      .replace(/(?<![\w./@-])www\.(?=\w)/gi, (m: string) =>
+        m.replace(".", "&#46;")
       );
-
-  // The reader is the trust boundary: raw media tags never reach the
-  // renderer, whatever the converter let through (a tag may span lines).
-  const stripMedia = (text: string): string =>
-    text.replace(
-      /<\/?(?:img|picture|video|audio|source|iframe|object|embed|script|style|svg)\b[^>]*>/gi,
-      ""
-    );
 
   const out: string[] = [];
   let run: string[] = [];
   const flush = () => {
     if (run.length) {
-      out.push(
-        ...stripMedia(run.join("\n"))
-          .split("\n")
-          .map((line) =>
-            line
-              .split(/(`[^`]*`)/)
-              .map((part, i) => (i % 2 ? part : rewriteProse(part)))
-              .join("")
-          )
-      );
+      const protectedRun = run
+        .join("\n")
+        .replace(/[\uE000\uE001]/g, "")
+        .replace(INLINE_CODE, (code) => stash(code));
+      // A link may wrap onto the next line, so the passes run on the run.
+      out.push(restore(rewriteProse(protectedRun.replace(STRIP_TAGS, ""))));
       run = [];
     }
   };

@@ -1,8 +1,14 @@
 import { load } from "js-yaml";
+import {
+  showHiddenCharacterCodes,
+  stripHiddenCharacters,
+} from "../../../common/string/hidden-characters";
 import { slugify } from "../../../common/string/slugify";
 import type { LovelaceConfig } from "../../../data/lovelace/config/types";
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
 import { pickAvailableDashboardUrlPath } from "../../config/lovelace/dashboards/pick-available-dashboard-url-path";
+import type { AddressProblem } from "./address-host";
+import { hostOf } from "./address-host";
 
 /**
  * The dashboard file format. A file holds nothing but data: the settings of
@@ -66,13 +72,16 @@ export const SUMMARY_LIST_LIMIT = 20;
 
 /** A list cut to its first items, with the exact number there were. */
 export interface Capped<T> {
+  /** What is shown at first. Never leaves out an item that needs a look. */
   items: T[];
   total: number;
+  /** Every item, most important first, for the "Show all" control. */
+  all: T[];
 }
 
 /** One resource or module address that was removed from the file. */
 export interface RemovedEntry {
-  kind: "resource" | "module";
+  kind: "resource" | "module" | "text";
   address: string;
 }
 
@@ -110,36 +119,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const looksLikeYamlName = (name: string): boolean => /\.ya?ml$/i.test(name);
 
-// Characters that are invisible or change how text is laid out.
-const HIDDEN_RANGES: [number, number][] = [
-  [0x0000, 0x001f],
-  [0x007f, 0x009f],
-  [0x061c, 0x061c],
-  [0x200b, 0x200f],
-  [0x2028, 0x202e],
-  [0x2060, 0x2069],
-  [0xfeff, 0xfeff],
-];
-
-const isHiddenCharacter = (code: number): boolean =>
-  HIDDEN_RANGES.some(([from, to]) => code >= from && code <= to);
-
 /**
  * Text from a file that is safe to show. Control characters, direction
  * overrides and other invisible characters are replaced by their code, such
  * as `U+202E`, so nothing can hide or reorder what is shown. Long text is cut.
  */
 export const safeText = (value: string, max = 200): string => {
-  const parts: string[] = [];
-  for (const char of value) {
-    const code = char.codePointAt(0) as number;
-    parts.push(
-      isHiddenCharacter(code)
-        ? `U+${code.toString(16).toUpperCase().padStart(4, "0")}`
-        : char
-    );
-  }
-  const replaced = parts.join("");
+  const replaced = showHiddenCharacterCodes(value);
   const characters = Array.from(replaced);
   return characters.length > max
     ? `${characters.slice(0, max).join("")}…`
@@ -233,8 +219,9 @@ const newState = (): CleanState => ({
 });
 
 const cappedRemoved = (state: CleanState): Capped<RemovedEntry> => ({
-  items: state.removed,
+  items: state.removed.slice(0, SUMMARY_LIST_LIMIT),
   total: state.removedTotal,
+  all: state.removed,
 });
 
 const noteRemoved = (
@@ -244,11 +231,33 @@ const noteRemoved = (
 ): void => {
   state.stripped = true;
   state.removedTotal += 1;
-  if (state.removed.length < SUMMARY_LIST_LIMIT) {
-    state.removed.push({
-      kind,
-      address: typeof address === "string" ? safeText(address) : "",
-    });
+  state.removed.push({
+    kind,
+    address: typeof address === "string" ? safeText(address) : "",
+  });
+};
+
+/**
+ * A title without hidden or direction-changing characters. Anything removed
+ * is named in the removed list, so the person sees that the file had them.
+ */
+const cleanTitle = (value: string, state: CleanState): string => {
+  const cleaned = stripHiddenCharacters(value);
+  if (cleaned !== value) {
+    noteRemoved(state, "text", value);
+  }
+  return cleaned.trim().slice(0, MAX_TITLE_LENGTH);
+};
+
+/** Cleans the title of a record in place. Returns nothing when it has none. */
+const cleanTitleOf = (record: Record<string, unknown>, state: CleanState) => {
+  if (typeof record.title === "string") {
+    const title = cleanTitle(record.title, state);
+    if (title) {
+      record.title = title;
+    } else {
+      delete record.title;
+    }
   }
 };
 
@@ -325,18 +334,20 @@ const cleanView = (value: unknown, state: CleanState): LovelaceViewConfig => {
       throw new FileError("invalid_file");
     }
   }
-  return cleanData(value, state, 0, false) as LovelaceViewConfig;
+  const view = cleanData(value, state, 0, false) as LovelaceViewConfig;
+  cleanTitleOf(view as Record<string, unknown>, state);
+  return view;
 };
 
 const cleanSettings = (
   value: unknown,
-  fallbackTitle: string
+  fallbackTitle: string,
+  state: CleanState
 ): DashboardFileSettings => {
   const raw = isRecord(value) ? value : {};
   const title =
-    typeof raw.title === "string" && raw.title.trim()
-      ? raw.title.trim().slice(0, MAX_TITLE_LENGTH)
-      : fallbackTitle;
+    (typeof raw.title === "string" ? cleanTitle(raw.title, state) : "") ||
+    cleanTitle(fallbackTitle, state);
   const icon =
     typeof raw.icon === "string" && /^[a-z0-9_-]+:[a-z0-9_-]+$/i.test(raw.icon)
       ? raw.icon
@@ -395,19 +406,15 @@ export const validateDashboardFile = (
       }
       return dashboardFromConfig(
         parsed.config,
-        cleanSettings(parsed.settings, fallbackTitle),
+        cleanSettings(parsed.settings, fallbackTitle, state),
         state
       );
     }
 
     if (isPlainDashboardConfig(parsed)) {
-      const title =
-        typeof parsed.title === "string" && parsed.title.trim()
-          ? parsed.title.trim().slice(0, MAX_TITLE_LENGTH)
-          : fallbackTitle;
       return dashboardFromConfig(
         parsed,
-        cleanSettings({ title }, fallbackTitle),
+        cleanSettings({ title: parsed.title }, fallbackTitle, state),
         state
       );
     }
@@ -435,6 +442,13 @@ const dashboardFromConfig = (
     throw new FileError("invalid_file");
   }
   const cleaned = cleanData(config, state, 0, true) as LovelaceConfig;
+  const cleanedRecord = cleaned as unknown as Record<string, unknown>;
+  cleanTitleOf(cleanedRecord, state);
+  (cleanedRecord.views as unknown[]).forEach((view) => {
+    if (isRecord(view)) {
+      cleanTitleOf(view, state);
+    }
+  });
   return {
     ok: true,
     kind: "dashboard",
@@ -451,7 +465,12 @@ export const parseDashboardFileText = (
   text: string,
   fallbackTitle: string
 ): ParsedDashboardImport => {
-  if (text.length > DASHBOARD_IMPORT_MAX_BYTES) {
+  // Every character takes at least one byte, so a longer text is too large
+  // without measuring; otherwise measure the bytes themselves.
+  if (
+    text.length > DASHBOARD_IMPORT_MAX_BYTES ||
+    new TextEncoder().encode(text).length > DASHBOARD_IMPORT_MAX_BYTES
+  ) {
     return { ok: false, error: "too_large" };
   }
   let parsed: unknown;
@@ -617,6 +636,8 @@ export interface SummaryAddress {
   host: string;
   address: string;
   where: string;
+  /** Set when the host cannot be shown as a plain, readable name. */
+  problem?: AddressProblem;
 }
 
 export interface SummaryCustomType {
@@ -648,6 +669,50 @@ export interface ImportSummary {
 // Actions that only move around or show things. Any other action is listed.
 const SAFE_ACTIONS = new Set(["navigate", "more-info", "none", "toggle"]);
 
+// Records of these types run a service when pressed, with no `action` key.
+const ACTION_TYPES = new Set([
+  "call-service",
+  "service-button",
+  "action-button",
+]);
+
+// Services that only switch a light, a switch or a scene, or work a cover or
+// a player. A listed action that calls any other service needs a closer look.
+const HARMLESS_SERVICES = new Set([
+  "light.turn_on",
+  "light.turn_off",
+  "light.toggle",
+  "switch.turn_on",
+  "switch.turn_off",
+  "switch.toggle",
+  "fan.turn_on",
+  "fan.turn_off",
+  "fan.toggle",
+  "input_boolean.turn_on",
+  "input_boolean.turn_off",
+  "input_boolean.toggle",
+  "scene.turn_on",
+  "cover.open_cover",
+  "cover.close_cover",
+  "cover.stop_cover",
+  "cover.toggle",
+  "media_player.media_play",
+  "media_player.media_pause",
+  "media_player.media_play_pause",
+]);
+
+const isOutsideAddress = (text: string): boolean =>
+  !/^\s*\/(?![\\/])/.test(text);
+
+/** True when the person should look at this action before importing. */
+const actionNeedsLook = (action: SummaryAction): boolean =>
+  action.action === "url"
+    ? isOutsideAddress(action.target)
+    : !HARMLESS_SERVICES.has(action.service);
+
+const addressNeedsLook = (address: SummaryAddress): boolean =>
+  address.problem !== undefined || SCHEME_ADDRESS.test(address.address);
+
 // Keys whose records are cards, rows, badges and the like, named by a label.
 const LABELLED_KEYS = new Set([
   "views",
@@ -664,7 +729,6 @@ const LABELLED_KEYS = new Set([
 const ADDRESS_PATTERN =
   /(?:\b[a-z][a-z0-9+.-]*:\/\/|(?<![\w:/.])\/\/)[^\s"'<>`)\]]+/gi;
 const SCHEME_ADDRESS = /^\s*(?:javascript|data|vbscript|blob):/i;
-const AUTHORITY = /^(?:[a-z][a-z0-9+.-]*:)?\/\/([^/?#\s]*)/i;
 
 const addressesIn = (text: string): string[] => {
   if (SCHEME_ADDRESS.test(text)) {
@@ -673,16 +737,6 @@ const addressesIn = (text: string): string[] => {
   return (text.match(ADDRESS_PATTERN) ?? []).map((found) =>
     found.replace(/[.,;:!?]+$/, "")
   );
-};
-
-/** The host of an address, shown first. Anything before an `@` is skipped. */
-const hostOf = (address: string): string => {
-  const authority = AUTHORITY.exec(address)?.[1];
-  if (authority !== undefined) {
-    return authority.slice(authority.lastIndexOf("@") + 1) || address;
-  }
-  const scheme = /^\s*([a-z]+):/i.exec(address)?.[1];
-  return scheme ? `${scheme}:` : address;
 };
 
 const labelOf = (node: Record<string, unknown>): string => {
@@ -727,10 +781,12 @@ export const analyzeDashboardImport = (
   const addAddress = (address: string, where: string): void => {
     const shown = safeText(address);
     if (!addresses.has(shown)) {
+      const { host, problem } = hostOf(address);
       addresses.set(shown, {
-        host: safeText(hostOf(address), 100),
+        host: safeText(host),
         address: shown,
         where,
+        ...(problem ? { problem } : {}),
       });
     }
   };
@@ -760,11 +816,22 @@ export const analyzeDashboardImport = (
       const type = safeText(node.type, 100);
       customTypes.set(`${kind}\u0000${type}`, { type, kind });
     }
-    if (typeof node.action === "string" && !SAFE_ACTIONS.has(node.action)) {
-      const service = node.perform_action ?? node.service;
+    const service = node.perform_action ?? node.service;
+    const runsService =
+      typeof node.perform_action === "string" ||
+      typeof node.service === "string" ||
+      (typeof node.type === "string" && ACTION_TYPES.has(node.type));
+    if (
+      (typeof node.action === "string" && !SAFE_ACTIONS.has(node.action)) ||
+      runsService
+    ) {
+      const actionName =
+        typeof node.action === "string"
+          ? node.action
+          : String(node.type ?? "call-service");
       const entry: SummaryAction = {
         where: here,
-        action: safeText(node.action, 60),
+        action: safeText(actionName, 60),
         service: typeof service === "string" ? safeText(service, 100) : "",
         target: targetOf(node),
       };
@@ -787,10 +854,21 @@ export const analyzeDashboardImport = (
     }
   };
 
-  const capped = <T>(map: Map<string, T>): Capped<T> => ({
-    items: [...map.values()].slice(0, SUMMARY_LIST_LIMIT),
-    total: map.size,
-  });
+  // Items that need a look come first, and none of them is ever left out of
+  // the list shown at first. Only the rest is cut, to a few items.
+  const capped = <T>(
+    map: Map<string, T>,
+    needsLook: (value: T) => boolean = () => false
+  ): Capped<T> => {
+    const values = [...map.values()];
+    const first = values.filter(needsLook);
+    const all = [...first, ...values.filter((value) => !needsLook(value))];
+    return {
+      items: all.slice(0, Math.max(SUMMARY_LIST_LIMIT, first.length)),
+      total: all.length,
+      all,
+    };
+  };
 
   let title: string;
   let urlPath = "";
@@ -813,9 +891,9 @@ export const analyzeDashboardImport = (
     urlPath,
     views,
     cards,
-    addresses: capped(addresses),
+    addresses: capped(addresses, addressNeedsLook),
     customTypes: capped(customTypes),
-    actions: capped(actions),
+    actions: capped(actions, actionNeedsLook),
     removed: parsed.removed,
   };
 };

@@ -149,6 +149,38 @@ export const forgetDashboardHistory = (
     dashboard_id: dashboardId,
   });
 
+/** The history of a deleted dashboard, set aside in case it is wanted. */
+export interface DashboardArchive {
+  name: string;
+  dashboard: string;
+  /** Seconds since 1970, when the name says it. */
+  archived_at: number | null;
+}
+
+export const fetchDashboardArchives = (hass: HomeAssistant) =>
+  hass.callWS<{ archives: DashboardArchive[] }>({
+    type: "dashboard_repos/archives",
+  });
+
+/** Deletes one archived history for good. */
+export const forgetDashboardArchive = (hass: HomeAssistant, name: string) =>
+  hass.callWS<undefined>({
+    type: "dashboard_repos/forget_archive",
+    name,
+  });
+
+/** Deletes the history of a tab that was removed from a dashboard. */
+export const forgetRemovedDashboardView = (
+  hass: HomeAssistant,
+  dashboardId: string,
+  viewKey: string
+) =>
+  hass.callWS<undefined>({
+    type: "dashboard_repos/forget_removed_view",
+    dashboard_id: dashboardId,
+    view_key: viewKey,
+  });
+
 export const setDashboardRemote = (
   hass: HomeAssistant,
   dashboardId: string,

@@ -18,6 +18,7 @@ import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
+import "./ha-ollama-pull";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
@@ -27,12 +28,17 @@ import type {
   OllamaServer,
 } from "../../../data/ollama_suite";
 import {
+  deleteOllamaModel,
   fetchOllamaModelInfo,
   fetchOllamaModels,
   fetchOllamaRunning,
   fetchOllamaServers,
 } from "../../../data/ollama_suite";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
+import {
+  showAlertDialog,
+  showConfirmationDialog,
+} from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
@@ -188,6 +194,49 @@ class HaConfigOllama extends LitElement {
     }
   }
 
+  private async _refreshModels(): Promise<void> {
+    if (this._serverId) {
+      await this._selectServer(this._serverId);
+    }
+  }
+
+  private async _deleteModel(ev: Event): Promise<void> {
+    const name = (ev.currentTarget as HTMLElement).dataset.model;
+    const serverId = this._serverId;
+    if (!name || !serverId) {
+      return;
+    }
+    const size = this._models?.find((model) => model.name === name)?.size;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("delete_title", { model: name }),
+      text: size
+        ? this._l("delete_text_size", {
+            model: name,
+            size: bytesToString(size, 1),
+          })
+        : this._l("delete_text", { model: name }),
+      confirmText: this._l("delete"),
+      dismissText: this._l("cancel"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteOllamaModel(this.hass, serverId, name);
+    } catch (err: any) {
+      await showAlertDialog(this, {
+        title: this._l("delete_failed", { model: name }),
+        text: this._errorText(err),
+      });
+      return;
+    }
+    if (this._selected === name) {
+      this._closeModel();
+    }
+    await this._refreshModels();
+  }
+
   private _closeModel(): void {
     this._selected = undefined;
     this._info = undefined;
@@ -249,7 +298,8 @@ class HaConfigOllama extends LitElement {
       <p class="privacy" role="note">${this._l("privacy")}</p>
       ${
         this._servers.length
-          ? html`${this._renderServers(this._servers)} ${this._renderRunning()}
+          ? html`${this._renderServers(this._servers)} ${this._renderPull()}
+              ${this._renderRunning()}
               <div class=${classMap({ columns: !this.narrow })}>
                 ${this._renderModels()}
                 ${this._selected ? this._renderDetail() : nothing}
@@ -258,6 +308,18 @@ class HaConfigOllama extends LitElement {
       }
       ${this._renderNext()}
     `;
+  }
+
+  private _renderPull(): TemplateResult | typeof nothing {
+    const server = this._servers?.find((s) => s.entry_id === this._serverId);
+    if (!server?.reachable) {
+      return nothing;
+    }
+    return html`<ha-ollama-pull
+      .hass=${this.hass}
+      .entryId=${this._serverId}
+      @ollama-models-changed=${this._refreshModels}
+    ></ha-ollama-pull>`;
   }
 
   private _renderEmpty(): TemplateResult {
@@ -460,6 +522,11 @@ class HaConfigOllama extends LitElement {
                                       this._l("col_modified")
                                     )}`
                             }
+                            <th scope="col">
+                              <span class="visually-hidden"
+                                >${this._l("col_actions")}</span
+                              >
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -512,6 +579,17 @@ class HaConfigOllama extends LitElement {
                 }
               </td>`
       }
+      <td>
+        <ha-button
+          appearance="plain"
+          variant="danger"
+          data-model=${model.name ?? ""}
+          aria-label=${this._l("delete_named", { model: model.name ?? "" })}
+          @click=${this._deleteModel}
+        >
+          ${this._l("delete")}
+        </ha-button>
+      </td>
     </tr>`;
   }
 
@@ -590,8 +668,6 @@ class HaConfigOllama extends LitElement {
         <h2>${this._l("next_title")}</h2>
         <p class="detail">${this._l("next_text")}</p>
         <ul>
-          <li>${this._l("next_pull")}</li>
-          <li>${this._l("next_delete")}</li>
           <li>${this._l("next_chat")}</li>
           <li>${this._l("next_helpers")}</li>
         </ul>
@@ -789,6 +865,20 @@ class HaConfigOllama extends LitElement {
       h3 {
         font-size: var(--ha-font-size-m);
         margin: var(--ha-space-3) 0 var(--ha-space-1);
+      }
+      td ha-button {
+        min-height: 44px;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      ha-ollama-pull {
+        margin: var(--ha-space-4) 0;
       }
       pre {
         white-space: pre-wrap;

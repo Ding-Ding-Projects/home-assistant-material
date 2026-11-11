@@ -17,6 +17,7 @@ import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   DashboardCommit,
+  DashboardArchive,
   DashboardRepository,
   DashboardReposStatus,
 } from "../../../data/dashboard_repos";
@@ -24,11 +25,14 @@ import {
   CURRENT_STATE_NOT_RECORDED,
   dashboardHistoryQueryParamConfig,
   dashboardHistoryUrl,
+  fetchDashboardArchives,
   fetchDashboardDiff,
   fetchDashboardHistory,
   fetchDashboardReposStatus,
   fetchDashboardVersion,
+  forgetDashboardArchive,
   forgetDashboardHistory,
+  forgetRemovedDashboardView,
   isValidDashboardRemote,
   pushDashboardRepository,
   restoreDashboardVersion,
@@ -91,6 +95,8 @@ export class HaConfigDashboardHistory extends LitElement {
   @state() private _compareDiff?: string;
 
   @state() private _busy = false;
+
+  @state() private _archives: DashboardArchive[] = [];
 
   @state() private _notice?: string;
 
@@ -174,6 +180,11 @@ export class HaConfigDashboardHistory extends LitElement {
     try {
       this._status = await fetchDashboardReposStatus(this.hass);
       this._remoteInput = this._repository?.remote ?? "";
+      try {
+        this._archives = (await fetchDashboardArchives(this.hass)).archives;
+      } catch (_err) {
+        this._archives = [];
+      }
       if (this._dashboard && this._repository) {
         this._commits = await fetchDashboardHistory(
           this.hass,
@@ -384,6 +395,49 @@ export class HaConfigDashboardHistory extends LitElement {
             </p>`
           : nothing
       }
+      ${this._renderArchives()}
+    `;
+  }
+
+  private _renderArchives() {
+    if (!this._archives.length) {
+      return nothing;
+    }
+    return html`
+      <ha-card class="dashboard">
+        <div class="card-head">
+          <div class="grow">
+            <h2>${this._l("archives_title")}</h2>
+            <span class="secondary">${this._l("archives_text")}</span>
+          </div>
+        </div>
+        <ul class="links">
+          ${this._archives.map(
+            (item) => html`
+              <li class="link-row">
+                <span class="grow">${item.dashboard}</span>
+                ${
+                  item.archived_at
+                    ? html`<ha-relative-time
+                        .hass=${this.hass}
+                        .datetime=${new Date(item.archived_at * 1000)}
+                      ></ha-relative-time>`
+                    : nothing
+                }
+                <ha-button
+                  variant="danger"
+                  appearance="plain"
+                  size="small"
+                  .archive=${item}
+                  .disabled=${this._busy}
+                  @click=${this._forgetArchive}
+                  >${this._l("archive_forget")}</ha-button
+                >
+              </li>
+            `
+          )}
+        </ul>
+      </ha-card>
     `;
   }
 
@@ -778,8 +832,28 @@ export class HaConfigDashboardHistory extends LitElement {
       ${
         repository.removed.length && !this._view
           ? html`<p class="secondary">
-              ${this._l("removed_views", { list: repository.removed.join(", ") })}
-            </p>`
+                ${this._l("removed_views", {
+                  list: repository.removed.join(", "),
+                })}
+              </p>
+              <ul class="links">
+                ${repository.removed.map(
+                  (key) => html`
+                    <li class="link-row">
+                      <span class="grow">${key}</span>
+                      <ha-button
+                        variant="danger"
+                        appearance="plain"
+                        size="small"
+                        .viewKey=${key}
+                        .disabled=${this._busy}
+                        @click=${this._forgetRemovedView}
+                        >${this._l("removed_view_forget")}</ha-button
+                      >
+                    </li>
+                  `
+                )}
+              </ul>`
           : nothing
       }
     `;
@@ -1015,6 +1089,61 @@ export class HaConfigDashboardHistory extends LitElement {
       };
     } finally {
       this._pushing = false;
+    }
+  }
+
+  private async _forgetArchive(ev: Event) {
+    const archive = (
+      ev.currentTarget as HTMLElement & { archive: DashboardArchive }
+    ).archive;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("archive_forget_title", { dashboard: archive.dashboard }),
+      text: this._l("archive_forget_text"),
+      confirmText: this._l("archive_forget"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = true;
+    try {
+      await forgetDashboardArchive(this.hass, archive.name);
+      await this._load();
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  private async _forgetRemovedView(ev: Event) {
+    const key = (ev.currentTarget as HTMLElement & { viewKey: string }).viewKey;
+    if (!this._dashboard) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("removed_view_forget_title", { view: key }),
+      text: this._l("removed_view_forget_text"),
+      confirmText: this._l("removed_view_forget"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = true;
+    try {
+      await forgetRemovedDashboardView(this.hass, this._dashboard, key);
+      await this._load();
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    } finally {
+      this._busy = false;
     }
   }
 

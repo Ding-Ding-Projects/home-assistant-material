@@ -123,6 +123,17 @@
           margin-block: 24px;
         }
       }
+      #ha-launch-screen-name {
+        margin-top: 16px;
+        max-width: 90vw;
+        text-align: center;
+        overflow-wrap: anywhere;
+        font-size: 20px;
+        color: var(--secondary-text-color, #727272);
+      }
+      #ha-launch-screen-name:empty {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -131,8 +142,23 @@
       <div class="ha-lockup">
         <img class="ha-logo" src="/static/images/home-assistant-logo-loading.svg" alt="Home Assistant">
       </div>
+      <div id="ha-launch-screen-name"></div>
       <div id="ha-launch-screen-info-box" class="ha-launch-screen-spacer-bottom"></div>
     </div>
+    <script>
+      // Shows the name this browser chose for the app, as plain text. Any
+      // problem leaves the launch screen as it is. Not transpiled: ES5.
+      try {
+        var storedIdentity = window.localStorage.getItem("ha-material-identity");
+        var chosen = storedIdentity ? JSON.parse(storedIdentity) : null;
+        if (chosen && typeof chosen.name === "string") {
+          var launchName = chosen.name.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").replace(/^ | $/g, "").slice(0, 40);
+          if (launchName) {
+            document.getElementById("ha-launch-screen-name").textContent = launchName;
+          }
+        }
+      } catch (e) {}
+    </script>
     <home-assistant></home-assistant>
     <%= renderTemplate("_js_base.html.template") %>
     <%= renderTemplate("_preload_roboto.html.template") %>

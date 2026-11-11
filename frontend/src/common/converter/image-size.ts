@@ -4,7 +4,7 @@
  * too large is refused before the browser tries to decode it.
  */
 
-export const MAX_PIXELS = 100_000_000;
+export const MAX_PIXELS = 40_000_000;
 export const MAX_SIDE = 16384;
 
 export interface Size {
@@ -72,6 +72,29 @@ const webpSize = (bytes: Uint8Array): Size | undefined => {
   return undefined;
 };
 
+/**
+ * AVIF keeps its size in `ispe` property boxes. The largest one found is
+ * taken, so a small first box cannot hide a large picture.
+ */
+const avifSize = (bytes: Uint8Array): Size | undefined => {
+  let width = 0;
+  let height = 0;
+  const end = Math.min(bytes.length - 16, 1_048_576);
+  for (let at = 4; at < end; at++) {
+    if (
+      bytes[at] === 0x69 &&
+      bytes[at + 1] === 0x73 &&
+      bytes[at + 2] === 0x70 &&
+      bytes[at + 3] === 0x65 &&
+      u32be(bytes, at - 4) === 20
+    ) {
+      width = Math.max(width, u32be(bytes, at + 8));
+      height = Math.max(height, u32be(bytes, at + 12));
+    }
+  }
+  return width && height ? { width, height } : undefined;
+};
+
 export const readImageSize = (
   bytes: Uint8Array,
   kind: string
@@ -96,6 +119,8 @@ export const readImageSize = (
       return jpegSize(bytes);
     case "webp":
       return webpSize(bytes);
+    case "avif":
+      return avifSize(bytes);
     default:
       return undefined;
   }

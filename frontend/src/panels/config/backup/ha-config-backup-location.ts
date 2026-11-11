@@ -163,18 +163,6 @@ class HaConfigBackupDetails extends LitElement {
                                       "ui.panel.config.backup.location.encryption.location_encrypted_cloud_description"
                                     )}
                                   </span>
-                                  <ha-button
-                                    href="https://www.nabucasa.com/config/backups/"
-                                    target="_blank"
-                                    slot="end"
-                                    rel="noreferrer noopener"
-                                    appearance="plain"
-                                    size="s"
-                                  >
-                                    ${this.hass.localize(
-                                      "ui.panel.config.backup.location.encryption.location_encrypted_cloud_learn_more"
-                                    )}
-                                  </ha-button>
                                 </ha-row-item>
                               `
                             : encrypted

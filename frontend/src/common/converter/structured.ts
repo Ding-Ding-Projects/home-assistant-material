@@ -1,4 +1,4 @@
-import { dump, load } from "js-yaml";
+import { CORE_SCHEMA, dump, load, mergeTag, Schema } from "js-yaml";
 import type { DataFormat } from "./detect";
 import { parseDelimited, writeDelimited } from "./delimited";
 import { parseMarkdownTable, writeMarkdownTable } from "./markdown-table";
@@ -35,6 +35,9 @@ export const DEFAULT_STRUCTURED_OPTIONS: StructuredOptions = {
   guessTypes: false,
   protectFormulas: true,
 };
+
+/** The core schema plus merge keys (<<), which Home Assistant YAML uses. */
+const YAML_SCHEMA = new Schema([...CORE_SCHEMA.tags, mergeTag]);
 
 type Value = unknown;
 type Parsed =
@@ -220,7 +223,8 @@ export const findJsonError = (text: string): number => {
 };
 
 type Inspection =
-  { ok: true; unsafeNumbers: number } | Extract<ConvertResult, { ok: false }>;
+  | { ok: true; unsafeNumbers: number; negativeZeros: number }
+  | Extract<ConvertResult, { ok: false }>;
 
 /**
  * Walks a value without recursion and refuses what would be unsafe to write:
@@ -232,11 +236,15 @@ export const inspectValue = (value: Value): Inspection => {
   const stack: [Value, number][] = [[value, 1]];
   let nodes = 1;
   let unsafeNumbers = 0;
+  let negativeZeros = 0;
   while (stack.length) {
     const [node, depth] = stack.pop()!;
     if (typeof node === "number") {
       if (!Number.isFinite(node)) {
         return failure("number_out_of_range");
+      }
+      if (Object.is(node, -0)) {
+        negativeZeros++;
       }
       if (Number.isInteger(node) && Math.abs(node) > Number.MAX_SAFE_INTEGER) {
         unsafeNumbers++;
@@ -258,7 +266,7 @@ export const inspectValue = (value: Value): Inspection => {
       stack.push([child, depth + 1]);
     }
   }
-  return { ok: true, unsafeNumbers };
+  return { ok: true, unsafeNumbers, negativeZeros };
 };
 
 const NUMBER = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/;
@@ -369,12 +377,15 @@ const parseValue = (
   }
   if (from === "yaml") {
     try {
-      const value = load(text);
+      const value = load(text, { schema: YAML_SCHEMA });
       if (/(^|[\s:[,{-])#/m.test(text)) {
         notes.push({ code: "yaml_comments" });
       }
       if (/(^|[\s:[,{-])[&*][A-Za-z0-9_-]+/m.test(text)) {
         notes.push({ code: "yaml_aliases" });
+      }
+      if (/(^|[\s,{])<<\s*:/m.test(text)) {
+        notes.push({ code: "yaml_merge_keys" });
       }
       return { ok: true, value, notes };
     } catch (err) {
@@ -388,6 +399,21 @@ const parseValue = (
       const detail =
         known.reason ??
         (err instanceof Error ? err.message.split("\n")[0] : "");
+      // Home Assistant tags such as !secret and !include need its own files.
+      const tag = /unknown .*tag !<(![^>]*)>|unknown .*tag (![^\s]+)/i.exec(
+        detail
+      );
+      if (tag) {
+        return failure("yaml_custom_tag", {
+          detail: tag[1] ?? tag[2],
+          ...(typeof known.mark?.line === "number"
+            ? {
+                line: known.mark.line + 1,
+                column: (known.mark.column ?? 0) + 1,
+              }
+            : {}),
+        });
+      }
       return typeof known.mark?.line === "number"
         ? failure("yaml_syntax", {
             line: known.mark.line + 1,
@@ -406,6 +432,9 @@ const parseValue = (
     }
     rows = parsed.rows;
     header = true;
+    if (parsed.lineBreaksRead) {
+      notes.push({ code: "markdown_br_read", count: parsed.lineBreaksRead });
+    }
   } else {
     const parsed = parseDelimited(text, from === "tsv" ? "\t" : ",");
     if (!parsed.ok) {
@@ -517,6 +546,10 @@ export const convertStructured = (
   const notes = [...parsed.notes];
   if (inspected.unsafeNumbers) {
     notes.push({ code: "numbers_rounded", count: inspected.unsafeNumbers });
+  }
+  if (inspected.negativeZeros && to !== "yaml") {
+    // Only YAML can write a negative zero; the other formats write plain 0.
+    notes.push({ code: "negative_zero", count: inspected.negativeZeros });
   }
   const tabularSource = from === "csv" || from === "tsv" || from === "markdown";
   if (

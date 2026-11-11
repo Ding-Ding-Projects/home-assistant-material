@@ -58,6 +58,7 @@ import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import { isMac } from "../../util/is_mac";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
+import { isHelpArticleAddress } from "../help/help-article-path";
 import { openHelpUrl } from "../help/open-help-article";
 import type { HaInputSearch } from "../input/ha-input-search";
 import type { PageTool } from "../page/ha-page-tools";
@@ -779,7 +780,11 @@ export class HaAppearanceTools extends LitElement {
         {
           id: "open_link_tab",
           icon: mdiTabPlus,
-          label: this._l("menu_open_new_tab"),
+          // A help link opens the reader, never another tab.
+          label: isHelpArticleAddress(link.href)
+            ? this._i18n?.localize("ui.help.open_in_reader") ||
+              "Open in the help reader"
+            : this._l("menu_open_new_tab"),
           run: () => openHelpUrl(this, link.href, "_blank", "noreferrer"),
         }
       );

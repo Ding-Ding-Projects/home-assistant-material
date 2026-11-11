@@ -79,6 +79,7 @@ import { copyToClipboard } from "../../common/util/copy-clipboard";
 import { internationalizationContext } from "../../data/context";
 import { fileDownload } from "../../util/file_download";
 import "../ha-button";
+import { openAllHelpArticles } from "../help/open-help-article";
 import "../ha-icon-button";
 import "../ha-svg-icon";
 import "../locks/ha-lock-list";
@@ -1458,8 +1459,15 @@ export class HaPageToolPanel extends LitElement {
               ${localize("ui.page_tools.help_panel.no_match")}
             </p>`
       }
+      <ha-button size="s" appearance="plain" @click=${this._allHelp}>
+        ${localize("ui.page_tools.help_panel.all_articles")}
+      </ha-button>
       <p class="note">${localize("ui.page_tools.help_panel.note")}</p>
     `;
+  }
+
+  private _allHelp(): void {
+    openAllHelpArticles(this);
   }
 
   private _helpInput(ev: Event): void {

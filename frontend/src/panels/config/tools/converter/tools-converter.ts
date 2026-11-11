@@ -165,6 +165,8 @@ class ToolsConverter extends LitElement {
 
   private _run = 0;
 
+  private _loadRun = 0;
+
   private _timer?: number;
 
   private _nextId = 1;
@@ -832,6 +834,7 @@ class ToolsConverter extends LitElement {
   }
 
   private _clearFile(): void {
+    this._loadRun++;
     this._fileBytes = undefined;
     this._fileName = "";
     this._error = undefined;
@@ -881,6 +884,8 @@ class ToolsConverter extends LitElement {
   }
 
   private async _loadFile(file: File): Promise<void> {
+    // Two quick drops: only the latest read may set the file.
+    const load = ++this._loadRun;
     this._error = undefined;
     if (file.size > MAX_BYTES) {
       this._error = { code: "too_large", detail: file.name };
@@ -890,7 +895,12 @@ class ToolsConverter extends LitElement {
     try {
       bytes = new Uint8Array(await file.arrayBuffer());
     } catch (_err) {
-      this._error = { code: "read_failed", detail: file.name };
+      if (load === this._loadRun) {
+        this._error = { code: "read_failed", detail: file.name };
+      }
+      return;
+    }
+    if (load !== this._loadRun) {
       return;
     }
     const kind = sniffContents(bytes);
@@ -1038,6 +1048,11 @@ class ToolsConverter extends LitElement {
   }
 
   private _clearOutput(): void {
+    // With no input there is nothing to wait for: drop a waiting or running
+    // conversion so its late result cannot come back, and free the button.
+    window.clearTimeout(this._timer);
+    this._run++;
+    this._busy = false;
     this._release();
     this._output = undefined;
   }

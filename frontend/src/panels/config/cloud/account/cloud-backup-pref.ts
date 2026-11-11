@@ -109,18 +109,6 @@ export class CloudBackupPref extends LitElement {
             </li>
           </ul>
         </div>
-        <div class="card-actions">
-          <ha-button
-            appearance="plain"
-            href="https://support.nabucasa.com/hc/en-us/sections/26353804834973"
-            target="_blank"
-            rel="noreferrer"
-          >
-            ${this.hass.localize(
-              "ui.panel.config.cloud.account.backup.link_learn_more"
-            )}
-          </ha-button>
-        </div>
       </ha-card>
     `;
   }

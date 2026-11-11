@@ -1,4 +1,3 @@
-import { mdiHelpCircleOutline } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
@@ -70,16 +69,6 @@ export class CloudAlexaPref extends LitElement {
           >${this.hass.localize("ui.panel.config.cloud.account.alexa.title")}
         </h1>
         <div class="header-actions">
-          <ha-icon-button
-            .label=${this.hass.localize(
-              "ui.panel.config.cloud.account.alexa.link_learn_how_it_works"
-            )}
-            .path=${mdiHelpCircleOutline}
-            href="https://www.nabucasa.com/config/amazon_alexa/"
-            target="_blank"
-            rel="noreferrer"
-            class="icon-link"
-          ></ha-icon-button>
           <ha-switch
             .checked=${alexa_enabled}
             @change=${this._enabledToggleChanged}
@@ -122,17 +111,6 @@ export class CloudAlexaPref extends LitElement {
                               >
                                 ${this.hass!.localize(
                                   "ui.panel.config.cloud.account.alexa.enable_ha_skill"
-                                )}
-                              </a>
-                            </li>
-                            <li>
-                              <a
-                                href="https://www.nabucasa.com/config/amazon_alexa/"
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                ${this.hass!.localize(
-                                  "ui.panel.config.cloud.account.alexa.config_documentation"
                                 )}
                               </a>
                             </li>
