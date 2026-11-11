@@ -1,9 +1,9 @@
 name: Release
 
-# Every push to main publishes one new tagged release.
+# Every push to main that changes the product publishes one new tagged release.
 # This workflow runs no tests and no lint. It builds, packages and publishes.
-# Pushes that only touch documentation or design files publish a release that points at
-# the most recent full build instead of rebuilding the images.
+# Pushes that only touch documentation or design files build nothing and publish no
+# release. A release whose run attached no file is withdrawn when the run ends.
 
 on:
   push:
@@ -85,7 +85,10 @@ jobs:
           echo "own=${own}" >> "$GITHUB_OUTPUT"
           echo "files=${all}" >> "$GITHUB_OUTPUT"
 
+      # A push that changed documentation or design files only builds nothing, so it
+      # publishes no release: a release with no files is only noise in the list.
       - name: Publish the release
+        if: steps.v.outputs.heavy == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.v.outputs.tag }}
@@ -599,9 +602,46 @@ jobs:
           path: /mnt/cache/cc
           key: haos-cc-${{ matrix.board.id }}-${{ github.run_id }}
 
+  # The Deploy Assistant desktop app is built by its own workflow and published as
+  # deploy-assistant-v* releases. Its newest files are copied onto every release
+  # here, so one release page holds the images and the app that installs them.
+  assistant:
+    name: Attach the Deploy Assistant
+    needs: [prepare, frontend]
+    if: needs.prepare.outputs.heavy == 'true' && needs.frontend.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Copy the newest Deploy Assistant files
+        run: |
+          set -euo pipefail
+          latest="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '[.[] | select(.tag_name | startswith("deploy-assistant-v")) | select(.draft | not) | select((.assets | length) > 0)][0].tag_name // empty')"
+          if [ -z "${latest}" ]; then
+            echo "No Deploy Assistant release with files exists yet."
+            exit 1
+          fi
+          mkdir files
+          gh release download "${latest}" --repo "${GITHUB_REPOSITORY}" --dir files
+          # RELEASES and SHA256SUMS are generic names: keep them apart from the image files.
+          if [ -f files/SHA256SUMS ]; then mv files/SHA256SUMS files/SHA256SUMS.deploy-assistant; fi
+          ls -la files
+          gh release upload "${TAG}" files/* --repo "${GITHUB_REPOSITORY}" --clobber
+          gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body > notes.md
+          {
+            echo
+            echo "### Deploy Assistant"
+            echo
+            echo "The desktop app that installs and manages this product is attached: \`HAM-Deploy-Assistant-Setup.exe\` for Windows, the \`.deb\` or Linux \`.zip\`, and the macOS \`.zip\`. These are the files of ${latest}, copied unchanged; check them against \`SHA256SUMS.deploy-assistant\`. Nothing is code-signed."
+          } >> notes.md
+          gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --notes-file notes.md
+
   finish:
     name: Finish the release
-    needs: [prepare, frontend, core, supervisor, container, os]
+    needs: [prepare, frontend, core, supervisor, container, os, assistant]
     if: always()
     runs-on: ubuntu-24.04
     permissions:
@@ -635,8 +675,9 @@ jobs:
           fi
 
       - name: Write the results and timing into the release notes
-        if: needs.prepare.result == 'success'
+        if: needs.prepare.result == 'success' && needs.prepare.outputs.heavy == 'true'
         env:
+          R_ASSISTANT: ${{ needs.assistant.result }}
           STARTED: ${{ needs.prepare.outputs.started }}
           HEAVY: ${{ needs.prepare.outputs.heavy }}
           R_FRONTEND: ${{ needs.frontend.result }}
@@ -661,6 +702,7 @@ jobs:
               echo "| Supervisor images | ${R_SUPERVISOR} |"
               echo "| Container image and update feed | ${R_CONTAINER} |"
               echo "| Operating system images | ${R_OS} |"
+              echo "| Deploy Assistant files | ${R_ASSISTANT} |"
               echo
               echo "A result other than success means the files for that job are missing from this release."
               echo
@@ -669,3 +711,17 @@ jobs:
           } >> notes.md
           gh release edit "${TAG}" --notes-file notes.md
           gh release view "${TAG}" --json tagName,isDraft,isPrerelease,assets --jq '{tagName, isDraft, isPrerelease, assets: [.assets[].name]}'
+
+      # A run that was replaced or failed before any job attached a file would leave
+      # a release with nothing in it. That release is withdrawn with its tag.
+      - name: Withdraw the release when nothing was built
+        if: needs.prepare.result == 'success' && needs.prepare.outputs.heavy == 'true'
+        run: |
+          set -euo pipefail
+          count="$(gh release view "${TAG}" --json assets --jq '.assets | length' 2>/dev/null || echo unknown)"
+          if [ "${count}" = "0" ]; then
+            echo "Release ${TAG} has no files. Withdrawing it."
+            gh release delete "${TAG}" --yes --cleanup-tag
+          else
+            echo "Release ${TAG} has ${count} files."
+          fi

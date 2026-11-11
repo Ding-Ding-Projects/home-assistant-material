@@ -1,0 +1,14 @@
+# Keeps the host's installed packages and earlier build output out of the build:
+# they are rebuilt inside the container, and the host's copies are for another
+# operating system.
+**/node_modules
+build
+dist
+hass_frontend
+hass_frontend_es5
+landing-page/dist
+home_assistant_frontend.egg-info
+.git
+.cache
+test-results
+playwright-report

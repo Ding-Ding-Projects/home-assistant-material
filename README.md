@@ -93,13 +93,30 @@ can; it is created with 2 GB.
 
 ## Cloning on Windows
 
-Two files under `operating-system/` have a backslash in their names, which Windows cannot
-create, so a plain clone stops with "invalid path" and leaves the folder empty. Run
-`git restore --source=HEAD --staged --worktree :/` in the clone to check out everything else.
-Git then shows those two files as deleted: never commit with `git add -A` or `git commit -a`
-from such a clone, or the two files are removed for everyone. Stage files by name. Nothing
-outside the operating system build needs them; that build runs in a container from the
-committed source (`build-installer.bat`).
+A plain clone works on Windows:
+
+```
+git clone https://github.com/Ding-Ding-Projects/home-assistant-material
+```
+
+Earlier, two files under `operating-system/` had a backslash in their names, which Windows
+cannot create, and a clone stopped with "invalid path" and "Clone succeeded, but checkout
+failed". Those two files are now stored under names Windows accepts, and the operating
+system build puts the real names back.
+
+If a clone made before that fix shows the error, bring it up to date instead of cloning
+again:
+
+```
+cd home-assistant-material
+git fetch origin
+git reset --hard origin/main
+```
+
+`git reset --hard` discards local changes in that folder, so use it only in a clone that
+never finished checking out. If the error still appears, the copy of Git is refusing the
+old history: run `git config core.protectNTFS false` in the clone and repeat the last
+command.
 
 ## Build
 
@@ -111,9 +128,26 @@ The only requirement is Docker.
 | Linux, macOS, WSL | `./build.sh --run` | The same |
 | Windows | `.\build-installer.bat` | Builds the VirtualBox image into `dist\os` |
 | Linux | `./build.sh os rpi5-64` | Builds an operating system image |
+| Windows | `deploy-assistant\build.bat` | Builds the Deploy Assistant's `HAM-Deploy-Assistant-Setup.exe` into `deploy-assistant\out\make` |
+| Windows | `deploy-assistant\build.bat run` | Builds and starts the Deploy Assistant desktop app from source |
 
 `download-dependencies.bat` and `download-dependencies.sh` install Docker when it is missing.
-The Windows scripts have not been run on Windows yet; see the feature status page.
+The Deploy Assistant script needs Node.js 20 or newer; see `deploy-assistant/README.md`.
+Ready-made Deploy Assistant installers are attached to every release.
+
+### If `build.bat` stops with "Segmentation fault" or "exit code 139"
+
+The frontend compile used to start one worker for every processor, which on a machine with
+many processors needs more memory than Docker Desktop has, and it crashed part way through
+`gulp build-app`. The build now compiles on four processors and tries once more on two if
+that fails. Update the folder (`git pull`, or download it again) and run `build.bat` again.
+On Windows 11 with 32 processors the build crashed before this change and finished after
+it. If it still stops, give Docker more memory (Docker Desktop, Settings, Resources) or
+build with fewer processors:
+
+```
+docker build -f build/frontend.Dockerfile --build-arg BUILD_WORKERS=2 --output type=local,dest=core frontend
+```
 
 <details>
 <summary><strong>What is in this repository</strong></summary>

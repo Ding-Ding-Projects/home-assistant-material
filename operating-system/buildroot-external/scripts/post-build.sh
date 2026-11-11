@@ -12,6 +12,15 @@ BOARD_DIR=${2}
 . "${SCRIPT_DIR}/name.sh"
 . "${SCRIPT_DIR}/rauc.sh"
 
+# Two mount units need a backslash in their file names (systemd writes a dash
+# inside a path component as \x2d). Windows cannot create such a name, so the
+# repository stores them with __x2d__ in its place and the real names are put
+# back here, before systemd reads the unit files.
+escaped_dash='\x2d'
+for unit in "${TARGET_DIR}"/usr/lib/systemd/system/*__x2d__*; do
+    [ -e "${unit}" ] || continue
+    mv -f "${unit}" "${unit%%__x2d__*}${escaped_dash}${unit#*__x2d__}"
+done
 
 # HAOS tasks
 fix_rootfs

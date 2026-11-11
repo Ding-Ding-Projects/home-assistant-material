@@ -264,7 +264,13 @@ const createRspackConfig = ({
     optimization: {
       minimizer: [
         new TerserPlugin({
-          parallel: true,
+          // HA_BUILD_WORKERS caps the minifier's worker processes. The container
+          // build sets it so a machine with many processors and limited memory
+          // for Docker does not run out part way.
+          parallel:
+            Number(process.env.HA_BUILD_WORKERS) > 0
+              ? Number(process.env.HA_BUILD_WORKERS)
+              : true,
           extractComments: true,
           terserOptions: bundle.terserOptions({ latestBuild, isTestBuild }),
         }),
