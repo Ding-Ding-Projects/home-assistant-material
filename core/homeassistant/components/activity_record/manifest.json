@@ -1,0 +1,14 @@
+{
+  "domain": "activity_record",
+  "name": "Permanent activity record",
+  "codeowners": [],
+  "dependencies": [
+    "automation_repos",
+    "logbook",
+    "problem_log",
+    "websocket_api"
+  ],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/docs/features/activity-record/README.md",
+  "integration_type": "system",
+  "quality_scale": "internal"
+}

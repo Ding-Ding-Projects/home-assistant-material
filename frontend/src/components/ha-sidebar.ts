@@ -1049,6 +1049,9 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         :host([expanded]) ha-list-item-button {
           border-radius: var(--ha-border-radius-pill);
           --ha-list-item-focus-radius: var(--ha-border-radius-pill);
+          /* 48 px rows: still a full touch target, and the whole menu fits a
+             phone screen without scrolling. The collapsed rail keeps 56 px. */
+          --ha-row-item-min-height: var(--ha-space-12);
           --ha-row-item-padding-block: 0;
           --ha-row-item-padding-inline: var(--ha-space-2) var(--ha-space-4);
           --ha-row-item-gap: var(--ha-space-2);

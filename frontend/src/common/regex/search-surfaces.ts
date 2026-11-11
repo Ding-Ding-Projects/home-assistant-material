@@ -160,6 +160,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Commits of one automation, by message, author and commit",
   },
   {
+    file: "panels/config/activity-record/ha-config-activity-record.ts",
+    searches:
+      "The loaded entries of one day of the permanent activity record, by name, text, entity and cause",
+  },
+  {
     file: "panels/config/dashboard-history/ha-config-dashboard-history.ts",
     searches:
       "Dashboards and their tabs, by title, address and key; and commits of one dashboard or one of its views, by message, author, date and commit",

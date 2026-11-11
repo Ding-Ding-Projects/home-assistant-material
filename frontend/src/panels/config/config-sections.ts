@@ -28,6 +28,7 @@ import {
   mdiNetwork,
   mdiNfcVariant,
   mdiPalette,
+  mdiArchiveClockOutline,
   mdiHistory,
   mdiPaletteSwatch,
   mdiPuzzle,
@@ -639,6 +640,15 @@ export const configSections: Record<string, PageNavigation[]> = {
       path: "/config/dashboard_history",
       translationKey: "dashboard_history",
       iconPath: mdiHistory,
+      iconColor: "#B1345C",
+      adminOnly: true,
+    },
+    {
+      // Shown when the permanent activity record integration is loaded.
+      component: "activity_record",
+      path: "/config/activity-record",
+      translationKey: "activity_record",
+      iconPath: mdiArchiveClockOutline,
       iconColor: "#B1345C",
       adminOnly: true,
     },

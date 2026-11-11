@@ -1,4 +1,5 @@
 import {
+  mdiArchiveClockOutline,
   mdiDotsVertical,
   mdiDownload,
   mdiFilterRemove,
@@ -18,6 +19,7 @@ import type {
   HASSDomEvent,
   HASSDomTargetEvent,
 } from "../../common/dom/fire_event";
+import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { navigate } from "../../common/navigate";
 import { constructUrlCurrentPath } from "../../common/url/construct-url";
 import {
@@ -166,6 +168,19 @@ export class HaPanelLogbook extends LitElement {
             ${this.hass.localize("ui.common.reset")}
             <ha-svg-icon slot="icon" .path=${mdiFilterRemove}></ha-svg-icon>
           </ha-dropdown-item>
+
+          ${
+            this.hass.user?.is_admin &&
+            isComponentLoaded(this.hass.config, "activity_record")
+              ? html`<ha-dropdown-item value="permanent_record">
+                  ${this.hass.localize("ui.panel.logbook.permanent_record")}
+                  <ha-svg-icon
+                    slot="icon"
+                    .path=${mdiArchiveClockOutline}
+                  ></ha-svg-icon>
+                </ha-dropdown-item>`
+              : nothing
+          }
         </ha-dropdown>
 
         <div class="content">
@@ -628,6 +643,9 @@ export class HaPanelLogbook extends LitElement {
         break;
       case "reset":
         this._resetLogbook();
+        break;
+      case "permanent_record":
+        navigate("/config/activity-record");
         break;
     }
   }

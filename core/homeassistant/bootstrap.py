@@ -220,6 +220,7 @@ DEFAULT_INTEGRATIONS = {
     # These integrations are set up unless recovery mode is activated.
     #
     # Integrations providing core functionality:
+    "activity_record",
     "application_credentials",
     "backup",
     "brands",
