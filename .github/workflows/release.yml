@@ -607,6 +607,7 @@ jobs:
   # here, so one release page holds the images and the app that installs them.
   assistant:
     name: Attach the Deploy Assistant
+    # (Changed in b64779d75, whose commit message is about another project.)
     # Runs straight after the release is created, so the installers are on the
     # release page within a minute instead of after the long builds.
     needs: prepare
