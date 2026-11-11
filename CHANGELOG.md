@@ -8,6 +8,10 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Fixed: Personal settings on a phone could be dragged sideways until the settings left the
+  screen. The row of group chips was as wide as all its chips (666 px in a 358 px page) and made
+  the page wider than the screen; it now keeps to the page and scrolls inside itself. Measured
+  in a running copy with the rule applied; not yet seen in a published build.
 - Changed: on a phone the slim bar at the top that named the current page is gone; the Pages
   button in the bottom bar switches pages and every page has its own header. Not yet seen in a
   running build.

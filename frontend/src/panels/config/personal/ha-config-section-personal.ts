@@ -1906,6 +1906,17 @@ export class HaConfigSectionPersonal extends LitElement {
     .narrow .layout {
       display: flex;
       flex-direction: column;
+      /* Stretch, not start: with start the chip row took the width of all
+         its chips, made the page wider than the screen and let the whole
+         page be dragged sideways. */
+      align-items: stretch;
+      min-width: 0;
+    }
+    .narrow .layout > *,
+    .narrow .pin > * {
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     /* On a narrow screen only the group chips stay pinned. The preview scrolls
        away with the page: pinned, it covered most of a phone screen and hid
