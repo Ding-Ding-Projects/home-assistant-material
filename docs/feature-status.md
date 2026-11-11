@@ -93,9 +93,16 @@ server was stopped part way; passkeys with a browser virtual authenticator (add,
 without the password, remove, clean failures); Enter confirming the New folder prompt; and the
 Minecraft version lists refreshing for real, with vanilla 1.21.8 starting.
 
-Not seen in any browser, as of build 109: the "Add media" fix on a real phone; the update install progress and
-recovery card during a real install (no real update has been available); and an activity tray
-entry while it is still running. The three batch 25 changes were run in build 111 on a throwaway
+Not seen in any browser, as of build 109: the update install progress and recovery card during a real install.
+The build 109 operating system image was booted in a virtual machine on 11 November 2026 and
+its Updates page offered nothing, because the update feed still names operating system 18.5.71:
+the operating system jobs of builds 111 and 114 failed when an outside Go module host refused
+connections, and those of 110 and 113 were cancelled by newer pushes. Closed by the owner's
+decision on 11 November 2026 without a device check: "Add media" on a real iPhone (seen working
+in a headless browser in builds 106 and 109) and a passkey on a hardware key or phone (run with a
+browser virtual authenticator). Seen in build 113: an activity tray entry while running (a real
+model download with its progress bar, Cancel and Open), finishing, and cancelled from the tray;
+the download stops by design when its page is left, and the entry says so. The three batch 25 changes were run in build 111 on a throwaway
 copy: through the manager on a real SSH and Docker host, vanilla 26.3 and Paper 26.3 started on
 the Java 25 image, 1.21.8 on Java 21, 1.20.1 on Java 17 and 1.16.5 on Java 8, each with the
 server's own "Done" line and the right image named on its page; with the Ollama server stopped
@@ -121,7 +128,7 @@ Checked, and how:
 
 Not checked: see the list of what has not been seen in any browser in the section above. The
 activity record can still lose entries in the ways `docs/features/activity-record/README.md` lists,
-and the operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted.
+and the operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image was booted in a virtual machine on 11 November 2026 (first start finished, the supervisor reported healthy, and the journal shows both mounts made).
 
 ## What was checked for batches 18 and 19 (commits `8fa63f05d`, `f86ff751a`, `0d056629e`)
 
@@ -144,7 +151,7 @@ Not checked:
   search and version picker, the "Git remote" wording and the Cantonese additions.
 - The "+" button fix in the accessibility panel (batch 19).
 - The dashboard tools dialog (commit `cbefeaf48`, unit tests of its editing functions only).
-- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted.
+- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image was booted in a virtual machine on 11 November 2026 (first start finished, the supervisor reported healthy, and the journal shows both mounts made).
 
 ## What was checked for the last batch of 10 November 2026 (commits `5b2c6af85` and `0d9dc73d4`)
 
@@ -165,7 +172,7 @@ Not checked:
   the information buttons, split panes and the filter pane resize, starting points for empty
   editors, appearance and wording saved to the instance, the changes to the import summary, and
   the archive list on the history pages.
-- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted.
+- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image was booted in a virtual machine on 11 November 2026 (first start finished, the supervisor reported healthy, and the journal shows both mounts made).
 - The new release workflow jobs have not run: attaching the Deploy Assistant, withdrawing a
   release that has no files, and publishing no release for a documentation-only push.
 - `deploy-assistant\build.bat` was added by another lane and was not run by this work.
@@ -183,7 +190,7 @@ Not checked:
 | Core, machine, landing page and supervisor images | Built and seen in a running build | Built in build 1; the core image has been run many times. The others were built and published; only the core was driven. |
 | Update feed and updater pointed at this project | Built, not yet seen in a running build | The feed is live (`channel` branch); an update between two builds has not been observed. `docs/material-changes.md`. |
 | Operating system images: Raspberry Pi 3, 4, 5 and VirtualBox | Built and seen in a running build | `haos_ova-18.5.33.ova` started on VMware Workstation on Windows 11: it took a network address, finished its first start and showed first-run setup on port 80, reached from a second device (`ovftool` needs `--skipManifestCheck`, see the README). It has not been booted in VirtualBox or on a Raspberry Pi. |
-| Plain `git clone` on Windows | Built and seen in a running build | Two systemd mount units whose names contain a backslash are stored as `__x2d__` and the operating system post-build script renames them back, so a clone checks out on Windows 11 (seen). The rename was seen in the operating system build of build 109 (generic virtual machine image and Raspberry Pi 3): the build log shows both mount units enabled under their real names. That image has not been booted (`operating-system/buildroot-external/scripts/post-build.sh`, `README.md`). |
+| Plain `git clone` on Windows | Built and seen in a running build | Two systemd mount units whose names contain a backslash are stored as `__x2d__` and the operating system post-build script renames them back, so a clone checks out on Windows 11 (seen). The rename was seen in the operating system build of build 109 (generic virtual machine image and Raspberry Pi 3): the build log shows both mount units enabled under their real names. That image was booted in a virtual machine on 11 November 2026 (first start finished, the supervisor reported healthy, and the journal shows both mounts made) (`operating-system/buildroot-external/scripts/post-build.sh`, `README.md`). |
 | Local frontend build on a machine with many processors | Built and seen in a running build | The frontend container compile is held to four processors (two on a retry) and the minifier worker count follows it; the build context no longer carries the host's `node_modules`. On Windows 11 with 32 processors the build crashed before this and produced the wheel after it; the production container build completes. Seen on one computer only (`build/frontend.Dockerfile`, `frontend/build-scripts/rspack.cjs`). |
 | Hosted instance on the owner's network | Built and seen in a running build | Runs build 2026.11.1.106. Builds 88 and 91 were skipped on purpose: they contained a defect where settings saved on the instance could cross between two accounts on one browser, fixed in batch 18 (see the row on appearance and wording saved on the instance). Builds 102 and 105 were skipped on purpose too: 102 lacked the media folder safety fix and 105 had the first version of the activity record. |
 | Operating system updates over the air | Built, not yet seen in a running build | Wired; the two signing secrets are set since 10 November 2026. No build has finished its operating system images since, and no update between two such builds has been watched. |

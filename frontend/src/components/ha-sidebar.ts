@@ -1174,6 +1174,25 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
           --ha-row-item-padding-inline: var(--ha-space-3) var(--ha-space-4);
         }
 
+        /* On a phone the open menu is a full sheet: less air between its
+           parts so more of it fits without scrolling. */
+        :host([narrow][expanded]) .menu {
+          height: calc(var(--ha-space-12) + var(--safe-area-inset-top, 0px));
+        }
+        :host([narrow][expanded]) .assist {
+          height: var(--ha-space-12);
+          margin-block: var(--ha-space-1) var(--ha-space-2);
+        }
+        :host([narrow][expanded]) ha-list-nav {
+          margin-block: 0;
+        }
+        :host([narrow][expanded]) ha-fade-in {
+          padding: 0;
+        }
+        :host([narrow][expanded]) ha-list-item-button {
+          margin-bottom: 0;
+        }
+
         .spacer {
           margin-top: auto;
           pointer-events: none;

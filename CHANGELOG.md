@@ -8,6 +8,14 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Changed: on a phone the slim bar at the top that named the current page is gone; the Pages
+  button in the bottom bar switches pages and every page has its own header. Not yet seen in a
+  running build.
+- Changed: the menu on a phone has less empty space above its title, around the Assist button and
+  between its groups. Not yet seen in a running build.
+- Fixed: the YAML tools page showed two cramped columns on a phone, with names broken inside
+  words. It is one column until two columns of a comfortable width fit. Not yet seen in a
+  running build.
 - Fixed: a Minecraft server of version 26.1 or newer could not start, because every server used
   an image with Java 21 and those versions need Java 25 (found by starting 26.3 for real). The
   image now follows the game version: Java 25 for 26.1 and newer, 21 for 1.20.5 to 1.21.x, 17

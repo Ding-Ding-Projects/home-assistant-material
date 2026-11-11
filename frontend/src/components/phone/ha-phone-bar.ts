@@ -809,13 +809,15 @@ export class HaPhoneBar extends LitElement {
       cursor: default;
     }
     .top {
+      /* Not shown: Pages in the bottom bar switches pages, and each page has
+         its own header. See --ha-phone-top-height in home-assistant-main. */
+      display: none;
       position: fixed;
       z-index: 5;
       inset-inline: 0;
       top: var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px));
       height: 48px;
       box-sizing: border-box;
-      display: flex;
       align-items: center;
       padding-inline: var(--ha-space-1);
       background-color: var(--primary-background-color);

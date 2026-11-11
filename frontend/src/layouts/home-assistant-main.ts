@@ -445,10 +445,12 @@ export class HomeAssistantMain extends LitElement {
           var(--ha-pane-gap)
       );
     }
-    /* Below 700 px a slim top bar and a bottom bar replace the tab bar. Pages
-       are told about both so nothing sits under them. */
+    /* Below 700 px a bottom bar replaces the tab bar. Pages are told about it
+       so nothing sits under it. The slim bar that used to sit at the top is
+       not shown: the Pages button in the bottom bar does the same job, and
+       every page already has its own header. */
     :host([phone]) {
-      --ha-phone-top-height: 48px;
+      --ha-phone-top-height: 0px;
       --ha-phone-bar-height: 64px;
       --safe-area-inset-top: calc(
         var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +

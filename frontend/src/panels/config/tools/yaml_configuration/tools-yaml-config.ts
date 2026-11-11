@@ -415,17 +415,18 @@ export class ToolsYamlConfig extends LitElement {
 
         .content {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          /* One column until two of at least 420px fit. The narrow attribute
+             is not reflected on this element, so the width decides. */
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 420px), 1fr)
+          );
           gap: var(--ha-space-4);
           align-items: start;
           padding: var(--ha-space-4);
           max-width: 1400px;
           margin: 0 auto;
           box-sizing: border-box;
-        }
-
-        :host([narrow]) .content {
-          grid-template-columns: minmax(0, 1fr);
         }
 
         .column {

@@ -76,9 +76,16 @@ product matching it.
   server was stopped part way; passkeys with a browser virtual authenticator (add, sign in
   without the password, remove, clean failures); Enter confirming the New folder prompt; and the
   Minecraft version lists refreshing for real, with vanilla 1.21.8 starting.
-- Not seen in any browser: the "Add media" fix on a real phone; the update install progress and
-  recovery card during a real install (no real update has been available); and an activity tray
-  entry while it is still running. The three batch 25 changes were run in build 111 on a throwaway
+- Not seen in any browser: the update install progress and recovery card during a real install.
+  The build 109 operating system image was booted in a virtual machine on 11 November 2026 and
+  its Updates page offered nothing, because the update feed still names operating system 18.5.71:
+  the operating system jobs of builds 111 and 114 failed when an outside Go module host refused
+  connections, and those of 110 and 113 were cancelled by newer pushes. Closed by the owner's
+  decision on 11 November 2026 without a device check: "Add media" on a real iPhone (seen working
+  in a headless browser in builds 106 and 109) and a passkey on a hardware key or phone (run with a
+  browser virtual authenticator). Seen in build 113: an activity tray entry while running (a real
+  model download with its progress bar, Cancel and Open), finishing, and cancelled from the tray;
+  the download stops by design when its page is left, and the entry says so. The three batch 25 changes were run in build 111 on a throwaway
   copy: through the manager on a real SSH and Docker host, vanilla 26.3 and Paper 26.3 started on
   the Java 25 image, 1.21.8 on Java 21, 1.20.1 on Java 17 and 1.16.5 on Java 8, each with the
   server's own "Done" line and the right image named on its page; with the Ollama server stopped
@@ -91,7 +98,7 @@ product matching it.
 - Passkeys were run with a browser virtual authenticator, never with a hardware key or a phone.
   Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in
   build 111.
-- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted.
+- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image was booted in a virtual machine on 11 November 2026 (first start finished, the supervisor reported healthy, and the journal shows both mounts made).
 - `deploy-assistant\build.bat` (another lane's) has not been run by this work.
 
 ## Known limits

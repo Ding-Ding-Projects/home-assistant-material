@@ -4,6 +4,15 @@
       "date": "2026-11-11",
       "items": [
         {
+          "text": "Changed: on a phone the slim bar at the top that named the current page is gone; the Pages button in the bottom bar switches pages and every page has its own header. Not yet seen in a running build."
+        },
+        {
+          "text": "Changed: the menu on a phone has less empty space above its title, around the Assist button and between its groups. Not yet seen in a running build."
+        },
+        {
+          "text": "Fixed: the YAML tools page showed two cramped columns on a phone, with names broken inside words. It is one column until two columns of a comfortable width fit. Not yet seen in a running build."
+        },
+        {
           "text": "Fixed: a Minecraft server of version 26.1 or newer could not start, because every server used an image with Java 21 and those versions need Java 25 (found by starting 26.3 for real). The image now follows the game version: Java 25 for 26.1 and newer, 21 for 1.20.5 to 1.21.x, 17 for 1.17 to 1.20.4 and 8 for older versions. The Java 25 image was run by hand and started vanilla 26.3 and Paper 26.3, and in build 111 26.3, 1.21.8, 1.20.1 and 1.16.5 all started through the manager on their own Java.",
           "commit": "18c165355478"
         },
