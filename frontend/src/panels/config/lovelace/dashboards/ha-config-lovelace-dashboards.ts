@@ -1103,7 +1103,10 @@ export class HaConfigLovelaceDashboards extends LitElement {
     .bulk {
       position: fixed;
       z-index: 4;
-      bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+      bottom: calc(
+        var(--ha-phone-bar-height, 0px) + var(--ha-bottom-tabs-height, 0px) +
+          var(--ha-space-4)
+      );
       inset-inline: var(--ha-sidebar-width, 0px) 0;
       box-sizing: border-box;
       width: min(
@@ -1111,7 +1114,6 @@ export class HaConfigLovelaceDashboards extends LitElement {
         calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
       );
       margin-inline: auto;
-      --ha-button-height: 44px;
     }
     .bulk.narrow {
       inset-inline: 0;

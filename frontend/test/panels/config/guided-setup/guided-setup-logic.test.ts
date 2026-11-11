@@ -5,6 +5,8 @@ import {
   decorateField,
   defaultText,
   draftKey,
+  fieldExamples,
+  fieldPractise,
   leafFields,
   loadDraft,
   maskYaml,
@@ -13,6 +15,7 @@ import {
   validateAll,
   withoutSecrets,
 } from "../../../../src/panels/config/guided-setup/guided-setup-logic";
+import { evaluatePractise } from "../../../../src/components/setting-info/practise-logic";
 import type { DraftStorage } from "../../../../src/panels/config/guided-setup/guided-setup-logic";
 
 const fields: any[] = [
@@ -245,5 +248,62 @@ describe("guided setup logic", () => {
     expect(select.selector.select.mode).toBe("list");
     const unbounded = { name: "x", selector: { number: { min: 0 } } } as any;
     expect(decorateField(unbounded)).toBe(unbounded);
+  });
+});
+
+describe("practise controls and worked examples", () => {
+  const leaves = leafFields(fields);
+  const byName = (name: string) => leaves.find((leaf) => leaf.name === name)!;
+
+  it("offers a number practise control that follows the range of the field", () => {
+    const spec = fieldPractise(byName("port"))!;
+    expect(spec).toMatchObject({ type: "number", min: 1, max: 100, step: 1 });
+    expect(evaluatePractise(spec, "50").state).toBe("ok");
+    expect(evaluatePractise(spec, "500").value).toBe(100);
+    expect(evaluatePractise(spec, "abc").state).toBe("invalid");
+    const examples = fieldExamples(byName("port"));
+    expect(examples.map((item) => item.input)).toEqual(["1", "100", "101"]);
+  });
+
+  it("offers a closed list of values as text that accepts only those values", () => {
+    const spec = fieldPractise(byName("mode"))!;
+    expect(evaluatePractise(spec, "a").state).toBe("ok");
+    expect(evaluatePractise(spec, "b").state).toBe("ok");
+    expect(evaluatePractise(spec, "c").state).toBe("invalid");
+    expect(evaluatePractise(spec, "ab").state).toBe("invalid");
+    expect(fieldExamples(byName("mode"))[1].params).toEqual({
+      options: "a, b",
+    });
+  });
+
+  it("escapes text that would otherwise be part of a pattern", () => {
+    const [leaf] = leafFields([
+      {
+        name: "odd",
+        selector: { select: { options: ["a.b", "c|d", "(x)"] } },
+      } as any,
+    ]);
+    const spec = fieldPractise(leaf)!;
+    expect(evaluatePractise(spec, "a.b").state).toBe("ok");
+    expect(evaluatePractise(spec, "axb").state).toBe("invalid");
+    expect(evaluatePractise(spec, "c|d").state).toBe("ok");
+    expect(evaluatePractise(spec, "c").state).toBe("invalid");
+  });
+
+  it("offers nothing for open text, secrets, open ranges and open lists", () => {
+    expect(fieldPractise(byName("name"))).toBeUndefined();
+    expect(fieldPractise(byName("password"))).toBeUndefined();
+    expect(fieldExamples(byName("password"))).toEqual([]);
+    const [open] = leafFields([
+      { name: "x", selector: { number: { min: 0 } } } as any,
+    ]);
+    expect(fieldPractise(open)).toBeUndefined();
+    const [custom] = leafFields([
+      {
+        name: "y",
+        selector: { select: { options: ["a"], custom_value: true } },
+      } as any,
+    ]);
+    expect(fieldPractise(custom)).toBeUndefined();
   });
 });

@@ -371,14 +371,27 @@ export class HaToast extends LitElement {
       transform: translateY(0);
     }
 
-    /* Older toasts in a stack are drawn slightly smaller. */
+    /* Older toasts in a stack are drawn slightly smaller. Only the surface is
+       scaled, never the text or the buttons, so every button keeps its 44 px
+       touch target. */
     .toast.stacked {
+      position: relative;
+      isolation: isolate;
+      overflow: visible;
+      background-color: transparent;
+      box-shadow: none;
+    }
+    .toast.stacked::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      background-color: var(--ha-color-neutral-10);
+      box-shadow: var(--wa-shadow-l);
       transform-origin: bottom center;
       scale: calc(1 - var(--ha-toast-depth, 0) * 0.04);
-      transition:
-        opacity var(--ha-animation-duration-fast, 150ms) ease,
-        transform var(--ha-animation-duration-fast, 150ms) ease,
-        scale var(--ha-animation-duration-fast, 150ms) ease;
+      transition: scale var(--ha-animation-duration-fast, 150ms) ease;
     }
 
     .toast:focus-within {
@@ -389,6 +402,14 @@ export class HaToast extends LitElement {
     ::slotted(ha-button) {
       --ha-button-height: 44px;
       min-width: 44px;
+    }
+
+    /* The toast is dark in both colour schemes. A plain button would take the
+       brand colour, about 2.5 to 1 on this surface; the toast's own light text
+       colour reads about 16 to 1. */
+    ::slotted(ha-button[appearance="plain"]) {
+      --wa-color-on-normal: var(--ha-color-on-neutral-loud);
+      --wa-color-on-quiet: var(--ha-color-on-neutral-loud);
     }
 
     ::slotted(ha-icon-button) {

@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { BulkBlueprintItem } from "../../../../src/panels/config/blueprint/blueprint-bulk-actions";
 import {
   blueprintDeletePreview,
+  blueprintFailureDetail,
   blueprintReImportPreview,
   blueprintResultLine,
+  MAX_ERROR_MESSAGE_LENGTH,
+  plainErrorMessage,
   planBlueprintDelete,
   planBlueprintReImport,
   reImportBlueprints,
@@ -132,5 +135,66 @@ describe("blueprint bulk result summary", () => {
     expect(line).toContain("bulk_delete_done");
     expect(line).toContain("bulk_result_skipped");
     expect(line).toContain("bulk_result_failed");
+  });
+});
+
+// Protects the reason shown for a blueprint that could not be re-imported: the
+// server's own message reaches the person, bounded, with the step that failed.
+describe("blueprint re-import failures", () => {
+  it("passes the server message through as short plain text", () => {
+    expect(plainErrorMessage(new Error("Not found"))).toBe("Not found");
+    expect(plainErrorMessage({ code: "x", message: "Bad  \n url" })).toBe(
+      "Bad url"
+    );
+    expect(plainErrorMessage({ body: { message: "From body" } })).toBe(
+      "From body"
+    );
+    expect(plainErrorMessage("plain")).toBe("plain");
+    expect(plainErrorMessage(undefined)).toBeUndefined();
+    expect(plainErrorMessage({ message: "   " })).toBeUndefined();
+  });
+
+  it("bounds the length and drops control characters", () => {
+    const long = plainErrorMessage("a".repeat(5000))!;
+    expect(long.length).toBe(MAX_ERROR_MESSAGE_LENGTH);
+    expect(long.endsWith("…")).toBe(true);
+    expect(plainErrorMessage("a\u0000b\u001bc")).toBe("a b c");
+  });
+
+  it("says which step failed, from which host, and the server's message", async () => {
+    const plan = planBlueprintReImport([item("a"), item("b")]);
+    const results = await reImportBlueprints(plan, {
+      importFn: async (url) => {
+        if (url.endsWith("a.yaml")) {
+          throw Object.assign(new Error("Unknown error"), {
+            code: "unknown_error",
+          });
+        }
+        return { raw_data: "x" };
+      },
+      saveFn: async () => {
+        throw new Error("Disk full");
+      },
+    });
+    const summary = summarizeBlueprintResults(plan, results);
+    expect(summary.failed).toHaveLength(2);
+    const [first, second] = summary.failed;
+    expect(first).toMatchObject({
+      step: "fetch",
+      host: "example.com",
+      message: "Unknown error",
+    });
+    expect(blueprintFailureDetail(localize, first)).toBe(
+      `ui.panel.config.blueprint.overview.bulk_reimport_fetch_failed ${JSON.stringify({ host: "example.com" })}: Unknown error`
+    );
+    expect(second).toMatchObject({ step: "save", message: "Disk full" });
+    expect(blueprintFailureDetail(localize, second)).toBe(
+      "ui.panel.config.blueprint.overview.bulk_reimport_save_failed: Disk full"
+    );
+  });
+
+  it("shows nothing extra for a failure without a step or a message", () => {
+    expect(blueprintFailureDetail(localize, {})).toBe("");
+    expect(blueprintFailureDetail(localize, { message: "boom" })).toBe("boom");
   });
 });

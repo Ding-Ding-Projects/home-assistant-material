@@ -329,8 +329,10 @@ export class HaConfigSectionPersonal extends LitElement {
             visible.delete(id);
           }
         }
-        const current = pickCurrentGroup(order, visible);
-        // Keep the last mark when nothing is in the reading area
+        // Keep the last mark when nothing is in the reading area, and start
+        // with the first group so something is marked before any scroll.
+        const current =
+          pickCurrentGroup(order, visible) ?? this._currentGroup ?? order[0];
         if (current !== undefined && current !== this._currentGroup) {
           this._currentGroup = current;
         }

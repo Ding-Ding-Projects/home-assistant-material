@@ -206,11 +206,115 @@ export const blueprintReImportPreview = (
   };
 };
 
+/** The longest server message that is shown; a longer one is cut. */
+export const MAX_ERROR_MESSAGE_LENGTH = 200;
+
+/**
+ * The message of a failed request as short plain text, or undefined when there
+ * is none. The server's own message is passed through (it can be in an Error,
+ * in an object with a `message` or in a `body.message`); control characters
+ * and runs of white space become one space and the length is bounded.
+ */
+export const plainErrorMessage = (reason: unknown): string | undefined => {
+  let text: unknown;
+  if (typeof reason === "string") {
+    text = reason;
+  } else if (reason && typeof reason === "object") {
+    const { message, body } = reason as {
+      message?: unknown;
+      body?: { message?: unknown };
+    };
+    text = typeof message === "string" && message ? message : body?.message;
+  }
+  if (typeof text !== "string") {
+    return undefined;
+  }
+  const cleaned = [...text]
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      return code < 32 || code === 127 ? " " : char;
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) {
+    return undefined;
+  }
+  return cleaned.length > MAX_ERROR_MESSAGE_LENGTH
+    ? `${cleaned.slice(0, MAX_ERROR_MESSAGE_LENGTH - 1)}…`
+    : cleaned;
+};
+
+/** Which request of a re-import failed. */
+export type BlueprintReImportStep = "fetch" | "save";
+
+/**
+ * Raised by `reImportBlueprints` so that a failure says which step failed and,
+ * for a failed fetch, from which host. It carries the server's own message.
+ */
+export class BlueprintReImportError extends Error {
+  public constructor(
+    public readonly step: BlueprintReImportStep,
+    public readonly host: string | undefined,
+    cause: unknown
+  ) {
+    super(plainErrorMessage(cause) ?? "");
+    this.name = "BlueprintReImportError";
+  }
+}
+
+/** The host name of an address, without a path or any query. */
+export const sourceHost = (address: string): string | undefined => {
+  try {
+    return new URL(address).hostname || undefined;
+  } catch (_err) {
+    return undefined;
+  }
+};
+
+export interface BlueprintFailure {
+  item: BulkBlueprintItem;
+  message?: string;
+  step?: BlueprintReImportStep;
+  host?: string;
+}
+
 export interface BlueprintBulkResult {
   succeeded: BulkBlueprintItem[];
-  failed: { item: BulkBlueprintItem; message?: string }[];
+  failed: BlueprintFailure[];
   skipped: SkippedBlueprint[];
 }
+
+/**
+ * What to show beside the name of a blueprint that failed: the step that
+ * failed and where, then the server's own message when there is one.
+ */
+export const blueprintFailureDetail = (
+  localize: BulkLocalize,
+  failure: Pick<BlueprintFailure, "message" | "step" | "host">
+): string => {
+  const parts: string[] = [];
+  if (failure.step === "fetch") {
+    parts.push(
+      failure.host
+        ? localize(
+            "ui.panel.config.blueprint.overview.bulk_reimport_fetch_failed",
+            { host: failure.host }
+          )
+        : localize(
+            "ui.panel.config.blueprint.overview.bulk_reimport_fetch_failed_no_host"
+          )
+    );
+  } else if (failure.step === "save") {
+    parts.push(
+      localize("ui.panel.config.blueprint.overview.bulk_reimport_save_failed")
+    );
+  }
+  if (failure.message) {
+    parts.push(failure.message);
+  }
+  return parts.join(": ");
+};
 
 /** Pairs each planned blueprint with what became of its request. */
 export const summarizeBlueprintResults = (
@@ -228,11 +332,15 @@ export const summarizeBlueprintResults = (
       summary.succeeded.push(item);
     } else {
       const reason = result?.status === "rejected" ? result.reason : undefined;
-      summary.failed.push({
+      const failure: BlueprintFailure = {
         item,
-        message:
-          typeof reason?.message === "string" ? reason.message : undefined,
-      });
+        message: plainErrorMessage(reason),
+      };
+      if (reason instanceof BlueprintReImportError) {
+        failure.step = reason.step;
+        failure.host = reason.host;
+      }
+      summary.failed.push(failure);
     }
   });
   return summary;
@@ -287,7 +395,16 @@ export const reImportBlueprints = (
   Promise.allSettled(
     plan.run.map(async (item) => {
       const url = blueprintSourceAddress(item)!;
-      const imported = await deps.importFn(url);
-      await deps.saveFn(item, imported.raw_data, url);
+      let imported: { raw_data: string };
+      try {
+        imported = await deps.importFn(url);
+      } catch (err) {
+        throw new BlueprintReImportError("fetch", sourceHost(url), err);
+      }
+      try {
+        await deps.saveFn(item, imported.raw_data, url);
+      } catch (err) {
+        throw new BlueprintReImportError("save", undefined, err);
+      }
     })
   );

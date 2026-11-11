@@ -34,6 +34,20 @@ export interface OwnerScopedSync {
 // The account this page has already claimed the cache for.
 let claimed: string | undefined;
 
+const claimListeners = new Set<() => void>();
+
+/**
+ * Calls `listener` each time the cache is claimed for an account, so a value
+ * that was held back until then (see `syncCacheUsable`) can be read again.
+ * Returns the function that stops it.
+ */
+export const subscribeSyncClaimed = (listener: () => void): (() => void) => {
+  claimListeners.add(listener);
+  return () => {
+    claimListeners.delete(listener);
+  };
+};
+
 const readOwner = (): string | undefined => {
   try {
     return window.localStorage.getItem(SYNC_OWNER_KEY) ?? undefined;
@@ -107,6 +121,13 @@ export const claimSyncOwner = (
       writeOwner(userId);
     }
     syncs.forEach((sync) => sync.restoreLocal());
+  }
+  for (const listener of Array.from(claimListeners)) {
+    try {
+      listener();
+    } catch (_err) {
+      // One listener that fails must not stop the others.
+    }
   }
   return true;
 };

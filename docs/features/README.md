@@ -19,6 +19,7 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`dashboard-history/`](dashboard-history/README.md) | Git history for every dashboard and every tab, with remote and push |
 | [`minecraft-server/`](minecraft-server/README.md) | Minecraft server manager (second slice: Docker over SSH) |
 | [`ollama/`](ollama/README.md) | Local Ollama suite (second slice: pull and delete) |
+| [`hosting/`](hosting/README.md) | The full hosting mode: one container with its own Docker engine, so apps, the app store, backups with apps and real updates work |
 | [`activity-record/`](activity-record/README.md) | Permanent record of the Activity page in a Git repository: what is kept, what can still be lost, size and the Permanent record page |
 
 Other documents: [`../automation-repositories.md`](../automation-repositories.md) for the Git

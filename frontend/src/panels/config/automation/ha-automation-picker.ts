@@ -130,6 +130,7 @@ import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
+import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
@@ -800,6 +801,25 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
           { number: automations.length }
         )}
         .summary=${this._summary(automations)}
+        .statistics=${buildListStatistics(this.hass.localize, {
+          total: this.automations.length,
+          shown: automations.length,
+          selected: this._selected.length,
+          extras: [
+            {
+              key: "turned_off",
+              value: this.automations.filter(
+                (automation) => automation.state === "off"
+              ).length,
+            },
+            {
+              key: "unavailable",
+              value: this.automations.filter(
+                (automation) => automation.state === "unavailable"
+              ).length,
+            },
+          ],
+        })}
         selectable
         keep-hidden-selection
         always-show-checkboxes
@@ -1867,7 +1887,10 @@ ${rejected
         .bulk {
           position: fixed;
           z-index: 4;
-          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          bottom: calc(
+            var(--ha-phone-bar-height, 0px) +
+              var(--ha-bottom-tabs-height, 0px) + var(--ha-space-4)
+          );
           inset-inline: var(--ha-sidebar-width, 0px) 0;
           box-sizing: border-box;
           width: min(

@@ -95,6 +95,7 @@ import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
+import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { haStyle } from "../../../resources/styles";
@@ -1085,6 +1086,25 @@ export class HaConfigDeviceDashboard extends LitElement {
           { number: devicesOutput.length }
         )}
         .summary=${this._summary(devicesOutput)}
+        .statistics=${buildListStatistics(this.hass.localize, {
+          total: Object.keys(this.hass.devices).length,
+          shown: devicesOutput.length,
+          selected: this._selected.length,
+          extras: [
+            {
+              key: "attention",
+              value: devicesOutput.filter(
+                (device) => device.low_battery || device.offline
+              ).length,
+            },
+            {
+              key: "disabled",
+              value: Object.values(this.hass.devices).filter(
+                (device) => device.disabled_by
+              ).length,
+            },
+          ],
+        })}
         .columns=${this._columns(this.hass.localize)}
         .data=${devicesOutput}
         .loadError=${

@@ -32,7 +32,7 @@ import { customElement, property } from "lit/decorators";
  * @cssprop --ha-checkbox-checked-icon-scale - The size of the checked and indeterminate icons relative to the checkbox. Defaults to `0.9`.
  * @cssprop --ha-checkbox-border-radius - The border radius of the checkbox control. Defaults to `--ha-border-radius-sm`.
  * @cssprop --ha-checkbox-border-width - The border width of the checkbox control. Defaults to `--ha-border-width-md`.
- * @cssprop --ha-checkbox-min-touch-size - Minimum touch target size around the checkbox. Defaults to `40px`.
+ * @cssprop --ha-checkbox-min-touch-size - Minimum touch target size around the checkbox. Defaults to `40px`, and to `44px` on a touch screen.
  * @cssprop --ha-checkbox-required-marker - The marker shown after the label for required fields. Defaults to `"*"`.
  * @cssprop --ha-checkbox-required-marker-offset - Offset of the required marker. Defaults to `0.1rem`.
  *
@@ -157,6 +157,15 @@ export class HaCheckbox extends WaCheckbox {
           height: 100%;
           min-width: var(--ha-checkbox-min-touch-size, 40px);
           min-height: var(--ha-checkbox-min-touch-size, 40px);
+        }
+
+        /* On a touch screen the invisible hit area is 44 px, without making
+           the checkbox or the row it sits in any bigger. */
+        @media (pointer: coarse) {
+          [part~="control"]::before {
+            min-width: var(--ha-checkbox-min-touch-size, 44px);
+            min-height: var(--ha-checkbox-min-touch-size, 44px);
+          }
         }
 
         label:has(input:disabled) [part~="control"]::before {

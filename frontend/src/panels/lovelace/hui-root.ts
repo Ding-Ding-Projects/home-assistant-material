@@ -118,11 +118,15 @@ import "../../components/page/ha-page-footer";
 import "../../components/page/ha-page-lock-banner";
 import "../../components/page/ha-page-tools";
 import {
+  dashboardOverflowTools,
   dashboardPageToolsMode,
   dashboardToolButtons,
   usesSharedPageTools,
 } from "./dashboard-page-tools";
-import type { DashboardToolButton } from "./dashboard-page-tools";
+import type {
+  DashboardPageToolsMode,
+  DashboardToolButton,
+} from "./dashboard-page-tools";
 import { PageLockController } from "../../common/locks/page-lock-controller";
 import { LOVELACE_EDIT_TOAST_ID } from "./types";
 
@@ -235,7 +239,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           <ha-icon-button
             .label=${this.hass.localize(button.label)}
             .path=${this._pageToolIcon(button)}
-            @click=${this._pageToolClicked(button)}
+            @click=${this._pageToolClicked(button, mode)}
           ></ha-icon-button>
         `
       )}
@@ -259,7 +263,10 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     }
   }
 
-  private _pageToolClicked(button: DashboardToolButton) {
+  private _pageToolClicked(
+    button: DashboardToolButton,
+    mode: DashboardPageToolsMode
+  ) {
     return () => {
       if (!button.panelTool) {
         fireEvent(this, "hass-pick-appearance");
@@ -269,6 +276,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         tool: button.panelTool,
         root: this,
         title: (this.panel && getPanelTitle(this.hass, this.panel)) || "",
+        // The panel lists the tools of this mode only, as the wide header does.
+        available: dashboardOverflowTools(mode),
       });
     };
   }
@@ -281,6 +290,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         html`<ha-icon-button
             slot="toolbar-icon"
             .path=${mdiUndo}
+            .label=${this.hass.localize("ui.common.undo")}
             @click=${this._undo}
             .disabled=${!this._undoRedoController.canUndo}
             id="button-undo"
@@ -292,6 +302,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           <ha-icon-button
             slot="toolbar-icon"
             .path=${mdiRedo}
+            .label=${this.hass.localize("ui.common.redo")}
             @click=${this._redo}
             .disabled=${!this._undoRedoController.canRedo}
             id="button-redo"
@@ -1882,6 +1893,9 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           position: relative;
           display: flex;
           min-height: 100vh;
+          /* On a phone browser 100vh includes the part under the browser bars,
+             which pushes the foot of the view below the phone bar */
+          min-height: 100dvh;
           box-sizing: border-box;
           --view-container-inset-left: 0px;
           --view-container-inset-right: var(--safe-area-inset-right);
@@ -1900,6 +1914,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
            below it when the view is longer. */
         hui-view-container.has-footer {
           min-height: calc(100vh - var(--ha-page-footer-height, 40px));
+          min-height: calc(100dvh - var(--ha-page-footer-height, 40px));
         }
         ha-page-footer {
           position: relative;

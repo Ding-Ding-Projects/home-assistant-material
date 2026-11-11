@@ -32,7 +32,11 @@ import { showCreateBadgeDialog } from "../editor/badge-editor/show-create-badge-
 import { showEditBadgeDialog } from "../editor/badge-editor/show-edit-badge-dialog";
 import { showCreateCardDialog } from "../editor/card-editor/show-create-card-dialog";
 import { showEditCardDialog } from "../editor/card-editor/show-edit-card-dialog";
-import { adoptViewLayout, getCardSectionConfig } from "../editor/config-util";
+import {
+  adoptViewLayout,
+  getCardSectionConfig,
+  replaceView,
+} from "../editor/config-util";
 import type { ClipboardActionParams } from "../editor/clipboard-actions";
 import {
   performCopy,
@@ -98,6 +102,9 @@ declare global {
     "ll-delete-badge": HASSDomEvent<HASSDomEvents["ll-delete-badge"]>;
     "ll-copy-badge": HASSDomEvent<HASSDomEvents["ll-copy-badge"]>;
     "ll-cut-badge": HASSDomEvent<HASSDomEvents["ll-cut-badge"]>;
+    "view-add-content-action": HASSDomEvent<
+      HASSDomEvents["view-add-content-action"]
+    >;
   }
 }
 
@@ -152,6 +159,14 @@ export class HUIView extends ReactiveElement {
 
   constructor() {
     super();
+    this.addEventListener(
+      "view-add-content-action",
+      (ev: HASSDomEvent<HASSDomEvents["view-add-content-action"]>) => {
+        if (ev.detail.mode === "take-control") {
+          this._takeControlOfView();
+        }
+      }
+    );
     this.addEventListener(
       "ll-create-card",
       (ev: HASSDomEvent<HASSDomEvents["ll-create-card"]>) => {
@@ -366,6 +381,21 @@ export class HUIView extends ReactiveElement {
         this._badgeClipboard = clipboard;
       },
     };
+  }
+
+  /** Replaces a generated view with an editable copy of what it shows. */
+  private _takeControlOfView() {
+    const raw = this.lovelace?.config.views[this.index];
+    if (!raw || !isStrategyView(raw) || !this._config) {
+      return;
+    }
+    const { strategy: _strategy, ...rest } = raw;
+    this.lovelace.saveConfig(
+      replaceView(this.hass, this.lovelace.config, this.index, {
+        ...rest,
+        ...this._config,
+      })
+    );
   }
 
   private _getCardConfig(path: LovelacePath): LovelaceCardConfig | undefined {

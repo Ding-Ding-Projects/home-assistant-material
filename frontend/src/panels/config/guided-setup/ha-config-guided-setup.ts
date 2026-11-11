@@ -3,6 +3,7 @@ import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
 import { customElement, property, state } from "lit/decorators";
+import { navigate } from "../../../common/navigate";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -62,6 +63,12 @@ class HaConfigGuidedSetup extends LitElement {
       this._error = err?.message ?? String(err);
       return;
     }
+    // The address names an integration only for the first load. Loading the
+    // list again after the wizard closed must not open the wizard once more.
+    if (this._addressHandled) {
+      return;
+    }
+    this._addressHandled = true;
     const domain = new URLSearchParams(window.location.search).get("domain");
     if (domain && !this._active) {
       this._active = this._catalog.integrations.find(
@@ -69,6 +76,8 @@ class HaConfigGuidedSetup extends LitElement {
       );
     }
   }
+
+  private _addressHandled = false;
 
   private _l(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(
@@ -162,6 +171,11 @@ class HaConfigGuidedSetup extends LitElement {
   private _wizardClosed(): void {
     this._active = undefined;
     this._editing = undefined;
+    // A wizard opened from an address that names the integration leaves that
+    // name behind, so a reload or the back button does not open it again.
+    if (new URLSearchParams(window.location.search).has("domain")) {
+      navigate(window.location.pathname, { replace: true });
+    }
     this._load();
   }
 

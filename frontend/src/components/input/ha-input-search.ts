@@ -152,6 +152,12 @@ export class HaInputSearch extends HaInput {
         color: var(--secondary-text-color);
         margin-inline-end: calc(var(--ha-space-1) * -1);
       }
+      @media (pointer: coarse) {
+        .pattern {
+          --ha-icon-button-size: 44px;
+          margin-block: calc(var(--ha-space-1) * -1);
+        }
+      }
       .pattern.active {
         color: var(--primary-color);
         background: var(--ha-color-fill-primary-quiet-resting);

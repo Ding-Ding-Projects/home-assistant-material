@@ -21,6 +21,7 @@ import type {
   BulkPreview,
   BulkPreviewItem,
 } from "../../../components/bulk/bulk-selection";
+import { splitAlreadyGone } from "../../../components/bulk/bulk-selection";
 import "../../../components/bulk/ha-bulk-bar";
 import {
   filteredTableCount,
@@ -55,11 +56,13 @@ import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
+import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
+import { showToast } from "../../../util/toast";
 import { configSections } from "../config-sections";
 import { showTagDetailDialog } from "./show-dialog-tag-detail";
 import {
@@ -294,6 +297,17 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
             : undefined
         }
         .summary=${this.hass.localize("ui.panel.config.tag.summary")}
+        .statistics=${
+          this._loading
+            ? undefined
+            : buildListStatistics(this.hass.localize, {
+                total: this._tags.length,
+                shown: this._tableSettings.search
+                  ? filteredTableCount(this._dataTable)
+                  : this._tags.length,
+                selected: this._selected.length,
+              })
+        }
         .appendRow=${this._waitingCard(this.hass.localize)}
         @retry-load=${this._retryFetchTags}
         .filter=${this._tableSettings.search}
@@ -347,13 +361,13 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   private _waitingCard = memoizeOne(
     (localize: LocalizeFunc) =>
       html`<div
-        style="display: flex; align-items: center; gap: var(--ha-space-4); margin: var(--ha-space-2) var(--ha-space-4); padding: var(--ha-space-5) var(--ha-space-6); border-radius: var(--ha-border-radius-3xl); background: var(--secondary-background-color);"
+        style="display: flex; align-items: center; gap: var(--ha-space-4); box-sizing: border-box; white-space: normal; margin: var(--ha-space-2) var(--ha-space-4); padding: var(--ha-space-5) var(--ha-space-6); border-radius: var(--ha-border-radius-3xl); background: var(--secondary-background-color);"
       >
         <ha-svg-icon
           .path=${mdiNfcVariant}
           style="flex: none; --mdc-icon-size: 32px; color: var(--primary-color);"
         ></ha-svg-icon>
-        <div role="status">
+        <div role="status" style="min-width: 0; overflow-wrap: anywhere;">
           <div
             style="font-size: var(--ha-font-size-l); font-weight: var(--ha-font-weight-medium);"
           >
@@ -676,12 +690,42 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     const results = await Promise.allSettled(
       ids.map((id) => deleteTag(this.hass, id))
     );
-    const { deletedIds, failedIds } = summarizeTagDelete(ids, results);
+    const summary = summarizeTagDelete(ids, results);
+    const { deletedIds } = summary;
+    let { failedIds } = summary;
     const deleted = new Set(deletedIds);
-    const failedNames = this._tags
+    let failedNames = this._tags
       .filter((tag) => failedIds.includes(tag.id))
       .map(tagDisplayName);
     this._tags = this._tags.filter((tag) => !deleted.has(tag.id));
+
+    // A tag that fails because another session already deleted it is not a
+    // failure: say so, take it off the list and out of the selection.
+    if (failedIds.length) {
+      try {
+        const fresh = await fetchTags(this.hass);
+        const { present, gone } = splitAlreadyGone(
+          failedIds,
+          new Set(fresh.map((tag) => tag.id))
+        );
+        if (gone.length) {
+          const goneNames = this._tags
+            .filter((tag) => gone.includes(tag.id))
+            .map(tagDisplayName);
+          this._tags = fresh;
+          failedIds = present;
+          failedNames = failedNames.filter((name) => !goneNames.includes(name));
+          showToast(this, {
+            message: this.hass.localize("ui.panel.config.tag.already_gone", {
+              names: goneNames.join(", "),
+            }),
+            duration: 8000,
+          });
+        }
+      } catch (_err) {
+        // The tags cannot be listed now, so the failure is reported as it is
+      }
+    }
     this._dataTable?.setCheckedRowIds(failedIds);
     if (failedIds.length) {
       showAlertDialog(this, {
@@ -699,7 +743,10 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     .bulk {
       position: fixed;
       z-index: 4;
-      bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+      bottom: calc(
+        var(--ha-phone-bar-height, 0px) + var(--ha-bottom-tabs-height, 0px) +
+          var(--ha-space-4)
+      );
       inset-inline: var(--ha-sidebar-width, 0px) 0;
       box-sizing: border-box;
       width: min(

@@ -97,6 +97,19 @@ export const OVERFLOW_BUTTON: DashboardToolButton = {
 };
 
 /**
+ * The tools the overflow panel of a narrow header lists. It lists the same
+ * tools as the wide header in that mode: every tool in view mode, and in edit
+ * mode only the ones that have a button there (appearance, history, export and
+ * help), so Search this page, Read aloud and Lock stay out of it.
+ */
+export const dashboardOverflowTools = (
+  mode: DashboardPageToolsMode
+): DashboardPageTool[] =>
+  usesSharedPageTools(mode)
+    ? dashboardPageTools(mode)
+    : dashboardPageTools(mode).filter((tool) => BUTTONS[tool] !== undefined);
+
+/**
  * Buttons the header draws itself for a mode that cannot use the shared
  * cluster. A narrow screen gets one overflow button so the title stays
  * readable.

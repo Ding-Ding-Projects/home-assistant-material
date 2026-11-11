@@ -54,6 +54,8 @@ import {
 } from "../editor/lovelace-path";
 import { showSelectViewDialog } from "../editor/select-view/show-select-view-dialog";
 import type { Lovelace, LovelaceCard } from "../types";
+import { PANEL_VIEW_LAYOUT } from "../views/const";
+import { getViewType } from "../views/get-view-type";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import { LOVELACE_EDIT_TOAST_ID } from "../types";
 
@@ -104,7 +106,10 @@ export class HuiCardOptions extends LitElement {
       this.lovelace!.config,
       viewPath
     );
-    this.classList.toggle("panel", viewConfig?.panel);
+    this.classList.toggle(
+      "panel",
+      getViewType(viewConfig) === PANEL_VIEW_LAYOUT
+    );
     if (takeCardHighlight(this._huiCards?.[0]?.config)) {
       highlightElement(this);
     }
@@ -250,8 +255,21 @@ export class HuiCardOptions extends LitElement {
           display: block;
         }
 
+        /* The card takes what the action bar leaves, so the bar always stays
+           inside the view instead of below the fold or under the phone bar */
+        :host(.panel) {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
         :host(.panel) .card {
-          height: calc(100% - 59px);
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+
+        :host(.panel) ha-card {
+          flex: 0 0 auto;
         }
 
         ha-card {

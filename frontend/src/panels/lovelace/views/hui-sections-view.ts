@@ -45,6 +45,7 @@ import {
 } from "../sections/section-container";
 import type { Lovelace } from "../types";
 import { generateDefaultSection } from "./default-section";
+import "./hui-view-add-content-notice";
 import "./hui-view-footer";
 import "./hui-view-header";
 import "./hui-view-sidebar";
@@ -270,6 +271,14 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
                   </ha-control-select>
                 </div>
               `
+            : nothing
+        }
+        ${
+          editMode && this.isStrategy
+            ? html`<hui-view-add-content-notice
+                .hass=${this.hass}
+                .mode=${"take-control"}
+              ></hui-view-add-content-notice>`
             : nothing
         }
         ${

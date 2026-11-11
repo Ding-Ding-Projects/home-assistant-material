@@ -77,6 +77,16 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     kind: "json",
     holds: "Support desk tickets",
   },
+  {
+    exact: "supportTicketExtras",
+    kind: "json",
+    holds: "Support ticket status, page and notes",
+  },
+  {
+    exact: "typeScale",
+    kind: "json",
+    holds: "Type scale: base size, ratio and per-step sizes",
+  },
   // Tabs, history, saved content
   { exact: "pageTabsClosed", kind: "json", holds: "Closed tabs" },
   { exact: "pageTabsOrder", kind: "json", holds: "Tab order" },

@@ -458,6 +458,7 @@ export class HaScriptEditor extends SubscribeMixin(
                               @show-script-trace=${this._showTrace}
                               @editor-save=${this._handleSaveScript}
                               @save-script=${this._handleSaveScript}
+                              @save-bar-discard=${this.backTapped}
                             >
                               <div class="alert-wrapper" slot="alerts">
                                 ${this._renderDeprecatedMigratedAlert()}

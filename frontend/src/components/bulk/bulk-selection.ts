@@ -3,7 +3,12 @@
  * can be checked on their own.
  */
 
-export type BulkPreviewKind = "change" | "same" | "skip";
+/**
+ * What a preview line says: `change` will be done, `same` already is the way
+ * it should be, `skip` will be left out, and `warning` is something to read
+ * before going ahead (it does not change what will be done).
+ */
+export type BulkPreviewKind = "change" | "same" | "skip" | "warning";
 
 export interface BulkPreviewItem {
   kind: BulkPreviewKind;
@@ -111,6 +116,20 @@ export const pruneSelection = (
   return selected.filter((id) => existing.has(id));
 };
 
+/**
+ * Splits ids into the ones that still exist and the ones that are already gone,
+ * for example because another session deleted them since the list was loaded.
+ * The ones that are gone are reported to the person, never counted as deleted
+ * by the action that found them missing.
+ */
+export const splitAlreadyGone = (
+  ids: string[],
+  existingIds: ReadonlySet<string>
+): { present: string[]; gone: string[] } => ({
+  present: ids.filter((id) => existingIds.has(id)),
+  gone: ids.filter((id) => !existingIds.has(id)),
+});
+
 /** How many items of each kind a preview holds. */
 export const countPreview = (
   items: BulkPreviewItem[]
@@ -119,6 +138,7 @@ export const countPreview = (
     change: 0,
     same: 0,
     skip: 0,
+    warning: 0,
   };
   items.forEach((item) => {
     counts[item.kind] += 1;

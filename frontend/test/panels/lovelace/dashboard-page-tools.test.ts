@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dashboardOverflowTools,
   dashboardPageTools,
   dashboardPageToolsMode,
   dashboardToolButtons,
@@ -78,5 +79,26 @@ describe("dashboardToolButtons", () => {
     const buttons = dashboardToolButtons("locked", false);
     expect(buttons.map((b) => b.tool)).toEqual(["lock"]);
     expect(buttons[0].panelTool).toBe("lock");
+  });
+});
+
+describe("dashboardOverflowTools", () => {
+  it("lists every tool in view mode", () => {
+    expect(dashboardOverflowTools("view")).toEqual(dashboardPageTools("view"));
+  });
+
+  it("lists in edit mode on a phone the same four tools as the wide header", () => {
+    const tools = dashboardOverflowTools("edit");
+    expect(tools).toEqual(["appearance", "history", "export", "help"]);
+    expect(tools).toEqual(
+      dashboardToolButtons("edit", false).map((button) => button.tool)
+    );
+    for (const hidden of ["find", "readAloud", "lock"] as const) {
+      expect(tools).not.toContain(hidden);
+    }
+  });
+
+  it("lists only Unlock on a locked dashboard", () => {
+    expect(dashboardOverflowTools("locked")).toEqual(["lock"]);
   });
 });

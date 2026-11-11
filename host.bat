@@ -6,17 +6,35 @@ rem   host.bat --detached  pull, start, wait until it answers, print the address
 rem   host.bat --logs      the same, then stay in a live status and log view
 rem   host.bat --stop      stop the container (data in .\config is kept)
 rem
+rem Add --full to any of these to use the full hosting mode instead (compose.full.yaml): one
+rem container that runs its own Docker engine, so apps, the app store, backups with apps and real
+rem updates work. See docs\features\hosting\full-mode.md. For example: host.bat --full --detached
+rem
 rem Leaving the log view does not stop anything. Existing data and other containers are left alone.
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 if "%HA_MATERIAL_PORT%"=="" (set "PORT=8123") else (set "PORT=%HA_MATERIAL_PORT%")
 set "SERVICE=homeassistant"
+set "CONTAINER=home-assistant-material"
+set "DATA_NOTE=%CD%\config"
+set "MAX_TRIES=60"
+set "MODE="
+set "FULL="
+for %%A in (%*) do (
+  if /i "%%~A"=="--full" (set "FULL=1") else (set "MODE=%%~A")
+)
+if defined FULL (
+  set "COMPOSE_FILE=compose.full.yaml"
+  set "SERVICE=homeassistant-full"
+  set "CONTAINER=home-assistant-material-full"
+  set "DATA_NOTE=the Docker volume ha-material-full-data"
+  set "MAX_TRIES=240"
+)
 
 where docker >nul 2>&1 || (call :fail "Docker is not installed. Install Docker Desktop, then run this again." & exit /b 1)
 docker info >nul 2>&1 || (call :fail "Docker is installed but not running. Start Docker Desktop, then run this again." & exit /b 1)
 docker compose version >nul 2>&1 || (call :fail "Docker Compose is missing. Update Docker Desktop, then run this again." & exit /b 1)
 
-set "MODE=%~1"
 if "%MODE%"=="" (
   echo Home Assistant Material
   echo   1^) Start in the background and return
@@ -28,11 +46,11 @@ if "%MODE%"=="" (
 
 if /i "%MODE%"=="--stop" (
   docker compose stop || (call :fail "The container could not be stopped." & exit /b 1)
-  echo Stopped. Data in .\config is kept.
+  echo Stopped. Data is kept in !DATA_NOTE!.
   exit /b 0
 )
 if /i not "%MODE%"=="--detached" if /i not "%MODE%"=="--logs" (
-  call :fail "Unknown option %MODE%. Use --detached, --logs or --stop."
+  call :fail "Unknown option %MODE%. Use --detached, --logs or --stop, with --full for the full hosting mode."
   exit /b 1
 )
 
@@ -47,9 +65,9 @@ set /a TRIES=0
 curl --fail --silent --max-time 5 "http://127.0.0.1:%PORT%/manifest.json" >nul 2>&1
 if not errorlevel 1 goto ready
 set /a TRIES+=1
-if %TRIES% geq 60 (
+if %TRIES% geq %MAX_TRIES% (
   docker compose ps
-  call :fail "It did not answer within 5 minutes. Run host.bat --logs to see why."
+  call :fail "It did not answer in time. Run host.bat --logs to see why (the full mode downloads several gigabytes on its first start)."
   exit /b 1
 )
 rem Named by full path: started from a Git shell, a bare "timeout" finds a different program
@@ -68,12 +86,12 @@ if defined ADDRESS (
 ) else (
   echo   On your network:   the address of this machine could not be read; use its IP address with port %PORT%.
 )
-echo   Data is kept in:   %CD%\config
+echo   Data is kept in:   !DATA_NOTE!
 if /i "%MODE%"=="--detached" exit /b 0
 
 :logview
 echo.
-for /f "usebackq delims=" %%S in (`docker inspect --format "{{.State.Status}}, {{if .State.Health}}{{.State.Health.Status}}{{else}}no health check{{end}}" home-assistant-material 2^>nul`) do echo Service %SERVICE%: %%S.
+for /f "usebackq delims=" %%S in (`docker inspect --format "{{.State.Status}}, {{if .State.Health}}{{.State.Health.Status}}{{else}}no health check{{end}}" %CONTAINER% 2^>nul`) do echo Service %SERVICE%: %%S.
 choice /c FLSQ /n /m "Keys: [F] follow logs (Ctrl+C returns here)  [L] last 50 lines  [S] status  [Q] leave (keeps running): "
 if errorlevel 4 (
   echo Left the log view. The container keeps running.

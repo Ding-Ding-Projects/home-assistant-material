@@ -254,6 +254,12 @@ export class HuiViewBadges extends LitElement {
     .add:focus {
       border-style: solid;
     }
+
+    @media (pointer: coarse) {
+      .add {
+        height: 44px;
+      }
+    }
   `;
 }
 

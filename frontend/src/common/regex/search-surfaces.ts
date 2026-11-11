@@ -81,7 +81,8 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   },
   {
     file: "components/phone/ha-phone-bar.ts",
-    searches: "Open pages in the Pages sheet on a phone",
+    searches:
+      "Open pages in the Pages sheet on a phone, and in its catalog the pages, plus one field per catalog group (pinned, pages, settings, tools) that filters only that group",
   },
   {
     file: "components/ha-page-tabs.ts",

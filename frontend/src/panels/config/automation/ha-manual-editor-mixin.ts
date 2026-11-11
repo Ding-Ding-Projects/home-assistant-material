@@ -113,6 +113,12 @@ export const ManualEditorMixin = <TConfig>(
       throw new Error("Not implemented");
     }
 
+    /**
+     * Whether the save bar stays out of the way while nothing is unsaved, and
+     * offers Discard beside Save while something is. An editor opts in.
+     */
+    protected hideSaveBarWhenClean = false;
+
     private _saveBarSave = (ev: Event) => {
       ev.stopPropagation();
       this.saveConfig();
@@ -145,6 +151,8 @@ export const ManualEditorMixin = <TConfig>(
               .dirty=${this.dirty}
               .saving=${this.saving}
               .disabled=${this.disabled}
+              .hideWhenClean=${this.hideSaveBarWhenClean}
+              .showDiscard=${this.hideSaveBarWhenClean}
               show-shortcut
               @save-bar-save=${this._saveBarSave}
             ></ha-editor-save-bar>

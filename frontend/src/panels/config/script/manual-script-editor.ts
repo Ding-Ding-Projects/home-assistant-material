@@ -77,6 +77,10 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   private _openFields = false;
 
+  // Like the scene editor: no bar while everything is saved, and Discard
+  // beside Save while something is not.
+  protected override hideSaveBarWhenClean = true;
+
   public addFields() {
     this._openFields = true;
     fireEvent(this, "value-changed", {

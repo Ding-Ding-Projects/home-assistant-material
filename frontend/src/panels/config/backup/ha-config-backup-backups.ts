@@ -41,6 +41,7 @@ import type {
   BulkPreview,
   BulkPreviewItem,
 } from "../../../components/bulk/bulk-selection";
+import { splitAlreadyGone } from "../../../components/bulk/bulk-selection";
 import {
   filteredTableCount,
   hiddenTableSelection,
@@ -70,6 +71,7 @@ import {
   computeBackupSize,
   computeBackupType,
   deleteBackup,
+  fetchBackupInfo,
   generateBackup,
   generateBackupWithAutomaticSettings,
   getBackupTypes,
@@ -94,10 +96,15 @@ import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import { bytesToString } from "../../../util/bytes-to-string";
+import { showToast } from "../../../util/toast";
 import { showGenerateBackupDialog } from "./dialogs/show-dialog-generate-backup";
 import { showNewBackupDialog } from "./dialogs/show-dialog-new-backup";
 import { showUploadBackupDialog } from "./dialogs/show-dialog-upload-backup";
-import { planBackupDelete, summarizeBackupDelete } from "./backup-bulk-actions";
+import {
+  backupPreviewItems,
+  planBackupDelete,
+  summarizeBackupDelete,
+} from "./backup-bulk-actions";
 import { downloadBackup } from "./helper/download_backup";
 
 interface BackupRow extends DataTableRowData, BackupContent {
@@ -791,32 +798,25 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     const items: BulkPreviewItem[] = [];
 
     plan.deletable.forEach((entry) => {
-      const parts = [
-        localize("ui.panel.config.backup.backups.bulk.entry", {
-          name: entry.name,
-          date: formatDateTime(
-            new Date(entry.date),
-            this.hass.locale,
-            this.hass.config
-          ),
-          size: bytesToString(entry.size),
-        }),
-      ];
-      if (entry.newest) {
-        parts.push(localize("ui.panel.config.backup.backups.bulk.newest"));
-      }
-      if (entry.onlyCopy) {
-        parts.push(
-          localize("ui.panel.config.backup.backups.bulk.only_copy", {
-            location: computeBackupAgentName(
-              localize,
-              entry.agentIds[0],
-              this.agents
+      items.push(
+        ...backupPreviewItems(entry, {
+          entry: localize("ui.panel.config.backup.backups.bulk.entry", {
+            name: entry.name,
+            date: formatDateTime(
+              new Date(entry.date),
+              this.hass.locale,
+              this.hass.config
             ),
-          })
-        );
-      }
-      items.push({ kind: "change", text: parts.join(" ") });
+            size: bytesToString(entry.size),
+          }),
+          newest: localize("ui.panel.config.backup.backups.bulk.newest"),
+          onlyCopy: localize("ui.panel.config.backup.backups.bulk.only_copy", {
+            location: entry.onlyCopy
+              ? computeBackupAgentName(localize, entry.agentIds[0], this.agents)
+              : "",
+          }),
+        })
+      );
     });
 
     plan.skipped.forEach((entry) => {
@@ -847,9 +847,25 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
   // Runs after the bar's two confirmations, so no further dialog asks again
   private _deleteSelected = async () => {
     const plan = this._deletePlan();
-    const ids = plan.deletable.map((entry) => entry.backupId);
-    if (!ids.length) {
+    const planned = plan.deletable.map((entry) => entry.backupId);
+    if (!planned.length) {
       return;
+    }
+
+    // A backup that someone else deleted since the list was loaded would
+    // "succeed" without doing anything. Look at the instance first, so that
+    // case is reported instead of counted as a deletion. If the instance cannot
+    // be asked, every backup is sent as before.
+    let ids = planned;
+    let gone: string[] = [];
+    try {
+      const info = await fetchBackupInfo(this.hass);
+      ({ present: ids, gone } = splitAlreadyGone(
+        planned,
+        new Set(info.backups.map((backup) => backup.backup_id))
+      ));
+    } catch (_err) {
+      // Keep every planned backup in the request
     }
 
     const results = await Promise.allSettled(
@@ -857,19 +873,30 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
     );
     const outcome = summarizeBackupDelete(ids, results);
 
-    if (outcome.deleted.length) {
+    if (outcome.deleted.length || gone.length) {
       fireEvent(this, "ha-refresh-backup-info");
     }
 
-    const deleted = new Set(outcome.deleted);
+    const names = new Map(
+      plan.deletable.map((entry) => [entry.backupId, entry.name])
+    );
+    if (gone.length) {
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.backup.backups.bulk.already_gone",
+          { names: gone.map((id) => names.get(id) ?? id).join(", ") }
+        ),
+        duration: 8000,
+      });
+    }
+
+    // A backup that is already gone leaves the selection too
+    const deleted = new Set([...outcome.deleted, ...gone]);
     this._dataTable?.setCheckedRowIds(
       this._selected.filter((id) => !deleted.has(id))
     );
 
     if (outcome.failed.length) {
-      const names = new Map(
-        plan.deletable.map((entry) => [entry.backupId, entry.name])
-      );
       showAlertDialog(this, {
         title: this.hass.localize(
           "ui.panel.config.backup.dialogs.delete_selected.failed"
@@ -905,7 +932,10 @@ class HaConfigBackupBackups extends SubscribeMixin(LitElement) {
         .bulk {
           position: fixed;
           z-index: 4;
-          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          bottom: calc(
+            var(--ha-phone-bar-height, 0px) +
+              var(--ha-bottom-tabs-height, 0px) + var(--ha-space-4)
+          );
           inset-inline: var(--ha-sidebar-width, 0px) 0;
           box-sizing: border-box;
           width: min(

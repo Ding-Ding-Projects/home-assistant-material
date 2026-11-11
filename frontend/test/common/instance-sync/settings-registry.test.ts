@@ -17,6 +17,8 @@ import {
 const MUST_SYNC = [
   "elementLocks",
   "supportTickets",
+  "supportTicketExtras",
+  "typeScale",
   "lockKeypadShuffle",
   "personalPreferences",
   "preferenceSchedules",
@@ -149,5 +151,7 @@ describe("settings registry", () => {
       (key) => !isSyncedKey(key) && exclusionReasonFor(key) === undefined
     );
     expect(unclassified).toEqual([]);
-  });
+    // It reads every source file, which takes longer than the default limit
+    // when the whole suite runs at once.
+  }, 60000);
 });

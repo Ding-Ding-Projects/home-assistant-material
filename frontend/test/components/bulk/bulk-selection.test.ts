@@ -8,6 +8,7 @@ import {
   pruneSelection,
   selectRange,
   selectVisible,
+  splitAlreadyGone,
   toggleSelected,
 } from "../../../src/components/bulk/bulk-selection";
 
@@ -39,6 +40,21 @@ describe("selection", () => {
   });
 });
 
+describe("items that are already gone", () => {
+  it("separates what still exists from what someone else deleted", () => {
+    expect(splitAlreadyGone(["a", "b", "c"], new Set(["a", "c", "z"]))).toEqual(
+      { present: ["a", "c"], gone: ["b"] }
+    );
+  });
+
+  it("reports nothing gone when everything exists", () => {
+    expect(splitAlreadyGone(["a"], new Set(["a"]))).toEqual({
+      present: ["a"],
+      gone: [],
+    });
+  });
+});
+
 describe("preview and confirmation", () => {
   it("counts each kind", () => {
     expect(
@@ -46,8 +62,9 @@ describe("preview and confirmation", () => {
         { kind: "change", text: "" },
         { kind: "skip", text: "" },
         { kind: "change", text: "" },
+        { kind: "warning", text: "" },
       ])
-    ).toEqual({ change: 2, same: 0, skip: 1 });
+    ).toEqual({ change: 2, same: 0, skip: 1, warning: 1 });
   });
 
   it("asks twice for a destructive action, once otherwise", () => {

@@ -710,9 +710,12 @@ ${
           padding: var(--ha-space-4) var(--ha-space-4) 0;
         }
 
+        /* The title keeps room for its whole text; when the buttons beside it
+           do not fit, they go to the next line instead of squeezing it. */
         .card-header-row h2 {
-          flex: 1;
+          flex: 1 1 10rem;
           min-width: 0;
+          overflow-wrap: anywhere;
           margin: 0;
           font-family: var(--ha-font-family-heading, inherit);
           font-size: var(--ha-font-size-xl);

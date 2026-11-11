@@ -437,14 +437,35 @@ export class HaAutomationBottomBar extends LitElement {
           min-width: 44px;
           min-height: 44px;
         }
+        /* On a phone the bar is two short rows: the status beside Save, and
+           the three other buttons under them. Every button keeps its 44 px
+           touch target, and the bar stays near 120 px high. */
         @media (max-width: 480px) {
           .bar {
-            padding-inline: var(--ha-space-3);
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: center;
+            gap: var(--ha-space-2);
+            padding: var(--ha-space-2) var(--ha-space-3);
+          }
+          .status {
+            grid-column: 1 / 3;
+            grid-row: 1;
+            flex: none;
           }
           .buttons {
-            flex: 1 1 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: contents;
+          }
+          .buttons ha-button {
+            min-width: 0;
+            --wa-form-control-padding-inline: var(--ha-space-2);
+          }
+          .buttons ha-button[appearance="plain"] {
+            grid-row: 2;
+          }
+          .buttons ha-button:not([appearance="plain"]) {
+            grid-column: 3;
+            grid-row: 1;
           }
         }
         .dry {

@@ -56,6 +56,19 @@ stop have not been run on Windows yet.
 To use another port, set `HA_MATERIAL_PORT`. To move to a newer build, change the tag in
 `compose.yaml` or set `HA_MATERIAL_TAG`.
 
+### Full mode: apps, the app store, backups with apps and real updates
+
+The mode above runs the core alone, so everything that needs the Supervisor is missing. Add
+`--full` (`host.bat --full --detached`, `./host.sh --full --detached`, or
+`docker compose -f compose.full.yaml up -d`) to run one outer container that has its own small
+Docker engine; inside it the Supervisor starts the core and every app as sub-containers. The
+computer sees one container. It needs `privileged: true` (read what that means in
+[`docs/features/hosting/full-mode.md`](docs/features/hosting/full-mode.md) first), a few
+gigabytes for the first start, and a named volume. Physical hardware stays out of reach and the
+product never restarts or shuts down the computer. The article lists what was and was not
+verified: in particular the release job that publishes the outer image has not been run yet,
+and the currently published Supervisor image needs the next release before this mode is healthy.
+
 ## Operating system images
 
 Each [release](https://github.com/Ding-Ding-Projects/home-assistant-material/releases) that

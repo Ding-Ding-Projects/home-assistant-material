@@ -126,6 +126,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
 import "../../../layouts/hass-loading-screen";
+import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
@@ -764,6 +765,25 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
             number: helpers.length,
           }
         )}
+        .statistics=${buildListStatistics(this.hass.localize, {
+          total:
+            this._helperEntities.length +
+            (this._disabledEntityEntries?.length ?? 0),
+          shown: helpers.length,
+          selected: this._selected.length,
+          extras: [
+            {
+              key: "unavailable",
+              value: this._helperEntities.filter(
+                (entity) => entity.state === "unavailable"
+              ).length,
+            },
+            {
+              key: "disabled",
+              value: this._disabledEntityEntries?.length ?? 0,
+            },
+          ],
+        })}
         selectable
         keep-hidden-selection
         .selected=${this._selected.length}
@@ -1805,7 +1825,10 @@ ${rejected
         .bulk {
           position: fixed;
           z-index: 4;
-          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          bottom: calc(
+            var(--ha-phone-bar-height, 0px) +
+              var(--ha-bottom-tabs-height, 0px) + var(--ha-space-4)
+          );
           inset-inline: var(--ha-sidebar-width, 0px) 0;
           box-sizing: border-box;
           width: min(

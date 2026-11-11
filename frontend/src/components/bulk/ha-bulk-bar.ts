@@ -1,4 +1,10 @@
-import { mdiAlertCircle, mdiCheck, mdiClose, mdiMinus } from "@mdi/js";
+import {
+  mdiAlert,
+  mdiAlertCircle,
+  mdiCheck,
+  mdiClose,
+  mdiMinus,
+} from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -18,6 +24,7 @@ const PREVIEW_ICONS: Record<BulkPreviewKind, string> = {
   change: mdiCheck,
   same: mdiMinus,
   skip: mdiAlertCircle,
+  warning: mdiAlert,
 };
 
 declare global {
@@ -290,6 +297,26 @@ export class HaBulkBar extends LitElement {
       color: var(--ha-color-on-neutral-loud, #fff);
       --ha-button-theme-color: currentColor;
     }
+    /* The bar is dark in both colour schemes, so a plain or outlined button
+       takes the bar's own light text colour. With the brand colour they read
+       about 2.5 to 1 on this surface; the light text reads about 16 to 1. */
+    .bar ha-button[appearance="plain"],
+    .bar ha-button[appearance="outlined"]:not([variant="danger"]),
+    ::slotted(ha-button[appearance="plain"]),
+    ::slotted(ha-button[appearance="outlined"]:not([variant="danger"])) {
+      --wa-color-on-normal: var(--ha-color-on-neutral-loud, #fff);
+      --wa-color-on-quiet: var(--ha-color-on-neutral-loud, #fff);
+    }
+    /* Every control in the bar and in its preview is a 44 px target on a
+       touch screen or a narrow window. The custom properties reach the
+       buttons and the menu items the page slots into the bar. */
+    @media (pointer: coarse), (max-width: 600px) {
+      :host {
+        --ha-button-height: 44px;
+        --ha-icon-button-size: 44px;
+        --ha-dropdown-item-min-height: 44px;
+      }
+    }
     .count {
       margin-inline-end: var(--ha-space-2);
       font-weight: var(--ha-font-weight-medium);
@@ -350,6 +377,15 @@ export class HaBulkBar extends LitElement {
     }
     li.skip {
       color: var(--error-color);
+    }
+    /* A warning keeps the text colour readable and draws only its icon in the
+       warning colour, so the line does not read as a safe one. */
+    li.warning {
+      color: var(--primary-text-color);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    li.warning ha-svg-icon {
+      color: var(--warning-color);
     }
     .warning {
       margin: var(--ha-space-3) 0 0;

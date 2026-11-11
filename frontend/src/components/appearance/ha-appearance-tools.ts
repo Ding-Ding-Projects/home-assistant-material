@@ -75,6 +75,7 @@ import {
   userContext,
 } from "../../data/context";
 import { updateEntityRegistryEntry } from "../../data/entity/entity_registry";
+import type { ActionHandlerOptions } from "../../data/lovelace/action_handler";
 import { showMoreInfoDialog } from "../../dialogs/more-info/show-ha-more-info-dialog";
 import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../../types";
@@ -93,6 +94,8 @@ import type {
 import { findTarget, resolveContextEntries } from "./context-menu-entries";
 import "./ha-appearance-editor";
 import type { HaAppearanceEditor } from "./ha-appearance-editor";
+import type { HoldHandlerFacts, TouchHoldDecision } from "./touch-hold";
+import { collectHoldActions, decideTouchHold } from "./touch-hold";
 
 /** Most containing elements offered in the editor. */
 const MAX_CHAIN = 7;
@@ -214,9 +217,6 @@ const matchesShortcut = (
   (ev.ctrlKey || ev.metaKey) === !!shortcut.ctrl &&
   ev.shiftKey === !!shortcut.shift &&
   !ev.altKey;
-
-/** How long a finger rests on an element before its menu opens. */
-const TOUCH_HOLD_MS = 600;
 
 /** After this long a ring starts to fill, so a hold is seen as a hold. */
 const TOUCH_RING_MS = 150;
@@ -653,12 +653,16 @@ export class HaAppearanceTools extends LitElement {
       this._isTextField(target) ||
       path.some(
         (node) =>
-          node instanceof HTMLElement &&
-          (HOLDS_ITSELF.has(node.localName) ||
-            (node as HTMLElement & { actionHandler?: unknown })
-              .actionHandler !== undefined)
+          node instanceof HTMLElement && HOLDS_ITSELF.has(node.localName)
       )
     ) {
+      return;
+    }
+    // A tile or card has a tap action (an action handler) but usually no hold
+    // action, so having an action handler is not a reason to give up. A hold
+    // action that is set stays: see `decideTouchHold`.
+    const decision = this._touchHoldDecision(path);
+    if (!decision.open) {
       return;
     }
     const point = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
@@ -682,8 +686,39 @@ export class HaAppearanceTools extends LitElement {
         navigator.vibrate(25);
       }
       this._openMenu(chain, point, "touch");
-    }, TOUCH_HOLD_MS);
+    }, decision.delayMs);
   };
+
+  /** Reads what the elements under a finger say about their hold actions. */
+  private _touchHoldDecision(path: EventTarget[]): TouchHoldDecision {
+    const handlers: HoldHandlerFacts[] = [];
+    const configs: unknown[] = [];
+    path.forEach((node) => {
+      if (!(node instanceof HTMLElement)) {
+        return;
+      }
+      const element = node as HTMLElement & {
+        actionHandler?: { options?: ActionHandlerOptions };
+        _config?: unknown;
+        config?: unknown;
+      };
+      if (element.actionHandler) {
+        const options = element.actionHandler.options;
+        // A container binding decides per target at the moment of the touch,
+        // so its hold cannot be ruled out.
+        handlers.push({
+          hasHold:
+            options?.hasHold === true || typeof options?.resolve === "function",
+        });
+      }
+      configs.push(element._config, element.config);
+    });
+    // The configurations are read only when some element has a hold action
+    const holdActions = handlers.some((handler) => handler.hasHold)
+      ? configs.flatMap((config) => collectHoldActions(config))
+      : [];
+    return decideTouchHold(handlers, holdActions);
+  }
 
   private _touchMove = (ev: TouchEvent) => {
     const touch = ev.touches[0];
@@ -702,11 +737,14 @@ export class HaAppearanceTools extends LitElement {
   private _touchEnd = (ev: TouchEvent) => {
     this._cancelHold();
     if (this._holdOpened) {
-      // Lifting the finger must not press what is under it.
+      // Lifting the finger must not press what is under it. An element with an
+      // action handler would otherwise take the release for a tap and open its
+      // dialog on top of the menu, so the release goes no further.
       this._holdOpened = false;
       if (ev.cancelable) {
         ev.preventDefault();
       }
+      ev.stopPropagation();
     }
   };
 

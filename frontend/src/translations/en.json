@@ -1143,7 +1143,15 @@
       "collapsible-statistics": {
         "label": "Statistics",
         "hide": "Collapse the statistics",
-        "show": "Expand the statistics"
+        "show": "Expand the statistics",
+        "total": "Total",
+        "shown": "Shown",
+        "selected": "Selected",
+        "disabled": "Disabled",
+        "unavailable": "Unavailable",
+        "attention": "Need attention",
+        "turned_off": "Turned off",
+        "read_only": "Read-only"
       },
       "split_panels": {
         "start": "First panel",
@@ -6031,7 +6039,8 @@
               "title": "Delete {count, plural, one {# backup} other {# backups}}?",
               "entry": "{name}, {date}, {size}.",
               "newest": "This is the most recent backup.",
-              "only_copy": "It is the only copy: it is stored only in {location}.",
+              "only_copy": "It is the only copy, kept in one place: {location}.",
+              "already_gone": "Already deleted elsewhere, so nothing was deleted here: {names}",
               "skipped_locked": "{name} is skipped because it is locked.",
               "skipped_creating": "{name} is skipped because it is still being created.",
               "skipped_missing": "{name} is skipped because it no longer exists.",
@@ -6161,6 +6170,7 @@
           "delete_failed_title": "Delete failed",
           "delete_failed": "Some tags could not be deleted. Check system logs for more information.",
           "delete_failed_named": "These tags could not be deleted and stay selected: {names}. Check system logs for more information.",
+          "already_gone": "Already deleted elsewhere, so nothing was deleted here: {names}",
           "bulk_preview_title": "{count, plural,\n  one {Delete # tag}\n  other {Delete # tags}\n}",
           "bulk_preview_delete": "{count, plural,\n  one {# tag will be deleted}\n  other {# tags will be deleted}\n}",
           "bulk_preview_used": "{tag} is still used by: {automations}",
@@ -7556,19 +7566,37 @@
                   "description": "The time zone your home is in.",
                   "reach": "Dates and times shown everywhere, sunrise and sunset, and the clock times that automations and schedules run at.",
                   "holding": "The time zone you pick.",
-                  "default": "UTC"
+                  "default": "UTC",
+                  "practise_hint": "Area/Location, for example Europe/Paris",
+                  "example_1_input": "Europe/Paris",
+                  "example_1_result": "Accepted. Paris time, which follows daylight saving.",
+                  "example_2_input": "America/Argentina/Buenos_Aires",
+                  "example_2_result": "Accepted. A few zones have a region in the middle.",
+                  "example_3_input": "Paris",
+                  "example_3_result": "Not accepted. Write the area first, as in Europe/Paris."
                 },
                 "currency": {
                   "description": "The money unit used for costs.",
                   "reach": "Energy prices and costs, and any integration that shows an amount of money.",
                   "holding": "The currency you pick.",
-                  "default": "Euro (EUR)"
+                  "default": "Euro (EUR)",
+                  "practise_hint": "Three capital letters, for example EUR",
+                  "example_1_input": "EUR",
+                  "example_1_result": "Accepted. The euro.",
+                  "example_2_input": "USD",
+                  "example_2_result": "Accepted. The US dollar.",
+                  "example_3_input": "euro",
+                  "example_3_result": "Not accepted. Use the three capital letters of the currency code."
                 },
                 "unit_system": {
                   "description": "Whether distances, speeds, temperatures and weights are shown in metric or US customary units.",
                   "reach": "Every sensor and weather value that has a unit. Temperature units always follow your choice.",
                   "holding": "The unit system you choose. Changing it can offer to update the unit of existing sensors.",
-                  "default": "Metric"
+                  "default": "Metric",
+                  "example_1_input": "Metric",
+                  "example_1_result": "A warm day reads 21 °C, wind 12 km/h, a bag of flour 3 kg.",
+                  "example_2_input": "US customary",
+                  "example_2_result": "The same day reads 70 °F, wind 7 mph, a bag of flour 7 lb."
                 },
                 "location": {
                   "description": "The place of your home on the map.",
@@ -7580,7 +7608,14 @@
                   "description": "How high your home is above sea level, in meters.",
                   "reach": "Sunrise and sunset and weather values that depend on altitude.",
                   "holding": "The number you type here.",
-                  "default": "0 meters"
+                  "default": "0 meters",
+                  "practise_unit": "meters",
+                  "example_1_input": "0",
+                  "example_1_result": "Sea level. This is the default.",
+                  "example_2_input": "432",
+                  "example_2_result": "Accepted. 432 meters above sea level.",
+                  "example_3_input": "-30",
+                  "example_3_result": "Accepted. A home can sit below sea level."
                 }
               }
             }
@@ -10163,6 +10198,9 @@
             "bulk_reimport_note": "Each blueprint is fetched only from the source address it already has.",
             "bulk_reimport_done": "{count, plural,\n  one {# blueprint re-imported.}\n  other {# blueprints re-imported.}\n}",
             "bulk_reimport_failed_title": "Re-import failed",
+            "bulk_reimport_fetch_failed": "could not be fetched from {host}",
+            "bulk_reimport_fetch_failed_no_host": "could not be fetched",
+            "bulk_reimport_save_failed": "could not be saved",
             "bulk_result_skipped": "{count} skipped.",
             "bulk_result_failed": "{count} failed:",
             "discover_more": "Discover more blueprints",
@@ -14683,6 +14721,13 @@
           "review_masked_note": "Hidden values are shown here as (hidden) but are written in full.",
           "skip_defaults": "Skip, use defaults",
           "save_close": "Save and close",
+          "draft_saved": "Saved as a draft in this browser. Open this setup again to resume it.",
+          "draft_not_saved": "The draft could not be saved in this browser, so this setup was closed without it.",
+          "example_number_low": "Accepted. {min} is the lowest value.",
+          "example_number_high": "Accepted. {max} is the highest value.",
+          "example_number_over": "Above the highest value ({max}), so it is not accepted as typed.",
+          "example_choice_ok": "Accepted. This is one of the choices.",
+          "example_choice_other": "Not accepted. Choose one of: {options}.",
           "draft_found": "You have an unfinished setup",
           "draft_found_text": "Saved on {when}.",
           "draft_secrets_note": "Passwords and keys are never saved in a draft, so you will be asked for them again.",
@@ -15572,6 +15617,10 @@
             "convert_view_text": "It will create a new view using sections. This current view will stay untouched. All your cards will be imported so you can rearrange them freely.",
             "convert_view_action": "Create",
             "card_to_section_convert": "Convert your view to a section view.",
+            "add_content_panel_notice": "This page shows a single card, so nothing else can be added to it. Use the sections layout to add sections, cards and badges.",
+            "add_content_panel_action": "Use sections layout",
+            "add_content_strategy_notice": "This page is generated by Home Assistant, so cards cannot be added to it yet. Make an editable copy to add sections, cards and badges.",
+            "add_content_strategy_action": "Make editable copy",
             "section_to_card_not_supported": "You cannot change your section view to an other type. Start from scratch with a new view if you want to use another view type.",
             "types": {
               "sections": "Sections (default)",

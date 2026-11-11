@@ -332,6 +332,12 @@ export class HuiViewFooter extends LitElement {
     .add:focus {
       border-style: solid;
     }
+
+    @media (pointer: coarse) {
+      .add {
+        height: 44px;
+      }
+    }
   `;
 }
 

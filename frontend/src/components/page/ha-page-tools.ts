@@ -42,11 +42,21 @@ import type { HaInputSearch } from "../input/ha-input-search";
 
 export type PageTool = "tools" | "export" | "history" | "lock" | "help";
 
+/** Every entry the tools panel can list for a page. */
+export type PageToolEntry =
+  "find" | "appearance" | "readAloud" | "history" | "export" | "lock" | "help";
+
 export interface PageToolRequest {
   tool: PageTool;
   /** The page the tool works on. */
   root: HTMLElement;
   title: string;
+  /**
+   * The entries this page offers. A page whose header leaves a tool out in some
+   * mode (a dashboard in edit mode has no lock) lists only the ones it has.
+   * Left out, the panel offers every entry.
+   */
+  available?: readonly PageToolEntry[];
 }
 
 declare global {
@@ -504,6 +514,12 @@ export class HaPageTools extends LitElement {
     }
     ha-icon-button.step {
       --ha-icon-button-size: 32px;
+    }
+    @media (pointer: coarse) {
+      ha-icon-button,
+      ha-icon-button.step {
+        --ha-icon-button-size: 44px;
+      }
     }
     ha-icon-button.on {
       background: var(--primary-color);

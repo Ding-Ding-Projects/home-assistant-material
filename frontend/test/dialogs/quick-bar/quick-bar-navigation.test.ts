@@ -150,7 +150,7 @@ describe("generatePlaceItems", () => {
       "personal_wording",
       "accessibility_tools",
     ]);
-    expect(items[0].path).toBe("/profile/localization");
+    expect(items[0].path).toBe("/profile/localization#personal_wording");
     expect(items[1].path).toBeUndefined();
   });
 

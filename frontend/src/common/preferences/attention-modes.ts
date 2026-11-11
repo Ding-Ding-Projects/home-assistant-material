@@ -193,7 +193,7 @@ const readText = (key: string, values?: Record<string, string | number>) => {
  * elements here live in the document body, outside that layout, so they do
  * not inherit the custom property.
  */
-const phoneBarHeight = (): string => {
+export const phoneBarHeight = (): string => {
   try {
     const main = document
       .querySelector("home-assistant")

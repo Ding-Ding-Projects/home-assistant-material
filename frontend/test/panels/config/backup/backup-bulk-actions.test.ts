@@ -5,6 +5,7 @@ import {
   type BackupContent,
 } from "../../../../src/data/backup";
 import {
+  backupPreviewItems,
   newestBackupId,
   planBackupDelete,
   summarizeBackupDelete,
@@ -91,6 +92,30 @@ describe("planBackupDelete", () => {
     expect(plan.skipped).toEqual([
       { backupId: "gone", name: "gone", reason: "missing" },
     ]);
+  });
+});
+
+describe("backupPreviewItems", () => {
+  const text = { entry: "entry", newest: "newest", onlyCopy: "only copy" };
+
+  it("draws the costs that cannot be undone as warnings, not as a safe line", () => {
+    expect(backupPreviewItems({ newest: true, onlyCopy: true }, text)).toEqual([
+      { kind: "change", text: "entry" },
+      { kind: "warning", text: "newest" },
+      { kind: "warning", text: "only copy" },
+    ]);
+  });
+
+  it("adds a warning only for the cost the backup really has", () => {
+    expect(backupPreviewItems({ newest: false, onlyCopy: true }, text)).toEqual(
+      [
+        { kind: "change", text: "entry" },
+        { kind: "warning", text: "only copy" },
+      ]
+    );
+    expect(
+      backupPreviewItems({ newest: false, onlyCopy: false }, text)
+    ).toEqual([{ kind: "change", text: "entry" }]);
   });
 });
 

@@ -85,6 +85,26 @@ export interface PageNavigation {
   filter?: (hass: Pick<HomeAssistant, "entities">) => boolean;
 }
 
+const BOTTOM_TABS_PROPERTY = "--ha-bottom-tabs-height";
+
+/**
+ * The layouts that show a bottom tab bar now. A page that is being replaced
+ * can disconnect after the next one has connected, so the property stays while
+ * any layout still shows its tabs.
+ */
+const bottomTabsOwners = new Set<HassTabsSubpage>();
+
+const syncBottomTabsProperty = () => {
+  if (bottomTabsOwners.size > 0) {
+    document.documentElement.style.setProperty(
+      BOTTOM_TABS_PROPERTY,
+      "var(--header-height, 56px)"
+    );
+  } else {
+    document.documentElement.style.removeProperty(BOTTOM_TABS_PROPERTY);
+  }
+};
+
 @customElement("hass-tabs-subpage")
 export class HassTabsSubpage extends LitElement {
   // Unread, kept for callers that still pass it until they move to contexts
@@ -383,6 +403,30 @@ export class HassTabsSubpage extends LitElement {
         { bubbles: false, composed: false }
       );
     }
+    this._publishBottomTabs();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    bottomTabsOwners.delete(this);
+    syncBottomTabsProperty();
+  }
+
+  /**
+   * Publishes how tall the bottom tab bar is while a page shows one
+   * (`--ha-bottom-tabs-height`; not set otherwise). Bars that float at the
+   * bottom of a page, such as the selection bar, sit above the phone bar and
+   * add this so that they do not cover the tabs. It is set on the document
+   * because those bars are not inside this layout, so a property on this
+   * element would never reach them.
+   */
+  private _publishBottomTabs(): void {
+    if (this._narrow && this.showTabs) {
+      bottomTabsOwners.add(this);
+    } else {
+      bottomTabsOwners.delete(this);
+    }
+    syncBottomTabsProperty();
   }
 
   @eventOptions({ passive: true })
@@ -578,6 +622,14 @@ export class HassTabsSubpage extends LitElement {
           z-index: 2;
           font-size: var(--ha-font-size-s);
           width: 100%;
+        }
+        /* On the narrowest phones five tabs need every pixel: less padding at
+           the ends of the bar leaves the labels room. */
+        @media (max-width: 400px) {
+          #tabbar.bottom-bar {
+            padding-inline: calc(4px + var(--safe-area-inset-left, 0px))
+              calc(4px + var(--safe-area-inset-right, 0px));
+          }
         }
 
         #tabbar.tab-row {

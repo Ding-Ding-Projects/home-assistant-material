@@ -1,19 +1,6 @@
 import {
   mdiClose,
-  mdiChartBar,
-  mdiCodeBraces,
   mdiCog,
-  mdiConsole,
-  mdiFileCode,
-  mdiFormatListBulletedSquare,
-  mdiGestureTap,
-  mdiHistory,
-  mdiBug,
-  mdiMicrophone,
-  mdiCodeJson,
-  mdiPalette,
-  mdiFileSwap,
-  mdiCalendarClock,
   mdiFormatPaint,
   mdiMagnify,
   mdiHuman,
@@ -45,7 +32,6 @@ import {
 import { storage } from "../common/decorators/storage";
 import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { fireEvent } from "../common/dom/fire_event";
-import { filterNavigationPages } from "../common/config/filter_navigation_pages";
 import { navigate } from "../common/navigate";
 import { searchMatcher } from "../common/regex/filter";
 import type { BulkCloseMode } from "../common/tabs/bulk-close";
@@ -65,12 +51,14 @@ import {
   SYSTEM_PANELS,
 } from "../data/panel";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
-import type { LocalizeKeys } from "../common/translations/localize";
 import type { HomeAssistant, PanelInfo } from "../types";
-import { configSections } from "../panels/config/config-sections";
-import { isComponentLoaded } from "../common/config/is_component_loaded";
 import { isMac } from "../util/is_mac";
 import "./ha-icon";
+import type { CatalogSettingsEntry } from "./page-catalog-entries";
+import {
+  computeSettingsEntries,
+  computeToolEntries,
+} from "./page-catalog-entries";
 import {
   applyTabOrder,
   isMoveAcrossBlocked,
@@ -96,94 +84,6 @@ declare global {
     "hass-pick-appearance": undefined;
   }
 }
-
-interface CatalogSettingsEntry {
-  path: string;
-  title: string;
-  iconPath?: string;
-}
-
-/**
- * The tools pages, in the order the tools panel lists its own tabs. Each entry
- * is a real route under /config/tools and uses the title that panel shows.
- */
-interface CatalogToolDefinition {
-  panel: string;
-  translationKey: string;
-  iconPath: string;
-  /** Only listed when this component is loaded, as the tools panel does. */
-  component?: string;
-}
-
-const CATALOG_TOOLS: CatalogToolDefinition[] = [
-  {
-    panel: "yaml",
-    translationKey: "ui.panel.config.tools.tabs.yaml.title",
-    iconPath: mdiFileCode,
-  },
-  {
-    panel: "state",
-    translationKey: "ui.panel.config.tools.tabs.states.title",
-    iconPath: mdiFormatListBulletedSquare,
-  },
-  {
-    panel: "action",
-    translationKey: "ui.panel.config.tools.tabs.actions.title",
-    iconPath: mdiGestureTap,
-  },
-  {
-    panel: "action-history",
-    translationKey: "ui.panel.config.tools.tabs.action_history.title",
-    iconPath: mdiHistory,
-    component: "logbook",
-  },
-  {
-    panel: "template",
-    translationKey: "ui.panel.config.tools.tabs.templates.title",
-    iconPath: mdiCodeBraces,
-  },
-  {
-    panel: "event",
-    translationKey: "ui.panel.config.tools.tabs.events.title",
-    iconPath: mdiCalendarClock,
-  },
-  {
-    panel: "debug-console",
-    translationKey: "ui.panel.config.tools.tabs.debug_console.title",
-    iconPath: mdiConsole,
-    component: "debug_console",
-  },
-  {
-    panel: "statistics",
-    translationKey: "ui.panel.config.tools.tabs.statistics.title",
-    iconPath: mdiChartBar,
-  },
-  {
-    panel: "assist",
-    translationKey: "ui.panel.config.tools.tabs.assist.tab",
-    iconPath: mdiMicrophone,
-  },
-  {
-    panel: "base64",
-    translationKey: "ui.panel.config.tools.tabs.base64.title",
-    iconPath: mdiCodeJson,
-  },
-  {
-    panel: "colour",
-    translationKey: "ui.panel.config.tools.tabs.colour.title",
-    iconPath: mdiPalette,
-  },
-  {
-    panel: "converter",
-    translationKey: "ui.panel.config.tools.tabs.converter.title",
-    iconPath: mdiFileSwap,
-  },
-  {
-    panel: "debug",
-    translationKey: "ui.panel.config.tools.tabs.debug.title",
-    iconPath: mdiBug,
-  },
-];
 
 export interface PageTab {
   urlPath: string;
@@ -548,46 +448,6 @@ export class HaPageTabs extends LitElement {
     `;
   }
 
-  // Settings pages from the settings overview, shown to this person only.
-  private _settingsEntries(): CatalogSettingsEntry[] {
-    const pages = filterNavigationPages(this.hass, [
-      ...configSections.dashboard,
-      ...configSections.dashboard_2,
-      ...configSections.dashboard_3,
-    ]);
-    const seen = new Set<string>();
-    const entries: CatalogSettingsEntry[] = [];
-    for (const page of pages) {
-      if (!page.translationKey || page.path.startsWith("#")) {
-        continue;
-      }
-      const title = this.hass.localize(
-        `ui.panel.config.dashboard.${page.translationKey}.main` as LocalizeKeys
-      );
-      if (!title || seen.has(page.path)) {
-        continue;
-      }
-      seen.add(page.path);
-      entries.push({ path: page.path, title, iconPath: page.iconPath });
-    }
-    return entries;
-  }
-
-  // Tools pages from the tools panel, shown to this person only.
-  private _toolEntries(): CatalogSettingsEntry[] {
-    if (!this.hass.user?.is_admin) {
-      return [];
-    }
-    return CATALOG_TOOLS.filter(
-      (tool) =>
-        !tool.component || isComponentLoaded(this.hass.config, tool.component)
-    ).map((tool) => ({
-      path: `/config/tools/${tool.panel}`,
-      title: this.hass.localize(tool.translationKey as LocalizeKeys),
-      iconPath: tool.iconPath,
-    }));
-  }
-
   private _renderSettingsGroup(
     group: TabGroupId,
     id: string,
@@ -652,10 +512,10 @@ export class HaPageTabs extends LitElement {
     closed: Set<string>
   ): TemplateResult {
     const matches = searchMatcher(this._filter);
-    const settings = this._settingsEntries().filter((entry) =>
+    const settings = computeSettingsEntries(this.hass).filter((entry) =>
       matches(entry.title, entry.path)
     );
-    const tools = this._toolEntries().filter((entry) =>
+    const tools = computeToolEntries(this.hass).filter((entry) =>
       matches(entry.title, entry.path)
     );
     if (!listed.length && !settings.length && !tools.length) {

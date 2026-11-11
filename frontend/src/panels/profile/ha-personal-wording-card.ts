@@ -45,6 +45,14 @@ export class HaPersonalWordingCard extends LitElement {
 
   @query("input") private _input!: HTMLInputElement;
 
+  @query("ha-card") private _card?: HTMLElement;
+
+  /** Brings the card into view and moves focus to its title. */
+  public focusTitle(behavior: ScrollBehavior = "auto") {
+    this._card?.scrollIntoView({ behavior, block: "start" });
+    this._card?.focus({ preventScroll: true });
+  }
+
   // Draws the card again when the language mode changes.
   private _languageMode = new LanguageModeController(this);
 
@@ -85,7 +93,12 @@ export class HaPersonalWordingCard extends LitElement {
     // Every string follows the language mode.
     const localize = this._localize;
     return html`
-      <ha-card .header=${localize("ui.personal_wording.title")}>
+      <ha-card
+        .header=${localize("ui.personal_wording.title")}
+        role="region"
+        aria-label=${localize("ui.personal_wording.title")}
+        tabindex="-1"
+      >
         <div class="card-content">
           <p class="description">
             ${localize("ui.personal_wording.description")}

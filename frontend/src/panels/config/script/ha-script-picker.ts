@@ -111,6 +111,7 @@ import {
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
+import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
@@ -498,6 +499,19 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
           "ui.panel.config.script.picker.summary",
           { number: scripts.length }
         )}. ${this.hass.localize("ui.panel.config.script.picker.description")}`}
+        .statistics=${buildListStatistics(this.hass.localize, {
+          total: this.scripts.length,
+          shown: scripts.length,
+          selected: this._selected.length,
+          extras: [
+            {
+              key: "unavailable",
+              value: this.scripts.filter(
+                (script) => script.state === "unavailable"
+              ).length,
+            },
+          ],
+        })}
         has-filters
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
@@ -1392,7 +1406,10 @@ ${rejected
         .bulk {
           position: fixed;
           z-index: 4;
-          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          bottom: calc(
+            var(--ha-phone-bar-height, 0px) +
+              var(--ha-bottom-tabs-height, 0px) + var(--ha-space-4)
+          );
           inset-inline: var(--ha-sidebar-width, 0px) 0;
           box-sizing: border-box;
           width: min(

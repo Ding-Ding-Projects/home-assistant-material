@@ -79,6 +79,7 @@ import type {
 } from "./blueprint-bulk-actions";
 import {
   blueprintDeletePreview,
+  blueprintFailureDetail,
   blueprintReImportPreview,
   blueprintResultLine,
   planBlueprintDelete,
@@ -520,7 +521,7 @@ class HaBlueprintOverview extends LitElement {
           style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; box-sizing: border-box; padding: 12px 16px; margin-top: 8px; border-radius: 16px; background: var(--secondary-background-color);"
         >
           <div
-            style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 0; color: var(--secondary-text-color);"
+            style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 220px; color: var(--secondary-text-color);"
           >
             <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
             <span
@@ -1082,9 +1083,12 @@ class HaBlueprintOverview extends LitElement {
           : "ui.panel.config.blueprint.overview.bulk_reimport_failed_title"
       ),
       text: `${line} ${summary.failed
-        .map(({ item, message }) =>
-          message ? `${item.name} (${message})` : item.name
-        )
+        .map((failure) => {
+          const detail = blueprintFailureDetail(this._bulkLocalize, failure);
+          return detail
+            ? `${failure.item.name} (${detail})`
+            : failure.item.name;
+        })
         .join(", ")}`,
     });
   }
@@ -1108,7 +1112,10 @@ class HaBlueprintOverview extends LitElement {
         .bulk {
           position: fixed;
           z-index: 4;
-          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          bottom: calc(
+            var(--ha-phone-bar-height, 0px) +
+              var(--ha-bottom-tabs-height, 0px) + var(--ha-space-4)
+          );
           inset-inline: var(--ha-sidebar-width, 0px) 0;
           box-sizing: border-box;
           width: min(

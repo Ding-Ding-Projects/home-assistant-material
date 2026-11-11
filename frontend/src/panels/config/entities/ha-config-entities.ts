@@ -115,6 +115,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
 import "../../../layouts/hass-loading-screen";
+import { buildListStatistics } from "../../../components/layout/list-statistics";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { haStyle } from "../../../resources/styles";
@@ -956,6 +957,25 @@ export class HaConfigEntities extends LitElement {
           "ui.panel.config.entities.picker.summary",
           { number: filteredEntities.length }
         )}. ${this.hass.localize("ui.panel.config.entities.picker.tagline")}`}
+        .statistics=${buildListStatistics(this.hass.localize, {
+          total: this._entities.length + this._entitiesWithoutUniqueId.length,
+          shown: filteredEntities.length,
+          selected: this._selected.length,
+          extras: [
+            {
+              key: "unavailable",
+              value: this._entities.filter(
+                (entity) =>
+                  this.hass.states[entity.entity_id]?.state === "unavailable"
+              ).length,
+            },
+            {
+              key: "disabled",
+              value: this._entities.filter((entity) => entity.disabled_by)
+                .length,
+            },
+          ],
+        })}
         has-filters
         .filters=${
           Object.values(this._filters).filter((filter) =>
@@ -995,6 +1015,7 @@ export class HaConfigEntities extends LitElement {
         @search-changed=${this._tableSettings.searchChanged}
         @row-click=${this._openEditEntry}
         id="entity_id"
+        entity-rows
         .hasFab=${includeAddDeviceFab}
         class=${this.narrow ? "narrow" : ""}
       >

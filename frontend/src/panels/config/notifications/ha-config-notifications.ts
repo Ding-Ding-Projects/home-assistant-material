@@ -721,6 +721,13 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
         .severity-chips ha-filter-chip {
           --ha-button-height: 44px;
         }
+        /* Every button on the page, in the rows and above the list, is a
+           44 px touch target on a touch screen or a narrow window. */
+        @media (pointer: coarse), (max-width: 600px) {
+          .content {
+            --ha-button-height: 44px;
+          }
+        }
         li {
           border-inline-start: 4px solid transparent;
           --severity-color: var(--secondary-text-color);

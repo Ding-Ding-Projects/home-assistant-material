@@ -196,7 +196,7 @@ export const generatePlaceItems = (
     };
   };
   return [
-    place("personal_wording", "/profile/localization"),
+    place("personal_wording", "/profile/localization#personal_wording"),
     place("accessibility_tools", undefined),
     ...(isAdmin
       ? [place("language_mode", "/config/personal#language_mode")]

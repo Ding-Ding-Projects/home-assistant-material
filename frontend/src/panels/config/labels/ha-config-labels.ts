@@ -583,7 +583,10 @@ export class HaConfigLabels extends LitElement {
     .bulk {
       position: fixed;
       z-index: 4;
-      bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+      bottom: calc(
+        var(--ha-phone-bar-height, 0px) + var(--ha-bottom-tabs-height, 0px) +
+          var(--ha-space-4)
+      );
       inset-inline: var(--ha-sidebar-width, 0px) 0;
       box-sizing: border-box;
       width: min(

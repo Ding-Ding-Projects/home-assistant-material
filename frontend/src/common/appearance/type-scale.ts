@@ -1,6 +1,9 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
-import { syncCacheUsable } from "../instance-sync/sync-owner";
+import {
+  subscribeSyncClaimed,
+  syncCacheUsable,
+} from "../instance-sync/sync-owner";
 
 /**
  * Type scale: a base size and a ratio that produce five steps of text size,
@@ -157,19 +160,66 @@ export const isDefaultTypeScale = (settings: TypeScaleSettings): boolean =>
   settings.ratio === DEFAULT_RATIO &&
   Object.keys(settings.overrides).length === 0;
 
+/**
+ * The theme's own size of each step, in pixels. With the default base and
+ * ratio the scale gives exactly these sizes, so switching it on changes
+ * nothing visible until a choice is made.
+ */
+export const THEME_STEP_SIZES: Record<TypeScaleStep, number> = {
+  caption: 12,
+  body: 14,
+  title: 20,
+  headline: 28,
+  display: 40,
+};
+
+/** How many ratio steps each step lies from the body, in the default scale. */
+const STEP_OFFSETS: Record<TypeScaleStep, number> = {
+  caption: -1,
+  body: 0,
+  title: 1,
+  headline: 2,
+  display: 3,
+};
+
+/** The theme's own size of each in-between variable and its offset. */
+const DERIVED_THEME: Record<
+  keyof typeof TYPE_SCALE_DERIVED_TOKENS,
+  { size: number; offset: number }
+> = {
+  xs: { size: 10, offset: -2 },
+  l: { size: 16, offset: 0.5 },
+  "2xl": { size: 24, offset: 1.5 },
+  "4xl": { size: 32, offset: 2.5 },
+};
+
+/**
+ * A theme size moved with the base and the ratio. The base scales every size
+ * as a whole; a ratio other than the default widens or narrows the gaps
+ * between the steps.
+ */
+const scaleThemeSize = (
+  size: number,
+  offset: number,
+  settings: TypeScaleSettings
+): number =>
+  size *
+  (settings.base / DEFAULT_BASE) *
+  (settings.ratio / DEFAULT_RATIO) ** offset;
+
 /** The size in pixels of each step: the computed one, or the override. */
 export const computeTypeScale = (
   settings: TypeScaleSettings
 ): Record<TypeScaleStep, number> => {
   const clean = normalizeTypeScale(settings);
-  const { base, ratio } = clean;
-  const computed: Record<TypeScaleStep, number> = {
-    caption: base / ratio,
-    body: base,
-    title: base * ratio,
-    headline: base * ratio ** 2,
-    display: base * ratio ** 3,
-  };
+  const computed = {} as Record<TypeScaleStep, number>;
+  for (const step of TYPE_SCALE_STEPS) {
+    computed[step] = scaleThemeSize(
+      THEME_STEP_SIZES[step],
+      STEP_OFFSETS[step],
+      clean
+    );
+  }
   const sizes = {} as Record<TypeScaleStep, number>;
   for (const step of TYPE_SCALE_STEPS) {
     sizes[step] =
@@ -182,25 +232,54 @@ export const computeTypeScale = (
 const mean = (a: number, b: number): number => round(Math.sqrt(a * b), 1);
 
 /**
+ * An in-between size: the scaled theme size while it lies between the two
+ * steps next to it, otherwise (a step was overridden, or a limit was hit) the
+ * middle of the two, so the order of the theme sizes always holds.
+ */
+const between = (value: number, a: number, b: number): number => {
+  const low = Math.min(a, b);
+  const high = Math.max(a, b);
+  return value > low && value < high ? round(value, 1) : mean(a, b);
+};
+
+/**
  * The size in pixels of every theme size variable, steps and in-between sizes
  * alike. Each in-between size lies between the steps next to it.
  */
 export const computeThemeSizes = (
   settings: TypeScaleSettings
 ): Record<string, number> => {
-  const sizes = computeTypeScale(settings);
+  const clean = normalizeTypeScale(settings);
+  const sizes = computeTypeScale(clean);
+  const derived = (name: keyof typeof DERIVED_THEME): number =>
+    scaleThemeSize(DERIVED_THEME[name].size, DERIVED_THEME[name].offset, clean);
+  const xs = derived("xs");
   return {
     [TYPE_SCALE_DERIVED_TOKENS.xs]: round(
-      Math.min(sizes.caption, (sizes.caption * sizes.caption) / sizes.body),
+      xs < sizes.caption
+        ? xs
+        : Math.min(sizes.caption, (sizes.caption * sizes.caption) / sizes.body),
       1
     ),
     [TYPE_SCALE_TOKENS.caption]: sizes.caption,
     [TYPE_SCALE_TOKENS.body]: sizes.body,
-    [TYPE_SCALE_DERIVED_TOKENS.l]: mean(sizes.body, sizes.title),
+    [TYPE_SCALE_DERIVED_TOKENS.l]: between(
+      derived("l"),
+      sizes.body,
+      sizes.title
+    ),
     [TYPE_SCALE_TOKENS.title]: sizes.title,
-    [TYPE_SCALE_DERIVED_TOKENS["2xl"]]: mean(sizes.title, sizes.headline),
+    [TYPE_SCALE_DERIVED_TOKENS["2xl"]]: between(
+      derived("2xl"),
+      sizes.title,
+      sizes.headline
+    ),
     [TYPE_SCALE_TOKENS.headline]: sizes.headline,
-    [TYPE_SCALE_DERIVED_TOKENS["4xl"]]: mean(sizes.headline, sizes.display),
+    [TYPE_SCALE_DERIVED_TOKENS["4xl"]]: between(
+      derived("4xl"),
+      sizes.headline,
+      sizes.display
+    ),
     [TYPE_SCALE_TOKENS.display]: sizes.display,
   };
 };
@@ -264,6 +343,29 @@ export const subscribeTypeScale = (
  * another. Returns the function that stops it.
  */
 export const startTypeScale = (): UnsubscribeFunc => {
-  applyTypeScale(getTypeScale());
-  return subscribeTypeScale(applyTypeScale);
+  const reapply = () => applyTypeScale(getTypeScale());
+  reapply();
+  const stopChanges = subscribeTypeScale(applyTypeScale);
+  // The stored scale is held back until the signed-in account is known to own
+  // the cache, so it is read again at that point.
+  const stopClaim = subscribeSyncClaimed(reapply);
+  // A value that arrives from the instance (or from another tab) is announced
+  // as a storage event. The storage helper only follows keys it has already
+  // read, and this key may not have been read yet, so it is followed here.
+  const onStorage = (ev: StorageEvent) => {
+    if (ev.key !== null && ev.key !== TYPE_SCALE_STORAGE_KEY) {
+      return;
+    }
+    applyTypeScale(
+      ev.key === null || !syncCacheUsable()
+        ? normalizeTypeScale(undefined)
+        : normalizeTypeScale(ev.newValue)
+    );
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    stopChanges();
+    stopClaim();
+    window.removeEventListener("storage", onStorage);
+  };
 };

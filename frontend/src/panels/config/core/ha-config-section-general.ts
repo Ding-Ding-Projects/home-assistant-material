@@ -28,10 +28,16 @@ import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
+import type {
+  PractiseSpec,
+  SettingInfoExample,
+} from "../../../components/setting-info/ha-setting-info";
 import type { GeneralSettingId } from "./general-setting-help";
 import {
+  GENERAL_HELP_KEY,
   GENERAL_SETTING_DEFAULTS,
   GENERAL_SETTING_HELP,
+  generalExampleKeys,
   generalHelpKey,
 } from "./general-setting-help";
 
@@ -373,6 +379,49 @@ class HaConfigSectionGeneral extends LitElement {
     return value === GENERAL_SETTING_DEFAULTS[id];
   }
 
+  /** The worked examples of a setting, in the chosen language mode. */
+  private _examples(id: GeneralSettingId): SettingInfoExample[] | undefined {
+    const count = GENERAL_SETTING_HELP[id].examples ?? 0;
+    if (!count) {
+      return undefined;
+    }
+    return Array.from({ length: count }, (_item, index) => {
+      const keys = generalExampleKeys(id, index + 1);
+      return { input: this._g(keys.input), result: this._g(keys.result) };
+    });
+  }
+
+  // The practise specs are kept, so the same object is handed to the
+  // information button again while its words stay the same. A new object
+  // would send the practise control back to its starting value.
+  private _practiseSpecs = new Map<string, PractiseSpec>();
+
+  /** The practise control of a setting. It never saves or sends anything. */
+  private _practise(id: GeneralSettingId): PractiseSpec | undefined {
+    const spec = GENERAL_SETTING_HELP[id].practise;
+    if (!spec) {
+      return undefined;
+    }
+    const words =
+      spec.type === "number"
+        ? this._g(`${GENERAL_HELP_KEY}.${id}.practise_unit`)
+        : spec.type === "text"
+          ? this._g(`${GENERAL_HELP_KEY}.${id}.practise_hint`)
+          : "";
+    const key = `${id}|${words}`;
+    let localized = this._practiseSpecs.get(key);
+    if (!localized) {
+      localized =
+        spec.type === "number"
+          ? { ...spec, unit: words }
+          : spec.type === "text"
+            ? { ...spec, placeholder: words }
+            : spec;
+      this._practiseSpecs.set(key, localized);
+    }
+    return localized;
+  }
+
   private _tools(id: GeneralSettingId, disabled: boolean): TemplateResult {
     const help = GENERAL_SETTING_HELP[id];
     const label = this._settingLabel(id);
@@ -385,6 +434,8 @@ class HaConfigSectionGeneral extends LitElement {
         .holding=${this._g(generalHelpKey(id, "holding"))}
         .defaultText=${this._g(generalHelpKey(id, "default"))}
         .helpPath=${help.helpPath}
+        .example=${this._examples(id)}
+        .practise=${this._practise(id)}
       ></ha-setting-info>
       ${
         help.resettable && !disabled && !this._atDefault(id)
@@ -698,6 +749,12 @@ class HaConfigSectionGeneral extends LitElement {
       ha-checkbox {
         display: block;
         margin-top: var(--ha-space-3);
+      }
+      @media (pointer: coarse) {
+        .tools ha-button {
+          --ha-button-height: 44px;
+          min-width: 44px;
+        }
       }
     `,
   ];

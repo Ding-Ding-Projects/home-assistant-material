@@ -12,6 +12,10 @@ import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-yaml-editor";
 import "../../../components/setting-info/ha-setting-info";
+import type {
+  PractiseSpec,
+  SettingInfoExample,
+} from "../../../components/setting-info/ha-setting-info";
 import type { HaFormSchema } from "../../../components/ha-form/types";
 import type {
   GuidedSetupApply,
@@ -31,6 +35,7 @@ import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box
 import { haStyle } from "../../../resources/styles";
 import { restartCore } from "../../../data/supervisor/core";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
+import { showToast } from "../../../util/toast";
 import type {
   DraftStorage,
   FieldMessage,
@@ -47,7 +52,9 @@ import {
   decorateField,
   defaultText,
   draftKey,
+  fieldExamples,
   fieldHint,
+  fieldPractise,
   getAt,
   GUIDED_STEPS,
   hasContent,
@@ -466,16 +473,17 @@ export class HaGuidedSetupWizard extends LitElement {
     this._draftTimer = window.setTimeout(() => this._storeDraft(), DRAFT_DELAY);
   }
 
-  private _storeDraft(): void {
+  /** Keeps the draft. True only when something was written to the browser. */
+  private _storeDraft(): boolean {
     if (!this._form?.serializable) {
-      return;
+      return false;
     }
     const key = draftKey(this.integration.domain, this._entityDomain);
     if (!hasContent(this._data)) {
       clearDraft(browserStorage(), key);
-      return;
+      return false;
     }
-    saveDraft(
+    return saveDraft(
       browserStorage(),
       key,
       {
@@ -638,7 +646,10 @@ export class HaGuidedSetupWizard extends LitElement {
   /** Keeps the draft without asking and leaves the wizard. */
   private _saveAndClose(): void {
     window.clearTimeout(this._draftTimer);
-    this._storeDraft();
+    const stored = this._storeDraft();
+    showToast(this, {
+      message: this._l(stored ? "draft_saved" : "draft_not_saved"),
+    });
     this._close();
   }
 
@@ -1021,6 +1032,34 @@ export class HaGuidedSetupWizard extends LitElement {
     `;
   }
 
+  /** Worked examples for a field with a closed range or list of values. */
+  private _examplesOf(leaf: LeafField): SettingInfoExample[] | undefined {
+    const examples = fieldExamples(leaf).map((example) => ({
+      input: example.input,
+      result: this._l(example.key, example.params),
+    }));
+    return examples.length ? examples : undefined;
+  }
+
+  // The same spec object is handed over again while the field is the same, so
+  // the practise control keeps what was typed while the form is edited.
+  private _practiseSpecs = new Map<string, PractiseSpec>();
+
+  /** A sandbox control that follows the rule of the field. It saves nothing. */
+  private _practiseOf(leaf: LeafField): PractiseSpec | undefined {
+    const spec = fieldPractise(leaf);
+    if (!spec) {
+      return undefined;
+    }
+    const key = `${pathKey(leaf.path)}|${JSON.stringify(spec)}`;
+    const known = this._practiseSpecs.get(key);
+    if (known) {
+      return known;
+    }
+    this._practiseSpecs.set(key, spec);
+    return spec;
+  }
+
   /** An expandable explanation of every option, always on the page. */
   private _renderGuidance(
     leaves: LeafField[]
@@ -1044,6 +1083,8 @@ export class HaGuidedSetupWizard extends LitElement {
                   "ui.components.setting_info.guided_reach",
                   { file: `guided_setup/${this.integration.domain}.yaml` }
                 )}
+                .example=${this._examplesOf(leaf)}
+                .practise=${this._practiseOf(leaf)}
               ></ha-setting-info>
             </div>`
         )}

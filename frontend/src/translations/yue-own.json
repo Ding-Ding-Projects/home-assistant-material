@@ -142,19 +142,37 @@
                   "description": "你屋企所在嘅時區。",
                   "reach": "各處顯示嘅日期同時間、日出日落，以及自動化同排程運行嘅時間。",
                   "holding": "你揀嘅時區。",
-                  "default": "UTC"
+                  "default": "UTC",
+                  "practise_hint": "地區/地點，例如 Europe/Paris",
+                  "example_1_input": "Europe/Paris",
+                  "example_1_result": "接受。巴黎時間，會跟夏令時間轉。",
+                  "example_2_input": "America/Argentina/Buenos_Aires",
+                  "example_2_result": "接受。有幾個時區中間會夾一個區域名。",
+                  "example_3_input": "Paris",
+                  "example_3_result": "唔接受。要先寫地區，好似 Europe/Paris 咁。"
                 },
                 "currency": {
                   "description": "計算費用用嘅貨幣單位。",
                   "reach": "能源價錢同費用，以及任何顯示金額嘅整合。",
                   "holding": "你揀嘅貨幣。",
-                  "default": "歐元（EUR）"
+                  "default": "歐元（EUR）",
+                  "practise_hint": "三個大楷字母，例如 EUR",
+                  "example_1_input": "EUR",
+                  "example_1_result": "接受。歐元。",
+                  "example_2_input": "USD",
+                  "example_2_result": "接受。美元。",
+                  "example_3_input": "euro",
+                  "example_3_result": "唔接受。請用貨幣代碼嘅三個大楷字母。"
                 },
                 "unit_system": {
                   "description": "距離、速度、溫度同重量用公制定係美制單位顯示。",
                   "reach": "每個有單位嘅感應器同天氣數值。溫度單位一定跟你嘅選擇。",
                   "holding": "你揀嘅單位系統。轉換時可以順便更新現有感應器嘅單位。",
-                  "default": "公制"
+                  "default": "公制",
+                  "example_1_input": "公制",
+                  "example_1_result": "暖和嘅一日顯示 21 °C，風速 12 km/h，一包麵粉 3 kg。",
+                  "example_2_input": "美制",
+                  "example_2_result": "同一日顯示 70 °F，風速 7 mph，一包麵粉 7 lb。"
                 },
                 "location": {
                   "description": "你屋企喺地圖上嘅位置。",
@@ -166,7 +184,14 @@
                   "description": "你屋企高出海平面幾多，單位係米。",
                   "reach": "日出日落同同海拔有關嘅天氣數值。",
                   "holding": "你喺度輸入嘅數字。",
-                  "default": "0 米"
+                  "default": "0 米",
+                  "practise_unit": "米",
+                  "example_1_input": "0",
+                  "example_1_result": "海平面。呢個係預設值。",
+                  "example_2_input": "432",
+                  "example_2_result": "接受。高出海平面 432 米。",
+                  "example_3_input": "-30",
+                  "example_3_result": "接受。屋企可以喺海平面以下。"
                 }
               }
             }
@@ -1236,7 +1261,15 @@
       "collapsible-statistics": {
         "label": "統計",
         "hide": "收埋統計",
-        "show": "展開統計"
+        "show": "展開統計",
+        "total": "總數",
+        "shown": "顯示緊",
+        "selected": "已揀",
+        "disabled": "已停用",
+        "unavailable": "用唔到",
+        "attention": "要留意",
+        "turned_off": "已關閉",
+        "read_only": "唯讀"
       },
       "split_panels": {
         "start": "第一個面板",

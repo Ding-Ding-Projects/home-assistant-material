@@ -25,6 +25,11 @@ import { navigate } from "../../common/navigate";
 import { searchMatcher } from "../../common/regex/filter";
 import type { BulkCloseMode } from "../../common/tabs/bulk-close";
 import { planBulkClose } from "../../common/tabs/bulk-close";
+import type { TabGroupId } from "../../common/tabs/tab-group-search";
+import {
+  filterGroupItems,
+  TAB_GROUP_IDS,
+} from "../../common/tabs/tab-group-search";
 import { getDefaultPanelUrlPath } from "../../data/panel";
 import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../../types";
@@ -36,6 +41,11 @@ import {
   TABS_ORDER_STORAGE_KEY,
 } from "../ha-page-tabs";
 import { applyTabOrder } from "../tab-order";
+import type { CatalogSettingsEntry } from "../page-catalog-entries";
+import {
+  computeSettingsEntries,
+  computeToolEntries,
+} from "../page-catalog-entries";
 import "../ha-svg-icon";
 import "../ha-icon";
 import "../input/ha-input-search";
@@ -92,6 +102,14 @@ export class HaPhoneBar extends LitElement {
 
   /** True while the sheet lists every page instead of the open ones. */
   @state() private _catalog = false;
+
+  /** The search text of each group of the catalog, one field per group. */
+  @state() private _groupFilters: Record<TabGroupId, string> = {
+    pinned: "",
+    pages: "",
+    settings: "",
+    tools: "",
+  };
 
   /** Pages closed last, kept for Undo. */
   @state() private _undo?: { ids: string[]; name: string };
@@ -477,17 +495,160 @@ export class HaPhoneBar extends LitElement {
         </button>
         <div class=${classMap({ list: true, cards: !this._catalog })}>
           ${
-            listed.length
-              ? listed.map((tab) =>
-                  this._catalog
-                    ? this._renderCatalogRow(tab, closed.has(tab.urlPath))
-                    : this._renderCard(tab, tab.urlPath === current)
-                )
-              : html`<p class="empty">${localize("ui.page_tabs.no_match")}</p>`
+            this._catalog
+              ? this._renderCatalogGroups(listed, closed, matches)
+              : listed.length
+                ? listed.map((tab) =>
+                    this._renderCard(tab, tab.urlPath === current)
+                  )
+                : html`<p class="empty">
+                    ${localize("ui.page_tabs.no_match")}
+                  </p>`
           }
         </div>
       </div>
     `;
+  }
+
+  // The catalog in groups, as on a wide window: pinned pages, pages, settings
+  // and tools, each with its own search that filters only that group.
+  private _renderCatalogGroups(
+    listed: PageTab[],
+    closed: Set<string>,
+    matches: (...texts: string[]) => boolean
+  ): TemplateResult {
+    const settings = computeSettingsEntries(this.hass).filter((entry) =>
+      matches(entry.title, entry.path)
+    );
+    const tools = computeToolEntries(this.hass).filter((entry) =>
+      matches(entry.title, entry.path)
+    );
+    if (!listed.length && !settings.length && !tools.length) {
+      return html`<p class="empty">${this._text("ui.page_tabs.no_match")}</p>`;
+    }
+    const tabTexts = (tab: PageTab) => [tab.title, tab.urlPath];
+    const entryTexts = (entry: CatalogSettingsEntry) => [
+      entry.title,
+      entry.path,
+    ];
+    const renderTab = (tab: PageTab) =>
+      this._renderCatalogRow(tab, closed.has(tab.urlPath));
+    return html`
+      ${this._renderGroup(
+        "pinned",
+        "group-pinned",
+        "ui.page_tabs.group_pinned",
+        listed.filter((tab) => this._pinned.includes(tab.urlPath)),
+        tabTexts,
+        (tab) => tab.title,
+        renderTab
+      )}
+      ${this._renderGroup(
+        "pages",
+        "group-pages",
+        "ui.page_tabs.group_pages",
+        listed.filter((tab) => !this._pinned.includes(tab.urlPath)),
+        tabTexts,
+        (tab) => tab.title,
+        renderTab
+      )}
+      ${this._renderGroup(
+        "settings",
+        "group-settings",
+        "ui.page_tabs.group_settings",
+        settings,
+        entryTexts,
+        (entry) => entry.title,
+        (entry) => this._renderEntryRow(entry)
+      )}
+      ${this._renderGroup(
+        "tools",
+        "group-tools",
+        "ui.page_tabs.group_tools",
+        tools,
+        entryTexts,
+        (entry) => entry.title,
+        (entry) => this._renderEntryRow(entry)
+      )}
+    `;
+  }
+
+  private _renderGroup<T>(
+    group: TabGroupId,
+    id: string,
+    titleKey: string,
+    all: T[],
+    texts: (item: T) => string[],
+    title: (item: T) => string,
+    row: (item: T) => TemplateResult
+  ): TemplateResult | typeof nothing {
+    if (!all.length) {
+      return nothing;
+    }
+    const name = this._text(titleKey);
+    const shown = filterGroupItems(all, this._groupFilters[group], texts);
+    const label = this._text("ui.page_tabs.group_search", { name });
+    return html`<section class="group" role="group" aria-labelledby=${id}>
+      <div class="group-head">
+        <h3 id=${id} class="group-title">${name}</h3>
+        <span class="group-count" role="status"
+          >${this._text("ui.page_tabs.group_count", {
+            shown: shown.length,
+            total: all.length,
+          })}</span
+        >
+      </div>
+      <ha-input-search
+        class="group-search"
+        data-group=${group}
+        appearance="outlined"
+        .value=${this._groupFilters[group]}
+        .placeholder=${label}
+        .accessibleLabel=${label}
+        .patternSamples=${all.map(title)}
+        @input=${this._groupFilterChanged}
+      ></ha-input-search>
+      ${
+        shown.length
+          ? nothing
+          : html`<p class="empty">
+              ${this._text("ui.page_tabs.group_empty", { name })}
+            </p>`
+      }
+      <div class="group-list">${shown.map(row)}</div>
+    </section>`;
+  }
+
+  private _renderEntryRow(entry: CatalogSettingsEntry): TemplateResult {
+    return html`
+      <button class="entry" .path=${entry.path} @click=${this._openEntry}>
+        <span class="entry-icon">
+          ${
+            entry.iconPath
+              ? html`<ha-svg-icon .path=${entry.iconPath}></ha-svg-icon>`
+              : nothing
+          }
+        </span>
+        <span class="entry-text">
+          <span class="entry-title">${entry.title}</span>
+        </span>
+      </button>
+    `;
+  }
+
+  private _groupFilterChanged(ev: Event) {
+    const field = ev.target as HaInputSearch;
+    const group = field.dataset.group as TabGroupId | undefined;
+    if (!group || !TAB_GROUP_IDS.includes(group)) {
+      return;
+    }
+    this._groupFilters = { ...this._groupFilters, [group]: field.value ?? "" };
+  }
+
+  private _openEntry(ev: Event) {
+    const path = (ev.currentTarget as HTMLElement & { path: string }).path;
+    this._sheet?.hidePopover();
+    navigate(path);
   }
 
   private _renderCard(tab: PageTab, selected: boolean): TemplateResult {
@@ -603,15 +764,22 @@ export class HaPhoneBar extends LitElement {
       this._closedAt = Date.now();
       this._catalog = false;
       this._filter = "";
+      this._clearGroupFilters();
       return;
     }
     this._filter = "";
     this._catalog = false;
+    this._clearGroupFilters();
   }
 
   private _toggleCatalog() {
     this._catalog = !this._catalog;
     this._filter = "";
+    this._clearGroupFilters();
+  }
+
+  private _clearGroupFilters() {
+    this._groupFilters = { pinned: "", pages: "", settings: "", tools: "" };
   }
 
   private _filterChanged(ev: Event) {
@@ -1134,6 +1302,40 @@ export class HaPhoneBar extends LitElement {
       height: 44px;
       border-radius: var(--ha-border-radius-circle);
       color: var(--secondary-text-color);
+    }
+    .group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      padding-bottom: var(--ha-space-2);
+    }
+    .group-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+      padding: 0 var(--ha-space-2);
+    }
+    .group-title {
+      margin: 0;
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .group-count {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+    .group-search {
+      --ha-input-search-height: 44px;
+      --ha-input-search-border-radius: var(--ha-border-radius-pill);
+    }
+    .group-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+    }
+    .group-list .entry {
+      min-height: 44px;
     }
     .empty {
       grid-column: 1 / -1;

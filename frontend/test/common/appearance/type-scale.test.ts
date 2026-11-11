@@ -1,14 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
+  applyTypeScale,
   computeTypeScale,
   DEFAULT_TYPE_SCALE,
   normalizeTypeScale,
   RATIO_MAX,
   RATIO_MIN,
   sanitizeRatio,
+  startTypeScale,
   TYPE_SCALE_STEPS,
+  TYPE_SCALE_STORAGE_KEY,
   typeScaleToVariables,
 } from "../../../src/common/appearance/type-scale";
+import { getStorage } from "../../../src/common/decorators/storage";
+import {
+  claimSyncOwner,
+  forgetClaimedOwner,
+} from "../../../src/common/instance-sync/sync-owner";
 
 // The type scale is stored by a person and written into a style on the whole
 // page. These protect three things: stored data can only become bounded
@@ -63,6 +71,104 @@ describe("computeTypeScale", () => {
     expect(changed.title).toBe(30);
     expect(changed.body).toBe(plain.body);
     expect(changed.display).toBe(plain.display);
+  });
+});
+
+describe("the default scale", () => {
+  it("gives the theme's own sizes, so switching it on changes nothing", () => {
+    const variables = typeScaleToVariables({
+      ...DEFAULT_TYPE_SCALE,
+      enabled: true,
+    });
+    const expected: Record<string, number> = {
+      "--ha-font-size-xs": 10,
+      "--ha-font-size-s": 12,
+      "--ha-font-size-m": 14,
+      "--ha-font-size-l": 16,
+      "--ha-font-size-xl": 20,
+      "--ha-font-size-2xl": 24,
+      "--ha-font-size-3xl": 28,
+      "--ha-font-size-4xl": 32,
+      "--ha-font-size-5xl": 40,
+    };
+    for (const [token, size] of Object.entries(expected)) {
+      expect(variables[token], token).toBe(
+        `calc(${size}px * var(--ha-font-size-scale, 1))`
+      );
+    }
+  });
+
+  it("widens the gaps with a larger ratio and scales everything with the base", () => {
+    const wide = computeTypeScale({
+      ...DEFAULT_TYPE_SCALE,
+      enabled: true,
+      ratio: 1.333,
+    });
+    expect(wide.display).toBeGreaterThan(40);
+    expect(wide.body).toBe(14);
+    const big = computeTypeScale({
+      ...DEFAULT_TYPE_SCALE,
+      enabled: true,
+      base: 18,
+    });
+    expect(big.body).toBe(18);
+    expect(big.title).toBeCloseTo((20 * 18) / 14, 1);
+  });
+});
+
+describe("startTypeScale", () => {
+  const root = document.documentElement;
+  const bodyVariable = () => root.style.getPropertyValue("--ha-font-size-m");
+  let stop: (() => void) | undefined;
+
+  afterEach(() => {
+    stop?.();
+    stop = undefined;
+    forgetClaimedOwner();
+    window.localStorage.clear();
+    getStorage().setValue(TYPE_SCALE_STORAGE_KEY, undefined);
+    applyTypeScale(DEFAULT_TYPE_SCALE);
+  });
+
+  it("applies a stored scale that was held back until the account claimed the cache", () => {
+    window.localStorage.setItem("instanceSync.owner", "user-1");
+    window.localStorage.setItem(
+      TYPE_SCALE_STORAGE_KEY,
+      JSON.stringify({ enabled: true, base: 16, ratio: 1.2, overrides: {} })
+    );
+    stop = startTypeScale();
+    expect(bodyVariable()).toBe("");
+    expect(claimSyncOwner("user-1", [])).toBe(true);
+    expect(bodyVariable()).toBe("calc(16px * var(--ha-font-size-scale, 1))");
+  });
+
+  it("follows a value that arrives later and one that is removed", () => {
+    stop = startTypeScale();
+    expect(bodyVariable()).toBe("");
+    const arrive = (newValue: string | null) =>
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TYPE_SCALE_STORAGE_KEY,
+          newValue,
+          storageArea: window.localStorage,
+        })
+      );
+    arrive(JSON.stringify({ enabled: true, base: 18, ratio: 1.2 }));
+    expect(bodyVariable()).toBe("calc(18px * var(--ha-font-size-scale, 1))");
+    arrive(null);
+    expect(bodyVariable()).toBe("");
+  });
+
+  it("ignores other keys", () => {
+    stop = startTypeScale();
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "somethingElse",
+        newValue: JSON.stringify({ enabled: true }),
+        storageArea: window.localStorage,
+      })
+    );
+    expect(bodyVariable()).toBe("");
   });
 });
 

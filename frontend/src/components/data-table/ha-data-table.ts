@@ -216,6 +216,13 @@ export class HaDataTable extends LitElement {
   // eslint-disable-next-line lit/no-native-attributes
   @property({ type: String }) public id = "id";
 
+  /**
+   * The id of every row is an entity id. Each row then says so, so that the
+   * element menu can offer the entity's own entries when it is opened on a row.
+   */
+  @property({ type: Boolean, attribute: "entity-rows" })
+  public entityRows = false;
+
   @property({ attribute: false }) public noDataText?: string;
 
   /**
@@ -957,6 +964,9 @@ export class HaDataTable extends LitElement {
         aria-rowindex=${index + (this.loadError ? 3 : 2)}
         role="row"
         .rowId=${row[this.id]}
+        data-entity-id=${ifDefined(
+          this.entityRows ? String(row[this.id]) : undefined
+        )}
         @click=${this._handleRowClick}
         class="mdc-data-table__row ${classMap({
           "mdc-data-table__row--selected": this._checkedRows.includes(
@@ -995,6 +1005,19 @@ export class HaDataTable extends LitElement {
           ) {
             return nothing;
           }
+          const templated =
+            column.template && !column.main ? column.template(row) : undefined;
+          // On a phone an icon cell with nothing in it still took its width
+          // and showed as an empty box at the end of the row.
+          if (
+            narrow &&
+            column.type === "icon" &&
+            column.template &&
+            !column.main &&
+            !this._hasCellValue(templated)
+          ) {
+            return nothing;
+          }
           return html`
             <div
               @mouseover=${this._setTitle}
@@ -1007,7 +1030,7 @@ export class HaDataTable extends LitElement {
                 column.template
                   ? column.main
                     ? this._renderMainValue(column.template(row))
-                    : column.template(row)
+                    : templated
                   : narrow && column.main
                     ? html`<div class="primary">
                           ${this._renderMainValue(row[key])}

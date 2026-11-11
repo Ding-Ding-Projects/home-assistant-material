@@ -1,0 +1,50 @@
+# Runs Home Assistant Material in the FULL hosting mode.
+#
+#   docker compose -f compose.full.yaml pull
+#   docker compose -f compose.full.yaml up -d
+#
+# or use host.bat --full / ./host.sh --full, which do the same and wait until it answers.
+#
+# In this mode one outer container runs its own small Docker engine. Inside it the Supervisor
+# starts, and the Supervisor starts the core and every app as sub-containers. That is what makes
+# the app store, apps inside the interface, backups that include apps and real core and
+# Supervisor updates work. The computer sees one container; nothing inside can touch its other
+# containers. Hardware (USB, Bluetooth, radios) stays out of reach, and the product never
+# restarts or shuts down the computer.
+#
+# The outer container must be privileged: running a Docker engine inside a container needs
+# that. Read docs/features/hosting/full-mode.md before using it.
+#
+# Everything (the inner engine's images, the Supervisor's data, the core's configuration, apps
+# and backups) lives on the named volume below, which must be a Linux filesystem. Do not replace
+# it with a Windows or macOS folder. The first start downloads several gigabytes.
+#
+# Use this OR compose.yaml, not both at once: they use the same port.
+
+services:
+  homeassistant-full:
+    image: ghcr.io/ding-ding-projects/home-assistant-material-full:${HA_MATERIAL_FULL_TAG:-latest}
+    container_name: home-assistant-material-full
+    restart: unless-stopped
+    privileged: true
+    # Time for the Supervisor to stop the core and the apps cleanly before Docker gives up.
+    stop_grace_period: 3m
+    ports:
+      # The core answers on port 80 inside the outer container. Published on every network
+      # interface, so other devices on the network can reach it.
+      - "${HA_MATERIAL_PORT:-8123}:80"
+    volumes:
+      - ha-material-full-data:/var/lib/ha-material
+    environment:
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "5", "http://127.0.0.1:80/manifest.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      # The first start downloads the Supervisor, the core and the plugins.
+      start_period: 15m
+
+volumes:
+  ha-material-full-data:
+    name: ha-material-full-data

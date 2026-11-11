@@ -73,9 +73,26 @@ published build.
   NONE of it has been seen in a browser. `CHANGELOG.md` and `docs/feature-status.md` list each
   item. Also landed: official backup compatibility (see `docs/features/backups/official-backups.md`),
   the polish list from the design lane's boards, and seven Deploy Assistant polish fixes.
-- Known noise in the frontend tests: `test/layouts/hass-tabs-subpage.test.ts` prints 135 unhandled
-  errors (a build-time value missing from the test setup, and form internals the test browser
-  lacks). All tests pass; the noise could hide a real error and should be removed.
+- Evening of 11 November 2026, after the five waves: build 121 was looked at in a browser by three
+  passes. Official backups restore through the interface (seven checks, all pass, including a
+  backup made here restored by official 2026.11.1). The polish list passes except three items
+  fixed since. The five waves work, with the defects listed in `CHANGELOG.md` fixed since and NOT
+  yet seen. Lesson for future waves: twice a component was built and tested but wired into no
+  page (the statistics strip, the worked example); a wave is not done until a page uses it.
+- "Full" hosting mode (`hosting/full/`, `compose.full.yaml`, `host.bat --full`,
+  `docs/features/hosting/full-mode.md`) was proven on a throwaway copy with a locally rebuilt
+  Supervisor. Before it can be used: a published build that carries the Supervisor change in
+  `supervisor/supervisor/host/firewall.py`, and the first run of the workflow's `full` job. The
+  owner has asked for the hosted instance to move to this mode once it is verified: rehearse with
+  a copy of the instance's `config` folder first, keep the plain container stopped (not removed)
+  as the way back. Open decisions taken by default: the core answers on port 80 inside the outer
+  container; the host restart and shutdown controls should be hidden in this mode (not done);
+  the Repositories page should list the built-in repositories (not done).
+- Release 2026.11.1.121 is the first complete release under the "publish only when every job is
+  green" rule; the update feed moved with it. A real operating system update install on a booted
+  virtual machine was started after that and its result is not recorded here yet.
+- The noise in the frontend tests (135 unhandled errors from one layout test file) is removed:
+  `test/setup.ts` defines the build-time values and form stubs.
 - Release 119 was not published: every build job of run 119 succeeded, including all four operating
   system images, but GitHub Actions had an outage and the final publish job never got a runner. Its
   staged files are kept for three days; re-run the failed job once Actions is back.

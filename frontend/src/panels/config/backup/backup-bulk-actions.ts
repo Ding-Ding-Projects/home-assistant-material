@@ -1,3 +1,4 @@
+import type { BulkPreviewItem } from "../../../components/bulk/bulk-selection";
 import type { BackupContent } from "../../../data/backup";
 import { computeBackupSize } from "../../../data/backup";
 
@@ -116,6 +117,26 @@ export const planBackupDelete = (
 
   deletable.sort((a, b) => timeOf(b) - timeOf(a));
   return { deletable, skipped };
+};
+
+/**
+ * The preview lines of one backup that will be deleted: a line for the backup
+ * itself, then a separate warning for each cost that cannot be undone (it is
+ * the most recent backup, it is the only copy). The warnings are their own
+ * lines so that they are drawn as warnings and never as a safe line.
+ */
+export const backupPreviewItems = (
+  entry: Pick<BackupDeleteEntry, "newest" | "onlyCopy">,
+  text: { entry: string; newest: string; onlyCopy: string }
+): BulkPreviewItem[] => {
+  const items: BulkPreviewItem[] = [{ kind: "change", text: text.entry }];
+  if (entry.newest) {
+    items.push({ kind: "warning", text: text.newest });
+  }
+  if (entry.onlyCopy) {
+    items.push({ kind: "warning", text: text.onlyCopy });
+  }
+  return items;
 };
 
 export interface BackupDeleteOutcome {

@@ -1,9 +1,15 @@
-import { mdiCheckCircle, mdiCircleOutline, mdiAlertCircle } from "@mdi/js";
+import {
+  mdiAlertCircle,
+  mdiCheckCircle,
+  mdiCircleOutline,
+  mdiContentCopy,
+} from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
 import { customElement, property, state } from "lit/decorators";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
+import { showToast } from "../../../util/toast";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
@@ -14,7 +20,6 @@ import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-textarea";
 import "../../../components/input/ha-input";
-import "../../../components/input/ha-input-copy";
 import type { HaInput } from "../../../components/input/ha-input";
 import type { ApplicationCredential } from "../../../data/application_credential";
 import {
@@ -46,6 +51,7 @@ import {
   serializeDraft,
 } from "../../../data/google_setup";
 import { domainToName } from "../../../data/integration";
+import { integrationDisplayName } from "./domain-name";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
@@ -157,6 +163,11 @@ class HaConfigGoogleSetup extends LitElement {
       this._status = status;
       this._credentialDomains = config.domains;
       this._error = undefined;
+      // The names of the integrations are loaded on request. Until they are
+      // here the names are the tidied domains.
+      this.hass
+        .loadBackendTranslation("title", this._domains)
+        .catch(() => undefined);
     } catch (err: any) {
       this._error = err?.message ?? String(err);
       return;
@@ -244,6 +255,14 @@ class HaConfigGoogleSetup extends LitElement {
   private get _domains(): string[] {
     return (this._status?.domains ?? []).filter((domain) =>
       this._credentialDomains.includes(domain)
+    );
+  }
+
+  /** The name of an integration, never the raw domain. */
+  private _domainName(domain: string): string {
+    return integrationDisplayName(
+      domainToName(this.hass.localize, domain),
+      domain
     );
   }
 
@@ -402,6 +421,31 @@ class HaConfigGoogleSetup extends LitElement {
     this._setDraft({ nestProjectId: (ev.target as HaInput).value ?? "" });
   }
 
+  // An address to copy. It is shown in full, wrapping where it must, because a
+  // single-line field cuts a long address with no sign that more follows.
+  private _renderAddress(label: string, value: string): TemplateResult {
+    return html`<div class="address" role="group" aria-label=${label}>
+      <code class="address-text">${value}</code>
+      <ha-button
+        appearance="plain"
+        size="s"
+        .address=${value}
+        @click=${this._copyAddress}
+      >
+        <ha-svg-icon slot="start" .path=${mdiContentCopy}></ha-svg-icon>
+        ${this._l("copy")}
+      </ha-button>
+    </div>`;
+  }
+
+  private async _copyAddress(ev: Event): Promise<void> {
+    const { address } = ev.currentTarget as HTMLElement & { address: string };
+    await copyToClipboard(address, this);
+    showToast(this, {
+      message: this.hass.localize("ui.common.copied_clipboard"),
+    });
+  }
+
   private _copyNestProject(): void {
     if (this._draft.nestProjectId) {
       copyToClipboard(this._draft.nestProjectId, this);
@@ -463,11 +507,7 @@ class HaConfigGoogleSetup extends LitElement {
               <p class="note">${this._l(`nest_step_${step.id}_text`)}</p>
               ${
                 step.address
-                  ? html`<ha-input-copy
-                      .label=${this._l("nest_address")}
-                      .value=${step.address}
-                      readonly
-                    ></ha-input-copy>`
+                  ? this._renderAddress(this._l("nest_address"), step.address)
                   : nothing
               }
               ${
@@ -493,11 +533,7 @@ class HaConfigGoogleSetup extends LitElement {
               }
               ${
                 step.id === "redirect"
-                  ? html`<ha-input-copy
-                      .label=${this._l("redirect_label")}
-                      .value=${redirect}
-                      readonly
-                    ></ha-input-copy>`
+                  ? this._renderAddress(this._l("redirect_label"), redirect)
                   : nothing
               }
               ${
@@ -818,11 +854,7 @@ class HaConfigGoogleSetup extends LitElement {
         <li>${this._l("guide_redirect")}</li>
         <li>${this._l("guide_download")}</li>
       </ol>
-      <ha-input-copy
-        .label=${this._l("redirect_label")}
-        .value=${this._redirectUri}
-        readonly
-      ></ha-input-copy>
+      ${this._renderAddress(this._l("redirect_label"), this._redirectUri)}
       <p class="note">
         ${this._status?.my_link ? this._l("redirect_my") : this._l("redirect_local")}
       </p>
@@ -879,9 +911,7 @@ class HaConfigGoogleSetup extends LitElement {
         ${this._domains.map((domain) => {
           const message = this._storeResults[domain];
           return html`<li class="row">
-            <span class="name"
-              >${domainToName(this.hass.localize, domain)}</span
-            >
+            <span class="name">${this._domainName(domain)}</span>
             <span class="detail" role="status">
               ${
                 message ||
@@ -904,7 +934,7 @@ class HaConfigGoogleSetup extends LitElement {
         ${this._domains.map((domain) => {
           const stored = this._hasCredential(domain);
           const connected = this._isConnected(domain);
-          const name = domainToName(this.hass.localize, domain);
+          const name = this._domainName(domain);
           return html`<li class="row">
             <span class="text">
               <span class="name">${name}</span>
@@ -1069,6 +1099,24 @@ class HaConfigGoogleSetup extends LitElement {
         list-style: none;
         margin: 0;
         padding: 0;
+      }
+      .address {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--ha-space-2);
+        margin-top: var(--ha-space-2);
+      }
+      .address-text {
+        flex: 1 1 220px;
+        min-width: 0;
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-md);
+        background: var(--secondary-background-color);
+        font-family: var(--ha-font-family-code, monospace);
+        font-size: var(--ha-font-size-s);
+        overflow-wrap: anywhere;
+        user-select: all;
       }
       .row {
         display: flex;

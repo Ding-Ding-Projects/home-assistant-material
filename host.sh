@@ -6,11 +6,34 @@
 #   ./host.sh --logs      the same, then stay in a live status and log view
 #   ./host.sh --stop      stop the container (data in ./config is kept)
 #
+# Add --full to any of these to use the full hosting mode instead (compose.full.yaml): one
+# container that runs its own Docker engine, so apps, the app store, backups with apps and real
+# updates work. See docs/features/hosting/full-mode.md. For example: ./host.sh --full --detached
+#
 # Leaving the log view does not stop anything. Existing data and other containers are left alone.
 set -u
 cd "$(dirname "$0")"
 PORT="${HA_MATERIAL_PORT:-8123}"
 SERVICE=homeassistant
+CONTAINER=home-assistant-material
+DATA_NOTE="$(pwd)/config"
+MAX_TRIES=60
+
+FULL=0
+mode=""
+for arg in "$@"; do
+  case "$arg" in
+    --full) FULL=1 ;;
+    *) mode="$arg" ;;
+  esac
+done
+if [ "$FULL" = 1 ]; then
+  export COMPOSE_FILE=compose.full.yaml
+  SERVICE=homeassistant-full
+  CONTAINER=home-assistant-material-full
+  DATA_NOTE="the Docker volume ha-material-full-data"
+  MAX_TRIES=240
+fi
 
 fail() { printf '\nFAILED: %s\n' "$1" >&2; exit 1; }
 
@@ -41,10 +64,10 @@ start() {
   local tries=0
   until curl --fail --silent --max-time 5 "http://127.0.0.1:$PORT/manifest.json" >/dev/null 2>&1; do
     tries=$((tries + 1))
-    if [ "$tries" -ge 60 ]; then
+    if [ "$tries" -ge "$MAX_TRIES" ]; then
       echo
       docker compose ps
-      fail "It did not answer within 5 minutes. Run ./host.sh --logs to see why."
+      fail "It did not answer in time. Run ./host.sh --logs to see why (the full mode downloads several gigabytes on its first start)."
     fi
     printf '.'
     sleep 5
@@ -60,13 +83,13 @@ start() {
   else
     echo "  On your network:   the address of this machine could not be read; use its IP address with port $PORT."
   fi
-  echo "  Data is kept in:   $(pwd)/config"
+  echo "  Data is kept in:   $DATA_NOTE"
 }
 
 status_line() {
   local state health
-  state="$(docker inspect --format '{{.State.Status}}' home-assistant-material 2>/dev/null || echo "not created")"
-  health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no health check{{end}}' home-assistant-material 2>/dev/null || echo "")"
+  state="$(docker inspect --format '{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo "not created")"
+  health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no health check{{end}}' "$CONTAINER" 2>/dev/null || echo "")"
   printf 'Service %s: %s, %s. ' "$SERVICE" "$state" "$health"
 }
 
@@ -89,7 +112,7 @@ log_view() {
   done
 }
 
-mode="${1:-}"
+# (mode was read with the other options above)
 if [ -z "$mode" ]; then
   echo "Home Assistant Material"
   echo "  1) Start in the background and return"
@@ -108,6 +131,6 @@ fi
 case "$mode" in
   --detached) start ;;
   --logs) start; log_view ;;
-  --stop) docker compose stop || fail "The container could not be stopped."; echo "Stopped. Data in ./config is kept." ;;
-  *) fail "Unknown option $mode. Use --detached, --logs or --stop." ;;
+  --stop) docker compose stop || fail "The container could not be stopped."; echo "Stopped. Data is kept in $DATA_NOTE." ;;
+  *) fail "Unknown option $mode. Use --detached, --logs, --stop, with --full for the full hosting mode." ;;
 esac

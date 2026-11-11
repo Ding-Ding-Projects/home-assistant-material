@@ -3,6 +3,7 @@
 import asyncio
 from contextlib import suppress
 import logging
+import os
 
 from dbus_fast import Variant
 
@@ -22,6 +23,11 @@ IPTABLES_CMD = "/usr/sbin/iptables"
 IP6TABLES_CMD = "/usr/sbin/ip6tables"
 
 TERMINAL_STATES = {UnitActiveState.INACTIVE, UnitActiveState.FAILED}
+
+# Set to "1" by the full hosting mode (one outer container with its own Docker engine), where
+# there is no systemd. The outer container applies the same rules itself, in the network
+# namespace that holds the Supervisor bridge, before the Supervisor starts.
+ENV_FIREWALL_EXTERNAL = "SUPERVISOR_FIREWALL_EXTERNAL"
 
 
 class FirewallManager(CoreSysAttributes):
@@ -138,6 +144,9 @@ class FirewallManager(CoreSysAttributes):
 
     async def apply_gateway_firewall_rules(self) -> None:
         """Apply gateway firewall rules, marking unsupported on failure."""
+        if os.environ.get(ENV_FIREWALL_EXTERNAL) == "1":
+            _LOGGER.info("Gateway firewall rules are applied by the hosting container")
+            return
         if await self._apply_gateway_firewall_rules():
             _LOGGER.info("Gateway firewall rules applied")
         else:

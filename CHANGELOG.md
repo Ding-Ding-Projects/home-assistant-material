@@ -8,6 +8,40 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: a second way to host the product, "full" mode (`host.bat --full`). One outer container
+  runs its own small Docker engine; inside it the Supervisor, the core and every app run as
+  containers of their own, so the app store, apps opening inside the interface, full backups that
+  include apps and real updates work, while the computer sees one container. Run for real on a
+  throwaway copy: 96 apps listed from 5 repositories; File editor, Mosquitto, Terminal and SSH and
+  a community app installed, started and opened at 390 and 1440 px; a third-party repository
+  added; a full backup with apps restored; the core updated from 2026.11.1.53 to 2026.11.1.118
+  through the interface; stop and start brought everything back; the host restart and shutdown
+  controls only return an error and the computer is untouched. It needs a privileged container,
+  about 745 MB of memory idle and 7 to 8.4 GB of disk. It needs the Supervisor image of THIS
+  release or later (the published 2026.11.0.118 reports itself unhealthy in this mode); the job
+  that publishes the outer image has not run yet. See `docs/features/hosting/full-mode.md`.
+- Release 2026.11.1.121 was the first published under the rule that nothing is published until
+  every build job of the run has succeeded: 25 files in one step, and the update feed moved with
+  it (operating system 18.5.121 for all four boards).
+- Fixed: a dashboard page that holds a single card (each room page of an Overview that was made
+  editable) had nothing to add content with. In edit mode it now says so at the top and offers
+  "Use sections layout", which turns it into a sections page; a page that is still generated
+  offers "Make editable copy". The page uses the visible screen height, so its edit bar no longer
+  slides under the phone's bottom bar. Seen in a local build at 390, 320 and 1440 px.
+- Fixed, found by looking at build 121 in a browser: the statistics strip was built but no page
+  used it (it is on Devices, Entities, Automations, Scripts, Helpers and Tags now); selection bar
+  buttons and row checkboxes were under 44 px on a touch screen; the bar covered the row of
+  sub-tabs on a phone; a long press on a dashboard tile opened nothing (a hold action a person set
+  is never taken over); "Select all", "Invert" and a toast's action were hard to read on the dark
+  bar; the stack of toasts covered the bottom bar; the type scale was lost on reload and made
+  headings smaller when switched on; support ticket notes did not follow the account; the phone's
+  page catalog had no groups; the worked example and practise control were used by no page (they
+  are on the General page and in guided setup now); dashboard edit mode on a phone listed tools
+  that do not belong there; the script editor always showed its save bar. Not yet seen in a
+  running build.
+- Fixed, from the polish list seen in build 121: no empty box at the end of a Users row on a
+  phone; the Blueprints note has room; Personal settings marks its first section before any
+  scroll. Not yet seen in a running build.
 - Fixed: backups made by official Home Assistant releases. Backups from 2026.11.1, 2025.1.4 and
   2024.6.4 were restored through the interface, at first-run setup and from the Backups page, with
   users, helpers, an automation, a script, a scene, a dashboard, an area and history all kept. Five

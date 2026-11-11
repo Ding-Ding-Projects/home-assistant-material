@@ -467,6 +467,15 @@ export class HuiViewHeader extends LitElement {
       border-style: solid;
     }
 
+    @media (pointer: coarse) {
+      .add {
+        height: 44px;
+      }
+      .container.edit-mode .content {
+        min-height: 44px;
+      }
+    }
+
     .dragging {
       pointer-events: none;
     }

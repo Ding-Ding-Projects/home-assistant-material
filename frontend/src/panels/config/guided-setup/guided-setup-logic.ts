@@ -4,6 +4,7 @@ import {
   maskYamlSecrets,
   stripSecretValues,
 } from "../../../common/secret-fields";
+import type { PractiseSpec } from "../../../components/setting-info/practise-logic";
 import type { GuidedSetupField } from "../../../data/guided_setup";
 
 /** The wizard steps, in order. */
@@ -199,6 +200,119 @@ const selectOptionValues = (selector?: Loose): string[] | undefined => {
         : option
     )
   );
+};
+
+/** A worked example of a field; the words come from the message key. */
+export interface FieldExample {
+  input: string;
+  key: string;
+  params?: Record<string, string | number>;
+}
+
+const escapePattern = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\/-]/g, "\\$&");
+
+/** The values a single choice list allows, or undefined when it is open. */
+const closedChoices = (leaf: LeafField): string[] | undefined => {
+  const select = leaf.selector?.select;
+  if (
+    !select ||
+    select.custom_value ||
+    select.multiple ||
+    leaf.freeForm ||
+    leaf.secret
+  ) {
+    return undefined;
+  }
+  const values = selectOptionValues(leaf.selector);
+  return values?.length ? values : undefined;
+};
+
+/** A number field's range when it has both ends, or undefined. */
+const closedRange = (
+  leaf: LeafField
+): { min: number; max: number; step: number } | undefined => {
+  const config = leaf.selector?.number;
+  if (!config || leaf.freeForm || leaf.secret) {
+    return undefined;
+  }
+  const { min, max, step } = config;
+  if (
+    typeof min !== "number" ||
+    typeof max !== "number" ||
+    !Number.isFinite(min) ||
+    !Number.isFinite(max) ||
+    min >= max
+  ) {
+    return undefined;
+  }
+  return { min, max, step: typeof step === "number" && step > 0 ? step : 1 };
+};
+
+/**
+ * The control a person can try beside a field, following the same rule as the
+ * field: a number with both ends of its range, or one value out of a closed
+ * list. Other fields have none. It never saves or sends anything.
+ */
+export const fieldPractise = (leaf: LeafField): PractiseSpec | undefined => {
+  const range = closedRange(leaf);
+  if (range) {
+    return {
+      type: "number",
+      min: range.min,
+      max: range.max,
+      step: range.step,
+      initial: range.min,
+    };
+  }
+  const choices = closedChoices(leaf);
+  if (choices) {
+    return {
+      type: "text",
+      rule: {
+        kind: "pattern",
+        pattern: choices.map(escapePattern).join("|"),
+      },
+      initial: choices[0],
+    };
+  }
+  return undefined;
+};
+
+/** Worked examples of a field, for the same fields that have a practise control. */
+export const fieldExamples = (leaf: LeafField): FieldExample[] => {
+  const range = closedRange(leaf);
+  if (range) {
+    return [
+      {
+        input: String(range.min),
+        key: "example_number_low",
+        params: { min: range.min },
+      },
+      {
+        input: String(range.max),
+        key: "example_number_high",
+        params: { max: range.max },
+      },
+      {
+        input: String(range.max + range.step),
+        key: "example_number_over",
+        params: { max: range.max },
+      },
+    ];
+  }
+  const choices = closedChoices(leaf);
+  if (choices) {
+    return [
+      { input: choices[0], key: "example_choice_ok" },
+      {
+        input: "?",
+        key: "example_choice_other",
+        params: { options: choices.join(", ") },
+      },
+    ];
+  }
+  return [];
 };
 
 const validateNumber = (

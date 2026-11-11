@@ -15,6 +15,7 @@ import type {
   HASSDomEvent,
 } from "../common/dom/fire_event";
 import { popoverSupported } from "../common/feature-detect/support-popover";
+import { phoneBarHeight } from "../common/preferences/attention-modes";
 import type { LocalizeKeys } from "../common/translations/localize";
 import "../components/ha-button";
 import "../components/ha-icon-button";
@@ -72,6 +73,14 @@ class NotificationManager extends LitElement {
 
   @state() private _announcement = "";
 
+  /**
+   * How tall the phone bar is now, so the stack sits above it. The stack lives
+   * outside the layout that defines the bar, so it cannot inherit the value
+   * and reads it from the layout. The bottom safe area is already part of the
+   * stack's offset.
+   */
+  @state() private _phoneBarHeight = "0px";
+
   @query(".stack") private _stack?: HTMLDivElement;
 
   @queryAll("ha-toast")
@@ -82,6 +91,21 @@ class NotificationManager extends LitElement {
   private _announced = new Map<string, string>();
 
   private _anonymousId = 0;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener("resize", this._updatePhoneBarHeight);
+    this._updatePhoneBarHeight();
+  }
+
+  public disconnectedCallback(): void {
+    window.removeEventListener("resize", this._updatePhoneBarHeight);
+    super.disconnectedCallback();
+  }
+
+  private _updatePhoneBarHeight = () => {
+    this._phoneBarHeight = phoneBarHeight();
+  };
 
   private _text(
     value: NonNullable<ShowToastParams["message"]> | undefined
@@ -95,6 +119,7 @@ class NotificationManager extends LitElement {
   }
 
   public async showDialog(parameters: ShowToastParams) {
+    this._updatePhoneBarHeight();
     if (parameters.duration === 0) {
       if (parameters.id) {
         await this._closeNotification(`identified-${parameters.id}`);
@@ -202,6 +227,7 @@ class NotificationManager extends LitElement {
         class="stack"
         style=${styleMap({
           "--notification-stack-bottom-offset": `${bottomOffset}px`,
+          "--ha-toast-bottom-bar-height": this._phoneBarHeight,
         })}
         popover=${ifDefined(popoverSupported ? "manual" : undefined)}
       >
@@ -430,12 +456,6 @@ class NotificationManager extends LitElement {
       flex-direction: column;
       align-items: center;
       gap: var(--ha-space-2);
-    }
-    /* On a phone the page can carry a bottom bar of tabs; stay above it. */
-    @media all and (max-width: 870px) {
-      .stack {
-        --ha-toast-bottom-bar-height: var(--ha-bottom-bar-height, 0px);
-      }
     }
   `;
 }

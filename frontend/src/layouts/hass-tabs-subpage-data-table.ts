@@ -191,6 +191,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   @property({ attribute: false }) public appendRow?: TemplateResult;
 
   /**
+   * The id of every row is an entity id, so the element menu can offer the
+   * entity's own entries on a row.
+   * @type {Boolean}
+   */
+  @property({ attribute: "entity-rows", type: Boolean })
+  public entityRows = false;
+
+  /**
    * Field with a unique id per entry in data.
    * @type {String}
    */
@@ -874,6 +882,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .selectable=${this._rowsSelectable}
                   .keepHiddenSelection=${this.keepHiddenSelection}
                   .id=${this.id}
+                  .entityRows=${this.entityRows}
                   .clickable=${this.clickable}
                   .appendRow=${this.appendRow}
                   .sortColumn=${this._sortColumn}
@@ -1629,6 +1638,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     .narrow-header-row .flex {
       flex: 1;
       margin-inline-start: -16px;
+    }
+
+    /* The chips keep their full labels: when they do not all fit, the row
+       scrolls sideways instead of cutting a label short ("Group by" must not
+       become "Gr…"). */
+    .narrow-header-row > :not(.flex),
+    .table-header > :not(ha-input-search):not(.chips-spacer) {
+      flex-shrink: 0;
     }
 
     .selection-bar {

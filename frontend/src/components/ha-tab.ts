@@ -141,6 +141,12 @@ export class HaTab extends LitElement {
     :host([narrow]) .name {
       font-size: var(--ha-font-size-xs);
       letter-spacing: 0;
+      /* A name that does not fit on one line takes a second line, and as a
+         last resort breaks inside the word, rather than being cut short. */
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.1;
+      text-overflow: clip;
     }
 
     ::slotted([slot="icon"]) {

@@ -87,7 +87,7 @@ import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
 import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
-import type { PageTool, PageToolRequest } from "./ha-page-tools";
+import type { PageTool, PageToolEntry, PageToolRequest } from "./ha-page-tools";
 import { isPageChrome } from "./ha-page-tools";
 
 const PREVIEW_LENGTH = 1500;
@@ -112,6 +112,9 @@ export class HaPageToolPanel extends LitElement {
   @state() private _tool?: PageTool;
 
   @state() private _title = "";
+
+  /** The entries the page offers, or undefined for every entry. */
+  @state() private _available?: readonly PageToolEntry[];
 
   @state() private _export?: PageExport;
 
@@ -198,6 +201,7 @@ export class HaPageToolPanel extends LitElement {
     }
     this._root = request.root;
     this._title = request.title;
+    this._available = request.available;
     this._show(request.tool);
     await this.updateComplete;
     if (this._panel && !this._panel.matches(":popover-open")) {
@@ -320,22 +324,24 @@ export class HaPageToolPanel extends LitElement {
                 class="chips"
                 aria-label=${localize("ui.page_tools.label")}
               >
-                ${(["export", "history", "lock", "help"] as const).map(
-                  (item) => html`
-                    <button
-                      type="button"
-                      class=${classMap({ chip: true, on: item === tool })}
-                      aria-pressed=${item === tool ? "true" : "false"}
-                      data-tool=${item}
-                      @click=${this._switchTool}
-                    >
-                      <ha-svg-icon .path=${TOOL_ICONS[item]}></ha-svg-icon>
-                      ${localize(
-                        `ui.page_tools.${item === "lock" ? "lock_title" : item}`
-                      )}
-                    </button>
-                  `
-                )}
+                ${(["export", "history", "lock", "help"] as const)
+                  .filter((item) => this._offers(item) || item === tool)
+                  .map(
+                    (item) => html`
+                      <button
+                        type="button"
+                        class=${classMap({ chip: true, on: item === tool })}
+                        aria-pressed=${item === tool ? "true" : "false"}
+                        data-tool=${item}
+                        @click=${this._switchTool}
+                      >
+                        <ha-svg-icon .path=${TOOL_ICONS[item]}></ha-svg-icon>
+                        ${localize(
+                          `ui.page_tools.${item === "lock" ? "lock_title" : item}`
+                        )}
+                      </button>
+                    `
+                  )}
               </nav>`
             : nothing
         }
@@ -363,6 +369,11 @@ export class HaPageToolPanel extends LitElement {
     `;
   }
 
+  /** Whether the page offers this entry. A page that listed none offers all. */
+  private _offers(entry: PageToolEntry): boolean {
+    return !this._available || this._available.includes(entry);
+  }
+
   private _switchTool(ev: Event): void {
     this._show((ev.currentTarget as HTMLElement).dataset.tool as PageTool);
   }
@@ -370,17 +381,22 @@ export class HaPageToolPanel extends LitElement {
   private _renderTools(): TemplateResult {
     const localize = this._i18n.localize;
     const locked = isLocked(this._locks, pageLockKey(window.location.pathname));
+    const offersFind = this._offers("find");
     return html`
-      <ha-input-search
-        appearance="outlined"
-        .placeholder=${localize("ui.page_tools.find")}
-        .accessibleLabel=${localize("ui.page_tools.find")}
-        .value=${this._findQuery}
-        @input=${this._findInput}
-        @keydown=${this._findKeydown}
-      ></ha-input-search>
       ${
-        this._findQuery.trim()
+        offersFind
+          ? html`<ha-input-search
+              appearance="outlined"
+              .placeholder=${localize("ui.page_tools.find")}
+              .accessibleLabel=${localize("ui.page_tools.find")}
+              .value=${this._findQuery}
+              @input=${this._findInput}
+              @keydown=${this._findKeydown}
+            ></ha-input-search>`
+          : nothing
+      }
+      ${
+        offersFind && this._findQuery.trim()
           ? html`<p class="note" role="status">
               ${
                 this._finder.invalid
@@ -401,12 +417,20 @@ export class HaPageToolPanel extends LitElement {
           : nothing
       }
       <div class="tool-list">
-        <button type="button" class="tool" @click=${this._editAppearance}>
-          <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
-          ${localize("ui.page_tools.appearance")}
-        </button>
         ${
-          canReadAloud()
+          this._offers("appearance")
+            ? html`<button
+                type="button"
+                class="tool"
+                @click=${this._editAppearance}
+              >
+                <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
+                ${localize("ui.page_tools.appearance")}
+              </button>`
+            : nothing
+        }
+        ${
+          canReadAloud() && this._offers("readAloud")
             ? html`<button
                 type="button"
                 class="tool"
@@ -423,27 +447,29 @@ export class HaPageToolPanel extends LitElement {
               </button>`
             : nothing
         }
-        ${(["history", "export", "lock", "help"] as const).map(
-          (item) => html`
-            <button
-              type="button"
-              class="tool"
-              data-tool=${item}
-              @click=${this._switchTool}
-            >
-              <ha-svg-icon
-                .path=${
-                  item === "lock" && !locked
-                    ? mdiLockOpenVariantOutline
-                    : TOOL_ICONS[item]
-                }
-              ></ha-svg-icon>
-              ${localize(
-                `ui.page_tools.${item === "lock" ? "lock_title" : item}`
-              )}
-            </button>
-          `
-        )}
+        ${(["history", "export", "lock", "help"] as const)
+          .filter((item) => this._offers(item))
+          .map(
+            (item) => html`
+              <button
+                type="button"
+                class="tool"
+                data-tool=${item}
+                @click=${this._switchTool}
+              >
+                <ha-svg-icon
+                  .path=${
+                    item === "lock" && !locked
+                      ? mdiLockOpenVariantOutline
+                      : TOOL_ICONS[item]
+                  }
+                ></ha-svg-icon>
+                ${localize(
+                  `ui.page_tools.${item === "lock" ? "lock_title" : item}`
+                )}
+              </button>
+            `
+          )}
       </div>
       <p class="note">${localize("ui.page_tools.find_note")}</p>
     `;
