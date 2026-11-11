@@ -70,8 +70,8 @@ window.SITE = {
   "Sleep": "M23,12H17V10L20.39,6H17V4H23V6L19.62,10H23V12M15,16H9V14L12.39,10H9V8H15V10L11.62,14H15V16M7,20H1V18L4.39,14H1V12H7V14L3.62,18H7V20Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T19:21:09-05:00",
- "commit": "738628d1",
+ "updated": "2026-11-10T19:46:22-05:00",
+ "commit": "df159856",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -778,6 +778,24 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "df159856",
+   "date": "2026-11-10T19:46:22-05:00",
+   "title": "Deploy Assistant: one-click deploys, instances, backups, Raspberry Pi cards",
+   "body": "A desktop app in deploy-assistant/ that runs Home Assistant Material\nin one click and manages every instance:\n\n- Docker on this computer, an SSH host, VirtualBox or VMware: it picks\n  a free name and port, writes every configuration, downloads and\n  checks the image, starts it, waits until it answers and gives the\n  link. Any number of instances run side by side.\n- Raspberry Pi 3, 4 and 5: writes the image to an SD card or USB drive\n  with the system's own administrator prompt, reads it back to check\n  it, then waits for the Pi at homeassistant.local.\n- Instance manager with start, stop, restart, update, logs, live\n  processor and memory use, and backups now or daily with a number\n  kept; restoring keeps the current config beside it.\n- Every operating system image and the container image download\n  automatically, checked against SHA256SUMS, also on SSH hosts.\n\nDocker on this computer was run end to end in a test: two instances,\nbackup, restore, removal. The card writer wrote and read back a test\nimage from the packaged app. Its window shares the project page's\nparts, built by build-renderer.js.\n\ndeploy-assistant.yml builds Squirrel for Windows, a .deb and zips,\nunsigned, and publishes them as their own release; the project page\nthen points its download buttons at those files. The project page gains\nDeploy Assistant (downloads and a live demo), Status and a gallery of\nevery board, so it links away only for downloads. Canvas 16 holds 15\nboards drawn from the app. Design, docs, this app and the two page\nworkflows no longer start a full image build."
+  },
+  {
+   "sha": "1eab5749",
+   "date": "2026-11-10T19:36:09-05:00",
+   "title": "Narrator stays on the device, choose step fixes, dialog frame and script editor",
+   "body": "- Narrator: only voices that run on the device are used; with none it stays\n  silent. Sample, reset list and loading text fixed.\n- Choose step: disabled conditions are left out of a test, stale results are\n  cleared, unreachable options are marked, Run asks first and is for\n  administrators. Automation editor: on/off switch, Check, history strip.\n- Entity dialog frame: tab row, tools block, no doubled state card. Dialog\n  fixes for water heater, humidifier, weather, sensor and the code dialog.\n- Script editor redrawn. Maintenance opens with what needs attention. Error\n  and loading screens redrawn.\n- Tabs: screen reader and keyboard fixes, narrow-screen search button,\n  grouped catalog. Search of everything: strings load outside Settings and\n  rows work for people who are not administrators.\n- Attention modes and reading options survive damaged browser storage.\n- Text that carries links keeps personal wording on its plain parts.\n\nNot yet seen in a running build.\n\n讀屏把聲留喺部機度唔出街，choose 步驟執返正，對話框外框同\nscript 編輯器都換咗新裝。仲未開過嚟睇，老實講一句。"
+  },
+  {
+   "sha": "c0e621d9",
+   "date": "2026-11-10T19:27:38-05:00",
+   "title": "Release: a push with many changed files no longer skips the image builds",
+   "body": "The check for a documentation-only push piped a file list into grep -q.\nOn a long list grep -q exits early, the pipe breaks, and with pipefail the\nwhole test read as 'no code changed'. Builds 64 and 65 were published with\nno images because of it. The list is now collected first and tested after.\n\n改得多過頭，條 pipe 斷咗，Der 機器以為我哋淨係寫文檔，64 同 65 兩個版\n得個殼冇 image。而家先收齊名單再睇，唔再畀 grep -q 整蠱。"
+  },
+  {
    "sha": "738628d1",
    "date": "2026-11-10T19:21:09-05:00",
    "title": "Choose step can test and run, wording tip fixed, more dialogs and controls redrawn",
@@ -1028,7 +1046,7 @@ window.SITE = {
     [
      "Deploy Assistant (one-click deploys, instances, backups, automatic downloads, Raspberry Pi cards)",
      "Written. Docker on this computer was run end to end in a test on 10 November 2026: two instances side by side, a backup, a restore and a removal. The card writer wrote and read back a test image through the packaged app. SSH hosts, VirtualBox, VMware and a real card are not yet seen working.",
-     "deploy-assistant/"
+     "deploy-assistant/ Version 1.1 (10 November 2026): the Deploy tab is a two-pane wizard; extensions with permission prompts, tools, support, changes, school mode, voice, scheduled dark theme, name and logo, dim sum surprise, Windows background updates with an unsigned-update banner, and the build shown on the first screen. Checked in the browser demo and in Electron on Linux; three extension tests pass. Not yet proven on Windows or macOS hardware, and auto-update has not been seen applying a real release."
     ],
     [
      "Dedicated build application",
@@ -2380,7 +2398,7 @@ window.SITE = {
   },
   {
    "id": "16-deploy-assistant",
-   "title": "Deploy Assistant: one-click deploys, instances, backups, downloads and Raspberry Pi cards",
+   "title": "Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards",
    "boards": [
     {
      "name": "DeployWelcome",
@@ -2388,15 +2406,23 @@ window.SITE = {
     },
     {
      "name": "DeployHome",
-     "title": "Deploy Assistant, one click per target"
+     "title": "Deploy Assistant, the deploy wizard: where on the left, the plan on the right"
     },
     {
      "name": "DeployHomeDark",
-     "title": "Deploy Assistant, one click per target, dark"
+     "title": "Deploy Assistant, the deploy wizard, dark"
+    },
+    {
+     "name": "DeployVirtualBox",
+     "title": "Deploy Assistant, VirtualBox chosen: processors and memory in the plan"
+    },
+    {
+     "name": "DeployNeedsSetup",
+     "title": "Deploy Assistant, VMware needs setup: how to fix it"
     },
     {
      "name": "DeployOptions",
-     "title": "Deploy Assistant, options before deploying"
+     "title": "Deploy Assistant, more options before deploying"
     },
     {
      "name": "DeployProgress",
@@ -2427,12 +2453,50 @@ window.SITE = {
      "title": "Deploy Assistant, automatic downloads"
     },
     {
+     "name": "DeployPiChosen",
+     "title": "Deploy Assistant, Raspberry Pi chosen in the wizard"
+    },
+    {
      "name": "DeployPiWrite",
      "title": "Deploy Assistant, writing a Raspberry Pi card"
-    },
+    }
+   ]
+  },
+  {
+   "id": "17-deploy-assistant-more",
+   "title": "Deploy Assistant: extensions, tools, support, changes, settings and more",
+   "boards": [
     {
      "name": "DeployPiProgress",
      "title": "Deploy Assistant, writing and checking the card"
+    },
+    {
+     "name": "DeployExtensions",
+     "title": "Deploy Assistant, extensions with their permissions"
+    },
+    {
+     "name": "DeployExtConsent",
+     "title": "Deploy Assistant, asking before an extension runs"
+    },
+    {
+     "name": "DeployExtResult",
+     "title": "Deploy Assistant, an extension's answer"
+    },
+    {
+     "name": "DeployTools",
+     "title": "Deploy Assistant, tools"
+    },
+    {
+     "name": "DeploySupport",
+     "title": "Deploy Assistant, support and tickets"
+    },
+    {
+     "name": "DeployChanges",
+     "title": "Deploy Assistant, changes with the build it is"
+    },
+    {
+     "name": "DeploySettings",
+     "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates"
     },
     {
      "name": "DeployPalette",
@@ -2445,5 +2509,5 @@ window.SITE = {
    ]
   }
  ],
- "deployVersion": "1.0.0"
+ "deployVersion": "1.1.0"
 };

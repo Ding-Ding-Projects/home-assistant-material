@@ -1,0 +1,133 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-11T01:06:05Z"
+  },
+  "title": "Deploy Assistant: extensions, tools, support, changes, settings and more",
+  "launch": {
+    "view": "canvas",
+    "page": "all"
+  },
+  "pages": [
+    {
+      "id": "all",
+      "name": "All boards"
+    }
+  ],
+  "boards": {
+    "DeployPiProgress.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 1609,
+      "title": "Deploy Assistant, writing and checking the card",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployExtensions.dc.html": {
+      "x": 1420,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, extensions with their permissions",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployExtConsent.dc.html": {
+      "x": 2840,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, asking before an extension runs",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployExtResult.dc.html": {
+      "x": 4260,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, an extension's answer",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployTools.dc.html": {
+      "x": 0,
+      "y": 1829,
+      "w": 1320,
+      "h": 1762,
+      "title": "Deploy Assistant, tools",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeploySupport.dc.html": {
+      "x": 1420,
+      "y": 1829,
+      "w": 1320,
+      "h": 1305,
+      "title": "Deploy Assistant, support and tickets",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployChanges.dc.html": {
+      "x": 2840,
+      "y": 1829,
+      "w": 1320,
+      "h": 920,
+      "title": "Deploy Assistant, changes with the build it is",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeploySettings.dc.html": {
+      "x": 4260,
+      "y": 1829,
+      "w": 1320,
+      "h": 4058,
+      "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployPalette.dc.html": {
+      "x": 0,
+      "y": 6107,
+      "w": 1320,
+      "h": 880,
+      "title": "Deploy Assistant, Ctrl Shift F with live controls",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployNarrow.dc.html": {
+      "x": 1420,
+      "y": 6107,
+      "w": 400,
+      "h": 2018,
+      "title": "Deploy Assistant, a narrow window",
+      "expand": "fill",
+      "page": "all"
+    }
+  },
+  "order": [
+    "DeployPiProgress.dc.html",
+    "DeployExtensions.dc.html",
+    "DeployExtConsent.dc.html",
+    "DeployExtResult.dc.html",
+    "DeployTools.dc.html",
+    "DeploySupport.dc.html",
+    "DeployChanges.dc.html",
+    "DeploySettings.dc.html",
+    "DeployPalette.dc.html",
+    "DeployNarrow.dc.html"
+  ],
+  "notes": {
+    "t-all": {
+      "x": 0,
+      "y": -320,
+      "text": "Deploy Assistant: extensions, tools, support, changes, settings and more. 10 boards drawn from the app.",
+      "kind": "title1",
+      "maxW": 5580,
+      "page": "all"
+    }
+  },
+  "designSystems": []
+}

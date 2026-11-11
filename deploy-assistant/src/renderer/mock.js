@@ -30,12 +30,19 @@
     later(t + 300, function () { inst.state = 'running'; inst.url = inst.target === 'ssh' ? 'http://192.168.1.40:' + inst.port : inst.target === 'vmware' ? 'http://192.168.150.131/' : 'http://localhost:' + inst.port; inst.lanUrl = inst.target === 'docker' ? 'http://192.168.1.12:' + inst.port : ''; emit('log', { id: inst.id, line: 'Home Assistant answered at ' + inst.url }); emit('done', { id: inst.id, action: 'deploy', ok: true }); emit('changed', snap()); });
   }
   var free = function (target) { var used = db.instances.map(function (i) { return i.port; }); var p = target === 'virtualbox' ? 8180 : 8123; while (used.indexOf(p) >= 0) p++; return p; };
+  var demoExts = [
+    { id: 'health-report', name: 'Health report', version: '1.0.0', description: 'One page on every instance: what runs, what does not, and how old its newest backup is.', permissions: ['instances:read', 'backups:read', 'notify'], permissionText: ['See the list of instances: names, targets, links, states and ports', 'See when each instance was backed up', 'Show you a notification'], commands: [{ id: 'report', title: 'Make the health report' }], enabled: true },
+    { id: 'link-sheet', name: 'Link sheet', version: '1.0.0', description: 'Every instance\'s link on one sheet, ready to paste or print for the household.', permissions: ['instances:read'], permissionText: ['See the list of instances: names, targets, links, states and ports'], commands: [{ id: 'sheet', title: 'Make the link sheet' }], enabled: false }];
   var api = {
     desktop: false,
     on: function (cb) { listeners.push(cb); },
     snapshot: async function () { return snap(); },
     labels: async function () { return {}; },
-    about: async function () { return { version: '1.0.0', data: '(demo)' }; },
+    about: async function () { return { version: (window.HAM_BUILD || {}).version || '1.1.0', builtAt: (window.HAM_BUILD || {}).builtAt || '', data: '(demo)' }; },
+    extensions: async function () { return demoExts; },
+    extEnable: async function (id, on) { demoExts.forEach(function (x) { if (x.id === id) x.enabled = on; }); return demoExts; },
+    extRun: async function (id) { var live = db.instances.filter(function (i) { return i.url; }); return id === 'link-sheet' ? { title: 'Link sheet', text: live.map(function (i) { return i.name + '\n  ' + i.url; }).join('\n\n') } : { title: 'Health report', text: live.map(function (i) { return '  ' + i.name + ': ' + i.state + ' at ' + i.url; }).join('\n') + '\n\nEverything is running and backed up in the last two days.' }; },
+    extFolder: async function () { return true; }, checkUpdates: async function () { return true; }, restartToUpdate: async function () { return true; }, editor: async function () { return 'Opened in VS Code'; },
     defaults: async function (t) { return { target: t, name: 'Home ' + (db.instances.length + 1), port: t === 'vmware' ? 0 : free(t), tag: 'latest', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', memoryMb: 4096, cpus: 2, diskGb: 0, memoryLimit: '' }; },
     check: async function (t) { await new Promise(function (r) { setTimeout(r, 400); }); return t === 'vmware' ? { ok: false, detail: 'VMware Workstation is not installed.', fix: 'Install VMware Workstation Pro, which is free for personal use, then check again.', link: 'https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion' } : { ok: true, detail: { docker: 'Docker 28.1.1, Compose 2.36.0', ssh: 'Connected. Docker 28.0.4 on 192.168.1.40', virtualbox: 'VirtualBox 7.1.8' }[t] }; },
     deploy: async function (o) {

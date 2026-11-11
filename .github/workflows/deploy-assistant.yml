@@ -35,6 +35,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # Only what the app needs: the rest of the repository has paths Windows cannot check out.
+          sparse-checkout: |
+            deploy-assistant
+            docs/site
       - uses: actions/setup-node@v4
         with:
           node-version: 22

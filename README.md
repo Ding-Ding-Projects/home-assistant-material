@@ -5,7 +5,7 @@ core, the supervisor and the operating system, with releases for Raspberry Pi, V
 Docker.
 
 **Status: early.** The build and update pipeline works and publishes real images. The redesigned
-interface exists as a complete design (212 boards on 16 canvases in [`design/`](design/)). The first part of it
+interface exists as a complete design (222 boards on 17 canvases in [`design/`](design/)). The first part of it
 is built: colours, typeface, navigation rail, floating pane, cards and tabs. Most features on the
 boards are **not yet implemented**. See [`docs/feature-status.md`](docs/feature-status.md) for
 exactly what is and is not done.

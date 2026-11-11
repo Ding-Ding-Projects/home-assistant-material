@@ -164,7 +164,11 @@ def deploy_demo():
         shutil.copy(os.path.join(src, f), os.path.join(dest, f))
     for f in os.listdir(os.path.join(src, 'fonts')):
         shutil.copy(os.path.join(src, 'fonts', f), os.path.join(dest, 'fonts', f))
-    return json.load(open(os.path.join(ROOT, 'deploy-assistant', 'package.json')))['version']
+    version = json.load(open(os.path.join(ROOT, 'deploy-assistant', 'package.json')))['version']
+    built = git('log', '-1', '--format=%cI', '--', 'deploy-assistant').strip()
+    with open(os.path.join(dest, 'build-info.js'), 'w') as fh:
+        fh.write('window.HAM_BUILD = ' + json.dumps({'version': version, 'builtAt': built}) + ';\n')
+    return version
 
 
 def main():

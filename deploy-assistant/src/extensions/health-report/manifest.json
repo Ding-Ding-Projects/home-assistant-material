@@ -1,0 +1,10 @@
+{
+  "manifestVersion": 1,
+  "id": "health-report",
+  "name": "Health report",
+  "version": "1.0.0",
+  "description": "One page on every instance: what runs, what does not, and how old its newest backup is.",
+  "permissions": ["instances:read", "backups:read", "notify"],
+  "main": "index.js",
+  "commands": [{ "id": "report", "title": "Make the health report" }]
+}
