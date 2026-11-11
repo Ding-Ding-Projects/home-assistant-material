@@ -39,6 +39,7 @@ import {
   cssColorToHex,
   FONT_FAMILIES,
   FONT_WEIGHTS,
+  hasDroppedOutsideImages,
   isAKind,
   isEmptyAppearance,
   isSafeImageUrl,
@@ -469,6 +470,13 @@ export class HaAppearanceEditor extends LitElement {
           <span class="label">${this._l("fill")}</span>
           <span class="hint">${this._l("fill_hint")}</span>
         </div>
+        ${
+          hasDroppedOutsideImages()
+            ? html`<p class="hint" role="note">
+                ${this._l("picture_outside_removed")}
+              </p>`
+            : nothing
+        }
         ${
           layers.length
             ? html`<ul class="layers">
@@ -1266,6 +1274,10 @@ export class HaAppearanceEditor extends LitElement {
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-5);
+    }
+    /* Rows of a scrolling column keep their height instead of being squeezed. */
+    .body > * {
+      flex-shrink: 0;
     }
     section {
       display: flex;

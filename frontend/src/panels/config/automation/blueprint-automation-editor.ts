@@ -1,9 +1,9 @@
-import { mdiContentSave } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import { css, html, nothing, type CSSResultGroup } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
 import { fireEvent } from "../../../common/dom/fire_event";
+import "../../../components/editor/ha-editor-save-bar";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-markdown";
@@ -14,7 +14,6 @@ import {
   type DirtyStateContext,
 } from "../../../data/context/dirty-state";
 import { HaBlueprintGenericEditor } from "../blueprint/blueprint-generic-editor";
-import { saveFabStyles } from "./styles";
 
 @customElement("blueprint-automation-editor")
 export class HaBlueprintAutomationEditor extends HaBlueprintGenericEditor {
@@ -67,16 +66,13 @@ export class HaBlueprintAutomationEditor extends HaBlueprintGenericEditor {
       }
       ${this.renderCard()}
 
-      <ha-button
-        slot="fab"
-        size="l"
-        class=${this._dirtyState?.isDirty ? "dirty" : ""}
-        .disabled=${this.saving}
-        @click=${this._saveAutomation}
-      >
-        <ha-svg-icon slot="start" .path=${mdiContentSave}></ha-svg-icon>
-        ${this.hass.localize("ui.common.save")}
-      </ha-button>
+      <ha-editor-save-bar
+        .hass=${this.hass}
+        .dirty=${this._dirtyState?.isDirty ?? false}
+        .saving=${this.saving}
+        show-shortcut
+        @save-bar-save=${this._saveAutomation}
+      ></ha-editor-save-bar>
     `;
   }
 
@@ -100,7 +96,6 @@ export class HaBlueprintAutomationEditor extends HaBlueprintGenericEditor {
   static get styles(): CSSResultGroup {
     return [
       HaBlueprintGenericEditor.styles,
-      saveFabStyles,
       css`
         :host {
           position: relative;
@@ -119,10 +114,6 @@ export class HaBlueprintAutomationEditor extends HaBlueprintGenericEditor {
                 0px
               )
           );
-        }
-        ha-button[slot="fab"] {
-          position: fixed;
-          --ha-button-box-shadow: var(--ha-box-shadow-l);
         }
       `,
     ];

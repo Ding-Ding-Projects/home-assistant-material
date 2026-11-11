@@ -112,6 +112,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-identity",
         load: () => import("./identity/ha-config-identity"),
       },
+      support: {
+        tag: "ha-config-support",
+        load: () => import("./support/ha-config-support"),
+      },
       "release-notes": {
         tag: "ha-config-release-notes",
         load: () => import("./release-notes/ha-config-release-notes"),

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  canonicalJson,
+  clampStamp,
   envelopeBytes,
+  MAX_CLOCK_SKEW_MS,
   planMerge,
   SYNC_DEBOUNCE_MS,
   toInstanceState,
@@ -120,6 +123,41 @@ describe("planMerge", () => {
   });
 });
 
+describe("equality", () => {
+  it("ignores the order of keys", () => {
+    expect(canonicalJson({ a: 1, b: { c: 2, d: 3 } })).toBe(
+      canonicalJson({ b: { d: 3, c: 2 }, a: 1 })
+    );
+    const same = planMerge(
+      { updated: 1, value: { a: 1, b: 2 } },
+      { updated: 2, value: { b: 2, a: 1 } }
+    );
+    expect(same).toEqual({ action: "keep" });
+  });
+
+  it("still tells different values apart", () => {
+    expect(canonicalJson({ a: [1, 2] })).not.toBe(canonicalJson({ a: [2, 1] }));
+  });
+});
+
+describe("times from a wrong clock", () => {
+  it("counts a time far in the future as now, so it cannot win for ever", () => {
+    const now = Date.now();
+    expect(clampStamp(now + MAX_CLOCK_SKEW_MS * 10, now)).toBe(now);
+    expect(clampStamp(now + MAX_CLOCK_SKEW_MS - 1, now)).toBe(
+      now + MAX_CLOCK_SKEW_MS - 1
+    );
+    const bogus = toInstanceState(envelope(now + 1e12, "b"), validate);
+    expect((bogus as { updated: number }).updated).toBeLessThanOrEqual(
+      Date.now()
+    );
+    // A change made here a moment later is newer than the bogus copy.
+    expect(
+      planMerge({ updated: Date.now() + 1, value: "a" }, bogus).action
+    ).toBe("upload-local");
+  });
+});
+
 describe("size limit", () => {
   it("measures the wrapper in bytes", () => {
     expect(
@@ -163,7 +201,13 @@ describe("UserDataSync", () => {
     }),
   };
 
-  const make = (maxBytes?: number) =>
+  let refreshed = 0;
+  let readyHandlers: (() => void)[] = [];
+
+  const make = (
+    maxBytes?: number,
+    partSizes?: (value: string) => Record<string, number>
+  ) =>
     new UserDataSync<string>({
       key: "personal_wording",
       validate,
@@ -171,7 +215,11 @@ describe("UserDataSync", () => {
       writeLocal: (value) => {
         local = value;
       },
+      refreshLocal: () => {
+        refreshed++;
+      },
       maxBytes,
+      partSizes,
     });
 
   beforeEach(() => {
@@ -182,6 +230,13 @@ describe("UserDataSync", () => {
     saved = [];
     failWith = undefined;
     handler = undefined;
+    refreshed = 0;
+    readyHandlers = [];
+    conn.addEventListener.mockImplementation((name: string, fn: () => void) => {
+      if (name === "ready") {
+        readyHandlers.push(fn);
+      }
+    });
     conn.sendMessagePromise.mockClear();
   });
 
@@ -268,6 +323,133 @@ describe("UserDataSync", () => {
     sync.push();
     await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
     expect(saved[saved.length - 1]).toMatchObject({ data: null });
+  });
+
+  // After a failed save and a reconnect, the copy on the instance may have
+  // been changed by another device. Sending at once would overwrite it.
+  it("lets the merge decide after a reconnect instead of sending at once", async () => {
+    local = "mine";
+    failWith = new Error("down");
+    const sync = make();
+    sync.start(conn as never);
+    handler!({ value: null });
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
+    expect(sync.snapshot.status).toBe("error");
+    failWith = undefined;
+    conn.sendMessagePromise.mockClear();
+
+    readyHandlers.forEach((fn) => fn());
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS * 2);
+    expect(conn.sendMessagePromise).not.toHaveBeenCalled();
+
+    // The resubscribed instance event carries another device's newer copy.
+    handler!({ value: envelope(Date.now() + 1000, "theirs") });
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS * 2);
+    expect(local).toBe("theirs");
+    expect(conn.sendMessagePromise).not.toHaveBeenCalled();
+  });
+
+  it("keeps a change that is waiting to be saved over an instance copy", async () => {
+    const sync = make();
+    sync.start(conn as never);
+    handler!({ value: envelope(1, "old") });
+    local = "edit";
+    sync.push();
+    handler!({ value: envelope(Date.now() + 1000, "theirs") });
+    expect(local).toBe("edit");
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
+    expect(saved[0]).toMatchObject({ data: "edit" });
+    // The newer copy was kept for the next merge and is used after the save.
+    expect(local).toBe("theirs");
+  });
+
+  it("stamps a change after the newest instance time", async () => {
+    const sync = make();
+    sync.start(conn as never);
+    handler!({ value: envelope(Date.now() + 60000, "old") });
+    local = "edit";
+    sync.push();
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
+    expect((saved[0] as { updated: number }).updated).toBeGreaterThan(
+      Date.now() + 59000
+    );
+  });
+
+  it("refreshes this tab's memory when both copies are the same", () => {
+    local = "same";
+    window.localStorage.setItem(
+      "instanceSync.personal_wording",
+      JSON.stringify({ updated: 1 })
+    );
+    const sync = make();
+    sync.start(conn as never);
+    handler!({ value: envelope(2, "same") });
+    expect(refreshed).toBe(1);
+  });
+
+  it("sends a change made just before leaving", async () => {
+    const sync = make();
+    const stop = sync.start(conn as never);
+    handler!({ value: null });
+    local = "last";
+    sync.push();
+    stop();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ data: "last" });
+  });
+
+  it("sends a waiting change when the page is hidden", async () => {
+    const sync = make();
+    sync.start(conn as never);
+    handler!({ value: null });
+    local = "last";
+    sync.push();
+    window.dispatchEvent(new Event("pagehide"));
+    await vi.advanceTimersByTimeAsync(1);
+    expect(saved).toHaveLength(1);
+  });
+
+  it("stops the shared connection only when the last caller lets go", async () => {
+    const sync = make();
+    const first = sync.start(conn as never);
+    sync.start(conn as never);
+    handler!({ value: null });
+    first();
+    local = "kept";
+    sync.push();
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
+    expect(saved).toHaveLength(1);
+    // Letting go twice never takes the other caller's turn.
+    first();
+    local = "again";
+    sync.push();
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
+    expect(saved).toHaveLength(2);
+  });
+
+  it("says which part is too large", async () => {
+    local = "x".repeat(200);
+    const sync = make(100, () => ({ small: 3, big: 190, medium: 40 }));
+    sync.start(conn as never);
+    handler!({ value: null });
+    await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS);
+    expect(sync.snapshot.status).toBe("too_large");
+    expect(sync.snapshot.largestPart).toBe("big");
+  });
+
+  it("forgets the cache, the age and what is in use on reset", () => {
+    local = "mine";
+    window.localStorage.setItem(
+      "instanceSync.personal_wording",
+      JSON.stringify({ updated: 5 })
+    );
+    const sync = make();
+    sync.resetLocal();
+    expect(local).toBeUndefined();
+    expect(window.localStorage.getItem("instanceSync.personal_wording")).toBe(
+      null
+    );
   });
 
   it("says it is offline when no connection has started", () => {

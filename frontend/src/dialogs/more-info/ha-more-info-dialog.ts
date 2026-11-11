@@ -49,6 +49,7 @@ import {
 import {
   getPersonalPreferences,
   PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
+  preferenceHolder,
   subscribePersonalPreferences,
   updatePersonalPreferences,
 } from "../../common/preferences/personal-preferences";
@@ -771,7 +772,21 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     `;
   }
 
+  // School mode or a schedule can hold the read-aloud choice; the switch then
+  // stays still and says why, instead of writing a choice nobody can see.
+  private _narratorHeldText(holder: "school" | "schedule"): string {
+    return this.hass.localize(
+      holder === "schedule"
+        ? "ui.dialogs.quick-bar.setting_held_schedule"
+        : "ui.dialogs.quick-bar.setting_held"
+    );
+  }
+
   private _toggleNarrator(ev: Event) {
+    if (preferenceHolder("narratorEnabled")) {
+      (ev.target as HTMLInputElement).checked = this._narratorOn;
+      return;
+    }
     updatePersonalPreferences({
       narratorEnabled: (ev.target as HTMLInputElement).checked,
     });
@@ -808,6 +823,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
   private _renderTools() {
     const localize = this.hass.localize;
+    const narratorHeld = preferenceHolder("narratorEnabled");
     const key = (name: string) =>
       localize(`ui.dialogs.more_info_control.frame.${name}` as LocalizeKeys);
     return html`
@@ -824,8 +840,17 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           </span>
           <ha-switch
             .checked=${this._narratorOn}
+            .disabled=${narratorHeld}
+            title=${narratorHeld ? this._narratorHeldText(narratorHeld) : ""}
             @change=${this._toggleNarrator}
           ></ha-switch>
+          ${
+            narratorHeld
+              ? html`<span class="tool-description" role="status"
+                  >${this._narratorHeldText(narratorHeld)}</span
+                >`
+              : nothing
+          }
         </label>
         <div class="tool export">
           <span class="tool-icon"

@@ -33,5 +33,17 @@ PULL_RELEASE_TIMEOUT: Final = 5.0
 # Seconds between progress events sent to the browser for one download.
 PULL_EVENT_INTERVAL: Final = 0.25
 
+# Test chat limits: characters in a prompt and in a reply, and seconds.
+CHAT_MAX_PROMPT: Final = 4_000
+CHAT_MAX_REPLY: Final = 20_000
+CHAT_FIRST_TOKEN_TIMEOUT: Final = 120.0
+CHAT_IDLE_TIMEOUT: Final = 30.0
+CHAT_TOTAL_TIMEOUT: Final = 300.0
+CHAT_EVENT_INTERVAL: Final = 0.1
+CHAT_RELEASE_TIMEOUT: Final = 5.0
+
+# Most users listed for one model.
+MAX_USERS: Final = 50
+
 # Largest answer, in bytes, read from the small version call.
 MAX_VERSION_BYTES: Final = 4096

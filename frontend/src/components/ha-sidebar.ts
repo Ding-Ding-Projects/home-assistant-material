@@ -40,8 +40,9 @@ import {
   readIdentity,
 } from "../common/identity/identity";
 import { subscribeSharedIdentity } from "../common/identity/shared-identity";
-import { startInstanceSync } from "../common/instance-sync/start-instance-sync";
+import { InstanceSyncStarter } from "../common/instance-sync/start-instance-sync";
 import { subscribeSharedPreferenceDefaults } from "../common/preferences/shared-preference-defaults";
+import { setScheduleZoneSetting } from "../common/preferences/preference-schedule-store";
 import {
   getPersonalPreferences,
   isDeveloperToolsHidden,
@@ -219,11 +220,16 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     return this._scrollableList as HTMLElement | null;
   }
 
+  // The signed-in user can load after this subscribes, so the sync starts
+  // from here or, later, from `updated` once the user id is known.
+  private _instanceSync = new InstanceSyncStarter();
+
   public hassSubscribe() {
+    this._instanceSync.ensure(this.hass.connection, this.hass.user?.id);
     return [
       subscribeSharedIdentity(this.hass.connection),
       subscribeSharedPreferenceDefaults(this.hass.connection),
-      startInstanceSync(this.hass.connection),
+      () => this._instanceSync.release(),
       subscribeFrontendUserData(
         this.hass.connection,
         "sidebar",
@@ -257,7 +263,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   public connectedCallback() {
     super.connectedCallback();
     this._unsubActivities ??= activityStore.subscribe(() => {
-      this._activityCount = activityStore.runningCount;
+      this._activityCount = activityStore.attentionCount;
     });
     window.addEventListener("location-changed", this._pathChanged);
     window.addEventListener("popstate", this._pathChanged);
@@ -369,7 +375,22 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       return;
     }
 
+    if (this.isConnected && this.hass?.user?.id) {
+      this._instanceSync.ensure(this.hass.connection, this.hass.user.id);
+    }
+
     const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
+    if (
+      this.hass.locale &&
+      (this.hass.locale !== oldHass?.locale ||
+        this.hass.config?.time_zone !== oldHass?.config?.time_zone)
+    ) {
+      // Schedules and quiet hours follow the profile's time zone setting.
+      setScheduleZoneSetting(
+        this.hass.locale.time_zone,
+        this.hass.config.time_zone
+      );
+    }
 
     if (
       this.hass &&

@@ -18,6 +18,7 @@ import type { HaListItemButton } from "../../../components/item/ha-list-item-but
 import "../../../components/item/ha-list-item-button";
 import "../../../components/list/ha-list-base";
 import "../../../components/progress/ha-progress-ring";
+import "../../../components/update-progress/ha-update-progress";
 import {
   areasContext,
   devicesContext,
@@ -90,6 +91,13 @@ class HaConfigUpdates extends LitElement {
     const entities = entityRegistryByEntityId(this._entities);
 
     return html`
+      ${updates.map(
+        (entity) =>
+          html`<ha-update-progress
+            .stateObj=${entity}
+            class="progress"
+          ></ha-update-progress>`
+      )}
       <ha-list-base
         aria-label=${this._localize("ui.panel.config.updates.caption")}
       >
@@ -175,6 +183,9 @@ class HaConfigUpdates extends LitElement {
   static get styles(): CSSResultGroup[] {
     return [
       css`
+        ha-update-progress {
+          margin: var(--ha-space-2) var(--ha-space-4);
+        }
         ha-list-item-button ha-icon-next {
           color: var(--secondary-text-color);
           height: 24px;

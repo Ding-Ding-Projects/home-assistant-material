@@ -177,23 +177,6 @@ export const indentStyle = css`
   }
 `;
 
-export const saveFabStyles = css`
-  :host {
-    overflow: hidden;
-  }
-  ha-button[slot="fab"] {
-    position: absolute;
-    right: calc(16px + var(--safe-area-inset-right, 0px));
-    bottom: calc(-80px - var(--safe-area-inset-bottom));
-    transition: bottom var(--ha-animation-duration-normal, 250ms)
-      var(--ha-automation-ease-standard, cubic-bezier(0.2, 0, 0, 1));
-    --ha-button-box-shadow: var(--ha-box-shadow-l);
-  }
-  ha-button[slot="fab"].dirty {
-    bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
-  }
-`;
-
 export const manualEditorStyles = css`
   ${motionKeyframes}
   :host {
@@ -212,21 +195,10 @@ export const manualEditorStyles = css`
     --sidebar-gap: var(--ha-space-4);
   }
 
-  .fab-positioner {
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .fab-positioner ha-button[slot="fab"] {
-    position: fixed;
-    right: unset;
-    left: unset;
-    bottom: calc(-80px - var(--safe-area-inset-bottom));
-    transition: bottom var(--ha-animation-duration-normal, 250ms)
-      var(--ha-automation-ease-standard, cubic-bezier(0.2, 0, 0, 1));
-  }
-  .fab-positioner ha-button[slot="fab"].dirty {
-    bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
+  /* The save bar follows the last field and sticks to the bottom edge only
+     while that field is further down, so it never covers a field */
+  .content-wrapper ha-editor-save-bar {
+    margin-inline-end: calc(-1 * (var(--sidebar-width) + var(--sidebar-gap)));
   }
 
   .content-wrapper {
@@ -260,10 +232,10 @@ export const manualEditorStyles = css`
       var(--automation-bottom-sheet-covered-height) + var(--ha-space-4)
     );
   }
-  .has-bottom-sheet .fab-positioner ha-button[slot="fab"].dirty {
-    bottom: calc(
-      var(--automation-bottom-sheet-covered-height) + var(--ha-space-4)
-    );
+  /* Under the sidebar sheet the bar sticks above the sheet, so Save stays in
+     reach and the sheet does not cover it */
+  .has-bottom-sheet ha-editor-save-bar {
+    bottom: var(--automation-bottom-sheet-covered-height);
   }
 
   ha-automation-sidebar {

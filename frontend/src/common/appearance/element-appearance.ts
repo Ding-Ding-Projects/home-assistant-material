@@ -1,4 +1,5 @@
 import { noteLocalChange } from "../history/local-history";
+import { syncCacheUsable } from "../instance-sync/sync-owner";
 
 /**
  * Appearance choices for single elements of the interface.
@@ -150,6 +151,9 @@ const normalizeLayer = (raw: unknown): FillLayer | undefined => {
   if (layer.type === "image") {
     const url = typeof layer.url === "string" ? layer.url.trim() : "";
     if (!url || url.length > APPEARANCE_LIMITS.url || !isSafeImageUrl(url)) {
+      if (url && looksLikeOutsideAddress(url)) {
+        droppedOutsideImages = true;
+      }
       return undefined;
     }
     return {
@@ -171,14 +175,52 @@ const normalizeLayer = (raw: unknown): FillLayer | undefined => {
   return undefined;
 };
 
+// Any control character, a quote or a backslash. A tab or line break inside a
+// path is dropped by the URL parser, which can turn `/<tab>/host/x` into the
+// outside address `//host/x`.
+// eslint-disable-next-line no-control-regex
+const UNSAFE_URL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f"\\]/;
+
+const EMBEDDED_IMAGE =
+  /^data:image\/(png|jpeg|webp|gif|avif);base64,[a-z0-9+/]*={0,2}$/i;
+
 /**
- * A picture layer may point at a web address, a path on this server or an
- * embedded picture. Anything that could run script is refused.
+ * A picture layer may point at a path on this server or at an embedded
+ * picture. Nothing may call out to another host, so a web address of any kind
+ * is refused, and so is anything that could run script.
  */
-export const isSafeImageUrl = (url: string): boolean =>
-  /^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|webp|gif|avif);base64,)/i.test(
-    url
-  ) && !/["\\\n\r]/.test(url);
+export const isSafeImageUrl = (url: string): boolean => {
+  if (typeof url !== "string" || !url || UNSAFE_URL_CHARACTERS.test(url)) {
+    return false;
+  }
+  if (url.startsWith("data:")) {
+    return EMBEDDED_IMAGE.test(url);
+  }
+  if (!url.startsWith("/") || url.startsWith("//")) {
+    return false;
+  }
+  try {
+    return (
+      new URL(url, window.location.origin).origin === window.location.origin
+    );
+  } catch (_err) {
+    return false;
+  }
+};
+
+// True when a stored picture address pointing at another host was dropped
+// since the person last changed a choice. The editor says so.
+let droppedOutsideImages = false;
+
+export const hasDroppedOutsideImages = (): boolean => droppedOutsideImages;
+
+export const acknowledgeDroppedOutsideImages = (): void => {
+  droppedOutsideImages = false;
+};
+
+const looksLikeOutsideAddress = (url: string): boolean =>
+  // eslint-disable-next-line no-control-regex
+  /^(https?:)?\/\//i.test(url.replace(/[\u0000-\u0020]/g, ""));
 
 /** Returns a clean copy of a choice, dropping anything not understood. */
 export const normalizeAppearance = (raw: unknown): ElementAppearance => {
@@ -252,7 +294,13 @@ export const normalizeAppearance = (raw: unknown): ElementAppearance => {
 export const isEmptyAppearance = (appearance: ElementAppearance): boolean =>
   Object.keys(appearance).length === 0;
 
-const emptyStore = (): AppearanceStore => ({ kinds: {}, elements: {} });
+const emptyStore = (): AppearanceStore => ({
+  kinds: Object.create(null),
+  elements: Object.create(null),
+});
+
+// Keys that would reach Object.prototype if used to write into a plain object.
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 export const normalizeStore = (raw: unknown): AppearanceStore => {
   const store = emptyStore();
@@ -263,6 +311,9 @@ export const normalizeStore = (raw: unknown): AppearanceStore => {
   let entries = 0;
   if (value.kinds && typeof value.kinds === "object") {
     for (const [tag, choice] of Object.entries(value.kinds)) {
+      if (UNSAFE_KEYS.has(tag)) {
+        continue;
+      }
       const appearance = normalizeAppearance(choice);
       if (
         /^[a-z][a-z0-9]*-[a-z0-9-]*$/.test(tag) &&
@@ -276,16 +327,19 @@ export const normalizeStore = (raw: unknown): AppearanceStore => {
   }
   if (value.elements && typeof value.elements === "object") {
     for (const [page, paths] of Object.entries(value.elements)) {
-      if (!paths || typeof paths !== "object") {
+      if (!paths || typeof paths !== "object" || UNSAFE_KEYS.has(page)) {
         continue;
       }
       for (const [path, choice] of Object.entries(paths)) {
+        if (UNSAFE_KEYS.has(path)) {
+          continue;
+        }
         const appearance = normalizeAppearance(choice);
         if (
           !isEmptyAppearance(appearance) &&
           entries < APPEARANCE_LIMITS.entries
         ) {
-          store.elements[page] ??= {};
+          store.elements[page] ??= Object.create(null);
           store.elements[page][path] = appearance;
           entries++;
         }
@@ -296,6 +350,11 @@ export const normalizeStore = (raw: unknown): AppearanceStore => {
 };
 
 export const readAppearanceStore = (): AppearanceStore => {
+  // A cache that belongs to a recorded account is not shown until that
+  // account is confirmed, not even for one frame. The page asks again then.
+  if (!syncCacheUsable()) {
+    return emptyStore();
+  }
   try {
     return normalizeStore(
       JSON.parse(window.localStorage.getItem(APPEARANCE_STORAGE_KEY) || "null")
@@ -324,6 +383,8 @@ export const writeAppearanceStore = (store: AppearanceStore): void => {
       APPEARANCE_STORAGE_KEY,
       JSON.stringify(normalizeStore(store))
     );
+    // The saved copy no longer holds any dropped address.
+    droppedOutsideImages = false;
   } catch (_err) {
     // Storage can be full or unavailable; the choice still applies until
     // the page is closed.
@@ -405,7 +466,8 @@ const layerImage = (layer: FillLayer): string => {
       layer.opacity
     )}, ${withAlpha(layer.to, layer.opacity)})`;
   }
-  return `url("${layer.url}")`;
+  // Checked again here so no address that reached this far can call out.
+  return isSafeImageUrl(layer.url) ? `url("${layer.url}")` : "none";
 };
 
 /** The styles for a choice, split by where they have to go. */

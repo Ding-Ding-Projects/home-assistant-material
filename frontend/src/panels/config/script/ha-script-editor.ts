@@ -1,7 +1,6 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiCog,
-  mdiContentSave,
   mdiDebugStepOver,
   mdiDelete,
   mdiDotsVertical,
@@ -27,6 +26,7 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import { goBack, navigate } from "../../../common/navigate";
 import { slugify } from "../../../common/string/slugify";
 import { promiseTimeout } from "../../../common/util/promise-timeout";
+import "../../../components/editor/ha-editor-save-bar";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -545,19 +545,14 @@ export class HaScriptEditor extends SubscribeMixin(
                       @value-changed=${this._yamlChanged}
                       @editor-save=${this._handleSaveScript}
                     ></ha-yaml-editor>
-                    <ha-button
-                      slot="fab"
-                      size="l"
-                      class=${!this.readOnly && this.isDirtyState ? "dirty" : ""}
-                      .disabled=${this.saving}
-                      @click=${this._handleSaveScript}
-                    >
-                      <ha-svg-icon
-                        slot="start"
-                        .path=${mdiContentSave}
-                      ></ha-svg-icon>
-                      ${this.hass.localize("ui.common.save")}
-                    </ha-button>`
+                    <ha-editor-save-bar
+                      .hass=${this.hass}
+                      .dirty=${!this.readOnly && this.isDirtyState}
+                      .saving=${this.saving}
+                      .disabled=${this.readOnly}
+                      show-shortcut
+                      @save-bar-save=${this._handleSaveScript}
+                    ></ha-editor-save-bar>`
                 : nothing
           }
         </div>

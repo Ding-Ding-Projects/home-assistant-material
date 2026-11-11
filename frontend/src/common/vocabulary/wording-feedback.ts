@@ -49,9 +49,10 @@ export const giveWordingFeedback = (
         deps.entryFor(CELEBRATION_HEADLINE_KEY),
         deps.localize("ui.personal_wording.overlay_title")
       ),
-      deps.localize("ui.personal_wording.overlay_count", {
+      // The wording is saved on the account, so a drop replaces it everywhere.
+      `${deps.localize("ui.personal_wording.overlay_count", {
         count: result.count,
-      })
+      })} ${deps.localize("ui.personal_wording.overlay_everywhere")}`
     );
   } catch (_err) {
     // The wording is already applied and saved.

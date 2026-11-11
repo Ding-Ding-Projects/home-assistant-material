@@ -4,6 +4,7 @@ import {
   mdiLightbulbOutline,
   mdiWeatherSunny,
 } from "@mdi/js";
+import { modeText } from "../../common/language-mode/language-mode";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import type { StartingPoint } from "./ha-starting-points";
 
@@ -74,8 +75,8 @@ export const templateStartingPoints = (
 ): StartingPoint[] =>
   TEMPLATE_STARTING_POINTS.map((item) => ({
     id: item.id,
-    title: localize(item.titleKey),
-    description: localize(item.descriptionKey),
+    title: modeText(localize as any, item.titleKey),
+    description: modeText(localize as any, item.descriptionKey),
     icon: item.icon,
   }));
 

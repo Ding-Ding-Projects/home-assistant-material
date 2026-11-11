@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_PERSONAL_PREFERENCES,
+  followDefaultPreferences,
   getPersonalPreferences,
   getPreferenceDefaults,
   getStoredPreferences,
@@ -72,12 +73,15 @@ describe("shared defaults under personal choices", () => {
     expect(getStoredPreferences().soundEffects).toBe(false);
   });
 
-  it("goes back to following the default when the choice is set to it", () => {
+  it("goes back to following the default only through the explicit reset", () => {
     setSharedDefaults({ momentum: true });
     savePersonalPreferences({ momentum: false });
     expect(getStoredPreferences().momentum).toBe(false);
+    // Picking the shared value again is still a choice and does not follow it.
     savePersonalPreferences({ momentum: true });
     setSharedDefaults({ momentum: false });
+    expect(getStoredPreferences().momentum).toBe(true);
+    followDefaultPreferences(["momentum"]);
     expect(getStoredPreferences().momentum).toBe(false);
   });
 

@@ -19,6 +19,13 @@ from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
+    CHAT_EVENT_INTERVAL,
+    CHAT_FIRST_TOKEN_TIMEOUT,
+    CHAT_IDLE_TIMEOUT,
+    CHAT_MAX_PROMPT,
+    CHAT_MAX_REPLY,
+    CHAT_RELEASE_TIMEOUT,
+    CHAT_TOTAL_TIMEOUT,
     DOMAIN,
     MAX_NAME_LENGTH,
     MAX_VERSION_BYTES,
@@ -30,6 +37,7 @@ from .const import (
     REQUEST_TIMEOUT,
 )
 from .data import (
+    ChatTracker,
     PullTracker,
     listed_size,
     map_error,
@@ -37,7 +45,9 @@ from .data import (
     shape_models,
     shape_progress,
     shape_running,
+    shape_chat_chunk,
     shape_show,
+    shape_users,
     valid_listed_name,
     valid_pull_name,
 )
@@ -57,6 +67,8 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_pull)
     websocket_api.async_register_command(hass, ws_delete)
     websocket_api.async_register_command(hass, ws_unload)
+    websocket_api.async_register_command(hass, ws_used_by)
+    websocket_api.async_register_command(hass, ws_chat)
 
 
 def _server_entries(hass: HomeAssistant) -> list[ConfigEntry]:
@@ -354,6 +366,161 @@ async def ws_delete(
         connection.send_error(msg["id"], map_error(err), "The server did not answer")
         return
     connection.send_result(msg["id"], {"model": msg["model"], "freed": size})
+
+
+@websocket_api.websocket_command(
+    {probatio.Required("type"): f"{DOMAIN}/used_by", **_ENTRY, **_MODEL}
+)
+@websocket_api.require_admin
+@callback
+def ws_used_by(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """List the conversation agents and AI tasks that use a model."""
+    entry = hass.config_entries.async_get_entry(msg["entry_id"])
+    if entry is None or entry.domain != OLLAMA_DOMAIN:
+        connection.send_error(msg["id"], "not_found", "No such Ollama server")
+        return
+    connection.send_result(msg["id"], {"users": shape_users(entry, msg["model"])})
+
+
+def _chats(hass: HomeAssistant) -> ChatTracker:
+    return hass.data.setdefault(DOMAIN, {}).setdefault("chats", ChatTracker())
+
+
+async def _async_chat(
+    connection: websocket_api.ActiveConnection,
+    msg_id: int,
+    client: Any,
+    model: str,
+    prompt: str,
+) -> None:
+    """Stream the reply of a model to one prompt until it ends."""
+    sent = 0
+    pending = ""
+    last_sent = 0.0
+
+    def send(event: dict[str, Any]) -> None:
+        connection.send_message(websocket_api.event_message(msg_id, event))
+
+    def flush() -> None:
+        nonlocal pending, last_sent
+        if pending:
+            send({"state": "text", "text": pending})
+            pending = ""
+        last_sent = time.monotonic()
+
+    final: dict[str, Any] | None = None
+    truncated = False
+    try:
+        async with asyncio.timeout(CHAT_TOTAL_TIMEOUT):
+            stream = await asyncio.wait_for(
+                client.chat(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    stream=True,
+                ),
+                CHAT_FIRST_TOKEN_TIMEOUT,
+            )
+            iterator = aiter(stream)
+            try:
+                started = False
+                while True:
+                    timeout = CHAT_IDLE_TIMEOUT if started else CHAT_FIRST_TOKEN_TIMEOUT
+                    try:
+                        item = await asyncio.wait_for(anext(iterator), timeout)
+                    except StopAsyncIteration:
+                        break
+                    started = True
+                    text, final = shape_chat_chunk(item)
+                    room = CHAT_MAX_REPLY - sent
+                    if len(text) > room:
+                        text, truncated = text[:room], True
+                    sent += len(text)
+                    pending += text
+                    if truncated:
+                        break
+                    if time.monotonic() - last_sent >= CHAT_EVENT_INTERVAL:
+                        flush()
+                    if final is not None:
+                        break
+            finally:
+                close = getattr(iterator, "aclose", None)
+                if close is not None:
+                    await close()
+    except asyncio.CancelledError:
+        raise
+    except Exception as err:  # noqa: BLE001
+        flush()
+        send({"state": "error", "code": map_error(err)})
+        return
+    flush()
+    if final is None and not truncated:
+        send({"state": "error", "code": "incomplete"})
+        return
+    send(
+        {
+            "state": "done",
+            "truncated": truncated,
+            "tokens": final["tokens"] if final else None,
+            "tokens_per_second": final["tokens_per_second"] if final else None,
+        }
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): f"{DOMAIN}/chat",
+        **_ENTRY,
+        **_MODEL,
+        probatio.Required("prompt"): probatio.All(
+            str, probatio.Length(min=1, max=CHAT_MAX_PROMPT)
+        ),
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_chat(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Ask a model one question and stream its reply. Nothing is stored.
+
+    The model only talks: no tools are given and nothing reads the home.
+    Unsubscribing stops the reply.
+    """
+    if not valid_listed_name(msg["model"]) or not msg["prompt"].strip():
+        connection.send_error(msg["id"], "bad_request", "Not a valid request")
+        return
+    if (client := _client_for(hass, connection, msg)) is None:
+        return
+    chats = _chats(hass)
+    key = id(connection)
+    previous = chats.task(key)
+    if previous is not None:
+        if previous.cancelling():
+            await asyncio.wait({previous}, timeout=CHAT_RELEASE_TIMEOUT)
+        if chats.task(key) is not None:
+            connection.send_error(
+                msg["id"], "busy", "A chat is already running on this connection"
+            )
+            return
+    msg_id = msg["id"]
+    connection.send_result(msg_id)
+
+    task = hass.async_create_background_task(
+        _async_chat(connection, msg_id, client, msg["model"], msg["prompt"]),
+        f"{DOMAIN} chat {msg_id}",
+    )
+    chats.start(key, task)
+    subscription = task.cancel
+
+    def release(_: asyncio.Task[None]) -> None:
+        chats.finish(key, task)
+        if connection.subscriptions.get(msg_id) == subscription:
+            connection.subscriptions.pop(msg_id)
+
+    task.add_done_callback(release)
+    connection.subscriptions[msg_id] = subscription
 
 
 @websocket_api.websocket_command(

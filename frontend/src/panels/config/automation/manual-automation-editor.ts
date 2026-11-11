@@ -46,7 +46,7 @@ import {
 } from "./ha-manual-editor-mixin";
 import { showPasteReplaceDialog } from "./paste-replace-dialog/show-dialog-paste-replace";
 import { getErrorMessage } from "./run-helpers";
-import { manualEditorStyles, saveFabStyles } from "./styles";
+import { manualEditorStyles } from "./styles";
 import "./trigger/ha-automation-trigger";
 import {
   cleanupRemovedGeneratedTriggerReferences,
@@ -561,7 +561,6 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
 
   static get styles(): CSSResultGroup {
     return [
-      saveFabStyles,
       manualEditorStyles,
       css`
         p {

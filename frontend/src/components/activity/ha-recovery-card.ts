@@ -1,9 +1,11 @@
 import { mdiAlertCircle } from "@mdi/js";
 import type { TemplateResult } from "lit";
+import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { redactDetails } from "../../common/activity/redact-details";
 import { fireEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
@@ -46,15 +48,37 @@ export class HaRecoveryCard extends LitElement {
 
   @property({ attribute: "undo-label" }) public undoLabel = "";
 
-  @state() private _copied = false;
+  @state() private _copyState: "idle" | "copied" | "failed" = "idle";
+
+  // The redacted text, worked out once per `details` and not on every render.
+  private _redacted = "";
+
+  private _copyTimer?: number;
+
+  private _lang = new LanguageModeController(this);
 
   private _l(key: string): string {
-    return this.hass.localize(`ui.activity.recovery.${key}` as any);
+    return this._lang.text(
+      this.hass.localize as any,
+      `ui.activity.recovery.${key}`
+    );
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.clearTimeout(this._copyTimer);
+  }
+
+  protected willUpdate(changedProps: PropertyValues<this>): void {
+    if (changedProps.has("details")) {
+      this._redacted = this.details ? redactDetails(this.details) : "";
+      this._copyState = "idle";
+    }
   }
 
   protected render(): TemplateResult {
-    const details = this.details ? redactDetails(this.details) : "";
-    return html`<div class="card" role="group" aria-label=${this.heading}>
+    const details = this._redacted;
+    return html`<div class="card">
       <div class="head">
         <ha-svg-icon .path=${mdiAlertCircle}></ha-svg-icon>
         <h3>${this.heading}</h3>
@@ -93,7 +117,7 @@ export class HaRecoveryCard extends LitElement {
         ${
           details
             ? html`<ha-button appearance="plain" @click=${this._copy}
-                >${this._copied ? this._l("copied") : this._l("copy_details")}</ha-button
+                >${this._copyState === "copied" ? this._l("copied") : this._l("copy_details")}</ha-button
               >`
             : nothing
         }
@@ -102,6 +126,15 @@ export class HaRecoveryCard extends LitElement {
         >
       </div>
       <p class="hint">${this._l("problem_log_hint")}</p>
+      <p class="sr-only" role="status">
+        ${
+          this._copyState === "copied"
+            ? this._l("copied")
+            : this._copyState === "failed"
+              ? this._l("copy_failed")
+              : ""
+        }
+      </p>
     </div>`;
   }
 
@@ -114,8 +147,17 @@ export class HaRecoveryCard extends LitElement {
   }
 
   private async _copy(): Promise<void> {
-    await copyToClipboard(redactDetails(this.details), this);
-    this._copied = true;
+    window.clearTimeout(this._copyTimer);
+    try {
+      await copyToClipboard(this._redacted, this);
+      this._copyState = "copied";
+    } catch {
+      this._copyState = "failed";
+    }
+    // The label goes back to "Copy details" after a moment.
+    this._copyTimer = window.setTimeout(() => {
+      this._copyState = "idle";
+    }, 3000);
   }
 
   static styles = [
@@ -162,6 +204,15 @@ export class HaRecoveryCard extends LitElement {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
         font-size: var(--ha-font-size-s);
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
       .actions {
         display: flex;

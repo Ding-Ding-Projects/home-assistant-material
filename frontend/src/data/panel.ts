@@ -102,6 +102,15 @@ const UNLISTED_CONFIG_PAGE_TITLES = [
     path: "/config/tools/drawing",
     key: "ui.panel.config.tools.tabs.drawing.title",
   },
+  {
+    path: "/config/cloud",
+    key: "ui.panel.config.cloud.account.onboarding.ha_cloud_title",
+  },
+  {
+    path: "/config/lovelace/resources",
+    key: "ui.panel.config.lovelace.resources.caption",
+  },
+  { path: "/config/app", key: "ui.panel.config.apps.caption" },
 ];
 
 /**

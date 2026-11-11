@@ -1502,6 +1502,10 @@ export class HaAppearanceTools extends LitElement {
       min-height: 0;
       overflow-y: auto;
     }
+    /* Rows of a scrolling column keep their height instead of being squeezed. */
+    .items > * {
+      flex-shrink: 0;
+    }
     button {
       font: inherit;
       color: inherit;

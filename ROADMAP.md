@@ -19,6 +19,16 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Release workflow compares a push with the last build that published images, so a
       documentation-only push on top of unbuilt code still builds that code. Built; builds 64 and
       65 went out without images before the fix, and no push since has shown the fix working
+- [ ] Release workflow, new jobs: a push that changes only documentation or design files publishes
+      no release, a run that attaches no file withdraws its release and tag, and every release
+      gets the newest Deploy Assistant installers copied onto it. Built; none of the three has run
+      on a real push. (The 37 releases with no files that the old workflow left were removed.)
+- [x] A plain `git clone` checks out on Windows 11: the two systemd mount units with a backslash
+      in their names are stored as `__x2d__`. The rename back to the real names in the operating
+      system post-build script is not yet seen in an operating system build
+- [x] The local frontend container build no longer crashes on a machine with many processors
+      (held to four processors, two on a retry). Seen on one computer; a second computer has not
+      tried it
 - [x] Container images, publicly pullable
 - [x] Update feed on the `channel` branch, supervisor and operating system pointed at it
 - [x] The published container image starts and serves the interface (build 26, run from the
@@ -33,6 +43,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Observe an over-the-air operating system update between two builds signed with them. No
       operating system image has been booted with an over-the-air update
 - [ ] Run `build.bat --run` and `build-installer.bat` on Windows
+- [ ] Run `deploy-assistant\build.bat` on Windows (added by another lane; not run)
 
 ## Hosting
 
@@ -93,15 +104,20 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       spreadsheet or PDF file formats
 - [ ] Selection bar and bulk actions on every table. The bar is built on Notifications, Labels,
       Automations and Scripts and not yet seen; the other tables do not have it
-- [ ] Guided forms and per-control information buttons
-- [ ] Settings that explain themselves. Personal settings does (built, not yet seen); other
-      pages do not
-- [ ] Resizable panels, collapsible filters and statistics
+- [~] Guided forms and per-control information buttons: the information buttons are built and not
+      yet seen. Not built: the worked example and the practise control
+- [ ] Settings that explain themselves. Personal settings does and the information buttons exist
+      (built, not yet seen); other pages do not
+- [~] Resizable panels, collapsible filters and statistics: split panes and a resizable filter
+      pane are built and not yet seen. Not built: collapsible statistics
 - [~] Notification centre and toasts: notifications are a page with a search and selection;
       30-day history with Undo is built and not yet seen; the board's colours by severity,
       action buttons and stacked toasts are not built
-- [ ] Progress where it started, recovery where it broke
-- [ ] Starting points for blank editors
+- [~] Progress where it started, recovery where it broke: the activity tray and the recovery card
+      are built and not yet seen. Not built: the update dialog in the tray; draft recovery is
+      design only
+- [~] Starting points for blank editors: built for an empty template editor and an empty dashboard
+      sections view, not yet seen. Not built: other empty editors
 - [x] Version and updated-at on the first screen
 - [x] Free, with nothing to buy: the About page says so, and says the project is independent
 - [ ] Link confirmation for a link that opens a page of the interface from outside. Built; not
@@ -150,7 +166,11 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Spoken narrator (on-device voices only) and action sounds. Built; not yet seen or heard
 - [ ] School mode, one thing at a time and attention modes (a clock, an offer to go back).
       Built; not yet seen in a running build
-- [ ] Scheduled and external settings sources
+- [~] Scheduled and external settings sources: time rules and shared defaults for personal
+      settings are built and not yet seen. Not built: triggers from an entity or a web service
+- [ ] Appearance choices and the personal wording file saved on the instance for the signed-in
+      account, kept in backups. Built; not yet seen in a running build, and not tried from a
+      second computer or after a restore
 - [ ] Renaming the app and logo customization. Built; not yet seen in a running build
 - [ ] Dim sum surprise (built only in the Deploy Assistant)
 
@@ -196,8 +216,11 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       custom cards and service-calling buttons, and Undo. Built; not yet seen
 - [~] History per dashboard and per tab, with a remote and push. Server commands were driven in a
       running copy (two saves, history, restore, delete archived); the page, set remote and push
-      are not seen, and no push to a real remote has been made. Not built: a screen to list or
-      delete the archived histories
+      are not seen, and no push to a real remote has been made. The archive list (list, bring back
+      or remove the histories of deleted dashboards) is built and not yet seen
+- [ ] Review findings fixed in source and covered by server tests (Minecraft over SSH, automation
+      and dashboard history, Ollama, shared identity, import summary); the pages that show them
+      are not yet seen
 
 ## Pages redrawn to their boards
 
@@ -246,7 +269,9 @@ matches its board, checked side by side.
 
 - [ ] Extension support (built only in the Deploy Assistant)
 - [ ] Support tickets (a component exists and is not wired to a page)
-- [ ] Authenticator and QR pairing (built only in the Deploy Assistant)
+- [~] Authenticator and QR pairing: the authenticator card on the profile page is built and not
+      yet seen; the code generator in Tools is not built (the browser has no credential vault);
+      QR pairing is the lock wizard's QR step, already built and not yet seen
 - [x] Changelog viewer: What changed, under Settings, About
 - [ ] Release notes page. Built; not yet seen in a running build
 - [~] Offline help articles: the Help tool with 12 articles was seen; 40 articles and 1,392
@@ -255,10 +280,13 @@ matches its board, checked side by side.
 - [~] File converter: data formats, images and text transforms are built and not yet seen;
       documents, audio, video and archives are not
 - [x] Base64 toolkit: encode, decode and data URLs for text and files, under Tools
-- [~] Minecraft server manager: server definitions with a guided form (commands not driven, page
-      not seen). Not built: version lookup, start, stop, logs, backups, the world generator
-- [~] Local Ollama suite: read-only servers and models (built, not seen). Not built: model
-      download, chat, helpers
+- [~] Minecraft server manager: definitions, SSH hosts, version lookup and the Docker over SSH
+      target (start, stop, log) are built and covered by 217 server tests; no real Docker host has
+      been used and the page is not seen. Not built: the other four targets, backups, the world
+      generator
+- [~] Local Ollama suite: servers, models, pull with progress and Cancel, and delete are built
+      (70 server tests, fake streams); no real Ollama server contacted and the page is not seen.
+      Not built: chat, helpers
 - [ ] External editor hand-off and publishing to a forge
 - [~] Drawing and annotation: a drawing board under Tools, built and not yet seen
 
@@ -272,7 +300,9 @@ matches its board, checked side by side.
       before a card is wiped; ask before the automatic download connects to saved hosts
 - [ ] Auto-update applying a real release on Windows
 - [ ] Virtual disks, game servers, local models and drawing in the Deploy Assistant
-      (`deploy-assistant/FEATURES.md`)
+      (`deploy-assistant/FEATURES.md`). Later commits by another lane add a converter, a Base64
+      toolkit, a QR maker, a drawing tab, shared School mode and an extension manager; none of it
+      has been run or seen by this work
 
 ## Later
 

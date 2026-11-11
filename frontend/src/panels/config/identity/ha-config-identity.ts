@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type {
   Identity,
   IdentityLogo,
@@ -139,8 +140,14 @@ class HaConfigIdentity extends LitElement {
       : { kind: "mark", mark: "heart" };
   }
 
+  private _lang = new LanguageModeController(this);
+
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(`ui.panel.config.identity.${key}` as any, values);
+    return this._lang.text(
+      this.hass.localize as any,
+      `ui.panel.config.identity.${key}`,
+      values
+    );
   }
 
   private _forgetPicture(): void {

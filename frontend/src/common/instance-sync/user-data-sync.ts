@@ -44,9 +44,23 @@ export type MergePlan =
   | { action: "adopt-instance"; conflict: boolean }
   | { action: "upload-local"; conflict: boolean; replacedInvalid: boolean };
 
+/**
+ * How far ahead of this device's clock a stored time may be before it is not
+ * believed (five minutes: enough for two devices whose clocks differ).
+ */
+export const MAX_CLOCK_SKEW_MS = 300000;
+
+/**
+ * A time more than a few minutes in the future comes from a fast or wrong
+ * clock. It counts as now, so it cannot win every later merge.
+ */
+export const clampStamp = (updated: number, now = Date.now()): number =>
+  updated > now + MAX_CLOCK_SKEW_MS ? now : updated;
+
 /** Reads the stored wrapper without trusting its shape. */
 export const parseEnvelope = (
-  raw: unknown
+  raw: unknown,
+  now = Date.now()
 ): { updated: number; data: unknown } | "invalid" | undefined => {
   if (raw === null || raw === undefined) {
     return undefined;
@@ -64,7 +78,7 @@ export const parseEnvelope = (
   ) {
     return "invalid";
   }
-  return { updated: envelope.updated, data: envelope.data };
+  return { updated: clampStamp(envelope.updated, now), data: envelope.data };
 };
 
 /** Turns what the instance holds into a state, validating the value. */
@@ -83,8 +97,26 @@ export const toInstanceState = <T>(
   return value === undefined ? "invalid" : { updated: envelope.updated, value };
 };
 
+const sortKeys = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(sortKeys);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, sortKeys((value as Record<string, unknown>)[key])])
+    );
+  }
+  return value;
+};
+
+/** JSON with the keys of every object in order, so equal values match. */
+export const canonicalJson = (value: unknown): string =>
+  JSON.stringify(sortKeys(value)) ?? "";
+
 const sameJson = (a: unknown, b: unknown): boolean =>
-  JSON.stringify(a) === JSON.stringify(b);
+  canonicalJson(a) === canonicalJson(b);
 
 /** Decides what to do with the browser copy and the instance copy. */
 export const planMerge = <T>(
@@ -130,6 +162,8 @@ export type SyncStatus =
 
 export interface SyncSnapshot {
   status: SyncStatus;
+  /** With `too_large`: the part of the value that takes up the most room. */
+  largestPart?: string;
   /** Which copy was used when both existed and differed. */
   used?: "instance" | "browser";
   /** True when the instance copy failed its checks and was replaced. */
@@ -151,8 +185,15 @@ export interface UserDataSyncOptions<T> {
    * Undefined means the setting was cleared.
    */
   writeLocal: (value: T | undefined) => void;
+  /**
+   * Puts the browser cache in use again, for a tab whose memory may be older
+   * than the cache. Must not call `push`.
+   */
+  refreshLocal?: () => void;
   equal?: (a: T, b: T) => boolean;
   maxBytes?: number;
+  /** Bytes taken by each named part of a value, to say what is too large. */
+  partSizes?: (value: T) => Record<string, number>;
 }
 
 export class UserDataSync<T> {
@@ -162,11 +203,23 @@ export class UserDataSync<T> {
 
   private _conn?: Connection;
 
+  // How many callers asked for this connection. The sidebar and the wording
+  // card share one connection, and it stops only when the last one lets go.
+  private _starts = 0;
+
   private _unsub?: Promise<UnsubscribeFunc>;
 
   private _timer?: ReturnType<typeof setTimeout>;
 
   private _inFlight = false;
+
+  // The newest time the instance has reported, so that a change made here is
+  // always stamped after it.
+  private _lastInstance = 0;
+
+  // An instance copy that arrived while a change made here was waiting to be
+  // saved. It is kept for the next merge instead of replacing that change.
+  private _deferred?: { raw: unknown };
 
   constructor(private _options: UserDataSyncOptions<T>) {}
 
@@ -179,38 +232,64 @@ export class UserDataSync<T> {
     return () => this._listeners.delete(listener);
   }
 
-  /** Starts loading and syncing. Safe to call again for the same connection. */
+  /**
+   * Starts loading and syncing. Safe to call again for the same connection:
+   * each call is counted, and the returned function lets go of that one call.
+   */
   public start(conn: Connection): () => void {
     if (this._conn === conn) {
-      return () => this.stop(conn);
+      this._starts++;
+      return this._stopper(conn);
     }
     this.stop();
     this._conn = conn;
-    conn.addEventListener("ready", this._onReady);
+    this._starts = 1;
+    window.addEventListener("pagehide", this._flush);
+    // After a reconnect the subscription delivers the instance copy again and
+    // the merge decides what to do with a save that failed; nothing is sent
+    // on reconnect alone.
     this._unsub = subscribeFrontendUserData(
       conn,
       this._options.key,
       ({ value }) => this._onInstance(value)
     );
     this._unsub.catch(() => this._set({ status: "offline" }));
-    return () => this.stop(conn);
+    return this._stopper(conn);
+  }
+
+  private _stopper(conn: Connection): () => void {
+    let released = false;
+    return () => {
+      if (!released) {
+        released = true;
+        this.stop(conn);
+      }
+    };
   }
 
   public stop(conn?: Connection): void {
     if (conn && conn !== this._conn) {
       return;
     }
+    if (conn && this._starts > 1) {
+      this._starts--;
+      return;
+    }
+    // A change made just before leaving is sent now, not dropped.
+    this._flush();
     clearTimeout(this._timer);
     this._timer = undefined;
-    this._conn?.removeEventListener("ready", this._onReady);
+    window.removeEventListener("pagehide", this._flush);
     this._unsub?.then((unsub) => unsub()).catch(() => undefined);
     this._unsub = undefined;
     this._conn = undefined;
+    this._starts = 0;
+    this._deferred = undefined;
   }
 
   /** Call after every change the person makes here (undefined = cleared). */
   public push(): void {
-    this._writeMeta(Date.now());
+    this._writeMeta(Math.max(Date.now(), this._lastInstance + 1));
     this._schedule();
   }
 
@@ -219,15 +298,52 @@ export class UserDataSync<T> {
     this._schedule(0);
   }
 
+  /**
+   * Forgets everything this browser holds for this setting: the value in use,
+   * the browser cache and its age. Nothing is sent to the instance.
+   */
+  public resetLocal(): void {
+    clearTimeout(this._timer);
+    this._timer = undefined;
+    this._deferred = undefined;
+    this._lastInstance = 0;
+    this._options.writeLocal(undefined);
+    try {
+      window.localStorage.removeItem(META_PREFIX + this._options.key);
+    } catch (_err) {
+      // Nothing was stored.
+    }
+    this._set({ status: "idle" });
+  }
+
+  /** True when this browser holds an age for the cached value. */
+  public hasAge(): boolean {
+    try {
+      return (
+        window.localStorage.getItem(META_PREFIX + this._options.key) !== null
+      );
+    } catch (_err) {
+      return true;
+    }
+  }
+
+  /** Puts the browser cache in use, once its owner is known. */
+  public restoreLocal(): void {
+    this._options.refreshLocal?.();
+  }
+
   private _set(snapshot: SyncSnapshot) {
     this._snapshot = snapshot;
     this._listeners.forEach((listener) => listener(snapshot));
   }
 
-  private _onReady = () => {
-    if (isOnlyInBrowser(this._snapshot.status)) {
-      this._schedule(0);
+  private _flush = () => {
+    if (this._timer === undefined || this._inFlight || !this._conn) {
+      return;
     }
+    clearTimeout(this._timer);
+    this._timer = undefined;
+    void this._send();
   };
 
   private _readMeta(): number | undefined {
@@ -236,7 +352,7 @@ export class UserDataSync<T> {
       const parsed = raw ? JSON.parse(raw) : undefined;
       return typeof parsed?.updated === "number" &&
         Number.isFinite(parsed.updated)
-        ? parsed.updated
+        ? clampStamp(parsed.updated)
         : undefined;
     } catch (_err) {
       return undefined;
@@ -264,7 +380,16 @@ export class UserDataSync<T> {
   }
 
   private _onInstance(raw: unknown) {
+    if (this._timer !== undefined || this._inFlight) {
+      // A change made here is waiting or on its way: it is the newest. The
+      // instance copy is kept for the next merge.
+      this._deferred = { raw };
+      return;
+    }
     const instance = toInstanceState(raw, this._options.validate);
+    if (instance && instance !== "invalid") {
+      this._lastInstance = Math.max(this._lastInstance, instance.updated);
+    }
     const local = this._local();
     const plan = planMerge(local, instance, this._options.equal);
     if (plan.action === "adopt-instance") {
@@ -277,9 +402,11 @@ export class UserDataSync<T> {
       });
       return;
     }
+    // This tab's memory may be older than the cache another tab updated.
+    this._options.refreshLocal?.();
     if (plan.action === "upload-local") {
       if (local && local.updated === 0) {
-        this._writeMeta(Date.now());
+        this._writeMeta(Math.max(Date.now(), this._lastInstance + 1));
       }
       this._set({
         status: this._snapshot.status === "saving" ? "saving" : "idle",
@@ -289,7 +416,7 @@ export class UserDataSync<T> {
       this._schedule(0);
       return;
     }
-    if (this._snapshot.status !== "saving" && !this._timer) {
+    if (this._snapshot.status !== "saving") {
       this._set({ status: "saved", used: this._snapshot.used });
     }
   }
@@ -300,7 +427,7 @@ export class UserDataSync<T> {
       return;
     }
     clearTimeout(this._timer);
-    this._set({ ...this._snapshot, status: "saving" });
+    this._set({ ...this._snapshot, status: "saving", largestPart: undefined });
     this._timer = setTimeout(() => {
       this._timer = undefined;
       void this._send();
@@ -325,7 +452,11 @@ export class UserDataSync<T> {
       data: value === undefined ? null : value,
     };
     if (envelopeBytes(envelope) > (this._options.maxBytes ?? SYNC_MAX_BYTES)) {
-      this._set({ ...this._snapshot, status: "too_large" });
+      this._set({
+        ...this._snapshot,
+        status: "too_large",
+        largestPart: this._largestPart(value),
+      });
       return;
     }
     this._inFlight = true;
@@ -333,14 +464,37 @@ export class UserDataSync<T> {
       await saveFrontendUserData(conn, this._options.key, envelope);
       this._inFlight = false;
       this._set({
-        status: this._timer ? "saving" : "saved",
+        status: this._timer !== undefined ? "saving" : "saved",
         used: this._snapshot.used,
         replacedInvalid: this._snapshot.replacedInvalid,
       });
+      this._replayDeferred(updated);
     } catch (_err) {
       // Never keep the error: its text could repeat the value.
       this._inFlight = false;
-      this._set({ ...this._snapshot, status: "error" });
+      this._set({ ...this._snapshot, status: "error", largestPart: undefined });
     }
+  }
+
+  /** Merges an instance copy that arrived during a save, if it is newer. */
+  private _replayDeferred(sentUpdated: number) {
+    if (!this._deferred || this._timer !== undefined) {
+      return;
+    }
+    const { raw } = this._deferred;
+    this._deferred = undefined;
+    const state = toInstanceState(raw, this._options.validate);
+    if (state && state !== "invalid" && state.updated > sentUpdated) {
+      this._onInstance(raw);
+    }
+  }
+
+  private _largestPart(value: T | undefined): string | undefined {
+    if (value === undefined || !this._options.partSizes) {
+      return undefined;
+    }
+    const sizes = Object.entries(this._options.partSizes(value));
+    sizes.sort((a, b) => b[1] - a[1]);
+    return sizes[0]?.[0];
   }
 }

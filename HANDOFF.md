@@ -1,6 +1,6 @@
 # Handoff
 
-Written 9 November 2026 and brought up to date on 10 November 2026 for whoever picks this up next.
+Written 9 November 2026 and brought up to date on 10 November 2026 (after commits `5b2c6af85` and `0d9dc73d4`) for whoever picks this up next.
 
 ## Where things stand
 
@@ -22,6 +22,38 @@ what has really been seen in a running build. Read both before trusting any summ
   build that published images. Build 66 is the first with images again.
 - Open work is tracked in issues 1 to 11 of this repository and in the lists below.
 
+### What the last two commits of 10 November 2026 changed, and how far it is checked
+
+- `5b2c6af85`: a plain clone now works on Windows (two mount units with a backslash in their
+  names are stored as `__x2d__` and renamed back by the operating system post-build script); the
+  local frontend container build is held to four processors (two on a retry) after it crashed on
+  a machine with 32; the build context no longer carries the host's `node_modules`; a push that
+  changes only documentation or design files publishes no release; a run that attaches no file
+  withdraws its release and tag; every release gets the newest Deploy Assistant installers. The
+  old workflow had left 37 releases with no files (a push that built nothing still created a
+  release and a tag); they were removed.
+- `0d9dc73d4`: review fixes (Minecraft over SSH, automation and dashboard history, Ollama, the
+  shared app name and logo, the dashboard import summary), appearance and personal wording saved
+  on the instance for the signed-in account and included in backups, an authenticator card on the
+  profile page, an activity tray and recovery card, schedules and shared defaults for personal
+  settings, information buttons, split panes and a resizable filter pane, starting points for
+  empty editors, and fixes for defects seen in build 80.
+- Verified: 623 server tests pass in a Linux container (passkey 143, Minecraft manager 217,
+  Ollama suite 70, frontend storage 36, automation and dashboard history 157); the frontend type
+  check is clean; 5,093 frontend tests pass with the baseline unchanged (3 failures and 46 files
+  that do not load); the production frontend container build completes; a plain clone checks out
+  on Windows 11; the changed server integrations load without errors in a running copy.
+- Not verified: none of the new pages or components has been opened in a browser; no operating
+  system image has been built since the file rename; the new release workflow jobs have not run;
+  `deploy-assistant\build.bat` (added by another lane) has not been run; the build fix has been
+  tried on one computer only.
+- Boards that are now partly built: Authenticator (the profile card is built; the Tools code
+  generator is not, because the browser has no credential vault), QR pairing (it is the lock
+  wizard's QR step, already built), Panels, BlankEditor, Schedule (time rules built; entity and
+  web-service triggers not), GuidedForm (information buttons built; worked example and practise
+  control not), Progress (tray and recovery card built; the update dialog is not wired in; draft
+  recovery is design only).
+
 ## What is known to be unfinished or untrue yet
 
 State these plainly to anyone who asks:
@@ -41,8 +73,9 @@ State these plainly to anyone who asks:
 - The passkey sign-in page and card, the Google setup page, the dashboard history page, the
   Minecraft and Ollama pages, the problem log page, the offline help reader, and every page
   listed as "not yet seen" in `docs/feature-status.md` have never been opened.
-- Of the Python tests of the new integrations (`core/tests/components/`), only the passkey tests
-  are known to have been run, in a running copy (143 passing). No result is recorded for the others.
+- The Python tests of the new integrations (`core/tests/components/`) were run in a Linux
+  container for the last batch: 623 pass (see above). The passkey tests were also run in a running
+  copy. No real authenticator, Docker host over SSH or Ollama server has been used.
 
 ## Remaining work, in the owner's order
 
@@ -83,12 +116,16 @@ Setup and interface:
   shared editor layout.
 - Google one-time setup: the Nest guidance (the separate paid Device Access registration and
   taking the project ID) is not built; enabling services with a real key is not exercised.
-- Minecraft server manager: version lookup, start, stop, logs, backups and the world generator.
-  How a containerised install hosts another container: SSH to a Docker host (default), opt-in
-  Docker socket mount, or an app on operating system installs; a process inside the container
-  is the weakest. The reviewers' findings that port conflicts were keyed by target type
-  rather than host, that nothing checked the ports this instance uses (8123), and that a corrupt
-  stored item raised at list time are not confirmed fixed.
+- Minecraft server manager: version lookup, start, stop and logs exist on the Docker over SSH
+  target (217 server tests; no real Docker host used). Still to do: the other four targets,
+  backups and the world generator. How a containerised install hosts another container: SSH to a
+  Docker host (default), opt-in Docker socket mount, or an app on operating system installs; a
+  process inside the container is the weakest. The reviewers' findings that port conflicts were
+  keyed by target type rather than host, that nothing checked the ports this instance uses
+  (8123), and that a corrupt stored item raised at list time are not confirmed fixed. Fixed in
+  the last batch: the SSH config file is never read, remote output is read in bounded chunks,
+  objects are acted on only when they carry this manager's label, a changed key type counts as a
+  changed key, and rename and delete are refused while a container exists.
 - Entity dialogs, open review findings: water heater switch name, state shown by colour alone on
   humidifier, weather unit at 320 px, sensor attributes.
 - Backup setup dialog: a save that never settles can block later saves, and a failed save from
@@ -203,4 +240,13 @@ pickers, logs and the automation editor are not seen there; open port 8090.
    back with their history (item 1 above).
 3. Boot the VirtualBox image (`haos_ova-<version>.vdi.zip`) and a Raspberry Pi image, then an
    over-the-air update between two builds signed with the project's key.
-4. Work down the queue above and `ROADMAP.md`.
+4. Open each page of the last batch in a running build and record what is seen: the authenticator
+   card, the activity tray and recovery card, schedules and shared defaults, information buttons,
+   split panes and the filter pane resize, starting points, appearance and wording saved to the
+   instance (try a second browser and a restore), the import summary, and the archive list on the
+   history pages.
+5. Watch the next push that changes the product: confirm the Deploy Assistant files are attached,
+   and that a documentation-only push publishes no release. Build the operating system image
+   once and confirm the two renamed mount units are back under their real names.
+6. Run `deploy-assistant\build.bat` and try the build fix on a second computer.
+7. Work down the queue above and `ROADMAP.md`.

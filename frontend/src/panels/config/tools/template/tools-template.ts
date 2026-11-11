@@ -9,9 +9,10 @@ import {
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import type { HASSDomTargetEvent } from "../../../../common/dom/fire_event";
 import { fireEvent } from "../../../../common/dom/fire_event";
+import { modeText } from "../../../../common/language-mode/language-mode";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import type { LocalizeKeys } from "../../../../common/translations/localize";
 import { debounce } from "../../../../common/util/debounce";
@@ -305,8 +306,9 @@ class HaPanelDevTemplate extends LitElement {
   }
 
   private _renderResultCard(type: string, resultType: string) {
-    const showEmptyState =
-      !this._error && !this._rendering && !this._template?.trim();
+    // Stays visible while an empty template is being rendered, so the cards
+    // do not flicker away and back
+    const showEmptyState = !this._error && !this._template?.trim();
 
     return html`
       <ha-card class="render-pane">
@@ -340,7 +342,8 @@ class HaPanelDevTemplate extends LitElement {
                     )}
                   </div>
                   <ha-starting-points
-                    .heading=${this.hass.localize(
+                    .heading=${modeText(
+                      this.hass.localize as any,
                       "ui.components.starting_points.heading"
                     )}
                     .items=${templateStartingPoints(this.hass.localize)}
@@ -912,6 +915,8 @@ ${
     localStorage[STORAGE_KEY_TEMPLATE] = this._template;
   }
 
+  @query("ha-code-editor") private _codeEditor?: HTMLElement;
+
   private _startingPointSelected(ev: CustomEvent<StartingPointSelectedDetail>) {
     const template = templateForStartingPoint(ev.detail.id);
     if (!template) {
@@ -920,6 +925,10 @@ ${
     this._template = template;
     this._subscribeTemplate();
     this._storeTemplate();
+    // The chosen text is in the editor: put the cursor there
+    this.updateComplete.then(() => {
+      this._codeEditor?.focus();
+    });
   }
 
   private async _restoreDemo() {

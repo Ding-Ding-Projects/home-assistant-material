@@ -15,9 +15,8 @@ import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import type { PersonalPreferences } from "../../common/preferences/personal-preferences";
 import {
   getPersonalPreferences,
-  getStoredPreferences,
   savePersonalPreferences,
-  schoolHeldFields,
+  preferenceHolder,
   subscribePersonalPreferences,
 } from "../../common/preferences/personal-preferences";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -416,10 +415,18 @@ export class QuickBar extends LitElement {
     }
   }
 
-  // True while School mode holds this setting, so a change here would only
-  // alter the stored choice behind the mode and show nothing.
+  // True while School mode or a schedule holds this setting, so a change here
+  // would only alter the stored choice behind it and show nothing.
   private _settingHeld(key: keyof PersonalPreferences): boolean {
-    return schoolHeldFields(getStoredPreferences()).has(key);
+    return preferenceHolder(key) !== undefined;
+  }
+
+  private _heldMessage(key: keyof PersonalPreferences): string {
+    return this._t(
+      preferenceHolder(key) === "schedule"
+        ? "ui.dialogs.quick-bar.setting_held_schedule"
+        : "ui.dialogs.quick-bar.setting_held"
+    );
   }
 
   private _settingChanged(ev: Event) {
@@ -464,8 +471,8 @@ export class QuickBar extends LitElement {
         .checked=${checked}
         .disabled=${held}
         .settingKey=${key}
-        title=${held ? this._t("ui.dialogs.quick-bar.setting_held") : ""}
-        aria-label=${held ? `${item.primary ?? ""}. ${this._t("ui.dialogs.quick-bar.setting_held")}` : (item.primary ?? "")}
+        title=${held ? this._heldMessage(key) : ""}
+        aria-label=${held ? `${item.primary ?? ""}. ${this._heldMessage(key)}` : (item.primary ?? "")}
         @click=${stopPropagation}
         @keydown=${this._switchKeydown}
         @change=${this._settingChanged}
@@ -982,7 +989,7 @@ export class QuickBar extends LitElement {
         const key = settingKeys[item.settingId];
         if (this._settingHeld(key)) {
           showToast(this, {
-            message: this._t("ui.dialogs.quick-bar.setting_held"),
+            message: this._heldMessage(key),
           });
         } else {
           this._saveSetting({ [key]: !getPersonalPreferences()[key] });

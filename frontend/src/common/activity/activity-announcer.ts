@@ -1,4 +1,5 @@
 import type { HomeAssistant } from "../../types";
+import { modeText } from "../language-mode/language-mode";
 import type { Activity } from "./activity-store";
 import { activityStore } from "./activity-store";
 
@@ -41,7 +42,7 @@ const announce = (activity: Activity): void => {
     return;
   }
   const state = activity.state;
-  const text = localize(`ui.activity.announce.${state}` as any, {
+  const text = modeText(localize as any, `ui.activity.announce.${state}`, {
     title: activity.title,
   });
   if (text) {

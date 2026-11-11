@@ -1,6 +1,11 @@
 import { ResizeController } from "@lit-labs/observers/resize-controller";
 import type { ContextType } from "@lit/context";
-import { mdiChevronLeft, mdiChevronRight } from "@mdi/js";
+import {
+  mdiChevronDown,
+  mdiChevronLeft,
+  mdiChevronRight,
+  mdiChevronUp,
+} from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -8,6 +13,8 @@ import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
+import { modeText } from "../../common/language-mode/language-mode";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
   safeGetStored,
   safeSetStored,
@@ -21,7 +28,9 @@ import {
   clampSize,
   maxStartSize,
   parseStoredState,
+  resolveStoredSize,
   shouldStack,
+  sizeToRatio,
 } from "./split-panels-logic";
 
 /** The width the divider column takes, in pixels. Matches the style below. */
@@ -70,6 +79,14 @@ export class HaSplitPanels extends LitElement {
   /** Which side is folded away. */
   @property({ reflect: true }) public collapsed: SplitCollapsed = "";
 
+  /**
+   * The end side has nothing to show yet. The start side fills the width and
+   * no divider is drawn, but the same layout stays mounted so that focus and
+   * scroll position survive the end side appearing.
+   */
+  @property({ type: Boolean, attribute: "end-hidden" })
+  public endHidden = false;
+
   /** Names used in the labels of the divider and its buttons. */
   @property({ attribute: "start-label" }) public startLabel?: string;
 
@@ -81,6 +98,9 @@ export class HaSplitPanels extends LitElement {
 
   @state() private _size?: number;
 
+  // The kept share of the container; set once a size has been chosen or read
+  @state() private _ratio?: number;
+
   @state() private _announcement = "";
 
   private _widthController = new ResizeController(this, {
@@ -88,6 +108,15 @@ export class HaSplitPanels extends LitElement {
   });
 
   @query(".layout") private _layout?: HTMLElement;
+
+  @query(".start") private _startPanel?: HTMLElement;
+
+  @query(".end") private _endPanel?: HTMLElement;
+
+  protected firstUpdated() {
+    // The panels exist only after the first render; the divider names them
+    this.requestUpdate();
+  }
 
   private _loadedKey?: string;
 
@@ -104,11 +133,16 @@ export class HaSplitPanels extends LitElement {
   }
 
   private get _effectiveSize(): number {
-    return clampSize(
-      this._size ?? this.defaultSize,
-      this.minStart,
-      this._maxStart
-    );
+    const total = Math.max(0, this._width - DIVIDER_WIDTH);
+    // A kept share follows the container; an older pixel value is used as it is
+    const wanted =
+      this._ratio !== undefined && total > 0
+        ? resolveStoredSize(
+            { size: this._size ?? 0, ratio: this._ratio },
+            total
+          )
+        : (this._size ?? this.defaultSize);
+    return clampSize(wanted, this.minStart, this._maxStart);
   }
 
   protected willUpdate(changed: PropertyValues<this>) {
@@ -120,7 +154,14 @@ export class HaSplitPanels extends LitElement {
 
   protected render() {
     const stacked = this._stacked;
-    const collapsed = stacked ? "" : this.collapsed;
+    // Stacked, only the first panel can be folded: the second one is the page
+    const collapsed = this.endHidden
+      ? "end"
+      : stacked
+        ? this.collapsed === "start"
+          ? "start"
+          : ""
+        : this.collapsed;
     const size = this._effectiveSize;
     const startName = this.startLabel ?? this._text("start");
     const endName = this.endLabel ?? this._text("end");
@@ -130,6 +171,8 @@ export class HaSplitPanels extends LitElement {
         class=${classMap({
           layout: true,
           stacked,
+          // Nothing is drawn in two columns before the width is known
+          unmeasured: this._widthController.value === undefined,
           "collapsed-start": collapsed === "start",
           "collapsed-end": collapsed === "end",
         })}
@@ -139,48 +182,70 @@ export class HaSplitPanels extends LitElement {
           <slot name="start"></slot>
         </div>
         ${
-          stacked
+          this.endHidden
             ? nothing
-            : html`<div class="divider-column">
-                <ha-split-divider
-                  .value=${size}
-                  .min=${this.minStart}
-                  .max=${this._maxStart}
-                  .total=${Math.max(0, this._width - DIVIDER_WIDTH)}
-                  .defaultValue=${this.defaultSize}
-                  .disabled=${collapsed !== ""}
-                  .label=${this._text("resize", {
-                    start: startName,
-                    end: endName,
-                  })}
-                  @split-divider-move=${this._dividerMoved}
-                ></ha-split-divider>
-                <div class="toggles">
-                  ${
-                    collapsed === ""
-                      ? html`${this._renderToggle(
-                          "start",
-                          this._text("collapse", { name: startName }),
-                          mdiChevronLeft
-                        )}${this._renderToggle(
-                          "end",
-                          this._text("collapse", { name: endName }),
-                          mdiChevronRight
-                        )}`
-                      : collapsed === "start"
-                        ? this._renderToggle(
-                            "",
-                            this._text("expand", { name: startName }),
-                            mdiChevronRight
-                          )
-                        : this._renderToggle(
-                            "",
-                            this._text("expand", { name: endName }),
+            : stacked
+              ? html`<div class="stack-fold">
+                  <button
+                    type="button"
+                    class="stack-toggle"
+                    aria-expanded=${collapsed === "start" ? "false" : "true"}
+                    @click=${this._stackFoldClicked}
+                  >
+                    <ha-svg-icon
+                      .path=${
+                        collapsed === "start" ? mdiChevronDown : mdiChevronUp
+                      }
+                    ></ha-svg-icon>
+                    ${
+                      collapsed === "start"
+                        ? this._text("expand", { name: startName })
+                        : this._text("collapse", { name: startName })
+                    }
+                  </button>
+                </div>`
+              : html`<div class="divider-column">
+                  <ha-split-divider
+                    .controlsElements=${this._panels}
+                    .resetText=${this._text("reset")}
+                    .value=${size}
+                    .min=${this.minStart}
+                    .max=${this._maxStart}
+                    .total=${Math.max(0, this._width - DIVIDER_WIDTH)}
+                    .defaultValue=${this.defaultSize}
+                    .disabled=${collapsed !== ""}
+                    .label=${this._text("resize", {
+                      start: startName,
+                      end: endName,
+                    })}
+                    @split-divider-move=${this._dividerMoved}
+                  ></ha-split-divider>
+                  <div class="toggles">
+                    ${
+                      collapsed === ""
+                        ? html`${this._renderToggle(
+                            "start",
+                            this._text("collapse", { name: startName }),
                             mdiChevronLeft
-                          )
-                  }
-                </div>
-              </div>`
+                          )}${this._renderToggle(
+                            "end",
+                            this._text("collapse", { name: endName }),
+                            mdiChevronRight
+                          )}`
+                        : collapsed === "start"
+                          ? this._renderToggle(
+                              "",
+                              this._text("expand", { name: startName }),
+                              mdiChevronRight
+                            )
+                          : this._renderToggle(
+                              "",
+                              this._text("expand", { name: endName }),
+                              mdiChevronLeft
+                            )
+                    }
+                  </div>
+                </div>`
         }
         <div class="end" ?hidden=${collapsed === "end"}>
           <slot name="end"></slot>
@@ -205,6 +270,16 @@ export class HaSplitPanels extends LitElement {
     </button>`;
   }
 
+  private get _panels(): Element[] {
+    return [this._startPanel, this._endPanel].filter(
+      (el): el is HTMLElement => !!el
+    );
+  }
+
+  private _stackFoldClicked() {
+    this._setCollapsed(this.collapsed === "start" ? "" : "start");
+  }
+
   private _toggleClicked(ev: Event) {
     const target = (ev.currentTarget as HTMLElement).dataset.target;
     this._setCollapsed(target === "start" || target === "end" ? target : "");
@@ -218,9 +293,15 @@ export class HaSplitPanels extends LitElement {
   /** Puts the divider back at the default size and shows both sides. */
   public reset(): void {
     this._size = this.defaultSize;
+    this._ratio = sizeToRatio(
+      this.defaultSize,
+      Math.max(0, this._width - DIVIDER_WIDTH)
+    );
     this.collapsed = "";
     this._settled();
   }
+
+  private _lang = new LanguageModeController(this);
 
   private _text(
     key:
@@ -230,14 +311,20 @@ export class HaSplitPanels extends LitElement {
       | "collapse"
       | "expand"
       | "collapsed"
-      | "expanded",
+      | "expanded"
+      | "reset",
     values: Record<string, string> = {}
   ): string {
     const localize = this._i18n?.localize;
     if (!localize) {
       return "";
     }
-    return localize(`ui.components.split_panels.${key}`, values);
+    return modeText(
+      localize as any,
+      `ui.components.split_panels.${key}`,
+      values,
+      this._lang.mode
+    );
   }
 
   private _dividerMoved(ev: CustomEvent<SplitDividerMoveDetail>) {
@@ -249,6 +336,7 @@ export class HaSplitPanels extends LitElement {
       return;
     }
     this._size = size;
+    this._ratio = sizeToRatio(size, Math.max(0, this._width - DIVIDER_WIDTH));
     this._settled();
   }
 
@@ -284,7 +372,9 @@ export class HaSplitPanels extends LitElement {
       return;
     }
     safeSetStored(`${STORAGE_PREFIX}${this.storageKey}`, {
+      // The pixels stay for readers of the older record; the share leads
       size: this._size ?? this.defaultSize,
+      ratio: this._ratio,
       collapsed: this.collapsed,
     });
   }
@@ -297,7 +387,9 @@ export class HaSplitPanels extends LitElement {
       safeGetStored<unknown>(`${STORAGE_PREFIX}${this.storageKey}`)
     );
     if (stored) {
-      this._size = stored.size;
+      // An older record has pixels only: they are read as they are
+      this._size = stored.size || undefined;
+      this._ratio = stored.ratio;
       this.collapsed = stored.collapsed;
     }
   }
@@ -331,8 +423,38 @@ export class HaSplitPanels extends LitElement {
     [hidden] {
       display: none !important;
     }
+    .layout.unmeasured {
+      visibility: hidden;
+    }
     .layout.stacked {
       flex-direction: column;
+    }
+    .stack-fold {
+      display: flex;
+      flex: 0 0 auto;
+      padding-block: var(--ha-space-1, 4px);
+    }
+    .stack-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-2, 8px);
+      min-height: 44px;
+      padding-inline: var(--ha-space-3, 12px);
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-pill, 9999px);
+      background: var(--card-background-color, var(--primary-background-color));
+      color: var(--secondary-text-color);
+      font: inherit;
+      cursor: pointer;
+      --mdc-icon-size: 18px;
+    }
+    .stack-toggle:hover {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    .stack-toggle:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
     }
     .layout.stacked .start {
       flex: 0 0 auto;
@@ -357,7 +479,8 @@ export class HaSplitPanels extends LitElement {
       transform: translateX(-50%);
       display: flex;
       flex-direction: column;
-      gap: var(--ha-space-2, 8px);
+      /* Each button has a 44 px touch area; the gap keeps the two apart */
+      gap: var(--ha-space-4, 16px);
       z-index: 2;
     }
     :host(:dir(rtl)) .toggles {

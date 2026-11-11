@@ -15,8 +15,10 @@ export const MAX_STORED_SIZE = 10000;
 export type SplitCollapsed = "" | "start" | "end";
 
 export interface StoredSplitState {
-  /** Width of the start side in pixels. */
+  /** Width of the start side in pixels, as last seen. Older records hold only this. */
   size: number;
+  /** Share of the container the start side takes, between 0 and 1. */
+  ratio?: number;
   collapsed: SplitCollapsed;
 }
 
@@ -65,6 +67,39 @@ export const parseStoredSize = (raw: unknown): number | undefined => {
   return raw;
 };
 
+/** Reads a stored share of the container; only a number above 0 up to 1 counts. */
+export const parseStoredRatio = (raw: unknown): number | undefined => {
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0 || raw > 1) {
+    return undefined;
+  }
+  return raw;
+};
+
+/** A size as a share of the container; undefined when the container is unknown. */
+export const sizeToRatio = (
+  size: number,
+  total: number
+): number | undefined => {
+  if (!Number.isFinite(size) || !Number.isFinite(total) || total <= 0) {
+    return undefined;
+  }
+  return Math.min(1, Math.max(0, size / total)) || undefined;
+};
+
+/**
+ * The pixel size a stored state gives for a container. A stored ratio wins
+ * when the container is known; an older pixel value is used as it is.
+ */
+export const resolveStoredSize = (
+  state: Pick<StoredSplitState, "size" | "ratio">,
+  total: number
+): number => {
+  if (state.ratio !== undefined && Number.isFinite(total) && total > 0) {
+    return Math.round(state.ratio * total);
+  }
+  return state.size;
+};
+
 /** Reads the stored state of a split layout; a damaged value gives nothing. */
 export const parseStoredState = (
   raw: unknown
@@ -72,16 +107,27 @@ export const parseStoredState = (
   if (!raw || typeof raw !== "object") {
     return undefined;
   }
-  const { size, collapsed } = raw as Record<string, unknown>;
+  const { size, ratio, collapsed } = raw as Record<string, unknown>;
   const parsedSize = parseStoredSize(size);
-  if (parsedSize === undefined) {
+  const parsedRatio = parseStoredRatio(ratio);
+  if (parsedSize === undefined && parsedRatio === undefined) {
     return undefined;
   }
   if (collapsed !== "" && collapsed !== "start" && collapsed !== "end") {
     return undefined;
   }
-  return { size: parsedSize, collapsed };
+  return { size: parsedSize ?? 0, ratio: parsedRatio, collapsed };
 };
+
+/**
+ * Whether a stored "filters open" choice may be applied now. The choice only
+ * counts while the side pane is shown; on a narrow width it would open the
+ * full-width dialog as soon as the page loads.
+ */
+export const shouldRestoreFiltersOpen = (
+  collapsed: SplitCollapsed,
+  paneShown: boolean
+): boolean => collapsed === "" && paneShown;
 
 export interface StepOptions {
   current: number;

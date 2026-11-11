@@ -3,6 +3,7 @@ import type { PropertyValues } from "lit";
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { activityStore } from "../../common/activity/activity-store";
 import { estimateDirection } from "../../common/util/estimate-direction";
 import { KeyboardShortcutMixin } from "../../mixins/keyboard-shortcut-mixin";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -59,7 +60,12 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
     this._unsubNotifications = subscribeNotifications(
       this.hass.connection,
       (notifications) => {
-        if (this._notifications.length && !notifications.length) {
+        // Keep the drawer open while the tray still has entries to show.
+        if (
+          this._notifications.length &&
+          !notifications.length &&
+          !activityStore.activities.length
+        ) {
           this.closeDialog();
           return;
         }
@@ -286,6 +292,21 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
       flex: 0 0 auto;
       max-height: 50%;
       overflow: auto;
+    }
+
+    /* On a phone one scroller is enough: the whole body scrolls and the
+       list keeps a usable height instead of a second nested scroller. */
+    :host([narrow]) .notifications {
+      overflow-y: auto;
+    }
+
+    :host([narrow]) .activity {
+      max-height: none;
+      overflow: visible;
+    }
+
+    :host([narrow]) .list-container {
+      flex: 1 0 240px;
     }
 
     .notification {

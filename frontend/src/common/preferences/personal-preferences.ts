@@ -372,6 +372,21 @@ export const getPersonalPreferences = (): PersonalPreferences => {
   return effectivePreferences(applyOverlay(stored, scheduledOverlay(stored)));
 };
 
+/**
+ * Who holds a field right now, so a control can stay still and say why: School
+ * mode, or a schedule that gives the field a value. School mode wins when both
+ * apply, because it leaves the schedule out for the fields it holds.
+ */
+export const preferenceHolder = (
+  key: keyof PersonalPreferences
+): "school" | "schedule" | undefined => {
+  const stored = getStoredPreferences();
+  if (schoolHeldFields(stored).has(key)) {
+    return "school";
+  }
+  return key in scheduledOverlay(stored) ? "schedule" : undefined;
+};
+
 const overlaySignatureNow = (): string =>
   overlaySignature(scheduledOverlay(getStoredPreferences()));
 
@@ -392,6 +407,21 @@ const storedAs = (value: unknown): boolean => {
 };
 
 /**
+ * The keys the person has chosen in this browser: every key present in the
+ * stored object, whatever its value. This also covers objects written by older
+ * versions, whose keys all count as chosen, so nothing is pruned later.
+ */
+export const getChosenPreferenceKeys = (): (keyof PersonalPreferences)[] => {
+  const stored = safeGetStored<unknown>(PERSONAL_PREFERENCES_STORAGE_KEY);
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+    return [];
+  }
+  return Object.keys(DEFAULT_PERSONAL_PREFERENCES).filter((key) =>
+    Object.prototype.hasOwnProperty.call(stored, key)
+  ) as (keyof PersonalPreferences)[];
+};
+
+/**
  * Saves a change on top of the stored choices. `saved` is false when browser
  * storage is blocked or full: the choice still applies until the page is
  * closed, but it will not be there next time, and the caller should say so.
@@ -407,14 +437,17 @@ export const savePersonalPreferences = (
     },
     defaults
   );
-  // Only what differs from the default is kept as the person's own choice, so
-  // a setting left at the default keeps following a default the instance
-  // supplies, and going back to the default is going back to following it.
+  // Every key the person touched is kept as their own choice, even when it
+  // equals the default today, so it never changes by itself when a shared
+  // default is set or the product default moves. A key is dropped only through
+  // followDefaultPreferences.
+  const chosenKeys = new Set<keyof PersonalPreferences>([
+    ...getChosenPreferenceKeys(),
+    ...(Object.keys(change) as (keyof PersonalPreferences)[]),
+  ]);
   const chosen = Object.fromEntries(
-    (Object.keys(next) as (keyof PersonalPreferences)[])
-      .filter(
-        (key) => JSON.stringify(next[key]) !== JSON.stringify(defaults[key])
-      )
+    [...chosenKeys]
+      .filter((key) => key in DEFAULT_PERSONAL_PREFERENCES)
       .map((key) => [key, next[key]])
   );
   const saved =
@@ -435,6 +468,27 @@ export const updatePersonalPreferences = (
     window.dispatchEvent(new Event(PERSONAL_PREFERENCES_NOT_SAVED_EVENT));
   }
   return preferences;
+};
+
+/**
+ * Drops the person's own choice for these keys so they follow the default
+ * again, the shared one where the instance gives one. This is the only way a
+ * single key stops being a choice.
+ */
+export const followDefaultPreferences = (
+  keys: (keyof PersonalPreferences)[]
+): PersonalPreferences => {
+  const drop = new Set<string>(keys);
+  const kept = Object.fromEntries(
+    getChosenPreferenceKeys()
+      .filter((key) => !drop.has(key))
+      .map((key) => [key, getStoredPreferences()[key]])
+  );
+  safeSetStored(
+    PERSONAL_PREFERENCES_STORAGE_KEY,
+    Object.keys(kept).length ? kept : undefined
+  );
+  return getStoredPreferences();
 };
 
 /** Removes every stored choice, so the defaults apply again. */

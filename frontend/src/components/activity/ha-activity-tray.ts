@@ -1,15 +1,23 @@
 import { mdiAlertCircle, mdiCancel, mdiCheckCircle } from "@mdi/js";
-import type { TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { trackActivityAnnouncements } from "../../common/activity/activity-announcer";
 import type { Activity } from "../../common/activity/activity-store";
 import {
   activityPercent,
   activityStore,
   sanitizeProgress,
 } from "../../common/activity/activity-store";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
@@ -30,6 +38,12 @@ export class HaActivityTray extends LitElement {
 
   @state() private _items: readonly Activity[] = [];
 
+  @query("h2") private _heading?: HTMLElement;
+
+  @queryAll("li.item") private _entries!: NodeListOf<HTMLElement>;
+
+  private _lang = new LanguageModeController(this);
+
   private _unsub?: () => void;
 
   public connectedCallback(): void {
@@ -45,8 +59,41 @@ export class HaActivityTray extends LitElement {
     this._unsub = undefined;
   }
 
+  protected willUpdate(changedProps: PropertyValues<this>): void {
+    if (changedProps.has("hass") && this.hass) {
+      // Keep the live region speaking the current language.
+      trackActivityAnnouncements(this.hass.localize);
+    }
+  }
+
+  // A pressed button can leave the page with its entry. Focus then goes to
+  // the entry that took its place, or to the heading, never to the page top.
+  private async _keepFocus(index: number): Promise<void> {
+    await this.updateComplete;
+    if (this.shadowRoot?.activeElement) {
+      return;
+    }
+    const entries = this._entries;
+    const entry = entries.length
+      ? entries[Math.min(index, entries.length - 1)]
+      : undefined;
+    const target =
+      (entry?.querySelector("ha-button") as HTMLElement | null) ??
+      this._heading;
+    target?.focus();
+  }
+
+  private _indexOf(ev: Event): number {
+    const id = (ev.currentTarget as HTMLElement).dataset.id;
+    return this._items.findIndex((item) => item.id === id);
+  }
+
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(`ui.activity.${key}` as any, values);
+    return this._lang.text(
+      this.hass.localize as any,
+      `ui.activity.${key}`,
+      values
+    );
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -57,7 +104,7 @@ export class HaActivityTray extends LitElement {
     const hasFinished = this._items.some((item) => item.state !== "running");
     return html`<section aria-label=${this._l("title")}>
       <div class="head">
-        <h2>
+        <h2 tabindex="-1">
           ${this._l("title")}
           ${running ? html`<span class="count">${this._l("running_count", { count: running })}</span>` : nothing}
         </h2>
@@ -116,12 +163,12 @@ export class HaActivityTray extends LitElement {
               <p class="detail">
                 ${item.status ?? (progress ? "" : this._l("working"))}
               </p>`
-          : html`<p class="detail" role="status">
+          : html`<p class="detail">
               ${item.message ?? this._l(`state.${item.state}`)}
             </p>`
       }
       ${
-        item.state === "failed"
+        item.state === "failed" && !item.compact
           ? html`<ha-recovery-card
               .hass=${this.hass}
               .heading=${this._l("failed_heading", { title: item.title })}
@@ -186,28 +233,34 @@ export class HaActivityTray extends LitElement {
     return id ? activityStore.get(id) : undefined;
   }
 
-  private _call(action?: () => void | Promise<void>): void {
+  private async _call(
+    action: (() => void | Promise<void>) | undefined,
+    index: number
+  ): Promise<void> {
     if (action) {
-      Promise.resolve(action()).catch(() => undefined);
+      await Promise.resolve(action()).catch(() => undefined);
     }
+    await this._keepFocus(index);
   }
 
   private _cancelItem(ev: Event): void {
-    this._call(this._itemOf(ev)?.cancel);
+    void this._call(this._itemOf(ev)?.cancel, this._indexOf(ev));
   }
 
   private _retryItem(ev: Event): void {
-    this._call(this._itemOf(ev)?.retry);
+    void this._call(this._itemOf(ev)?.retry, this._indexOf(ev));
   }
 
   private _undoItem(ev: Event): void {
-    this._call(this._itemOf(ev)?.undo?.run);
+    void this._call(this._itemOf(ev)?.undo?.run, this._indexOf(ev));
   }
 
   private _dismissItem(ev: Event): void {
     const item = this._itemOf(ev);
+    const index = this._indexOf(ev);
     if (item) {
       activityStore.dismiss(item.id);
+      void this._keepFocus(index);
     }
   }
 
@@ -220,6 +273,7 @@ export class HaActivityTray extends LitElement {
 
   private _clearFinished(): void {
     activityStore.dismissFinished();
+    void this._keepFocus(0);
   }
 
   static styles = [

@@ -4,14 +4,21 @@ import {
   emptyMinecraftDraft,
   emptyMinecraftHostDraft,
   filterMinecraftVersions,
+  minecraftDraftChanged,
   minecraftDraftPayload,
+  minecraftFieldErrors,
+  minecraftServerToDraft,
+  shouldPollMinecraftLogs,
   minecraftJoinAddress,
   parseMinecraftNumber,
   validateMinecraftDraft,
   validateMinecraftHostDraft,
   versionsForFlavour,
 } from "../../src/data/minecraft_manager";
-import type { MinecraftServerDraft } from "../../src/data/minecraft_manager";
+import type {
+  MinecraftServer,
+  MinecraftServerDraft,
+} from "../../src/data/minecraft_manager";
 
 const valid = (): MinecraftServerDraft => ({
   ...emptyMinecraftDraft(),
@@ -164,5 +171,68 @@ describe("addresses", () => {
     expect(authorizedKeysCommand("ssh-ed25519 AAAA it's")).toContain(
       "'restrict ssh-ed25519 AAAA it'\\''s'"
     );
+  });
+});
+
+const stored: MinecraftServer = {
+  id: "abc",
+  name: "Family survival",
+  edition: "java",
+  flavour: "vanilla",
+  version: "1.21.4",
+  port: 25565,
+  memory_mb: 2048,
+  target: "ssh_docker",
+  state: "defined",
+  host_id: "h1",
+  eula_accepted: true,
+};
+
+describe("settings tab helpers", () => {
+  it("builds a draft that matches the stored server and keeps the host", () => {
+    const draft = minecraftServerToDraft(stored);
+    expect(draft.host_id).toBe("h1");
+    expect(minecraftDraftChanged(stored, draft)).toBe(false);
+    expect(minecraftDraftPayload(draft)).not.toHaveProperty("eula_accepted");
+  });
+
+  it("sees a change in each editable field, and ignores a padded name", () => {
+    const draft = minecraftServerToDraft(stored);
+    expect(
+      minecraftDraftChanged(stored, { ...draft, name: " Family survival " })
+    ).toBe(false);
+    expect(minecraftDraftChanged(stored, { ...draft, name: "Other" })).toBe(
+      true
+    );
+    expect(minecraftDraftChanged(stored, { ...draft, version: "1.21.5" })).toBe(
+      true
+    );
+    expect(minecraftDraftChanged(stored, { ...draft, port: 25566 })).toBe(true);
+    expect(minecraftDraftChanged(stored, { ...draft, memory_mb: 4096 })).toBe(
+      true
+    );
+  });
+
+  it("keeps the first refusal for each field", () => {
+    expect(
+      minecraftFieldErrors([
+        { field: "name", code: "container_exists" },
+        { field: "name", code: "required" },
+        { field: "port", code: "port_in_use" },
+      ])
+    ).toEqual({ name: "container_exists", port: "port_in_use" });
+  });
+});
+
+describe("shouldPollMinecraftLogs", () => {
+  const base = { tab: "logs", pageVisible: true, paused: false, busy: false };
+  it("polls only the visible log tab", () => {
+    expect(shouldPollMinecraftLogs(base)).toBe(true);
+    expect(shouldPollMinecraftLogs({ ...base, tab: "overview" })).toBe(false);
+    expect(shouldPollMinecraftLogs({ ...base, pageVisible: false })).toBe(
+      false
+    );
+    expect(shouldPollMinecraftLogs({ ...base, paused: true })).toBe(false);
+    expect(shouldPollMinecraftLogs({ ...base, busy: true })).toBe(false);
   });
 });

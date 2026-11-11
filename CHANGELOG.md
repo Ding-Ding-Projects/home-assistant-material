@@ -8,6 +8,22 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- New, not yet seen in a running build: an authenticator app card on the profile page, an
+  activity tray and a recovery card, time rules and shared defaults for personal settings,
+  information buttons beside settings, panes and a filter pane that can be resized, and starting
+  points for empty editors.
+- Your appearance choices and personal wording file are now saved on the instance for your
+  account, so another computer picks them up, and they are included in backups.
+- Fixed: the Minecraft manager no longer reads the SSH config file, bounds what a host sends back,
+  and only touches containers and volumes it created. A missing or truncated automations file can
+  no longer set aside every automation history, and histories set aside can be listed and brought
+  back. An Ollama download that stops early is reported as incomplete. The dashboard import
+  summary shows the real host of an address and lists locks and covers that would be switched.
+- Fixed: a plain `git clone` of the project now works on Windows, and the local frontend build
+  no longer crashes on a computer with many processors.
+- Releases: a push that changes only documentation or design files no longer publishes a release,
+  a release with no files is withdrawn, and every release carries the newest Deploy Assistant
+  installers. The 37 releases that had no files were removed.
 - Minecraft servers can be started on another computer that runs Docker, reached over SSH:
   add the host with its own key, confirm its fingerprint, then start, stop, read the log and
   see the address to join. Versions are looked up only when you press Refresh.

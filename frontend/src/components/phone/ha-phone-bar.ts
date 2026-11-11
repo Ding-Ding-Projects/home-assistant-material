@@ -1055,6 +1055,10 @@ export class HaPhoneBar extends LitElement {
       overflow-y: auto;
       min-height: 0;
     }
+    /* Rows of a scrolling column keep their height instead of being squeezed. */
+    .list > * {
+      flex-shrink: 0;
+    }
     .list.cards {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));

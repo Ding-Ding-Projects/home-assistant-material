@@ -1,5 +1,6 @@
 import type { PersonalPreferences } from "../preferences/personal-preferences";
 import { getPersonalPreferences } from "../preferences/personal-preferences";
+import { scheduleZoneNow } from "../preferences/preference-schedule-store";
 
 /**
  * Action sound effects: short tones made with the browser's audio engine, so
@@ -161,7 +162,8 @@ const getContext = (): AudioContext | undefined => {
  * cue was silent for any reason. Never throws and never waits.
  */
 export const playActionCue = (cue: ActionCue): boolean => {
-  if (silenceReason(getPersonalPreferences())) {
+  // Quiet hours run on the same clock as schedules: the profile's time zone.
+  if (silenceReason(getPersonalPreferences(), scheduleZoneNow())) {
     return false;
   }
   const ctx = getContext();

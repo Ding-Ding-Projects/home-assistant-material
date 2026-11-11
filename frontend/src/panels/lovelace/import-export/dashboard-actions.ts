@@ -1,8 +1,10 @@
 import { trackActivityAnnouncements } from "../../../common/activity/activity-announcer";
 import {
+  activityStore,
   finishActivity,
   startActivity,
 } from "../../../common/activity/activity-store";
+import { modeText } from "../../../common/language-mode/language-mode";
 import { navigate } from "../../../common/navigate";
 import type { LocalizeKeys } from "../../../common/translations/localize";
 import {
@@ -63,8 +65,26 @@ export interface ImportExportContext {
   element: HTMLElement;
 }
 
+/**
+ * The element toasts and dialogs are fired from. Undo and Retry can run from
+ * the activity tray after the page that started the work was left; the
+ * page's element is then disconnected and its events reach nobody, so the
+ * app root is used instead.
+ */
+const hostElement = (ctx: ImportExportContext): HTMLElement =>
+  ctx.element.isConnected
+    ? ctx.element
+    : ((document.querySelector("home-assistant") as HTMLElement | null) ??
+      document.body);
+
 const currentHass = (ctx: ImportExportContext): HomeAssistant =>
-  (ctx.element as { hass?: HomeAssistant }).hass ?? ctx.hass;
+  (hostElement(ctx) as { hass?: HomeAssistant }).hass ?? ctx.hass;
+
+const isNotFound = (err: unknown): boolean =>
+  (typeof err === "object" &&
+    err !== null &&
+    (err as { code?: unknown }).code === "not_found") ||
+  /not.?found/i.test(errorText(err));
 
 const errorText = (err: unknown): string =>
   err instanceof Error
@@ -173,7 +193,7 @@ export const exportDashboard = async (
       exportFileName(settings.title, "dashboard")
     );
   } catch (err) {
-    showToast(ctx.element, {
+    showToast(hostElement(ctx), {
       message: hass.localize(key("export.failed"), { error: errorText(err) }),
       duration: 8000,
       dismissable: true,
@@ -211,7 +231,7 @@ export const exportView = async (
       )
     );
   } catch (err) {
-    showToast(ctx.element, {
+    showToast(hostElement(ctx), {
       message: hass.localize(key("export.failed"), { error: errorText(err) }),
       duration: 8000,
       dismissable: true,
@@ -331,8 +351,18 @@ const createDashboardWithConfig = async (
     try {
       await saveConfig(hass, dashboard.url_path, config);
     } catch (err) {
-      // Leave nothing half made behind.
-      await deleteDashboard(hass, dashboard.id).catch(() => undefined);
+      // Leave nothing half made behind. When the cleanup fails too, the
+      // error says which dashboard is left over.
+      const cleaned = await deleteDashboard(hass, dashboard.id).then(
+        () => true,
+        () => false
+      );
+      if (!cleaned) {
+        throw Object.assign(
+          err instanceof Error ? err : new Error(errorText(err)),
+          { leftOver: dashboard.title }
+        );
+      }
       throw err;
     }
     return { dashboard };
@@ -361,20 +391,73 @@ const failImportActivity = (
   activityId: string,
   changedKey: string,
   err: unknown,
-  retry: () => Promise<void>
+  retry: (() => Promise<void>) | undefined,
+  values?: Record<string, string>
 ): void => {
+  // A retry runs once per failed entry: the entry loses its Retry before the
+  // work starts, so a second press or a later success cannot repeat it.
+  const once = retry
+    ? async () => {
+        activityStore.amend(activityId, { retry: undefined });
+        await retry();
+      }
+    : undefined;
   finishActivity(activityId, "failed", {
-    message: `${importErrorText(hass, errorText(err) || "failed")} ${hass.localize(
-      activityKey(changedKey)
+    message: `${importErrorText(hass, errorText(err) || "failed")} ${modeText(
+      hass.localize as any,
+      activityKey(changedKey),
+      values
     )}`,
     details: errorText(err),
-    retry,
+    retry: once,
   });
+};
+
+/**
+ * One Undo for the toast and the tray. It runs one at a time and not again
+ * once it worked, and the finished entry is amended to say so. `work`
+ * returns true when the thing is undone or already gone and false when the
+ * person chose to leave it.
+ */
+const singleUndo = (
+  ctx: ImportExportContext,
+  activityId: string,
+  work: () => Promise<boolean>
+): (() => Promise<void>) => {
+  let state: "idle" | "running" | "done" = "idle";
+  return async () => {
+    if (state !== "idle") {
+      return;
+    }
+    state = "running";
+    try {
+      const undone = await work();
+      state = undone ? "done" : "idle";
+      if (undone) {
+        activityStore.amend(activityId, {
+          undo: undefined,
+          message: currentHass(ctx).localize(key("undone")),
+        });
+        showToast(hostElement(ctx), {
+          message: currentHass(ctx).localize(key("undone")),
+        });
+      }
+    } catch (err) {
+      state = "idle";
+      showToast(hostElement(ctx), {
+        message: currentHass(ctx).localize(key("undo_failed"), {
+          error: errorText(err),
+        }),
+        duration: 8000,
+        dismissable: true,
+      });
+    }
+  };
 };
 
 const showImportError = (ctx: ImportExportContext, error: string) => {
   const hass = currentHass(ctx);
-  showToast(ctx.element, {
+  showToast(hostElement(ctx), {
     message: `${hass.localize(key("not_imported"))} ${importErrorText(hass, error)}`,
     duration: 10000,
     dismissable: true,
@@ -397,7 +480,7 @@ export const importDashboardData = async (
   }
   trackActivityAnnouncements(hass.localize);
   const activityId = startActivity({
-    title: hass.localize(activityKey("dashboard_title"), {
+    title: modeText(hass.localize as any, activityKey("dashboard_title"), {
       title: parsed.settings.title,
     }),
     kind: "import",
@@ -414,43 +497,43 @@ export const importDashboardData = async (
       parsed.config,
       parsed.settings.url_path
     );
-    const undo = async () => {
-      try {
-        // Undo removes the dashboard, so first check it is still as it
-        // was imported. If it was edited, the person decides.
-        const current = await fetchConfig(
-          currentHass(ctx).connection,
-          dashboard.url_path,
-          true
-        ).catch(() => undefined);
-        if (!current || !configIsAsImported(current, parsed.config)) {
-          const hassNow = currentHass(ctx);
-          const sure = await showConfirmationDialog(ctx.element, {
-            title: hassNow.localize(key("undo_edited.title")),
-            text: hassNow.localize(key("undo_edited.text")),
-            confirmText: hassNow.localize(key("undo_edited.confirm")),
-            dismissText: hassNow.localize("ui.common.cancel"),
-            destructive: true,
-          });
-          if (!sure) {
-            return;
-          }
-        }
-        await deleteDashboard(currentHass(ctx), dashboard.id);
-        showToast(ctx.element, {
-          message: currentHass(ctx).localize(key("undone")),
-        });
-      } catch (err) {
-        showToast(ctx.element, {
-          message: currentHass(ctx).localize(key("undo_failed"), {
-            error: errorText(err),
-          }),
-          duration: 8000,
-          dismissable: true,
-        });
+    const undo = singleUndo(ctx, activityId, async () => {
+      // Undo removes the dashboard, so first check it is still there and
+      // still as it was imported. If it was edited, the person decides.
+      const stillThere = (await fetchDashboards(currentHass(ctx))).some(
+        (item) => item.id === dashboard.id
+      );
+      if (!stillThere) {
+        return true;
       }
-    };
-    showToast(ctx.element, {
+      const current = await fetchConfig(
+        currentHass(ctx).connection,
+        dashboard.url_path,
+        true
+      ).catch(() => undefined);
+      if (!current || !configIsAsImported(current, parsed.config)) {
+        const hassNow = currentHass(ctx);
+        const sure = await showConfirmationDialog(hostElement(ctx), {
+          title: hassNow.localize(key("undo_edited.title")),
+          text: hassNow.localize(key("undo_edited.text")),
+          confirmText: hassNow.localize(key("undo_edited.confirm")),
+          dismissText: hassNow.localize("ui.common.cancel"),
+          destructive: true,
+        });
+        if (!sure) {
+          return false;
+        }
+      }
+      try {
+        await deleteDashboard(currentHass(ctx), dashboard.id);
+      } catch (err) {
+        if (!isNotFound(err)) {
+          throw err;
+        }
+      }
+      return true;
+    });
+    showToast(hostElement(ctx), {
       message: `${hass.localize(key("imported"), { title: dashboard.title })}${
         parsed.stripped ? ` ${hass.localize(key("stripped_note"))}` : ""
       }`,
@@ -473,8 +556,15 @@ export const importDashboardData = async (
       undo: { label: hass.localize(key("undo")), run: undo },
     });
   } catch (err) {
-    failImportActivity(hass, activityId, "dashboard_failed_changed", err, () =>
-      importDashboardData(ctx, parsed, options)
+    const leftOver = (err as { leftOver?: string } | undefined)?.leftOver;
+    failImportActivity(
+      hass,
+      activityId,
+      leftOver ? "dashboard_failed_left" : "dashboard_failed_changed",
+      err,
+      // Another try would make a second dashboard next to the left over one.
+      leftOver ? undefined : () => importDashboardData(ctx, parsed, options),
+      leftOver ? { title: leftOver } : undefined
     );
     showImportError(ctx, errorText(err) || "failed");
   }
@@ -493,7 +583,7 @@ export const importViewData = async (
   }
   trackActivityAnnouncements(hass.localize);
   const activityId = startActivity({
-    title: hass.localize(activityKey("view_title")),
+    title: modeText(hass.localize as any, activityKey("view_title")),
     kind: "import",
   });
   try {
@@ -515,40 +605,33 @@ export const importViewData = async (
       );
       return updated.views[updated.views.length - 1];
     });
-    const undo = async () => {
+    const undo = singleUndo(ctx, activityId, async () => {
+      // Remove only the added view, and only while it is still as
+      // imported. Later edits to the dashboard are never overwritten.
+      const path = targetUrlPath === "lovelace" ? null : targetUrlPath;
+      let current: LovelaceRawConfig;
       try {
-        // Remove only the added view, and only while it is still as
-        // imported. Later edits to the dashboard are never overwritten.
-        const path = targetUrlPath === "lovelace" ? null : targetUrlPath;
-        const current = await fetchConfig(
-          currentHass(ctx).connection,
-          path,
-          true
-        );
-        const without = removeImportedView(current, addedView);
-        if (!without) {
-          showToast(ctx.element, {
-            message: currentHass(ctx).localize(key("undo_view_changed")),
-            duration: 8000,
-            dismissable: true,
-          });
-          return;
-        }
-        await saveConfig(currentHass(ctx), path, without);
-        showToast(ctx.element, {
-          message: currentHass(ctx).localize(key("undone")),
-        });
+        current = await fetchConfig(currentHass(ctx).connection, path, true);
       } catch (err) {
-        showToast(ctx.element, {
-          message: currentHass(ctx).localize(key("undo_failed"), {
-            error: errorText(err),
-          }),
+        if (isNotFound(err)) {
+          // The dashboard itself is gone, so the view is too.
+          return true;
+        }
+        throw err;
+      }
+      const without = removeImportedView(current, addedView);
+      if (!without) {
+        showToast(hostElement(ctx), {
+          message: currentHass(ctx).localize(key("undo_view_changed")),
           duration: 8000,
           dismissable: true,
         });
+        return false;
       }
-    };
-    showToast(ctx.element, {
+      await saveConfig(currentHass(ctx), path, without);
+      return true;
+    });
+    showToast(hostElement(ctx), {
       message: `${hass.localize(key("view_imported"))}${
         parsed.stripped ? ` ${hass.localize(key("stripped_note"))}` : ""
       }`,
@@ -589,7 +672,7 @@ const copyGeneratedPage = async (
   source: { urlPath: string; title: string; rawConfig?: LovelaceRawConfig }
 ): Promise<void> => {
   const hass = currentHass(ctx);
-  const confirmed = await showConfirmationDialog(ctx.element, {
+  const confirmed = await showConfirmationDialog(hostElement(ctx), {
     title: hass.localize(key("edit_copy.title")),
     text: hass.localize(key("edit_copy.text")),
     confirmText: hass.localize(key("edit_copy.confirm")),
@@ -611,7 +694,7 @@ const copyGeneratedPage = async (
       } as DashboardFileSettings,
       config
     );
-    const makeDefault = await showConfirmationDialog(ctx.element, {
+    const makeDefault = await showConfirmationDialog(hostElement(ctx), {
       title: hass.localize(key("edit_copy.default_title")),
       text: hass.localize(key("edit_copy.default_text")),
       confirmText: hass.localize(key("edit_copy.default_yes")),
@@ -621,7 +704,7 @@ const copyGeneratedPage = async (
       try {
         await saveDefaultPanel(currentHass(ctx), dashboard.url_path);
       } catch (err) {
-        showToast(ctx.element, {
+        showToast(hostElement(ctx), {
           message: hass.localize(key("edit_copy.default_failed"), {
             error: errorText(err),
           }),
@@ -632,7 +715,7 @@ const copyGeneratedPage = async (
     }
     await openDashboard(ctx, dashboard.url_path, true);
   } catch (err) {
-    showToast(ctx.element, {
+    showToast(hostElement(ctx), {
       message: hass.localize(key("edit_copy.failed"), {
         error: errorText(err),
       }),

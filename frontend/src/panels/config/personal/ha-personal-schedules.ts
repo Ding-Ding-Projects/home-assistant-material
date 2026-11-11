@@ -7,10 +7,17 @@ import {
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, query, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
+import { repeat } from "lit/directives/repeat";
+import type { TimeZone } from "../../../data/translation";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { HASSDomTargetEvent } from "../../../common/dom/fire_event";
 import type { PersonalPreferences } from "../../../common/preferences/personal-preferences";
@@ -38,7 +45,8 @@ import {
   getSchedules,
   getScheduleTimeZone,
   saveSchedules,
-  setScheduleTimeZone,
+  setScheduleZoneSetting,
+  isScheduleZoneFallback,
   subscribeScheduleClock,
 } from "../../../common/preferences/preference-schedule-store";
 import "../../../components/ha-button";
@@ -105,6 +113,18 @@ export class HaPersonalSchedules extends LitElement {
 
   @query(".editor h3") private _editorTitle?: HTMLElement;
 
+  @query(".new-rule") private _newRuleButton?: HTMLElement;
+
+  @queryAll("ha-icon-button") private _iconButtons!: NodeListOf<HTMLElement>;
+
+  /** What gets the focus back once the editor closes: a rule id, or "new". */
+  private _focusAfterEditor?: string;
+
+  /** The move button to refocus after a rule moved, by rule id and direction. */
+  private _focusAfterMove?: { id: string; by: -1 | 1 };
+
+  private _lastScheduleJson = "";
+
   private _lang = new LanguageModeController(this);
 
   private _unsub?: UnsubscribeFunc;
@@ -112,9 +132,19 @@ export class HaPersonalSchedules extends LitElement {
   public connectedCallback() {
     super.connectedCallback();
     this._rules = getSchedules();
+    this._lastScheduleJson = JSON.stringify(this._rules);
     this._unsub = subscribeScheduleClock(() => {
-      this._rules = getSchedules();
-      this._minute = Math.floor(Date.now() / 60000);
+      // A new array each tick would recompute the summary for nothing.
+      const next = getSchedules();
+      const json = JSON.stringify(next);
+      if (json !== this._lastScheduleJson) {
+        this._lastScheduleJson = json;
+        this._rules = next;
+      }
+      const minute = Math.floor(Date.now() / 60000);
+      if (minute !== this._minute) {
+        this._minute = minute;
+      }
     });
   }
 
@@ -143,9 +173,12 @@ export class HaPersonalSchedules extends LitElement {
 
   protected willUpdate(changed: PropertyValues) {
     if (changed.has("hass") && this.hass?.locale) {
-      // Rules are read in the zone the profile reads times in.
-      setScheduleTimeZone(
-        resolveTimeZone(this.hass.locale.time_zone, this.hass.config.time_zone)
+      // Rules are read in the zone the profile reads times in. The marker is
+      // resolved when the rules are evaluated; the app sets it too, so it stays
+      // right while this page is closed.
+      setScheduleZoneSetting(
+        this.hass.locale.time_zone as TimeZone,
+        this.hass.config.time_zone
       );
     }
     if (
@@ -161,6 +194,29 @@ export class HaPersonalSchedules extends LitElement {
     if (changed.has("_draft") && this._draft && !changed.get("_draft")) {
       this._editorTitle?.focus({ preventScroll: false });
     }
+    if (changed.has("_draft") && !this._draft && this._focusAfterEditor) {
+      const id = this._focusAfterEditor;
+      this._focusAfterEditor = undefined;
+      const edit = this._ruleButton(id, "edit");
+      (id === "new" ? this._newRuleButton : edit)?.focus();
+    }
+    if (this._focusAfterMove) {
+      const { id, by } = this._focusAfterMove;
+      this._focusAfterMove = undefined;
+      const wanted = this._ruleButton(id, by === -1 ? "up" : "down");
+      const other = this._ruleButton(id, by === -1 ? "down" : "up");
+      // At the first or last place the button that moved it is now disabled.
+      (wanted && !(wanted as HTMLElement & { disabled?: boolean }).disabled
+        ? wanted
+        : other
+      )?.focus();
+    }
+  }
+
+  private _ruleButton(id: string, action: string): HTMLElement | undefined {
+    return Array.from(this._iconButtons).find(
+      (button) => button.dataset.id === id && button.dataset.action === action
+    );
   }
 
   private _held(): ReadonlySet<string> {
@@ -296,6 +352,7 @@ export class HaPersonalSchedules extends LitElement {
     const rules = [...this._rules];
     [rules[index], rules[target]] = [rules[target], rules[index]];
     this._save(rules);
+    this._focusAfterMove = { id: rules[target].id, by };
     this._announce = this._t("schedules.moved", {
       name: this._title(rules[target]),
       position: target + 1,
@@ -308,6 +365,7 @@ export class HaPersonalSchedules extends LitElement {
   private _moveDown = (ev: Event) => this._move(ev, 1);
 
   private _newRule = () => {
+    this._focusAfterEditor = "new";
     this._draft = {
       isNew: true,
       rule: {
@@ -326,6 +384,7 @@ export class HaPersonalSchedules extends LitElement {
   private _editRule = (ev: Event) => {
     const rule = this._rules[this._indexOf(ev)];
     if (rule) {
+      this._focusAfterEditor = rule.id;
       this._draft = { isNew: false, rule: { ...rule, days: [...rule.days] } };
     }
   };
@@ -421,6 +480,9 @@ export class HaPersonalSchedules extends LitElement {
       return;
     }
     const rules = this._draftRules();
+    if (draft.isNew) {
+      this._focusAfterEditor = "new";
+    }
     this._draft = undefined;
     if (this._save(rules)) {
       showToast(this, { message: this._t("schedules.saved") });
@@ -444,6 +506,8 @@ export class HaPersonalSchedules extends LitElement {
     if (!confirmed) {
       return;
     }
+    // The rule is gone, so the focus goes to the New rule button.
+    this._focusAfterEditor = "new";
     this._draft = undefined;
     if (this._save(this._rules.filter((rule) => rule.id !== draft.rule.id))) {
       showToast(this, { message: this._t("schedules.deleted") });
@@ -454,15 +518,24 @@ export class HaPersonalSchedules extends LitElement {
 
   protected render(): TemplateResult {
     const zone = getScheduleTimeZone();
+    const zoneFallback = isScheduleZoneFallback();
     const atLimit = this._rules.length >= MAX_SCHEDULE_RULES;
     return html`
       <ha-card .header=${this._t("schedules.title")}>
         <div class="card-content">
           <p class="note">${this._tl("schedules.note")}</p>
           <p class="note">${this._t("schedules.zone_note", { zone })}</p>
+          ${
+            zoneFallback
+              ? html`<p class="note warn" role="status">
+                  ${this._t("schedules.zone_fallback")}
+                </p>`
+              : nothing
+          }
           <div class="toolbar">
             <ha-button
               appearance="filled"
+              class="new-rule"
               .disabled=${atLimit || !!this._draft}
               @click=${this._newRule}
             >
@@ -499,59 +572,66 @@ export class HaPersonalSchedules extends LitElement {
     }
     const evaluation = this._summary?.evaluation;
     return html`<ol class="rules" aria-label=${this._t("schedules.list_label")}>
-      ${this._rules.map((rule, index) => {
-        const title = this._title(rule);
-        const status = this._status(rule, evaluation);
-        return html`<li
-          class=${classMap({
-            rule: true,
-            off: !rule.enabled,
-            editing: this._draft?.rule.id === rule.id,
-          })}
-        >
-          <div class="rule-main">
-            <span class="rule-title">${title}</span>
-            ${
-              rule.name
-                ? html`<span class="rule-sentence"
-                    >${this._sentence(rule)}</span
-                  >`
-                : nothing
-            }
-            <span class=${classMap({ chip: true, [status.tone]: true })}
-              >${status.text}</span
-            >
-          </div>
-          <div class="rule-actions">
-            <ha-switch
-              data-id=${rule.id}
-              .checked=${rule.enabled}
-              aria-label=${this._t("schedules.enable_rule", { name: title })}
-              @change=${this._toggleRule}
-            ></ha-switch>
-            <ha-icon-button
-              data-id=${rule.id}
-              .path=${mdiPencil}
-              .label=${this._t("schedules.edit_label", { name: title })}
-              @click=${this._editRule}
-            ></ha-icon-button>
-            <ha-icon-button
-              data-id=${rule.id}
-              .path=${mdiArrowUp}
-              .disabled=${index === 0}
-              .label=${this._t("schedules.move_up_label", { name: title })}
-              @click=${this._moveUp}
-            ></ha-icon-button>
-            <ha-icon-button
-              data-id=${rule.id}
-              .path=${mdiArrowDown}
-              .disabled=${index === this._rules.length - 1}
-              .label=${this._t("schedules.move_down_label", { name: title })}
-              @click=${this._moveDown}
-            ></ha-icon-button>
-          </div>
-        </li>`;
-      })}
+      ${repeat(
+        this._rules,
+        (rule) => rule.id,
+        (rule, index) => {
+          const title = this._title(rule);
+          const status = this._status(rule, evaluation);
+          return html`<li
+            class=${classMap({
+              rule: true,
+              off: !rule.enabled,
+              editing: this._draft?.rule.id === rule.id,
+            })}
+          >
+            <div class="rule-main">
+              <span class="rule-title">${title}</span>
+              ${
+                rule.name
+                  ? html`<span class="rule-sentence"
+                      >${this._sentence(rule)}</span
+                    >`
+                  : nothing
+              }
+              <span class=${classMap({ chip: true, [status.tone]: true })}
+                >${status.text}</span
+              >
+            </div>
+            <div class="rule-actions">
+              <ha-switch
+                data-id=${rule.id}
+                .checked=${rule.enabled}
+                aria-label=${this._t("schedules.enable_rule", { name: title })}
+                @change=${this._toggleRule}
+              ></ha-switch>
+              <ha-icon-button
+                data-id=${rule.id}
+                data-action="edit"
+                .path=${mdiPencil}
+                .label=${this._t("schedules.edit_label", { name: title })}
+                @click=${this._editRule}
+              ></ha-icon-button>
+              <ha-icon-button
+                data-id=${rule.id}
+                data-action="up"
+                .path=${mdiArrowUp}
+                .disabled=${index === 0}
+                .label=${this._t("schedules.move_up_label", { name: title })}
+                @click=${this._moveUp}
+              ></ha-icon-button>
+              <ha-icon-button
+                data-id=${rule.id}
+                data-action="down"
+                .path=${mdiArrowDown}
+                .disabled=${index === this._rules.length - 1}
+                .label=${this._t("schedules.move_down_label", { name: title })}
+                @click=${this._moveDown}
+              ></ha-icon-button>
+            </div>
+          </li>`;
+        }
+      )}
     </ol>`;
   }
 
@@ -688,8 +768,10 @@ export class HaPersonalSchedules extends LitElement {
       </label>
 
       <div class="field">
-        <span class="label" id="schedule-change-label"
-          >${this._t("schedules.field_change")}
+        <span class="label"
+          ><span id="schedule-change-label"
+            >${this._t("schedules.field_change")}</span
+          >
           <ha-setting-info
             .hass=${this.hass}
             .label=${this._prefName(rule.preference)}
@@ -959,8 +1041,9 @@ export class HaPersonalSchedules extends LitElement {
       color: var(--text-primary-color);
     }
     .chip.warn {
-      background: var(--warning-color);
-      color: var(--text-primary-color, #fff);
+      background: var(--secondary-background-color);
+      color: var(--primary-text-color);
+      box-shadow: inset 0 0 0 2px var(--warning-color);
     }
     .now {
       margin-top: var(--ha-space-4);

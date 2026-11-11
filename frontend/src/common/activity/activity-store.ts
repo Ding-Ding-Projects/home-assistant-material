@@ -52,6 +52,11 @@ export interface Activity {
   undo?: ActivityAction;
   /** A way to start the same work again after a failure. */
   retry?: () => void | Promise<void>;
+  /**
+   * A failure is shown as one line with Open, without the recovery card,
+   * because the page at `openPath` already shows that card.
+   */
+  compact?: boolean;
 }
 
 export type ActivityInit = Pick<Activity, "title"> &
@@ -121,6 +126,13 @@ export class ActivityStore {
 
   public get runningCount(): number {
     return this._items.filter((item) => item.state === "running").length;
+  }
+
+  /** Running activities plus failed ones nobody has dismissed yet. */
+  public get attentionCount(): number {
+    return this._items.filter(
+      (item) => item.state === "running" || item.state === "failed"
+    ).length;
   }
 
   public get(id: string): Activity | undefined {

@@ -28,6 +28,14 @@ export const YUE_PREFIXES = [
   "ui.page_tabs.",
   "ui.dialogs.quick-bar.",
   "ui.components.setting_info.",
+  "ui.components.split_panels.",
+  "ui.components.editor_save_bar.",
+  "ui.components.starting_points.",
+  "ui.instance_sync.",
+  "ui.activity.",
+  "ui.panel.config.identity.",
+  "ui.panel.profile.authenticator.",
+  "ui.panel.lovelace.import_export.summary.",
 ] as const;
 
 export type Localize = (

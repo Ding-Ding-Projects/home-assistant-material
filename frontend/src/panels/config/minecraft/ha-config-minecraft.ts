@@ -9,6 +9,7 @@ import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import type {
   MinecraftHost,
+  MinecraftRunState,
   MinecraftServer,
   MinecraftTargetStatus,
   MinecraftVersionLists,
@@ -18,6 +19,7 @@ import {
   isMinecraftFailure,
   fetchMinecraftHosts,
   fetchMinecraftServers,
+  fetchMinecraftStatus,
   fetchMinecraftTargets,
   fetchMinecraftVersions,
 } from "../../../data/minecraft_manager";
@@ -46,6 +48,8 @@ class HaConfigMinecraft extends LitElement {
 
   @state() private _versions?: MinecraftVersionLists;
 
+  @state() private _states: Record<string, MinecraftRunState | "unknown"> = {};
+
   @state() private _error?: string;
 
   @state() private _view: View = "list";
@@ -69,9 +73,31 @@ class HaConfigMinecraft extends LitElement {
       this._hosts = hosts.hosts;
       this._versions = versions;
       this._error = undefined;
+      this._loadStates(servers.servers);
     } catch (err: any) {
       this._error = err?.message ?? String(err);
     }
+  }
+
+  /** Reads the live state of every server the manager can start. */
+  private async _loadStates(servers: MinecraftServer[]): Promise<void> {
+    const entries = await Promise.all(
+      servers.map(async (server) => {
+        if (server.target !== "ssh_docker" || server.edition !== "java") {
+          return [server.id, "unknown"] as const;
+        }
+        try {
+          const result = await fetchMinecraftStatus(this.hass, server.id);
+          return [
+            server.id,
+            isMinecraftFailure(result) ? "unknown" : result.state,
+          ] as const;
+        } catch {
+          return [server.id, "unknown"] as const;
+        }
+      })
+    );
+    this._states = Object.fromEntries(entries);
   }
 
   private async _reloadHosts(): Promise<void> {
@@ -216,7 +242,9 @@ class HaConfigMinecraft extends LitElement {
         .hass=${this.hass}
         .server=${selected}
         .hosts=${this._hosts}
+        .versions=${this._versions}
         @minecraft-server-close=${this._closeSubview}
+        @minecraft-server-closed-deleted=${this._closeSubview}
         @minecraft-server-changed=${this._load}
       ></ha-minecraft-server>`;
     }
@@ -276,7 +304,12 @@ class HaConfigMinecraft extends LitElement {
       ${servers.map(
         (server) =>
           html`<li class="server">
-            <div class="text">
+            <button
+              type="button"
+              class="text"
+              data-server=${server.id}
+              @click=${this._open}
+            >
               <span class="name">${server.name}</span>
               <span class="detail"
                 >${this._l("server_detail", {
@@ -287,12 +320,9 @@ class HaConfigMinecraft extends LitElement {
                   target: this._l(`target.${server.target}.name`),
                 })}</span
               >
-            </div>
-            <ha-button
-              appearance="plain"
-              data-server=${server.id}
-              @click=${this._open}
-              >${this._l("open")}</ha-button
+            </button>
+            <span class="chip ${this._states[server.id] ?? "unknown"}"
+              >${this._l(`state.${this._states[server.id] ?? "unknown"}`)}</span
             >
             <ha-icon-button
               .path=${mdiDelete}
@@ -367,10 +397,37 @@ class HaConfigMinecraft extends LitElement {
         background: var(--secondary-background-color);
       }
       .text {
+        appearance: none;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: start;
+        cursor: pointer;
+        min-height: 44px;
+        justify-content: center;
         display: flex;
         flex-direction: column;
         flex: 1 1 200px;
         min-width: 0;
+      }
+      .text:focus-visible {
+        outline: 2px solid var(--primary-color);
+        border-radius: var(--ha-border-radius-md, 8px);
+      }
+      .chip {
+        padding: var(--ha-space-1) var(--ha-space-3);
+        border-radius: 14px;
+        background: var(--card-background-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .chip.running {
+        background: var(--success-color);
+        color: var(--text-primary-color);
+      }
+      .chip.starting {
+        background: var(--warning-color);
+        color: var(--text-primary-color);
       }
       .name {
         overflow-wrap: anywhere;

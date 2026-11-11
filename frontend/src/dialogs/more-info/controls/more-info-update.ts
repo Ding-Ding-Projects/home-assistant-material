@@ -18,7 +18,9 @@ import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-markdown";
 import "../../../components/ha-spinner";
-import "../../../components/progress/ha-progress-bar";
+import "../../../components/update-progress/ha-update-progress";
+import type { UpdateTrackerDeps } from "../../../components/update-progress/update-install-tracker";
+import { updateInstallTracker } from "../../../components/update-progress/update-install-tracker";
 import type { ManagerState } from "../../../data/backup_manager";
 import { subscribeBackupEvents } from "../../../data/backup_manager";
 import {
@@ -186,18 +188,8 @@ class MoreInfoUpdate extends LitElement {
 
     return html`
       <div class="content">
+        <ha-update-progress .stateObj=${this.stateObj}></ha-update-progress>
         <div class="summary">
-          ${
-            this.stateObj.attributes.in_progress
-              ? supportsFeature(this.stateObj, UpdateEntityFeature.PROGRESS) &&
-                this.stateObj.attributes.update_percentage !== null
-                ? html`<ha-progress-bar
-                    loading
-                    .value=${this.stateObj.attributes.update_percentage}
-                  ></ha-progress-bar>`
-                : html`<ha-progress-bar indeterminate></ha-progress-bar>`
-              : nothing
-          }
           <div class="latest">
             ${
               this.stateObj.attributes.latest_version ??
@@ -397,6 +389,18 @@ class MoreInfoUpdate extends LitElement {
     }
   }
 
+  private _trackerDeps(): UpdateTrackerDeps {
+    return {
+      connection: this._connection.connection,
+      localize: this._localize,
+      callService: this._api.callService.bind(this._api),
+      instanceVersion: this._config.version,
+      backupAvailable:
+        isComponentLoaded(this._config, "backup") &&
+        isComponentLoaded(this._config, "hassio"),
+    };
+  }
+
   private async _handleInstall(): Promise<void> {
     const installData: Record<string, any> = {
       entity_id: this.stateObj!.entity_id,
@@ -415,6 +419,13 @@ class MoreInfoUpdate extends LitElement {
 
     this._installError = undefined;
 
+    const entityId = this.stateObj!.entity_id;
+    updateInstallTracker.begin(
+      this._trackerDeps(),
+      this.stateObj!,
+      installData
+    );
+
     try {
       await this._api.callService(
         "update",
@@ -423,8 +434,10 @@ class MoreInfoUpdate extends LitElement {
         undefined,
         false
       );
+      updateInstallTracker.finishCall(entityId);
     } catch (err: any) {
       const message = await this._localizeInstallError(err);
+      updateInstallTracker.finishCall(entityId, err, message);
 
       if (this._isShown()) {
         this._installError = message;
@@ -585,9 +598,8 @@ class MoreInfoUpdate extends LitElement {
       margin-bottom: var(--ha-space-4);
     }
 
-    .summary ha-progress-bar {
-      width: 100%;
-      margin-bottom: var(--ha-space-2);
+    ha-update-progress {
+      margin-bottom: var(--ha-space-4);
     }
 
     .latest {

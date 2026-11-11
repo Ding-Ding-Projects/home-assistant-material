@@ -1,7 +1,6 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
   mdiCog,
-  mdiContentSave,
   mdiDebugStepOver,
   mdiDelete,
   mdiDotsVertical,
@@ -30,6 +29,7 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import { goBack, navigate } from "../../../common/navigate";
 import { promiseTimeout } from "../../../common/util/promise-timeout";
+import "../../../components/editor/ha-editor-save-bar";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -678,19 +678,13 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                       @editor-save=${this._handleSaveAutomation}
                       disable-fullscreen
                     ></ha-yaml-editor>
-                    <ha-button
-                      slot="fab"
-                      size="l"
-                      class=${this.isDirtyState ? "dirty" : ""}
-                      .disabled=${this.saving}
-                      @click=${this._handleSaveAutomation}
-                    >
-                      <ha-svg-icon
-                        slot="start"
-                        .path=${mdiContentSave}
-                      ></ha-svg-icon>
-                      ${this.hass.localize("ui.common.save")}
-                    </ha-button>`
+                    <ha-editor-save-bar
+                      .hass=${this.hass}
+                      .dirty=${this.isDirtyState}
+                      .saving=${this.saving}
+                      show-shortcut
+                      @save-bar-save=${this._handleSaveAutomation}
+                    ></ha-editor-save-bar>`
                 : nothing
           }
         </div>

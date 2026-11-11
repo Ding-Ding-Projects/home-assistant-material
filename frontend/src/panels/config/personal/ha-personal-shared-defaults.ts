@@ -16,6 +16,7 @@ import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/setting-info/ha-setting-info";
 import type { HomeAssistant } from "../../../types";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import { showToast } from "../../../util/toast";
 
 /** The row on the Personal page that explains each shareable setting. */
@@ -71,6 +72,9 @@ export class HaPersonalSharedDefaults extends LitElement {
 
   @state() private _error = "";
 
+  /** True when the stored defaults changed elsewhere while edits were open. */
+  @state() private _changedElsewhere = false;
+
   private _lang = new LanguageModeController(this);
 
   private _unsub?: UnsubscribeFunc;
@@ -80,8 +84,15 @@ export class HaPersonalSharedDefaults extends LitElement {
     this._stored = getSharedDefaults();
     this._draft = { ...this._stored };
     this._unsub = onSharedDefaultsChanged(() => {
+      const wasDirty = this._dirty() && !this._busy;
       this._stored = getSharedDefaults();
-      this._draft = { ...this._stored };
+      if (wasDirty) {
+        // Another administrator, or this one in another tab, changed the
+        // defaults: keep the edits in progress and offer to reload instead.
+        this._changedElsewhere = true;
+      } else {
+        this._draft = { ...this._stored };
+      }
     });
   }
 
@@ -133,7 +144,21 @@ export class HaPersonalSharedDefaults extends LitElement {
     this._draft = next as SharedPreferenceDefaults;
   };
 
+  private _reload = () => {
+    this._draft = { ...this._stored };
+    this._changedElsewhere = false;
+  };
+
   private _apply = async () => {
+    const count = Object.keys(this._draft).length;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._t("shared.apply_confirm_title"),
+      text: this._t("shared.apply_confirm_text", { count }),
+      confirmText: this._t("shared.apply"),
+    });
+    if (!confirmed) {
+      return;
+    }
     this._busy = true;
     this._error = "";
     try {
@@ -141,6 +166,7 @@ export class HaPersonalSharedDefaults extends LitElement {
         this.hass.connection,
         this._draft
       );
+      this._changedElsewhere = false;
       showToast(this, { message: this._t("shared.applied") });
     } catch (err) {
       this._error = this._t("shared.failed", {
@@ -152,10 +178,21 @@ export class HaPersonalSharedDefaults extends LitElement {
   };
 
   private _remove = async () => {
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._t("shared.remove_confirm_title"),
+      text: this._t("shared.remove_confirm_text"),
+      confirmText: this._t("shared.remove"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
     this._busy = true;
     this._error = "";
     try {
       await removePreferenceDefaultsForEveryone(this.hass.connection);
+      this._draft = {};
+      this._changedElsewhere = false;
       showToast(this, { message: this._t("shared.removed") });
     } catch (err) {
       this._error = this._t("shared.failed", {
@@ -177,6 +214,19 @@ export class HaPersonalSharedDefaults extends LitElement {
         <ul class="fields">
           ${SHARED_DEFAULT_FIELDS.map((field) => this._renderField(field))}
         </ul>
+        ${
+          this._changedElsewhere
+            ? html`<p class="note" role="status">
+                ${this._t("shared.changed_elsewhere")}
+                <ha-button
+                  appearance="plain"
+                  size="small"
+                  @click=${this._reload}
+                  >${this._t("shared.reload")}</ha-button
+                >
+              </p>`
+            : nothing
+        }
         ${
           this._error
             ? html`<p class="problem" role="alert">${this._error}</p>`
@@ -218,15 +268,20 @@ export class HaPersonalSharedDefaults extends LitElement {
           .labels=${this._infoLabels()}
         ></ha-setting-info>
       </div>
-      <select id=${id} data-field=${field} @change=${this._changed}>
-        <option value="" ?selected=${current === undefined}>
+      <select
+        id=${id}
+        data-field=${field}
+        .value=${current === undefined ? "" : String(current)}
+        @change=${this._changed}
+      >
+        <option value="" .selected=${current === undefined}>
           ${this._t("shared.not_set")}
         </option>
         ${optionsFor(field).map(
           (option) =>
             html`<option
               value=${String(option)}
-              ?selected=${current === option}
+              .selected=${current === option}
             >
               ${this._valueText(field, option)}
             </option>`

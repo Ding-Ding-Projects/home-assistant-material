@@ -3,6 +3,7 @@ import {
   applyInstanceVocabulary,
   getStoredPersonalVocabulary,
   parsePersonalVocabulary,
+  restorePersonalVocabulary,
   subscribeLocalVocabularyChange,
 } from "./personal-vocabulary";
 
@@ -45,6 +46,8 @@ export const wordingSync = new UserDataSync<WordingEntries>({
   validate: (data) => validateWordingData(data),
   readLocal: getStoredPersonalVocabulary,
   writeLocal: applyInstanceVocabulary,
+  // A second tab keeps its memory in step with the cache the first one wrote.
+  refreshLocal: restorePersonalVocabulary,
 });
 
 // A drop, a Settings upload or a clear on this device goes to the instance.

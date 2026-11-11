@@ -259,3 +259,46 @@ describe("loading and clearing", () => {
     expect(window.localStorage.getItem(VOCABULARY_STORAGE_KEY)).toBeNull();
   });
 });
+
+describe("size is measured in bytes for text as well as for a file", () => {
+  it("refuses cached text that is small in characters but large in bytes", () => {
+    // Three bytes each: 100,000 characters are 300,000 bytes, above 256 KiB.
+    const text = "€".repeat(100000);
+    expect(text.length).toBeLessThan(VOCABULARY_LIMITS.bytes);
+    expect(parsePersonalVocabulary(text)).toEqual({
+      ok: false,
+      error: "too_large",
+    });
+    expect(parsePersonalVocabulary(bytes(text))).toEqual({
+      ok: false,
+      error: "too_large",
+    });
+  });
+});
+
+describe("restoring in step with the cache", () => {
+  it("does not put wording in use when the page loads", () => {
+    // Nothing is restored by importing the module: the cache is put in use
+    // only once the signed-in account owns it.
+    window.localStorage.setItem(VOCABULARY_STORAGE_KEY, JSON.stringify(good));
+    expect(activeVocabularyCount()).toBe(0);
+  });
+
+  it("follows a change another tab makes to the cache", () => {
+    loadPersonalVocabulary(bytes(good));
+    window.localStorage.setItem(
+      VOCABULARY_STORAGE_KEY,
+      JSON.stringify({ schemaVersion: 1, entries: { light: "torch" } })
+    );
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: VOCABULARY_STORAGE_KEY })
+    );
+    expect(applyPersonalVocabulary("light")).toBe("torch");
+
+    window.localStorage.removeItem(VOCABULARY_STORAGE_KEY);
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: VOCABULARY_STORAGE_KEY })
+    );
+    expect(applyPersonalVocabulary("light")).toBe("light");
+  });
+});

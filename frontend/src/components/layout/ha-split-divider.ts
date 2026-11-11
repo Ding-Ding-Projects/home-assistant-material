@@ -1,6 +1,6 @@
 import type { PropertyValues } from "lit";
 import { css, html, LitElement } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import {
   clampSize,
@@ -42,6 +42,14 @@ export class HaSplitDivider extends LitElement {
 
   @property() public label = "";
 
+  /** The panels this divider resizes, so assistive technology can find them. */
+  @property({ attribute: false }) public controlsElements: Element[] = [];
+
+  /** Spoken once when the divider goes back to its default place. */
+  @property({ attribute: "reset-text" }) public resetText = "";
+
+  @state() private _announcement = "";
+
   @property({ type: Boolean, reflect: true }) public disabled = false;
 
   @state() private _dragging = false;
@@ -61,29 +69,55 @@ export class HaSplitDivider extends LitElement {
     }
   }
 
+  protected updated() {
+    // Element references can point out of this shadow root into its owner's
+    const handle = this._handle;
+    if (handle && "ariaControlsElements" in handle) {
+      handle.ariaControlsElements = this.controlsElements.length
+        ? this.controlsElements
+        : null;
+    }
+  }
+
+  @query(".handle") private _handle?: HTMLElement & {
+    ariaControlsElements?: Element[] | null;
+  };
+
+  private get _max(): number {
+    // A maximum below the minimum cannot be shown; the minimum wins
+    return Math.max(this.min, this.max);
+  }
+
   protected render() {
-    const size = clampSize(this._live ?? this.value, this.min, this.max);
+    const max = this._max;
+    const size = clampSize(this._live ?? this.value, this.min, max);
     const percent = this.total > 0;
     return html`<div
-      class="handle"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label=${this.label}
-      aria-valuenow=${percent ? toPercent(size, this.total) : Math.round(size)}
-      aria-valuemin=${percent ? toPercent(this.min, this.total) : this.min}
-      aria-valuemax=${percent ? toPercent(this.max, this.total) : this.max}
-      tabindex=${this.disabled ? -1 : 0}
-      aria-disabled=${this.disabled ? "true" : "false"}
-      @keydown=${this._keydown}
-      @pointerdown=${this._pointerDown}
-      @pointermove=${this._pointerMove}
-      @pointerup=${this._pointerUp}
-      @pointercancel=${this._pointerCancel}
-      @lostpointercapture=${this._pointerCancel}
-      @dblclick=${this._reset}
-    >
-      <span class="line"></span>
-    </div>`;
+        class="handle"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label=${this.label}
+        aria-valuenow=${percent ? toPercent(size, this.total) : Math.round(size)}
+        aria-valuemin=${percent ? toPercent(this.min, this.total) : this.min}
+        aria-valuemax=${percent ? toPercent(max, this.total) : max}
+        aria-valuetext=${
+          percent ? `${toPercent(size, this.total)}%` : `${Math.round(size)} px`
+        }
+        tabindex=${this.disabled ? -1 : 0}
+        aria-disabled=${this.disabled ? "true" : "false"}
+        @keydown=${this._keydown}
+        @pointerdown=${this._pointerDown}
+        @pointermove=${this._pointerMove}
+        @pointerup=${this._pointerUp}
+        @pointercancel=${this._pointerCancel}
+        @lostpointercapture=${this._pointerCancel}
+        @dblclick=${this._reset}
+      >
+        <span class="line"></span>
+      </div>
+      <div class="visually-hidden" role="status" aria-live="polite">
+        ${this._announcement}
+      </div>`;
   }
 
   private get _isRtl(): boolean {
@@ -95,9 +129,9 @@ export class HaSplitDivider extends LitElement {
       return;
     }
     const size = sizeForKey(ev.key, {
-      current: this._live ?? this.value,
+      current: clampSize(this._live ?? this.value, this.min, this._max),
       min: this.min,
-      max: this.max,
+      max: this._max,
       defaultSize: this.defaultValue,
       rtl: this._isRtl,
       shift: ev.shiftKey,
@@ -119,7 +153,7 @@ export class HaSplitDivider extends LitElement {
     this._dragging = true;
     this._rtl = this._isRtl;
     this._startX = ev.clientX;
-    this._startSize = clampSize(this.value, this.min, this.max);
+    this._startSize = clampSize(this.value, this.min, this._max);
     this._live = this._startSize;
     ev.preventDefault();
     handle.focus();
@@ -134,7 +168,7 @@ export class HaSplitDivider extends LitElement {
       ev.clientX - this._startX,
       this._rtl,
       this.min,
-      this.max
+      this._max
     );
     if (size === this._live) {
       return;
@@ -148,10 +182,12 @@ export class HaSplitDivider extends LitElement {
       return;
     }
     const handle = ev.currentTarget as HTMLElement;
+    // Cleared first: releasing the capture raises lostpointercapture, which
+    // would otherwise be read as a cancelled drag and undo the move
+    this._dragging = false;
     if (handle.hasPointerCapture(ev.pointerId)) {
       handle.releasePointerCapture(ev.pointerId);
     }
-    this._dragging = false;
     this._emit(this._live ?? this._startSize, true);
   }
 
@@ -169,8 +205,13 @@ export class HaSplitDivider extends LitElement {
     if (this.disabled) {
       return;
     }
-    const size = clampSize(this.defaultValue, this.min, this.max);
+    const size = clampSize(this.defaultValue, this.min, this._max);
     this._live = size;
+    // The same text twice would not be announced again
+    this._announcement =
+      this._announcement === this.resetText
+        ? `${this.resetText} `
+        : this.resetText;
     this._emit(size, true);
   }
 
@@ -198,12 +239,22 @@ export class HaSplitDivider extends LitElement {
       touch-action: none;
       outline: none;
     }
-    /* A wider area than the line, so the divider is easy to grab */
+    /* A little wider than the line, but not over the scrollbar of the pane
+       next to it */
     .handle::before {
       content: "";
       position: absolute;
       inset-block: 0;
-      inset-inline: -8px;
+      inset-inline: -2px;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
     :host([disabled]) .handle {
       cursor: default;

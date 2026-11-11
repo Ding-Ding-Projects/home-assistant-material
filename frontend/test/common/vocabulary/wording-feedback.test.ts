@@ -72,7 +72,7 @@ describe("giveWordingFeedback", () => {
     expect(deps.celebrate).toHaveBeenCalledTimes(1);
     expect(deps.celebrate).toHaveBeenCalledWith(
       "Controls ready",
-      "ui.personal_wording.overlay_count:3"
+      "ui.personal_wording.overlay_count:3 ui.personal_wording.overlay_everywhere"
     );
   });
 
@@ -81,7 +81,7 @@ describe("giveWordingFeedback", () => {
     giveWordingFeedback({ ok: true, count: 1 }, deps);
     expect(deps.celebrate).toHaveBeenCalledWith(
       "ui.personal_wording.overlay_title",
-      "ui.personal_wording.overlay_count:1"
+      "ui.personal_wording.overlay_count:1 ui.personal_wording.overlay_everywhere"
     );
   });
 

@@ -1,6 +1,6 @@
 # Minecraft server manager
 
-Status: second slice built. Server definitions, target detection, SSH hosts, version discovery, and the first real target, a Docker host over SSH (Java servers only). The other four targets are defined and detected but nothing starts on them yet.
+Status: second slice built, with the per-server page in four tabs. Server definitions, target detection, SSH hosts, version discovery, and the first real target, a Docker host over SSH (Java servers only). The other four targets are defined and detected but nothing starts on them yet.
 
 The manager lets a person create and run Minecraft servers from Settings. This document is the design and the record of what exists.
 
@@ -105,12 +105,27 @@ All commands require an administrator.
 
 Settings, Minecraft servers (`/config/minecraft`):
 
-- The server list with open and delete actions, a link to SSH hosts, and an empty state.
+- The server list: each row opens the server page, shows the live state read from the status command (Unknown for servers on targets that cannot start yet), and has a delete action. A link to SSH hosts, and an empty state with the wizard.
 - A create wizard (Basics, Type and version, Where it runs, Review) with live validation, the searchable version picker with its refresh button, target cards, and a Docker host choice for the SSH Docker target.
 - SSH hosts: the list with trust state, and an add-host wizard (Details, Sign-in key, Host key, Test).
-- A server page: state, start, stop and restart, the EULA tick, the address to join with a copy button and the reachability result, the live log (refreshes every few seconds while open, with pause and copy), and the remove actions.
+- A server page with four tabs and the state and Start, Stop and Restart controls above them (busy states and localized error codes):
+  - Overview: version, memory, host, port, the EULA tick, the address to join with a copy button and the reachability result. Uses `status`, `start`, `stop`, `restart`, `set_eula`.
+  - Logs: the last 150 lines from `logs`, refresh, pause, wrap toggle, copy, and a note that only the last part is shown. It polls every 5 seconds only while the Logs tab and the browser page are visible and it is not paused.
+  - Settings: name, port, memory and the version picker, saved through `update`. The server type, edition and host are fixed here. When the server refuses a rename because the container exists, the message sits next to the field and says to remove the container first.
+  - Danger zone: remove container, delete world data (the name typed back), and delete the definition, including the repeated delete with `force` that is offered with its own confirmation when the host cannot be reached.
 
-The board also shows tabs for Players, Plugins, World generator, Console and Backups, a search over servers, and the Settings controls. Those are not built.
+## Not built yet
+
+The board shows more tabs and controls than the commands support. None of these is faked.
+
+- Console (commands through RCON): needs RCON enabled in the container with a generated password kept private, and a command that sends one line and returns bounded output.
+- Players (online list, allow list, operators): needs RCON or the server query for the online list, and a way to read and write the allow list and operator files in the data volume.
+- Plugins: needs a command that copies a file the person provides into the data volume of a stopped server, with size and name checks.
+- World generator: needs per-version jar extraction and a bounded generation command, with folder or archive output.
+- Backups of worlds: needs a command that archives the data volume to a size-capped file and a place to keep and restore it.
+- Difficulty, game mode, view distance, player limit and the other server properties: need a command that reads and writes server.properties through the container environment, then applies on restart.
+- Bedrock and the other targets (supervisor, Docker socket, local process, SSH process): need their own start, stop, status and log commands; their server pages only offer deleting the definition.
+- Join address as a QR code: a Minecraft address has no standard QR form that the game scans, so it is not drawn.
 
 ## Out of scope
 

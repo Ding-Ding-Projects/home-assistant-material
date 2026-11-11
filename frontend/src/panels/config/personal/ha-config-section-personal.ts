@@ -59,6 +59,9 @@ import {
   FUNNY_LEVEL_MAX,
   FUNNY_LEVEL_MIN,
   getPreferenceDefaults,
+  followDefaultPreferences,
+  getChosenPreferenceKeys,
+  getPersonalPreferences,
   getStoredPreferences,
   initPersonalPreferences,
   LANGUAGE_MODES,
@@ -77,7 +80,10 @@ import {
   VOLUME_MAX,
   VOLUME_MIN,
 } from "../../../common/preferences/personal-preferences";
-import { currentScheduleEvaluation } from "../../../common/preferences/preference-schedule-store";
+import {
+  currentScheduleEvaluation,
+  scheduleZoneNow,
+} from "../../../common/preferences/preference-schedule-store";
 import type { ScheduleEvaluation } from "../../../common/preferences/preference-schedule";
 import {
   getSharedDefaults,
@@ -504,9 +510,15 @@ export class HaConfigSectionPersonal extends LitElement {
     const p = this._prefs;
     const d = getPreferenceDefaults();
     const held = schoolHeldFields(p);
+    const chosen = new Set<string>(getChosenPreferenceKeys());
+    const follows = (...keys: (keyof PersonalPreferences)[]) =>
+      keys.every((key) => !chosen.has(key));
     const schoolName = p.schoolName;
-    const silence = silenceReason(p);
-    const narrationSilence = narratorSilence(p);
+    // The hints read what applies now, with School mode and schedules laid
+    // over the choices, not the stored choice behind them.
+    const effective = getPersonalPreferences();
+    const silence = silenceReason(effective, scheduleZoneNow());
+    const narrationSilence = narratorSilence(effective);
     const slider = (
       value: number,
       min: number,
@@ -548,9 +560,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("language_mode.reach"),
         active: true,
         valueText: this._t(`language_mode.${p.languageMode}`),
-        isDefault: p.languageMode === d.languageMode,
+        isDefault: follows("languageMode"),
         held: held.has("languageMode"),
-        reset: () => this._change({ languageMode: d.languageMode }, "reset"),
+        reset: () => this._follow(["languageMode"], "reset"),
         control: this._renderModeCards(p, held.has("languageMode")),
       },
       {
@@ -562,9 +574,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("funny_english.reach"),
         active: true,
         valueText: String(p.funnyEnglish),
-        isDefault: p.funnyEnglish === d.funnyEnglish,
+        isDefault: follows("funnyEnglish"),
         held: held.has("funnyEnglish"),
-        reset: () => this._change({ funnyEnglish: d.funnyEnglish }, "reset"),
+        reset: () => this._follow(["funnyEnglish"], "reset"),
         control: html`${slider(
             p.funnyEnglish,
             FUNNY_LEVEL_MIN,
@@ -586,10 +598,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("funny_cantonese.reach"),
         active: true,
         valueText: String(p.funnyCantonese),
-        isDefault: p.funnyCantonese === d.funnyCantonese,
+        isDefault: follows("funnyCantonese"),
         held: held.has("funnyCantonese"),
-        reset: () =>
-          this._change({ funnyCantonese: d.funnyCantonese }, "reset"),
+        reset: () => this._follow(["funnyCantonese"], "reset"),
         control: html`${slider(
             p.funnyCantonese,
             FUNNY_LEVEL_MIN,
@@ -611,9 +622,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("dialog_emojis.reach"),
         active: true,
         valueText: this._onOff(p.dialogEmojis),
-        isDefault: p.dialogEmojis === d.dialogEmojis,
+        isDefault: follows("dialogEmojis"),
         held: held.has("dialogEmojis"),
-        reset: () => this._change({ dialogEmojis: d.dialogEmojis }),
+        reset: () => this._follow(["dialogEmojis"]),
         control: toggle(
           p.dialogEmojis,
           this._t("dialog_emojis.label"),
@@ -630,9 +641,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("one_thing.reach"),
         active: true,
         valueText: this._onOff(p.oneThingAtATime),
-        isDefault: p.oneThingAtATime === d.oneThingAtATime,
+        isDefault: follows("oneThingAtATime"),
         held: held.has("oneThingAtATime"),
-        reset: () => this._change({ oneThingAtATime: d.oneThingAtATime }),
+        reset: () => this._follow(["oneThingAtATime"]),
         control: toggle(
           p.oneThingAtATime,
           this._t("one_thing.label"),
@@ -650,15 +661,8 @@ export class HaConfigSectionPersonal extends LitElement {
         active: true,
         valueText: this._onOff(p.schoolMode),
         // While the mode is on it can only be changed with the PIN.
-        isDefault:
-          p.schoolMode ||
-          (p.schoolName === d.schoolName &&
-            p.schoolRules.join() === d.schoolRules.join()),
-        reset: () =>
-          this._change({
-            schoolName: d.schoolName,
-            schoolRules: d.schoolRules,
-          }),
+        isDefault: p.schoolMode || follows("schoolName", "schoolRules"),
+        reset: () => this._follow(["schoolName", "schoolRules"]),
         control: this._renderSchool(p, schoolName),
       },
       {
@@ -670,9 +674,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("sound_effects.reach"),
         active: true,
         valueText: this._onOff(p.soundEffects),
-        isDefault: p.soundEffects === d.soundEffects,
+        isDefault: follows("soundEffects"),
         held: held.has("soundEffects"),
-        reset: () => this._change({ soundEffects: d.soundEffects }, "reset"),
+        reset: () => this._follow(["soundEffects"], "reset"),
         control: html`${toggle(
             p.soundEffects,
             this._t("sound_effects.label"),
@@ -708,18 +712,9 @@ export class HaConfigSectionPersonal extends LitElement {
               to: p.quietTo,
             })
           : this._onOff(false),
-        isDefault:
-          p.quietHours === d.quietHours &&
-          p.quietFrom === d.quietFrom &&
-          p.quietTo === d.quietTo &&
-          p.quietDays.join() === d.quietDays.join(),
+        isDefault: follows("quietHours", "quietFrom", "quietTo", "quietDays"),
         reset: () =>
-          this._change({
-            quietHours: d.quietHours,
-            quietFrom: d.quietFrom,
-            quietTo: d.quietTo,
-            quietDays: d.quietDays,
-          }),
+          this._follow(["quietHours", "quietFrom", "quietTo", "quietDays"]),
         control: this._renderQuietHours(p),
       },
       {
@@ -731,8 +726,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("sound_volume.reach"),
         active: true,
         valueText: String(p.soundVolume),
-        isDefault: p.soundVolume === d.soundVolume,
-        reset: () => this._change({ soundVolume: d.soundVolume }, "reset"),
+        isDefault: follows("soundVolume"),
+        reset: () => this._follow(["soundVolume"], "reset"),
         control: slider(
           p.soundVolume,
           VOLUME_MIN,
@@ -772,9 +767,9 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("low_stimulation.reach"),
         active: true,
         valueText: this._onOff(p.lowStimulation),
-        isDefault: p.lowStimulation === d.lowStimulation,
+        isDefault: follows("lowStimulation"),
         held: held.has("lowStimulation"),
-        reset: () => this._change({ lowStimulation: d.lowStimulation }),
+        reset: () => this._follow(["lowStimulation"]),
         control: toggle(
           p.lowStimulation,
           this._t("low_stimulation.label"),
@@ -791,8 +786,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("focus_spotlight.reach"),
         active: true,
         valueText: this._onOff(p.focusSpotlight),
-        isDefault: p.focusSpotlight === d.focusSpotlight,
-        reset: () => this._change({ focusSpotlight: d.focusSpotlight }),
+        isDefault: follows("focusSpotlight"),
+        reset: () => this._follow(["focusSpotlight"]),
         control: toggle(
           p.focusSpotlight,
           this._t("focus_spotlight.label"),
@@ -808,8 +803,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("time_awareness.reach"),
         active: true,
         valueText: this._onOff(p.timeAwareness),
-        isDefault: p.timeAwareness === d.timeAwareness,
-        reset: () => this._change({ timeAwareness: d.timeAwareness }),
+        isDefault: follows("timeAwareness"),
+        reset: () => this._follow(["timeAwareness"]),
         control: toggle(
           p.timeAwareness,
           this._t("time_awareness.label"),
@@ -825,8 +820,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("momentum.reach"),
         active: true,
         valueText: this._onOff(p.momentum),
-        isDefault: p.momentum === d.momentum,
-        reset: () => this._change({ momentum: d.momentum }),
+        isDefault: follows("momentum"),
+        reset: () => this._follow(["momentum"]),
         control: toggle(p.momentum, this._t("momentum.label"), (ev) =>
           this._change({ momentum: ev.target.checked })
         ),
@@ -840,8 +835,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("narrator_enabled.reach"),
         active: speechAvailable(),
         valueText: this._onOff(p.narratorEnabled),
-        isDefault: p.narratorEnabled === d.narratorEnabled,
-        reset: () => this._change({ narratorEnabled: d.narratorEnabled }),
+        isDefault: follows("narratorEnabled"),
+        reset: () => this._follow(["narratorEnabled"]),
         control: html`${toggle(
           p.narratorEnabled,
           this._t("narrator_enabled.label"),
@@ -871,8 +866,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("narrator_speak_in.reach"),
         active: true,
         valueText: this._t(`narrator_speak_in.${p.narratorSpeakIn}`),
-        isDefault: p.narratorSpeakIn === d.narratorSpeakIn,
-        reset: () => this._change({ narratorSpeakIn: d.narratorSpeakIn }),
+        isDefault: follows("narratorSpeakIn"),
+        reset: () => this._follow(["narratorSpeakIn"]),
         control: html`<ha-button-toggle-group
           .buttons=${NARRATOR_SPEAK_IN.map((value) => ({
             value,
@@ -891,9 +886,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("narrator_voice_english.reach"),
         active: true,
         valueText: this._voiceLabel(p.narratorVoiceEnglish),
-        isDefault: p.narratorVoiceEnglish === d.narratorVoiceEnglish,
-        reset: () =>
-          this._change({ narratorVoiceEnglish: d.narratorVoiceEnglish }),
+        isDefault: follows("narratorVoiceEnglish"),
+        reset: () => this._follow(["narratorVoiceEnglish"]),
         control: this._renderVoicePicker("en", p.narratorVoiceEnglish),
       },
       {
@@ -905,9 +899,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("narrator_voice_cantonese.reach"),
         active: true,
         valueText: this._voiceLabel(p.narratorVoiceCantonese),
-        isDefault: p.narratorVoiceCantonese === d.narratorVoiceCantonese,
-        reset: () =>
-          this._change({ narratorVoiceCantonese: d.narratorVoiceCantonese }),
+        isDefault: follows("narratorVoiceCantonese"),
+        reset: () => this._follow(["narratorVoiceCantonese"]),
         control: this._renderVoicePicker("yue", p.narratorVoiceCantonese),
       },
       {
@@ -919,8 +912,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("narrator_rate.reach"),
         active: true,
         valueText: `${p.narratorRate}x`,
-        isDefault: p.narratorRate === d.narratorRate,
-        reset: () => this._change({ narratorRate: d.narratorRate }),
+        isDefault: follows("narratorRate"),
+        reset: () => this._follow(["narratorRate"]),
         control: html`<ha-slider
             labeled
             .min=${NARRATOR_RATE_MIN}
@@ -941,8 +934,8 @@ export class HaConfigSectionPersonal extends LitElement {
         reach: this._tl("narrator_pitch.reach"),
         active: true,
         valueText: String(p.narratorPitch),
-        isDefault: p.narratorPitch === d.narratorPitch,
-        reset: () => this._change({ narratorPitch: d.narratorPitch }),
+        isDefault: follows("narratorPitch"),
+        reset: () => this._follow(["narratorPitch"]),
         control: html`<ha-slider
             labeled
             .min=${NARRATOR_PITCH_MIN}
@@ -1790,6 +1783,14 @@ export class HaConfigSectionPersonal extends LitElement {
     }
   }
 
+  // Going back to following the default is the only way a choice is dropped.
+  private _follow(keys: (keyof PersonalPreferences)[], cue?: "reset") {
+    this._prefs = followDefaultPreferences(keys);
+    if (cue) {
+      playActionCue(cue);
+    }
+  }
+
   private _playSample = () => {
     playActionCue("sample");
   };
@@ -1890,18 +1891,15 @@ export class HaConfigSectionPersonal extends LitElement {
       display: flex;
       flex-direction: column;
     }
-    .narrow .pin {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-2);
+    /* On a narrow screen only the group chips stay pinned. The preview scrolls
+       away with the page: pinned, it covered most of a phone screen and hid
+       the settings under it. */
+    .narrow .groups {
       position: sticky;
       top: 0;
       z-index: 1;
       padding: var(--ha-space-2) 0;
       background: var(--primary-background-color);
-    }
-    .narrow .groups {
-      position: static;
       flex-direction: row;
       overflow-x: auto;
       gap: var(--ha-space-2);

@@ -142,6 +142,55 @@ export const parseMinecraftNumber = (text: string): number | undefined => {
   return Number(text);
 };
 
+/** A draft that starts from a stored server, for the settings tab. */
+export const minecraftServerToDraft = (
+  server: MinecraftServer
+): MinecraftServerDraft => ({
+  name: server.name,
+  edition: server.edition,
+  flavour: server.flavour,
+  version: server.version,
+  port: server.port,
+  memory_mb: server.memory_mb,
+  target: server.target,
+  ...(server.host_id ? { host_id: server.host_id } : {}),
+});
+
+/** True when the draft differs from the stored server in a field a person edits. */
+export const minecraftDraftChanged = (
+  server: MinecraftServer,
+  draft: MinecraftServerDraft
+): boolean =>
+  draft.name.trim() !== server.name ||
+  draft.version !== server.version ||
+  draft.port !== server.port ||
+  draft.memory_mb !== server.memory_mb;
+
+/** Error codes the server answers for a field of the settings form. */
+export const minecraftFieldErrors = (
+  errors: MinecraftFieldError[]
+): Record<string, string> => {
+  const byField: Record<string, string> = {};
+  for (const error of errors) {
+    if (!(error.field in byField)) {
+      byField[error.field] = error.code;
+    }
+  }
+  return byField;
+};
+
+/**
+ * Whether the log should be fetched again now. Only the visible log tab of a
+ * visible page polls, and never while paused or while an action runs.
+ */
+export const shouldPollMinecraftLogs = (state: {
+  tab: string;
+  pageVisible: boolean;
+  paused: boolean;
+  busy: boolean;
+}): boolean =>
+  state.tab === "logs" && state.pageVisible && !state.paused && !state.busy;
+
 /** The definition sent to the server, with the name trimmed. */
 export const minecraftDraftPayload = (draft: MinecraftServerDraft) => {
   const { host_id: hostId, ...rest } = draft;

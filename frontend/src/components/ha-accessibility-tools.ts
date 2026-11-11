@@ -597,6 +597,11 @@ export class HaAccessibilityTools extends LitElement {
     #panel:popover-open {
       display: flex;
     }
+    /* The panel scrolls. Its rows keep their full height: a row squeezed to
+       fit would spill its wrapped controls over the row below. */
+    #panel > * {
+      flex-shrink: 0;
+    }
     /* On a phone the panel is a sheet above the bottom bar. */
     @media (max-width: 700px) {
       #panel {

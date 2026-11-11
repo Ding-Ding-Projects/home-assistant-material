@@ -307,8 +307,9 @@ export const evaluateSchedules = (
   const result: ScheduleEvaluation = {
     overlay: {},
     deciding: {},
-    overridden: {},
-    heldBySchool: {},
+    // No prototype, so a stored id such as "__proto__" is just a key.
+    overridden: Object.create(null),
+    heldBySchool: Object.create(null),
   };
   for (const rule of rules) {
     if (!ruleApplies(rule, parts)) {
@@ -386,7 +387,7 @@ export const rulesOverlap = (a: ScheduleRule, b: ScheduleRule): boolean => {
 export const findConflicts = (
   rules: readonly ScheduleRule[]
 ): Record<string, string[]> => {
-  const conflicts: Record<string, string[]> = {};
+  const conflicts: Record<string, string[]> = Object.create(null);
   rules.forEach((rule, index) => {
     if (!rule.enabled) {
       return;
@@ -415,8 +416,11 @@ export interface NextChange {
 }
 
 /**
- * The next minute at which the rules give this preference a different value,
- * looking ahead up to `horizonMinutes`. Undefined when nothing changes.
+ * The next time the rules give this preference a different value, looking
+ * ahead up to `horizonMinutes`. Candidates come from the edges of the rules
+ * (their start and end on each coming day), then the exact minute is found
+ * around each one, so a rule that only runs on one weekday is found from any
+ * other day without scanning every minute. Undefined when nothing changes.
  */
 export const nextChange = (
   rules: readonly ScheduleRule[],
@@ -424,7 +428,7 @@ export const nextChange = (
   zone: string,
   preference: SchedulablePreference,
   held: ReadonlySet<string> = new Set(),
-  horizonMinutes = 3 * 1440
+  horizonMinutes = 8 * 1440
 ): NextChange | undefined => {
   if (held.has(preference)) {
     return undefined;
@@ -436,12 +440,33 @@ export const nextChange = (
   const valueAt = (date: Date): ScheduleValue | undefined =>
     evaluateSchedules(relevant, date, zone, held).overlay[preference];
   const startMs = Math.floor(now.getTime() / 60000) * 60000;
+  const endMs = startMs + horizonMinutes * 60000;
   const current = valueAt(new Date(startMs));
-  for (let step = 1; step <= horizonMinutes; step++) {
-    const at = new Date(startMs + step * 60000);
-    const value = valueAt(at);
-    if (value !== current) {
-      return { at, value };
+  const today = zoneParts(new Date(startMs), zone).minute;
+  const edges = new Set<number>([0]);
+  relevant.forEach((rule) => {
+    edges.add(minutesOf(rule.from));
+    edges.add(minutesOf(rule.to));
+  });
+  const candidates = new Set<number>();
+  for (let day = 0; day <= Math.ceil(horizonMinutes / 1440) + 1; day++) {
+    edges.forEach((edge) => {
+      candidates.add(startMs + (day * 1440 + edge - today) * 60000);
+    });
+  }
+  const ordered = [...candidates]
+    .filter((ms) => ms > startMs - 120 * 60000 && ms <= endMs + 120 * 60000)
+    .sort((a, b) => a - b);
+  for (const candidate of ordered) {
+    // An hour of clock change can move a real edge; look around the estimate.
+    for (let step = -120; step <= 120; step++) {
+      const ms = candidate + step * 60000;
+      if (ms <= startMs || ms > endMs) {
+        continue;
+      }
+      if (valueAt(new Date(ms)) !== current) {
+        return { at: new Date(ms), value: valueAt(new Date(ms)) };
+      }
     }
   }
   return undefined;

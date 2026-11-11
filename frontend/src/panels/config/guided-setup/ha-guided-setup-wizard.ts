@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { modeText } from "../../../common/language-mode/language-mode";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-form/ha-form";
@@ -1003,7 +1004,8 @@ export class HaGuidedSetupWizard extends LitElement {
                 .label=${this._labelOf(leaf)}
                 .description=${`${this._l(leaf.required ? "required" : "optional")}. ${this._msg(fieldHint(leaf))}`}
                 .defaultText=${defaultText(leaf.default, leaf.secret) ?? ""}
-                .reach=${this.hass.localize(
+                .reach=${modeText(
+                  this.hass.localize as any,
                   "ui.components.setting_info.guided_reach",
                   { file: `guided_setup/${this.integration.domain}.yaml` }
                 )}

@@ -1,4 +1,3 @@
-import { mdiContentSave } from "@mdi/js";
 import {
   html,
   type LitElement,
@@ -19,6 +18,7 @@ import {
   extractSearchParam,
   removeSearchParam,
 } from "../../../common/url/search-params";
+import "../../../components/editor/ha-editor-save-bar";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
@@ -113,6 +113,11 @@ export const ManualEditorMixin = <TConfig>(
       throw new Error("Not implemented");
     }
 
+    private _saveBarSave = (ev: Event) => {
+      ev.stopPropagation();
+      this.saveConfig();
+    };
+
     protected render() {
       return html`
         <div
@@ -135,18 +140,14 @@ export const ManualEditorMixin = <TConfig>(
               <slot name="alerts"></slot>
               ${this.renderContent()}
             </div>
-            <div class="fab-positioner">
-              <ha-button
-                slot="fab"
-                size="l"
-                class=${this.dirty ? "dirty" : ""}
-                .disabled=${this.saving}
-                @click=${this.saveConfig}
-              >
-                <ha-svg-icon slot="start" .path=${mdiContentSave}></ha-svg-icon>
-                ${this.hass.localize("ui.common.save")}
-              </ha-button>
-            </div>
+            <ha-editor-save-bar
+              .hass=${this.hass}
+              .dirty=${this.dirty}
+              .saving=${this.saving}
+              .disabled=${this.disabled}
+              show-shortcut
+              @save-bar-save=${this._saveBarSave}
+            ></ha-editor-save-bar>
           </div>
           <div class="sidebar-positioner">
             <ha-automation-sidebar

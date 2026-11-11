@@ -1,5 +1,6 @@
 import type { ManagerStateEvent } from "../../data/backup_manager";
 import type { HomeAssistant } from "../../types";
+import { modeText } from "../language-mode/language-mode";
 import { trackActivityAnnouncements } from "./activity-announcer";
 import { activityStore, finishActivity, startActivity } from "./activity-store";
 
@@ -21,7 +22,20 @@ const MODE_KEY: Record<Mode, string> = {
 };
 
 const label = (hass: Pick<HomeAssistant, "localize">, mode: Mode) =>
-  hass.localize(`ui.activity.backup.${MODE_KEY[mode]}` as any);
+  modeText(hass.localize as any, `ui.activity.backup.${MODE_KEY[mode]}`);
+
+const doneLabel = (hass: Pick<HomeAssistant, "localize">, mode: Mode) =>
+  modeText(hass.localize as any, `ui.activity.backup.${MODE_KEY[mode]}_done`);
+
+// Ends the activity that is being followed without claiming it succeeded.
+const endNeutral = (hass: Pick<HomeAssistant, "localize">): void => {
+  if (current && activityStore.get(current.id)?.state === "running") {
+    finishActivity(current.id, "cancelled", {
+      message: modeText(hass.localize as any, "ui.activity.backup.ended"),
+    });
+  }
+  current = undefined;
+};
 
 export const reportBackupManagerEvent = (
   hass: Pick<HomeAssistant, "localize">,
@@ -31,18 +45,17 @@ export const reportBackupManagerEvent = (
     current = undefined;
   }
   if (event.manager_state === "idle" || event.manager_state === "blocked") {
-    // The page also reports the end of a run as a state change to idle.
-    if (current && activityStore.get(current.id)?.state === "running") {
-      finishActivity(current.id, "done", {
-        message: label(hass, current.mode),
-      });
-    }
-    current = undefined;
+    // Only a "completed" event means success. An idle state without one is
+    // reported as ended, never as done.
+    endNeutral(hass);
     return;
   }
   const mode = event.manager_state;
   if (event.state === "in_progress" || event.state === "core_restart") {
     if (!current || current.mode !== mode) {
+      // A move from one kind of run to another without an idle state between
+      // them: close the earlier activity first so it cannot stay running.
+      endNeutral(hass);
       trackActivityAnnouncements(hass.localize as any);
       current = {
         id: startActivity({
@@ -57,10 +70,13 @@ export const reportBackupManagerEvent = (
   }
   if (current && current.mode === mode) {
     if (event.state === "completed") {
-      finishActivity(current.id, "done", { message: label(hass, mode) });
+      finishActivity(current.id, "done", { message: doneLabel(hass, mode) });
     } else {
       finishActivity(current.id, "failed", {
-        message: hass.localize("ui.activity.backup.failed_changed" as any),
+        message: modeText(
+          hass.localize as any,
+          "ui.activity.backup.failed_changed"
+        ),
         details: event.reason ?? undefined,
       });
     }

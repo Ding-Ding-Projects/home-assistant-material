@@ -9,15 +9,19 @@ import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
+import "../../../components/ha-tab-group";
+import "../../../components/ha-tab-group-tab";
 import "../../../components/input/ha-input";
 import type {
   MinecraftHost,
   MinecraftServer,
   MinecraftServerAction,
   MinecraftStatus,
+  MinecraftVersionLists,
 } from "../../../data/minecraft_manager";
 import {
   deleteMinecraftData,
+  deleteMinecraftServer,
   fetchMinecraftLogs,
   fetchMinecraftStatus,
   isMinecraftFailure,
@@ -26,17 +30,22 @@ import {
   minecraftJoinAddress,
   runMinecraftAction,
   setMinecraftEula,
+  shouldPollMinecraftLogs,
 } from "../../../data/minecraft_manager";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
+import "./ha-minecraft-server-settings";
 
 const LOG_LINES = 150;
 const LOG_REFRESH_MS = 5000;
 const STATUS_REFRESH_MS = 10000;
 
-/** One server: its state, the controls, the address to join and its log. */
+const TABS = ["overview", "logs", "settings", "danger"] as const;
+type Tab = (typeof TABS)[number];
+
+/** One server: its state, the controls, and a tab for each kind of work. */
 @customElement("ha-minecraft-server")
 class HaMinecraftServer extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -45,17 +54,23 @@ class HaMinecraftServer extends LitElement {
 
   @property({ attribute: false }) public hosts: MinecraftHost[] = [];
 
+  @property({ attribute: false }) public versions?: MinecraftVersionLists;
+
+  @state() private _tab: Tab = "overview";
+
   @state() private _status?: MinecraftStatus;
 
   @state() private _code?: string;
 
-  @state() private _busy?: MinecraftServerAction | "data";
+  @state() private _busy?: MinecraftServerAction | "data" | "definition";
 
   @state() private _lines: string[] = [];
 
   @state() private _logCode?: string;
 
   @state() private _paused = false;
+
+  @state() private _wrap = true;
 
   @state() private _confirmName = "";
 
@@ -84,13 +99,13 @@ class HaMinecraftServer extends LitElement {
     super.connectedCallback();
     if (this._supported) {
       this._refreshStatus();
-      this._refreshLogs();
-      this._statusTimer = window.setInterval(
-        () => this._refreshStatus(),
-        STATUS_REFRESH_MS
-      );
+      this._statusTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          this._refreshStatus();
+        }
+      }, STATUS_REFRESH_MS);
       this._logTimer = window.setInterval(() => {
-        if (!this._paused && !this._busy) {
+        if (this._shouldPollLogs()) {
           this._refreshLogs();
         }
       }, LOG_REFRESH_MS);
@@ -101,6 +116,26 @@ class HaMinecraftServer extends LitElement {
     super.disconnectedCallback();
     window.clearInterval(this._statusTimer);
     window.clearInterval(this._logTimer);
+  }
+
+  private _shouldPollLogs(): boolean {
+    return shouldPollMinecraftLogs({
+      tab: this._tab,
+      pageVisible: document.visibilityState === "visible",
+      paused: this._paused,
+      busy: Boolean(this._busy),
+    });
+  }
+
+  private _tabChanged(ev: CustomEvent): void {
+    const tab = ev.detail.name as Tab;
+    if (!TABS.includes(tab) || tab === this._tab) {
+      return;
+    }
+    this._tab = tab;
+    if (tab === "logs" && this._supported) {
+      this._refreshLogs();
+    }
   }
 
   private async _refreshStatus(): Promise<void> {
@@ -176,7 +211,9 @@ class HaMinecraftServer extends LitElement {
       this._busy = undefined;
     }
     await this._refreshStatus();
-    await this._refreshLogs();
+    if (this._tab === "logs") {
+      await this._refreshLogs();
+    }
   }
 
   private async _eulaChanged(ev: Event): Promise<void> {
@@ -214,6 +251,10 @@ class HaMinecraftServer extends LitElement {
     }
   }
 
+  private _toggleWrap(): void {
+    this._wrap = !this._wrap;
+  }
+
   private _confirmInput(ev: Event): void {
     this._confirmName = (ev.target as HTMLInputElement).value ?? "";
   }
@@ -233,6 +274,50 @@ class HaMinecraftServer extends LitElement {
         this._confirmName = "";
         showToast(this, { message: this._l("detail.data_deleted") });
       }
+    } catch {
+      this._code = "unknown";
+    } finally {
+      this._busy = undefined;
+    }
+    await this._refreshStatus();
+  }
+
+  /** Removes the definition. `force` is offered only for an unreachable host. */
+  private async _deleteDefinition(): Promise<void> {
+    const name = this.server.name;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("delete_title"),
+      text: this._l("delete_text", { name }),
+      confirmText: this._l("delete"),
+      dismissText: this._l("cancel"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = "definition";
+    this._code = undefined;
+    try {
+      let result = await deleteMinecraftServer(this.hass, this.server.id);
+      if (isMinecraftFailure(result) && result.code !== "container_exists") {
+        const anyway = await showConfirmationDialog(this, {
+          title: this._l("delete_unverified_title"),
+          text: this._l("delete_unverified_text", { name }),
+          confirmText: this._l("delete_anyway"),
+          dismissText: this._l("cancel"),
+          destructive: true,
+        });
+        if (!anyway) {
+          return;
+        }
+        result = await deleteMinecraftServer(this.hass, this.server.id, true);
+      }
+      if (isMinecraftFailure(result)) {
+        this._code = result.code;
+        return;
+      }
+      showToast(this, { message: this._l("deleted", { name }) });
+      fireEvent(this, "minecraft-server-closed-deleted");
     } catch {
       this._code = "unknown";
     } finally {
@@ -274,18 +359,21 @@ class HaMinecraftServer extends LitElement {
 
   private _renderUnsupported(): TemplateResult {
     return html`<ha-alert alert-type="info"
-      >${this._l(
-        this.server.edition === "bedrock"
-          ? "detail.bedrock_unsupported"
-          : "detail.target_unsupported"
-      )}</ha-alert
-    >`;
+        >${this._l(
+          this.server.edition === "bedrock"
+            ? "detail.bedrock_unsupported"
+            : "detail.target_unsupported"
+        )}</ha-alert
+      >
+      <section class="card danger">
+        <h3>${this._l("detail.tab.danger")}</h3>
+        ${this._renderDefinitionDelete()}
+      </section>`;
   }
 
   private _renderManaged(): TemplateResult {
     const server = this.server;
-    const status = this._status;
-    const runState = status?.state;
+    const runState = this._status?.state;
     const host = this._host();
     const busy = Boolean(this._busy);
     return html`
@@ -340,12 +428,72 @@ class HaMinecraftServer extends LitElement {
             >`
           : nothing
       }
-      ${this._renderEula()} ${this._renderAddress(status)}
+      <ha-tab-group @wa-tab-show=${this._tabChanged}>
+        ${TABS.map(
+          (tab) => html`
+            <ha-tab-group-tab
+              slot="nav"
+              .active=${this._tab === tab}
+              .panel=${tab}
+            >
+              ${this._l(`detail.tab.${tab}`)}
+            </ha-tab-group-tab>
+          `
+        )}
+      </ha-tab-group>
+      ${this._renderTab(runState)}
+    `;
+  }
+
+  private _renderTab(runState?: string): TemplateResult {
+    switch (this._tab) {
+      case "logs":
+        return this._renderLogs();
+      case "settings":
+        return html`<section class="card">
+          <ha-minecraft-server-settings
+            .hass=${this.hass}
+            .server=${this.server}
+            .versions=${this.versions}
+          ></ha-minecraft-server-settings>
+        </section>`;
+      case "danger":
+        return this._renderDanger(runState);
+      default:
+        return this._renderOverview();
+    }
+  }
+
+  private _renderOverview(): TemplateResult {
+    const server = this.server;
+    const host = this._host();
+    return html`
+      <section class="card">
+        <dl class="facts">
+          <div>
+            <dt>${this._l("field.version")}</dt>
+            <dd>${server.version}</dd>
+          </div>
+          <div>
+            <dt>${this._l("field.memory")}</dt>
+            <dd>
+              ${this._l("detail.memory_value", { memory: server.memory_mb })}
+            </dd>
+          </div>
+          <div>
+            <dt>${this._l("field.host")}</dt>
+            <dd>${host ? host.name : this._l("detail.no_host_short")}</dd>
+          </div>
+          <div>
+            <dt>${this._l("field.port")}</dt>
+            <dd>${server.port}</dd>
+          </div>
+        </dl>
+      </section>
+      ${this._renderEula()} ${this._renderAddress(this._status)}
       <p class="detail">
         ${this._l("detail.image_note", { image: MINECRAFT_IMAGE })}
-        ${this._l("detail.settings_note")}
       </p>
-      ${this._renderLogs()} ${this._renderDanger(runState)}
     `;
   }
 
@@ -407,8 +555,14 @@ class HaMinecraftServer extends LitElement {
     return html`<section class="card">
       <div class="row">
         <h3 class="grow">${this._l("detail.log_title")}</h3>
+        <ha-button appearance="plain" @click=${this._refreshLogs}
+          >${this._l("detail.refresh_log")}</ha-button
+        >
         <ha-button appearance="plain" @click=${this._togglePause}
           >${this._l(this._paused ? "detail.resume" : "detail.pause")}</ha-button
+        >
+        <ha-button appearance="plain" @click=${this._toggleWrap}
+          >${this._l(this._wrap ? "detail.no_wrap" : "detail.wrap")}</ha-button
         >
         <ha-button
           appearance="plain"
@@ -424,16 +578,37 @@ class HaMinecraftServer extends LitElement {
             >`
           : nothing
       }
-      <pre class="log" tabindex="0" aria-label=${this._l("detail.log_title")}>
+      <pre
+        class=${classMap({ log: true, wrap: this._wrap })}
+        tabindex="0"
+        aria-label=${this._l("detail.log_title")}
+      >
 ${
           this._lines.length
             ? this._lines.join("\n")
             : this._l("detail.log_empty")
         }</pre>
       <p class="detail">
+        ${this._l("detail.log_last_part", { count: LOG_LINES })}
+      </p>
+      <p class="detail">
         ${this._l(this._paused ? "detail.log_paused" : "detail.log_live")}
       </p>
     </section>`;
+  }
+
+  private _renderDefinitionDelete(): TemplateResult {
+    const busy = Boolean(this._busy);
+    return html`<p class="detail">${this._l("detail.definition_info")}</p>
+      <div class="row">
+        <ha-button
+          appearance="plain"
+          variant="danger"
+          .disabled=${busy}
+          @click=${this._deleteDefinition}
+          >${this._l("detail.delete_definition")}</ha-button
+        >
+      </div>`;
   }
 
   private _renderDanger(current?: string): TemplateResult {
@@ -470,6 +645,7 @@ ${
           >${this._l("detail.delete_data")}</ha-button
         >
       </div>
+      ${this._renderDefinitionDelete()}
     </section>`;
   }
 
@@ -517,6 +693,14 @@ ${
       .grow {
         flex: 1;
       }
+      ha-tab-group {
+        min-width: 0;
+        border-bottom: 1px solid var(--divider-color);
+      }
+      ha-tab-group-tab::part(base) {
+        min-height: 44px;
+        padding: 2px 16px;
+      }
       .tag {
         padding: var(--ha-space-1) var(--ha-space-3);
         border-radius: 14px;
@@ -542,6 +726,21 @@ ${
       }
       .card.danger {
         border: 1px solid var(--error-color);
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+        gap: var(--ha-space-3);
+        margin: 0;
+      }
+      .facts dt {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s);
+      }
+      .facts dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+        font-weight: var(--ha-font-weight-medium);
       }
       .check {
         display: flex;
@@ -580,6 +779,9 @@ ${
         background: var(--card-background-color);
         font-family: var(--ha-font-family-code, monospace);
         font-size: var(--ha-font-size-s);
+        white-space: pre;
+      }
+      .log.wrap {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
       }
@@ -600,5 +802,6 @@ declare global {
   interface HASSDomEvents {
     "minecraft-server-close": undefined;
     "minecraft-server-changed": undefined;
+    "minecraft-server-closed-deleted": undefined;
   }
 }

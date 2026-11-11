@@ -29,8 +29,9 @@ All commands are WebSocket commands that require an administrator.
 | `ollama_suite/show` | 1 | Details of one model: capabilities, default settings, template, licence, small technical values |
 | `ollama_suite/pull` | 2 | Download a model. A subscription: events carry `state` (`progress`, `done`, `error`), the server's status text, digest, and completed and total bytes. Unsubscribing cancels it. One download per server at a time (`busy` otherwise) |
 | `ollama_suite/delete` | 2 | Remove a model that the server lists; answers the size it freed |
-| `ollama_suite/unload` | 2 | Unload a loaded model by asking the server to keep it for zero seconds. Server command only; the page has no control for it yet |
-| `ollama_suite/chat` | 3 | Streamed chat with a model on a chosen server |
+| `ollama_suite/unload` | 2 | Unload a loaded model by asking the server to keep it for zero seconds. The page offers it on each loaded model, after a confirmation that says what it does |
+| `ollama_suite/used_by` | 3 | The conversation agents and AI tasks (subentries of the stock `ollama` entry) whose stored model is the given one; a name without a tag matches `latest`. Read only |
+| `ollama_suite/chat` | 3 | A subscription for one test message to one model. Events carry `state` (`text`, `done`, `error`); `done` carries `truncated` and, only when the server reported real counts, `tokens_per_second`. One chat per connection (`busy` otherwise); unsubscribing cancels it. The model gets no tools and nothing is stored |
 
 Errors are plain codes: `not_found`, `not_loaded`, `unauthorized`, `timeout`, `cannot_connect`, `server_error`, `bad_request`, `busy`, `unknown`.
 
@@ -43,7 +44,7 @@ Errors are plain codes: `not_found`, `not_loaded`, `unauthorized`, `timeout`, `c
 - **Limits.** Each request has a 10 second timeout. Answers are bounded: at most 500 models, 100 running models, 20,000 characters per text field, and only small scalar technical values (large arrays such as tokenizer vocabularies are dropped). The client library parses a whole answer before it is shaped, so the bounds limit what is sent to the browser, not what the server may send to Home Assistant.
 - **Model names.** A name to download must fully match `name`, `name:tag` or `namespace/name[:tag]` (lowercase name, no host part, so no other registry). Delete and unload accept only a model the server itself lists.
 - **Downloads.** A download stops when the browser unsubscribes or the WebSocket closes, and after 120 seconds with no message from the server. Progress events are sent at most four times a second unless the status text changes.
-- **Streaming (chat, later).** Chat streams in bounded chunks, can be cancelled, stop when the WebSocket closes, and enforce an overall time limit and maximum prompt size.
+- **Streaming chat.** A prompt is at most 4,000 characters and a reply at most 20,000 (a longer reply is cut and marked). A reply waits up to 120 seconds for its first text, 30 seconds between pieces and 300 seconds overall. It stops when the browser unsubscribes or the WebSocket closes. The reply is shown as plain text, never as markup.
 - **No content logging.** Error handling logs no request or response bodies.
 
 ## Privacy statements shown to the person
@@ -54,11 +55,13 @@ The page opens with this statement: only the Ollama server addresses you entered
 
 1. **Read only (built).** Servers, models, running models and model details; empty state that leads to the normal add-integration flow; labelled placeholders for what comes next.
 2. **Manage models (built).** Download with progress and cancel, remove with confirmation naming the space it frees. Speed and time left are derived from the bytes the server reports for the part being fetched, shown only when they can be computed.
-3. **Chat.** A local chat panel with streaming, model choice, stop, and no history kept unless the person saves it.
+3. **Model detail and test chat (built, unrun).** The detail panel shows size, family, parameters, quantisation, context length, modified time, a shortened digest with copy, and which Home Assistant agents and tasks use the model. A "Try this model" panel sends one message at a time to the chosen model and streams the reply, with Stop and Clear. Nothing is kept and the model cannot reach the home.
 4. **Helpers.** Small local helpers, such as summarising text the person pastes, each clearly labelled and sending nothing elsewhere.
 
 ## Verification status
 
 The integration was seen loading at start in a running copy on 10 November 2026 without errors; no command was driven against it.
+
+Slice 3 adds Python tests for `chat` (result before the first event, streamed text and real speed, no speed without counts, cancel frees the slot, oversize and blank prompts refused, bounded reply, plain error codes, administrator only) and `used_by`. They compile but have not been run, and no Ollama server has been contacted. The model name stored in a subentry is assumed to be the `model` key of its data, read from the stock integration's source. The page has not been seen in a browser.
 
 Slice 2 adds Python tests with a mocked client for name validation, progress shaping, cancellation and the one-download-at-a-time rule. The pure parts and the download loop were exercised for real in a throwaway container; the WebSocket tests have not been run with pytest and no Ollama server has been contacted. Slice 1 has Python tests with a mocked client for the shaping helpers and the WebSocket commands, and a frontend page that passes lint and type checks. No Ollama server has been contacted and the page has not been seen in a browser.

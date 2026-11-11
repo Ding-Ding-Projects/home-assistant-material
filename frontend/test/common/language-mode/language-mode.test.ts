@@ -147,4 +147,23 @@ describe("the Cantonese source", () => {
       expect(yueString(key)!.trim(), key).not.toBe("")
     );
   });
+
+  // A block listed in YUE_PREFIXES promises Cantonese for the whole block. A
+  // new English key added to one of them without a Cantonese string would
+  // silently fall back to English in Cantonese mode.
+  it("has a Cantonese string for every English key of a covered block", () => {
+    // The live preview on the personal page shows both languages side by
+    // side from its own per-language samples, so its keys are not translated.
+    const own = "ui.panel.config.personal.preview.";
+    const missing = Object.entries(english)
+      .filter(
+        ([key, text]) =>
+          hasCantoneseBlock(key) &&
+          !key.startsWith(own) &&
+          typeof text === "string"
+      )
+      .map(([key]) => key)
+      .filter((key) => yueString(key) === undefined);
+    expect(missing).toEqual([]);
+  });
 });

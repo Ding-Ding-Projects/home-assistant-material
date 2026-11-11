@@ -1019,7 +1019,16 @@
         "settings": "Customize table",
         "resize_filters": "Resize the filter pane",
         "hide_summary": "Hide the summary",
-        "show_summary": "Show the summary"
+        "show_summary": "Show the summary",
+        "summary_toggle": "Summary"
+      },
+      "editor_save_bar": {
+        "label": "Save changes",
+        "unsaved": "Unsaved changes",
+        "saved": "Saved",
+        "saving": "Saving…",
+        "errors": "{count, plural, one {# problem to fix} other {# problems to fix}}",
+        "shortcut": "Shortcut: {keys}"
       },
       "split_panels": {
         "start": "First panel",
@@ -1028,7 +1037,8 @@
         "collapse": "Collapse {name}",
         "expand": "Expand {name}",
         "collapsed": "{name} collapsed",
-        "expanded": "{name} expanded"
+        "expanded": "{name} expanded",
+        "reset": "Divider returned to its default position"
       },
       "starting_points": {
         "heading": "Start from an example",
@@ -1859,6 +1869,7 @@
         "hint_use_here": "Use a control here",
         "setting_not_saved": "This browser blocked saving the choice. It applies until you close the page, then it is gone.",
         "setting_held": "School mode holds this setting while it is on. Turn School mode off to change it.",
+        "setting_held_schedule": "A schedule is setting this right now. Change the schedule to change it.",
         "key_enter": "Enter",
         "key_click": "Click",
         "commands": {
@@ -3140,6 +3151,7 @@
         "try_again": "Try again",
         "copy_details": "Copy details",
         "copied": "Copied",
+        "copy_failed": "Could not copy the details",
         "details": "Technical details",
         "open_problem_log": "Open the problem log",
         "problem_log_hint": "Copied details hide passwords, tokens and addresses with credentials. Errors that Home Assistant logs are recorded in the problem log on their own."
@@ -3148,13 +3160,70 @@
         "dashboard_title": "Importing dashboard {title}",
         "view_title": "Importing a view",
         "dashboard_failed_changed": "Nothing was created.",
+        "dashboard_failed_left": "A dashboard named {title} was created but could not be filled or removed. Remove it on the dashboards page.",
         "view_failed_changed": "The target dashboard was not changed."
       },
       "backup": {
         "create": "Creating a backup",
         "restore": "Restoring a backup",
         "receive": "Uploading a backup",
+        "create_done": "Backup created",
+        "restore_done": "Backup restored",
+        "receive_done": "Backup uploaded",
+        "ended": "Ended. Check the backups page for what exists now.",
         "failed_changed": "Check the backup page for what exists now."
+      }
+    },
+    "update_progress": {
+      "activity_title": "Installing the update for {name}",
+      "heading": "Installing the update for {name}",
+      "progress_label": "Progress of the update for {name}",
+      "stage": {
+        "backing_up": "Making a backup before the update",
+        "preparing": "Getting ready to install",
+        "installing": "Installing the update",
+        "waiting": "Waiting for Home Assistant to come back",
+        "checking": "Checking the new version",
+        "done": "Update installed",
+        "failed": "Update failed"
+      },
+      "step": {
+        "backing_up": "Backing up",
+        "installing": "Installing",
+        "waiting": "Restarting and waiting for Home Assistant",
+        "checking": "Checking the new version"
+      },
+      "step_state": {
+        "done": "done",
+        "current": "in progress",
+        "pending": "not started"
+      },
+      "keep_open_note": "You can leave this page. The update keeps going and this progress is shown again when you return.",
+      "done": "{name} is now on version {version}.",
+      "version_unchanged": "The installed version did not change. It is still {version}.",
+      "failed_heading": "The update for {name} did not finish",
+      "failed_message": "Home Assistant did not report the new version after the update.",
+      "changed_installed": "The version installed now is {version}.",
+      "changed_backup": "A backup was asked for before the update. Check the backups list for what exists.",
+      "open_backups": "Open the backups to restore",
+      "show_log": "Show the log",
+      "skip_version": "Skip this version",
+      "safe_mode": "Start in safe mode",
+      "safe_mode_text": "Safe mode starts Home Assistant without custom integrations and community frontend modules, so you can tell whether one of them is the problem. Nothing is removed, and a normal restart brings them back.",
+      "copy_summary": "Copy a problem summary",
+      "summary_copied": "Summary copied",
+      "summary_note": "The summary is plain text with passwords and tokens hidden. It is copied to your clipboard only and is not sent anywhere.",
+      "dismiss": "Dismiss",
+      "summary": {
+        "heading": "Update problem summary",
+        "what": "Update",
+        "from": "Installed version before",
+        "to": "Version being installed",
+        "stage": "Stage reached",
+        "error": "Error",
+        "instance": "Home Assistant version",
+        "time": "Time",
+        "unknown": "not known"
       }
     },
     "notification_drawer": {
@@ -3613,6 +3682,7 @@
       "clear_note": "Clearing removes your wording from this instance and from this browser, so it is gone on every device, and returns every label to the shipped wording.",
       "overlay_title": "Personal wording applied",
       "overlay_count": "{count, plural,\n  one {# label now speaks your way}\n  other {# labels now speak your way}\n}",
+      "overlay_everywhere": "This wording replaces any saved wording on your other devices too.",
       "cleared": "The shipped wording is back.",
       "not_applied": "The file was not applied. Your current wording is unchanged.",
       "error": {
@@ -3640,6 +3710,12 @@
         "offline": "Could not save: only in this browser",
         "error": "Could not save: only in this browser",
         "too_large": "Could not save: too large for the instance, only in this browser"
+      },
+      "too_large_hint": "Remove some picture layers or reset choices you no longer need, then try again.",
+      "too_large_part": {
+        "elementAppearance": "Your element choices take the most room. Remove some picture layers, or reset elements you no longer need, then try again.",
+        "readingOptions": "Your reading options take the most room. Reset them to the defaults, then try again.",
+        "accessibilityTools": "Your accessibility tools take the most room. Reset them to the defaults, then try again."
       },
       "used_instance": "This browser and this instance held different copies. The newer copy, from this instance, was used.",
       "used_browser": "This browser and this instance held different copies. The newer copy, from this browser, was used and saved to this instance.",
@@ -3674,7 +3750,8 @@
       "gradient_summary": "{angle}°, {from} to {to}",
       "picture_embedded": "Embedded picture",
       "picture_url": "Picture address",
-      "picture_url_error": "Use an address that starts with https://, http:// or /, or an embedded picture.",
+      "picture_url_error": "Use a path on this server that starts with a single /, or an embedded picture. Addresses on other websites are not used.",
+      "picture_outside_removed": "A picture that pointed at another website was removed. Pictures must come from this server or be embedded, so nothing calls out to another host.",
       "picture_size": "Fit",
       "picture_size_cover": "Fill the element",
       "picture_size_contain": "Show all of it",
@@ -4279,6 +4356,18 @@
       "reset_confirmation": "Are you sure you want to reset the sidebar to its default configuration? This will restore the original order and visibility of all panels."
     },
     "panel": {
+      "iframe": {
+        "reload": "Reload the page",
+        "open_new_window": "Open in a new window",
+        "address": "Address",
+        "copy_address": "Copy the address",
+        "copied": "Address copied",
+        "copy_failed": "The address could not be copied",
+        "intro": "Web pages and apps open inside the pane and keep their own look.",
+        "not_shown": "This page may not allow being shown inside another page.",
+        "not_shown_open": "Open it in a new window instead.",
+        "not_shown_outside": "It is not on this Home Assistant, so it is not opened from here. Copy the address and open it yourself."
+      },
       "app": {
         "error_app_not_installed": "The app is not installed. Please install it first.",
         "error_app_no_ingress": "This app does not support ingress.",
@@ -4417,6 +4506,10 @@
           "release_notes": {
             "main": "Release notes",
             "secondary": "What changed in this build, and the notes your updates carry"
+          },
+          "support": {
+            "main": "Support",
+            "secondary": "Locks you cannot open, and a summary of this system to share"
           },
           "personal": {
             "main": "Personal settings",
@@ -12394,7 +12487,8 @@
           "schedules": {
             "title": "Schedules",
             "note": "Let a setting follow the clock in this browser. Rules are checked from the top, and the first one that applies to a setting wins. A rule never changes your own choice: when no rule applies, your choice is back. School mode wins over every rule.",
-            "zone_note": "Times are in {zone} time and follow daylight saving.",
+            "zone_note": "Times, quiet hours included, are in {zone} time and follow daylight saving.",
+            "zone_fallback": "This browser does not report its time zone and no other zone is known, so times are read in UTC.",
             "new_rule": "New rule",
             "limit": "You can have at most {count} rules.",
             "empty": "No rules yet. Add one to let a setting change at certain times.",
@@ -12461,7 +12555,13 @@
             "remove": "Remove shared defaults",
             "applied": "Shared defaults saved for everyone.",
             "removed": "Shared defaults removed.",
-            "failed": "Could not save the shared defaults: {error}"
+            "failed": "Could not save the shared defaults: {error}",
+            "apply_confirm_title": "Set defaults for everyone?",
+            "apply_confirm_text": "These {count} defaults will apply to every person on this instance who has not chosen their own value for that setting. Choices people made in their own browser are not changed.",
+            "remove_confirm_title": "Remove the shared defaults?",
+            "remove_confirm_text": "Every person on this instance who has not chosen their own value will go back to the built-in default for each setting. Choices people made in their own browser are not changed.",
+            "changed_elsewhere": "The shared defaults were changed somewhere else while you were editing. Your edits are kept. Reload to start again from the saved values.",
+            "reload": "Reload"
           },
           "reset_all": "Reset all personal settings",
           "reset_all_note": "Puts every setting on this page back to its default.",
@@ -13155,6 +13255,38 @@
           "delete_text": "{model} will be removed from this server. You can download it again later.",
           "delete_text_size": "{model} will be removed from this server, which frees {size}. You can download it again later.",
           "delete_failed": "Could not delete {model}",
+          "unload": "Unload from memory",
+          "unloading": "Unloading",
+          "unload_named": "Unload {model} from memory",
+          "unload_title": "Unload {model} from memory?",
+          "unload_text": "This frees the memory {model} is using. The model stays on the server, and it loads into memory again the next time something uses it, which can take a moment.",
+          "unload_failed": "Could not unload {model}",
+          "unloaded": "{model} was unloaded from memory.",
+          "digest": "Digest",
+          "copy_digest": "Copy the full digest",
+          "digest_copied": "Digest copied",
+          "context_length": "Context length",
+          "used_by": "Used by Home Assistant",
+          "used_by_none": "No conversation agent or AI task in Home Assistant uses this model.",
+          "used_by_failed": "Could not read which conversation agents and AI tasks use this model.",
+          "user_conversation": "Conversation agent",
+          "user_ai_task": "AI task",
+          "chat": {
+            "title": "Try this model",
+            "note": "A test conversation with this model on your own server. It is not saved and it does not control your home: the model can only talk, it cannot use any device or see anything in Home Assistant.",
+            "prompt_label": "Message",
+            "send": "Send",
+            "stop": "Stop",
+            "clear": "Clear",
+            "reply": "Reply from the model",
+            "waiting": "Waiting for the model. The first reply can take a while if the model has to load.",
+            "replying": "The model is replying",
+            "stopped": "Stopped.",
+            "done": "Finished.",
+            "truncated": "The reply was cut because it reached the size limit.",
+            "speed": "{speed} tokens per second, as the server reports it.",
+            "incomplete": "The server ended the reply without finishing it."
+          },
           "detail": "Model details",
           "close": "Close",
           "format": "Format",
@@ -13163,7 +13295,6 @@
           "parameters": "Default settings",
           "next_title": "Coming next",
           "next_text": "These are designed but not available yet.",
-          "next_chat": "Chat with a model on your own server",
           "next_helpers": "Local helpers",
           "pull": {
             "title": "Pull a model",
@@ -13460,7 +13591,26 @@
             "confirm_label": "Type the server name to confirm",
             "confirm_hint": "Type {name} exactly.",
             "delete_data": "Delete world data",
-            "data_deleted": "The world data was deleted"
+            "data_deleted": "The world data was deleted",
+            "tab": {
+              "overview": "Overview",
+              "logs": "Logs",
+              "settings": "Settings",
+              "danger": "Danger zone"
+            },
+            "memory_value": "{memory} MB",
+            "no_host_short": "No host chosen",
+            "refresh_log": "Refresh",
+            "wrap": "Wrap lines",
+            "no_wrap": "Do not wrap",
+            "log_last_part": "Only the last {count} lines are shown. Older lines are not read.",
+            "definition_info": "Deleting the server removes its entry from this list. It is refused while the container still exists. Remove the container first. World data is not touched.",
+            "delete_definition": "Delete the server",
+            "settings_intro": "Change the name, version, port or memory of this server. The server type and where it runs are fixed once it is created.",
+            "settings_saved": "Settings saved",
+            "settings_discard": "Discard changes",
+            "settings_save": "Save settings",
+            "rename_refused": "The name cannot change while the container exists. Remove the container first, in the Danger zone tab, then rename the server."
           },
           "op_error": {
             "unknown": "Something went wrong. Try again.",
@@ -13790,6 +13940,48 @@
           "error_unreadable": "That picture could not be read.",
           "error_too_many_pixels": "That picture has too many pixels to use safely. Choose a smaller one.",
           "error_too_big_after": "The picture is still larger than {size} KB after resizing. Choose a simpler picture."
+        },
+        "support": {
+          "caption": "Support",
+          "description": "A support desk and a summary you can copy, kept on this device",
+          "summary": "Help with locks you cannot open, and a summary of this system to share if you ask someone for help.",
+          "nothing_sent": "Nothing here is sent anywhere, and nobody is reading it. This page only helps you find your own files.",
+          "tickets_title": "Your tickets in this browser",
+          "no_tickets": "No tickets yet.",
+          "ticket_label": "Ticket {number}",
+          "status_open": "Opened",
+          "status_reviewing": "Being reviewed",
+          "status_replied": "Replied",
+          "status_resolved": "Resolved",
+          "first_reply": "Our entire support team (a kettle and a very patient houseplant) has reviewed your case. The fix is in the steps on this page, and it is a folder you already own.",
+          "remove": "Remove",
+          "remove_ticket": "Remove ticket {number}",
+          "form_title": "Open a support ticket",
+          "subject": "What is the matter?",
+          "details": "Anything else to add",
+          "details_hint": "Do not type a PIN or a password here.",
+          "open_ticket": "Open a support ticket",
+          "subject_required": "Say what the matter is first.",
+          "where_title": "Where your locks are kept",
+          "where_text": "Locks are kept in this browser's stored data for this address. They are not on the server, so clearing that data is the only way to remove a lock that cannot be opened.",
+          "copy_address": "Copy address",
+          "address_copied": "Address copied",
+          "show_how": "How to reset every lock, step by step",
+          "hide_how": "Hide the steps",
+          "step_open_settings": "Open your browser's site settings for this address.",
+          "step_clear": "Clear this site's stored data.",
+          "step_reload": "Reload the page. Every lock is removed; nothing else on the server changes.",
+          "clear_warning": "Clearing stored data also removes the other settings this browser keeps for this address, and these tickets.",
+          "never_deletes": "This page never deletes anything. Deleting from inside the app always goes through the two-key confirmation.",
+          "bundle_title": "Support bundle",
+          "bundle_text": "A plain text summary of this system: version, state, loaded integrations and recorded problems. It is built here, shown in full below, and only copied or saved when you press a button.",
+          "bundle_make": "Create the summary",
+          "bundle_refresh": "Create it again",
+          "bundle_label": "Support bundle contents",
+          "bundle_copy": "Copy",
+          "bundle_copied": "Support bundle copied",
+          "bundle_download": "Save as a text file",
+          "bundle_note": "Credentials are hidden and problem messages are left out. Read it before you share it; where it goes is up to you."
         },
         "release_notes": {
           "caption": "Release notes",
@@ -16618,7 +16810,9 @@
           "show": "Show",
           "hide": "Hide",
           "copy": "Copy",
-          "copied": "Key copied.",
+          "copied": "Key copied. It stays on your clipboard until you copy something else.",
+          "copy_failed": "The key could not be copied. Select it and copy it by hand.",
+          "start_again": "Start again",
           "digits": "{count} digits",
           "period": "{count} seconds",
           "code": "Code from your app",

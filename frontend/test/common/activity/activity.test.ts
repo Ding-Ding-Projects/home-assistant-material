@@ -63,6 +63,20 @@ describe("activity lifecycle", () => {
     expect(store.activities.length).toBe(ACTIVITY_HISTORY_LIMIT + 1);
   });
 
+  it("counts running and undismissed failed activities as needing a look", () => {
+    const store = new ActivityStore();
+    const a = store.start({ title: "a" });
+    const b = store.start({ title: "b" });
+    const c = store.start({ title: "c" });
+    store.finish(b, "failed");
+    store.finish(c, "done");
+    expect(store.attentionCount).toBe(2);
+    store.dismiss(b);
+    expect(store.attentionCount).toBe(1);
+    store.finish(a, "cancelled");
+    expect(store.attentionCount).toBe(0);
+  });
+
   it("tells a subscriber about each change", () => {
     const store = new ActivityStore();
     const seen: number[] = [];
@@ -105,6 +119,54 @@ describe("redaction of copied details", () => {
     expect(redactDetails("key a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6")).toContain(
       REDACTED
     );
+  });
+
+  it("hides a secret pair inside a value of a plain key", () => {
+    expect(redactDetails("Error: password=hunter2 rejected")).not.toContain(
+      "hunter2"
+    );
+    const url = redactDetails(
+      "GET http://host:8123/api/webhook?token=abcd1234 failed"
+    );
+    expect(url).not.toContain("abcd1234");
+    expect(url).toContain("failed");
+  });
+
+  it("hides credentials that contain an at sign", () => {
+    const out = redactDetails("https://user:p@ss@host/x");
+    expect(out).not.toContain("p@ss");
+    expect(out).toBe(`https://${REDACTED}@host/x`);
+  });
+
+  it("hides a JSON value with escaped quotes completely", () => {
+    const out = redactDetails('{"password": "ab\\"cd tail"}');
+    expect(out).not.toContain("tail");
+    expect(out).not.toContain("cd");
+  });
+
+  it("hides a secret value to the end of the line", () => {
+    expect(redactDetails("password: correct horse battery staple")).toBe(
+      `password: ${REDACTED}`
+    );
+    expect(redactDetails("pw=p&ssw0rd;tail")).toBe(`pw=${REDACTED}`);
+  });
+
+  it("hides folded header continuation lines", () => {
+    const out = redactDetails("Cookie: a=1;\n  b=2\nnext line");
+    expect(out).not.toContain("b=2");
+    expect(out).toContain("next line");
+  });
+
+  it("hides long runs that use plus, slash and equals", () => {
+    const out = redactDetails(`key ${"Ab1+/=".repeat(8)} end`);
+    expect(out).not.toContain("Ab1+/=Ab1");
+  });
+
+  it("stays fast on very long input", () => {
+    const start = Date.now();
+    redactDetails("a".repeat(60000));
+    redactDetails("a.".repeat(30000));
+    expect(Date.now() - start).toBeLessThan(1000);
   });
 
   it("leaves ordinary text alone", () => {

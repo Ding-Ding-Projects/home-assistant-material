@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { AppearanceStore } from "../../../src/common/appearance/element-appearance";
 import {
+  acknowledgeDroppedOutsideImages,
   appearanceToStyles,
+  hasDroppedOutsideImages,
   applyAppearance,
   applyStore,
   contrastRatio,
@@ -70,10 +72,44 @@ describe("normalizeAppearance", () => {
 });
 
 describe("isSafeImageUrl", () => {
-  it("accepts web addresses, server paths and embedded pictures", () => {
-    expect(isSafeImageUrl("https://example.com/a.png")).toBe(true);
+  it("accepts server paths and embedded pictures", () => {
     expect(isSafeImageUrl("/local/a.png")).toBe(true);
     expect(isSafeImageUrl("data:image/png;base64,AAAA")).toBe(true);
+  });
+
+  // The product rule is that nothing calls out to another host.
+  it("refuses an address on another host", () => {
+    expect(isSafeImageUrl("https://example.com/a.png")).toBe(false);
+    expect(isSafeImageUrl("http://example.com/a.png")).toBe(false);
+  });
+
+  it("refuses a path that the browser reads as another host", () => {
+    // A tab inside the path is dropped by the URL parser, leaving `//host`.
+    expect(isSafeImageUrl("/\t/evil.example/x.png")).toBe(false);
+    expect(isSafeImageUrl("/\n/evil.example/x.png")).toBe(false);
+    expect(isSafeImageUrl("/\r/evil.example/x.png")).toBe(false);
+    expect(isSafeImageUrl("/\f/evil.example/x.png")).toBe(false);
+    expect(isSafeImageUrl("/\0/evil.example/x.png")).toBe(false);
+    expect(isSafeImageUrl("/\\evil.example/x.png")).toBe(false);
+    expect(isSafeImageUrl("//evil.example/x.png")).toBe(false);
+  });
+
+  it("drops a stored picture layer that points at another host and says so", () => {
+    acknowledgeDroppedOutsideImages();
+    const layer = (url: string) => ({
+      type: "image",
+      url,
+      opacity: 1,
+      blend: "normal",
+      visible: true,
+    });
+    const result = normalizeAppearance({
+      layers: [layer("https://example.com/a.png"), layer("/local/b.png")],
+    });
+    expect(result.layers).toHaveLength(1);
+    expect(hasDroppedOutsideImages()).toBe(true);
+    acknowledgeDroppedOutsideImages();
+    expect(hasDroppedOutsideImages()).toBe(false);
   });
 
   it("refuses everything else", () => {
@@ -249,6 +285,21 @@ describe("normalizeStore", () => {
       kinds: { "ha-card": { radius: 8 } },
       elements: { "/a": { ">div": { opacity: 0.5 } } },
     });
+  });
+});
+
+describe("normalizeStore with hostile keys", () => {
+  it("cannot add a property to Object.prototype", () => {
+    const hostile = JSON.parse(
+      '{"elements":{"__proto__":{"polluted":{"textColor":"#ffffff"}},' +
+        '"/a":{"__proto__":{"polluted":{"textColor":"#ffffff"}}}},' +
+        '"kinds":{"constructor":{"textColor":"#ffffff"}}}'
+    );
+    const store = normalizeStore(hostile);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.getPrototypeOf(store.elements)).toBeNull();
+    expect(Object.keys(store.elements)).toEqual([]);
+    expect(Object.keys(store.kinds)).toEqual([]);
   });
 });
 

@@ -2,12 +2,12 @@
 
 import asyncio
 from collections.abc import AsyncIterator
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant.common import MockConfigEntry
 
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
 from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
@@ -393,3 +393,249 @@ async def test_unload_needs_a_loaded_model(
     )
     assert (await ws.receive_json())["success"] is True
     client.generate.assert_awaited_once_with(model="a:1", keep_alive=0)
+
+
+def _chat_stream(
+    texts: list[str],
+    hang: asyncio.Event | None = None,
+    final: SimpleNamespace | None = None,
+):
+    async def generate():
+        for text in texts:
+            yield SimpleNamespace(message=SimpleNamespace(content=text), done=False)
+        if hang is not None:
+            await hang.wait()
+        if final is not None:
+            yield final
+
+    return generate()
+
+
+def _chat_final(**extra: int) -> SimpleNamespace:
+    return SimpleNamespace(message=SimpleNamespace(content=""), done=True, **extra)
+
+
+async def _collect(ws) -> list[dict]:
+    events = []
+    while True:
+        event = (await ws.receive_json())["event"]
+        events.append(event)
+        if event["state"] in ("done", "error"):
+            return events
+
+
+async def test_chat_streams_reply_after_the_result(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """The result comes first, then the text, then done with a real speed."""
+    client = _client()
+    client.chat = AsyncMock(
+        return_value=_chat_stream(
+            ["Hel", "lo"],
+            final=_chat_final(eval_count=20, eval_duration=2_000_000_000),
+        )
+    )
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {
+            "type": "ollama_suite/chat",
+            "entry_id": entry.entry_id,
+            "model": "llama3.2:3b",
+            "prompt": "hi",
+        }
+    )
+    first = await ws.receive_json()
+    assert first["type"] == "result"
+    assert first["success"] is True
+    events = await _collect(ws)
+    assert "".join(e["text"] for e in events if e["state"] == "text") == "Hello"
+    assert events[-1] == {
+        "state": "done",
+        "truncated": False,
+        "tokens": 20,
+        "tokens_per_second": 10.0,
+    }
+    client.chat.assert_awaited_once_with(
+        model="llama3.2:3b",
+        messages=[{"role": "user", "content": "hi"}],
+        stream=True,
+    )
+
+
+async def test_chat_speed_unknown_without_counts(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """No speed is shown when the server gave no counts."""
+    client = _client()
+    client.chat = AsyncMock(return_value=_chat_stream(["a"], final=_chat_final()))
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {
+            "type": "ollama_suite/chat",
+            "entry_id": entry.entry_id,
+            "model": "m",
+            "prompt": "hi",
+        }
+    )
+    assert (await ws.receive_json())["success"] is True
+    assert (await _collect(ws))[-1]["tokens_per_second"] is None
+
+
+async def test_chat_cancel_releases_the_slot(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A second chat is busy, and unsubscribing frees the connection."""
+    hang = asyncio.Event()
+    client = _client()
+    client.chat = AsyncMock(
+        side_effect=lambda *args, **kwargs: _chat_stream(["a"], hang)
+    )
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    request = {
+        "type": "ollama_suite/chat",
+        "entry_id": entry.entry_id,
+        "model": "m",
+        "prompt": "hi",
+    }
+    await ws.send_json_auto_id(request)
+    first_id = (await ws.receive_json())["id"]
+    await ws.receive_json()
+    await ws.send_json_auto_id(request)
+    assert (await ws.receive_json())["error"]["code"] == "busy"
+    await ws.send_json_auto_id({"type": "unsubscribe_events", "subscription": first_id})
+    assert (await ws.receive_json())["success"] is True
+    await hass.async_block_till_done()
+    await ws.send_json_auto_id(request)
+    assert (await ws.receive_json())["success"] is True
+
+
+async def test_chat_refuses_oversize_and_blank_prompts(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A prompt that is too long or blank never reaches the server."""
+    client = _client()
+    client.chat = AsyncMock()
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    for prompt in ("x" * 4001, "   "):
+        await ws.send_json_auto_id(
+            {
+                "type": "ollama_suite/chat",
+                "entry_id": entry.entry_id,
+                "model": "m",
+                "prompt": prompt,
+            }
+        )
+        assert (await ws.receive_json())["success"] is False
+    client.chat.assert_not_called()
+
+
+async def test_chat_reply_is_bounded(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A reply longer than the limit is cut and marked as cut."""
+    client = _client()
+    client.chat = AsyncMock(return_value=_chat_stream(["abcdef", "ghij"]))
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    with patch("homeassistant.components.ollama_suite.websocket.CHAT_MAX_REPLY", 8):
+        await ws.send_json_auto_id(
+            {
+                "type": "ollama_suite/chat",
+                "entry_id": entry.entry_id,
+                "model": "m",
+                "prompt": "hi",
+            }
+        )
+        assert (await ws.receive_json())["success"] is True
+        events = await _collect(ws)
+    assert "".join(e["text"] for e in events if e["state"] == "text") == "abcdefgh"
+    assert events[-1]["state"] == "done"
+    assert events[-1]["truncated"] is True
+
+
+async def test_chat_error_and_incomplete_are_plain_codes(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A failing or cut-short reply ends with an error code."""
+    client = _client()
+    client.chat = AsyncMock(side_effect=ConnectionError())
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    request = {
+        "type": "ollama_suite/chat",
+        "entry_id": entry.entry_id,
+        "model": "m",
+        "prompt": "hi",
+    }
+    await ws.send_json_auto_id(request)
+    assert (await ws.receive_json())["success"] is True
+    assert (await _collect(ws))[-1] == {"state": "error", "code": "cannot_connect"}
+    client.chat = AsyncMock(return_value=_chat_stream(["a"]))
+    await ws.send_json_auto_id(request)
+    assert (await ws.receive_json())["success"] is True
+    assert (await _collect(ws))[-1] == {"state": "error", "code": "incomplete"}
+
+
+async def test_chat_and_used_by_are_admin_only(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: MagicMock,
+) -> None:
+    """A user who is not an administrator is refused."""
+    client = _client()
+    client.chat = AsyncMock()
+    entry = await _loaded_entry(hass, client)
+    hass_admin_user.groups = []
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {
+            "type": "ollama_suite/chat",
+            "entry_id": entry.entry_id,
+            "model": "m",
+            "prompt": "hi",
+        }
+    )
+    assert (await ws.receive_json())["error"]["code"] == "unauthorized"
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/used_by", "entry_id": entry.entry_id, "model": "m"}
+    )
+    assert (await ws.receive_json())["error"]["code"] == "unauthorized"
+    client.chat.assert_not_called()
+
+
+async def test_used_by_lists_matching_subentries(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """Only the agents and tasks set to the model are listed."""
+    entry = await _loaded_entry(hass, _client())
+    for title, model, kind in (
+        ("Assist", "a:1", "conversation"),
+        ("Tasks", "a:1", "ai_task_data"),
+        ("Other", "b:1", "conversation"),
+    ):
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                data=MappingProxyType({"model": model}),
+                subentry_type=kind,
+                title=title,
+                unique_id=None,
+            ),
+        )
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/used_by", "entry_id": entry.entry_id, "model": "a:1"}
+    )
+    users = (await ws.receive_json())["result"]["users"]
+    assert sorted((u["title"], u["type"]) for u in users) == [
+        ("Assist", "conversation"),
+        ("Tasks", "ai_task_data"),
+    ]
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/used_by", "entry_id": "nope", "model": "a:1"}
+    )
+    assert (await ws.receive_json())["error"]["code"] == "not_found"

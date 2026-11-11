@@ -2,7 +2,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
-import type { LocalizeKeys } from "../../../common/translations/localize";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import "../../../components/ha-button";
 import "../../../components/ha-dialog";
 import "../../../components/ha-dialog-footer";
@@ -35,6 +35,8 @@ export class DialogImportSummary
   @state() private _params?: ImportSummaryDialogParams;
 
   @state() private _open = false;
+
+  private _lang = new LanguageModeController(this);
 
   @state() private _urlPath = "";
 
@@ -100,7 +102,7 @@ export class DialogImportSummary
   }
 
   private _t(suffix: string, values?: Record<string, string | number>) {
-    return this.hass.localize(`${T}.${suffix}` as LocalizeKeys, values);
+    return this._lang.text(this.hass.localize as any, `${T}.${suffix}`, values);
   }
 
   private _showAll(ev: Event): void {

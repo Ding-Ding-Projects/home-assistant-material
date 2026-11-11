@@ -3,11 +3,12 @@ import { ContextProvider } from "@lit/context";
 import { mdiCardPlusOutline, mdiEyeOff, mdiViewGridPlus } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { repeat } from "lit/directives/repeat";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
+import { modeText } from "../../../common/language-mode/language-mode";
 import { clamp } from "../../../common/number/clamp";
 import { getHistoryState, updateHistoryState } from "../../../common/navigate";
 import "../../../components/ha-icon-button";
@@ -275,7 +276,8 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
           editMode && !this.isStrategy && !sections.length
             ? html`<ha-starting-points
                 class="starting-points"
-                .heading=${this.hass.localize(
+                .heading=${modeText(
+                  this.hass.localize as any,
                   "ui.components.starting_points.view_heading"
                 )}
                 .items=${this._startingPoints(this.hass.localize)}
@@ -495,16 +497,24 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
     (localize: HomeAssistant["localize"]): StartingPoint[] => [
       {
         id: "section",
-        title: localize("ui.components.starting_points.view_section_title"),
-        description: localize(
+        title: modeText(
+          localize as any,
+          "ui.components.starting_points.view_section_title"
+        ),
+        description: modeText(
+          localize as any,
           "ui.components.starting_points.view_section_description"
         ),
         icon: mdiViewGridPlus,
       },
       {
         id: "cards",
-        title: localize("ui.components.starting_points.view_cards_title"),
-        description: localize(
+        title: modeText(
+          localize as any,
+          "ui.components.starting_points.view_cards_title"
+        ),
+        description: modeText(
+          localize as any,
           "ui.components.starting_points.view_cards_description"
         ),
         icon: mdiCardPlusOutline,
@@ -514,27 +524,51 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
 
   // Both starting points add a section through the same path as the add
   // section button; the second then opens the normal card picker for it
+  @query(".container .section") private _firstSection?: HTMLElement;
+
+  private _startingPointBusy = false;
+
   private async _startingPointSelected(
     ev: CustomEvent<StartingPointSelectedDetail>
   ): Promise<void> {
     const lovelace = this.lovelace;
     const path = this.path;
-    if (!lovelace || !path) {
+    // A second press while the first is still saving would add a second section
+    if (!lovelace || !path || this._startingPointBusy) {
       return;
     }
-    const index = this._config?.sections?.length ?? 0;
-    const newConfig = addSection(
-      lovelace.config,
-      path,
-      generateDefaultSection(this.hass.localize, true)
-    );
-    await lovelace.saveConfig(newConfig);
-    if (ev.detail.id === "cards") {
-      showCreateCardDialog(this, {
-        lovelaceConfig: newConfig,
-        saveConfig: lovelace.saveConfig,
-        path: [...path, "sections", index, "cards"],
-      });
+    this._startingPointBusy = true;
+    try {
+      const index = this._config?.sections?.length ?? 0;
+      const newConfig = addSection(
+        lovelace.config,
+        path,
+        generateDefaultSection(this.hass.localize, true)
+      );
+      try {
+        await lovelace.saveConfig(newConfig);
+      } catch (_err) {
+        // The save reports its own error; nothing was added, so stop here
+        return;
+      }
+      if (ev.detail.id === "cards") {
+        showCreateCardDialog(this, {
+          // The configuration as it was actually saved
+          lovelaceConfig: this.lovelace?.config ?? newConfig,
+          saveConfig: lovelace.saveConfig,
+          path: [...path, "sections", index, "cards"],
+        });
+      } else {
+        // The starting points are gone now; move focus to the new section
+        await this.updateComplete;
+        const section = this._firstSection;
+        if (section) {
+          section.tabIndex = -1;
+          section.focus();
+        }
+      }
+    } finally {
+      this._startingPointBusy = false;
     }
   }
 

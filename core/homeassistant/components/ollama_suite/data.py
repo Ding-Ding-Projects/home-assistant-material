@@ -24,6 +24,7 @@ from .const import (
     MAX_NAME_LENGTH,
     MAX_RUNNING,
     MAX_TEXT_LENGTH,
+    MAX_USERS,
 )
 
 # A model to download: `name`, `name:tag`, or `namespace/name[:tag]`. A name
@@ -237,6 +238,70 @@ def listed_size(response: Any, name: str) -> tuple[bool, int | None]:
         if getattr(item, "model", None) == name:
             return True, _count(getattr(item, "size", None))
     return False, None
+
+
+def shape_chat_chunk(item: Any) -> tuple[str, dict[str, Any] | None]:
+    """Return the text of one chat message and, on the last one, its speed.
+
+    The speed is only given when the server reported real counts.
+    """
+    message = getattr(item, "message", None)
+    content = getattr(message, "content", None)
+    text = content if isinstance(content, str) else ""
+    if not getattr(item, "done", False):
+        return text, None
+    count = _count(getattr(item, "eval_count", None))
+    duration = _count(getattr(item, "eval_duration", None))
+    speed = None
+    if count and duration:
+        speed = round(count / (duration / 1_000_000_000), 1)
+    return text, {"tokens": count, "tokens_per_second": speed}
+
+
+def _base_name(name: str) -> str:
+    """Return a model name with an implied `latest` tag made explicit."""
+    return name if ":" in name else f"{name}:latest"
+
+
+def shape_users(entry: Any, model: str) -> list[dict[str, Any]]:
+    """List the subentries of a server that are set to use one model."""
+    users = []
+    wanted = _base_name(model)
+    for subentry in entry.subentries.values():
+        stored = subentry.data.get("model")
+        if not isinstance(stored, str) or _base_name(stored) != wanted:
+            continue
+        users.append(
+            {
+                "subentry_id": subentry.subentry_id,
+                "type": _short(subentry.subentry_type, 64),
+                "title": _short(subentry.title, 256),
+            }
+        )
+        if len(users) >= MAX_USERS:
+            break
+    return users
+
+
+class ChatTracker:
+    """Allow one test chat per connection at a time."""
+
+    def __init__(self) -> None:
+        """Start with no chat running."""
+        self._tasks: dict[int, asyncio.Task[None]] = {}
+
+    def task(self, key: int) -> asyncio.Task[None] | None:
+        """Return the running chat task of a connection, if any."""
+        return self._tasks.get(key)
+
+    def start(self, key: int, task: asyncio.Task[None]) -> None:
+        """Remember the chat task of a connection."""
+        self._tasks[key] = task
+
+    def finish(self, key: int, task: asyncio.Task[None]) -> None:
+        """Forget a chat task once it is over."""
+        if self._tasks.get(key) is task:
+            del self._tasks[key]
 
 
 class PullTracker:

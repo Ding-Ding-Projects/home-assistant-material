@@ -10,6 +10,10 @@ const translations: Record<string, string> = {
   "ui.panel.config.integrations.caption": "Integrations",
   "ui.panel.config.logs.caption": "Logs",
   "ui.panel.config.backup.caption": "Backups",
+  "ui.panel.config.cloud.account.onboarding.ha_cloud_title":
+    "Home Assistant Cloud",
+  "ui.panel.config.lovelace.resources.caption": "Resources",
+  "ui.panel.config.apps.caption": "Apps",
 };
 
 const hass = {
@@ -75,6 +79,22 @@ describe("getConfigSubpageTitle", () => {
     expect(getConfigSubpageTitle(hass, "/config/backup", configSections)).toBe(
       "Backups"
     );
+  });
+
+  it("names pages that are routed but not listed", () => {
+    expect(
+      getConfigSubpageTitle(hass, "/config/cloud/login", configSections)
+    ).toBe("Home Assistant Cloud");
+    expect(
+      getConfigSubpageTitle(hass, "/config/lovelace/resources", configSections)
+    ).toBe("Resources");
+    expect(
+      getConfigSubpageTitle(hass, "/config/app/core_ssh/info", configSections)
+    ).toBe("Apps");
+    // A longer sibling that only shares the prefix is not the page
+    expect(
+      getConfigSubpageTitle(hass, "/config/cloudy", configSections)
+    ).toBeUndefined();
   });
 
   it("falls back to the panel title for unknown pages", () => {

@@ -156,3 +156,54 @@ export const unloadOllamaModel = (
     entry_id: entryId,
     model,
   });
+
+export interface OllamaModelUser {
+  subentry_id: string;
+  /** The integration's own type, such as `conversation` or `ai_task_data`. */
+  type: string | null;
+  title: string | null;
+}
+
+export const fetchOllamaModelUsers = (
+  hass: HomeAssistant,
+  entryId: string,
+  model: string
+) =>
+  hass.callWS<{ users: OllamaModelUser[] }>({
+    type: "ollama_suite/used_by",
+    entry_id: entryId,
+    model,
+  });
+
+/** The same limit the server applies to one test prompt. */
+export const OLLAMA_CHAT_MAX_PROMPT = 4000;
+
+export interface OllamaChatEvent {
+  state: "text" | "done" | "error";
+  text?: string;
+  /** True when the reply was cut at the server's size limit. */
+  truncated?: boolean;
+  tokens?: number | null;
+  /** Only set when the server reported real counts. */
+  tokens_per_second?: number | null;
+  code?: string;
+}
+
+/** Starts a test chat. Call the returned function to stop it. */
+export const chatWithOllamaModel = (
+  hass: HomeAssistant,
+  entryId: string,
+  model: string,
+  prompt: string,
+  callback: (event: OllamaChatEvent) => void
+): Promise<() => Promise<void>> =>
+  hass.connection.subscribeMessage<OllamaChatEvent>(
+    callback,
+    {
+      type: "ollama_suite/chat",
+      entry_id: entryId,
+      model,
+      prompt,
+    },
+    { resubscribe: false }
+  );

@@ -4,7 +4,6 @@ import {
   mdiClose,
   mdiCog,
   mdiContentDuplicate,
-  mdiContentSave,
   mdiDelete,
   mdiDotsVertical,
   mdiEyedropper,
@@ -87,6 +86,7 @@ import "../../../layouts/hass-subpage";
 import { DirtyStateProviderMixin } from "../../../mixins/dirty-state-provider-mixin";
 import { KeyboardShortcutMixin } from "../../../mixins/keyboard-shortcut-mixin";
 import { PreventUnsavedMixin } from "../../../mixins/prevent-unsaved-mixin";
+import "../../../components/editor/ha-editor-save-bar";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../types";
 import { showToast } from "../../../util/toast";
@@ -749,8 +749,16 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
 
   private _renderActions() {
     const live = this._mode === "live";
-    return html`<div class="actions">
+    return html`<ha-editor-save-bar
+      .hass=${this.hass}
+      .dirty=${this.isDirtyState}
+      .saving=${this._saving}
+      .saveLabel=${this.hass.localize("ui.panel.config.scene.editor.save")}
+      show-shortcut
+      @save-bar-save=${this._saveScene}
+    >
       <ha-button
+        slot="start"
         appearance="outlined"
         variant="neutral"
         .disabled=${live || !this._entities.length}
@@ -759,19 +767,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
         ${this.hass.localize("ui.panel.config.scene.editor.try_it")}
       </ha-button>
-      <span class="spacer"></span>
-      <ha-button appearance="plain" @click=${this._discard}>
+      <ha-button slot="end" appearance="plain" @click=${this._discard}>
         ${this.hass.localize("ui.panel.config.scene.editor.discard")}
       </ha-button>
-      <ha-button
-        .disabled=${this._saving}
-        @click=${this._saveScene}
-        class=${classMap({ saving: this._saving })}
-      >
-        <ha-svg-icon slot="start" .path=${mdiContentSave}></ha-svg-icon>
-        ${this.hass.localize("ui.panel.config.scene.editor.save")}
-      </ha-button>
-    </div>`;
+    </ha-editor-save-bar>`;
   }
 
   private _entityName(entityId: string): string {
@@ -1756,8 +1755,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
     return [
       haStyle,
       css`
-        #root,
-        .actions {
+        #root {
           box-sizing: border-box;
           width: 100%;
           max-width: 1100px;
@@ -1767,8 +1765,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         #root {
           padding-top: var(--ha-space-4);
         }
-        :host([narrow]) #root,
-        :host([narrow]) .actions {
+        :host([narrow]) #root {
           padding-inline: var(--ha-space-3);
         }
         .errors {
@@ -1993,19 +1990,9 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         .saved ha-svg-icon {
           flex: none;
         }
-        .actions {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: var(--ha-space-3);
-          padding-top: var(--ha-space-5);
-          padding-bottom: var(--ha-space-8);
-        }
-        .actions .spacer {
-          flex: 1;
-        }
-        ha-button.saving {
-          opacity: var(--light-disabled-opacity);
+        ha-editor-save-bar {
+          --ha-editor-save-bar-max-width: 1100px;
+          margin-top: var(--ha-space-5);
         }
       `,
     ];

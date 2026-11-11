@@ -56,16 +56,24 @@ export class HaPersonalWordingCard extends LitElement {
     super.connectedCallback();
     window.addEventListener(VOCABULARY_CHANGED_EVENT, this._changed);
     this._count = activeVocabularyCount();
-    // Idempotent: the connection normally started this at start-up.
+    // The connection normally started this at start-up. Starts are counted,
+    // so this card lets go of only its own and never stops the shared one.
     if (this.hass?.connection) {
-      startInstanceSync(this.hass.connection);
+      this._stopSync = startInstanceSync(
+        this.hass.connection,
+        this.hass.user?.id
+      );
     }
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener(VOCABULARY_CHANGED_EVENT, this._changed);
+    this._stopSync?.();
+    this._stopSync = undefined;
   }
+
+  private _stopSync?: () => void;
 
   private _changed = () => {
     this._count = activeVocabularyCount();
@@ -109,12 +117,16 @@ export class HaPersonalWordingCard extends LitElement {
               @change=${this._fileChosen}
             />
           </div>
-          <div class="status" role="status">
+          <div class="status">
             ${
               this._count
-                ? html`
-                    <ha-svg-icon .path=${mdiFileCheckOutline}></ha-svg-icon>
-                    <span class="status-text">
+                ? html`<ha-svg-icon .path=${mdiFileCheckOutline}></ha-svg-icon>`
+                : nothing
+            }
+            <span class="status-text" role="status">
+              ${
+                this._count
+                  ? html`
                       <span class="status-label"
                         >${localize("ui.personal_wording.loaded_label")}</span
                       >
@@ -123,18 +135,20 @@ export class HaPersonalWordingCard extends LitElement {
                           count: this._count,
                         })}</span
                       >
-                    </span>
-                    <ha-button
-                      appearance="plain"
-                      variant="danger"
-                      @click=${this._clear}
-                    >
-                      ${localize("ui.personal_wording.clear")}
-                    </ha-button>
-                  `
-                : html`<span class="status-text"
-                    >${localize("ui.personal_wording.none")}</span
-                  >`
+                    `
+                  : localize("ui.personal_wording.none")
+              }
+            </span>
+            ${
+              this._count
+                ? html`<ha-button
+                    appearance="plain"
+                    variant="danger"
+                    @click=${this._clear}
+                  >
+                    ${localize("ui.personal_wording.clear")}
+                  </ha-button>`
+                : nothing
             }
           </div>
           ${

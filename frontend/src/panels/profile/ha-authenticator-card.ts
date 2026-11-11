@@ -1,6 +1,8 @@
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import { modeText } from "../../common/language-mode/language-mode";
 import { fireEvent } from "../../common/dom/fire_event";
 import "../../components/ha-alert";
 import "../../components/ha-button";
@@ -26,6 +28,14 @@ export const AUTHENTICATOR_MODULE_ID = "totp";
 class HaAuthenticatorCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  private _lang = new LanguageModeController(this);
+
+  private _localize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string =>
+    modeText(this.hass.localize as any, key, values, this._lang.mode);
+
   @state() private _busy = false;
 
   protected render(): TemplateResult | typeof nothing {
@@ -37,21 +47,19 @@ class HaAuthenticatorCard extends LitElement {
     }
     return html`
       <ha-card
-        .header=${this.hass.localize("ui.panel.profile.authenticator.header")}
+        .header=${this._localize("ui.panel.profile.authenticator.header")}
       >
         <div class="card-content">
-          <p>
-            ${this.hass.localize("ui.panel.profile.authenticator.description")}
-          </p>
+          <p>${this._localize("ui.panel.profile.authenticator.description")}</p>
           <p class="state" role="status">
-            ${this.hass.localize(
+            ${this._localize(
               module.enabled
                 ? "ui.panel.profile.authenticator.state_on"
                 : "ui.panel.profile.authenticator.state_off"
             )}
           </p>
           <p class="note">
-            ${this.hass.localize("ui.panel.profile.authenticator.key_note")}
+            ${this._localize("ui.panel.profile.authenticator.key_note")}
           </p>
         </div>
         <div class="card-actions">
@@ -63,10 +71,10 @@ class HaAuthenticatorCard extends LitElement {
                   .disabled=${this._busy}
                   @click=${this._remove}
                 >
-                  ${this.hass.localize("ui.panel.profile.authenticator.remove")}
+                  ${this._localize("ui.panel.profile.authenticator.remove")}
                 </ha-button>`
               : html`<ha-button .disabled=${this._busy} @click=${this._setup}>
-                  ${this.hass.localize("ui.panel.profile.authenticator.set_up")}
+                  ${this._localize("ui.panel.profile.authenticator.set_up")}
                 </ha-button>`
           }
         </div>
@@ -87,15 +95,11 @@ class HaAuthenticatorCard extends LitElement {
   private async _remove() {
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass.localize(
+        title: this._localize(
           "ui.panel.profile.authenticator.confirm_remove_title"
         ),
-        text: this.hass.localize(
-          "ui.panel.profile.authenticator.confirm_remove"
-        ),
-        confirmText: this.hass.localize(
-          "ui.panel.profile.authenticator.remove"
-        ),
+        text: this._localize("ui.panel.profile.authenticator.confirm_remove"),
+        confirmText: this._localize("ui.panel.profile.authenticator.remove"),
         destructive: true,
       }))
     ) {
@@ -110,9 +114,7 @@ class HaAuthenticatorCard extends LitElement {
       fireEvent(this, "hass-refresh-current-user");
     } catch {
       await showAlertDialog(this, {
-        text: this.hass.localize(
-          "ui.panel.profile.authenticator.remove_failed"
-        ),
+        text: this._localize("ui.panel.profile.authenticator.remove_failed"),
       });
     } finally {
       this._busy = false;

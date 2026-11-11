@@ -1,9 +1,10 @@
 import { mdiContentCopy, mdiEye, mdiEyeOff, mdiShieldLock } from "@mdi/js";
-import type { CSSResultGroup } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import { modeText } from "../../common/language-mode/language-mode";
 import { fireEvent } from "../../common/dom/fire_event";
-import { copyToClipboard } from "../../common/util/copy-clipboard";
 import "../../components/ha-alert";
 import "../../components/ha-button";
 import "../../components/ha-dialog";
@@ -34,6 +35,14 @@ const CODE_LENGTH = 6;
 class HaAuthenticatorSetupDialog extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  private _lang = new LanguageModeController(this);
+
+  private _localize = (
+    key: string,
+    values?: Record<string, string | number>
+  ): string =>
+    modeText(this.hass.localize as any, key, values, this._lang.mode);
+
   @state() private _open = false;
 
   @state() private _step?: DataEntryFlowStep;
@@ -43,6 +52,16 @@ class HaAuthenticatorSetupDialog extends LitElement {
   @state() private _revealed = false;
 
   @state() private _copied = false;
+
+  @state() private _copyFailed = false;
+
+  // The flow no longer exists on the server, so only a new one can go on
+  @state() private _flowLost = false;
+
+  // Move focus to the code field once it is drawn
+  private _focusCode = false;
+
+  @query("ha-input") private _codeInput?: HaInput;
 
   @state() private _submitting = false;
 
@@ -57,6 +76,10 @@ class HaAuthenticatorSetupDialog extends LitElement {
   private _copiedTimer?: number;
 
   public async showDialog(params: AuthenticatorSetupDialogParams) {
+    // A second call while the dialog is open would start a second flow
+    if (this._params && this._open) {
+      return;
+    }
     this._params = params;
     this._instance++;
     this._done = false;
@@ -65,6 +88,8 @@ class HaAuthenticatorSetupDialog extends LitElement {
     this._error = undefined;
     this._revealed = false;
     this._copied = false;
+    this._copyFailed = false;
+    this._flowLost = false;
     this._open = true;
     const current = this._instance;
     try {
@@ -74,10 +99,11 @@ class HaAuthenticatorSetupDialog extends LitElement {
       });
       if (current === this._instance) {
         this._step = step;
+        this._focusCode = step.type === "form";
       }
     } catch {
       if (current === this._instance) {
-        this._error = this.hass.localize(
+        this._error = this._localize(
           "ui.panel.profile.authenticator.load_failed"
         );
       }
@@ -86,16 +112,36 @@ class HaAuthenticatorSetupDialog extends LitElement {
 
   public closeDialog() {
     this._open = false;
+    // The key is dropped now, not when the closing animation ends
+    this._forgetSecret();
   }
 
-  private _dialogClosed() {
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    this._forgetSecret();
+  }
+
+  private _forgetSecret() {
     window.clearTimeout(this._copiedTimer);
-    const callback = this._params?.dialogClosedCallback;
-    const done = this._done;
-    // Drop the key and the setup address from memory.
     this._instance++;
     this._step = undefined;
     this._code = "";
+    this._revealed = false;
+    this._copied = false;
+  }
+
+  protected updated(_changed: PropertyValues) {
+    if (this._focusCode && this._form) {
+      this._focusCode = false;
+      this._codeInput?.focus();
+    }
+  }
+
+  private _dialogClosed() {
+    const callback = this._params?.dialogClosedCallback;
+    const done = this._done;
+    // Drop the key and the setup address from memory.
+    this._forgetSecret();
     this._params = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
     callback?.({ done });
@@ -124,19 +170,19 @@ class HaAuthenticatorSetupDialog extends LitElement {
       <ha-dialog
         .open=${this._open}
         .preventScrimClose=${Boolean(this._form)}
-        header-title=${this.hass.localize(
+        header-title=${this._localize(
           "ui.panel.profile.authenticator.setup_title"
         )}
         @closed=${this._dialogClosed}
       >
-        ${this._renderBody(finished)}
+        ${this._open ? this._renderBody(finished) : nothing}
         <ha-dialog-footer slot="footer">
           <ha-button
             slot=${this._form ? "secondaryAction" : "primaryAction"}
             appearance=${this._form ? "plain" : "filled"}
             @click=${this.closeDialog}
           >
-            ${this.hass.localize(
+            ${this._localize(
               this._form
                 ? "ui.common.cancel"
                 : "ui.panel.profile.authenticator.close"
@@ -150,9 +196,7 @@ class HaAuthenticatorSetupDialog extends LitElement {
                   .loading=${this._submitting}
                   @click=${this._submit}
                 >
-                  ${this.hass.localize(
-                    "ui.panel.profile.authenticator.confirm"
-                  )}
+                  ${this._localize("ui.panel.profile.authenticator.confirm")}
                 </ha-button>`
               : nothing
           }
@@ -164,17 +208,19 @@ class HaAuthenticatorSetupDialog extends LitElement {
   private _renderBody(finished: boolean) {
     if (finished) {
       return html`<ha-alert alert-type="success" role="status">
-        ${this.hass.localize("ui.panel.profile.authenticator.done")}
+        ${this._localize("ui.panel.profile.authenticator.done")}
       </ha-alert>`;
     }
     if (this._step?.type === "abort") {
       return html`<ha-alert alert-type="error">
-        ${this.hass.localize("ui.panel.profile.authenticator.load_failed")}
-      </ha-alert>`;
+          ${this._localize("ui.panel.profile.authenticator.load_failed")}
+        </ha-alert>
+        ${this._renderStartAgain()}`;
     }
     if (!this._form) {
       return this._error
-        ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+        ? html`<ha-alert alert-type="error">${this._error}</ha-alert>
+            ${this._renderStartAgain()}`
         : html`<div class="spinner"><ha-spinner></ha-spinner></div>`;
     }
     const secret = this._placeholder("code") ?? "";
@@ -182,13 +228,13 @@ class HaAuthenticatorSetupDialog extends LitElement {
     const digitsLeft = CODE_LENGTH - this._code.length;
     return html`
       <p class="intro">
-        ${this.hass.localize("ui.panel.profile.authenticator.setup_intro")}
+        ${this._localize("ui.panel.profile.authenticator.setup_intro")}
       </p>
       <div class="layout">
         <div
           class="qr"
           role="img"
-          aria-label=${this.hass.localize(
+          aria-label=${this._localize(
             "ui.panel.profile.authenticator.qr_label"
           )}
         >
@@ -196,27 +242,22 @@ class HaAuthenticatorSetupDialog extends LitElement {
         </div>
         <div class="side">
           <div class="label" id="secret-label">
-            ${this.hass.localize("ui.panel.profile.authenticator.type_secret")}
+            ${this._localize("ui.panel.profile.authenticator.type_secret")}
           </div>
-          <div class="secret-row">
-            <code class="secret" aria-labelledby="secret-label">
+          <div class="secret-row" role="group" aria-labelledby="secret-label">
+            <code class="secret">
               ${
                 this._revealed
                   ? this._groups(secret)
                   : this._groups("x".repeat(secret.length)).replace(/x/g, "•")
               }
             </code>
-            <ha-button
-              appearance="plain"
-              size="s"
-              aria-pressed=${this._revealed ? "true" : "false"}
-              @click=${this._toggleReveal}
-            >
+            <ha-button appearance="plain" size="s" @click=${this._toggleReveal}>
               <ha-svg-icon
                 slot="start"
                 .path=${this._revealed ? mdiEyeOff : mdiEye}
               ></ha-svg-icon>
-              ${this.hass.localize(
+              ${this._localize(
                 this._revealed
                   ? "ui.panel.profile.authenticator.hide"
                   : "ui.panel.profile.authenticator.show"
@@ -224,29 +265,29 @@ class HaAuthenticatorSetupDialog extends LitElement {
             </ha-button>
             <ha-button appearance="plain" size="s" @click=${this._copy}>
               <ha-svg-icon slot="start" .path=${mdiContentCopy}></ha-svg-icon>
-              ${this.hass.localize("ui.panel.profile.authenticator.copy")}
+              ${this._localize("ui.panel.profile.authenticator.copy")}
             </ha-button>
           </div>
           <div class="facts">
             <span>SHA-1</span>
             <span>
-              ${this.hass.localize("ui.panel.profile.authenticator.digits", {
+              ${this._localize("ui.panel.profile.authenticator.digits", {
                 count: CODE_LENGTH,
               })}
             </span>
             <span>
-              ${this.hass.localize("ui.panel.profile.authenticator.period", {
+              ${this._localize("ui.panel.profile.authenticator.period", {
                 count: 30,
               })}
             </span>
           </div>
           <ha-input
-            .label=${this.hass.localize("ui.panel.profile.authenticator.code")}
+            .label=${this._localize("ui.panel.profile.authenticator.code")}
             .value=${this._code}
             inputmode="numeric"
             autocomplete="off"
             maxlength=${CODE_LENGTH}
-            .hint=${this.hass.localize(
+            .hint=${this._localize(
               digitsLeft > 0
                 ? "ui.panel.profile.authenticator.digits_left"
                 : "ui.panel.profile.authenticator.digits_ready",
@@ -260,22 +301,41 @@ class HaAuthenticatorSetupDialog extends LitElement {
               ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
               : nothing
           }
+          ${this._flowLost ? this._renderStartAgain() : nothing}
           <p class="status" role="status">
             ${
               this._copied
-                ? this.hass.localize("ui.panel.profile.authenticator.copied")
-                : nothing
+                ? this._localize("ui.panel.profile.authenticator.copied")
+                : this._copyFailed
+                  ? this._localize("ui.panel.profile.authenticator.copy_failed")
+                  : nothing
             }
           </p>
           <div class="notice">
             <ha-svg-icon .path=${mdiShieldLock}></ha-svg-icon>
             <span>
-              ${this.hass.localize("ui.panel.profile.authenticator.secret_note")}
+              ${this._localize("ui.panel.profile.authenticator.secret_note")}
             </span>
           </div>
         </div>
       </div>
     `;
+  }
+
+  private _renderStartAgain() {
+    return html`<ha-button appearance="plain" @click=${this._startAgain}>
+      ${this._localize("ui.panel.profile.authenticator.start_again")}
+    </ha-button>`;
+  }
+
+  private _startAgain() {
+    const params = this._params;
+    if (!params) {
+      return;
+    }
+    this._open = false;
+    this._params = undefined;
+    this.showDialog(params);
   }
 
   private _toggleReveal() {
@@ -287,12 +347,40 @@ class HaAuthenticatorSetupDialog extends LitElement {
     if (!secret) {
       return;
     }
-    await copyToClipboard(secret, this);
-    this._copied = true;
+    const ok = await this._writeClipboard(secret);
+    this._copied = ok;
+    this._copyFailed = !ok;
     window.clearTimeout(this._copiedTimer);
+    // Long enough to be read; the text says the key stays on the clipboard
     this._copiedTimer = window.setTimeout(() => {
       this._copied = false;
-    }, 2500);
+      this._copyFailed = false;
+    }, 6000);
+  }
+
+  // True only when the text really reached the clipboard
+  private async _writeClipboard(text: string): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back to a hidden field inside this dialog, so that its focus
+      // trap does not block the selection
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      this.renderRoot.appendChild(el);
+      el.select();
+      try {
+        return document.execCommand("copy");
+      } catch {
+        return false;
+      } finally {
+        el.remove();
+      }
+    }
   }
 
   private _codeChanged(ev: Event) {
@@ -334,17 +422,22 @@ class HaAuthenticatorSetupDialog extends LitElement {
       } else if (step.type === "form") {
         this._step = step;
         this._code = "";
-        this._error = this.hass.localize(
+        this._error = this._localize(
           "ui.panel.profile.authenticator.invalid_code"
         );
+        this._focusCode = true;
       } else {
         this._step = step;
       }
-    } catch {
+    } catch (err: any) {
       if (current === this._instance) {
-        this._error = this.hass.localize(
+        this._error = this._localize(
           "ui.panel.profile.authenticator.submit_failed"
         );
+        // The server forgot this setup, so typing the code again cannot work
+        this._flowLost =
+          err?.code === "unknown_flow" || err?.code === "not_found";
+        this._focusCode = !this._flowLost;
       }
     } finally {
       this._submitting = false;

@@ -118,7 +118,12 @@ export const parsePersonalVocabulary = (
 ): VocabularyResult => {
   let text: string;
   if (typeof input === "string") {
-    if (input.length > VOCABULARY_LIMITS.bytes) {
+    // Bytes, as for a file: text outside the basic range takes up to four
+    // bytes per UTF-16 unit pair, so counting units would let it through.
+    if (
+      input.length > VOCABULARY_LIMITS.bytes ||
+      new TextEncoder().encode(input).length > VOCABULARY_LIMITS.bytes
+    ) {
       return fail("too_large");
     }
     text = input;
@@ -420,28 +425,54 @@ export const restorePersonalVocabulary = (): void => {
   } catch (_err) {
     cached = null;
   }
-  if (!cached) {
-    activate(undefined);
-    return;
-  }
-  const result = parsePersonalVocabulary(cached);
-  if (result.ok) {
+  const result = cached ? parsePersonalVocabulary(cached) : undefined;
+  if (result?.ok && result.count) {
+    // Several tabs share one cache: only a real difference changes anything.
+    if (sameEntries(active?.entries, result.entries)) {
+      return;
+    }
     activate(result.entries);
+    announce();
     return;
   }
-  activate(undefined);
-  try {
-    window.localStorage.removeItem(VOCABULARY_STORAGE_KEY);
-  } catch (_err) {
-    // Nothing to remove.
+  if (cached && !result?.ok) {
+    try {
+      window.localStorage.removeItem(VOCABULARY_STORAGE_KEY);
+    } catch (_err) {
+      // Nothing to remove.
+    }
+  }
+  if (active) {
+    activate(undefined);
+    announce();
   }
 };
 
-/** The sign-in and first-start pages: they never show personal wording. */
-const onPreSignInPage = (): boolean =>
-  window.location.pathname.startsWith("/auth/") ||
-  window.location.pathname.startsWith("/onboarding");
+const sameEntries = (
+  a: Record<string, string> | undefined,
+  b: Record<string, string>
+): boolean => {
+  if (!a) {
+    return false;
+  }
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((key) => key in b && a[key] === b[key])
+  );
+};
 
-if (typeof window !== "undefined" && !onPreSignInPage()) {
-  restorePersonalVocabulary();
+// Nothing is restored when this file loads: the cache is only put in use once
+// the signed-in account is known to own it (see `claimSyncOwner`), so a
+// previous person's wording can never show for the next one. The sign-in and
+// first-start pages never read it at all.
+
+// Another tab changed the cache: keep this tab's wording in step, without
+// treating it as a change made here.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (ev: StorageEvent) => {
+    if (ev.key === VOCABULARY_STORAGE_KEY && active !== undefined) {
+      restorePersonalVocabulary();
+    }
+  });
 }

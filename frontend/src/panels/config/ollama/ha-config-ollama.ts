@@ -1,16 +1,25 @@
 import {
   mdiBrain,
   mdiClose,
+  mdiContentCopy,
   mdiPlus,
   mdiSortAscending,
   mdiSortDescending,
 } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { formatDateTime } from "../../../common/datetime/format_date_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
+import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -19,12 +28,14 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/layout/ha-split-panels";
+import "./ha-ollama-chat";
 import "./ha-ollama-pull";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
   OllamaModel,
   OllamaModelInfo,
+  OllamaModelUser,
   OllamaRunning,
   OllamaServer,
 } from "../../../data/ollama_suite";
@@ -32,8 +43,10 @@ import {
   deleteOllamaModel,
   fetchOllamaModelInfo,
   fetchOllamaModels,
+  fetchOllamaModelUsers,
   fetchOllamaRunning,
   fetchOllamaServers,
+  unloadOllamaModel,
 } from "../../../data/ollama_suite";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
 import {
@@ -44,6 +57,7 @@ import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
+import { showToast } from "../../../util/toast";
 
 type SortKey = "name" | "size" | "modified_at";
 
@@ -81,11 +95,44 @@ class HaConfigOllama extends LitElement {
 
   @state() private _infoError?: string;
 
+  @state() private _users?: OllamaModelUser[];
+
+  @state() private _usersError = false;
+
+  @state() private _unloading?: string;
+
   /** Guards against an older answer replacing a newer one. */
   private _requestId = 0;
 
   protected firstUpdated(): void {
     this._loadServers();
+  }
+
+  // Where focus goes once the list or the detail has been drawn
+  private _pendingFocus?: "detail" | "row";
+
+  private _lastOpened?: string;
+
+  @query("#detail-heading") private _detailHeading?: HTMLElement;
+
+  @queryAll("button.link") private _modelLinks!: NodeListOf<HTMLElement>;
+
+  protected updated(): void {
+    const target = this._pendingFocus;
+    if (!target) {
+      return;
+    }
+    this._pendingFocus = undefined;
+    if (target === "detail") {
+      const heading = this._detailHeading;
+      heading?.focus();
+      // Stacked on a narrow screen the detail sits below the list
+      heading?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    const name = this._lastOpened;
+    const row = [...this._modelLinks].find((el) => el.dataset.model === name);
+    row?.focus();
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -118,6 +165,7 @@ class HaConfigOllama extends LitElement {
     this._serverId = entryId;
     this._selected = undefined;
     this._info = undefined;
+    this._users = undefined;
     this._modelsError = undefined;
     this._loadingModels = true;
     const [models, running] = await Promise.allSettled([
@@ -179,10 +227,15 @@ class HaConfigOllama extends LitElement {
     if (!name || !this._serverId) {
       return;
     }
+    this._pendingFocus = "detail";
+    this._lastOpened = name;
     this._selected = name;
     this._info = undefined;
     this._infoError = undefined;
+    this._users = undefined;
+    this._usersError = false;
     const serverId = this._serverId;
+    this._loadUsers(serverId, name);
     try {
       const info = await fetchOllamaModelInfo(this.hass, serverId, name);
       if (this._selected === name && this._serverId === serverId) {
@@ -193,6 +246,71 @@ class HaConfigOllama extends LitElement {
         this._infoError = this._errorText(err);
       }
     }
+  }
+
+  private async _loadUsers(serverId: string, name: string): Promise<void> {
+    try {
+      const { users } = await fetchOllamaModelUsers(this.hass, serverId, name);
+      if (this._selected === name && this._serverId === serverId) {
+        this._users = users;
+      }
+    } catch {
+      if (this._selected === name && this._serverId === serverId) {
+        this._usersError = true;
+      }
+    }
+  }
+
+  private async _unloadModel(ev: Event): Promise<void> {
+    const name = (ev.currentTarget as HTMLElement).dataset.model;
+    const serverId = this._serverId;
+    if (!name || !serverId || this._unloading) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("unload_title", { model: name }),
+      text: this._l("unload_text", { model: name }),
+      confirmText: this._l("unload"),
+      dismissText: this._l("cancel"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._unloading = name;
+    try {
+      await unloadOllamaModel(this.hass, serverId, name);
+    } catch (err: any) {
+      this._unloading = undefined;
+      await showAlertDialog(this, {
+        title: this._l("unload_failed", { model: name }),
+        text: this._errorText(err),
+      });
+      await this._refreshRunning(serverId);
+      return;
+    }
+    this._unloading = undefined;
+    showToast(this, { message: this._l("unloaded", { model: name }) });
+    await this._refreshRunning(serverId);
+  }
+
+  private async _refreshRunning(serverId: string): Promise<void> {
+    try {
+      const running = await fetchOllamaRunning(this.hass, serverId);
+      if (this._serverId === serverId) {
+        this._running = running;
+      }
+    } catch {
+      // The old list stays until the next refresh.
+    }
+  }
+
+  private async _copyDigest(ev: Event): Promise<void> {
+    const digest = (ev.currentTarget as HTMLElement).dataset.digest;
+    if (!digest) {
+      return;
+    }
+    await copyToClipboard(digest, this.renderRoot as unknown as HTMLElement);
+    showToast(this, { message: this._l("digest_copied") });
   }
 
   private async _refreshModels(): Promise<void> {
@@ -239,9 +357,12 @@ class HaConfigOllama extends LitElement {
   }
 
   private _closeModel(): void {
+    this._pendingFocus = "row";
     this._selected = undefined;
     this._info = undefined;
     this._infoError = undefined;
+    this._users = undefined;
+    this._usersError = false;
   }
 
   private _shownModels(): OllamaModel[] {
@@ -300,26 +421,23 @@ class HaConfigOllama extends LitElement {
       ${
         this._servers.length
           ? html`${this._renderServers(this._servers)} ${this._renderPull()}
-            ${this._renderRunning()}
-            ${
-              this._selected
-                ? html`<ha-split-panels
-                    storage-key="ollama-models"
-                    .defaultSize=${520}
-                    .minStart=${320}
-                    .minEnd=${260}
-                    .startLabel=${this._l("models")}
-                    .endLabel=${this._l("detail")}
-                  >
-                    <div slot="start" class="split-start">
-                      ${this._renderModels()}
-                    </div>
-                    <div slot="end" class="split-end">
-                      ${this._renderDetail()}
-                    </div>
-                  </ha-split-panels>`
-                : this._renderModels()
-            }`
+              ${this._renderRunning()}
+              <ha-split-panels
+                storage-key="ollama-models"
+                .defaultSize=${520}
+                .minStart=${320}
+                .minEnd=${260}
+                .startLabel=${this._l("models")}
+                .endLabel=${this._l("detail")}
+                .endHidden=${!this._selected}
+              >
+                <div slot="start" class="split-start">
+                  ${this._renderModels()}
+                </div>
+                <div slot="end" class="split-end">
+                  ${this._selected ? this._renderDetail() : nothing}
+                </div>
+              </ha-split-panels>`
           : this._renderEmpty()
       }
       ${this._renderNext()}
@@ -328,10 +446,14 @@ class HaConfigOllama extends LitElement {
 
   private _renderPull(): TemplateResult | typeof nothing {
     const server = this._servers?.find((s) => s.entry_id === this._serverId);
-    if (!server?.reachable) {
+    if (!server) {
       return nothing;
     }
+    // Stay mounted while the server is briefly unreachable: removing the
+    // element would drop a download in progress. It is inert until the
+    // server answers again.
     return html`<ha-ollama-pull
+      ?inert=${!server.reachable}
       .hass=${this.hass}
       .entryId=${this._serverId}
       @ollama-models-changed=${this._refreshModels}
@@ -458,6 +580,21 @@ class HaConfigOllama extends LitElement {
                           ></span>
                         </span>
                       </span>
+                      <ha-button
+                        appearance="plain"
+                        data-model=${item.name ?? ""}
+                        .disabled=${!!this._unloading}
+                        aria-label=${this._l("unload_named", {
+                          model: item.name ?? "",
+                        })}
+                        @click=${this._unloadModel}
+                      >
+                        ${
+                          this._unloading === item.name
+                            ? this._l("unloading")
+                            : this._l("unload")
+                        }
+                      </ha-button>
                     </li>`
                 )}
               </ul>`
@@ -613,7 +750,7 @@ class HaConfigOllama extends LitElement {
     const info = this._info;
     return html`<aside class="detail-panel" aria-label=${this._l("detail")}>
       <div class="detail-head">
-        <h2>${this._selected}</h2>
+        <h2 id="detail-heading" tabindex="-1">${this._selected}</h2>
         <ha-icon-button
           .path=${mdiClose}
           .label=${this._l("close")}
@@ -633,16 +770,24 @@ class HaConfigOllama extends LitElement {
                     "capabilities",
                     info.capabilities.filter(Boolean).join(", ")
                   )}
+                  ${this._fact("col_size", this._sizeText())}
+                  ${this._fact("context_length", this._contextLength(info))}
                   ${this._fact(
                     "col_modified",
                     info.modified_at
-                      ? relativeTime(
+                      ? `${formatDateTime(
+                          new Date(info.modified_at),
+                          this.hass.locale,
+                          this.hass.config
+                        )} (${relativeTime(
                           new Date(info.modified_at),
                           this.hass.locale
-                        )
+                        )})`
                       : null
                   )}
+                  ${this._renderDigest()}
                 </dl>
+                ${this._renderUsers()}
                 ${
                   Object.keys(info.info).length
                     ? html`<h3>${this._l("technical")}</h3>
@@ -660,12 +805,85 @@ class HaConfigOllama extends LitElement {
                     ? html`<h3>${this._l("parameters")}</h3>
                         <pre>${info.parameters}</pre>`
                     : nothing
-                }`
+                }
+                <ha-ollama-chat
+                  .hass=${this.hass}
+                  .entryId=${this._serverId}
+                  .model=${this._selected}
+                ></ha-ollama-chat>`
             : html`<div class="center">
                 <ha-spinner .ariaLabel=${this._l("loading")}></ha-spinner>
               </div>`
       }
     </aside>`;
+  }
+
+  private _selectedModel(): OllamaModel | undefined {
+    return this._models?.find((model) => model.name === this._selected);
+  }
+
+  private _sizeText(): string | null {
+    const size = this._selectedModel()?.size;
+    return size ? bytesToString(size, 1) : null;
+  }
+
+  private _contextLength(info: OllamaModelInfo): string | null {
+    const key = Object.keys(info.info).find((name) =>
+      name.endsWith(".context_length")
+    );
+    return key ? String(info.info[key]) : null;
+  }
+
+  private _renderDigest(): TemplateResult | typeof nothing {
+    const digest = this._selectedModel()?.digest;
+    if (!digest) {
+      return nothing;
+    }
+    const short = digest.replace(/^sha256:/, "").slice(0, 12);
+    return html`<dt>${this._l("digest")}</dt>
+      <dd class="digest">
+        <code title=${digest}>${short}</code>
+        <ha-icon-button
+          .path=${mdiContentCopy}
+          .label=${this._l("copy_digest")}
+          data-digest=${digest}
+          @click=${this._copyDigest}
+        ></ha-icon-button>
+      </dd>`;
+  }
+
+  private _userKind(type: string | null): string {
+    if (type === "conversation") {
+      return this._l("user_conversation");
+    }
+    if (type === "ai_task_data") {
+      return this._l("user_ai_task");
+    }
+    return type ?? "";
+  }
+
+  private _renderUsers(): TemplateResult | typeof nothing {
+    if (this._usersError) {
+      return html`<h3>${this._l("used_by")}</h3>
+        <p class="detail">${this._l("used_by_failed")}</p>`;
+    }
+    if (!this._users) {
+      return nothing;
+    }
+    return html`<h3>${this._l("used_by")}</h3>
+      ${
+        this._users.length
+          ? html`<ul class="users">
+              ${this._users.map(
+                (user) =>
+                  html`<li>
+                    <span class="name">${user.title}</span>
+                    <span class="detail">${this._userKind(user.type)}</span>
+                  </li>`
+              )}
+            </ul>`
+          : html`<p class="detail">${this._l("used_by_none")}</p>`
+      }`;
   }
 
   private _fact(
@@ -684,7 +902,6 @@ class HaConfigOllama extends LitElement {
         <h2>${this._l("next_title")}</h2>
         <p class="detail">${this._l("next_text")}</p>
         <ul>
-          <li>${this._l("next_chat")}</li>
           <li>${this._l("next_helpers")}</li>
         </ul>
       </div>
@@ -781,6 +998,8 @@ class HaConfigOllama extends LitElement {
       }
       .row {
         display: flex;
+        align-items: center;
+        gap: var(--ha-space-2);
         padding: var(--ha-space-2) 0;
         border-bottom: 1px solid var(--divider-color);
       }
@@ -886,8 +1105,24 @@ class HaConfigOllama extends LitElement {
         font-size: var(--ha-font-size-m);
         margin: var(--ha-space-3) 0 var(--ha-space-1);
       }
-      td ha-button {
+      td ha-button,
+      .row ha-button {
         min-height: 44px;
+      }
+      .digest {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+      }
+      .users {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .users li {
+        display: flex;
+        flex-direction: column;
+        padding: var(--ha-space-1) 0;
       }
       .visually-hidden {
         position: absolute;

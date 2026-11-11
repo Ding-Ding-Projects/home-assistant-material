@@ -47,7 +47,7 @@ import {
   PASTED_CONFIG_TOAST_ID,
 } from "../automation/ha-manual-editor-mixin";
 import { showPasteReplaceDialog } from "../automation/paste-replace-dialog/show-dialog-paste-replace";
-import { manualEditorStyles, saveFabStyles } from "../automation/styles";
+import { manualEditorStyles } from "../automation/styles";
 import "./ha-script-fields";
 import type HaScriptFields from "./ha-script-fields";
 import { parseMaxRuns, scriptConfigStruct } from "./script-config-struct";
@@ -523,7 +523,6 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
 
   static get styles(): CSSResultGroup {
     return [
-      saveFabStyles,
       manualEditorStyles,
       css`
         .title-block {

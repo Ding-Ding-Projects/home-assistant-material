@@ -3,6 +3,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { parseHelpAddress } from "../help/help-article-path";
 import { openHelpArticle } from "../help/open-help-article";
 import type { HomeAssistant } from "../../types";
@@ -70,6 +71,8 @@ export class HaSettingInfo extends LitElement {
 
   private _id = `setting-info-${nextId++}`;
 
+  private _lang = new LanguageModeController(this);
+
   public disconnectedCallback() {
     super.disconnectedCallback();
     this._unlisten();
@@ -89,11 +92,13 @@ export class HaSettingInfo extends LitElement {
     };
     const raw =
       override ??
-      this.hass?.localize(
-        `ui.components.setting_info.${names[key]}` as any,
-        values
-      ) ??
-      "";
+      (this.hass
+        ? this._lang.text(
+            this.hass.localize as any,
+            `ui.components.setting_info.${names[key]}`,
+            values
+          )
+        : "");
     return values && override
       ? Object.entries(values).reduce(
           (text, [name, value]) => text.split(`{${name}}`).join(value),

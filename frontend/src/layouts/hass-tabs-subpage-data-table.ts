@@ -57,6 +57,8 @@ import type { SplitDividerMoveDetail } from "../components/layout/ha-split-divid
 import {
   clampSize,
   parseStoredState,
+  resolveStoredSize,
+  shouldRestoreFiltersOpen,
 } from "../components/layout/split-panels-logic";
 import {
   safeGetStored,
@@ -640,26 +642,21 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
           <div class="page-heading-text">
             <h1>${this._pageTitle}</h1>
             <div class="summary-row">
-              ${
-                this._summaryHidden
-                  ? nothing
-                  : html`<p id="list-summary">
-                      ${
-                        this.summary ??
-                        localize("ui.components.subpage-data-table.summary", {
-                          count: this.data.length,
-                        })
-                      }
-                    </p>`
-              }
+              <p id="list-summary" ?hidden=${this._summaryHidden}>
+                ${
+                  this.summary ??
+                  localize("ui.components.subpage-data-table.summary", {
+                    count: this.data.length,
+                  })
+                }
+              </p>
               <button
                 type="button"
                 class="summary-toggle"
                 aria-expanded=${this._summaryHidden ? "false" : "true"}
+                aria-controls="list-summary"
                 aria-label=${localize(
-                  this._summaryHidden
-                    ? "ui.components.subpage-data-table.show_summary"
-                    : "ui.components.subpage-data-table.hide_summary"
+                  "ui.components.subpage-data-table.summary_toggle"
                 )}
                 title=${localize(
                   this._summaryHidden
@@ -707,7 +704,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       <hass-tabs-subpage
         style=${styleMap({
           "--sidepane-width": this._paneWidth
-            ? `${this._paneWidth}px`
+            ? `${this._clampedPaneWidth(this._paneWidth)}px`
             : undefined,
         })}
         .isWide=${this.isWide}
@@ -811,9 +808,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   </div>
                   <ha-split-divider
                     class="pane-divider"
-                    .value=${this._paneWidth ?? PANE_DEFAULT_WIDTH}
+                    .value=${this._clampedPaneWidth(
+                      this._paneWidth ?? PANE_DEFAULT_WIDTH
+                    )}
                     .min=${PANE_MIN_WIDTH}
                     .max=${this._paneMaxWidth}
+                    .total=${this.offsetWidth}
+                    .resetText=${localize("ui.components.split_panels.reset")}
                     .defaultValue=${PANE_DEFAULT_WIDTH}
                     .label=${localize(
                       "ui.components.subpage-data-table.resize_filters"
@@ -1066,8 +1067,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this._layoutKeyLoaded = key;
     const stored = parseStoredState(safeGetStored<unknown>(key));
     if (stored) {
-      this._paneWidth = stored.size || undefined;
-      this.showFilters = stored.collapsed === "";
+      const width = resolveStoredSize(stored, this.offsetWidth);
+      this._paneWidth = width ? this._clampedPaneWidth(width) : undefined;
+      // Open only where the side pane is shown; on a narrow width the
+      // choice would open the full-width dialog as soon as the page loads
+      this.showFilters = shouldRestoreFiltersOpen(
+        stored.collapsed,
+        this._showPaneController.value ?? !this.narrow
+      );
     }
     this._summaryHidden = safeGetStored<unknown>(`${key}:summary`) === "hidden";
   }
@@ -1102,7 +1109,15 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
   }
 
+  private _clampedPaneWidth(width: number): number {
+    return clampSize(width, PANE_MIN_WIDTH, this._paneMaxWidth);
+  }
+
   private get _paneMaxWidth(): number {
+    // Before the page is measured there is no honest upper limit but the fixed one
+    if (!this.offsetWidth) {
+      return PANE_MAX_WIDTH;
+    }
     return clampSize(
       Math.floor(this.offsetWidth / 2),
       PANE_MIN_WIDTH,
