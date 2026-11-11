@@ -1,0 +1,112 @@
+name: Deploy Assistant
+
+# Builds the Deploy Assistant desktop app for Windows (Squirrel: Setup.exe, RELEASES, .nupkg),
+# Linux (.deb and .zip) and macOS (.zip), and publishes them as their own release. Nothing is
+# code-signed. The project page is rebuilt afterwards so its download buttons point at the files.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy-assistant/**"
+      - ".github/workflows/deploy-assistant.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: deploy-assistant
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: deploy-assistant
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: deploy-assistant/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Test
+        run: npm test
+      - name: Set the version
+        shell: bash
+        run: npm version --no-git-tag-version "1.0.${GITHUB_RUN_NUMBER}"
+      - name: Install packaging tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg
+      - name: Build the installers
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ""
+          WIN_CSC_LINK: ""
+        run: npm run make
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir -p ../dist-da
+          find out/make -type f \( -name '*.exe' -o -name '*.nupkg' -o -name 'RELEASES' -o -name '*.deb' -o -name '*.zip' \) -print0 | while IFS= read -r -d '' f; do
+            base="$(basename "$f")"
+            case "$base" in RELEASES) base="RELEASES" ;; *.zip) base="$(echo "$base" | tr ' ' '-' | sed "s/\.zip$/-${RUNNER_OS}.zip/")" ;; *) base="$(echo "$base" | tr ' ' '-')" ;; esac
+            cp "$f" "../dist-da/$base"
+          done
+          ls -la ../dist-da
+      - uses: actions/upload-artifact@v4
+        with:
+          name: da-${{ matrix.os }}
+          path: dist-da/*
+
+  release:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          VERSION="1.0.${GITHUB_RUN_NUMBER}"
+          TAG="deploy-assistant-v${VERSION}"
+          cd files
+          sha256sum * > SHA256SUMS
+          {
+            echo "Home Assistant Material Deploy Assistant ${VERSION}: deploy Home Assistant Material in one click to Docker on this computer, an SSH host, VirtualBox or VMware, or write a Raspberry Pi card; manage every instance and its backups."
+            echo
+            echo "- Windows: HAM-Deploy-Assistant-Setup.exe (Squirrel; it updates itself from RELEASES and the .nupkg)."
+            echo "- Linux: the .deb, or the Linux .zip."
+            echo "- macOS: the macOS .zip."
+            echo
+            echo "Nothing here is code-signed. Windows SmartScreen and macOS Gatekeeper warn on first start; check the files against SHA256SUMS."
+            echo
+            echo "Commit ${GITHUB_SHA}."
+          } > notes.md
+          gh release create "$TAG" --repo "$REPO" --title "Deploy Assistant ${VERSION}" --notes-file notes.md --latest=false --target "$GITHUB_SHA" ./*
+      - name: Rebuild the project page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "${{ github.repository }}" --ref main

@@ -11,7 +11,7 @@
   function icon(n, cls) { var p = S.icons[n] || S.icons.InformationOutline; return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + p + '"></path></svg>'; }
 
   // ---------- Stored state ----------
-  var TABS = ['home', 'run', 'features', 'articles', 'design', 'changes', 'tools', 'settings', 'history', 'support'];
+  var TABS = ['home', 'run', 'deploy', 'features', 'status', 'articles', 'design', 'changes', 'tools', 'settings', 'history', 'support'];
   var DEF = {
     lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, lowStim: false, spotlight: false, dimsum: true,
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
@@ -36,7 +36,7 @@
 
   // ---------- Words ----------
   var W = {
-    home: ['Home', '主頁'], run: ['Run it', '點樣用'], features: ['Features', '功能'], articles: ['Articles', '文章'], design: ['Design', '設計'], changes: ['Changes', '更新'],
+    home: ['Home', '主頁'], run: ['Run it', '點樣用'], deploy: ['Deploy Assistant', '部署助手'], status: ['Status', '狀態'], features: ['Features', '功能'], articles: ['Articles', '文章'], design: ['Design', '設計'], changes: ['Changes', '更新'],
     tools: ['Tools', '工具'], settings: ['Settings', '設定'], history: ['History', '紀錄'], support: ['Support', '支援'],
     search: ['Search', '搵嘢'], newtab: ['New tab', '新分頁'], openall: ['Open every tab', '打開晒所有分頁'], close: ['Close', '閂'], cancel: ['Cancel', '取消'], next: ['Next', '下一步'], back: ['Back', '返轉頭'],
     skip: ['Skip', '跳過'], done: ['Done', '搞掂'], reset: ['Reset', '還原'], copy: ['Copy', '複製'], export: ['Export', '匯出'], undo: ['Undo', '還原返'], clear: ['Clear', '清除'],
@@ -232,7 +232,7 @@
       var f = feat(x[1]); return '<article class="feat" data-k="built-' + x[1] + '"><img src="img/' + x[0] + '.webp" width="800" height="600" alt="' + esc(f.name) + ', from a running build" loading="lazy"><h3 class="tl">' + esc(f.name) + '</h3><p class="bm mu">' + esc(f.what) + '</p><div>' + stateTag(f.state) + '</div></article>';
     }).join('');
     return '<section class="hero" id="top" data-k="hero"><div class="col" style="gap:20px"><span class="status" data-k="status">' + icon('ProgressClock', 's') + L('early') + '</span><h1 data-k="hero-title">' + L('heroTitle') + '</h1>' +
-      '<p class="bl mu" data-k="hero-text">' + L('heroText') + '</p><div class="chipline"><button class="btn fill lg" data-go="run:top">' + L('runDocker') + '</button><a class="btn out lg" href="' + S.repo + '/releases">' + L('releases') + '</a></div></div>' +
+      '<p class="bl mu" data-k="hero-text">' + L('heroText') + '</p><div class="chipline"><button class="btn fill lg" data-go="deploy:top">' + icon('Download', 's') + 'Get the Deploy Assistant</button><button class="btn tonal lg" data-go="run:top">' + L('runDocker') + '</button><a class="btn out lg" href="' + S.repo + '/releases">' + L('releases') + '</a></div></div>' +
       '<div><img class="shot" data-k="hero-shot" src="img/home.webp" width="1440" height="900" alt="The Home page of a running build: a slim rail, pill tabs and rounded cards"></div></section>' +
       '<section class="section" id="built">' + h2('built', 'built-h') + '<div class="grid3">' + built + '</div><div><button class="btn tonal" data-go="features:top">' + esc(S.features.length) + ' features and their state</button></div></section>' +
       '<section class="section" id="live">' + h2('visit', 'live-h') + '<p class="bm mu">Clicks and key presses on this page, every two seconds. Move over the chart to read a value. Nothing is sent anywhere.</p><canvas class="live" id="livechart" width="1000" height="160" role="img" aria-label="Live chart of activity on this page during this visit"></canvas><p class="bs mu" id="livevalue" aria-live="polite"></p></section>' +
@@ -270,7 +270,7 @@
       return '<article class="article" id="top" data-k="a-' + f.id + '"><button class="btn text sm" data-article="" style="align-self:flex-start">' + icon('ChevronLeft', 's') + 'All articles</button>' +
         '<h1 class="hl">' + esc(f.name) + '</h1><div class="chipline">' + stateTag(f.state) + '<span class="tag">' + esc(f.group) + '</span></div>' + (st.lang !== 'en' ? '<p class="bs mu">' + esc(W.articlesEnglish[1]) + '</p>' : '') +
         '<h2 class="tl">' + L('whatItDoes') + '</h2><p class="bl">' + esc(f.what) + '</p><h2 class="tl">' + L('tryHere') + '</h2><p class="bl">' + esc(f.here) + '</p><div><button class="btn tonal" data-go="' + f.try + '">' + L('tryHere') + icon('ChevronRight', 's') + '</button></div>' +
-        '<h2 class="tl">' + L('inProduct') + '</h2><p class="bl">' + esc(f.product) + ' <a href="' + S.repo + '/blob/main/docs/feature-status.md">The status page</a> has the details.</p>' +
+        '<h2 class="tl">' + L('inProduct') + '</h2><p class="bl">' + esc(f.product) + ' <a href="#status" data-go="status:top">The status page</a> has the details.</p>' +
         '<h2 class="tl">' + L('readNext') + '</h2><div class="grid3">' + next.map(function (x) { return '<button class="feat" style="text-align:left" data-article="' + x.id + '"><span class="tm" style="padding:10px 10px 0">' + esc(x.name) + '</span><span class="bs mu">' + esc(x.what.slice(0, 110)) + '…</span></button>'; }).join('') + '</div></article>' + foot();
     }
     var m = matcher(q.articles); var list = S.features.filter(function (f) { return m.test(f.name + ' ' + f.what + ' ' + f.here); });
@@ -279,14 +279,37 @@
       '<div class="grid3">' + (list.length ? list.map(function (f) { return '<button class="feat" style="text-align:left" data-k="ac-' + f.id + '" data-article="' + f.id + '"><span class="chipline" style="padding:10px 10px 0"><span class="tm">' + esc(f.name) + '</span></span><span class="bs mu">' + esc(f.what.slice(0, 120)) + '…</span><span>' + stateTag(f.state) + '</span></button>'; }).join('') : '<p class="bm mu">' + L('noMatch') + '</p>') + '</div></div>' + foot();
   };
   R.design = function () {
-    var cv = [['01-everyday', 'Home, energy, the phone layout, dashboards, map, lists and more'], ['02-everyday', 'Maintenance, profile, Assist, sign-in, first run, about'], ['03-settings', 'Integrations, devices, entities, automations'], ['04-settings', 'Settings home, scenes, scripts, areas, dashboards'],
-      ['05-system', 'Voice, people, energy setup, system, backups'], ['06-tools', 'Network, storage, hardware, developer tools'], ['07-protocols', 'Zigbee, Z-Wave, Matter, Thread, Bluetooth, MQTT'], ['08-dialogs', '36 entity dialogs'], ['09-features', 'Language, wording, modes, appearance, accessibility'],
-      ['10-features', 'Tabs, command palette, workbench, menus, locks'], ['11-features', 'History, export, help, tools'], ['12-polish', 'Workbench, element tools and locks on a phone and wide'], ['13-polish', 'Personal settings, guided setup, rail, media search'], ['14-decisions', 'The phone bottom bar, open pages, picking by touch, confirmation'], ['15-site', 'This page']];
-    var pics = [['home', 'Home, running build'], ['crop-workbench', 'Pattern workbench'], ['crop-element-menu', 'Element menu'], ['crop-appearance', 'Appearance editor'], ['board-workbench-phone', 'Board: workbench on a phone'], ['board-phone-tabs', 'Board: open pages on a phone'], ['board-locks', 'Board: lock wizard'], ['board-personal', 'Board: personal settings']];
-    var m = matcher(q.design);
-    return '<div class="section" id="top"><h1 class="hl">' + L('design') + '</h1><p class="bl mu">197 boards on 15 canvases in the repository. A board is a proposal until it has been seen in a running build.</p>' + findField('dsearch', 'Search canvases and pictures', q.design) +
-      '<div class="scrollbox"><table class="t" data-k="canvases"><tbody>' + cv.filter(function (c) { return m.test(c.join(' ')); }).map(function (c) { return '<tr><td class="mono bs">' + c[0] + '</td><td class="bm">' + esc(c[1]) + '</td><td><a class="btn text sm" href="' + S.repo + '/tree/main/design/canvases/' + c[0] + '">Open' + icon('OpenInNew', 's') + '</a></td></tr>'; }).join('') + '</tbody></table></div>' +
-      '<h2 class="hs" id="pictures">Pictures</h2><div class="thumbs">' + pics.filter(function (p) { return m.test(p[1]); }).map(function (p) { return '<a href="img/' + p[0] + '.webp" data-k="pic-' + p[0] + '"><img src="img/' + p[0] + '.webp" alt="' + esc(p[1]) + '" loading="lazy"><span class="bs">' + esc(p[1]) + '</span></a>'; }).join('') + '</div></div>' + foot();
+    var m = matcher(q.design); var total = 0;
+    var out = S.canvases.map(function (c) {
+      var list = c.boards.filter(function (b) { return m.test(c.title + ' ' + b.title + ' ' + b.name); }); total += list.length;
+      if (!list.length) return '';
+      return '<section class="section" id="cv-' + c.id + '" data-k="cv-' + c.id + '"><h2 class="tl">' + esc(c.title) + ' <span class="bs mu">' + c.boards.length + ' boards</span></h2><div class="thumbs">' + list.map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('') + '</div></section>';
+    }).join('');
+    var n = S.canvases.reduce(function (a, c) { return a + c.boards.length; }, 0);
+    return '<div class="section" id="top"><h1 class="hl">' + L('design') + '</h1><p class="bl mu">' + n + ' boards on ' + S.canvases.length + ' canvases: every page, dialog and feature, on a phone and in a wide window, light and dark. A board is a proposal until it has been seen in a running build. Choose a board to see it full size.</p>' + findField('dsearch', 'Search boards', q.design) +
+      '<div class="chipline">' + S.canvases.map(function (c) { return '<button class="chip" data-go="design:cv-' + c.id + '">' + esc(c.id) + '</button>'; }).join('') + '</div><p class="bs mu" aria-live="polite">' + total + ' shown</p></div>' + (out || '<p class="bm mu">' + L('noMatch') + '</p>') + foot();
+  };
+  R.status = function () {
+    var m = matcher(q.status);
+    var out = S.status.map(function (sec, si) {
+      var rows = sec.rows.filter(function (r) { return m.test(r.join(' ')); });
+      if (!rows.length) return '';
+      return '<section class="section" id="st-' + si + '" data-k="st-' + si + '"><h2 class="tl">' + esc(sec.title) + '</h2><div class="scrollbox"><table class="t"><thead><tr>' + sec.head.map(function (h) { return '<th class="ll">' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        rows.map(function (r) { var st2 = (r[1] || '').toLowerCase(); var tone = /^done|^built/.test(st2) ? 'built' : /not started|^designed/.test(st2) ? 'designed' : /partly|wired|written/.test(st2) ? 'partly' : ''; return '<tr><td class="ll">' + esc(r[0]) + '</td><td class="bs">' + (tone ? '<span class="tag ' + tone + '" style="margin-right:6px">' + esc((r[1] || '').split(/[,.;:(]/)[0].split(' ').slice(0, 3).join(' ')) + '</span>' : '') + esc(r[1] || '') + '</td>' + r.slice(2).map(function (c) { return '<td class="bs mono">' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div></section>';
+    }).join('');
+    return '<div class="section" id="top"><h1 class="hl">' + L('status') + '</h1><p class="bl mu">What exists today, stated plainly, from the repository\'s status page at version ' + esc(S.version) + '. Nothing is called done until it has been seen working in a built image.</p>' + findField('stsearch', 'Search the status', q.status) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' + (out || '<p class="bm mu">' + L('noMatch') + '</p>') + foot();
+  };
+  R.deploy = function () {
+    var rel = window.DEPLOY_RELEASE || {}; var as = rel.assets || [];
+    var find = function (re) { return as.filter(function (a) { return re.test(a.name); })[0]; };
+    var dl = [['Windows', 'Setup.exe, updates itself', find(/Setup\.exe$/i), 'Download for Windows'], ['Linux', '.deb for Debian and Ubuntu', find(/\.deb$/i), 'Download the .deb'], ['Linux', '.zip, any distribution', find(/Linux\.zip$/i), 'Download the Linux .zip'], ['macOS', '.zip, Apple silicon and Intel', find(/macOS\.zip$/i), 'Download for macOS']];
+    var cards = dl.map(function (d) { return '<div class="feat" style="padding:20px;gap:8px"><span class="tm">' + d[0] + '</span><span class="bs mu">' + d[1] + (d[2] ? ' · ' + Math.round(d[2].size / 1e6) + ' MB' : '') + '</span>' + (d[2] ? '<a class="btn fill" href="' + esc(d[2].url) + '">' + icon('Download', 's') + d[3] + '</a>' : '<span class="bs mu">Being built; the button appears when the first release is published.</span>') + '</div>'; }).join('');
+    var feats = [['One click', 'Docker on this computer, an SSH host, VirtualBox or VMware. Name, free port, configuration and image are chosen for you; you get the link and it opens.'], ['Raspberry Pi cards', 'Writes the Raspberry Pi 3, 4 or 5 image to an SD card or USB drive, reads it back to check it, then waits for the Pi on your network and adds it with its link.'], ['As many instances as you like', 'Each gets its own name, port and folder. Start, stop, restart, update, logs, and live processor and memory use.'], ['Backups', 'Back up now, or every day on a schedule with a number kept. Archives for Docker and SSH, snapshots for virtual machines. Restoring keeps the current config beside it.'], ['Automatic downloads', 'Every operating system image and the container image are downloaded, checked against their SHA-256 sums and kept current, on this computer and on your SSH hosts.'], ['Everything this page has', 'Tabs, Ctrl Shift F with live controls, the pattern workbench on every search, a menu on every element, three language modes, locks, history and export.']];
+    return '<div class="section" id="top"><span class="status">' + icon('Download', 's') + (rel.version ? 'Version ' + esc(rel.version) + (rel.published ? ', published ' + esc(new Date(rel.published).toLocaleDateString()) : '') : 'First release on its way') + '</span><h1 class="hl" data-k="da-title">Deploy Assistant</h1><p class="bl mu" style="max-width:780px">A desktop app that runs Home Assistant Material for you in one click, and keeps every instance and its backups in one place. Free, no account. Nothing is code-signed, so Windows and macOS warn on first start; each file is listed in SHA256SUMS of its release.</p>' +
+      '<div class="grid2" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">' + cards + '</div>' + (rel.tag ? '<p class="bs mu">Files of release ' + esc(rel.tag) + '. <a href="' + S.repo + '/releases/tag/' + esc(rel.tag) + '">All files and SHA256SUMS</a>.</p>' : '') + '</div>' +
+      '<section class="section" id="demo"><h2 class="hs">Try it here</h2><p class="bm mu">The real app\'s window, running in this page with nothing behind it: press anything. Deploying here only plays the steps.</p><iframe class="demo" src="deploy-assistant/index.html" title="Deploy Assistant demo" loading="lazy"></iframe></section>' +
+      '<section class="section"><h2 class="hs">What it does</h2><div class="grid3">' + feats.map(function (f) { return '<div class="feat" style="padding:20px;gap:8px"><span class="tm">' + f[0] + '</span><span class="bm mu">' + f[1] + '</span></div>'; }).join('') + '</div></section>' +
+      '<section class="section"><h2 class="hs">Its design</h2><div class="thumbs">' + ((S.canvases.filter(function (c) { return c.id === '16-deploy-assistant'; })[0] || { boards: [] }).boards.map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('')) + '</div></section>' + foot();
   };
   function md(t) { return esc(t).split(/\n\s*\n/).map(function (p) { return '<p class="bm">' + p.replace(/\n/g, ' ') + '</p>'; }).join(''); }
   R.changes = function () {
@@ -359,14 +382,14 @@
   function short(v) { var s = typeof v === 'object' ? JSON.stringify(v) : String(v); return s.length > 40 ? s.slice(0, 40) + '…' : s; }
   R.support = function () {
     var presets = [['Forgot a lock PIN', 'I locked an element on this page and forgot its PIN.', 'Clearing this site\'s storage'], ['Something looks wrong', 'A part of the page looks cut off or overlaps.', 'A larger text size'], ['Question about running it', 'I want to run the container on my machine.', 'The Run it tab']];
-    return '<div class="section" id="top"><h1 class="hl">' + L('support') + '</h1><p class="bl mu">Help for this page, and a place to note what went wrong. Tickets stay in this browser; to tell the project, open an issue on the repository.</p>' +
+    return '<div class="section" id="top"><h1 class="hl">' + L('support') + '</h1><p class="bl mu">Help for this page, and a place to note what went wrong. Tickets stay in this browser; copy them as text to send them on.</p>' +
       '<section class="card" data-k="pin-help" style="padding:24px"><h2 class="tl">Forgotten a lock PIN?</h2><ol class="bm" style="margin:0;padding-left:20px"><li>Open your browser\'s settings for this site.</li><li>Clear this site\'s stored data.</li><li>Every lock is gone, along with your other choices on this page. Nothing else changes.</li></ol></section>' +
       '<section class="section" id="new"><h2 class="tl">New ticket</h2><div class="chipline"><span class="bs mu">Start from:</span>' + presets.map(function (p, i) { return '<button class="chip" data-preset="' + i + '">' + esc(p[0]) + '</button>'; }).join('') + '</div>' +
       '<label class="col" style="gap:4px"><span class="ll">Title <span class="bs mu">(what went wrong, in a few words)</span></span><input class="input" id="tk-title" maxlength="120"></label><span class="field-err" id="tk-title-err" role="alert"></span>' +
       '<label class="col" style="gap:4px"><span class="ll">What happened</span><textarea class="input" id="tk-what" style="font-family:inherit"></textarea></label>' +
       '<label class="col" style="gap:4px"><span class="ll">What you tried</span><input class="input" id="tk-tried"></label><div><button class="btn fill" data-act="ticket">Save the ticket</button></div></section>' +
       '<section class="section"><h2 class="tl">Your tickets</h2>' + (st.tickets.length ? st.tickets.map(function (t, i) { return '<div class="row-item" data-k="tk-' + t.t + '"><span class="col grow"><span class="ll">' + esc(t.title) + '</span><span class="bs mu">' + esc(t.what) + (t.tried ? ' · Tried: ' + esc(t.tried) : '') + '</span></span><button class="btn text sm" data-rmticket="' + i + '">Remove</button></div>'; }).join('') : '<p class="bm mu">No tickets yet.</p>') +
-      '<a class="btn tonal" style="align-self:flex-start" href="' + S.repo + '/issues/new">Open an issue on the repository' + icon('OpenInNew', 's') + '</a></section></div>' + foot();
+      '<button class="btn tonal" style="align-self:flex-start" data-act="copy-tickets">' + icon('ContentCopy', 's') + 'Copy your tickets as text</button></section></div>' + foot();
   };
   R.tools = function () {
     return '<div class="section" id="top"><h1 class="hl">' + L('tools') + '</h1><p class="bl mu">Small tools that run entirely in this browser.</p><div class="chipline">' + [['regex', 'Pattern workbench'], ['base64', 'Base64'], ['convert', 'Convert'], ['colour', 'Colour'], ['otp', 'Authenticator']].map(function (t) { return '<button class="chip" data-go="tools:' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div></div>' +
@@ -749,6 +772,7 @@
       b = t.closest('[data-article]'); if (b) { view.article = b.dataset.article || null; if (st.active !== 'articles') go('articles:top'); else { render(); window.scrollTo(0, 0); } return; }
       b = t.closest('[data-regex]'); if (b) { workbench(b.dataset.regex); return; }
       b = t.closest('[data-copy]'); if (b) { copy(b.dataset.copy); return; }
+      b = t.closest('[data-board]'); if (b) { dialog(b.dataset.btitle, '<img src="boards/' + esc(b.dataset.board) + '.webp" alt="' + esc(b.dataset.btitle) + '" style="width:100%;height:auto;border-radius:16px;box-shadow:0 0 0 1px var(--outv)">', { full: true }); return; }
       b = t.closest('[data-toggle]'); if (b) { setVal(b.dataset.toggle, !get(b.dataset.toggle), labelOf(b)); if (b.dataset.toggle === 'school' && st.school) { st.funEn = 1; st.funYue = 1; save(); } render(); return; }
       b = t.closest('[data-set]'); if (b) { var v = b.dataset.val; if (/^(funEn|funYue|textScale)$/.test(b.dataset.set)) v = +v; setVal(b.dataset.set, v, b.closest('[role=group]').getAttribute('aria-label')); if (b.dataset.set === 'edge') shell(); render(); return; }
       b = t.closest('[data-reset]'); if (b) { var p = b.dataset.reset, dv = p.split('.').reduce(function (o, k) { return o == null ? o : o[k]; }, DEF); setVal(p, JSON.parse(JSON.stringify(dv)), 'Reset ' + p); if (p === 'edge' || p === 'name' || p === 'logo') shell(); render(); toast(msg('saved')); return; }
@@ -780,12 +804,13 @@
       if (a === 'clear-history') superConfirm('Clear history', ['All ' + st.history.length + ' entries are removed.', 'Your current settings stay as they are.'], 'CLEAR', function () { st.history = []; save(); render(); toast(msg('saved')); });
       if (a === 'undo-sel') { var ts = Object.keys(view.sel).filter(function (x) { return view.sel[x]; }).map(Number); st.history.slice().forEach(function (h) { if (ts.indexOf(h.t) >= 0) undoEntry(st.history.indexOf(h)); }); view.sel = {}; render(); toast(msg('saved')); }
       if (a === 'ticket') { var ti = $('#tk-title').value.trim(); if (!ti) { $('#tk-title-err').textContent = 'Give the ticket a title, so you can find it later.'; $('#tk-title').focus(); return; } st.tickets.unshift({ t: Date.now(), title: ti, what: $('#tk-what').value.trim(), tried: $('#tk-tried').value.trim() }); save(); render(); toast(msg('saved')); }
+      if (a === 'copy-tickets') copy(st.tickets.map(function (x) { return '# ' + x.title + '\n' + x.what + (x.tried ? '\nTried: ' + x.tried : ''); }).join('\n\n') || 'No tickets.');
       if (a === 'b64enc') b64(true); if (a === 'b64dec') b64(false);
       if (a === 'otpadd') { var nm = $('#otpname').value.trim() || 'Code', sc = $('#otpsecret').value.trim(); try { b32(sc); if (!sc) throw new Error(); } catch (er) { toast('That secret is not Base32 (letters A to Z and digits 2 to 7).'); return; } st.otp.push({ name: nm, secret: sc }); save(); render(); }
     });
     app.addEventListener('input', function (e) {
       var t = e.target, id = t.id;
-      var map = { fsearch: 'features', asearch: 'articles', csearch: 'changes', ssearch: 'settings', hsearch: 'history', dsearch: 'design' };
+      var map = { stsearch: 'status', fsearch: 'features', asearch: 'articles', csearch: 'changes', ssearch: 'settings', hsearch: 'history', dsearch: 'design' };
       if (map[id]) { q[map[id]] = t.value; var pos = t.selectionStart; render(); var n = $('#' + id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* search fields */ } } return; }
       if (t.dataset.range) { st[t.dataset.range] = +t.value; save(); t.nextElementSibling.textContent = t.value; return; }
       if (t.dataset.color) { var p2 = t.dataset.color; if (p2 === 'seed') st.seed = t.value; else st.logo.color = t.value; save(); apply(); return; }
