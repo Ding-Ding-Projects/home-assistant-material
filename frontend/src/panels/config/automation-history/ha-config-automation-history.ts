@@ -5,6 +5,8 @@ import {
   mdiCloudUpload,
   mdiCog,
   mdiCompare,
+  mdiContentCopy,
+  mdiDelete,
   mdiDotsVertical,
   mdiExport,
   mdiFileCompare,
@@ -13,6 +15,8 @@ import {
   mdiMinus,
   mdiPencil,
   mdiPlay,
+  mdiPlus,
+  mdiRenameBox,
   mdiRestore,
   mdiShieldCheck,
   mdiSourceBranch,
@@ -56,6 +60,7 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
+import "../../../components/ha-textarea";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { AutomationConfig, Condition } from "../../../data/automation";
@@ -94,6 +99,26 @@ import "../../../layouts/hass-tabs-subpage";
 import type { HomeAssistant, Route } from "../../../types";
 import { fileDownload } from "../../../util/file_download";
 import { configSections } from "../config-sections";
+import type {
+  ComparisonVerdict,
+  SimulatedRun,
+  TraceReason,
+} from "./simulated-run";
+import { compareToExpected, simulateRun } from "./simulated-run";
+import type { ExpectedOutcome, TestCase, TestCaseError } from "./test-cases";
+import {
+  buildTestCase,
+  deleteTestCase,
+  duplicateTestCase,
+  formatKeyValueLines,
+  loadTestCases,
+  newTestCaseId,
+  parseKeyValueLines,
+  renameTestCase,
+  saveTestCases,
+  TEST_CASE_LIMITS,
+  validateTestCase,
+} from "./test-cases";
 import "./ha-automation-diff";
 import "./ha-config-automation-repo";
 import type {
@@ -135,6 +160,26 @@ const TESTS_AT_ONCE = 4;
 
 /** Longest a single test may take. */
 const TEST_TIMEOUT_MS = 10000;
+
+/** A test case being created or edited, as the text fields show it. */
+interface CaseDraft {
+  /** Empty while creating. */
+  id: string;
+  name: string;
+  triggerId: string;
+  description: string;
+  variables: string;
+  states: string;
+  expected: ExpectedOutcome;
+  errors: TestCaseError[];
+}
+
+/** The latest simulated run of a case. */
+interface CaseRun {
+  run?: SimulatedRun;
+  verdict?: ComparisonVerdict;
+  error?: string;
+}
 
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
   Promise.race([
@@ -240,10 +285,35 @@ export class HaConfigAutomationHistory extends LitElement {
 
   private _configs = new Map<string, AutomationConfig>();
 
+  /** Named test cases of the automation the list is limited to. */
+  @state() private _cases: TestCase[] = [];
+
+  @state() private _caseStorageFailed = false;
+
+  /** The version simulated runs use; the live one when empty. */
+  @state() private _caseSha = "";
+
+  @state() private _caseDraft?: CaseDraft;
+
+  @state() private _caseRuns: Record<string, CaseRun> = {};
+
+  @state() private _caseRunning = false;
+
   protected firstUpdated(changed: PropertyValues) {
     super.firstUpdated(changed);
     this._applyUrl();
     this._load();
+  }
+
+  protected willUpdate(changed: PropertyValues) {
+    super.willUpdate(changed);
+    if (changed.has("_automation")) {
+      this._cases = this._automation ? loadTestCases(this._automation) : [];
+      this._caseStorageFailed = false;
+      this._caseSha = "";
+      this._caseDraft = undefined;
+      this._caseRuns = {};
+    }
   }
 
   /**
@@ -791,6 +861,538 @@ export class HaConfigAutomationHistory extends LitElement {
     }
   }
 
+  // ---- Named test cases and simulated runs ----
+
+  private _caseError(error: TestCaseError): string {
+    const limits = TEST_CASE_LIMITS;
+    const values: Record<TestCaseError, Record<string, number>> = {
+      name_empty: {},
+      name_too_long: { max: limits.maxName },
+      name_taken: {},
+      too_many_cases: { max: limits.maxCases },
+      trigger_id_too_long: { max: limits.maxTriggerId },
+      description_too_long: { max: limits.maxDescription },
+      too_many_variables: { max: limits.maxVariables },
+      variable_name_invalid: { max: limits.maxVariableName },
+      variable_too_long: { max: limits.maxValue },
+      too_many_states: { max: limits.maxStates },
+      entity_id_invalid: {},
+      state_too_long: { max: limits.maxValue },
+      expected_invalid: {},
+    };
+    return this._l(`case_error_${error}`, values[error]);
+  }
+
+  private _persistCases(cases: TestCase[]) {
+    this._cases = cases;
+    this._caseStorageFailed = !saveTestCases(this._automation, cases);
+    const known = new Set(cases.map((item) => item.id));
+    this._caseRuns = Object.fromEntries(
+      Object.entries(this._caseRuns).filter(([id]) => known.has(id))
+    );
+  }
+
+  private _caseRow(): VersionRow | undefined {
+    const rows = this._rows.filter(
+      (row) => row.automationId === this._automation
+    );
+    return (
+      rows.find((row) => row.sha === this._caseSha) ??
+      rows.find((row) => row.live) ??
+      rows[0]
+    );
+  }
+
+  private _newCase() {
+    this._caseDraft = {
+      id: "",
+      name: "",
+      triggerId: "",
+      description: "",
+      variables: "",
+      states: "",
+      expected: "pass",
+      errors: [],
+    };
+  }
+
+  private _editCase(ev: Event) {
+    const item = (ev.currentTarget as HTMLElement & { testCase: TestCase })
+      .testCase;
+    this._caseDraft = {
+      id: item.id,
+      name: item.name,
+      triggerId: item.trigger.id,
+      description: item.trigger.description,
+      variables: formatKeyValueLines(item.trigger.variables),
+      states: formatKeyValueLines(item.states),
+      expected: item.expected,
+      errors: [],
+    };
+  }
+
+  private _draftField(ev: Event) {
+    const target = ev.currentTarget as HTMLElement & {
+      field: "name" | "triggerId" | "description" | "variables" | "states";
+      value?: string;
+    };
+    if (this._caseDraft) {
+      this._caseDraft = {
+        ...this._caseDraft,
+        [target.field]: target.value ?? "",
+      };
+    }
+  }
+
+  private _draftExpected(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    if (this._caseDraft) {
+      this._caseDraft = {
+        ...this._caseDraft,
+        expected: ev.detail.value === "fail" ? "fail" : "pass",
+      };
+    }
+  }
+
+  private _cancelDraft() {
+    this._caseDraft = undefined;
+  }
+
+  private _saveDraft() {
+    const draft = this._caseDraft;
+    if (!draft) {
+      return;
+    }
+    const input = {
+      name: draft.name,
+      trigger: {
+        id: draft.triggerId,
+        description: draft.description,
+        variables: parseKeyValueLines(draft.variables),
+      },
+      states: parseKeyValueLines(draft.states),
+      expected: draft.expected,
+    };
+    const { ok, errors } = validateTestCase(
+      input,
+      this._cases,
+      draft.id || undefined
+    );
+    if (!ok) {
+      this._caseDraft = { ...draft, errors };
+      return;
+    }
+    if (draft.id) {
+      this._persistCases(
+        this._cases.map((item) =>
+          item.id === draft.id ? buildTestCase(input, draft.id) : item
+        )
+      );
+      const { [draft.id]: _stale, ...rest } = this._caseRuns;
+      this._caseRuns = rest;
+    } else {
+      this._persistCases([
+        ...this._cases,
+        buildTestCase(input, newTestCaseId()),
+      ]);
+    }
+    this._caseDraft = undefined;
+  }
+
+  private async _renameCase(ev: Event) {
+    const item = (ev.currentTarget as HTMLElement & { testCase: TestCase })
+      .testCase;
+    const name = await showPromptDialog(this, {
+      title: this._l("case_rename_title"),
+      inputLabel: this._l("case_name"),
+      defaultValue: item.name,
+      confirmText: this._l("case_rename"),
+    });
+    if (name === null || name === undefined) {
+      return;
+    }
+    const { cases, errors } = renameTestCase(this._cases, item.id, name);
+    if (errors.length) {
+      showAlertDialog(this, {
+        title: this._l("case_rename_title"),
+        text: errors.map((error) => this._caseError(error)).join(" "),
+      });
+      return;
+    }
+    this._persistCases(cases);
+  }
+
+  private _duplicateCase(ev: Event) {
+    const item = (ev.currentTarget as HTMLElement & { testCase: TestCase })
+      .testCase;
+    const { cases, errors } = duplicateTestCase(
+      this._cases,
+      item.id,
+      this._l("case_copy_word")
+    );
+    if (errors.length) {
+      showAlertDialog(this, {
+        title: this._l("case_duplicate"),
+        text: errors.map((error) => this._caseError(error)).join(" "),
+      });
+      return;
+    }
+    this._persistCases(cases);
+  }
+
+  private async _deleteCase(ev: Event) {
+    const item = (ev.currentTarget as HTMLElement & { testCase: TestCase })
+      .testCase;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("case_delete_title", { name: item.name }),
+      text: this._l("case_delete_text"),
+      confirmText: this._l("case_delete"),
+      destructive: true,
+    });
+    if (confirmed) {
+      this._persistCases(deleteTestCase(this._cases, item.id));
+    }
+  }
+
+  private _caseVersionChanged(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    this._caseSha = String(ev.detail.value);
+    this._caseRuns = {};
+  }
+
+  /** Simulates the given cases against the chosen version, one by one. */
+  private async _simulateCases(cases: readonly TestCase[]) {
+    const row = this._caseRow();
+    if (!row || !cases.length || this._caseRunning) {
+      return;
+    }
+    this._caseRunning = true;
+    try {
+      let config: AutomationConfig | undefined;
+      let failure: string | undefined;
+      try {
+        config = await withTimeout(this._config(row), TEST_TIMEOUT_MS);
+      } catch (err: any) {
+        failure = this._errorText(err);
+      }
+      const next = { ...this._caseRuns };
+      cases.forEach((item) => {
+        if (!config) {
+          next[item.id] = { error: failure };
+          return;
+        }
+        const run = simulateRun(
+          config as unknown as Record<string, unknown>,
+          item
+        );
+        next[item.id] = {
+          run,
+          verdict: compareToExpected(run, item.expected),
+        };
+      });
+      this._caseRuns = next;
+    } finally {
+      this._caseRunning = false;
+    }
+  }
+
+  private _runCase(ev: Event) {
+    this._simulateCases([
+      (ev.currentTarget as HTMLElement & { testCase: TestCase }).testCase,
+    ]);
+  }
+
+  private _runAllCases() {
+    this._simulateCases(this._cases);
+  }
+
+  private _reasonText(reason?: TraceReason): string {
+    return reason ? this._l(`case_reason_${reason}`) : "";
+  }
+
+  private _traceLine(trace: SimulatedRun["trace"][number]): string {
+    const what = this._l(`case_kind_${trace.kind}` as any) || trace.kind;
+    return trace.entityIds.length
+      ? `${what} ${trace.entityIds.join(", ")}`
+      : what;
+  }
+
+  private _renderCaseDraft(draft: CaseDraft) {
+    const limits = TEST_CASE_LIMITS;
+    return html`
+      <div class="case-form">
+        <h3>${this._l(draft.id ? "case_edit" : "case_new")}</h3>
+        <ha-input
+          .label=${this._l("case_name")}
+          .value=${draft.name}
+          .field=${"name"}
+          maxlength=${limits.maxName}
+          @input=${this._draftField}
+        ></ha-input>
+        <ha-input
+          .label=${this._l("case_trigger_id")}
+          .hint=${this._l("case_trigger_id_hint")}
+          .value=${draft.triggerId}
+          .field=${"triggerId"}
+          maxlength=${limits.maxTriggerId}
+          @input=${this._draftField}
+        ></ha-input>
+        <ha-input
+          .label=${this._l("case_trigger_description")}
+          .value=${draft.description}
+          .field=${"description"}
+          maxlength=${limits.maxDescription}
+          @input=${this._draftField}
+        ></ha-input>
+        <ha-textarea
+          .label=${this._l("case_variables")}
+          .hint=${this._l("case_variables_hint")}
+          .value=${draft.variables}
+          .field=${"variables"}
+          rows="3"
+          @input=${this._draftField}
+        ></ha-textarea>
+        <ha-textarea
+          .label=${this._l("case_states")}
+          .hint=${this._l("case_states_hint")}
+          .value=${draft.states}
+          .field=${"states"}
+          rows="4"
+          @input=${this._draftField}
+        ></ha-textarea>
+        <ha-select
+          .label=${this._l("case_expected")}
+          .value=${draft.expected}
+          .options=${[
+            { value: "pass", label: this._l("case_expected_pass") },
+            { value: "fail", label: this._l("case_expected_fail") },
+          ]}
+          @selected=${this._draftExpected}
+        ></ha-select>
+        ${
+          draft.errors.length
+            ? html`<ha-alert alert-type="error">
+                <ul class="case-errors">
+                  ${draft.errors.map(
+                    (error) => html`<li>${this._caseError(error)}</li>`
+                  )}
+                </ul>
+              </ha-alert>`
+            : nothing
+        }
+        <div class="panel-actions">
+          <ha-button appearance="plain" @click=${this._cancelDraft}
+            >${this._l("case_cancel")}</ha-button
+          >
+          <ha-button @click=${this._saveDraft}
+            >${this._l("case_save")}</ha-button
+          >
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderCaseRun(item: TestCase) {
+    const entry = this._caseRuns[item.id];
+    if (!entry) {
+      return nothing;
+    }
+    if (!entry.run || !entry.verdict) {
+      return html`<ha-alert alert-type="error"
+        >${this._l("load_failed")} ${entry.error ?? ""}</ha-alert
+      >`;
+    }
+    const { run, verdict } = entry;
+    return html`
+      <div class="case-run" role="status">
+        <span class="tag verdict-${verdict}">
+          ${this._l(`case_verdict_${verdict}`)}
+        </span>
+        <span class="secondary"
+          >${this._l("case_simulated_label")}:
+          ${this._l(`case_outcome_${run.outcome}`)}</span
+        >
+        <ul class="case-trace">
+          ${run.trace.map(
+            (line) =>
+              html`<li class="depth-${Math.min(line.depth, 4)}">
+                ${this._traceLine(line)}:
+                <b>${this._l(`case_outcome_${line.result}`)}</b>
+                ${
+                  line.reason
+                    ? html`<span class="secondary"
+                        >(${this._reasonText(line.reason)})</span
+                      >`
+                    : nothing
+                }
+              </li>`
+          )}
+        </ul>
+        ${
+          run.outcome === "pass"
+            ? html`<p class="secondary">
+                  ${this._l("case_would_run", { count: run.actions.length })}
+                </p>
+                <ol class="case-actions">
+                  ${run.actions.map(
+                    (action) =>
+                      html`<li>
+                        ${
+                          this._l(`case_action_${action.kind}` as any) ||
+                          action.kind
+                        }${action.label ? `: ${action.label}` : ""}
+                      </li>`
+                  )}
+                </ol>`
+            : run.outcome === "fail"
+              ? html`<p class="secondary">${this._l("case_no_actions")}</p>`
+              : nothing
+        }
+      </div>
+    `;
+  }
+
+  private _renderTestCases() {
+    if (!this._automation) {
+      return html`<ha-card class="panel cases">
+        <div class="panel-head"><h2>${this._l("cases_title")}</h2></div>
+        <p class="secondary">${this._l("cases_choose")}</p>
+      </ha-card>`;
+    }
+    const rows = this._rows.filter(
+      (row) => row.automationId === this._automation
+    );
+    const row = this._caseRow();
+    const full = this._cases.length >= TEST_CASE_LIMITS.maxCases;
+    return html`
+      <ha-card class="panel cases">
+        <div class="panel-head">
+          <h2>${this._l("cases_title")}</h2>
+          <span class="tag simulated">${this._l("case_simulated_label")}</span>
+        </div>
+        <p>${this._l("cases_description")}</p>
+        <p class="secondary">${this._l("cases_simulated_note")}</p>
+        ${
+          this._caseStorageFailed
+            ? html`<ha-alert alert-type="warning"
+                >${this._l("cases_storage_failed")}</ha-alert
+              >`
+            : nothing
+        }
+        ${
+          rows.length
+            ? html`<ha-select
+                class="case-version"
+                .label=${this._l("case_version")}
+                .value=${row?.sha ?? ""}
+                .options=${rows.slice(0, PAGE_SIZE).map((item) => ({
+                  value: item.sha,
+                  label: `${this._short(item.sha)}${
+                    item.live ? ` (${this._l("case_live")})` : ""
+                  } · ${item.message}`,
+                }))}
+                @selected=${this._caseVersionChanged}
+              ></ha-select>`
+            : nothing
+        }
+        ${
+          this._cases.length
+            ? html`<ul class="case-list">
+                ${this._cases.map(
+                  (item) => html`
+                    <li class="case">
+                      <div class="case-head">
+                        <div class="setting-text">
+                          <b>${item.name}</b>
+                          <span class="secondary">
+                            ${
+                              item.trigger.description ||
+                              this._l("case_no_description")
+                            }
+                            ·
+                            ${this._l("case_expected_summary", {
+                              expected: this._l(
+                                `case_expected_${item.expected}`
+                              ),
+                            })}
+                          </span>
+                        </div>
+                        <div class="case-buttons">
+                          <ha-button
+                            size="small"
+                            appearance="outlined"
+                            .testCase=${item}
+                            ?disabled=${!row || this._caseRunning}
+                            @click=${this._runCase}
+                          >
+                            <ha-svg-icon
+                              slot="start"
+                              .path=${mdiPlay}
+                            ></ha-svg-icon>
+                            ${this._l("case_run")}
+                          </ha-button>
+                          <ha-icon-button
+                            .label=${this._l("case_edit")}
+                            .path=${mdiPencil}
+                            .testCase=${item}
+                            @click=${this._editCase}
+                          ></ha-icon-button>
+                          <ha-icon-button
+                            .label=${this._l("case_rename")}
+                            .path=${mdiRenameBox}
+                            .testCase=${item}
+                            @click=${this._renameCase}
+                          ></ha-icon-button>
+                          <ha-icon-button
+                            .label=${this._l("case_duplicate")}
+                            .path=${mdiContentCopy}
+                            .testCase=${item}
+                            ?disabled=${full}
+                            @click=${this._duplicateCase}
+                          ></ha-icon-button>
+                          <ha-icon-button
+                            .label=${this._l("case_delete")}
+                            .path=${mdiDelete}
+                            .testCase=${item}
+                            @click=${this._deleteCase}
+                          ></ha-icon-button>
+                        </div>
+                      </div>
+                      ${this._renderCaseRun(item)}
+                    </li>
+                  `
+                )}
+              </ul>`
+            : html`<p class="secondary">${this._l("cases_none")}</p>`
+        }
+        ${this._caseDraft ? this._renderCaseDraft(this._caseDraft) : nothing}
+        <div class="panel-actions">
+          <ha-button
+            appearance="outlined"
+            ?disabled=${full || !!this._caseDraft}
+            @click=${this._newCase}
+          >
+            <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+            ${this._l("case_new")}
+          </ha-button>
+          <ha-button
+            ?disabled=${!this._cases.length || !row || this._caseRunning}
+            @click=${this._runAllCases}
+          >
+            <ha-svg-icon slot="start" .path=${mdiFlask}></ha-svg-icon>
+            ${this._l("case_run_all")}
+          </ha-button>
+        </div>
+        <p class="secondary">
+          ${this._l("cases_count", {
+            count: this._cases.length,
+            max: TEST_CASE_LIMITS.maxCases,
+          })}
+        </p>
+      </ha-card>
+    `;
+  }
+
   // ---- Rendering ----
 
   private _short(sha: string): string {
@@ -886,7 +1488,7 @@ export class HaConfigAutomationHistory extends LitElement {
               ${this._renderFailure()}
             </div>
           </div>
-          ${this._renderDiff()}
+          ${this._renderTestCases()} ${this._renderDiff()}
         </div>
       </hass-tabs-subpage>
     `;
@@ -2480,6 +3082,100 @@ export class HaConfigAutomationHistory extends LitElement {
       display: flex;
       justify-content: flex-end;
       gap: var(--ha-space-2);
+    }
+    .cases {
+      min-width: 0;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--ha-space-6);
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-border-radius-md);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+      background: var(--ha-color-fill-neutral-normal-resting);
+    }
+    .tag.simulated {
+      background: var(--ha-color-fill-primary-quiet-resting);
+    }
+    .tag.verdict-match {
+      background: var(--ha-color-fill-success-normal-resting);
+      color: var(--ha-color-on-success-normal, var(--success-color));
+    }
+    .tag.verdict-mismatch {
+      background: var(--ha-color-fill-danger-normal-resting);
+      color: var(--ha-color-on-danger-normal, var(--error-color));
+    }
+    .case-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+    }
+    .case {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-3);
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-lg);
+    }
+    .case-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    .case-head .setting-text {
+      flex: 1 1 200px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .case-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-1);
+    }
+    .case-run {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--ha-space-2);
+    }
+    .case-trace,
+    .case-actions,
+    .case-errors {
+      margin: 0;
+      padding-inline-start: var(--ha-space-5);
+      font-size: var(--ha-font-size-s);
+      overflow-wrap: anywhere;
+    }
+    .case-trace {
+      list-style: none;
+      padding-inline-start: 0;
+    }
+    .case-trace .depth-1 {
+      padding-inline-start: var(--ha-space-4);
+    }
+    .case-trace .depth-2 {
+      padding-inline-start: var(--ha-space-8);
+    }
+    .case-trace .depth-3,
+    .case-trace .depth-4 {
+      padding-inline-start: var(--ha-space-12);
+    }
+    .case-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+    }
+    .case-version {
+      max-width: 100%;
     }
     progress {
       width: 100%;

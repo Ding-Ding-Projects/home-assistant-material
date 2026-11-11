@@ -72,6 +72,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
+import { remoteHost } from "../automation/repo-strip-logic";
 import "./ha-automation-diff";
 import type { ConfigChange } from "./automation-config-diff";
 import {
@@ -445,12 +446,24 @@ export class HaConfigAutomationRepo extends LitElement {
               info.remote_unsafe
                 ? this._l("vh_remote_unsafe")
                 : info.remote
-                  ? this._l("vh_remote", { remote: info.remote })
+                  ? remoteHost(info.remote)
+                    ? this._l("vh_remote", {
+                        remote: remoteHost(info.remote)!,
+                      })
+                    : this._l("vh_remote_local")
                   : this._l("vh_no_remote")
             }
           </span>
           <span class="secondary">${this._l("vh_secrets_note")}</span>
         </div>
+        <ha-button
+          appearance="plain"
+          ?disabled=${this._busy || !info.remote || info.remote_unsafe}
+          @click=${this._push}
+        >
+          <ha-svg-icon slot="start" .path=${mdiCloudUpload}></ha-svg-icon>
+          ${this._l("vh_push")}
+        </ha-button>
         <ha-button
           appearance="plain"
           variant="danger"
@@ -906,6 +919,54 @@ export class HaConfigAutomationRepo extends LitElement {
       fireEvent(this, "automation-repo-commit-selected", {
         sha: this._commits[0]?.sha ?? "",
       });
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: this._errorText(err),
+      });
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  /**
+   * Sends this automation to its remote after asking. The instance can only
+   * push, so there is no pull. It also commits what is waiting, as every push
+   * does, which the question says. The reply of the server is shown as it is.
+   */
+  private async _push() {
+    const info = this._info;
+    if (!info?.remote || info.remote_unsafe || this._busy) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("vh_push_title", { alias: info.alias }),
+      text: this._l("vh_push_text", {
+        remote: remoteHost(info.remote) ?? this._l("vh_remote_folder"),
+      }),
+      confirmText: this._l("vh_push"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = true;
+    this._notice = undefined;
+    try {
+      const result = await pushAutomationRepos(this.hass, undefined, [
+        this.automationId,
+      ]);
+      const errors = result.push_errors.map((item) => item.error);
+      const skipped = result.skipped.map((item) => item.reason);
+      this._notice = [
+        this._l("vh_push_reply", {
+          committed: result.committed.length,
+          pushed: result.pushed.length,
+        }),
+        ...skipped,
+        ...errors,
+      ].join(" ");
+      this._detail = undefined;
+      await this._load();
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),

@@ -19,6 +19,13 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
+import "../../../components/starting-points/ha-starting-points";
+import type { StartingPointSelectedDetail } from "../../../components/starting-points/ha-starting-points";
+import {
+  automationConfigForStartingPoint,
+  automationStartingPoints,
+  AUTOMATION_STARTING_POINT_HEADING_KEY,
+} from "../../../components/starting-points/automation-starting-points";
 import "../../../components/ha-switch";
 import type { HaSwitch } from "../../../components/ha-switch";
 import type {
@@ -150,6 +157,18 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
               breaks
               .content=${this.config.description}
             ></ha-markdown>`
+          : nothing
+      }
+      ${
+        this._isEmpty()
+          ? html`<ha-starting-points
+              class="starting-points"
+              .heading=${this.hass.localize(
+                AUTOMATION_STARTING_POINT_HEADING_KEY as any
+              )}
+              .items=${automationStartingPoints(this.hass.localize)}
+              @starting-point-selected=${this._startingPointSelected}
+            ></ha-starting-points>`
           : nothing
       }
       <section class="section">
@@ -295,6 +314,41 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
 
   protected saveConfig() {
     fireEvent(this, "save-automation");
+  }
+
+  /** True only when nothing has been added yet and the editor can be edited. */
+  private _isEmpty(): boolean {
+    return (
+      !this.disabled &&
+      !this.saving &&
+      !ensureArray(this.config.triggers)?.length &&
+      !ensureArray(this.config.conditions)?.length &&
+      !ensureArray(this.config.actions)?.length
+    );
+  }
+
+  private _startingPointSelected(ev: CustomEvent<StartingPointSelectedDetail>) {
+    ev.stopPropagation();
+    // Never overwrite content: choosing does nothing once anything exists.
+    if (!this._isEmpty()) {
+      return;
+    }
+    const chosen = automationConfigForStartingPoint(
+      ev.detail.id,
+      this.hass.localize
+    );
+    if (!chosen) {
+      return;
+    }
+    this.resetPastedConfig();
+    fireEvent(this, "value-changed", {
+      value: {
+        ...this.config!,
+        alias: this.config.alias || chosen.alias,
+        triggers: chosen.triggers as unknown as Trigger[],
+        actions: chosen.actions as unknown as Action[],
+      },
+    });
   }
 
   private _triggerChanged(ev: CustomEvent): void {
@@ -565,6 +619,9 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
       css`
         p {
           margin-top: 0;
+        }
+        .starting-points {
+          margin-bottom: var(--ha-space-4);
         }
         .header {
           display: flex;

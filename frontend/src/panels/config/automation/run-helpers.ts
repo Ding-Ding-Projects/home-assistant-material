@@ -55,3 +55,13 @@ export const beginRun = (key: string): (() => void) | undefined => {
     runsInProgress.delete(key);
   };
 };
+
+/**
+ * Save in the bottom bar is off for a read-only automation, while a save runs
+ * and while nothing changed. It never changes what saving does.
+ */
+export const isSaveDisabled = (state: {
+  readOnly: boolean;
+  saving: boolean;
+  dirty: boolean;
+}): boolean => state.readOnly || state.saving || !state.dirty;

@@ -135,3 +135,19 @@ details.fold>summary .chev{transition:transform .15s;display:inline-flex}details
 @media (prefers-reduced-motion:reduce){details.fold>summary .chev{transition:none}}
 h2#history,h2#notifications,h2#records{margin:32px 0 8px}
 .plan>label:has(#vd-path),.plan>label:has(#vd-parent){grid-column:1/-1}
+
+/* Polish pass, 1.6 */
+/* Instance cards: the second line wraps to two lines instead of being cut; paths and links break only at their separators. */
+.wrap2{overflow-wrap:break-word;min-width:0}
+.kv dd{word-break:normal;overflow-wrap:break-word;min-width:0}
+.kv dd.brk{overflow-wrap:break-word;word-break:normal}
+/* A tab strip with more tabs than fit shows a soft fade at the edge that hides some. */
+.tabstrip.more-end{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
+.tabstrip.more-start{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 40px),transparent)}
+.tabstrip.more-start.more-end{-webkit-mask-image:linear-gradient(to right,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+/* The model list keeps its action buttons in fixed columns, so Details, Chat, Copy and Delete line up row to row. */
+.macts{display:grid;grid-template-columns:repeat(5,76px);gap:4px;justify-content:start}
+.macts .btn{justify-content:center;padding-inline:8px}
+/* Page header: the description uses the free width and wraps evenly, so no single word is left beside the tags. */
+.phead>.col.grow{flex:1 1 320px}
+.phead .bm.mu{text-wrap:balance}

@@ -8,6 +8,29 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: named test cases and a simulated run in the history manager. A Test cases card keeps named
+  cases for one automation in this browser (fake states, variables and an expected outcome),
+  with rename, duplicate and delete. A simulated run decides state, numeric state, trigger,
+  and, or and not conditions against the fake states only, reports unknown with a reason where it
+  cannot decide, lists the actions that would run and calls no service. Not yet seen in a running
+  build.
+- New: a dry run of a whole automation and a bottom bar with Run now, Check, Dry run and Save in
+  the automation editor. Each step is listed as would run, would skip or cannot tell, and no
+  service is called. The visual and blueprint editors still draw their own save bar, so two bars
+  show there. Not yet seen in a running build.
+- New: a repository strip in the automation editor shows the short commit id and time, whether
+  the saved copy matches the live configuration, the number of versions and the remote host only.
+  The repository page has a Push action that asks first and shows the server reply. Pull and an
+  unpushed count are not available because the server has no such data. Not yet seen in a running
+  build.
+- Changed: the save bar in the script and scene editors hides when nothing changed, has a Discard
+  changes button that uses the existing unsaved-changes question, and announces Saved or the
+  failure message. Try it in the scene editor has its own row. Not yet seen in a running build.
+- New: tests that check a backup carries every automation repository with its history. They are
+  written and have not been run, because this machine has no securetar. Not yet seen in a running
+  build.
+- New: starting points for an empty automation and an empty script, six each, shown only while
+  the editor is empty. Not yet seen in a running build.
 - New: toasts stack. Up to three show at once with the newest nearest the bottom edge and older
   ones scaled down; the rest wait in a queue behind an "N more waiting" chip. Each toast has its
   own timer that pauses on hover or focus, an identical anonymous message within two seconds is

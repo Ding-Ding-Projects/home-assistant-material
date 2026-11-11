@@ -18,6 +18,13 @@ import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
+import "../../../components/starting-points/ha-starting-points";
+import type { StartingPointSelectedDetail } from "../../../components/starting-points/ha-starting-points";
+import {
+  scriptConfigForStartingPoint,
+  scriptStartingPoints,
+  SCRIPT_STARTING_POINT_HEADING_KEY,
+} from "../../../components/starting-points/automation-starting-points";
 import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
@@ -218,7 +225,18 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
             </section>`
           : nothing
       }
-
+      ${
+        this._isEmpty()
+          ? html`<ha-starting-points
+              class="starting-points"
+              .heading=${this.hass.localize(
+                SCRIPT_STARTING_POINT_HEADING_KEY as any
+              )}
+              .items=${scriptStartingPoints(this.hass.localize)}
+              @starting-point-selected=${this._startingPointSelected}
+            ></ha-starting-points>`
+          : nothing
+      }
       <section class="card" aria-labelledby="sequence-heading">
         <div class="header">
           <span class="tag tag-do">
@@ -340,6 +358,38 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     this.resetPastedConfig();
     fireEvent(this, "value-changed", {
       value: { ...this.config!, fields: ev.detail.value as Fields },
+    });
+  }
+
+  /** True only when no action has been added and the editor can be edited. */
+  private _isEmpty(): boolean {
+    return (
+      !this.disabled &&
+      !this.saving &&
+      !ensureArray(this.config.sequence)?.length
+    );
+  }
+
+  private _startingPointSelected(ev: CustomEvent<StartingPointSelectedDetail>) {
+    ev.stopPropagation();
+    // Never overwrite content: choosing does nothing once anything exists.
+    if (!this._isEmpty()) {
+      return;
+    }
+    const chosen = scriptConfigForStartingPoint(
+      ev.detail.id,
+      this.hass.localize
+    );
+    if (!chosen) {
+      return;
+    }
+    this.resetPastedConfig();
+    fireEvent(this, "value-changed", {
+      value: {
+        ...this.config!,
+        alias: this.config.alias || chosen.alias,
+        sequence: chosen.sequence as unknown as Action[],
+      },
     });
   }
 
@@ -525,6 +575,9 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     return [
       manualEditorStyles,
       css`
+        .starting-points {
+          margin-bottom: var(--ha-space-4);
+        }
         .title-block {
           margin-bottom: var(--ha-space-4);
         }

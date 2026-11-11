@@ -746,28 +746,31 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
 
   private _renderActions() {
     const live = this._mode === "live";
-    return html`<ha-editor-save-bar
-      .hass=${this.hass}
-      .dirty=${this.isDirtyState}
-      .saving=${this._saving}
-      .saveLabel=${this.hass.localize("ui.panel.config.scene.editor.save")}
-      show-shortcut
-      @save-bar-save=${this._saveScene}
-    >
-      <ha-button
-        slot="start"
-        appearance="outlined"
-        variant="neutral"
-        .disabled=${live || !this._entities.length}
-        @click=${this._tryIt}
-      >
-        <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
-        ${this.hass.localize("ui.panel.config.scene.editor.try_it")}
-      </ha-button>
-      <ha-button slot="end" appearance="plain" @click=${this._discard}>
-        ${this.hass.localize("ui.panel.config.scene.editor.discard")}
-      </ha-button>
-    </ha-editor-save-bar>`;
+    // Try it stays outside the save bar: the bar hides while nothing is
+    // unsaved, and a saved scene must still be possible to try.
+    return html`<div class="try-row">
+        <ha-button
+          appearance="outlined"
+          variant="neutral"
+          .disabled=${live || !this._entities.length}
+          @click=${this._tryIt}
+        >
+          <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.scene.editor.try_it")}
+        </ha-button>
+      </div>
+      <ha-editor-save-bar
+        .hass=${this.hass}
+        .dirty=${this.isDirtyState}
+        .saving=${this._saving}
+        .errorMessage=${this._errors}
+        .saveLabel=${this.hass.localize("ui.panel.config.scene.editor.save")}
+        hide-when-clean
+        show-discard
+        show-shortcut
+        @save-bar-save=${this._saveScene}
+        @save-bar-discard=${this._discard}
+      ></ha-editor-save-bar>`;
   }
 
   private _entityName(entityId: string): string {
@@ -1982,9 +1985,18 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         .saved ha-svg-icon {
           flex: none;
         }
+        .try-row {
+          box-sizing: border-box;
+          max-width: 1100px;
+          margin: var(--ha-space-5) auto 0;
+          padding-inline: var(--ha-space-4);
+        }
+        .try-row ha-button {
+          min-height: 44px;
+        }
         ha-editor-save-bar {
           --ha-editor-save-bar-max-width: 1100px;
-          margin-top: var(--ha-space-5);
+          margin-top: var(--ha-space-3);
         }
       `,
     ];

@@ -254,7 +254,13 @@
     var x = c.getContext('2d'), cs = getComputedStyle($('#app')), col = cs.getPropertyValue('--p').trim() || '#00639B';
     x.clearRect(0, 0, W2, H); var max = Math.max(5, Math.max.apply(null, pts.concat([0])) * 1.2), span = Math.max(1, Math.min(59, pts.length - 1)), step = W2 / span;
     x.strokeStyle = cs.getPropertyValue('--outv'); x.lineWidth = 1; for (var g = 1; g < 4; g++) { x.beginPath(); x.moveTo(0, H * g / 4); x.lineTo(W2, H * g / 4); x.stroke(); }
-    if (!pts.length) { x.fillStyle = cs.getPropertyValue('--onv'); x.font = 13 * dpr + 'px sans-serif'; x.fillText(lc.id ? 'Waiting for the first reading…' : 'Start an instance to see it here.', 12 * dpr, H / 2); lc.raf = requestAnimationFrame(lcFrame); return; }
+    if (!pts.length) {
+      // The label sits on a patch of the card colour, so no gridline runs through the words.
+      var msgText = lc.id ? 'Waiting for the first reading…' : 'Start an instance to see it here.'; x.font = 13 * dpr + 'px sans-serif';
+      var pad = 8 * dpr, tw = x.measureText(msgText).width, px = 12 * dpr - pad, ph = 22 * dpr, py = H / 2 - ph / 2;
+      var patch = getComputedStyle(c.parentNode).backgroundColor; x.fillStyle = patch && patch !== 'rgba(0, 0, 0, 0)' ? patch : cs.getPropertyValue('--surf');
+      x.fillRect(px, py, tw + 2 * pad, ph);
+      x.fillStyle = cs.getPropertyValue('--onv'); x.textBaseline = 'middle'; x.fillText(msgText, 12 * dpr, H / 2); x.textBaseline = 'alphabetic'; lc.raf = requestAnimationFrame(lcFrame); return; }
     var X = function (i) { return W2 - (lc.shown.length - 1 - i) * step; }, Y = function (v) { return H - 8 * dpr - (v / max) * (H - 24 * dpr); };
     var grad = x.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, col + '55'); grad.addColorStop(1, col + '00');
     x.beginPath(); lc.shown.forEach(function (v, i) { if (i) x.lineTo(X(i), Y(v)); else x.moveTo(X(i), Y(v)); }); x.lineTo(X(lc.shown.length - 1), H); x.lineTo(X(0), H); x.closePath(); x.fillStyle = grad; x.fill();

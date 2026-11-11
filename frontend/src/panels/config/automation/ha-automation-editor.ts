@@ -29,7 +29,6 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import { goBack, navigate } from "../../../common/navigate";
 import { promiseTimeout } from "../../../common/util/promise-timeout";
-import "../../../components/editor/ha-editor-save-bar";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
@@ -83,6 +82,7 @@ import { showAutomationSaveDialog } from "./automation-save-dialog/show-dialog-a
 import { showAutomationSaveTimeoutDialog } from "./automation-save-timeout-dialog/show-dialog-automation-save-timeout";
 import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-element-dialog";
 import "./blueprint-automation-editor";
+import "./ha-automation-bottom-bar";
 import type { EditorDomainHooks } from "./ha-automation-script-editor-mixin";
 import {
   AutomationScriptEditorMixin,
@@ -677,17 +677,19 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                       @value-changed=${this._yamlChanged}
                       @editor-save=${this._handleSaveAutomation}
                       disable-fullscreen
-                    ></ha-yaml-editor>
-                    <ha-editor-save-bar
-                      .hass=${this.hass}
-                      .dirty=${!this.readOnly && this.isDirtyState}
-                      .saving=${this.saving}
-                      .disabled=${this.readOnly}
-                      show-shortcut
-                      @save-bar-save=${this._handleSaveAutomation}
-                    ></ha-editor-save-bar>`
+                    ></ha-yaml-editor> `
                 : nothing
           }
+          <ha-automation-bottom-bar
+            .hass=${this.hass}
+            .config=${useBlueprint ? undefined : this.config}
+            .stateObj=${stateObj}
+            .dirty=${!this.readOnly && this.isDirtyState}
+            .saving=${this.saving}
+            .readOnly=${this.readOnly}
+            @automation-bar-save=${this._handleSaveAutomation}
+            @automation-bar-run=${this._runActions}
+          ></ha-automation-bottom-bar>
         </div>
       </hass-subpage>
     `;

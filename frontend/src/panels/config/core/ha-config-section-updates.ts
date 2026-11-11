@@ -457,7 +457,16 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                         >
                           ${localize("ui.common.update")}
                         </ha-button>`
-                    : nothing
+                    : variant === "manual"
+                      ? html`<ha-button
+                          class="action-spacer"
+                          appearance="accent"
+                          size="s"
+                          inert
+                          aria-hidden="true"
+                          >${localize("ui.common.update")}</ha-button
+                        >`
+                      : nothing
                 }
               `
         }
@@ -899,6 +908,15 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           var(--success-color) 30%,
           var(--primary-background-color)
         );
+      }
+      /* Rows that cannot be installed keep the width of the Update button so
+         their version and notes line up with the rows above and below. */
+      .action-spacer {
+        visibility: hidden;
+        pointer-events: none;
+      }
+      :host([narrow]) .action-spacer {
+        display: none;
       }
       .installing {
         display: inline-flex;

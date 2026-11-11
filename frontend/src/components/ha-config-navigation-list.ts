@@ -202,9 +202,10 @@ class HaConfigNavigationList extends LitElement {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
       line-height: var(--ha-line-height-normal);
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
     .card ha-icon-next {
       flex: none;

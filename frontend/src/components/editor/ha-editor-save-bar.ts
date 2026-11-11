@@ -1,7 +1,7 @@
 import { mdiContentSave } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../common/dom/fire_event";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
@@ -11,10 +11,19 @@ import type { HomeAssistant } from "../../types";
 import { isMac } from "../../util/is_mac";
 import "../ha-button";
 import "../ha-svg-icon";
+import {
+  isDiscardEnabled,
+  isSaveBarVisible,
+  isSaveEnabled,
+  saveBarAnnouncement,
+  saveBarState,
+  type SaveBarAnnouncement,
+} from "./save-bar-logic";
 
 declare global {
   interface HASSDomEvents {
     "save-bar-save": undefined;
+    "save-bar-discard": undefined;
   }
   interface HTMLElementTagNameMap {
     "ha-editor-save-bar": HaEditorSaveBar;
@@ -63,6 +72,19 @@ export class HaEditorSaveBar extends LitElement {
   /** Replaces the Save label, for an editor with its own wording. */
   @property({ attribute: false }) public saveLabel?: string;
 
+  /** Hides the bar while nothing changed, is saving or needs fixing. */
+  @property({ type: Boolean, attribute: "hide-when-clean" })
+  public hideWhenClean = false;
+
+  /** Adds a Discard changes button that fires `save-bar-discard`. */
+  @property({ type: Boolean, attribute: "show-discard" })
+  public showDiscard = false;
+
+  /** Set when the last save failed; it is announced as an alert. */
+  @property({ attribute: false }) public errorMessage?: string;
+
+  @state() private _announcement?: SaveBarAnnouncement;
+
   /**
    * True while the on-screen keyboard is up. The extra room kept for the phone
    * bar is dropped then, so the bar rests on the keyboard instead of leaving a
@@ -83,6 +105,30 @@ export class HaEditorSaveBar extends LitElement {
     window.visualViewport?.removeEventListener("resize", this._handleViewport);
   }
 
+  protected willUpdate(changed: PropertyValues<this>) {
+    if (changed.has("saving") && changed.get("saving") !== undefined) {
+      const announcement = saveBarAnnouncement(
+        { saving: changed.get("saving") as boolean },
+        this._input(),
+        Boolean(this.errorMessage) || this.errorCount > 0
+      );
+      if (announcement) {
+        this._announcement = announcement;
+      }
+    } else if (changed.has("dirty") && this.dirty) {
+      this._announcement = undefined;
+    }
+  }
+
+  private _input() {
+    return {
+      dirty: this.dirty,
+      saving: this.saving,
+      readOnly: this.disabled,
+      errorCount: this.errorCount,
+    };
+  }
+
   private _handleViewport = () => {
     const viewport = window.visualViewport;
     if (!viewport) {
@@ -100,17 +146,27 @@ export class HaEditorSaveBar extends LitElement {
   }
 
   protected render(): TemplateResult {
+    const input = this._input();
     const errors = this.errorCount > 0;
-    const stateKey = this.saving
-      ? "saving"
-      : errors
-        ? "errors"
-        : this.dirty
-          ? "unsaved"
-          : "saved";
+    const stateKey = saveBarState(input);
+    const visible = isSaveBarVisible(input, this.hideWhenClean);
+    this.toggleAttribute("bar-hidden", !visible);
     const keys = `${ctrlOrCmdLabel(this.hass.localize)}${isMac ? "" : " "}S`;
     return html`
+      <span class="sr-only" role="status" aria-live="polite"
+        >${this._announcement === "saved" ? this._text("saved") : ""}</span
+      >
+      <span class="sr-only" role="alert"
+        >${
+          this._announcement === "error"
+            ? this._text("save_failed", {
+                message: this.errorMessage ?? "",
+              })
+            : ""
+        }</span
+      >
       <div
+        ?hidden=${!visible}
         class="bar ${classMap({
           dirty: this.dirty,
           error: errors,
@@ -119,7 +175,7 @@ export class HaEditorSaveBar extends LitElement {
         aria-label=${this._text("label")}
       >
         <slot name="start"></slot>
-        <span class="state" role="status" aria-live="polite">
+        <span class="state">
           <span class="dot" aria-hidden="true"></span>
           ${
             errors
@@ -136,8 +192,19 @@ export class HaEditorSaveBar extends LitElement {
         }
         <span class="end">
           <slot name="end"></slot>
+          ${
+            this.showDiscard
+              ? html`<ha-button
+                  appearance="plain"
+                  .disabled=${!isDiscardEnabled(input)}
+                  @click=${this._discard}
+                >
+                  ${this._text("discard")}
+                </ha-button>`
+              : ""
+          }
           <ha-button
-            .disabled=${this.disabled || this.saving}
+            .disabled=${!isSaveEnabled(input)}
             .loading=${this.saving}
             @click=${this._save}
           >
@@ -147,6 +214,10 @@ export class HaEditorSaveBar extends LitElement {
         </span>
       </div>
     `;
+  }
+
+  private _discard() {
+    fireEvent(this, "save-bar-discard");
   }
 
   private _save() {
@@ -185,6 +256,22 @@ export class HaEditorSaveBar extends LitElement {
             var(--card-background-color)
           );
           border-top: var(--ha-border-width-sm, 1px) solid var(--divider-color);
+        }
+        :host([bar-hidden]) {
+          padding: 0;
+          border-top: none;
+          background: none;
+        }
+        .bar[hidden] {
+          display: none;
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
         }
         :host([keyboard]) {
           padding-bottom: env(safe-area-inset-bottom, 0px);

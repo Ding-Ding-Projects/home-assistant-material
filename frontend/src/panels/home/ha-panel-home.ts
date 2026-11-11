@@ -555,6 +555,23 @@ class PanelHome extends SubscribeMixin(LitElement) {
       align-items: center;
       margin-inline-start: auto;
     }
+    /* The banner is the primary colour in both schemes, so the button takes
+       the inverse pair: primary text on a pill of the banner's text colour.
+       With the default theme that is #00639b on #ffffff, about 6.4:1. */
+    .banner-actions ha-button {
+      --wa-color-fill-normal: var(--text-primary-color);
+      --wa-color-on-normal: var(--primary-color);
+      --button-color-fill-normal-hover: color-mix(
+        in srgb,
+        var(--text-primary-color) 88%,
+        var(--primary-color)
+      );
+      --button-color-fill-normal-active: color-mix(
+        in srgb,
+        var(--text-primary-color) 80%,
+        var(--primary-color)
+      );
+    }
     .banner-actions ha-button::part(base) {
       text-wrap: nowrap;
     }

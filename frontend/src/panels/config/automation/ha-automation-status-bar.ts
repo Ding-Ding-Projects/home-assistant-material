@@ -1,4 +1,4 @@
-import { mdiFlask, mdiHistory, mdiPlay, mdiSourceRepository } from "@mdi/js";
+import { mdiFlask, mdiPlay } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -14,9 +14,9 @@ import type { AutomationRepository } from "../../../data/automation_repos";
 import { fetchAutomationReposStatus } from "../../../data/automation_repos";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
-import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import type { AutomationCheckResult } from "./automation-check";
 import { checkAutomation } from "./automation-check";
+import "./ha-automation-repo-strip";
 import { motionAppearStyles, motionKeyframes } from "./motion-styles";
 import { beginRun, getErrorMessage } from "./run-helpers";
 
@@ -109,38 +109,13 @@ export class HaAutomationStatusBar extends LitElement {
   }
 
   private _renderRepository() {
-    const repo = this._repository;
-    if (!repo || !this.config?.id) {
+    if (!this._repository || !this.config?.id) {
       return nothing;
     }
-    const localize = this.hass.localize;
-    return html`
-      <section class="repo" aria-label=${localize(`${PREFIX}repo_title`)}>
-        <ha-svg-icon .path=${mdiSourceRepository}></ha-svg-icon>
-        <div class="repo-text">
-          <strong>${localize(`${PREFIX}repo_title`)}</strong>
-          <span class="mono"
-            >${localize(`${PREFIX}repo_details`, {
-              folder: repo.repository,
-              commits: repo.commits,
-            })}</span
-          >
-          <span
-            >${localize(
-              `${PREFIX}${repo.dirty ? "repo_dirty" : "repo_clean"}`
-            )}</span
-          >
-        </div>
-        <ha-button
-          appearance="plain"
-          href=${repositoryUrl(this.config.id)}
-          @click=${this._navigate}
-        >
-          <ha-svg-icon slot="start" .path=${mdiHistory}></ha-svg-icon>
-          ${localize(`${PREFIX}repo_history`, { commits: repo.commits })}
-        </ha-button>
-      </section>
-    `;
+    return html`<ha-automation-repo-strip
+      .hass=${this.hass}
+      .repository=${this._repository}
+    ></ha-automation-repo-strip>`;
   }
 
   private _renderBar() {
@@ -317,32 +292,8 @@ export class HaAutomationStatusBar extends LitElement {
         :host {
           display: block;
         }
-        .repo {
-          animation: ha-automation-enter
-            var(--ha-animation-duration-normal, 250ms)
-            var(--ha-automation-ease-enter) backwards;
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: var(--ha-space-3);
-          padding: var(--ha-space-3) var(--ha-space-4);
+        ha-automation-repo-strip {
           margin-bottom: var(--ha-space-3);
-          border-radius: var(--ha-border-radius-2xl, 20px);
-          background: var(
-            --ha-color-surface-container,
-            var(--card-background-color)
-          );
-        }
-        .repo-text {
-          display: flex;
-          flex-direction: column;
-          flex: 1 1 200px;
-          min-width: 0;
-          overflow-wrap: anywhere;
-        }
-        .mono {
-          font-family: var(--ha-font-family-code, monospace);
-          font-size: var(--ha-font-size-s, 0.875rem);
         }
         .bar {
           display: flex;

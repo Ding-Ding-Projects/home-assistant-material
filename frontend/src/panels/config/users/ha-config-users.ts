@@ -81,6 +81,7 @@ export class HaConfigUsers extends LitElement {
           label: localize("ui.panel.config.users.picker.headers.icon"),
           type: "icon",
           moveable: false,
+          showNarrow: true,
           template: (user) =>
             html`<ha-user-badge .user=${user}></ha-user-badge>`,
         },
@@ -118,6 +119,7 @@ export class HaConfigUsers extends LitElement {
           type: "icon",
           sortable: true,
           filterable: true,
+          minWidth: "96px",
           hidden: narrow,
           template: (user) =>
             user.is_active
@@ -165,6 +167,9 @@ export class HaConfigUsers extends LitElement {
           showNarrow: true,
           template: (user) => {
             const badges = computeUserBadges(this.hass, user, false);
+            if (!badges.length) {
+              return nothing;
+            }
             return html`${badges.map(
               ([icon, tooltip]) =>
                 html`<ha-data-table-icon
@@ -231,10 +236,12 @@ export class HaConfigUsers extends LitElement {
   private _footnote = memoizeOne(
     (localize: LocalizeFunc) =>
       html`<div
-        style="display: flex; align-items: center; gap: var(--ha-space-3); margin: var(--ha-space-2) var(--ha-space-4); padding: var(--ha-space-4) var(--ha-space-5); border-radius: var(--ha-border-radius-xl); background: var(--secondary-background-color); color: var(--secondary-text-color);"
+        style="display: flex; align-items: center; box-sizing: border-box; white-space: normal; gap: var(--ha-space-3); margin: var(--ha-space-2) var(--ha-space-4); padding: var(--ha-space-4) var(--ha-space-5); border-radius: var(--ha-border-radius-xl); background: var(--secondary-background-color); color: var(--secondary-text-color);"
       >
         <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
-        <span>${localize("ui.panel.config.users.picker.footnote")}</span>
+        <span style="flex: 1 1 0; min-width: 0;"
+          >${localize("ui.panel.config.users.picker.footnote")}</span
+        >
       </div>`
   );
 

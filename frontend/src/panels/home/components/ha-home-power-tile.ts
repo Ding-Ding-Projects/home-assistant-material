@@ -24,6 +24,12 @@ export class HaHomePowerTile extends LitElement {
   private _asked = false;
 
   protected willUpdate(): void {
+    // With nothing to show the tile must not take a cell of the grid it sits
+    // in: an empty block left a hole between its neighbours on a wide screen.
+    this.toggleAttribute(
+      "empty",
+      !this._prefs || !this.hass || !powerSensor(this._prefs, this.hass.states)
+    );
     if (this._asked || !this.hass) {
       return;
     }
@@ -84,6 +90,9 @@ export class HaHomePowerTile extends LitElement {
   static styles: CSSResultGroup = css`
     :host {
       display: block;
+    }
+    :host([empty]) {
+      display: none;
     }
     .power {
       display: flex;

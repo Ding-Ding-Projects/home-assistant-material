@@ -2238,6 +2238,14 @@ export class HaDataTable extends LitElement {
           text-overflow: ellipsis;
           margin-top: 2px;
         }
+        /* On a phone the second line may take two lines before it is cut */
+        :host([narrow]) .secondary {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
         .secondary ha-svg-icon {
           --mdc-icon-size: 16px;
           vertical-align: text-bottom;

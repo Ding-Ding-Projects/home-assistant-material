@@ -137,6 +137,12 @@ export class HaTab extends LitElement {
       padding: 0 4px;
     }
 
+    /* Five tabs share a phone width, a smaller label keeps long names whole */
+    :host([narrow]) .name {
+      font-size: var(--ha-font-size-xs);
+      letter-spacing: 0;
+    }
+
     ::slotted([slot="icon"]) {
       margin-bottom: var(--ha-space-1);
     }

@@ -151,8 +151,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       lose entries (a power cut in the seconds before a flush, a real queue overflow, shutdown
       while the disk is failing) and it does not import entries from before it started
       (`docs/features/activity-record/README.md`)
-- [~] Starting points for blank editors: built for an empty template editor and an empty dashboard
-      sections view, not yet seen. Not built: other empty editors
+- [~] Starting points for blank editors: built for an empty template editor, an empty dashboard
+      sections view, an empty automation and an empty script (six each), not yet seen. Not built: other empty editors
 - [x] Version and updated-at on the first screen
 - [x] Free, with nothing to buy: the About page says so, and says the project is independent
 - [ ] Link confirmation for a link that opens a page of the interface from outside. Built; not
@@ -240,14 +240,19 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       seen in a running build. Review findings are listed in `HANDOFF.md`
 - [ ] Script editor redrawn with a mode selector, Run now and See past runs. Built; not yet seen.
       Open: Save in a bottom bar
-- [ ] Named test cases, and a simulated run that pretends the actions
-- [ ] A dry run of a whole automation from the editor, and a bottom bar next to Save
-- [ ] The repository page for one automation and the repository strip in the editor
+- [~] Named test cases, and a simulated run that pretends the actions. Built in the history manager
+      (create, rename, duplicate, delete, simulate one or all, condition trace, would-run list; nothing is
+      called); not yet seen in a running build
+- [~] A dry run of a whole automation from the editor, and a bottom bar next to Save. Built; the visual
+      and blueprint editors still draw their own save bar and Check strip, so two bars show there. Not yet seen
+- [~] The repository page for one automation and the repository strip in the editor. Strip and Push action
+      built (host shown only); pull and an unpushed count are not possible because the server has no such
+      data. Not yet seen
 - [ ] Remote settings and pull in the interface; a push to a real remote host checked
 - [ ] Repositories for scripts and scenes
-- [ ] Backups carry every automation repository with its history, and a restore brings them
-      back. Read only so far: neither exclude list names the folder. Not proven with a real
-      backup and restore
+- [~] Backups carry every automation repository with its history, and a restore brings them
+      back. Tests written (real Git commits, archive, extract, compare) but not yet run: this machine
+      has no securetar. No exclude pattern touches the folder. Not proven with a real backup and restore
 - [ ] Automation list, editor and trace pages redrawn to their boards
 
 ## Dashboards
@@ -274,8 +279,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       390 px; a tab's version count wrapped onto two lines there (fixed, not seen). The version
       picker was seen in build 106 at 390 px wide (opened, listed versions, a choice produced a
       compare)
-- [ ] One save bar in every automation, script and scene editor mode (a read-only automation no
-      longer shows an enabled Save). Built; not yet seen. The blank strip when the phone's bottom
+- [~] One save bar in every automation, script and scene editor mode (a read-only automation no
+      longer shows an enabled Save). Built, with hide-when-clean, Discard and live announcements; not yet seen. The blank strip when the phone's bottom
       bar hides on scroll is fixed in source (batch 21) and not seen
 
 ## Pages redrawn to their boards

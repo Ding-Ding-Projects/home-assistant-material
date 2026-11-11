@@ -1,6 +1,12 @@
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { mdiCheckCircle, mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
@@ -128,6 +134,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
+import { pickCurrentGroup } from "./current-group";
 import { showToast } from "../../../util/toast";
 
 type GroupId = "language" | "modes" | "sound" | "attention" | "narrator";
@@ -220,6 +227,19 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _voiceTimer?: number;
 
+  /** The group whose card is in view, marked in the group list. */
+  @state() private _currentGroup?: string;
+
+  @query("nav.groups") private _groupNav?: HTMLElement;
+
+  @queryAll(".groups-list > [id^='group-']")
+  private _groupCards!: NodeListOf<HTMLElement>;
+
+  private _groupObserver?: IntersectionObserver;
+
+  /** The cards the observer was last set up for, to skip needless resets. */
+  private _observedKey = "";
+
   private _lang = new LanguageModeController(this);
 
   private _unsubs: UnsubscribeFunc[] = [];
@@ -273,6 +293,55 @@ export class HaConfigSectionPersonal extends LitElement {
     this._goToHashRow();
   }
 
+  protected updated() {
+    this._observeGroups();
+  }
+
+  /**
+   * Follows which group card is in view so the group list can mark it. It
+   * does nothing while the list is not drawn (a search that hides every
+   * group, or a width where the list is hidden by layout).
+   */
+  private _observeGroups() {
+    const cards = this._groupNav ? Array.from(this._groupCards) : [];
+    const key = cards.map((card) => card.id).join(",");
+    if (key === this._observedKey) {
+      return;
+    }
+    this._observedKey = key;
+    this._groupObserver?.disconnect();
+    this._groupObserver = undefined;
+    if (!cards.length || typeof IntersectionObserver === "undefined") {
+      if (this._currentGroup !== undefined) {
+        this._currentGroup = undefined;
+      }
+      return;
+    }
+    const order = cards.map((card) => card.id.replace(/^group-/, ""));
+    const visible = new Set<string>();
+    this._groupObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = entry.target.id.replace(/^group-/, "");
+          if (entry.isIntersecting) {
+            visible.add(id);
+          } else {
+            visible.delete(id);
+          }
+        }
+        const current = pickCurrentGroup(order, visible);
+        // Keep the last mark when nothing is in the reading area
+        if (current !== undefined && current !== this._currentGroup) {
+          this._currentGroup = current;
+        }
+      },
+      // The upper part of the page is the reading area; the top edge leaves
+      // room for the pinned chip bar on a phone.
+      { rootMargin: "-60px 0px -55% 0px" }
+    );
+    cards.forEach((card) => this._groupObserver!.observe(card));
+  }
+
   /** Reads the defaults the instance supplies while this page is open. */
   private _subscribeShared() {
     if (this._unsubShared || !this.hass?.connection) {
@@ -321,6 +390,9 @@ export class HaConfigSectionPersonal extends LitElement {
       this._preferencesNotSaved
     );
     window.clearTimeout(this._voiceTimer);
+    this._groupObserver?.disconnect();
+    this._groupObserver = undefined;
+    this._observedKey = "";
     this._unsubs.forEach((unsub) => unsub());
     this._unsubs = [];
     this._unsubShared?.then((unsub) => unsub());
@@ -1063,6 +1135,9 @@ export class HaConfigSectionPersonal extends LitElement {
                             type="button"
                             class="group-link"
                             data-group=${group}
+                            aria-current=${
+                              this._currentGroup === group ? "true" : nothing
+                            }
                             @click=${this._scrollToGroup}
                           >
                             ${this._t(
@@ -1076,6 +1151,11 @@ export class HaConfigSectionPersonal extends LitElement {
                               type="button"
                               class="group-link"
                               data-group="schedules"
+                              aria-current=${
+                                this._currentGroup === "schedules"
+                                  ? "true"
+                                  : nothing
+                              }
                               @click=${this._scrollToGroup}
                             >
                               ${this._t("schedules.title")}
@@ -1088,6 +1168,11 @@ export class HaConfigSectionPersonal extends LitElement {
                               type="button"
                               class="group-link"
                               data-group="shared"
+                              aria-current=${
+                                this._currentGroup === "shared"
+                                  ? "true"
+                                  : nothing
+                              }
                               @click=${this._scrollToGroup}
                             >
                               ${this._t("shared.title")}
@@ -1919,6 +2004,14 @@ export class HaConfigSectionPersonal extends LitElement {
     .group-link:hover {
       background: var(--secondary-background-color);
     }
+    .group-link[aria-current="true"] {
+      background: color-mix(
+        in srgb,
+        var(--primary-color) 16%,
+        var(--card-background-color)
+      );
+      font-weight: var(--ha-font-weight-medium);
+    }
     .group-link:focus-visible {
       outline: 2px solid var(--primary-color);
     }
@@ -2033,6 +2126,8 @@ export class HaConfigSectionPersonal extends LitElement {
     .row-control ha-slider {
       min-width: 160px;
       flex: 1 1 160px;
+      /* Keeps the value label clear of the thumb at the maximum */
+      padding-inline-end: var(--ha-space-4);
     }
     .quiet {
       display: flex;
@@ -2263,6 +2358,12 @@ export class HaConfigSectionPersonal extends LitElement {
     }
     .preview-status {
       font-size: var(--ha-font-size-s);
+    }
+    .sample-dialog + .group-note {
+      margin-top: var(--ha-space-4);
+    }
+    .group-note + .group-note {
+      margin-top: var(--ha-space-2);
     }
     /* Three columns need about 960 px of page; below that the group list goes
        and the preview stays beside the settings, and below 720 px the preview

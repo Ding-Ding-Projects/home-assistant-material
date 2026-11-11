@@ -550,8 +550,12 @@ export class HaScriptEditor extends SubscribeMixin(
                       .dirty=${!this.readOnly && this.isDirtyState}
                       .saving=${this.saving}
                       .disabled=${this.readOnly}
+                      .errorMessage=${this.errors}
+                      hide-when-clean
+                      show-discard
                       show-shortcut
                       @save-bar-save=${this._handleSaveScript}
+                      @save-bar-discard=${this.backTapped}
                     ></ha-editor-save-bar>`
                 : nothing
           }
