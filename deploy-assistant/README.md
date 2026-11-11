@@ -39,3 +39,11 @@ Releases come from `.github/workflows/deploy-assistant.yml`: Squirrel for Window
 
 Instances, hosts and backups live in the app's data folder (Settings, Data folder). SSH passwords
 are encrypted with the system keychain. Nothing is sent anywhere except what a deployment needs.
+
+## Build it on Windows
+
+From this folder, run `build.bat`. It checks for Node.js 20 or newer, installs the packages, runs
+the tests, builds the window and makes the installer at
+`out\make\squirrel.windows\x64\HAM-Deploy-Assistant-Setup.exe`, then confirms the installer is not
+signed and prints its SHA-256. `build.bat run` starts the app from source instead, `build.bat clean`
+starts from nothing, and `build.bat notest` skips the tests.
