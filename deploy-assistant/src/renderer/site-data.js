@@ -68,11 +68,12 @@ window.SITE = {
   "PackageDown": "M5.12,5L5.93,4H17.93L18.87,5M12,17.5L6.5,12H10V10H14V12H17.5L12,17.5M20.54,5.23L19.15,3.55C18.88,3.21 18.47,3 18,3H6C5.53,3 5.12,3.21 4.84,3.55L3.46,5.23C3.17,5.57 3,6 3,6.5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V6.5C21,6 20.83,5.57 20.54,5.23Z",
   "GestureTap": "M10,9A1,1 0 0,1 11,8A1,1 0 0,1 12,9V13.47L13.21,13.6L18.15,15.79C18.68,16.03 19,16.56 19,17.14V21.5C18.97,22.32 18.32,22.97 17.5,23H11C10.62,23 10.26,22.85 10,22.57L5.1,18.37L5.84,17.6C6.03,17.39 6.3,17.28 6.58,17.28H6.8L10,19V9M11,5A4,4 0 0,1 15,9C15,10.5 14.2,11.77 13,12.46V11.24C13.61,10.69 14,9.89 14,9A3,3 0 0,0 11,6A3,3 0 0,0 8,9C8,9.89 8.39,10.69 9,11.24V12.46C7.8,11.77 7,10.5 7,9A4,4 0 0,1 11,5Z",
   "Sleep": "M23,12H17V10L20.39,6H17V4H23V6L19.62,10H23V12M15,16H9V14L12.39,10H9V8H15V10L11.62,14H15V16M7,20H1V18L4.39,14H1V12H7V14L3.62,18H7V20Z",
-  "QrcodeScan": "M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z"
+  "QrcodeScan": "M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z",
+  "GamepadVariant": "M7,6H17A6,6 0 0,1 23,12A6,6 0 0,1 17,18C15.22,18 13.63,17.23 12.53,16H11.47C10.37,17.23 8.78,18 7,18A6,6 0 0,1 1,12A6,6 0 0,1 7,6M6,9V11H4V13H6V15H8V13H10V11H8V9H6M15.5,12A1.5,1.5 0 0,0 14,13.5A1.5,1.5 0 0,0 15.5,15A1.5,1.5 0 0,0 17,13.5A1.5,1.5 0 0,0 15.5,12M18.5,9A1.5,1.5 0 0,0 17,10.5A1.5,1.5 0 0,0 18.5,12A1.5,1.5 0 0,0 20,10.5A1.5,1.5 0 0,0 18.5,9Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T23:12:05-05:00",
- "commit": "5e033806",
+ "updated": "2026-11-10T23:19:37-05:00",
+ "commit": "c5b1c8a2",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -779,6 +780,24 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "c5b1c8a2",
+   "date": "2026-11-10T23:19:37-05:00",
+   "title": "Deploy Assistant: converter, Base64 toolkit, QR maker, ZIP export, drawing",
+   "body": "Convert tab: files typed by their bytes, an adapter catalog in eight\ncategories with search, unavailable formats listed with the reason, PDF\ninspect, split, merge, extract, reorder, rotate and metadata with pdf-lib\n(each result reopened and checked), pictures to PDF, image formats,\nZIP and gzip with fflate, data and text conversions, a queue with\npause, resume and cancel, lossy disclosures and history. Results are\nwritten whole beside the source or into a chosen folder, never over an\nexisting file. Base64 tab: standard, URL-safe, MIME and custom lines,\npadding, strict decoding with offsets, four text encodings, data URLs,\nfile encode and decode beside the source with a SHA-256 round trip,\npreview, undo and redo. Tools makes QR codes from text or a one-time\ncode. Exports gain a ZIP of every format. Draw tab: seven pens, an\narea eraser, Shift for straight lines, SVG and PNG at 1x to 3x."
+  },
+  {
+   "sha": "66e16a00",
+   "date": "2026-11-10T23:16:56-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "5b2c6af8",
+   "date": "2026-11-10T23:16:55-05:00",
+   "title": "Fix Windows clone, local frontend build crash and empty releases",
+   "body": "Windows clone: the two systemd mount units whose names contain a backslash\nare stored as __x2d__ and renamed back by the operating system post-build\nscript, so a plain clone checks out on Windows. Not yet seen in an\noperating system build; the rename expression was run in bash 5.2.\n\nLocal build: the frontend container compile is held to four processors\n(two on a retry) and the minifier worker count follows it. On Windows 11\nwith 32 processors the build crashed before this and produced the wheel\nafter it. The build context no longer carries the host's node_modules.\n\nReleases: a push that changes only documentation publishes no release, a\nrun that attaches nothing withdraws its release, and every release gets\nthe newest Deploy Assistant installers copied onto it. The README explains\nthe clone and build fixes.\n\nWindows 終於 clone 到喇：嗰兩個檔名有反斜線嘅 mount unit 改咗用 __x2d__\n存，砌 OS 嗰陣先改返個名，唔使再同 \"invalid path\" 搏鬥。\n本機 build 唔再一開波就 32 個 worker 爭記憶體爭到瓜柴，而家淨係用四粒\nprocessor，衰咗再用兩粒試多次。\n冇嘢嘅 release 唔再出：淨係改文件就唔出 release，乜都冇 attach 嘅自己\n收返檔，每個 release 仲會順手夾埋 Deploy Assistant 安裝檔。"
+  },
+  {
    "sha": "5e033806",
    "date": "2026-11-10T23:12:05-05:00",
    "title": "Deploy Assistant: build.bat for Windows",
@@ -999,24 +1018,6 @@ window.SITE = {
    "date": "2026-11-10T16:02:38-05:00",
    "title": "Design: polish pass boards and the project page",
    "body": "34 boards on four new canvases answer the designer handoff of\n10 November. Canvases 12 and 13 draw every surface built in code\nwithout a board (pattern workbench, element tools, lock wizard,\nunlock keypad, list of locks, personal settings, guided setup,\nsetup guidance, developer tools on the rail, media search), each on\na 320 px phone and in a wide window, light and dark. Canvas 14 makes\nthe eight decisions the audit asked for, among them a bottom bar on\nphones and a searchable sheet of open pages. Canvas 15 is the\nproject page.\n\nEach board says what it settles and where the build should change.\nEvery search field on them keeps the pattern workbench button.\n\ndocs/site/ is the project page itself, generated from the same\nmarkup as its boards, with the typeface and pictures served locally."
-  },
-  {
-   "sha": "586364b2",
-   "date": "2026-11-10T16:01:49-05:00",
-   "title": "Preview features can back up without automatic backups; compose runs build 53",
-   "body": "Turning on a preview feature with its backup switch on failed with \"At\nleast one available backup agent must be selected, got []\" whenever\nautomatic backups were not set up, because it asked for a backup to the\nlocations those settings name, and they name none. It now keeps the backup\non the system itself in that case. Run in a container from these files:\nthe feature turned on and a backup appeared in local storage.\n\ncompose.yaml starts build 53, which has been running on Windows 11 and\nanswering from a second device on the network.\n\n開預覽功能揀埋備份，以前冇設定自動備份就同你講「冇地方擺」然後罷工。\n而家識得擺落本機，功能照開。compose 改用 build 53。"
-  },
-  {
-   "sha": "49bfffc2",
-   "date": "2026-11-10T14:07:32-05:00",
-   "title": "Guided setup draws fields for 223 of 240 integrations",
-   "body": "The form used to give up on a whole integration as soon as one option could\nnot be described, which was almost always, so 228 of 240 got a single YAML\nbox. Options are now described one at a time: text, numbers with their\nbounds, switches, choices, templates, durations, entity pickers and nested\ngroups, with a YAML box only for the option that needs one. Integrations\nwith several kinds of item ask which kind first.\n\nMeasured in a container started from these files: 223 drawn, 17 on the\nYAML box (8 need a package the image lacks and say so), none failing.\nAbout one field in sixteen inside the drawn forms is still a YAML box.\nChecking and saving ran for two integrations and wrote the expected files.\nThe wizard itself has not been clicked through in a browser yet.\n\n以前一見到唔識嘅選項就成個表格擺爛，240 個得 10 個有表格。\n而家逐個選項睇：文字、數字、開關、選擇、範本、時間、實體，識幾多畫幾多，\n唔識嗰格先至畀 YAML。量返：223 個有表格，17 個仲用 YAML，冇一個死機。"
-  },
-  {
-   "sha": "0af7a711",
-   "date": "2026-11-10T14:00:43-05:00",
-   "title": "Design handoff for the polish pass",
-   "body": "A brief for the design tool: the surfaces built in code today that have no\nboard to match (phone workbench, touch-and-hold menu, lock wizard, keypad and\nlist, personal settings, guided setup, guidance notes, the rail item), what\nthe audit found that still needs a design decision, who owns which folder,\nand what to hand back. Design-only, so no build runs for it.\n\n畀設計工具嘅交接筆記：今日寫咗但未有設計稿嘅畫面、審查搵到嘅漏洞、\n邊個管邊個資料夾，同埋交返啲乜。淨係文件，唔會觸發 build，慳返啲電。"
   }
  ],
  "status": [

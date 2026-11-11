@@ -1,5 +1,13 @@
 # Deploy Assistant changes
 
+## 1.4
+
+- Minecraft servers: create Vanilla, Paper, Purpur, Fabric, Quilt, Forge, NeoForge or Bedrock servers from the official catalogues (every Mojang version, with channel filters), on Java or Docker, here or on an SSH host. Start, stop, restart, a live console with history, every server setting with its own control, game rules, operators, allowlist and bans, plugins and mods from Modrinth checked by SHA-512, backups and restore, version changes with a backup first, a daily schedule, and a world generator with a chunk grid you draw on, writing to a folder or a ZIP.
+- AI models: install Ollama from its official release (checked by SHA-256) or with Chocolatey, start and stop it, the full ollama.com library with every variant, a careful fit verdict for this computer, a pull list with progress and cancel, model details, copy, unload, delete, and a local chat.
+- Virtual disks (Windows): VHD, VHDX, VHD Set and ISO. A library with formats, sizes, partitions and attach state; create (with partitioning and formatting), attach and detach (also at every sign-in), grow and shrink, compact in every mode, convert, merge, child disks, online and read-only, and VHD Set checkpoints. Every operation shows its PowerShell and DiskPart script first and runs through one administrator prompt.
+- Chocolatey: anything missing (Docker Desktop, VirtualBox, VMware, Java, Git, Python, Node.js, Ollama, VS Code) installs in one click, and Chocolatey itself is installed first when needed. build.bat does the same for building.
+- Convert, Base64 and Draw tabs, QR codes, ZIP exports, a shared School mode with a PIN, the unlock ladder, Windows Snap layouts, and a fuller extension manager.
+
 ## 1.3
 
 - ADHD modes, each off by default: Focus, Low stimulation, Time awareness, One thing at a time and Momentum.

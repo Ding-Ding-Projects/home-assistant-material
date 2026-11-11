@@ -330,3 +330,8 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
 .celebrate i{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti 2.6s linear forwards}
 @keyframes confetti{to{top:110%;transform:rotate(720deg)}}@keyframes celepop{from{transform:scale(.6);opacity:0}}
 @media (prefers-reduced-motion:reduce){.celebrate .celecard{animation:none}}
+.stepper{display:inline-flex;align-items:center;gap:4px}.stepper .ib{width:36px;height:36px}
+.setting.changed{box-shadow:inset 3px 0 0 var(--p)}
+.chatlog{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding:8px;border-radius:20px;background:var(--sl1)}
+.msg{padding:10px 14px;border-radius:18px;max-width:85%}.msg.user{align-self:flex-end;background:var(--pc);color:var(--on-pc)}.msg.assistant{align-self:flex-start;background:var(--surf)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px}.kv span{color:var(--onv)}
