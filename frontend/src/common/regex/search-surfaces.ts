@@ -293,6 +293,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Card types",
   },
   {
+    file: "panels/lovelace/editor/dashboard-tools-dialog/hui-dialog-dashboard-tools.ts",
+    searches:
+      "Every card on a dashboard, by type, name, section, view and entity",
+  },
+  {
     file: "panels/lovelace/editor/card-editor/hui-suggestion-entity-tree.ts",
     searches: "Entities to suggest cards for",
     matcher: FUZZY,
