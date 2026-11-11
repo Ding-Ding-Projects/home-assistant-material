@@ -1,6 +1,6 @@
 # Handoff
 
-Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 and 19, commits `8fa63f05d` and `0d056629e`) for whoever picks this up next.
+Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 
 ## Where things stand
 
@@ -21,6 +21,74 @@ what has really been seen in a running build. Read both before trusting any summ
   was mistaken for a documentation-only push); the release workflow now compares with the last
   build that published images. Build 66 is the first with images again.
 - Open work is tracked in issues 1 to 11 of this repository and in the lists below.
+
+### What landed on 11 November 2026 (batches 20 to 23), and how far it is checked
+
+Later than the section below; where the two disagree, this one is newer.
+
+- `d68fda3b1` (batch 20): safety fixes from the review of batch 19. A request naming "." as the media
+  folder resolved to the media directory itself, so a recursive delete could remove all of it; "."
+  and the source root are now refused (the tests failed 19 times against the old code). Confirmed
+  counts are enforced, upload and single-file delete no longer follow a linked directory out of the
+  media folder, errors no longer send a server path, and the Manage dialog is for administrators
+  only. The paid cloud service is hidden without changing anyone's configuration (a voice pipeline
+  already set to a cloud engine keeps showing it, a configured cloud backup location is hidden and
+  kept, the network form no longer saves a cloud address as a custom external URL). Eight file
+  fields use a visually hidden field that phones open reliably.
+- `88b36b5d8` (batch 21): the file converter was hardened against hostile files (a TAR header with a
+  negative size looped for ever; photo rotation read only from the Exif block; pictures in a PDF
+  stay compressed and capped; every audio wait has a time limit and a run can be cancelled; long
+  odd text is bounded; names with direction overrides or control characters are refused or
+  cleaned). Version picker fixes (Enter on the buttons inside the field, touch keyboard, "Show
+  more", slow compare answers). The bottom navigation bar publishes its visible height so the
+  editor save bar, the accessibility panel and the picker stop reserving room for it while it is
+  hidden; a group chip no longer scrolls its title under the pinned chips; accessibility buttons
+  are at least 44 px.
+- `ba7a6a431` (batch 22): the Activity page has a permanent record, a new integration
+  (`core/homeassistant/components/activity_record/`) that writes everything the page shows to a Git
+  repository in the configuration folder, one file per day, and never purges, rewrites or squashes
+  it, with a Permanent record page (`docs/features/activity-record/README.md`). Rows in the
+  expanded menu are 48 px (the collapsed rail keeps 56 px).
+- `e0f2d7235` (batch 23): the record keeps its promise after a review found it could lose entries
+  and cost too much on a Raspberry Pi. A failed write goes back to the front of the queue and is
+  retried; a bad entry becomes a line saying so; a drop is counted only on a real overflow and kept
+  on disk; a deleted or edited day file is restored from the last commit with a copy of the edited
+  one kept beside it; a key for a Git remote lives outside the repository; a day is written in
+  chunks of about 1 MB; commits default to every ten minutes and at shutdown; one search at a time;
+  a second instance on the same folder is refused.
+- `5fbf6d91b`: a tab's version count in the dashboard history rows no longer wraps onto two lines
+  (seen in build 103 at 390 px).
+- The hosted instance on the owner's network runs build 2026.11.1.106. Builds 102 and 105 were
+  skipped on purpose: 102 lacked the media folder safety fix and 105 had the first version of the
+  activity record.
+- Verified by running: frontend type check clean; 5,401 frontend tests pass with the unchanged
+  baseline of 3 failures and 46 files that do not load; server tests in a Linux container: activity
+  record 124 passed, automation and dashboard history 157 passed, media source 141 passed, Ollama 88
+  passed. The activity record was run on a throwaway copy across two restarts (it kept its
+  first-version day file, wrote the new chunk and committed at shutdown), and on the hosted
+  instance at build 106 it created its repository and first day file.
+- Seen in a running build (build 103, headless browser at 390 px wide, signed in with a generated
+  test account on a throwaway copy): the file converter (categories show Ready, none shows
+  "Unavailable"), the support page, the Minecraft servers empty state, the profile security page
+  with the authenticator card, the Ollama empty state, the updates page, media sources, the
+  dashboard history overview with its search field and correct plural forms, and the voice
+  assistants page with no cloud promotion. In build 106 the same way: the Permanent record page
+  (status Recording, counts, one day listed).
+- NOT seen in any browser: the media Manage dialog and folder actions, the "Add media" fix on a real
+  phone, the version picker, the update install progress and recovery card during a real install,
+  the Minecraft server page with a real server, the Ollama pages with a real server, the test chat,
+  the editor save bar, the embedded page panel, the smaller menu rows, the converter's new
+  conversions actually run in a browser, schedules, and the activity tray.
+- Known limits: the activity record can still lose entries in the ways its documentation lists (a
+  power cut in the seconds before a flush, a real queue overflow, shutdown while the disk is
+  failing) and does not import entries from before it started; reading PDFs, MP3 output and
+  video-to-video conversion are not offered; the paid cloud service is hidden in the interface
+  only and remains visible in a few places for someone who has it configured (an existing
+  cloud-stored backup's location name, one entity filter); the Minecraft manager has never run
+  against a real Docker host, the Ollama pages never against a real server, and passkeys never with
+  a real authenticator; no operating system image has been built since two unit files were renamed
+  for Windows checkouts; a documentation-only push publishing no release has not been observed.
+- Closed by the owner's decision: the phone app's earlier setup problems (nothing left to fix).
 
 ### What landed on 11 November 2026 (batches 18 and 19), and how far it is checked
 
@@ -65,14 +133,14 @@ what has really been seen in a running build. Read both before trusting any summ
   fixed in source only), the image upload button, hiding of the cloud service, the new converter
   formats, history search and the version picker, the "Git remote" wording, the Cantonese
   additions, and the dashboard tools dialog.
-- Known open: the save bar can leave a blank strip when the phone's bottom bar hides on scroll; an
-  old logbook entry can still name the cloud service as an actor and a voice pipeline already set
-  to a cloud voice shows a blank picker; reading PDFs, MP3 output and video-to-video conversion are
-  not offered; the Minecraft manager has never been run against a real Docker host; the Ollama page
-  has never been run against a real server; passkeys have never been used with a real
-  authenticator; no operating system image has been built since two unit files were renamed for
-  Windows checkouts; the iPhone app's setup problems reported by the owner are not yet described;
-  `deploy-assistant\build.bat` (another lane's) has not been run by this work.
+- Known open as of batch 19 (the newer section above supersedes what changed: the save bar's blank
+  strip and the blank cloud voice picker were fixed in source in batches 20 and 21 and are not seen;
+  the phone app's setup problems are closed by the owner's decision): reading PDFs, MP3 output and
+  video-to-video conversion are not offered; the Minecraft manager has never been run against a
+  real Docker host; the Ollama page has never been run against a real server; passkeys have never
+  been used with a real authenticator; no operating system image has been built since two unit
+  files were renamed for Windows checkouts; `deploy-assistant\build.bat` (another lane's) has not
+  been run by this work.
 
 ### What the last two commits of 10 November 2026 changed, and how far it is checked
 
@@ -115,8 +183,8 @@ State these plainly to anyone who asks:
 - No operating system image has been booted with an over-the-air update. The signing secrets
   exist since 10 November 2026, but no build has finished its operating system images since
   and no update between two such builds has been watched. Only the VMware image was started.
-- The companion phone app connected after a proxy fault was fixed. Some setup problems the owner
-  reported with it are not yet described here and not yet fixed.
+- The companion phone app connected after a proxy fault was fixed. The setup problems the owner
+  reported with it are closed by the owner's decision; nothing is left to fix.
 - The Welcome screen of first-run setup was seen still showing upstream items (a cloud restore
   and outside links). The fix is in source and has not been seen.
 - Opening an editable copy of Overview straight in edit mode was broken and is fixed in source,
@@ -292,8 +360,10 @@ pickers, logs and the automation editor are not seen there; open port 8090.
    back with their history (item 1 above).
 3. Boot the VirtualBox image (`haos_ova-<version>.vdi.zip`) and a Raspberry Pi image, then an
    over-the-air update between two builds signed with the project's key.
-4. Open each page of batches 18 and 19 in a running build (the list under "What landed on 11
-   November 2026") and record what is seen, starting with "Add media" on a phone.
+4. Open each page of batches 18 to 23 in a running build (the lists under "What landed on 11
+   November 2026"; the "NOT seen in any browser" list in the newest section is the shortest
+   route) and record what is seen, starting with "Add media" and the media Manage dialog on a
+   phone, then the activity record's search and a push to a real Git remote.
    Then open each page of the batch before: the authenticator
    card, the activity tray and recovery card, schedules and shared defaults, information buttons,
    split panes and the filter pane resize, starting points, appearance and wording saved to the

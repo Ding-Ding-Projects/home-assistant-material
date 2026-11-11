@@ -41,9 +41,11 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       Not yet booted in VirtualBox or on a Raspberry Pi
 - [ ] Boot the VirtualBox image and complete first-run setup
 - [ ] Boot a Raspberry Pi image and complete first-run setup
-- [x] The hosted instance on the owner's network runs build 2026.11.1.96 (builds 88 and 91 were
+- [x] The hosted instance on the owner's network runs build 2026.11.1.106 (builds 88 and 91 were
       skipped on purpose: they had a defect where settings saved on the instance could cross
-      between two accounts on one browser; fixed in batch 18)
+      between two accounts on one browser, fixed in batch 18; builds 102 and 105 were skipped on
+      purpose too: 102 lacked the media folder safety fix and 105 had the first version of the
+      activity record)
 - [ ] Observe a core update from one build to the next through Settings. Update install progress
       and the recovery card are built and not yet seen
 - [x] Add the operating system signing secrets (set 10 November 2026)
@@ -127,6 +129,23 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [x] Phone fixes seen in build 96 at 390 px: the Marketplace list scrolls with its group header
       pinned, the Personal settings preview scrolls away, the accessibility panel's rows no
       longer overlap. Not seen: the "+" text size button staying on one line (batch 19)
+- [ ] Phone layout fixes of batch 21: the bottom navigation bar publishes its visible height so the
+      editor save bar, the accessibility panel and the version picker sheet stop reserving room
+      for it while it is hidden (the earlier blank strip), a group chip on the personal settings
+      page no longer scrolls its title under the pinned chips, and accessibility panel buttons are
+      at least 44 px. Fixed in source; not yet seen
+- [ ] Rows in the expanded menu are 48 px (collapsed rail 56 px) so the whole menu fits a phone
+      screen. Built; not yet seen in a running build
+- [~] Activity has a permanent record: everything the Activity page shows is also written to a Git
+      repository in the configuration folder, one folder of chunk files for each day, committed in
+      batches and never purged, rewritten or squashed; a Permanent record page lists days, shows
+      a day, searches and holds the Git remote settings. 124 server tests pass; run on a throwaway
+      copy across two restarts and on the hosted instance (build 106), where it created its
+      repository and first day file; the page was seen in build 106 at 390 px (status Recording,
+      counts, one day). Not seen: searching, a long history, a push to a real remote. It can still
+      lose entries (a power cut in the seconds before a flush, a real queue overflow, shutdown
+      while the disk is failing) and it does not import entries from before it started
+      (`docs/features/activity-record/README.md`)
 - [~] Starting points for blank editors: built for an empty template editor and an empty dashboard
       sections view, not yet seen. Not built: other empty editors
 - [x] Version and updated-at on the first screen
@@ -183,9 +202,13 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       account, kept in backups. Built; not yet seen in a running build, and not tried from a
       second computer or after a restore. Batch 18 ties the saved settings to the account so
       another account's cache is cleared first (unit tests; not seen with two accounts)
-- [ ] The paid cloud service is no longer shown anywhere in the interface (the server integration
-      is unchanged). Built; not seen. Open: an old logbook entry can still name it as an actor,
-      and a voice pipeline already set to a cloud voice shows a blank picker
+- [~] The paid cloud service is hidden in the interface without changing anyone's configuration
+      (the server integration is unchanged): a voice pipeline already set to a cloud engine keeps
+      showing it, a configured cloud backup location is hidden and kept, and the network form no
+      longer saves a cloud address as a custom external URL. The voice assistants page was seen
+      without cloud promotion in build 103; the pipeline, backup and network cases are not seen.
+      It remains visible in a few places for someone who has it configured (an existing
+      cloud-stored backup's location name, one entity filter)
 - [ ] Cantonese for eight more blocks, with a test that keeps them complete. Built; not seen
 - [ ] Renaming the app and logo customization. Built; not yet seen in a running build
 - [ ] Dim sum surprise (built only in the Deploy Assistant)
@@ -240,12 +263,14 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Dashboard tools in edit mode: outline with bulk actions, find and replace of an entity ID,
       a check, card templates, statistics and preview width. Built; unit tests of the editing
       functions only, the dialog is not yet seen
-- [ ] Dashboard history and automation history: a search field and a searchable version picker
-      for Compare, and "Git remote" in full on the history and recorded problems pages. Built;
-      not yet seen
+- [~] Dashboard history and automation history: a search field and a searchable version picker
+      for Compare, and "Git remote" in full on the history and recorded problems pages. The
+      dashboard history overview with its search field and plural forms was seen in build 103 at
+      390 px; a tab's version count wrapped onto two lines there (fixed, not seen). The version
+      picker, with its batch 21 fixes, is not yet seen
 - [ ] One save bar in every automation, script and scene editor mode (a read-only automation no
-      longer shows an enabled Save). Built; not yet seen. Open: the bar can leave a blank strip
-      when the phone's bottom bar hides on scroll
+      longer shows an enabled Save). Built; not yet seen. The blank strip when the phone's bottom
+      bar hides on scroll is fixed in source (batch 21) and not seen
 
 ## Pages redrawn to their boards
 
@@ -304,22 +329,31 @@ matches its board, checked side by side.
 - [ ] Rendered provider text
 - [~] File converter: data formats, images, text transforms, archives (ZIP, TAR, GZIP), pictures,
       text and Markdown to PDF, Word documents to and from text, audio to WAV and a still picture
-      from a video are built and not yet seen. Not offered: reading PDFs, MP3 output and
-      video-to-video conversion
+      from a video are built, hardened against hostile files in batch 21 (unit tests), and the
+      page was seen in build 103 (categories show Ready). The conversions themselves have not been
+      run in a browser. Not offered: reading PDFs, MP3 output and video-to-video conversion
 - [x] Base64 toolkit: encode, decode and data URLs for text and files, under Tools
 - [~] Minecraft server manager: definitions, SSH hosts, version lookup, the Docker over SSH
       target (start, stop, log) and a server page with overview, logs, settings and removal tabs
       are built and covered by 217 server tests; the manager has never been run against a real
-      Docker host and the page is not seen. Not built: the other four targets, backups, the world
+      Docker host. The empty state was seen in build 103; the server page with a real server is
+      not seen. Not built: the other four targets, backups, the world
       generator
 - [~] Local Ollama suite: servers, models, pull with progress and Cancel, delete, unload, model
       details with the assistants that use a model, and a test chat that cannot control the home
       are built (88 server tests, fake streams); the page has never been run against a real
-      Ollama server and is not seen. Not built: helpers
-- [ ] Support page with a local support bundle that is never sent anywhere. Built; not yet seen
+      Ollama server. The empty state was seen in build 103; the pages with a real server and the
+      test chat are not seen. Not built: helpers
+- [~] Support page with a local support bundle that is never sent anywhere. The page was seen in
+      build 103 at 390 px; the bundle was not driven in a browser
 - [ ] Media folders: create, rename, move and delete in the Manage dialog, and the "Add media"
       fix reported broken on an iPhone (fixed in source only), the image upload button and the
-      filter field on every media folder. Built; 109 server tests pass; not yet seen
+      filter field on every media folder. Built; 141 server tests pass. Batch 20 closed a defect where
+      a folder named "." resolved to the media directory itself and a recursive delete could
+      remove it (the tests failed 19 times against the old code; now refused), enforced the
+      confirmed counts, stopped uploads and deletes following a linked directory out of the media
+      folder and limited the Manage dialog to administrators. Media sources were seen in build
+      103; the Manage dialog, folder actions and the "Add media" fix on a phone are not seen
 - [ ] Embedded page panel: reload and a notice when a page refuses framing. Built; not yet seen
 - [ ] External editor hand-off and publishing to a forge
 - [~] Drawing and annotation: a drawing board under Tools, built and not yet seen
@@ -347,5 +381,6 @@ matches its board, checked side by side.
       feature is not
 - [ ] Dark theme boards for every screen
 - [ ] Native review of the Cantonese copy
-- [ ] Companion phone app: it connected after a proxy fault was fixed; some setup problems the
-      owner reported are not yet described or fixed
+- [x] ~~Companion phone app: setup problems the owner reported are not yet described or fixed~~
+      Closed by the owner's decision: there is nothing left to fix. The app connected after a
+      proxy fault was fixed

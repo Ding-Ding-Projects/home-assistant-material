@@ -8,6 +8,51 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: Activity has a permanent record. Everything the Activity page shows is also written to a Git
+  repository in the configuration folder, one folder of chunk files for each day, committed in
+  batches (every ten minutes and at shutdown) and never purged, rewritten or squashed. A Permanent
+  record page lists the days, shows a day, searches one day or all days and holds the Git remote
+  settings; nothing leaves the instance unless an administrator sets a remote and pushes. It grows
+  for ever by design, and the folder is included in backups. It can still lose entries in the ways
+  its documentation lists (a power cut in the seconds before a flush, a real queue overflow,
+  shutdown while the disk is failing) and it does not import entries from before it started. Run
+  for real on a throwaway copy across two restarts, and on the hosted instance (build 106) where it
+  created its repository and first day file. The page was seen in build 106 at 390 px wide, showing
+  status Recording, counts and one day.
+- Fixed: a failed write no longer discards entries from the permanent record (they return to the
+  front of the queue and are retried), a bad entry no longer takes its whole batch with it, a drop
+  is counted only on a real overflow and kept on disk, and a deleted or edited day file is restored
+  from the last commit with a copy of the edited file kept beside it.
+- Changed: rows in the expanded menu are 48 px high so the whole menu fits a phone screen; the
+  collapsed rail keeps 56 px. Not yet seen in a running build.
+- Fixed: a request naming "." as a media folder could resolve to the media directory itself, so a
+  recursive delete could remove it. Any "." component and the source root are now refused; the
+  counts a person confirmed are enforced, uploads and deletes no longer follow a linked directory
+  out of the media folder, and errors no longer send a server path. The Manage dialog is for
+  administrators only. Server tests: 141 pass.
+- Fixed: the paid cloud service is hidden in the interface without changing anyone's configuration.
+  A voice pipeline already set to a cloud engine keeps showing it, a configured cloud backup
+  location is hidden but never offered for deletion and is kept when settings are saved, and the
+  network form no longer saves a cloud address as a custom external URL. It remains visible in a
+  few places for someone who has it configured (an existing backup's location name, one entity
+  filter). Eight file fields use a visually hidden field that phones open reliably.
+- Fixed: a hostile TAR file with a negative size no longer makes the file converter loop for ever,
+  a photo's rotation is read only from its Exif block, pictures going into a PDF stay compressed
+  and are capped, audio conversion can be cancelled and every wait has a time limit, long odd text
+  no longer freezes the page, and names with direction overrides or control characters are refused
+  or cleaned.
+- Fixed: Enter on the buttons inside the version picker's search field no longer picks a version,
+  the picker no longer raises the keyboard by itself on a touch screen, and a slow compare answer
+  can no longer replace a newer one. The bottom navigation bar publishes its visible height so the
+  editor save bar, the accessibility panel and the picker stop reserving room for it while it is
+  hidden. A group chip on the personal settings page no longer scrolls its title under the pinned
+  chips, and accessibility panel buttons are at least 44 px. Not yet seen in a running build.
+- Seen in a running build (build 103, 390 px wide, signed in with a generated test account on a
+  throwaway copy): the file converter (categories show Ready), the support page, the Minecraft
+  servers empty state, the profile security page with the authenticator card, the Ollama empty
+  state, the updates page, media sources, the dashboard history overview with its search field and
+  correct plural forms, and the voice assistants page with no cloud promotion. Fixed after: a tab's
+  version count wrapped onto two lines.
 - Fixed: "Add media" did nothing on a phone because the file field sat outside the open dialog;
   it now lives inside the button, uploads to the image upload folder, and every media folder shows
   its filter field. Fixed in source; not yet seen on a phone.
