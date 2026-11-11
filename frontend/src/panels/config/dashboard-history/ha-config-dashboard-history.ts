@@ -1481,6 +1481,11 @@ export class HaConfigDashboardHistory extends LitElement {
       text-decoration: none;
       overflow-wrap: anywhere;
     }
+    /* The count is short: it stays on one line, and the name beside it wraps. */
+    .link-row .secondary {
+      flex: none;
+      white-space: nowrap;
+    }
     .link-row:hover,
     .link-row:focus-visible {
       background: var(--ha-color-fill-neutral-quiet-resting);
