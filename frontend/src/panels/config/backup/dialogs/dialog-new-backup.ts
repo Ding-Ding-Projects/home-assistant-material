@@ -60,10 +60,7 @@ class DialogNewBackup extends LitElement implements HassDialog {
           )}
           rootTabbable
         >
-          <ha-list-item-button
-            @click=${this._automatic}
-            .disabled=${!this._params.config.create_backup.password}
-          >
+          <ha-list-item-button @click=${this._automatic}>
             <ha-svg-icon slot="start" .path=${mdiCalendarSync}></ha-svg-icon>
             <span slot="headline">
               ${this.hass.localize(

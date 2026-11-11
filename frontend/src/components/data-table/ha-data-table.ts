@@ -293,6 +293,25 @@ export class HaDataTable extends LitElement {
     this._checkedRowsChanged();
   }
 
+  /** How many rows the search and filters leave in the table now. */
+  public get filteredRowCount(): number {
+    return (this._filteredData || []).filter((row) => !row.append).length;
+  }
+
+  /** The identifiers of the selectable rows the table shows now. */
+  public getFilteredRowIds(): string[] {
+    return (this._filteredData || [])
+      .filter((row) => !row.append && row.selectable !== false)
+      .map((row) => String(row[this.id]));
+  }
+
+  /** Replaces the ticked rows with exactly these identifiers. */
+  public setCheckedRowIds(ids: string[]): void {
+    this._checkedRows = [...ids];
+    this._lastSelectedRowId = null;
+    this._checkedRowsChanged();
+  }
+
   public selectAll(extraFilter?: (row: DataTableRowData) => boolean): void {
     this._checkedRows = (this._filteredData || [])
       .filter(
@@ -1070,6 +1089,7 @@ export class HaDataTable extends LitElement {
     this._lastUpdate = startTime;
     this._filteredData = data;
     this._filteredDataSourceLength = sourceData.length;
+    fireEvent(this, "filtered-rows-changed");
   }
 
   private _groupData = memoizeOne(
@@ -2278,6 +2298,7 @@ declare global {
   // for fire event
   interface HASSDomEvents {
     "retry-load": undefined;
+    "filtered-rows-changed": undefined;
     "selection-changed": SelectionChangedEvent;
     "row-click": RowClickedEvent;
     "sorting-changed": SortingChangedEvent;

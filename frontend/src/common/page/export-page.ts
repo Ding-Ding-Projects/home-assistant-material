@@ -9,8 +9,14 @@ import { collectReadableText } from "../accessibility/accessibility-tools";
 export interface ExportTable {
   columns: string[];
   rows: string[][];
-  /** The rows ticked in the table, in the same columns; empty when none are. */
+  /**
+   * The rows ticked in the table, in the same columns; empty when none are.
+   * Ticked rows that a search or filter hides are included, so the count
+   * matches the selection bar.
+   */
   selectedRows?: string[][];
+  /** Set only when the table has more rows than were exported. */
+  totalRows?: number;
 }
 
 export interface PageExport {
@@ -18,6 +24,8 @@ export interface PageExport {
   url: string;
   /** ISO 8601, with the time zone offset. */
   exportedAt: string;
+  /** The language of the page, for the HTML export; "en" when unknown. */
+  lang?: string;
   text: string[];
   tables: ExportTable[];
 }
@@ -47,9 +55,10 @@ interface TableLike extends HTMLElement {
   getCheckedRowIds?: () => string[];
 }
 
-// Columns that hold a moment in time, by the name of their key.
-const TIME_KEY =
-  /(^|_)(at|time|date|created|modified|updated|changed|triggered|seen)($|_)/;
+// Columns that hold a moment in time: the key ends in a word for a moment,
+// so a counter such as "triggered_count" is not read as a date.
+export const TIME_KEY =
+  /(^|_)(at|time|date|datetime|timestamp|created|modified|updated|changed|triggered|seen)$/;
 
 /** A moment stored as seconds or milliseconds, as ISO 8601 in UTC. */
 const timeText = (value: number): string | undefined => {
@@ -64,7 +73,7 @@ const timeText = (value: number): string | undefined => {
     : new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
 };
 
-const cellText = (value: unknown, key = ""): string => {
+export const cellText = (value: unknown, key = ""): string => {
   if (value === null || value === undefined) {
     return "";
   }
@@ -72,7 +81,10 @@ const cellText = (value: unknown, key = ""): string => {
     return value;
   }
   if (typeof value === "number") {
-    return (TIME_KEY.test(key) && timeText(value)) || String(value);
+    return (
+      (TIME_KEY.test(key) && Number.isFinite(value) && timeText(value)) ||
+      String(value)
+    );
   }
   if (typeof value === "boolean") {
     return String(value);
@@ -117,20 +129,28 @@ export const readDataTable = (table: TableLike): ExportTable | undefined => {
   if (!columns.length) {
     return undefined;
   }
-  const source = (table._filteredData ?? table.data ?? [])
-    .slice(0, EXPORT_ROW_LIMIT)
-    .filter((row) => !("append" in row && row.append === true));
+  const isRow = (row: Record<string, unknown>) =>
+    !("append" in row && row.append === true);
+  const shown = (table._filteredData ?? table.data ?? []).filter(isRow);
+  const source = shown.slice(0, EXPORT_ROW_LIMIT);
   const toCells = (row: Record<string, unknown>) =>
     columns.map((column) => cellText(row[column.key], column.key));
   const checked = new Set(table.getCheckedRowIds?.() ?? []);
   const idKey = typeof table.id === "string" && table.id ? table.id : "id";
+  // A ticked row stays ticked when a filter hides it, and the bar counts it,
+  // so the selection export reads the whole data and not only the shown rows.
   const selectedRows = checked.size
-    ? source.filter((row) => checked.has(String(row[idKey]))).map(toCells)
+    ? (table.data ?? table._filteredData ?? [])
+        .filter(isRow)
+        .filter((row) => checked.has(String(row[idKey])))
+        .slice(0, EXPORT_ROW_LIMIT)
+        .map(toCells)
     : [];
   return {
     columns: columns.map((column) => column.name),
     rows: source.map(toCells),
     ...(selectedRows.length ? { selectedRows } : {}),
+    ...(shown.length > EXPORT_ROW_LIMIT ? { totalRows: shown.length } : {}),
   };
 };
 
@@ -172,6 +192,7 @@ export const collectPageExport = (
   return {
     title,
     url: window.location.pathname,
+    lang: document.documentElement.lang || undefined,
     exportedAt: `${local}${offset < 0 ? "-" : "+"}${pad(Math.trunc(offset / 60))}:${pad(offset % 60)}`,
     text: collectReadableText(root),
     tables,
@@ -231,11 +252,36 @@ export const toTsv = (table: ExportTable): string => {
     .join("\r\n");
 };
 
-const markdownCell = (value: string): string =>
+/**
+ * A cell as plain Markdown text: the characters that would start a link, an
+ * image, markup, emphasis or HTML are escaped, so a value stays text.
+ */
+export const markdownCell = (value: string): string =>
   value
-    .replace(/\\/g, "\\\\")
-    .replace(/\|/g, "\\|")
+    .replace(/[\\|[\]<>`*_~!]/g, (char) => `\\${char}`)
     .replace(/\s*\n\s*/g, " ");
+
+/** The line that tells a reader a table was cut at the row limit. */
+export const rowLimitNotice = (table: ExportTable): string | undefined =>
+  table.totalRows !== undefined && table.totalRows > table.rows.length
+    ? `Only the first ${table.rows.length} of ${table.totalRows} rows are included.`
+    : undefined;
+
+/** Names for the columns that differ even when two titles are the same. */
+export const uniqueColumnNames = (columns: string[]): string[] => {
+  const used = new Set<string>();
+  return columns.map((name) => {
+    let candidate = name;
+    for (let count = 2; used.has(candidate); count++) {
+      candidate = `${name} (${count})`;
+    }
+    used.add(candidate);
+    return candidate;
+  });
+};
+
+const htmlLang = (value: string | undefined): string =>
+  value && /^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8}){0,4}$/.test(value) ? value : "en";
 
 export const toMarkdown = (page: PageExport): string => {
   const parts = [`# ${page.title}`, "", `${page.url}, ${page.exportedAt}`, ""];
@@ -246,6 +292,10 @@ export const toMarkdown = (page: PageExport): string => {
       parts.push(`| ${row.map(markdownCell).join(" | ")} |`)
     );
     parts.push("");
+    const notice = rowLimitNotice(table);
+    if (notice) {
+      parts.push(notice, "");
+    }
   });
   if (!page.tables.length) {
     parts.push(...page.text, "");
@@ -254,7 +304,13 @@ export const toMarkdown = (page: PageExport): string => {
 };
 
 export const toText = (page: PageExport): string =>
-  [page.title, `${page.url}, ${page.exportedAt}`, "", ...page.text].join("\n");
+  [
+    page.title,
+    `${page.url}, ${page.exportedAt}`,
+    "",
+    ...page.text,
+    ...page.tables.flatMap((table) => rowLimitNotice(table) ?? []),
+  ].join("\n");
 
 export const toJson = (page: PageExport): string =>
   JSON.stringify(
@@ -262,14 +318,18 @@ export const toJson = (page: PageExport): string =>
       title: page.title,
       url: page.url,
       exported_at: page.exportedAt,
-      tables: page.tables.map((table) => ({
-        columns: table.columns,
-        rows: table.rows.map((row) =>
-          Object.fromEntries(
-            table.columns.map((column, index) => [column, row[index]])
-          )
-        ),
-      })),
+      tables: page.tables.map((table) => {
+        const names = uniqueColumnNames(table.columns);
+        return {
+          columns: names,
+          rows: table.rows.map((row) =>
+            Object.fromEntries(names.map((name, index) => [name, row[index]]))
+          ),
+          ...(table.totalRows !== undefined
+            ? { total_rows: table.totalRows }
+            : {}),
+        };
+      }),
       text: page.text,
     },
     null,
@@ -295,14 +355,18 @@ export const toHtml = (page: PageExport): string => {
             (row) =>
               `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`
           )
-          .join("")}</tbody></table>`
+          .join("")}</tbody></table>${
+          rowLimitNotice(table)
+            ? `<p><small>${escapeHtml(rowLimitNotice(table)!)}</small></p>`
+            : ""
+        }`
     )
     .join("\n");
   const text = page.tables.length
     ? ""
     : page.text.map((line) => `<p>${escapeHtml(line)}</p>`).join("\n");
   return `<!doctype html>
-<html lang="en">
+<html lang="${htmlLang(page.lang)}">
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(page.title)}</title>

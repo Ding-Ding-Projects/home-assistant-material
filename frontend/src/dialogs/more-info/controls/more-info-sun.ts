@@ -52,6 +52,10 @@ class MoreInfoSun extends LitElement {
     return Number.isNaN(date.getTime()) ? undefined : date;
   }
 
+  private _hasValue(value: unknown): boolean {
+    return value !== undefined && value !== null && value !== "";
+  }
+
   protected render() {
     if (!this._i18n || !this.stateObj) {
       return nothing;
@@ -59,6 +63,7 @@ class MoreInfoSun extends LitElement {
     const localize = this._i18n.localize;
     const attrs = this.stateObj.attributes;
     const above = this.stateObj.state === "above_horizon";
+    const known = above || this.stateObj.state === "below_horizon";
     const rising = this._optionalDate(attrs.next_rising);
     const setting = this._optionalDate(attrs.next_setting);
     const dawn = this._optionalDate(attrs.next_dawn);
@@ -88,7 +93,13 @@ class MoreInfoSun extends LitElement {
               </p>`
             : nothing
         }
-        ${this._renderArc(above, Number(attrs.azimuth))}
+        ${
+          known
+            ? this._renderArc(above, Number(attrs.azimuth))
+            : html`<p class="subline">
+                ${localize("ui.dialogs.more_info_control.sun.unavailable")}
+              </p>`
+        }
         <div class="tiles">
           ${rising ? this._tile("rises", this._time(rising)) : nothing}
           ${setting ? this._tile("sets", this._time(setting)) : nothing}
@@ -101,20 +112,28 @@ class MoreInfoSun extends LitElement {
         <div class="rows">
           ${dawn ? this._row("dawn", this._time(dawn)) : nothing}
           ${dusk ? this._row("dusk", this._time(dusk)) : nothing}
-          ${this._row(
-            "elevation",
-            this._formatters.formatEntityAttributeValue(
-              this.stateObj,
-              "elevation"
-            )
-          )}
-          ${this._row(
-            "azimuth",
-            this._formatters.formatEntityAttributeValue(
-              this.stateObj,
-              "azimuth"
-            )
-          )}
+          ${
+            this._hasValue(attrs.elevation)
+              ? this._row(
+                  "elevation",
+                  this._formatters.formatEntityAttributeValue(
+                    this.stateObj,
+                    "elevation"
+                  )
+                )
+              : nothing
+          }
+          ${
+            this._hasValue(attrs.azimuth)
+              ? this._row(
+                  "azimuth",
+                  this._formatters.formatEntityAttributeValue(
+                    this.stateObj,
+                    "azimuth"
+                  )
+                )
+              : nothing
+          }
         </div>
       </div>
     `;

@@ -107,6 +107,12 @@ describe("fillPlaceholders", () => {
 // a placeholder would print a raw "{name}" or lose the value.
 describe("the Cantonese source", () => {
   const english = flattenStrings(en);
+  // A value written as [%key:a::b::c%] points at another key. Follow it, so a
+  // Cantonese string for it is compared with the text English really shows.
+  const resolve = (text: string): string => {
+    const ref = /^\[%key:(.+)%\]$/.exec(text);
+    return ref ? resolve(english[ref[1].replace(/::/g, ".")] ?? "") : text;
+  };
   const placeholders = (text: string) =>
     [...text.matchAll(/\{(\w+)[,}]/g)].map((match) => match[1]).sort();
 
@@ -125,7 +131,7 @@ describe("the Cantonese source", () => {
   it("uses the same placeholders as English", () => {
     yueKeys().forEach((key) =>
       expect(placeholders(yueString(key)!), key).toEqual(
-        [...new Set(placeholders(english[key]))].sort()
+        [...new Set(placeholders(resolve(english[key])))].sort()
       )
     );
   });

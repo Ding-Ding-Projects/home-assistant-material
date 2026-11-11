@@ -68,6 +68,40 @@ export const invertSelection = (
   return allIds.filter((id) => !current.has(id));
 };
 
+/**
+ * Select all of the rows the list shows. Rows the search or filter hides keep
+ * the state they had, so nothing selected earlier is dropped without notice.
+ */
+export const selectVisible = (
+  visibleIds: string[],
+  selected: string[]
+): string[] => [...new Set([...selected, ...visibleIds])];
+
+/**
+ * Invert the rows the list shows. Selected rows the search or filter hides
+ * stay selected.
+ */
+export const invertVisible = (
+  visibleIds: string[],
+  selected: string[]
+): string[] => {
+  const visible = new Set(visibleIds);
+  const current = new Set(selected);
+  return [
+    ...selected.filter((id) => !visible.has(id)),
+    ...visibleIds.filter((id) => !current.has(id)),
+  ];
+};
+
+/** How many selected rows the search or filter hides right now. */
+export const hiddenSelectedCount = (
+  visibleIds: string[],
+  selected: string[]
+): number => {
+  const visible = new Set(visibleIds);
+  return selected.filter((id) => !visible.has(id)).length;
+};
+
 /** Keeps only the selected ids that still exist. */
 export const pruneSelection = (
   selected: string[],

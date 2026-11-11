@@ -105,8 +105,11 @@ export class HaStateControlFanSpeed extends LitElement {
 
   protected render() {
     const stateColor = stateColorCss(this.stateObj);
+    // The state colour can be undefined; mixing an undefined colour makes the
+    // whole declaration invalid, so fall back to the primary colour first.
+    const mixBase = stateColor || "var(--primary-color)";
     const color = this.board
-      ? `color-mix(in srgb, ${stateColor} 30%, var(--card-background-color))`
+      ? `color-mix(in srgb, ${mixBase} 45%, var(--card-background-color))`
       : stateColor;
     const background = this.board ? "var(--secondary-text-color)" : stateColor;
 

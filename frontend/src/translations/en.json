@@ -152,7 +152,9 @@
         "preset": "Preset",
         "target_label": "{action} to target",
         "target": "Target",
-        "humidity_target": "Humidity target"
+        "humidity_target": "Humidity target",
+        "maximum_reached": "Maximum temperature reached",
+        "minimum_reached": "Minimum temperature reached"
       },
       "counter": {
         "actions": {
@@ -373,7 +375,9 @@
         "away_mode": "Away mode",
         "mode": "Mode",
         "target_label": "[%key:ui::card::climate::target_label%]",
-        "target": "[%key:ui::card::climate::target%]"
+        "target": "[%key:ui::card::climate::target%]",
+        "maximum_reached": "Maximum temperature reached",
+        "minimum_reached": "Minimum temperature reached"
       },
       "weather": {
         "attributes": {
@@ -2004,7 +2008,8 @@
           "sets": "Sets",
           "daylight": "Daylight",
           "dawn": "Dawn",
-          "dusk": "Dusk"
+          "dusk": "Dusk",
+          "unavailable": "The sun position is unavailable right now."
         },
         "update": {
           "installed": "Installed: {version}",
@@ -2196,18 +2201,28 @@
           "dock": "Return to dock"
         },
         "siren": {
-          "sound_now": "Sound now"
+          "sound_now": "Sound now",
+          "volume_default": "Default",
+          "applies_to_sound_now": "The tone and volume you choose apply when you press Sound now."
         },
         "group": {
           "count_on": "{on} of {total} on",
           "all_on": "All on",
-          "all_off": "All off"
+          "all_off": "All off",
+          "confirm_title": "Change every member?",
+          "confirm_all_on": "This group includes covers, locks, valves or alarms. Turning everything on may open or release them.",
+          "confirm_all_off": "This group includes covers, locks, valves or alarms. Turning everything off may close or lock them.",
+          "result_on": "Turned everything in the group on",
+          "result_off": "Turned everything in the group off",
+          "result_failed": "Could not change the group"
         },
         "automation": {
           "on": "On",
           "off": "Off",
           "is_on": "Automation is on",
-          "is_off": "Automation is off"
+          "is_off": "Automation is off",
+          "toggle_label": "Enable automation",
+          "toggle_failed": "Could not change the automation"
         },
         "valve": {
           "changed": "Changed",
@@ -2253,7 +2268,10 @@
         },
         "time": {
           "set_time": "Set time",
-          "keyboard_hint": "Arrow keys change the selected part. You can also type {example}."
+          "keyboard_hint": "Arrow keys change the selected part. You can also type {example}.",
+          "hour": "Hours",
+          "minute": "Minutes",
+          "invalid_entry": "{entry} is not a valid time. Hours go from 00 to 23 and minutes from 00 to 59."
         },
         "datetime": {
           "now": "Now",
@@ -2264,7 +2282,8 @@
         "image": {
           "taken": "Taken {time}",
           "open_full_size": "Open full size",
-          "share": "Share"
+          "unavailable": "This image is unavailable right now.",
+          "error": "The image could not be loaded."
         },
         "configurator": {
           "needs_you": "Needs you"
@@ -2959,7 +2978,14 @@
     },
     "status_screens": {
       "error_title": "Something went wrong",
-      "loading_title": "Loading"
+      "loading_title": "Loading",
+      "starting_title": "Home Assistant is starting",
+      "try_now": "Try now",
+      "switch_account": "Switch account",
+      "not_found_title": "This page does not exist",
+      "not_found_message": "The address {path} leads nowhere. It may have been renamed or removed.",
+      "go_home": "Go to Home",
+      "search_pages": "Search pages"
     },
     "weekdays": {
       "monday": "Monday",
@@ -3007,6 +3033,7 @@
       "select_page": "Select all {count} on this page",
       "select_matches": "Select all {count} matches",
       "invert": "Invert",
+      "hidden_selected": "{count, plural, one {# selected item is hidden by the filter} other {# selected items are hidden by the filter}}",
       "clear": "Clear selection",
       "cancel": "Cancel",
       "confirm_again": "Press the button again to go ahead.",
@@ -3536,11 +3563,14 @@
       "picker_the_background": "the background",
       "picker_square": "Saturation and brightness",
       "picker_square_value": "Saturation {saturation}%, brightness {value}%",
+      "picker_square_role": "two-axis slider",
       "picker_hue": "Hue",
       "picker_type": "Type or paste a colour",
-      "picker_type_note": "Hex, rgb() or hsl(). The arrow keys move the point in the square, Shift moves further, Home, End, Page Up and Page Down go to its edges.",
-      "picker_type_bad": "That is not a colour this reads. Use hex, rgb() or hsl().",
+      "picker_type_note": "Hex starting with #, rgb() or hsl(). Press Enter or leave the field to apply it. In the square, left and right change saturation, up and down change brightness, Shift moves further, Home, End, Page Up and Page Down go to its edges.",
+      "picker_type_bad": "That is not a colour this reads. Use hex starting with #, rgb() or hsl().",
       "picker_screen": "Pick from screen",
+      "picker_screen_failed": "The screen colour picker could not be used.",
+      "picker_contrast_unknown": "Contrast against {against} cannot be measured for this surface.",
       "picker_named": "Nearest named colour: {name}, {hex}.",
       "picker_notation_hex": "HEX",
       "picker_notation_rgb": "RGB",
@@ -3604,6 +3634,7 @@
       "move_blocked": "{name} cannot move past the pinned tabs. Pin or unpin it to change its group.",
       "group_pages": "Pages",
       "group_settings": "Settings",
+      "group_tools": "Tools",
       "no_match": "No page matches that search.",
       "bulk_close_matching": "{count, plural,\n  =0 {Close matching tabs}\n  one {Close # matching tab}\n  other {Close # matching tabs}\n}",
       "bulk_close_others": "{count, plural,\n  =0 {Close the other tabs}\n  one {Close # other tab}\n  other {Close the # other tabs}\n}",
@@ -3762,7 +3793,33 @@
       "legacy_pin_prompt": "Enter the shared PIN",
       "legacy_hold": "Hold to unlock",
       "legacy_holding": "Keep holding",
-      "legacy_hold_hint": "Hold the button for a moment to unlock."
+      "legacy_hold_hint": "Hold the button for a moment to unlock.",
+      "policy_pin_desc": "A short number, 4 to 12 digits. Quick to enter, easy to guess.",
+      "policy_password_desc": "Any text you choose. Slower to type, harder to guess.",
+      "policy_pin_password_desc": "Both a PIN and a password, one after the other.",
+      "policy_password_totp_desc": "A password, then a 6-digit code from an authenticator app.",
+      "policy_pin_totp_desc": "A PIN, then a 6-digit code from an authenticator app.",
+      "policy_password_pin_totp_desc": "A password, a PIN and a code from an authenticator app.",
+      "skip": "Skip",
+      "rules_label": "Rules for this credential",
+      "rule_met": "met",
+      "rule_unmet": "not met yet",
+      "rules_all_met": "Both rules are met.",
+      "pin_rule": "4 to 12 digits",
+      "password_rule_length": "{min} to {max} characters",
+      "password_rule_match": "Both entries match",
+      "step_try": "Try it",
+      "try_intro": "Optional. Enter what you just made to check that it unlocks. Nothing is saved yet, and a wrong try here costs nothing.",
+      "try_action": "Try unlocking",
+      "try_running": "Checking",
+      "try_ok": "It unlocked. This is what will be asked for.",
+      "try_wrong": "That did not unlock it. Check what you typed, or go back to make it again.",
+      "try_summary_ok": "Tried and unlocked",
+      "try_summary_skipped": "Not tried",
+      "summary_locks": "Locks",
+      "summary_yes": "Yes",
+      "summary_no": "No",
+      "summary_secret_note": "The credentials you made are never shown in this summary."
     },
     "support_desk": {
       "title": "Support desk",
@@ -4017,8 +4074,9 @@
       "fonts_preview_room": "Living room",
       "fonts_preview_text": "Five lights are on, it is 21.4° inside, and every door is locked.",
       "fonts_preview_code": "sensor.living_room_temperature 21.4 °C",
-      "fonts_contrast_pass": "The preview text has a contrast of {ratio} to 1, at least 4.5 to 1.",
-      "fonts_contrast_low": "The preview text has a contrast of {ratio} to 1, below 4.5 to 1.",
+      "fonts_not_on_device": "Not on this device",
+      "fonts_contrast_pass": "The theme's text colour on the card has a contrast of {ratio} to 1, at least 4.5 to 1. Typefaces do not change it.",
+      "fonts_contrast_low": "The theme's text colour on the card has a contrast of {ratio} to 1, below 4.5 to 1. Typefaces do not change it.",
       "fonts_reset": "Reset fonts",
       "read_aloud": "Read this page aloud",
       "read_aloud_note": "Skips form fields, passwords and codes",
@@ -4133,7 +4191,15 @@
         "documentation": "documentation",
         "download_app": "Click here to download the app",
         "faq_link": "My Home Assistant FAQ",
-        "error": "An unknown error occurred"
+        "error": "An unknown error occurred",
+        "confirm_title": "A link wants to open {destination}",
+        "confirm_description": "You followed a link from a web page. It opens {destination} in this Home Assistant. Nothing happens until you choose Open it.",
+        "external_app_name": "the Companion app settings",
+        "path_label": "Opens",
+        "params_label": "Passed on",
+        "instance_label": "This Home Assistant",
+        "cancel": "Not this time",
+        "open": "Open it"
       },
       "config": {
         "generic": {
@@ -5061,9 +5127,10 @@
                 "title": "[%key:ui::panel::config::backup::overview::onboarding::title%]",
                 "description": "[%key:ui::panel::config::backup::overview::onboarding::description%]"
               },
-              "key": {
-                "title": "Encryption key",
-                "description": "All your backups are encrypted to keep your data private and secure. We recommend saving this key somewhere secure. As you can only restore your data with this encryption key."
+              "encryption": {
+                "title": "Encryption",
+                "description": "Encryption is off by default. When it is off, anyone who gets a backup file can read it, and nothing is lost if you forget a key. When it is on, a backup file can only be opened with your encryption key, and losing the key means losing those backups.",
+                "key_description": "Save this key somewhere secure. You can only restore your encrypted backups with it."
               },
               "setup": {
                 "title": "Set up automatic backups",
@@ -5234,7 +5301,13 @@
             "change_encryption_key_action": "Change",
             "set_encryption_key": "Set encryption key",
             "set_encryption_key_description": "Set an encryption key for your backups.",
-            "set_encryption_key_action": "Set"
+            "set_encryption_key_action": "Set",
+            "encrypt_backups": "Encrypt backups",
+            "encrypt_backups_off_description": "Off: anyone who gets a backup file can read it, and nothing is lost if a key is forgotten.",
+            "encrypt_backups_on_description": "On: a backup file can only be opened with your encryption key, and losing the key means losing those backups.",
+            "turn_off_title": "Turn off encryption?",
+            "turn_off_text": "New backups will not be encrypted. Backups you already made with encryption still need their old key to be restored.",
+            "turn_off_action": "Turn off"
           },
           "emergency_kit_file": {
             "title": "Home Assistant Backup Emergency Kit",
@@ -5445,8 +5518,8 @@
               "ha_cloud_description": "Stores an encrypted backup offsite. This is ideal in case your local backup becomes inaccessible. The cloud stores one backup with a maximum size of 5 GB, and older backups are automatically deleted."
             },
             "encryption_key": {
-              "title": "Encryption key",
-              "description": "Keep this encryption key in a safe place, as you will need it to access your backup, allowing it to be restored. Download it as an emergency kit file and store it somewhere safe. Encryption keeps your backups private and secure."
+              "title": "Encryption",
+              "description": "Choose whether new backups are encrypted. If you turn encryption on, keep the encryption key in a safe place, because you need it to restore those backups. Download it as an emergency kit file and store it somewhere safe."
             },
             "app_update_backup": {
               "title": "App update backups",
@@ -9985,6 +10058,17 @@
             "open_documentation": "Open documentation",
             "no_config_flow": "This integration does not support configuration via the UI. If you followed this link from the Home Assistant website, make sure you run the latest version of Home Assistant.",
             "not_all_required_fields": "Not all required fields are filled in.",
+            "field_required": "This field is required.",
+            "field_below_min": "Enter a value of {min} or more.",
+            "field_above_max": "Enter a value of {max} or less.",
+            "field_not_a_number": "Enter a number.",
+            "field_invalid_option": "Choose one of the available options.",
+            "fields_need_attention": "{count, plural,\n one {1 field needs attention}\n other {# fields need attention}\n}",
+            "step_number": "Step {number}",
+            "step_final": "Final step",
+            "step_more_follow": "More steps follow",
+            "summary_title": "Your entries",
+            "summary_secret_set": "Set",
             "error_saving_device": "Error updating device: {error}",
             "error_saving_entity": "Error updating entity: {error}",
             "created_config": "Created configuration for {name}.",
@@ -12318,7 +12402,51 @@
           "removed": "Removed. {apply}",
           "back_to_list": "Back to the list",
           "one_only": "This integration accepts one configuration. Edit the existing one instead.",
-          "entry_summary": "{count} options"
+          "entry_summary": "{count} options",
+          "steps_nav": "Setup steps",
+          "step_status_current": "current step",
+          "step_status_done": "done, select to go back",
+          "step_status_error": "has problems",
+          "step_status_available": "select to go to this step",
+          "step_status_locked": "not available yet",
+          "field_required": "Fill this in, it is required.",
+          "field_not_number": "Enter a number.",
+          "field_not_integer": "Enter a whole number.",
+          "field_too_small": "Enter a number of {min} or more.",
+          "field_too_large": "Enter a number of {max} or less.",
+          "field_not_allowed": "Choose one of the listed values.",
+          "errors_count": "{count, plural,\n  one {# option needs attention}\n  other {# options need attention}\n}",
+          "hint_text": "Text.",
+          "hint_secret": "Hidden while you type. Use the eye button to check it.",
+          "hint_number": "A number.",
+          "hint_number_range": "A number from {min} to {max}.",
+          "hint_select": "One of: {options}.",
+          "hint_boolean": "On or off.",
+          "hint_entity": "Choose an entity from your home.",
+          "hint_duration": "A length of time.",
+          "hint_time": "A time of day.",
+          "hint_template": "A template, evaluated by Home Assistant.",
+          "hint_yaml": "Written as YAML.",
+          "help_title": "About each option",
+          "summary_title": "What will be written",
+          "summary_empty": "Nothing set yet. Options you fill in appear here.",
+          "summary_set": "Set",
+          "summary_not_set": "Not set",
+          "summary_file": "Into {file}.",
+          "secret_mask": "(hidden)",
+          "review_masked_note": "Hidden values are shown here as (hidden) but are written in full.",
+          "skip_defaults": "Skip, use defaults",
+          "draft_found": "You have an unfinished setup",
+          "draft_found_text": "Saved in this browser on {when}.",
+          "draft_secrets_note": "Passwords and keys are never saved in a draft, so you will be asked for them again.",
+          "draft_secrets": "Passwords and keys are not kept in drafts. Enter these again: {names}.",
+          "draft_resume": "Resume",
+          "draft_restart": "Start again",
+          "leave_title": "Leave this setup?",
+          "leave_text": "Your progress is kept as a draft in this browser, so you can resume it later. Passwords and keys are not kept.",
+          "leave_text_entry": "The changes you made to this setup are not saved and will be lost.",
+          "leave_confirm": "Leave",
+          "leave_stay": "Stay"
         },
         "changelog": {
           "title": "What changed",
@@ -15271,6 +15399,13 @@
         "load_error": "Something went wrong loading onboarding, try refreshing",
         "refresh": "Refresh",
         "step_of": "Step {current} of {total}",
+        "steps_label": "Setup steps",
+        "steps_state": {
+          "done": "Done",
+          "current": "Current",
+          "todo": "To do"
+        },
+        "steps_locked_note": "Finished steps are saved and cannot be changed here. You can change them later in Settings.",
         "progress_saved": "Saved. Close this window any time and setup resumes at this step.",
         "steps": {
           "user": "Your account",
@@ -15302,10 +15437,23 @@
             "password_confirm": "Confirm password"
           },
           "helper": {
+            "name": "What the people in your home will see.",
+            "username": "Used to sign in. Lowercase letters, no spaces.",
             "password": "Choose a strong and unique password. Make sure to save it, so you don't forget it."
           },
+          "strength": "Password strength: {level}. {count} characters.",
+          "strength_level": {
+            "empty": "none yet",
+            "weak": "weak",
+            "fair": "fair",
+            "strong": "strong"
+          },
+          "match_ok": "Passwords match.",
           "create_account": "Create account",
           "error": {
+            "name_required": "Enter a name.",
+            "username_required": "Enter a username.",
+            "password_too_short": "Use at least {min} characters. Longer is safer.",
             "username_not_normalized": "Username can only contain lowercase letters, and cannot contain whitespace.",
             "password_not_match": "Passwords don't match"
           }
@@ -15322,7 +15470,51 @@
           "location_name_default": "Home",
           "address_label": "Search address",
           "button_detect": "Detect",
-          "finish": "Next"
+          "finish": "Next",
+          "back": "Back",
+          "stages_label": "Home setup stages",
+          "stage_done": "done, choose to go back",
+          "stage": {
+            "location": "Where",
+            "details": "Region",
+            "review": "Review"
+          },
+          "details_header": "Country, language and units",
+          "field": {
+            "country": "Country",
+            "time_zone": "Time zone",
+            "language": "Language",
+            "unit_system": "Units",
+            "currency": "Currency"
+          },
+          "unit_metric": "Metric (°C, km)",
+          "unit_us_customary": "US customary (°F, mi)",
+          "error": {
+            "country_required": "Choose the country your home is in."
+          },
+          "preview_title": "How it will look",
+          "preview_note": "An example with your choices. Nothing is saved yet.",
+          "preview": {
+            "date": "Date",
+            "time": "Time",
+            "number": "Numbers",
+            "temperature": "Temperature",
+            "distance": "Distance",
+            "currency": "Money"
+          },
+          "review_action": "Review",
+          "review_header": "Check your home",
+          "review_intro": "This is what will be saved. Go back to change anything.",
+          "review": {
+            "name": "Owner",
+            "username": "Username",
+            "location": "Location",
+            "country": "Country",
+            "language": "Language",
+            "units": "Units and currency",
+            "time_zone": "Time zone"
+          },
+          "save_and_continue": "Save and continue"
         },
         "integration": {
           "header": "We found compatible devices!",

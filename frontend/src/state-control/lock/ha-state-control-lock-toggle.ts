@@ -1,3 +1,4 @@
+import type { ContextType } from "@lit/context";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -11,7 +12,7 @@ import type { LocalizeFunc } from "../../common/translations/localize";
 import "../../components/ha-control-button";
 import "../../components/ha-control-switch";
 import "../../components/ha-state-icon";
-import { apiContext } from "../../data/context";
+import { apiContext, formattersContext } from "../../data/context";
 import { UNAVAILABLE, UNKNOWN } from "../../data/entity/entity";
 import { forwardHaptic } from "../../data/haptics";
 import type { LockEntity } from "../../data/lock";
@@ -33,6 +34,10 @@ export class HaStateControlLockToggle extends LitElement {
   @state()
   @consume({ context: apiContext, subscribe: true })
   private _api!: HomeAssistantApi;
+
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  private _formatters!: ContextType<typeof formattersContext>;
 
   @state()
   @consumeLocalize()
@@ -143,11 +148,7 @@ export class HaStateControlLockToggle extends LitElement {
           class="tile"
           role="switch"
           aria-checked=${this._isOn ? "true" : "false"}
-          aria-label=${
-            this._isOn
-              ? this._localize("ui.card.lock.unlock")
-              : this._localize("ui.card.lock.lock")
-          }
+          aria-label=${this._localize("ui.card.lock.lock")}
           style=${styleMap({ "--tile-color": color })}
           .disabled=${this.stateObj.state === UNAVAILABLE}
           @click=${this._tileClicked}
@@ -166,6 +167,9 @@ export class HaStateControlLockToggle extends LitElement {
             class=${classMap({ pulse: locking || unlocking })}
           ></ha-state-icon>
         </button>
+        <p class="tile-state" role="status" aria-live="polite">
+          ${this._formatters?.formatEntityState(this.stateObj)}
+        </p>
       `;
     }
 
@@ -237,6 +241,12 @@ export class HaStateControlLockToggle extends LitElement {
       .tile:focus-visible {
         outline: 2px solid var(--tile-color, var(--primary-text-color));
         outline-offset: 3px;
+      }
+      .tile-state {
+        margin: var(--ha-space-3) 0 0;
+        text-align: center;
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-m);
       }
       .tile:disabled {
         opacity: 0.5;

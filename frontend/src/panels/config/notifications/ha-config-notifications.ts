@@ -321,7 +321,7 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
               data-href=${action.href}
               @click=${this._openAction}
             >
-              ${action.label}
+              ${action.label}${action.host ? ` (${action.host})` : ""}
             </ha-button>
           `
         )}
@@ -540,20 +540,23 @@ class HaConfigNotifications extends SubscribeMixin(LitElement) {
   }
 
   private async _restore(chosen: PersistentNotification[]): Promise<void> {
-    try {
-      await Promise.all(
-        chosen.map((item) =>
-          this.hass.callService("persistent_notification", "create", {
-            notification_id: item.notification_id,
-            message: item.message,
-            ...(item.title ? { title: item.title } : {}),
-          })
-        )
-      );
-      chosen.forEach((item) => {
-        this._dismissed = forgetDismissed(item.notification_id);
-      });
-    } catch (_err: any) {
+    const results = await Promise.allSettled(
+      chosen.map((item) =>
+        this.hass.callService("persistent_notification", "create", {
+          notification_id: item.notification_id,
+          message: item.message,
+          ...(item.title ? { title: item.title } : {}),
+        })
+      )
+    );
+    // Only a notification that came back leaves the dismissed list.
+    const restored = chosen.filter(
+      (_item, index) => results[index].status === "fulfilled"
+    );
+    restored.forEach((item) => {
+      this._dismissed = forgetDismissed(item.notification_id);
+    });
+    if (restored.length < chosen.length) {
       showToast(this, {
         message: this._l("restore_failed"),
         severity: "error",

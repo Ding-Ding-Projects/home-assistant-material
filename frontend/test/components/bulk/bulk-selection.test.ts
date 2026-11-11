@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   countPreview,
+  hiddenSelectedCount,
   invertSelection,
+  invertVisible,
   nextConfirmStep,
   pruneSelection,
   selectRange,
+  selectVisible,
   toggleSelected,
 } from "../../../src/components/bulk/bulk-selection";
 
@@ -56,5 +59,23 @@ describe("preview and confirmation", () => {
   it("never runs when nothing would change", () => {
     expect(nextConfirmStep(false, false, 0)).toBe("blocked");
     expect(nextConfirmStep(true, true, 0)).toBe("blocked");
+  });
+});
+
+describe("selection under a filter", () => {
+  const visible = ["a", "b", "c"];
+
+  it("selects the shown rows and keeps a hidden selection", () => {
+    expect(selectVisible(visible, ["x"])).toEqual(["x", "a", "b", "c"]);
+    expect(selectVisible(visible, ["a"])).toEqual(["a", "b", "c"]);
+  });
+
+  it("inverts the shown rows and keeps a hidden selection", () => {
+    expect(invertVisible(visible, ["x", "a"])).toEqual(["x", "b", "c"]);
+  });
+
+  it("counts the selected rows the filter hides", () => {
+    expect(hiddenSelectedCount(visible, ["x", "a", "y"])).toBe(2);
+    expect(hiddenSelectedCount(visible, [])).toBe(0);
   });
 });

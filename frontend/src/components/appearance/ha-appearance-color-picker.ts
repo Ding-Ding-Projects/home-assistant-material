@@ -7,6 +7,7 @@ import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import {
   contrastReading,
+  parseTypedColor,
   toLch,
   toNamed,
   toOklab,
@@ -30,6 +31,7 @@ import "../ha-svg-icon";
 declare global {
   interface HASSDomEvents {
     "appearance-color-changed": { value: string };
+    "appearance-color-committed": undefined;
   }
 }
 
@@ -65,6 +67,7 @@ interface EyeDropperLike {
  * keyboard. Colours are opaque `#rrggbb` values.
  *
  * @fires appearance-color-changed - The colour changed; `detail.value` is the new `#rrggbb`.
+ * @fires appearance-color-committed - A drag, typed entry or screen pick finished, so the change can be stored.
  */
 @customElement("ha-appearance-color-picker")
 export class HaAppearanceColorPicker extends LitElement {
@@ -93,7 +96,15 @@ export class HaAppearanceColorPicker extends LitElement {
 
   @state() private _typed = "";
 
+  @state() private _typedDirty = false;
+
   @state() private _typedBad = false;
+
+  // The contrast reading is spoken only when its grade changes, not on every
+  // step of a drag.
+  @state() private _grade = "";
+
+  @state() private _contrastAnnouncement = "";
 
   @state() private _extra = new Set<Notation>();
 
@@ -113,6 +124,23 @@ export class HaAppearanceColorPicker extends LitElement {
       const color = parseColor(this.value);
       if (color && toHex(color).toLowerCase() !== this._currentHex()) {
         this._hsv = rgbToHsv(color.r, color.g, color.b);
+      }
+    }
+    if (this._open) {
+      const reading = this.contrastWith
+        ? contrastReading(this._currentHex(), this.contrastWith)
+        : undefined;
+      const grade = this.contrastWith ? (reading?.grade ?? "unknown") : "";
+      if (grade !== this._grade) {
+        this._grade = grade;
+        this._contrastAnnouncement = reading
+          ? this._l(`picker_contrast_${reading.grade}`, {
+              ratio: reading.ratio.toFixed(1),
+              against: this.contrastName,
+            })
+          : grade
+            ? this._l("picker_contrast_unknown", { against: this.contrastName })
+            : "";
       }
     }
   }
@@ -169,6 +197,7 @@ export class HaAppearanceColorPicker extends LitElement {
           role="slider"
           tabindex="0"
           aria-label=${this._l("picker_square")}
+          aria-roledescription=${this._l("picker_square_role")}
           aria-valuemin="0"
           aria-valuemax="100"
           aria-valuenow=${Math.round(this._hsv.s * 100)}
@@ -179,6 +208,8 @@ export class HaAppearanceColorPicker extends LitElement {
           style=${styleMap({ backgroundColor: `hsl(${this._hsv.h} 100% 50%)` })}
           @pointerdown=${this._squareDown}
           @pointermove=${this._squareMove}
+          @pointerup=${this._squareUp}
+          @pointercancel=${this._squareUp}
           @keydown=${this._squareKey}
         >
           <span
@@ -199,6 +230,7 @@ export class HaAppearanceColorPicker extends LitElement {
             step="1"
             .value=${String(Math.round(this._hsv.h))}
             @input=${this._hueChanged}
+            @change=${this._committed}
           />
           <output>${Math.round(this._hsv.h)}°</output>
         </label>
@@ -210,8 +242,9 @@ export class HaAppearanceColorPicker extends LitElement {
             aria-invalid=${this._typedBad ? "true" : "false"}
             spellcheck="false"
             autocomplete="off"
-            .value=${this._typed || hex}
-            @input=${this._typedChanged}
+            .value=${this._typedDirty ? this._typed : hex}
+            @input=${this._typedInput}
+            @change=${this._typedCommit}
           />
           ${
             hasEyeDropper
@@ -276,15 +309,23 @@ export class HaAppearanceColorPicker extends LitElement {
           reading
             ? html`<p
                 class=${classMap({ contrast: true, [reading.grade]: true })}
-                role="status"
               >
                 ${this._l(`picker_contrast_${reading.grade}`, {
                   ratio: reading.ratio.toFixed(1),
                   against: this.contrastName,
                 })}
               </p>`
-            : nothing
+            : this.contrastWith
+              ? html`<p class="contrast unknown">
+                  ${this._l("picker_contrast_unknown", {
+                    against: this.contrastName,
+                  })}
+                </p>`
+              : nothing
         }
+        <p class="sr-only" role="status" aria-live="polite">
+          ${this._contrastAnnouncement}
+        </p>
         ${
           this._status
             ? html`<p class="note" role="status">${this._status}</p>`
@@ -302,6 +343,9 @@ export class HaAppearanceColorPicker extends LitElement {
   private _toggle() {
     this._open = !this._open;
     this._typed = "";
+    this._typedDirty = false;
+    this._grade = "";
+    this._contrastAnnouncement = "";
     this._typedBad = false;
     this._status = "";
   }
@@ -322,8 +366,17 @@ export class HaAppearanceColorPicker extends LitElement {
 
   private _emit() {
     this._typed = "";
+    this._typedDirty = false;
     this._typedBad = false;
     fireEvent(this, "appearance-color-changed", { value: this._currentHex() });
+  }
+
+  private _squareUp(ev: PointerEvent) {
+    const square = ev.currentTarget as HTMLElement;
+    if (square.hasPointerCapture(ev.pointerId)) {
+      square.releasePointerCapture(ev.pointerId);
+      this._committed();
+    }
   }
 
   private _setFromSquare(ev: PointerEvent) {
@@ -380,21 +433,32 @@ export class HaAppearanceColorPicker extends LitElement {
     this._emit();
   }
 
-  private _typedChanged(ev: Event) {
+  // Typing only checks the text; the colour is taken when the field is
+  // committed (Enter or leaving the field), so a half-typed value is never
+  // applied and the field can be emptied.
+  private _typedInput(ev: Event) {
+    this._typed = (ev.currentTarget as HTMLInputElement).value;
+    this._typedDirty = true;
+    this._typedBad = !!this._typed.trim() && !parseTypedColor(this._typed);
+  }
+
+  private _typedCommit(ev: Event) {
     const text = (ev.currentTarget as HTMLInputElement).value;
-    this._typed = text;
-    if (!text.trim()) {
-      this._typedBad = false;
+    const color = parseTypedColor(text);
+    if (!color) {
+      // Empty text goes back to the colour; bad text stays, flagged, to fix.
+      if (!text.trim()) {
+        this._typed = "";
+        this._typedDirty = false;
+        this._typedBad = false;
+      } else {
+        this._typedBad = true;
+      }
       return;
     }
-    const color = parseColor(text);
-    this._typedBad = !color;
-    if (color) {
-      this._hsv = rgbToHsv(color.r, color.g, color.b);
-      fireEvent(this, "appearance-color-changed", {
-        value: toHex({ ...color, a: 1 }).toLowerCase(),
-      });
-    }
+    this._hsv = rgbToHsv(color.r, color.g, color.b);
+    this._emit();
+    this._committed();
   }
 
   private async _pickFromScreen() {
@@ -404,12 +468,21 @@ export class HaAppearanceColorPicker extends LitElement {
       ).EyeDropper();
       const color = parseColor((await dropper.open()).sRGBHex);
       if (color) {
+        this._status = "";
         this._hsv = rgbToHsv(color.r, color.g, color.b);
         this._emit();
+        this._committed();
       }
-    } catch (_err) {
-      // The person left the picker without choosing.
+    } catch (err) {
+      // Leaving without choosing is not an error; anything else is shown.
+      if ((err as { name?: string })?.name !== "AbortError") {
+        this._status = this._l("picker_screen_failed");
+      }
     }
+  }
+
+  private _committed() {
+    fireEvent(this, "appearance-color-committed");
   }
 
   private _toggleExtra(ev: Event) {
@@ -673,6 +746,20 @@ export class HaAppearanceColorPicker extends LitElement {
     }
     .contrast.large {
       background: var(--ha-color-fill-warning-quiet-resting);
+    }
+    .contrast.unknown {
+      background: var(--secondary-background-color);
+      border: 1px dashed var(--outline-color);
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
     .contrast.none {
       background: var(--ha-color-fill-danger-quiet-resting);

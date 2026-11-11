@@ -508,49 +508,155 @@ export class HaStateControlClimateTemperature extends LitElement {
     );
   }
 
-  private _renderBoardStepper() {
+  /** Board buttons stay focusable at a limit, so they use aria-disabled. */
+  private _handleBoardButton(ev: Event) {
+    if (
+      (ev.currentTarget as HTMLElement).getAttribute("aria-disabled") === "true"
+    ) {
+      return;
+    }
+    this._handleButton(ev);
+  }
+
+  private _boardLimits(target: Target) {
+    const temp = this._targetTemperature[target];
+    const low = this._targetTemperature.low;
+    const high = this._targetTemperature.high;
+    const lowerBound =
+      target === "high" && low != null ? Math.max(low, this._min) : this._min;
+    const upperBound =
+      target === "low" && high != null ? Math.min(high, this._max) : this._max;
+    return {
+      atMin: temp != null && temp <= lowerBound,
+      atMax: temp != null && temp >= upperBound,
+    };
+  }
+
+  private _renderBoardStepper(target: Target = "value") {
     const color =
       stateActive(this.stateObj) && this.stateObj.state !== UNAVAILABLE
-        ? stateColorCss(this.stateObj)
+        ? target === "high"
+          ? stateColorCss(this.stateObj, "cool")
+          : target === "low"
+            ? stateColorCss(this.stateObj, "heat")
+            : stateColorCss(this.stateObj)
         : undefined;
+    const temperature = this._targetTemperature[target]!;
+    const { atMin, atMax } = this._boardLimits(target);
+    const name = this._formatters.formatEntityAttributeName(
+      this.stateObj,
+      target === "low"
+        ? "target_temp_low"
+        : target === "high"
+          ? "target_temp_high"
+          : "temperature"
+    );
+    const limitText = atMax
+      ? this._i18n.localize("ui.card.climate.maximum_reached")
+      : atMin
+        ? this._i18n.localize("ui.card.climate.minimum_reached")
+        : "";
+    const downLabel = this._i18n.localize(
+      target === "low"
+        ? "ui.components.climate-control.lower_temperature_down"
+        : target === "high"
+          ? "ui.components.climate-control.upper_temperature_down"
+          : "ui.components.climate-control.temperature_down"
+    );
+    const upLabel = this._i18n.localize(
+      target === "low"
+        ? "ui.components.climate-control.lower_temperature_up"
+        : target === "high"
+          ? "ui.components.climate-control.upper_temperature_up"
+          : "ui.components.climate-control.temperature_up"
+    );
     return html`
       <div
         class="stepper"
         style=${styleMap({ "--stepper-color": color })}
         role="group"
-        aria-label=${this._formatters.formatEntityAttributeName(
-          this.stateObj,
-          "temperature"
-        )}
+        aria-label=${name}
       >
         <button
           type="button"
           class="step minus"
-          data-target="value"
+          data-target=${target}
           .step=${-this._step}
-          aria-label=${this._i18n.localize(
-            "ui.components.climate-control.temperature_down"
-          )}
-          @click=${this._handleButton}
+          aria-label=${downLabel}
+          aria-disabled=${atMin ? "true" : "false"}
+          @click=${this._handleBoardButton}
         >
           <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
         </button>
-        <span class="stepper-value" role="status" aria-live="polite">
-          ${this._renderTarget(this._targetTemperature.value!, "normal", true)}
+        <span class="stepper-value" aria-hidden="true">
+          ${this._renderTarget(temperature, "normal", true)}
+        </span>
+        <span class="visually-hidden" role="status" aria-live="polite">
+          ${this._renderTarget(temperature, "normal")}${
+            limitText ? html`. ${limitText}` : nothing
+          }
         </span>
         <button
           type="button"
           class="step plus"
-          data-target="value"
+          data-target=${target}
           .step=${this._step}
-          aria-label=${this._i18n.localize(
-            "ui.components.climate-control.temperature_up"
-          )}
-          @click=${this._handleButton}
+          aria-label=${upLabel}
+          aria-disabled=${atMax ? "true" : "false"}
+          @click=${this._handleBoardButton}
         >
           <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
         </button>
       </div>
+    `;
+  }
+
+  private _renderBoardDual() {
+    return html`
+      <div class="board-dual">
+        ${(["low", "high"] as const).map(
+          (target) => html`
+            <div class="board-row">
+              <p class="board-caption">
+                ${this._formatters.formatEntityAttributeName(
+                  this.stateObj,
+                  target === "low" ? "target_temp_low" : "target_temp_high"
+                )}
+              </p>
+              ${this._renderBoardStepper(target)}
+            </div>
+          `
+        )}
+      </div>
+    `;
+  }
+
+  private _renderBoardStatus() {
+    const action = this.stateObj.attributes.hvac_action;
+    const current = this.stateObj.attributes.current_temperature;
+    const actionText =
+      action && action !== "off"
+        ? this._formatters.formatEntityAttributeValue(
+            this.stateObj,
+            "hvac_action"
+          )
+        : "";
+    if (!actionText && current == null) {
+      return nothing;
+    }
+    return html`
+      <p class="board-status">
+        ${actionText}${actionText && current != null ? ". " : nothing}${
+          current != null
+            ? html`${this._i18n.localize("ui.card.climate.currently")}
+              ${this._formatters.formatEntityAttributeValue(
+                this.stateObj,
+                "current_temperature",
+                current
+              )}`
+            : nothing
+        }
+      </p>
     `;
   }
 
@@ -580,7 +686,16 @@ export class HaStateControlClimateTemperature extends LitElement {
       this._supportsTargetTemperature &&
       this.stateObj.state !== UNAVAILABLE
     ) {
-      return this._renderBoardStepper();
+      return html`${this._renderBoardStepper()}${this._renderBoardStatus()}`;
+    }
+
+    if (
+      this.board &&
+      !this._supportsTargetTemperature &&
+      this._supportsTargetTemperatureRange &&
+      this.stateObj.state !== UNAVAILABLE
+    ) {
+      return html`${this._renderBoardDual()}${this._renderBoardStatus()}`;
     }
 
     if (
@@ -799,6 +914,34 @@ export class HaStateControlClimateTemperature extends LitElement {
         .step:focus-visible {
           outline: 2px solid var(--primary-text-color);
           outline-offset: 2px;
+        }
+        .step[aria-disabled="true"] {
+          opacity: 0.38;
+          cursor: not-allowed;
+        }
+        :host([board]) {
+          display: block;
+        }
+        .board-dual {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-4);
+        }
+        .board-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .board-caption {
+          margin: 0 0 var(--ha-space-1);
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-m);
+        }
+        .board-status {
+          margin: var(--ha-space-3) 0 0;
+          text-align: center;
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-m);
         }
         ha-control-circular-slider {
           --control-circular-slider-low-color: var(

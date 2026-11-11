@@ -1,10 +1,13 @@
 import { mdiDownload } from "@mdi/js";
-import { css, html, LitElement } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
+import "../../../../../components/ha-switch";
+import type { HaSwitch } from "../../../../../components/ha-switch";
 import "../../../../../components/item/ha-list-item-base";
 import "../../../../../components/list/ha-list-base";
 import type { HomeAssistant } from "../../../../../types";
+import { showConfirmationDialog } from "../../../../../dialogs/generic/show-dialog-box";
 import { showChangeBackupEncryptionKeyDialog } from "../../dialogs/show-dialog-change-backup-encryption-key";
 import { showSetBackupEncryptionKeyDialog } from "../../dialogs/show-dialog-set-backup-encryption-key";
 
@@ -15,109 +18,135 @@ import { showShowBackupEncryptionKeyDialog } from "../../dialogs/show-dialog-sho
 class HaBackupConfigEncryptionKey extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @state() private value?: string;
+  @property({ attribute: false }) public value?: string | null;
 
   private get _value() {
     return this.value ?? "";
   }
 
   protected render() {
-    if (this._value) {
-      return html`
-        <ha-list-base>
-          <ha-list-item-base>
-            <span slot="headline">
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.download_emergency_kit"
-              )}
-            </span>
-            <span slot="supporting-text">
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.download_emergency_kit_description"
-              )}
-            </span>
-            <ha-button
-              appearance="plain"
-              slot="end"
-              @click=${this._download}
-              size="s"
-            >
-              <ha-svg-icon .path=${mdiDownload} slot="start"></ha-svg-icon>
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.download_emergency_kit_action"
-              )}
-            </ha-button>
-          </ha-list-item-base>
-          <ha-list-item-base>
-            <span slot="headline">
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.show_encryption_key"
-              )}
-            </span>
-            <span slot="supporting-text">
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.show_encryption_key_description"
-              )}
-            </span>
-            <ha-button
-              appearance="plain"
-              slot="end"
-              @click=${this._show}
-              size="s"
-            >
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.show_encryption_key_action"
-              )}
-            </ha-button>
-          </ha-list-item-base>
-          <ha-list-item-base>
-            <span slot="headline">
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.change_encryption_key"
-              )}
-            </span>
-            <span slot="supporting-text">
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.change_encryption_key_description"
-              )}
-            </span>
-            <ha-button
-              appearance="plain"
-              variant="danger"
-              size="s"
-              slot="end"
-              @click=${this._change}
-            >
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.change_encryption_key_action"
-              )}
-            </ha-button>
-          </ha-list-item-base>
-        </ha-list-base>
-      `;
-    }
-
+    const enabled = !!this._value;
     return html`
       <ha-list-base>
         <ha-list-item-base>
           <span slot="headline">
             ${this.hass.localize(
-              "ui.panel.config.backup.encryption_key.set_encryption_key"
-            )}</span
-          >
-          <span slot="supporting-text">
-            ${this.hass.localize(
-              "ui.panel.config.backup.encryption_key.set_encryption_key_description"
+              "ui.panel.config.backup.encryption_key.encrypt_backups"
             )}
           </span>
-          <ha-button slot="end" @click=${this._set}>
+          <span slot="supporting-text">
             ${this.hass.localize(
-              "ui.panel.config.backup.encryption_key.set_encryption_key_action"
-            )}</ha-button
-          >
+              enabled
+                ? "ui.panel.config.backup.encryption_key.encrypt_backups_on_description"
+                : "ui.panel.config.backup.encryption_key.encrypt_backups_off_description"
+            )}
+          </span>
+          <ha-switch
+            slot="end"
+            .checked=${enabled}
+            @change=${this._toggled}
+          ></ha-switch>
         </ha-list-item-base>
+        ${enabled ? this._renderKeyActions() : nothing}
       </ha-list-base>
     `;
+  }
+
+  private _renderKeyActions() {
+    return html`
+      <ha-list-item-base>
+        <span slot="headline">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.download_emergency_kit"
+          )}
+        </span>
+        <span slot="supporting-text">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.download_emergency_kit_description"
+          )}
+        </span>
+        <ha-button
+          appearance="plain"
+          slot="end"
+          @click=${this._download}
+          size="s"
+        >
+          <ha-svg-icon .path=${mdiDownload} slot="start"></ha-svg-icon>
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.download_emergency_kit_action"
+          )}
+        </ha-button>
+      </ha-list-item-base>
+      <ha-list-item-base>
+        <span slot="headline">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.show_encryption_key"
+          )}
+        </span>
+        <span slot="supporting-text">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.show_encryption_key_description"
+          )}
+        </span>
+        <ha-button appearance="plain" slot="end" @click=${this._show} size="s">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.show_encryption_key_action"
+          )}
+        </ha-button>
+      </ha-list-item-base>
+      <ha-list-item-base>
+        <span slot="headline">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.change_encryption_key"
+          )}
+        </span>
+        <span slot="supporting-text">
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.change_encryption_key_description"
+          )}
+        </span>
+        <ha-button
+          appearance="plain"
+          variant="danger"
+          size="s"
+          slot="end"
+          @click=${this._change}
+        >
+          ${this.hass.localize(
+            "ui.panel.config.backup.encryption_key.change_encryption_key_action"
+          )}
+        </ha-button>
+      </ha-list-item-base>
+    `;
+  }
+
+  private async _toggled(ev: Event) {
+    const target = ev.target as HaSwitch;
+    const wantsOn = target.checked;
+    // The switch follows the stored value, never the click.
+    target.checked = !!this._value;
+    if (wantsOn === !!this._value) {
+      return;
+    }
+    if (wantsOn) {
+      this._set();
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this.hass.localize(
+        "ui.panel.config.backup.encryption_key.turn_off_title"
+      ),
+      text: this.hass.localize(
+        "ui.panel.config.backup.encryption_key.turn_off_text"
+      ),
+      confirmText: this.hass.localize(
+        "ui.panel.config.backup.encryption_key.turn_off_action"
+      ),
+      destructive: true,
+    });
+    if (confirmed) {
+      fireEvent(this, "value-changed", { value: null });
+    }
   }
 
   private _download() {

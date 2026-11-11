@@ -39,7 +39,9 @@ declare global {
  *
  * The page owns the selection and does the work. It listens for
  * `bulk-select-page`, `bulk-select-matches`, `bulk-invert`, `bulk-clear`,
- * `bulk-action` (an action without a preview) and `bulk-confirm`.
+ * `bulk-action` (an action without a preview) and `bulk-confirm`. Anything
+ * a page puts in the `actions` slot, such as a menu button, sits in the bar
+ * beside the plain action buttons.
  */
 @customElement("ha-bulk-bar")
 export class HaBulkBar extends LitElement {
@@ -56,6 +58,9 @@ export class HaBulkBar extends LitElement {
 
   /** How many items match the current search or filter in all. */
   @property({ type: Number, attribute: "match-count" }) public matchCount = 0;
+
+  /** How many of the selected items the search or filter hides now. */
+  @property({ type: Number, attribute: "hidden-count" }) public hiddenCount = 0;
 
   @property({ attribute: false }) public actions: BulkAction[] = [];
 
@@ -83,6 +88,7 @@ export class HaBulkBar extends LitElement {
       ? this.getPreview?.(this._pending)
       : undefined;
     const action = this.actions.find((item) => item.id === this._pending);
+    const shownSelected = this.count - this.hiddenCount;
     return html`
       <div
         class="bar"
@@ -95,7 +101,7 @@ export class HaBulkBar extends LitElement {
         <ha-button
           size="s"
           appearance="plain"
-          ?disabled=${this.count >= this.pageCount}
+          ?disabled=${shownSelected >= this.pageCount}
           @click=${this._selectPage}
         >
           ${this.localize("ui.bulk.select_page", { count: this.pageCount })}
@@ -105,7 +111,7 @@ export class HaBulkBar extends LitElement {
             ? html`<ha-button
                 size="s"
                 appearance="plain"
-                ?disabled=${this.count >= this.matchCount}
+                ?disabled=${shownSelected >= this.matchCount}
                 @click=${this._selectMatches}
               >
                 ${this.localize("ui.bulk.select_matches", {
@@ -117,7 +123,17 @@ export class HaBulkBar extends LitElement {
         <ha-button size="s" appearance="plain" @click=${this._invert}>
           ${this.localize("ui.bulk.invert")}
         </ha-button>
+        ${
+          this.hiddenCount > 0
+            ? html`<span class="hidden-note"
+                >${this.localize("ui.bulk.hidden_selected", {
+                  count: this.hiddenCount,
+                })}</span
+              >`
+            : nothing
+        }
         <span class="spacer"></span>
+        <slot name="actions"></slot>
         ${this.actions.map(
           (item) => html`
             <ha-button
@@ -277,6 +293,13 @@ export class HaBulkBar extends LitElement {
     .count {
       margin-inline-end: var(--ha-space-2);
       font-weight: var(--ha-font-weight-medium);
+    }
+    .hidden-note {
+      font-size: var(--ha-font-size-s);
+      opacity: 0.8;
+    }
+    ::slotted([slot="actions"]) {
+      --ha-button-theme-color: currentColor;
     }
     .spacer {
       flex: 1 1 0;

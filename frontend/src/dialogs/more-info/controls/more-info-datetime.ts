@@ -1,8 +1,8 @@
-import { format } from "date-fns";
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
 import { consume } from "../../../common/decorators/consume";
 import "../../../components/ha-button";
 import "../../../components/ha-date-input";
@@ -16,6 +16,14 @@ import type {
   ValueChangedEvent,
 } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import {
+  calendarDaysFromToday,
+  getZonedParts,
+  todayInZone,
+  zonedWallTimeToDate,
+} from "./more-info-time-zone";
+
+const pad = (value: number) => String(value).padStart(2, "0");
 
 @customElement("more-info-datetime")
 class MoreInfoDatetime extends LitElement {
@@ -32,9 +40,21 @@ class MoreInfoDatetime extends LitElement {
 
   private _syncedState?: string;
 
+  // The profile time zone, not the browser one
+  private get _timeZone(): string {
+    return resolveTimeZone(
+      this.hass!.locale.time_zone,
+      this.hass!.config.time_zone
+    );
+  }
+
   protected willUpdate(changedProps: PropertyValues<this>): void {
     super.willUpdate(changedProps);
-    if (this.stateObj && this.stateObj.state !== this._syncedState) {
+    if (
+      this.hass &&
+      this.stateObj &&
+      this.stateObj.state !== this._syncedState
+    ) {
       this._syncedState = this.stateObj.state;
       this._resetDraft();
     }
@@ -64,24 +84,19 @@ class MoreInfoDatetime extends LitElement {
       this.stateObj.state === UNKNOWN ||
       draft.getTime() !== new Date(this.stateObj.state).getTime();
 
+    const zone = this._timeZone;
+    const zoned = getZonedParts(draft, zone);
     const headline = new Intl.DateTimeFormat(language, {
       day: "numeric",
       month: "short",
-      year:
-        draft.getFullYear() === new Date().getFullYear()
-          ? undefined
-          : "numeric",
+      year: zoned.year === todayInZone(zone).year ? undefined : "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZone: zone,
     }).format(draft);
-    const startOfDay = (date: Date) =>
-      new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-    const diff = Math.round(
-      (startOfDay(draft) - startOfDay(new Date())) / 86400000
-    );
     const relative = new Intl.RelativeTimeFormat(language, {
       numeric: "auto",
-    }).format(diff, "day");
+    }).format(calendarDaysFromToday(draft, zone), "day");
 
     return html`
       <div class="stack">
@@ -90,11 +105,11 @@ class MoreInfoDatetime extends LitElement {
         <div class="fields">
           <ha-date-input
             .locale=${this.hass.locale}
-            .value=${format(draft, "yyyy-MM-dd")}
+            .value=${`${zoned.year}-${pad(zoned.month)}-${pad(zoned.day)}`}
             @value-changed=${this._dateChanged}
           ></ha-date-input>
           <ha-time-input
-            .value=${format(draft, "HH:mm:ss")}
+            .value=${`${pad(zoned.hour)}:${pad(zoned.minute)}:${pad(zoned.second)}`}
             .locale=${this.hass.locale}
             @value-changed=${this._timeChanged}
             @click=${this._stopEventPropagation}
@@ -142,10 +157,12 @@ class MoreInfoDatetime extends LitElement {
   }
 
   private _presetTime(hour: number) {
+    // A wall clock reading, so it is formatted without any zone shift
     return new Intl.DateTimeFormat(this.hass!.locale.language, {
       hour: "numeric",
       minute: "2-digit",
-    }).format(new Date(2023, 0, 1, hour));
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(2023, 0, 1, hour)));
   }
 
   private _stopEventPropagation(ev: Event): void {
@@ -154,19 +171,35 @@ class MoreInfoDatetime extends LitElement {
 
   private _timeChanged(ev: ValueChangedEvent<string>): void {
     if (ev.detail.value && this._draft) {
-      const next = new Date(this._draft);
+      const zone = this._timeZone;
+      const current = getZonedParts(this._draft, zone);
       const [hours, minutes, seconds] = ev.detail.value.split(":").map(Number);
-      next.setHours(hours, minutes, seconds || 0);
-      this._draft = next;
+      this._draft = zonedWallTimeToDate(
+        zone,
+        current.year,
+        current.month,
+        current.day,
+        hours,
+        minutes,
+        seconds || 0
+      );
     }
   }
 
   private _dateChanged(ev: ValueChangedEvent<string>): void {
     if (ev.detail.value && this._draft) {
-      const next = new Date(this._draft);
+      const zone = this._timeZone;
+      const current = getZonedParts(this._draft, zone);
       const [year, month, day] = ev.detail.value.split("-").map(Number);
-      next.setFullYear(year, month - 1, day);
-      this._draft = next;
+      this._draft = zonedWallTimeToDate(
+        zone,
+        year,
+        month,
+        day,
+        current.hour,
+        current.minute,
+        current.second
+      );
     }
   }
 
@@ -182,11 +215,17 @@ class MoreInfoDatetime extends LitElement {
         when: { days: number; hour: number };
       }
     ).when;
-    const now = new Date();
-    this._draft = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + when.days,
+    // Days are counted on the zone calendar, so a daylight-saving change
+    // between today and the target day cannot shift the wall clock time
+    const today = todayInZone(this._timeZone);
+    const target = new Date(
+      Date.UTC(today.year, today.month - 1, today.day + when.days)
+    );
+    this._draft = zonedWallTimeToDate(
+      this._timeZone,
+      target.getUTCFullYear(),
+      target.getUTCMonth() + 1,
+      target.getUTCDate(),
       when.hour
     );
   }

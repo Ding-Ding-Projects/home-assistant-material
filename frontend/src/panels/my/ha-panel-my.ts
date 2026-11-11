@@ -1,20 +1,23 @@
-import { sanitizeUrl } from "@braintree/sanitize-url";
-import { html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { mdiLinkVariant } from "@mdi/js";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, query, state } from "lit/decorators";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import {
   protocolIntegrationPicked,
   PROTOCOL_INTEGRATIONS,
 } from "../../common/integrations/protocolIntegrationPicked";
 import { navigate } from "../../common/navigate";
-import {
-  createSearchParam,
-  extractSearchParamsObject,
-} from "../../common/url/search-params";
+import { extractSearchParamsObject } from "../../common/url/search-params";
+import "../../components/ha-button";
+import type { HaButton } from "../../components/ha-button";
+import "../../components/ha-svg-icon";
 import { domainToName } from "../../data/integration";
 import "../../layouts/hass-error-screen";
 import type { HomeAssistant, Route } from "../../types";
 import { documentationUrl } from "../../util/documentation-url";
+import type { MyRedirectPlan } from "./my-redirect-plan";
+import { planMyRedirect } from "./my-redirect-plan";
 
 // When a user presses "m", the user is redirected to the first redirect
 // for which holds true currentPath.startsWith(redirect.redirect)
@@ -746,6 +749,10 @@ class HaPanelMy extends LitElement {
 
   @state() public _error?: string;
 
+  @state() private _plan?: Extract<MyRedirectPlan, { type: "confirm" }>;
+
+  @query("#cancel") private _cancelButton?: HaButton;
+
   private _redirect?: Redirect;
 
   connectedCallback() {
@@ -757,61 +764,255 @@ class HaPanelMy extends LitElement {
 
     this._redirect = getRedirect(path);
 
-    if (!this._redirect) {
-      this._error = "not_supported";
+    const component = this._redirect?.component;
+    const componentLoaded =
+      !component || isComponentLoaded(this.hass.config, component);
+
+    if (component) {
+      this.hass.loadBackendTranslation("title", component).then(() => {
+        this.requestUpdate();
+      });
+    }
+
+    const plan = planMyRedirect(this._redirect, {
+      params: extractSearchParamsObject(),
+      hasExternalSettingsScreen:
+        !!this.hass.auth.external?.config.hasSettingsScreen,
+      componentLoaded,
+      isProtocolIntegration:
+        !!component &&
+        (PROTOCOL_INTEGRATIONS as readonly string[]).includes(component),
+    });
+
+    if (plan.type === "error") {
+      this._error = plan.error;
       return;
     }
 
-    if (this._redirect.redirect === "#external-app-configuration") {
-      if (this.hass.auth.external?.config.hasSettingsScreen) {
-        this.hass.auth.external!.fireMessage({ type: "config_screen/show" });
-        return;
-      }
-      this._error = "not_app";
-      return;
-    }
+    // Nothing is performed until the person chooses.
+    this._plan = plan;
+  }
 
-    if (
-      this._redirect.component &&
-      !isComponentLoaded(this.hass.config, this._redirect.component)
-    ) {
-      this.hass.loadBackendTranslation("title", this._redirect.component);
-      this._error =
-        this._redirect.component === "hassio"
-          ? "no_supervisor"
-          : "no_component";
-      const component = this._redirect.component;
-      if ((PROTOCOL_INTEGRATIONS as readonly string[]).includes(component)) {
-        const params = extractSearchParamsObject();
-        this.hass
-          .loadFragmentTranslation("config")
-          .then()
-          .then(() => {
-            protocolIntegrationPicked(this, this.hass, component, {
-              domain: params.domain,
-              brand: params.brand,
-            });
-          });
-      }
-      return;
-    }
+  protected firstUpdated() {
+    this._cancelButton?.focus();
+  }
 
-    let url: string;
-    try {
-      url = this._createRedirectUrl();
-    } catch (_err: any) {
-      this._error = "url_error";
-      return;
-    }
-
-    if (this._redirect.navigate_outside_spa) {
-      location.assign(url);
-    } else {
-      navigate(url, { replace: true });
+  protected updated(changedProps: PropertyValues) {
+    if (changedProps.has("_plan") && this._plan) {
+      this._cancelButton?.focus();
     }
   }
 
+  private _handleKeydown(ev: KeyboardEvent) {
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      this._cancel();
+    }
+  }
+
+  private _cancel() {
+    this._plan = undefined;
+    navigate("/", { replace: true });
+  }
+
+  private _open() {
+    const plan = this._plan;
+    if (!plan) {
+      return;
+    }
+    this._plan = undefined;
+
+    if (plan.action === "external_app") {
+      this.hass.auth.external!.fireMessage({ type: "config_screen/show" });
+      return;
+    }
+
+    if (plan.action === "protocol_picker") {
+      const component = plan.component!;
+      this._error = plan.errorAfter;
+      const params = extractSearchParamsObject();
+      this.hass
+        .loadFragmentTranslation("config")
+        .then()
+        .then(() => {
+          protocolIntegrationPicked(this, this.hass, component, {
+            domain: params.domain,
+            brand: params.brand,
+          });
+        });
+      return;
+    }
+
+    if (plan.navigateOutsideSpa) {
+      location.assign(plan.url!);
+    } else {
+      navigate(plan.url!, { replace: true });
+    }
+  }
+
+  private _destinationName(plan: MyRedirectPlan & { type: "confirm" }) {
+    if (plan.action === "external_app") {
+      return this.hass.localize("ui.panel.my.external_app_name");
+    }
+    if (plan.component) {
+      return domainToName(this.hass.localize, plan.component);
+    }
+    return plan.path;
+  }
+
+  private _renderConfirm(plan: Extract<MyRedirectPlan, { type: "confirm" }>) {
+    const destination = this._destinationName(plan);
+    return html`
+      <div class="wrapper" @keydown=${this._handleKeydown}>
+        <section
+          class="card"
+          role="group"
+          aria-labelledby="my-title"
+          aria-describedby="my-description"
+        >
+          <div class="icon">
+            <ha-svg-icon .path=${mdiLinkVariant}></ha-svg-icon>
+          </div>
+          <h1 id="my-title">
+            ${this.hass.localize("ui.panel.my.confirm_title", { destination })}
+          </h1>
+          <p id="my-description">
+            ${this.hass.localize("ui.panel.my.confirm_description", {
+              destination,
+            })}
+          </p>
+          ${
+            plan.action === "external_app"
+              ? nothing
+              : html`
+                  <div class="field">
+                    <span class="label"
+                      >${this.hass.localize("ui.panel.my.path_label")}</span
+                    >
+                    <span class="value">${plan.path}</span>
+                  </div>
+                `
+          }
+          ${
+            plan.params.length
+              ? html`
+                  <div class="field">
+                    <span class="label"
+                      >${this.hass.localize("ui.panel.my.params_label")}</span
+                    >
+                    <ul class="params">
+                      ${plan.params.map(
+                        ([key, value]) =>
+                          html`<li class="value">${`${key}=${value}`}</li>`
+                      )}
+                    </ul>
+                  </div>
+                `
+              : nothing
+          }
+          <div class="field">
+            <span class="label"
+              >${this.hass.localize("ui.panel.my.instance_label")}</span
+            >
+            <span class="value">${location.origin}</span>
+          </div>
+          <div class="actions">
+            <ha-button id="cancel" appearance="outlined" @click=${this._cancel}>
+              ${this.hass.localize("ui.panel.my.cancel")}
+            </ha-button>
+            <ha-button id="open" @click=${this._open}>
+              ${this.hass.localize("ui.panel.my.open")}
+            </ha-button>
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+      min-height: 100%;
+      box-sizing: border-box;
+    }
+    .wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--ha-space-4);
+      box-sizing: border-box;
+    }
+    .card {
+      width: 100%;
+      max-width: 560px;
+      box-sizing: border-box;
+      padding: var(--ha-space-8, 32px) var(--ha-space-6, 24px);
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      box-shadow: var(--ha-card-box-shadow, none);
+    }
+    .icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--ha-color-fill-primary-quiet-resting);
+      color: var(--primary-color);
+    }
+    h1 {
+      margin: var(--ha-space-5, 20px) 0 var(--ha-space-3);
+      font-size: var(--ha-font-size-xl, 22px);
+      font-weight: var(--ha-font-weight-normal);
+      overflow-wrap: anywhere;
+    }
+    p {
+      margin: 0 0 var(--ha-space-4);
+      color: var(--secondary-text-color);
+      line-height: var(--ha-line-height-normal);
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      margin-bottom: var(--ha-space-3);
+      padding: var(--ha-space-3) var(--ha-space-4);
+      border-radius: var(--ha-border-radius-lg, 12px);
+      background: var(--ha-color-fill-neutral-quiet-resting);
+    }
+    .label {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+    .value {
+      font-family: var(--ha-font-family-code);
+      overflow-wrap: anywhere;
+    }
+    .params {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--ha-space-3);
+      margin-top: var(--ha-space-4);
+    }
+    .actions ha-button {
+      --ha-button-height: 44px;
+      min-width: 44px;
+    }
+  `;
+
   protected render() {
+    if (this._plan) {
+      return this._renderConfirm(this._plan);
+    }
     if (this._error) {
       let error: string;
       switch (this._error) {
@@ -875,104 +1076,6 @@ class HaPanelMy extends LitElement {
       ></hass-error-screen>`;
     }
     return nothing;
-  }
-
-  private _createRedirectUrl(): string {
-    const params = extractSearchParamsObject();
-
-    // The Marketplace took over HACS, links to its integration page still say hacs
-    if (
-      this._redirect!.redirect === "/config/integrations/integration" &&
-      params.domain === "hacs"
-    ) {
-      const marketplaceParams = new URLSearchParams(
-        this._createRedirectParams()
-      );
-
-      marketplaceParams.set("domain", "marketplace");
-
-      return `${this._redirect!.redirect}?${marketplaceParams}`;
-    }
-
-    // Special case for supervisor_app/supervisor_addon: use path-based URL
-    // Support both "app" (new) and "addon" (legacy) parameters
-    if (this._redirect!.redirect === "/config/app") {
-      const appSlug = params.app || params.addon;
-      if (appSlug) {
-        delete params.app;
-        delete params.addon;
-        const optionalParams = this._createOptionalParams(params);
-        return `/config/app/${appSlug}/info${optionalParams}`;
-      }
-    }
-
-    const resultParams = this._createRedirectParams();
-    return `${this._redirect!.redirect}${resultParams}`;
-  }
-
-  private _createRedirectParams(): string {
-    const params = extractSearchParamsObject();
-    if (
-      !this._redirect!.params &&
-      !this._redirect!.optional_params &&
-      !Object.keys(params).length
-    ) {
-      return "";
-    }
-    const resultParams = {};
-    for (const [key, type] of Object.entries(this._redirect!.params || {})) {
-      const value = params[key];
-      if (!value && type.endsWith("?")) {
-        continue;
-      }
-      if (!value || !this._checkParamType(type, value)) {
-        throw Error();
-      }
-      resultParams[key] = value;
-    }
-    for (const [key, type] of Object.entries(
-      this._redirect!.optional_params || {}
-    )) {
-      const value = params[key];
-      if (value) {
-        if (!this._checkParamType(type, value)) {
-          throw Error();
-        }
-        resultParams[key] = value;
-      }
-    }
-    return Object.keys(resultParams).length
-      ? `?${createSearchParam(resultParams)}`
-      : "";
-  }
-
-  private _createOptionalParams(params: Record<string, string>): string {
-    if (!this._redirect!.optional_params) {
-      return "";
-    }
-    const resultParams = {};
-    for (const [key, type] of Object.entries(this._redirect!.optional_params)) {
-      const value = params[key];
-      if (value) {
-        if (!this._checkParamType(type, value)) {
-          throw Error();
-        }
-        resultParams[key] = value;
-      }
-    }
-    return Object.keys(resultParams).length
-      ? `?${createSearchParam(resultParams)}`
-      : "";
-  }
-
-  private _checkParamType(type: ParamType, value: string) {
-    if (type === "string" || type === "string?") {
-      return true;
-    }
-    if (type === "url") {
-      return value && value === sanitizeUrl(value);
-    }
-    return false;
   }
 }
 

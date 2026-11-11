@@ -20,6 +20,7 @@ import {
 } from "../../common/preferences/personal-preferences";
 import { fireEvent } from "../../common/dom/fire_event";
 import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../common/string/compare";
 import "../../components/entity/state-badge";
@@ -110,6 +111,26 @@ export class QuickBar extends LitElement {
   @state()
   @consume({ context: relatedContext, subscribe: true })
   private _relatedIdSets?: RelatedIdSets;
+
+  private _lang = new LanguageModeController(this);
+
+  /** A string from the quick bar block, in the chosen language mode. */
+  private _t = (key: string, values?: Record<string, string | number>) =>
+    this._lang.text(this.hass.localize, key, values);
+
+  /**
+   * The same hass object with a localize that follows the language mode for
+   * the quick bar block only. Every other key is left as it was.
+   */
+  private _modeHass = memoizeOne(
+    (hass: HomeAssistant, _mode: string): HomeAssistant => ({
+      ...hass,
+      localize: ((key: string, values?: Record<string, string | number>) =>
+        key.startsWith("ui.dialogs.quick-bar.")
+          ? this._lang.text(hass.localize, key, values)
+          : (hass.localize as any)(key, values)) as HomeAssistant["localize"],
+    })
+  );
 
   @state() private _open = false;
 
@@ -260,21 +281,21 @@ export class QuickBar extends LitElement {
     const sections = [
       {
         id: "navigate",
-        label: this.hass.localize("ui.dialogs.quick-bar.navigate_title"),
+        label: this._t("ui.dialogs.quick-bar.navigate_title"),
       },
       ...(this.hass.user?.is_admin
         ? [
             "separator" as const,
             {
               id: "command",
-              label: this.hass.localize("ui.dialogs.quick-bar.commands_title"),
+              label: this._t("ui.dialogs.quick-bar.commands_title"),
             },
           ]
         : []),
       "separator" as const,
       {
         id: "setting",
-        label: this.hass.localize("ui.dialogs.quick-bar.settings_title"),
+        label: this._t("ui.dialogs.quick-bar.settings_title"),
       },
       {
         id: "entity",
@@ -302,7 +323,7 @@ export class QuickBar extends LitElement {
       <ha-adaptive-dialog
         without-header
         flexcontent
-        aria-label=${this.hass.localize("ui.dialogs.quick-bar.title")}
+        aria-label=${this._t("ui.dialogs.quick-bar.title")}
         .open=${this._open}
         hideActions
         @wa-show=${this._showTriggered}
@@ -314,10 +335,8 @@ export class QuickBar extends LitElement {
             ? html`<ha-picker-combo-box
                 id="combo-box"
                 @index-selected=${this._handleItemSelected}
-                .notFoundLabel=${this.hass.localize(
-                  "ui.dialogs.quick-bar.nothing_found"
-                )}
-                .label=${this.hass.localize("ui.dialogs.quick-bar.title")}
+                .notFoundLabel=${this._t("ui.dialogs.quick-bar.nothing_found")}
+                .label=${this._t("ui.dialogs.quick-bar.title")}
                 .getItems=${this._getItems}
                 .rowRenderer=${this._getRowRenderer(
                   this._runningCommandId,
@@ -335,24 +354,24 @@ export class QuickBar extends LitElement {
         <div
           slot="footer"
           class="hints"
-          aria-label=${this.hass.localize("ui.dialogs.quick-bar.hints_title")}
+          aria-label=${this._t("ui.dialogs.quick-bar.hints_title")}
         >
           <span class="hint"
-            ><kbd>↑</kbd><kbd>↓</kbd>${this.hass.localize(
+            ><kbd>↑</kbd><kbd>↓</kbd>${this._t(
               "ui.dialogs.quick-bar.hint_move"
             )}</span
           >
           <span class="hint"
-            ><kbd>${this.hass.localize("ui.dialogs.quick-bar.key_enter")}</kbd
-            >${this.hass.localize("ui.dialogs.quick-bar.hint_go")}</span
+            ><kbd>${this._t("ui.dialogs.quick-bar.key_enter")}</kbd
+            >${this._t("ui.dialogs.quick-bar.hint_go")}</span
           >
           <span class="hint"
             ><kbd>${ctrlOrCmdLabel(this.hass.localize)}</kbd
-            >+<kbd>${this.hass.localize("ui.dialogs.quick-bar.key_enter")}</kbd>${this.hass.localize("ui.dialogs.quick-bar.hint_new_tab")}</span
+            >+<kbd>${this._t("ui.dialogs.quick-bar.key_enter")}</kbd>${this._t("ui.dialogs.quick-bar.hint_new_tab")}</span
           >
           <span class="hint"
-            ><kbd>${this.hass.localize("ui.dialogs.quick-bar.key_click")}</kbd
-            >${this.hass.localize("ui.dialogs.quick-bar.hint_use_here")}</span
+            ><kbd>${this._t("ui.dialogs.quick-bar.key_click")}</kbd
+            >${this._t("ui.dialogs.quick-bar.hint_use_here")}</span
           >
         </div>
         ${
@@ -596,7 +615,8 @@ export class QuickBar extends LitElement {
       this._configEntryLookup,
       this._relatedIdSets,
       searchString,
-      this._selectedSection
+      this._selectedSection,
+      this._lang.mode
     );
   };
 
@@ -605,7 +625,8 @@ export class QuickBar extends LitElement {
       configEntryLookup: Record<string, ConfigEntry>,
       relatedIdSets: RelatedIdSets | undefined,
       filter?: string,
-      section?: QuickBarSection
+      section?: QuickBarSection,
+      _mode?: string
     ) => {
       const items: (string | QuickBarComboBoxItem)[] = [];
       const prompt = filter?.trim();
@@ -617,7 +638,7 @@ export class QuickBar extends LitElement {
           ? ({
               id: "ask-assist",
               action: "assist",
-              primary: this.hass.localize("ui.dialogs.quick-bar.ask_assist", {
+              primary: this._t("ui.dialogs.quick-bar.ask_assist", {
                 query: prompt,
               }),
               icon_path: mdiCommentProcessingOutline,
@@ -627,7 +648,7 @@ export class QuickBar extends LitElement {
 
       if (!section || section === "navigate") {
         let navigateItems = this._generateNavigationCommandsMemoized(
-          this.hass,
+          this._modeHass(this.hass, this._lang.mode),
           this._addons,
           this._navigationFilterOptions
         ).sort(this._sortBySortingLabel);
@@ -642,7 +663,7 @@ export class QuickBar extends LitElement {
 
         if (!section && navigateItems.length) {
           // show group title
-          items.push(this.hass.localize("ui.dialogs.quick-bar.navigate_title"));
+          items.push(this._t("ui.dialogs.quick-bar.navigate_title"));
         }
 
         items.push(...navigateItems);
@@ -650,9 +671,9 @@ export class QuickBar extends LitElement {
 
       if (!section || section === "command") {
         let commandItems = this.hass.user?.is_admin
-          ? this._generateActionCommandsMemoized(this.hass).sort(
-              this._sortBySortingLabel
-            )
+          ? this._generateActionCommandsMemoized(
+              this._modeHass(this.hass, this._lang.mode)
+            ).sort(this._sortBySortingLabel)
           : [];
 
         if (filter) {
@@ -665,7 +686,7 @@ export class QuickBar extends LitElement {
 
         if (!section && (commandItems.length || assistItem)) {
           // show group title
-          items.push(this.hass.localize("ui.dialogs.quick-bar.commands_title"));
+          items.push(this._t("ui.dialogs.quick-bar.commands_title"));
         }
 
         items.push(...commandItems);
@@ -684,7 +705,7 @@ export class QuickBar extends LitElement {
         }
 
         if (!section && settingItems.length) {
-          items.push(this.hass.localize("ui.dialogs.quick-bar.settings_title"));
+          items.push(this._t("ui.dialogs.quick-bar.settings_title"));
         }
 
         items.push(...(settingItems as SettingComboBoxItem[]));

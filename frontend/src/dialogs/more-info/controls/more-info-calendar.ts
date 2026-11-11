@@ -5,7 +5,10 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
+import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
 import { useAmPm } from "../../../common/datetime/use_am_pm";
+import { fireEvent } from "../../../common/dom/fire_event";
+import { navigate } from "../../../common/navigate";
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import "../../../components/ha-button";
 import "../../../components/ha-spinner";
@@ -20,14 +23,17 @@ import type { ExtEntityRegistryEntry } from "../../../data/entity/entity_registr
 import { showCalendarEventEditDialog } from "../../../panels/calendar/show-dialog-calendar-event-editor";
 import type { HomeAssistant } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import {
+  parseCalendarValue,
+  startOfDayInZone,
+  todayInZone,
+  zonedWallTimeToDate,
+} from "./more-info-time-zone";
 
 // The list shows the next 7 days, the calendar panel has the other views
 const DAYS_AHEAD = 7;
 
 const isDateOnly = (value: string) => value.length <= 10;
-
-const parseValue = (value: string): Date =>
-  isDateOnly(value) ? new Date(`${value}T00:00:00`) : new Date(value);
 
 @customElement("more-info-calendar")
 class MoreInfoCalendar extends LitElement {
@@ -42,6 +48,52 @@ class MoreInfoCalendar extends LitElement {
   private _calendars: Calendar[] = [];
 
   private _subscribed = false;
+
+  // The profile time zone, not the browser one
+  private get _timeZone(): string {
+    return resolveTimeZone(
+      this.hass.locale.time_zone,
+      this.hass.config.time_zone
+    );
+  }
+
+  private _parseValue(value: string): Date {
+    return parseCalendarValue(value, this.hass.config.time_zone);
+  }
+
+  // The attributes hold the server clock reading without an offset
+  private _parseAttribute(value: unknown): Date {
+    const text = String(value).replace(" ", "T");
+    return text.length <= 10
+      ? new Date(`${text}T00:00:00`)
+      : parseCalendarValue(text, this.hass.config.time_zone);
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._listenForReconnect();
+    // The events were dropped when the element was detached
+    if (this._subscribed) {
+      this._subscribe();
+    }
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.hass?.connection.removeEventListener("ready", this._handleReady);
+  }
+
+  private _listenForReconnect() {
+    const connection = this.hass?.connection;
+    // Adding the same listener twice is a no-op
+    connection?.addEventListener("ready", this._handleReady);
+  }
+
+  // After a reconnect the subscription is made again, which also moves the
+  // range on when the day has changed meanwhile
+  private _handleReady = () => {
+    this._subscribe();
+  };
 
   protected willUpdate(changedProps: PropertyValues<this>): void {
     super.willUpdate(changedProps);
@@ -65,16 +117,25 @@ class MoreInfoCalendar extends LitElement {
 
   protected firstUpdated(changedProps: PropertyValues<this>): void {
     super.firstUpdated(changedProps);
+    this._listenForReconnect();
     this._subscribe();
   }
 
   private async _subscribe(): Promise<void> {
     this._subscribed = true;
     await this._events.unsubscribeAll();
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + DAYS_AHEAD);
+    const zone = this._timeZone;
+    const today = todayInZone(zone);
+    const start = startOfDayInZone(zone);
+    const last = new Date(
+      Date.UTC(today.year, today.month - 1, today.day + DAYS_AHEAD)
+    );
+    const end = zonedWallTimeToDate(
+      zone,
+      last.getUTCFullYear(),
+      last.getUTCMonth() + 1,
+      last.getUTCDate()
+    );
     this._events.subscribe(this.hass, this._calendars, start, end);
   }
 
@@ -129,7 +190,7 @@ class MoreInfoCalendar extends LitElement {
                 </ha-button>`
               : nothing
           }
-          <ha-button appearance="outlined" href="/calendar">
+          <ha-button appearance="outlined" @click=${this._openCalendar}>
             <ha-svg-icon slot="start" .path=${mdiCalendar}></ha-svg-icon>
             ${localize("ui.dialogs.more_info_control.calendar.open")}
           </ha-button>
@@ -146,7 +207,7 @@ class MoreInfoCalendar extends LitElement {
     const now = Date.now();
     return [...this._events.events]
       .filter((event) => {
-        const end = event.end ? parseValue(event.end).getTime() : 0;
+        const end = event.end ? this._parseValue(event.end).getTime() : 0;
         if (end && end <= now) {
           return false;
         }
@@ -154,12 +215,14 @@ class MoreInfoCalendar extends LitElement {
           message !== undefined &&
           event.title === message &&
           currentStart !== undefined &&
-          parseValue(event.start).getTime() ===
-            new Date(currentStart.replace(" ", "T")).getTime()
+          this._parseValue(event.start).getTime() ===
+            this._parseAttribute(currentStart).getTime()
         );
       })
       .sort(
-        (a, b) => parseValue(a.start).getTime() - parseValue(b.start).getTime()
+        (a, b) =>
+          this._parseValue(a.start).getTime() -
+          this._parseValue(b.start).getTime()
       );
   }
 
@@ -168,15 +231,18 @@ class MoreInfoCalendar extends LitElement {
     if (!attrs.start_time) {
       return "";
     }
-    const start = new Date(String(attrs.start_time).replace(" ", "T"));
+    const start = this._parseAttribute(attrs.start_time);
     const end = attrs.end_time
-      ? new Date(String(attrs.end_time).replace(" ", "T"))
+      ? this._parseAttribute(attrs.end_time)
       : undefined;
+    const timeZone = this._timeZone;
     const language = this.hass.locale.language;
     const day = new Intl.DateTimeFormat(language, {
       weekday: "short",
       day: "numeric",
       month: "short",
+      // An all-day date belongs to the server calendar and never shifts
+      timeZone: attrs.all_day ? this.hass.config.time_zone : timeZone,
     });
     if (attrs.all_day) {
       return day.format(start);
@@ -185,6 +251,7 @@ class MoreInfoCalendar extends LitElement {
       hour: "numeric",
       minute: "2-digit",
       hour12: useAmPm(this.hass.locale),
+      timeZone,
     });
     return end
       ? `${day.format(start)}, ${time.format(start)} – ${time.format(end)}`
@@ -193,18 +260,23 @@ class MoreInfoCalendar extends LitElement {
 
   private _renderEvent(event: CalendarEvent) {
     const language = this.hass.locale.language;
-    const start = parseValue(event.start);
+    const start = this._parseValue(event.start);
+    const allDay = isDateOnly(event.start);
+    // A date without a time is local midnight and is shown without a zone
+    const timeZone = allDay ? undefined : this._timeZone;
     const day = new Intl.DateTimeFormat(language, {
       weekday: "short",
       day: "numeric",
       month: "short",
+      timeZone,
     }).format(start);
-    const when = isDateOnly(event.start)
+    const when = allDay
       ? `${day}, ${this.hass.localize("ui.dialogs.more_info_control.calendar.all_day")}`
       : `${day}, ${new Intl.DateTimeFormat(language, {
           hour: "numeric",
           minute: "2-digit",
           hour12: useAmPm(this.hass.locale),
+          timeZone,
         }).format(start)}`;
     return html`
       <li class="event">
@@ -218,6 +290,11 @@ class MoreInfoCalendar extends LitElement {
         </span>
       </li>
     `;
+  }
+
+  private _openCalendar() {
+    navigate("/calendar");
+    fireEvent(this, "close-dialog");
   }
 
   private _createEvent() {

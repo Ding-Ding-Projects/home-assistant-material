@@ -122,6 +122,13 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
           message: this.hass!.localize("ui.notification_toast.connection_lost"),
           duration: -1,
           dismissable: false,
+          severity: "error",
+          action: {
+            text: this.hass!.localize("ui.status_screens.try_now"),
+            action: () => {
+              this.hass?.connection.reconnect(true);
+            },
+          },
         });
       }, 1000);
     }

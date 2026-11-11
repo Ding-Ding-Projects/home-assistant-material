@@ -58,7 +58,7 @@ describe("toCsv", () => {
 
 describe("documents", () => {
   it("escapes table cells in Markdown", () => {
-    expect(toMarkdown(page)).toContain("| Hall \\| <b> |");
+    expect(toMarkdown(page)).toContain("| Hall \\| \\<b\\> |");
   });
 
   it("escapes everything in HTML", () => {

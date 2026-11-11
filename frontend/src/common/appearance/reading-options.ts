@@ -94,9 +94,9 @@ export const FONT_CHOICES: Record<"body" | "heading" | "code", FontChoice[]> = {
   code: [
     {
       key: "theme",
-      name: "Browser monospace",
+      name: "Theme code font",
       stack: MONO_FALLBACK,
-      source: "device",
+      source: "bundled",
     },
     {
       key: "roboto-mono",
@@ -135,7 +135,20 @@ FONT_CHOICES.heading = FONT_CHOICES.body;
 export const normalizeReadingOptions = (
   stored?: Partial<ReadingOptions> | null
 ): ReadingOptions => {
-  const options = { ...DEFAULT_READING_OPTIONS, ...(stored || {}) };
+  // Build from the six known fields only, so stray stored keys never survive.
+  const source: Partial<ReadingOptions> =
+    stored && typeof stored === "object" && !Array.isArray(stored)
+      ? stored
+      : {};
+  const options: ReadingOptions = {
+    bodyFont: source.bodyFont ?? DEFAULT_READING_OPTIONS.bodyFont,
+    headingFont: source.headingFont ?? DEFAULT_READING_OPTIONS.headingFont,
+    codeFont: source.codeFont ?? DEFAULT_READING_OPTIONS.codeFont,
+    headingWeight:
+      source.headingWeight ?? DEFAULT_READING_OPTIONS.headingWeight,
+    lineSpacing: source.lineSpacing ?? DEFAULT_READING_OPTIONS.lineSpacing,
+    wideSpacing: source.wideSpacing ?? DEFAULT_READING_OPTIONS.wideSpacing,
+  };
   const known = (list: FontChoice[], key: unknown) =>
     typeof key === "string" && list.some((choice) => choice.key === key);
   if (!known(FONT_CHOICES.body, options.bodyFont)) {

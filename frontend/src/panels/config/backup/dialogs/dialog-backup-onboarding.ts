@@ -1,5 +1,5 @@
 import { mdiClose, mdiContentCopy, mdiDownload } from "@mdi/js";
-import type { CSSResultGroup, PropertyValues } from "lit";
+import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../../common/config/is_component_loaded";
@@ -12,6 +12,8 @@ import "../../../../components/ha-icon-button";
 import "../../../../components/ha-icon-button-prev";
 import "../../../../components/ha-icon-next";
 import "../../../../components/ha-svg-icon";
+import "../../../../components/ha-switch";
+import type { HaSwitch } from "../../../../components/ha-switch";
 import "../../../../components/item/ha-list-item-button";
 import "../../../../components/item/ha-row-item";
 import "../../../../components/list/ha-list-base";
@@ -42,7 +44,7 @@ import type { BackupOnboardingDialogParams } from "./show-dialog-backup_onboardi
 
 const STEPS = [
   "welcome",
-  "key",
+  "encryption",
   "setup",
   "schedule",
   "data",
@@ -53,7 +55,12 @@ type Step = (typeof STEPS)[number];
 
 const FULL_DIALOG_STEPS = new Set<Step>(["setup"]);
 
-const SAVE_STEPS = new Set<Step>(["schedule", "data", "locations"]);
+const SAVE_STEPS = new Set<Step>([
+  "encryption",
+  "schedule",
+  "data",
+  "locations",
+]);
 
 const RECOMMENDED_CONFIG: BackupConfig = {
   automatic_backups_configured: false,
@@ -113,7 +120,7 @@ class DialogBackupOnboarding
         create_backup: {
           ...RECOMMENDED_CONFIG.create_backup,
           agent_ids: this._defaultAgents,
-          password: generateEncryptionKey(),
+          password: this._params.config?.create_backup.password ?? null,
         },
       };
     }
@@ -202,13 +209,6 @@ class DialogBackupOnboarding
     this._step = STEPS[index + 1];
   }
 
-  protected updated(changedProps: PropertyValues) {
-    super.updated(changedProps);
-    if (changedProps.has("_step") && this._step === "key") {
-      this._save();
-    }
-  }
-
   protected render() {
     if (!this._params || !this._step) {
       return nothing;
@@ -293,17 +293,12 @@ class DialogBackupOnboarding
   }
 
   private _useRecommended() {
-    if (!this._config?.create_backup.password) {
-      // this should not happen, if there is no password set, restart the wizard
-      this.showDialog(this._params!);
-      return;
-    }
     this._config = {
       ...RECOMMENDED_CONFIG,
       create_backup: {
         ...RECOMMENDED_CONFIG.create_backup,
         agent_ids: this._defaultAgents,
-        password: this._config.create_backup.password,
+        password: this._config!.create_backup.password,
       },
     };
     this._updateDirtyState(this._config);
@@ -312,7 +307,7 @@ class DialogBackupOnboarding
 
   private get _stepTitle(): string {
     switch (this._step) {
-      case "key":
+      case "encryption":
       case "setup":
       case "schedule":
       case "data":
@@ -327,7 +322,7 @@ class DialogBackupOnboarding
 
   private _isStepValid(): boolean {
     switch (this._step) {
-      case "key":
+      case "encryption":
         return true;
       case "setup":
         return true;
@@ -367,44 +362,80 @@ class DialogBackupOnboarding
             </p>
           </div>
         `;
-      case "key":
+      case "encryption": {
+        const key = this._config.create_backup.password;
         return html`
           <p>
             ${this.hass.localize(
-              "ui.panel.config.backup.dialogs.onboarding.key.description"
+              "ui.panel.config.backup.dialogs.onboarding.encryption.description"
             )}
           </p>
-          <div class="encryption-key">
-            <p>${this._config.create_backup.password}</p>
-            <ha-icon-button
-              .path=${mdiContentCopy}
-              @click=${this._copyKeyToClipboard}
-            ></ha-icon-button>
-          </div>
           <ha-row-item>
             <span slot="headline">
               ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.download_emergency_kit"
+                "ui.panel.config.backup.encryption_key.encrypt_backups"
               )}
             </span>
             <span slot="supporting-text">
               ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.download_emergency_kit_description"
+                key
+                  ? "ui.panel.config.backup.encryption_key.encrypt_backups_on_description"
+                  : "ui.panel.config.backup.encryption_key.encrypt_backups_off_description"
               )}
             </span>
-            <ha-button
-              size="s"
-              appearance="plain"
+            <ha-switch
               slot="end"
-              @click=${this._downloadKey}
-            >
-              <ha-svg-icon .path=${mdiDownload} slot="start"></ha-svg-icon>
-              ${this.hass.localize(
-                "ui.panel.config.backup.encryption_key.download_emergency_kit_action"
-              )}
-            </ha-button>
+              .checked=${!!key}
+              @change=${this._encryptionToggled}
+            ></ha-switch>
           </ha-row-item>
+          ${
+            key
+              ? html`
+                  <p>
+                    ${this.hass.localize(
+                      "ui.panel.config.backup.dialogs.onboarding.encryption.key_description"
+                    )}
+                  </p>
+                  <div class="encryption-key">
+                    <p>${key}</p>
+                    <ha-icon-button
+                      .label=${this.hass.localize("ui.common.copy")}
+                      .path=${mdiContentCopy}
+                      @click=${this._copyKeyToClipboard}
+                    ></ha-icon-button>
+                  </div>
+                  <ha-row-item>
+                    <span slot="headline">
+                      ${this.hass.localize(
+                        "ui.panel.config.backup.encryption_key.download_emergency_kit"
+                      )}
+                    </span>
+                    <span slot="supporting-text">
+                      ${this.hass.localize(
+                        "ui.panel.config.backup.encryption_key.download_emergency_kit_description"
+                      )}
+                    </span>
+                    <ha-button
+                      size="s"
+                      appearance="plain"
+                      slot="end"
+                      @click=${this._downloadKey}
+                    >
+                      <ha-svg-icon
+                        .path=${mdiDownload}
+                        slot="start"
+                      ></ha-svg-icon>
+                      ${this.hass.localize(
+                        "ui.panel.config.backup.encryption_key.download_emergency_kit_action"
+                      )}
+                    </ha-button>
+                  </ha-row-item>
+                `
+              : nothing
+          }
         `;
+      }
       case "setup":
         return html`
           <ha-list-base class="full">
@@ -480,6 +511,23 @@ class DialogBackupOnboarding
         `;
     }
     return nothing;
+  }
+
+  private async _encryptionToggled(ev: Event) {
+    const enabled = (ev.target as HaSwitch).checked;
+    this._config = {
+      ...this._config!,
+      create_backup: {
+        ...this._config!.create_backup,
+        password: enabled ? generateEncryptionKey() : null,
+      },
+    };
+    this._updateDirtyState(this._config);
+    try {
+      await this._save();
+    } catch (err: any) {
+      showToast(this, { message: err?.message ?? String(err) });
+    }
   }
 
   private _downloadKey() {

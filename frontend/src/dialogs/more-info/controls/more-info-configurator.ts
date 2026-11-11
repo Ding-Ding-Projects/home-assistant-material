@@ -1,6 +1,8 @@
 import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { live } from "lit/directives/live";
 import { consume } from "../../../common/decorators/consume";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
@@ -28,6 +30,20 @@ export class MoreInfoConfigurator extends LitElement {
   private _i18n?: HomeAssistantInternationalization;
 
   private _fieldInput: Record<string, unknown> = {};
+
+  private _configureId?: unknown;
+
+  protected willUpdate(changedProps: PropertyValues<this>) {
+    if (!changedProps.has("stateObj")) {
+      return;
+    }
+    // A new configuration step must not inherit what was typed in the last one
+    const configureId = this.stateObj?.attributes.configure_id;
+    if (configureId !== this._configureId) {
+      this._configureId = configureId;
+      this._fieldInput = {};
+    }
+  }
 
   protected render() {
     if (this.stateObj?.state !== "configure") {
@@ -63,6 +79,7 @@ export class MoreInfoConfigurator extends LitElement {
               .label=${field.name}
               .name=${field.id}
               .type=${field.type}
+              .value=${live((this._fieldInput[field.id] as string) ?? "")}
               @change=${this._fieldChanged}
             ></ha-input>`
         )}

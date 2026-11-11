@@ -1,7 +1,7 @@
 import type { ContextType } from "@lit/context";
 import { mdiMinus, mdiPlus } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
-import { LitElement, css, html } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { consume } from "../../common/decorators/consume";
@@ -236,8 +236,26 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
     `;
   }
 
+  /** Board buttons stay focusable at a limit, so they use aria-disabled. */
+  private _handleBoardButton(ev: Event) {
+    if (
+      (ev.currentTarget as HTMLElement).getAttribute("aria-disabled") === "true"
+    ) {
+      return;
+    }
+    this._handleButton(ev);
+  }
+
   private _renderBoardStepper(temperature: number, color?: string) {
     const formatted = this._formatTarget(temperature);
+    const atMin = temperature <= this._min;
+    const atMax = temperature >= this._max;
+    const limitText = atMax
+      ? this._localize("ui.card.water_heater.maximum_reached")
+      : atMin
+        ? this._localize("ui.card.water_heater.minimum_reached")
+        : "";
+    const current = this.stateObj.attributes.current_temperature;
     return html`
       <div
         class="stepper"
@@ -252,12 +270,14 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
           aria-label=${this._localize(
             "ui.components.climate-control.temperature_down"
           )}
-          @click=${this._handleButton}
+          aria-disabled=${atMin ? "true" : "false"}
+          @click=${this._handleBoardButton}
         >
           <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
         </button>
-        <span class="stepper-value" role="status" aria-live="polite">
-          ${formatted}
+        <span class="stepper-value" aria-hidden="true">${formatted}</span>
+        <span class="visually-hidden" role="status" aria-live="polite">
+          ${formatted}${limitText ? html`. ${limitText}` : nothing}
         </span>
         <button
           type="button"
@@ -266,11 +286,26 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
           aria-label=${this._localize(
             "ui.components.climate-control.temperature_up"
           )}
-          @click=${this._handleButton}
+          aria-disabled=${atMax ? "true" : "false"}
+          @click=${this._handleBoardButton}
         >
           <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
         </button>
       </div>
+      ${
+        current != null
+          ? html`
+              <p class="board-status">
+                ${this._localize("ui.card.water_heater.currently")}
+                ${this._formatters.formatEntityAttributeValue(
+                  this.stateObj,
+                  "current_temperature",
+                  current
+                )}
+              </p>
+            `
+          : nothing
+      }
     `;
   }
 
@@ -417,6 +452,29 @@ export class HaStateControlWaterHeaterTemperature extends LitElement {
         .step:focus-visible {
           outline: 2px solid var(--primary-text-color);
           outline-offset: 2px;
+        }
+        .step[aria-disabled="true"] {
+          opacity: 0.38;
+          cursor: not-allowed;
+        }
+        :host([board]) {
+          display: block;
+        }
+        .visually-hidden {
+          position: absolute;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          height: 1px;
+          width: 1px;
+          margin: -1px;
+          padding: 0;
+          border: 0;
+        }
+        .board-status {
+          margin: var(--ha-space-3) 0 0;
+          text-align: center;
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-m);
         }
       `,
     ];

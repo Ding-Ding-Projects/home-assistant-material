@@ -26,6 +26,30 @@ describe("normalizeReadingOptions", () => {
     ).toEqual(DEFAULT_READING_OPTIONS);
   });
 
+  it("keeps only the six known fields and ignores non-objects", () => {
+    const options = normalizeReadingOptions({
+      bodyFont: "georgia",
+      stray: "kept?",
+    } as never);
+    expect(Object.keys(options).sort()).toEqual(
+      Object.keys(DEFAULT_READING_OPTIONS).sort()
+    );
+    expect(options.bodyFont).toBe("georgia");
+    expect(normalizeReadingOptions({ stray: 1 } as never)).toEqual(
+      DEFAULT_READING_OPTIONS
+    );
+    expect(
+      isDefaultReadingOptions(normalizeReadingOptions({ stray: 1 } as never))
+    ).toBe(true);
+    expect(normalizeReadingOptions("text" as never)).toEqual(
+      DEFAULT_READING_OPTIONS
+    );
+    expect(normalizeReadingOptions([1, 2] as never)).toEqual(
+      DEFAULT_READING_OPTIONS
+    );
+    expect(normalizeReadingOptions(null)).toEqual(DEFAULT_READING_OPTIONS);
+  });
+
   it("keeps valid choices", () => {
     const options = normalizeReadingOptions({
       bodyFont: "georgia",
@@ -75,5 +99,16 @@ describe("availableFonts", () => {
     const some = availableFonts((families) => families.includes("Georgia"));
     expect(some.body.map((choice) => choice.key)).toContain("georgia");
     expect(some.body.map((choice) => choice.key)).not.toContain("atkinson");
+  });
+
+  it("does not offer a stored typeface that is absent from this device", () => {
+    // A stored choice is still a valid catalogue key, so it survives
+    // normalizing, but the dialog must notice it is not in the offered list.
+    const stored = normalizeReadingOptions({ bodyFont: "atkinson" });
+    expect(stored.bodyFont).toBe("atkinson");
+    const offered = availableFonts(() => false).body.map(
+      (choice) => choice.key
+    );
+    expect(offered).not.toContain(stored.bodyFont);
   });
 });

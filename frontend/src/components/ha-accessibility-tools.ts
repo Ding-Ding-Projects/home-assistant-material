@@ -95,6 +95,9 @@ export class HaAccessibilityTools extends LitElement {
 
   private _closedAt = 0;
 
+  /** The control that opened the panel, so focus can go back to it. */
+  private _trigger?: HTMLElement;
+
   /** Opens the panel, or closes it when it is open. */
   public toggle() {
     if (!this._panel) {
@@ -109,6 +112,7 @@ export class HaAccessibilityTools extends LitElement {
     if (Date.now() - this._closedAt < 250) {
       return;
     }
+    this._rememberTrigger();
     this._panel.showPopover();
   }
 
@@ -409,7 +413,21 @@ export class HaAccessibilityTools extends LitElement {
   private _toggled(ev: ToggleEvent) {
     if (ev.newState === "closed") {
       this._closedAt = Date.now();
+      return;
     }
+    // Move focus into the panel, to its first usable control.
+    this._panel?.querySelector<HTMLElement>("button:not([disabled])")?.focus();
+  }
+
+  private _rememberTrigger() {
+    let active: Element | null = document.activeElement;
+    while (active?.shadowRoot?.activeElement) {
+      active = active.shadowRoot.activeElement;
+    }
+    this._trigger =
+      active instanceof HTMLElement && active !== document.body
+        ? active
+        : undefined;
   }
 
   private _textSmaller() {
@@ -481,6 +499,9 @@ export class HaAccessibilityTools extends LitElement {
 
   private _fontsClosed() {
     this._fontsOpen = false;
+    if (this._trigger?.isConnected) {
+      this._trigger.focus();
+    }
   }
 
   private _keyboardHelp() {
@@ -599,6 +620,7 @@ export class HaAccessibilityTools extends LitElement {
     }
     .row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: var(--ha-space-3);
       min-height: var(--ha-space-14);
@@ -633,8 +655,9 @@ export class HaAccessibilityTools extends LitElement {
     .text {
       display: flex;
       flex-direction: column;
-      flex: 1;
+      flex: 1 1 8em;
       min-width: 0;
+      overflow-wrap: anywhere;
     }
     .name {
       font-size: var(--ha-font-size-l);
@@ -666,7 +689,10 @@ export class HaAccessibilityTools extends LitElement {
     }
     .segments {
       display: flex;
-      flex: none;
+      flex-wrap: wrap;
+      flex: 0 1 auto;
+      min-width: 0;
+      justify-content: flex-end;
       padding: var(--ha-space-1);
       gap: var(--ha-space-1);
       border-radius: var(--ha-border-radius-pill);
@@ -681,7 +707,6 @@ export class HaAccessibilityTools extends LitElement {
       font-size: var(--ha-font-size-m);
       font-weight: var(--ha-font-weight-medium);
       color: var(--secondary-text-color);
-      white-space: nowrap;
     }
     .segments button[aria-checked="true"] {
       background-color: var(--primary-text-color);

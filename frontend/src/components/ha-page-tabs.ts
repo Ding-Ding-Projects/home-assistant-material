@@ -1,6 +1,18 @@
 import {
   mdiClose,
+  mdiChartBar,
+  mdiCodeBraces,
   mdiCog,
+  mdiConsole,
+  mdiFileCode,
+  mdiFormatListBulletedSquare,
+  mdiGestureTap,
+  mdiHistory,
+  mdiBug,
+  mdiMicrophone,
+  mdiCodeJson,
+  mdiPalette,
+  mdiCalendarClock,
   mdiFormatPaint,
   mdiMagnify,
   mdiHuman,
@@ -30,6 +42,7 @@ import {
   subscribeAccessibilitySettings,
 } from "../common/accessibility/accessibility-tools";
 import { storage } from "../common/decorators/storage";
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { fireEvent } from "../common/dom/fire_event";
 import { filterNavigationPages } from "../common/config/filter_navigation_pages";
 import { navigate } from "../common/navigate";
@@ -48,6 +61,7 @@ import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
 import type { LocalizeKeys } from "../common/translations/localize";
 import type { HomeAssistant, PanelInfo } from "../types";
 import { configSections } from "../panels/config/config-sections";
+import { isComponentLoaded } from "../common/config/is_component_loaded";
 import { isMac } from "../util/is_mac";
 import "./ha-icon";
 import {
@@ -81,6 +95,83 @@ interface CatalogSettingsEntry {
   title: string;
   iconPath?: string;
 }
+
+/**
+ * The tools pages, in the order the tools panel lists its own tabs. Each entry
+ * is a real route under /config/tools and uses the title that panel shows.
+ */
+interface CatalogToolDefinition {
+  panel: string;
+  translationKey: string;
+  iconPath: string;
+  /** Only listed when this component is loaded, as the tools panel does. */
+  component?: string;
+}
+
+const CATALOG_TOOLS: CatalogToolDefinition[] = [
+  {
+    panel: "yaml",
+    translationKey: "ui.panel.config.tools.tabs.yaml.title",
+    iconPath: mdiFileCode,
+  },
+  {
+    panel: "state",
+    translationKey: "ui.panel.config.tools.tabs.states.title",
+    iconPath: mdiFormatListBulletedSquare,
+  },
+  {
+    panel: "action",
+    translationKey: "ui.panel.config.tools.tabs.actions.title",
+    iconPath: mdiGestureTap,
+  },
+  {
+    panel: "action-history",
+    translationKey: "ui.panel.config.tools.tabs.action_history.title",
+    iconPath: mdiHistory,
+    component: "logbook",
+  },
+  {
+    panel: "template",
+    translationKey: "ui.panel.config.tools.tabs.templates.title",
+    iconPath: mdiCodeBraces,
+  },
+  {
+    panel: "event",
+    translationKey: "ui.panel.config.tools.tabs.events.title",
+    iconPath: mdiCalendarClock,
+  },
+  {
+    panel: "debug-console",
+    translationKey: "ui.panel.config.tools.tabs.debug_console.title",
+    iconPath: mdiConsole,
+    component: "debug_console",
+  },
+  {
+    panel: "statistics",
+    translationKey: "ui.panel.config.tools.tabs.statistics.title",
+    iconPath: mdiChartBar,
+  },
+  {
+    panel: "assist",
+    translationKey: "ui.panel.config.tools.tabs.assist.tab",
+    iconPath: mdiMicrophone,
+  },
+  {
+    panel: "base64",
+    translationKey: "ui.panel.config.tools.tabs.base64.title",
+    iconPath: mdiCodeJson,
+  },
+  {
+    panel: "colour",
+    translationKey: "ui.panel.config.tools.tabs.colour.title",
+    iconPath: mdiPalette,
+  },
+  {
+    panel: "debug",
+    translationKey: "ui.panel.config.tools.tabs.debug.title",
+    iconPath: mdiBug,
+  },
+];
 
 export interface PageTab {
   urlPath: string;
@@ -179,6 +270,12 @@ export class HaPageTabs extends LitElement {
 
   private _unsubAccessibility?: UnsubscribeFunc;
 
+  private _lang = new LanguageModeController(this);
+
+  /** A string from the page tabs block, in the chosen language mode. */
+  private _t = (key: string, values?: Record<string, string | number>) =>
+    this._lang.text(this.hass.localize, key, values);
+
   @state() private _filter = "";
 
   /** Tabs closed by the last bulk close, kept so it can be undone. */
@@ -209,7 +306,7 @@ export class HaPageTabs extends LitElement {
       <div
         class="tablist"
         role="tablist"
-        aria-label=${this.hass.localize("ui.page_tabs.open_pages")}
+        aria-label=${this._t("ui.page_tabs.open_pages")}
         aria-owns=${open.map((_tab, index) => `page-tab-${index}`).join(" ")}
       ></div>
       <div class="tabs" @keydown=${this._handleTabKeydown}>
@@ -268,7 +365,7 @@ export class HaPageTabs extends LitElement {
                 </button>
                 <button
                   class="pin"
-                  aria-label=${this.hass.localize("ui.page_tabs.pin_tab", {
+                  aria-label=${this._t("ui.page_tabs.pin_tab", {
                     name: tab.title,
                   })}
                   aria-pressed=${pinned ? "true" : "false"}
@@ -284,10 +381,9 @@ export class HaPageTabs extends LitElement {
                     ? nothing
                     : html`<button
                         class="close"
-                        aria-label=${this.hass.localize(
-                          "ui.page_tabs.close_tab",
-                          { name: tab.title }
-                        )}
+                        aria-label=${this._t("ui.page_tabs.close_tab", {
+                          name: tab.title,
+                        })}
                         .urlPath=${tab.urlPath}
                         @click=${this._closeTab}
                       >
@@ -305,8 +401,8 @@ export class HaPageTabs extends LitElement {
       <button
         class="new-tab"
         popovertarget="catalog"
-        aria-label=${this.hass.localize("ui.page_tabs.new_tab")}
-        title=${this.hass.localize("ui.page_tabs.new_tab")}
+        aria-label=${this._t("ui.page_tabs.new_tab")}
+        title=${this._t("ui.page_tabs.new_tab")}
       >
         <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
       </button>
@@ -314,12 +410,12 @@ export class HaPageTabs extends LitElement {
         id="catalog"
         popover
         role="dialog"
-        aria-label=${this.hass.localize("ui.page_tabs.catalog_title")}
+        aria-label=${this._t("ui.page_tabs.catalog_title")}
         @toggle=${this._catalogToggled}
       >
         <div class="catalog-header">
           <span class="catalog-title"
-            >${this.hass.localize("ui.page_tabs.catalog_title")}</span
+            >${this._t("ui.page_tabs.catalog_title")}</span
           >
           <button
             class="text-button"
@@ -327,18 +423,16 @@ export class HaPageTabs extends LitElement {
             @click=${this._openEveryTab}
           >
             <ha-svg-icon .path=${mdiTabPlus}></ha-svg-icon>
-            ${this.hass.localize("ui.page_tabs.open_every_tab")}
+            ${this._t("ui.page_tabs.open_every_tab")}
           </button>
         </div>
-        <p class="catalog-note">
-          ${this.hass.localize("ui.page_tabs.catalog_intro")}
-        </p>
+        <p class="catalog-note">${this._t("ui.page_tabs.catalog_intro")}</p>
         <ha-input-search
           id="catalog-search"
           appearance="outlined"
           .value=${this._filter}
-          .placeholder=${this.hass.localize("ui.page_tabs.search")}
-          .accessibleLabel=${this.hass.localize("ui.page_tabs.search")}
+          .placeholder=${this._t("ui.page_tabs.search")}
+          .accessibleLabel=${this._t("ui.page_tabs.search")}
           .patternSamples=${tabs.map((tab) => tab.title)}
           @input=${this._filterChanged}
         ></ha-input-search>
@@ -346,18 +440,14 @@ export class HaPageTabs extends LitElement {
         <div class="catalog-list">
           ${this._renderCatalogGroups(listed, closed)}
         </div>
-        <p class="catalog-note">
-          ${this.hass.localize("ui.page_tabs.catalog_note")}
-        </p>
+        <p class="catalog-note">${this._t("ui.page_tabs.catalog_note")}</p>
       </div>
       <div class="actions">
         <ha-input-search
           class="top-search"
           appearance="outlined"
-          .placeholder=${this.hass.localize("ui.page_tabs.search_label")}
-          .accessibleLabel=${this.hass.localize(
-            "ui.page_tabs.search_everything"
-          )}
+          .placeholder=${this._t("ui.page_tabs.search_label")}
+          .accessibleLabel=${this._t("ui.page_tabs.search_everything")}
           .patternSamples=${tabs.map((tab) => tab.title)}
           @input=${this._topSearchInput}
           @keydown=${this._topSearchKeydown}
@@ -366,16 +456,16 @@ export class HaPageTabs extends LitElement {
         </ha-input-search>
         <button
           class="new-tab search-icon"
-          aria-label=${this.hass.localize("ui.page_tabs.search_everything")}
-          title=${this.hass.localize("ui.page_tabs.search_everything")}
+          aria-label=${this._t("ui.page_tabs.search_everything")}
+          title=${this._t("ui.page_tabs.search_everything")}
           @click=${this._openSearch}
         >
           <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
         </button>
         <button
           class="new-tab"
-          aria-label=${this.hass.localize("ui.page_tabs.edit_appearance")}
-          title=${this.hass.localize("ui.page_tabs.edit_appearance")}
+          aria-label=${this._t("ui.page_tabs.edit_appearance")}
+          title=${this._t("ui.page_tabs.edit_appearance")}
           @click=${this._pickAppearance}
         >
           <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
@@ -383,8 +473,8 @@ export class HaPageTabs extends LitElement {
         <a
           class="new-tab"
           href="/profile/localization"
-          aria-label=${this.hass.localize("ui.page_tabs.language")}
-          title=${this.hass.localize("ui.page_tabs.language")}
+          aria-label=${this._t("ui.page_tabs.language")}
+          title=${this._t("ui.page_tabs.language")}
         >
           <ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>
         </a>
@@ -405,10 +495,10 @@ export class HaPageTabs extends LitElement {
             ? html`<a
                 class="profile"
                 href="/profile"
-                aria-label=${this.hass.localize("ui.page_tabs.profile", {
+                aria-label=${this._t("ui.page_tabs.profile", {
                   name: this.hass.user.name,
                 })}
-                title=${this.hass.localize("ui.page_tabs.profile", {
+                title=${this._t("ui.page_tabs.profile", {
                   name: this.hass.user.name,
                 })}
               >
@@ -445,7 +535,61 @@ export class HaPageTabs extends LitElement {
     return entries;
   }
 
-  // The catalog in groups: pages (which can be tabs), then settings pages.
+  // Tools pages from the tools panel, shown to this person only.
+  private _toolEntries(): CatalogSettingsEntry[] {
+    if (!this.hass.user?.is_admin) {
+      return [];
+    }
+    return CATALOG_TOOLS.filter(
+      (tool) =>
+        !tool.component || isComponentLoaded(this.hass.config, tool.component)
+    ).map((tool) => ({
+      path: `/config/tools/${tool.panel}`,
+      title: this.hass.localize(tool.translationKey as LocalizeKeys),
+      iconPath: tool.iconPath,
+    }));
+  }
+
+  private _renderSettingsGroup(
+    id: string,
+    titleKey: string,
+    entries: CatalogSettingsEntry[]
+  ): TemplateResult | typeof nothing {
+    if (!entries.length) {
+      return nothing;
+    }
+    return html`<section class="group" role="group" aria-labelledby=${id}>
+      <h3 id=${id} class="group-title">${this._t(titleKey)}</h3>
+      <ul class="group-list">
+        ${entries.map(
+          (entry) =>
+            html`<li>
+              <button
+                class="entry"
+                .path=${entry.path}
+                @click=${this._openSettingsPage}
+              >
+                <span class="entry-icon">
+                  ${
+                    entry.iconPath
+                      ? html`<ha-svg-icon
+                          .path=${entry.iconPath}
+                        ></ha-svg-icon>`
+                      : nothing
+                  }
+                </span>
+                <span class="entry-text">
+                  <span class="entry-title">${entry.title}</span>
+                </span>
+              </button>
+            </li>`
+        )}
+      </ul>
+    </section>`;
+  }
+
+  // The catalog in groups: pages (which can be tabs), settings, then tools.
+
   private _renderCatalogGroups(
     listed: PageTab[],
     closed: Set<string>
@@ -454,10 +598,11 @@ export class HaPageTabs extends LitElement {
     const settings = this._settingsEntries().filter((entry) =>
       matches(entry.title, entry.path)
     );
-    if (!listed.length && !settings.length) {
-      return html`<p class="empty">
-        ${this.hass.localize("ui.page_tabs.no_match")}
-      </p>`;
+    const tools = this._toolEntries().filter((entry) =>
+      matches(entry.title, entry.path)
+    );
+    if (!listed.length && !settings.length && !tools.length) {
+      return html`<p class="empty">${this._t("ui.page_tabs.no_match")}</p>`;
     }
     return html`
       ${
@@ -468,7 +613,7 @@ export class HaPageTabs extends LitElement {
               aria-labelledby="group-pages"
             >
               <h3 id="group-pages" class="group-title">
-                ${this.hass.localize("ui.page_tabs.group_pages")}
+                ${this._t("ui.page_tabs.group_pages")}
               </h3>
               <ul class="group-list">
                 ${listed.map((tab) => {
@@ -483,7 +628,7 @@ export class HaPageTabs extends LitElement {
                       <span class="entry-text">
                         <span class="entry-title">${tab.title}</span>
                         <span class="entry-state"
-                          >${this.hass.localize(
+                          >${this._t(
                             isClosed
                               ? "ui.page_tabs.state_closed"
                               : "ui.page_tabs.state_open"
@@ -502,44 +647,16 @@ export class HaPageTabs extends LitElement {
             </section>`
           : nothing
       }
-      ${
-        settings.length
-          ? html`<section
-              class="group"
-              role="group"
-              aria-labelledby="group-settings"
-            >
-              <h3 id="group-settings" class="group-title">
-                ${this.hass.localize("ui.page_tabs.group_settings")}
-              </h3>
-              <ul class="group-list">
-                ${settings.map(
-                  (entry) =>
-                    html`<li>
-                      <button
-                        class="entry"
-                        .path=${entry.path}
-                        @click=${this._openSettingsPage}
-                      >
-                        <span class="entry-icon">
-                          ${
-                            entry.iconPath
-                              ? html`<ha-svg-icon
-                                  .path=${entry.iconPath}
-                                ></ha-svg-icon>`
-                              : nothing
-                          }
-                        </span>
-                        <span class="entry-text">
-                          <span class="entry-title">${entry.title}</span>
-                        </span>
-                      </button>
-                    </li>`
-                )}
-              </ul>
-            </section>`
-          : nothing
-      }
+      ${this._renderSettingsGroup(
+        "group-settings",
+        "ui.page_tabs.group_settings",
+        settings
+      )}
+      ${this._renderSettingsGroup(
+        "group-tools",
+        "ui.page_tabs.group_tools",
+        tools
+      )}
     `;
   }
 
@@ -559,13 +676,13 @@ export class HaPageTabs extends LitElement {
     if (this._bulkClosed.length && !this._filter) {
       return html`<div class="bulk" role="status">
         <span class="bulk-note"
-          >${this.hass.localize("ui.page_tabs.bulk_done", {
+          >${this._t("ui.page_tabs.bulk_done", {
             count: this._bulkClosed.length,
           })}</span
         >
         <button class="text-button" @click=${this._undoBulkClose}>
           <ha-svg-icon .path=${mdiUndo}></ha-svg-icon>
-          ${this.hass.localize("ui.page_tabs.bulk_undo")}
+          ${this._t("ui.page_tabs.bulk_undo")}
         </button>
       </div>`;
     }
@@ -589,7 +706,7 @@ export class HaPageTabs extends LitElement {
           @click=${this._bulkClose}
         >
           <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-          ${this.hass.localize("ui.page_tabs.bulk_close_matching", {
+          ${this._t("ui.page_tabs.bulk_close_matching", {
             count: matching.ids.length,
           })}
         </button>
@@ -600,13 +717,13 @@ export class HaPageTabs extends LitElement {
           @click=${this._bulkClose}
         >
           <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-          ${this.hass.localize("ui.page_tabs.bulk_close_others", {
+          ${this._t("ui.page_tabs.bulk_close_others", {
             count: others.ids.length,
           })}
         </button>
       </div>
       <span class="bulk-note"
-        >${this.hass.localize(
+        >${this._t(
           matching.blocked === "invalid"
             ? "ui.page_tabs.bulk_invalid"
             : "ui.page_tabs.bulk_note"
@@ -709,7 +826,7 @@ export class HaPageTabs extends LitElement {
     this._pinned = pinned
       ? this._pinned.filter((id) => id !== tab.urlPath)
       : [...this._pinned, tab.urlPath];
-    this._announcement = this.hass.localize(
+    this._announcement = this._t(
       pinned ? "ui.page_tabs.unpinned" : "ui.page_tabs.pinned",
       { name: tab.title }
     );
@@ -727,7 +844,7 @@ export class HaPageTabs extends LitElement {
       const name = this._orderedTabs().find(
         (tab) => tab.urlPath === from
       )?.title;
-      this._announcement = this.hass.localize("ui.page_tabs.move_blocked", {
+      this._announcement = this._t("ui.page_tabs.move_blocked", {
         name: name ?? from,
       });
       return;
@@ -742,7 +859,7 @@ export class HaPageTabs extends LitElement {
     const title = this._orderedTabs().find(
       (tab) => tab.urlPath === from
     )?.title;
-    this._announcement = this.hass.localize("ui.page_tabs.moved", {
+    this._announcement = this._t("ui.page_tabs.moved", {
       name: title ?? from,
       position: open.indexOf(from) + 1,
       total: open.length,
@@ -1139,7 +1256,7 @@ export class HaPageTabs extends LitElement {
         var(--ha-sidebar-width, 88px) + var(--ha-space-5)
       );
       margin: 0;
-      width: min(420px, calc(100vw - 32px));
+      width: min(760px, calc(100vw - 32px));
       max-height: min(560px, calc(100dvh - 96px));
       box-sizing: border-box;
       padding: var(--ha-space-3);
@@ -1224,8 +1341,8 @@ export class HaPageTabs extends LitElement {
       font-weight: var(--ha-font-weight-medium);
     }
     .group-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
       gap: var(--ha-space-1);
       margin: 0;
       padding: 0;

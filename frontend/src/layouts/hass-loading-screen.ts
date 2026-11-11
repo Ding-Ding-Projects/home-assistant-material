@@ -38,7 +38,14 @@ class HassLoadingScreen extends LitElement {
 
   private _renderContent(): TemplateResult {
     return html`
-      <div class="content" role="status" aria-live="polite">
+      <div
+        class="content"
+        role="status"
+        aria-live="polite"
+        aria-label=${
+          this.hass?.localize("ui.status_screens.loading_title") ?? nothing
+        }
+      >
         <ha-fade-in .delay=${500}>
           <ha-spinner></ha-spinner>
         </ha-fade-in>

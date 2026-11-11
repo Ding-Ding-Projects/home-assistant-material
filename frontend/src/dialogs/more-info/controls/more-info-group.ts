@@ -3,6 +3,9 @@ import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { dynamicElement } from "../../../common/dom/dynamic-element-directive";
+import { computeDomain } from "../../../common/entity/compute_domain";
+import { showConfirmationDialog } from "../../generic/show-dialog-box";
+import { showToast } from "../../../util/toast";
 import type { GroupEntity } from "../../../data/group";
 import { computeGroupDomain } from "../../../data/group";
 import "../../../state-summary/state-card-content";
@@ -14,6 +17,16 @@ import {
   domainMoreInfoType,
   importMoreInfoControl,
 } from "../state_more_info_control";
+
+// Members in these domains can open doors, valves or alarms, so a bulk
+// action on a group containing them needs an explicit confirmation.
+const SENSITIVE_DOMAINS = new Set([
+  "cover",
+  "lock",
+  "valve",
+  "garage_door",
+  "alarm_control_panel",
+]);
 
 @customElement("more-info-group")
 class MoreInfoGroup extends LitElement {
@@ -127,15 +140,55 @@ class MoreInfoGroup extends LitElement {
   }
 
   private _allOn() {
-    this.hass.callService("homeassistant", "turn_on", {
-      entity_id: this.stateObj!.entity_id,
-    });
+    this._setAll(true);
   }
 
   private _allOff() {
-    this.hass.callService("homeassistant", "turn_off", {
-      entity_id: this.stateObj!.entity_id,
-    });
+    this._setAll(false);
+  }
+
+  private async _setAll(turnOn: boolean) {
+    const localize = this.hass.localize;
+    const sensitive = this.stateObj!.attributes.entity_id.some((entityId) =>
+      SENSITIVE_DOMAINS.has(computeDomain(entityId))
+    );
+    if (sensitive) {
+      const confirmed = await showConfirmationDialog(this, {
+        title: localize("ui.dialogs.more_info_control.group.confirm_title"),
+        text: localize(
+          turnOn
+            ? "ui.dialogs.more_info_control.group.confirm_all_on"
+            : "ui.dialogs.more_info_control.group.confirm_all_off"
+        ),
+        confirmText: localize(
+          turnOn
+            ? "ui.dialogs.more_info_control.group.all_on"
+            : "ui.dialogs.more_info_control.group.all_off"
+        ),
+        warning: true,
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+    try {
+      await this.hass.callService(
+        "homeassistant",
+        turnOn ? "turn_on" : "turn_off",
+        { entity_id: this.stateObj!.entity_id }
+      );
+      showToast(this, {
+        message: localize(
+          turnOn
+            ? "ui.dialogs.more_info_control.group.result_on"
+            : "ui.dialogs.more_info_control.group.result_off"
+        ),
+      });
+    } catch (_err) {
+      showToast(this, {
+        message: localize("ui.dialogs.more_info_control.group.result_failed"),
+      });
+    }
   }
 
   static get styles(): CSSResultGroup {

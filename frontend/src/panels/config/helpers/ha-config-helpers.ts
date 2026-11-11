@@ -1,5 +1,4 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
-import { ResizeController } from "@lit-labs/observers/resize-controller";
 import {
   mdiAlertCircle,
   mdiCancel,
@@ -7,7 +6,6 @@ import {
   mdiContentDuplicate,
   mdiCounter,
   mdiDelete,
-  mdiDotsVertical,
   mdiDownload,
   mdiGoogleCirclesGroup,
   mdiMenuDown,
@@ -26,6 +24,8 @@ import "../../../components/bulk/ha-bulk-bar";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import {
+  filteredTableCount,
+  hiddenTableSelection,
   invertTableRows,
   selectAllTableRows,
 } from "../../../components/bulk/table-selection";
@@ -329,10 +329,6 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
   // Not cached, the table only renders once the helpers have loaded
   @query("hass-tabs-subpage-data-table")
   private _dataTable?: HaTabsSubpageDataTable;
-
-  private _sizeController = new ResizeController(this, {
-    callback: (entries) => entries[0]?.contentRect.width,
-  });
 
   // The filters are kept in the URL by the page, the search, sorting and
   // grouping by the table
@@ -740,9 +736,6 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       return html`<hass-loading-screen></hass-loading-screen>`;
     }
 
-    const labelsInOverflow =
-      (this._sizeController.value && this._sizeController.value < 700) ||
-      (!this._sizeController.value && this.hass.dockedSidebar === "docked");
     const helpers = this._getItems(
       this.hass.localize,
       this._helperEntities,
@@ -799,6 +792,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
         .activeFilters=${this._activeFilters}
         @clear-filter=${this._clearFilter}
         @row-click=${this._openEditDialog}
+        @filtered-rows-changed=${this._filteredRowsChanged}
         sync-url
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
@@ -854,99 +848,6 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
           @expanded-changed=${this._filterExpanded}
         ></ha-filter-voice-assistants>
 
-        ${
-          !this.narrow
-            ? html`<ha-dropdown
-                  slot="selection-bar"
-                  @wa-select=${this._handleBulkCategory}
-                >
-                  <ha-assist-chip
-                    slot="trigger"
-                    .label=${this.hass.localize(
-                      "ui.panel.config.automation.picker.bulk_actions.move_category"
-                    )}
-                  >
-                    <ha-svg-icon
-                      slot="trailing-icon"
-                      .path=${mdiMenuDown}
-                    ></ha-svg-icon>
-                  </ha-assist-chip>
-                  ${this._renderCategoryItems()}
-                </ha-dropdown>
-                ${
-                  labelsInOverflow
-                    ? nothing
-                    : html`<ha-dropdown
-                        slot="selection-bar"
-                        @wa-select=${this._handleBulkLabel}
-                      >
-                        <ha-assist-chip
-                          slot="trigger"
-                          .label=${this.hass.localize(
-                            "ui.panel.config.automation.picker.bulk_actions.add_label"
-                          )}
-                        >
-                          <ha-svg-icon
-                            slot="trailing-icon"
-                            .path=${mdiMenuDown}
-                          ></ha-svg-icon>
-                        </ha-assist-chip>
-                        ${this._renderLabelItems()}
-                      </ha-dropdown>`
-                }`
-            : nothing
-        }
-        ${
-          this.narrow || labelsInOverflow
-            ? html` <ha-dropdown
-                slot="selection-bar"
-                @wa-select=${this._handleBulkAction}
-              >
-                ${
-                  this.narrow
-                    ? html`<ha-assist-chip
-                        .label=${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_action"
-                        )}
-                        slot="trigger"
-                      >
-                        <ha-svg-icon
-                          slot="trailing-icon"
-                          .path=${mdiMenuDown}
-                        ></ha-svg-icon>
-                      </ha-assist-chip>`
-                    : html`<ha-icon-button
-                        .path=${mdiDotsVertical}
-                        .label=${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_action"
-                        )}
-                        slot="trigger"
-                      ></ha-icon-button>`
-                }
-                ${
-                  this.narrow
-                    ? html`<ha-dropdown-item>
-                        ${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_actions.move_category"
-                        )}
-                        ${this._renderCategoryItems("submenu")}
-                      </ha-dropdown-item>`
-                    : nothing
-                }
-                ${
-                  this.narrow || this.hass.dockedSidebar === "docked"
-                    ? html`<ha-dropdown-item>
-                        ${this.hass.localize(
-                          "ui.panel.config.automation.picker.bulk_actions.add_label"
-                        )}
-                        ${this._renderLabelItems("submenu")}
-                      </ha-dropdown-item>`
-                    : nothing
-                }
-              </ha-dropdown>`
-            : nothing
-        }
-
         <ha-integration-overflow-menu
           .hass=${this.hass}
           slot="toolbar-icon"
@@ -964,17 +865,50 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
       </hass-tabs-subpage-data-table>
       ${
         this._selected.length
-          ? html`<div class="bulk">
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
               <ha-bulk-bar
                 .localize=${this._bulkLocalize}
                 .count=${this._selected.length}
-                .pageCount=${helpers.length}
-                .matchCount=${helpers.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
                 @bulk-select-page=${this._selectAllRows}
                 @bulk-select-matches=${this._selectAllRows}
                 @bulk-invert=${this._invertRows}
                 @bulk-clear=${this._clearRows}
-              ></ha-bulk-bar>
+              >
+                <ha-dropdown
+                  slot="actions"
+                  @wa-select=${this._handleBulkCategory}
+                >
+                  <ha-button
+                    slot="trigger"
+                    size="s"
+                    appearance="outlined"
+                    variant="brand"
+                  >
+                    ${this.hass.localize(
+                      "ui.panel.config.automation.picker.bulk_actions.move_category"
+                    )}
+                    <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+                  </ha-button>
+                  ${this._renderCategoryItems()}
+                </ha-dropdown>
+                <ha-dropdown slot="actions" @wa-select=${this._handleBulkLabel}>
+                  <ha-button
+                    slot="trigger"
+                    size="s"
+                    appearance="outlined"
+                    variant="brand"
+                  >
+                    ${this.hass.localize(
+                      "ui.panel.config.automation.picker.bulk_actions.add_label"
+                    )}
+                    <ha-svg-icon slot="end" .path=${mdiMenuDown}></ha-svg-icon>
+                  </ha-button>
+                  ${this._renderLabelItems()}
+                </ha-dropdown>
+              </ha-bulk-bar>
             </div>`
           : nothing
       }
@@ -1308,10 +1242,15 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
     values?: Record<string, string | number>
   ): string => this.hass.localize(key as any, values);
 
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
+  };
+
   private _selectAllRows = () => selectAllTableRows(this._dataTable);
 
-  private _invertRows = () =>
-    invertTableRows(this._dataTable, this._selected, "id");
+  private _invertRows = () => invertTableRows(this._dataTable);
 
   private _clearRows = () => this._dataTable?.clearSelection();
 
@@ -1842,35 +1781,6 @@ ${rejected
         ${this.hass.localize("ui.panel.config.labels.add_label")}
       </ha-dropdown-item>`;
 
-  private _handleBulkAction = (ev) => {
-    const item = ev.detail.item;
-    const value = item.value;
-
-    if (!value) {
-      return;
-    }
-
-    if (value.startsWith("category_")) {
-      if (value === "category_create") {
-        this._bulkCreateCategory();
-      } else if (value === "category_none") {
-        this._bulkAddCategory(null);
-      } else {
-        this._bulkAddCategory(value.substring(9));
-      }
-      return;
-    }
-
-    if (value.startsWith("label_")) {
-      if (value === "label_create") {
-        this._bulkCreateLabel();
-      } else {
-        const action = item.action;
-        this._bulkLabel(value.substring(6), action);
-      }
-    }
-  };
-
   private _handleCollapseChanged(ev: CustomEvent) {
     this._activeCollapsed = ev.detail.value;
   }
@@ -1893,12 +1803,18 @@ ${rejected
         .bulk {
           position: fixed;
           z-index: 4;
-          top: calc(var(--header-height, 56px) + var(--ha-space-2));
-          left: 0;
-          right: 0;
+          bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+          inset-inline: var(--ha-sidebar-width, 0px) 0;
           box-sizing: border-box;
-          width: min(720px, calc(100vw - var(--ha-space-8)));
+          width: min(
+            720px,
+            calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+          );
           margin-inline: auto;
+        }
+        .bulk.narrow {
+          inset-inline: 0;
+          width: calc(100% - var(--ha-space-8));
         }
         hass-tabs-subpage-data-table.narrow {
           --data-table-row-height: 72px;

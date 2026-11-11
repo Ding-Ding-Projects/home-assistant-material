@@ -4,25 +4,50 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Fixed: builds 64 and 65 were published without images, because a push that changed many files was mistaken for a documentation-only push. Build 66 is the first with images again."
+          "text": "A link that opens a page of this interface from outside now asks first, shows where it goes and what it passes on, and does nothing until you choose."
         },
         {
-          "text": "The narrator only ever uses a voice that runs on the device. If there is none it stays silent, so spoken text is never sent anywhere."
+          "text": "Date, time and calendar dialogs follow the time zone chosen in the profile. The time dialog has real spin controls and the date grid can be walked with the arrow keys."
         },
         {
-          "text": "Choose step: a disabled condition is left out of a test, old results are cleared when the step is edited, an option that can never run is marked, and Run asks first. The automation editor has an on and off switch, a Check button, and a strip that shows its history."
+          "text": "The colour picker applies a typed colour when you finish typing, not at every letter, and stores a drag a few times instead of at every move. Fonts and accessibility: fixes for narrow screens, focus, and a font that is not on the device."
         },
         {
-          "text": "The entity dialog has a tab row and a tools block (lock, appearance, read aloud, export), and no longer shows the state twice."
+          "text": "The selection bar sits at the bottom, counts only the rows shown, and says when ticked rows are hidden by the filter. Exports keep duplicate column names apart and say when rows were cut. Outside links in notifications show their host."
         },
         {
-          "text": "The script editor is redrawn with a mode selector, Run now and See past runs. Maintenance opens with what needs you. The error and loading screens are redrawn."
+          "text": "Group dialogs ask before switching covers, locks or valves. The image dialog no longer has a share button, because the shared address carried an access code."
         },
         {
-          "text": "Tabs: fixes for screen readers and the keyboard, and the search shrinks to a button on a narrow screen. The search of everything works for people who are not administrators."
+          "text": "Tabs and the search of everything follow the language mode, with Cantonese written. Open a tab lists the tools. Starting, connection lost and no-access screens are redrawn."
         },
         {
-          "text": "Text that carries links keeps the personal wording on its plain parts."
+          "text": "Fixed: builds 64 and 65 were published without images, because a push that changed many files was mistaken for a documentation-only push. Build 66 is the first with images again.",
+          "commit": "1eab5749b622"
+        },
+        {
+          "text": "The narrator only ever uses a voice that runs on the device. If there is none it stays silent, so spoken text is never sent anywhere.",
+          "commit": "1eab5749b622"
+        },
+        {
+          "text": "Choose step: a disabled condition is left out of a test, old results are cleared when the step is edited, an option that can never run is marked, and Run asks first. The automation editor has an on and off switch, a Check button, and a strip that shows its history.",
+          "commit": "1eab5749b622"
+        },
+        {
+          "text": "The entity dialog has a tab row and a tools block (lock, appearance, read aloud, export), and no longer shows the state twice.",
+          "commit": "1eab5749b622"
+        },
+        {
+          "text": "The script editor is redrawn with a mode selector, Run now and See past runs. Maintenance opens with what needs you. The error and loading screens are redrawn.",
+          "commit": "1eab5749b622"
+        },
+        {
+          "text": "Tabs: fixes for screen readers and the keyboard, and the search shrinks to a button on a narrow screen. The search of everything works for people who are not administrators.",
+          "commit": "1eab5749b622"
+        },
+        {
+          "text": "Text that carries links keeps the personal wording on its plain parts.",
+          "commit": "1eab5749b622"
         },
         {
           "text": "Fixed: with a wording file loaded, the tip under Settings showed an error instead of its text. Text that carries links is now left as it is.",

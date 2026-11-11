@@ -1,7 +1,10 @@
+import type { ContextType } from "@lit/context";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import { consume } from "../../common/decorators/consume";
+import { formattersContext } from "../../data/context";
 import { stateColorCss } from "../../common/entity/state_color";
 import { UNAVAILABLE } from "../../data/entity/entity";
 import type { VacuumEntity } from "../../data/vacuum";
@@ -43,6 +46,10 @@ export class HaStateControlVacuumStatus extends LitElement {
    */
   @property({ type: Boolean, reflect: true }) public board = false;
 
+  @state()
+  @consume({ context: formattersContext, subscribe: true })
+  private _formatters!: ContextType<typeof formattersContext>;
+
   protected render(): TemplateResult {
     const visualState = computeVisualState(this.stateObj);
     const color = stateColorCss(this.stateObj);
@@ -56,7 +63,8 @@ export class HaStateControlVacuumStatus extends LitElement {
         <div
           class="bar ${visualState}"
           style=${styleMap(style)}
-          aria-hidden="true"
+          role="img"
+          aria-label=${this._formatters?.formatEntityState(this.stateObj) ?? ""}
         >
           <div class="bar-fill"></div>
         </div>
@@ -367,6 +375,11 @@ export class HaStateControlVacuumStatus extends LitElement {
     }
     .bar.error .bar-fill {
       width: 100%;
+      background: repeating-linear-gradient(
+        135deg,
+        var(--vacuum-color) 0 6px,
+        transparent 6px 10px
+      );
     }
     @keyframes bar-slide {
       0% {

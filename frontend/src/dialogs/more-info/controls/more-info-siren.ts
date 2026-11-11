@@ -65,6 +65,9 @@ class MoreInfoSiren extends LitElement {
     const allowAdvanced = supportsTones || supportsVolume || supportsDuration;
     const unavailable = this.stateObj.state === UNAVAILABLE;
     const tones = supportsTones ? this._toneOptions() : [];
+    // "Sound now" only adds something over the toggle once a tone or volume
+    // has been picked, because those apply to it and not to the toggle.
+    const chosen = this._tone !== undefined || this._volume !== undefined;
 
     return html`
       <ha-more-info-state-header
@@ -117,7 +120,13 @@ class MoreInfoSiren extends LitElement {
                     @change=${this._handleVolumeChange}
                   ></ha-slider>
                   <span class="volume-value"
-                    >${Math.round((this._volume ?? 1) * 100)}%</span
+                    >${
+                      this._volume === undefined
+                        ? this._localize(
+                            "ui.dialogs.more_info_control.siren.volume_default"
+                          )
+                        : `${Math.round(this._volume * 100)}%`
+                    }</span
                   >
                 </div>
               `
@@ -125,26 +134,42 @@ class MoreInfoSiren extends LitElement {
         }
         ${
           allowAdvanced
-            ? html`<div class="actions">
-                <ha-button
-                  appearance="filled"
-                  variant="danger"
-                  .disabled=${unavailable}
-                  @click=${this._soundNow}
-                >
-                  <ha-svg-icon slot="start" .path=${mdiBullhorn}></ha-svg-icon>
-                  ${this._localize(
-                    "ui.dialogs.more_info_control.siren.sound_now"
-                  )}
-                </ha-button>
-                <ha-button
-                  appearance="plain"
-                  size="s"
-                  @click=${this._showAdvancedControlsDialog}
-                >
-                  ${this._localize("ui.components.siren.more_controls")}
-                </ha-button>
-              </div>`
+            ? html`${
+                  chosen
+                    ? html`<p class="hint">
+                        ${this._localize(
+                          "ui.dialogs.more_info_control.siren.applies_to_sound_now"
+                        )}
+                      </p>`
+                    : nothing
+                }
+                <div class="actions">
+                  ${
+                    chosen
+                      ? html`<ha-button
+                          appearance="filled"
+                          variant="danger"
+                          .disabled=${unavailable}
+                          @click=${this._soundNow}
+                        >
+                          <ha-svg-icon
+                            slot="start"
+                            .path=${mdiBullhorn}
+                          ></ha-svg-icon>
+                          ${this._localize(
+                            "ui.dialogs.more_info_control.siren.sound_now"
+                          )}
+                        </ha-button>`
+                      : nothing
+                  }
+                  <ha-button
+                    appearance="plain"
+                    size="s"
+                    @click=${this._showAdvancedControlsDialog}
+                  >
+                    ${this._localize("ui.components.siren.more_controls")}
+                  </ha-button>
+                </div>`
             : nothing
         }
       </div>
@@ -192,6 +217,11 @@ class MoreInfoSiren extends LitElement {
         .volume-value {
           min-width: 3em;
           text-align: end;
+          color: var(--secondary-text-color);
+        }
+        .hint {
+          margin: 0;
+          text-align: center;
           color: var(--secondary-text-color);
         }
         .actions {

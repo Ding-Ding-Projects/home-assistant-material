@@ -13,6 +13,7 @@ import { apiContext } from "../../../data/context";
 import { triggerAutomationActions } from "../../../data/automation";
 import { UNAVAILABLE } from "../../../data/entity/entity";
 import type { HomeAssistantApi } from "../../../types";
+import { showToast } from "../../../util/toast";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 
 @customElement("more-info-automation")
@@ -61,6 +62,9 @@ class MoreInfoAutomation extends LitElement {
         </span>
         <ha-switch
           .checked=${isOn}
+          .accessibleLabel=${this._localize(
+            "ui.dialogs.more_info_control.automation.toggle_label"
+          )}
           .disabled=${unavailable}
           @change=${this._toggled}
         ></ha-switch>
@@ -79,11 +83,24 @@ class MoreInfoAutomation extends LitElement {
     `;
   }
 
-  private _toggled(ev: Event) {
-    const checked = (ev.target as HTMLInputElement).checked;
-    this._api.callService("automation", checked ? "turn_on" : "turn_off", {
-      entity_id: this.stateObj!.entity_id,
-    });
+  private async _toggled(ev: Event) {
+    const target = ev.target as HTMLInputElement;
+    const checked = target.checked;
+    try {
+      await this._api.callService(
+        "automation",
+        checked ? "turn_on" : "turn_off",
+        { entity_id: this.stateObj!.entity_id }
+      );
+    } catch (_err) {
+      // The call failed, so put the switch back to the real state
+      target.checked = !checked;
+      showToast(this, {
+        message: this._localize(
+          "ui.dialogs.more_info_control.automation.toggle_failed"
+        ),
+      });
+    }
   }
 
   private _runActions() {

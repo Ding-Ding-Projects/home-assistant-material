@@ -358,7 +358,7 @@ class HaConfigBackupSettings extends LitElement {
   }
 
   private _encryptionKeyChanged(ev) {
-    const password = ev.detail.value as string;
+    const password = ev.detail.value as string | null;
     this._config = {
       ...this._config!,
       create_backup: {

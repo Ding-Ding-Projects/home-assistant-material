@@ -5,7 +5,10 @@ import {
   loadDismissed,
   rememberDismissed,
 } from "../../../src/panels/config/notifications/dismissed-notifications";
-import { notificationActions } from "../../../src/panels/config/notifications/notification-insight";
+import {
+  hasDotSegments,
+  notificationActions,
+} from "../../../src/panels/config/notifications/notification-insight";
 
 // Protects the notification centre: a link must never become a script address,
 // and a dismissed notification must be kept for exactly 30 days.
@@ -14,12 +17,12 @@ describe("notificationActions addresses", () => {
   it("drops addresses a browser could read as another site", () => {
     expect(
       notificationActions("[A](/\\host) [B](/a\\b) [C](/ok/path?x=1#y)")
-    ).toEqual([{ label: "C", href: "/ok/path?x=1#y" }]);
+    ).toEqual([{ label: "C", href: "/ok/path?x=1#y", host: "" }]);
   });
 
   it("does not turn an image into a button", () => {
     expect(notificationActions("![Chart](/x) [Open](/y)")).toEqual([
-      { label: "Open", href: "/y" },
+      { label: "Open", href: "/y", host: "" },
     ]);
   });
 });
@@ -32,9 +35,32 @@ describe("notificationActions", () => {
         "[Proto](//evil.example)"
     );
     expect(actions).toEqual([
-      { label: "Open", href: "/config/integrations" },
-      { label: "Docs", href: "https://example.com/a" },
+      { label: "Open", href: "/config/integrations", host: "" },
+      { label: "Docs", href: "https://example.com/a", host: "example.com" },
     ]);
+  });
+});
+
+describe("notificationActions hosts and paths", () => {
+  it("names the host of an outside link and not of an inside one", () => {
+    expect(
+      notificationActions("[Docs](https://Docs.Example.com/a) [In](/x)").map(
+        (action) => action.host
+      )
+    ).toEqual(["docs.example.com", ""]);
+  });
+
+  it.each(["/a/../b", "/..", "/a/%2e%2e/b", "/a/.%2E/b", "/../x?y=1"])(
+    "rejects the app path %j with a dot segment",
+    (path) => {
+      expect(notificationActions(`[X](${path})`)).toEqual([]);
+      expect(hasDotSegments(path)).toBe(true);
+    }
+  );
+
+  it("keeps a path whose query only contains dots", () => {
+    expect(hasDotSegments("/a/b?x=../y")).toBe(false);
+    expect(hasDotSegments("/a/file..txt")).toBe(false);
   });
 });
 

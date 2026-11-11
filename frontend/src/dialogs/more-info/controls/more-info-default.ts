@@ -42,13 +42,14 @@ class MoreInfoDefault extends LitElement {
         value: options,
       });
     }
-    if (device) {
+    const deviceName = device?.name_by_user || device?.name;
+    if (deviceName) {
       rows.push({
         label: localize("ui.dialogs.more_info_control.default.device"),
-        value: device.name_by_user || device.name || "",
+        value: deviceName,
       });
     }
-    if (area) {
+    if (area?.name) {
       rows.push({
         label: localize("ui.dialogs.more_info_control.default.area"),
         value: area.name,

@@ -1,4 +1,4 @@
-import { mdiOpenInNew } from "@mdi/js";
+import { mdiChevronDown, mdiOpenInNew } from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -25,13 +25,40 @@ import {
   saveGuidedSetup,
   validateGuidedSetup,
 } from "../../../data/guided_setup";
+import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../resources/styles";
 import { restartCore } from "../../../data/supervisor/core";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
+import type {
+  DraftStorage,
+  FieldMessage,
+  GuidedDraft,
+  GuidedStep,
+  LeafField,
+} from "./guided-setup-logic";
+import {
+  buildSummary,
+  canJumpTo,
+  clearDraft,
+  decorateField,
+  draftKey,
+  fieldHint,
+  getAt,
+  GUIDED_STEPS,
+  hasContent,
+  humanize,
+  leafFields,
+  loadDraft,
+  maskYaml,
+  pathKey,
+  saveDraft,
+  stepStatus,
+  validateAll,
+} from "./guided-setup-logic";
 
-type Step = "about" | "options" | "review" | "done";
-
-const STEPS: Step[] = ["about", "options", "review", "done"];
+const STEPS = GUIDED_STEPS;
+const CHECK_DELAY = 600;
+const DRAFT_DELAY = 500;
 
 declare global {
   interface HASSDomEvents {
@@ -39,6 +66,14 @@ declare global {
     "guided-setup-changed": undefined;
   }
 }
+
+const browserStorage = (): DraftStorage | undefined => {
+  try {
+    return window.localStorage;
+  } catch (_err) {
+    return undefined;
+  }
+};
 
 @customElement("ha-guided-setup-wizard")
 export class HaGuidedSetupWizard extends LitElement {
@@ -51,7 +86,9 @@ export class HaGuidedSetupWizard extends LitElement {
   /** Set when an entry made here is edited. */
   @property({ attribute: false }) public entry?: GuidedSetupEntry;
 
-  @state() private _step: Step = "about";
+  @state() private _step: GuidedStep = "about";
+
+  @state() private _furthest: GuidedStep = "about";
 
   @state() private _entityDomain: string | null = null;
 
@@ -62,11 +99,14 @@ export class HaGuidedSetupWizard extends LitElement {
   /** The kind of item chosen first, for integrations whose items are keyed by kind. */
   @state() private _kind?: string;
 
+  /** Errors the server reported for the whole options step. */
   @state() private _errors: GuidedSetupError[] = [];
 
   @state() private _yaml = "";
 
   @state() private _busy = false;
+
+  @state() private _checking = false;
 
   @state() private _loadError?: string;
 
@@ -76,7 +116,40 @@ export class HaGuidedSetupWizard extends LitElement {
 
   @state() private _applyError?: string;
 
+  /** Fields the person has edited, so they are not told off before they try. */
+  @state() private _touched = new Set<string>();
+
+  /** True once Next was pressed on the options, so every problem shows. */
+  @state() private _attempted = false;
+
+  @state() private _draft?: GuidedDraft;
+
+  /** Secrets to ask for again after a draft was resumed. */
+  @state() private _resumedSecrets: string[] = [];
+
+  @state() private _saved = false;
+
   @query("ha-alert.errors") private _errorsAlert?: HTMLElement;
+
+  private _checkTimer?: number;
+
+  private _draftTimer?: number;
+
+  private _checkRun = 0;
+
+  private _initialData = "{}";
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener("beforeunload", this._beforeUnload);
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener("beforeunload", this._beforeUnload);
+    window.clearTimeout(this._checkTimer);
+    window.clearTimeout(this._draftTimer);
+  }
 
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("integration") || changed.has("entry")) {
@@ -86,13 +159,20 @@ export class HaGuidedSetupWizard extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (
-      changed.has("_errors") &&
-      this._errors.length &&
-      this._step === "options"
+      changed.has("_attempted") &&
+      this._attempted &&
+      this._step === "options" &&
+      this._allMessages().length
     ) {
       this._errorsAlert?.focus();
     }
   }
+
+  private _beforeUnload = (ev: BeforeUnloadEvent): void => {
+    if (this._dirty()) {
+      ev.preventDefault();
+    }
+  };
 
   private _reset(): void {
     this._form = undefined;
@@ -101,17 +181,46 @@ export class HaGuidedSetupWizard extends LitElement {
     this._loadError = undefined;
     this._apply = undefined;
     this._yamlValid = true;
+    this._touched = new Set();
+    this._attempted = false;
+    this._draft = undefined;
+    this._resumedSecrets = [];
+    this._saved = false;
     if (this.entry) {
       this._entityDomain = this.entry.entity_domain;
       this._data = { ...this.entry.data };
+      this._initialData = JSON.stringify(this._data);
       this._step = "options";
+      this._furthest = "options";
       this._loadForm();
       return;
     }
     this._data = {};
+    this._initialData = "{}";
     this._step = "about";
+    this._furthest = "about";
     const targets = this._targets();
     this._entityDomain = targets.length === 1 ? targets[0] : null;
+    this._draft = this._findDraft(targets);
+  }
+
+  private _findDraft(targets: (string | null)[]): GuidedDraft | undefined {
+    const storage = browserStorage();
+    let found: GuidedDraft | undefined;
+    for (const target of targets) {
+      const draft = loadDraft(
+        storage,
+        draftKey(this.integration.domain, target)
+      );
+      if (
+        draft &&
+        hasContent(draft.data) &&
+        (!found || draft.savedAt > found.savedAt)
+      ) {
+        found = draft;
+      }
+    }
+    return found;
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -119,6 +228,10 @@ export class HaGuidedSetupWizard extends LitElement {
       `ui.panel.config.guided_setup.${key}` as any,
       values
     );
+  }
+
+  private _msg(message: FieldMessage): string {
+    return this._l(message.key, message.params);
   }
 
   /** The things that can be added: an entity domain, or null for settings. */
@@ -150,6 +263,7 @@ export class HaGuidedSetupWizard extends LitElement {
         const [kind] = Object.keys(this.entry.data);
         this._kind = kind;
         this._data = { ...(this.entry.data[kind] ?? {}) };
+        this._initialData = JSON.stringify(this._data);
       }
     } catch (err: any) {
       this._form = undefined;
@@ -159,25 +273,98 @@ export class HaGuidedSetupWizard extends LitElement {
     }
   }
 
-  private _humanize(name: string): string {
-    const text = name.replace(/_/g, " ");
-    return text.charAt(0).toUpperCase() + text.slice(1);
+  private _fields(form: GuidedSetupForm): GuidedSetupField[] {
+    if (!form.kinds) {
+      return form.fields;
+    }
+    return form.kinds.find((kind) => kind.name === this._kind)?.fields ?? [];
+  }
+
+  private _leaves(): LeafField[] {
+    return this._form ? leafFields(this._fields(this._form)) : [];
+  }
+
+  private _labelOf = (leaf: LeafField): string =>
+    leaf.label ?? humanize(leaf.name);
+
+  /** What is wrong, by path key, from the form's own rules. */
+  private _localMessages(): Record<string, FieldMessage> {
+    const all = validateAll(this._leaves(), this._data);
+    if (this._attempted) {
+      return all;
+    }
+    return Object.fromEntries(
+      Object.entries(all).filter(
+        ([key]) => this._touched.has(key) && all[key].key !== "field_required"
+      )
+    );
+  }
+
+  /** Server errors, with the chosen kind taken off the front of the path. */
+  private _serverMessages(): { key: string; message: string }[] {
+    return this._errors.map((error) => {
+      const path =
+        this._kind && error.path[0] === this._kind
+          ? error.path.slice(1)
+          : error.path;
+      return { key: pathKey(path), message: error.message };
+    });
+  }
+
+  private _allMessages(): { key: string; label: string; message: string }[] {
+    const leaves = this._leaves();
+    const label = (key: string) => {
+      const leaf = leaves.find((item) => pathKey(item.path) === key);
+      return leaf ? this._labelOf(leaf) : key;
+    };
+    const seen = new Set<string>();
+    const result: { key: string; label: string; message: string }[] = [];
+    for (const [key, message] of Object.entries(this._localMessages())) {
+      seen.add(key);
+      result.push({ key, label: label(key), message: this._msg(message) });
+    }
+    for (const { key, message } of this._serverMessages()) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push({ key, label: key ? label(key) : "", message });
+      }
+    }
+    return result;
+  }
+
+  /** ha-form draws errors by top-level name. */
+  private _fieldErrors(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const { key, message } of this._allMessages()) {
+      const name = key.split(".")[0];
+      if (name && !result[name]) {
+        result[name] = message;
+      }
+    }
+    return result;
   }
 
   private _computeLabel = (schema: GuidedSetupField): string =>
-    schema.label ?? this._humanize(schema.name);
+    (schema as any).label ?? humanize((schema as any).name);
 
   private _computeHelper = (schema: GuidedSetupField): string | undefined => {
-    const parts: string[] = [
-      this._l(schema.required ? "required" : "optional"),
-    ];
-    if (schema.default !== undefined && schema.default !== null) {
+    const loose = schema as any;
+    const leaf = this._leaves().find((item) => item.name === loose.name);
+    const parts: string[] = [this._l(loose.required ? "required" : "optional")];
+    if (leaf) {
+      parts.push(this._msg(fieldHint(leaf)));
+    }
+    if (
+      loose.default !== undefined &&
+      loose.default !== null &&
+      !leaf?.secret
+    ) {
       parts.push(
         this._l("default", {
           value:
-            typeof schema.default === "object"
-              ? JSON.stringify(schema.default)
-              : String(schema.default),
+            typeof loose.default === "object"
+              ? JSON.stringify(loose.default)
+              : String(loose.default),
         })
       );
     }
@@ -186,24 +373,19 @@ export class HaGuidedSetupWizard extends LitElement {
 
   private _computeError = (_schema: unknown, error: string): string => error;
 
-  private _fieldErrors(): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const error of this._errors) {
-      const path =
-        this._kind && error.path[0] === this._kind
-          ? error.path.slice(1)
-          : error.path;
-      const name = path[0];
-      if (name && !result[name]) {
-        result[name] = error.message;
+  private _dataChanged(ev: ValueChangedEvent<Record<string, any>>): void {
+    const next = ev.detail.value;
+    for (const leaf of this._leaves()) {
+      if (
+        JSON.stringify(getAt(next, leaf.path)) !==
+        JSON.stringify(getAt(this._data, leaf.path))
+      ) {
+        this._touched = new Set(this._touched).add(pathKey(leaf.path));
       }
     }
-    return result;
-  }
-
-  private _dataChanged(ev: ValueChangedEvent<Record<string, any>>): void {
-    this._data = ev.detail.value;
+    this._data = next;
     this._errors = [];
+    this._dataEdited();
   }
 
   private _yamlChanged(
@@ -218,19 +400,94 @@ export class HaGuidedSetupWizard extends LitElement {
         ? ev.detail.value
         : {};
     this._errors = [];
+    this._dataEdited();
+  }
+
+  private _dataEdited(): void {
+    this._scheduleCheck();
+    this._scheduleDraft();
+  }
+
+  /** Asks the server about the options a moment after typing stops. */
+  private _scheduleCheck(): void {
+    window.clearTimeout(this._checkTimer);
+    if (this._step !== "options" || !this._yamlValid) {
+      return;
+    }
+    this._checkTimer = window.setTimeout(() => this._liveCheck(), CHECK_DELAY);
+  }
+
+  private async _liveCheck(): Promise<void> {
+    if (
+      this._step !== "options" ||
+      Object.keys(validateAll(this._leaves(), this._data)).length
+    ) {
+      return;
+    }
+    const run = ++this._checkRun;
+    this._checking = true;
+    try {
+      const result = await validateGuidedSetup(
+        this.hass,
+        {
+          domain: this.integration.domain,
+          entity_domain: this._entityDomain,
+        },
+        this._payload()
+      );
+      if (run === this._checkRun) {
+        this._errors = result.errors;
+      }
+    } catch (_err) {
+      // A failed check is not an error in the options; Next checks again.
+    } finally {
+      if (run === this._checkRun) {
+        this._checking = false;
+      }
+    }
+  }
+
+  private _scheduleDraft(): void {
+    window.clearTimeout(this._draftTimer);
+    if (this.entry || this._saved) {
+      return;
+    }
+    this._draftTimer = window.setTimeout(() => this._storeDraft(), DRAFT_DELAY);
+  }
+
+  private _storeDraft(): void {
+    const key = draftKey(this.integration.domain, this._entityDomain);
+    if (!hasContent(this._data)) {
+      clearDraft(browserStorage(), key);
+      return;
+    }
+    saveDraft(
+      browserStorage(),
+      key,
+      {
+        step: this._step === "done" ? "options" : this._step,
+        kind: this._kind,
+        entityDomain: this._entityDomain,
+        data: this._data,
+      },
+      this._leaves()
+    );
+  }
+
+  private _dirty(): boolean {
+    if (this._saved || this._step === "done") {
+      return false;
+    }
+    if (this.entry) {
+      return JSON.stringify(this._data) !== this._initialData;
+    }
+    return hasContent(this._data);
   }
 
   /** The options as they are written: wrapped in the chosen kind, if any. */
   private _payload(): Record<string, any> {
     const data = pruneGuidedSetupData(this._data);
     return this._kind ? { [this._kind]: data } : data;
-  }
-
-  private _fields(form: GuidedSetupForm): GuidedSetupField[] {
-    if (!form.kinds) {
-      return form.fields;
-    }
-    return form.kinds.find((kind) => kind.name === this._kind)?.fields ?? [];
   }
 
   /** Runs of short numeric fields sit side by side where there is room. */
@@ -251,10 +508,12 @@ export class HaGuidedSetupWizard extends LitElement {
       }
       run = [];
     };
-    for (const field of this._fields(form)) {
+    for (const field of this._fields(form).map(decorateField)) {
+      const selector = (field as any).selector;
       if (
-        !field.free_form &&
-        ["integer", "float"].includes(field.type as string)
+        !(field as any).free_form &&
+        selector?.number &&
+        selector.number.mode !== "slider"
       ) {
         run.push(field);
       } else {
@@ -292,6 +551,8 @@ export class HaGuidedSetupWizard extends LitElement {
     this._kind = (ev.currentTarget as HTMLElement).dataset.kind;
     this._data = {};
     this._errors = [];
+    this._touched = new Set();
+    this._attempted = false;
   }
 
   private _pickTarget(ev: Event): void {
@@ -299,13 +560,24 @@ export class HaGuidedSetupWizard extends LitElement {
     this._entityDomain = value === "" ? null : value;
   }
 
+  private _bump(step: GuidedStep): void {
+    if (STEPS.indexOf(step) > STEPS.indexOf(this._furthest)) {
+      this._furthest = step;
+    }
+  }
+
   private async _next(): Promise<void> {
     if (this._step === "about") {
       this._step = "options";
+      this._bump("options");
       await this._loadForm();
       return;
     }
     if (this._step === "options") {
+      this._attempted = true;
+      if (Object.keys(validateAll(this._leaves(), this._data)).length) {
+        return;
+      }
       await this._review();
     }
   }
@@ -319,7 +591,36 @@ export class HaGuidedSetupWizard extends LitElement {
     } else if (this._step === "options" && !this.entry) {
       this._step = "about";
     } else {
-      this._close();
+      this._requestClose();
+    }
+  }
+
+  private _ctx() {
+    return {
+      current: this._step,
+      furthest: this._furthest,
+      errorCount: this._allMessages().length,
+      saved: this._saved,
+    };
+  }
+
+  private async _jump(ev: Event): Promise<void> {
+    const step = (ev.currentTarget as HTMLElement).dataset.step as GuidedStep;
+    if (!canJumpTo(step, this._ctx())) {
+      return;
+    }
+    if (step === "review") {
+      this._attempted = true;
+      if (Object.keys(validateAll(this._leaves(), this._data)).length) {
+        this._step = "options";
+        return;
+      }
+      await this._review();
+      return;
+    }
+    this._step = step;
+    if (step === "options" && !this._form) {
+      await this._loadForm();
     }
   }
 
@@ -339,6 +640,9 @@ export class HaGuidedSetupWizard extends LitElement {
       this._yaml = result.yaml;
       if (result.valid) {
         this._step = "review";
+        this._bump("review");
+      } else {
+        this._attempted = true;
       }
     } catch (err: any) {
       this._errors = [{ path: [], message: err?.message ?? String(err) }];
@@ -364,8 +668,15 @@ export class HaGuidedSetupWizard extends LitElement {
         this._step = "options";
         return;
       }
+      window.clearTimeout(this._draftTimer);
+      clearDraft(
+        browserStorage(),
+        draftKey(this.integration.domain, this._entityDomain)
+      );
+      this._saved = true;
       this._apply = result.entry?.apply;
       this._step = "done";
+      this._bump("done");
       fireEvent(this, "guided-setup-changed");
     } catch (err: any) {
       this._errors = [{ path: [], message: err?.message ?? String(err) }];
@@ -375,45 +686,155 @@ export class HaGuidedSetupWizard extends LitElement {
     }
   }
 
+  private async _resumeDraft(): Promise<void> {
+    const draft = this._draft;
+    if (!draft) {
+      return;
+    }
+    this._entityDomain = draft.entityDomain;
+    this._kind = draft.kind;
+    this._data = draft.data;
+    this._resumedSecrets = draft.clearedSecrets;
+    this._draft = undefined;
+    this._step = "options";
+    this._bump("options");
+    this._touched = new Set();
+    await this._loadForm();
+    const form = this._form;
+    if (form?.kinds && draft.kind && !this._kind) {
+      this._kind = draft.kind;
+    }
+    if (draft.step === "review" || draft.step === "options") {
+      this._step = "options";
+    }
+  }
+
+  private _startAgain(): void {
+    const draft = this._draft;
+    if (draft) {
+      clearDraft(
+        browserStorage(),
+        draftKey(this.integration.domain, draft.entityDomain)
+      );
+    }
+    this._draft = undefined;
+  }
+
+  private async _requestClose(): Promise<void> {
+    if (this._dirty()) {
+      const leave = await showConfirmationDialog(this, {
+        title: this._l("leave_title"),
+        text: this.entry ? this._l("leave_text_entry") : this._l("leave_text"),
+        confirmText: this._l("leave_confirm"),
+        dismissText: this._l("leave_stay"),
+        destructive: this.entry !== undefined,
+      });
+      if (!leave) {
+        return;
+      }
+      window.clearTimeout(this._draftTimer);
+      if (!this.entry) {
+        this._storeDraft();
+      }
+    }
+    this._close();
+  }
+
   private _close(): void {
     fireEvent(this, "guided-setup-closed");
   }
 
+  private _formatWhen(time: number): string {
+    return new Date(time).toLocaleString(this.hass.locale?.language);
+  }
+
   protected render(): TemplateResult {
-    const index = STEPS.indexOf(this._step);
     const title = this.entry
       ? this._l("edit_title", { name: this.integration.name })
       : this.integration.name;
+    const showSummary = this._step === "options" && !!this._form?.serializable;
     return html`
-      <div class="wizard">
+      <div
+        class=${classMap({ wizard: true, wide: !this.narrow && showSummary })}
+      >
         <h2>${title}</h2>
-        <div class="segments" aria-hidden="true">
-          ${STEPS.map(
-            (step, position) =>
-              html`<span
-                class=${classMap({
-                  current: step === this._step,
-                  done: position < index,
-                })}
-              ></span>`
-          )}
+        ${this._renderRail()}
+        <div class="body">
+          <div class="main">
+            ${this._step === "about" ? this._renderAbout() : nothing}
+            ${this._step === "options" ? this._renderOptions() : nothing}
+            ${this._step === "review" ? this._renderReview() : nothing}
+            ${this._step === "done" ? this._renderDone() : nothing}
+          </div>
+          ${showSummary ? this._renderSummary() : nothing}
         </div>
-        <p class="step-name" role="status">
-          ${this._l("step_of", { current: index + 1, total: STEPS.length })},
-          ${this._l(`step_${this._step}`)}
-        </p>
-        ${this._step === "about" ? this._renderAbout() : nothing}
-        ${this._step === "options" ? this._renderOptions() : nothing}
-        ${this._step === "review" ? this._renderReview() : nothing}
-        ${this._step === "done" ? this._renderDone() : nothing}
       </div>
     `;
   }
 
+  private _renderRail(): TemplateResult {
+    const ctx = this._ctx();
+    const index = STEPS.indexOf(this._step);
+    return html`<nav aria-label=${this._l("steps_nav")}>
+      <ol class="rail">
+        ${STEPS.map((step, position) => {
+          const status = stepStatus(step, ctx);
+          const jumpable = canJumpTo(step, ctx);
+          return html`<li>
+            <button
+              type="button"
+              class=${classMap({
+                [status]: true,
+                step: true,
+              })}
+              data-step=${step}
+              aria-current=${step === this._step ? "step" : "false"}
+              ?disabled=${!jumpable && step !== this._step}
+              @click=${this._jump}
+            >
+              <span class="bar" aria-hidden="true"></span>
+              <span class="label"
+                >${position + 1}. ${this._l(`step_${step}`)}</span
+              >
+              <span class="sr-only">${this._l(`step_status_${status}`)}</span>
+            </button>
+          </li>`;
+        })}
+      </ol>
+      <p class="step-name sr-only" role="status">
+        ${this._l("step_of", { current: index + 1, total: STEPS.length })},
+        ${this._l(`step_${this._step}`)}
+      </p>
+    </nav>`;
+  }
+
   private _renderAbout(): TemplateResult {
     const targets = this._targets();
+    const draft = this._draft;
     return html`
       <section>
+        ${
+          draft
+            ? html`<ha-alert alert-type="info" .title=${this._l("draft_found")}>
+                ${this._l("draft_found_text", {
+                  when: this._formatWhen(draft.savedAt),
+                })}
+                ${
+                  draft.clearedSecrets.length
+                    ? html`<br />${this._l("draft_secrets_note")}`
+                    : nothing
+                }
+                <div class="inline-actions">
+                  <ha-button @click=${this._resumeDraft}
+                    >${this._l("draft_resume")}</ha-button
+                  >
+                  <ha-button appearance="plain" @click=${this._startAgain}
+                    >${this._l("draft_restart")}</ha-button
+                  >
+                </div>
+              </ha-alert>`
+            : nothing
+        }
         <h3>${this._l("about_title")}</h3>
         <p>${this._l("about_text", { name: this.integration.name })}</p>
         <ha-button
@@ -475,22 +896,41 @@ export class HaGuidedSetupWizard extends LitElement {
     if (form.kinds && !this._kind) {
       return this._renderKinds(form);
     }
+    const leaves = this._leaves();
+    const noneRequired = !leaves.some((leaf) => leaf.required);
     return html`
       <section>
+        ${
+          this._resumedSecrets.length
+            ? html`<ha-alert alert-type="warning">
+                ${this._l("draft_secrets", {
+                  names: this._resumedSecrets
+                    .map((key) => {
+                      const leaf = leaves.find(
+                        (item) => pathKey(item.path) === key
+                      );
+                      return leaf ? this._labelOf(leaf) : key;
+                    })
+                    .join(", "),
+                })}
+              </ha-alert>`
+            : nothing
+        }
         ${this._renderErrors()}
         ${
           form.serializable
             ? html`<ha-form
-                .hass=${this.hass}
-                .narrow=${this.narrow}
-                .data=${this._data}
-                .schema=${this._drawnSchema(form)}
-                .error=${this._fieldErrors()}
-                .computeLabel=${this._computeLabel}
-                .computeHelper=${this._computeHelper}
-                .computeError=${this._computeError}
-                @value-changed=${this._dataChanged}
-              ></ha-form>`
+                  .hass=${this.hass}
+                  .narrow=${this.narrow}
+                  .data=${this._data}
+                  .schema=${this._drawnSchema(form)}
+                  .error=${this._fieldErrors()}
+                  .computeLabel=${this._computeLabel}
+                  .computeHelper=${this._computeHelper}
+                  .computeError=${this._computeError}
+                  @value-changed=${this._dataChanged}
+                ></ha-form>
+                ${this._renderGuidance(leaves)}`
             : html`<h3>${this._l("free_form_title")}</h3>
                 <p>
                   ${this._l("free_form_reason", { reason: form.reason ?? "" })}
@@ -509,10 +949,86 @@ export class HaGuidedSetupWizard extends LitElement {
                       >`
                 }`
         }
+        <p class="note live" role="status">
+          ${this._checking ? this._l("checking") : nothing}
+        </p>
         <p class="note">${this._l("plain_text_note")}</p>
-        ${this._renderActions(form.serializable ? false : !this._yamlValid)}
+        ${this._renderActions(
+          form.serializable ? false : !this._yamlValid,
+          form.serializable && noneRequired && !hasContent(this._data)
+        )}
       </section>
     `;
+  }
+
+  /** An expandable explanation of every option, always on the page. */
+  private _renderGuidance(
+    leaves: LeafField[]
+  ): TemplateResult | typeof nothing {
+    if (!leaves.length) {
+      return nothing;
+    }
+    return html`<h3>${this._l("help_title")}</h3>
+      <div class="guidance">
+        ${leaves.map(
+          (leaf) =>
+            html`<details>
+              <summary>
+                <span>${this._labelOf(leaf)}</span>
+                <ha-svg-icon .path=${mdiChevronDown}></ha-svg-icon>
+              </summary>
+              <p>
+                ${this._l(leaf.required ? "required" : "optional")}.
+                ${this._msg(fieldHint(leaf))}
+                ${
+                  leaf.default !== undefined &&
+                  leaf.default !== null &&
+                  !leaf.secret
+                    ? html` ${this._l("default", {
+                        value:
+                          typeof leaf.default === "object"
+                            ? JSON.stringify(leaf.default)
+                            : String(leaf.default),
+                      })}`
+                    : nothing
+                }
+              </p>
+            </details>`
+        )}
+      </div>`;
+  }
+
+  private _renderSummary(): TemplateResult {
+    const lines = buildSummary(this._leaves(), this._data, this._labelOf);
+    const body = lines.length
+      ? html`<dl>
+          ${lines.map(
+            (line) =>
+              html`<div class="line">
+                <dt>${line.label}</dt>
+                <dd>${line.secret ? this._l("summary_set") : line.value}</dd>
+              </div>`
+          )}
+        </dl>`
+      : html`<p class="note">${this._l("summary_empty")}</p>`;
+    const file = this._l("summary_file", {
+      file: `guided_setup/${this.integration.domain}.yaml`,
+    });
+    if (this.narrow) {
+      return html`<details class="summary">
+        <summary>
+          ${this._l("summary_title")} (${lines.length})
+          <ha-svg-icon .path=${mdiChevronDown}></ha-svg-icon>
+        </summary>
+        <p class="note">${file}</p>
+        ${body}
+      </details>`;
+    }
+    return html`<aside class="summary" aria-label=${this._l("summary_title")}>
+      <h3>${this._l("summary_title")}</h3>
+      <p class="note">${file}</p>
+      ${body}
+    </aside>`;
   }
 
   private _renderKinds(form: GuidedSetupForm): TemplateResult {
@@ -529,7 +1045,7 @@ export class HaGuidedSetupWizard extends LitElement {
               data-kind=${kind.name}
               @click=${this._pickKind}
             >
-              ${this._humanize(kind.name)}
+              ${humanize(kind.name)}
             </button>`
         )}
       </div>
@@ -538,41 +1054,70 @@ export class HaGuidedSetupWizard extends LitElement {
   }
 
   private _renderErrors(): TemplateResult | typeof nothing {
-    if (!this._errors.length) {
-      return nothing;
+    const messages = this._allMessages();
+    if (!messages.length || (!this._attempted && !this._errors.length)) {
+      return html`<div class="sr-only" role="status" aria-live="polite">
+        ${
+          messages.length
+            ? this._l("errors_count", { count: messages.length })
+            : ""
+        }
+      </div>`;
     }
     return html`<ha-alert
-      class="errors"
-      tabindex="-1"
-      alert-type="error"
-      .title=${this._l("errors_title")}
-    >
-      <ul>
-        ${this._errors.map(
-          (error) =>
-            html`<li>
-              ${
-                error.path.length
-                  ? this._l("error_line", {
-                      field: error.path.join("."),
-                      message: error.message,
-                    })
-                  : error.message
-              }
-            </li>`
-        )}
-      </ul>
-    </ha-alert>`;
+        class="errors"
+        tabindex="-1"
+        alert-type="error"
+        .title=${this._l("errors_title")}
+      >
+        <ul>
+          ${messages.map(
+            (error) =>
+              html`<li>
+                ${
+                  error.label
+                    ? this._l("error_line", {
+                        field: error.label,
+                        message: error.message,
+                      })
+                    : error.message
+                }
+              </li>`
+          )}
+        </ul>
+      </ha-alert>
+      <div class="sr-only" role="status" aria-live="polite">
+        ${this._l("errors_count", { count: messages.length })}
+      </div>`;
   }
 
   private _renderReview(): TemplateResult {
+    const leaves = this._leaves();
+    const lines = buildSummary(leaves, this._data, this._labelOf);
     return html`
       <section>
         <h3>${this._l("review_title")}</h3>
         <p>
-          ${this._l("review_text", { file: `guided_setup/${this.integration.domain}.yaml` })}
+          ${this._l("review_text", {
+            file: `guided_setup/${this.integration.domain}.yaml`,
+          })}
         </p>
-        <pre class="yaml" tabindex="0">${this._yaml}</pre>
+        <dl class="review-list">
+          ${lines.map(
+            (line) =>
+              html`<div class="line">
+                <dt>${line.label}</dt>
+                <dd>${line.secret ? this._l("summary_set") : line.value}</dd>
+              </div>`
+          )}
+        </dl>
+        <pre class="yaml" tabindex="0">
+${maskYaml(this._yaml, leaves, this._l("secret_mask"))}</pre>
+        ${
+          leaves.some((leaf) => leaf.secret)
+            ? html`<p class="note">${this._l("review_masked_note")}</p>`
+            : nothing
+        }
         <p class="note">${this._l("plain_text_note")}</p>
         <div class="actions">
           <ha-button appearance="plain" @click=${this._back}>
@@ -629,7 +1174,10 @@ export class HaGuidedSetupWizard extends LitElement {
     `;
   }
 
-  private _renderActions(nextDisabled: boolean): TemplateResult {
+  private _renderActions(
+    nextDisabled: boolean,
+    canSkip = false
+  ): TemplateResult {
     return html`<div class="actions">
       <ha-button appearance="plain" @click=${this._back}>
         ${
@@ -638,12 +1186,21 @@ export class HaGuidedSetupWizard extends LitElement {
             : this._l("back")
         }
       </ha-button>
-      <ha-button
-        @click=${this._next}
-        .disabled=${nextDisabled || this._busy || this._noTargetChosen()}
-      >
-        ${this._l("next")}
-      </ha-button>
+      <span class="end">
+        ${
+          canSkip
+            ? html`<ha-button appearance="plain" @click=${this._review}>
+                ${this._l("skip_defaults")}
+              </ha-button>`
+            : nothing
+        }
+        <ha-button
+          @click=${this._next}
+          .disabled=${nextDisabled || this._busy || this._noTargetChosen()}
+        >
+          ${this._l("next")}
+        </ha-button>
+      </span>
     </div>`;
   }
 
@@ -665,6 +1222,15 @@ export class HaGuidedSetupWizard extends LitElement {
         padding: var(--ha-space-4);
         box-sizing: border-box;
       }
+      .wizard.wide {
+        max-width: 1040px;
+      }
+      .wizard.wide .body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: var(--ha-space-6);
+        align-items: start;
+      }
       h2 {
         margin: 0 0 var(--ha-space-3);
         overflow-wrap: anywhere;
@@ -672,35 +1238,99 @@ export class HaGuidedSetupWizard extends LitElement {
       h3 {
         margin: var(--ha-space-4) 0 var(--ha-space-1);
       }
-      .segments {
+      .rail {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: var(--ha-space-1);
+        list-style: none;
+        margin: 0 0 var(--ha-space-4);
+        padding: 0;
       }
-      .segments span {
+      .step {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        width: 100%;
+        min-height: 44px;
+        padding: var(--ha-space-1) 0;
+        font: inherit;
+        font-size: var(--ha-font-size-s);
+        text-align: start;
+        color: var(--secondary-text-color);
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      .step:disabled {
+        cursor: default;
+      }
+      .step:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        border-radius: var(--ha-border-radius-sm, 4px);
+      }
+      .step .bar {
+        display: block;
         height: 4px;
         border-radius: 2px;
         background: var(--divider-color);
       }
-      .segments span.done {
+      .step.done .bar {
         background: var(--primary-color);
       }
-      .segments span.current {
+      .step.current .bar {
         background: color-mix(in srgb, var(--primary-color) 40%, transparent);
       }
-      .step-name {
-        margin: var(--ha-space-2) 0 var(--ha-space-4);
+      .step.current,
+      .step.done {
+        color: var(--primary-text-color);
+      }
+      .step.current .label {
         font-weight: var(--ha-font-weight-medium);
+      }
+      .step.error .bar {
+        background: var(--error-color);
+      }
+      .step.error {
+        color: var(--error-color);
+      }
+      .step .label {
+        overflow-wrap: anywhere;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
       .note {
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-s);
       }
+      .note.live:empty {
+        display: none;
+      }
       .actions {
         display: flex;
         justify-content: space-between;
+        flex-wrap: wrap;
         gap: var(--ha-space-2);
         margin-top: var(--ha-space-4);
+      }
+      .end,
+      .inline-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
+      }
+      .inline-actions {
+        margin-top: var(--ha-space-2);
+      }
+      ha-button {
+        --ha-button-height: 44px;
+        min-width: 44px;
       }
       .center {
         display: flex;
@@ -710,6 +1340,7 @@ export class HaGuidedSetupWizard extends LitElement {
       .choice {
         display: block;
         width: 100%;
+        min-height: 44px;
         margin-bottom: var(--ha-space-2);
         padding: var(--ha-space-3) var(--ha-space-4);
         text-align: start;
@@ -739,9 +1370,76 @@ export class HaGuidedSetupWizard extends LitElement {
         font-family: var(--ha-font-family-code, monospace);
         font-size: var(--ha-font-size-s);
       }
+      pre.yaml:focus-visible {
+        outline: 2px solid var(--primary-color);
+      }
       ha-alert ul {
         margin: 0;
         padding-inline-start: var(--ha-space-5);
+      }
+      .summary {
+        box-sizing: border-box;
+        padding: var(--ha-space-3) var(--ha-space-4);
+        background: var(--secondary-background-color);
+        border-radius: var(--ha-border-radius-lg);
+      }
+      aside.summary {
+        position: sticky;
+        top: var(--ha-space-4);
+      }
+      aside.summary h3 {
+        margin-top: 0;
+      }
+      details.summary {
+        margin-top: var(--ha-space-4);
+      }
+      summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+        min-height: 44px;
+        cursor: pointer;
+      }
+      summary:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      dl {
+        margin: 0;
+      }
+      .line {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-1) 0;
+        border-bottom: 1px solid var(--divider-color);
+      }
+      dt {
+        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
+      }
+      dd {
+        margin: 0;
+        font-family: var(--ha-font-family-code, monospace);
+        overflow-wrap: anywhere;
+      }
+      .review-list {
+        margin-bottom: var(--ha-space-3);
+      }
+      .guidance details {
+        border-bottom: 1px solid var(--divider-color);
+      }
+      .guidance p {
+        margin: 0 0 var(--ha-space-2);
+        color: var(--secondary-text-color);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
       }
     `,
   ];

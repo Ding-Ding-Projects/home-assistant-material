@@ -1,8 +1,10 @@
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, queryAll, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import { consume } from "../../../common/decorators/consume";
+import { resolveTimeZone } from "../../../common/datetime/resolve-time-zone";
 import { useAmPm } from "../../../common/datetime/use_am_pm";
 import "../../../components/ha-button";
 import { apiContext } from "../../../data/context";
@@ -10,14 +12,12 @@ import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
 import { setTimeValue } from "../../../data/time";
 import type { HomeAssistant, HomeAssistantApi } from "../../../types";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
+import { getZonedParts } from "./more-info-time-zone";
 
 type Part = "hour" | "minute";
 
-const PRESETS: [number, number][] = [
-  [6, 0],
-  [6, 30],
-  [7, 0],
-];
+// Typed digits are forgotten after this long without another key
+const TYPED_TIMEOUT_MS = 1500;
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -40,7 +40,42 @@ class MoreInfoTime extends LitElement {
 
   private _syncedState?: string;
 
+  @state() private _invalidEntry?: string;
+
   private _typed = "";
+
+  @queryAll(".current") private _spinbuttons!: NodeListOf<HTMLElement>;
+
+  private _typedTimer?: ReturnType<typeof setTimeout>;
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._clearTyped();
+  }
+
+  private _clearTyped = () => {
+    this._typed = "";
+    if (this._typedTimer !== undefined) {
+      clearTimeout(this._typedTimer);
+      this._typedTimer = undefined;
+    }
+  };
+
+  // The times offered as shortcuts follow the clock in the profile time zone
+  private _presets(): [number, number][] {
+    const { hour, minute } = getZonedParts(
+      new Date(),
+      resolveTimeZone(this.hass!.locale.time_zone, this.hass!.config.time_zone)
+    );
+    const total = hour * 60 + minute;
+    const nextHalf = (Math.floor(total / 30) + 1) * 30;
+    const nextHour = (Math.floor(total / 60) + 1) * 60;
+    const seen = new Set<number>();
+    return [total, nextHalf, nextHour]
+      .map((value) => value % 1440)
+      .filter((value) => !seen.has(value) && seen.add(value))
+      .map((value) => [Math.floor(value / 60), value % 60]);
+  }
 
   protected willUpdate(changedProps: PropertyValues<this>): void {
     super.willUpdate(changedProps);
@@ -54,7 +89,8 @@ class MoreInfoTime extends LitElement {
     const match = /^(\d{1,2}):(\d{2})/.exec(this.stateObj?.state ?? "");
     this._hour = match ? Number(match[1]) % 24 : 0;
     this._minute = match ? Number(match[2]) % 60 : 0;
-    this._typed = "";
+    this._invalidEntry = undefined;
+    this._clearTyped();
   }
 
   protected render() {
@@ -78,16 +114,22 @@ class MoreInfoTime extends LitElement {
 
     return html`
       <div class="stack">
-        <div
-          class="picker"
-          role="group"
-          tabindex="0"
-          aria-label=${this._announce(ampm)}
-          @keydown=${this._handleKey}
-        >
-          ${this._renderColumn("hour", hourLabel, 24)}
+        <div class="picker" role="group" aria-label=${this._announce(ampm)}>
+          ${this._renderColumn(
+            "hour",
+            hourLabel,
+            24,
+            localize("ui.dialogs.more_info_control.time.hour"),
+            ampm
+          )}
           <span class="colon" aria-hidden="true">:</span>
-          ${this._renderColumn("minute", pad, 60)}
+          ${this._renderColumn(
+            "minute",
+            pad,
+            60,
+            localize("ui.dialogs.more_info_control.time.minute"),
+            ampm
+          )}
           ${
             ampm
               ? html`<div class="segmented meridiem">
@@ -116,8 +158,17 @@ class MoreInfoTime extends LitElement {
             example: "0645",
           })}
         </p>
+        <p class="hint error" role="alert">
+          ${
+            this._invalidEntry
+              ? localize("ui.dialogs.more_info_control.time.invalid_entry", {
+                  entry: this._invalidEntry,
+                })
+              : nothing
+          }
+        </p>
         <div class="chips">
-          ${PRESETS.map(
+          ${this._presets().map(
             ([hour, minute]) => html`
               <button
                 type="button"
@@ -166,7 +217,9 @@ class MoreInfoTime extends LitElement {
   private _renderColumn(
     part: Part,
     label: (value: number) => string,
-    size: number
+    size: number,
+    partLabel: string,
+    ampm: boolean
   ) {
     const value = part === "hour" ? this._hour : this._minute;
     const step = part === "minute" ? 15 : 1;
@@ -184,16 +237,23 @@ class MoreInfoTime extends LitElement {
         >
           ${label(before)}
         </button>
-        <button
-          type="button"
-          class="current"
-          aria-pressed=${this._part === part}
-          tabindex="-1"
+        <div
+          class=${classMap({ current: true, selected: this._part === part })}
+          role="spinbutton"
+          tabindex="0"
+          aria-label=${partLabel}
+          aria-valuemin="0"
+          aria-valuemax=${size - 1}
+          aria-valuenow=${value}
+          aria-valuetext=${this._valueText(part, value, ampm)}
           .part=${part}
           @click=${this._selectPart}
+          @focus=${this._selectPart}
+          @blur=${this._clearTyped}
+          @keydown=${this._handleKey}
         >
           ${label(value)}
-        </button>
+        </div>
         <button
           type="button"
           class="neighbor"
@@ -206,6 +266,17 @@ class MoreInfoTime extends LitElement {
         </button>
       </div>
     `;
+  }
+
+  private _valueText(part: Part, value: number, ampm: boolean) {
+    if (part === "minute") {
+      return pad(value);
+    }
+    return new Intl.DateTimeFormat(this.hass!.locale.language, {
+      hour: "numeric",
+      hour12: ampm,
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(2023, 0, 1, value)));
   }
 
   private _change(part: Part, delta: number) {
@@ -222,6 +293,8 @@ class MoreInfoTime extends LitElement {
       delta: number;
     };
     this._part = target.part;
+    this._invalidEntry = undefined;
+    this._clearTyped();
     this._change(target.part, target.delta);
   }
 
@@ -236,40 +309,94 @@ class MoreInfoTime extends LitElement {
     this._hour = (this._hour % 12) + (pm ? 12 : 0);
   }
 
+  // Keys are handled on the hour and minute controls only, so a key pressed
+  // on the AM or PM buttons never changes the time
   private _handleKey(ev: KeyboardEvent) {
+    if (ev.altKey || ev.ctrlKey || ev.metaKey) {
+      return;
+    }
+    const part = (ev.currentTarget as HTMLElement & { part: Part }).part;
+    this._part = part;
+    if (/^\d$/.test(ev.key)) {
+      this._type(ev.key);
+      ev.preventDefault();
+      return;
+    }
+    // Any other key ends a half typed entry
+    this._clearTyped();
     switch (ev.key) {
       case "ArrowUp":
-        this._change(this._part, 1);
+        this._invalidEntry = undefined;
+        this._change(part, 1);
         break;
       case "ArrowDown":
-        this._change(this._part, -1);
+        this._invalidEntry = undefined;
+        this._change(part, -1);
+        break;
+      case "PageUp":
+        this._invalidEntry = undefined;
+        this._change(part, part === "hour" ? 6 : 15);
+        break;
+      case "PageDown":
+        this._invalidEntry = undefined;
+        this._change(part, part === "hour" ? -6 : -15);
+        break;
+      case "Home":
+        this._invalidEntry = undefined;
+        this._set(part, 0);
+        break;
+      case "End":
+        this._invalidEntry = undefined;
+        this._set(part, part === "hour" ? 23 : 59);
         break;
       case "ArrowLeft":
       case "ArrowRight":
-        this._part = this._part === "hour" ? "minute" : "hour";
+        this._part = part === "hour" ? "minute" : "hour";
+        this._focusPart(this._part);
         break;
       default:
-        if (/^\d$/.test(ev.key)) {
-          this._type(ev.key);
-          break;
-        }
         return;
     }
     ev.preventDefault();
   }
 
+  private _focusPart(part: Part) {
+    this.updateComplete.then(() => {
+      this._spinbuttons[part === "hour" ? 0 : 1]?.focus();
+    });
+  }
+
+  private _set(part: Part, value: number) {
+    if (part === "hour") {
+      this._hour = value;
+    } else {
+      this._minute = value;
+    }
+  }
+
   // Four typed digits (0645) set hours and minutes together
   private _type(digit: string) {
+    this._invalidEntry = undefined;
     this._typed = (this._typed + digit).slice(-4);
     if (this._typed.length === 4) {
-      const hour = Number(this._typed.slice(0, 2));
-      const minute = Number(this._typed.slice(2));
+      const entry = this._typed;
+      const hour = Number(entry.slice(0, 2));
+      const minute = Number(entry.slice(2));
       if (hour < 24 && minute < 60) {
         this._hour = hour;
         this._minute = minute;
+      } else {
+        // Announced through the alert region, the time stays as it was
+        this._invalidEntry = `${entry.slice(0, 2)}:${entry.slice(2)}`;
       }
-      this._typed = "";
+      this._clearTyped();
+      return;
     }
+    // Digits left over after a pause are not part of the next entry
+    if (this._typedTimer !== undefined) {
+      clearTimeout(this._typedTimer);
+    }
+    this._typedTimer = setTimeout(this._clearTyped, TYPED_TIMEOUT_MS);
   }
 
   private _pickPreset(ev: Event) {
@@ -278,6 +405,8 @@ class MoreInfoTime extends LitElement {
     ).preset;
     this._hour = hour;
     this._minute = minute;
+    this._invalidEntry = undefined;
+    this._clearTyped();
   }
 
   private _apply() {
@@ -306,9 +435,9 @@ class MoreInfoTime extends LitElement {
         direction: ltr;
         border-radius: var(--ha-border-radius-xl);
       }
-      .picker:focus-visible {
+      .column .current:focus-visible {
         outline: 2px solid var(--primary-color);
-        outline-offset: 4px;
+        outline-offset: 2px;
       }
       .column {
         display: flex;
@@ -328,6 +457,12 @@ class MoreInfoTime extends LitElement {
         min-height: 40px;
       }
       .column .current {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-width: 80px;
+        cursor: pointer;
         font-size: 48px;
         line-height: 64px;
         min-height: 72px;
@@ -335,7 +470,7 @@ class MoreInfoTime extends LitElement {
         background: var(--secondary-background-color);
         color: var(--primary-text-color);
       }
-      .column .current[aria-pressed="true"] {
+      .column .current.selected {
         background: var(
           --ha-color-fill-primary-quiet-resting,
           rgba(3, 169, 244, 0.2)
@@ -354,6 +489,10 @@ class MoreInfoTime extends LitElement {
         text-align: center;
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-m);
+      }
+      .error {
+        color: var(--error-color);
+        min-height: 1.2em;
       }
       .actions {
         display: flex;

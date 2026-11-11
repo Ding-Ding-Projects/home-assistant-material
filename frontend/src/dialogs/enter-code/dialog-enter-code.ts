@@ -32,6 +32,9 @@ const BUTTONS = [
 /** Number of placeholder dots shown before the code is longer than that. */
 const MIN_DOTS = 4;
 
+/** Dots drawn at most; any further characters are summarised as "+n". */
+const MAX_DOTS = 10;
+
 @customElement("dialog-enter-code")
 export class DialogEnterCode
   extends LitElement
@@ -194,13 +197,25 @@ export class DialogEnterCode
           ></ha-input>
           <div class="dots" aria-hidden="true">
             ${Array.from(
-              { length: Math.max(MIN_DOTS, this._codeLength) },
+              {
+                length: Math.min(
+                  MAX_DOTS,
+                  Math.max(MIN_DOTS, this._codeLength)
+                ),
+              },
               (_, index) => html`
                 <span
                   class="dot ${classMap({ filled: index < this._codeLength })}"
                 ></span>
               `
             )}
+            ${
+              this._codeLength > MAX_DOTS
+                ? html`<span class="more"
+                    >+${this._codeLength - MAX_DOTS}</span
+                  >`
+                : nothing
+            }
           </div>
           <div class="keypad">
             ${BUTTONS.map((value) =>
@@ -275,7 +290,9 @@ export class DialogEnterCode
     .dots {
       display: flex;
       justify-content: center;
-      gap: var(--ha-space-4);
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--ha-space-3);
       margin-top: var(--ha-space-3);
       min-height: 14px;
     }
@@ -285,6 +302,11 @@ export class DialogEnterCode
       box-sizing: border-box;
       border-radius: var(--ha-border-radius-circle);
       border: 2px solid var(--primary-text-color);
+    }
+    .more {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+      font-variant-numeric: tabular-nums;
     }
     .dot.filled {
       background: var(--primary-text-color);

@@ -53,6 +53,10 @@ import "./ha-appearance-color-picker";
 
 type ScalarKey = Exclude<keyof ElementAppearance, "layers">;
 
+// A drag is applied and stored at most this often (milliseconds), and once
+// more when it ends.
+const APPLY_INTERVAL = 250;
+
 /**
  * The appearance editor for one element.
  *
@@ -97,6 +101,16 @@ export class HaAppearanceEditor extends LitElement {
 
   private _timer?: number;
 
+  private _applyTimer?: number;
+
+  private _applyPending = false;
+
+  private _applyTarget?: {
+    element: HTMLElement;
+    scope: AppearanceScope;
+    appearance: ElementAppearance;
+  };
+
   private get _element(): HTMLElement | undefined {
     return this.chain[this._index];
   }
@@ -125,6 +139,7 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   public close() {
+    this._flushPersist();
     window.clearInterval(this._timer);
     this._timer = undefined;
     [this._panel, this._outlineBox].forEach((box) => {
@@ -140,6 +155,7 @@ export class HaAppearanceEditor extends LitElement {
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._flushPersist();
     window.clearInterval(this._timer);
   }
 
@@ -162,6 +178,7 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _load() {
+    this._flushPersist();
     const element = this._element;
     this._appearance = element ? choiceFor(element, this._scope) : {};
     this._selectedLayer = 0;
@@ -201,7 +218,52 @@ export class HaAppearanceEditor extends LitElement {
     this._lastUndoKey = undoKey;
     this._lastUndoTime = now;
     this._appearance = normalizeAppearance(next);
-    updateChoice(element, this._scope, this._appearance);
+    this._applyTarget = {
+      element,
+      scope: this._scope,
+      appearance: this._appearance,
+    };
+    this._schedulePersist();
+  }
+
+  // Applying a choice also stores it, so a drag that sends many changes is
+  // applied at most every APPLY_INTERVAL ms, and the last value is applied at
+  // once when the drag ends (the picker's committed event), the panel closes or
+  // an undo happens.
+  private _schedulePersist() {
+    if (this._applyTimer === undefined) {
+      this._persistNow();
+      this._applyTimer = window.setTimeout(() => {
+        this._applyTimer = undefined;
+        if (this._applyPending) {
+          this._persistNow();
+        }
+      }, APPLY_INTERVAL);
+    } else {
+      this._applyPending = true;
+    }
+  }
+
+  private _persistNow() {
+    this._applyPending = false;
+    const target = this._applyTarget;
+    if (target) {
+      updateChoice(target.element, target.scope, target.appearance);
+    }
+  }
+
+  private _flushPersist = () => {
+    window.clearTimeout(this._applyTimer);
+    this._applyTimer = undefined;
+    if (this._applyPending) {
+      this._persistNow();
+    }
+  };
+
+  private _dropPending() {
+    window.clearTimeout(this._applyTimer);
+    this._applyTimer = undefined;
+    this._applyPending = false;
   }
 
   private _set<K extends ScalarKey>(key: K, value: ElementAppearance[K]) {
@@ -652,6 +714,7 @@ export class HaAppearanceEditor extends LitElement {
         .contrastWith=${this._textHex()}
         .contrastName=${this._l("picker_the_text")}
         @appearance-color-changed=${this._layerColor}
+        @appearance-color-committed=${this._flushPersist}
       ></ha-appearance-color-picker>
     </div>`;
   }
@@ -678,6 +741,7 @@ export class HaAppearanceEditor extends LitElement {
         .contrastWith=${this._backgroundColor()}
         .contrastName=${this._l("picker_the_background")}
         @appearance-color-changed=${this._scalarColorChanged}
+        @appearance-color-committed=${this._flushPersist}
       ></ha-appearance-color-picker>
       ${this._clearButton(key)}
     </div>`;
@@ -926,6 +990,7 @@ export class HaAppearanceEditor extends LitElement {
     if (!previous || !element) {
       return;
     }
+    this._dropPending();
     this._undo = this._undo.slice(0, -1);
     this._appearance = previous;
     this._lastUndoKey = "";
@@ -937,6 +1002,7 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _resetEverything() {
+    this._dropPending();
     resetAllAppearance();
     this._appearance = {};
     this._undo = [];

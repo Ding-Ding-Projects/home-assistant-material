@@ -8,6 +8,20 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- A link that opens a page of this interface from outside now asks first, shows where it
+  goes and what it passes on, and does nothing until you choose.
+- Date, time and calendar dialogs follow the time zone chosen in the profile. The time dialog
+  has real spin controls and the date grid can be walked with the arrow keys.
+- The colour picker applies a typed colour when you finish typing, not at every letter, and
+  stores a drag a few times instead of at every move. Fonts and accessibility: fixes for
+  narrow screens, focus, and a font that is not on the device.
+- The selection bar sits at the bottom, counts only the rows shown, and says when ticked rows
+  are hidden by the filter. Exports keep duplicate column names apart and say when rows were
+  cut. Outside links in notifications show their host.
+- Group dialogs ask before switching covers, locks or valves. The image dialog no longer has a
+  share button, because the shared address carried an access code.
+- Tabs and the search of everything follow the language mode, with Cantonese written. Open a
+  tab lists the tools. Starting, connection lost and no-access screens are redrawn.
 - Fixed: builds 64 and 65 were published without images, because a push that changed many
   files was mistaken for a documentation-only push. Build 66 is the first with images again.
 - The narrator only ever uses a voice that runs on the device. If there is none it stays

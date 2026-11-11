@@ -24,6 +24,8 @@ import type {
   BulkPreview,
 } from "../../../components/bulk/bulk-selection";
 import {
+  filteredTableCount,
+  hiddenTableSelection,
   invertTableRows,
   selectAllTableRows,
 } from "../../../components/bulk/table-selection";
@@ -276,6 +278,7 @@ export class HaConfigLabels extends LitElement {
         selectable
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
+        @filtered-rows-changed=${this._filteredRowsChanged}
       >
         <ha-icon-button
           slot="toolbar-icon"
@@ -294,12 +297,13 @@ export class HaConfigLabels extends LitElement {
       </hass-tabs-subpage-data-table>
       ${
         this._selected.length
-          ? html`<div class="bulk">
+          ? html`<div class=${this.narrow ? "bulk narrow" : "bulk"}>
               <ha-bulk-bar
                 .localize=${this._bulkLocalize}
                 .count=${this._selected.length}
-                .pageCount=${this._labels.length}
-                .matchCount=${this._labels.length}
+                .pageCount=${filteredTableCount(this._dataTable)}
+                .matchCount=${filteredTableCount(this._dataTable)}
+                .hiddenCount=${hiddenTableSelection(this._dataTable)}
                 .actions=${this._bulkActions()}
                 .getPreview=${this._bulkPreview}
                 @bulk-select-page=${this._selectAllRows}
@@ -473,56 +477,47 @@ export class HaConfigLabels extends LitElement {
       ],
       changeCount: chosen.length,
       confirmLabel: this.hass.localize("ui.common.delete"),
+      note: this.hass.localize(
+        "ui.panel.config.labels.confirm_delete_selected",
+        { count: chosen.length }
+      ),
     };
+  };
+
+  private _filteredRowsChanged = () => {
+    if (this._selected.length) {
+      this.requestUpdate();
+    }
   };
 
   private _selectAllRows = () => selectAllTableRows(this._dataTable);
 
-  private _invertRows = () =>
-    invertTableRows(this._dataTable, this._selected, "label_id");
+  private _invertRows = () => invertTableRows(this._dataTable);
 
-  private _clearRows = () => this._dataTable.clearSelection();
+  private _clearRows = () => this._dataTable?.clearSelection();
 
-  private _deleteSelected = () => {
-    let deleteFailed = false;
-    showConfirmationDialog(this, {
-      title: this.hass.localize(
-        "ui.panel.config.labels.confirm_delete_selected_title"
-      ),
-      text: this.hass.localize(
-        "ui.panel.config.labels.confirm_delete_selected",
-        { count: this._selected.length }
-      ),
-      confirmText: this.hass.localize("ui.common.delete"),
-      dismissText: this.hass.localize("ui.common.cancel"),
-      destructive: true,
-      action: async () => {
-        const results = await Promise.allSettled(
-          this._selected.map((labelId) =>
-            deleteLabelRegistryEntry(this.hass.callWS, labelId)
-          )
-        );
-        const deletedIds = new Set(
-          this._selected.filter(
-            (_id, index) => results[index].status === "fulfilled"
-          )
-        );
-        this._labels = this._labels.filter(
-          (label) => !deletedIds.has(label.label_id)
-        );
-        deleteFailed = hasRejectedItems(results);
-        this._dataTable.clearSelection();
-      },
-    }).then((confirmed) => {
-      if (confirmed && deleteFailed) {
-        showAlertDialog(this, {
-          title: this.hass.localize(
-            "ui.panel.config.labels.delete_failed_title"
-          ),
-          text: this.hass.localize("ui.panel.config.labels.delete_failed"),
-        });
-      }
-    });
+  /**
+   * The bar already showed what will be deleted and asked twice, so no
+   * further dialog follows: the work starts at once.
+   */
+  private _deleteSelected = async () => {
+    const ids = [...this._selected];
+    const results = await Promise.allSettled(
+      ids.map((labelId) => deleteLabelRegistryEntry(this.hass.callWS, labelId))
+    );
+    const deletedIds = new Set(
+      ids.filter((_id, index) => results[index].status === "fulfilled")
+    );
+    this._labels = this._labels.filter(
+      (label) => !deletedIds.has(label.label_id)
+    );
+    this._dataTable?.setCheckedRowIds(ids.filter((id) => !deletedIds.has(id)));
+    if (hasRejectedItems(results)) {
+      showAlertDialog(this, {
+        title: this.hass.localize("ui.panel.config.labels.delete_failed_title"),
+        text: this.hass.localize("ui.panel.config.labels.delete_failed"),
+      });
+    }
   };
 
   private _handleOverflowAction = (ev: HaDropdownSelectEvent) => {
@@ -568,12 +563,18 @@ export class HaConfigLabels extends LitElement {
     .bulk {
       position: fixed;
       z-index: 4;
-      top: calc(var(--header-height, 56px) + var(--ha-space-2));
-      left: 0;
-      right: 0;
+      bottom: calc(var(--ha-phone-bar-height, 0px) + var(--ha-space-4));
+      inset-inline: var(--ha-sidebar-width, 0px) 0;
       box-sizing: border-box;
-      width: min(720px, calc(100vw - var(--ha-space-8)));
+      width: min(
+        720px,
+        calc(100% - var(--ha-sidebar-width, 0px) - var(--ha-space-8))
+      );
       margin-inline: auto;
+    }
+    .bulk.narrow {
+      inset-inline: 0;
+      width: calc(100% - var(--ha-space-8));
     }
   `;
 }

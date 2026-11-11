@@ -1,4 +1,4 @@
-import { mdiCheckCircleOutline, mdiRestore } from "@mdi/js";
+import { mdiAlertOutline, mdiCheckCircleOutline, mdiRestore } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -184,7 +184,13 @@ export class HaAppearanceFonts extends LitElement {
                     })}
                     role="status"
                   >
-                    <ha-svg-icon .path=${mdiCheckCircleOutline}></ha-svg-icon>
+                    <ha-svg-icon
+                      .path=${
+                        this._contrast >= 4.5
+                          ? mdiCheckCircleOutline
+                          : mdiAlertOutline
+                      }
+                    ></ha-svg-icon>
                     ${this._l(
                       this._contrast >= 4.5
                         ? "fonts_contrast_pass"
@@ -221,7 +227,7 @@ export class HaAppearanceFonts extends LitElement {
     choices: FontChoice[]
   ) {
     const selected = this._options[field] as string;
-    const current = choices.find((choice) => choice.key === selected);
+    const missing = !choices.some((choice) => choice.key === selected);
     return html`
       <div class="field">
         <label for=${`font-${role}`}>${this._l(`fonts_${role}`)}</label>
@@ -231,6 +237,13 @@ export class HaAppearanceFonts extends LitElement {
             .field=${field}
             @change=${this._fontChanged}
           >
+            ${
+              missing
+                ? html`<option value=${selected} selected>
+                    ${this._l("fonts_not_on_device")}
+                  </option>`
+                : nothing
+            }
             ${choices.map(
               (choice) => html`
                 <option
@@ -242,9 +255,6 @@ export class HaAppearanceFonts extends LitElement {
               `
             )}
           </select>
-          <span class="badge"
-            >${this._l(`fonts_source_${current?.source ?? "device"}`)}</span
-          >
         </div>
       </div>
     `;
@@ -315,7 +325,7 @@ export class HaAppearanceFonts extends LitElement {
   static styles: CSSResultGroup = css`
     .content {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
       gap: var(--ha-space-4);
       align-items: start;
     }
@@ -358,16 +368,6 @@ export class HaAppearanceFonts extends LitElement {
     button:focus-visible {
       outline: 3px solid var(--primary-color);
       outline-offset: 2px;
-    }
-    .badge {
-      position: absolute;
-      inset-inline-end: var(--ha-space-8);
-      padding: 2px var(--ha-space-2);
-      border-radius: var(--ha-border-radius-pill);
-      background: var(--secondary-background-color);
-      font-size: var(--ha-font-size-xs);
-      color: var(--secondary-text-color);
-      pointer-events: none;
     }
     .note {
       margin: 0;

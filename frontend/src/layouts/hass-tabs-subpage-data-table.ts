@@ -336,6 +336,26 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this._dataTable.clearSelection();
   }
 
+  /** How many rows the search and filters leave in the table now. */
+  public get filteredRowCount(): number {
+    return this._dataTable?.filteredRowCount ?? 0;
+  }
+
+  /** The identifiers of the selectable rows the table shows now. */
+  public getFilteredRowIds(): string[] {
+    return this._dataTable?.getFilteredRowIds() ?? [];
+  }
+
+  /** The identifiers of the ticked rows. */
+  public getCheckedRowIds(): string[] {
+    return this._dataTable?.getCheckedRowIds() ?? [];
+  }
+
+  /** Replaces the ticked rows with exactly these identifiers. */
+  public setCheckedRowIds(ids: string[]): void {
+    this._dataTable?.setCheckedRowIds(ids);
+  }
+
   private get _hasFooter(): boolean {
     return !!this.footerText || (this.footerSelect && this.selectable);
   }
