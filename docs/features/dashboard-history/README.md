@@ -238,3 +238,7 @@ recorded, keys that differ only by case, and the commit queue (a burst becomes
 one commit, a save during a commit queues one more, a failing commit is not
 raised). `frontend/test/data/dashboard_repos.test.ts` checks the browser copy
 of the address rule against the same list.
+
+### Run on a real instance
+
+On 10 November 2026 the server commands were driven on a running copy: two saves, the history, a restore, and deleting an archived history. The interface page, setting a remote and pushing have not been seen, and no push to a real remote has been made.

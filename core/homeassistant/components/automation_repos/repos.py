@@ -19,11 +19,14 @@ Every function blocks; callers run them in an executor.
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
+import time
 from typing import Any
 
 import yaml
@@ -33,19 +36,101 @@ REMOTE_TIMEOUT = 60
 HISTORY_LIMIT = 500
 DIFF_LIMIT = 200_000
 MESSAGE_LIMIT = 500
+SIZE_LIMIT = 2_000_000
 
 AUTOMATION_FILE = "automation.yaml"
 MANIFEST_FILE = "manifest.json"
+REMOVED_DIR = "_removed"
 
-_SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
-_SHA = re.compile(r"^[0-9a-f]{7,40}$")
-_REMOTE = re.compile(
-    r"^(https://[^\s@]+|ssh://[^\s]+|git@[A-Za-z0-9.-]+:[^\s]+|/[^\s]+)$"
+# Every pattern is used with fullmatch: `$` would also match before a trailing
+# newline.
+_SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+_SHA = re.compile(r"[0-9a-f]{7,40}")
+
+REMOTE_LIMIT = 500
+_HOST = r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?"
+_PATH = r"/[A-Za-z0-9._~%+/-]*"
+_REMOTE_URL = re.compile(rf"(?:https|ssh)://{_HOST}(?::[0-9]{{1,5}})?{_PATH}")
+_REMOTE_SCP = re.compile(rf"git@{_HOST}:[A-Za-z0-9._~%+/][A-Za-z0-9._~%+/-]*")
+# A bare local path may only be one that was stored before the rules tightened.
+_REMOTE_LEGACY_LOCAL = re.compile(r"/[A-Za-z0-9._~%+/-]+")
+_URL_USERINFO = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://)[^\s/'\"]*@")
+
+REMOTE_RULE = (
+    "Use an address like https://host/path.git, ssh://host/path.git or "
+    "git@host:path.git, with no user name, password, token, query or fragment "
+    "in it."
+)
+
+LOCAL_RULE = (
+    "That address leads to this machine or to a link-local address, such as "
+    "localhost, 127.0.0.1 or 169.254.169.254. Use the address of a remote "
+    "server."
 )
 
 
 class RepositoryError(Exception):
     """A Git operation failed. The message is safe to show."""
+
+
+def _is_local_host(url: str) -> bool:
+    """Return True when the host of a matched address is on this machine.
+
+    Loopback, link-local (which holds the cloud metadata address) and
+    unspecified addresses are refused, and so is `localhost`. A host made of
+    digits and dots must be a plain dotted address, and a hexadecimal host is
+    refused, because other spellings of the same address are still understood
+    when the connection is made.
+    """
+    if url.startswith("git@"):
+        host = url[4:].split(":", 1)[0]
+    else:
+        host = url.split("://", 1)[1].split("/", 1)[0].split(":", 1)[0]
+    host = host.lower().rstrip(".")
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    if any(label.startswith("0x") for label in host.split(".")):
+        return True
+    if re.fullmatch(r"[0-9.]+", host):
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            return True
+        return (
+            address.is_loopback
+            or address.is_link_local
+            or address.is_unspecified
+            or address.is_multicast
+        )
+    return False
+
+
+def check_remote(url: str) -> str:
+    """Return a remote address that holds no credentials, or refuse it."""
+    url = url.strip()
+    if len(url) > REMOTE_LIMIT or not (
+        _REMOTE_URL.fullmatch(url) or _REMOTE_SCP.fullmatch(url)
+    ):
+        raise RepositoryError(REMOTE_RULE)
+    if _is_local_host(url):
+        raise RepositoryError(LOCAL_RULE)
+    return url
+
+
+def is_stored_remote_usable(url: str) -> bool:
+    """Return True when an address read back from a repository may be used."""
+    if len(url) > REMOTE_LIMIT:
+        return False
+    if _REMOTE_URL.fullmatch(url) or _REMOTE_SCP.fullmatch(url):
+        return not _is_local_host(url)
+    return bool(_REMOTE_LEGACY_LOCAL.fullmatch(url))
+
+
+def mask_text(text: str, address: str | None = None) -> str:
+    """Remove an address, and any user info before a host, from a message."""
+    if address:
+        text = text.replace(address, "the remote")
+    return _URL_USERINFO.sub(r"\1", text)
 
 
 @dataclass
@@ -97,7 +182,7 @@ def repository_name(automation_id: str) -> str:
     An id made of plain characters is used as it is. Anything else becomes a
     hash, so an id can never point outside the storage folder.
     """
-    if _SAFE_NAME.match(automation_id):
+    if _SAFE_NAME.fullmatch(automation_id):
         return automation_id
     return "id-" + hashlib.sha256(automation_id.encode()).hexdigest()[:24]
 
@@ -131,8 +216,18 @@ def dump_automation(config: Mapping[str, Any]) -> str:
     )
 
 
+def dump_checked(config: Mapping[str, Any]) -> str:
+    """Write an automation as YAML, refusing one too large to keep."""
+    text = dump_automation(config)
+    if len(text.encode()) > SIZE_LIMIT:
+        raise RepositoryError("That automation is too large to keep a history of.")
+    return text
+
+
 def load_automation(text: str) -> dict[str, Any]:
     """Read an automation back from YAML."""
+    if len(text) > SIZE_LIMIT:
+        raise RepositoryError("That version is too large to read.")
     data = yaml.safe_load(text)
     if not isinstance(data, dict):
         raise RepositoryError("That version does not hold an automation.")
@@ -235,7 +330,7 @@ class AutomationRepositories:
         return self._automations / repository_name(automation_id)
 
     def _check_sha(self, sha: str) -> str:
-        if not _SHA.match(sha):
+        if not _SHA.fullmatch(sha):
             raise RepositoryError("That is not a commit.")
         return sha
 
@@ -248,16 +343,20 @@ class AutomationRepositories:
         committed = self._git(
             path, "show", f"{head}:{AUTOMATION_FILE}", check=False
         ).stdout
-        return committed != dump_automation(config)
+        try:
+            return committed != dump_checked(config)
+        except RepositoryError:
+            return True
 
     def snapshot(
         self, automation_id: str, config: dict[str, Any], message: str | None = None
     ) -> str | None:
         """Commit an automation if it changed. Return the new commit."""
+        text = dump_checked(config)
         path = self._path(automation_id)
         self._ensure_repository(path)
         fallback = self._describe_change(path, config, automation_id)
-        (path / AUTOMATION_FILE).write_text(dump_automation(config), encoding="utf-8")
+        (path / AUTOMATION_FILE).write_text(text, encoding="utf-8")
         return self._commit_if_changed(path, clean_message(message, fallback))
 
     def _describe_change(
@@ -313,7 +412,7 @@ class AutomationRepositories:
         """Return the automation as it was at a commit."""
         path = self._path(automation_id)
         result = self._git(path, "show", f"{self._check_sha(sha)}:{AUTOMATION_FILE}")
-        return load_automation(result.stdout)
+        return plain(load_automation(result.stdout))
 
     def diff(self, automation_id: str, old: str, new: str | None = None) -> str:
         """Return the difference between two commits, or a commit and now."""
@@ -333,6 +432,7 @@ class AutomationRepositories:
             count = 0
             if head is not None:
                 count = int(self._git(path, "rev-list", "--count", "HEAD").stdout or 0)
+            remote, unsafe = self._stored_remote(path)
             automations.append(
                 {
                     "id": automation_id,
@@ -341,19 +441,22 @@ class AutomationRepositories:
                     "head": head,
                     "commits": count,
                     "dirty": self.is_dirty(automation_id, config),
-                    "remote": self._remote(path),
+                    "remote": remote,
+                    "remote_unsafe": unsafe,
                 }
             )
         master_head = self._head(self.root)
         last = None
         if master_head is not None:
             last = int(self._git(self.root, "log", "-1", "--format=%at").stdout or 0)
+        remote, unsafe = self._stored_remote(self.root)
         return {
             "automations": automations,
             "master": {
                 "head": master_head,
                 "last_commit": last,
-                "remote": self._remote(self.root),
+                "remote": remote,
+                "remote_unsafe": unsafe,
             },
         }
 
@@ -373,7 +476,9 @@ class AutomationRepositories:
         """
         result = PushResult()
         self._ensure_repository(self.root)
-        (self.root / ".gitignore").write_text("automations/\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text(
+            f"automations/\n{REMOVED_DIR}/\n", encoding="utf-8"
+        )
         snapshots = self.root / "snapshots"
         snapshots.mkdir(exist_ok=True)
         for automation_id, reason in (invalid or {}).items():
@@ -383,7 +488,13 @@ class AutomationRepositories:
                 continue
             if invalid and automation_id in invalid:
                 continue
-            commit = self.snapshot(automation_id, config)
+            try:
+                commit = self.snapshot(automation_id, config)
+            except RepositoryError as err:
+                result.skipped.append(
+                    {"id": automation_id, "reason": mask_text(str(err))[:300]}
+                )
+                continue
             if commit is None:
                 result.unchanged += 1
             else:
@@ -428,7 +539,17 @@ class AutomationRepositories:
             (automation_id, self._path(automation_id)) for automation_id in configs
         ] + [("master", self.root)]
         for label, path in targets:
-            if self._remote(path) is None or self._head(path) is None:
+            address, unsafe = self._stored_remote(path)
+            if unsafe:
+                result.push_errors.append(
+                    {
+                        "id": label,
+                        "error": "The address of the remote cannot be used. "
+                        + REMOTE_RULE,
+                    }
+                )
+                continue
+            if address is None or self._head(path) is None:
                 continue
             sent = self._git(
                 path,
@@ -444,23 +565,33 @@ class AutomationRepositories:
             else:
                 detail = (sent.stderr or sent.stdout).strip().splitlines()
                 result.push_errors.append(
-                    {"id": label, "error": detail[-1] if detail else "Push failed."}
+                    {
+                        "id": label,
+                        "error": mask_text(
+                            detail[-1] if detail else "Push failed.", address
+                        )[:300],
+                    }
                 )
         return result
 
-    def _remote(self, path: Path) -> str | None:
+    def _stored_remote(self, path: Path) -> tuple[str | None, bool]:
+        """Return the remote address to show, and whether one is set but unusable."""
         if not (path / ".git").exists():
-            return None
+            return None, False
         result = self._git(path, "remote", "get-url", "origin", check=False)
         url = result.stdout.strip()
         if result.returncode != 0 or not url:
-            return None
-        # Never hand back anything that could hold a password.
-        return re.sub(r"//[^/@]+@", "//", url)
+            return None, False
+        if is_stored_remote_usable(url):
+            return url, False
+        return None, True
 
     def set_remote(self, automation_id: str | None, url: str | None) -> None:
         """Set or remove the remote of one automation, or of the master."""
         path = self.root if automation_id is None else self._path(automation_id)
+        url = (url or "").strip()
+        if url:
+            url = check_remote(url)
         self._ensure_repository(path)
         has_remote = (
             self._git(path, "remote", "get-url", "origin", check=False).returncode == 0
@@ -469,10 +600,51 @@ class AutomationRepositories:
             if has_remote:
                 self._git(path, "remote", "remove", "origin")
             return
-        url = url.strip()
-        if not _REMOTE.match(url) or url.startswith("-"):
-            raise RepositoryError(
-                "Use an address that starts with https://, ssh://, git@ or /, "
-                "without a user name or password in it."
-            )
         self._git(path, "remote", "set-url" if has_remote else "add", "origin", url)
+
+    def known_automations(self) -> list[str]:
+        """Return the folder names of the automations that have a repository."""
+        if not self._automations.is_dir():
+            return []
+        return sorted(
+            item.name
+            for item in self._automations.iterdir()
+            if item.is_dir() and not item.is_symlink()
+        )
+
+    def archive_unlisted(self, configs: Mapping[str, Any]) -> list[str]:
+        """Move the repository of every automation that is gone out of the way.
+
+        A new automation with the same id then starts with no history. Return
+        the names of the folders it moved to.
+        """
+        wanted = {repository_name(automation_id) for automation_id in configs}
+        moved = []
+        for name in self.known_automations():
+            if name not in wanted:
+                moved.append(self._archive(name))
+        return moved
+
+    def _archive(self, name: str) -> str:
+        archive = self.root / REMOVED_DIR
+        archive.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%dT%H%M%S", time.gmtime())
+        target = archive / f"{name}-{stamp}"
+        number = 1
+        while target.exists():
+            number += 1
+            target = archive / f"{name}-{stamp}-{number}"
+        shutil.move(str(self._automations / name), str(target))
+        return target.name
+
+    def forget(self, automation_id: str) -> bool:
+        """Delete the whole history of one automation, for good.
+
+        A remote that already received it is not changed. Return False when
+        there was nothing to delete.
+        """
+        path = self._path(automation_id)
+        if not path.is_dir() or path.is_symlink():
+            return False
+        shutil.rmtree(path)
+        return True

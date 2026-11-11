@@ -5,15 +5,21 @@
  * documentation (Creative Commons Attribution-NonCommercial-ShareAlike 4.0).
  * They are converted into plain, sanitized Markdown:
  *
- * - front matter becomes metadata (the title is kept);
- * - Liquid tags are removed or reduced to plain text:
- *   `{% my ... %}` becomes its title text, `{% icon %}` and `{% include %}`
- *   are dropped, `{% term %}` becomes its word, `{% details %}` becomes a bold
+ * - front matter becomes metadata (the title is kept; without one, the
+ *   caller's fallback or the first heading is used, never the path);
+ * - Liquid tags are removed or reduced to plain text, without leaving a gap
+ *   where a tag stood:
+ *   `{% my ... %}` becomes its title text, `{% icon %}` becomes its name and
+ *   `{% include %}` is dropped, `{% term %}` (quoted or bare word) becomes
+ *   its word, `{% details %}` becomes a bold
  *   line, notes, tips, warnings and similar blocks become block quotes,
  *   `{% configuration %}` blocks become fenced code, `{% raw %}` tags are
  *   removed, and any other tag is removed;
  * - raw HTML is removed (scripts, styles, iframes and their content go
- *   entirely; other tags keep their text);
+ *   entirely; other tags keep their text); angle brackets around something
+ *   that is not an HTML element (`<domain>`) stay as visible text;
+ * - table rows are evened out to their header's cell count, and a link to
+ *   a section that does not exist becomes plain text;
  * - images stored in the documentation repository itself (PNG, JPEG, WebP)
  *   that the sync script chose to bundle are kept as local images; every
  *   other image is replaced by a note that the image is not included.
@@ -57,7 +63,14 @@ export const fenceFlags = (lines) => {
   for (const line of lines) {
     const match = /^\s*(`{3,}|~{3,})/.exec(line);
     if (!open) {
-      if (match) {
+      // A run of the same character later on the line means inline code,
+      // not a fence.
+      if (
+        match &&
+        !line
+          .slice(line.indexOf(match[1]) + match[1].length)
+          .includes(match[1][0])
+      ) {
         open = { char: match[1][0], length: match[1].length };
         flags.push(true);
       } else {
@@ -122,13 +135,43 @@ const restoreFences = (text, blocks) => {
     .replace(/@@help-fence-(\d+)@@/g, (_all, n) => clean(blocks[n]));
 };
 
+/**
+ * Removes every match of `pattern` (a regular expression without groups).
+ * An inline match takes one of the spaces around it with it, so no doubled
+ * space is left where it stood; a match on its own line leaves nothing.
+ */
+const removeKeepingGap = (text, pattern) =>
+  text.replace(
+    new RegExp(
+      `( *)(?:${pattern.source})(?: *(?:${pattern.source}))*( *)`,
+      `${pattern.flags.replace("g", "")}g`
+    ),
+    (all, before, after, offset, whole) => {
+      if (before && after) {
+        return " ";
+      }
+      const next = whole[offset + all.length];
+      const previous = whole[offset - 1];
+      if (before) {
+        return next === undefined || /[\n.,;:)!?]/.test(next) ? "" : " ";
+      }
+      if (after) {
+        return previous === undefined || previous === "\n" ? "" : " ";
+      }
+      return "";
+    }
+  );
+
 export const convertLiquid = (source) => {
   const { text, blocks } = protectFences(source);
   return restoreFences(convertLiquidProse(text), blocks);
 };
 
 const convertLiquidProse = (text) => {
-  let out = text;
+  // Extra spaces next to a tag are one space once the tag is gone.
+  let out = text
+    .replace(/(?<=\S) {2,}(?=[*_]*\{%)/g, " ")
+    .replace(/(?<=%\}[*_]*) {2,}(?=\S)/g, " ");
   out = out.replace(
     /\{%-?\s*icon\s+(["'])(?:[a-z]+:)?([^"']*)\1[^%]*%\}([A-Za-z0-9]?)/g,
     (_all, _q, name, next) =>
@@ -156,28 +199,133 @@ const convertLiquidProse = (text) => {
     /\{%-?\s*my\s+(\S+)(?:[^%]*?title=(["'])(.*?)\2)?[^%]*%\}/g,
     (_all, key, _q, title) => title ?? key
   );
+  // A glossary term: quoted (`{% term "config entry" %}`) or a bare word
+  // (`{% term automation %}`), optionally with its own `text="..."`.
   out = out.replace(
-    /\{%-?\s*term\s+(["'])(.*?)\1[^%]*%\}/g,
-    (_all, _q, word) => word
+    /\{%-?\s*term\s+(?:(["'])(.*?)\1|([^\s%"'][^\s%"']*))([^%]*)%\}( {2,})?/g,
+    (_all, _q, quoted, bare, rest, spaces) =>
+      `${/\btext\s*=\s*(["'])(.*?)\1/.exec(rest)?.[2] ?? quoted ?? bare}${spaces ? " " : ""}`
   );
   out = out.replace(/\{%-?\s*(?:raw|endraw)\s*-?%\}/g, "");
-  out = out.replace(/\{%-?[\s\S]*?-?%\}/g, "");
+  // Any other tag is removed, without leaving a gap where it stood.
+  out = removeKeepingGap(out, /\{%-?[\s\S]*?-?%\}/);
   return out;
 };
 
 const REMOVE_WITH_CONTENT =
   /<(script|style|iframe|object|embed|noscript|svg)\b[\s\S]*?<\/\1\s*>/gi;
 
-/** Tags may span lines, so this runs on a whole run of prose lines. */
+/** Real HTML elements; anything else in angle brackets is a placeholder. */
+const HTML_TAGS = [
+  "a",
+  "abbr",
+  "b",
+  "big",
+  "blockquote",
+  "br",
+  "caption",
+  "center",
+  "cite",
+  "col",
+  "colgroup",
+  "dd",
+  "del",
+  "details",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "figcaption",
+  "figure",
+  "font",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+  "i",
+  "ins",
+  "kbd",
+  "li",
+  "lite-youtube",
+  "mark",
+  "ol",
+  "p",
+  "pre",
+  "q",
+  "s",
+  "small",
+  "span",
+  "strike",
+  "strong",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "tr",
+  "tt",
+  "u",
+  "ul",
+  "video",
+  "picture",
+  "source",
+  "center",
+  "dir",
+  "link",
+  "meta",
+  "base",
+  "form",
+  "input",
+  "button",
+  "area",
+  "map",
+  "frame",
+  "frameset",
+  "applet",
+  "code",
+  "select",
+  "option",
+  "optgroup",
+  "label",
+  "textarea",
+  "iconify-icon",
+  "ha-icon",
+  "tabs",
+  "tab",
+  "var",
+];
+const HTML_TAG = new RegExp(
+  `</?(?:${HTML_TAGS.join("|")})(?=[\\s/>])[^>]*>`,
+  "gi"
+);
+
+/**
+ * Tags may span lines, so this runs on a whole run of prose lines. Real tags
+ * are removed (their text stays); a placeholder such as `<domain>` is kept
+ * as visible text, escaped so the renderer does not take it for a tag.
+ */
 const stripHtmlInProse = (text) =>
   text
     .split(/(`[^`\n]*`)/)
     .map((part, index) =>
       index % 2
         ? part
-        : part
-            .replace(/<img\b[^>]*>/gi, "")
-            .replace(/<\/?(?!https?:)[a-zA-Z][^>]*>/g, "")
+        : removeKeepingGap(
+            removeKeepingGap(part, /<img\b[^>]*>/i),
+            HTML_TAG
+          ).replace(/\\?<(\/?[a-zA-Z][^<>\n]*?)\\?>/g, (all, inner) =>
+            /^(?:https?|mailto|ftp):/i.test(inner) ||
+            /^[^\s@]+@[^\s@]+$/.test(inner)
+              ? all
+              : `&lt;${inner}&gt;`
+          )
     )
     .join("");
 
@@ -233,12 +381,185 @@ export const sanitizeMarkdown = (markdown, localImage) => {
     .trim();
 };
 
+const isTableRow = (line) => /^\s*\|/.test(line);
+
+const TABLE_DELIMITER = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
+
+/** The cells of a table row, split at pipes that are not escaped. */
+const tableCells = (row) =>
+  row
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/(?<!\\)\|$/, "")
+    .split(/(?<!\\)\|/);
+
+/** The runs of table rows outside code, as `{ start, end }` line ranges. */
+const tableRuns = (lines, flags) => {
+  const runs = [];
+  let start = -1;
+  const close = (end) => {
+    if (
+      start !== -1 &&
+      end - start >= 2 &&
+      TABLE_DELIMITER.test(lines[start + 1])
+    ) {
+      runs.push({ start, end });
+    }
+    start = -1;
+  };
+  lines.forEach((line, index) => {
+    if (!flags[index] && isTableRow(line)) {
+      if (start === -1) {
+        start = index;
+      }
+    } else {
+      close(index);
+    }
+  });
+  close(lines.length);
+  return runs;
+};
+
 /**
- * Checks converted Markdown for what the converter promises to remove:
- * raw HTML tags, Liquid tags, and images that are not bundled copies.
- * Returns the problems found (empty when the body is clean).
+ * Makes every row of a table have as many cells as its header: a short row
+ * gets empty cells, a long row keeps its extra text in the last cell.
  */
-export const checkConverted = (body) => {
+export const normalizeTables = (markdown) => {
+  const lines = markdown.split("\n");
+  const flags = fenceFlags(lines);
+  for (const { start, end } of tableRuns(lines, flags)) {
+    const width = tableCells(lines[start]).length;
+    for (let i = start + 2; i < end; i++) {
+      const cells = tableCells(lines[i]);
+      if (cells.length === width) {
+        continue;
+      }
+      const fixed =
+        cells.length < width
+          ? [...cells, ...Array(width - cells.length).fill(" ")]
+          : [...cells.slice(0, width - 1), cells.slice(width - 1).join("\\|")];
+      lines[i] = `|${fixed.join("|")}|`;
+    }
+  }
+  return lines.join("\n");
+};
+
+/** The heading text a reader derives an id from (levels 2 to 6). */
+const headingIds = (markdown) => {
+  const ids = new Set();
+  const used = new Map();
+  const lines = markdown.split("\n");
+  const flags = fenceFlags(lines);
+  lines.forEach((line, index) => {
+    const match = !flags[index] && /^#{2,6}\s+(.+?)\s*#*\s*$/.exec(line);
+    if (match) {
+      const base = match[1]
+        .replace(/[*_`]/g, "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      const count = used.get(base) ?? 0;
+      used.set(base, count + 1);
+      ids.add(count ? `${base}-${count}` : base);
+    }
+  });
+  return ids;
+};
+
+/** A link to a section that does not exist becomes its plain text. */
+export const removeDeadAnchors = (markdown) => {
+  const ids = headingIds(markdown);
+  const lines = markdown.split("\n");
+  const flags = fenceFlags(lines);
+  const unlink = (run) => {
+    // Code spans are set aside so that link text holding code is seen; a
+    // link's text may wrap onto the next line.
+    const spans = [];
+    return run
+      .replace(/[\uE000\uE001]/g, "")
+      .replace(/(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)/g, (code) => {
+        spans.push(code);
+        return `\uE000${spans.length - 1}\uE001`;
+      })
+      .replace(
+        /(?<!!)\[((?:(?!\n[ \t]*\n)[^\]])*)\]\(#([^)\s]*)\)/g,
+        (all, text, fragment) => {
+          let id = fragment;
+          try {
+            id = decodeURIComponent(fragment);
+          } catch (_err) {
+            // keep the raw fragment
+          }
+          return ids.has(id) ? all : text;
+        }
+      )
+      .replace(/\uE000(\d+)\uE001/g, (_all, n) => spans[n]);
+  };
+  const out = [];
+  let run = [];
+  const flush = () => {
+    if (run.length) {
+      out.push(unlink(run.join("\n")));
+      run = [];
+    }
+  };
+  lines.forEach((line, index) => {
+    if (flags[index]) {
+      flush();
+      out.push(line);
+    } else {
+      run.push(line);
+    }
+  });
+  flush();
+  return out.join("\n");
+};
+
+/** The first heading of a page, as plain text, or an empty string. */
+export const firstHeading = (markdown) => {
+  const lines = markdown.split("\n");
+  const flags = fenceFlags(lines);
+  for (let i = 0; i < lines.length; i++) {
+    const match = !flags[i] && /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(lines[i]);
+    if (match) {
+      return match[1]
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/[*_`]/g, "")
+        .trim();
+    }
+  }
+  return "";
+};
+
+/**
+ * Whether the source text itself has a run of spaces in front of this word
+ * (a code span is written as U+0000). Such a gap was in the source and is
+ * not a dropped word.
+ */
+const sourceHasGap = (source, right) => {
+  if (!source) {
+    return false;
+  }
+  const part = (text) =>
+    text
+      .split("\u0000")
+      .map((piece) => piece.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("`[^`\\n]*`");
+  // The left neighbour may have changed in conversion (a link became its
+  // text), so the word after the gap is what has to match.
+  return new RegExp(`(?<=\\S) {2,}${part(right)}`).test(source);
+};
+
+/**
+ * Checks converted Markdown for what the converter promises: no raw HTML
+ * tags, no Liquid tags, no images that are not bundled copies, no gap where
+ * a word was dropped, no empty bold run and no table row with a different
+ * number of cells than its header. A run of spaces that the source text
+ * itself has (given as `source`) is not a dropped word. Returns the
+ * problems found (empty when the body is clean).
+ */
+export const checkConverted = (body, source = "") => {
   const problems = [];
   const lines = body.split("\n");
   const flags = fenceFlags(lines);
@@ -246,8 +567,8 @@ export const checkConverted = (body) => {
     if (flags[index]) {
       return;
     }
-    const prose = line.replace(/`[^`]*`/g, "");
-    if (/<\/?(?!https?:)[a-zA-Z]/.test(prose)) {
+    const prose = line.replace(/`[^`]*`/g, "C");
+    if (/<\/?(?!https?:|mailto:|[^\s@>]+@)[a-zA-Z]/.test(prose)) {
       problems.push(`line ${index + 1}: raw HTML tag`);
     }
     if (/\{%/.test(prose)) {
@@ -259,16 +580,46 @@ export const checkConverted = (body) => {
     if (/!\[[^\]]*\]\[/.test(prose)) {
       problems.push(`line ${index + 1}: reference style image`);
     }
+    if (!isTableRow(line)) {
+      const codeless = line
+        .replace(/`[^`]*`/g, "\u0000")
+        .replace(/^[\s>]*(?:[-*+]|\d+[.)])?\s*/, "");
+      for (const gap of codeless.matchAll(/(\S{1,6}) {2,}(\S{1,6})/g)) {
+        if (!sourceHasGap(source, gap[2])) {
+          problems.push(`line ${index + 1}: doubled space (a dropped word?)`);
+          break;
+        }
+      }
+    }
+    if (/(?:^|[^*\w])\*\*\s*\*\*(?![*\w])/.test(prose)) {
+      problems.push(`line ${index + 1}: empty bold run`);
+    }
   });
+  for (const { start, end } of tableRuns(lines, flags)) {
+    const width = tableCells(lines[start]).length;
+    for (let i = start + 1; i < end; i++) {
+      if (tableCells(lines[i]).length !== width) {
+        problems.push(`line ${i + 1}: table row with a different cell count`);
+      }
+    }
+  }
   return problems;
 };
 
-export const convertArticle = (source, localImage) => {
+/**
+ * Converts one source page. The title is the front matter `title`, else
+ * the given fallback (an integration's name), else the first heading; it is
+ * never the page's path.
+ */
+export const convertArticle = (source, localImage, fallbackTitle = "") => {
   const { meta, body } = splitFrontMatter(source);
+  const converted = removeDeadAnchors(
+    normalizeTables(sanitizeMarkdown(convertLiquid(body), localImage))
+  );
   return {
-    title: meta.title || "",
+    title: meta.title || fallbackTitle || firstHeading(converted),
     description: meta.description || "",
-    body: sanitizeMarkdown(convertLiquid(body), localImage),
+    body: converted,
   };
 };
 

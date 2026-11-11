@@ -1,14 +1,50 @@
 # Handoff
 
-Written 9 November 2026 and updated 10 November 2026 for whoever picks this up next.
+Written 9 November 2026 and brought up to date on 10 November 2026 for whoever picks this up next.
 
-## Stopped here on 10 November 2026
+## Where things stand
 
 Work stopped at a checkpoint, not at the end. Everything written so far is on `main`; nothing is
-left only on one machine. `ROADMAP.md` is the full list and most of it is still open: of the 153
-boards, about a dozen pages are drawn to their boards.
+left only on one machine. The goal is fixed: all 237 boards on 18 canvases built and matching.
+`ROADMAP.md` is the full list. `docs/feature-status.md` states, row by row, what is built and
+what has really been seen in a running build. Read both before trusting any summary.
 
-Asked for and not done, in this order:
+- `main` holds the vendored upstream sources, the release workflow, the update feed tooling, the
+  build scripts, the complete design (`design/`), the interface work in `frontend/`, new
+  server integrations in `core/homeassistant/components/` and the Deploy Assistant
+  (`deploy-assistant/`).
+- Most of what was built on 10 November 2026 has been checked only by lint, the type check and
+  unit tests. The list of what was really opened or driven in a running build that day is at the
+  top of `docs/feature-status.md`; anything not on it is not seen.
+- Build 1 (`v2026.11.1.1`) built and published the frontend wheel, every container image and the
+  update feed. Builds 64 and 65 were published without images (a push that changed many files
+  was mistaken for a documentation-only push); the release workflow now compares with the last
+  build that published images. Build 66 is the first with images again.
+- Open work is tracked in issues 1 to 11 of this repository and in the lists below.
+
+## What is known to be unfinished or untrue yet
+
+State these plainly to anyone who asks:
+
+- The test address through the tunnel still answers 502 until one proxy entry is added on the
+  tunnel host. Nothing in this repository can fix that.
+- No operating system image has been booted with an over-the-air update. The signing secrets
+  exist since 10 November 2026, but no build has finished its operating system images since
+  and no update between two such builds has been watched. Only the VMware image was started.
+- The companion phone app connected after a proxy fault was fixed. Some setup problems the owner
+  reported with it are not yet described here and not yet fixed.
+- The Welcome screen of first-run setup was seen still showing upstream items (a cloud restore
+  and outside links). The fix is in source and has not been seen.
+- Opening an editable copy of Overview straight in edit mode was broken and is fixed in source,
+  and so is the welcome banner covering the Overview header at phone width; neither fix is seen
+  in a running build (the banner fix was confirmed only by applying its rule in the open page).
+- The passkey sign-in page and card, the Google setup page, the dashboard history page, the
+  Minecraft and Ollama pages, the problem log page, the offline help reader, and every page
+  listed as "not yet seen" in `docs/feature-status.md` have never been opened.
+- Of the Python tests of the new integrations (`core/tests/components/`), only the passkey tests
+  are known to have been run, in a running copy (143 passing). No result is recorded for the others.
+
+## Remaining work, in the owner's order
 
 1. Backups must carry every automation repository with its history, and a restore must bring
    them back. Only read so far. The repositories are in `automation_repos/` inside the
@@ -19,70 +55,91 @@ Asked for and not done, in this order:
    has been made and restored to prove it. Make one on a running instance, list the archive for
    `automation_repos/**/.git`, restore it into an empty configuration folder, then compare
    `git log` and run `git fsck` in every repository. Add a test, and say on the backup page that
-   the repositories are included.
-2. Run the newest published container image as it is and confirm what was added after build 38:
-   two-key confirmation, the System page, the large cards on Home, the Base64 and Colour tabs,
-   About, What changed, the list changes, the Assist button, Notifications as a page and locks
-   on single elements. These were seen working in the build 32 container with this repository's
-   frontend mounted, not in their own published images. Then move the tag in `compose.yaml`.
+   the repositories are included. The same applies to `dashboard_repos/`.
+2. Run the newest published container image as it is and confirm what was added since build 38
+   (two-key confirmation, the System page, large cards on Home, the Base64 and Colour tabs,
+   About, What changed, list changes, Notifications as a page, locks on single elements, and
+   everything built on 10 November). Then move the tag in `compose.yaml`.
 3. Carry on down `ROADMAP.md`.
 
-The last piece added, locks on single elements, was type checked and seen working with a hold.
-Unlocking elements with the PIN is written but was not exercised.
+### Queue taken from the reviewers' notes
 
-## Where things stand
+Setup and interface:
 
-- `main` holds the vendored upstream sources, the release workflow, the update feed tooling, the
-  build scripts, and the complete design (153 boards on 11 canvases, `design/`).
-- Build 1 (`v2026.11.1.1`) built and published the frontend wheel, every container image and the
-  update feed. Its operating system jobs were still running when this was written. Check the
-  release notes of the newest release that rebuilt the product for the final job results.
-- The interface work has started in `frontend/`: colour scales and surfaces, the typeface, the
-  navigation rail, the floating pane, pill tabs, the build stamp on the rail, and the bar of open
-  pages with its New tab catalog. `docs/feature-status.md` says exactly what is built and what has
-  only been seen in the frontend's demo build. Everything else on the canvas is still a design.
-- Open work is tracked in issues 1 to 11 of this repository.
+- Every setup wizard must be a fully interactive setup, not a row of Next buttons: real controls
+  for every value (pickers, sliders, toggles, discovered-device choices, file pickers), live
+  validation, a real "test this" action where the server can do one, a live summary of what
+  will be written, progress with Back and Next and jump to a step, save and resume, skip for
+  optional steps, keyboard reachable, localized. Covers guided setup, first-run setup, the
+  config-flow dialog and the lock wizard.
+- First-run location step: an outside lookup sits behind a confirmation dialog (it is no longer
+  contacted without a button press); decide whether to keep or remove it. The integrations step
+  (device list, scan again) is not yet interactive. New lock keys need Cantonese: the
+  `policy_*_desc`, `skip`, `rules_*`, `pin_rule`, `password_rule_*`, `step_try`, `try_*` and
+  `summary_*` keys under `ui.locks`.
+- Sensor history tab shows a double chart (`ha-more-info-history-and-logbook`).
+- Script editor: Save in a bottom bar needs the shared `automation/ha-manual-editor-mixin.ts`;
+  `fields_empty` is unused. Automation editor: a sticky bottom bar next to Save needs the same
+  shared editor layout.
+- Google one-time setup: the Nest guidance (the separate paid Device Access registration and
+  taking the project ID) is not built; enabling services with a real key is not exercised.
+- Minecraft server manager: version lookup, start, stop, logs, backups and the world generator.
+  How a containerised install hosts another container: SSH to a Docker host (default), opt-in
+  Docker socket mount, or an app on operating system installs; a process inside the container
+  is the weakest. The reviewers' findings that port conflicts were keyed by target type
+  rather than host, that nothing checked the ports this instance uses (8123), and that a corrupt
+  stored item raised at list time are not confirmed fixed.
+- Entity dialogs, open review findings: water heater switch name, state shown by colour alone on
+  humidifier, weather unit at 320 px, sensor attributes.
+- Backup setup dialog: a save that never settles can block later saves, and a failed save from
+  the encryption switch may leave the local config showing the new key. Time-box and revert.
+- Automations list: "select all N matches" with collapsed groups selects fewer than N. The tables
+  that have their own bulk bars and no "hidden selected" count (entities, devices, backups,
+  blueprints, scenes, tags, application credentials, dashboards, expose, statistics, the
+  marketplace) act on rows the person cannot see if hidden rows were ticked earlier.
 
-## Added on 10 November 2026
+Findings in the offline help, of the second review (several were fixed in source by commit
+`c9b9d007a`; those marked confirmed were checked by reading the current code):
 
-- The design is complete as a design: 153 boards on 11 canvases in `design/canvases/`. See
-  `design/README.md` and pass 3 in `design/HANDOFF.md`.
-- Build 1's VirtualBox image built and is attached to release `v2026.11.1.1`. Its Raspberry Pi
-  images were still building. No image has been booted yet.
-- Search: every search field has the pattern workbench and every list accepts `/pattern/flags`.
-  `frontend/src/common/regex/search-surfaces.ts` lists the fields; a test fails if one is added
-  without an entry. To add a search field, read the comment at the top of that file.
-- Tabs: bulk close by search. Automations: test buttons on conditions and Choose options.
-- The demo build (`npx gulp develop-demo` in `frontend/`) has no settings pages, so tables,
-  pickers, logs and the automation editor have not been seen running. They need a real
-  instance: run the container image from a release and check each row of
-  `docs/feature-status.md` that says "not seen in a build".
-- Still to build, in the owner's order: appearance editors on every element; the automation
-  history manager with test one, test many and run many; a Git repository per automation and a
-  master repository whose push commits every automation repository first; the dry run of a whole
-  automation. The boards for each are named in `docs/feature-status.md`.
+- Confirmed fixed in source: help links open through `openHelpUrl` (DD1), the expansion panel's
+  transition completion (EE1), the row animation listener (EE2), a failed flow reporting back so
+  first-run cannot stick (FF1), place search encoding (FF3), the Minecraft version and name
+  patterns using `fullmatch` (GG1), the backup dialog ignoring presses while a save is pending
+  (HH1), the header checkbox keeping hidden selections only where a page opts in (II1), the
+  documentation host pattern (DD7), and slug validation (DD8).
+- Not confirmed either way, check before relying: literal help links on the login and landing
+  bundles (DD2), converter edge cases and Liquid inside code blocks (DD4 to DD6), heading ids
+  and anchors (DD9), the integration documentation links in the guided setup wizard (DD10), the
+  Enter key in the location step (FF2), and surfacing server-level Minecraft errors in the wizard
+  (GG2).
 
-### Page tools (10 November 2026)
+Passkeys (reviewers' findings on `core/homeassistant/components/passkey/**`): the registration
+challenge pool, the stateless sign-in token, fresh sign-in before adding a passkey, the counter
+race, the host character checks and the default-integrations list appear fixed in source and are
+covered by the 143 passing server tests. Not confirmed: hiding the sign-in button when the host
+is an IP address and asking the server first whether passkeys are usable, the card's statements
+that a passkey keeps working after sessions are signed out and skips a second sign-in step, and
+a "remove all passkeys" button. No real authenticator has been used.
 
-- `frontend/src/components/page/ha-page-tools.ts` is the header cluster. A layout places it and
-  it works on that layout: it finds its page as the host of the shadow root it is in. To give
-  another layout the tools, render `<ha-page-tools>` in its header, `<ha-page-footer>` after its
-  content, and use `PageLockController` to put `inert` on what must not change while locked.
-  `hass-subpage.ts` is the shortest example.
-- Still without the tools: the dashboard header (`hui-root.ts`), `ha-top-app-bar-fixed.ts`, the
-  developer tools, and every dialog. The boards also show a large title with a summary line, tables
-  as rounded row cards and a card grid on Settings home; none of that is built.
-- A local change is only in History if its store calls `noteLocalChange` (see
-  `common/history/local-history.ts`). Locks must never be added there.
+Deploy Assistant (`deploy-assistant/`, owned by the design lane; changes need a decision):
 
-### The changelog is shown in the interface
+- SSH host keys are never verified (no `hostVerifier`): a login can be intercepted. Fix: trust on
+  first use with a stored fingerprint shown to the person, and refuse a change.
+- The Raspberry Pi card writer wipes the selected drive; the drive filter (no boot or system
+  disk, 512 GB cap) is the only guard read. The confirmation step and the writer were not read.
+- Automatic download starts a few seconds after launch and every six hours, connects to every
+  saved host by SSH and runs `docker pull` unprompted; the switch is on by default.
+- `memoryLimit` and `timezone` are written into generated compose YAML without newline checks.
+- The workflow `deploy-assistant.yml` runs `npm test` (project policy: no tests in CI), publishes
+  a release on every change under `deploy-assistant/**`, and never reads the release back.
+- The default image tag is `latest` (the project pins a tag). The app's own releases crowd the
+  50-release window that is scanned for operating system image assets.
+- `mock.js` ships in the real app. Auto-update exists but has not been seen applying a real
+  release.
+- Not read in full: `manager.js`, the renderer `app.js`, `writer.js`, `virtualbox.js`,
+  `vmware.js` and the unit tests.
 
-`CHANGELOG.md` has a heading for each day (`## 2026-11-10`) and one bullet for each change. After
-editing it, run `node build-scripts/sync-changelog.mjs` in `frontend/`; it writes
-`frontend/src/data/changelog.json`, which What changed shows. A test fails when the two differ.
-An entry gets its commit on the first sync after it is committed.
-
-### Checking against a real instance
+## Checking against a real instance
 
 The published image runs in Docker, and the frontend in this repository can be served from it,
 which gives every settings page with a real server behind it:
@@ -94,30 +151,35 @@ which gives every settings page with a real server behind it:
    started. New translation strings need the build restarted.
 4. Open port 8123. Rebuilds are picked up on reload.
 
-`ROADMAP.md` lists everything still to build. The goal is all 153 boards built and matching.
+The demo build (`npx gulp develop-demo` in `frontend/`) has no settings pages, so tables,
+pickers, logs and the automation editor are not seen there; open port 8090.
 
-## Next steps, in order
+## Things to know before editing
 
-1. Confirm the operating system images attached to the release, then boot the VirtualBox image
-   (`haos_ova-<version>.vdi.zip`) and a Raspberry Pi image. Record what happens in
-   `docs/feature-status.md`.
-2. Continue the interface work in `frontend/` (issue 4 first): the search field and accessibility
-   button in the header, the redesigned Home, the phone layout, then the feature groups in issues
-   5 to 10. The boards to match are in `design/canvases/`; `design/frames/` shows how each should
-   look. To see changes locally, run `npx gulp develop-demo` in `frontend/` and open port 8090.
-   New translation strings and static files need a restart of that server.
-3. Work down `ROADMAP.md`. List every edit to a vendored folder in `docs/material-changes.md`.
-
-## Things that will surprise you
-
+- To add a search field, read the comment at the top of
+  `frontend/src/common/regex/search-surfaces.ts`: every search field must be listed, and a test
+  fails otherwise.
 - The demo and development builds do not minify templates; the production build does, and its
   legacy pass can fail on a template the other builds accept (an expression inside an inline
   `style="..."` attribute is the known case; use `styleMap`). Before pushing interface work, run
   `node build-scripts/check-minify-templates.mjs <changed files>` in `frontend/`. Builds 23 to 25
   failed this way and have no images.
-
-- Every push to `main` publishes a release. Pushes that touch only `design/`, `docs/` or Markdown
-  files skip the builds.
+- The changelog is shown in the interface. `CHANGELOG.md` has a heading for each day
+  (`## 2026-11-10`) and one bullet for each change. After editing it, run
+  `node build-scripts/sync-changelog.mjs` in `frontend/`; it writes
+  `frontend/src/data/changelog.json`. A test fails when the two differ.
+- The offline help articles are refreshed by `node build-scripts/sync-help-articles.mjs` in
+  `frontend/`, run by the maintainer; the interface never fetches them at run time. Their
+  licence, attribution and source commit are in `frontend/public/static/help/LICENSE-NOTICE.md`.
+- A local change is only in History if its store calls `noteLocalChange` (see
+  `common/history/local-history.ts`). Locks must never be added there.
+- To give another layout the page tools, render `<ha-page-tools>` in its header,
+  `<ha-page-footer>` after its content, and use `PageLockController`; `hass-subpage.ts` is the
+  shortest example. Still without the tools: the dashboard header (`hui-root.ts`),
+  `ha-top-app-bar-fixed.ts` and the developer tools' own headers.
+- Every push to `main` publishes a release. Pushes that touch only `design/`, `docs/`, the
+  Deploy Assistant or Markdown files, on top of code whose images were already published, skip
+  the image builds.
 - A build that has started always finishes. While it runs, only the newest waiting build of each
   kind is kept; older waiting ones are dropped, so some releases carry notes and no images. The
   newest push is always built. Operating system builds take hours.
@@ -130,3 +192,15 @@ which gives every settings page with a real server behind it:
   key outside the repository). Builds after 55 sign their operating system images with it and
   offer them over the air. Systems installed from builds up to 55 need one fresh install
   first. No such update has been observed yet.
+- Every edit to a vendored folder is listed in `docs/material-changes.md`.
+
+## Next steps, in order
+
+1. Run the newest published image and check each row of `docs/feature-status.md` that says "not
+   yet seen in a running build", starting with the first-run Welcome screen, the passkey card,
+   Google setup, dashboard history and the help reader. Record what was seen.
+2. Make a backup on a running instance and prove the automation and dashboard repositories come
+   back with their history (item 1 above).
+3. Boot the VirtualBox image (`haos_ova-<version>.vdi.zip`) and a Raspberry Pi image, then an
+   over-the-air update between two builds signed with the project's key.
+4. Work down the queue above and `ROADMAP.md`.

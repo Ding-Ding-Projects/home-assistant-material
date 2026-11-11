@@ -54,6 +54,7 @@ ERROR_GIT = "git_error"
 ERROR_NOT_FOUND = "dashboard_not_found"
 ERROR_NOT_STORAGE = "not_storage_dashboard"
 ERROR_NOT_RECORDED = "current_state_not_recorded"
+ERROR_CHANGED = "dashboard_changed"
 
 _RECORD_ERRORS = (RepositoryError, OSError, yaml.YAMLError)
 
@@ -178,6 +179,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, websocket_diff)
     websocket_api.async_register_command(hass, websocket_restore)
     websocket_api.async_register_command(hass, websocket_forget)
+    websocket_api.async_register_command(hass, websocket_archives)
+    websocket_api.async_register_command(hass, websocket_forget_archive)
+    websocket_api.async_register_command(hass, websocket_forget_removed_view)
     websocket_api.async_register_command(hass, websocket_set_remote)
     websocket_api.async_register_command(hass, websocket_push)
     return True
@@ -355,7 +359,6 @@ async def websocket_restore(
                 msg["id"], ERROR_NOT_FOUND, "That dashboard is not kept in storage."
             )
             return
-        hass.data[DATA_QUEUE].discard(dashboard_id)
         try:
             restored = (
                 await hass.async_add_executor_job(
@@ -370,6 +373,7 @@ async def websocket_restore(
             current = plain(await dashboard.async_load(False))
         except ConfigNotFound:
             current = None
+        before = current
         recorded = False
         if current is not None:
             try:
@@ -417,10 +421,24 @@ async def websocket_restore(
             return
 
         try:
+            latest = plain(await dashboard.async_load(False))
+        except ConfigNotFound:
+            latest = None
+        if latest != before:
+            connection.send_error(
+                msg["id"],
+                ERROR_CHANGED,
+                "The dashboard was saved while this restore was being prepared. "
+                "Nothing was changed. Try again.",
+            )
+            return
+
+        try:
             await dashboard.async_save(new_config)
         except HomeAssistantError as err:
             _send_error(connection, msg["id"], err)
             return
+        hass.data[DATA_QUEUE].discard(dashboard_id)
         try:
             saved = await dashboard.async_load(False)
             commit = await hass.async_add_executor_job(
@@ -462,7 +480,6 @@ async def websocket_forget(
                 msg["id"], ERROR_NOT_FOUND, "That dashboard is not kept in storage."
             )
             return
-        hass.data[DATA_QUEUE].discard(dashboard_id)
         try:
             await hass.async_add_executor_job(
                 repositories.forget_dashboard, dashboard_id
@@ -470,6 +487,7 @@ async def websocket_forget(
         except (RepositoryError, OSError) as err:
             _send_error(connection, msg["id"], err)
             return
+        hass.data[DATA_QUEUE].discard(dashboard_id)
         try:
             config = await dashboard.async_load(False)
             commit = await hass.async_add_executor_job(
@@ -480,6 +498,75 @@ async def websocket_forget(
         except (HomeAssistantError, *_RECORD_ERRORS) as err:
             _note_error(repositories, dashboard_id, err)
     connection.send_result(msg["id"], {"commit": commit})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({probatio.Required("type"): "dashboard_repos/archives"})
+@websocket_api.async_response
+async def websocket_archives(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """List the histories of deleted dashboards that were set aside."""
+    repositories = hass.data[DATA_REPOSITORIES]
+    try:
+        archives = await hass.async_add_executor_job(repositories.list_archives)
+    except (RepositoryError, OSError) as err:
+        _send_error(connection, msg["id"], err)
+        return
+    connection.send_result(msg["id"], {"archives": archives})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "dashboard_repos/forget_archive",
+        probatio.Required("name"): str,
+    }
+)
+@websocket_api.async_response
+async def websocket_forget_archive(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Delete the archived history of a deleted dashboard, for good."""
+    repositories = hass.data[DATA_REPOSITORIES]
+    async with hass.data[DATA_QUEUE].lock:
+        try:
+            await hass.async_add_executor_job(repositories.forget_archive, msg["name"])
+        except (RepositoryError, OSError) as err:
+            _send_error(connection, msg["id"], err)
+            return
+    connection.send_result(msg["id"])
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "dashboard_repos/forget_removed_view",
+        probatio.Required("dashboard_id"): str,
+        probatio.Required("view_key"): str,
+    }
+)
+@websocket_api.async_response
+async def websocket_forget_removed_view(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Delete the history of a view that was removed from a dashboard."""
+    repositories = hass.data[DATA_REPOSITORIES]
+    async with hass.data[DATA_QUEUE].lock:
+        try:
+            await hass.async_add_executor_job(
+                repositories.forget_removed_view, msg["dashboard_id"], msg["view_key"]
+            )
+        except (RepositoryError, OSError) as err:
+            _send_error(connection, msg["id"], err)
+            return
+    connection.send_result(msg["id"])
 
 
 @websocket_api.require_admin
@@ -498,13 +585,19 @@ async def websocket_set_remote(
 ) -> None:
     """Set or remove the remote of one dashboard repository."""
     repositories = hass.data[DATA_REPOSITORIES]
-    try:
-        await hass.async_add_executor_job(
-            repositories.set_dashboard_remote, msg["dashboard_id"], msg.get("url")
-        )
-    except (RepositoryError, OSError) as err:
-        _send_error(connection, msg["id"], err)
-        return
+    async with hass.data[DATA_QUEUE].lock:
+        if msg["dashboard_id"] not in _storage_dashboards(hass):
+            connection.send_error(
+                msg["id"], ERROR_NOT_FOUND, "That dashboard is not kept in storage."
+            )
+            return
+        try:
+            await hass.async_add_executor_job(
+                repositories.set_dashboard_remote, msg["dashboard_id"], msg.get("url")
+            )
+        except (RepositoryError, OSError) as err:
+            _send_error(connection, msg["id"], err)
+            return
     connection.send_result(msg["id"])
 
 
@@ -523,11 +616,17 @@ async def websocket_push(
 ) -> None:
     """Send a dashboard repository, with the history of every view, to its remote."""
     repositories = hass.data[DATA_REPOSITORIES]
-    try:
-        result = await hass.async_add_executor_job(
-            repositories.push_dashboard, msg["dashboard_id"]
-        )
-    except (RepositoryError, OSError) as err:
-        _send_error(connection, msg["id"], err)
-        return
+    async with hass.data[DATA_QUEUE].lock:
+        if msg["dashboard_id"] not in _storage_dashboards(hass):
+            connection.send_error(
+                msg["id"], ERROR_NOT_FOUND, "That dashboard is not kept in storage."
+            )
+            return
+        try:
+            result = await hass.async_add_executor_job(
+                repositories.push_dashboard, msg["dashboard_id"]
+            )
+        except (RepositoryError, OSError) as err:
+            _send_error(connection, msg["id"], err)
+            return
     connection.send_result(msg["id"], result)

@@ -8,20 +8,33 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
+from itertools import islice
+import re
 from typing import Any
 from urllib.parse import urlsplit
+
+import httpx
 
 from .const import (
     MAX_INFO_ITEMS,
     MAX_INFO_VALUE_LENGTH,
     MAX_MODELS,
+    MAX_NAME_LENGTH,
     MAX_RUNNING,
     MAX_TEXT_LENGTH,
 )
 
+# A model to download: `name`, `name:tag`, or `namespace/name[:tag]`. A name
+# with a host part (a dot before the first slash) is not accepted, so a pull
+# can only name something in the Ollama library, never another registry.
+PULL_NAME_PATTERN = re.compile(
+    r"[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9._-]*"
+)
+PULL_TAG_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+
 
 def mask_address(url: str | None) -> str:
-    """Return the address without credentials, query or fragment.
+    """Return the scheme, host and port of an address and nothing else.
 
     Only http and https addresses are shown. Anything else gives an empty
     string so a malformed value is never echoed back.
@@ -39,8 +52,8 @@ def mask_address(url: str | None) -> str:
     if ":" in host:
         host = f"[{host}]"
     netloc = f"{host}:{port}" if port else host
-    path = parts.path.rstrip("/")
-    return f"{parts.scheme}://{netloc}{path}"
+    # The path is left out: a path can carry a secret.
+    return f"{parts.scheme}://{netloc}"
 
 
 def map_error(err: BaseException) -> str:
@@ -54,9 +67,9 @@ def map_error(err: BaseException) -> str:
         if status == 429 or status >= 500:
             return "server_error"
         return "bad_request"
-    if isinstance(err, TimeoutError):
+    if isinstance(err, TimeoutError | httpx.TimeoutException):
         return "timeout"
-    if isinstance(err, ConnectionError | OSError):
+    if isinstance(err, ConnectionError | OSError | httpx.TransportError):
         return "cannot_connect"
     return "unknown"
 
@@ -91,7 +104,9 @@ def _details(details: Any) -> dict[str, Any]:
 
 def shape_models(response: Any) -> dict[str, Any]:
     """Shape the answer of the model list call."""
-    items = list(getattr(response, "models", None) or [])
+    all_items = getattr(response, "models", None) or []
+    total = len(all_items)
+    items = list(islice(all_items, MAX_MODELS))
     models = [
         {
             "name": _short(getattr(item, "model", None), 256),
@@ -100,18 +115,18 @@ def shape_models(response: Any) -> dict[str, Any]:
             "modified_at": _iso(getattr(item, "modified_at", None)),
             **_details(getattr(item, "details", None)),
         }
-        for item in items[:MAX_MODELS]
+        for item in items
     ]
     return {
         "models": models,
-        "total": len(items),
-        "truncated": len(items) > MAX_MODELS,
+        "total": total,
+        "truncated": total > MAX_MODELS,
     }
 
 
 def shape_running(response: Any) -> dict[str, Any]:
     """Shape the answer of the running models call."""
-    items = list(getattr(response, "models", None) or [])
+    items = list(islice(getattr(response, "models", None) or [], MAX_RUNNING))
     running = [
         {
             "name": _short(getattr(item, "model", None), 256),
@@ -122,7 +137,7 @@ def shape_running(response: Any) -> dict[str, Any]:
             "expires_at": _iso(getattr(item, "expires_at", None)),
             **_details(getattr(item, "details", None)),
         }
-        for item in items[:MAX_RUNNING]
+        for item in items
     ]
     return {
         "running": running,
@@ -162,3 +177,76 @@ def shape_show(response: Any, name: str) -> dict[str, Any]:
         "info": _scalar_info(getattr(response, "modelinfo", None)),
         **_details(getattr(response, "details", None)),
     }
+
+
+def valid_pull_name(name: Any) -> bool:
+    """Return True if the text is a model name that may be downloaded."""
+    if not isinstance(name, str) or not 0 < len(name) <= MAX_NAME_LENGTH:
+        return False
+    base, sep, tag = name.partition(":")
+    if sep and not PULL_TAG_PATTERN.fullmatch(tag):
+        return False
+    return PULL_NAME_PATTERN.fullmatch(base) is not None
+
+
+def valid_listed_name(name: Any) -> bool:
+    """Return True if the text is shaped like a model name from a server list.
+
+    The caller still has to check that the model is in the server's own list.
+    """
+    return (
+        isinstance(name, str)
+        and 0 < len(name) <= MAX_NAME_LENGTH
+        and name.isprintable()
+        and name == name.strip()
+    )
+
+
+def _count(value: Any) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def shape_progress(item: Any) -> dict[str, Any]:
+    """Shape one progress message of a download.
+
+    A total of zero is unknown, and completed never exceeds the total.
+    """
+    total = _count(getattr(item, "total", None)) or None
+    completed = _count(getattr(item, "completed", None))
+    if total is not None and completed is not None:
+        completed = min(completed, total)
+    return {
+        "status": _short(getattr(item, "status", None), 100) or "",
+        "digest": _short(getattr(item, "digest", None), 80),
+        "total": total,
+        "completed": completed,
+    }
+
+
+def listed_size(response: Any, name: str) -> tuple[bool, int | None]:
+    """Return whether a model is listed, and its size if the server gave one."""
+    for item in getattr(response, "models", None) or []:
+        if getattr(item, "model", None) == name:
+            return True, _count(getattr(item, "size", None))
+    return False, None
+
+
+class PullTracker:
+    """Allow one download per server at a time."""
+
+    def __init__(self) -> None:
+        """Start with no download running."""
+        self._active: set[str] = set()
+
+    def start(self, entry_id: str) -> bool:
+        """Mark a download as running. Return False if one already is."""
+        if entry_id in self._active:
+            return False
+        self._active.add(entry_id)
+        return True
+
+    def finish(self, entry_id: str) -> None:
+        """Mark the download of a server as over."""
+        self._active.discard(entry_id)

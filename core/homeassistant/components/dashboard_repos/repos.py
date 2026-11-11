@@ -27,6 +27,7 @@ automation repositories, so it can be tested on its own. Every function
 blocks; callers run them in an executor.
 """
 
+import calendar
 from collections.abc import Mapping
 import difflib
 import json
@@ -43,12 +44,15 @@ import yaml
 from homeassistant.components.automation_repos.repos import (
     DIFF_LIMIT,
     HISTORY_LIMIT,
+    REMOTE_RULE,
     REMOTE_TIMEOUT,
     AutomationRepositories,
     CommitInfo,
     RepositoryError,
+    check_remote,
     clean_message,
     dump_automation,
+    mask_text,
     plain,
 )
 
@@ -73,21 +77,22 @@ _NAME = r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}"
 _DASHBOARD_ID = re.compile(rf"{DEFAULT_ID}|{_NAME}")
 _VIEW_KEY = re.compile(_NAME)
 _SHA = re.compile(r"[0-9a-f]{7,40}")
-
-REMOTE_LIMIT = 500
-_HOST = r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?"
-_PATH = r"/[A-Za-z0-9._~%+/-]*"
-_REMOTE_URL = re.compile(rf"(?:https|ssh)://{_HOST}(?::[0-9]{{1,5}})?{_PATH}")
-_REMOTE_SCP = re.compile(rf"git@{_HOST}:[A-Za-z0-9._~%+/][A-Za-z0-9._~%+/-]*")
-# A bare local path may only be one that was stored before the rules tightened.
-_REMOTE_LEGACY_LOCAL = re.compile(r"/[A-Za-z0-9._~%+/-]+")
-_URL_USERINFO = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://)[^\s/'\"]*@")
-
-REMOTE_RULE = (
-    "Use an address like https://host/path.git, ssh://host/path.git or "
-    "git@host:path.git, with no user name, password, token, query or fragment "
-    "in it."
+_ARCHIVE = re.compile(r"[A-Za-z0-9_-]{1,160}")
+_ARCHIVE_PARTS = re.compile(
+    r"(?P<id>.+)-(?P<stamp>[0-9]{8}T[0-9]{6})(?:-[0-9]+)?"
 )
+FORGETTING_PREFIX = ".forgetting-"
+
+
+def unique_path(path: Path) -> Path:
+    """Return a sibling of `path` that does not exist yet."""
+    stamp = time.strftime("%Y%m%dT%H%M%S", time.gmtime())
+    candidate = path.with_name(f"{path.name}.old-{stamp}")
+    number = 1
+    while candidate.exists():
+        number += 1
+        candidate = path.with_name(f"{path.name}.old-{stamp}-{number}")
+    return candidate
 
 
 def check_dashboard_id(dashboard_id: str) -> str:
@@ -102,32 +107,6 @@ def check_view_key(key: str) -> str:
     if not _VIEW_KEY.fullmatch(key):
         raise RepositoryError("That is not a view.")
     return key
-
-
-def check_remote(url: str) -> str:
-    """Return a remote address that holds no credentials, or refuse it."""
-    url = url.strip()
-    if len(url) > REMOTE_LIMIT or not (
-        _REMOTE_URL.fullmatch(url) or _REMOTE_SCP.fullmatch(url)
-    ):
-        raise RepositoryError(REMOTE_RULE)
-    return url
-
-
-def is_stored_remote_usable(url: str) -> bool:
-    """Return True when an address read back from a repository may be used."""
-    return len(url) <= REMOTE_LIMIT and bool(
-        _REMOTE_URL.fullmatch(url)
-        or _REMOTE_SCP.fullmatch(url)
-        or _REMOTE_LEGACY_LOCAL.fullmatch(url)
-    )
-
-
-def mask_text(text: str, address: str | None = None) -> str:
-    """Remove an address, and any user info before a host, from a message."""
-    if address:
-        text = text.replace(address, "the remote")
-    return _URL_USERINFO.sub(r"\1", text)
 
 
 def dump_yaml(data: Mapping[str, Any]) -> str:
@@ -440,7 +419,10 @@ class DashboardRepositories(AutomationRepositories):
             key = known["key"]
             source = base / VIEWS_DIR / key
             if key not in keys and source.is_dir():
-                shutil.move(str(source), str(base / REMOVED_DIR / key))
+                target = base / REMOVED_DIR / key
+                if target.exists():
+                    target.rename(unique_path(target))
+                shutil.move(str(source), str(target))
 
         current = [
             {
@@ -641,18 +623,6 @@ class DashboardRepositories(AutomationRepositories):
             "error": self.errors.get(dashboard_id),
         }
 
-    def _stored_remote(self, base: Path) -> tuple[str | None, bool]:
-        """Return the remote address to show, and whether one is set but unusable."""
-        if not (base / ".git").exists():
-            return None, False
-        result = self._git(base, "remote", "get-url", "origin", check=False)
-        url = result.stdout.strip()
-        if result.returncode != 0 or not url:
-            return None, False
-        if is_stored_remote_usable(url):
-            return url, False
-        return None, True
-
     def _read_push_state(self, base: Path) -> dict[str, Any] | None:
         text = self._read(base / ".git", PUSH_STATE_FILE)
         if text is None:
@@ -758,9 +728,86 @@ class DashboardRepositories(AutomationRepositories):
         base = self._dashboard(dashboard_id)
         if not base.is_dir() or base.is_symlink():
             return False
-        shutil.rmtree(base)
+        self._remove_tree(base)
         self.errors.pop(dashboard_id, None)
         self.notes.pop(dashboard_id, None)
+        return True
+
+    def _remove_tree(self, path: Path) -> None:
+        """Delete a folder so that it is never left half deleted under its name.
+
+        It is renamed aside first, so a removal that stops partway leaves a
+        hidden leftover that the next removal finishes, never a half
+        repository that still looks like one.
+        """
+        self.purge_leftovers()
+        stamp = time.strftime("%Y%m%dT%H%M%S", time.gmtime())
+        aside = self.root / f"{FORGETTING_PREFIX}{path.name}-{stamp}"
+        number = 1
+        while aside.exists():
+            number += 1
+            aside = self.root / f"{FORGETTING_PREFIX}{path.name}-{stamp}-{number}"
+        path.rename(aside)
+        try:
+            shutil.rmtree(aside)
+        except OSError as err:
+            raise RepositoryError(
+                "Not everything could be deleted. What is left was set aside "
+                "and is deleted the next time."
+            ) from err
+
+    def purge_leftovers(self) -> None:
+        """Finish removals that stopped partway."""
+        if not self.root.is_dir():
+            return
+        for item in self.root.iterdir():
+            if item.name.startswith(FORGETTING_PREFIX) and not item.is_symlink():
+                shutil.rmtree(item, ignore_errors=True)
+
+    def list_archives(self) -> list[dict[str, Any]]:
+        """Return the histories of deleted dashboards that were set aside."""
+        archive = self.root / REMOVED_DIR
+        if not archive.is_dir():
+            return []
+        found = []
+        for item in archive.iterdir():
+            if not item.is_dir() or item.is_symlink():
+                continue
+            parts = _ARCHIVE_PARTS.fullmatch(item.name)
+            archived_at = None
+            dashboard = item.name
+            if parts:
+                dashboard = parts["id"]
+                archived_at = calendar.timegm(
+                    time.strptime(parts["stamp"], "%Y%m%dT%H%M%S")
+                )
+            found.append(
+                {"name": item.name, "dashboard": dashboard, "archived_at": archived_at}
+            )
+        return sorted(found, key=lambda item: item["archived_at"] or 0, reverse=True)
+
+    def forget_archive(self, name: str) -> bool:
+        """Delete one archived history, for good. Return False when it is gone."""
+        if not _ARCHIVE.fullmatch(name):
+            raise RepositoryError("That is not an archived history.")
+        path = self.root / REMOVED_DIR / name
+        if not path.is_dir() or path.is_symlink():
+            return False
+        self._remove_tree(path)
+        return True
+
+    def forget_removed_view(self, dashboard_id: str, key: str) -> bool:
+        """Delete the history of a view that was removed from a dashboard."""
+        base = self._dashboard(dashboard_id)
+        check_view_key(key)
+        folder = base / REMOVED_DIR / key
+        git_dir = base / VIEW_GIT_DIR / f"{key}.git"
+        if not folder.is_dir() or folder.is_symlink():
+            return False
+        self._remove_tree(folder)
+        if git_dir.is_dir() and not git_dir.is_symlink():
+            self._remove_tree(git_dir)
+        self._git(base, "branch", "-D", f"{VIEW_BRANCH}/{key}", check=False)
         return True
 
     def known_dashboards(self) -> list[str]:

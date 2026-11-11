@@ -53,7 +53,7 @@ import {
 
 const REPO = "home-assistant/home-assistant.io";
 const BRANCH = "current";
-const FORMAT = 4;
+const FORMAT = 5;
 const MAX_IMAGE_BYTES = 300 * 1024;
 const MAX_IMAGE_TOTAL = 20 * 1024 * 1024;
 const ARTICLE_IMAGE_CAP = 1536 * 1024;
@@ -153,6 +153,23 @@ const walk = (dir, out = []) => {
     }
   }
   return out;
+};
+
+/** A readable title for a path whose page names none: its last segment. */
+const titleFromPath = (articlePath) => {
+  const last = articlePath.split("/").filter(Boolean).pop() ?? "Help";
+  const words = last.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** An integration page's title: the name in its manifest, else its domain. */
+const integrationTitle = (domain) => {
+  const name = readJson(
+    path.join(componentsDir, domain, "manifest.json")
+  )?.name;
+  return typeof name === "string" && name.trim()
+    ? name.trim()
+    : titleFromPath(domain);
 };
 
 const documentationPathOf = (url) => {
@@ -263,10 +280,29 @@ https://github.com/${REPO}.
 - Attribution: text and images by the Home Assistant documentation authors
   and contributors, Open Home Foundation.
 - Changes: the pages were converted from Jekyll Markdown to plain Markdown.
-  Front matter was turned into metadata, Liquid tags were removed or reduced
-  to plain text (an icon is replaced by its name), and raw HTML was removed.
-  Links to pages that are not bundled became plain text, and so did every
-  link to another site. The wording of the text itself is unchanged. Images that live in the documentation repository were copied
+  Nothing of the explanatory text was rewritten, but the conversion changes
+  the following, and nothing else:
+  - Front matter became metadata. A page's title is its front matter title,
+    else (for an integration page) the integration's name, else its first
+    heading.
+  - Liquid tags were reduced to plain text: a glossary term became its
+    word, a link to My Home Assistant became its title text, an icon became
+    its name, notes, tips and warnings became block quotes, configuration
+    blocks became code blocks, and any other tag (includes, for example) was
+    removed together with the content it would have inserted. Text that such
+    an include would have inserted is therefore not part of these copies.
+  - Raw HTML was removed and its text kept; text in angle brackets that is
+    not a real HTML element (for example a placeholder such as
+    "&lt;domain&gt;") was kept as visible text. Scripts, styles, frames and
+    similar elements were removed with their content.
+  - Table rows with fewer or more cells than their header were evened out.
+  - A link to a section of the same page that does not exist became plain
+    text.
+  - Pages with no text of their own were left out.
+  - When the interface shows a page, links to pages that are not bundled
+    become plain text with a note, and so does every link to another site,
+    so the interface never opens the website or another site.
+  Images that live in the documentation repository were copied
   unchanged when they are PNG, JPEG or WebP, smaller than 300 KB and within
   the 20 MB total; every other image is marked "image not included" in the
   article. SVG images are never included.
@@ -407,7 +443,7 @@ const main = async () => {
     }
   };
 
-  const store = async (finalPath, source, file, pageCap) => {
+  const store = async (finalPath, source, file, pageCap, fallbackTitle) => {
     const existing = readJson(file);
     if (existing?.commit === commit && existing?.format === FORMAT) {
       return { skipped: true, data: existing };
@@ -417,17 +453,28 @@ const main = async () => {
       return undefined;
     }
     await prepareImages(text, pageCap);
-    const converted = convertArticle(text, (src) => keptImages.get(src));
-    const problems = checkConverted(converted.body);
+    const converted = convertArticle(
+      text,
+      (src) => keptImages.get(src),
+      fallbackTitle
+    );
+    const problems = checkConverted(converted.body, text);
     if (problems.length) {
-      throw new Error(
+      // Reported at the end, with the exit code set; the other pages are
+      // still converted so one run shows every problem.
+      checkFailures.push(
         `${source}: the converted page still contains ${problems.slice(0, 3).join("; ")}`
       );
+    }
+    if (!converted.body.trim()) {
+      // A page with no text of its own is left out of the bundle.
+      fs.rmSync(file, { force: true });
+      return { empty: true };
     }
     const data = {
       format: FORMAT,
       path: finalPath,
-      title: converted.title || finalPath,
+      title: converted.title || titleFromPath(finalPath),
       description: converted.description || undefined,
       source,
       commit,
@@ -440,6 +487,8 @@ const main = async () => {
 
   let stopped;
   const missing = [];
+  const emptyPages = [];
+  const checkFailures = [];
   let articleBytes = 0;
   const indexArticles = [];
   try {
@@ -454,6 +503,10 @@ const main = async () => {
         missing.push(articlePath);
         continue;
       }
+      if (stored.empty) {
+        emptyPages.push(articlePath);
+        continue;
+      }
       indexArticles.push({
         path: articlePath,
         title: stored.data.title,
@@ -466,10 +519,13 @@ const main = async () => {
         `/integrations/${domain}`,
         source,
         path.join(integrationsDir, `${domain}.json`),
-        INTEGRATION_IMAGE_CAP
+        INTEGRATION_IMAGE_CAP,
+        integrationTitle(domain)
       );
       if (!stored) {
         missing.push(`/integrations/${domain}`);
+      } else if (stored.empty) {
+        emptyPages.push(`/integrations/${domain}`);
       } else if (!stored.skipped && ++done % 100 === 0) {
         process.stdout.write(`  ${done} integration pages fetched…\n`);
       }
@@ -602,10 +658,19 @@ const main = async () => {
       (missing.length
         ? `Not found in the source: ${missing.join(", ")}\n`
         : "") +
+      (checkFailures.length
+        ? `Conversion check failed for ${checkFailures.length} pages:\n${checkFailures.join("\n")}\n`
+        : "") +
+      (emptyPages.length
+        ? `Left out, no text of their own: ${emptyPages.join(", ")}\n`
+        : "") +
       (stopped
         ? `Stopped early, progress kept; run again to resume: ${stopped}\n`
         : "")
   );
+  if (checkFailures.length) {
+    process.exitCode = 1;
+  }
 };
 
 main().catch((err) => {

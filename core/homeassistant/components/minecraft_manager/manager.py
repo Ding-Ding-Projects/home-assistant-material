@@ -1,12 +1,14 @@
 """Keep the stored Minecraft server definitions."""
 
-from typing import Any, TypedDict
+import asyncio
+from typing import Any, NotRequired, TypedDict
 import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util.hass_dict import HassKey
 
+from .commands import CommandError, slug
 from .const import (
     LOCAL_HOST_TARGETS,
     MAX_SERVERS,
@@ -15,6 +17,9 @@ from .const import (
     STORAGE_KEY,
     STORAGE_VERSION,
 )
+
+from .hosts import HostStore
+from .versions import VersionStore
 
 DATA_MANAGER: HassKey["MinecraftManager"] = HassKey("minecraft_manager")
 
@@ -31,6 +36,8 @@ class ServerDefinition(TypedDict):
     memory_mb: int
     target: str
     state: str
+    host_id: NotRequired[str]
+    eula_accepted: NotRequired[bool]
 
 
 def _is_usable(item: Any) -> bool:
@@ -51,6 +58,14 @@ def _same_host(target_a: str, target_b: str) -> bool:
     return target_a in LOCAL_HOST_TARGETS and target_b in LOCAL_HOST_TARGETS
 
 
+def _same_slug(name_a: str, name_b: str) -> bool:
+    """Return True when two names give the same container name."""
+    try:
+        return slug(name_a) == slug(name_b)
+    except CommandError:
+        return False
+
+
 class MinecraftManager:
     """Own the stored server definitions. Nothing here starts a process."""
 
@@ -60,9 +75,14 @@ class MinecraftManager:
             hass, STORAGE_VERSION, STORAGE_KEY, private=True
         )
         self._servers: dict[str, ServerDefinition] = {}
+        self.hosts = HostStore(hass)
+        self.versions = VersionStore(hass)
+        self._locks: dict[str, asyncio.Lock] = {}
 
     async def async_load(self) -> None:
         """Load the stored definitions."""
+        await self.hosts.async_load()
+        await self.versions.async_load()
         stored = await self._store.async_load()
         items = (stored or {}).get("servers", [])
         # A damaged entry is skipped instead of failing the whole list.
@@ -76,6 +96,10 @@ class MinecraftManager:
         """Return all definitions, sorted by name."""
         return sorted(self._servers.values(), key=lambda item: item["name"].lower())
 
+    def lock(self, server_id: str) -> asyncio.Lock:
+        """Return the lock that serializes commands for one server."""
+        return self._locks.setdefault(server_id, asyncio.Lock())
+
     def get(self, server_id: str) -> ServerDefinition | None:
         """Return one definition."""
         return self._servers.get(server_id)
@@ -88,7 +112,9 @@ class MinecraftManager:
         for server in self._servers.values():
             if server["id"] == ignore_id:
                 continue
-            if server["name"].lower() == data["name"].lower():
+            if server["name"].lower() == data["name"].lower() or _same_slug(
+                server["name"], data["name"]
+            ):
                 errors.append({"field": "name", "code": "duplicate_name"})
             if server["port"] == data["port"] and _same_host(
                 server["target"], data["target"]
@@ -111,6 +137,7 @@ class MinecraftManager:
             "id": uuid.uuid4().hex,
             **data,
             "state": STATE_DEFINED,
+            "eula_accepted": False,
         }  # type: ignore[typeddict-item]
         self._servers[server["id"]] = server
         await self._async_save()
@@ -123,6 +150,13 @@ class MinecraftManager:
             **data,
         }  # type: ignore[typeddict-item]
         self._servers[server_id] = server
+        await self._async_save()
+        return server
+
+    async def async_set_eula(self, server_id: str, accepted: bool) -> ServerDefinition:
+        """Record whether the person accepted the Minecraft EULA for a server."""
+        server = self._servers[server_id]
+        server["eula_accepted"] = accepted
         await self._async_save()
         return server
 

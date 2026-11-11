@@ -8,6 +8,22 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Minecraft servers can be started on another computer that runs Docker, reached over SSH:
+  add the host with its own key, confirm its fingerprint, then start, stop, read the log and
+  see the address to join. Versions are looked up only when you press Refresh.
+- Ollama: pull a model with real progress and Cancel, and delete a model.
+- Help articles: outside links inside articles are plain text, words that had gone missing
+  are back, and every page has a proper title.
+- A dropped dashboard file can no longer hide a risky button or disguise where a link goes.
+- Automation history is held to the same rules as dashboard history: a strict address for
+  pushing, a plain warning that anything typed into an automation is kept, and a way to forget
+  an automation's history. History of deleted dashboards can be listed and removed.
+- The app's name and logo can be applied for everyone. The release notes page replaces the
+  older changes page. School mode can hide the Developer tools entry.
+- Drawing board: pencil and brush, and very large pictures are refused before they are opened.
+  Converter: YAML merge keys are merged.
+- Seen in a running build: the Overview header on a phone, and the editable copy opening
+  straight in the editor.
 - Fixed: on a phone the welcome banner covered the Overview header, so its menu and edit
   button could not be reached. "Edit cards and layout" now opens the copy in the editor.
 - A dropped dashboard file shows what it contains before anything is made: outside addresses,

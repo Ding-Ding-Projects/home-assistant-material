@@ -12,6 +12,7 @@ from collections.abc import Callable
 import copy
 from pathlib import Path
 import subprocess
+from unittest.mock import patch
 
 import pytest
 
@@ -438,7 +439,7 @@ def test_push_failure_never_returns_the_address(
 ) -> None:
     """A rejected push reports what went wrong without the address."""
     repos.snapshot_dashboard("main", DASHBOARD)
-    address = "https://127.0.0.1:9/team/home.git"
+    address = "https://unreachable.invalid/team/home.git"
     repos.set_dashboard_remote("main", address)
     result = repos.push_dashboard("main")
     assert result["pushed"] is False
@@ -598,3 +599,112 @@ async def test_other_dashboards_do_not_merge() -> None:
         await asyncio.sleep(0)
     await asyncio.gather(*tasks)
     assert sorted(runs) == ["a", "b"]
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "https://127.0.0.1/x.git",
+        "https://127.1.2.3:8123/x.git",
+        "ssh://localhost/x.git",
+        "https://LOCALHOST./x.git",
+        "https://box.localhost/x.git",
+        "git@localhost:x.git",
+        "https://169.254.169.254/latest/meta-data",
+        "https://0.0.0.0/x.git",
+        "https://2130706433/x.git",
+        "https://0x7f000001/x.git",
+        "https://127.1/x.git",
+        "https://0177.0.0.1/x.git",
+    ],
+)
+def test_addresses_on_this_machine_are_refused(
+    repos: DashboardRepositories, address: str
+) -> None:
+    """Loopback, link-local and unspecified addresses are not remotes."""
+    with pytest.raises(RepositoryError):
+        check_remote(address)
+    repos.snapshot_dashboard("main", DASHBOARD)
+    with pytest.raises(RepositoryError):
+        repos.set_dashboard_remote("main", address)
+
+
+def test_stored_loopback_remote_is_hidden_and_not_pushed(
+    repos: DashboardRepositories,
+) -> None:
+    """A loopback address stored earlier is reported unusable."""
+    repos.snapshot_dashboard("main", DASHBOARD)
+    _git(repos.root / "main", "remote", "add", "origin", "https://127.0.0.1/x.git")
+    status = repos.dashboard_status({"id": "main"})
+    assert status["remote"] is None
+    assert status["remote_unsafe"] is True
+    with pytest.raises(RepositoryError):
+        repos.push_dashboard("main")
+
+
+def test_archived_histories_are_listed_and_forgotten(
+    repos: DashboardRepositories,
+) -> None:
+    """A set-aside history can be listed and deleted for good."""
+    repos.snapshot_dashboard("main", DASHBOARD)
+    moved = repos.archive_dashboard("main")
+    assert moved is not None
+    listed = repos.list_archives()
+    assert [item["name"] for item in listed] == [moved]
+    assert listed[0]["dashboard"] == "main"
+    assert isinstance(listed[0]["archived_at"], int)
+    for bad in ("../x", "a/b", "", "x" * 200, moved + "\n"):
+        with pytest.raises(RepositoryError):
+            repos.forget_archive(bad)
+    assert repos.forget_archive(moved) is True
+    assert repos.forget_archive(moved) is False
+    assert repos.list_archives() == []
+
+
+def test_removed_view_history_can_be_forgotten(
+    repos: DashboardRepositories,
+) -> None:
+    """The history of a view taken out of a dashboard can be deleted."""
+    repos.snapshot_dashboard("main", DASHBOARD)
+    repos.snapshot_dashboard("main", {"title": "Main", "views": [HOME]})
+    status = repos.dashboard_status({"id": "main"})
+    assert len(status["removed"]) == 1
+    key = status["removed"][0]
+    assert repos.forget_removed_view("main", key) is True
+    assert repos.forget_removed_view("main", key) is False
+    assert repos.dashboard_status({"id": "main"})["removed"] == []
+    assert not (repos.root / "main" / ".views" / f"{key}.git").exists()
+    with pytest.raises(RepositoryError):
+        repos.forget_removed_view("main", "../x")
+
+
+def test_a_failed_removal_leaves_no_half_repository(
+    repos: DashboardRepositories,
+) -> None:
+    """A removal that stops partway leaves a hidden leftover, not a repository."""
+    repos.snapshot_dashboard("main", DASHBOARD)
+    with patch(
+        "homeassistant.components.dashboard_repos.repos.shutil.rmtree",
+        side_effect=OSError("disk"),
+    ):
+        with pytest.raises(RepositoryError):
+            repos.forget_dashboard("main")
+    assert not (repos.root / "main").exists()
+    assert repos.known_dashboards() == []
+    leftovers = [p for p in repos.root.iterdir() if p.name.startswith(".forgetting-")]
+    assert len(leftovers) == 1
+    repos.purge_leftovers()
+    assert not [p for p in repos.root.iterdir() if p.name.startswith(".forgetting-")]
+
+
+def test_a_view_removed_twice_never_nests(repos: DashboardRepositories) -> None:
+    """A removed-view folder that already exists is moved aside, not nested into."""
+    repos.snapshot_dashboard("main", DASHBOARD)
+    base = repos.root / "main"
+    key = repos.dashboard_status({"id": "main"})["views"][1]["key"]
+    (base / "_removed" / key).mkdir(parents=True)
+    (base / "_removed" / key / "old.txt").write_text("old")
+    repos.snapshot_dashboard("main", {"title": "Main", "views": [HOME]})
+    assert (base / "_removed" / key / "view.yaml").is_file()
+    assert not (base / "_removed" / key / key).exists()
+    assert len([p for p in (base / "_removed").iterdir() if key in p.name]) == 2

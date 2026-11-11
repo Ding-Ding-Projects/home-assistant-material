@@ -383,7 +383,7 @@ describe("analyzeDashboardImport", () => {
       ],
     });
     expect(summary.addresses.items.map((item) => item.host)).toEqual([
-      "Cdn.Example.com:8123",
+      "cdn.example.com:8123",
       "other.example",
       "docs.example",
       "{{ states('sensor.x') }}",
@@ -409,7 +409,8 @@ describe("analyzeDashboardImport", () => {
         },
       ],
     });
-    expect(summary.title).toBe("EvilU+202Etitle");
+    // Titles are cleaned when the file is read, so none is left to show.
+    expect(summary.title).toBe("Eviltitle");
     expect(summary.actions.items[0].where).toBe("GoU+0007");
     expect(summary.addresses.items[0].address).toBe(
       "https://a.example/U+202Ex"
@@ -433,14 +434,15 @@ describe("analyzeDashboardImport", () => {
       ],
     });
     expect(summary.cards).toBe(total);
-    for (const list of [
-      summary.addresses,
-      summary.customTypes,
-      summary.actions,
-    ]) {
+    for (const list of [summary.addresses, summary.customTypes]) {
       expect(list.total).toBe(total);
       expect(list.items).toHaveLength(SUMMARY_LIST_LIMIT);
+      expect(list.all).toHaveLength(total);
     }
+    // Every one of these calls a service that is not on the harmless list, so
+    // none of them may be left out of what is shown first.
+    expect(summary.actions.total).toBe(total);
+    expect(summary.actions.items).toHaveLength(total);
   });
 
   it("reports removed resources and module addresses, with exact counts", () => {

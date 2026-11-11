@@ -14,10 +14,13 @@ import subprocess
 import pytest
 
 from homeassistant.components.automation_repos.repos import (
+    SIZE_LIMIT,
     AutomationRepositories,
     RepositoryError,
+    check_remote,
     clean_message,
     dump_automation,
+    mask_text,
     repository_name,
 )
 
@@ -206,14 +209,16 @@ def test_push_sends_to_a_remote_and_reports_a_failure(
         check=True,
     )
     repos.push_all(_configs())
-    repos.set_remote(None, str(bare))
-    repos.set_remote(FAN["id"], str(tmp_path / "missing.git"))
+    _git(repos.root, "remote", "add", "origin", str(bare))
+    fan = repos.root / "automations" / FAN["id"]
+    _git(fan, "remote", "add", "origin", str(tmp_path / "missing.git"))
 
     configs = _configs()
     configs[LIGHTS["id"]]["mode"] = "queued"
     result = repos.push_all(configs)
     assert result.pushed == ["master"]
     assert [item["id"] for item in result.push_errors] == [FAN["id"]]
+    assert str(tmp_path) not in result.push_errors[0]["error"]
     remote_head = subprocess.run(
         ["git", "rev-parse", "refs/heads/main"],
         cwd=bare,
@@ -224,26 +229,184 @@ def test_push_sends_to_a_remote_and_reports_a_failure(
     assert remote_head == result.master_commit
 
 
+def _git(cwd: Path, *args: str) -> None:
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+
+
 @pytest.mark.parametrize(
     "url",
     [
         "--upload-pack=touch /tmp/x",
         "https://user:secret@example.com/repo.git",
+        "ssh://user:pw@host/x",
+        "ssh://user@host/x",
+        "https://h/x?token=abc",
+        "https://h/x#frag",
+        "/just/a/local/path",
+        "https://127.0.0.1/x.git",
+        "ssh://localhost/x.git",
+        "https://169.254.169.254/latest",
+        "https://2130706433/x",
+        "https://0.0.0.0/x",
         "ext::sh -c 'touch /tmp/x'",
         "file with spaces",
-        "",
+        "https://h/x\nssh://evil/x",
+        "https://h/x\x00",
+        "git@host:x\ny",
+        "https://" + "h" * 600 + "/x",
     ],
 )
 def test_unsafe_remote_addresses_are_refused(
     repos: AutomationRepositories, url: str
 ) -> None:
-    """A remote cannot carry an option, a command or a password."""
-    if url == "":
-        repos.set_remote(None, url)
-        assert repos.status({})["master"]["remote"] is None
-        return
+    """A remote cannot carry an option, a command, a password or a token."""
+    with pytest.raises(RepositoryError):
+        check_remote(url)
     with pytest.raises(RepositoryError):
         repos.set_remote(None, url)
+    assert repos.status({})["master"]["remote"] is None
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "https://example.com/me/repo.git",
+        "ssh://example.com:2222/me/repo.git",
+        "git@example.com:me/repo.git",
+    ],
+)
+def test_plain_remote_addresses_are_kept(
+    repos: AutomationRepositories, address: str
+) -> None:
+    """A clean address is stored, shown and removable."""
+    repos.set_remote(None, address)
+    master = repos.status({})["master"]
+    assert master["remote"] == address
+    assert master["remote_unsafe"] is False
+    repos.set_remote(None, "")
+    assert repos.status({})["master"]["remote"] is None
+
+
+def test_stored_remote_with_credentials_is_hidden_and_not_pushed(
+    repos: AutomationRepositories,
+) -> None:
+    """An address stored earlier that breaks the rule is never returned."""
+    repos.push_all(_configs())
+    _git(repos.root, "remote", "add", "origin", "https://user:secret@h/x.git")
+    master = repos.status({})["master"]
+    assert master["remote"] is None
+    assert master["remote_unsafe"] is True
+    result = repos.push_all(_configs())
+    assert result.pushed == []
+    assert [item["id"] for item in result.push_errors] == ["master"]
+    assert "secret" not in str(result.push_errors)
+
+
+def test_push_failure_never_returns_the_address(
+    repos: AutomationRepositories,
+) -> None:
+    """The error of a failed push holds no address and no user info."""
+    repos.push_all(_configs())
+    address = "https://unreachable.invalid/me/repo.git"
+    repos.set_remote(None, address)
+    result = repos.push_all(_configs())
+    assert result.pushed == []
+    error = result.push_errors[0]["error"]
+    assert address not in error
+    assert len(error) <= 300
+
+
+def test_masking_removes_credentials_from_messages() -> None:
+    """User info and the address itself never survive in a message."""
+    assert "secret" not in mask_text("fatal: https://u:secret@h/x.git denied")
+    assert "h/x.git" not in mask_text(
+        "fatal: https://h/x.git denied", "https://h/x.git"
+    )
+    assert mask_text("fatal: ssh://tok@h/x refused") == "fatal: ssh://h/x refused"
+
+
+def test_trailing_newline_is_not_a_name_or_a_commit(
+    repos: AutomationRepositories,
+) -> None:
+    """A newline after a plain id is not plain."""
+    assert repository_name("evening_lights\n").startswith("id-")
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    sha = repos.history(LIGHTS["id"])[0].sha
+    with pytest.raises(RepositoryError):
+        repos.version(LIGHTS["id"], sha + "\n")
+
+
+def test_oversized_automation_records_nothing_and_does_not_stop_a_push(
+    repos: AutomationRepositories,
+) -> None:
+    """One automation too large to keep is named; the rest are still committed."""
+    huge = {**FAN, "description": "x" * (SIZE_LIMIT + 1)}
+    with pytest.raises(RepositoryError):
+        repos.snapshot(FAN["id"], huge)
+    assert not (repos.root / "automations" / FAN["id"]).exists()
+
+    result = repos.push_all({LIGHTS["id"]: dict(LIGHTS), FAN["id"]: huge})
+    assert [item["id"] for item in result.committed] == [LIGHTS["id"]]
+    assert [item["id"] for item in result.skipped] == [FAN["id"]]
+    status = repos.status({FAN["id"]: huge})
+    assert status["automations"][0]["dirty"] is True
+
+
+def test_deleted_automation_history_is_not_adopted(
+    repos: AutomationRepositories,
+) -> None:
+    """A new automation with a deleted one's id starts with no history."""
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    repos.snapshot(FAN["id"], FAN)
+    moved = repos.archive_unlisted({FAN["id"]: FAN})
+    assert len(moved) == 1
+    assert moved[0].startswith(LIGHTS["id"] + "-")
+    assert (repos.root / "_removed" / moved[0]).is_dir()
+    assert repos.history(LIGHTS["id"]) == []
+    assert len(repos.history(FAN["id"])) == 1
+
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    assert len(repos.history(LIGHTS["id"])) == 1
+    assert repos.archive_unlisted({LIGHTS["id"]: LIGHTS, FAN["id"]: FAN}) == []
+
+
+def test_archived_repositories_stay_out_of_the_master(
+    repos: AutomationRepositories,
+) -> None:
+    """The master never tracks an archived repository."""
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    repos.archive_unlisted({})
+    repos.push_all({FAN["id"]: dict(FAN)})
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=repos.root, capture_output=True, text=True, check=True
+    ).stdout.split()
+    assert not any(path.startswith("_removed/") for path in tracked)
+
+
+def test_forget_deletes_the_history_and_starts_again(
+    repos: AutomationRepositories,
+) -> None:
+    """Forgetting removes every old version; the next save is a first one."""
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    repos.snapshot(LIGHTS["id"], {**LIGHTS, "mode": "restart"})
+    assert repos.forget(LIGHTS["id"]) is True
+    assert repos.forget(LIGHTS["id"]) is False
+    assert repos.history(LIGHTS["id"]) == []
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    assert len(repos.history(LIGHTS["id"])) == 1
+
+
+def test_a_version_is_returned_as_plain_data(repos: AutomationRepositories) -> None:
+    """Dates and other YAML types are written out as text, not left as objects."""
+    repos.snapshot(LIGHTS["id"], LIGHTS)
+    path = repos.root / "automations" / LIGHTS["id"]
+    (path / "automation.yaml").write_text(
+        "id: a\nwhen: 2026-01-02\n", encoding="utf-8"
+    )
+    _git(path, "add", "--all")
+    _git(path, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "x")
+    newest = repos.history(LIGHTS["id"])[0].sha
+    assert repos.version(LIGHTS["id"], newest)["when"] == "2026-01-02"
 
 
 def test_only_commit_ids_are_accepted(repos: AutomationRepositories) -> None:

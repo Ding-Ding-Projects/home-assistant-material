@@ -27,11 +27,12 @@ All commands are WebSocket commands that require an administrator.
 | `ollama_suite/models` | 1 | Models of one server: name, size, family, parameter size, quantisation, modified time, digest |
 | `ollama_suite/running` | 1 | Models loaded in memory: size, graphics memory, context length, unload time, totals |
 | `ollama_suite/show` | 1 | Details of one model: capabilities, default settings, template, licence, small technical values |
-| `ollama_suite/pull` | 2 | Download a model, with streamed progress events and cancel |
-| `ollama_suite/delete` | 2 | Remove a model, after confirmation in the interface |
+| `ollama_suite/pull` | 2 | Download a model. A subscription: events carry `state` (`progress`, `done`, `error`), the server's status text, digest, and completed and total bytes. Unsubscribing cancels it. One download per server at a time (`busy` otherwise) |
+| `ollama_suite/delete` | 2 | Remove a model that the server lists; answers the size it freed |
+| `ollama_suite/unload` | 2 | Unload a loaded model by asking the server to keep it for zero seconds. Server command only; the page has no control for it yet |
 | `ollama_suite/chat` | 3 | Streamed chat with a model on a chosen server |
 
-Errors are plain codes: `not_found`, `not_loaded`, `unauthorized`, `timeout`, `cannot_connect`, `server_error`, `bad_request`, `unknown`.
+Errors are plain codes: `not_found`, `not_loaded`, `unauthorized`, `timeout`, `cannot_connect`, `server_error`, `bad_request`, `busy`, `unknown`.
 
 ## Security
 
@@ -40,7 +41,9 @@ Errors are plain codes: `not_found`, `not_loaded`, `unauthorized`, `timeout`, `c
 - **Proxying.** Requests are made by the instance. The browser cannot be pointed at another origin through this feature.
 - **Administrators only.** Every command requires an administrator. Management commands (pull, delete) additionally require an explicit confirmation in the interface.
 - **Limits.** Each request has a 10 second timeout. Answers are bounded: at most 500 models, 100 running models, 20,000 characters per text field, and only small scalar technical values (large arrays such as tokenizer vocabularies are dropped). The client library parses a whole answer before it is shaped, so the bounds limit what is sent to the browser, not what the server may send to Home Assistant.
-- **Streaming (later slices).** Pull and chat stream in bounded chunks, can be cancelled, stop when the WebSocket closes, and enforce an overall time limit and maximum prompt size.
+- **Model names.** A name to download must fully match `name`, `name:tag` or `namespace/name[:tag]` (lowercase name, no host part, so no other registry). Delete and unload accept only a model the server itself lists.
+- **Downloads.** A download stops when the browser unsubscribes or the WebSocket closes, and after 120 seconds with no message from the server. Progress events are sent at most four times a second unless the status text changes.
+- **Streaming (chat, later).** Chat streams in bounded chunks, can be cancelled, stop when the WebSocket closes, and enforce an overall time limit and maximum prompt size.
 - **No content logging.** Error handling logs no request or response bodies.
 
 ## Privacy statements shown to the person
@@ -50,10 +53,12 @@ The page opens with this statement: only the Ollama server addresses you entered
 ## Slices
 
 1. **Read only (built).** Servers, models, running models and model details; empty state that leads to the normal add-integration flow; labelled placeholders for what comes next.
-2. **Manage models.** Download with progress and cancel, remove with confirmation, disk space notes.
+2. **Manage models (built).** Download with progress and cancel, remove with confirmation naming the space it frees. Speed and time left are derived from the bytes the server reports for the part being fetched, shown only when they can be computed.
 3. **Chat.** A local chat panel with streaming, model choice, stop, and no history kept unless the person saves it.
 4. **Helpers.** Small local helpers, such as summarising text the person pastes, each clearly labelled and sending nothing elsewhere.
 
 ## Verification status
 
-Slice 1 has Python tests with a mocked client for the shaping helpers and the WebSocket commands, and a frontend page that passes lint and type checks. No Ollama server has been contacted and the page has not been seen in a browser.
+The integration was seen loading at start in a running copy on 10 November 2026 without errors; no command was driven against it.
+
+Slice 2 adds Python tests with a mocked client for name validation, progress shaping, cancellation and the one-download-at-a-time rule. The pure parts and the download loop were exercised for real in a throwaway container; the WebSocket tests have not been run with pytest and no Ollama server has been contacted. Slice 1 has Python tests with a mocked client for the shaping helpers and the WebSocket commands, and a frontend page that passes lint and type checks. No Ollama server has been contacted and the page has not been seen in a browser.

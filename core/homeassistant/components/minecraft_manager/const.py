@@ -54,3 +54,45 @@ LOCAL_HOST_TARGETS: Final = (
 )
 # Ports this installation itself listens on, never offered to a server.
 RESERVED_LOCAL_PORTS: Final = (8123,)
+
+STORAGE_KEY_HOSTS: Final = "minecraft_manager.hosts"
+STORAGE_KEY_VERSIONS: Final = "minecraft_manager.versions"
+STORAGE_VERSION_HOSTS: Final = 1
+STORAGE_VERSION_VERSIONS: Final = 1
+
+# Private keys live here, under the configuration folder, one file per host.
+KEYS_DIRECTORY: Final = "minecraft_manager/keys"
+KEY_COMMENT: Final = "home-assistant-minecraft-manager"
+MAX_HOSTS: Final = 50
+
+HOST_PORT_MIN: Final = 1
+HOST_PORT_MAX: Final = 65535
+
+# The image every server container uses. The tag is explicit and fixed here so
+# a person can see it before starting; it is never "latest".
+MINECRAFT_IMAGE: Final = "itzg/minecraft-server:2026.11.0-java21"
+CONTAINER_PREFIX: Final = "mc-"
+CONTAINER_GAME_PORT: Final = 25565
+STOP_GRACE_SECONDS: Final = 60
+
+# Timeouts, in seconds.
+SSH_CONNECT_TIMEOUT: Final = 10
+COMMAND_TIMEOUT: Final = 30
+PULL_TIMEOUT: Final = 900
+RUN_TIMEOUT: Final = 90
+STOP_TIMEOUT: Final = 120
+REACHABLE_CONNECT_TIMEOUT: Final = 3
+REACHABLE_WAIT_SECONDS: Final = 15
+REACHABLE_POLL_SECONDS: Final = 2
+
+LOG_LINES_DEFAULT: Final = 100
+LOG_LINES_MAX: Final = 500
+LOG_MAX_CHARS: Final = 64_000
+
+MOJANG_MANIFEST_URL: Final = (
+    "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+)
+PAPER_VERSIONS_URL: Final = "https://api.papermc.io/v2/projects/paper"
+VERSION_FETCH_TIMEOUT: Final = 20
+VERSION_MAX_BYTES: Final = 4 * 1024 * 1024
+VERSION_MAX_ENTRIES: Final = 2000

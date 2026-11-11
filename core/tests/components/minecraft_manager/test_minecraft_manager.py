@@ -1,12 +1,14 @@
 """Tests for the Minecraft server manager integration."""
 
+import os
+import stat
 from typing import Any
 from unittest.mock import patch
 
 import pytest
 
 from homeassistant.components.minecraft_manager import targets
-from homeassistant.components.minecraft_manager.manager import MinecraftManager
+from homeassistant.components.minecraft_manager.manager import DATA_MANAGER, MinecraftManager
 from homeassistant.components.minecraft_manager.validation import validate_server
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
@@ -175,3 +177,71 @@ async def test_corrupt_stored_item_is_skipped(hass: HomeAssistant) -> None:
     ):
         await manager.async_load()
     assert [item["id"] for item in manager.servers()] == ["ok"]
+
+
+async def test_container_name_collision_is_refused(hass: HomeAssistant) -> None:
+    """Two names that give the same container name cannot both exist."""
+    manager = MinecraftManager(hass)
+    manager._servers = {
+        "a": {**VALID, "id": "a", "name": "Family survival", "state": "defined"},  # type: ignore[typeddict-item]
+    }
+    errors = manager.conflicts({**VALID, "name": "family-survival", "port": 25570})
+    assert {"field": "name", "code": "duplicate_name"} in errors
+
+
+async def test_eula_and_unknown_host(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """The EULA flag is stored per server and a server needs a known host."""
+    assert await async_setup_component(hass, "minecraft_manager", {})
+    client = await hass_ws_client(hass)
+    await client.send_json(
+        {
+            "id": 1,
+            "type": "minecraft_manager/create",
+            "server": {**VALID, "host_id": "c" * 32},
+        }
+    )
+    refused = (await client.receive_json())["result"]
+    assert refused["errors"] == [{"field": "host_id", "code": "unknown_host"}]
+
+    await client.send_json({"id": 2, "type": "minecraft_manager/create", "server": VALID})
+    server_id = (await client.receive_json())["result"]["server"]["id"]
+    await client.send_json(
+        {"id": 3, "type": "minecraft_manager/set_eula", "server_id": server_id, "accepted": True}
+    )
+    assert (await client.receive_json())["result"]["server"]["eula_accepted"] is True
+    await client.send_json({"id": 4, "type": "minecraft_manager/start", "server_id": server_id})
+    started = (await client.receive_json())["result"]
+    assert started == {"ok": False, "code": "no_host"}
+
+
+async def test_host_create_never_returns_the_private_key(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A new host returns its public key; the private key stays in a 0600 file."""
+    assert await async_setup_component(hass, "minecraft_manager", {})
+    client = await hass_ws_client(hass)
+    await client.send_json(
+        {
+            "id": 1,
+            "type": "minecraft_manager/hosts/create",
+            "host": {"name": "Garage", "address": "192.168.1.20", "port": 22, "user": "docker"},
+        }
+    )
+    host = (await client.receive_json())["result"]["host"]
+    assert host["public_key"].startswith("ssh-ed25519 ")
+    assert "PRIVATE" not in str(host)
+    assert host["host_key_fingerprint"] is None
+    path = hass.data[DATA_MANAGER].hosts.key_path(host["id"])
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
+
+    await client.send_json({"id": 2, "type": "minecraft_manager/hosts/list"})
+    listed = (await client.receive_json())["result"]["hosts"]
+    assert "PRIVATE" not in str(listed)
+
+    await client.send_json(
+        {"id": 3, "type": "minecraft_manager/hosts/delete", "host_id": host["id"]}
+    )
+    assert (await client.receive_json())["result"] == {"ok": True}
+    assert not os.path.exists(path)

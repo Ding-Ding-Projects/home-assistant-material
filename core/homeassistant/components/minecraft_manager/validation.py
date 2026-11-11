@@ -24,7 +24,19 @@ NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _.\-]*")
 # A release such as 1.21.4, a snapshot such as 25w45a, or the word latest.
 VERSION_PATTERN = re.compile(r"(latest|[A-Za-z0-9][A-Za-z0-9._+\-]{0,39})")
 
-FIELDS = ("name", "edition", "flavour", "version", "port", "memory_mb", "target")
+FIELDS = (
+    "name",
+    "edition",
+    "flavour",
+    "version",
+    "port",
+    "memory_mb",
+    "target",
+    "host_id",
+)
+
+# Identifiers are generated hex strings.
+IDENTIFIER_PATTERN = re.compile(r"[0-9a-f]{32}")
 
 
 def _is_int(value: Any) -> bool:
@@ -95,5 +107,12 @@ def validate_server(data: Any) -> tuple[dict[str, Any], list[dict[str, str]]]:
         errors.append({"field": "target", "code": "invalid_choice"})
     else:
         cleaned["target"] = target
+
+    host_id = data.get("host_id")
+    if host_id is not None:
+        if isinstance(host_id, str) and IDENTIFIER_PATTERN.fullmatch(host_id):
+            cleaned["host_id"] = host_id
+        else:
+            errors.append({"field": "host_id", "code": "invalid_choice"})
 
     return cleaned, errors

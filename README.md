@@ -5,10 +5,14 @@ core, the supervisor and the operating system, with releases for Raspberry Pi, V
 Docker.
 
 **Status: early.** The build and update pipeline works and publishes real images. The redesigned
-interface exists as a complete design (237 boards on 18 canvases in [`design/`](design/)). The first part of it
-is built: colours, typeface, navigation rail, floating pane, cards and tabs. Most features on the
-boards are **not yet implemented**. See [`docs/feature-status.md`](docs/feature-status.md) for
-exactly what is and is not done.
+interface exists as a complete design (237 boards on 18 canvases in [`design/`](design/)). A large
+part of it is now written: the shell, many settings and tools pages, passkey sign-in, Google setup,
+dashboard history, offline help, language modes and a converter and drawing board. Much of that is
+checked only by lint, the type check and unit tests and has **not yet been seen in a running
+build**; a few server parts were run on a running copy. Several features on the boards are not
+built at all. [`docs/feature-status.md`](docs/feature-status.md) says, row by row, which is which,
+and [`docs/features/`](docs/features/README.md) documents each feature. The Deploy Assistant
+desktop app has its own [folder](deploy-assistant/README.md).
 
 | I want to | Go to |
 | --- | --- |
@@ -162,7 +166,9 @@ A system installed from this project updates from this project, not from upstrea
 Every push to `main` runs `.github/workflows/release.yml`, which publishes one new release with
 a unique tag (`v<core>.<build>`). A push that touches product files rebuilds the frontend wheel,
 the container images, the update feed and the operating system images and attaches them. A push
-that touches only `design/`, `docs/` or Markdown files publishes the release without rebuilding.
+that touches only `design/`, `docs/`, `deploy-assistant/` or Markdown files publishes the release
+without rebuilding, but only when no product file has changed since the last build that published
+images; the push is compared with that build, not with the previous commit.
 
 The workflow runs no tests and no lint, and each release says so. The release notes list the
 result of every build job and the end-to-end time.
