@@ -1,0 +1,10 @@
+{
+  "manifestVersion": 1,
+  "id": "link-sheet",
+  "name": "Link sheet",
+  "version": "1.0.0",
+  "description": "Every instance's link on one sheet, ready to paste or print for the household.",
+  "permissions": ["instances:read"],
+  "main": "index.js",
+  "commands": [{ "id": "sheet", "title": "Make the link sheet" }]
+}

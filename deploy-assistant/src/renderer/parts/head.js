@@ -14,13 +14,13 @@
   function icon(n, cls) { var p = S.icons[n] || S.icons.InformationOutline; return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + p + '"></path></svg>'; }
 
   // ---------- Stored choices (this window only; instances live in the app's data folder) ----------
-  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'settings', 'help'];
+  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'extensions', 'tools', 'support', 'changes', 'settings', 'help'];
   var DEF = {
-    lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, lowStim: false, spotlight: false,
+    lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, dimsum: true, tickets: [], otp: [], lowStim: false, spotlight: false,
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
     sounds: true, volume: 40, voice: '', schedule: { on: false, from: '20:00', to: '07:00' }, name: 'Deploy Assistant', logo: { shape: 'rounded', color: '' },
     tabs: { open: TABS.slice(), pinned: [], offered: TABS.slice() }, active: 'deploy', edge: 'top', paletteFull: false, openAfter: true, defaultTarget: 'docker',
-    look: {}, locks: {}, history: [], notes: [], welcomed: false, welcomeStep: 0, view: 'cards'
+    look: {}, locks: {}, folds: {}, wizTarget: '', history: [], notes: [], welcomed: false, welcomeStep: 0, view: 'cards'
   };
   var st = load();
   function load() {
@@ -38,7 +38,7 @@
 
   // ---------- Words ----------
   var W = {
-    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'],
+    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'],
     search: ['Search', '搵嘢'], newtab: ['New tab', '新分頁'], openall: ['Open every tab', '打開晒所有分頁'], close: ['Close', '閂'], cancel: ['Cancel', '取消'], next: ['Next', '下一步'], back: ['Back', '返轉頭'],
     skip: ['Skip', '跳過'], done: ['Done', '搞掂'], reset: ['Reset', '還原'], copy: ['Copy', '複製'], export: ['Export', '匯出'], undo: ['Undo', '還原返'], clear: ['Clear', '清除'],
     notifications: ['Notifications', '通知'], access: ['Accessibility tools', '無障礙工具'], theme: ['Switch light and dark', '轉光暗'], palette: ['Search everything', '搵晒所有嘢'],

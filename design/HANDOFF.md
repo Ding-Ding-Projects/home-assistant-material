@@ -262,3 +262,13 @@ each with its own article and its honest state in the product.
 from the shared parts of the project page, so both keep one design. The project page gains three
 tabs: Deploy Assistant (downloads and a live demo of its window), Status (the status page) and a
 Design gallery of every board, so nothing on it links away except downloads.
+
+Version 1.1 of the app replaces the Deploy tab's landing-page cards with a two-pane wizard: the
+places it can run on the left, and on the right the plan for the chosen place, already filled in and
+editable, a four-step bar (Choose where, Check, Deploy, Open) and one Deploy button (Ctrl Enter). It
+adds Extensions (a manifest per folder, permissions asked for and asked again when they change, a
+separate process with time and size limits, no secrets handed over, two built-in extensions),
+Tools, Support, Changes, school mode, a reading voice, a dark theme on a schedule, its own name
+and logo, the dim sum surprise, background updates on Windows with an unsigned-update banner, the
+version and build time on the first screen, and opening an instance's Compose file in VS Code. The
+boards now fill `canvases/16-deploy-assistant` (15) and `canvases/17-deploy-assistant-more` (10).

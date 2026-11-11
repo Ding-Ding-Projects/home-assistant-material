@@ -14,25 +14,37 @@ from playwright.sync_api import sync_playwright
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 APP = os.path.join(ROOT, 'deploy-assistant', 'src', 'renderer')
-OUT = os.path.join(ROOT, 'design', 'canvases', '16-deploy-assistant')
+CANVASES = os.path.join(ROOT, 'design', 'canvases')
+# At most 15 boards on a canvas: the first 15 go on canvas 16, the rest on canvas 17.
+GROUPS = [('16-deploy-assistant', 'Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards'), ('17-deploy-assistant-more', 'Deploy Assistant: extensions, tools, support, changes, settings and more')]
 FRAMES = os.path.join(ROOT, 'design', 'frames')
 CSS = re.sub(r'@font-face\{[^}]*\}', '', open(os.path.join(APP, 'app.css')).read())
 DONE = "localStorage.setItem('ham-deploy-v1', JSON.stringify({welcomed: true}))"
 
 BOARDS = [
     ('DeployWelcome', 'Deploy Assistant, first run: what this computer can run', 1320, 880, 'light', [('eval', "localStorage.removeItem('ham-deploy-v1')"), ('reload',), ('wait', 600), ('click', '#wnext'), ('wait', 700)]),
-    ('DeployHome', 'Deploy Assistant, one click per target', 1320, None, 'light', [('wait', 700)]),
-    ('DeployHomeDark', 'Deploy Assistant, one click per target, dark', 1320, None, 'dark', [('wait', 700)]),
-    ('DeployOptions', 'Deploy Assistant, options before deploying', 1320, 880, 'light', [('wait', 500), ('click', '[data-options="docker"]'), ('wait', 400)]),
-    ('DeployProgress', 'Deploy Assistant, deploying with live steps', 1320, None, 'light', [('wait', 500), ('click', '[data-oneclick="docker"]'), ('wait', 4300), ('eval', "document.querySelectorAll('.pcard details').forEach(d => d.open = true)")]),
-    ('DeployReady', 'Deploy Assistant, ready with its link', 1320, None, 'light', [('wait', 500), ('click', '[data-oneclick="docker"]'), ('wait', 11500)]),
+    ('DeployHome', 'Deploy Assistant, the deploy wizard: where on the left, the plan on the right', 1320, None, 'light', [('wait', 900)]),
+    ('DeployHomeDark', 'Deploy Assistant, the deploy wizard, dark', 1320, None, 'dark', [('wait', 900)]),
+    ('DeployVirtualBox', 'Deploy Assistant, VirtualBox chosen: processors and memory in the plan', 1320, 880, 'light', [('wait', 600), ('click', '[data-pick="virtualbox"]'), ('wait', 500)]),
+    ('DeployNeedsSetup', 'Deploy Assistant, VMware needs setup: how to fix it', 1320, 880, 'light', [('wait', 600), ('click', '[data-pick="vmware"]'), ('wait', 500)]),
+    ('DeployOptions', 'Deploy Assistant, more options before deploying', 1320, 880, 'light', [('wait', 600), ('click', '[data-k="more-docker"] summary'), ('wait', 200)]),
+    ('DeployProgress', 'Deploy Assistant, deploying with live steps', 1320, None, 'light', [('wait', 700), ('click', '#wizgo'), ('wait', 4300), ('eval', "document.querySelectorAll('.pcard details').forEach(d => d.open = true)")]),
+    ('DeployReady', 'Deploy Assistant, ready with its link', 1320, None, 'light', [('wait', 700), ('click', '#wizgo'), ('wait', 11500)]),
     ('DeployInstances', 'Deploy Assistant, instance manager', 1320, None, 'light', [('tab', 'instances'), ('wait', 300), ('eval', "document.querySelectorAll('.icard details').forEach(d => d.open = true)")]),
     ('DeployInstancesDark', 'Deploy Assistant, instance manager, dark', 1320, None, 'dark', [('tab', 'instances'), ('click', '[data-isel="i1"]'), ('click', '[data-isel="i2"]')]),
     ('DeployInstanceMenu', 'Deploy Assistant, the tools of one instance', 1320, 880, 'light', [('tab', 'instances'), ('click', '[data-imenu="i1"]')]),
     ('DeployBackups', 'Deploy Assistant, backups and their schedule', 1320, None, 'light', [('tab', 'backups')]),
     ('DeployDownloads', 'Deploy Assistant, automatic downloads', 1320, None, 'dark', [('tab', 'downloads')]),
-    ('DeployPiWrite', 'Deploy Assistant, writing a Raspberry Pi card', 1320, 880, 'light', [('wait', 500), ('click', '[data-act="pi"]'), ('wait', 900)]),
-    ('DeployPiProgress', 'Deploy Assistant, writing and checking the card', 1320, None, 'light', [('wait', 500), ('click', '[data-act="pi"]'), ('wait', 900), ('click', '#pigo'), ('click', '#sc1'), ('fill', '#sc2in', 'ERASE'), ('click', '#sc2'), ('wait', 5200)]),
+    ('DeployPiChosen', 'Deploy Assistant, Raspberry Pi chosen in the wizard', 1320, 880, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('wait', 300)]),
+    ('DeployPiWrite', 'Deploy Assistant, writing a Raspberry Pi card', 1320, 880, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('click', '#wizgo'), ('wait', 900)]),
+    ('DeployPiProgress', 'Deploy Assistant, writing and checking the card', 1320, None, 'light', [('wait', 500), ('click', '[data-pick="pi"]'), ('click', '#wizgo'), ('wait', 900), ('click', '#pigo'), ('click', '#sc1'), ('fill', '#sc2in', 'ERASE'), ('click', '#sc2'), ('wait', 5200)]),
+    ('DeployExtensions', 'Deploy Assistant, extensions with their permissions', 1320, None, 'light', [('tab', 'extensions'), ('wait', 300)]),
+    ('DeployExtConsent', 'Deploy Assistant, asking before an extension runs', 1320, 880, 'light', [('tab', 'extensions'), ('wait', 300), ('click', '[data-sw2="ext:link-sheet"]')]),
+    ('DeployExtResult', 'Deploy Assistant, an extension\'s answer', 1320, 880, 'dark', [('tab', 'extensions'), ('wait', 300), ('click', '[data-extrun="health-report:report"]'), ('wait', 500)]),
+    ('DeployTools', 'Deploy Assistant, tools', 1320, None, 'light', [('tab', 'tools'), ('wait', 400)]),
+    ('DeploySupport', 'Deploy Assistant, support and tickets', 1320, None, 'light', [('tab', 'support'), ('click', '[data-preset="0"]')]),
+    ('DeployChanges', 'Deploy Assistant, changes with the build it is', 1320, None, 'light', [('tab', 'changes')]),
+    ('DeploySettings', 'Deploy Assistant, settings: modes, voice, schedule, name, updates', 1320, None, 'light', [('tab', 'settings')]),
     ('DeployPalette', 'Deploy Assistant, Ctrl Shift F with live controls', 1320, 880, 'light', [('wait', 400), ('key', 'Control+Shift+F'), ('fill', '#palq', 'deploy')]),
     ('DeployNarrow', 'Deploy Assistant, a narrow window', 400, None, 'light', [('tab', 'instances')]),
 ]
@@ -71,7 +83,9 @@ return {{}};
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
+    for g in GROUPS:
+        os.makedirs(os.path.join(CANVASES, g[0]), exist_ok=True)
+    where = {b[0]: GROUPS[i // 15][0] for i, b in enumerate(BOARDS)}
     sizes = {}
     with sync_playwright() as p:
         br = p.chromium.launch(executable_path=os.environ.get('CHROME', '/usr/bin/google-chrome'))
@@ -110,25 +124,27 @@ def main():
               a.querySelectorAll('select').forEach(s => { [...s.options].forEach(o => { if (o.selected) o.setAttribute('selected', ''); }); });
               a.removeAttribute('id'); return a.outerHTML; }''')
             html = html.replace('{{', '{ {').replace('}}', '} }')
-            open(os.path.join(OUT, name + '.dc.html'), 'w').write(board(title, w, hh, html))
+            open(os.path.join(CANVASES, where[name], name + '.dc.html'), 'w').write(board(title, w, hh, html))
             sizes[name] = (w, hh)
             ctx.close()
         br.close()
-    idx = {'v': 3, 'createdOnFiles': {'v': 1, 'at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')},
-           'title': 'Deploy Assistant: one-click deploys, instances, backups, downloads and Raspberry Pi cards', 'launch': {'view': 'canvas', 'page': 'all'},
-           'pages': [{'id': 'all', 'name': 'All boards'}], 'boards': {}, 'order': [], 'notes': {}, 'designSystems': []}
-    x = y = rowh = maxw = 0
-    for i, (name, title, w, h, scheme, steps) in enumerate(BOARDS):
-        if i and i % 4 == 0:
-            x, y, rowh = 0, y + rowh + 220, 0
-        bw, bh = sizes[name]
-        idx['boards'][name + '.dc.html'] = {'x': x, 'y': y, 'w': bw, 'h': bh, 'title': title, 'expand': 'fill', 'page': 'all'}
-        idx['order'].append(name + '.dc.html')
-        x += bw + 100
-        maxw = max(maxw, x - 100)
-        rowh = max(rowh, bh)
-    idx['notes']['t-all'] = {'x': 0, 'y': -320, 'text': f'Deploy Assistant. {len(BOARDS)} boards drawn from the app.', 'kind': 'title1', 'maxW': maxw, 'page': 'all'}
-    json.dump(idx, open(os.path.join(OUT, 'canvas.json'), 'w'), indent=2)
+    for gi, (folder, gtitle) in enumerate(GROUPS):
+        group = BOARDS[gi * 15:(gi + 1) * 15]
+        idx = {'v': 3, 'createdOnFiles': {'v': 1, 'at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')},
+               'title': gtitle, 'launch': {'view': 'canvas', 'page': 'all'},
+               'pages': [{'id': 'all', 'name': 'All boards'}], 'boards': {}, 'order': [], 'notes': {}, 'designSystems': []}
+        x = y = rowh = maxw = 0
+        for i, (name, title, w, h, scheme, steps) in enumerate(group):
+            if i and i % 4 == 0:
+                x, y, rowh = 0, y + rowh + 220, 0
+            bw, bh = sizes[name]
+            idx['boards'][name + '.dc.html'] = {'x': x, 'y': y, 'w': bw, 'h': bh, 'title': title, 'expand': 'fill', 'page': 'all'}
+            idx['order'].append(name + '.dc.html')
+            x += bw + 100
+            maxw = max(maxw, x - 100)
+            rowh = max(rowh, bh)
+        idx['notes']['t-all'] = {'x': 0, 'y': -320, 'text': f'{gtitle}. {len(group)} boards drawn from the app.', 'kind': 'title1', 'maxW': maxw, 'page': 'all'}
+        json.dump(idx, open(os.path.join(CANVASES, folder, 'canvas.json'), 'w'), indent=2)
     print(json.dumps(sizes))
 
 

@@ -15,13 +15,13 @@
   function icon(n, cls) { var p = S.icons[n] || S.icons.InformationOutline; return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + p + '"></path></svg>'; }
 
   // ---------- Stored choices (this window only; instances live in the app's data folder) ----------
-  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'settings', 'help'];
+  var TABS = ['deploy', 'instances', 'backups', 'downloads', 'hosts', 'activity', 'extensions', 'tools', 'support', 'changes', 'settings', 'help'];
   var DEF = {
-    lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, lowStim: false, spotlight: false,
+    lang: 'en', funEn: 5, funYue: 5, emoji: true, vocab: null, school: false, dimsum: true, tickets: [], otp: [], lowStim: false, spotlight: false,
     theme: 'system', seed: '#00639B', density: 'comfortable', textScale: 1, reduceMotion: false, contrast: false, focusRing: true, bigTargets: false,
     sounds: true, volume: 40, voice: '', schedule: { on: false, from: '20:00', to: '07:00' }, name: 'Deploy Assistant', logo: { shape: 'rounded', color: '' },
     tabs: { open: TABS.slice(), pinned: [], offered: TABS.slice() }, active: 'deploy', edge: 'top', paletteFull: false, openAfter: true, defaultTarget: 'docker',
-    look: {}, locks: {}, history: [], notes: [], welcomed: false, welcomeStep: 0, view: 'cards'
+    look: {}, locks: {}, folds: {}, wizTarget: '', history: [], notes: [], welcomed: false, welcomeStep: 0, view: 'cards'
   };
   var st = load();
   function load() {
@@ -39,7 +39,7 @@
 
   // ---------- Words ----------
   var W = {
-    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'],
+    deploy: ['Deploy', '部署'], instances: ['Instances', '實例'], backups: ['Backups', '備份'], hosts: ['SSH hosts', 'SSH 主機'], activity: ['Activity', '活動'], settings: ['Settings', '設定'], help: ['Help', '說明'], extensions: ['Extensions', '擴充'], tools: ['Tools', '工具'], support: ['Support', '支援'], changes: ['Changes', '更新紀錄'], modes: ['Modes', '模式'], sound: ['Sound and voice', '聲音同讀音'], schedule: ['Schedule', '時間表'], identity: ['Name and logo', '名同標誌'], updatesSet: ['Updates', '更新'],
     search: ['Search', '搵嘢'], newtab: ['New tab', '新分頁'], openall: ['Open every tab', '打開晒所有分頁'], close: ['Close', '閂'], cancel: ['Cancel', '取消'], next: ['Next', '下一步'], back: ['Back', '返轉頭'],
     skip: ['Skip', '跳過'], done: ['Done', '搞掂'], reset: ['Reset', '還原'], copy: ['Copy', '複製'], export: ['Export', '匯出'], undo: ['Undo', '還原返'], clear: ['Clear', '清除'],
     notifications: ['Notifications', '通知'], access: ['Accessibility tools', '無障礙工具'], theme: ['Switch light and dark', '轉光暗'], palette: ['Search everything', '搵晒所有嘢'],
@@ -75,6 +75,7 @@
     return st.lang === 'yue' ? yue : st.lang === 'both' ? en + ' ' + yue : en;
   }
 
+  var CHANGES = [{"version":"1.1","items":["The Deploy tab is a two-pane app: pick where it runs on the left, see and change everything it will do on the right, and deploy with one button or Ctrl Enter.","New tabs: Extensions, Tools, Support and Changes.","Extensions: add small helpers in their own folder. Each one says what it may see, asks before it starts and again when that changes, runs in its own process, and never receives passwords or keys. Health report and Link sheet come built in.","Updates: on Windows the app updates itself in the background and asks you to restart. The update is not code-signed, and the banner says so. On macOS and Linux it tells you a new version is out.","Settings: school mode, a reading voice, a dark theme on a schedule, your own name and logo, and the dim sum surprise (names only).","The version and build time show on the first screen and in About.","Open an instance's Compose file in VS Code, or its folder, from its menu.","The filters and totals on Instances fold away."]},{"version":"1.0","items":["One-click deploys to Docker on this computer, an SSH host, VirtualBox and VMware, with a free port and name chosen for you and the link at the end.","Raspberry Pi card writer for the Pi 3, 4 and 5, with a read-back check.","Instance manager with start, stop, restart, update, logs, live processor use and backups on a schedule.","Every image downloaded and checked automatically, here and on your SSH hosts."]}];
   // ---------- Personal wording (same checks as the product) ----------
   var VL = { bytes: 262144, depth: 8, key: 160, value: 1000 };
   function parseVocab(text) {
@@ -397,6 +398,42 @@
   }
 
 
+  // ---------- Tools ----------
+  function b64(enc) { var t = $('#b64in').value, url = $('#b64url').checked, pad = $('#b64pad').checked, out;
+    try { if (enc) { out = btoa(unescape(encodeURIComponent(t))); if (url) out = out.replace(/\+/g, '-').replace(/\//g, '_'); if (!pad) out = out.replace(/=+$/, ''); } else { var s = t.trim().replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; out = decodeURIComponent(escape(atob(s))); } }
+    catch (e) { out = 'That is not valid Base64, or it is not text. ' + e.message; }
+    $('#b64out').textContent = out; }
+  function convert(to) {
+    var t = $('#cvin').value.trim(), stat = $('#cvstat'), outEl = $('#cvout'), rows;
+    stat.textContent = 'Reading…';
+    try { if (/^[[{]/.test(t)) { rows = JSON.parse(t); if (!Array.isArray(rows)) rows = [rows]; } else { var lines = t.split(/\r?\n/).filter(Boolean), head = lines.shift().split(','); rows = lines.map(function (l) { var v = l.split(','); var o = {}; head.forEach(function (h, i) { o[h.trim()] = (v[i] || '').trim(); }); return o; }); } }
+    catch (e) { stat.textContent = 'Stopped: the text is neither JSON nor CSV. ' + e.message + ' Fix it above and convert again.'; outEl.textContent = ''; return; }
+    stat.textContent = 'Converting ' + rows.length + ' rows…';
+    var out = to === 'csv' ? rows2csv(rows) : to === 'md' ? rows2md(rows) : to === 'yaml' ? rows.map(function (r) { return Object.keys(r).map(function (k, i) { return (i ? '  ' : '- ') + k + ': ' + JSON.stringify(r[k]); }).join('\n'); }).join('\n') : JSON.stringify(rows, null, 2);
+    outEl.textContent = out; stat.textContent = 'Done: ' + rows.length + ' rows.';
+  }
+  function colour() {
+    var t = $('#coltext'); if (!t) return; var c = t.value.trim(), probe = document.createElement('span'); probe.style.color = c; if (!probe.style.color) { $('#colout').textContent = 'That is not a colour this reads. Use hex, rgb() or hsl().'; return; }
+    document.body.appendChild(probe); var rgb = getComputedStyle(probe).color.match(/\d+/g).map(Number); probe.remove();
+    var hx = '#' + rgb.slice(0, 3).map(function (n) { return ('0' + n.toString(16)).slice(-2); }).join('').toUpperCase();
+    var r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, s = 0, h = 0;
+    if (mx !== mn) { var d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    var lum = function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; var L1 = 0.2126 * lum(rgb[0]) + 0.7152 * lum(rgb[1]) + 0.0722 * lum(rgb[2]);
+    var cw = (1.05) / (L1 + 0.05), cb = (L1 + 0.05) / 0.05;
+    $('#colsw').style.background = hx; $('#colin').value = hx.toLowerCase();
+    $('#colout').innerHTML = '<span class="mono">' + hx + '</span> · <span class="mono">rgb(' + rgb.slice(0, 3).join(', ') + ')</span> · <span class="mono">hsl(' + Math.round(h) + ', ' + Math.round(s * 100) + '%, ' + Math.round(l * 100) + '%)</span><br>Contrast with white text ' + cw.toFixed(2) + ':1, with black text ' + cb.toFixed(2) + ':1. Body text needs 4.5:1.';
+  }
+  function b32(s) { var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', bits = ''; s.replace(/[\s=]/g, '').toUpperCase().split('').forEach(function (c) { var v = A.indexOf(c); if (v < 0) throw new Error('not Base32'); bits += ('0000' + v.toString(2)).slice(-5); }); var out = []; for (var i = 0; i + 8 <= bits.length; i += 8) out.push(parseInt(bits.substr(i, 8), 2)); return new Uint8Array(out); }
+  async function totp(secret) { var key = await crypto.subtle.importKey('raw', b32(secret), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']); var c = Math.floor(Date.now() / 30000), buf = new ArrayBuffer(8), dv = new DataView(buf); dv.setUint32(4, c); var h = new Uint8Array(await crypto.subtle.sign('HMAC', key, buf)); var o = h[19] & 15; var n = ((h[o] & 127) << 24 | h[o + 1] << 16 | h[o + 2] << 8 | h[o + 3]) % 1e6; return ('00000' + n).slice(-6); }
+  async function otpDraw() {
+    var box = $('#otplist'); if (!box) return; if (!st.otp.length) { box.innerHTML = '<p class="bm mu">No secrets yet.</p>'; return; }
+    var left = 30 - Math.floor(Date.now() / 1000) % 30, html = '';
+    for (var i = 0; i < st.otp.length; i++) { var o = st.otp[i], code; try { code = await totp(o.secret); code = code.slice(0, 3) + ' ' + code.slice(3); } catch (e) { code = 'Bad secret'; } html += '<div class="row-item" data-k="otp-' + i + '"><span class="col grow"><span class="ll">' + esc(o.name) + '</span><span class="otp">' + code + '</span><span class="bs mu">' + left + ' seconds left</span></span><button class="btn text sm" data-copy="' + code.replace(' ', '') + '">' + L('copy') + '</button><button class="btn text sm" data-rmotp="' + i + '">Remove</button></div>'; }
+    box.innerHTML = html;
+  }
+  setInterval(function () { if (st.active === 'tools') otpDraw(); }, 1000);
+
+
 
   // ---------- What the computer reports ----------
   var D = { instances: [], hosts: [], schedule: { on: false, time: '03:00', keep: 7, consistent: true } };
@@ -434,23 +471,69 @@
 
   // ---------- Tabs ----------
   var R = {};
+  // The Deploy tab is a two-pane wizard: places on the left, the plan for the chosen place on the right.
+  var wiz = { vals: {}, defs: {}, loading: {} };
+  var PLACES = ['docker', 'ssh', 'virtualbox', 'vmware', 'pi'];
+  function wizTarget() { return PLACES.indexOf(st.wizTarget) >= 0 ? st.wizTarget : st.defaultTarget || 'docker'; }
+  function wizLoad(t) {
+    if (t === 'pi' || wiz.defs[t] || wiz.loading[t]) return;
+    wiz.loading[t] = true;
+    API.defaults(t, t === 'ssh' ? (D.hosts[0] || {}).id : '').then(function (d) { wiz.defs[t] = d; wiz.vals[t] = Object.assign({ backupsOn: true, hostId: (D.hosts[0] || {}).id || '' }, d); wiz.loading[t] = false; if (st.active === 'deploy') soon(); }, function (e) { wiz.loading[t] = false; toast(e.message); });
+  }
+  function provenance() { var b = about.builtAt ? when(about.builtAt) : 'a development run'; return '<span class="prov" data-k="provenance" title="The version you are running and when it was built">' + icon('TagOutline', 's') + 'v' + esc(about.version || '?') + ' · built ' + esc(b) + '</span>'; }
+  function wizField(t, key, label, type, hint, extra) {
+    var v = (wiz.vals[t] || {})[key]; return '<label><span class="ll">' + label + '</span><input class="input' + (type === 'mono' ? ' mono' : '') + '" id="wz-' + t + '-' + key + '" data-wiz="' + key + '" type="' + (type === 'number' ? 'number' : 'text') + '" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '>' + (hint ? '<span class="bs mu">' + hint + '</span>' : '') + '</label>';
+  }
   R.deploy = function () {
-    var cards = ['docker', 'ssh', 'virtualbox', 'vmware'].map(function (t) {
-      var c = checks[t]; var chip = !c ? '<span class="tag">Checking…</span>' : c.ok ? '<span class="tag g">' + icon('Check', 's') + ' Ready</span>' : '<span class="tag a">' + icon('Alert', 's') + ' Needs setup</span>';
-      var host = t === 'ssh' ? '<label class="col" style="gap:4px"><span class="bs mu">Host</span><select class="select" id="sshhost" aria-label="SSH host">' + (D.hosts.length ? D.hosts.map(function (h) { return '<option value="' + h.id + '">' + esc(h.name) + ' (' + esc(h.user) + '@' + esc(h.address) + ')</option>'; }).join('') : '<option value="">No host yet</option>') + '</select></label>' : '';
-      return '<article class="tcard" data-k="target-' + t + '" id="target-' + t + '"><div class="row" style="gap:12px"><span class="sq big">' + icon(TICON[t]) + '</span><div class="col grow" style="gap:4px"><h2 class="tl">' + L(t) + '</h2>' + chip + '</div></div>' +
-        '<p class="bm mu">' + esc(TDESC[t]) + '</p>' + (c && !c.ok ? '<div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm">' + esc(c.detail) + ' ' + esc(c.fix || '') + (c.link ? ' <a href="' + esc(c.link) + '" data-ext="' + esc(c.link) + '">How to install</a>' : '') + '</span></div>' : c ? '<p class="bs mu">' + esc(c.detail) + '</p>' : '') + host +
-        '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:auto"><button class="btn fill lg grow" data-oneclick="' + t + '"' + (t === 'ssh' && !D.hosts.length ? ' data-needhost="1"' : '') + '>' + icon('RocketLaunch', 's') + L('deployNow') + '</button><button class="btn out" data-options="' + t + '">' + icon('Tune', 's') + L('options') + '</button><button class="ib" data-recheck="' + t + '" aria-label="Check ' + esc(w(t)) + ' again">' + icon('Refresh', 's') + '</button></div></article>';
-    }).join('');
-    cards += '<article class="tcard" data-k="target-pi" id="target-pi"><div class="row" style="gap:12px"><span class="sq big">' + icon('Chip') + '</span><div class="col grow" style="gap:4px"><h2 class="tl">' + L('pi') + '</h2><span class="tag g">' + icon('Check', 's') + ' Ready</span></div></div><p class="bm mu">' + esc(TDESC.pi) + '</p>' +
-      '<label class="col" style="gap:4px"><span class="bs mu">Model</span><select class="select" id="pimodel" aria-label="Raspberry Pi model">' + PIM.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('') + '</select></label>' +
-      '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:auto"><button class="btn fill lg grow" data-act="pi">' + icon('Harddisk', 's') + 'Write a card</button></div></article>';
+    var t = wizTarget(); wizLoad(t);
+    var latest = Object.keys(progress).map(function (id) { return { id: id, p: progress[id], inst: D.instances.filter(function (x) { return x.id === id; })[0] }; }).filter(function (x) { return x.inst && x.inst.target === t; }).pop();
+    var c = checks[t], ready = t === 'pi' || (c && c.ok);
+    var stage = latest && latest.p.done && latest.p.ok ? 4 : latest && !latest.p.done ? 3 : ready ? 3 : 2;
+    var names = ['Choose where', 'Check', 'Deploy', 'Open'];
+    var stepper = '<ol class="stepper" aria-label="Steps" data-k="stepper">' + names.map(function (n, i) { var k = i + 1, cls = k < stage || (k === 4 && stage === 4) ? 'ok' : k === stage ? 'cur' : ''; return '<li class="' + cls + '"' + (k === stage ? ' aria-current="step"' : '') + '><span class="sq ' + (cls === 'ok' ? 'ok' : cls === 'cur' ? 'now' : 'todo') + '">' + (cls === 'ok' ? icon('Check', 's') : k) + '</span><span class="ll ell">' + n + '</span></li>'; }).join('') + '</ol>';
+    var list = '<div class="tlist" role="listbox" aria-label="Where it runs" data-k="places">' + PLACES.map(function (p) {
+      var cc = checks[p], dot = p === 'pi' ? 'g' : !cc ? '' : cc.ok ? 'g' : 'a', sub = p === 'pi' ? 'SD card or USB drive' : !cc ? 'Checking…' : cc.ok ? 'Ready' : 'Needs setup';
+      var n = D.instances.filter(function (i) { return i.target === p; }).length;
+      return '<button class="trow" role="option" aria-selected="' + (p === t) + '" data-pick="' + p + '" id="place-' + p + '"><span class="sq">' + icon(TICON[p]) + '</span><span class="col grow" style="min-width:0"><span class="ll ell">' + L(p) + '</span><span class="bs mu ell"><i class="dot ' + dot + '"></i>' + esc(sub) + (n ? ' · ' + n : '') + '</span></span></button>';
+    }).join('') + '</div>';
+    var panel;
+    if (t === 'pi') {
+      panel = '<p class="bm mu">' + esc(TDESC.pi) + '</p><div class="plan"><label><span class="ll">Model</span><select class="select" id="pimodel" aria-label="Raspberry Pi model">' + PIM.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('') + '</select></label></div>' +
+        '<div class="flow" aria-label="What happens">' + STEPS.pi.map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + esc(STEPNAME[k]) + '</span>'; }).join('') + '</div>' +
+        '<div class="wfoot"><button class="btn fill lg" data-act="pi" id="wizgo">' + icon('Harddisk', 's') + 'Choose the card and write</button><span class="bs mu">Asks which drive, then asks you to type ERASE before anything is written.</span></div>';
+    } else {
+      var vm = t === 'virtualbox' || t === 'vmware', v = wiz.vals[t];
+      var note = c && !c.ok ? '<div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm">' + esc(c.detail) + ' ' + esc(c.fix || '') + (c.link ? ' <a href="' + esc(c.link) + '" data-ext="' + esc(c.link) + '">How to install</a>' : '') + '</span></div>' : '';
+      var host = t === 'ssh' ? (D.hosts.length ? '<label><span class="ll">Host</span><select class="select" data-wiz="hostId" aria-label="SSH host">' + D.hosts.map(function (h) { return '<option value="' + h.id + '"' + (v && v.hostId === h.id ? ' selected' : '') + '>' + esc(h.name) + '</option>'; }).join('') + '</select><span class="bs mu"><a href="#" data-act="addhost">Add another host</a></span></label>' : '<div class="note"><span>' + icon('ServerNetwork') + '</span><span class="bm">No SSH host yet. <a href="#" data-act="addhost">Add one</a>; Deploy asks for it too.</span></div>') : '';
+      var plan = !v ? '<p class="bm mu" role="status"><span class="spin" aria-hidden="true" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Working out a free name and port…</p>' :
+        '<div class="plan" data-k="plan-' + t + '">' + wizField(t, 'name', 'Name', 'text', '', ' maxlength="60"') + (t === 'vmware' ? '' : wizField(t, 'port', 'Port', 'number', t === 'ssh' ? 'On the host' : 'Free right now', ' min="1" max="65535"')) + host +
+        (vm ? wizField(t, 'cpus', 'Processors', 'number', '', ' min="1" max="32"') + wizField(t, 'memoryMb', 'Memory, MB', 'number', '', ' min="1024" step="512"') : wizField(t, 'tag', 'Image', 'mono', 'latest, or a release')) + '</div>' +
+        '<details class="fold" data-k="more-' + t + '"><summary class="ll">' + icon('ChevronDown', 's') + 'More options</summary><div class="plan" style="padding-top:8px">' +
+        (vm ? (t === 'virtualbox' ? wizField(t, 'diskGb', 'Disk, GB (0 keeps the image size)', 'number', '', ' min="0"') : '') : wizField(t, 'timezone', 'Time zone') + wizField(t, 'memoryLimit', 'Memory limit', 'text', 'For example 2g; empty is no limit')) +
+        '<label class="row bm" style="gap:10px;flex-direction:row;align-items:center"><input type="checkbox" data-wiz="backupsOn"' + (v.backupsOn !== false ? ' checked' : '') + '> Daily backups</label></div></details>';
+      panel = '<p class="bm mu">' + esc(TDESC[t]) + '</p>' + note + plan +
+        '<div class="flow" aria-label="What happens">' + STEPS[t].map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + esc(STEPNAME[k]) + '</span>'; }).join('') + '</div>' +
+        '<div class="wfoot"><button class="btn fill lg" id="wizgo" data-act="wizgo"' + (v ? '' : ' disabled') + '>' + icon('RocketLaunch', 's') + L('deploy') + '</button><span class="kbd">Ctrl Enter</span><span class="grow"></span><button class="btn text sm" data-act="wizreset">' + icon('Restore', 's') + 'Fresh defaults</button></div>';
+    }
+    var head = '<div class="row" style="gap:12px"><span class="sq big">' + icon(TICON[t]) + '</span><div class="col grow" style="gap:4px;min-width:0"><h2 class="tl">' + L(t) + '</h2>' + (t === 'pi' ? '<span class="tag g">' + icon('Check', 's') + ' Ready</span>' : !c ? '<span class="tag">Checking…</span>' : c.ok ? '<span class="tag g">' + icon('Check', 's') + ' ' + esc(c.detail) + '</span>' : '<span class="tag a">' + icon('Alert', 's') + ' Needs setup</span>') + '</div>' + (t === 'pi' ? '' : '<button class="ib" data-recheck="' + t + '" aria-label="Check ' + esc(w(t)) + ' again">' + icon('Refresh', 's') + '</button>') + '</div>';
     var running = Object.keys(progress).filter(function (id) { return D.instances.some(function (i) { return i.id === id; }) || !progress[id].done; });
-    return '<section class="dhero" id="top" data-k="deploy-hero"><div class="col" style="gap:12px"><span class="status">' + icon('RocketLaunch', 's') + (DEMO ? 'Demo: try every button; nothing is deployed from this page' : D.instances.length + ' instances on this computer\'s list') + '</span><h1 class="dl" data-k="deploy-title">' + L('heroTitle') + '</h1><p class="bl mu" style="max-width:760px">' + L('heroText') + '</p></div></section>' +
-      (running.length ? '<section class="section"><h2 class="tl">Deployments</h2>' + running.map(progressCard).join('') + '</section>' : '') +
-      '<section class="grid4" aria-label="Where to run it">' + cards + '</section>' +
-      '<section class="section card" style="padding:20px" data-k="deploy-what"><h2 class="tm">What one click does</h2><ol class="bm" style="margin:0;padding-left:20px"><li>Checks that the target is ready, and says how to fix it if not.</li><li>Picks a name and a free port, so instances never collide. There is no limit on how many.</li><li>Writes every configuration file: a Compose file for Docker, or a virtual machine for VirtualBox and VMware.</li><li>Downloads the image and checks its SHA-256 sum where the release publishes one.</li><li>Starts it, waits until Home Assistant answers, then gives you the link and opens it.</li></ol></section>' + foot();
+    var recent = D.instances.slice().sort(function (a2, b2) { return String(b2.created).localeCompare(a2.created); }).slice(0, 5);
+    return '<div class="wizbar" id="top"><h1 class="hs grow" data-k="deploy-title">New instance</h1>' + provenance() + (DEMO ? '<span class="tag a">Demo: nothing is deployed</span>' : '') + '</div>' + stepper +
+      '<div class="wizgrid">' + list + '<section class="wpanel" aria-labelledby="wiztitle" data-k="wizpanel" id="target-' + t + '">' + head.replace('<h2 class="tl">', '<h2 class="tl" id="wiztitle">') + panel + '</section></div>' +
+      (running.length ? '<section class="section"><h2 class="tm">Deploying</h2>' + running.map(progressCard).join('') + '</section>' : '') +
+      (recent.length ? '<section class="section" data-k="recent"><div class="row"><h2 class="tm grow">Recent</h2><button class="btn text sm" data-go="instances:top">Every instance (' + D.instances.length + ')</button></div><div class="recent">' + recent.map(function (i) { return '<div class="row-item"><span class="sq">' + icon(TICON[i.target] || 'Docker') + '</span><span class="col grow" style="min-width:0"><span class="ll ell">' + esc(i.name) + '</span><span class="bs mu mono ell">' + esc(i.url || '') + '</span></span>' + stateTag(i.state) + (i.url ? '<button class="btn text sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button>' : '') + '</div>'; }).join('') + '</div></section>' : '') + foot();
   };
+  function wizGo() {
+    var t = wizTarget(); if (t === 'pi') { piDialog(); return; }
+    var v = wiz.vals[t]; if (!v) return;
+    var port = Number(v.port);
+    if (t !== 'vmware' && (!Number.isInteger(port) || port < 1 || port > 65535)) { toast('The port must be a whole number from 1 to 65535.'); var pf = $('[data-wiz="port"]'); if (pf) pf.focus(); return; }
+    if (!String(v.name || '').trim()) { toast('Give the instance a name.'); return; }
+    var o = { name: String(v.name).trim(), port: port || 0, tag: v.tag, timezone: v.timezone, memoryLimit: v.memoryLimit, cpus: Number(v.cpus) || '', memoryMb: Number(v.memoryMb) || '', diskGb: Number(v.diskGb) || '', backupsOn: v.backupsOn !== false, hostId: v.hostId };
+    delete wiz.defs[t]; delete wiz.vals[t];
+    oneClick(t, o);
+  }
+
   function progressCard(id) {
     var p = progress[id]; var inst = D.instances.filter(function (x) { return x.id === id; })[0] || { name: id, target: 'docker' };
     var list = STEPS[inst.target] || STEPS.docker; var idx = list.indexOf(p.step);
@@ -475,16 +558,17 @@
     var counts = {}; D.instances.forEach(function (i) { counts[i.state] = (counts[i.state] || 0) + 1; });
     var nsel = Object.keys(view.sel).filter(function (k) { return view.sel[k]; }).length;
     return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('instances') + '</h1><button class="btn fill" data-go="deploy:top">' + icon('Plus', 's') + 'New instance</button></div>' +
-      '<div class="stats">' + [['All', D.instances.length], [w('running'), counts.running || 0], [w('stopped'), counts.stopped || 0], [w('failed'), counts.failed || 0], ['Backups', D.instances.reduce(function (n, i) { return n + (i.backups || []).length; }, 0)]].map(function (s) { return '<div class="stat"><span class="hs">' + s[1] + '</span><span class="bs mu">' + esc(s[0]) + '</span></div>'; }).join('') + '</div>' +
+      fold('stats', 'Totals') + '<div class="stats">' + [['All', D.instances.length], [w('running'), counts.running || 0], [w('stopped'), counts.stopped || 0], [w('failed'), counts.failed || 0], ['Backups', D.instances.reduce(function (n, i) { return n + (i.backups || []).length; }, 0)]].map(function (s) { return '<div class="stat"><span class="hs">' + s[1] + '</span><span class="bs mu">' + esc(s[0]) + '</span></div>'; }).join('') + '</div></details>' +
       '<div class="toolbar">' + findField('isearch', 'Search instances', q.instances) + '<select class="select" data-isort aria-label="Sort">' + [['name', 'By name'], ['newest', 'Newest first'], ['state', 'By state']].map(function (o) { return '<option value="' + o[0] + '"' + (view.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<span class="grow"></span><button class="btn text sm" data-act="refresh">' + icon('Refresh', 's') + 'Refresh</button><button class="btn text sm" data-act="export-instances">' + icon('Export', 's') + L('export') + '</button></div>' +
-      '<div class="chipline" role="group" aria-label="Target">' + chip('ft', 'all', 'Every target', view.filterTarget) + ['docker', 'ssh', 'virtualbox', 'vmware'].map(function (t) { return chip('ft', t, L(t), view.filterTarget); }).join('') + '</div>' +
-      '<div class="chipline" role="group" aria-label="State">' + chip('fs', 'all', 'Any state', view.filterState) + ['running', 'stopped', 'deploying', 'failed', 'unreachable'].map(function (s) { return chip('fs', s, L(s), view.filterState); }).join('') + '</div>' +
+      fold('filters', 'Filters') + '<div class="chipline" role="group" aria-label="Target">' + chip('ft', 'all', 'Every target', view.filterTarget) + ['docker', 'ssh', 'virtualbox', 'vmware'].map(function (t) { return chip('ft', t, L(t), view.filterTarget); }).join('') + '</div>' +
+      '<div class="chipline" role="group" aria-label="State">' + chip('fs', 'all', 'Any state', view.filterState) + ['running', 'stopped', 'deploying', 'failed', 'unreachable'].map(function (s) { return chip('fs', s, L(s), view.filterState); }).join('') + '</div></details>' +
       (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') +
       (nsel ? '<div class="selbar" role="region" aria-label="Selected instances"><span class="ll grow">' + nsel + ' selected</span><button class="btn tonal sm" data-bulk="start">' + L('start') + '</button><button class="btn tonal sm" data-bulk="stop">' + L('stop') + '</button><button class="btn tonal sm" data-bulk="backup">' + L('backupNow') + '</button><button class="btn text sm" data-bulk="clear">' + L('clear') + '</button></div>' : '') +
       (D.instances.length ? (list.length ? '<div class="igrid">' + list.map(instCard).join('') + '</div>' : '<p class="bm mu">' + L('noMatch') + '</p>') :
         '<div class="empty"><span class="sq big">' + icon('RocketLaunch') + '</span><h2 class="tl">No instances yet</h2><p class="bm mu">Deploy one in one click. Each gets its own name, port and backups.</p><button class="btn fill" data-go="deploy:top">' + L('deploy') + '</button></div>') + '</div>' + foot();
   };
+  function fold(key, label) { var on = (st.folds || {})[key] !== false; return '<details class="fold" data-fold="' + key + '"' + (on ? ' open' : '') + '><summary class="ll">' + icon(on ? 'ChevronDown' : 'ChevronRight', 's') + esc(label) + '</summary>'; }
   function spark(id) {
     var v = (stats[id] || []).slice(-30); if (v.length < 2) return '';
     var max = Math.max(5, Math.max.apply(null, v)); var pts = v.map(function (x, i) { return (i * (120 / 29)).toFixed(1) + ',' + (30 - (x / max) * 28).toFixed(1); }).join(' ');
@@ -575,6 +659,15 @@
         srow('funYue', 'Playfulness in Cantonese', 'From 1 to 5, separate from English.', '5', 'Messages', seg('funYue', lv, 'Playfulness in Cantonese'), 'funYue'),
         srow('emoji', 'Emoji in dialogs', 'One emoji in dialog titles, never in buttons or names.', 'On', 'Dialog titles', sw('emoji', 'Emoji in dialogs'), 'emoji'),
         srow('vocab', 'Your wording file', st.vocab ? Object.keys(st.vocab).length + ' entries in use.' : 'A JSON file with schemaVersion 1 and entries replaces words in this window. You can also drop it on the window.', 'No file', 'Every label', '<label class="btn tonal sm">' + icon('Upload', 's') + 'Choose a file<input type="file" accept="application/json,.json" id="vocabfile" hidden></label>' + (st.vocab ? '<button class="btn text sm" data-act="vocab-clear">' + L('clear') + '</button>' : ''), '')]],
+      ['modes', 'modes', [srow('school', 'School mode', 'Plain wording, playfulness 1, no sounds, no surprise.', 'Off', 'Language, sound and the surprise', sw('school', 'School mode'), 'school'),
+        srow('dimsum', 'Dim sum surprise', 'Now and then, a small dim sum card. Names only: no photos are loaded.', 'On', 'A card at the bottom of the window', sw('dimsum', 'Dim sum surprise') + '<button class="btn text sm" data-act="dimsum">Show me one now</button>', 'dimsum')]],
+      ['sound', 'sound', [srow('sounds', 'Action sounds', 'A short sound when something finishes.', 'On', 'Deploys, backups, settings', sw('sounds', 'Action sounds'), 'sounds'),
+        srow('voice', 'Reading voice', 'The voice for Read aloud on any element.', 'The system default', 'Read aloud', '<select class="select" data-select="voice" aria-label="Reading voice"><option value="">System default</option>' + (('speechSynthesis' in window) ? speechSynthesis.getVoices() : []).map(function (v) { return '<option' + (v.name === st.voice ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select><button class="btn text sm" data-act="voice-test">Try it</button>', 'voice')]],
+      ['schedule', 'schedule', [srow('sched', 'Dark theme on a schedule', 'Uses the dark theme between two times each day.', 'Off, 20:00 to 07:00', 'The theme', sw('schedule.on', 'Dark theme on a schedule') + '<input class="input" type="time" value="' + st.schedule.from + '" data-time="schedule.from" aria-label="From"><input class="input" type="time" value="' + st.schedule.to + '" data-time="schedule.to" aria-label="To">', 'schedule')]],
+      ['identity', 'identity', [srow('name', 'Name', 'What the window calls this app, at the top and in the title.', 'Deploy Assistant', 'The top bar and the title', '<input class="input" value="' + esc(st.name) + '" data-text="name" aria-label="Name" maxlength="60">', 'name'),
+        srow('logo', 'Logo', 'The shape and colour of the mark at the top.', 'Rounded, main colour', 'The top bar', seg('logo.shape', [['rounded', 'Rounded'], ['circle', 'Circle'], ['square', 'Square'], ['leaf', 'Leaf']], 'Logo shape') + '<input type="color" value="' + (st.logo.color || '#CEE5FF') + '" data-logocolor="1" aria-label="Logo colour" style="width:48px;height:40px;border:0;background:none">', 'logo')]],
+      ['updatesSet', 'updates', [srow('upd', 'Updates', DEMO ? 'The app checks the project\'s releases every four hours.' : (upd.state === 'ready' ? 'Version ' + upd.version + ' is ready; restart to use it.' : upd.state === 'downloading' ? 'Downloading version ' + upd.version + '…' : upd.state === 'available' ? 'Version ' + upd.version + ' is out.' : upd.state === 'offline' ? 'Could not reach the releases: ' + (upd.error || '') : 'You have the newest version.') + ' Updates are not code-signed.', 'Checks every four hours', 'This app', '<button class="btn tonal sm" data-act="checkupd">' + icon('Refresh', 's') + 'Check now</button>', ''),
+        srow('about', 'About this build', 'Version ' + (about.version || '?') + ', built ' + (about.builtAt ? when(about.builtAt) : 'in a development run') + (about.electron ? ', Electron ' + about.electron : '') + '.', '', 'Shown on the Deploy tab too', provenance(), '')]],
       ['appearance', 'appearance', [srow('theme', 'Theme', 'Light, dark, or follow the system.', 'System', 'The window', seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], 'Theme'), 'theme'),
         srow('seed', 'Main colour', 'The colour of buttons and selections.', '#00639B', 'The window', '<input type="color" value="' + st.seed + '" data-color="seed" aria-label="Main colour" style="width:48px;height:40px;border:0;background:none">', 'seed'),
         srow('density', 'Density', 'How much room rows take.', 'Comfortable', 'Lists', seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], 'Density'), 'density'),
@@ -582,8 +675,7 @@
         srow('reduceMotion', 'Reduce motion', 'Stops animations; your system setting is followed too.', 'Off', 'The window', sw('reduceMotion', 'Reduce motion'), 'reduceMotion'),
         srow('contrast', 'More contrast', 'Darker secondary text and lines.', 'Off', 'The window', sw('contrast', 'More contrast'), 'contrast'),
         srow('lowStim', 'Low stimulation', 'Softer colour, no animation, no sounds.', 'Off', 'The window', sw('lowStim', 'Low stimulation'), 'lowStim'),
-        srow('spotlight', 'Focus spotlight', 'Dims everything but the part with the keyboard focus.', 'Off', 'The window', sw('spotlight', 'Focus spotlight'), 'spotlight'),
-        srow('sounds', 'Action sounds', 'A short sound when something finishes.', 'On', 'Deploys, backups, settings', sw('sounds', 'Action sounds'), 'sounds')]],
+        srow('spotlight', 'Focus spotlight', 'Dims everything but the part with the keyboard focus.', 'Off', 'The window', sw('spotlight', 'Focus spotlight'), 'spotlight')]],
       ['tabsSet', 'tabs', [srow('edge', 'Where the tabs sit', 'Any edge of the window.', 'Top', 'The tab strip', seg('edge', [['top', 'Top'], ['left', 'Left'], ['right', 'Right'], ['bottom', 'Bottom']], 'Tab strip edge'), 'edge'),
         srow('openall', 'Open every tab', 'Reopens tabs you closed.', '', 'The tab strip', '<button class="btn tonal sm" data-act="openall">' + L('openall') + '</button>', '')]],
       ['locks', 'locks', [Object.keys(st.locks).length ? Object.keys(st.locks).map(function (k) { var o = st.locks[k]; return '<div class="row-item"><span class="col grow"><span class="ll">' + esc(o.label) + '</span><span class="bs mu">' + (unlocked[k] ? 'Unlocked until the window closes' : 'Locked') + '</span></span><button class="btn text sm" data-rmlock="' + esc(k) + '">Remove</button></div>'; }).join('') : '<p class="bm mu">Nothing is locked. Right-click any card, for example an instance, and choose Lock this element, so it cannot be stopped or removed by accident.</p>', '<p class="bs mu">A lock is a speed bump for fun, not security.</p>']],
@@ -595,7 +687,9 @@
     return '<div class="section" id="top"><h1 class="hl">' + L('settings') + '</h1>' + findField('ssearch', 'Search settings', q.settings) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' + (out || '<p class="bm mu">' + L('noMatch') + '</p>') + foot();
   };
   var HELP = [
-    ['oneclick', 'One click', 'Deploy now uses the defaults: the next free name and port, the latest image, two processors and 4 GB for a virtual machine, and daily backups on. Options lets you change any of them first. Ctrl Shift D deploys to your default target.'],
+    ['extensions', 'Writing an extension', 'An extension is a folder in the extensions folder (Extensions tab, Open the extensions folder) with manifest.json and a script. The manifest has manifestVersion 1, an id of lower-case letters and dashes, name, version, description, main (the script, inside the folder), permissions (instances:read, backups:read, notify) and commands (each with id and title). When you run a command, the script gets one JSON line on standard input, {"command", "app", and only what its permissions allow}, and answers one JSON line on standard output: {"title", "text", "notify"}. It runs with Node, in its own process, for at most 15 seconds and 256 KB of answer. Passwords, keys and files are never sent. Copy health-report or link-sheet from the folder as a start.'],
+    ['updates', 'Updates', 'Every four hours the app looks at the project\'s releases. On Windows it downloads a newer version in the background and shows a banner to restart; the update is not code-signed and the banner says so. On macOS and Linux it tells you a new version is out, with a Download button. Settings, Updates checks now.'],
+    ['oneclick', 'One click', 'On the Deploy tab, choose where on the left; the right side already holds a free name and port, the latest image, two processors and 4 GB for a virtual machine, and daily backups. Change any of it, or open More options, then press Deploy or Ctrl Enter. In short, the defaults are: the next free name and port, the latest image, two processors and 4 GB for a virtual machine, and daily backups on. Options lets you change any of them first. Ctrl Shift D deploys to your default target.'],
     ['docker', 'Docker on this computer', 'Needs Docker Desktop (Windows, macOS) or Docker Engine (Linux), running. The app writes compose.yaml and a config folder in its data folder, then runs docker compose. Each instance publishes its own port, so you can run as many as your computer can hold. Other devices on your network can open the second link shown.'],
     ['ssh', 'SSH host', 'Any Linux computer with Docker Engine and Compose, such as a Raspberry Pi 4 or 5 or a server. Add it under SSH hosts with a key file, the SSH agent, or a password. The app writes the files in ~/home-assistant-material/<name> on the host. If the link does not open, a firewall on the host may block the port.'],
     ['virtualbox', 'VirtualBox', 'Needs VirtualBox 7. The app downloads the operating system image from the latest release that has one, checks its SHA-256 sum, makes a virtual machine with EFI, and forwards a free port on this computer to it. The first start takes several minutes while the system sets itself up.'],
@@ -612,6 +706,65 @@
     return '<div class="section" id="top"><h1 class="hl">' + L('help') + '</h1><p class="bl mu">Every article works offline.</p>' + findField('hpsearch', 'Search help', q.help) + (list.length ? list.map(function (h) { return '<article class="card col" id="h-' + h[0] + '" data-k="help-' + h[0] + '" style="padding:20px;gap:8px"><h2 class="tm">' + esc(h[1]) + '</h2><p class="bm">' + esc(h[2]) + '</p></article>'; }).join('') : '<p class="bm mu">' + L('noMatch') + '</p>') + '</div>' + foot();
   };
 
+  // ---------- Extensions, tools, support, changes ----------
+  var exts = [];
+  R.extensions = function () {
+    var m = matcher(q.extensions); var list = exts.filter(function (x) { return m.test([x.name, x.description, x.id].join(' ')); });
+    return '<div class="section" id="top"><div class="row" style="gap:12px;flex-wrap:wrap"><h1 class="hl grow">' + L('extensions') + '</h1><button class="btn tonal" data-act="extfolder">' + icon('FolderOpen', 's') + 'Open the extensions folder</button><button class="btn text" data-go="help:h-extensions">' + icon('BookOpenVariant', 's') + 'How to write one</button></div>' +
+      '<p class="bl mu">Small helpers that add commands to this app. Each says what it may see, asks before it runs and again when that changes, runs in its own process for at most 15 seconds, and never gets passwords or keys.</p>' + findField('xsearch', 'Search extensions', q.extensions) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' +
+      '<div class="igrid">' + (list.length ? list.map(function (x) {
+        if (x.error) return '<article class="extcard" data-k="ext-' + esc(x.id) + '"><h2 class="tm">' + esc(x.name) + '</h2><div class="note" style="background:var(--errc);color:var(--on-errc)"><span>' + icon('AlertCircle') + '</span><span class="bm">This extension cannot be loaded: ' + esc(x.error) + '</span></div></article>';
+        return '<article class="extcard" id="ext-' + esc(x.id) + '" data-k="ext-' + esc(x.id) + '"><div class="row" style="gap:12px"><span class="sq">' + icon('PuzzleOutline') + '</span><span class="col grow"><h2 class="tm">' + esc(x.name) + '</h2><span class="bs mu">' + esc(x.id) + ' · version ' + esc(x.version) + '</span></span>' + sw2('ext:' + x.id, x.enabled, 'Turn on ' + x.name) + '</div><p class="bm">' + esc(x.description) + '</p>' +
+          (x.needsConsent ? '<div class="note"><span>' + icon('ShieldAlertOutline') + '</span><span class="bm">It now asks for more. Turn it on again to agree.</span></div>' : '') +
+          '<div class="col" style="gap:4px"><span class="ll">It may</span>' + (x.permissionText.length ? x.permissionText.map(function (pt) { return '<span class="bs mu row" style="gap:6px;align-items:flex-start">' + icon('Check', 's') + '<span>' + esc(pt) + '</span></span>'; }).join('') : '<span class="bs mu">Nothing beyond running.</span>') + '</div>' +
+          '<div class="row" style="gap:8px;flex-wrap:wrap">' + x.commands.map(function (c) { return '<button class="btn tonal sm" data-extrun="' + esc(x.id) + ':' + esc(c.id) + '"' + (x.enabled ? '' : ' disabled') + '>' + icon('Play', 's') + esc(c.title) + '</button>'; }).join('') + '</div></article>';
+      }).join('') : '<div class="empty"><p class="bm mu">' + (exts.length ? L('noMatch') : 'No extensions yet.') + '</p></div>') + '</div>' + foot();
+  };
+  function sw2(key, on, label) { return '<button class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + !!on + '" aria-label="' + esc(label) + '" data-sw2="' + esc(key) + '"><i></i></button>'; }
+  async function extToggle(id, on) {
+    var x = exts.filter(function (e) { return e.id === id; })[0]; if (!x) return;
+    var go2 = async function () { try { exts = await API.extEnable(id, on); render(); toast(on ? x.name + ' is on.' : x.name + ' is off.'); } catch (e) { toast(e.message); } };
+    if (!on) return go2();
+    dialog('Turn on ' + x.name, '<p class="bm">' + esc(x.description) + '</p><p class="ll">It asks to:</p><ul class="bm" style="margin:0;padding-left:20px">' + (x.permissionText.length ? x.permissionText.map(function (pt) { return '<li>' + esc(pt) + '</li>'; }).join('') : '<li>Nothing beyond running.</li>') + '</ul><p class="bs mu">It never gets passwords, keys or files. You are asked again if this list changes.</p><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="extok">Allow and turn on</button></div>', { emoji: '🧩' });
+    $('#extok').onclick = function () { closeDialog(); go2(); };
+  }
+  async function extRun(id, cmd) {
+    toast('Running…');
+    try { var r = await API.extRun(id, cmd); if (r.notify) toast(r.notify, { emoji: '🧩' }); dialog(r.title, '<pre class="logbox tall" tabindex="0">' + esc(r.text) + '</pre><div class="row" style="gap:8px"><span class="grow"></span><button class="btn tonal" data-copy="' + esc(r.text) + '">' + icon('ContentCopy', 's') + L('copy') + '</button><button class="btn fill" data-act="dlg-close">' + L('done') + '</button></div>', { emoji: '🧩' }); }
+    catch (e) { toast(e.message); beep('bad'); }
+  }
+  R.tools = function () {
+    return '<div class="section" id="top"><h1 class="hl">' + L('tools') + '</h1><p class="bl mu">Small tools that run entirely in this window.</p><div class="chipline">' + [['regex', 'Pattern workbench'], ['base64', 'Base64'], ['convert', 'Convert'], ['colour', 'Colour'], ['otp', 'Authenticator']].map(function (x) { return '<button class="chip" data-go="tools:' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+      '<section class="section" id="regex" data-k="t-regex"><h2 class="tl">Pattern workbench</h2><p class="bm mu">The same workbench every search here opens.</p><div><button class="btn tonal" data-regex="">Open the workbench</button></div></section>' +
+      '<section class="section" id="base64" data-k="t-b64"><h2 class="tl">Base64</h2><textarea class="input" id="b64in" aria-label="Base64 input">Home Assistant Material</textarea><div class="chipline"><button class="btn tonal sm" data-act="b64enc">Encode</button><button class="btn tonal sm" data-act="b64dec">Decode</button><label class="row bm" style="gap:8px"><input type="checkbox" id="b64url"> URL-safe</label><label class="row bm" style="gap:8px"><input type="checkbox" id="b64pad" checked> Padding</label><label class="btn text sm">' + icon('Upload', 's') + 'A file<input type="file" id="b64file" hidden></label></div><pre class="wb-test" id="b64out" aria-live="polite"></pre></section>' +
+      '<section class="section" id="convert" data-k="t-conv"><h2 class="tl">Convert</h2><p class="bm mu">Paste JSON (a list of objects) or CSV, then convert. Progress and errors show here.</p><textarea class="input" id="cvin" aria-label="Text to convert">[{"name": "Kitchen", "port": 8123}, {"name": "Garage", "port": 8124}]</textarea><div class="chipline"><button class="btn tonal sm" data-conv="csv">To CSV</button><button class="btn tonal sm" data-conv="json">To JSON</button><button class="btn tonal sm" data-conv="yaml">To YAML</button><button class="btn tonal sm" data-conv="md">To Markdown</button></div><div id="cvstat" class="bs mu" aria-live="polite"></div><pre class="wb-test" id="cvout"></pre></section>' +
+      '<section class="section" id="colour" data-k="t-col"><h2 class="tl">Colour</h2><div class="row" style="gap:16px;flex-wrap:wrap"><input type="color" id="colin" value="#00639b" aria-label="Pick a colour" style="width:64px;height:48px;border:0;background:none"><input class="input mono" id="coltext" value="#00639B" aria-label="Type a colour as hex, rgb() or hsl()"><span class="swatch" id="colsw" style="background:#00639B"></span></div><div id="colout" class="bm"></div></section>' +
+      '<section class="section" id="otp" data-k="t-otp"><h2 class="tl">Authenticator</h2><p class="bm mu">Add a one-time code secret (Base32). Codes are worked out here every 30 seconds. Scanning a QR code is still to build; paste the secret instead.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" id="otpname" placeholder="Name" aria-label="Name"><input class="input mono" id="otpsecret" placeholder="JBSWY3DPEHPK3PXP" aria-label="Secret"><button class="btn tonal sm" data-act="otpadd">Add</button></div><div id="otplist"></div></section>' + foot();
+  };
+  var PRESETS = [['A deploy failed', 'Deploying to … stopped at the step …', 'Try again; checked the target on the Deploy tab'], ['Cannot open an instance', 'The link does not load.', 'Restarted it; checked the port'], ['Forgot a lock PIN', 'I locked an element in this window and forgot its PIN.', 'Settings, Reset everything in this window']];
+  R.support = function () {
+    return '<div class="section" id="top"><h1 class="hl">' + L('support') + '</h1><p class="bl mu">Help when something goes wrong, and a place to note it. Tickets stay on this computer; copy them as text to send them on.</p>' +
+      '<section class="card" data-k="sup-first" style="padding:24px"><h2 class="tl">First things to try</h2><ol class="bm" style="margin:0;padding-left:20px"><li>Deploy tab: press the circle arrow beside the place to check it again.</li><li>Activity tab: every line a deploy wrote, searchable.</li><li>Instances: the menu on a card has Logs and Restart.</li><li>Forgot a lock PIN: Settings, Reset everything in this window. Instances and backups are not touched.</li></ol></section>' +
+      '<section class="section" id="new"><h2 class="tl">New ticket</h2><div class="chipline"><span class="bs mu">Start from:</span>' + PRESETS.map(function (p, i) { return '<button class="chip" data-preset="' + i + '">' + esc(p[0]) + '</button>'; }).join('') + '</div>' +
+      '<label class="col" style="gap:4px"><span class="ll">Title</span><input class="input" id="tk-title" maxlength="120"></label><span class="field-err" id="tk-title-err" role="alert"></span><label class="col" style="gap:4px"><span class="ll">What happened</span><textarea class="input" id="tk-what" style="font-family:inherit"></textarea></label><label class="col" style="gap:4px"><span class="ll">What you tried</span><input class="input" id="tk-tried"></label>' +
+      '<label class="row bm" style="gap:10px"><input type="checkbox" id="tk-act" checked> Add the last 40 activity lines</label><div><button class="btn fill" data-act="ticket">Save the ticket</button></div></section>' +
+      '<section class="section"><h2 class="tl">Your tickets</h2>' + (st.tickets.length ? st.tickets.map(function (x, i) { return '<div class="row-item" data-k="tk-' + x.t + '"><span class="col grow"><span class="ll">' + esc(x.title) + '</span><span class="bs mu">' + esc(when(new Date(x.t).toISOString())) + ' · ' + esc(x.what) + (x.tried ? ' · Tried: ' + esc(x.tried) : '') + '</span></span><button class="btn text sm" data-rmticket="' + i + '">Remove</button></div>'; }).join('') : '<p class="bm mu">No tickets yet.</p>') +
+      '<button class="btn tonal" style="align-self:flex-start" data-act="copy-tickets">' + icon('ContentCopy', 's') + 'Copy your tickets as text</button></section>' + foot();
+  };
+  R.changes = function () {
+    var m = matcher(q.changes);
+    return '<div class="section" id="top"><h1 class="hl">' + L('changes') + '</h1><div>' + provenance() + '</div>' + findField('csearch', 'Search changes', q.changes) + (m.ok ? '' : '<p class="field-err" role="alert">' + L('badPattern') + esc(m.error) + '</p>') + '</div>' +
+      CHANGES.map(function (c) { var items = c.items.filter(function (x) { return m.test(x); }); if (!items.length) return ''; return '<section class="section card" style="padding:20px" id="v-' + esc(c.version.replace(/\W/g, '')) + '" data-k="chg-' + esc(c.version) + '"><h2 class="tl">Version ' + esc(c.version) + '</h2><ul class="bm" style="margin:0;padding-left:20px">' + items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></section>'; }).join('') + foot();
+  };
+  var upd = { state: 'current' };
+  function updBar() {
+    if (upd.state === 'ready') return '<div class="updbar" role="status" data-k="update"><span>' + icon('Update') + '</span><span class="bm grow"><b>Version ' + esc(upd.version) + ' is ready.</b> Restart to use it. This update is not code-signed; it comes from the project\'s own releases.</span><button class="btn fill sm" data-act="restartupd">Restart now</button><button class="btn text sm" data-act="updlater">Later</button></div>';
+    if (upd.state === 'available') return '<div class="updbar" role="status" data-k="update"><span>' + icon('Update') + '</span><span class="bm grow"><b>Version ' + esc(upd.version) + ' is out.</b> On this system the app does not update itself; download the new one. It is not code-signed.</span><button class="btn fill sm" data-ext="' + esc(upd.url) + '">Download</button><button class="btn text sm" data-act="updlater">Later</button></div>';
+    return '';
+  }
+  var DIM = [['Har gow', 'Shrimp in a thin, see-through wrapper, pleated by hand.'], ['Siu mai', 'Open-topped pork and shrimp dumplings, often with a dot of roe.'], ['Char siu bao', 'Soft steamed buns with sweet barbecued pork inside.'], ['Cheung fun', 'Rice noodle rolls with soy sauce poured over at the table.'], ['Lo mai gai', 'Sticky rice with chicken, steamed in a lotus leaf.'], ['Dan tat', 'Egg tarts with a wobbly custard and flaky pastry.'], ['Lo bak go', 'Turnip cake, pan-fried until the edges crisp.']];
+  function dimsum(force) { if ((!st.dimsum || st.school) && !force) return; var d = DIM[Math.floor(Math.random() * DIM.length)]; toast(d[0] + ': ' + d[1] + ' (Names only: no photos are loaded.)', { emoji: '🥟' }); }
+
   // ---------- Shell ----------
   function shell() {
     var app = $('#app');
@@ -621,7 +774,7 @@
       '<button class="btn tonal sm nodrag" data-act="palette" aria-label="' + esc(w('palette')) + ', Ctrl Shift F">' + icon('Magnify', 's') + '<span class="opt">' + L('search') + '</span><span class="kbd opt">Ctrl Shift F</span></button>' +
       '<button class="ib nodrag opt" data-act="theme" aria-label="' + esc(w('theme')) + '">' + icon('ThemeLightDark') + '</button><button class="ib nodrag" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>' +
       '<button class="ib nodrag" data-act="bell" aria-label="' + esc(w('notifications')) + '" style="position:relative">' + icon('Bell') + '<span class="badge" id="bellcount" hidden>0</span></button>' + winBtns + '</header>' +
-      '<nav class="tabstrip" role="tablist" aria-label="Pages" data-k="tabs"></nav><main class="main" id="main">' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div><div class="toasts" aria-live="polite"></div>';
+      '<div id="updslot"></div><nav class="tabstrip" role="tablist" aria-label="Pages" data-k="tabs"></nav><main class="main" id="main">' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div><div class="toasts" aria-live="polite"></div>';
     tabstrip(); bell();
   }
   function tabstrip() {
@@ -639,13 +792,14 @@
     if (!st.tabs.open.length) { st.tabs.open = ['deploy']; st.active = 'deploy'; }
     var a = document.activeElement, fid = a && a.id, pos = a && a.selectionStart, scroll = window.scrollY;
     var openDetails = $$('#p-' + st.active + ' details[open]').map(function (d) { return d.closest('[data-k]') ? d.closest('[data-k]').dataset.k : ''; });
-    tabstrip();
+    tabstrip(); var us = $('#updslot'); if (us) us.innerHTML = updBar();
     TABS.forEach(function (t) { var p = $('#p-' + t); p.hidden = t !== st.active; p.innerHTML = t === st.active ? R[t]() : ''; });
     openDetails.forEach(function (k) { var d = $('[data-k="' + k + '"] details'); if (d) d.open = true; });
     decorate(); applyVocab($('#app'));
     if (fid && $('#' + fid)) { var n = $('#' + fid); n.focus({ preventScroll: true }); try { if (pos != null) n.setSelectionRange(pos, pos); } catch (e) { /* not a text field */ } }
     window.scrollTo(0, scroll);
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
+    if (st.active === 'tools') { otpDraw(); colour(); }
     document.title = st.name + ' · ' + w(st.active);
   }
   var renderQueued = false;
@@ -713,17 +867,18 @@
   function instMenu(id, x, y) {
     var i = D.instances.filter(function (z) { return z.id === id; })[0]; if (!i) return;
     closePop(); var p = document.createElement('div'); p.className = 'popover'; p.setAttribute('role', 'menu'); p.setAttribute('aria-label', 'More for ' + i.name);
-    var items = [['restart', 'Restart', 'Restart', 'R'], ['update', 'Update the image', 'Update', 'U'], ['logs', 'Show its logs', 'ConsoleLine', 'G'], ['rename', 'Rename or add a note', 'Pencil', 'N'], ['folder', 'Open its folder', 'FolderOpen', 'F'], ['remove', 'Remove', 'DeleteOutline', 'Del']];
+    var items = [['restart', 'Restart', 'Restart', 'R'], ['update', 'Update the image', 'Update', 'U'], ['logs', 'Show its logs', 'ConsoleLine', 'G'], ['rename', 'Rename or add a note', 'Pencil', 'N'], ['editor', 'Open its Compose file in VS Code', 'CodeBraces', 'E'], ['folder', 'Open its folder', 'FolderOpen', 'F'], ['remove', 'Remove', 'DeleteOutline', 'Del']];
     p.innerHTML = findField('imq', w('filterMenu'), '') + items.map(function (t) { return '<button class="mi" role="menuitem" data-ima="' + t[0] + '" data-name="' + t[1] + '">' + icon(t[2], 's') + '<span class="bm">' + t[1] + '</span><span class="kbd">' + t[3] + '</span></button>'; }).join('');
     $('#app').appendChild(p); var r = p.getBoundingClientRect(); p.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px'; p.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px'; $('#imq').focus();
     $('#imq').addEventListener('input', function () { var m = matcher(this.value); $$('.mi', p).forEach(function (b) { b.hidden = !m.test(b.dataset.name); }); });
-    p.addEventListener('keydown', function (e) { var map = { r: 'restart', u: 'update', g: 'logs', n: 'rename', f: 'folder', delete: 'remove' }; if (e.target.id !== 'imq' || e.altKey) { var a = map[e.key.toLowerCase()]; if (a) { e.preventDefault(); act(a); } } });
+    p.addEventListener('keydown', function (e) { var map = { r: 'restart', u: 'update', g: 'logs', n: 'rename', e: 'editor', f: 'folder', delete: 'remove' }; if (e.target.id !== 'imq' || e.altKey) { var a = map[e.key.toLowerCase()]; if (a) { e.preventDefault(); act(a); } } });
     p.addEventListener('click', function (e) { var b = e.target.closest('[data-ima]'); if (b) act(b.dataset.ima); });
     function act(a) {
       closePop();
       if (isLocked('inst-' + id) && /restart|update|remove/.test(a)) { askUnlock('inst-' + id); return; }
       if (a === 'restart' || a === 'update') doAction(id, a);
       if (a === 'logs') { view.logFor = id; doAction(id, 'logs'); go('activity:top'); }
+      if (a === 'editor') { if (DEMO) toast('In the app this opens compose.yaml in VS Code, or the folder when VS Code is not installed.'); else API.editor(id).then(function (r) { toast(r); }, function (er) { toast(er.message); }); }
       if (a === 'folder') API.openFolder(id).catch(function (er) { toast(er.message); });
       if (a === 'rename') { dialog('Rename ' + i.name, '<label class="col" style="gap:4px"><span class="ll">Name</span><input class="input" id="rn" value="' + esc(i.name) + '" maxlength="60"></label><label class="col" style="gap:4px"><span class="ll">Note</span><textarea class="input" id="rnn" style="font-family:inherit;min-height:80px">' + esc(i.notes || '') + '</textarea></label><div class="row"><span class="grow"></span><button class="btn fill" id="rnok">Save</button></div>'); $('#rnok').onclick = async function () { await API.update(id, { name: $('#rn').value.trim() || i.name, notes: $('#rnn').value }); closeDialog(); await reload(); render(); toast(msg('saved')); }; }
       if (a === 'remove') superConfirm('Remove ' + i.name, ['The ' + (i.target === 'virtualbox' || i.target === 'vmware' ? 'virtual machine is deleted' : 'container is removed') + '.', 'Its configuration and data are deleted' + (i.target === 'ssh' ? ' on the host' : '') + '.', 'Backups on this computer stay in the backups folder.'], i.slug.toUpperCase(), function () { doAction(id, 'remove'); });
@@ -740,7 +895,10 @@
   function paletteItems() {
     var items = [];
     TABS.forEach(function (t) { items.push({ kind: 'Page', label: w(t), go: t + ':top' }); });
-    items.push({ kind: 'Deploy', label: 'Write a Raspberry Pi card', act: 'pi' }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
+    items.push({ kind: 'Deploy', label: 'Write a Raspberry Pi card', act: 'pi' });
+    exts.forEach(function (x) { (x.commands || []).forEach(function (c) { items.push({ kind: 'Extension', label: c.title, sub: x.name + (x.enabled ? '' : ' (off)'), go: 'extensions:ext-' + x.id }); }); });
+    [['Show a dim sum', 'dimsum'], ['Check for a new version', 'checkupd'], ['Open the extensions folder', 'extfolder']].forEach(function (a2) { items.push({ kind: 'Action', label: a2[0], act: a2[1] }); });
+    [['Tools, Base64', 'tools:base64'], ['Tools, Convert', 'tools:convert'], ['Tools, Colour', 'tools:colour'], ['Tools, Authenticator', 'tools:otp'], ['Support, New ticket', 'support:new'], ['Settings, Modes', 'settings:modes'], ['Settings, Sound and voice', 'settings:sound'], ['Settings, Schedule', 'settings:schedule'], ['Settings, Name and logo', 'settings:identity'], ['Settings, Updates', 'settings:updates']].forEach(function (a3) { items.push({ kind: 'Page', label: a3[0], go: a3[1] }); }); items.push({ kind: 'Action', label: 'Download everything now', act: 'dlall' });
     ['docker', 'ssh', 'virtualbox', 'vmware'].forEach(function (t) { items.push({ kind: 'Deploy', label: 'Deploy in one click: ' + w(t), act: 'deploy-' + t }); items.push({ kind: 'Deploy', label: 'Deploy with options: ' + w(t), act: 'options-' + t }); });
     D.instances.forEach(function (i) { items.push({ kind: 'Instance', label: i.name, sub: (i.url || '') + ' · ' + w(i.state), go: 'instances:inst-' + i.id }); if (i.url) items.push({ kind: 'Open', label: 'Open ' + i.name, act: 'open-' + i.id }); items.push({ kind: 'Backup', label: 'Back up ' + i.name, act: 'backup-' + i.id }); });
     D.hosts.forEach(function (h) { items.push({ kind: 'Host', label: h.name, sub: h.user + '@' + h.address, go: 'hosts:host-' + h.id }); });
@@ -799,7 +957,7 @@
       if (i === 0) body = '<h3 class="tm">Choose a language</h3>' + seg('lang', [['en', 'English'], ['yue', '廣東話'], ['both', 'Both']], 'Language mode');
       else if (i === 1) body = '<h3 class="tm">What this computer can run</h3>' + ['docker', 'ssh', 'virtualbox', 'vmware'].map(function (t) { var c = checks[t]; return '<div class="row-item"><span class="sq">' + icon(TICON[t]) + '</span><span class="col grow"><span class="ll">' + L(t) + '</span><span class="bs mu">' + esc(c ? c.detail + (c.ok ? '' : ' ' + (c.fix || '')) : 'Checking…') + '</span></span>' + (c ? (c.ok ? '<span class="tag g">Ready</span>' : '<span class="tag a">Needs setup</span>') : '') + '</div>'; }).join('') + '<button class="btn text sm" id="wre">' + icon('Refresh', 's') + 'Check again</button>';
       else if (i === 2) body = '<h3 class="tm">Where should one click deploy?</h3>' + seg('defaultTarget', [['docker', 'Docker'], ['ssh', 'SSH'], ['virtualbox', 'VirtualBox'], ['vmware', 'VMware']], 'Default target') + '<p class="bs mu">Ctrl Shift D deploys there from anywhere in the app. You can still pick any target on the Deploy tab.</p>';
-      else body = '<h3 class="tm">Ready</h3><p class="bm">Press Deploy now on a card. When it is ready you get the link, and the instance appears under Instances with its backups. Ctrl Shift F searches everything.</p>';
+      else body = '<h3 class="tm">Ready</h3><p class="bm">Choose where it runs on the left of the Deploy tab and press Deploy. When it is ready you get the link, and the instance appears under Instances with its backups. Ctrl Shift F searches everything.</p>';
       dialog(w('welcome') + ' · ' + (i + 1) + ' of 4', body + '<div class="row" style="gap:8px"><button class="btn text" id="wskip">' + L('skip') + '</button><span class="grow"></span>' + (i ? '<button class="btn text" id="wback">' + L('back') + '</button>' : '') + '<button class="btn fill" id="wnext">' + (i === 3 ? L('done') : L('next')) + '</button></div>', { emoji: '👋' });
       $('#wnext').onclick = function () { if (i === 3) { st.welcomed = true; st.welcomeStep = 0; save(); closeDialog(); go('deploy:top'); } else { i++; st.welcomeStep = i; save(); draw(); } };
       if ($('#wback')) $('#wback').onclick = function () { i--; st.welcomeStep = i; save(); draw(); };
@@ -828,6 +986,7 @@
         else if (!p.ok) toast(name + ': ' + p.error);
         reload().then(soon);
       }
+      if (ch === 'update') { if (upd.state !== 'later' || p.state === 'ready') upd = p; if (p.state === 'ready') toast('Version ' + p.version + ' is ready. Restart to use it; it is not code-signed.', { emoji: '⬆️' }); soon(); }
       if (ch === 'downloads') { dls = p; if (st.active === 'downloads') soon(); }
       if (ch === 'window') { var b = $('[data-win="max"]'); if (b) b.innerHTML = icon(p.maximized ? 'WindowRestore' : 'WindowMaximize', 's'); }
     });
@@ -842,6 +1001,13 @@
       if ((b = t.closest('[data-ext]'))) { e.preventDefault(); openUrl(b.dataset.ext); return; }
       if ((b = t.closest('[data-regex]'))) { workbench(b.dataset.regex); return; }
       if ((b = t.closest('[data-copy]'))) { copy(b.dataset.copy); return; }
+      if ((b = t.closest('[data-sw2]'))) { extToggle(b.dataset.sw2.slice(4), b.getAttribute('aria-checked') !== 'true'); return; }
+      if ((b = t.closest('[data-extrun]'))) { var er = b.dataset.extrun.split(':'); extRun(er[0], er[1]); return; }
+      if ((b = t.closest('[data-preset]'))) { var pz = PRESETS[+b.dataset.preset]; $('#tk-title').value = pz[0]; $('#tk-what').value = pz[1]; $('#tk-tried').value = pz[2]; $('#tk-title').focus(); return; }
+      if ((b = t.closest('[data-rmticket]'))) { st.tickets.splice(+b.dataset.rmticket, 1); save(); render(); return; }
+      if ((b = t.closest('[data-conv]'))) { convert(b.dataset.conv); return; }
+      if ((b = t.closest('[data-rmotp]'))) { st.otp.splice(+b.dataset.rmotp, 1); save(); otpDraw(); return; }
+      if ((b = t.closest('[data-pick]'))) { st.wizTarget = b.dataset.pick; save(); render(); var f = $('#place-' + st.wizTarget); if (f) f.focus(); return; }
       if ((b = t.closest('[data-oneclick]'))) { oneClick(b.dataset.oneclick); return; }
       if ((b = t.closest('[data-options]'))) { optionsDialog(b.dataset.options); return; }
       if ((b = t.closest('[data-recheck]'))) { var tg = b.dataset.recheck; checks[tg] = null; render(); API.check(tg, tg === 'ssh' ? ($('#sshhost') || {}).value : '').then(function (r) { checks[tg] = r; render(); }); return; }
@@ -868,6 +1034,19 @@
       var a = b.dataset.act;
       if (a === 'palette') palette(); else if (a === 'theme') { setVal('theme', isDark() ? 'light' : 'dark', 'Theme'); render(); } else if (a === 'bell') notePanel(); else if (a === 'access') accessPanel(); else if (a === 'newtab') newTab();
       else if (a === 'pi') piDialog();
+      else if (a === 'wizgo') wizGo();
+      else if (a === 'b64enc') b64(true); else if (a === 'b64dec') b64(false);
+      else if (a === 'otpadd') { var nm = $('#otpname').value.trim() || 'Code', sc = $('#otpsecret').value.trim(); try { if (!sc) throw new Error(); b32(sc); } catch (er2) { toast('That secret is not Base32 (letters A to Z and digits 2 to 7).'); return; } st.otp.push({ name: nm, secret: sc }); save(); render(); }
+      else if (a === 'ticket') { var ti = $('#tk-title').value.trim(); if (!ti) { $('#tk-title-err').textContent = 'Give the ticket a title, so you can find it later.'; $('#tk-title').focus(); return; } var acts = $('#tk-act').checked ? '\n' + activity.slice(-40).map(function (x) { return new Date(x.t).toISOString() + ' ' + instName(x.id) + ' ' + x.line; }).join('\n') : ''; st.tickets.unshift({ t: Date.now(), title: ti, what: $('#tk-what').value.trim() + acts, tried: $('#tk-tried').value.trim() }); save(); render(); toast(msg('saved')); }
+      else if (a === 'copy-tickets') copy(st.tickets.map(function (x) { return '# ' + x.title + '\n' + x.what + (x.tried ? '\nTried: ' + x.tried : ''); }).join('\n\n') || 'No tickets.');
+      else if (a === 'dimsum') dimsum(true);
+      else if (a === 'voice-test') speak(st.lang === 'yue' ? '你好，呢個係你揀嘅聲。' : 'Hello. This is the voice you picked.');
+      else if (a === 'extfolder') { if (DEMO) toast('In the app this opens the extensions folder.'); else API.extFolder(); }
+      else if (a === 'checkupd') { if (DEMO) toast('In the app this checks the project releases now.'); else { API.checkUpdates(); toast('Checking for a new version…'); } }
+      else if (a === 'restartupd') API.restartToUpdate();
+      else if (a === 'updlater') { upd = { state: 'later' }; render(); }
+      else if (a === 'wizreset') { var wt = wizTarget(); delete wiz.defs[wt]; delete wiz.vals[wt]; render(); }
+      else if (a === 'addhost') { e.preventDefault(); hostDialog(null, function () { var wt2 = wizTarget(); delete wiz.defs[wt2]; delete wiz.vals[wt2]; render(); }); }
       else if (a === 'dlall') { API.downloadAll(); toast('Downloading everything that is missing or out of date.'); }
       else if (a === 'autodl') { API.autoDownload(!(D.autoDownload !== false)).then(reload).then(render); }
       else if (a === 'openfolder') API.openFolder('').catch(function (er) { toast(er.message); });
@@ -877,11 +1056,15 @@
     app.addEventListener('input', function (e) {
       var t = e.target, map = { dsearch: 'downloads', isearch: 'instances', bsearch: 'backups', hsearch: 'hosts', asearch: 'activity', ssearch: 'settings', hpsearch: 'help' };
       if (map[t.id]) { q[map[t.id]] = t.value; render(); return; }
+      if (t.dataset.wiz) { var wv = wiz.vals[wizTarget()]; if (wv) wv[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; return; }
       if (t.dataset.isel) { view.sel[t.dataset.isel] = t.checked; render(); return; }
       if (t.dataset.color) { st.seed = t.value; save(); apply(); }
+      if (t.id === 'coltext') colour();
+      if (t.id === 'colin') { $('#coltext').value = t.value.toUpperCase(); colour(); }
     });
     app.addEventListener('change', function (e) {
       var t = e.target;
+      if (t.dataset.wiz) { var wv2 = wiz.vals[wizTarget()]; if (wv2) wv2[t.dataset.wiz] = t.type === 'checkbox' ? t.checked : t.value; }
       if (t.dataset.isort != null) { view.sort = t.value; render(); }
       if (t.dataset.logfor != null) { view.logFor = t.value; render(); }
       if (t.dataset.schedtime != null) API.schedule({ time: t.value }).then(reload);
@@ -889,8 +1072,13 @@
       if (t.dataset.schedcons != null) API.schedule({ consistent: t.checked }).then(reload);
       if (t.dataset.color) setVal('seed', t.value, 'Main colour');
       if (t.id === 'vocabfile' && t.files[0]) loadVocabFile(t.files[0]);
+      if (t.dataset.select) setVal(t.dataset.select, t.value, t.getAttribute('aria-label'));
+      if (t.dataset.time) { setVal(t.dataset.time, t.value, t.getAttribute('aria-label')); apply(); }
+      if (t.dataset.text) { setVal(t.dataset.text, t.value.trim() || DEF.name, 'Name'); shell(); render(); }
+      if (t.dataset.logocolor) { setVal('logo.color', t.value, 'Logo colour'); shell(); render(); }
+      if (t.id === 'b64file' && t.files[0]) { var fr = new FileReader(); fr.onload = function () { $('#b64out').textContent = String(fr.result).split(',')[1] || ''; }; fr.readAsDataURL(t.files[0]); }
     });
-    app.addEventListener('toggle', function (e) { var d = e.target; if (d.dataset && d.dataset.iopen) view.open[d.dataset.iopen] = d.open; }, true);
+    app.addEventListener('toggle', function (e) { var d = e.target; if (d.dataset && d.dataset.iopen) view.open[d.dataset.iopen] = d.open; if (d.dataset && d.dataset.fold) { st.folds = st.folds || {}; if (st.folds[d.dataset.fold] !== d.open) { st.folds[d.dataset.fold] = d.open; save(); var sm = d.querySelector('summary .ic'); if (sm) sm.outerHTML = icon(d.open ? 'ChevronDown' : 'ChevronRight', 's'); } } }, true);
     app.addEventListener('keydown', function (e) {
       var tb = e.target.closest && e.target.closest('[data-tab]'); if (tb && /Arrow(Left|Right|Up|Down)/.test(e.key)) { var tabs = $$('[data-tab]'); var i = tabs.indexOf(tb) + (/Right|Down/.test(e.key) ? 1 : -1); st.active = tabs[(i + tabs.length) % tabs.length].dataset.tab; save(); render(); $('#t-' + st.active).focus(); e.preventDefault(); }
       if (tb && e.key === 'Delete') closeTab(tb.dataset.tab);
@@ -902,6 +1090,8 @@
     document.addEventListener('contextmenu', function (e) { if (e.target.closest('.popover,.dialog,input,textarea')) return; var card = e.target.closest('.icard'); if (card && !e.shiftKey) { e.preventDefault(); instMenu(card.id.slice(5), e.clientX, e.clientY); return; } var el = e.target.closest('[data-k]'); if (!el) return; e.preventDefault(); menuFor(el, e.clientX, e.clientY); });
     document.addEventListener('keydown', function (e) {
       if (e.ctrlKey && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); palette(); return; }
+      if (e.ctrlKey && !e.shiftKey && e.key === 'Enter' && st.active === 'deploy' && !$('#ov')) { e.preventDefault(); wizGo(); return; }
+      var lb = e.target.closest && e.target.closest('[data-pick]'); if (lb && /Arrow(Up|Down)/.test(e.key)) { e.preventDefault(); var pi2 = PLACES.indexOf(lb.dataset.pick) + (e.key === 'ArrowDown' ? 1 : -1); st.wizTarget = PLACES[(pi2 + PLACES.length) % PLACES.length]; save(); render(); $('#place-' + st.wizTarget).focus(); return; }
       if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { e.preventDefault(); oneClick(st.defaultTarget); return; }
       if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') { var el = document.activeElement && document.activeElement.closest('[data-k]'); if (el) { e.preventDefault(); var r = el.getBoundingClientRect(); var card = el.closest('.icard'); if (card) instMenu(card.id.slice(5), r.left + 12, r.top + 12); else menuFor(el, r.left + 12, r.top + 12); } }
       if (e.key === 'Escape') { if ($('.popover')) closePop(); else if ($('#ov')) closeDialog(); else if ($('.panel')) $('.panel').remove(); }
@@ -946,7 +1136,11 @@
     try { about = await API.about(); } catch (e) { about = {}; }
     try { dls = await API.downloads(); } catch (e) { dls = []; }
     await reload(); apply(); shell(); render(); wire();
+    try { exts = await API.extensions(); } catch (e) { exts = []; }
     checkAll();
+    setTimeout(function () { if (Math.random() < 0.25) dimsum(false); }, 45000);
+    setInterval(function () { if (st.schedule.on) apply(); }, 60000);
+    if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = function () { if (st.active === 'settings') render(); };
     if (!st.welcomed) setTimeout(function () { welcome(false); }, 300);
     setInterval(function () { if (st.active === 'instances' && !$('#ov') && !$('.popover')) soon(); }, 5000);
   })();

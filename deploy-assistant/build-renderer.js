@@ -15,11 +15,13 @@ function section(title) {
 }
 const shared = [
   'Personal wording', 'Sound, voice, notifications', 'History of changes', 'Applying settings to the page', 'Search with patterns',
-  'Dialogs', 'Pattern workbench', 'Element menu, appearance and locks', 'Panels'
+  'Dialogs', 'Pattern workbench', 'Element menu, appearance and locks', 'Panels', 'Tools'
 ].map(section).join('\n')
   .replace(/  function findField\([\s\S]*?\n  \}\n/, '');
+// The changelog is shown in the Changes tab: sections of '## version' with '- ' items.
+const changes = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf8').split(/^## /m).slice(1).map((b) => { const lines = b.split('\n'); return { version: lines[0].trim(), items: lines.filter((l) => l.startsWith('- ')).map((l) => l.slice(2)) }; });
 const out = '// Written by build-renderer.js. Edit parts/head.js, parts/tail.js or docs/site/app.js instead.\n' +
-  fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'head.js'), 'utf8') + '\n' + shared + '\n' +
+  fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'head.js'), 'utf8') + '\n  var CHANGES = ' + JSON.stringify(changes) + ';\n' + shared + '\n' +
   fs.readFileSync(path.join(__dirname, 'src', 'renderer', 'parts', 'tail.js'), 'utf8');
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'app.js'), out);
 const css = '/* Written by build-renderer.js from the project page styles and parts/app-extra.css. */\n' +
@@ -29,4 +31,7 @@ const css = '/* Written by build-renderer.js from the project page styles and pa
 fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'app.css'), css);
 fs.mkdirSync(path.join(__dirname, 'src', 'renderer', 'fonts'), { recursive: true });
 for (const f of fs.readdirSync(path.join(site, 'fonts'))) fs.copyFileSync(path.join(site, 'fonts', f), path.join(__dirname, 'src', 'renderer', 'fonts', f));
+const build = { version: require('./package.json').version, builtAt: new Date().toISOString() };
+fs.writeFileSync(path.join(__dirname, 'src', 'build-info.json'), JSON.stringify(build) + '\n');
+fs.writeFileSync(path.join(__dirname, 'src', 'renderer', 'build-info.js'), '// Written by build-renderer.js: the version and build time shown on the first screen.\nwindow.HAM_BUILD = ' + JSON.stringify(build) + ';\n');
 console.log('renderer built:', out.length, 'bytes of script');

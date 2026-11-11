@@ -1,11 +1,13 @@
 'use strict';
 // The app's main process: one window, the instance manager, and a narrow bridge to the page.
-const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, safeStorage, nativeTheme, autoUpdater } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { Manager, LABEL } = require('./backend/manager');
 const { Downloads } = require('./backend/downloads');
 const pi = require('./backend/pi-writer');
+const { Extensions } = require('./backend/extensions');
+const updates = require('./backend/updates');
 
 if (require('node:os').platform() === 'win32' && require('./squirrel-events')(app)) app.quit();
 
@@ -31,12 +33,27 @@ function createWindow() {
   ['maximize', 'unmaximize'].forEach((ev) => win.on(ev, () => send('window', { maximized: win.isMaximized() })));
 }
 
+// Opens an instance's compose.yaml in VS Code when it is installed, otherwise its folder.
+async function editor(id) {
+  const inst = mgr.get(id);
+  const file = path.join(inst.dir || '', 'compose.yaml');
+  const { run } = require('./backend/util');
+  if (inst.target === 'docker' && fs.existsSync(file)) {
+    const r = await run(process.platform === 'win32' ? 'code.cmd' : 'code', [file]);
+    if (r.code === 0) return 'Opened in VS Code';
+  }
+  await shell.openPath(inst.dir || mgr.dir);
+  return 'Opened its folder';
+}
+
 function send(channel, payload) { if (win && !win.isDestroyed()) win.webContents.send('ham', { channel, payload }); }
 
 app.whenReady().then(() => {
   mgr = new Manager(path.join(app.getPath('userData'), 'data'), { encrypt: enc, decrypt: dec });
   ['changed', 'log', 'step', 'busy', 'done', 'downloads'].forEach((ev) => mgr.on(ev, (p) => send(ev, p)));
   const dl = new Downloads(mgr);
+  const ext = new Extensions(mgr, path.join(__dirname, 'extensions'));
+  const checkUpdates = updates.start({ app, autoUpdater, send });
   const h = (name, fn) => ipcMain.handle(name, async (_e, ...a) => { try { return { ok: true, value: await fn(...a) }; } catch (e) { return { ok: false, error: e.message }; } });
   h('snapshot', () => mgr.snapshot());
   h('labels', () => LABEL);
@@ -60,7 +77,14 @@ app.whenReady().then(() => {
   h('autoDownload', (on) => { mgr.setAutoDownload(on); if (on) dl.all(); return on; });
   h('drives', () => pi.listDrives());
   h('writePi', (o) => mgr.writePi(o));
-  h('about', () => ({ version: app.getVersion(), platform: process.platform, data: mgr.dir, electron: process.versions.electron }));
+  h('extensions', () => ext.list());
+  h('extEnable', (id, on) => { ext.setEnabled(id, on); return ext.list(); });
+  h('extRun', (id, c) => ext.run(id, c));
+  h('extFolder', () => shell.openPath(ext.dir));
+  h('checkUpdates', () => { checkUpdates(); return true; });
+  h('restartToUpdate', () => { autoUpdater.quitAndInstall(); return true; });
+  h('editor', (id) => editor(id));
+  h('about', () => { let built = ''; try { built = require('./build-info.json').builtAt; } catch { /* a development run */ } return { version: app.getVersion(), builtAt: built, platform: process.platform, data: mgr.dir, electron: process.versions.electron }; });
   h('win', (a) => { if (a === 'min') win.minimize(); if (a === 'max') { if (win.isMaximized()) win.unmaximize(); else win.maximize(); } if (a === 'close') win.close(); return win.isMaximized(); });
   createWindow();
   setInterval(() => mgr.refresh().catch(() => {}), 5000);
