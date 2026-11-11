@@ -12,6 +12,7 @@ import type { PersistentNotification } from "../../data/persistent_notification"
 import { subscribeNotifications } from "../../data/persistent_notification";
 import type { HomeAssistant } from "../../types";
 import "./notification-item";
+import "../../components/activity/ha-activity-tray";
 import "../../components/ha-header-bar";
 import "../../components/ha-button";
 import "../../components/ha-drawer";
@@ -152,6 +153,10 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
           </ha-icon-button-prev>
         </ha-header-bar>
         <div class="notifications">
+          <ha-activity-tray
+            class="activity"
+            .hass=${this.hass}
+          ></ha-activity-tray>
           ${
             notifications.length
               ? html`<div class="list-container">
@@ -275,6 +280,12 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
     :host([narrow]) .notifications {
       padding-right: var(--safe-area-inset-right, 0px);
       padding-inline-end: var(--safe-area-inset-right, 0px);
+    }
+
+    .activity {
+      flex: 0 0 auto;
+      max-height: 50%;
+      overflow: auto;
     }
 
     .notification {

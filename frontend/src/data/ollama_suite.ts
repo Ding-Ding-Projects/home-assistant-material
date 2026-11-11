@@ -124,11 +124,16 @@ export const pullOllamaModel = (
   model: string,
   callback: (event: OllamaPullEvent) => void
 ): Promise<() => Promise<void>> =>
-  hass.connection.subscribeMessage<OllamaPullEvent>(callback, {
-    type: "ollama_suite/pull",
-    entry_id: entryId,
-    model,
-  });
+  hass.connection.subscribeMessage<OllamaPullEvent>(
+    callback,
+    {
+      type: "ollama_suite/pull",
+      entry_id: entryId,
+      model,
+    },
+    // A download must never restart by itself after a reconnect.
+    { resubscribe: false }
+  );
 
 export const deleteOllamaModel = (
   hass: HomeAssistant,

@@ -2,6 +2,7 @@ import { mdiFileCheckOutline, mdiFolderOpen, mdiTrayArrowDown } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { startInstanceSync } from "../../common/instance-sync/start-instance-sync";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { VocabularyError } from "../../common/vocabulary/personal-vocabulary";
 import {
@@ -13,6 +14,9 @@ import {
   importWordingFile,
   reportWordingImport,
 } from "../../common/vocabulary/wording-import";
+import { wordingSync } from "../../common/vocabulary/wording-sync";
+import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
+import "../../components/instance-sync/ha-instance-sync-status";
 import "../../components/ha-alert";
 import "../../components/ha-button";
 import "../../components/ha-card";
@@ -52,6 +56,10 @@ export class HaPersonalWordingCard extends LitElement {
     super.connectedCallback();
     window.addEventListener(VOCABULARY_CHANGED_EVENT, this._changed);
     this._count = activeVocabularyCount();
+    // Idempotent: the connection normally started this at start-up.
+    if (this.hass?.connection) {
+      startInstanceSync(this.hass.connection);
+    }
   }
 
   public disconnectedCallback() {
@@ -139,6 +147,11 @@ export class HaPersonalWordingCard extends LitElement {
                 </ha-alert>`
               : nothing
           }
+          <ha-instance-sync-status
+            .sync=${wordingSync}
+            .localize=${localize}
+          ></ha-instance-sync-status>
+          <p class="note">${localize("ui.personal_wording.saved_where")}</p>
           <p class="note">${localize("ui.personal_wording.clear_note")}</p>
         </div>
       </ha-card>
@@ -185,8 +198,17 @@ export class HaPersonalWordingCard extends LitElement {
     this._error = result.ok ? undefined : result.error;
   }
 
-  private _clear() {
-    clearPersonalVocabulary();
+  private async _clear() {
+    // Clearing now removes the wording from this account on every device.
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._localize("ui.personal_wording.clear_confirm_title"),
+      text: this._localize("ui.personal_wording.clear_confirm"),
+      confirmText: this._localize("ui.personal_wording.clear"),
+      destructive: true,
+    });
+    if (confirmed) {
+      clearPersonalVocabulary();
+    }
   }
 
   static styles: CSSResultGroup = css`

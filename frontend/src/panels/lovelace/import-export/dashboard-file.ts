@@ -8,7 +8,7 @@ import type { LovelaceConfig } from "../../../data/lovelace/config/types";
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
 import { pickAvailableDashboardUrlPath } from "../../config/lovelace/dashboards/pick-available-dashboard-url-path";
 import type { AddressProblem } from "./address-host";
-import { hostOf } from "./address-host";
+import { hostOf, isOutsideAddress, normalizeAddress } from "./address-host";
 
 /**
  * The dashboard file format. A file holds nothing but data: the settings of
@@ -650,6 +650,12 @@ export interface SummaryAction {
   action: string;
   service: string;
   target: string;
+  /**
+   * True when the person should look at this action before importing. An
+   * action without it only calls a plain light, fan or player service on
+   * entities the file names. That is a description, not a safety judgement.
+   */
+  needsLook: boolean;
 }
 
 /** What a file contains, for the person to read before anything is made. */
@@ -667,7 +673,33 @@ export interface ImportSummary {
 }
 
 // Actions that only move around or show things. Any other action is listed.
+// A toggle is listed too when it acts on an entity that can unlock, open,
+// heat, sound or move something (see RISKY_DOMAINS).
 const SAFE_ACTIONS = new Set(["navigate", "more-info", "none", "toggle"]);
+
+// Entities of these domains can unlock a door, open a cover or start a
+// machine, so a toggle on one of them is never plain.
+const RISKY_DOMAINS = new Set([
+  "lock",
+  "cover",
+  "alarm_control_panel",
+  "valve",
+  "siren",
+  "climate",
+  "water_heater",
+  "vacuum",
+]);
+
+const ENTITY_ID = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+// Keys that make a service act on more than the entities named.
+const WIDE_TARGET_KEYS = ["area_id", "device_id", "label_id", "floor_id"];
+
+const domainOf = (value: unknown): string | undefined =>
+  typeof value === "string"
+    ? value.split(".")[0].trim().toLowerCase()
+    : undefined;
+
+const TEMPLATE = /\{[{%#]/;
 
 // Records of these types run a service when pressed, with no `action` key.
 const ACTION_TYPES = new Set([
@@ -676,42 +708,100 @@ const ACTION_TYPES = new Set([
   "action-button",
 ]);
 
-// Services that only switch a light, a switch or a scene, or work a cover or
-// a player. A listed action that calls any other service needs a closer look.
-const HARMLESS_SERVICES = new Set([
+// Services that only switch a light or a fan, or work a media player. Such a
+// service counts as plain only when the file names the entities it acts on
+// (see `hasExplicitEntities`). Switches, covers, scenes and input booleans
+// can run real equipment, so they always need a look. "Plain" describes what
+// the call is; it is not a judgement that pressing it is safe.
+const PLAIN_SERVICES = new Set([
   "light.turn_on",
   "light.turn_off",
   "light.toggle",
-  "switch.turn_on",
-  "switch.turn_off",
-  "switch.toggle",
   "fan.turn_on",
   "fan.turn_off",
   "fan.toggle",
-  "input_boolean.turn_on",
-  "input_boolean.turn_off",
-  "input_boolean.toggle",
-  "scene.turn_on",
-  "cover.open_cover",
-  "cover.close_cover",
-  "cover.stop_cover",
-  "cover.toggle",
   "media_player.media_play",
   "media_player.media_pause",
   "media_player.media_play_pause",
 ]);
 
-const isOutsideAddress = (text: string): boolean =>
-  !/^\s*\/(?![\\/])/.test(text);
+/** Entity ids a record names, from its target and its data. */
+const namedEntityIds = (node: Record<string, unknown>): unknown[] => {
+  const ids: unknown[] = [];
+  for (const holder of [node.target, node.data, node.service_data]) {
+    if (isRecord(holder) && "entity_id" in holder) {
+      const value = holder.entity_id;
+      ids.push(...(Array.isArray(value) ? value : [value]));
+    }
+  }
+  return ids;
+};
 
-/** True when the person should look at this action before importing. */
-const actionNeedsLook = (action: SummaryAction): boolean =>
-  action.action === "url"
-    ? isOutsideAddress(action.target)
-    : !HARMLESS_SERVICES.has(action.service);
+/**
+ * True only when every entity is named outright, is of the service's own
+ * domain, and nothing widens the call to an area, a device, a label, a floor,
+ * `all` or a template.
+ */
+const hasExplicitEntities = (
+  node: Record<string, unknown>,
+  domains: string[]
+): boolean => {
+  const ids = namedEntityIds(node);
+  if (!ids.length) {
+    return false;
+  }
+  for (const holder of [node.target, node.data, node.service_data]) {
+    if (holder === undefined) {
+      continue;
+    }
+    if (!isRecord(holder)) {
+      return false;
+    }
+    if (WIDE_TARGET_KEYS.some((key) => key in holder)) {
+      return false;
+    }
+  }
+  if (
+    TEMPLATE.test(JSON.stringify([node.target, node.data, node.service_data]))
+  ) {
+    return false;
+  }
+  return ids.every(
+    (id) =>
+      typeof id === "string" &&
+      ENTITY_ID.test(id) &&
+      domains.every((domain) => domainOf(id) === domain)
+  );
+};
 
-const addressNeedsLook = (address: SummaryAddress): boolean =>
-  address.problem !== undefined || SCHEME_ADDRESS.test(address.address);
+/** True when a service call is plain: a plain service on named entities. */
+const isPlainCall = (
+  node: Record<string, unknown>,
+  services: string[]
+): boolean =>
+  services.length > 0 &&
+  services.every((service) => PLAIN_SERVICES.has(service)) &&
+  hasExplicitEntities(
+    node,
+    services.map((service) => service.split(".")[0])
+  );
+
+/** The entities a toggle acts on: those it names, or its card's entity. */
+const toggleEntities = (
+  node: Record<string, unknown>,
+  inherited: string | undefined
+): string[] => {
+  const named = namedEntityIds(node).filter(
+    (id): id is string => typeof id === "string"
+  );
+  if (named.length) {
+    return named;
+  }
+  return inherited ? [inherited] : [];
+};
+
+const hasRiskyDomain = (ids: string[]): boolean =>
+  ids.some((id) => RISKY_DOMAINS.has(domainOf(id.trim()) ?? ""));
 
 // Keys whose records are cards, rows, badges and the like, named by a label.
 const LABELLED_KEYS = new Set([
@@ -726,13 +816,30 @@ const LABELLED_KEYS = new Set([
   "features",
 ]);
 
+// An address inside free text: a scheme with two slashes or backslashes, a
+// network scheme written with one slash, one backslash or none, or two
+// slashes or backslashes alone.
 const ADDRESS_PATTERN =
-  /(?:\b[a-z][a-z0-9+.-]*:\/\/|(?<![\w:/.])\/\/)[^\s"'<>`)\]]+/gi;
-const SCHEME_ADDRESS = /^\s*(?:javascript|data|vbscript|blob):/i;
+  /(?:\b(?:[a-z][a-z0-9+.-]*:[\\/]{2}|(?:https?|wss?|ftp|file):[\\/]?)|(?<![\w:/.\\])[\\/]{2})[^\s"'<>`)\]]+/gi;
+// Schemes that run or carry code instead of naming a place.
+const SCHEME_ADDRESS = /^(?:javascript|data|vbscript|blob):/i;
+// A whole value that starts like an address a browser would follow.
+const WHOLE_ADDRESS =
+  /^(?:(?:https?|wss?|ftp|file):|[\\/]{2}|[a-z][a-z0-9+.-]*:[\\/]{2})/i;
 
+/**
+ * The addresses in a text. A whole value that reads as one address, as a
+ * browser reads it (tabs and line breaks deleted, edge control characters
+ * dropped), is one address whatever it holds. Otherwise the text is searched.
+ * The raw text is returned: it is escaped for display only after checking.
+ */
 const addressesIn = (text: string): string[] => {
-  if (SCHEME_ADDRESS.test(text)) {
-    return [text.trim()];
+  const { value } = normalizeAddress(text);
+  if (SCHEME_ADDRESS.test(value)) {
+    return [text];
+  }
+  if (WHOLE_ADDRESS.test(value) && !/\s/.test(value)) {
+    return [text];
   }
   return (text.match(ADDRESS_PATTERN) ?? []).map((found) =>
     found.replace(/[.,;:!?]+$/, "")
@@ -756,12 +863,24 @@ const targetOf = (node: Record<string, unknown>): string => {
   const data = (isRecord(node.data) && node.data) || undefined;
   const serviceData =
     (isRecord(node.service_data) && node.service_data) || undefined;
-  const target =
-    node.target ?? serviceData?.entity_id ?? data?.entity_id ?? undefined;
-  if (target === undefined) {
+  // Every place a target can be named is shown, so one cannot hide behind
+  // another.
+  const parts: [string, unknown][] = [
+    ["target", node.target],
+    ["service_data.entity_id", serviceData?.entity_id],
+    ["data.entity_id", data?.entity_id],
+  ];
+  const found = parts.filter(([, value]) => value !== undefined);
+  if (!found.length) {
     return "";
   }
-  return safeText(typeof target === "string" ? target : JSON.stringify(target));
+  const text = (value: unknown): string =>
+    typeof value === "string" ? value : JSON.stringify(value);
+  return safeText(
+    found.length === 1
+      ? text(found[0][1])
+      : found.map(([name, value]) => `${name}: ${text(value)}`).join("; ")
+  );
 };
 
 /**
@@ -777,23 +896,39 @@ export const analyzeDashboardImport = (
   const customTypes = new Map<string, SummaryCustomType>();
   const actions = new Map<string, SummaryAction>();
   let cards = 0;
+  // What needs a look is decided on the raw text from the file and kept
+  // here, because the text that is shown has been escaped and no longer reads
+  // the way a browser reads it.
+  const lookAddresses = new WeakSet<SummaryAddress>();
 
   const addAddress = (address: string, where: string): void => {
     const shown = safeText(address);
     if (!addresses.has(shown)) {
       const { host, problem } = hostOf(address);
-      addresses.set(shown, {
+      const entry: SummaryAddress = {
         host: safeText(host),
         address: shown,
         where,
         ...(problem ? { problem } : {}),
-      });
+      };
+      if (
+        problem !== undefined ||
+        SCHEME_ADDRESS.test(normalizeAddress(address).value)
+      ) {
+        lookAddresses.add(entry);
+      }
+      addresses.set(shown, entry);
     }
   };
 
-  const walk = (node: unknown, key: string, where: string): void => {
+  const walk = (
+    node: unknown,
+    key: string,
+    where: string,
+    entity?: string
+  ): void => {
     if (Array.isArray(node)) {
-      node.forEach((item) => walk(item, key, where));
+      node.forEach((item) => walk(item, key, where, entity));
       return;
     }
     if (typeof node === "string") {
@@ -803,6 +938,7 @@ export const analyzeDashboardImport = (
     if (!isRecord(node)) {
       return;
     }
+    const nodeEntity = typeof node.entity === "string" ? node.entity : entity;
     let here = where;
     if (
       typeof node.type === "string" ||
@@ -816,32 +952,73 @@ export const analyzeDashboardImport = (
       const type = safeText(node.type, 100);
       customTypes.set(`${kind}\u0000${type}`, { type, kind });
     }
-    const service = node.perform_action ?? node.service;
+    // A record can name its service under both keys. Both are listed, and
+    // the riskier one decides.
+    const services = [node.perform_action, node.service].filter(
+      (value, index, all): value is string =>
+        typeof value === "string" && all.indexOf(value) === index
+    );
     const runsService =
-      typeof node.perform_action === "string" ||
-      typeof node.service === "string" ||
+      services.length > 0 ||
       (typeof node.type === "string" && ACTION_TYPES.has(node.type));
+    // A toggle on a lock, a cover or the like opens or unlocks it. A button
+    // card with such an entity and no action of its own toggles it when
+    // pressed.
+    const toggleIds =
+      node.action === "toggle" ? toggleEntities(node, nodeEntity) : [];
+    const riskyToggle = hasRiskyDomain(toggleIds);
+    const defaultToggle =
+      node.type === "button" &&
+      !("tap_action" in node) &&
+      typeof node.entity === "string" &&
+      hasRiskyDomain([node.entity]);
     if (
-      (typeof node.action === "string" && !SAFE_ACTIONS.has(node.action)) ||
-      runsService
+      (typeof node.action === "string" &&
+        (!SAFE_ACTIONS.has(node.action) || riskyToggle)) ||
+      runsService ||
+      defaultToggle
     ) {
       const actionName =
         typeof node.action === "string"
           ? node.action
-          : String(node.type ?? "call-service");
+          : defaultToggle && !runsService
+            ? "toggle"
+            : String(node.type ?? "call-service");
       const entry: SummaryAction = {
         where: here,
         action: safeText(actionName, 60),
-        service: typeof service === "string" ? safeText(service, 100) : "",
-        target: targetOf(node),
+        service: safeText(services.join(", "), 100),
+        target:
+          defaultToggle && !runsService
+            ? safeText(String(node.entity))
+            : targetOf(node),
+        needsLook: true,
       };
-      actions.set(
-        [entry.where, entry.action, entry.service, entry.target].join("\u0000"),
-        entry
-      );
+      const actionKey = [
+        entry.where,
+        entry.action,
+        entry.service,
+        entry.target,
+      ].join("\u0000");
+      let needsLook = true;
+      if (node.action === "url") {
+        const raw = String(node.url_path ?? node.url ?? "");
+        needsLook = isOutsideAddress(raw);
+      } else if (runsService && services.length) {
+        needsLook = !isPlainCall(node, services);
+      }
+      entry.needsLook = needsLook;
+      const kept = actions.get(actionKey);
+      // The same action found twice keeps the riskier reading.
+      if (!kept || (needsLook && !kept.needsLook)) {
+        actions.set(actionKey, entry);
+      }
       // An address built by a template cannot be read in advance.
-      if (node.action === "url" && /\{[{%]/.test(entry.target)) {
-        addAddress(entry.target, here);
+      if (
+        node.action === "url" &&
+        TEMPLATE.test(String(node.url_path ?? node.url ?? ""))
+      ) {
+        addAddress(String(node.url_path ?? node.url ?? ""), here);
       }
     }
     for (const [childKey, child] of Object.entries(node)) {
@@ -850,7 +1027,7 @@ export const analyzeDashboardImport = (
       } else if (childKey === "card" && isRecord(child)) {
         cards += 1;
       }
-      walk(child, childKey, here);
+      walk(child, childKey, here, nodeEntity);
     }
   };
 
@@ -891,9 +1068,9 @@ export const analyzeDashboardImport = (
     urlPath,
     views,
     cards,
-    addresses: capped(addresses, addressNeedsLook),
+    addresses: capped(addresses, (address) => lookAddresses.has(address)),
     customTypes: capped(customTypes),
-    actions: capped(actions, actionNeedsLook),
+    actions: capped(actions, (action) => action.needsLook),
     removed: parsed.removed,
   };
 };

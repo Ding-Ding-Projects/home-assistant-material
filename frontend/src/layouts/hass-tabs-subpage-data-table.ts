@@ -5,6 +5,8 @@ import type { ContextType } from "@lit/context";
 import {
   mdiArrowDown,
   mdiArrowUp,
+  mdiChevronDown,
+  mdiChevronUp,
   mdiClose,
   mdiFilterVariant,
   mdiExportVariant,
@@ -19,6 +21,7 @@ import type { PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
 import { canShowPage } from "../common/config/can_show_page";
 import { QueryParamsController } from "../common/controllers/query-params-controller";
 import { consume } from "../common/decorators/consume";
@@ -49,6 +52,16 @@ import "../components/ha-icon-button";
 import "../components/ha-svg-icon";
 import "../components/input/ha-input-search";
 import type { HaInputSearch } from "../components/input/ha-input-search";
+import "../components/layout/ha-split-divider";
+import type { SplitDividerMoveDetail } from "../components/layout/ha-split-divider";
+import {
+  clampSize,
+  parseStoredState,
+} from "../components/layout/split-panels-logic";
+import {
+  safeGetStored,
+  safeSetStored,
+} from "../common/preferences/safe-storage";
 import {
   configContext,
   entitiesContext,
@@ -58,6 +71,11 @@ import { KeyboardShortcutMixin } from "../mixins/keyboard-shortcut-mixin";
 import type { HomeAssistant, Route } from "../types";
 import "./hass-tabs-subpage";
 import type { PageNavigation } from "./hass-tabs-subpage";
+
+// The filter pane can be dragged between these widths (pixels)
+const PANE_DEFAULT_WIDTH = 250;
+const PANE_MIN_WIDTH = 200;
+const PANE_MAX_WIDTH = 560;
 
 /**
  * List page layout with a heading, a search row and a data table.
@@ -206,6 +224,14 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   public alwaysShowCheckboxes = false;
 
   @state() private _hasFilterChips = false;
+
+  // The width of the filter pane and whether the summary line is folded away,
+  // both kept in this browser for each page
+  @state() private _paneWidth?: number;
+
+  @state() private _summaryHidden = false;
+
+  private _layoutKeyLoaded?: string;
 
   @state() private _pageTitle = "";
 
@@ -387,6 +413,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   protected willUpdate(changedProperties: PropertyValues) {
     this.toggleAttribute("has-footer", this._hasFooter);
+
+    this._loadLayout();
 
     if (
       changedProperties.has("tabs") ||
@@ -611,14 +639,40 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       ? html`<div class="page-heading">
           <div class="page-heading-text">
             <h1>${this._pageTitle}</h1>
-            <p>
+            <div class="summary-row">
               ${
-                this.summary ??
-                localize("ui.components.subpage-data-table.summary", {
-                  count: this.data.length,
-                })
+                this._summaryHidden
+                  ? nothing
+                  : html`<p id="list-summary">
+                      ${
+                        this.summary ??
+                        localize("ui.components.subpage-data-table.summary", {
+                          count: this.data.length,
+                        })
+                      }
+                    </p>`
               }
-            </p>
+              <button
+                type="button"
+                class="summary-toggle"
+                aria-expanded=${this._summaryHidden ? "false" : "true"}
+                aria-label=${localize(
+                  this._summaryHidden
+                    ? "ui.components.subpage-data-table.show_summary"
+                    : "ui.components.subpage-data-table.hide_summary"
+                )}
+                title=${localize(
+                  this._summaryHidden
+                    ? "ui.components.subpage-data-table.show_summary"
+                    : "ui.components.subpage-data-table.hide_summary"
+                )}
+                @click=${this._toggleSummary}
+              >
+                <ha-svg-icon
+                  .path=${this._summaryHidden ? mdiChevronDown : mdiChevronUp}
+                ></ha-svg-icon>
+              </button>
+            </div>
           </div>
           <slot name="heading-action"></slot>
         </div>`
@@ -651,6 +705,11 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
     return html`
       <hass-tabs-subpage
+        style=${styleMap({
+          "--sidepane-width": this._paneWidth
+            ? `${this._paneWidth}px`
+            : undefined,
+        })}
         .isWide=${this.isWide}
         .backPath=${this.backPath}
         .backCallback=${this.backCallback}
@@ -750,6 +809,17 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   <div class="pane-content">
                     <slot name="filter-pane"></slot>
                   </div>
+                  <ha-split-divider
+                    class="pane-divider"
+                    .value=${this._paneWidth ?? PANE_DEFAULT_WIDTH}
+                    .min=${PANE_MIN_WIDTH}
+                    .max=${this._paneMaxWidth}
+                    .defaultValue=${PANE_DEFAULT_WIDTH}
+                    .label=${localize(
+                      "ui.components.subpage-data-table.resize_filters"
+                    )}
+                    @split-divider-move=${this._paneResized}
+                  ></ha-split-divider>
                 </div>`
             : nothing
         }
@@ -974,11 +1044,71 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   private _toggleFilters() {
     this.showFilters = !this.showFilters;
+    this._storeLayout();
   }
 
   private _closeFilters = () => {
     this.showFilters = false;
+    this._storeLayout();
   };
+
+  private get _layoutKey(): string | undefined {
+    const prefix = this.route?.prefix;
+    return prefix ? `list-layout:${prefix}` : undefined;
+  }
+
+  // Applies what was kept for this page once, and again if the page changes
+  private _loadLayout() {
+    const key = this._layoutKey;
+    if (!key || key === this._layoutKeyLoaded) {
+      return;
+    }
+    this._layoutKeyLoaded = key;
+    const stored = parseStoredState(safeGetStored<unknown>(key));
+    if (stored) {
+      this._paneWidth = stored.size || undefined;
+      this.showFilters = stored.collapsed === "";
+    }
+    this._summaryHidden = safeGetStored<unknown>(`${key}:summary`) === "hidden";
+  }
+
+  private _storeLayout() {
+    const key = this._layoutKey;
+    if (!key) {
+      return;
+    }
+    safeSetStored(key, {
+      size: this._paneWidth ?? PANE_DEFAULT_WIDTH,
+      collapsed: this.showFilters ? "" : "start",
+    });
+  }
+
+  private _toggleSummary() {
+    this._summaryHidden = !this._summaryHidden;
+    const key = this._layoutKey;
+    if (key) {
+      safeSetStored(`${key}:summary`, this._summaryHidden ? "hidden" : "shown");
+    }
+  }
+
+  private _paneResized(ev: CustomEvent<SplitDividerMoveDetail>) {
+    ev.stopPropagation();
+    const { size, committed } = ev.detail;
+    // While dragging only the CSS variable moves; the size is kept on release
+    this._page?.style.setProperty("--sidepane-width", `${size}px`);
+    if (committed) {
+      this._paneWidth = size;
+      this._storeLayout();
+    }
+  }
+
+  private get _paneMaxWidth(): number {
+    return clampSize(
+      Math.floor(this.offsetWidth / 2),
+      PANE_MIN_WIDTH,
+      PANE_MAX_WIDTH
+    );
+  }
 
   private _sortingChanged(ev) {
     this._sortDirection = ev.detail.direction;
@@ -1228,6 +1358,51 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       height: 100%;
       display: flex;
       flex-direction: column;
+      position: relative;
+    }
+    /* The handle sits on the inner edge of the pane, over its border */
+    .pane-divider {
+      position: absolute;
+      inset-block: 0;
+      inset-inline-end: 0;
+      --ha-split-divider-size: 10px;
+    }
+    .summary-row {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+    }
+    .summary-row p {
+      min-width: 0;
+    }
+    .summary-toggle {
+      position: relative;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      margin-top: var(--ha-space-1);
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: none;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      --mdc-icon-size: 20px;
+    }
+    /* A small button with a 44 pixel touch area */
+    .summary-toggle::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+    }
+    .summary-toggle:hover {
+      color: var(--primary-color);
+    }
+    .summary-toggle:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
     }
     /* Footer row under the list, only when the page sets footer-text or
        footer-select. The list gives up the row's height. */

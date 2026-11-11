@@ -664,3 +664,51 @@ async def test_user_store_concurrent_load_error(
     # After error, retry should work
     store = await async_user_store(hass, hass_admin_user.id)
     assert store.data == {}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {},
+        {"name": "Cabin", "logo": {"kind": "mark", "mark": "heart"}},
+        {"logo": {"kind": "image", "dataUrl": "data:image/png;base64,AAAA"}},
+    ],
+)
+async def test_set_system_data_accepts_identity(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, value: dict[str, Any]
+) -> None:
+    """A small identity shaped like the app writes it is stored."""
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": "frontend/set_system_data", "key": "identity", "value": value}
+    )
+    assert (await client.receive_json())["success"]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "text",
+        ["list"],
+        {"name": 5},
+        {"extra": "field"},
+        {"logo": "text"},
+        {"logo": {"kind": "image", "dataUrl": "A" * 300_000}},
+        {"name": "A" * 300_000},
+    ],
+)
+async def test_set_system_data_refuses_bad_identity(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, value: Any
+) -> None:
+    """An oversized or oddly shaped identity is refused and nothing is stored."""
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": "frontend/set_system_data", "key": "identity", "value": value}
+    )
+    res = await client.receive_json()
+    assert not res["success"]
+    assert res["error"]["code"] == "invalid_format"
+    await client.send_json_auto_id(
+        {"type": "frontend/get_system_data", "key": "identity"}
+    )
+    assert (await client.receive_json())["result"]["value"] is None

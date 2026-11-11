@@ -45,9 +45,11 @@ import {
   kindLabel,
   normalizeAppearance,
 } from "../../common/appearance/element-appearance";
+import { appearanceSync } from "../../common/appearance/appearance-sync";
 import { consume } from "../../common/decorators/consume";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { internationalizationContext } from "../../data/context";
+import "../instance-sync/ha-instance-sync-status";
 import "../ha-svg-icon";
 import "./ha-appearance-color-picker";
 
@@ -167,6 +169,9 @@ export class HaAppearanceEditor extends LitElement {
       this._load();
     }
   }
+
+  private _syncLocalize = (key: string): string =>
+    this._i18n?.localize(key as LocalizeKeys) || key;
 
   private _l(key: string, values?: Record<string, string | number>): string {
     return (
@@ -337,6 +342,10 @@ export class HaAppearanceEditor extends LitElement {
           <span class="note"
             >${this._l("saved_note", { count: appearanceChoiceCount() })}</span
           >
+          <ha-instance-sync-status
+            .sync=${appearanceSync}
+            .localize=${this._syncLocalize}
+          ></ha-instance-sync-status>
           <button
             class="text"
             ?disabled=${isEmptyAppearance(this._appearance)}
@@ -1245,6 +1254,10 @@ export class HaAppearanceEditor extends LitElement {
     .note {
       flex: 1 1 100%;
       white-space: normal;
+    }
+    ha-instance-sync-status {
+      flex: 1 1 100%;
+      font-size: var(--ha-font-size-s);
     }
     .body {
       flex: 1;

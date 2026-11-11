@@ -182,10 +182,19 @@ export const updateMinecraftServer = (
     server: minecraftDraftPayload(draft),
   });
 
-export const deleteMinecraftServer = (hass: HomeAssistant, serverId: string) =>
-  hass.callWS<null>({
+/**
+ * Removes the stored definition. It is refused while the container exists;
+ * `force` only skips a host that cannot be reached to check.
+ */
+export const deleteMinecraftServer = (
+  hass: HomeAssistant,
+  serverId: string,
+  force = false
+) =>
+  hass.callWS<MinecraftResult<{ ok: true }>>({
     type: "minecraft_manager/delete",
     server_id: serverId,
+    force,
   });
 
 /** The EULA page the person has to accept. Shown as text, never opened here. */
@@ -227,18 +236,43 @@ export const emptyMinecraftHostDraft = (): MinecraftHostDraft => ({
   user: "",
 });
 
+const NUMERIC_LABEL_PATTERN = /^(0[xX][0-9A-Fa-f]*|\d+)$/;
+
 const isValidAddress = (value: string): boolean => {
-  if (!value || value.length > 253) {
+  if (!value || value.length > 253 || value.includes("%")) {
     return false;
   }
   const v4 = IPV4_PATTERN.exec(value);
   if (v4) {
-    return v4.slice(1).every((part) => Number(part) <= 255);
+    return v4
+      .slice(1)
+      .every((part) => Number(part) <= 255 && !/^0\d/.test(part));
   }
   if (value.includes(":")) {
     return IPV6_PATTERN.test(value) && value.length >= 2;
   }
-  return HOSTNAME_PATTERN.test(value) && !/^[\d.]+$/.test(value);
+  // A real name ends in a label that is not a number, so 0x7f.1 is refused.
+  return (
+    HOSTNAME_PATTERN.test(value) &&
+    !NUMERIC_LABEL_PATTERN.test(value.slice(value.lastIndexOf(".") + 1))
+  );
+};
+
+/** Loopback, link-local, unspecified and the name localhost are refused. */
+const isForbiddenTarget = (value: string): boolean => {
+  const name = value.toLowerCase().replace(/\.$/, "");
+  if (name === "localhost" || name.endsWith(".localhost")) {
+    return true;
+  }
+  if (IPV4_PATTERN.test(name)) {
+    return /^(127\.|169\.254\.|0\.)/.test(name);
+  }
+  if (!name.includes(":")) {
+    return false;
+  }
+  return (
+    /^(::1?|0*:0*:0*:0*:0*:0*:0*:[01])$/.test(name) || /^fe[89ab]/.test(name)
+  );
 };
 
 /** The same rules the server applies; the server remains the authority. */
@@ -259,6 +293,8 @@ export const validateMinecraftHostDraft = (
     errors.push({ field: "address", code: "required" });
   } else if (!isValidAddress(address)) {
     errors.push({ field: "address", code: "invalid_address" });
+  } else if (isForbiddenTarget(address)) {
+    errors.push({ field: "address", code: "address_not_allowed" });
   }
   if (
     !isInt(draft.port) ||
@@ -276,9 +312,19 @@ export const validateMinecraftHostDraft = (
   return errors;
 };
 
-/** The one line that lets this instance sign in: add it to authorized_keys. */
-export const authorizedKeysCommand = (publicKey: string): string =>
-  `echo '${publicKey}' >> ~/.ssh/authorized_keys`;
+/**
+ * The command that lets this instance sign in. It creates ~/.ssh with mode
+ * 700, starts the entry on a new line, and adds `restrict` so the key cannot
+ * forward ports or agents or open a terminal. It can still run commands.
+ */
+export const authorizedKeysCommand = (publicKey: string): string => {
+  const entry = `restrict ${publicKey}`.replace(/'/g, "'\\''");
+  return (
+    "mkdir -p ~/.ssh && chmod 700 ~/.ssh && " +
+    `printf '\\n%s\\n' '${entry}' >> ~/.ssh/authorized_keys && ` +
+    "chmod 600 ~/.ssh/authorized_keys"
+  );
+};
 
 export interface MinecraftHostSaveResult {
   saved: boolean;
@@ -295,6 +341,10 @@ export interface MinecraftFailure {
 export interface MinecraftProbeResult {
   ok: true;
   fingerprint: string;
+  /** The key type the host presented, such as ssh-ed25519. */
+  algorithm: string;
+  /** The type in /etc/ssh/ssh_host_<type>_key.pub, when it is known. */
+  key_file_type: string | null;
   status: "new" | "match" | "changed";
   trusted_fingerprint: string | null;
 }

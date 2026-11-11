@@ -1,6 +1,6 @@
 import { ResizeController } from "@lit-labs/observers/resize-controller";
 import { ContextProvider } from "@lit/context";
-import { mdiEyeOff, mdiViewGridPlus } from "@mdi/js";
+import { mdiCardPlusOutline, mdiEyeOff, mdiViewGridPlus } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -14,6 +14,11 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-ripple";
 import "../../../components/ha-sortable";
 import "../../../components/ha-svg-icon";
+import "../../../components/starting-points/ha-starting-points";
+import type {
+  StartingPoint,
+  StartingPointSelectedDetail,
+} from "../../../components/starting-points/ha-starting-points";
 import { maxColumnsContext } from "../common/context";
 import type { LovelaceViewElement } from "../../../data/lovelace";
 import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
@@ -27,6 +32,7 @@ import type { HomeAssistant } from "../../../types";
 import type { HuiBadge } from "../badges/hui-badge";
 import type { HuiCard } from "../cards/hui-card";
 import "../components/hui-section-edit-mode";
+import { showCreateCardDialog } from "../editor/card-editor/show-create-card-dialog";
 import { addSection } from "../editor/config-util";
 import type { LovelacePath } from "../editor/lovelace-path";
 import { getAtPath, moveAtPath } from "../editor/lovelace-path";
@@ -265,6 +271,18 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
               `
             : nothing
         }
+        ${
+          editMode && !this.isStrategy && !sections.length
+            ? html`<ha-starting-points
+                class="starting-points"
+                .heading=${this.hass.localize(
+                  "ui.components.starting_points.view_heading"
+                )}
+                .items=${this._startingPoints(this.hass.localize)}
+                @starting-point-selected=${this._startingPointSelected}
+              ></ha-starting-points>`
+            : nothing
+        }
         <div class="container">
           <ha-sortable
             .disabled=${!editMode}
@@ -473,6 +491,53 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
     );
   }
 
+  private _startingPoints = memoizeOne(
+    (localize: HomeAssistant["localize"]): StartingPoint[] => [
+      {
+        id: "section",
+        title: localize("ui.components.starting_points.view_section_title"),
+        description: localize(
+          "ui.components.starting_points.view_section_description"
+        ),
+        icon: mdiViewGridPlus,
+      },
+      {
+        id: "cards",
+        title: localize("ui.components.starting_points.view_cards_title"),
+        description: localize(
+          "ui.components.starting_points.view_cards_description"
+        ),
+        icon: mdiCardPlusOutline,
+      },
+    ]
+  );
+
+  // Both starting points add a section through the same path as the add
+  // section button; the second then opens the normal card picker for it
+  private async _startingPointSelected(
+    ev: CustomEvent<StartingPointSelectedDetail>
+  ): Promise<void> {
+    const lovelace = this.lovelace;
+    const path = this.path;
+    if (!lovelace || !path) {
+      return;
+    }
+    const index = this._config?.sections?.length ?? 0;
+    const newConfig = addSection(
+      lovelace.config,
+      path,
+      generateDefaultSection(this.hass.localize, true)
+    );
+    await lovelace.saveConfig(newConfig);
+    if (ev.detail.id === "cards") {
+      showCreateCardDialog(this, {
+        lovelaceConfig: newConfig,
+        saveConfig: lovelace.saveConfig,
+        path: [...path, "sections", index, "cards"],
+      });
+    }
+  }
+
   private _createSection(): void {
     showCreateSectionDialog(this, {
       lovelace: this.lovelace!,
@@ -560,6 +625,10 @@ export class SectionsView extends LitElement implements LovelaceViewElement {
         :host {
           --column-gap: var(--narrow-column-gap);
         }
+      }
+
+      .starting-points {
+        margin: var(--ha-space-4, 16px) 0;
       }
 
       .wrapper {

@@ -5,6 +5,7 @@ import "../../layouts/hass-subpage";
 import type { RefreshToken } from "../../data/refresh_token";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant, Route } from "../../types";
+import { AUTHENTICATOR_MODULE_ID } from "./ha-authenticator-card";
 import "./ha-change-password-card";
 import "./ha-long-lived-access-tokens-card";
 import "./ha-mfa-modules-card";
@@ -61,9 +62,12 @@ class HaProfileSectionSecurity extends LitElement {
                     `
                   : ""
               }
+              <ha-authenticator-card .hass=${this.hass}></ha-authenticator-card>
               <ha-mfa-modules-card
                 .hass=${this.hass}
-                .mfaModules=${this.hass.user!.mfa_modules}
+                .mfaModules=${this.hass.user!.mfa_modules.filter(
+                  (module) => module.id !== AUTHENTICATOR_MODULE_ID
+                )}
               ></ha-mfa-modules-card>
               <ha-passkeys-card .hass=${this.hass}></ha-passkeys-card>
             </div>

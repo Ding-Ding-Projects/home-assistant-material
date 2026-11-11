@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Callable, Coroutine
 from functools import wraps
+import json
 from typing import Any
 
 import probatio
@@ -20,6 +21,26 @@ DATA_STORAGE: HassKey[dict[str, asyncio.Future[UserStore]]] = HassKey(
 DATA_SYSTEM_STORAGE: HassKey[SystemStore] = HassKey("frontend_system_storage")
 STORAGE_VERSION_USER_DATA = 1
 STORAGE_VERSION_SYSTEM_DATA = 1
+
+IDENTITY_KEY = "identity"
+IDENTITY_MAX_CHARS = 300_000
+IDENTITY_FIELDS = {"name", "shortName", "logo", "accent"}
+
+
+def _valid_identity(value: Any) -> bool:
+    """Return True if the value is a small identity shaped like the app writes it."""
+    if not isinstance(value, dict) or not value.keys() <= IDENTITY_FIELDS:
+        return False
+    for key in ("name", "shortName", "accent"):
+        if key in value and not isinstance(value[key], str):
+            return False
+    if "logo" in value:
+        logo = value["logo"]
+        if not isinstance(logo, dict) or not all(
+            isinstance(item, str) for item in logo.values()
+        ):
+            return False
+    return len(json.dumps(value, ensure_ascii=False)) <= IDENTITY_MAX_CHARS
 
 
 async def async_setup_frontend_storage(hass: HomeAssistant) -> None:
@@ -281,6 +302,9 @@ async def websocket_set_system_data(
     store: SystemStore,
 ) -> None:
     """Handle set system data command."""
+    if msg["key"] == IDENTITY_KEY and not _valid_identity(msg["value"]):
+        connection.send_error(msg["id"], "invalid_format", "Not a valid identity")
+        return
     await store.async_set_item(msg["key"], msg["value"])
     connection.send_result(msg["id"])
 

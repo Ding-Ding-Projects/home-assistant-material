@@ -22,6 +22,10 @@ import type { CloudStatus } from "../../../data/cloud";
 import { subscribeConfigEntries } from "../../../data/config_entries";
 import type { RouterOptions } from "../../../layouts/hass-router-page";
 import { HassRouterPage } from "../../../layouts/hass-router-page";
+import {
+  releaseBackupActivity,
+  reportBackupManagerEvent,
+} from "../../../common/activity/activity-backup-bridge";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
@@ -100,6 +104,7 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
   }
 
   public disconnectedCallback() {
+    releaseBackupActivity();
     this._debouncedFetchBackupAgents.cancel();
     super.disconnectedCallback();
   }
@@ -201,6 +206,7 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
         const curState = this._manager.manager_state;
 
         this._manager = event;
+        reportBackupManagerEvent(this.hass, event);
         if (
           event.manager_state === "idle" &&
           event.manager_state !== curState

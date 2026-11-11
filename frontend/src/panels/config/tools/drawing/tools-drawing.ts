@@ -1637,7 +1637,9 @@ class ToolsDrawing extends LitElement {
         }
         .stage {
           position: relative;
-          height: min(70vh, 640px);
+          /* Leaves room under the stage for the page header, the title and the
+             toolbar, so the tools are on screen without scrolling. */
+          height: clamp(280px, calc(100vh - 400px), 640px);
           min-height: 280px;
           overflow: hidden;
           border-radius: var(--ha-border-radius-3xl);

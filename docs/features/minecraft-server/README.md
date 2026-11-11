@@ -40,21 +40,24 @@ The validation rules live in `validation.py` and `host_validation.py` on the ser
 
 ## SSH hosts
 
-A host has a name, an address (host name or IP), a port, and a user. Authentication is by key only. There is no password path.
+A host has a name, an address (a dotted decimal IPv4 address, a plain IPv6 literal or a real host name), a port, and a user. Authentication is by key only. There is no password path. Scoped addresses (`%`), hexadecimal and other numeric forms such as `0x7f.1`, and addresses that point at this machine or its own link (loopback, link-local, unspecified, and the name `localhost`) are refused when a host is created and again before a stored host is probed, trusted or tested. A host name that resolves to such an address is not detected.
 
-1. Creating a host makes an ed25519 key pair for it. The private key is written to `<config>/minecraft_manager/keys/<host id>.key` with permissions `0600` (the folder is `0700`), is never stored in the host record, never returned by any command, and never logged. The page shows the public key, a copy button, and the one line to add to `authorized_keys` on the host.
+1. Creating a host makes an ed25519 key pair for it. The private key is written to `<config>/minecraft_manager/keys/<host id>.key` with permissions `0600` (the folder is `0700`), is never stored in the host record, never returned by any command, and never logged. The private key lives in the configuration folder, so it is included in any backup of that folder; keep those backups private. If the folder cannot hold owner-only permissions (a mount where `chmod` does nothing) the key is removed again and creating the host fails with `key_permissions`; reading a key that cannot be tightened fails the same way. The record is saved after the key file is written, and the key file is removed again when the save fails. The page shows the public key, a copy button, and one command for the host: it creates `~/.ssh` with mode 700, adds the key on a new line of `authorized_keys` with the `restrict` option (no port or agent forwarding and no terminal, commands still run), and sets the file to mode 600. The page warns that an account allowed to run Docker is equal to root on that host, so use a dedicated user.
 2. Host key trust on first use: the person presses "Read the host key", sees its SHA-256 fingerprint, compares it with what the host shows, and confirms. The key is read again on confirmation and stored only if it still matches the confirmed fingerprint.
-3. Every later connection accepts only the stored key. A changed key is refused with `host_key_changed`. The person can replace the stored key with a deliberate, separate action that again shows the new fingerprint.
+3. Every later connection accepts only the stored key. A changed key is refused with `host_key_changed`; so is a host that now offers only a different key type than the trusted one (the failed key exchange is followed by a read of what the host offers). A stored key line that cannot be read fails with `host_key_invalid`. The probe shows the key type that was presented and names the matching `/etc/ssh/ssh_host_<type>_key.pub` file to compare with. The person can replace the stored key with a deliberate, separate action that names the host, shows both fingerprints, says what replacing means, and asks for confirmation.
 4. Changing a host's address or port drops its stored key, so trust is never carried to a different machine.
 5. "Test connection" signs in and reports the Docker version and whether this user can run Docker.
+6. Deleting a host deletes its key pair here only. Nothing on the host changes, so the person must remove the line from `authorized_keys` on the host; the confirmation says so.
 
-The SSH library is `asyncssh`, which core already ships. OpenSSH config files, agents, passwords and keyboard-interactive sign-in are all disabled.
+The SSH library is `asyncssh`, which core already ships. Both the connection and the host key probe pass `config=[]`, so the instance user's own `~/.ssh/config` is never read (no `Hostname` redirect, `ProxyCommand` or `ProxyJump`), and agent forwarding, X11 forwarding, environment sending and agents are off, as are passwords and keyboard-interactive sign-in. Remote output is read in 16 KiB chunks and the channel is closed when a stream reaches the cap, so a command that prints without end costs a bounded amount of memory; the log command is also cut on the host with `head -c 65536`.
 
 ## Server container
 
 - Image: `itzg/minecraft-server:2026.11.0-java21`, fixed in `const.py` and shown on the server page. Newer Minecraft releases that need a newer Java may need a different tag; change it in `const.py` when needed. The tag is never `latest`.
-- Container name `mc-<slug of the name>`; data in the named volume `mc-<slug>-data` mounted at `/data`; label `minecraft_manager.server_id`.
-- The game port is published on the host's local network address only: the address this instance reached the host at, and only if it is private, loopback or link-local. Otherwise starting is refused (`host_not_lan`). If the address this instance reaches is not an address of the host itself (for example through NAT), Docker refuses the bind and the person sees `bind_failed`.
+- The tag pins the image; it is not a digest, and no digest is recorded.
+- Container name `mc-<slug of the name>`; data in the named volume `mc-<slug>-data` mounted at `/data`. The container and the volume both carry the label `minecraft_manager.server_id=<server id>`. The volume is created first with `docker volume create --label`. Before any start, stop, restart, remove, status or data delete, the label is read (`docker inspect --type container`, `docker volume inspect`); an object whose label is missing or names another server is never adopted, stopped, removed or deleted, and the operation fails with `not_managed` ("not created by this manager"). A volume made without the label by an earlier build is treated the same way.
+- The container is started with `--security-opt no-new-privileges`, `--pids-limit 1024`, and the `json-file` log driver limited to three files of 10 MB.
+- The game port is published on the host's local network address only: the address this instance reached the host at, and only if it is a private, loopback or link-local unicast address. Unspecified, multicast, broadcast, reserved, documentation and benchmarking ranges and scoped addresses are refused both by the start operation (`host_not_lan`) and by the command builder itself. If the address this instance reaches is not an address of the host itself (for example through NAT), Docker refuses the bind and the person sees `bind_failed`.
 - Memory: the game heap is the configured memory; the container limit adds a quarter (at least 512 MB) for the Java runtime.
 - The EULA is passed to the container only after the person accepted it for that server.
 - Changing a server's settings takes effect after the container is removed and started again; world data is kept in the volume.
@@ -63,7 +66,9 @@ Every remote command is an argument list quoted with `shlex.join`. Every value t
 
 ## Operations
 
-Start (checks the image, pulls it if missing, runs or starts the container, then checks the game port from this instance for up to 15 seconds), stop, restart, status, last N log lines (1 to 500, size capped, terminal codes removed), remove container (keeps the data; refused while running), and delete data (a separate action that requires the container to be gone and the server name typed back). Every command has a timeout. Commands for one server are serialized.
+Start (checks the image, pulls it if missing, creates the labelled volume if needed, runs or starts the container, then checks the game port from this instance for up to 15 seconds), stop, restart, status, last N log lines (1 to 500, size capped, terminal codes removed), remove container (keeps the data; refused while running), and delete data (a separate action that requires the container to be gone, the volume label to match, and the server name typed back). A container state this manager does not know is `command_failed`, never "stopped". Every command has a timeout. Commands for one server are serialized.
+
+Changing a server's name, host or target is refused while its container exists on the old host, or while that cannot be verified, so a running container is never orphaned. Deleting a definition is refused with `container_exists` while its container exists; when the host cannot be reached to check, the person is asked, and the delete can be repeated with `force`, which only skips an unreachable host.
 
 The status call opens a TCP connection to the game port from this instance and reports whether it answered. The server page shows the local network address, the port, and the full address to type into Minecraft, and says plainly when the check failed.
 
@@ -87,9 +92,9 @@ All commands require an administrator.
 
 | Command | Purpose |
 | --- | --- |
-| `minecraft_manager/targets`, `list`, `create`, `update`, `delete` | Targets and definitions, as before. `create` and `update` also check `host_id`. |
+| `minecraft_manager/targets`, `list`, `create`, `update`, `delete` | Targets and definitions. `create` and `update` also check `host_id`. `update` and `delete` hold the server's lock and check the container as described under Operations; `delete` answers `{ok: true}` or `{ok: false, code}` and takes an optional `force`. |
 | `minecraft_manager/hosts/list`, `create`, `update`, `delete` | Manage hosts. `create` returns the public key. `delete` is refused while a server uses the host. |
-| `minecraft_manager/hosts/probe` | Read the host key and compare it with the stored one (`new`, `match`, `changed`). Stores nothing. |
+| `minecraft_manager/hosts/probe` | Read the host key and compare it with the stored one (`new`, `match`, `changed`), with its algorithm and the matching key file type. Stores nothing. |
 | `minecraft_manager/hosts/trust` | Store the host key whose fingerprint was confirmed; replacing a different stored key needs `replace`. |
 | `minecraft_manager/hosts/test` | Sign in and report the Docker version. |
 | `minecraft_manager/versions/list`, `refresh` | Cached lists, and the fetch the person asked for. |
@@ -115,8 +120,8 @@ The board also shows tabs for Players, Plugins, World generator, Console and Bac
 
 ## What was and was not verified
 
-- Run: type checks, lint, formatting and the unit tests of the validation and version helpers in the interface; the Python files compile; and a real SSH round trip with the repository's own code against a throwaway `asyncssh` server (key sign-in, trust on first use, changed key refused, unknown key refused, start, status, logs, stop, remove, delete data, the private key never appearing in a result, key file modes). The Docker side of that round trip is a stand-in that answers the commands, so the real Docker behaviour, the pinned image and the `itzg` environment variables were not exercised.
-- Tests written but not run in this environment: the tests that need the Home Assistant test fixtures (websocket commands and version fetching with a mocked HTTP client). The command, validation and SSH tests ran in a container without those fixtures.
+- Run: type checks, lint, formatting and the unit tests of the validation and version helpers in the interface; the Python files compile; and a real SSH round trip with the repository's own code against a throwaway `asyncssh` server (key sign-in, trust on first use, changed key refused, a host offering only another key type, a damaged stored key, unknown key refused, a user `~/.ssh/config` with a `Hostname` redirect ignored, never-ending output bounded, a one-line 5 MB log bounded, start, status, logs, stop, remove container, delete data, foreign containers and volumes left alone, the private key never appearing in a result). The Docker side of that round trip is a stand-in that answers the commands, including `rm` and `volume create`, `inspect` and `rm`, so the real Docker behaviour, the label templates, the pinned image and the `itzg` environment variables were not exercised.
+- The websocket handlers (host trust flows, the rename, host change and delete refusals, the key permission failure) were driven directly with in-memory fakes of the websocket layer and storage, because the Home Assistant test harness could not be installed on the machine used. The tests in `test_websocket_flows.py` that use the real fixtures (each of the 22 commands refusing a non-administrator, and the same flows) were written but not run, and neither were the version-fetch tests with a mocked HTTP client.
 - Not run: any real Docker host, the real Mojang and Paper services, and the pages in a browser.
 
 ## Next slice

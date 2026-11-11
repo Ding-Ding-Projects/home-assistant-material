@@ -7,6 +7,7 @@ import {
   applyStore,
   getChoice,
   isEmptyStore,
+  notifyAppearanceChanged,
   readAppearanceStore,
   setChoice,
   writeAppearanceStore,
@@ -81,4 +82,5 @@ export const appearanceChoiceCount = (): number => {
 export const reloadAppearance = (): void => {
   store = undefined;
   applyStore(current(), tracked);
+  notifyAppearanceChanged();
 };

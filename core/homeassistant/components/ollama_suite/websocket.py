@@ -25,6 +25,8 @@ from .const import (
     OLLAMA_DOMAIN,
     PULL_EVENT_INTERVAL,
     PULL_IDLE_TIMEOUT,
+    PULL_RELEASE_TIMEOUT,
+    PULL_VERIFY_TIMEOUT,
     REQUEST_TIMEOUT,
 )
 from .data import (
@@ -237,7 +239,8 @@ async def _async_pull(
 ) -> None:
     """Download a model and send progress events until it ends."""
     last_sent = 0.0
-    last_status = None
+    last_sent_status = None
+    status = ""
 
     def send(event: dict[str, Any]) -> None:
         connection.send_message(websocket_api.event_message(msg_id, event))
@@ -249,17 +252,20 @@ async def _async_pull(
         iterator = aiter(stream)
         try:
             while True:
+                timeout = (
+                    PULL_VERIFY_TIMEOUT
+                    if status.startswith("verifying")
+                    else PULL_IDLE_TIMEOUT
+                )
                 try:
-                    item = await asyncio.wait_for(anext(iterator), PULL_IDLE_TIMEOUT)
+                    item = await asyncio.wait_for(anext(iterator), timeout)
                 except StopAsyncIteration:
                     break
                 event = shape_progress(item)
+                status = event["status"]
                 now = time.monotonic()
-                if (
-                    event["status"] != last_status
-                    or now - last_sent >= PULL_EVENT_INTERVAL
-                ):
-                    last_sent, last_status = now, event["status"]
+                if status != last_sent_status or now - last_sent >= PULL_EVENT_INTERVAL:
+                    last_sent, last_sent_status = now, status
                     send({"state": "progress", **event})
         finally:
             close = getattr(iterator, "aclose", None)
@@ -270,15 +276,18 @@ async def _async_pull(
     except Exception as err:  # noqa: BLE001
         send({"state": "error", "code": map_error(err)})
     else:
-        send({"state": "done"})
+        if status == "success":
+            send({"state": "done"})
+        else:
+            send({"state": "error", "code": "incomplete"})
 
 
 @websocket_api.websocket_command(
     {probatio.Required("type"): f"{DOMAIN}/pull", **_ENTRY, **_MODEL}
 )
 @websocket_api.require_admin
-@callback
-def ws_pull(
+@websocket_api.async_response
+async def ws_pull(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Download a model to one server. Unsubscribing cancels the download."""
@@ -290,22 +299,31 @@ def ws_pull(
     entry, client = found
     tracker = _tracker(hass)
     if not tracker.start(entry.entry_id):
-        connection.send_error(
-            msg["id"], "busy", "A download is already running on this server"
-        )
-        return
+        previous = tracker.task(entry.entry_id)
+        if previous is not None and previous.cancelling():
+            await asyncio.wait({previous}, timeout=PULL_RELEASE_TIMEOUT)
+        if not tracker.start(entry.entry_id):
+            connection.send_error(
+                msg["id"], "busy", "A download is already running on this server"
+            )
+            return
     msg_id = msg["id"]
-
-    async def run() -> None:
-        try:
-            await _async_pull(connection, msg_id, client, msg["model"])
-        finally:
-            tracker.finish(entry.entry_id)
-            connection.subscriptions.pop(msg_id, None)
-
-    task = hass.async_create_background_task(run(), f"{DOMAIN} pull {entry.entry_id}")
-    connection.subscriptions[msg_id] = task.cancel
     connection.send_result(msg_id)
+
+    task = hass.async_create_background_task(
+        _async_pull(connection, msg_id, client, msg["model"]),
+        f"{DOMAIN} pull {entry.entry_id}",
+    )
+    tracker.attach(entry.entry_id, task)
+    subscription = task.cancel
+
+    def release(_: asyncio.Task[None]) -> None:
+        tracker.finish(entry.entry_id)
+        if connection.subscriptions.get(msg_id) == subscription:
+            connection.subscriptions.pop(msg_id)
+
+    task.add_done_callback(release)
+    connection.subscriptions[msg_id] = subscription
 
 
 @websocket_api.websocket_command(

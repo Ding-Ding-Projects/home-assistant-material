@@ -58,11 +58,24 @@ export interface EnergyFrontendSystemData {
   hidden_cards?: string[];
 }
 
+/**
+ * A per-account copy of a browser-side setting, wrapped with the time it was
+ * last changed. `data` is null once the person cleared it. Every reader
+ * validates `data` with the owning feature's own validator.
+ */
+export interface SyncedUserData {
+  version: 1;
+  updated: number;
+  data: unknown;
+}
+
 declare global {
   interface FrontendUserData {
     core: CoreFrontendUserData;
     sidebar: SidebarFrontendUserData;
     esphome: ESPHomeFrontendUserData;
+    personal_wording: SyncedUserData;
+    appearance: SyncedUserData;
   }
   interface FrontendSystemData {
     core: CoreFrontendSystemData;

@@ -103,7 +103,7 @@ async def _fetch_json(hass: HomeAssistant, url: str) -> Any:
         raise VersionError("fetch_failed") from err
     try:
         return json.loads(bytes(body))
-    except ValueError as err:
+    except (ValueError, RecursionError) as err:
         raise VersionError("bad_response") from err
 
 

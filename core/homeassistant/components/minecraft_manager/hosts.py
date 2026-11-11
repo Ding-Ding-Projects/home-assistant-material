@@ -56,8 +56,26 @@ def _is_usable(item: Any) -> bool:
     )
 
 
+class KeyStorageError(Exception):
+    """The key folder cannot keep a key private. The code is stable."""
+
+    def __init__(self, code: str) -> None:
+        """Keep the stable error code."""
+        super().__init__(code)
+        self.code = code
+
+
+def _is_owner_only(path: str) -> bool:
+    """Return True when no group or other permission bit is set."""
+    return not stat.S_IMODE(os.stat(path).st_mode) & 0o077
+
+
 def write_key_file(directory: str, file_name: str, data: bytes) -> str:
-    """Write a private key readable by the owner only. Blocking."""
+    """Write a private key readable by the owner only. Blocking.
+
+    The file is removed again, and an error is raised, when the folder cannot
+    hold owner-only permissions, such as a mount where chmod does nothing.
+    """
     os.makedirs(directory, mode=0o700, exist_ok=True)
     os.chmod(directory, 0o700)
     path = os.path.join(directory, file_name)
@@ -65,15 +83,19 @@ def write_key_file(directory: str, file_name: str, data: bytes) -> str:
     with os.fdopen(descriptor, "wb") as handle:
         handle.write(data)
     os.chmod(path, 0o600)
+    if not _is_owner_only(path) or not _is_owner_only(directory):
+        os.remove(path)
+        raise KeyStorageError("key_permissions")
     return path
 
 
 def read_key_file(path: str) -> asyncssh.SSHKey:
     """Read a private key, tightening its permissions first. Blocking."""
     try:
-        mode = stat.S_IMODE(os.stat(path).st_mode)
-        if mode & 0o077:
+        if not _is_owner_only(path):
             os.chmod(path, 0o600)
+            if not _is_owner_only(path):
+                raise SshError("key_permissions")
         return asyncssh.read_private_key(path)
     except (OSError, asyncssh.KeyImportError) as err:
         raise SshError("key_missing") from err
@@ -168,7 +190,12 @@ class HostStore:
             "host_key": None,
         }  # type: ignore[typeddict-item]
         self._hosts[host_id] = host
-        await self._async_save()
+        try:
+            await self._async_save()
+        except Exception:
+            self._hosts.pop(host_id, None)
+            await self._hass.async_add_executor_job(self._delete_key_file, host_id)
+            raise
         return host
 
     async def async_update(self, host_id: str, data: dict[str, Any]) -> HostDefinition:
@@ -192,9 +219,13 @@ class HostStore:
 
     async def async_remove(self, host_id: str) -> None:
         """Remove a host and delete its private key file."""
-        self._hosts.pop(host_id)
+        removed = self._hosts.pop(host_id)
+        try:
+            await self._async_save()
+        except Exception:
+            self._hosts[host_id] = removed
+            raise
         await self._hass.async_add_executor_job(self._delete_key_file, host_id)
-        await self._async_save()
 
     def _delete_key_file(self, host_id: str) -> None:
         try:

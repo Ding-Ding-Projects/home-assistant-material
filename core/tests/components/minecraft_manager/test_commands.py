@@ -7,7 +7,12 @@ import pytest
 
 from homeassistant.components.minecraft_manager import commands
 from homeassistant.components.minecraft_manager.const import MINECRAFT_IMAGE
-from homeassistant.components.minecraft_manager.host_validation import validate_host
+from homeassistant.components.minecraft_manager.host_validation import (
+    is_forbidden_target,
+    is_lan_address,
+    is_valid_address,
+    validate_host,
+)
 
 SERVER: dict[str, Any] = {
     "id": "b" * 32,
@@ -158,3 +163,134 @@ def test_valid_addresses(address: str) -> None:
     """Host names and IP literals are accepted."""
     _, errors = validate_host({**HOST, "address": address})
     assert errors == []
+
+
+def test_inspect_names_the_object_type_and_reads_the_owner() -> None:
+    """A volume called like a container is never inspected as a container."""
+    command = commands.inspect("Family survival")
+    assert command[:4] == ["docker", "inspect", "--type", "container"]
+    assert "minecraft_manager.server_id" in command[command.index("--format") + 1]
+    assert command[-1] == "mc-family-survival"
+    # The container of "foo-data" and the volume of "foo" share one name.
+    assert commands.container_name("foo-data") == commands.volume_name("foo")
+
+
+def test_volume_commands_carry_the_owner_label() -> None:
+    """The data volume is created with, and inspected for, the owner label."""
+    create = commands.volume_create("Family survival", "b" * 32)
+    assert create == [
+        "docker",
+        "volume",
+        "create",
+        "--label",
+        f"minecraft_manager.server_id={'b' * 32}",
+        "mc-family-survival-data",
+    ]
+    inspect = commands.volume_inspect("Family survival")
+    assert inspect[:3] == ["docker", "volume", "inspect"]
+    assert inspect[-1] == "mc-family-survival-data"
+    with pytest.raises(commands.CommandError):
+        commands.volume_create("Family survival", "not hex")
+
+
+def test_run_command_limits_the_container() -> None:
+    """The container cannot gain privileges, fork without end or fill the disk."""
+    command = commands.run(SERVER, "192.168.1.20")
+    assert command[command.index("--security-opt") + 1] == "no-new-privileges"
+    assert int(command[command.index("--pids-limit") + 1]) > 0
+    options = [command[i + 1] for i, item in enumerate(command) if item == "--log-opt"]
+    assert options == ["max-size=10m", "max-file=3"]
+    assert command[command.index("--label") + 1] == (
+        f"minecraft_manager.server_id={SERVER['id']}"
+    )
+
+
+@pytest.mark.parametrize(
+    "bind",
+    [
+        "0.0.0.0",
+        "::",
+        "255.255.255.255",
+        "224.0.0.1",
+        "ff02::1",
+        "240.0.0.1",
+        "192.0.2.5",
+        "198.51.100.7",
+        "203.0.113.9",
+        "198.18.0.1",
+        "2001:db8::1",
+        "fe80::1%eth0",
+        "::ffff:192.168.1.5",
+        "8.8.8.8",
+    ],
+)
+def test_bind_address_must_be_a_lan_unicast_address(bind: str) -> None:
+    """Special ranges, scoped addresses and public addresses are refused."""
+    with pytest.raises(commands.CommandError) as error:
+        commands.run(SERVER, bind)
+    assert error.value.code == "invalid_address"
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["192.168.1.20", "10.0.0.5", "172.16.4.4", "127.0.0.1", "169.254.1.1", "fd00::5", "fe80::1"],
+)
+def test_lan_addresses(address: str) -> None:
+    """Private, loopback and link-local unicast addresses are LAN addresses."""
+    assert is_lan_address(address)
+
+
+@pytest.mark.parametrize(
+    "address", ["", "not-an-ip", "0.0.0.0", "::", "224.0.0.1", "8.8.8.8", "192.0.2.5"]
+)
+def test_not_lan_addresses(address: str) -> None:
+    """Anything else is not."""
+    assert not is_lan_address(address)
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["0x7f.1", "0x7f.0.0.1", "127.1", "1.2.3", "010.0.0.1", "fe80::1%eth0", "a%b", "123", "0x10", "1.2.3.4.5"],
+)
+def test_numeric_and_scoped_forms_are_not_addresses(address: str) -> None:
+    """Only dotted decimal, a plain IPv6 literal or a real name is accepted."""
+    assert not is_valid_address(address)
+    _, errors = validate_host({**HOST, "address": address})
+    assert {"field": "address", "code": "invalid_address"} in errors
+
+
+@pytest.mark.parametrize(
+    "address", ["garage.local", "10.0.0.5", "fd00::5", "a1.example", "host-1", "nas2"]
+)
+def test_real_names_and_literals_are_addresses(address: str) -> None:
+    """Names and literals that no resolver reads as a number stay valid."""
+    assert is_valid_address(address)
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "127.0.0.1",
+        "127.5.5.5",
+        "::1",
+        "169.254.169.254",
+        "fe80::1",
+        "0.0.0.0",
+        "::",
+        "localhost",
+        "LOCALHOST",
+        "printer.localhost",
+        "::ffff:127.0.0.1",
+    ],
+)
+def test_host_cannot_point_at_this_machine_or_its_link(address: str) -> None:
+    """Loopback, link-local and unspecified targets are refused at creation."""
+    assert is_forbidden_target(address)
+    _, errors = validate_host({**HOST, "address": address})
+    assert {"field": "address", "code": "address_not_allowed"} in errors
+
+
+@pytest.mark.parametrize("address", ["192.168.1.20", "garage.local", "fd00::5", "8.8.8.8"])
+def test_other_targets_are_allowed(address: str) -> None:
+    """Ordinary hosts are not refused by the target rule."""
+    assert not is_forbidden_target(address)

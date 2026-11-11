@@ -4,3 +4,4 @@
 | --- | --- | --- |
 | [`passkeys.md`](passkeys.md) | Passkey sign-in | Built, exercised on a running copy |
 | [`locks.md`](locks.md) | Page, dialog and element locks, with their own credentials | Partly built |
+| [`qr-pairing.md`](qr-pairing.md) | Authenticator app on the profile page; the lock wizard QR step | Authenticator card built, not seen in a browser; QR step built in the lock wizard |

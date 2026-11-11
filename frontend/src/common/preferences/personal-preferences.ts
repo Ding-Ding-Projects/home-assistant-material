@@ -4,7 +4,16 @@ import { narrator } from "../narration/narrator";
 import { attentionModes } from "./attention-modes";
 import { focusSpotlight } from "./focus-spotlight";
 import { oneThingAtATime } from "./one-thing";
+import { applyOverlay, overlaySignature } from "./preference-schedule";
+import {
+  currentScheduleEvaluation,
+  subscribeScheduleClock,
+} from "./preference-schedule-store";
 import { safeGetStored, safeSetStored } from "./safe-storage";
+import {
+  getSharedDefaults,
+  onSharedDefaultsChanged,
+} from "./shared-preference-defaults";
 
 /**
  * Personal preferences: language mode, the two playfulness levels, action
@@ -189,9 +198,10 @@ const asName = (value: unknown, fallback: string) =>
 
 /** Fills gaps and drops anything that is not a valid stored value. */
 export const normalizePersonalPreferences = (
-  stored?: Partial<PersonalPreferences> | null
+  stored?: Partial<PersonalPreferences> | null,
+  defaults: PersonalPreferences = DEFAULT_PERSONAL_PREFERENCES
 ): PersonalPreferences => {
-  const d = DEFAULT_PERSONAL_PREFERENCES;
+  const d = defaults;
   const source: Partial<Record<keyof PersonalPreferences, unknown>> =
     stored && typeof stored === "object" ? stored : {};
   return {
@@ -259,12 +269,25 @@ export const normalizePersonalPreferences = (
   };
 };
 
-/** The choices as the person made them, before School mode is applied. */
+/**
+ * What a setting is when nobody has chosen: the built-in default, or the
+ * default the instance supplies for everyone where it gives one.
+ */
+export const getPreferenceDefaults = (): PersonalPreferences => ({
+  ...DEFAULT_PERSONAL_PREFERENCES,
+  ...getSharedDefaults(),
+});
+
+/**
+ * The choices as the person made them, before schedules and School mode are
+ * applied. A setting the person never chose reads as its default.
+ */
 export const getStoredPreferences = (): PersonalPreferences =>
   normalizePersonalPreferences(
     safeGetStored<Partial<PersonalPreferences>>(
       PERSONAL_PREFERENCES_STORAGE_KEY
-    )
+    ),
+    getPreferenceDefaults()
   );
 
 /**
@@ -333,9 +356,24 @@ export const isDeveloperToolsHidden = (
   preferences.schoolMode &&
   preferences.schoolRules.includes("hide_developer_tools");
 
-/** The stored choices as everything else in the interface reads them. */
-export const getPersonalPreferences = (): PersonalPreferences =>
-  effectivePreferences(getStoredPreferences());
+/**
+ * What the schedules give right now over these stored choices. Fields that
+ * School mode holds are left out, so School mode always wins.
+ */
+const scheduledOverlay = (stored: PersonalPreferences) =>
+  currentScheduleEvaluation(schoolHeldFields(stored)).overlay;
+
+/**
+ * The stored choices as everything else in the interface reads them: the
+ * stored choice, then schedules that apply now, then School mode on top.
+ */
+export const getPersonalPreferences = (): PersonalPreferences => {
+  const stored = getStoredPreferences();
+  return effectivePreferences(applyOverlay(stored, scheduledOverlay(stored)));
+};
+
+const overlaySignatureNow = (): string =>
+  overlaySignature(scheduledOverlay(getStoredPreferences()));
 
 /** Fired on the window when a change could not be kept in browser storage. */
 export const PERSONAL_PREFERENCES_NOT_SAVED_EVENT =
@@ -361,12 +399,26 @@ const storedAs = (value: unknown): boolean => {
 export const savePersonalPreferences = (
   change: Partial<PersonalPreferences>
 ): { preferences: PersonalPreferences; saved: boolean } => {
-  const next = normalizePersonalPreferences({
-    ...getStoredPreferences(),
-    ...change,
-  });
+  const defaults = getPreferenceDefaults();
+  const next = normalizePersonalPreferences(
+    {
+      ...getStoredPreferences(),
+      ...change,
+    },
+    defaults
+  );
+  // Only what differs from the default is kept as the person's own choice, so
+  // a setting left at the default keeps following a default the instance
+  // supplies, and going back to the default is going back to following it.
+  const chosen = Object.fromEntries(
+    (Object.keys(next) as (keyof PersonalPreferences)[])
+      .filter(
+        (key) => JSON.stringify(next[key]) !== JSON.stringify(defaults[key])
+      )
+      .map((key) => [key, next[key]])
+  );
   const saved =
-    safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, next) && storedAs(next);
+    safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, chosen) && storedAs(chosen);
   return { preferences: next, saved };
 };
 
@@ -391,13 +443,35 @@ export const resetPersonalPreferences = (): PersonalPreferences => {
   return getStoredPreferences();
 };
 
-/** Calls back when the stored choices change, in this tab or another. */
+/**
+ * Calls back when the stored choices change, in this tab or another, when the
+ * default the instance supplies changes, and when a schedule starts or stops
+ * changing a preference.
+ */
 export const subscribePersonalPreferences = (
   callback: (preferences: PersonalPreferences) => void
-): UnsubscribeFunc =>
-  getStorage().subscribeChanges(PERSONAL_PREFERENCES_STORAGE_KEY, () =>
+): UnsubscribeFunc => {
+  const unsubStored = getStorage().subscribeChanges(
+    PERSONAL_PREFERENCES_STORAGE_KEY,
+    () => callback(getPersonalPreferences())
+  );
+  const unsubShared = onSharedDefaultsChanged(() =>
     callback(getPersonalPreferences())
   );
+  let signature = overlaySignatureNow();
+  const unsubSchedule = subscribeScheduleClock(() => {
+    const next = overlaySignatureNow();
+    if (next !== signature) {
+      signature = next;
+      callback(getPersonalPreferences());
+    }
+  });
+  return () => {
+    unsubStored();
+    unsubShared();
+    unsubSchedule();
+  };
+};
 const STYLE_ID = "ha-personal-preferences";
 
 // Low stimulation shortens every animation that uses the theme's duration

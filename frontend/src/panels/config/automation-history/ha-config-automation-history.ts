@@ -59,17 +59,21 @@ import {
   testAllConditions,
 } from "../../../data/automation";
 import type {
+  AutomationArchive,
   AutomationCommit,
   AutomationPushResult,
   AutomationReposStatus,
 } from "../../../data/automation_repos";
 import {
+  describeHistoryError,
+  fetchAutomationArchives,
   fetchAutomationDiff,
   fetchAutomationHistory,
   fetchAutomationReposStatus,
   fetchAutomationVersion,
   pushAutomationRepos,
   recordAutomation,
+  restoreAutomationArchive,
   setAutomationRemote,
 } from "../../../data/automation_repos";
 import { validateConfig } from "../../../data/config";
@@ -152,6 +156,9 @@ export class HaConfigAutomationHistory extends LitElement {
   @property({ attribute: false }) public route!: Route;
 
   @state() private _status?: AutomationReposStatus;
+
+  /** Histories of deleted automations that were set aside. */
+  @state() private _archives: AutomationArchive[] = [];
 
   @state() private _rows: VersionRow[] = [];
 
@@ -273,6 +280,14 @@ export class HaConfigAutomationHistory extends LitElement {
     );
   }
 
+  private _errorText(err: unknown): string {
+    return describeHistoryError(
+      this.hass,
+      err,
+      "ui.panel.config.automation_history"
+    );
+  }
+
   // ---- Loading ----
 
   private async _load() {
@@ -315,6 +330,11 @@ export class HaConfigAutomationHistory extends LitElement {
         (a, b) => (b.timestamp ?? Infinity) - (a.timestamp ?? Infinity)
       );
       this._status = status;
+      try {
+        this._archives = (await fetchAutomationArchives(this.hass)).archives;
+      } catch (_err) {
+        this._archives = [];
+      }
       this._rows = rows;
       const known = new Set(rows.map(versionKey));
       this._selected = this._selected.filter((key) => known.has(key));
@@ -322,7 +342,7 @@ export class HaConfigAutomationHistory extends LitElement {
         status.automations.some((automation) => automation.id === id)
       );
     } catch (err: any) {
-      this._error = err?.message || String(err);
+      this._error = this._errorText(err);
     } finally {
       this._loading = false;
     }
@@ -399,7 +419,7 @@ export class HaConfigAutomationHistory extends LitElement {
             result.detail =
               err?.message === "timeout"
                 ? this._l("test_timeout", { seconds: TEST_TIMEOUT_MS / 1000 })
-                : err?.message || String(err);
+                : this._errorText(err);
           }
         }
       }
@@ -408,7 +428,7 @@ export class HaConfigAutomationHistory extends LitElement {
       result.detail =
         err?.message === "timeout"
           ? this._l("test_timeout", { seconds: TEST_TIMEOUT_MS / 1000 })
-          : err?.message || String(err);
+          : this._errorText(err);
     }
     this._results = { ...this._results, [versionKey(ref)]: result };
   }
@@ -518,7 +538,7 @@ export class HaConfigAutomationHistory extends LitElement {
           {
             alias: plan.ref.alias,
             outcome: this._l("run_failed", {
-              error: err?.message || String(err),
+              error: this._errorText(err),
             }),
           },
         ];
@@ -584,7 +604,7 @@ export class HaConfigAutomationHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     }
   }
@@ -610,7 +630,7 @@ export class HaConfigAutomationHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.body?.message || err?.message || String(err),
+        text: err?.body?.message || this._errorText(err),
       });
     }
   }
@@ -635,6 +655,32 @@ export class HaConfigAutomationHistory extends LitElement {
   }
 
   private async _push() {
+    const status = this._status;
+    const count = this._repoSelected.length
+      ? this._repoSelected.length
+      : (status?.automations.length ?? 0);
+    const remotes = [
+      status?.master.remote,
+      ...(status?.automations ?? [])
+        .filter(
+          (item) =>
+            !this._repoSelected.length || this._repoSelected.includes(item.id)
+        )
+        .map((item) => item.remote),
+    ].filter((remote): remote is string => !!remote);
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("push_confirm_title"),
+      text: remotes.length
+        ? this._l("push_confirm_text", {
+            count,
+            remotes: [...new Set(remotes)].join(", "),
+          })
+        : this._l("push_confirm_text_local", { count }),
+      confirmText: this._l("push_confirm_button"),
+    });
+    if (!confirmed) {
+      return;
+    }
     this._pushing = true;
     this._pushResult = undefined;
     try {
@@ -650,7 +696,7 @@ export class HaConfigAutomationHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._pushing = false;
@@ -669,13 +715,31 @@ export class HaConfigAutomationHistory extends LitElement {
     if (answer === null) {
       return;
     }
+    const current = this._status?.master.remote;
+    const next = answer.trim();
+    if (current && next !== current) {
+      const replace = await showConfirmationDialog(this, {
+        title: this._l(next ? "remote_replace_title" : "remote_remove_title"),
+        text: this._l(next ? "remote_replace_text" : "remote_remove_text", {
+          old: current,
+          new: next,
+        }),
+        confirmText: this._l(
+          next ? "remote_replace_button" : "remote_remove_button"
+        ),
+        destructive: true,
+      });
+      if (!replace) {
+        return;
+      }
+    }
     try {
-      await setAutomationRemote(this.hass, null, answer.trim() || null);
+      await setAutomationRemote(this.hass, null, next || null);
       await this._load();
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     }
   }
@@ -713,7 +777,7 @@ export class HaConfigAutomationHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     }
   }
@@ -792,7 +856,7 @@ export class HaConfigAutomationHistory extends LitElement {
                 >`
               : nothing
           }
-          ${this._renderMaster()}
+          ${this._renderMaster()} ${this._renderAttention()}
           <div class="repos-grid">
             ${this._renderRepositories()} ${this._renderSteps()}
           </div>
@@ -817,6 +881,81 @@ export class HaConfigAutomationHistory extends LitElement {
         </div>
       </hass-tabs-subpage>
     `;
+  }
+
+  // Automations whose last save was not committed, and the histories of
+  // deleted automations that were set aside and can be brought back.
+  private _renderAttention() {
+    const failing = (this._status?.automations ?? []).filter(
+      (item) => item.error
+    );
+    if (!failing.length && !this._archives.length) {
+      return nothing;
+    }
+    return html`
+      ${failing.map(
+        (item) =>
+          html`<ha-alert alert-type="warning" .title=${item.alias}
+            >${this._l("last_error", { error: item.error ?? "" })}</ha-alert
+          >`
+      )}
+      ${
+        this._archives.length
+          ? html`<ha-card class="archives" .header=${this._l("archives_title")}>
+              <div class="card-content">
+                <p>${this._l("archives_text")}</p>
+                ${this._archives.map(
+                  (item) => html`
+                    <div class="archive-row">
+                      <span>
+                        ${item.automation}
+                        <ha-relative-time
+                          .hass=${this.hass}
+                          .datetime=${new Date(item.archived_at * 1000)}
+                        ></ha-relative-time>
+                      </span>
+                      <ha-button
+                        size="s"
+                        appearance="plain"
+                        .archive=${item}
+                        @click=${this._restoreArchive}
+                        >${this._l("archive_restore")}</ha-button
+                      >
+                    </div>
+                  `
+                )}
+              </div>
+            </ha-card>`
+          : nothing
+      }
+    `;
+  }
+
+  private async _restoreArchive(ev: Event) {
+    const archive = (
+      ev.currentTarget as HTMLElement & { archive: AutomationArchive }
+    ).archive;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("archive_restore_title", {
+        automation: archive.automation,
+      }),
+      text: this._l("archive_restore_text", {
+        automation: archive.automation,
+      }),
+      confirmText: this._l("archive_restore"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await restoreAutomationArchive(this.hass, archive.name);
+      await this._load();
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: this._errorText(err),
+      });
+    }
   }
 
   private _commitLabel(status: AutomationReposStatus): string {
@@ -2080,6 +2219,13 @@ export class HaConfigAutomationHistory extends LitElement {
       background: var(--card-background-color);
       color: inherit;
       font: inherit;
+    }
+    .archive-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
     }
     .push-result {
       display: flex;

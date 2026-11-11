@@ -18,6 +18,7 @@ import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
+import "../../../components/layout/ha-split-panels";
 import "./ha-ollama-pull";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
@@ -299,11 +300,26 @@ class HaConfigOllama extends LitElement {
       ${
         this._servers.length
           ? html`${this._renderServers(this._servers)} ${this._renderPull()}
-              ${this._renderRunning()}
-              <div class=${classMap({ columns: !this.narrow })}>
-                ${this._renderModels()}
-                ${this._selected ? this._renderDetail() : nothing}
-              </div>`
+            ${this._renderRunning()}
+            ${
+              this._selected
+                ? html`<ha-split-panels
+                    storage-key="ollama-models"
+                    .defaultSize=${520}
+                    .minStart=${320}
+                    .minEnd=${260}
+                    .startLabel=${this._l("models")}
+                    .endLabel=${this._l("detail")}
+                  >
+                    <div slot="start" class="split-start">
+                      ${this._renderModels()}
+                    </div>
+                    <div slot="end" class="split-end">
+                      ${this._renderDetail()}
+                    </div>
+                  </ha-split-panels>`
+                : this._renderModels()
+            }`
           : this._renderEmpty()
       }
       ${this._renderNext()}
@@ -787,11 +803,15 @@ class HaConfigOllama extends LitElement {
         height: 100%;
         background: var(--primary-color);
       }
-      .columns {
-        display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-        gap: var(--ha-space-4);
-        align-items: start;
+      .split-start,
+      .split-end {
+        min-width: 0;
+      }
+      .split-start {
+        padding-inline-end: var(--ha-space-2);
+      }
+      .split-end {
+        padding-inline-start: var(--ha-space-2);
       }
       ha-input-search {
         display: block;

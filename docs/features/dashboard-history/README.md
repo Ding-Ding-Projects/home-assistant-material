@@ -184,6 +184,17 @@ limit) before it is saved. It is written back through Lovelace's own save, so
 open dashboards update, and the result carries the commit it made, so the
 page reloads when the server reports it. History is never rewritten.
 
+Error codes: `git_error`, `dashboard_not_found` (no such dashboard),
+`not_storage_dashboard` (it exists but is not edited in the interface),
+`dashboard_changed`, `save_failed` (the dashboard's own save failed),
+`current_state_not_recorded`. Restoring one tab into a dashboard that has no
+stored configuration is refused. The interface shows each known code as a
+localized sentence with the server text as detail, and offers Retry for
+`dashboard_changed`. A push no longer holds the commit queue: each dashboard
+has its own push lock, and a second push waits, then says it is still running.
+Replacing a remote asks first and says what stays on the old one. A failure at
+start-up on one dashboard no longer stops the others.
+
 ### Safety
 
 Git is run with argument lists, never a shell, with hooks disabled, signing

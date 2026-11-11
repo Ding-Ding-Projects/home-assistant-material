@@ -241,3 +241,23 @@ def test_pull_tracker_allows_one_per_server() -> None:
     assert tracker.start("two")
     tracker.finish("one")
     assert tracker.start("one")
+
+
+@pytest.mark.parametrize("value", [-1, 2**53 + 1, 10**30, True, 1.5, "7", None])
+def test_counts_outside_the_exact_range_are_dropped(value: Any) -> None:
+    """Negative, huge and non-integer counts are never passed on."""
+    item = SimpleNamespace(
+        model="m", size=value, size_vram=value, context_length=value, details=None
+    )
+    running = shape_running(SimpleNamespace(models=[item]))["running"][0]
+    listed = shape_models(SimpleNamespace(models=[item]))["models"][0]
+    assert running["size"] is None
+    assert running["size_vram"] is None
+    assert running["context_length"] is None
+    assert listed["size"] is None
+
+
+def test_count_at_the_limit_is_kept() -> None:
+    """The largest exact integer is still shown."""
+    item = SimpleNamespace(model="m", size=2**53, details=None)
+    assert shape_models(SimpleNamespace(models=[item]))["models"][0]["size"] == 2**53

@@ -12,10 +12,10 @@ from homeassistant.core import HomeAssistant, callback
 
 from . import operations
 from .const import DOMAIN
-from .host_validation import validate_host
-from .hosts import public_view
+from .host_validation import is_forbidden_target, validate_host
+from .hosts import KeyStorageError, public_view
 from .manager import DATA_MANAGER, MinecraftManager
-from .ssh import SshError, async_read_host_key
+from .ssh import SshError, async_read_host_key, host_key_file_hint
 from .versions import VersionError
 
 
@@ -60,6 +60,16 @@ def _known_host(
     return manager, host
 
 
+def _refuse_target(
+    connection: websocket_api.ActiveConnection, msg: dict[str, Any], host: Any
+) -> bool:
+    """Answer and return True when a host points at this machine or its link."""
+    if is_forbidden_target(host["address"]):
+        connection.send_result(msg["id"], operations.failure("address_not_allowed"))
+        return True
+    return False
+
+
 @websocket_api.websocket_command({probatio.Required("type"): f"{DOMAIN}/hosts/list"})
 @websocket_api.require_admin
 @callback
@@ -91,7 +101,14 @@ async def ws_hosts_create(
     if errors:
         connection.send_result(msg["id"], {"saved": False, "errors": errors})
         return
-    host = await manager.hosts.async_create(cleaned)
+    try:
+        host = await manager.hosts.async_create(cleaned)
+    except KeyStorageError as err:
+        connection.send_result(
+            msg["id"],
+            {"saved": False, "errors": [{"field": "host", "code": err.code}]},
+        )
+        return
     connection.send_result(
         msg["id"], {"saved": True, "errors": [], "host": public_view(host)}
     )
@@ -154,6 +171,8 @@ async def ws_hosts_probe(
     if (found := _known_host(hass, connection, msg)) is None:
         return
     _, host = found
+    if _refuse_target(connection, msg, host):
+        return
     try:
         info = await async_read_host_key(host["address"], host["port"])
     except SshError as err:
@@ -171,6 +190,8 @@ async def ws_hosts_probe(
         {
             "ok": True,
             "fingerprint": info.fingerprint,
+            "algorithm": info.algorithm,
+            "key_file_type": host_key_file_hint(info.algorithm),
             "status": status,
             "trusted_fingerprint": trusted["fingerprint"] if trusted else None,
         },
@@ -198,6 +219,8 @@ async def ws_hosts_trust(
     if (found := _known_host(hass, connection, msg)) is None:
         return
     manager, host = found
+    if _refuse_target(connection, msg, host):
+        return
     try:
         info = await async_read_host_key(host["address"], host["port"])
     except SshError as err:
@@ -228,6 +251,8 @@ async def ws_hosts_test(
     if (found := _known_host(hass, connection, msg)) is None:
         return
     manager, host = found
+    if _refuse_target(connection, msg, host):
+        return
     connection.send_result(msg["id"], await operations.async_test_host(manager, host["id"]))
 
 

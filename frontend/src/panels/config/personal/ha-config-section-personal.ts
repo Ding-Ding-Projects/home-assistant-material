@@ -58,6 +58,7 @@ import {
   effectivePreferences,
   FUNNY_LEVEL_MAX,
   FUNNY_LEVEL_MIN,
+  getPreferenceDefaults,
   getStoredPreferences,
   initPersonalPreferences,
   LANGUAGE_MODES,
@@ -76,6 +77,13 @@ import {
   VOLUME_MAX,
   VOLUME_MIN,
 } from "../../../common/preferences/personal-preferences";
+import { currentScheduleEvaluation } from "../../../common/preferences/preference-schedule-store";
+import type { ScheduleEvaluation } from "../../../common/preferences/preference-schedule";
+import {
+  getSharedDefaults,
+  subscribeSharedPreferenceDefaults,
+  type SharedDefaultField,
+} from "../../../common/preferences/shared-preference-defaults";
 import { searchMatcher } from "../../../common/regex/filter";
 import {
   playActionCue,
@@ -93,6 +101,9 @@ import "../../../components/ha-button-toggle-group";
 import type { HaSlider } from "../../../components/ha-slider";
 import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/input/ha-input-search";
+import "../../../components/setting-info/ha-setting-info";
+import "./ha-personal-schedules";
+import "./ha-personal-shared-defaults";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import {
   showAlertDialog,
@@ -126,6 +137,25 @@ interface Row {
   isDefault: boolean;
   reset: () => void;
 }
+
+/** The preference each row changes, for the rows that a schedule or the instance can reach. */
+const ROW_FIELD: Record<
+  string,
+  SharedDefaultField | "narratorEnabled" | "focusSpotlight"
+> = {
+  language_mode: "languageMode",
+  funny_english: "funnyEnglish",
+  funny_cantonese: "funnyCantonese",
+  dialog_emojis: "dialogEmojis",
+  one_thing: "oneThingAtATime",
+  sound_effects: "soundEffects",
+  sound_volume: "soundVolume",
+  low_stimulation: "lowStimulation",
+  time_awareness: "timeAwareness",
+  momentum: "momentum",
+  focus_spotlight: "focusSpotlight",
+  narrator_enabled: "narratorEnabled",
+};
 
 const GROUPS: GroupId[] = [
   "language",
@@ -175,9 +205,17 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _unsubs: UnsubscribeFunc[] = [];
 
+  private _unsubShared?: Promise<UnsubscribeFunc>;
+
+  /** What the schedules give right now, set before each render. */
+  private _scheduleNow?: ScheduleEvaluation;
+
   public connectedCallback() {
     super.connectedCallback();
     initPersonalPreferences();
+    if (this.hasUpdated) {
+      this._subscribeShared();
+    }
     this._prefs = getStoredPreferences();
     this._reduceMotion = getAccessibilitySettings().reduceMotion;
     this._unsubs = [
@@ -212,7 +250,18 @@ export class HaConfigSectionPersonal extends LitElement {
   };
 
   protected firstUpdated() {
+    this._subscribeShared();
     this._goToHashRow();
+  }
+
+  /** Reads the defaults the instance supplies while this page is open. */
+  private _subscribeShared() {
+    if (this._unsubShared || !this.hass?.connection) {
+      return;
+    }
+    this._unsubShared = subscribeSharedPreferenceDefaults(
+      this.hass.connection
+    ).catch(() => () => undefined);
   }
 
   private _hashChanged = () => {
@@ -255,6 +304,8 @@ export class HaConfigSectionPersonal extends LitElement {
     window.clearTimeout(this._voiceTimer);
     this._unsubs.forEach((unsub) => unsub());
     this._unsubs = [];
+    this._unsubShared?.then((unsub) => unsub());
+    this._unsubShared = undefined;
   }
 
   /** Short text: both languages share a line, joined by a dot. */
@@ -451,7 +502,7 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _rows(): Row[] {
     const p = this._prefs;
-    const d = DEFAULT_PERSONAL_PREFERENCES;
+    const d = getPreferenceDefaults();
     const held = schoolHeldFields(p);
     const schoolName = p.schoolName;
     const silence = silenceReason(p);
@@ -932,6 +983,12 @@ export class HaConfigSectionPersonal extends LitElement {
     ];
   }
 
+  protected willUpdate() {
+    this._scheduleNow = currentScheduleEvaluation(
+      schoolHeldFields(this._prefs)
+    );
+  }
+
   protected render(): TemplateResult {
     const matches = searchMatcher(this._filter);
     const rows = this._rows().filter((row) =>
@@ -942,6 +999,13 @@ export class HaConfigSectionPersonal extends LitElement {
     const groups = GROUPS.filter((group) =>
       rows.some((row) => row.group === group)
     );
+    const showSchedules = matches(
+      this._t("schedules.title"),
+      this._t("schedules.note")
+    );
+    const showShared =
+      !!this.hass.user?.is_admin &&
+      matches(this._t("shared.title"), this._t("shared.note"));
     return html`
       <hass-subpage
         back-path="/config"
@@ -979,7 +1043,7 @@ export class HaConfigSectionPersonal extends LitElement {
           <div class="layout">
             <div class="pin">
               ${
-                groups.length
+                groups.length || showSchedules || showShared
                   ? html`<nav
                       class="groups"
                       aria-label=${this._t("groups_label")}
@@ -997,6 +1061,30 @@ export class HaConfigSectionPersonal extends LitElement {
                             )}
                           </button>`
                       )}
+                      ${
+                        showSchedules
+                          ? html`<button
+                              type="button"
+                              class="group-link"
+                              data-group="schedules"
+                              @click=${this._scrollToGroup}
+                            >
+                              ${this._t("schedules.title")}
+                            </button>`
+                          : nothing
+                      }
+                      ${
+                        showShared
+                          ? html`<button
+                              type="button"
+                              class="group-link"
+                              data-group="shared"
+                              @click=${this._scrollToGroup}
+                            >
+                              ${this._t("shared.title")}
+                            </button>`
+                          : nothing
+                      }
                     </nav>`
                   : nothing
               }
@@ -1004,10 +1092,30 @@ export class HaConfigSectionPersonal extends LitElement {
             </div>
             <div class="groups-list">
               ${
-                rows.length
-                  ? GROUPS.map((group) =>
+                rows.length || showSchedules || showShared
+                  ? html`${GROUPS.map((group) =>
                       this._renderGroup(group, rows, searching)
-                    )
+                    )}
+                    ${
+                      showSchedules
+                        ? html`<div id="group-schedules">
+                            <ha-personal-schedules
+                              .hass=${this.hass}
+                              .narrow=${this.narrow}
+                              .prefs=${this._prefs}
+                            ></ha-personal-schedules>
+                          </div>`
+                        : nothing
+                    }
+                    ${
+                      showShared
+                        ? html`<div id="group-shared">
+                            <ha-personal-shared-defaults
+                              .hass=${this.hass}
+                            ></ha-personal-shared-defaults>
+                          </div>`
+                        : nothing
+                    }`
                   : html`<p class="empty" role="status">
                       ${this._play(
                         "ui.personal_prefs.playful.personal_search_empty",
@@ -1059,22 +1167,122 @@ export class HaConfigSectionPersonal extends LitElement {
     `;
   }
 
+  /** A value of a setting as words. */
+  private _fieldValueText(field: string, value: unknown): string {
+    if (field === "languageMode") {
+      return this._t(`language_mode.${value}`);
+    }
+    return typeof value === "boolean" ? this._onOff(value) : String(value);
+  }
+
+  /** The default the instance supplies for this row, if it gives one. */
+  private _sharedDefault(
+    row: Row
+  ): { field: string; value: unknown } | undefined {
+    const field = ROW_FIELD[row.id];
+    const shared = getSharedDefaults() as Record<string, unknown>;
+    return field && shared[field] !== undefined
+      ? { field, value: shared[field] }
+      : undefined;
+  }
+
+  /** True while a setting has no choice of its own and follows the shared default. */
+  private _followsShared(row: Row): boolean {
+    const shared = this._sharedDefault(row);
+    return (
+      !!shared &&
+      JSON.stringify(this._prefs[shared.field as keyof PersonalPreferences]) ===
+        JSON.stringify(shared.value)
+    );
+  }
+
+  /** What a schedule sets for this row right now, if one does. */
+  private _scheduledValue(row: Row): unknown {
+    const field = ROW_FIELD[row.id];
+    return field
+      ? (this._scheduleNow?.overlay as Record<string, unknown> | undefined)?.[
+          field
+        ]
+      : undefined;
+  }
+
+  /** The default as words: the shared default where there is one. */
+  private _defaultTextOf(row: Row): string {
+    const shared = this._sharedDefault(row);
+    return shared
+      ? this._t("shared_default", {
+          value: this._fieldValueText(shared.field, shared.value),
+        })
+      : row.defaultText;
+  }
+
+  /** What holds the value right now, for the information panel. */
+  private _holdingText(row: Row): string {
+    const lines: string[] = [];
+    if (row.held) {
+      lines.push(this._t("school_mode.held", { name: this._prefs.schoolName }));
+    }
+    const scheduled = this._scheduledValue(row);
+    if (scheduled !== undefined) {
+      lines.push(
+        this._t("schedules.holding_scheduled", {
+          value: this._fieldValueText(ROW_FIELD[row.id], scheduled),
+        })
+      );
+    }
+    if (this._followsShared(row)) {
+      lines.push(this._t("shared_using"));
+    }
+    return lines.join("\n");
+  }
+
+  /** Says where Reset goes back to: the shared default where there is one. */
+  private _resetText(row: Row): string {
+    return this._t(this._sharedDefault(row) ? "reset_shared" : "reset");
+  }
+
+  private _infoLabels() {
+    return {
+      button: this._t("info.button"),
+      close: this._t("info.close"),
+      what: this._t("info.what"),
+      defaultValue: this._t("info.default"),
+      reach: this._t("info.reach"),
+      holding: this._t("info.holding"),
+      holdingNothing: this._t("info.holding_nothing"),
+      openHelp: this._t("info.open_help"),
+    };
+  }
+
   private _renderRow(row: Row, searching: boolean): TemplateResult {
     const open = this._open.has(row.id);
+    const scheduled = this._scheduledValue(row);
+    const field = ROW_FIELD[row.id];
     return html`
       <div class="row" id=${row.id}>
         <div class="row-main">
-          <button
-            type="button"
-            class="row-label"
-            aria-expanded=${open ? "true" : "false"}
-            aria-controls=${`${row.id}-details`}
-            aria-label=${this._t("row_details", { name: row.label })}
-            data-row=${row.id}
-            @click=${this._toggleRow}
-          >
-            ${row.label}
-          </button>
+          <div class="row-title">
+            <button
+              type="button"
+              class="row-label"
+              aria-expanded=${open ? "true" : "false"}
+              aria-controls=${`${row.id}-details`}
+              aria-label=${this._t("row_details", { name: row.label })}
+              data-row=${row.id}
+              @click=${this._toggleRow}
+            >
+              ${row.label}
+            </button>
+            <ha-setting-info
+              .hass=${this.hass}
+              .label=${row.label}
+              .description=${this._tl(`${row.id}.description`)}
+              .defaultText=${this._defaultTextOf(row)}
+              .reach=${this._tl(`${row.id}.reach`)}
+              .holding=${this._holdingText(row)}
+              .labels=${this._infoLabels()}
+            ></ha-setting-info>
+          </div>
           <div class="row-control">${row.control}</div>
         </div>
         <span class="row-description">
@@ -1097,22 +1305,43 @@ export class HaConfigSectionPersonal extends LitElement {
             : nothing
         }
         ${
+          scheduled !== undefined
+            ? html`<span class="silent" role="status"
+                >${this._t("schedules.row_scheduled", {
+                  value: this._fieldValueText(field, scheduled),
+                  own: this._fieldValueText(
+                    field,
+                    this._prefs[field as keyof PersonalPreferences]
+                  ),
+                })}</span
+              >`
+            : nothing
+        }
+        ${
+          this._followsShared(row)
+            ? html`<span class="silent" role="status"
+                >${this._t("shared_using")}</span
+              >`
+            : nothing
+        }
+        ${
           open
             ? html`<div class="row-details" id=${`${row.id}-details`}>
                 <span class=${classMap({ reach: true, inactive: !row.active })}
                   >${this._bl(`${row.id}.reach`)}</span
                 >
                 <span class="row-default"
-                  >${this._t("default_prefix")} ${row.defaultText}</span
+                  >${this._t("default_prefix")}
+                  ${this._defaultTextOf(row)}</span
                 >
                 <ha-button
                   class="row-reset"
                   appearance="plain"
                   size="small"
                   .disabled=${row.isDefault}
-                  aria-label=${`${this._t("reset")}: ${row.label}`}
+                  aria-label=${`${this._resetText(row)}: ${row.label}`}
                   @click=${row.reset}
-                  >${this._t("reset")}</ha-button
+                  >${this._resetText(row)}</ha-button
                 >
               </div>`
             : nothing
@@ -1531,7 +1760,9 @@ export class HaConfigSectionPersonal extends LitElement {
                 ${this._t("reset_all_line", {
                   name: row.label,
                   current: row.valueText,
-                  default: this._tNoStops(`${row.id}.default`),
+                  default: this._sharedDefault(row)
+                    ? this._defaultTextOf(row)
+                    : this._tNoStops(`${row.id}.default`),
                 })}
               </li>`
           )}
@@ -1699,6 +1930,12 @@ export class HaConfigSectionPersonal extends LitElement {
       justify-content: space-between;
       gap: var(--ha-space-2) var(--ha-space-4);
     }
+    .row-title {
+      display: flex;
+      align-items: center;
+      flex: 1 1 140px;
+      min-width: 0;
+    }
     .row-label {
       border: 0;
       background: none;
@@ -1836,9 +2073,10 @@ export class HaConfigSectionPersonal extends LitElement {
     }
     .mode-cards {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
       gap: var(--ha-space-2);
       flex-basis: 100%;
+      min-width: 0;
     }
     .narrow .mode-cards {
       grid-template-columns: minmax(0, 1fr);
@@ -1859,7 +2097,9 @@ export class HaConfigSectionPersonal extends LitElement {
       border: 2px solid transparent;
       border-radius: 16px;
       cursor: pointer;
-      overflow-wrap: anywhere;
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-break: normal;
     }
     .mode-card.selected {
       background: var(--primary-color);

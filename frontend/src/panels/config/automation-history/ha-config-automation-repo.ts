@@ -44,6 +44,7 @@ import type {
   AutomationRepository,
 } from "../../../data/automation_repos";
 import {
+  describeHistoryError,
   fetchAutomationDiff,
   forgetAutomationHistory,
   fetchAutomationHistory,
@@ -154,6 +155,14 @@ export class HaConfigAutomationRepo extends LitElement {
     );
   }
 
+  private _errorText(err: unknown): string {
+    return describeHistoryError(
+      this.hass,
+      err,
+      "ui.panel.config.automation_history"
+    );
+  }
+
   protected firstUpdated(changed: PropertyValues<this>) {
     super.firstUpdated(changed);
     this._load();
@@ -205,7 +214,7 @@ export class HaConfigAutomationRepo extends LitElement {
       );
       this._commits = commits;
     } catch (err: any) {
-      this._error = err?.message || String(err);
+      this._error = this._errorText(err);
     } finally {
       this._loading = false;
     }
@@ -287,7 +296,7 @@ export class HaConfigAutomationRepo extends LitElement {
           key,
           changes: [],
           diff: "",
-          error: err?.message || String(err),
+          error: this._errorText(err),
         };
       }
     }
@@ -850,7 +859,7 @@ export class HaConfigAutomationRepo extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._busy = false;
@@ -900,7 +909,7 @@ export class HaConfigAutomationRepo extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._busy = false;
@@ -940,7 +949,7 @@ export class HaConfigAutomationRepo extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.body?.message || err?.message || String(err),
+        text: err?.body?.message || this._errorText(err),
       });
     } finally {
       this._busy = false;
@@ -974,7 +983,7 @@ export class HaConfigAutomationRepo extends LitElement {
       this._compareDiff = undefined;
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     }
   }

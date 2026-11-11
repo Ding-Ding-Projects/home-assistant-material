@@ -29,6 +29,7 @@ import {
   PRODUCT_NAME,
   readLocalIdentity,
   readSharedIdentity,
+  resetIdentity,
   SHORT_NAME_MAX_LENGTH,
   tabTitleSuffix,
   writeIdentity,
@@ -486,7 +487,30 @@ class HaConfigIdentity extends LitElement {
 
   private _renderShared(): TemplateResult | typeof nothing {
     if (!this.hass.user?.is_admin) {
-      return nothing;
+      if (isEmptyIdentity(this._shared)) {
+        return nothing;
+      }
+      return html`
+        <section class="card shared" aria-labelledby="shared-title">
+          <h2 id="shared-title">${this._l("shared_for_you_title")}</h2>
+          <p class="help">
+            ${
+              isEmptyIdentity(this._saved)
+                ? this._l("shared_in_use")
+                : this._l("shared_exists")
+            }
+          </p>
+          ${
+            isEmptyIdentity(this._saved)
+              ? nothing
+              : html`<div class="actions">
+                  <ha-button @click=${this._useShared}
+                    >${this._l("shared_use")}</ha-button
+                  >
+                </div>`
+          }
+        </section>
+      `;
     }
     const on = !isEmptyIdentity(this._shared);
     const stale =
@@ -524,6 +548,23 @@ class HaConfigIdentity extends LitElement {
         }
       </section>
     `;
+  }
+
+  private _useShared(): void {
+    const previous = tabTitleSuffix();
+    if (!resetIdentity()) {
+      showToast(this, { message: this._l("not_saved") });
+      return;
+    }
+    this._saved = readLocalIdentity();
+    this._name = "";
+    this._shortName = "";
+    this._accent = "tonal";
+    this._forgetPicture();
+    this._pictureError = undefined;
+    this._choice = this._choiceFromSaved(this._saved);
+    this._updateTitle(previous);
+    showToast(this, { message: this._l("shared_used") });
   }
 
   private async _sharedSwitch(ev: Event): Promise<void> {

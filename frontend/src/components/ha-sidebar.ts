@@ -26,6 +26,7 @@ import {
   getPanelIconPath,
   getPanelTitle,
 } from "../data/panel";
+import { activityStore } from "../common/activity/activity-store";
 import type { PersistentNotification } from "../data/persistent_notification";
 import { subscribeNotifications } from "../data/persistent_notification";
 import { subscribeRepairsIssueRegistry } from "../data/repairs";
@@ -39,6 +40,8 @@ import {
   readIdentity,
 } from "../common/identity/identity";
 import { subscribeSharedIdentity } from "../common/identity/shared-identity";
+import { startInstanceSync } from "../common/instance-sync/start-instance-sync";
+import { subscribeSharedPreferenceDefaults } from "../common/preferences/shared-preference-defaults";
 import {
   getPersonalPreferences,
   isDeveloperToolsHidden,
@@ -190,6 +193,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   @state() private _updatesCount = 0;
 
+  @state() private _activityCount = 0;
+
+  private _unsubActivities?: () => void;
+
   @state() private _issuesCount = 0;
 
   @state() private _inTools = false;
@@ -215,6 +222,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   public hassSubscribe() {
     return [
       subscribeSharedIdentity(this.hass.connection),
+      subscribeSharedPreferenceDefaults(this.hass.connection),
+      startInstanceSync(this.hass.connection),
       subscribeFrontendUserData(
         this.hass.connection,
         "sidebar",
@@ -247,6 +256,9 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   public connectedCallback() {
     super.connectedCallback();
+    this._unsubActivities ??= activityStore.subscribe(() => {
+      this._activityCount = activityStore.runningCount;
+    });
     window.addEventListener("location-changed", this._pathChanged);
     window.addEventListener("popstate", this._pathChanged);
     window.addEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
@@ -266,6 +278,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     super.disconnectedCallback();
     this._unsubPreferences?.();
     this._unsubPreferences = undefined;
+    this._unsubActivities?.();
+    this._unsubActivities = undefined;
     window.removeEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
     window.removeEventListener("location-changed", this._pathChanged);
     window.removeEventListener("popstate", this._pathChanged);
@@ -300,6 +314,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       changedProps.has("_issuesCount") ||
       changedProps.has("_inTools") ||
       changedProps.has("_notifications") ||
+      changedProps.has("_activityCount") ||
       changedProps.has("_hiddenPanels") ||
       changedProps.has("_panelOrder") ||
       changedProps.has("_contentScrolled") ||
@@ -627,9 +642,9 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   }
 
   private _renderNotifications() {
-    const notificationCount = this._notifications
-      ? this._notifications.length
-      : 0;
+    const notificationCount =
+      (this._notifications ? this._notifications.length : 0) +
+      this._activityCount;
 
     return html`
       <ha-list-item-button

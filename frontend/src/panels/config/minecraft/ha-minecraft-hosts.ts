@@ -181,7 +181,13 @@ class HaMinecraftHosts extends LitElement {
     try {
       const result = await createMinecraftHost(this.hass, this._draft);
       if (!result.saved) {
-        this._serverErrors = result.errors;
+        this._serverErrors = result.errors.filter(
+          (error) => error.field !== "host"
+        );
+        const general = result.errors.find((error) => error.field === "host");
+        if (general) {
+          this._failure = this._code(general.code);
+        }
         return;
       }
       this._host = result.host;
@@ -224,6 +230,22 @@ class HaMinecraftHosts extends LitElement {
   private async _trust(): Promise<void> {
     if (!this._host || !this._probe) {
       return;
+    }
+    if (this._probe.status === "changed") {
+      const replace = await showConfirmationDialog(this, {
+        title: this._l("replace_title", { name: this._host.name }),
+        text: this._l("replace_text", {
+          name: this._host.name,
+          stored: this._probe.trusted_fingerprint ?? "",
+          presented: this._probe.fingerprint,
+        }),
+        confirmText: this._l("replace_key"),
+        dismissText: this.hass.localize("ui.panel.config.minecraft.cancel"),
+        destructive: true,
+      });
+      if (!replace) {
+        return;
+      }
     }
     this._busy = true;
     this._failure = undefined;
@@ -521,6 +543,10 @@ class HaMinecraftHosts extends LitElement {
         ></ha-icon-button>
       </div>
       <ha-alert alert-type="info">${this._l("key_note")}</ha-alert>
+      <ha-alert alert-type="warning"
+        >${this._l("docker_root_warning")}</ha-alert
+      >
+      <ha-alert alert-type="info">${this._l("key_storage_note")}</ha-alert>
     `;
   }
 
@@ -570,7 +596,12 @@ class HaMinecraftHosts extends LitElement {
                   ? html`<ha-alert alert-type="success"
                       >${this._l("matches")}</ha-alert
                     >`
-                  : html`<p class="detail">${this._l("compare_hint")}</p>
+                  : html`<p class="detail">
+                        ${this._l("key_type", { type: probe.algorithm })}
+                        ${this._l("compare_hint", {
+                          type: probe.key_file_type ?? "<type>",
+                        })}
+                      </p>
                       <div class="row">
                         <ha-button .disabled=${this._busy} @click=${this._trust}
                           >${this._l(

@@ -27,6 +27,12 @@ import "../../../../components/ha-split-panel";
 import type { HaSplitPanel } from "../../../../components/ha-split-panel";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-tip";
+import "../../../../components/starting-points/ha-starting-points";
+import type { StartingPointSelectedDetail } from "../../../../components/starting-points/ha-starting-points";
+import {
+  templateForStartingPoint,
+  templateStartingPoints,
+} from "../../../../components/starting-points/template-starting-points";
 import type { RenderTemplateResult } from "../../../../data/ws-templates";
 import { subscribeRenderTemplate } from "../../../../data/ws-templates";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
@@ -329,10 +335,17 @@ class HaPanelDevTemplate extends LitElement {
           ${
             showEmptyState
               ? html`<div class="empty">
-                  ${this.hass.localize(
-                    "ui.panel.config.tools.tabs.templates.result_placeholder"
-                  )}
-                </div>`
+                    ${this.hass.localize(
+                      "ui.panel.config.tools.tabs.templates.result_placeholder"
+                    )}
+                  </div>
+                  <ha-starting-points
+                    .heading=${this.hass.localize(
+                      "ui.components.starting_points.heading"
+                    )}
+                    .items=${templateStartingPoints(this.hass.localize)}
+                    @starting-point-selected=${this._startingPointSelected}
+                  ></ha-starting-points>`
               : this._templateResult
                 ? html`
                     <pre class="rendered">
@@ -734,6 +747,10 @@ ${
           color: var(--secondary-text-color);
         }
 
+        .render-pane ha-starting-points {
+          margin-top: var(--ha-space-2);
+        }
+
         .rendered {
           font-family: var(--ha-font-family-code);
           -webkit-font-smoothing: var(--ha-font-smoothing);
@@ -893,6 +910,16 @@ ${
       return;
     }
     localStorage[STORAGE_KEY_TEMPLATE] = this._template;
+  }
+
+  private _startingPointSelected(ev: CustomEvent<StartingPointSelectedDetail>) {
+    const template = templateForStartingPoint(ev.detail.id);
+    if (!template) {
+      return;
+    }
+    this._template = template;
+    this._subscribeTemplate();
+    this._storeTemplate();
   }
 
   private async _restoreDemo() {

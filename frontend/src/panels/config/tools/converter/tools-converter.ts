@@ -750,7 +750,9 @@ class ToolsConverter extends LitElement {
     }).filter((item) => item.show);
     return html`
       <ha-input-search
-        .label=${this._l("search_formats", { count: total })}
+        appearance="outlined"
+        .placeholder=${this._l("search_formats", { count: total })}
+        .accessibleLabel=${this._l("search_formats", { count: total })}
         .value=${this._search}
         @input=${this._searchChanged}
       ></ha-input-search>

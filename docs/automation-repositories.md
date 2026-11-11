@@ -46,6 +46,29 @@ All are websocket commands and need an administrator.
 | `automation_repos/diff` | `automation_id`, `old`, `new` (left out: compared with now) | The difference as text |
 | `automation_repos/push` | `message`, `automation_ids` (left out: all) | What was committed, left out, and pushed |
 | `automation_repos/set_remote` | `automation_id` (left out: the master), `url` (left out: remove) | |
+| `automation_repos/record` | `automation_id`, `message` | The new commit, or the error `not_found` for an automation that is not in the file |
+| `automation_repos/archives` | | The histories of deleted automations that were set aside (`name`, `automation`, `archived_at`) |
+| `automation_repos/restore_archive` | `name` | Brings a set-aside history back; refused when that automation already has a history |
+
+Errors carry a code (`git_error`, `automations_unreadable`, `not_found`) that the interface shows as
+a localized sentence, with the server text as detail.
+
+## Losing no history
+
+- A deleted automation's repository is moved to `_removed/`, never deleted. A missing, empty or
+  id-less automations file, which a save in progress can briefly look like, archives nothing until
+  the same file state is seen again at least 15 seconds later. An automation that is loaded right
+  now is never archived, even when a truncated file leaves it out. One pass moves at most half of
+  the known repositories (at least one); the rest follows in later passes.
+- The history page lists set-aside histories and brings one back.
+- Forgetting a history renames its folder aside before deleting it, so a stopped removal never
+  leaves a half repository under the automation's name.
+- The text last recorded for each automation is remembered, so a reload starts no Git process for
+  an automation that did not change, and the status reads heads and remotes from the repository
+  files. The status also returns the reason the last save of an automation was not committed.
+- A push commits under the recorder lock, then sends outside it. Each remote has its own lock, a
+  push covers only the repositories that were ticked, and one push stops starting new sends after
+  300 seconds.
 
 ## Safety
 

@@ -14,6 +14,7 @@ from . import commands
 from .const import (
     COMMAND_TIMEOUT,
     EDITION_JAVA,
+    LOG_REMOTE_BYTES,
     MINECRAFT_IMAGE,
     PULL_TIMEOUT,
     REACHABLE_POLL_SECONDS,
@@ -40,6 +41,7 @@ _CONTROL = re.compile(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]")
 _VERSION_TEXT = re.compile(r"[0-9A-Za-z.+_\-]{1,40}")
 _STATE_TEXT = re.compile(r"[a-z]{1,20}")
 _TIME_TEXT = re.compile(r"[0-9TZ:.\-+]{1,40}")
+_OWNER_TEXT = re.compile(r"[0-9a-f]{32}")
 
 DOCKER_STATES = {
     "running": "running",
@@ -63,13 +65,20 @@ def clean_log_text(text: str) -> str:
 
 
 def parse_inspect(output: str) -> dict[str, str | None]:
-    """Parse the ``state|started|health`` line of ``docker inspect``."""
+    """Parse the ``state|started|health|owner`` line of ``docker inspect``.
+
+    A state this manager does not know is an error, never "stopped".
+    """
     parts = output.strip().split("|")
     status = parts[0] if parts and _STATE_TEXT.fullmatch(parts[0]) else ""
+    if status not in DOCKER_STATES:
+        raise commands.CommandError("command_failed")
     started = parts[1] if len(parts) > 1 and _TIME_TEXT.fullmatch(parts[1]) else None
     health = parts[2] if len(parts) > 2 and _STATE_TEXT.fullmatch(parts[2]) else None
+    owner = parts[3] if len(parts) > 3 and _OWNER_TEXT.fullmatch(parts[3]) else None
     return {
-        "state": DOCKER_STATES.get(status, "stopped"),
+        "owner": owner,
+        "state": DOCKER_STATES[status],
         "started_at": started if started and not started.startswith("0001") else None,
         "health": health,
     }
@@ -146,6 +155,8 @@ async def _status(
             "reachable": None,
         }
     info = parse_inspect(result.stdout)
+    if info.pop("owner") != server["id"]:
+        return failure("not_managed")
     reachable = None
     if info["state"] == "running":
         reachable = await async_tcp_reachable(session.peer_ip, port)
@@ -182,6 +193,32 @@ async def _wait_reachable(address: str, port: int) -> bool:
         waited += REACHABLE_POLL_SECONDS
 
 
+async def _volume_owner(
+    server: ServerDefinition, session: SshSession
+) -> Failure | str | None:
+    """Return the owner label of the data volume, None when it is missing."""
+    result = await session.run(commands.volume_inspect(server["name"]))
+    if result.exit_status != 0:
+        code = commands.classify_failure(result.exit_status, result.stderr)
+        return None if code == "volume_not_found" else failure(code)
+    return result.stdout.strip()
+
+
+async def _ensure_volume(
+    server: ServerDefinition, session: SshSession
+) -> Failure | None:
+    """Create the labelled data volume, or accept one this server already owns."""
+    owner = await _volume_owner(server, session)
+    if isinstance(owner, dict):
+        return owner
+    if owner is None:
+        created = await session.run(
+            commands.volume_create(server["name"], server["id"])
+        )
+        return _command_failed(created) if created.exit_status != 0 else None
+    return None if owner == server["id"] else failure("not_managed")
+
+
 async def async_start(
     manager: MinecraftManager, server: ServerDefinition
 ) -> dict[str, Any]:
@@ -200,6 +237,8 @@ async def async_start(
         if current["state"] == "running":
             return {**current, "already_running": True}
         if current["state"] == "absent":
+            if (problem := await _ensure_volume(server, session)) is not None:
+                return problem
             present = await session.run(commands.image_inspect())
             if present.exit_status != 0:
                 pulled = await session.run(
@@ -244,14 +283,15 @@ async def _simple(
         return failure(code)
 
     async def action(_host: HostDefinition, session: SshSession) -> dict[str, Any]:
-        if expect is not None:
-            current = await _status(server, session)
-            if not current["ok"]:
-                return current
-            if current["state"] != expect:
-                return failure(
-                    "still_running" if current["state"] == "running" else "not_running"
-                )
+        current = await _status(server, session)
+        if not current["ok"]:
+            return current
+        if current["state"] == "absent":
+            return failure("container_not_found")
+        if expect is not None and current["state"] != expect:
+            return failure(
+                "still_running" if current["state"] == "running" else "not_running"
+            )
         result = await session.run(build(server["name"]), timeout=timeout)
         if result.exit_status != 0:
             return _command_failed(result)
@@ -301,6 +341,13 @@ async def async_delete_data(
             return current
         if current["state"] != "absent":
             return failure("container_exists")
+        owner = await _volume_owner(server, session)
+        if isinstance(owner, dict):
+            return owner
+        if owner is None:
+            return failure("volume_not_found")
+        if owner != server["id"]:
+            return failure("not_managed")
         result = await session.run(commands.remove_volume(server["name"]))
         if result.exit_status != 0:
             return _command_failed(result)
@@ -319,7 +366,7 @@ async def async_logs(
 
     async def action(_host: HostDefinition, session: SshSession) -> dict[str, Any]:
         result = await session.run(
-            commands.logs(server["name"], lines), merge_stderr=True
+            commands.logs(server["name"], lines), head_bytes=LOG_REMOTE_BYTES
         )
         if result.exit_status != 0:
             return failure(
@@ -327,5 +374,26 @@ async def async_logs(
             )
         text = clean_log_text(result.stdout)
         return {"ok": True, "lines": text.splitlines()[-lines:]}
+
+    return await _with_host(manager, server.get("host_id"), action)
+
+
+async def async_container_state(
+    manager: MinecraftManager, server: ServerDefinition
+) -> str | Failure:
+    """Return ``absent`` or the state of the server's container.
+
+    A container with the server's name that this manager did not create counts
+    as present, because it would be affected by a rename or removal.
+    """
+    if server.get("target") != TARGET_SSH_DOCKER or not server.get("host_id"):
+        return "absent"
+
+    async def action(_host: HostDefinition, session: SshSession) -> str | Failure:
+        result = await session.run(commands.inspect(server["name"]))
+        if result.exit_status == 0:
+            return "present"
+        code = commands.classify_failure(result.exit_status, result.stderr)
+        return "absent" if code == "container_not_found" else failure(code)
 
     return await _with_host(manager, server.get("host_id"), action)

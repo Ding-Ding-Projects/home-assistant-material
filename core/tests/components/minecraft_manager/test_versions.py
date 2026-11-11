@@ -16,7 +16,7 @@ from homeassistant.components.minecraft_manager.versions import (
 )
 from homeassistant.core import HomeAssistant
 
-from tests.test_util.aiohttp import AiohttpClientMocker
+from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker
 
 MANIFEST: dict[str, Any] = {
     "versions": [
@@ -101,3 +101,13 @@ async def test_failed_second_host_keeps_old_cache(
     with pytest.raises(VersionError):
         await store.async_refresh()
     assert store.cached()["vanilla"] == []
+
+
+async def test_deeply_nested_json_is_a_bad_response(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """Nesting deep enough to exhaust the parser is an error, not a crash."""
+    aioclient_mock.get(MOJANG_MANIFEST_URL, content=b"[" * 200_000)
+    with pytest.raises(VersionError) as error:
+        await VersionStore(hass).async_refresh()
+    assert error.value.code == "bad_response"

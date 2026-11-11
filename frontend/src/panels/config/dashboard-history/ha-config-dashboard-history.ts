@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
+import { formatShortDateTime } from "../../../common/datetime/format_date_time";
 import { navigate } from "../../../common/navigate";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
@@ -21,6 +22,7 @@ import type {
   DashboardRepository,
   DashboardReposStatus,
 } from "../../../data/dashboard_repos";
+import { describeHistoryError } from "../../../data/automation_repos";
 import {
   CURRENT_STATE_NOT_RECORDED,
   dashboardHistoryQueryParamConfig,
@@ -123,6 +125,14 @@ export class HaConfigDashboardHistory extends LitElement {
     );
   }
 
+  private _errorText(err: unknown): string {
+    return describeHistoryError(
+      this.hass,
+      err,
+      "ui.panel.config.dashboard_history"
+    );
+  }
+
   protected firstUpdated(changed: PropertyValues<this>) {
     super.firstUpdated(changed);
     this._applyUrl();
@@ -193,7 +203,7 @@ export class HaConfigDashboardHistory extends LitElement {
         );
       }
     } catch (err: any) {
-      this._error = err?.message || String(err);
+      this._error = this._errorText(err);
     } finally {
       this._loading = false;
     }
@@ -236,7 +246,7 @@ export class HaConfigDashboardHistory extends LitElement {
           sha,
           yaml: "",
           diff: "",
-          error: err?.message || String(err),
+          error: this._errorText(err),
         };
       }
     }
@@ -913,7 +923,7 @@ export class HaConfigDashboardHistory extends LitElement {
       this._compareDiff = undefined;
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     }
   }
@@ -947,6 +957,7 @@ export class HaConfigDashboardHistory extends LitElement {
       return;
     }
     this._busy = true;
+    let retry = false;
     try {
       let result;
       try {
@@ -988,12 +999,23 @@ export class HaConfigDashboardHistory extends LitElement {
       await this._load();
       this._writeUrl();
     } catch (err: any) {
-      showAlertDialog(this, {
-        title: this._l("action_failed"),
-        text: err?.message || String(err),
-      });
+      if (err?.code === "dashboard_changed") {
+        retry = await showConfirmationDialog(this, {
+          title: this._l("action_failed"),
+          text: this._errorText(err),
+          confirmText: this._l("retry"),
+        });
+      } else {
+        showAlertDialog(this, {
+          title: this._l("action_failed"),
+          text: this._errorText(err),
+        });
+      }
     } finally {
       this._busy = false;
+    }
+    if (retry) {
+      await this._restore();
     }
   }
 
@@ -1009,6 +1031,19 @@ export class HaConfigDashboardHistory extends LitElement {
     if (!this._dashboard || this._remoteError) {
       return;
     }
+    const current = this._repository?.remote;
+    const next = this._remoteInput.trim();
+    if (current && next && next !== current) {
+      const replace = await showConfirmationDialog(this, {
+        title: this._l("remote_replace_title"),
+        text: this._l("remote_replace_text", { old: current, new: next }),
+        confirmText: this._l("remote_replace"),
+        destructive: true,
+      });
+      if (!replace) {
+        return;
+      }
+    }
     this._remoteBusy = true;
     try {
       await setDashboardRemote(
@@ -1022,7 +1057,7 @@ export class HaConfigDashboardHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._remoteBusy = false;
@@ -1051,7 +1086,7 @@ export class HaConfigDashboardHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._remoteBusy = false;
@@ -1085,7 +1120,7 @@ export class HaConfigDashboardHistory extends LitElement {
     } catch (err: any) {
       this._pushResult = {
         ok: false,
-        text: this._l("push_failed", { error: err?.message || String(err) }),
+        text: this._l("push_failed", { error: this._errorText(err) }),
       };
     } finally {
       this._pushing = false;
@@ -1097,7 +1132,16 @@ export class HaConfigDashboardHistory extends LitElement {
       ev.currentTarget as HTMLElement & { archive: DashboardArchive }
     ).archive;
     const confirmed = await showConfirmationDialog(this, {
-      title: this._l("archive_forget_title", { dashboard: archive.dashboard }),
+      title: this._l("archive_forget_title", {
+        dashboard: archive.dashboard,
+        date: archive.archived_at
+          ? formatShortDateTime(
+              new Date(archive.archived_at * 1000),
+              this.hass.locale,
+              this.hass.config
+            )
+          : this._l("archive_date_unknown"),
+      }),
       text: this._l("archive_forget_text"),
       confirmText: this._l("archive_forget"),
       destructive: true,
@@ -1112,7 +1156,7 @@ export class HaConfigDashboardHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._busy = false;
@@ -1140,7 +1184,7 @@ export class HaConfigDashboardHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._busy = false;
@@ -1176,7 +1220,7 @@ export class HaConfigDashboardHistory extends LitElement {
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
-        text: err?.message || String(err),
+        text: this._errorText(err),
       });
     } finally {
       this._busy = false;

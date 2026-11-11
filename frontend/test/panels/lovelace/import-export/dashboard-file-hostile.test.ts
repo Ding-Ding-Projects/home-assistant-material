@@ -116,6 +116,7 @@ describe("summary actions", () => {
         tap_action: {
           action: "perform-action",
           perform_action: "light.toggle",
+          target: { entity_id: "light.lamp" },
         },
       })
     );

@@ -4,13 +4,13 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
-import { isSecretFieldLike } from "../../../common/secret-fields";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-form/ha-form";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-yaml-editor";
+import "../../../components/setting-info/ha-setting-info";
 import type { HaFormSchema } from "../../../components/ha-form/types";
 import type {
   GuidedSetupApply,
@@ -362,16 +362,11 @@ export class HaGuidedSetupWizard extends LitElement {
   private _computeHelper = (schema: GuidedSetupField): string | undefined => {
     const loose = schema as any;
     const leaf = this._leaves().find((item) => item.name === loose.name);
+    // One short line under the field; the longer explanation, with the
+    // default, is in the information button for the field in the help list.
     const parts: string[] = [this._l(loose.required ? "required" : "optional")];
     if (leaf) {
       parts.push(this._msg(fieldHint(leaf)));
-    }
-    const shown = defaultText(
-      loose.default,
-      leaf?.secret ?? isSecretFieldLike(loose)
-    );
-    if (shown !== undefined) {
-      parts.push(this._l("default", { value: shown }));
     }
     return parts.join(". ");
   };
@@ -1001,23 +996,19 @@ export class HaGuidedSetupWizard extends LitElement {
       <div class="guidance">
         ${leaves.map(
           (leaf) =>
-            html`<details>
-              <summary>
-                <span>${this._labelOf(leaf)}</span>
-                <ha-svg-icon .path=${mdiChevronDown}></ha-svg-icon>
-              </summary>
-              <p>
-                ${this._l(leaf.required ? "required" : "optional")}.
-                ${this._msg(fieldHint(leaf))}
-                ${
-                  defaultText(leaf.default, leaf.secret) !== undefined
-                    ? html` ${this._l("default", {
-                        value: defaultText(leaf.default, leaf.secret)!,
-                      })}`
-                    : nothing
-                }
-              </p>
-            </details>`
+            html`<div class="guidance-row">
+              <span>${this._labelOf(leaf)}</span>
+              <ha-setting-info
+                .hass=${this.hass}
+                .label=${this._labelOf(leaf)}
+                .description=${`${this._l(leaf.required ? "required" : "optional")}. ${this._msg(fieldHint(leaf))}`}
+                .defaultText=${defaultText(leaf.default, leaf.secret) ?? ""}
+                .reach=${this.hass.localize(
+                  "ui.components.setting_info.guided_reach",
+                  { file: `guided_setup/${this.integration.domain}.yaml` }
+                )}
+              ></ha-setting-info>
+            </div>`
         )}
       </div>`;
   }
@@ -1452,12 +1443,13 @@ ${maskYaml(this._yaml, leaves, this._l("secret_mask"))}</pre>
       .review-list {
         margin-bottom: var(--ha-space-3);
       }
-      .guidance details {
+      .guidance-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ha-space-2);
         border-bottom: 1px solid var(--divider-color);
-      }
-      .guidance p {
-        margin: 0 0 var(--ha-space-2);
-        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
       }
       @media (prefers-reduced-motion: reduce) {
         * {

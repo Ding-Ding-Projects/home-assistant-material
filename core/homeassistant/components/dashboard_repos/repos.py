@@ -54,6 +54,7 @@ from homeassistant.components.automation_repos.repos import (
     dump_automation,
     mask_text,
     plain,
+    remove_tree,
 )
 
 DEFAULT_ID = "_default"
@@ -642,6 +643,7 @@ class DashboardRepositories(AutomationRepositories):
     def set_dashboard_remote(self, dashboard_id: str, url: str | None) -> None:
         """Set or remove the remote of a dashboard repository."""
         base = self._dashboard(dashboard_id)
+        self._remotes.pop(str(base), None)
         url = (url or "").strip()
         if url:
             url = check_remote(url)
@@ -670,16 +672,22 @@ class DashboardRepositories(AutomationRepositories):
             )
         if address is None or self._head(base) is None:
             raise RepositoryError("This dashboard has no remote to send to.")
-        sent = self._git(
-            base,
-            "push",
-            "--quiet",
-            "origin",
-            "HEAD:refs/heads/main",
-            f"refs/heads/{VIEW_BRANCH}/*:refs/heads/{VIEW_BRANCH}/*",
-            timeout=REMOTE_TIMEOUT,
-            check=False,
-        )
+        lock = self._remote_lock(dashboard_id)
+        if not lock.acquire(timeout=REMOTE_TIMEOUT):
+            raise RepositoryError("A push of this dashboard is still running.")
+        try:
+            sent = self._git(
+                base,
+                "push",
+                "--quiet",
+                "origin",
+                "HEAD:refs/heads/main",
+                f"refs/heads/{VIEW_BRANCH}/*:refs/heads/{VIEW_BRANCH}/*",
+                timeout=REMOTE_TIMEOUT,
+                check=False,
+            )
+        finally:
+            lock.release()
         error = None
         if sent.returncode != 0:
             detail = (sent.stderr or sent.stdout).strip().splitlines()
@@ -749,7 +757,7 @@ class DashboardRepositories(AutomationRepositories):
             aside = self.root / f"{FORGETTING_PREFIX}{path.name}-{stamp}-{number}"
         path.rename(aside)
         try:
-            shutil.rmtree(aside)
+            remove_tree(aside)
         except OSError as err:
             raise RepositoryError(
                 "Not everything could be deleted. What is left was set aside "
@@ -762,7 +770,7 @@ class DashboardRepositories(AutomationRepositories):
             return
         for item in self.root.iterdir():
             if item.name.startswith(FORGETTING_PREFIX) and not item.is_symlink():
-                shutil.rmtree(item, ignore_errors=True)
+                remove_tree(item, ignore_errors=True)
 
     def list_archives(self) -> list[dict[str, Any]]:
         """Return the histories of deleted dashboards that were set aside."""

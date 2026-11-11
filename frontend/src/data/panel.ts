@@ -92,6 +92,18 @@ export const getPanelTitleFromUrlPath = (
   return getPanelTitle(hass, panel);
 };
 
+const UNLISTED_CONFIG_PAGE_TITLES = [
+  { path: "/config/notifications", key: "ui.notification_drawer.title" },
+  {
+    path: "/config/tools/converter",
+    key: "ui.panel.config.tools.tabs.converter.title",
+  },
+  {
+    path: "/config/tools/drawing",
+    key: "ui.panel.config.tools.tabs.drawing.title",
+  },
+];
+
 /**
  * Get subpage title for config panel routes.
  * Returns the specific subpage title (e.g., "Automations") if found,
@@ -109,10 +121,33 @@ export const getConfigSubpageTitle = (
 ): string | undefined => {
   const sections = Object.entries(configSections);
 
+  // Pages that are routed but not listed as a navigation entry.
+  const unlisted = UNLISTED_CONFIG_PAGE_TITLES.find(
+    (entry) => path === entry.path || path.startsWith(`${entry.path}/`)
+  );
+  if (unlisted) {
+    const localized = hass.localize(unlisted.key as LocalizeKeys);
+    if (localized) {
+      return localized;
+    }
+  }
+
+  // A page matches its own path or a path below it, never a longer sibling
+  // that only shares a prefix (/config/person must not match /config/personal).
+  // The longest matching path wins.
+  const findNav = (pages: PageNavigation[]): PageNavigation | undefined =>
+    pages
+      .filter(
+        (nav) =>
+          path === nav.path ||
+          path.startsWith(nav.path.endsWith("/") ? nav.path : `${nav.path}/`)
+      )
+      .sort((a, b) => b.path.length - a.path.length)[0];
+
   // Prefer pages with a full translation key or a name. The dashboard
   // sections also list pages like /config/integrations under a broader title.
   for (const [, pages] of sections) {
-    const pageNav = pages.find((nav) => path.startsWith(nav.path));
+    const pageNav = findNav(pages);
     if (!pageNav) {
       continue;
     }
@@ -132,20 +167,23 @@ export const getConfigSubpageTitle = (
   // Some pages are only listed with a short translation key. Expand it the
   // same way their navigation does.
   for (const [section, pages] of sections) {
-    const shortKey = pages.find((nav) =>
-      path.startsWith(nav.path)
-    )?.translationKey;
+    const shortKey = findNav(pages)?.translationKey;
     if (!shortKey || shortKey.includes(".")) {
       continue;
     }
 
-    const translationKey =
+    const candidates =
       section === "general"
-        ? `ui.panel.config.${shortKey}.caption`
-        : `ui.panel.config.dashboard.${shortKey}.main`;
-    const localized = hass.localize(translationKey as LocalizeKeys);
-    if (localized) {
-      return localized;
+        ? [`ui.panel.config.${shortKey}.caption`]
+        : [
+            `ui.panel.config.dashboard.${shortKey}.main`,
+            `ui.panel.config.${shortKey}.caption`,
+          ];
+    for (const translationKey of candidates) {
+      const localized = hass.localize(translationKey as LocalizeKeys);
+      if (localized) {
+        return localized;
+      }
     }
   }
 

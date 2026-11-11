@@ -27,6 +27,7 @@ export const YUE_PREFIXES = [
   "ui.personal_prefs.",
   "ui.page_tabs.",
   "ui.dialogs.quick-bar.",
+  "ui.components.setting_info.",
 ] as const;
 
 export type Localize = (

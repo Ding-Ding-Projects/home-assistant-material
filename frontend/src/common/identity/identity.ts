@@ -5,6 +5,7 @@
  * the About page. Files, updates, diagnostics, the web app manifest and the
  * legal notes keep the product's own name.
  */
+import { readImageSize } from "../converter/image-size";
 import {
   limitCombiningMarks,
   stripHiddenCharacters,
@@ -121,9 +122,19 @@ export const dataUrlBytes = (url: string): number => {
   return Math.floor((data.length * 3) / 4) - padding;
 };
 
-/** True when a stored picture is an allowed type and small enough. */
+/** The longest text a stored picture may have, whatever its content. */
+export const LOGO_MAX_URL_LENGTH = Math.ceil(LOGO_MAX_BYTES / 3) * 4 + 64;
+
+/** Base64 characters read from the start of a picture to find its size. */
+const HEADER_BASE64_LENGTH = 87_384;
+
+/**
+ * True when a stored picture is an allowed type, small enough, and no larger
+ * than the logo size in pixels. The size is read from the header before
+ * anything decodes the picture.
+ */
 export const isAcceptableLogoUrl = (url: unknown): url is string => {
-  if (typeof url !== "string") {
+  if (typeof url !== "string" || url.length > LOGO_MAX_URL_LENGTH) {
     return false;
   }
   const bytes = dataUrlBytes(url);
@@ -131,16 +142,26 @@ export const isAcceptableLogoUrl = (url: unknown): url is string => {
     return false;
   }
   // The first bytes must be the type the URL says it is.
-  const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+)/.exec(
+  const match = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+)/.exec(
     url
   );
   if (!match) {
     return false;
   }
   try {
-    const head = atob(match[2].slice(0, 16));
+    const head = atob(match[2].slice(0, HEADER_BASE64_LENGTH));
     const bytesHead = Uint8Array.from(head, (char) => char.charCodeAt(0));
-    return imageTypeFromBytes(bytesHead) === match[1];
+    if (imageTypeFromBytes(bytesHead) !== `image/${match[1]}`) {
+      return false;
+    }
+    const size = readImageSize(bytesHead, match[1]);
+    return (
+      !!size &&
+      size.width > 0 &&
+      size.height > 0 &&
+      size.width <= LOGO_SIZE &&
+      size.height <= LOGO_SIZE
+    );
   } catch (_err: any) {
     return false;
   }
@@ -263,15 +284,32 @@ export const readLocalIdentity = (): Identity => {
 export const readSharedIdentity = (): Identity => sharedIdentity;
 
 /**
- * The identity in effect: this browser's own choice when it has one,
- * otherwise the one stored for everyone.
+ * The identity in effect, field by field: what this browser chose, and for
+ * every field it left open, what is stored for everyone.
  */
-export const readIdentity = (): Identity => {
-  const local = readLocalIdentity();
-  return isEmptyIdentity(local) ? sharedIdentity : local;
+export const readIdentity = (): Identity => ({
+  ...sharedIdentity,
+  ...readLocalIdentity(),
+});
+
+/** Where the name in effect is kept for the launch screen of the next visit. */
+export const LAUNCH_NAME_KEY = "ha-material-identity-launch";
+
+const cacheLaunchName = () => {
+  try {
+    const name = readIdentity().name;
+    if (name) {
+      window.localStorage.setItem(LAUNCH_NAME_KEY, name);
+    } else {
+      window.localStorage.removeItem(LAUNCH_NAME_KEY);
+    }
+  } catch (_err: any) {
+    // The launch screen then shows the product name.
+  }
 };
 
 const announce = () => {
+  cacheLaunchName();
   window.dispatchEvent(new CustomEvent(IDENTITY_CHANGED_EVENT));
 };
 

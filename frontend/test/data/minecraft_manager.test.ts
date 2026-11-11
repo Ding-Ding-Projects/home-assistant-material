@@ -154,7 +154,15 @@ describe("addresses", () => {
 
   it("builds the authorized_keys line from the public key only", () => {
     expect(authorizedKeysCommand("ssh-ed25519 AAAA comment")).toBe(
-      "echo 'ssh-ed25519 AAAA comment' >> ~/.ssh/authorized_keys"
+      "mkdir -p ~/.ssh && chmod 700 ~/.ssh && " +
+        "printf '\\n%s\\n' 'restrict ssh-ed25519 AAAA comment' >> ~/.ssh/authorized_keys && " +
+        "chmod 600 ~/.ssh/authorized_keys"
+    );
+  });
+
+  it("keeps a quote in the key comment inside the quoted entry", () => {
+    expect(authorizedKeysCommand("ssh-ed25519 AAAA it's")).toContain(
+      "'restrict ssh-ed25519 AAAA it'\\''s'"
     );
   });
 });

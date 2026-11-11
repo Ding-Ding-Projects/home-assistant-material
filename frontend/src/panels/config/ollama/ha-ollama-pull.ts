@@ -1,10 +1,17 @@
 import type { TemplateResult } from "lit";
+import type { Connection } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { trackActivityAnnouncements } from "../../../common/activity/activity-announcer";
+import {
+  finishActivity,
+  startActivity,
+  updateActivity,
+} from "../../../common/activity/activity-store";
 import { fireEvent } from "../../../common/dom/fire_event";
-import "../../../components/ha-alert";
+import "../../../components/activity/ha-recovery-card";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/input/ha-input";
@@ -27,6 +34,8 @@ interface PullRow {
   /** Bytes per second over the last few seconds, from the numbers the server sent. */
   speed?: number;
   code?: string;
+  /** The entry in the shared activity list that mirrors this row. */
+  activityId?: string;
   samples: { t: number; completed: number }[];
 }
 
@@ -58,8 +67,12 @@ class HaOllamaPull extends LitElement {
 
   private _cancel?: () => Promise<void>;
 
+  private _connection?: Connection;
+
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._connection?.removeEventListener("disconnected", this._connectionLost);
+    this._connection = undefined;
     // The download only lives as long as this page: leaving it stops it.
     this._stopActive();
   }
@@ -90,12 +103,48 @@ class HaOllamaPull extends LitElement {
     return this._rows.find((row) => row.state === "running");
   }
 
-  private _stopActive(): void {
+  private _release(): void {
     const cancel = this._cancel;
     this._cancel = undefined;
-    if (cancel) {
-      cancel().catch(() => undefined);
+    cancel?.().catch(() => undefined);
+  }
+
+  private _stopActive(): void {
+    this._release();
+    // The download stops with the page. Say so in the row and the activity
+    // list, so it does not look as if it is still running somewhere.
+    const active = this._active;
+    if (active) {
+      this._update(active.id, { state: "cancelled", speed: undefined });
+      if (active.activityId) {
+        finishActivity(active.activityId, "cancelled", {
+          message: this._l("stopped_by_leaving", { model: active.model }),
+        });
+      }
     }
+  }
+
+  private _connectionLost = (): void => {
+    const active = this._active;
+    this._release();
+    if (active) {
+      this._update(active.id, {
+        state: "error",
+        code: "cannot_connect",
+        speed: undefined,
+      });
+      this._finishActivity(active.activityId, "failed", "cannot_connect");
+    }
+  };
+
+  private _watchConnection(): void {
+    const connection = this.hass.connection;
+    if (this._connection === connection) {
+      return;
+    }
+    this._connection?.removeEventListener("disconnected", this._connectionLost);
+    this._connection = connection;
+    connection.addEventListener("disconnected", this._connectionLost);
   }
 
   private _nameChanged(ev: Event): void {
@@ -124,21 +173,57 @@ class HaOllamaPull extends LitElement {
       samples: [],
     };
     this._rows = [row, ...this._rows].slice(0, KEEP_ROWS + 1);
+    trackActivityAnnouncements(this.hass.localize);
+    row.activityId = startActivity({
+      title: this._l("activity_title", { model }),
+      kind: "download",
+      openPath: window.location.pathname,
+      cancel: () => this._cancelClicked(),
+    });
+    this._watchConnection();
+    let unsubscribe: () => Promise<void>;
     try {
-      this._cancel = await pullOllamaModel(
+      unsubscribe = await pullOllamaModel(
         this.hass,
         this.entryId,
         model,
         (event) => this._onEvent(row.id, event)
       );
     } catch (err: any) {
-      this._update(row.id, { state: "error", code: err?.code ?? "unknown" });
+      if (this._rows.find((r) => r.id === row.id)?.state === "running") {
+        this._update(row.id, { state: "error", code: err?.code ?? "unknown" });
+        this._finishActivity(row.activityId, "failed", err?.code);
+      }
       return;
     }
-    // The download may have ended before the subscription came back.
-    if (this._rows.find((r) => r.id === row.id)?.state !== "running") {
-      this._cancel = undefined;
+    // The row may have ended, or the page may have gone, while the
+    // subscription was on its way: then the download must not keep running.
+    if (
+      !this.isConnected ||
+      this._rows.find((r) => r.id === row.id)?.state !== "running"
+    ) {
+      unsubscribe().catch(() => undefined);
+      return;
     }
+    this._cancel = unsubscribe;
+  }
+
+  private _finishActivity(
+    activityId: string | undefined,
+    result: "done" | "failed" | "cancelled",
+    code?: string,
+    model?: string
+  ): void {
+    if (!activityId) {
+      return;
+    }
+    finishActivity(activityId, result, {
+      message:
+        result === "failed"
+          ? this._errorText(code)
+          : this._l(result, { model: model ?? "" }),
+      details: result === "failed" ? `code: ${code ?? "unknown"}` : undefined,
+    });
   }
 
   private _update(id: number, change: Partial<PullRow>): void {
@@ -153,13 +238,15 @@ class HaOllamaPull extends LitElement {
       return;
     }
     if (event.state === "error") {
-      this._cancel = undefined;
+      this._release();
       this._update(id, { state: "error", code: event.code });
+      this._finishActivity(row.activityId, "failed", event.code);
       return;
     }
     if (event.state === "done") {
-      this._cancel = undefined;
+      this._release();
       this._update(id, { state: "done", speed: undefined });
+      this._finishActivity(row.activityId, "done", undefined, row.model);
       fireEvent(this, "ollama-models-changed");
       return;
     }
@@ -181,6 +268,15 @@ class HaOllamaPull extends LitElement {
           ((last.completed - first.completed) * 1000) / (last.t - first.t);
       }
     }
+    if (row.activityId) {
+      updateActivity(row.activityId, {
+        status: event.status ?? row.status,
+        progress:
+          typeof event.completed === "number" && event.total
+            ? { completed: event.completed, total: event.total }
+            : undefined,
+      });
+    }
     this._update(id, {
       status: event.status ?? row.status,
       digest: event.digest,
@@ -199,12 +295,27 @@ class HaOllamaPull extends LitElement {
       return;
     }
     this._update(active.id, { state: "cancelled", speed: undefined });
+    this._finishActivity(
+      active.activityId,
+      "cancelled",
+      undefined,
+      active.model
+    );
     if (cancel) {
       try {
         await cancel();
       } catch (_err) {
         // The connection may already be closed; the download stops with it.
       }
+    }
+  }
+
+  private _retryRow(ev: Event): void {
+    const model = (ev.currentTarget as HTMLElement).dataset.model;
+    if (model) {
+      this._name = model;
+      this._touched = true;
+      void this._start();
     }
   }
 
@@ -253,7 +364,7 @@ class HaOllamaPull extends LitElement {
             ? html`<p class="note">${this._l("one_at_a_time")}</p>`
             : nothing
         }
-        <ul class="rows" aria-live="polite">
+        <ul class="rows">
           ${this._rows.map((row) => this._renderRow(row))}
         </ul>
       </div>
@@ -348,10 +459,16 @@ class HaOllamaPull extends LitElement {
               ? html`<p class="result" role="status">
                   ${this._l("cancelled", { model: row.model })}
                 </p>`
-              : html`<ha-alert alert-type="error"
-                  >${this._l("failed", { model: row.model })}
-                  ${this._errorText(row.code)}</ha-alert
-                >`
+              : html`<ha-recovery-card
+                  .hass=${this.hass}
+                  .heading=${this._l("failed", { model: row.model })}
+                  .message=${this._errorText(row.code)}
+                  .changed=${this._l("failed_changed")}
+                  .details=${`code: ${row.code ?? "unknown"}`}
+                  @recovery-retry=${this._retryRow}
+                  data-model=${row.model}
+                  .canRetry=${!this._active && !!this.entryId}
+                ></ha-recovery-card>`
       }
     </li>`;
   }

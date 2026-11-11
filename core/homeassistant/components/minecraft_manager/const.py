@@ -88,6 +88,20 @@ REACHABLE_POLL_SECONDS: Final = 2
 LOG_LINES_DEFAULT: Final = 100
 LOG_LINES_MAX: Final = 500
 LOG_MAX_CHARS: Final = 64_000
+# Remote output is read in small chunks and never kept beyond this many bytes.
+# The log command is also cut on the remote side at LOG_REMOTE_BYTES, so a
+# single enormous line never crosses the network. The client cap is a little
+# larger so the exit marker that follows the log text still arrives.
+LOG_REMOTE_BYTES: Final = 65_536
+OUTPUT_MAX_BYTES: Final = LOG_REMOTE_BYTES + 1024
+OUTPUT_CHUNK_BYTES: Final = 16_384
+
+# Label that ties a container or a volume to the server that created it.
+OWNER_LABEL: Final = "minecraft_manager.server_id"
+# Container limits.
+CONTAINER_PIDS_LIMIT: Final = 1024
+CONTAINER_LOG_MAX_SIZE: Final = "10m"
+CONTAINER_LOG_MAX_FILES: Final = "3"
 
 MOJANG_MANIFEST_URL: Final = (
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"

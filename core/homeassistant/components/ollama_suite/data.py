@@ -6,6 +6,7 @@ Nothing here talks to the network. The functions take the objects the
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from datetime import datetime
 from itertools import islice
@@ -16,6 +17,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from .const import (
+    MAX_COUNT,
     MAX_INFO_ITEMS,
     MAX_INFO_VALUE_LENGTH,
     MAX_MODELS,
@@ -111,7 +113,7 @@ def shape_models(response: Any) -> dict[str, Any]:
         {
             "name": _short(getattr(item, "model", None), 256),
             "digest": _short(getattr(item, "digest", None), 80),
-            "size": getattr(item, "size", None),
+            "size": _count(getattr(item, "size", None)),
             "modified_at": _iso(getattr(item, "modified_at", None)),
             **_details(getattr(item, "details", None)),
         }
@@ -131,9 +133,9 @@ def shape_running(response: Any) -> dict[str, Any]:
         {
             "name": _short(getattr(item, "model", None), 256),
             "digest": _short(getattr(item, "digest", None), 80),
-            "size": getattr(item, "size", None),
-            "size_vram": getattr(item, "size_vram", None),
-            "context_length": getattr(item, "context_length", None),
+            "size": _count(getattr(item, "size", None)),
+            "size_vram": _count(getattr(item, "size_vram", None)),
+            "context_length": _count(getattr(item, "context_length", None)),
             "expires_at": _iso(getattr(item, "expires_at", None)),
             **_details(getattr(item, "details", None)),
         }
@@ -203,7 +205,11 @@ def valid_listed_name(name: Any) -> bool:
 
 
 def _count(value: Any) -> int | None:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not 0 <= value <= MAX_COUNT
+    ):
         return None
     return value
 
@@ -239,6 +245,15 @@ class PullTracker:
     def __init__(self) -> None:
         """Start with no download running."""
         self._active: set[str] = set()
+        self._tasks: dict[str, asyncio.Task[None]] = {}
+
+    def attach(self, entry_id: str, task: asyncio.Task[None]) -> None:
+        """Remember the task that runs the download of a server."""
+        self._tasks[entry_id] = task
+
+    def task(self, entry_id: str) -> asyncio.Task[None] | None:
+        """Return the task of the running download of a server, if any."""
+        return self._tasks.get(entry_id)
 
     def start(self, entry_id: str) -> bool:
         """Mark a download as running. Return False if one already is."""
@@ -250,3 +265,4 @@ class PullTracker:
     def finish(self, entry_id: str) -> None:
         """Mark the download of a server as over."""
         self._active.discard(entry_id)
+        self._tasks.pop(entry_id, None)

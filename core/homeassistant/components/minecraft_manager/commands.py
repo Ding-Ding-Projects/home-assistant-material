@@ -18,11 +18,16 @@ from .const import (
     MEMORY_MAX_MB,
     MEMORY_MIN_MB,
     MINECRAFT_IMAGE,
+    CONTAINER_LOG_MAX_FILES,
+    CONTAINER_LOG_MAX_SIZE,
+    CONTAINER_PIDS_LIMIT,
     NAME_MAX_LENGTH,
+    OWNER_LABEL,
     PORT_MAX,
     PORT_MIN,
     STOP_GRACE_SECONDS,
 )
+from .host_validation import is_lan_address
 from .validation import IDENTIFIER_PATTERN, NAME_PATTERN, VERSION_PATTERN
 
 # The value of the TYPE variable of the server image for each flavour.
@@ -96,9 +101,12 @@ def inspect(name: str) -> list[str]:
     return [
         "docker",
         "inspect",
+        "--type",
+        "container",
         "--format",
         "{{.State.Status}}|{{.State.StartedAt}}"
-        "|{{if .State.Health}}{{.State.Health.Status}}{{end}}",
+        "|{{if .State.Health}}{{.State.Health.Status}}{{end}}"
+        '|{{index .Config.Labels "' + OWNER_LABEL + '"}}',
         container_name(name),
     ]
 
@@ -128,6 +136,32 @@ def remove_volume(name: str) -> list[str]:
     return ["docker", "volume", "rm", volume_name(name)]
 
 
+def volume_inspect(name: str) -> list[str]:
+    """Read the owner label of the data volume of a server."""
+    return [
+        "docker",
+        "volume",
+        "inspect",
+        "--format",
+        '{{index .Labels "' + OWNER_LABEL + '"}}',
+        volume_name(name),
+    ]
+
+
+def volume_create(name: str, server_id: str) -> list[str]:
+    """Create the data volume, labelled with the server that owns it."""
+    if not isinstance(server_id, str) or not IDENTIFIER_PATTERN.fullmatch(server_id):
+        raise CommandError("invalid_id")
+    return [
+        "docker",
+        "volume",
+        "create",
+        "--label",
+        f"{OWNER_LABEL}={server_id}",
+        volume_name(name),
+    ]
+
+
 def logs(name: str, lines: int) -> list[str]:
     """Read the last lines of the container log."""
     if not isinstance(lines, int) or isinstance(lines, bool):
@@ -148,10 +182,9 @@ def memory_limit_mb(memory_mb: int) -> int:
 
 
 def _bind_address(bind_ip: str) -> str:
-    try:
-        address = ipaddress.ip_address(bind_ip)
-    except ValueError as err:
-        raise CommandError("invalid_address") from err
+    if not is_lan_address(bind_ip):
+        raise CommandError("invalid_address")
+    address = ipaddress.ip_address(bind_ip)
     return f"[{address}]" if address.version == 6 else str(address)
 
 
@@ -202,8 +235,18 @@ def run(server: dict[str, Any], bind_ip: str) -> list[str]:
         str(STOP_GRACE_SECONDS),
         "--memory",
         f"{memory_limit_mb(memory)}m",
+        "--security-opt",
+        "no-new-privileges",
+        "--pids-limit",
+        str(CONTAINER_PIDS_LIMIT),
+        "--log-driver",
+        "json-file",
+        "--log-opt",
+        f"max-size={CONTAINER_LOG_MAX_SIZE}",
+        "--log-opt",
+        f"max-file={CONTAINER_LOG_MAX_FILES}",
         "--label",
-        f"minecraft_manager.server_id={server_id}",
+        f"{OWNER_LABEL}={server_id}",
         "--publish",
         f"{_bind_address(bind_ip)}:{port}:{CONTAINER_GAME_PORT}/tcp",
         "--volume",

@@ -333,18 +333,21 @@ describe("analyzeDashboardImport", () => {
           action: "perform-action",
           service: "light.turn_on",
           target: '{"entity_id":"light.kitchen"}',
+          needsLook: false,
         },
         {
           where: "sensor.a",
           action: "url",
           service: "",
           target: "https://evil.example/go",
+          needsLook: true,
         },
         {
           where: "toggle",
           action: "call-service",
           service: "script.run",
           target: "script.run",
+          needsLook: true,
         },
       ])
     );

@@ -15,6 +15,7 @@ import type {
 } from "../../../data/minecraft_manager";
 import {
   deleteMinecraftServer,
+  isMinecraftFailure,
   fetchMinecraftHosts,
   fetchMinecraftServers,
   fetchMinecraftTargets,
@@ -118,6 +119,10 @@ class HaConfigMinecraft extends LitElement {
     }
   }
 
+  private _failureText(code: string): string {
+    return this._l(`op_error.${code}`) || this._l("op_error.unknown");
+  }
+
   private async _remove(ev: Event): Promise<void> {
     const server = this._servers?.find(
       (item) => item.id === (ev.currentTarget as HTMLElement).dataset.server
@@ -136,7 +141,24 @@ class HaConfigMinecraft extends LitElement {
       return;
     }
     try {
-      await deleteMinecraftServer(this.hass, server.id);
+      let result = await deleteMinecraftServer(this.hass, server.id);
+      if (isMinecraftFailure(result) && result.code !== "container_exists") {
+        const anyway = await showConfirmationDialog(this, {
+          title: this._l("delete_unverified_title"),
+          text: this._l("delete_unverified_text", { name: server.name }),
+          confirmText: this._l("delete_anyway"),
+          dismissText: this._l("cancel"),
+          destructive: true,
+        });
+        if (!anyway) {
+          return;
+        }
+        result = await deleteMinecraftServer(this.hass, server.id, true);
+      }
+      if (isMinecraftFailure(result)) {
+        showToast(this, { message: this._failureText(result.code) });
+        return;
+      }
       showToast(this, { message: this._l("deleted", { name: server.name }) });
       await this._load();
     } catch (err: any) {

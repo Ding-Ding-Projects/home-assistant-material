@@ -222,6 +222,11 @@ export class DialogImportSummary
           summary.actions,
           (action) =>
             html`<span class="host">${action.action}</span> ${
+                action.needsLook
+                  ? html`<span class="warn">${this._t("action_check")}</span>`
+                  : nothing
+              }
+              ${
                 action.service
                   ? html`<span class="detail code">${action.service}</span>`
                   : nothing

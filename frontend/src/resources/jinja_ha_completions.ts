@@ -2280,7 +2280,9 @@ export function haJinjaHoverSource(
   // Build doc URL only for completions with a dedicated documentation page
   const docUrl =
     docBaseUrl && !isTag && DOCUMENTED_NAMES.has(completion.label)
-      ? `${docBaseUrl}/template-functions/${completion.label}/`
+      ? // The bundled templating article has no page per function; its
+        // Reference section is the closest bundled match.
+        `${docBaseUrl}/docs/templating/#reference`
       : undefined;
 
   const openDocumentation = hassContext?.localize(

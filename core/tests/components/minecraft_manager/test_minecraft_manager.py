@@ -13,7 +13,7 @@ from homeassistant.components.minecraft_manager.validation import validate_serve
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from tests.typing import WebSocketGenerator
+from pytest_homeassistant.typing import WebSocketGenerator
 
 VALID: dict[str, Any] = {
     "name": "Family survival",
@@ -127,7 +127,7 @@ async def test_create_update_delete(
     await client.send_json(
         {"id": 5, "type": "minecraft_manager/delete", "server_id": server_id}
     )
-    assert (await client.receive_json())["success"]
+    assert (await client.receive_json())["result"] == {"ok": True}
     await client.send_json(
         {"id": 6, "type": "minecraft_manager/delete", "server_id": server_id}
     )

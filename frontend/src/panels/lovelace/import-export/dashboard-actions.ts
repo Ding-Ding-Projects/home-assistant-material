@@ -1,3 +1,8 @@
+import { trackActivityAnnouncements } from "../../../common/activity/activity-announcer";
+import {
+  finishActivity,
+  startActivity,
+} from "../../../common/activity/activity-store";
 import { navigate } from "../../../common/navigate";
 import type { LocalizeKeys } from "../../../common/translations/localize";
 import {
@@ -347,6 +352,26 @@ export const DEFAULT_IMPORT_VISIBILITY: ImportVisibility = {
   showInSidebar: false,
 };
 
+const activityKey = (name: string) =>
+  `ui.activity.import.${name}` as LocalizeKeys;
+
+/** Ends an import activity as failed, with a way to try again. */
+const failImportActivity = (
+  hass: HomeAssistant,
+  activityId: string,
+  changedKey: string,
+  err: unknown,
+  retry: () => Promise<void>
+): void => {
+  finishActivity(activityId, "failed", {
+    message: `${importErrorText(hass, errorText(err) || "failed")} ${hass.localize(
+      activityKey(changedKey)
+    )}`,
+    details: errorText(err),
+    retry,
+  });
+};
+
 const showImportError = (ctx: ImportExportContext, error: string) => {
   const hass = currentHass(ctx);
   showToast(ctx.element, {
@@ -370,6 +395,13 @@ export const importDashboardData = async (
     showImportError(ctx, "admin_only");
     return;
   }
+  trackActivityAnnouncements(hass.localize);
+  const activityId = startActivity({
+    title: hass.localize(activityKey("dashboard_title"), {
+      title: parsed.settings.title,
+    }),
+    kind: "import",
+  });
   try {
     // The person's choices count, whatever the file says.
     const { dashboard } = await createDashboardWithConfig(
@@ -382,6 +414,42 @@ export const importDashboardData = async (
       parsed.config,
       parsed.settings.url_path
     );
+    const undo = async () => {
+      try {
+        // Undo removes the dashboard, so first check it is still as it
+        // was imported. If it was edited, the person decides.
+        const current = await fetchConfig(
+          currentHass(ctx).connection,
+          dashboard.url_path,
+          true
+        ).catch(() => undefined);
+        if (!current || !configIsAsImported(current, parsed.config)) {
+          const hassNow = currentHass(ctx);
+          const sure = await showConfirmationDialog(ctx.element, {
+            title: hassNow.localize(key("undo_edited.title")),
+            text: hassNow.localize(key("undo_edited.text")),
+            confirmText: hassNow.localize(key("undo_edited.confirm")),
+            dismissText: hassNow.localize("ui.common.cancel"),
+            destructive: true,
+          });
+          if (!sure) {
+            return;
+          }
+        }
+        await deleteDashboard(currentHass(ctx), dashboard.id);
+        showToast(ctx.element, {
+          message: currentHass(ctx).localize(key("undone")),
+        });
+      } catch (err) {
+        showToast(ctx.element, {
+          message: currentHass(ctx).localize(key("undo_failed"), {
+            error: errorText(err),
+          }),
+          duration: 8000,
+          dismissable: true,
+        });
+      }
+    };
     showToast(ctx.element, {
       message: `${hass.localize(key("imported"), { title: dashboard.title })}${
         parsed.stripped ? ` ${hass.localize(key("stripped_note"))}` : ""
@@ -396,45 +464,18 @@ export const importDashboardData = async (
       },
       secondaryAction: {
         text: hass.localize(key("undo")),
-        action: async () => {
-          try {
-            // Undo removes the dashboard, so first check it is still as it
-            // was imported. If it was edited, the person decides.
-            const current = await fetchConfig(
-              currentHass(ctx).connection,
-              dashboard.url_path,
-              true
-            ).catch(() => undefined);
-            if (!current || !configIsAsImported(current, parsed.config)) {
-              const hassNow = currentHass(ctx);
-              const sure = await showConfirmationDialog(ctx.element, {
-                title: hassNow.localize(key("undo_edited.title")),
-                text: hassNow.localize(key("undo_edited.text")),
-                confirmText: hassNow.localize(key("undo_edited.confirm")),
-                dismissText: hassNow.localize("ui.common.cancel"),
-                destructive: true,
-              });
-              if (!sure) {
-                return;
-              }
-            }
-            await deleteDashboard(currentHass(ctx), dashboard.id);
-            showToast(ctx.element, {
-              message: currentHass(ctx).localize(key("undone")),
-            });
-          } catch (err) {
-            showToast(ctx.element, {
-              message: currentHass(ctx).localize(key("undo_failed"), {
-                error: errorText(err),
-              }),
-              duration: 8000,
-              dismissable: true,
-            });
-          }
-        },
+        action: undo,
       },
     });
+    finishActivity(activityId, "done", {
+      message: hass.localize(key("imported"), { title: dashboard.title }),
+      openPath: `/${dashboard.url_path}`,
+      undo: { label: hass.localize(key("undo")), run: undo },
+    });
   } catch (err) {
+    failImportActivity(hass, activityId, "dashboard_failed_changed", err, () =>
+      importDashboardData(ctx, parsed, options)
+    );
     showImportError(ctx, errorText(err) || "failed");
   }
 };
@@ -450,6 +491,11 @@ export const importViewData = async (
     showImportError(ctx, "admin_only");
     return;
   }
+  trackActivityAnnouncements(hass.localize);
+  const activityId = startActivity({
+    title: hass.localize(activityKey("view_title")),
+    kind: "import",
+  });
   try {
     // Read and save in one step, one import at a time, so a second import
     // into the same dashboard starts from what the first one saved.
@@ -469,6 +515,39 @@ export const importViewData = async (
       );
       return updated.views[updated.views.length - 1];
     });
+    const undo = async () => {
+      try {
+        // Remove only the added view, and only while it is still as
+        // imported. Later edits to the dashboard are never overwritten.
+        const path = targetUrlPath === "lovelace" ? null : targetUrlPath;
+        const current = await fetchConfig(
+          currentHass(ctx).connection,
+          path,
+          true
+        );
+        const without = removeImportedView(current, addedView);
+        if (!without) {
+          showToast(ctx.element, {
+            message: currentHass(ctx).localize(key("undo_view_changed")),
+            duration: 8000,
+            dismissable: true,
+          });
+          return;
+        }
+        await saveConfig(currentHass(ctx), path, without);
+        showToast(ctx.element, {
+          message: currentHass(ctx).localize(key("undone")),
+        });
+      } catch (err) {
+        showToast(ctx.element, {
+          message: currentHass(ctx).localize(key("undo_failed"), {
+            error: errorText(err),
+          }),
+          duration: 8000,
+          dismissable: true,
+        });
+      }
+    };
     showToast(ctx.element, {
       message: `${hass.localize(key("view_imported"))}${
         parsed.stripped ? ` ${hass.localize(key("stripped_note"))}` : ""
@@ -483,42 +562,19 @@ export const importViewData = async (
       },
       secondaryAction: {
         text: hass.localize(key("undo")),
-        action: async () => {
-          try {
-            // Remove only the added view, and only while it is still as
-            // imported. Later edits to the dashboard are never overwritten.
-            const path = targetUrlPath === "lovelace" ? null : targetUrlPath;
-            const current = await fetchConfig(
-              currentHass(ctx).connection,
-              path,
-              true
-            );
-            const without = removeImportedView(current, addedView);
-            if (!without) {
-              showToast(ctx.element, {
-                message: currentHass(ctx).localize(key("undo_view_changed")),
-                duration: 8000,
-                dismissable: true,
-              });
-              return;
-            }
-            await saveConfig(currentHass(ctx), path, without);
-            showToast(ctx.element, {
-              message: currentHass(ctx).localize(key("undone")),
-            });
-          } catch (err) {
-            showToast(ctx.element, {
-              message: currentHass(ctx).localize(key("undo_failed"), {
-                error: errorText(err),
-              }),
-              duration: 8000,
-              dismissable: true,
-            });
-          }
-        },
+        action: undo,
       },
     });
+    finishActivity(activityId, "done", {
+      message: hass.localize(key("view_imported")),
+      openPath:
+        targetUrlPath === "lovelace" ? "/lovelace" : `/${targetUrlPath}`,
+      undo: { label: hass.localize(key("undo")), run: undo },
+    });
   } catch (err) {
+    failImportActivity(hass, activityId, "view_failed_changed", err, () =>
+      importViewData(ctx, parsed, targetUrlPath)
+    );
     showImportError(ctx, errorText(err) || "failed");
   }
 };

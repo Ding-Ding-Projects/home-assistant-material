@@ -305,6 +305,19 @@ export const readAppearanceStore = (): AppearanceStore => {
   }
 };
 
+const changeListeners = new Set<() => void>();
+
+/** Calls back whenever the stored choices change on this device. */
+export const subscribeAppearanceChanges = (
+  listener: () => void
+): (() => void) => {
+  changeListeners.add(listener);
+  return () => changeListeners.delete(listener);
+};
+
+export const notifyAppearanceChanged = (): void =>
+  changeListeners.forEach((listener) => listener());
+
 export const writeAppearanceStore = (store: AppearanceStore): void => {
   try {
     window.localStorage.setItem(
@@ -316,6 +329,7 @@ export const writeAppearanceStore = (store: AppearanceStore): void => {
     // the page is closed.
   }
   noteLocalChange("appearance");
+  notifyAppearanceChanged();
 };
 
 // ---- Colour ----

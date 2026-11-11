@@ -1,8 +1,9 @@
 """Tests for the WebSocket commands of the Ollama suite."""
 
 import asyncio
+from collections.abc import AsyncIterator
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant.common import MockConfigEntry
 
@@ -11,7 +12,7 @@ from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from tests.typing import WebSocketGenerator
+from pytest_homeassistant.typing import WebSocketGenerator
 
 
 async def _loaded_entry(hass: HomeAssistant, client: MagicMock) -> MockConfigEntry:
@@ -30,7 +31,9 @@ async def _loaded_entry(hass: HomeAssistant, client: MagicMock) -> MockConfigEnt
 def _client() -> MagicMock:
     client = MagicMock()
     client._request_raw = AsyncMock(
-        return_value=SimpleNamespace(json=lambda: {"version": "0.12.6"})
+        return_value=SimpleNamespace(
+            content=b'{"version": "0.12.6"}', json=lambda: {"version": "0.12.6"}
+        )
     )
     client.list = AsyncMock(
         return_value=SimpleNamespace(
@@ -249,6 +252,84 @@ async def test_pull_one_at_a_time_and_cancel(
         {"type": "ollama_suite/pull", "entry_id": entry.entry_id, "model": "b"}
     )
     assert (await ws.receive_json())["success"] is True
+
+
+async def test_pull_that_ends_without_success_is_incomplete(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A stream that stops early is an error, never done."""
+    client = _client()
+    client.pull = AsyncMock(
+        return_value=_stream([SimpleNamespace(status="pulling abc", total=9)])
+    )
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/pull", "entry_id": entry.entry_id, "model": "a"}
+    )
+    assert (await ws.receive_json())["success"] is True
+    assert (await ws.receive_json())["event"]["state"] == "progress"
+    assert (await ws.receive_json())["event"] == {
+        "state": "error",
+        "code": "incomplete",
+    }
+
+
+async def test_start_right_after_cancel_is_not_busy(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A new download waits for the cancelled one to let go of the server."""
+    hang = asyncio.Event()
+    client = _client()
+    client.pull = AsyncMock(
+        side_effect=lambda *args, **kwargs: _stream(
+            [SimpleNamespace(status="pulling abc", total=10, completed=1)], hang
+        )
+    )
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/pull", "entry_id": entry.entry_id, "model": "a"}
+    )
+    first_id = (await ws.receive_json())["id"]
+    await ws.receive_json()
+    await ws.send_json_auto_id({"type": "unsubscribe_events", "subscription": first_id})
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/pull", "entry_id": entry.entry_id, "model": "b"}
+    )
+    replies = [await ws.receive_json(), await ws.receive_json()]
+    assert all(reply["success"] for reply in replies)
+
+
+async def test_verifying_gets_the_longer_timeout(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A pause while the server checks its files does not stop the download."""
+
+    async def slow() -> AsyncIterator[SimpleNamespace]:
+        yield SimpleNamespace(status="verifying sha256 digest")
+        await asyncio.sleep(0.3)
+        yield SimpleNamespace(status="success")
+
+    client = _client()
+    client.pull = AsyncMock(return_value=slow())
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    with (
+        patch("homeassistant.components.ollama_suite.websocket.PULL_IDLE_TIMEOUT", 0.1),
+        patch("homeassistant.components.ollama_suite.websocket.PULL_VERIFY_TIMEOUT", 5),
+    ):
+        await ws.send_json_auto_id(
+            {"type": "ollama_suite/pull", "entry_id": entry.entry_id, "model": "a"}
+        )
+        assert (await ws.receive_json())["success"] is True
+        events = []
+        while True:
+            event = (await ws.receive_json())["event"]
+            events.append(event)
+            if event["state"] in ("done", "error"):
+                break
+    assert events[-1] == {"state": "done"}
 
 
 async def test_pull_error_is_a_plain_code(

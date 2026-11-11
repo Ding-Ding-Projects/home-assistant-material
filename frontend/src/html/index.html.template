@@ -149,10 +149,13 @@
       // Shows the name this browser chose for the app, as plain text. Any
       // problem leaves the launch screen as it is. Not transpiled: ES5.
       try {
+        // The name in effect last time, including one stored for everyone.
+        var cachedName = window.localStorage.getItem("ha-material-identity-launch");
         var storedIdentity = window.localStorage.getItem("ha-material-identity");
         var chosen = storedIdentity ? JSON.parse(storedIdentity) : null;
-        if (chosen && typeof chosen.name === "string") {
-          var launchName = chosen.name.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").replace(/^ | $/g, "").slice(0, 40);
+        var rawName = typeof cachedName === "string" && cachedName ? cachedName : chosen && typeof chosen.name === "string" ? chosen.name : "";
+        if (rawName) {
+          var launchName = rawName.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").replace(/^ | $/g, "").slice(0, 40);
           if (launchName) {
             document.getElementById("ha-launch-screen-name").textContent = launchName;
           }

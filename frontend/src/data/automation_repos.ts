@@ -6,6 +6,54 @@ import type { AutomationConfig } from "./automation";
  * records the commit each one is at. See docs/automation-repositories.md.
  */
 
+/** Codes the history integrations answer with, each with a localized text. */
+export const HISTORY_ERROR_CODES = [
+  "git_error",
+  "automations_unreadable",
+  "dashboard_not_found",
+  "not_storage_dashboard",
+  "dashboard_changed",
+  "save_failed",
+  "not_found",
+  "unknown_error",
+  "invalid_format",
+] as const;
+
+/**
+ * Describes a failed history call in words. A known server code is shown as a
+ * localized sentence found at `<prefix>.errors.<code>`, followed by the text
+ * the server sent as detail. Any other failure keeps its own message.
+ */
+export const describeHistoryError = (
+  hass: HomeAssistant,
+  err: unknown,
+  prefix: string
+): string => {
+  const failure = err as { code?: unknown; message?: unknown } | undefined;
+  const code = failure?.code;
+  const detail =
+    typeof failure?.message === "string" ? failure.message : String(err);
+  if (
+    typeof code !== "string" ||
+    !(HISTORY_ERROR_CODES as readonly string[]).includes(code)
+  ) {
+    return detail;
+  }
+  const text = hass.localize(`${prefix}.errors.${code}` as any);
+  return detail && detail !== text && detail !== code
+    ? `${text} ${detail}`
+    : text;
+};
+
+export interface AutomationArchive {
+  /** The folder it was set aside in; the name to restore it by. */
+  name: string;
+  /** The automation folder it came from. */
+  automation: string;
+  /** Seconds since 1970. */
+  archived_at: number;
+}
+
 export interface AutomationRepository {
   id: string;
   alias: string;
@@ -18,6 +66,8 @@ export interface AutomationRepository {
   remote: string | null;
   /** True when a remote is set but its address is not allowed, so it is hidden. */
   remote_unsafe: boolean;
+  /** Why the last save of this automation was not committed, when it was not. */
+  error?: string | null;
 }
 
 export interface AutomationReposStatus {
@@ -120,6 +170,18 @@ export const forgetAutomationHistory = (
   hass.callWS<{ commit: string | null }>({
     type: "automation_repos/forget",
     automation_id: automationId,
+  });
+
+export const fetchAutomationArchives = (hass: HomeAssistant) =>
+  hass.callWS<{ archives: AutomationArchive[] }>({
+    type: "automation_repos/archives",
+  });
+
+/** Brings a set-aside history back, when that automation has none now. */
+export const restoreAutomationArchive = (hass: HomeAssistant, name: string) =>
+  hass.callWS<{ automation: string }>({
+    type: "automation_repos/restore_archive",
+    name,
   });
 
 /**
