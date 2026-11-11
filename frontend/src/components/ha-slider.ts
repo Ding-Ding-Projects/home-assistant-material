@@ -70,6 +70,15 @@ export class HaSlider extends Slider {
           margin-block: -14px;
         }
 
+        /* A finger needs 44px: on a touch screen only the middle 32px of a
+           slider reacted, so a tap near its edge did nothing. */
+        @media (pointer: coarse) {
+          #slider {
+            padding-block: 20px;
+            margin-block: -20px;
+          }
+        }
+
         #thumb {
           border: none;
           background-color: var(--ha-slider-thumb-color, var(--primary-color));

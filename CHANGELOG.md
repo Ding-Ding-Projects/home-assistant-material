@@ -8,6 +8,15 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Fixed: on a touch screen a slider reacted only in its middle 32 px, a compact text field was
+  32 px high and the filter chips beside a table's search field were 32 px high; all are 44 px
+  for a finger now. The colour field's marker no longer covers the Hue label when the colour is
+  black. Not yet seen in a running build.
+- Seen in build 119: the messages that showed a translation error are fixed (no formatting errors
+  in the log, against 7,764 before), information buttons have proper names, one tap selects a
+  notification and Shift selects a range, the cover of a lock that is locked on start appeared in
+  ten fresh browsers out of ten, and two tabs or two accounts no longer upload each other's
+  settings.
 - Changed: every personal setting is now saved on this instance for your account and follows you to
   every device: preferences, schedules, locks, table layouts, saved patterns, change history, the
   app name and logo and tool drafts. Sign-in tokens, caches and a few per-device switches stay in

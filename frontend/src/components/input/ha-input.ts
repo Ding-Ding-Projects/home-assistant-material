@@ -473,6 +473,13 @@ export class HaInput extends WaInputMixin(LitElement) {
         padding: 0 var(--ha-space-2);
       }
 
+      /* The compact field is too low for a finger on a touch screen. */
+      @media (pointer: coarse) {
+        :host([appearance="outlined"]) wa-input.no-label::part(base) {
+          height: 44px;
+        }
+      }
+
       :host([appearance="outlined"]) wa-input::part(base) {
         border: 1px solid var(--ha-color-border-neutral-quiet);
         background-color: var(--card-background-color);

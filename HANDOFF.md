@@ -18,7 +18,10 @@ published build.
   sign-in received preferences, four rules, a lock and hidden columns; a second account saw none
   of it. A review then proved two defects with failing tests (an endless upload loop, and one tab
   uploading another account's settings after an account switch in a second tab); both are fixed
-  and covered by tests, and the fixes have NOT been seen in a browser.
+  and covered by tests, and both fixes were seen in published build 119 (uploads settle after
+  one or two; one account's stored settings held nothing of the other's). One limit found there:
+  two tabs of different accounts share the browser's sign-in storage, and a token refresh in one
+  can sign the other in as the first account; that is the sign-in storage, not the sync.
 - Locks are saved with the account. Clearing browser data no longer removes a forgotten lock. The
   way back is in `docs/features/instance-sync/README.md` (stop Home Assistant, replace the lock
   entry with a removal notice in `.storage/frontend.user_data_<user id>`, start again). The PIN
@@ -36,11 +39,14 @@ published build.
 - No plain browser form controls: selects, sliders, checkboxes, radio buttons and colour inputs
   in 20 files use the product's own components; a test fails when a plain select or visible input
   comes back (`frontend/test/common/native-controls/`). Each was opened once in the local build.
-  The defects found there were fixed afterwards and those fixes are NOT seen: seven messages that
-  showed "Translation error" (a new test parses every string), info buttons named by an error
-  string, notification checkboxes that did not select, the start cover of a lock missing on some
-  loads, the YAML tools title cut short, a plural, touch targets under 44 px in the pattern
-  workbench and the appearance editor.
+  The defects found there were fixed afterwards and seen fixed in published build 119: seven
+  messages that showed "Translation error" (a new test parses every string; the log has no
+  formatting errors, against 7,764 before), info buttons named by an error string, notification
+  checkboxes that did not select, the start cover of a lock (ten fresh browsers of ten), the YAML
+  tools title, a plural, and touch targets in the pattern workbench and the appearance editor's
+  buttons. Still under 44 px there and fixed afterwards, NOT seen: sliders (only the middle
+  32 px reacted), the compact text field, the filter chips beside a table's search field, and
+  the colour field's marker over the Hue label.
 - Phone layout, seen in published build 115: the YAML tools page is one column, the slim strip at
   the top is gone, the menu has less empty space. Seen in the local build: Personal settings can
   no longer be dragged sideways.

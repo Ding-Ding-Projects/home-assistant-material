@@ -1651,6 +1651,12 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         --ha-button-height: 44px;
         min-width: 44px;
       }
+      /* Chips a page puts beside the search field (Filters, Domain, Area). */
+      ::slotted([slot="filter-chips"]) {
+        --ha-button-height: 44px;
+        --ha-assist-chip-container-height: 44px;
+        min-height: 44px;
+      }
     }
 
     ha-adaptive-dialog {

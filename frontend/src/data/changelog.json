@@ -4,25 +4,38 @@
       "date": "2026-11-11",
       "items": [
         {
-          "text": "Changed: every personal setting is now saved on this instance for your account and follows you to every device: preferences, schedules, locks, table layouts, saved patterns, change history, the app name and logo and tool drafts. Sign-in tokens, caches and a few per-device switches stay in the browser. Because locks follow the account, clearing browser data no longer removes a forgotten lock; the documentation gives the way back. Seen in a local build, not yet in a published one."
+          "text": "Fixed: on a touch screen a slider reacted only in its middle 32 px, a compact text field was 32 px high and the filter chips beside a table's search field were 32 px high; all are 44 px for a finger now. The colour field's marker no longer covers the Hue label when the colour is black. Not yet seen in a running build."
         },
         {
-          "text": "Fixed: a lock could not be created when the instance is opened over plain http on the home network (\"The lock could not be created\"). Seen working in a local build."
+          "text": "Seen in build 119: the messages that showed a translation error are fixed (no formatting errors in the log, against 7,764 before), information buttons have proper names, one tap selects a notification and Shift selects a range, the cover of a lock that is locked on start appeared in ten fresh browsers out of ten, and two tabs or two accounts no longer upload each other's settings."
         },
         {
-          "text": "Changed: a lock is named by its card's label or heading, not by all the text on it."
+          "text": "Changed: every personal setting is now saved on this instance for your account and follows you to every device: preferences, schedules, locks, table layouts, saved patterns, change history, the app name and logo and tool drafts. Sign-in tokens, caches and a few per-device switches stay in the browser. Because locks follow the account, clearing browser data no longer removes a forgotten lock; the documentation gives the way back. Seen in a local build, not yet in a published one.",
+          "commit": "c44440bf65be"
         },
         {
-          "text": "New: a schedule rule can depend on an entity: is, is not, above or below a value, alone or together with a time window."
+          "text": "Fixed: a lock could not be created when the instance is opened over plain http on the home network (\"The lock could not be created\"). Seen working in a local build.",
+          "commit": "c44440bf65be"
         },
         {
-          "text": "Changed: dropdowns, sliders, checkboxes, radio buttons and colour choices that were plain browser controls now use the product's own controls, starting with Defaults for everyone."
+          "text": "Changed: a lock is named by its card's label or heading, not by all the text on it.",
+          "commit": "c44440bf65be"
         },
         {
-          "text": "Fixed: seven messages showed \"Translation error\"; ticking a notification did not select it; the cover of a lock that is locked on start did not always appear on a fresh browser; the title on the YAML tools page was cut short. Not yet seen in a running build."
+          "text": "New: a schedule rule can depend on an entity: is, is not, above or below a value, alone or together with a time window.",
+          "commit": "c44440bf65be"
         },
         {
-          "text": "Changed: a release is published only after every build job of its run has succeeded. A run that fails or is cancelled publishes nothing. Not yet run."
+          "text": "Changed: dropdowns, sliders, checkboxes, radio buttons and colour choices that were plain browser controls now use the product's own controls, starting with Defaults for everyone.",
+          "commit": "c44440bf65be"
+        },
+        {
+          "text": "Fixed: seven messages showed \"Translation error\"; ticking a notification did not select it; the cover of a lock that is locked on start did not always appear on a fresh browser; the title on the YAML tools page was cut short. Not yet seen in a running build.",
+          "commit": "c44440bf65be"
+        },
+        {
+          "text": "Changed: a release is published only after every build job of its run has succeeded. A run that fails or is cancelled publishes nothing. Not yet run.",
+          "commit": "c44440bf65be"
         },
         {
           "text": "Fixed: Personal settings on a phone could be dragged sideways until the settings left the screen. The row of group chips was as wide as all its chips (666 px in a 358 px page) and made the page wider than the screen; it now keeps to the page and scrolls inside itself. Seen in a local build.",

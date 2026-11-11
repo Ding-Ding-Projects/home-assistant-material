@@ -587,6 +587,9 @@ export class HaAppearanceColorPicker extends LitElement {
       display: grid;
       grid-template-columns: 40px 1fr 44px;
       align-items: center;
+      /* The marker of the colour field hangs below it when the colour is
+         black; this keeps it off the label under it. */
+      margin-block-start: var(--ha-space-3);
       gap: var(--ha-space-2);
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
