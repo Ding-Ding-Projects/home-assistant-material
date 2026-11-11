@@ -253,7 +253,7 @@ each with its own article and its honest state in the product.
   palette, the element menu, the appearance editor, the pattern workbench, a lock's keypad, and
   three phone boards (light, dark Settings, and English and Cantonese together).
 - Open: Cantonese covers the page's own labels and messages; the 69 articles are English, and the
-  page says so in Cantonese mode. The QR code for one-time codes is still to build.
+  page says so in Cantonese mode. Reading a one-time code's QR code (image, paste or camera) is built; drawing one from a secret is still to build.
 
 ### Deploy Assistant (10 November 2026)
 

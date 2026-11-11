@@ -1,5 +1,13 @@
 # Deploy Assistant changes
 
+## 1.2
+
+- New tabs that work offline: Run it, Features, Articles, Status, and Design, which shows every board of this app's design full size.
+- Tools, Authenticator: scan a one-time code's QR code from an image, a pasted screenshot or the camera.
+- Settings, Updates: an update self-test walks the releases, the feed, the package and its checksums, the installer, and whether an update was seen applied after a restart, and lets you copy the result.
+- After an update is applied, the app says so on its next start and keeps a record.
+- Only the camera and clipboard writing are allowed to the window; every other permission is refused.
+
 ## 1.1
 
 - The Deploy tab is a two-pane app: pick where it runs on the left, see and change everything it will do on the right, and deploy with one button or Ctrl Enter.

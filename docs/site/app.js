@@ -309,7 +309,7 @@
       '<div class="grid2" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">' + cards + '</div>' + (rel.tag ? '<p class="bs mu">Files of release ' + esc(rel.tag) + '. <a href="' + S.repo + '/releases/tag/' + esc(rel.tag) + '">All files and SHA256SUMS</a>.</p>' : '') + '</div>' +
       '<section class="section" id="demo"><h2 class="hs">Try it here</h2><p class="bm mu">The real app\'s window, running in this page with nothing behind it: press anything. Deploying here only plays the steps.</p><iframe class="demo" src="deploy-assistant/index.html" title="Deploy Assistant demo" loading="lazy"></iframe></section>' +
       '<section class="section"><h2 class="hs">What it does</h2><div class="grid3">' + feats.map(function (f) { return '<div class="feat" style="padding:20px;gap:8px"><span class="tm">' + f[0] + '</span><span class="bm mu">' + f[1] + '</span></div>'; }).join('') + '</div></section>' +
-      '<section class="section"><h2 class="hs">Its design</h2><div class="thumbs">' + ((S.canvases.filter(function (c) { return c.id === '16-deploy-assistant'; })[0] || { boards: [] }).boards.map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('')) + '</div></section>' + foot();
+      '<section class="section"><h2 class="hs">Its design</h2><div class="thumbs">' + (S.canvases.filter(function (c) { return /^1[67]-deploy/.test(c.id); }).reduce(function (a, c) { return a.concat(c.boards); }, []).map(function (b) { return '<button class="thumb" data-board="' + esc(b.name) + '" data-btitle="' + esc(b.title) + '"><img src="boards/' + esc(b.name) + '.webp" alt="" loading="lazy"><span class="bs">' + esc(b.title) + '</span></button>'; }).join('')) + '</div></section>' + foot();
   };
   function md(t) { return esc(t).split(/\n\s*\n/).map(function (p) { return '<p class="bm">' + p.replace(/\n/g, ' ') + '</p>'; }).join(''); }
   R.changes = function () {
@@ -398,7 +398,7 @@
       '<label class="row bm" style="gap:8px"><input type="checkbox" id="b64url"> URL-safe</label><label class="row bm" style="gap:8px"><input type="checkbox" id="b64pad" checked> Padding</label><label class="btn text sm">' + icon('Upload', 's') + 'A file<input type="file" id="b64file" hidden></label></div><pre class="wb-test" id="b64out" aria-live="polite"></pre></section>' +
       '<section class="section" id="convert" data-k="t-conv"><h2 class="tl">Convert</h2><p class="bm mu">Paste JSON (a list of objects) or CSV, then convert. Progress and errors show here.</p><textarea class="input" id="cvin" aria-label="Text to convert">[{"name": "Kitchen", "lights": 4}, {"name": "Study", "lights": 2}]</textarea><div class="chipline"><button class="btn tonal sm" data-conv="csv">To CSV</button><button class="btn tonal sm" data-conv="json">To JSON</button><button class="btn tonal sm" data-conv="yaml">To YAML</button><button class="btn tonal sm" data-conv="md">To Markdown</button></div><div id="cvstat" class="bs mu" aria-live="polite"></div><pre class="wb-test" id="cvout"></pre></section>' +
       '<section class="section" id="colour" data-k="t-col"><h2 class="tl">Colour</h2><div class="row" style="gap:16px;flex-wrap:wrap"><input type="color" id="colin" value="#00639b" aria-label="Pick a colour" style="width:64px;height:48px;border:0;background:none"><input class="input mono" id="coltext" value="#00639B" aria-label="Type a colour as hex, rgb() or hsl()"><span class="swatch" id="colsw" style="background:#00639B"></span></div><div id="colout" class="bm"></div></section>' +
-      '<section class="section" id="otp" data-k="t-otp"><h2 class="tl">Authenticator</h2><p class="bm mu">Add a one-time code secret (Base32). Codes are worked out in this browser every 30 seconds. A QR code to scan is still to build; copy the secret instead.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" id="otpname" placeholder="Name" aria-label="Name"><input class="input mono" id="otpsecret" placeholder="JBSWY3DPEHPK3PXP" aria-label="Secret"><button class="btn tonal sm" data-act="otpadd">Add</button></div><div id="otplist"></div></section>' + foot();
+      '<section class="section" id="otp" data-k="t-otp"><h2 class="tl">Authenticator</h2><p class="bm mu">Add a one-time code secret (Base32). Codes are worked out in this browser every 30 seconds. Or scan the QR code a site shows you: from an image, a pasted screenshot, or the camera. Nothing leaves this browser.</p><div class="row" style="gap:8px;flex-wrap:wrap"><input class="input" id="otpname" placeholder="Name" aria-label="Name"><input class="input mono" id="otpsecret" placeholder="JBSWY3DPEHPK3PXP" aria-label="Secret"><button class="btn tonal sm" data-act="otpadd">Add</button></div><div class="chipline"><label class="btn tonal sm">' + icon('QrcodeScan', 's') + 'QR code from an image<input type="file" id="qrfile" accept="image/*" hidden></label><button class="btn tonal sm" data-act="qrcam">Use the camera</button><span class="bs mu">or paste a screenshot here</span></div><video id="qrvideo" class="qrvideo" hidden playsinline muted aria-label="Camera view for scanning a QR code"></video><div id="qrout" class="bs mu" aria-live="polite"></div><div id="otplist"></div></section>' + foot();
   };
 
   // ---------- Shell ----------
@@ -744,6 +744,61 @@
     for (var i = 0; i < st.otp.length; i++) { var o = st.otp[i], code; try { code = await totp(o.secret); code = code.slice(0, 3) + ' ' + code.slice(3); } catch (e) { code = 'Bad secret'; } html += '<div class="row-item" data-k="otp-' + i + '"><span class="col grow"><span class="ll">' + esc(o.name) + '</span><span class="otp">' + code + '</span><span class="bs mu">' + left + ' seconds left</span></span><button class="btn text sm" data-copy="' + code.replace(' ', '') + '">' + L('copy') + '</button><button class="btn text sm" data-rmotp="' + i + '">Remove</button></div>'; }
     box.innerHTML = html;
   }
+  // QR codes for the authenticator: read from an image file, a pasted image or the camera, with
+  // jsQR (vendor/jsQR.js, Apache-2.0). Everything happens here; no image leaves this window.
+  function otpFromText(text) {
+    var t = String(text || '').trim();
+    if (!/^otpauth:\/\//i.test(t)) throw new Error('That QR code is not a one-time code. It says: ' + t.slice(0, 120));
+    var u = new URL(t);
+    if (u.host.toLowerCase() !== 'totp') throw new Error('Only time-based codes (totp) are supported; this one is ' + u.host + '.');
+    var secret = (u.searchParams.get('secret') || '').replace(/\s/g, '').toUpperCase(); b32(secret); if (!secret) throw new Error('The QR code has no secret.');
+    if ((u.searchParams.get('digits') || '6') !== '6' || (u.searchParams.get('period') || '30') !== '30' || !/^(SHA1)?$/i.test(u.searchParams.get('algorithm') || '')) throw new Error('This code uses settings the authenticator does not support yet (it supports 6 digits, 30 seconds, SHA-1).');
+    var label = decodeURIComponent(u.pathname.replace(/^\//, '')); var issuer = u.searchParams.get('issuer') || '';
+    return { name: (issuer && label.indexOf(issuer) !== 0 ? issuer + ': ' : '') + (label || 'Code'), secret: secret };
+  }
+  function qrDecode(source, w, h) {
+    if (!window.jsQR) throw new Error('The QR reader did not load.');
+    var c = document.createElement('canvas'); var scale = Math.min(1, 1600 / Math.max(w, h)); c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+    var ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(source, 0, 0, c.width, c.height);
+    var r = window.jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'attemptBoth' });
+    return r ? r.data : null;
+  }
+  function qrFound(text) {
+    var out = $('#qrout');
+    try { var o = otpFromText(text); st.otp.push(o); save(); otpDraw(); if (out) out.textContent = 'Added ' + o.name + '.'; toast('Added ' + o.name + ' to the authenticator.'); }
+    catch (e) { if (out) out.textContent = e.message; toast(e.message); }
+  }
+  function qrFile(file) {
+    var out = $('#qrout'); if (!file || !/^image\//.test(file.type)) { if (out) out.textContent = 'Choose an image: PNG, JPEG, WebP or GIF.'; return; }
+    if (out) out.textContent = 'Reading the image…';
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () { var text = null; try { text = qrDecode(img, img.naturalWidth, img.naturalHeight); } catch (e) { if (out) out.textContent = e.message; } URL.revokeObjectURL(url); if (text) qrFound(text); else if (out && !/load/.test(out.textContent)) out.textContent = 'No QR code found in that image. Try a sharper or closer picture.'; };
+    img.onerror = function () { URL.revokeObjectURL(url); if (out) out.textContent = 'That file could not be opened as an image.'; };
+    img.src = url;
+  }
+  var qrCam = null;
+  function qrCameraStop() { if (qrCam) { qrCam.stream.getTracks().forEach(function (t) { t.stop(); }); qrCam = null; } var v = $('#qrvideo'); if (v) { v.hidden = true; v.srcObject = null; } var b = $('[data-act="qrcam"]'); if (b) b.textContent = 'Use the camera'; }
+  function qrCamera() {
+    var out = $('#qrout');
+    if (qrCam) { qrCameraStop(); if (out) out.textContent = 'Camera off.'; return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { if (out) out.textContent = 'This window has no camera access. Use an image instead.'; return; }
+    if (out) out.textContent = 'Asking for the camera…';
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function (stream) {
+      var v = $('#qrvideo'); if (!v) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+      qrCam = { stream: stream, last: 0 }; v.srcObject = stream; v.hidden = false; v.play();
+      var b = $('[data-act="qrcam"]'); if (b) b.textContent = 'Stop the camera'; if (out) out.textContent = 'Hold the QR code in front of the camera.';
+      (function tick(ts) {
+        if (!qrCam) return; var vv = $('#qrvideo'); if (!vv || !document.body.contains(vv)) { qrCameraStop(); return; }
+        if (vv.readyState >= 2 && ts - qrCam.last > 200) { qrCam.last = ts; var text = null; try { text = qrDecode(vv, vv.videoWidth, vv.videoHeight); } catch (e) { /* the next frame may work */ } if (text) { qrCameraStop(); qrFound(text); return; } }
+        requestAnimationFrame(tick);
+      })(0);
+    }, function (e) { if (out) out.textContent = 'The camera was not allowed or is not there (' + e.name + '). Use an image instead.'; });
+  }
+  document.addEventListener('paste', function (e) {
+    if (st.active !== 'tools' || !e.clipboardData) return;
+    var item = Array.prototype.filter.call(e.clipboardData.items || [], function (i) { return /^image\//.test(i.type); })[0];
+    if (item) { e.preventDefault(); qrFile(item.getAsFile()); }
+  });
   setInterval(function () { if (st.active === 'tools') otpDraw(); }, 1000);
 
   // ---------- Live chart of this visit ----------
@@ -806,6 +861,7 @@
       if (a === 'ticket') { var ti = $('#tk-title').value.trim(); if (!ti) { $('#tk-title-err').textContent = 'Give the ticket a title, so you can find it later.'; $('#tk-title').focus(); return; } st.tickets.unshift({ t: Date.now(), title: ti, what: $('#tk-what').value.trim(), tried: $('#tk-tried').value.trim() }); save(); render(); toast(msg('saved')); }
       if (a === 'copy-tickets') copy(st.tickets.map(function (x) { return '# ' + x.title + '\n' + x.what + (x.tried ? '\nTried: ' + x.tried : ''); }).join('\n\n') || 'No tickets.');
       if (a === 'b64enc') b64(true); if (a === 'b64dec') b64(false);
+      if (a === 'qrcam') qrCamera();
       if (a === 'otpadd') { var nm = $('#otpname').value.trim() || 'Code', sc = $('#otpsecret').value.trim(); try { b32(sc); if (!sc) throw new Error(); } catch (er) { toast('That secret is not Base32 (letters A to Z and digits 2 to 7).'); return; } st.otp.push({ name: nm, secret: sc }); save(); render(); }
     });
     app.addEventListener('input', function (e) {
@@ -827,6 +883,7 @@
       if (t.dataset.text) { setVal(t.dataset.text, t.value.trim() || DEF.name, 'Name'); shell(); render(); }
       if (t.id === 'vocabfile' && t.files[0]) loadVocabFile(t.files[0]);
       if (t.id === 'b64file' && t.files[0]) { var fr = new FileReader(); fr.onload = function () { $('#b64out').textContent = String(fr.result).split(',')[1] || ''; }; fr.readAsDataURL(t.files[0]); }
+      if (t.id === 'qrfile' && t.files[0]) qrFile(t.files[0]);
     });
     // Tabs: arrow keys, drag to reorder.
     app.addEventListener('keydown', function (e) {

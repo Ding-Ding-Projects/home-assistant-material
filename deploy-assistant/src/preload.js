@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const call = (name) => async (...args) => { const r = await ipcRenderer.invoke(name, ...args); if (!r.ok) throw new Error(r.error); return r.value; };
 const api = {};
-['snapshot', 'labels', 'defaults', 'check', 'deploy', 'action', 'saveHost', 'removeHost', 'testHost', 'schedule', 'update', 'refresh', 'exportList', 'open', 'openFolder', 'pickKey', 'saveFile', 'about', 'win', 'downloads', 'downloadAll', 'autoDownload', 'drives', 'writePi', 'extensions', 'extEnable', 'extRun', 'extFolder', 'checkUpdates', 'restartToUpdate', 'editor'].forEach((n) => { api[n] = call(n); });
+['snapshot', 'labels', 'defaults', 'check', 'deploy', 'action', 'saveHost', 'removeHost', 'testHost', 'schedule', 'update', 'refresh', 'exportList', 'open', 'openFolder', 'pickKey', 'saveFile', 'about', 'win', 'downloads', 'downloadAll', 'autoDownload', 'drives', 'writePi', 'extensions', 'extEnable', 'extRun', 'extFolder', 'checkUpdates', 'updateTest', 'updateHistory', 'restartToUpdate', 'editor'].forEach((n) => { api[n] = call(n); });
 api.on = (cb) => { ipcRenderer.on('ham', (_e, m) => cb(m.channel, m.payload)); };
 api.desktop = true;
 contextBridge.exposeInMainWorld('ham', api);

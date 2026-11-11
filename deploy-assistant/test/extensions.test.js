@@ -42,3 +42,13 @@ test('manifests with unsafe paths or unknown permissions are refused', () => {
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ manifestVersion: 1, id: 'x1', name: 'X', version: '1', main: 'a.js', permissions: ['hosts:passwords'], commands: [{ id: 'a', title: 'A' }] }));
   assert.throws(() => readManifest(dir), /unknown permissions/);
 });
+
+test('the update feed is read line by line and bad lines are skipped', () => {
+  const { parseReleases, newer } = require('../src/backend/updates');
+  const r = parseReleases('﻿A94A8FE5CCB19BA61C4C0873D391E987982FBBD3 ham_deploy_assistant-1.1.4-full.nupkg 123\r\nnot a line\n');
+  assert.equal(r.length, 1);
+  assert.equal(r[0].sha1, 'a94a8fe5ccb19ba61c4c0873d391e987982fbbd3');
+  assert.equal(r[0].size, 123);
+  assert.ok(newer('1.1.10', '1.1.9'));
+  assert.ok(!newer('1.1.4', '1.1.4'));
+});

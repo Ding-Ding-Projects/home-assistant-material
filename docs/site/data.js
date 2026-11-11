@@ -67,11 +67,12 @@ window.SITE = {
   "EmoticonHappyOutline": "M20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12M22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2A10,10 0 0,1 22,12M10,9.5C10,10.3 9.3,11 8.5,11C7.7,11 7,10.3 7,9.5C7,8.7 7.7,8 8.5,8C9.3,8 10,8.7 10,9.5M17,9.5C17,10.3 16.3,11 15.5,11C14.7,11 14,10.3 14,9.5C14,8.7 14.7,8 15.5,8C16.3,8 17,8.7 17,9.5M12,17.23C10.25,17.23 8.71,16.5 7.81,15.42L9.23,14C9.68,14.72 10.75,15.23 12,15.23C13.25,15.23 14.32,14.72 14.77,14L16.19,15.42C15.29,16.5 13.75,17.23 12,17.23Z",
   "PackageDown": "M5.12,5L5.93,4H17.93L18.87,5M12,17.5L6.5,12H10V10H14V12H17.5L12,17.5M20.54,5.23L19.15,3.55C18.88,3.21 18.47,3 18,3H6C5.53,3 5.12,3.21 4.84,3.55L3.46,5.23C3.17,5.57 3,6 3,6.5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V6.5C21,6 20.83,5.57 20.54,5.23Z",
   "GestureTap": "M10,9A1,1 0 0,1 11,8A1,1 0 0,1 12,9V13.47L13.21,13.6L18.15,15.79C18.68,16.03 19,16.56 19,17.14V21.5C18.97,22.32 18.32,22.97 17.5,23H11C10.62,23 10.26,22.85 10,22.57L5.1,18.37L5.84,17.6C6.03,17.39 6.3,17.28 6.58,17.28H6.8L10,19V9M11,5A4,4 0 0,1 15,9C15,10.5 14.2,11.77 13,12.46V11.24C13.61,10.69 14,9.89 14,9A3,3 0 0,0 11,6A3,3 0 0,0 8,9C8,9.89 8.39,10.69 9,11.24V12.46C7.8,11.77 7,10.5 7,9A4,4 0 0,1 11,5Z",
-  "Sleep": "M23,12H17V10L20.39,6H17V4H23V6L19.62,10H23V12M15,16H9V14L12.39,10H9V8H15V10L11.62,14H15V16M7,20H1V18L4.39,14H1V12H7V14L3.62,18H7V20Z"
+  "Sleep": "M23,12H17V10L20.39,6H17V4H23V6L19.62,10H23V12M15,16H9V14L12.39,10H9V8H15V10L11.62,14H15V16M7,20H1V18L4.39,14H1V12H7V14L3.62,18H7V20Z",
+  "QrcodeScan": "M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z"
  },
  "version": "2026.11.1",
- "updated": "2026-11-10T19:46:22-05:00",
- "commit": "df159856",
+ "updated": "2026-11-10T20:14:59-05:00",
+ "commit": "a095c7b5",
  "repo": "https://github.com/Ding-Ding-Projects/home-assistant-material",
  "image": "ghcr.io/ding-ding-projects/home-assistant-material",
  "features": [
@@ -460,7 +461,7 @@ window.SITE = {
    "group": "Safety",
    "name": "QR pairing for one-time codes",
    "what": "A QR code to add a one-time code secret to an app.",
-   "here": "Not yet on this page: drawing the QR code locally is still to build. The secret can be copied instead.",
+   "here": "Scanning works here: Tools, Authenticator reads a QR code from an image, a pasted screenshot or the camera and adds its secret. Drawing a QR code from a secret is still to build; copy the secret instead.",
    "state": "designed",
    "product": "Designed; not built.",
    "try": "tools:otp"
@@ -778,6 +779,48 @@ window.SITE = {
  ],
  "changes": [
   {
+   "sha": "a095c7b5",
+   "date": "2026-11-10T20:14:59-05:00",
+   "title": "Deploy Assistant workflow: take major and minor from package.json",
+   "body": "Releases were numbered 1.0.N whatever the app's own version said."
+  },
+  {
+   "sha": "cc6aa047",
+   "date": "2026-11-10T20:08:56-05:00",
+   "title": "Deploy Assistant workflow: let Windows read the repository's file names",
+   "body": "The sparse checkout still read every path into the index, and Git on\nWindows rejects a systemd unit name with a backslash escape. Those files\nare never written by this job."
+  },
+  {
+   "sha": "6271ef36",
+   "date": "2026-11-10T20:07:02-05:00",
+   "title": "Deploy Assistant 1.1: deploy wizard, extensions, updates and more",
+   "body": "The Deploy tab becomes a two-pane wizard: places on the left, the\neditable plan on the right, a four-step bar and one Deploy button\n(Ctrl Enter). Adds extensions with permission prompts and limits,\nTools, Support and Changes tabs, school mode, a reading voice, a\nscheduled dark theme, name and logo, the dim sum surprise, Windows\nbackground updates with an unsigned-update banner, the build on the\nfirst screen, and opening an instance's Compose file in VS Code.\nBoards redrawn on canvases 16 and 17. The workflow checks out only\nwhat it builds, so the Windows runner no longer fails on paths it\ncannot create."
+  },
+  {
+   "sha": "72dc47fd",
+   "date": "2026-11-10T20:05:00-05:00",
+   "title": "Google setup wizard, on-device read aloud, interactive first-run and lock wizards",
+   "body": "- Google setup (Settings): enable the needed Google services with a service\n  account key used once in memory, copy the return address, drop the client\n  file, then add each Google integration. Server part checked in a running\n  copy: status answers, a bad key is refused and never echoed or logged.\n- Read aloud uses only on-device voices; with none it says so and stays silent.\n- First-run setup: password strength and match, a region preview, a review\n  step. Lock wizard: policy cards, live rules, an optional try-it step.\n- Run now for automations and scripts: confirms, says the saved version runs,\n  reports the result, and is off while there are unsaved changes.\n- Entity dialog frame: no duplicated tools, no empty dialog for an unavailable\n  date. Maintenance counts per device. Link page: inherited names refused.\n- Tests for the link confirmation and the time zone helper are now tracked.\n\nNot yet seen in a running build, apart from the Google setup server check.\n\nGoogle 一次過設定好，讀屏唔會將你啲字送出街，開荒同上鎖精靈都識互動。\n上次漏咗兩個 test 冇跟車，今次補返。"
+  },
+  {
+   "sha": "25a9398b",
+   "date": "2026-11-10T19:49:27-05:00",
+   "title": "Setup dialog checks fields as you type; unknown pages get a not-found screen",
+   "body": "- Integration setup dialog: live checks for required fields, number ranges and\n  choices, a step count, and a collapsible summary with secrets shown as set.\n  What is sent to the server and the order of calls are unchanged.\n- An unknown sub-page shows a not-found screen with a way home, where the\n  router has no default page to fall back to.\n\nNot yet seen in a running build.\n\n裝 integration 個對話框識得邊打邊話你知邊度唔啱；去錯頁唔再得個白畫面。"
+  },
+  {
+   "sha": "06a7d94d",
+   "date": "2026-11-10T19:48:50-05:00",
+   "title": "Merge remote-tracking branch 'origin/main'",
+   "body": ""
+  },
+  {
+   "sha": "de8fa086",
+   "date": "2026-11-10T19:48:50-05:00",
+   "title": "Backups unencrypted by default, interactive guided setup, link confirmation, fixes",
+   "body": "- Backups: encryption is off by default. The setup dialog and the settings\n  card have an \"Encrypt backups\" switch; turning it on makes a key as before.\n- Guided setup wizard: live validation, a live summary with secrets masked,\n  a step rail, drafts that never store secrets, sliders and choice lists.\n- Links from outside into this interface ask first and show what they open.\n- Dialogs: profile time zone in date, time and calendar; spin controls and a\n  keyboard date grid; group confirmation; image share removed; other fixes.\n- Colour picker, fonts and accessibility panel fixes from review.\n- Selection bar at the bottom with filter-aware counts; export and\n  notification fixes.\n- Shared controls: limits announced, dual-range climate steppers, lock tile.\n- Cantonese for tabs and the search of everything; a Tools group in the tab\n  catalog; starting, connection lost and no-access screens redrawn.\n\nNot yet seen in a running build.\n\n備份預設唔加密，想鎖先至自己開掣；引導設定識得即時話你知錯喺邊；\n出面條 link 入嚟要問過你先。仲未開過嚟睇，照直講。"
+  },
+  {
    "sha": "df159856",
    "date": "2026-11-10T19:46:22-05:00",
    "title": "Deploy Assistant: one-click deploys, instances, backups, Raspberry Pi cards",
@@ -974,24 +1017,6 @@ window.SITE = {
    "date": "2026-11-10T10:16:55-05:00",
    "title": "Dialog tools: search this dialog, edit appearance and lock at the foot of every dialog",
    "body": "The shared dialog gets a row of tools under its content, as on the dialog\nboards. Search this dialog marks matches in the dialog, takes a pattern\nand shows a count. Edit appearance starts the pick tool. Lock stops input\nto the dialog's content, header actions and buttons; it is for that kind\nof dialog and is kept in this browser. Unlocking takes a hold, or the\nPIN, which is asked for inside the dialog because nothing outside an open\ndialog takes input. The first Escape clears a search; the next closes the\ndialog. Alerts and the plain question dialog have no row.\n\nFixed: reading the text of a page stopped at any element without a box of\nits own, which includes every slot. Read aloud, copy the text and export\nleft out most of a page. Search this page had the same fault after it\nbegan to follow slots.\n\nSeen in a running instance on the dialog of a light: a pattern search\nmarked two matches, a click on the locked dialog did not switch the\nlight, and after a hold the same click did."
-  },
-  {
-   "sha": "45890a7f",
-   "date": "2026-11-10T10:06:01-05:00",
-   "title": "Home greeting; page tools, footer and lock on the remaining page layouts",
-   "body": "Home opens with a greeting for the time of day and one sentence made from\nwhat the instance reports: lights that are on, the mean of the\ntemperatures the areas point at, and whether every lock is locked. A part\nthat cannot be known is left out. Up to three scenes are offered as\nbuttons, the most recently used first.\n\nThe top app bar layouts get the page tools, the footer and the page lock,\nso history, activity, media, to-do lists, calendar and the developer\ntools have them. Dashboards get the footer and the lock, and the menu on\nany element reaches export, history and lock there.\n\nSearch this page now follows slots, so text a component does not show is\nno longer counted as a match.\n\nSeen in a running instance: the greeting beside its board with a small\ndemo home, and a lock taking input away on a dashboard, on History, on\nSettings home and on a settings page."
-  },
-  {
-   "sha": "c1c837b2",
-   "date": "2026-11-10T09:53:10-05:00",
-   "title": "Settings home drawn like its board; compact rail; language and profile in the top bar",
-   "body": "Settings home has its own header now: a large title with a line under it,\na search of the sections with the pattern workbench, the page tools and\nthe menu. Updates and repairs are one-line banners. The sections are a\ngrid of cards, three across at most, and a card says what its section\nholds where that can be counted: devices and integrations, automations\nand scenes, areas and floors, dashboards, people, the version.\n\nThe rail starts compact; the menu button opens the full list and the\nchoice is kept. The top bar gets a language button, which opens the\nprofile's language page, and the user's picture, which opens the profile.\n\nThe compose file now runs build 34, which was pulled and run with only\nits configuration folder mounted: the page tools, export, lock with a PIN\nand help all worked in it."
-  },
-  {
-   "sha": "dc8c36fb",
-   "date": "2026-11-10T09:35:47-05:00",
-   "title": "List pages drawn like their boards: breadcrumb, large title, row cards",
-   "body": "Every list page under Settings now shows where it sits and its title in\nthe header, a large title with a summary line, its rows as rounded cards,\nand an export button beside the table settings. The footer reads like the\nboard: product, version, build time, language and the right-click hint.\n\n- The data table gets `row-cards`: the card is drawn behind each row, so\n  rows and columns keep their geometry.\n- The breadcrumb is the panel and then the section. The settings panel\n  resolves the section from the tabs a page passes.\n- Devices say how many have a low battery; automations say how many are\n  on. Other counted lists use their own noun.\n- The menu on any element has Export this page, History of changes and\n  Lock this page.\n\nSeen side by side with the Devices, Entities and Automations boards in a\nrunning instance. Filters are still a side pane, rows have no icon tile\nor second line, and checkboxes appear only in selection mode."
   }
  ],
  "status": [
@@ -2464,7 +2489,7 @@ window.SITE = {
   },
   {
    "id": "17-deploy-assistant-more",
-   "title": "Deploy Assistant: extensions, tools, support, changes, settings and more",
+   "title": "Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more",
    "boards": [
     {
      "name": "DeployPiProgress",
@@ -2499,6 +2524,26 @@ window.SITE = {
      "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates"
     },
     {
+     "name": "DeployDesign",
+     "title": "Deploy Assistant, its own design boards, offline"
+    },
+    {
+     "name": "DeployFeatures",
+     "title": "Deploy Assistant, the project's features and their state"
+    },
+    {
+     "name": "DeployStatus",
+     "title": "Deploy Assistant, the status page, offline"
+    },
+    {
+     "name": "DeployQr",
+     "title": "Deploy Assistant, a one-time code added from its QR code"
+    },
+    {
+     "name": "DeploySelfTest",
+     "title": "Deploy Assistant, the update self-test"
+    },
+    {
      "name": "DeployPalette",
      "title": "Deploy Assistant, Ctrl Shift F with live controls"
     },
@@ -2509,5 +2554,5 @@ window.SITE = {
    ]
   }
  ],
- "deployVersion": "1.1.0"
+ "deployVersion": "1.2.0"
 };
