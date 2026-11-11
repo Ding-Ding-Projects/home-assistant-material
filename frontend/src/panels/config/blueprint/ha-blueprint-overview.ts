@@ -13,6 +13,7 @@ import {
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import "../../../components/bulk/ha-bulk-bar";
 import type {
@@ -258,7 +259,8 @@ class HaBlueprintOverview extends LitElement {
 
   private _columns = memoizeOne(
     (
-      localize: LocalizeFunc
+      localize: LocalizeFunc,
+      narrow: boolean
     ): DataTableColumnContainer<BlueprintMetaDataPath> => ({
       icon: {
         title: "",
@@ -281,7 +283,16 @@ class HaBlueprintOverview extends LitElement {
         extraTemplate: (blueprint) =>
           blueprint.description
             ? html`<span
-                style="display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
+                style=${styleMap({
+                  display: "block",
+                  color: "var(--secondary-text-color)",
+                  fontSize: "var(--ha-font-size-s)",
+                  // One line with an ellipsis on a wide table, wrapped on a phone.
+                  overflow: "hidden",
+                  textOverflow: narrow ? "clip" : "ellipsis",
+                  whiteSpace: narrow ? "normal" : "nowrap",
+                  overflowWrap: narrow ? "anywhere" : "normal",
+                })}
                 >${blueprint.description}</span
               >`
             : "",
@@ -338,6 +349,10 @@ class HaBlueprintOverview extends LitElement {
                 appearance="filled"
                 variant="neutral"
                 size="s"
+                style=${styleMap({
+                  // A finger needs a 44 px target, the small button is 32 px.
+                  "--ha-button-height": narrow ? "44px" : undefined,
+                })}
                 data-fullpath=${blueprint.fullpath}
                 @click=${this._handleUseClick}
               >
@@ -474,7 +489,7 @@ class HaBlueprintOverview extends LitElement {
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.automations}
-        .columns=${this._columns(this.hass.localize)}
+        .columns=${this._columns(this.hass.localize, this.narrow)}
         .data=${this._processedBlueprints(
           this.blueprints,
           this.hass.localize,
@@ -505,10 +520,11 @@ class HaBlueprintOverview extends LitElement {
           style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; box-sizing: border-box; padding: 12px 16px; margin-top: 8px; border-radius: 16px; background: var(--secondary-background-color);"
         >
           <div
-            style="display: flex; align-items: center; gap: 12px; color: var(--secondary-text-color);"
+            style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 0; color: var(--secondary-text-color);"
           >
             <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
             <span
+              style="min-width: 0; white-space: normal; overflow-wrap: anywhere;"
               >${this.hass.localize(
                 "ui.panel.config.blueprint.overview.info_files"
               )}</span

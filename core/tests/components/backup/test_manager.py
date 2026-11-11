@@ -62,6 +62,7 @@ from homeassistant.components.backup.manager import (
     WrittenBackup,
 )
 from homeassistant.components.backup.services import BackupService
+from homeassistant.components.backup.util import NoHomeAssistantArchive
 from homeassistant.components.http.server import MAX_CLIENT_SIZE
 from homeassistant.const import EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant
@@ -647,7 +648,7 @@ async def test_initiate_backup(
         },
         "homeassistant": {
             "exclude_database": not include_database,
-            "version": "2025.1.0",
+            "version": "2024.12.9",
         },
         "name": expected_name,
         "protected": bool(password),
@@ -678,7 +679,7 @@ async def test_initiate_backup(
         "failed_folders": [],
         "folders": [],
         "homeassistant_included": True,
-        "homeassistant_version": "2025.1.0",
+        "homeassistant_version": "2024.12.9",
         "name": expected_name,
         "with_automatic_settings": False,
     }
@@ -904,7 +905,7 @@ async def test_initiate_backup_with_agent_error(
         "failed_folders": [],
         "folders": [],
         "homeassistant_included": True,
-        "homeassistant_version": "2025.1.0",
+        "homeassistant_version": "2024.12.9",
         "name": "Custom backup 2025.1.0",
         "with_automatic_settings": False,
     }
@@ -3273,6 +3274,107 @@ async def test_restore_backup_wrong_password(
     mocked_service_call.assert_not_called()
 
 
+async def _restore_with_backup_version(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    homeassistant_version: str,
+    validate_result: bool | Exception,
+) -> tuple[dict[str, Any], MagicMock, MagicMock]:
+    """Send a restore request for a backup made by the given core version."""
+    await setup_backup_integration(hass)
+    ws_client = await hass_ws_client(hass)
+
+    backup = replace(TEST_BACKUP_ABC123, homeassistant_version=homeassistant_version)
+    validate_kwargs: dict[str, Any] = (
+        {"side_effect": validate_result}
+        if isinstance(validate_result, Exception)
+        else {"return_value": validate_result}
+    )
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.write_text") as mocked_write_text,
+        patch("homeassistant.core.ServiceRegistry.async_call") as mocked_service_call,
+        patch(
+            "homeassistant.components.backup.manager.read_backup", return_value=backup
+        ),
+        patch(
+            "homeassistant.components.backup.manager.validate_password",
+            **validate_kwargs,
+        ),
+        patch("homeassistant.backup_restore.HA_BASE_VERSION", "2026.11.1"),
+        patch(
+            "homeassistant.components.backup.backup.read_backup",
+            side_effect=mock_read_backup,
+        ),
+    ):
+        await ws_client.send_json_auto_id(
+            {
+                "type": "backup/restore",
+                "backup_id": TEST_BACKUP_ABC123.backup_id,
+                "agent_id": LOCAL_AGENT_ID,
+                "restore_database": True,
+                "restore_homeassistant": True,
+            }
+        )
+        result = await ws_client.receive_json()
+    return result, mocked_write_text, mocked_service_call
+
+
+@pytest.mark.parametrize("available_backups", [[TEST_BACKUP_PATH_ABC123]])
+@pytest.mark.parametrize(
+    "version", ["2026.12.0b2", "2026.12.0.dev202611110215", "2027.1.0"]
+)
+async def test_restore_backup_newer_version_refused_before_scheduling(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    version: str,
+) -> None:
+    """Test a backup from a newer year.month is refused before the restore is scheduled."""
+    result, mocked_write_text, mocked_service_call = (
+        await _restore_with_backup_version(hass, hass_ws_client, version, True)
+    )
+
+    assert not result["success"]
+    assert result["error"]["code"] == "backup_version_too_new"
+    assert version in result["error"]["message"]
+    assert "update first" in result["error"]["message"]
+    mocked_write_text.assert_not_called()
+    mocked_service_call.assert_not_called()
+
+
+@pytest.mark.parametrize("available_backups", [[TEST_BACKUP_PATH_ABC123]])
+@pytest.mark.parametrize(
+    "version", ["2026.11.2", "2026.11.2b1", "2026.11.1", "2026.11.0b3", "2025.6.3"]
+)
+async def test_restore_backup_same_or_older_release_is_scheduled(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    version: str,
+) -> None:
+    """Test later patches of the same month and older releases are accepted."""
+    result, mocked_write_text, _ = await _restore_with_backup_version(
+        hass, hass_ws_client, version, True
+    )
+
+    assert result["success"]
+    mocked_write_text.assert_called_once()
+
+
+@pytest.mark.parametrize("available_backups", [[TEST_BACKUP_PATH_ABC123]])
+async def test_restore_backup_no_core_archive(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+) -> None:
+    """Test a backup without a core archive gets its own error, not a wrong password."""
+    result, mocked_write_text, _ = await _restore_with_backup_version(
+        hass, hass_ws_client, "2026.11.1", NoHomeAssistantArchive()
+    )
+
+    assert not result["success"]
+    assert result["error"]["code"] == "backup_no_core_archive"
+    mocked_write_text.assert_not_called()
+
+
 @pytest.mark.parametrize("available_backups", [[TEST_BACKUP_PATH_ABC123]])
 @pytest.mark.parametrize(
     ("parameters", "expected_error", "expected_reason"),
@@ -3907,7 +4009,7 @@ async def test_initiate_backup_per_agent_encryption(
         "failed_folders": [],
         "folders": [],
         "homeassistant_included": True,
-        "homeassistant_version": "2025.1.0",
+        "homeassistant_version": "2024.12.9",
         "name": "test",
         "with_automatic_settings": False,
     }

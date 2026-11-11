@@ -4,25 +4,41 @@
       "date": "2026-11-11",
       "items": [
         {
-          "text": "New: the dashboard header carries the page tools cluster. View mode uses the shared cluster (one overflow button on a phone). Edit mode shows appearance, history, export and help, locked mode shows only Unlock, and embedded dashboards show no cluster. Search this page is not shown in edit mode, and on a phone in edit mode the shared overflow panel may still list lock and read aloud. Not yet seen in a running build."
+          "text": "Fixed: backups made by official Home Assistant releases. Backups from 2026.11.1, 2025.1.4 and 2024.6.4 were restored through the interface, at first-run setup and from the Backups page, with users, helpers, an automation, a script, a scene, a dashboard, an area and history all kept. Five gaps found there are fixed: an older archive whose inner file name starts with \"./\" was refused as a wrong password; a backup from a newer release was refused only after the core had stopped (it is refused before anything stops now); a later patch release of the same month is accepted and a backup made here carries the three-part core version, so official builds accept it; a name with a slash is tidied instead of refused; the first-run restore page no longer lists two lines twice. The fixes are covered by server tests and were checked against ten real backup files; they are not yet seen through the interface. Not exercised: a real Home Assistant OS backup with apps, cloud backups and databases older than 2024.6."
         },
         {
-          "text": "New: the first-run integrations step has a failure-safe state machine and shows discovered integrations as cards, each with a switch, a Set up button, a status chip and a result line. A flow that fails, is cancelled or never answers (15 minute limit) ends in a normal state, and Skip and Finish are never disabled. Cantonese strings added. Not yet seen in a running build."
+          "text": "Fixed, from the design lane's boards of the running interface: bottom bar labels are no longer cut on a phone; a narrow table row shows two lines of secondary text; Settings tile descriptions get two lines; the Users page on a phone keeps the avatar beside the name, its footnote wraps and its \"Active\" header has room; the Updates row without an Update button lines up with the others; Personal settings marks the section in view; the \"Learn more\" pill on the Home banner is readable in the dark scheme; the selected page tab is never under the edge fade; Select is clear of the Add device button; Blueprints descriptions wrap on a phone; the automation history table head stays on one line; the Overview no longer has an empty cell where a home has no power sensor. Not yet seen in a running build."
         },
         {
-          "text": "New: guided setup keeps a draft for 14 days, refuses a jump past invalid options, has a Save and close button, and shows the step list as a column beside the content on a wide screen. The leave text no longer claims drafts follow the account. Not yet seen in a running build."
+          "text": "Fixed in the Deploy Assistant: Instances, Downloads and Extensions have a one-line description; instance card lines wrap and paths break only at separators; the chart's waiting label is clear of the gridline; the tab strip fades where it is cut; model row buttons line up; the Deploy header wraps evenly. Seen in the app's browser demo at 1280 and 400 px, not in the packaged app."
         },
         {
-          "text": "New: Nest registration guidance in Google setup, a six-step checklist with copyable outside addresses shown as plain text, a live project ID check, a redirect address, and a pasted client file checked and held in memory only. Not yet seen in a running build."
+          "text": "New: the dashboard header carries the page tools cluster. View mode uses the shared cluster (one overflow button on a phone). Edit mode shows appearance, history, export and help, locked mode shows only Unlock, and embedded dashboards show no cluster. Search this page is not shown in edit mode, and on a phone in edit mode the shared overflow panel may still list lock and read aloud. Not yet seen in a running build.",
+          "commit": "b7843603e3df"
         },
         {
-          "text": "New: a Tickets section on the Support page with create, list, status filter, search, read, notes and close or reopen. Tickets and notes stay on this instance or in this browser. Not yet seen in a running build."
+          "text": "New: the first-run integrations step has a failure-safe state machine and shows discovered integrations as cards, each with a switch, a Set up button, a status chip and a result line. A flow that fails, is cancelled or never answers (15 minute limit) ends in a normal state, and Skip and Finish are never disabled. Cantonese strings added. Not yet seen in a running build.",
+          "commit": "b7843603e3df"
         },
         {
-          "text": "New: command search keyboard operation. Up and Down wrap, Space toggles the live switch on the active row, Escape closes on an empty query, the active row has a visible ring and a polite status line, and three entries were added (personal wording file, accessibility tools, language mode). Not yet seen in a running build."
+          "text": "New: guided setup keeps a draft for 14 days, refuses a jump past invalid options, has a Save and close button, and shows the step list as a column beside the content on a wide screen. The leave text no longer claims drafts follow the account. Not yet seen in a running build.",
+          "commit": "b7843603e3df"
         },
         {
-          "text": "Fix: the Cantonese source now covers the new onboarding, Google setup and guided setup keys. Not yet seen in a running build."
+          "text": "New: Nest registration guidance in Google setup, a six-step checklist with copyable outside addresses shown as plain text, a live project ID check, a redirect address, and a pasted client file checked and held in memory only. Not yet seen in a running build.",
+          "commit": "b7843603e3df"
+        },
+        {
+          "text": "New: a Tickets section on the Support page with create, list, status filter, search, read, notes and close or reopen. Tickets and notes stay on this instance or in this browser. Not yet seen in a running build.",
+          "commit": "b7843603e3df"
+        },
+        {
+          "text": "New: command search keyboard operation. Up and Down wrap, Space toggles the live switch on the active row, Escape closes on an empty query, the active row has a visible ring and a polite status line, and three entries were added (personal wording file, accessibility tools, language mode). Not yet seen in a running build.",
+          "commit": "b7843603e3df"
+        },
+        {
+          "text": "Fix: the Cantonese source now covers the new onboarding, Google setup and guided setup keys. Not yet seen in a running build.",
+          "commit": "b7843603e3df"
         },
         {
           "text": "New: a type scale in the fonts dialog. A switch turns it on, a ratio (1.125, 1.2, 1.25, 1.333 or custom) and a base size set five steps (caption, body, title, headline, display) with an optional size for each step, a live preview and a note that it multiplies with Text size. It is off by default and writes nothing then; reset fonts also resets it. It is applied at startup. Sync through the appearance settings and Cantonese strings for the scale are not done. Not yet seen in a running build.",

@@ -6,16 +6,44 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import shutil
 import sys
 import tarfile
 from tempfile import TemporaryDirectory
 from typing import IO, TYPE_CHECKING
 
-from awesomeversion import AwesomeVersion
 import securetar
 
-from .const import __version__ as HA_VERSION
+from .const import __base_version__ as HA_BASE_VERSION
+
+_RELEASE_RE = re.compile(r"^\s*v?(\d+)\.(\d+)(?:\.|$|[a-z])")
+
+
+def _year_month(version: str) -> tuple[int, int] | None:
+    """Return (year, month) of a release string, or None when unparseable."""
+    if (match := _RELEASE_RE.match(version)) is None:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
+def backup_is_newer_than_core(backup_version: str) -> bool:
+    """Return True if a backup was made by a core release this build cannot restore.
+
+    Rule: compare only year and month with the core release this build is based on.
+    The build number (fourth part) and beta or dev suffixes are ignored, so a backup
+    from any patch release of the same year.month is accepted, including one newer
+    than the base patch; a backup from a later year.month is refused. Patch releases
+    do not change the storage formats a restore depends on. This is an assumption
+    about upstream release practice, not something checked per release.
+    A version that cannot be parsed is not refused.
+    """
+    backup_release = _year_month(backup_version)
+    core_release = _year_month(HA_BASE_VERSION)
+    if backup_release is None or core_release is None:
+        return False
+    return backup_release > core_release
+
 
 RESTORE_BACKUP_FILE = ".HA_RESTORE"
 RESTORE_BACKUP_RESULT_FILE = ".HA_RESTORE_RESULT"
@@ -111,11 +139,8 @@ def _extract_backup(
         }
         backup_meta = json.load(_extract_member(ostf.tar, members, "backup.json"))
 
-        if (
-            backup_meta_version := AwesomeVersion(
-                backup_meta["homeassistant"]["version"]
-            )
-        ) > HA_VERSION:
+        backup_meta_version = str(backup_meta["homeassistant"]["version"])
+        if backup_is_newer_than_core(backup_meta_version):
             raise ValueError(
                 f"You need at least Home Assistant version"
                 f" {backup_meta_version} to restore this backup"

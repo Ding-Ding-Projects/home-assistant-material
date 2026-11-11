@@ -8,6 +8,7 @@ from io import BytesIO
 import json
 from pathlib import Path, PurePath, PureWindowsPath
 from queue import SimpleQueue
+import re
 import tarfile
 import threading
 from typing import IO, Any, cast
@@ -67,16 +68,65 @@ class BackupEmpty(DecryptError):
     _message = "No tar files found in the backup."
 
 
+class NoHomeAssistantArchive(DecryptError):
+    """The backup has no Home Assistant core archive."""
+
+    _message = "The backup does not contain a Home Assistant core archive."
+
+
 def make_backup_dir(path: Path) -> None:
     """Create a backup directory if it does not exist."""
     path.mkdir(exist_ok=True)
+
+
+_MAX_BACKUP_NAME_LENGTH = 200
+
+
+def _is_safe_backup_name(name: str) -> bool:
+    """Return True if the name cannot escape the backup directory."""
+    return PureWindowsPath(name).name == name and name not in ("", ".", "..")
+
+
+def _sanitize_backup_name(name: str) -> str:
+    """Return a display name that is safe to use in the on-disk filename.
+
+    Older releases allowed free text, so names such as "Before upgrade 2026/01/02"
+    exist in real backups. The name is used to derive the on-disk filename via
+    suggested_filename, so it is rewritten rather than the backup being refused.
+    """
+    if _is_safe_backup_name(name) and len(name) <= _MAX_BACKUP_NAME_LENGTH:
+        return name
+    cleaned = re.sub(r"[\\/]+", "-", name)
+    if not _is_safe_backup_name(cleaned):
+        cleaned = cleaned.replace(":", "-")
+    cleaned = cleaned.strip()[:_MAX_BACKUP_NAME_LENGTH].strip()
+    if not cleaned or cleaned.strip(".") == "":
+        cleaned = "Backup"
+    if not _is_safe_backup_name(cleaned):
+        raise InvalidBackupFilename(f"Invalid backup name: {name!r}")
+    return cleaned
+
+
+def _extract_outer_member(tar: tarfile.TarFile, name: str) -> IO[bytes] | None:
+    """Extract a member of the outer backup tar, with or without a leading './'.
+
+    Older Supervisor releases write "./backup.json" and "./homeassistant.tar.gz",
+    newer ones and manually repacked archives write the bare names.
+    Raises KeyError if no spelling of the name exists.
+    """
+    for candidate in (name, f"./{name}"):
+        try:
+            return tar.extractfile(candidate)
+        except KeyError:
+            continue
+    raise KeyError(name)
 
 
 def read_backup(backup_path: Path) -> AgentBackup:
     """Read a backup from disk."""
 
     with tarfile.open(backup_path, "r:", bufsize=BUF_SIZE) as backup_file:
-        if not (data_file := backup_file.extractfile("./backup.json")):
+        if not (data_file := _extract_outer_member(backup_file, "backup.json")):
             raise KeyError("backup.json not found in tar file")
         data = json_loads_object(data_file.read())
         addons = [
@@ -109,12 +159,7 @@ def read_backup(backup_path: Path) -> AgentBackup:
         extra_metadata = cast(dict[str, bool | str], data.get("extra", {}))
         date = extra_metadata.get("supervisor.backup_request_date", data["date"])
 
-        name = cast(str, data["name"])
-        # The name is used to derive the on-disk filename via suggested_filename;
-        # reject anything that could escape the backup directory.
-        safe_name = PureWindowsPath(name).name
-        if safe_name != name or name in ("", ".", ".."):
-            raise InvalidBackupFilename(f"Invalid backup name: {name!r}")
+        name = _sanitize_backup_name(cast(str, data["name"]))
 
         return AgentBackup(
             addons=addons,
@@ -152,17 +197,15 @@ def validate_password(path: Path, password: str | None) -> bool:
         path, "r", bufsize=BUF_SIZE, password=password
     ) as backup_file:
         compressed = False
-        ha_tar_name = "homeassistant.tar"
         try:
-            ha_tar = backup_file.tar.extractfile(ha_tar_name)
+            ha_tar = _extract_outer_member(backup_file.tar, "homeassistant.tar")
         except KeyError:
             compressed = True
-            ha_tar_name = "homeassistant.tar.gz"
             try:
-                ha_tar = backup_file.tar.extractfile(ha_tar_name)
-            except KeyError:
+                ha_tar = _extract_outer_member(backup_file.tar, "homeassistant.tar.gz")
+            except KeyError as err:
                 LOGGER.error("No homeassistant.tar or homeassistant.tar.gz found")
-                return False
+                raise NoHomeAssistantArchive from err
         try:
             with SecureTarFile(
                 path,  # Not used

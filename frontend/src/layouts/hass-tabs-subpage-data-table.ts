@@ -1466,6 +1466,15 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     .footer-select {
       flex-shrink: 0;
     }
+    /* A floating action button sits over the end of the footer: keep the
+       Select button clear of it. On a wide page the footer gives up room at
+       its end; on a narrow page Select comes first, away from the button. */
+    :host([has-fab]:not([narrow])) .list-footer {
+      padding-inline-end: calc(var(--ha-space-8) + 200px);
+    }
+    :host([has-fab][narrow]) .footer-select {
+      order: -1;
+    }
     .table-header.with-chips ha-input-search {
       flex: 0 1 320px;
       min-width: 160px;

@@ -11,6 +11,7 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`access/`](access/README.md) | Passkey sign-in and locks |
 | [`language-and-voice/`](language-and-voice/README.md) | Language modes, playfulness, narrator and read aloud, School mode, attention modes, schedules and shared defaults, settings saved on the instance |
 | [`help-and-privacy/`](help-and-privacy/README.md) | Offline help, the problem log, link confirmation |
+| [`backups/`](backups/README.md) | Restoring official Home Assistant backups and the version rule |
 | [`tools/`](tools/README.md) | File converter and drawing board |
 | [`automations/`](automations/README.md) | Testing and running a Choose step, the automation and script editors |
 | [`dashboards/`](dashboards/README.md) | Editing built-in pages, export, import; history is in `dashboard-history/` |

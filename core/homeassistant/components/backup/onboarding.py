@@ -20,7 +20,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from . import async_get_manager, http as backup_http
-from .manager import BackupManager, IncorrectPasswordError
+from .manager import (
+    BackupManager,
+    BackupNoCoreArchiveError,
+    BackupVersionTooNewError,
+    IncorrectPasswordError,
+)
 from .models import Folder
 
 if TYPE_CHECKING:
@@ -116,6 +121,16 @@ class RestoreBackupView(NoAuthBaseOnboardingView):
         except IncorrectPasswordError:
             return self.json(
                 {"code": "incorrect_password"}, status_code=HTTPStatus.BAD_REQUEST
+            )
+        except BackupVersionTooNewError as err:
+            return self.json(
+                {"code": "backup_version_too_new", "message": str(err)},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+        except BackupNoCoreArchiveError as err:
+            return self.json(
+                {"code": "backup_no_core_archive", "message": str(err)},
+                status_code=HTTPStatus.BAD_REQUEST,
             )
         except HomeAssistantError as err:
             return self.json(

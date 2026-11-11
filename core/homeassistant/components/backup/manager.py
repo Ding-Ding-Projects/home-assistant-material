@@ -20,8 +20,15 @@ from typing import IO, TYPE_CHECKING, Any, Protocol, TypedDict, cast, override
 import aiohttp
 from securetar import SecureTarArchive, atomic_contents_add
 
-from homeassistant.backup_restore import RESTORE_BACKUP_FILE, RESTORE_BACKUP_RESULT_FILE
-from homeassistant.const import __version__ as HAVERSION
+from homeassistant.backup_restore import (
+    RESTORE_BACKUP_FILE,
+    RESTORE_BACKUP_RESULT_FILE,
+    backup_is_newer_than_core,
+)
+from homeassistant.const import (
+    __base_version__ as HABASEVERSION,
+    __version__ as HAVERSION,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import (
     frame,
@@ -336,6 +343,29 @@ class IncorrectPasswordError(BackupReaderWriterError):
 
     error_code = "password_incorrect"
     _message = "The password provided is incorrect."
+
+
+class BackupVersionTooNewError(BackupReaderWriterError):
+    """Raised when the backup was made by a newer Home Assistant release."""
+
+    error_code = "backup_version_too_new"
+    _message = "This backup was made by a newer version of Home Assistant."
+
+    def __init__(self, backup_version: str | None = None) -> None:
+        """Initialize with the version that made the backup."""
+        super().__init__()
+        if backup_version is not None:
+            self._message = (
+                f"This backup was made by a newer version ({backup_version});"
+                " update first"
+            )
+
+
+class BackupNoCoreArchiveError(BackupReaderWriterError):
+    """Raised when the backup has no Home Assistant core archive."""
+
+    error_code = "backup_no_core_archive"
+    _message = "The backup does not contain a Home Assistant core archive."
 
 
 class DecryptOnDowloadNotSupported(BackupManagerError):
@@ -1879,7 +1909,7 @@ class CoreBackupReaderWriter(BackupReaderWriter):
             extra_metadata=extra_metadata,
             folders=[],
             homeassistant_included=True,
-            homeassistant_version=HAVERSION,
+            homeassistant_version=HABASEVERSION,
             name=backup_name,
             protected=password is not None,
             size=0,
@@ -1907,7 +1937,9 @@ class CoreBackupReaderWriter(BackupReaderWriter):
                 "extra": extra_metadata,
                 "homeassistant": {
                     "exclude_database": not include_database,
-                    "version": HAVERSION,
+                    # Official releases only know the three-part core release,
+                    # not this build's fourth part.
+                    "version": HABASEVERSION,
                 },
                 "name": backup_name,
                 "protected": password is not None,
@@ -2184,9 +2216,27 @@ class CoreBackupReaderWriter(BackupReaderWriter):
 
             remove_after_restore = True
 
-        password_valid = await self._hass.async_add_executor_job(
-            validate_password, path, password
-        )
+        # Refuse before core is stopped; the startup restore checks again as the
+        # last line of defence.
+        try:
+            archive_info = await self._hass.async_add_executor_job(read_backup, path)
+        except (KeyError, OSError, tarfile.TarError, ValueError, TypeError):
+            archive_info = None
+        if (
+            archive_info is not None
+            and archive_info.homeassistant_version is not None
+            and backup_is_newer_than_core(archive_info.homeassistant_version)
+        ):
+            if remove_after_restore:
+                await self._hass.async_add_executor_job(path.unlink, True)
+            raise BackupVersionTooNewError(archive_info.homeassistant_version)
+
+        try:
+            password_valid = await self._hass.async_add_executor_job(
+                validate_password, path, password
+            )
+        except backup_util.NoHomeAssistantArchive as err:
+            raise BackupNoCoreArchiveError from err
         if not password_valid:
             raise IncorrectPasswordError
 

@@ -5636,6 +5636,7 @@
             "restore": {
               "title": "Restore backup",
               "restore_failed": "Backup restore failed",
+              "refused": "This backup could not be restored. Check that the file is a complete Home Assistant backup.",
               "confirm": {
                 "description": "Your backup will be restored and all current data will be overwritten. Depending on the size of the backup, this can take a while."
               },
@@ -18259,6 +18260,7 @@
             "restore": {
               "title": "[%key:ui::panel::config::backup::dialogs::restore::title%]",
               "action": "Restore backup",
+              "refused": "This backup could not be restored. Check that the file is a complete Home Assistant backup.",
               "encryption": {
                 "label": "Encryption",
                 "description": "[%key:ui::panel::config::backup::dialogs::restore::encryption::different_key%]",

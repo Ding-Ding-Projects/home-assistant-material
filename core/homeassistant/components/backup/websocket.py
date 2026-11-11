@@ -12,6 +12,8 @@ from homeassistant.helpers import config_validation as cv
 from .config import Day, ScheduleRecurrence
 from .const import DATA_MANAGER, LOGGER
 from .manager import (
+    BackupNoCoreArchiveError,
+    BackupVersionTooNewError,
     DecryptOnDowloadNotSupported,
     IncorrectPasswordError,
     ManagerStateEvent,
@@ -189,6 +191,10 @@ async def handle_restore(
         connection.send_error(msg["id"], "backup_not_found", "Backup not found")
     except IncorrectPasswordError:
         connection.send_error(msg["id"], "password_incorrect", "Incorrect password")
+    except BackupVersionTooNewError as err:
+        connection.send_error(msg["id"], "backup_version_too_new", str(err))
+    except BackupNoCoreArchiveError as err:
+        connection.send_error(msg["id"], "backup_no_core_archive", str(err))
     else:
         connection.send_result(msg["id"])
 

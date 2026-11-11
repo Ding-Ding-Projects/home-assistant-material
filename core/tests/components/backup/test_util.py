@@ -2,11 +2,14 @@
 
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator
+import copy
 import dataclasses
 import hashlib
 import inspect
+import io
+import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import tarfile
 from unittest.mock import Mock, patch
 
@@ -16,10 +19,10 @@ from pytest_homeassistant.common import get_fixture_path
 import securetar
 
 from homeassistant.components.backup import DOMAIN, AddonInfo, AgentBackup, Folder
-from homeassistant.components.backup.models import InvalidBackupFilename
 from homeassistant.components.backup.util import (
     DecryptedBackupStreamer,
     EncryptedBackupStreamer,
+    NoHomeAssistantArchive,
     read_backup,
     receive_file,
     suggested_filename,
@@ -160,26 +163,13 @@ def test_read_backup(backup_json_content: bytes, expected_backup: AgentBackup) -
         assert backup == expected_backup
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        "/absolute/path",
-        "../parent",
-        "with/slash",
-        "with\\backslash",
-        "C:\\drive\\path",
-        "",
-        ".",
-        "..",
-    ],
-)
-def test_read_backup_rejects_unsafe_name(name: str) -> None:
-    """Test that read_backup rejects names that could escape the backup directory."""
+def _read_backup_with_name(name: str) -> AgentBackup:
+    """Read a mocked backup whose backup.json carries the given name."""
     backup_json_content = (
         b'{"compressed":true,"date":"2024-12-02T07:23:58.261875-05:00","homeassistant":'
-        b'{"exclude_database":true,"version":"2024.12.0.dev0"},"name":"'
-        + name.encode().replace(b"\\", b"\\\\")
-        + b'","protected":true,"slug":"455645fe","type":"partial","version":2}'
+        b'{"exclude_database":true,"version":"2024.12.0.dev0"},"name":'
+        + json.dumps(name).encode()
+        + b',"protected":true,"slug":"455645fe","type":"partial","version":2}'
     )
     mock_path = Mock()
     mock_path.stat.return_value.st_size = 1234
@@ -187,8 +177,92 @@ def test_read_backup_rejects_unsafe_name(name: str) -> None:
     with patch("homeassistant.components.backup.util.tarfile.open") as mock_open_tar:
         tar_ctx = mock_open_tar.return_value.__enter__.return_value
         tar_ctx.extractfile.return_value.read.return_value = backup_json_content
-        with pytest.raises(InvalidBackupFilename):
-            read_backup(mock_path)
+        return read_backup(mock_path)
+
+
+@pytest.mark.parametrize(
+    ("name", "expected_name"),
+    [
+        ("Before upgrade 2026/01/02", "Before upgrade 2026-01-02"),
+        ("/absolute/path", "-absolute-path"),
+        ("../parent", "..-parent"),
+        ("with\\backslash", "with-backslash"),
+        ("C:\\drive\\path", "C--drive-path"),
+        ("a: b", "a- b"),
+        ("  padded/name  ", "padded-name"),
+        ("", "Backup"),
+        (".", "Backup"),
+        ("..", "Backup"),
+        ("x" * 500 + "/y", "x" * 200),
+        ("Weekly: Sunday", "Weekly: Sunday"),
+        ("Plain name", "Plain name"),
+    ],
+)
+def test_read_backup_sanitizes_name(name: str, expected_name: str) -> None:
+    """Test that read_backup rewrites names that could escape the backup directory."""
+    backup = _read_backup_with_name(name)
+
+    assert backup.name == expected_name
+    assert PureWindowsPath(suggested_filename(backup)).name == suggested_filename(
+        backup
+    )
+
+
+def _rewrite_outer_tar(source: Path, destination: Path, prefix: str) -> None:
+    """Copy a backup, adding a prefix to every outer member name."""
+    with (
+        tarfile.open(source, "r:") as src,
+        tarfile.open(destination, "w:") as dst,
+    ):
+        for member in src.getmembers():
+            fileobj = src.extractfile(member)
+            renamed = copy.copy(member)
+            renamed.name = f"{prefix}{member.name.removeprefix('./')}"
+            dst.addfile(renamed, fileobj)
+
+
+@pytest.mark.parametrize("prefix", ["", "./"])
+@pytest.mark.parametrize(
+    ("backup", "password", "validation_result"),
+    [
+        (Path("backup_compressed.tar"), None, True),
+        (Path("backup_uncompressed.tar"), None, True),
+        (Path("backup_compressed_protected_v3.tar"), "hunter2", True),
+        (Path("backup_uncompressed_protected_v3.tar"), "hunter2", True),
+        (Path("backup_compressed_protected_v2.tar"), "hunter2", True),
+        (Path("backup_compressed_protected_v3.tar"), "wrong_password", False),
+        (Path("backup_uncompressed_protected_v3.tar"), None, False),
+        (Path("backup_compressed.tar"), "hunter2", False),
+    ],
+)
+def test_backup_member_names_with_and_without_dot_slash(
+    backup: Path,
+    password: str | None,
+    validation_result: bool,
+    prefix: str,
+    tmp_path: Path,
+) -> None:
+    """Test member lookup is tolerant of a leading './' while wrong passwords stay wrong."""
+    rewritten = tmp_path / "rewritten.tar"
+    _rewrite_outer_tar(
+        get_fixture_path("test_backups", DOMAIN) / backup, rewritten, prefix
+    )
+
+    assert validate_password(rewritten, password) is validation_result
+    assert read_backup(rewritten).backup_id
+
+
+def test_validate_password_no_homeassistant_archive(tmp_path: Path) -> None:
+    """Test a backup without a core archive is not reported as a wrong password."""
+    path = tmp_path / "no_core.tar"
+    metadata = b'{"name": "x", "slug": "abcd1234", "date": "2024-01-01T00:00:00+00:00"}'
+    info = tarfile.TarInfo("./backup.json")
+    info.size = len(metadata)
+    with tarfile.open(path, "w:") as tar:
+        tar.addfile(info, io.BytesIO(metadata))
+
+    with pytest.raises(NoHomeAssistantArchive):
+        validate_password(path, None)
 
 
 @pytest.mark.parametrize(
@@ -301,7 +375,8 @@ def test_validate_password_no_homeassistant(caplog: pytest.LogCaptureFixture) ->
         patch("securetar.tarfile.open") as mock_open_tar,
     ):
         mock_open_tar.return_value.extractfile.side_effect = KeyError
-        assert validate_password(mock_path, "hunter2") is False
+        with pytest.raises(NoHomeAssistantArchive):
+            validate_password(mock_path, "hunter2")
 
     assert "No homeassistant.tar or homeassistant.tar.gz found" in caplog.text
 

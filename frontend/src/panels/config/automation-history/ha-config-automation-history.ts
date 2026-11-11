@@ -3023,6 +3023,14 @@ export class HaConfigAutomationHistory extends LitElement {
         grid-template-columns: 40px minmax(0, 1fr);
         grid-template-areas: "check version";
       }
+      /* The repositories table head has three cells: it keeps its own columns. */
+      .row.repo.head {
+        grid-template-columns: 40px minmax(0, 1fr) auto;
+        grid-template-areas: none;
+      }
+      .row.repo.head .check {
+        grid-area: auto;
+      }
       .row.head .commit,
       .row.head .checks,
       .row.head .actions,

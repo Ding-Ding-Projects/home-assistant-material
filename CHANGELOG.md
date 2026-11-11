@@ -8,6 +8,30 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Fixed: backups made by official Home Assistant releases. Backups from 2026.11.1, 2025.1.4 and
+  2024.6.4 were restored through the interface, at first-run setup and from the Backups page, with
+  users, helpers, an automation, a script, a scene, a dashboard, an area and history all kept. Five
+  gaps found there are fixed: an older archive whose inner file name starts with "./" was refused as
+  a wrong password; a backup from a newer release was refused only after the core had stopped (it is
+  refused before anything stops now); a later patch release of the same month is accepted and a
+  backup made here carries the three-part core version, so official builds accept it; a name with a
+  slash is tidied instead of refused; the first-run restore page no longer lists two lines twice.
+  The fixes are covered by server tests and were checked against ten real backup files; they are
+  not yet seen through the interface. Not exercised: a real Home Assistant OS backup with apps,
+  cloud backups and databases older than 2024.6.
+- Fixed, from the design lane's boards of the running interface: bottom bar labels are no longer
+  cut on a phone; a narrow table row shows two lines of secondary text; Settings tile descriptions
+  get two lines; the Users page on a phone keeps the avatar beside the name, its footnote wraps and
+  its "Active" header has room; the Updates row without an Update button lines up with the others;
+  Personal settings marks the section in view; the "Learn more" pill on the Home banner is readable
+  in the dark scheme; the selected page tab is never under the edge fade; Select is clear of the
+  Add device button; Blueprints descriptions wrap on a phone; the automation history table head
+  stays on one line; the Overview no longer has an empty cell where a home has no power sensor.
+  Not yet seen in a running build.
+- Fixed in the Deploy Assistant: Instances, Downloads and Extensions have a one-line description;
+  instance card lines wrap and paths break only at separators; the chart's waiting label is clear of
+  the gridline; the tab strip fades where it is cut; model row buttons line up; the Deploy header
+  wraps evenly. Seen in the app's browser demo at 1280 and 400 px, not in the packaged app.
 - New: the dashboard header carries the page tools cluster. View mode uses the shared cluster
   (one overflow button on a phone). Edit mode shows appearance, history, export and help, locked
   mode shows only Unlock, and embedded dashboards show no cluster. Search this page is not

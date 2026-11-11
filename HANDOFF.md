@@ -65,7 +65,22 @@ published build.
   still not seen.
 - Closed by the owner's decision without a device check: "Add media" on a real iPhone, a passkey
   on a hardware key or phone. Release 110 (no container image) was deleted at the owner's word.
-- Frontend suite: 5,845 pass and 3 fail (`build-management.test.js`, as before). Test files that
+- After batch 27 on 11 November 2026: five waves from one automated run are on `main` (bulk
+  actions on six more tables; toasts, notification severity, statistics strip, draft recovery;
+  named test cases, dry run, repository strip, save bar, starting points; type scale, named
+  palette, practise control, tab group search; header page tools, setup flows, support tickets,
+  command search keys). Each passed the type check, the full suite and the public-wording scan;
+  NONE of it has been seen in a browser. `CHANGELOG.md` and `docs/feature-status.md` list each
+  item. Also landed: official backup compatibility (see `docs/features/backups/official-backups.md`),
+  the polish list from the design lane's boards, and seven Deploy Assistant polish fixes.
+- Known noise in the frontend tests: `test/layouts/hass-tabs-subpage.test.ts` prints 135 unhandled
+  errors (a build-time value missing from the test setup, and form internals the test browser
+  lacks). All tests pass; the noise could hide a real error and should be removed.
+- Release 119 was not published: every build job of run 119 succeeded, including all four operating
+  system images, but GitHub Actions had an outage and the final publish job never got a runner. Its
+  staged files are kept for three days; re-run the failed job once Actions is back.
+- Frontend suite at batch 27: 5,845 pass and 3 fail (`build-management.test.js`, as before); after
+  the five waves 6,232 pass and the same 3 fail. Test files that
   used to fail to load now load; one stale test in `test/panels/marketplace/` was corrected.
 
 ## Where things stand

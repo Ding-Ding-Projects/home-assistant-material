@@ -26,6 +26,9 @@ MINOR_VERSION: Final = 11
 PATCH_VERSION: Final = "1"
 __short_version__: Final = f"{MAJOR_VERSION}.{MINOR_VERSION}"
 __version__: Final = f"{__short_version__}.{PATCH_VERSION}"
+# The upstream core release this build is based on, without the build number that
+# set-versions.py appends to PATCH_VERSION. Official releases only know this form.
+__base_version__: Final = f"{__short_version__}.{PATCH_VERSION.partition('.')[0]}"
 REQUIRED_PYTHON_VER: Final[tuple[int, int, int]] = (3, 14, 2)
 
 # Format for platform files

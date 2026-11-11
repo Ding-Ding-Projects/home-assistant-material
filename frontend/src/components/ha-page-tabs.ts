@@ -1014,9 +1014,37 @@ export class HaPageTabs extends LitElement {
       this._stripObserver = new ResizeObserver(() => this._measureStrip());
       this._stripObserver.observe(this._strip);
     }
+    this._revealSelectedTab();
     if (!changed.has("_hiddenEnds")) {
       this._measureStrip();
     }
+  }
+
+  /** Last selected page and tab count the strip was scrolled for. */
+  private _revealedKey?: string;
+
+  // Scrolls the selected tab clear of the edge fade. It only runs when the
+  // selected page or the open tabs change, so a person who scrolls the strip
+  // by hand is not pulled back on every other update.
+  private _revealSelectedTab() {
+    const strip = this._strip;
+    if (!strip) {
+      return;
+    }
+    const selected = strip.querySelector<HTMLElement>(".tab.selected");
+    const key = `${this.hass?.panelUrl}|${strip.children.length}`;
+    if (!selected || key === this._revealedKey) {
+      return;
+    }
+    this._revealedKey = key;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    selected.scrollIntoView({
+      inline: "nearest",
+      block: "nearest",
+      behavior: reduceMotion ? "instant" : "smooth",
+    });
   }
 
   private _measureStrip = () => {
@@ -1313,6 +1341,8 @@ export class HaPageTabs extends LitElement {
       overflow-x: auto;
       scrollbar-width: none;
       padding: var(--ha-space-1) 0;
+      /* A tab scrolled into view stays clear of the 40px edge fade. */
+      scroll-padding-inline: 48px;
     }
     .tabs::-webkit-scrollbar {
       display: none;

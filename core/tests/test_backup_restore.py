@@ -558,3 +558,64 @@ def test_remove_backup_file_after_restore(
         "error_type": None,
         "success": True,
     }
+
+
+@pytest.mark.parametrize(
+    ("backup_version", "is_newer"),
+    [
+        pytest.param("2026.11.1", False, id="same_release"),
+        pytest.param("2026.11.0", False, id="earlier_patch"),
+        pytest.param("2026.11.0b3", False, id="beta_of_earlier_patch"),
+        pytest.param("2026.11.1b2", False, id="beta_of_same_patch"),
+        pytest.param("2025.6.3", False, id="older_year"),
+        pytest.param("2024.6.4", False, id="much_older"),
+        pytest.param("2026.11.1.119", False, id="four_part_build_of_same_release"),
+        pytest.param("2026.11.1.120", False, id="newer_build_of_same_release"),
+        pytest.param("2026.11.2", False, id="later_patch_same_month"),
+        pytest.param("2026.11.2b1", False, id="beta_of_later_patch_same_month"),
+        pytest.param("2026.12.0b2", True, id="newer_month_beta"),
+        pytest.param("2026.12.0.dev202611110215", True, id="newer_month_dev"),
+        pytest.param("2027.1.0", True, id="newer_year"),
+        pytest.param("9999.99.99", True, id="far_future"),
+        pytest.param("not a version", False, id="unparseable_is_not_refused"),
+    ],
+)
+def test_backup_is_newer_than_core(backup_version: str, is_newer: bool) -> None:
+    """Test the version rule: only a newer year.month is refused."""
+    with mock.patch("homeassistant.backup_restore.HA_BASE_VERSION", "2026.11.1"):
+        assert backup_restore.backup_is_newer_than_core(backup_version) is is_newer
+
+
+def test_base_version_has_no_build_number() -> None:
+    """Test the base version is year.month.patch without the build number."""
+    base = backup_restore.HA_BASE_VERSION
+    assert len(base.split(".")) == 3
+
+
+@pytest.mark.parametrize("prefix", ["", "./"])
+def test_restore_refuses_newer_month_at_startup(prefix: str, tmp_path: Path) -> None:
+    """Test the startup check remains the last line of defence."""
+    backup_file_path = tmp_path / "backups" / "test.tar"
+    backup_file_path.parent.mkdir()
+    metadata = json.dumps(
+        {"homeassistant": {"version": "2026.12.0b2"}, "compressed": True}
+    ).encode()
+    with tarfile.open(backup_file_path, "w") as tar:
+        info, data = _tar_member(f"{prefix}backup.json", data=metadata)
+        tar.addfile(info, BytesIO(data))
+
+    with (
+        mock.patch("homeassistant.backup_restore.HA_BASE_VERSION", "2026.11.1"),
+        mock.patch(
+            "homeassistant.backup_restore.restore_backup_file_content",
+            return_value=backup_restore.RestoreBackupFileContent(
+                backup_file_path=backup_file_path,
+                password=None,
+                remove_after_restore=False,
+                restore_database=True,
+                restore_homeassistant=True,
+            ),
+        ),
+        pytest.raises(ValueError, match="You need at least Home Assistant version"),
+    ):
+        backup_restore.restore_backup(tmp_path.as_posix())

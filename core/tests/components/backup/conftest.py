@@ -84,7 +84,10 @@ def mock_ha_version_fixture(hass: HomeAssistant) -> Generator[None]:
     of tests that check the exact content of the metadata.
     """
 
-    with patch("homeassistant.components.backup.manager.HAVERSION", "2025.1.0"):
+    with (
+        patch("homeassistant.components.backup.manager.HAVERSION", "2025.1.0"),
+        patch("homeassistant.components.backup.manager.HABASEVERSION", "2024.12.9"),
+    ):
         yield
 
 

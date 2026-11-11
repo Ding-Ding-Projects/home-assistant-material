@@ -295,7 +295,12 @@ class DialogRestoreBackup
       );
     } catch (e: any) {
       await this._unsubscribe();
-      if (e.code === "password_incorrect") {
+      if (e.code === "password_incorrect" && !this._isProtected()) {
+        // No key can ever work for an unprotected backup.
+        this._error = this.hass.localize(
+          "ui.panel.config.backup.dialogs.restore.refused"
+        );
+      } else if (e.code === "password_incorrect") {
         this._error = undefined;
         if (this._userPassword) {
           this._usedUserInput = true;
@@ -305,6 +310,16 @@ class DialogRestoreBackup
         this._error = e.message;
       }
     }
+  }
+
+  private _isProtected(): boolean {
+    if (!this._params) {
+      return false;
+    }
+    const agentId = getPreferredAgentForDownload(
+      Object.keys(this._params.backup.agents)
+    );
+    return Boolean(this._params.backup.agents[agentId]?.protected);
   }
 
   private _subscribeBackupEvents() {
