@@ -25,6 +25,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import threading
@@ -315,9 +316,15 @@ class AutomationRepositories:
         root: Path,
         author_name: str = "Home Assistant",
         author_email: str = "homeassistant@localhost",
+        ssh_dir: Path | None = None,
     ) -> None:
-        """Set where the repositories live and who commits."""
+        """Set where the repositories live and who commits.
+
+        `ssh_dir`, when given, is a folder outside the repositories that holds
+        the SSH key and known hosts used for every SSH remote.
+        """
         self.root = Path(root)
+        self._ssh_dir = Path(ssh_dir) if ssh_dir is not None else None
         self._author_name = author_name
         self._author_email = author_email
         self.recorded: dict[str, str] = {}
@@ -357,6 +364,32 @@ class AutomationRepositories:
             return None
         return value if _FULL_SHA.fullmatch(value) else None
 
+    def _ssh_command(self) -> str:
+        base = "ssh -o BatchMode=yes -o ConnectTimeout=15"
+        if self._ssh_dir is None:
+            return base
+        key = next(
+            (
+                self._ssh_dir / name
+                for name in ("id_ed25519", "id_ecdsa", "id_rsa")
+                if (self._ssh_dir / name).is_file()
+            ),
+            self._ssh_dir / "id_ed25519",
+        )
+        options = [
+            "-F",
+            os.devnull,
+            "-i",
+            str(key),
+            "-o",
+            "IdentitiesOnly=yes",
+            "-o",
+            f"UserKnownHostsFile={self._ssh_dir / 'known_hosts'}",
+            "-o",
+            "StrictHostKeyChecking=yes",
+        ]
+        return base + " " + " ".join(shlex.quote(option) for option in options)
+
     def _git(
         self, cwd: Path, *args: str, timeout: int = GIT_TIMEOUT, check: bool = True
     ) -> subprocess.CompletedProcess[str]:
@@ -368,7 +401,7 @@ class AutomationRepositories:
             "GIT_TERMINAL_PROMPT": "0",
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_SSH_COMMAND": "ssh -o BatchMode=yes -o ConnectTimeout=15",
+            "GIT_SSH_COMMAND": self._ssh_command(),
         }
         command = [
             "git",

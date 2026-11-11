@@ -8,7 +8,7 @@ import type { HomeAssistant } from "../types";
 export interface ActivityRecordEntry {
   /** ISO time in UTC. */
   when: string;
-  kind: "state_change" | "logbook" | "dropped";
+  kind: "state_change" | "logbook" | "dropped" | "unwritable" | "restored";
   name?: string;
   message?: string;
   entity_id?: string;
@@ -25,6 +25,11 @@ export interface ActivityRecordEntry {
   context_message?: string;
   context_source?: string;
   count?: number;
+  first_at?: string;
+  last_at?: string;
+  /** Set when text or details of the entry were cut for length. */
+  cut?: boolean;
+  when_raw?: string;
 }
 
 export interface ActivityRecordStatus {
@@ -39,6 +44,16 @@ export interface ActivityRecordStatus {
   dropped_total: number;
   commit_interval: number;
   last_error: string | null;
+  last_error_at: number | null;
+  /** True while a failed write waits to be tried again. */
+  retrying: boolean;
+  /** True when another Home Assistant holds the record folder. */
+  lock_held: boolean;
+  days: number;
+  restores: ActivityRecordRestore[];
+  push: ActivityRecordPushProgress | null;
+  /** Folder outside the record that holds the SSH key and known hosts. */
+  ssh_dir: string | null;
   last_commit: {
     sha: string;
     short: string;
@@ -50,10 +65,24 @@ export interface ActivityRecordStatus {
   last_push: { at: number; ok: boolean; error: string | null } | null;
 }
 
+export interface ActivityRecordRestore {
+  at: number;
+  path: string;
+  what: string;
+}
+
+export interface ActivityRecordPushProgress {
+  running: boolean;
+  step: number;
+  steps: number;
+  error: string | null;
+}
+
 export interface ActivityRecordDay {
   day: string;
   entries: number;
   bytes: number;
+  chunks: number;
 }
 
 export interface ActivityRecordDays {
@@ -66,9 +95,10 @@ export interface ActivityRecordPage {
   day: string;
   entries: ActivityRecordEntry[];
   total: number;
-  offset: number;
   limit: number;
   has_more: boolean;
+  /** Position to continue from, or null when there is nothing older. */
+  next_cursor: string | null;
 }
 
 export interface ActivityRecordSearchParams {
@@ -83,7 +113,7 @@ export interface ActivityRecordSearchParams {
 export interface ActivityRecordSearchResult {
   entries: ActivityRecordEntry[];
   truncated: boolean;
-  reason: "rows" | "bytes" | null;
+  reason: "rows" | "bytes" | "cancelled" | null;
   scanned_bytes: number;
   scanned_days: number;
 }
@@ -100,13 +130,13 @@ export const fetchActivityRecordDays = (hass: HomeAssistant) =>
 export const fetchActivityRecordDay = (
   hass: HomeAssistant,
   day: string,
-  offset = 0,
+  cursor?: string | null,
   limit = ACTIVITY_RECORD_PAGE_SIZE
 ) =>
   hass.callWS<ActivityRecordPage>({
     type: "activity_record/read",
     day,
-    offset,
+    ...(cursor ? { cursor } : {}),
     limit,
     newest_first: true,
   });
@@ -129,10 +159,17 @@ export const setActivityRecordRemote = (
     url,
   });
 
+/** Starts the push in the background; progress is on the status. */
 export const pushActivityRecord = (hass: HomeAssistant) =>
-  hass.callWS<{ pushed: boolean; time: number }>({
+  hass.callWS<{ started: boolean }>({
     type: "activity_record/push",
   });
+
+/** The code of a WebSocket error, when it has one. */
+export const activityRecordErrorCode = (err: unknown): string | undefined => {
+  const code = (err as { code?: unknown } | undefined)?.code;
+  return typeof code === "string" ? code : undefined;
+};
 
 /** The day (YYYY-MM-DD) of an entry, in UTC, as the record files it. */
 export const activityRecordDay = (entry: ActivityRecordEntry): string =>

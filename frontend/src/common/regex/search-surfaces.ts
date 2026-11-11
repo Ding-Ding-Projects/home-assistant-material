@@ -162,7 +162,7 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/activity-record/ha-config-activity-record.ts",
     searches:
-      "The loaded entries of one day of the permanent activity record, by name, text, entity and cause",
+      "The loaded entries of one day of the permanent activity record, by name, text, entity and cause; and the search over all days, whose pattern filters the rows the server returns",
   },
   {
     file: "panels/config/dashboard-history/ha-config-dashboard-history.ts",

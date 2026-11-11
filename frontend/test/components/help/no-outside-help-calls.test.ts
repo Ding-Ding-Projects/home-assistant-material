@@ -15,14 +15,22 @@ const walk = (dir: string, out: string[] = []): string[] => {
 };
 
 describe("help addresses", () => {
-  it("are never opened with window.open (help opens in the reader)", () => {
-    const offenders: string[] = [];
-    for (const file of walk(path.resolve(__dirname, "../../../src"))) {
-      const text = fs.readFileSync(file, "utf8");
-      if (/window\.open\(\s*documentationUrl(?:ForVersion)?\(/.test(text)) {
-        offenders.push(path.relative(process.cwd(), file));
+  // Reads every source file, so it needs more than the default time when the
+  // whole suite runs at once.
+  it(
+    "are never opened with window.open (help opens in the reader)",
+    {
+      timeout: 60000,
+    },
+    () => {
+      const offenders: string[] = [];
+      for (const file of walk(path.resolve(__dirname, "../../../src"))) {
+        const text = fs.readFileSync(file, "utf8");
+        if (/window\.open\(\s*documentationUrl(?:ForVersion)?\(/.test(text)) {
+          offenders.push(path.relative(process.cwd(), file));
+        }
       }
+      expect(offenders).toEqual([]);
     }
-    expect(offenders).toEqual([]);
-  });
+  );
 });

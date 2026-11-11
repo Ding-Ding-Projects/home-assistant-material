@@ -1,5 +1,6 @@
 """WebSocket API of the permanent activity record. Every command is admin only."""
 
+import threading
 from typing import Any
 
 import probatio
@@ -12,7 +13,9 @@ from .const import (
     DAYS_LIMIT,
     DEFAULT_READ_LIMIT,
     DOMAIN,
+    ERROR_BUSY,
     ERROR_GIT,
+    ERROR_INVALID_CURSOR,
     ERROR_INVALID_DAY,
     READ_LIMIT,
     SEARCH_BYTES_DEFAULT,
@@ -20,8 +23,8 @@ from .const import (
     SEARCH_LIMIT,
 )
 from .manager import ActivityRecorder
-from .record_core import valid_day
-from .repository import RepositoryError
+from .record_core import parse_cursor, valid_day
+from .repository import BusyError, RepositoryError
 
 _ERRORS = (RepositoryError, OSError)
 
@@ -83,9 +86,7 @@ async def ws_days(
     {
         probatio.Required("type"): "activity_record/read",
         probatio.Required("day"): str,
-        probatio.Optional("offset", default=0): probatio.All(
-            int, probatio.Range(min=0)
-        ),
+        probatio.Optional("cursor"): probatio.All(str, probatio.Length(max=32)),
         probatio.Optional("limit", default=DEFAULT_READ_LIMIT): probatio.All(
             int, probatio.Range(min=1, max=READ_LIMIT)
         ),
@@ -100,11 +101,14 @@ async def ws_read(
     if valid_day(msg["day"]) is None:
         connection.send_error(msg["id"], ERROR_INVALID_DAY, "That is not a day.")
         return
+    if "cursor" in msg and parse_cursor(msg["cursor"]) is None:
+        connection.send_error(msg["id"], ERROR_INVALID_CURSOR, "That is not a cursor.")
+        return
     try:
         result = await hass.async_add_executor_job(
             _recorder(hass).repository.read,
             msg["day"],
-            msg["offset"],
+            msg.get("cursor"),
             msg["limit"],
             msg["newest_first"],
         )
@@ -139,6 +143,7 @@ async def ws_search(
         if key in msg and valid_day(msg[key]) is None:
             connection.send_error(msg["id"], ERROR_INVALID_DAY, "That is not a day.")
             return
+    cancel = threading.Event()
     try:
         result = await hass.async_add_executor_job(
             _recorder(hass).repository.search,
@@ -148,10 +153,16 @@ async def ws_search(
             msg.get("text"),
             msg["limit"],
             msg["max_bytes"],
+            cancel,
         )
+    except BusyError:
+        connection.send_error(msg["id"], ERROR_BUSY, "A search is already running.")
+        return
     except _ERRORS as err:
         _send_error(connection, msg["id"], err)
         return
+    finally:
+        cancel.set()
     connection.send_result(msg["id"], result)
 
 
@@ -183,12 +194,10 @@ async def ws_set_remote(
 async def ws_push(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """Send the record to its Git remote."""
-    recorder = _recorder(hass)
+    """Start sending the record to its Git remote, in steps, in the background."""
     try:
-        await hass.async_add_executor_job(recorder.repository.commit)
-        result = await hass.async_add_executor_job(recorder.repository.push)
+        await _recorder(hass).async_start_push()
     except _ERRORS as err:
         _send_error(connection, msg["id"], err)
         return
-    connection.send_result(msg["id"], result)
+    connection.send_result(msg["id"], {"started": True})

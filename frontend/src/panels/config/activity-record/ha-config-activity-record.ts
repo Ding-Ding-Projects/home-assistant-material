@@ -2,9 +2,11 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { formatTimeWithSeconds } from "../../../common/datetime/format_time";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { searchMatcher } from "../../../common/regex/filter";
+import { isRegexQuery } from "../../../common/regex/query";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-card";
@@ -14,6 +16,7 @@ import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/input/ha-input-search";
 import {
   ACTIVITY_RECORD_PAGE_SIZE,
+  activityRecordErrorCode,
   fetchActivityRecordDay,
   fetchActivityRecordDays,
   fetchActivityRecordStatus,
@@ -38,6 +41,9 @@ import type { HomeAssistant } from "../../../types";
 
 /** Days listed before Show more days. */
 const DAYS_SHOWN = 60;
+
+/** Milliseconds between status reads while a push runs. */
+const PUSH_POLL_MS = 2000;
 
 /**
  * The permanent record of the Activity page: what is kept, the days that have
@@ -64,6 +70,10 @@ export class HaConfigActivityRecord extends LitElement {
 
   @state() private _hasMore = false;
 
+  @state() private _nextCursor: string | null = null;
+
+  @state() private _unavailable = false;
+
   @state() private _loading = true;
 
   @state() private _dayLoading = false;
@@ -82,6 +92,9 @@ export class HaConfigActivityRecord extends LitElement {
 
   @state() private _result?: ActivityRecordSearchResult;
 
+  /** The text the shown result was searched with. */
+  @state() private _resultText = "";
+
   @state() private _searchError?: string;
 
   @state() private _remoteInput = "";
@@ -93,6 +106,13 @@ export class HaConfigActivityRecord extends LitElement {
   @state() private _pushResult?: { ok: boolean; text: string };
 
   private _dayRequest = 0;
+
+  private _pushTimer?: number;
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    this._stopPushPolling();
+  }
 
   private _l(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(
@@ -108,6 +128,11 @@ export class HaConfigActivityRecord extends LitElement {
 
   protected firstUpdated(changed: PropertyValues<this>) {
     super.firstUpdated(changed);
+    if (!isComponentLoaded(this.hass.config, "activity_record")) {
+      this._unavailable = true;
+      this._loading = false;
+      return;
+    }
     this._load();
   }
 
@@ -122,12 +147,23 @@ export class HaConfigActivityRecord extends LitElement {
       this._status = status;
       this._days = days.days;
       this._remoteInput = status.remote ?? "";
+      if (status.push?.running) {
+        this._pushing = true;
+        this._pushTimer = window.setInterval(
+          () => this._pollPush(),
+          PUSH_POLL_MS
+        );
+      }
       const day = this._day ?? days.days[0]?.day;
       if (day) {
         await this._openDay(day);
       }
     } catch (err) {
-      this._error = this._errorText(err);
+      if (activityRecordErrorCode(err) === "unknown_command") {
+        this._unavailable = true;
+      } else {
+        this._error = this._errorText(err);
+      }
     } finally {
       this._loading = false;
     }
@@ -151,6 +187,7 @@ export class HaConfigActivityRecord extends LitElement {
       this._entries = page.entries;
       this._total = page.total;
       this._hasMore = page.has_more;
+      this._nextCursor = page.next_cursor;
     } catch (err) {
       if (request === this._dayRequest) {
         this._error = this._errorText(err);
@@ -163,7 +200,7 @@ export class HaConfigActivityRecord extends LitElement {
   }
 
   private async _loadMore() {
-    if (!this._day) {
+    if (!this._day || !this._nextCursor) {
       return;
     }
     const request = ++this._dayRequest;
@@ -172,7 +209,7 @@ export class HaConfigActivityRecord extends LitElement {
       const page = await fetchActivityRecordDay(
         this.hass,
         this._day,
-        this._entries.length,
+        this._nextCursor,
         ACTIVITY_RECORD_PAGE_SIZE
       );
       if (request !== this._dayRequest) {
@@ -181,6 +218,7 @@ export class HaConfigActivityRecord extends LitElement {
       this._entries = [...this._entries, ...page.entries];
       this._total = page.total;
       this._hasMore = page.has_more;
+      this._nextCursor = page.next_cursor;
     } catch (err) {
       if (request === this._dayRequest) {
         this._error = this._errorText(err);
@@ -269,6 +307,15 @@ export class HaConfigActivityRecord extends LitElement {
           <h1>${this._l("title")}</h1>
           <p class="statement">${this._l("description")}</p>
           ${
+            this._unavailable
+              ? html`<ha-alert
+                  alert-type="info"
+                  .title=${this._l("not_available_title")}
+                  >${this._l("not_available_text")}</ha-alert
+                >`
+              : nothing
+          }
+          ${
             this._error
               ? html`<ha-alert
                   alert-type="error"
@@ -278,16 +325,18 @@ export class HaConfigActivityRecord extends LitElement {
               : nothing
           }
           ${
-            this._loading
-              ? html`<p class="empty">${this._l("loading")}</p>`
-              : html`${this._renderStatus()}
-                  <div class="columns">
-                    ${this._renderDays()}
-                    <div class="main">
-                      ${this._renderDay()} ${this._renderSearchAll()}
+            this._unavailable
+              ? nothing
+              : this._loading
+                ? html`<p class="empty">${this._l("loading")}</p>`
+                : html`${this._renderStatus()}
+                    <div class="columns">
+                      ${this._renderDays()}
+                      <div class="main">
+                        ${this._renderDay()} ${this._renderSearchAll()}
+                      </div>
                     </div>
-                  </div>
-                  ${this._renderRemote()}`
+                    ${this._renderRemote()}`
           }
         </div>
       </hass-subpage>
@@ -325,7 +374,7 @@ export class HaConfigActivityRecord extends LitElement {
           </div>
           <div>
             <dt>${this._l("days_label")}</dt>
-            <dd>${status.files.toLocaleString(this.hass.locale.language)}</dd>
+            <dd>${status.days.toLocaleString(this.hass.locale.language)}</dd>
           </div>
           <div>
             <dt>${this._l("size_label")}</dt>
@@ -357,10 +406,46 @@ export class HaConfigActivityRecord extends LitElement {
             : nothing
         }
         ${
+          status.lock_held
+            ? html`<ha-alert alert-type="error"
+                >${this._l("lock_held")}</ha-alert
+              >`
+            : nothing
+        }
+        ${
+          status.retrying
+            ? html`<ha-alert alert-type="warning"
+                >${this._l("retrying", { queued: status.queue_depth })}</ha-alert
+              >`
+            : nothing
+        }
+        ${
           status.dropped_total
             ? html`<ha-alert alert-type="warning"
                 >${this._l("dropped", { count: status.dropped_total })}</ha-alert
               >`
+            : nothing
+        }
+        ${
+          status.restores.length
+            ? html`<ha-alert
+                alert-type="warning"
+                .title=${this._l("restored_title")}
+              >
+                ${this._l("restored_text")}
+                <ul class="restores">
+                  ${status.restores.map(
+                    (item) =>
+                      html`<li>
+                        <code>${item.path}</code>: ${item.what}
+                        <ha-relative-time
+                          .hass=${this.hass}
+                          .datetime=${new Date(item.at * 1000)}
+                        ></ha-relative-time>
+                      </li>`
+                  )}
+                </ul>
+              </ha-alert>`
             : nothing
         }
         ${
@@ -438,6 +523,11 @@ export class HaConfigActivityRecord extends LitElement {
       <span class="what">
         <span class="name">${name}</span>
         <span class="message">${text}</span>
+        ${
+          entry.cut
+            ? html`<span class="secondary cut">${this._l("entry_cut")}</span>`
+            : nothing
+        }
         ${
           cause || entry.context_user_id
             ? html`<span class="secondary cause"
@@ -546,6 +636,7 @@ export class HaConfigActivityRecord extends LitElement {
 
   private _renderSearchAll() {
     const result = this._result;
+    const shown = this._shownResults();
     return html`
       <ha-card class="detail">
         <div class="detail-title">
@@ -568,13 +659,23 @@ export class HaConfigActivityRecord extends LitElement {
             @input=${this._endChanged}
           ></ha-input>
         </div>
-        <ha-input
+        <ha-input-search
           appearance="outlined"
           .label=${this._l("search_text")}
           .value=${this._searchText}
+          .patternSamples=${(this._result?.entries ?? [])
+            .slice(0, 50)
+            .map((entry) => this._entryValues(entry).join(" "))}
           @input=${this._textChanged}
           @keydown=${this._searchKey}
-        ></ha-input>
+        ></ha-input-search>
+        ${
+          isRegexQuery(this._searchText)
+            ? html`<p class="secondary" role="note">
+                ${this._l("search_pattern_note")}
+              </p>`
+            : nothing
+        }
         <div class="buttons">
           <ha-button
             .disabled=${this._searching || !this._searchText.trim()}
@@ -597,7 +698,7 @@ export class HaConfigActivityRecord extends LitElement {
         ${
           result
             ? html`<p class="secondary" role="status">
-                  ${this._l("search_result", { count: result.entries.length })}
+                  ${this._l("search_result", { count: shown.length })}
                 </p>
                 ${
                   result.truncated
@@ -613,7 +714,7 @@ export class HaConfigActivityRecord extends LitElement {
                     : nothing
                 }
                 <ul class="entries">
-                  ${result.entries.map(
+                  ${shown.map(
                     (entry) => html`
                       <li class="result-day">
                         <span class="secondary"
@@ -628,6 +729,20 @@ export class HaConfigActivityRecord extends LitElement {
         }
       </ha-card>
     `;
+  }
+
+  private _shownResults(): ActivityRecordEntry[] {
+    const result = this._result;
+    if (!result) {
+      return [];
+    }
+    if (!isRegexQuery(this._resultText)) {
+      return result.entries;
+    }
+    const matches = searchMatcher(this._resultText);
+    return result.entries.filter((entry) =>
+      matches(...this._entryValues(entry))
+    );
   }
 
   private _startChanged(ev: Event) {
@@ -651,15 +766,22 @@ export class HaConfigActivityRecord extends LitElement {
   private async _searchAll() {
     this._searching = true;
     this._searchError = undefined;
+    const text = this._searchText.trim();
     try {
+      // The server searches plain text only. A pattern is applied here, to
+      // the newest rows the server returns.
       this._result = await searchActivityRecord(this.hass, {
-        text: this._searchText.trim(),
+        ...(isRegexQuery(text) ? {} : { text }),
         ...(this._searchStart ? { start: this._searchStart } : {}),
         ...(this._searchEnd ? { end: this._searchEnd } : {}),
       });
+      this._resultText = text;
     } catch (err) {
       this._result = undefined;
-      this._searchError = this._errorText(err);
+      this._searchError =
+        activityRecordErrorCode(err) === "busy"
+          ? this._l("search_busy")
+          : this._errorText(err);
     } finally {
       this._searching = false;
     }
@@ -711,6 +833,9 @@ export class HaConfigActivityRecord extends LitElement {
           >
         </div>
         <ha-alert alert-type="warning">${this._l("privacy_text")}</ha-alert>
+        <ha-alert alert-type="info"
+          >${this._l("ssh_text", { path: status.ssh_dir ?? "" })}</ha-alert
+        >
         <ha-input
           appearance="outlined"
           type="url"
@@ -747,6 +872,20 @@ export class HaConfigActivityRecord extends LitElement {
             >${this._l("push_now")}</ha-button
           >
         </div>
+        ${
+          this._pushing
+            ? html`<p class="secondary" role="status">
+                ${
+                  status.push?.steps
+                    ? this._l("push_progress", {
+                        step: status.push.step,
+                        steps: status.push.steps,
+                      })
+                    : this._l("push_starting")
+                }
+              </p>`
+            : nothing
+        }
         ${
           dirty && status.remote
             ? html`<p class="secondary">${this._l("push_save_first")}</p>`
@@ -860,20 +999,44 @@ export class HaConfigActivityRecord extends LitElement {
     this._pushResult = undefined;
     try {
       await pushActivityRecord(this.hass);
-      this._pushResult = { ok: true, text: this._l("push_done") };
     } catch (err) {
+      this._pushing = false;
       this._pushResult = {
         ok: false,
         text: this._l("push_failed", { error: this._errorText(err) }),
       };
-    } finally {
-      this._pushing = false;
+      return;
     }
+    this._stopPushPolling();
+    this._pushTimer = window.setInterval(() => this._pollPush(), PUSH_POLL_MS);
+    this._pollPush();
+  }
+
+  private _stopPushPolling() {
+    if (this._pushTimer !== undefined) {
+      window.clearInterval(this._pushTimer);
+      this._pushTimer = undefined;
+    }
+  }
+
+  private async _pollPush() {
     try {
       await this._refreshStatus();
     } catch (_err) {
-      // The result above already says what happened to the push.
+      return;
     }
+    const push = this._status?.push;
+    if (!this._pushing || !push || push.running) {
+      return;
+    }
+    this._stopPushPolling();
+    this._pushing = false;
+    this._pushResult = {
+      ok: !push.error,
+      text: push.error
+        ? this._l("push_failed", { error: push.error })
+        : this._l("push_done"),
+    };
   }
 
   static styles: CSSResultGroup = css`
@@ -1071,6 +1234,14 @@ export class HaConfigActivityRecord extends LitElement {
     }
     .remote-address {
       overflow-wrap: anywhere;
+    }
+    ul.restores {
+      list-style: disc;
+      padding-inline-start: var(--ha-space-4);
+      margin: var(--ha-space-1) 0 0;
+    }
+    .cut {
+      font-style: italic;
     }
   `;
 }

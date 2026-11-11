@@ -10,7 +10,10 @@ and asks for a push.
 import probatio
 
 from homeassistant.components import websocket_api
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import (
+    EVENT_HOMEASSISTANT_FINAL_WRITE,
+    EVENT_HOMEASSISTANT_STARTED,
+)
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.typing import ConfigType
 
@@ -62,7 +65,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     def _started(_: Event) -> None:
         recorder.async_refresh()
 
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _async_stop)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_FINAL_WRITE, _async_stop)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _started)
     await recorder.async_start()
     return True
