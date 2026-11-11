@@ -74,8 +74,11 @@ a model's details, a chat reply, a download in progress and the download in the 
 were seen at 390 and 1280 px wide. One layout defect was found there and fixed afterwards: table
 cells broke inside words when the column was narrow.
 
-Not covered by that run: a server that stops answering part way through a download, and a
-server that needs sign-in.
+Later the same day: in build 109 the table scrolled sideways with no word broken and a download
+failed cleanly when the server was stopped part way; in build 111, with the server stopped, the
+Models section said no server is answering and listed models again once it was back.
+
+Not covered: a server that needs sign-in.
 
 ### Earlier checks
 

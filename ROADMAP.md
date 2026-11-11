@@ -340,8 +340,8 @@ matches its board, checked side by side.
       are built and covered by 217 server tests; on 11 November 2026 build 106 was run against a real
       SSH and Docker host in a throwaway container and the pages were seen; the Paper version
       list address, found retired there, was fixed in batch 24. On build 109, 26.3 could not
-      start on the Java 21 image; the image now follows the game version (not yet run through
-      the manager). Not built: the other four targets, backups, the world
+      start on the Java 21 image; the image now follows the game version, and in build 111 26.3,
+      1.21.8, 1.20.1 and 1.16.5 all started through the manager on their own Java. Not built: the other four targets, backups, the world
       generator
 - [~] Local Ollama suite: servers, models, pull with progress and Cancel, delete, unload, model
       details with the assistants that use a model, and a test chat that cannot control the home

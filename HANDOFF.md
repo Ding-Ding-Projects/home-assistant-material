@@ -92,18 +92,20 @@ Later than the section below; where the two disagree, this one is newer.
   without the password, remove, clean failures); Enter confirming the New folder prompt; and the
   Minecraft version lists refreshing for real, with vanilla 1.21.8 starting.
 - NOT seen in any browser: the "Add media" fix on a real phone; the update install progress and
-  recovery card during a real install (no real update has been available); an activity tray
-  entry while it is still running; and the three batch 25 changes, which were made after that
-  run: the "Page not showing?" control in the embedded page panel (a page that refuses framing
-  showed no notice in build 109), the notice on the Ollama page when no server answers (it said
-  the server had no models), and the Minecraft image following the game version (26.3 could not
-  start on the Java 21 image in build 109; the Java 25 image was run by hand and started it).
+  recovery card during a real install (no real update has been available); and an activity tray
+  entry while it is still running. The three batch 25 changes were run in build 111 on a throwaway
+  copy: through the manager on a real SSH and Docker host, vanilla 26.3 and Paper 26.3 started on
+  the Java 25 image, 1.21.8 on Java 21, 1.20.1 on Java 17 and 1.16.5 on Java 8, each with the
+  server's own "Done" line and the right image named on its page; with the Ollama server stopped
+  the Models section said no server is answering, and listed models again once it was back; the
+  "Page not showing?" button showed its explanation on a page that refuses framing, Dismiss and
+  Reload cleared it, and the toolbar fitted at 390 px wide.
 - Known limits: the activity record can still lose entries in the ways its documentation lists (a
   power cut in the seconds before a flush, a real queue overflow, shutdown while the disk is
   failing) and does not import entries from before it started; reading PDFs, MP3 output and
   video-to-video conversion are not offered; the paid cloud service is hidden in the interface
   only and remains visible in a few places for someone who has it configured (an existing
-  cloud-stored backup's location name, one entity filter); passkeys were run with a browser virtual authenticator, never with a hardware key or a phone; Minecraft 26.3 failed on the Java 21 image in build 109 and the per-version image that fixes it has not been run through the manager; no operating system image has been built since two unit files were renamed
+  cloud-stored backup's location name, one entity filter); passkeys were run with a browser virtual authenticator, never with a hardware key or a phone; Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in build 111; no operating system image has been built since two unit files were renamed
   for Windows checkouts; a documentation-only push publishing no release has not been observed.
 - Closed by the owner's decision: the phone app's earlier setup problems (nothing left to fix).
 
