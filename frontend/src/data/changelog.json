@@ -4,22 +4,49 @@
       "date": "2026-11-11",
       "items": [
         {
-          "text": "New: named test cases and a simulated run in the history manager. A Test cases card keeps named cases for one automation in this browser (fake states, variables and an expected outcome), with rename, duplicate and delete. A simulated run decides state, numeric state, trigger, and, or and not conditions against the fake states only, reports unknown with a reason where it cannot decide, lists the actions that would run and calls no service. Not yet seen in a running build."
+          "text": "New: a type scale in the fonts dialog. A switch turns it on, a ratio (1.125, 1.2, 1.25, 1.333 or custom) and a base size set five steps (caption, body, title, headline, display) with an optional size for each step, a live preview and a note that it multiplies with Text size. It is off by default and writes nothing then; reset fonts also resets it. It is applied at startup. Sync through the appearance settings and Cantonese strings for the scale are not done. Not yet seen in a running build."
         },
         {
-          "text": "New: a dry run of a whole automation and a bottom bar with Run now, Check, Dry run and Save in the automation editor. Each step is listed as would run, would skip or cannot tell, and no service is called. The visual and blueprint editors still draw their own save bar, so two bars show there. Not yet seen in a running build."
+          "text": "New: type fields in the appearance editor. Typeface, weight, italic, line height, letter spacing, capitals, alignment and maximum lines each have a reset button and apply live to the picked element, and a warning shows when the resulting text is under 12 px. Not yet seen in a running build."
         },
         {
-          "text": "New: a repository strip in the automation editor shows the short commit id and time, whether the saved copy matches the live configuration, the number of versions and the remote host only. The repository page has a Push action that asks first and shows the server reply. Pull and an unpushed count are not available because the server has no such data. Not yet seen in a running build."
+          "text": "New: a named palette in both colour tools. 48 named colours, a nearest-name line, sRGB, Display P3 and outside chips (Display P3 is an estimate) and a rainbow hue strip with keyboard control, in the Colour tool and the editor picker. Not yet seen in a running build."
         },
         {
-          "text": "Changed: the save bar in the script and scene editors hides when nothing changed, has a Discard changes button that uses the existing unsaved-changes question, and announces Saved or the failure message. Try it in the scene editor has its own row. Not yet seen in a running build."
+          "text": "New: a worked example and a practise control in the setting information panel. The practise control (switch, number or text) validates live and states that nothing is saved or sent; the panel keeps focus inside while open. No page supplies an example yet. Not yet seen in a running build."
         },
         {
-          "text": "New: tests that check a backup carries every automation repository with its history. They are written and have not been run, because this machine has no securetar. Not yet seen in a running build."
+          "text": "New: a separate search for each group of the New tab catalog (Pinned, Pages, Settings and Tools), each with a count and its own pattern workbench. Pinned and Pages have a Close matching button that acts only on that group, with Undo. Not yet seen in a running build."
         },
         {
-          "text": "New: starting points for an empty automation and an empty script, six each, shown only while the editor is empty. Not yet seen in a running build."
+          "text": "New: the General settings page explains itself. Each of its eight settings has an information button, and the seven that have a default show a Reset, after a confirmation, when they differ from it. Reset only changes the unsaved draft. Not yet seen in a running build."
+        },
+        {
+          "text": "Fix: the Cantonese source now covers the colour palette and General page help blocks."
+        },
+        {
+          "text": "New: named test cases and a simulated run in the history manager. A Test cases card keeps named cases for one automation in this browser (fake states, variables and an expected outcome), with rename, duplicate and delete. A simulated run decides state, numeric state, trigger, and, or and not conditions against the fake states only, reports unknown with a reason where it cannot decide, lists the actions that would run and calls no service. Not yet seen in a running build.",
+          "commit": "c84a2eef8bd4"
+        },
+        {
+          "text": "New: a dry run of a whole automation and a bottom bar with Run now, Check, Dry run and Save in the automation editor. Each step is listed as would run, would skip or cannot tell, and no service is called. The visual and blueprint editors still draw their own save bar, so two bars show there. Not yet seen in a running build.",
+          "commit": "c84a2eef8bd4"
+        },
+        {
+          "text": "New: a repository strip in the automation editor shows the short commit id and time, whether the saved copy matches the live configuration, the number of versions and the remote host only. The repository page has a Push action that asks first and shows the server reply. Pull and an unpushed count are not available because the server has no such data. Not yet seen in a running build.",
+          "commit": "c84a2eef8bd4"
+        },
+        {
+          "text": "Changed: the save bar in the script and scene editors hides when nothing changed, has a Discard changes button that uses the existing unsaved-changes question, and announces Saved or the failure message. Try it in the scene editor has its own row. Not yet seen in a running build.",
+          "commit": "c84a2eef8bd4"
+        },
+        {
+          "text": "New: tests that check a backup carries every automation repository with its history. They are written and have not been run, because this machine has no securetar. Not yet seen in a running build.",
+          "commit": "c84a2eef8bd4"
+        },
+        {
+          "text": "New: starting points for an empty automation and an empty script, six each, shown only while the editor is empty. Not yet seen in a running build.",
+          "commit": "c84a2eef8bd4"
         },
         {
           "text": "New: toasts stack. Up to three show at once with the newest nearest the bottom edge and older ones scaled down; the rest wait in a queue behind an \"N more waiting\" chip. Each toast has its own timer that pauses on hover or focus, an identical anonymous message within two seconds is dropped, errors, warnings and progress stay until dismissed, and one polite live region reads only the newest. Under reduced motion toasts fade only. Not yet seen in a running build.",

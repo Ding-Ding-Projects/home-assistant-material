@@ -21,6 +21,12 @@ import {
   rgbToHsv,
   toHex,
 } from "../../common/color/translate-color";
+import type { Gamut } from "../../common/color/named-palette";
+import {
+  gamutOfRgb,
+  NAMED_PALETTE,
+  nearestNamedColour,
+} from "../../common/color/named-palette";
 import { consume } from "../../common/decorators/consume";
 import { fireEvent } from "../../common/dom/fire_event";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
@@ -55,6 +61,8 @@ type Notation =
 
 const BASE: Notation[] = ["hex", "rgb", "hsl", "oklch", "lab", "cmyk"];
 const EXTRA: Notation[] = ["hex8", "hsv", "hwb", "lch", "oklab", "named"];
+
+const GAMUTS: Gamut[] = ["srgb", "p3", "outside"];
 
 interface EyeDropperLike {
   open(): Promise<{ sRGBHex: string }>;
@@ -118,6 +126,15 @@ export class HaAppearanceColorPicker extends LitElement {
     return (
       this._i18n?.localize(
         `ui.appearance_editor.${key}` as LocalizeKeys,
+        values
+      ) || key
+    );
+  }
+
+  private _p(key: string, values?: Record<string, string | number>): string {
+    return (
+      this._i18n?.localize(
+        `ui.common.color_palette.${key}` as LocalizeKeys,
         values
       ) || key
     );
@@ -189,6 +206,9 @@ export class HaAppearanceColorPicker extends LitElement {
       ? contrastReading(hex, this.contrastWith)
       : undefined;
     const hasEyeDropper = "EyeDropper" in window;
+    const nearest = nearestNamedColour([r, g, b]);
+    const nearestName = this._p(`name_${nearest.colour.id}`);
+    const gamut = gamutOfRgb([Math.round(r), Math.round(g), Math.round(b)]);
     return html`
       <div
         class="picker"
@@ -238,6 +258,28 @@ export class HaAppearanceColorPicker extends LitElement {
           ></ha-slider>
           <output>${Math.round(this._hsv.h)}°</output>
         </div>
+        <div
+          class="rainbow"
+          role="slider"
+          tabindex="0"
+          aria-label=${this._p("rainbow_label")}
+          aria-valuemin="0"
+          aria-valuemax="360"
+          aria-valuenow=${Math.round(this._hsv.h)}
+          aria-valuetext=${this._p("rainbow_value", {
+            hue: Math.round(this._hsv.h),
+          })}
+          @pointerdown=${this._rainbowDown}
+          @pointermove=${this._rainbowMove}
+          @pointerup=${this._squareUp}
+          @pointercancel=${this._squareUp}
+          @keydown=${this._rainbowKey}
+        >
+          <span
+            class="rainbow-thumb"
+            style=${styleMap({ left: `${(this._hsv.h / 360) * 100}%` })}
+          ></span>
+        </div>
         <div class="typed">
           <ha-input
             appearance="outlined"
@@ -266,6 +308,42 @@ export class HaAppearanceColorPicker extends LitElement {
         <p class="note">
           ${this._l("picker_named", { name: named.name, hex: named.hex })}
         </p>
+        <p class="note">
+          ${
+            nearest.distance < 0.5
+              ? this._p("nearest_exact", { name: nearestName })
+              : this._p("nearest_name", { name: nearestName })
+          }
+        </p>
+        <div class="gamut" role="group" aria-label=${this._p("gamut_label")}>
+          ${GAMUTS.map(
+            (item) =>
+              html`<span
+                class=${classMap({ "gamut-chip": true, active: item === gamut })}
+                aria-current=${item === gamut ? "true" : "false"}
+                >${this._p(`gamut_${item}`)}</span
+              >`
+          )}
+        </div>
+        <p class="note">${this._p(`gamut_${gamut}_note`)}</p>
+        <div
+          class="palette"
+          role="group"
+          aria-label=${this._p("palette_label")}
+        >
+          ${NAMED_PALETTE.map((item) => {
+            const name = this._p(`name_${item.id}`);
+            return html`<button
+              class=${classMap({ named: true, current: item.hex === hex })}
+              aria-label=${name}
+              aria-pressed=${item.hex === hex ? "true" : "false"}
+              title=${name}
+              data-hex=${item.hex}
+              style=${styleMap({ backgroundColor: item.hex })}
+              @click=${this._pickNamed}
+            ></button>`;
+          })}
+        </div>
 
         <ul>
           ${notations.map(
@@ -428,6 +506,62 @@ export class HaAppearanceColorPicker extends LitElement {
     ev.preventDefault();
     this._hsv = { ...this._hsv, s: move[0], v: move[1] };
     this._emit();
+  }
+
+  private _hueFromPointer(ev: PointerEvent) {
+    const box = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    this._hsv = {
+      ...this._hsv,
+      h: Math.min(
+        360,
+        Math.max(0, ((ev.clientX - box.left) / box.width) * 360)
+      ),
+    };
+    this._emit();
+  }
+
+  private _rainbowDown(ev: PointerEvent) {
+    (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+    this._hueFromPointer(ev);
+  }
+
+  private _rainbowMove(ev: PointerEvent) {
+    if ((ev.currentTarget as HTMLElement).hasPointerCapture(ev.pointerId)) {
+      this._hueFromPointer(ev);
+    }
+  }
+
+  // Arrows step the hue, Shift steps further, Page Up and Page Down jump 30
+  // degrees, Home and End go to the ends of the strip.
+  private _rainbowKey(ev: KeyboardEvent) {
+    const step = ev.shiftKey ? 10 : 1;
+    const hue = this._hsv.h;
+    const next: Record<string, number> = {
+      ArrowLeft: hue - step,
+      ArrowDown: hue - step,
+      ArrowRight: hue + step,
+      ArrowUp: hue + step,
+      PageDown: hue - 30,
+      PageUp: hue + 30,
+      Home: 0,
+      End: 360,
+    };
+    if (!(ev.key in next)) {
+      return;
+    }
+    ev.preventDefault();
+    this._hsv = { ...this._hsv, h: Math.min(360, Math.max(0, next[ev.key])) };
+    this._emit();
+    this._committed();
+  }
+
+  private _pickNamed(ev: Event) {
+    const color = parseColor((ev.currentTarget as HTMLElement).dataset.hex!);
+    if (color) {
+      this._hsv = rgbToHsv(color.r, color.g, color.b);
+      this._emit();
+      this._committed();
+    }
   }
 
   private _hueChanged(ev: Event) {
@@ -620,6 +754,107 @@ export class HaAppearanceColorPicker extends LitElement {
     }
     ha-slider.hue::part(indicator) {
       background: transparent;
+    }
+    .rainbow {
+      position: relative;
+      overflow: hidden;
+      min-height: 44px;
+      border-radius: var(--ha-border-radius-pill);
+      background: linear-gradient(
+        to right,
+        #f00,
+        #ff0,
+        #0f0,
+        #0ff,
+        #00f,
+        #f0f,
+        #f00
+      );
+      cursor: ew-resize;
+      touch-action: none;
+    }
+    .rainbow::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        100deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.35) 50%,
+        transparent 70%
+      );
+      background-size: 200% 100%;
+      pointer-events: none;
+      animation: rainbow-sheen 6s linear infinite;
+    }
+    @keyframes rainbow-sheen {
+      from {
+        background-position: 200% 0;
+      }
+      to {
+        background-position: -200% 0;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rainbow::after {
+        animation: none;
+      }
+    }
+    .rainbow:focus-visible,
+    .named:focus-visible {
+      outline: 3px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .rainbow-thumb {
+      position: absolute;
+      top: 50%;
+      z-index: 1;
+      width: 28px;
+      height: 28px;
+      margin: -14px 0 0 -14px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+    }
+    .gamut {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-1);
+    }
+    .gamut-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 var(--ha-space-3);
+      border: 1px solid var(--outline-color);
+      border-radius: var(--ha-border-radius-pill);
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+    .gamut-chip.active {
+      border-color: transparent;
+      background: var(--ha-color-fill-primary-normal-resting);
+      color: var(--primary-text-color);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+      gap: var(--ha-space-1);
+    }
+    .named {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--ha-border-radius-lg);
+      box-shadow: inset 0 0 0 1px var(--outline-color);
+      cursor: pointer;
+    }
+    .named.current {
+      outline: 3px solid var(--primary-text-color);
+      outline-offset: 2px;
     }
     .typed {
       display: flex;

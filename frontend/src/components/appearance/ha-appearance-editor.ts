@@ -37,8 +37,6 @@ import {
   composedParent,
   contrastRatio,
   cssColorToHex,
-  FONT_FAMILIES,
-  FONT_WEIGHTS,
   hasDroppedOutsideImages,
   isAKind,
   isEmptyAppearance,
@@ -60,12 +58,33 @@ import "../ha-switch";
 import type { HaSwitch } from "../ha-switch";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
+import {
+  FONT_WEIGHTS,
+  isTextTooSmall,
+  MIN_READABLE_FONT_SIZE,
+  TEXT_ALIGNMENTS,
+  TEXT_TRANSFORMS,
+  TYPE_RANGES,
+  typefaceChoices,
+} from "./appearance-type-fields";
 import "./ha-appearance-color-picker";
 
 /** The value of the "from the theme" choice in a select. */
 const UNSET = "__unset";
 
 type ScalarKey = Exclude<keyof ElementAppearance, "layers">;
+
+type RangeKey =
+  | "radius"
+  | "borderWidth"
+  | "zoom"
+  | "opacity"
+  | "lineHeight"
+  | "letterSpacing"
+  | "maxLines";
+
+type SelectKey =
+  "fontFamily" | "fontWeight" | "shadow" | "textTransform" | "textAlign";
 
 // A drag is applied and stored at most this often (milliseconds), and once
 // more when it ends.
@@ -791,7 +810,7 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _scalarRange(
-    key: "radius" | "borderWidth" | "zoom" | "opacity",
+    key: RangeKey,
     min: number,
     max: number,
     step: number,
@@ -819,40 +838,130 @@ export class HaAppearanceEditor extends LitElement {
     </div>`;
   }
 
+  private _typefaceOptions() {
+    const options = [
+      { value: UNSET, label: this._l("from_theme") },
+      ...typefaceChoices().map((choice) => ({
+        value: choice.key,
+        label: choice.name,
+      })),
+    ];
+    const current = this._appearance.fontFamily;
+    // A typeface stored by an earlier version stays selectable.
+    if (current && !options.some((option) => option.value === current)) {
+      options.push({ value: current, label: current });
+    }
+    return options;
+  }
+
+  private _selectRow(
+    key: SelectKey,
+    value: string,
+    options: { value: string; label: string }[]
+  ) {
+    return html`<div class="row">
+      <span>${this._l(`field_${key}`)}</span>
+      <ha-select
+        .key=${key}
+        aria-label=${this._l(`field_${key}`)}
+        .value=${value}
+        .options=${options}
+        @selected=${this._scalarSelect}
+      ></ha-select>
+      ${this._clearButton(key)}
+    </div>`;
+  }
+
+  // The size text is drawn at is the element's own size times the size choice.
+  private _renderSmallTextWarning() {
+    const element = this._element;
+    if (!element) {
+      return nothing;
+    }
+    const base = parseFloat(getComputedStyle(element).fontSize);
+    if (!isTextTooSmall(base, this._appearance.zoom ?? 1)) {
+      return nothing;
+    }
+    return html`<p class="contrast low" role="status">
+      <ha-svg-icon .path=${mdiContrastCircle}></ha-svg-icon>
+      ${this._l("small_text_warning", { size: MIN_READABLE_FONT_SIZE })}
+    </p>`;
+  }
+
   private _renderText() {
+    const { lineHeight, letterSpacing, maxLines } = TYPE_RANGES;
     return html`
       <section>
         <span class="label">${this._l("text")}</span>
         ${this._scalarColor("textColor")}
+        ${this._selectRow(
+          "fontFamily",
+          this._appearance.fontFamily ?? UNSET,
+          this._typefaceOptions()
+        )}
+        ${this._selectRow(
+          "fontWeight",
+          String(this._appearance.fontWeight ?? UNSET),
+          [
+            { value: UNSET, label: this._l("from_theme") },
+            ...FONT_WEIGHTS.map((weight) => ({
+              value: String(weight),
+              label: this._l(`weight_${weight}`),
+            })),
+          ]
+        )}
         <div class="row">
-          <span>${this._l("field_fontFamily")}</span>
-          <ha-select
-            .key=${"fontFamily"}
-            aria-label=${this._l("field_fontFamily")}
-            .value=${this._appearance.fontFamily ?? "theme"}
-            .options=${FONT_FAMILIES.map((family) => ({
-              value: family,
-              label: family === "theme" ? this._l("from_theme") : family,
-            }))}
-            @selected=${this._scalarSelect}
-          ></ha-select>
+          <span>${this._l("field_italic")}</span>
+          <ha-switch
+            .checked=${this._appearance.italic === true}
+            aria-label=${this._l("field_italic")}
+            @change=${this._italicChanged}
+          ></ha-switch>
+          ${this._clearButton("italic")}
         </div>
-        <div class="row">
-          <span>${this._l("field_fontWeight")}</span>
-          <ha-select
-            .key=${"fontWeight"}
-            aria-label=${this._l("field_fontWeight")}
-            .value=${String(this._appearance.fontWeight ?? UNSET)}
-            .options=${[
-              { value: UNSET, label: this._l("from_theme") },
-              ...FONT_WEIGHTS.map((weight) => ({
-                value: String(weight),
-                label: this._l(`weight_${weight}`),
-              })),
-            ]}
-            @selected=${this._scalarSelect}
-          ></ha-select>
-        </div>
+        ${this._scalarRange(
+          "lineHeight",
+          lineHeight.min,
+          lineHeight.max,
+          lineHeight.step,
+          lineHeight.fallback,
+          (value) => value.toFixed(2)
+        )}
+        ${this._scalarRange(
+          "letterSpacing",
+          letterSpacing.min,
+          letterSpacing.max,
+          letterSpacing.step,
+          letterSpacing.fallback,
+          (value) => `${value.toFixed(2)} em`
+        )}
+        ${this._selectRow(
+          "textTransform",
+          this._appearance.textTransform ?? UNSET,
+          [
+            { value: UNSET, label: this._l("from_theme") },
+            ...TEXT_TRANSFORMS.map((transform) => ({
+              value: transform,
+              label: this._l(`transform_${transform}`),
+            })),
+          ]
+        )}
+        ${this._selectRow("textAlign", this._appearance.textAlign ?? UNSET, [
+          { value: UNSET, label: this._l("from_theme") },
+          ...TEXT_ALIGNMENTS.map((align) => ({
+            value: align,
+            label: this._l(`align_${align}`),
+          })),
+        ])}
+        ${this._scalarRange(
+          "maxLines",
+          maxLines.min,
+          maxLines.max,
+          maxLines.step,
+          maxLines.fallback,
+          (value) => this._l("lines_value", { count: value })
+        )}
+        ${this._renderSmallTextWarning()}
       </section>
     `;
   }
@@ -1047,7 +1156,7 @@ export class HaAppearanceEditor extends LitElement {
 
   private _scalarRangeChanged(ev: Event) {
     const input = ev.currentTarget as HaSlider & {
-      key: "radius" | "borderWidth" | "zoom" | "opacity";
+      key: RangeKey;
       scale: number;
     };
     this._set(input.key, Number(input.value) / input.scale);
@@ -1055,15 +1164,23 @@ export class HaAppearanceEditor extends LitElement {
 
   private _scalarSelect(ev: HaSelectSelectEvent<string>) {
     ev.stopPropagation();
-    const select = ev.currentTarget as HaSelect & {
-      key: "fontFamily" | "fontWeight" | "shadow";
-    };
+    const select = ev.currentTarget as HaSelect & { key: SelectKey };
     const chosen = String(ev.detail.value);
-    if (select.key === "fontFamily") {
-      this._set("fontFamily", chosen === "theme" ? undefined : chosen);
+    if (chosen === UNSET) {
+      this._set(select.key, undefined);
+    } else if (select.key === "fontFamily") {
+      this._set("fontFamily", chosen);
+    } else if (select.key === "textTransform") {
+      this._set("textTransform", chosen as ElementAppearance["textTransform"]);
+    } else if (select.key === "textAlign") {
+      this._set("textAlign", chosen as ElementAppearance["textAlign"]);
     } else {
-      this._set(select.key, chosen === UNSET ? undefined : Number(chosen));
+      this._set(select.key, Number(chosen));
     }
+  }
+
+  private _italicChanged(ev: Event) {
+    this._set("italic", (ev.currentTarget as HaSwitch).checked);
   }
 
   private _layers(): FillLayer[] {

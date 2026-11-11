@@ -3,6 +3,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
 import {
   ACCESSIBILITY_STORAGE_KEY,
   getAccessibilitySettings,
@@ -28,6 +29,28 @@ import {
   setReadingOptions,
   subscribeReadingOptions,
 } from "../../common/appearance/reading-options";
+import type {
+  TypeScaleSettings,
+  TypeScaleStep,
+} from "../../common/appearance/type-scale";
+import {
+  applyTypeScale,
+  BASE_MAX,
+  BASE_MIN,
+  computeTypeScale,
+  DEFAULT_TYPE_SCALE,
+  getTypeScale,
+  isDefaultTypeScale,
+  normalizeTypeScale,
+  RATIO_MAX,
+  RATIO_MIN,
+  RATIO_PRESETS,
+  SIZE_MAX,
+  SIZE_MIN,
+  setTypeScale,
+  subscribeTypeScale,
+  TYPE_SCALE_STEPS,
+} from "../../common/appearance/type-scale";
 import { getStorage } from "../../common/decorators/storage";
 import type { HomeAssistant } from "../../types";
 import "../ha-dialog";
@@ -67,6 +90,11 @@ export class HaAppearanceFonts extends LitElement {
 
   @state() private _textScale = getAccessibilitySettings().textScale;
 
+  @state() private _typeScale: TypeScaleSettings = getTypeScale();
+
+  // Whether the ratio is being typed in rather than taken from the presets.
+  @state() private _customRatio = !RATIO_PRESETS.includes(getTypeScale().ratio);
+
   @state() private _available?: FontAvailability;
 
   @state() private _contrast?: number;
@@ -84,6 +112,10 @@ export class HaAppearanceFonts extends LitElement {
       }),
       subscribeAccessibilitySettings((settings) => {
         this._textScale = settings.textScale;
+      }),
+      subscribeTypeScale((settings) => {
+        applyTypeScale(settings);
+        this._typeScale = settings;
       }),
     ];
   }
@@ -167,6 +199,8 @@ export class HaAppearanceFonts extends LitElement {
               </div>
             </div>
 
+            ${this._renderTypeScale()}
+
             <p class="note">${this._l("fonts_default")}</p>
           </div>
 
@@ -180,6 +214,7 @@ export class HaAppearanceFonts extends LitElement {
             <h4>${this._l("fonts_preview_room")}</h4>
             <p>${this._l("fonts_preview_text")}</p>
             <code>${this._l("fonts_preview_code")}</code>
+            ${this._renderScalePreview()}
             ${
               this._contrast === undefined
                 ? nothing
@@ -215,7 +250,9 @@ export class HaAppearanceFonts extends LitElement {
                 ...this._options,
                 lineSpacing: DEFAULT_READING_OPTIONS.lineSpacing,
                 wideSpacing: DEFAULT_READING_OPTIONS.wideSpacing,
-              }) && this._textScale === 1
+              }) &&
+              this._textScale === 1 &&
+              isDefaultTypeScale(this._typeScale)
             }
             @click=${this._reset}
           >
@@ -255,6 +292,192 @@ export class HaAppearanceFonts extends LitElement {
         ></ha-select>
       </div>
     `;
+  }
+
+  private _renderTypeScale() {
+    const scale = this._typeScale;
+    const sizes = computeTypeScale(scale);
+    const ratioValue = this._customRatio ? "custom" : String(scale.ratio);
+    const ratioOptions = [
+      ...RATIO_PRESETS.map((ratio) => ({
+        value: String(ratio),
+        label: String(ratio),
+      })),
+      { value: "custom", label: this._l("ts_ratio_custom") },
+    ];
+    return html`
+      <div class="ts">
+        <div class="ts-head">
+          <span class="label" id="ts-enable-label"
+            >${this._l("ts_enable")}</span
+          >
+          <ha-switch
+            .checked=${scale.enabled}
+            aria-labelledby="ts-enable-label"
+            @change=${this._tsEnabledChanged}
+          ></ha-switch>
+        </div>
+        <p class="note">${this._l("ts_note")}</p>
+
+        <ha-select
+          class="select"
+          .label=${this._l("ts_ratio")}
+          .value=${ratioValue}
+          .options=${ratioOptions}
+          @selected=${this._tsRatioSelected}
+        ></ha-select>
+
+        ${
+          this._customRatio
+            ? html`
+                <div class="scale">
+                  <span class="label" id="ts-ratio-label"
+                    >${this._l("ts_ratio_custom")}</span
+                  >
+                  <output>${scale.ratio.toFixed(2)}</output>
+                  <ha-slider
+                    .min=${RATIO_MIN}
+                    .max=${RATIO_MAX}
+                    .step=${0.01}
+                    .value=${scale.ratio}
+                    aria-labelledby="ts-ratio-label"
+                    aria-valuetext=${scale.ratio.toFixed(2)}
+                    @change=${this._tsCustomRatioChanged}
+                  ></ha-slider>
+                </div>
+              `
+            : nothing
+        }
+
+        <div class="scale">
+          <span class="label" id="ts-base-label">${this._l("ts_base")}</span>
+          <output>${scale.base} px</output>
+          <ha-slider
+            .min=${BASE_MIN}
+            .max=${BASE_MAX}
+            .step=${0.5}
+            .value=${scale.base}
+            aria-labelledby="ts-base-label"
+            aria-valuetext=${`${scale.base} px`}
+            @change=${this._tsBaseChanged}
+          ></ha-slider>
+        </div>
+
+        ${TYPE_SCALE_STEPS.map((step) => {
+          const overridden = scale.overrides[step] !== undefined;
+          const label = this._l(`ts_step_${step}`);
+          return html`
+            <div class="scale">
+              <span class="label" id=${`ts-size-${step}`}>${label}</span>
+              <output>
+                ${sizes[step]}
+                px${overridden ? html` · ${this._l("ts_step_own")}` : nothing}
+              </output>
+              <ha-slider
+                .min=${SIZE_MIN}
+                .max=${SIZE_MAX}
+                .step=${0.5}
+                .value=${sizes[step]}
+                .step_name=${step}
+                aria-labelledby=${`ts-size-${step}`}
+                aria-valuetext=${`${sizes[step]} px`}
+                @change=${this._tsSizeChanged}
+              ></ha-slider>
+              ${
+                overridden
+                  ? html`<button
+                      class="text-button small"
+                      .step_name=${step}
+                      @click=${this._tsClearOverride}
+                    >
+                      ${this._l("ts_step_auto", { step: label })}
+                    </button>`
+                  : nothing
+              }
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  private _renderScalePreview() {
+    const sizes = computeTypeScale(this._typeScale);
+    return html`
+      <div class="scale-preview">
+        <span class="eyebrow">${this._l("ts_preview")}</span>
+        ${TYPE_SCALE_STEPS.slice()
+          .reverse()
+          .map(
+            (step) => html`
+              <p
+                class="step"
+                style=${styleMap({
+                  fontSize: `calc(${sizes[step]}px * var(--ha-font-size-scale, 1))`,
+                })}
+              >
+                <span class="step-name">${this._l(`ts_step_${step}`)}</span>
+                ${this._l("ts_sample")}
+              </p>
+            `
+          )}
+        ${
+          this._typeScale.enabled
+            ? nothing
+            : html`<span class="note">${this._l("ts_off")}</span>`
+        }
+      </div>
+    `;
+  }
+
+  private _saveTypeScale(patch: Partial<TypeScaleSettings>) {
+    setTypeScale(normalizeTypeScale({ ...this._typeScale, ...patch }));
+  }
+
+  private _tsEnabledChanged(ev: Event) {
+    this._saveTypeScale({
+      enabled: (ev.currentTarget as HTMLInputElement).checked,
+    });
+  }
+
+  private _tsRatioSelected(ev: HaSelectSelectEvent<string>) {
+    ev.stopPropagation();
+    const value = String(ev.detail.value);
+    if (value === "custom") {
+      this._customRatio = true;
+      return;
+    }
+    this._customRatio = false;
+    this._saveTypeScale({ ratio: Number(value) });
+  }
+
+  private _tsCustomRatioChanged(ev: Event) {
+    this._saveTypeScale({
+      ratio: Number((ev.currentTarget as HaSlider).value),
+    });
+  }
+
+  private _tsBaseChanged(ev: Event) {
+    this._saveTypeScale({ base: Number((ev.currentTarget as HaSlider).value) });
+  }
+
+  private _tsSizeChanged(ev: Event) {
+    const slider = ev.currentTarget as HaSlider & { step_name: TypeScaleStep };
+    this._saveTypeScale({
+      overrides: {
+        ...this._typeScale.overrides,
+        [slider.step_name]: Number(slider.value),
+      },
+    });
+  }
+
+  private _tsClearOverride(ev: Event) {
+    const step = (
+      ev.currentTarget as HTMLElement & { step_name: TypeScaleStep }
+    ).step_name;
+    const overrides = { ...this._typeScale.overrides };
+    delete overrides[step];
+    this._saveTypeScale({ overrides });
   }
 
   private _fontChanged(ev: HaSelectSelectEvent<string>) {
@@ -297,6 +520,8 @@ export class HaAppearanceFonts extends LitElement {
       ...getAccessibilitySettings(),
       textScale: 1,
     });
+    this._customRatio = false;
+    setTypeScale({ ...DEFAULT_TYPE_SCALE, overrides: {} });
   }
 
   // The reading of the preview's own text against the card it sits on.
@@ -375,6 +600,42 @@ export class HaAppearanceFonts extends LitElement {
     .scale output {
       font-variant-numeric: tabular-nums;
       font-weight: var(--ha-font-weight-medium);
+    }
+    .ts {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      padding-top: var(--ha-space-3);
+      border-top: 1px solid var(--divider-color);
+    }
+    .ts-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-3);
+      min-height: 44px;
+    }
+    .text-button.small {
+      justify-self: start;
+      min-height: 44px;
+    }
+    .scale-preview {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      padding-top: var(--ha-space-2);
+      border-top: 1px solid var(--divider-color);
+    }
+    .scale-preview .step {
+      margin: 0;
+      font-family: var(--ha-font-family-body);
+      line-height: var(--ha-line-height-condensed);
+      overflow-wrap: anywhere;
+    }
+    .step-name {
+      margin-inline-end: var(--ha-space-2);
+      font-weight: var(--ha-font-weight-medium);
+      color: var(--secondary-text-color);
     }
     .weight {
       display: flex;

@@ -1,3 +1,10 @@
+import type { TypeFields } from "../../components/appearance/appearance-type-fields";
+import {
+  FONT_FAMILIES,
+  FONT_WEIGHTS,
+  normalizeTypeFields,
+  typeFieldsToStyles,
+} from "../../components/appearance/appearance-type-fields";
 import { noteLocalChange } from "../history/local-history";
 import { syncCacheUsable } from "../instance-sync/sync-owner";
 
@@ -70,24 +77,13 @@ export interface ImageLayer extends LayerBase {
 
 export type FillLayer = ColorLayer | GradientLayer | ImageLayer;
 
-export const FONT_FAMILIES = [
-  "theme",
-  "Google Sans Flex",
-  "Roboto",
-  "system-ui",
-  "Georgia",
-  "monospace",
-] as const;
+export { FONT_FAMILIES, FONT_WEIGHTS };
 
-export const FONT_WEIGHTS = [300, 400, 500, 600, 700, 800] as const;
-
-export interface ElementAppearance {
+export interface ElementAppearance extends TypeFields {
   /** Fill layers, top first. */
   layers?: FillLayer[];
   textColor?: string;
   accentColor?: string;
-  fontFamily?: string;
-  fontWeight?: number;
   /** 1 is the normal size. */
   zoom?: number;
   /** Corner radius in pixels. */
@@ -246,16 +242,7 @@ export const normalizeAppearance = (raw: unknown): ElementAppearance => {
   if (accentColor) {
     result.accentColor = accentColor;
   }
-  if (
-    typeof value.fontFamily === "string" &&
-    (FONT_FAMILIES as readonly string[]).includes(value.fontFamily) &&
-    value.fontFamily !== "theme"
-  ) {
-    result.fontFamily = value.fontFamily;
-  }
-  if ((FONT_WEIGHTS as readonly unknown[]).includes(value.fontWeight)) {
-    result.fontWeight = value.fontWeight as number;
-  }
+  Object.assign(result, normalizeTypeFields(value));
   const zoom = clamp(
     value.zoom,
     APPEARANCE_LIMITS.zoomMin,
@@ -537,18 +524,7 @@ export const appearanceToStyles = (
     inherited["--primary-color"] = appearance.accentColor;
     inherited["--accent-color"] = appearance.accentColor;
   }
-  if (appearance.fontFamily) {
-    const family = `"${appearance.fontFamily}", var(--ha-font-family-body)`;
-    inherited["font-family"] = family;
-    inherited["--ha-font-family-body"] = family;
-    inherited["--ha-font-family-heading"] = family;
-  }
-  if (appearance.fontWeight) {
-    const weight = String(appearance.fontWeight);
-    inherited["font-weight"] = weight;
-    inherited["--ha-font-weight-normal"] = weight;
-    inherited["--ha-font-weight-medium"] = weight;
-  }
+  Object.assign(inherited, typeFieldsToStyles(appearance));
   if (appearance.opacity !== undefined) {
     inherited.opacity = String(appearance.opacity);
   }

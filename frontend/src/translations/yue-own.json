@@ -1,7 +1,134 @@
 {
   "ui": {
+    "common": {
+      "color_palette": {
+        "title": "命名顏色",
+        "palette_label": "命名顏色",
+        "palette_hint": "喺 48 種命名顏色入面揀一種。",
+        "nearest_name": "最近嘅命名顏色：{name}。",
+        "nearest_exact": "呢個就係命名顏色「{name}」。",
+        "gamut_label": "色域",
+        "gamut_srgb": "sRGB",
+        "gamut_p3": "Display P3",
+        "gamut_outside": "色域之外",
+        "gamut_srgb_note": "喺 sRGB 之內，每部螢幕都可以原汁原味顯示。",
+        "gamut_p3_note": "超出 sRGB 但喺 Display P3 之內。廣色域螢幕可以完整顯示，其他螢幕會顯示最接近嘅顏色。",
+        "gamut_outside_note": "超出 Display P3，常見嘅螢幕都顯示唔到一模一樣，呢個係近似值。",
+        "rainbow_label": "色相條",
+        "rainbow_value": "色相 {hue} 度",
+        "name_red_300": "淺紅色",
+        "name_red_500": "紅色",
+        "name_red_700": "深紅色",
+        "name_red_900": "極深紅色",
+        "name_orange_300": "淺橙色",
+        "name_orange_500": "橙色",
+        "name_orange_700": "深橙色",
+        "name_orange_900": "極深橙色",
+        "name_amber_300": "淺琥珀色",
+        "name_amber_500": "琥珀色",
+        "name_amber_700": "深琥珀色",
+        "name_amber_900": "極深琥珀色",
+        "name_yellow_300": "淺黃色",
+        "name_yellow_500": "黃色",
+        "name_yellow_700": "深黃色",
+        "name_yellow_900": "極深黃色",
+        "name_lime_300": "淺青檸色",
+        "name_lime_500": "青檸色",
+        "name_lime_700": "深青檸色",
+        "name_lime_900": "極深青檸色",
+        "name_green_300": "淺綠色",
+        "name_green_500": "綠色",
+        "name_green_700": "深綠色",
+        "name_green_900": "極深綠色",
+        "name_teal_300": "淺青綠色",
+        "name_teal_500": "青綠色",
+        "name_teal_700": "深青綠色",
+        "name_teal_900": "極深青綠色",
+        "name_cyan_300": "淺青色",
+        "name_cyan_500": "青色",
+        "name_cyan_700": "深青色",
+        "name_cyan_900": "極深青色",
+        "name_blue_300": "淺藍色",
+        "name_blue_500": "藍色",
+        "name_blue_700": "深藍色",
+        "name_blue_900": "極深藍色",
+        "name_indigo_300": "淺靛色",
+        "name_indigo_500": "靛色",
+        "name_indigo_700": "深靛色",
+        "name_indigo_900": "極深靛色",
+        "name_purple_300": "淺紫色",
+        "name_purple_500": "紫色",
+        "name_purple_700": "深紫色",
+        "name_purple_900": "極深紫色",
+        "name_pink_300": "淺粉紅色",
+        "name_pink_500": "粉紅色",
+        "name_pink_700": "深粉紅色",
+        "name_pink_900": "極深粉紅色"
+      }
+    },
     "panel": {
       "config": {
+        "core": {
+          "section": {
+            "core": {
+              "general_help": {
+                "reset": "還原",
+                "reset_label": "將{name}還原做預設值",
+                "reset_title": "要還原{name}嗎？",
+                "reset_text": "{name}會變返做{value}。要撳「儲存」先會真正儲存呢個改動。",
+                "reset_confirm": "還原",
+                "name": {
+                  "description": "你屋企嘅名。大家睇呢個實例時見到嘅標題就係佢。",
+                  "reach": "頁面標題、主頁區域名稱，同埋任何用到屋企名嘅問候語。",
+                  "holding": "你喺度輸入同儲存嘅內容。",
+                  "default": "Home"
+                },
+                "country": {
+                  "description": "你屋企所在嘅國家。",
+                  "reach": "同國家有關嘅整合（例如假期）同佢哋提供嘅選項。",
+                  "holding": "你揀嘅國家，留空就係冇國家。",
+                  "default": "冇國家"
+                },
+                "language": {
+                  "description": "呢個實例自己產生名稱同訊息時用嘅語言。",
+                  "reach": "伺服器產生嘅實體名稱、通知同語音回答。每個人仍然可以喺自己嘅個人檔案揀自己畫面嘅語言。",
+                  "holding": "你喺度揀嘅語言。",
+                  "default": "英文"
+                },
+                "time_zone": {
+                  "description": "你屋企所在嘅時區。",
+                  "reach": "各處顯示嘅日期同時間、日出日落，以及自動化同排程運行嘅時間。",
+                  "holding": "你揀嘅時區。",
+                  "default": "UTC"
+                },
+                "currency": {
+                  "description": "計算費用用嘅貨幣單位。",
+                  "reach": "能源價錢同費用，以及任何顯示金額嘅整合。",
+                  "holding": "你揀嘅貨幣。",
+                  "default": "歐元（EUR）"
+                },
+                "unit_system": {
+                  "description": "距離、速度、溫度同重量用公制定係美制單位顯示。",
+                  "reach": "每個有單位嘅感應器同天氣數值。溫度單位一定跟你嘅選擇。",
+                  "holding": "你揀嘅單位系統。轉換時可以順便更新現有感應器嘅單位。",
+                  "default": "公制"
+                },
+                "location": {
+                  "description": "你屋企喺地圖上嘅位置。",
+                  "reach": "日出日落、天氣，以及用主頁區域嘅在家偵測。",
+                  "holding": "主頁區域。請喺區域設定入面編輯。",
+                  "default": "冇預設位置。"
+                },
+                "elevation": {
+                  "description": "你屋企高出海平面幾多，單位係米。",
+                  "reach": "日出日落同同海拔有關嘅天氣數值。",
+                  "holding": "你喺度輸入嘅數字。",
+                  "default": "0 米"
+                }
+              }
+            }
+          }
+        },
         "personal": {
           "caption": "個人設定",
           "intro": "呢度嘅選擇只屬於你。每個改動即刻儲存到呢個實例嘅帳戶度，會跟你去每部裝置，講明影響到邊度，亦都可以還原做預設值。",
@@ -829,6 +956,11 @@
       "bulk_invalid": "呢個模式用唔到，所以唔會關閉任何分頁。",
       "bulk_done": "已關閉 {count} 個分頁",
       "bulk_undo": "還原",
+      "group_pinned": "已釘選",
+      "group_search": "搜尋{name}",
+      "group_count": "顯示 {shown} 個，共 {total} 個",
+      "group_empty": "{name}入面冇嘢符合呢個搜尋。",
+      "group_close_pinned": "關閉 {count} 個符合嘅已釘選分頁",
       "search_label": "搜尋",
       "search_everything": "搜尋同指令",
       "edit_appearance": "編輯任何嘢嘅外觀",
@@ -1116,7 +1248,27 @@
         "holding": "而家有乜嘢管住佢",
         "holding_nothing": "冇嘢管住。你揀咩就係咩。",
         "open_help": "打開說明文章",
-        "guided_reach": "完成引導設定之後，個值會寫入 {file}。"
+        "guided_reach": "完成引導設定之後，個值會寫入 {file}。",
+        "example": "實例",
+        "example_input": "輸入",
+        "example_result": "結果",
+        "practise": "喺度試吓",
+        "practise_note": "呢個係練習用嘅控制項。你喺度做乜都唔會儲存，亦唔會傳送出去。",
+        "practise_reset": "重設練習控制項",
+        "practise_control": "「{name}」嘅練習控制項",
+        "practise_msg_switch_on": "開。真正嘅開關會將佢開咗。",
+        "practise_msg_switch_off": "關。真正嘅開關會將佢閂咗。",
+        "practise_msg_number_ok": "接受 {value}。可用數值由 {min} 到 {max}。",
+        "practise_msg_number_clamped_min": "{entered} 低過最細值，所以變成 {value}。",
+        "practise_msg_number_clamped_max": "{entered} 高過最大值，所以變成 {value}。",
+        "practise_msg_number_snapped": "{entered} 喺兩級之間，所以變成 {value}。",
+        "practise_msg_number_invalid": "呢個唔係數字。請輸入 {min} 到 {max} 之間嘅數字。",
+        "practise_msg_text_ok": "接受呢個值。",
+        "practise_msg_text_empty": "請輸入內容，呢一欄唔可以留空。",
+        "practise_msg_text_pattern": "呢個值唔符合呢一欄嘅規則。",
+        "practise_msg_text_too_short": "太短。最少要 {min} 個字元，你輸入咗 {length} 個。",
+        "practise_msg_text_too_long": "太長。最多 {max} 個字元，你輸入咗 {length} 個。",
+        "practise_msg_text_rule_broken": "讀唔到呢個練習欄位嘅規則，所以檢查唔到你嘅值。"
       },
       "editor_save_bar": {
         "label": "儲存更改",

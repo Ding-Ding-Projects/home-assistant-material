@@ -7,7 +7,24 @@ import { LanguageModeController } from "../../common/language-mode/language-mode
 import { parseHelpAddress } from "../help/help-article-path";
 import { openHelpArticle } from "../help/open-help-article";
 import type { HomeAssistant } from "../../types";
+import "../ha-slider";
+import "../ha-switch";
 import "../ha-svg-icon";
+import "../input/ha-input";
+import type { PractiseSpec, SettingInfoExample } from "./practise-logic";
+import {
+  evaluatePractise,
+  initialPractiseValue,
+  usableExamples,
+} from "./practise-logic";
+
+export type {
+  PractiseNumberSpec,
+  PractiseSpec,
+  PractiseSwitchSpec,
+  PractiseTextSpec,
+  SettingInfoExample,
+} from "./practise-logic";
 
 /** The words the popover uses for its own headings and buttons. */
 export interface SettingInfoLabels {
@@ -20,7 +37,36 @@ export interface SettingInfoLabels {
   holding: string;
   holdingNothing: string;
   openHelp: string;
+  example: string;
+  exampleInput: string;
+  exampleResult: string;
+  practise: string;
+  /** Says in words that the practise control saves and sends nothing. */
+  practiseNote: string;
+  practiseReset: string;
+  /** The accessible name of the practise control, with `{name}`. */
+  practiseControl: string;
 }
+
+const LABEL_KEYS: Record<keyof SettingInfoLabels, string> = {
+  button: "button",
+  close: "close",
+  what: "what",
+  defaultValue: "default",
+  reach: "reach",
+  holding: "holding",
+  holdingNothing: "holding_nothing",
+  openHelp: "open_help",
+  example: "example",
+  exampleInput: "example_input",
+  exampleResult: "example_result",
+  practise: "practise",
+  practiseNote: "practise_note",
+  practiseReset: "practise_reset",
+  practiseControl: "practise_control",
+};
+
+const FOCUSABLE = "button, ha-switch, ha-slider, ha-input";
 
 let nextId = 0;
 
@@ -30,11 +76,17 @@ let nextId = 0;
  * it right now (School mode, a schedule, a shared default) and, when there is
  * a bundled help article for it, a link to that article.
  *
+ * A page can also give a worked `example` (pairs of input and result) and a
+ * `practise` spec. The spec names a control type (switch, number with a range,
+ * or text with a validation rule); the panel then shows a sandbox control that
+ * validates live with the real rule and says that nothing is saved and
+ * nothing is sent. See `practise-logic.ts`.
+ *
  * The button is a real button: Enter and Space open it, Escape closes it and
- * puts the focus back on the button, and so does the close button. The panel
- * never holds the focus captive, and it stays inside the screen on a phone.
- * Text arrives already localized; only the headings are the component's own,
- * and a page can replace them through `labels`.
+ * puts the focus back on the button, and so does the close button. While the
+ * panel is open, Tab and Shift+Tab stay inside it. It stays inside the screen
+ * on a phone. Text arrives already localized; only the headings are the
+ * component's own, and a page can replace them through `labels`.
  */
 @customElement("ha-setting-info")
 export class HaSettingInfo extends LitElement {
@@ -61,7 +113,16 @@ export class HaSettingInfo extends LitElement {
   /** Replaces the headings, for a page that has its own language mode. */
   @property({ attribute: false }) public labels?: Partial<SettingInfoLabels>;
 
+  /** A short list of input and result pairs that show the setting at work. */
+  @property({ attribute: false }) public example?: SettingInfoExample[];
+
+  /** A sandbox control to try the setting's rule. Nothing is saved or sent. */
+  @property({ attribute: false }) public practise?: PractiseSpec;
+
   @state() private _open = false;
+
+  /** The sandbox value: a boolean, or the raw text of a number or text field. */
+  @state() private _practiseValue: boolean | string = "";
 
   @state() private _placement: Record<string, string> = {};
 
@@ -78,27 +139,20 @@ export class HaSettingInfo extends LitElement {
     this._unlisten();
   }
 
+  /** Localized text for a key under `ui.components.setting_info`. */
+  private _key(name: string, values?: Record<string, string>): string {
+    return this.hass
+      ? this._lang.text(
+          this.hass.localize as any,
+          `ui.components.setting_info.${name}`,
+          values
+        )
+      : "";
+  }
+
   private _text(key: keyof SettingInfoLabels, values?: Record<string, string>) {
     const override = this.labels?.[key];
-    const names: Record<keyof SettingInfoLabels, string> = {
-      button: "button",
-      close: "close",
-      what: "what",
-      defaultValue: "default",
-      reach: "reach",
-      holding: "holding",
-      holdingNothing: "holding_nothing",
-      openHelp: "open_help",
-    };
-    const raw =
-      override ??
-      (this.hass
-        ? this._lang.text(
-            this.hass.localize as any,
-            `ui.components.setting_info.${names[key]}`,
-            values
-          )
-        : "");
+    const raw = override ?? this._key(LABEL_KEYS[key], values);
     return values && override
       ? Object.entries(values).reduce(
           (text, [name, value]) => text.split(`{${name}}`).join(value),
@@ -107,9 +161,24 @@ export class HaSettingInfo extends LitElement {
       : raw;
   }
 
+  protected willUpdate(changed: PropertyValues) {
+    if (changed.has("practise")) {
+      this._resetPractise();
+    }
+  }
+
+  private _resetPractise() {
+    this._practiseValue = this.practise
+      ? this.practise.type === "switch"
+        ? Boolean(initialPractiseValue(this.practise))
+        : String(initialPractiseValue(this.practise))
+      : "";
+  }
+
   protected updated(changed: PropertyValues) {
     if (changed.has("_open")) {
       if (this._open) {
+        this._resetPractise();
         this._listen();
         this._place();
         this._panel?.focus({ preventScroll: true });
@@ -178,6 +247,30 @@ export class HaSettingInfo extends LitElement {
     }
   };
 
+  /** Keeps Tab and Shift+Tab inside the open panel. */
+  private _trapFocus = (ev: KeyboardEvent) => {
+    if (ev.key !== "Tab" || !this._open || !this._panel) {
+      return;
+    }
+    const items = Array.from(
+      this._panel.querySelectorAll<HTMLElement>(FOCUSABLE)
+    ).filter((item) => !item.hasAttribute("disabled"));
+    if (!items.length) {
+      ev.preventDefault();
+      return;
+    }
+    const active = this.shadowRoot?.activeElement ?? null;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (ev.shiftKey && (active === first || active === this._panel)) {
+      ev.preventDefault();
+      last.focus();
+    } else if (!ev.shiftKey && active === last) {
+      ev.preventDefault();
+      first.focus();
+    }
+  };
+
   private _focusOut = (ev: FocusEvent) => {
     const next = ev.relatedTarget as Node | null;
     if (
@@ -214,6 +307,99 @@ export class HaSettingInfo extends LitElement {
     openHelpArticle(this, this.helpPath);
   };
 
+  private _practiseSwitch = (ev: Event) => {
+    this._practiseValue = (ev.target as HTMLInputElement).checked;
+  };
+
+  private _practiseText = (ev: Event) => {
+    this._practiseValue = String((ev.target as HTMLInputElement).value ?? "");
+  };
+
+  private _practiseReset = () => {
+    this._resetPractise();
+  };
+
+  private _renderExample(): TemplateResult | typeof nothing {
+    const rows = usableExamples(this.example);
+    if (!rows.length) {
+      return nothing;
+    }
+    return html`<div class="section">
+      <span class="heading">${this._text("example")}</span>
+      <ul class="example">
+        ${rows.map(
+          (row) =>
+            html`<li>
+              <span class="in" title=${this._text("exampleInput")}
+                >${row.input}</span
+              >
+              <span class="arrow" aria-hidden="true">→</span>
+              <span class="out" title=${this._text("exampleResult")}
+                >${row.result}</span
+              >
+            </li>`
+        )}
+      </ul>
+    </div>`;
+  }
+
+  private _renderPractise(): TemplateResult | typeof nothing {
+    const spec = this.practise;
+    if (!spec) {
+      return nothing;
+    }
+    const value = this._practiseValue;
+    const result = evaluatePractise(spec, value);
+    const message = this._key(`practise_msg_${result.code}`, result.params);
+    const control = this._text("practiseControl", { name: this.label });
+    let field: TemplateResult;
+    if (spec.type === "switch") {
+      field = html`<ha-switch
+        .checked=${Boolean(value)}
+        aria-label=${control}
+        @change=${this._practiseSwitch}
+      ></ha-switch>`;
+    } else if (spec.type === "number") {
+      field = html`<div class="number">
+        <ha-slider
+          .min=${Math.min(spec.min, spec.max)}
+          .max=${Math.max(spec.min, spec.max)}
+          .step=${spec.step ?? 1}
+          .value=${Number(result.value)}
+          aria-label=${control}
+          @input=${this._practiseText}
+        ></ha-slider>
+        <ha-input
+          class="entry"
+          type="text"
+          inputmode="decimal"
+          .value=${String(value)}
+          .accessibleLabel=${control}
+          @input=${this._practiseText}
+        ></ha-input>
+        ${spec.unit ? html`<span class="unit">${spec.unit}</span>` : nothing}
+      </div>`;
+    } else {
+      field = html`<ha-input
+        class="entry"
+        type="text"
+        .value=${String(value)}
+        .placeholder=${spec.placeholder ?? ""}
+        .accessibleLabel=${control}
+        @input=${this._practiseText}
+      ></ha-input>`;
+    }
+    return html`<div class="section practise">
+      <span class="heading">${this._text("practise")}</span>
+      <p class="note">${this._text("practiseNote")}</p>
+      ${field}
+      <p class="result" data-state=${result.state} role="status">${message}</p>
+      <button type="button" class="help" @click=${this._practiseReset}>
+        ${this._text("practiseReset")}
+      </button>
+    </div>`;
+  }
+
   protected render(): TemplateResult {
     const name = this._text("button", { name: this.label });
     const hasHelp = !!this.helpPath && !!parseHelpAddress(this.helpPath);
@@ -241,6 +427,7 @@ export class HaSettingInfo extends LitElement {
               tabindex="-1"
               style=${styleMap(this._placement)}
               @focusout=${this._focusOut}
+              @keydown=${this._trapFocus}
             >
               <div class="head">
                 <h3 id=${titleId}>${this.label}</h3>
@@ -260,6 +447,7 @@ export class HaSettingInfo extends LitElement {
                 "holding",
                 this.holding || this._text("holdingNothing")
               )}
+              ${this._renderExample()} ${this._renderPractise()}
               ${
                 hasHelp
                   ? html`<button
@@ -362,6 +550,65 @@ export class HaSettingInfo extends LitElement {
       margin: var(--ha-space-1) 0 0;
       overflow-wrap: anywhere;
       white-space: pre-line;
+    }
+    .example {
+      margin: var(--ha-space-1) 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .example li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-1) var(--ha-space-2);
+      padding: var(--ha-space-1) 0;
+      overflow-wrap: anywhere;
+    }
+    .example .in {
+      font-family: var(--ha-font-family-code, monospace);
+    }
+    .example .arrow {
+      color: var(--secondary-text-color);
+    }
+    .practise {
+      padding: var(--ha-space-2);
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+    }
+    .note {
+      color: var(--secondary-text-color);
+    }
+    .number {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2);
+      margin-top: var(--ha-space-2);
+    }
+    .number ha-slider {
+      flex: 1 1 140px;
+      min-width: 0;
+      width: auto;
+    }
+    .entry {
+      display: block;
+      min-width: 0;
+      margin-top: var(--ha-space-2);
+    }
+    .number .entry {
+      flex: 0 1 120px;
+      margin-top: 0;
+    }
+    .unit {
+      color: var(--secondary-text-color);
+    }
+    .result {
+      min-height: 1.4em;
+    }
+    .result[data-state="invalid"] {
+      color: var(--error-color);
+    }
+    .result[data-state="adjusted"] {
+      color: var(--warning-color, var(--primary-text-color));
     }
     .help {
       min-height: 44px;

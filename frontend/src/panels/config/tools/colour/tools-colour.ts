@@ -17,6 +17,12 @@ import {
   parseColor,
   rgbToHsv,
 } from "../../../../common/color/translate-color";
+import type { Gamut } from "../../../../common/color/named-palette";
+import {
+  gamutOfRgb,
+  NAMED_PALETTE,
+  nearestNamedColour,
+} from "../../../../common/color/named-palette";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import "../../../../components/ha-button";
 import "../../../../components/ha-icon-button";
@@ -39,6 +45,8 @@ const ROWS: (keyof ColorFormats)[] = [
   "lab",
   "cmyk",
 ];
+
+const GAMUTS: Gamut[] = ["srgb", "p3", "outside"];
 
 interface EyeDropperLike {
   open(): Promise<{ sRGBHex: string }>;
@@ -73,6 +81,10 @@ class ToolsColour extends LitElement {
     );
   }
 
+  private _p(key: string, values?: Record<string, string | number>): string {
+    return this.hass.localize(`ui.common.color_palette.${key}` as any, values);
+  }
+
   protected render(): TemplateResult {
     const [r, g, b] = hsvToRgb(this._hsv);
     const color = { r, g, b, a: this._alpha };
@@ -82,6 +94,10 @@ class ToolsColour extends LitElement {
     const onBlack = contrast([r, g, b], [0, 0, 0]);
     const hueColor = `hsl(${this._hsv.h} 100% 50%)`;
     const hasEyeDropper = "EyeDropper" in window;
+    const hex = formats.hex.toLowerCase();
+    const nearest = nearestNamedColour([r, g, b]);
+    const nearestName = this._p(`name_${nearest.colour.id}`);
+    const gamut = gamutOfRgb([Math.round(r), Math.round(g), Math.round(b)]);
     return html`
       <div class="content">
         <section class="pane picker">
@@ -122,6 +138,26 @@ class ToolsColour extends LitElement {
               @input=${this._hueChanged}
             ></ha-slider>
             <output>${Math.round(this._hsv.h)}°</output>
+          </div>
+          <div
+            class="rainbow"
+            role="slider"
+            tabindex="0"
+            aria-label=${this._p("rainbow_label")}
+            aria-valuemin="0"
+            aria-valuemax="360"
+            aria-valuenow=${Math.round(this._hsv.h)}
+            aria-valuetext=${this._p("rainbow_value", {
+              hue: Math.round(this._hsv.h),
+            })}
+            @pointerdown=${this._rainbowDown}
+            @pointermove=${this._rainbowMove}
+            @keydown=${this._rainbowKey}
+          >
+            <span
+              class="rainbow-thumb"
+              style=${styleMap({ left: `${(this._hsv.h / 360) * 100}%` })}
+            ></span>
           </div>
           <div class="slider">
             <span id="alpha-label">${this._l("alpha")}</span>
@@ -206,6 +242,24 @@ class ToolsColour extends LitElement {
               `
             )}
           </ul>
+          <p class="nearest">
+            ${
+              nearest.distance < 0.5
+                ? this._p("nearest_exact", { name: nearestName })
+                : this._p("nearest_name", { name: nearestName })
+            }
+          </p>
+          <div class="gamut" role="group" aria-label=${this._p("gamut_label")}>
+            ${GAMUTS.map(
+              (item) =>
+                html`<span
+                  class=${classMap({ chip: true, active: item === gamut })}
+                  aria-current=${item === gamut ? "true" : "false"}
+                  >${this._p(`gamut_${item}`)}</span
+                >`
+            )}
+          </div>
+          <p class="note">${this._p(`gamut_${gamut}_note`)}</p>
           ${[
             ["white", onWhite],
             ["black", onBlack],
@@ -222,6 +276,29 @@ class ToolsColour extends LitElement {
               ? html`<p class="note" role="status">${this._status}</p>`
               : nothing
           }
+        </section>
+
+        <section class="pane wide">
+          <h3>${this._p("palette_label")}</h3>
+          <p class="note">${this._p("palette_hint")}</p>
+          <div
+            class="palette"
+            role="group"
+            aria-label=${this._p("palette_label")}
+          >
+            ${NAMED_PALETTE.map((item) => {
+              const name = this._p(`name_${item.id}`);
+              return html`<button
+                class=${classMap({ named: true, current: item.hex === hex })}
+                aria-label=${name}
+                aria-pressed=${item.hex === hex ? "true" : "false"}
+                title=${name}
+                data-hex=${item.hex}
+                style=${styleMap({ backgroundColor: item.hex })}
+                @click=${this._pickNamed}
+              ></button>`;
+            })}
+          </div>
         </section>
       </div>
     `;
@@ -267,6 +344,57 @@ class ToolsColour extends LitElement {
       s: Math.min(1, Math.max(0, this._hsv.s + move[0])),
       v: Math.min(1, Math.max(0, this._hsv.v + move[1])),
     };
+  }
+
+  private _setHue(hue: number): void {
+    this._hsv = { ...this._hsv, h: Math.min(360, Math.max(0, hue)) };
+    this._typed = "";
+    this._typedBad = false;
+  }
+
+  private _hueFromPointer(ev: PointerEvent): void {
+    const box = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    this._setHue(((ev.clientX - box.left) / box.width) * 360);
+  }
+
+  private _rainbowDown(ev: PointerEvent): void {
+    (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+    this._hueFromPointer(ev);
+  }
+
+  private _rainbowMove(ev: PointerEvent): void {
+    if ((ev.currentTarget as HTMLElement).hasPointerCapture(ev.pointerId)) {
+      this._hueFromPointer(ev);
+    }
+  }
+
+  private _rainbowKey(ev: KeyboardEvent): void {
+    const step = ev.shiftKey ? 10 : 1;
+    const hue = this._hsv.h;
+    const next: Record<string, number> = {
+      ArrowLeft: hue - step,
+      ArrowDown: hue - step,
+      ArrowRight: hue + step,
+      ArrowUp: hue + step,
+      PageDown: hue - 30,
+      PageUp: hue + 30,
+      Home: 0,
+      End: 360,
+    };
+    if (!(ev.key in next)) {
+      return;
+    }
+    ev.preventDefault();
+    this._setHue(next[ev.key]);
+  }
+
+  private _pickNamed(ev: Event): void {
+    const color = parseColor((ev.currentTarget as HTMLElement).dataset.hex!);
+    if (color) {
+      this._hsv = rgbToHsv(color.r, color.g, color.b);
+      this._typed = "";
+      this._typedBad = false;
+    }
   }
 
   private _hueChanged(ev: Event): void {
@@ -396,6 +524,118 @@ class ToolsColour extends LitElement {
         }
         ha-slider.hue::part(indicator) {
           background: transparent;
+        }
+        .rainbow {
+          position: relative;
+          overflow: hidden;
+          min-height: 44px;
+          border-radius: var(--ha-border-radius-pill);
+          background: linear-gradient(
+            to right,
+            #f00,
+            #ff0,
+            #0f0,
+            #0ff,
+            #00f,
+            #f0f,
+            #f00
+          );
+          cursor: ew-resize;
+          touch-action: none;
+        }
+        .rainbow::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            100deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.35) 50%,
+            transparent 70%
+          );
+          background-size: 200% 100%;
+          pointer-events: none;
+          animation: rainbow-sheen 6s linear infinite;
+        }
+        @keyframes rainbow-sheen {
+          from {
+            background-position: 200% 0;
+          }
+          to {
+            background-position: -200% 0;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rainbow::after {
+            animation: none;
+          }
+        }
+        .rainbow:focus-visible,
+        .named:focus-visible {
+          outline: 3px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .rainbow-thumb {
+          position: absolute;
+          top: 50%;
+          z-index: 1;
+          width: 28px;
+          height: 28px;
+          margin: -14px 0 0 -14px;
+          border: 3px solid #fff;
+          border-radius: 50%;
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+          pointer-events: none;
+        }
+        .gamut {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          min-height: 32px;
+          padding: 0 var(--ha-space-3);
+          border: 1px solid var(--outline-color);
+          border-radius: var(--ha-border-radius-pill);
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .chip.active {
+          border-color: transparent;
+          background: var(--ha-color-fill-primary-normal-resting);
+          color: var(--primary-text-color);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .nearest {
+          font-size: var(--ha-font-size-s);
+        }
+        .wide {
+          grid-column: 1 / -1;
+        }
+        h3 {
+          margin: 0;
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .palette {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+          gap: var(--ha-space-2);
+        }
+        .named {
+          min-width: 44px;
+          min-height: 44px;
+          padding: 0;
+          border: 0;
+          border-radius: var(--ha-border-radius-lg);
+          box-shadow: inset 0 0 0 1px var(--outline-color);
+          cursor: pointer;
+        }
+        .named.current {
+          outline: 3px solid var(--primary-text-color);
+          outline-offset: 2px;
         }
         .typed {
           display: flex;

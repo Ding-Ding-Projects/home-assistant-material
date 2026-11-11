@@ -48,6 +48,7 @@ import type {
   LineSpacing,
   ReadingOptions,
 } from "../common/appearance/reading-options";
+import { startTypeScale } from "../common/appearance/type-scale";
 import { storage } from "../common/decorators/storage";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
 import { showShortcutsDialog } from "../dialogs/shortcuts/show-shortcuts-dialog";
@@ -90,6 +91,8 @@ export class HaAccessibilityTools extends LitElement {
 
   private _stopReadingOptions?: () => void;
 
+  private _stopTypeScale?: () => void;
+
   private _unsubReadingOptions?: () => void;
 
   @query("#panel") private _panel?: HTMLElement;
@@ -122,6 +125,9 @@ export class HaAccessibilityTools extends LitElement {
     // Line spacing, letter spacing and typefaces are applied from here, so
     // they hold also while the button is hidden.
     this._stopReadingOptions = startReadingOptions();
+    // A stored type scale holds from the start, not only while the fonts
+    // dialog is open.
+    this._stopTypeScale = startTypeScale();
     this._unsubReadingOptions = subscribeReadingOptions((options) => {
       this._options = options;
     });
@@ -131,6 +137,7 @@ export class HaAccessibilityTools extends LitElement {
   public disconnectedCallback() {
     super.disconnectedCallback();
     this._stopReadingOptions?.();
+    this._stopTypeScale?.();
     this._unsubReadingOptions?.();
     if (this._reading) {
       stopReadingAloud();

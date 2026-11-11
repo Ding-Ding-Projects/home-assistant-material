@@ -50,6 +50,12 @@ import { navigate } from "../common/navigate";
 import { searchMatcher } from "../common/regex/filter";
 import type { BulkCloseMode } from "../common/tabs/bulk-close";
 import { planBulkClose } from "../common/tabs/bulk-close";
+import type { TabGroupId } from "../common/tabs/tab-group-search";
+import {
+  filterGroupItems,
+  planGroupClose,
+  TAB_GROUP_IDS,
+} from "../common/tabs/tab-group-search";
 import {
   FIXED_PANELS,
   getDefaultPanelUrlPath,
@@ -286,6 +292,17 @@ export class HaPageTabs extends LitElement {
 
   /** Tabs closed by the last bulk close, kept so it can be undone. */
   @state() private _bulkClosed: string[] = [];
+
+  /** The search text of each group of the catalog, one field per group. */
+  @state() private _groupFilters: Record<TabGroupId, string> = {
+    pinned: "",
+    pages: "",
+    settings: "",
+    tools: "",
+  };
+
+  /** Tabs closed by the last group close, kept so that group can undo it. */
+  @state() private _groupClosed?: { group: TabGroupId; ids: string[] };
 
   /** Which ends of the strip have tabs scrolled out of view, so they fade instead of cutting a name. */
   @state() private _hiddenEnds = { start: false, end: false };
@@ -572,15 +589,34 @@ export class HaPageTabs extends LitElement {
   }
 
   private _renderSettingsGroup(
+    group: TabGroupId,
     id: string,
     titleKey: string,
-    entries: CatalogSettingsEntry[]
+    allEntries: CatalogSettingsEntry[]
   ): TemplateResult | typeof nothing {
-    if (!entries.length) {
+    if (!allEntries.length) {
       return nothing;
     }
+    const entries = filterGroupItems(
+      allEntries,
+      this._groupFilters[group],
+      (entry) => [entry.title, entry.path]
+    );
     return html`<section class="group" role="group" aria-labelledby=${id}>
-      <h3 id=${id} class="group-title">${this._t(titleKey)}</h3>
+      ${this._renderGroupHeader(group, id, titleKey, {
+        shown: entries.length,
+        total: allEntries.length,
+        samples: allEntries.map((entry) => entry.title),
+      })}
+      ${
+        entries.length
+          ? nothing
+          : html`<p class="empty">
+              ${this._t("ui.page_tabs.group_empty", {
+                name: this._t(titleKey),
+              })}
+            </p>`
+      }
       <ul class="group-list">
         ${entries.map(
           (entry) =>
@@ -626,59 +662,232 @@ export class HaPageTabs extends LitElement {
       return html`<p class="empty">${this._t("ui.page_tabs.no_match")}</p>`;
     }
     return html`
-      ${
-        listed.length
-          ? html`<section
-              class="group"
-              role="group"
-              aria-labelledby="group-pages"
-            >
-              <h3 id="group-pages" class="group-title">
-                ${this._t("ui.page_tabs.group_pages")}
-              </h3>
-              <ul class="group-list">
-                ${listed.map((tab) => {
-                  const isClosed = closed.has(tab.urlPath);
-                  return html`<li>
-                    <button
-                      class=${classMap({ entry: true, closed: isClosed })}
-                      .urlPath=${tab.urlPath}
-                      @click=${this._openFromCatalog}
-                    >
-                      <span class="entry-icon">${this._renderIcon(tab)}</span>
-                      <span class="entry-text">
-                        <span class="entry-title">${tab.title}</span>
-                        <span class="entry-state"
-                          >${this._t(
-                            isClosed
-                              ? "ui.page_tabs.state_closed"
-                              : "ui.page_tabs.state_open"
-                          )}</span
-                        >
-                      </span>
-                      ${
-                        isClosed
-                          ? html`<ha-svg-icon .path=${mdiPlus}></ha-svg-icon>`
-                          : nothing
-                      }
-                    </button>
-                  </li>`;
-                })}
-              </ul>
-            </section>`
-          : nothing
-      }
+      ${this._renderTabGroup(
+        "pinned",
+        "group-pinned",
+        "ui.page_tabs.group_pinned",
+        listed.filter((tab) => this._pinned.includes(tab.urlPath)),
+        closed
+      )}
+      ${this._renderTabGroup(
+        "pages",
+        "group-pages",
+        "ui.page_tabs.group_pages",
+        listed.filter((tab) => !this._pinned.includes(tab.urlPath)),
+        closed
+      )}
       ${this._renderSettingsGroup(
+        "settings",
         "group-settings",
         "ui.page_tabs.group_settings",
         settings
       )}
       ${this._renderSettingsGroup(
+        "tools",
         "group-tools",
         "ui.page_tabs.group_tools",
         tools
       )}
     `;
+  }
+
+  // One group of tabs with its own search, count and Close matching button.
+  private _renderTabGroup(
+    group: "pinned" | "pages",
+    id: string,
+    titleKey: string,
+    allTabs: PageTab[],
+    closed: Set<string>
+  ): TemplateResult | typeof nothing {
+    if (!allTabs.length) {
+      return nothing;
+    }
+    const groupQuery = this._groupFilters[group];
+    const shown = filterGroupItems(allTabs, groupQuery, (tab) => [
+      tab.title,
+      tab.urlPath,
+    ]);
+    const plan = planGroupClose(
+      this._orderedTabs().map((tab) => ({
+        id: tab.urlPath,
+        texts: [tab.title, tab.urlPath],
+        open: !closed.has(tab.urlPath),
+        current: tab.urlPath === this.hass.panelUrl,
+        pinned: this._pinned.includes(tab.urlPath),
+      })),
+      group,
+      groupQuery,
+      { includePinned: true }
+    );
+    return html`<section class="group" role="group" aria-labelledby=${id}>
+      ${this._renderGroupHeader(group, id, titleKey, {
+        shown: shown.length,
+        total: allTabs.length,
+        samples: allTabs.map((tab) => tab.title),
+        close: { ids: plan.ids, blocked: plan.blocked },
+      })}
+      ${
+        shown.length
+          ? nothing
+          : html`<p class="empty">
+              ${this._t("ui.page_tabs.group_empty", {
+                name: this._t(titleKey),
+              })}
+            </p>`
+      }
+      <ul class="group-list">
+        ${shown.map((tab) => {
+          const isClosed = closed.has(tab.urlPath);
+          return html`<li>
+            <button
+              class=${classMap({ entry: true, closed: isClosed })}
+              .urlPath=${tab.urlPath}
+              @click=${this._openFromCatalog}
+            >
+              <span class="entry-icon">${this._renderIcon(tab)}</span>
+              <span class="entry-text">
+                <span class="entry-title">${tab.title}</span>
+                <span class="entry-state"
+                  >${this._t(
+                    isClosed
+                      ? "ui.page_tabs.state_closed"
+                      : "ui.page_tabs.state_open"
+                  )}</span
+                >
+              </span>
+              ${
+                isClosed
+                  ? html`<ha-svg-icon .path=${mdiPlus}></ha-svg-icon>`
+                  : nothing
+              }
+            </button>
+          </li>`;
+        })}
+      </ul>
+    </section>`;
+  }
+
+  // The header of a group: its title and count, its own search field, and for
+  // tab groups the button that closes the matching tabs of that group only.
+  private _renderGroupHeader(
+    group: TabGroupId,
+    id: string,
+    titleKey: string,
+    info: {
+      shown: number;
+      total: number;
+      samples: string[];
+      close?: { ids: string[]; blocked?: string };
+    }
+  ): TemplateResult {
+    const name = this._t(titleKey);
+    const groupQuery = this._groupFilters[group];
+    const undo =
+      this._groupClosed?.group === group ? this._groupClosed : undefined;
+    return html`
+      <div class="group-head">
+        <h3 id=${id} class="group-title">${name}</h3>
+        <span class="group-count" role="status"
+          >${this._t("ui.page_tabs.group_count", {
+            shown: info.shown,
+            total: info.total,
+          })}</span
+        >
+      </div>
+      <ha-input-search
+        class="group-search"
+        data-group=${group}
+        appearance="outlined"
+        .value=${groupQuery}
+        .placeholder=${this._t("ui.page_tabs.group_search", { name })}
+        .accessibleLabel=${this._t("ui.page_tabs.group_search", { name })}
+        .patternSamples=${info.samples}
+        @input=${this._groupFilterChanged}
+      ></ha-input-search>
+      ${
+        info.close
+          ? html`<div class="group-actions">
+              <button
+                class="text-button"
+                .group=${group}
+                ?disabled=${!info.close.ids.length}
+                @click=${this._closeGroupMatching}
+              >
+                <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
+                ${this._t(
+                  group === "pinned"
+                    ? "ui.page_tabs.group_close_pinned"
+                    : "ui.page_tabs.bulk_close_matching",
+                  { count: info.close.ids.length }
+                )}
+              </button>
+              ${
+                undo
+                  ? html`<span class="bulk-note" role="status"
+                        >${this._t("ui.page_tabs.bulk_done", {
+                          count: undo.ids.length,
+                        })}</span
+                      >
+                      <button
+                        class="text-button"
+                        @click=${this._undoGroupClose}
+                      >
+                        <ha-svg-icon .path=${mdiUndo}></ha-svg-icon>
+                        ${this._t("ui.page_tabs.bulk_undo")}
+                      </button>`
+                  : info.close.blocked === "invalid"
+                    ? html`<span class="bulk-note"
+                        >${this._t("ui.page_tabs.bulk_invalid")}</span
+                      >`
+                    : nothing
+              }
+            </div>`
+          : nothing
+      }
+    `;
+  }
+
+  private _groupFilterChanged(ev: Event) {
+    const field = ev.target as HaInputSearch;
+    const group = field.dataset.group as TabGroupId | undefined;
+    if (!group || !TAB_GROUP_IDS.includes(group)) {
+      return;
+    }
+    this._groupFilters = {
+      ...this._groupFilters,
+      [group]: field.value ?? "",
+    };
+  }
+
+  // Closes the matching tabs of one group. Other groups, the order, the pins
+  // and the page in use stay as they are, and Undo reopens exactly these.
+  private _closeGroupMatching(ev: Event) {
+    const group = (ev.currentTarget as HTMLElement & { group: TabGroupId })
+      .group;
+    const { ids } = planGroupClose(
+      this._orderedTabs().map((tab) => ({
+        id: tab.urlPath,
+        texts: [tab.title, tab.urlPath],
+        open: !this._closed.includes(tab.urlPath),
+        current: tab.urlPath === this.hass.panelUrl,
+        pinned: this._pinned.includes(tab.urlPath),
+      })),
+      group,
+      this._groupFilters[group],
+      { includePinned: true }
+    );
+    if (!ids.length) {
+      return;
+    }
+    this._closed = [...this._closed, ...ids];
+    this._groupClosed = { group, ids };
+    this._groupFilters = { ...this._groupFilters, [group]: "" };
+  }
+
+  private _undoGroupClose() {
+    const reopen = new Set(this._groupClosed?.ids ?? []);
+    this._closed = this._closed.filter((urlPath) => !reopen.has(urlPath));
+    this._groupClosed = undefined;
   }
 
   private _openSettingsPage(ev: Event) {
@@ -1015,6 +1224,8 @@ export class HaPageTabs extends LitElement {
     if (ev.newState === "open") {
       this._filter = "";
       this._bulkClosed = [];
+      this._groupFilters = { pinned: "", pages: "", settings: "", tools: "" };
+      this._groupClosed = undefined;
       this.updateComplete.then(() => this._search?.focus());
     }
   }
@@ -1408,6 +1619,33 @@ export class HaPageTabs extends LitElement {
     /* Groups of a scrolling column keep their height instead of being squeezed. */
     .catalog-list > * {
       flex-shrink: 0;
+    }
+    .group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    .group-count {
+      padding-inline: var(--ha-space-2);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .group-search {
+      display: block;
+      margin-block: var(--ha-space-1);
+      --ha-input-search-height: var(--ha-space-11, 44px);
+      --ha-input-search-border-radius: var(--ha-border-radius-pill);
+    }
+    .group-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2);
+      margin-bottom: var(--ha-space-1);
+    }
+    .group-actions .text-button {
+      min-height: 44px;
     }
     .group-title {
       margin: 0;

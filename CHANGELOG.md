@@ -8,6 +8,13 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: a type scale in the fonts dialog. A switch turns it on, a ratio (1.125, 1.2, 1.25, 1.333 or custom) and a base size set five steps (caption, body, title, headline, display) with an optional size for each step, a live preview and a note that it multiplies with Text size. It is off by default and writes nothing then; reset fonts also resets it. It is applied at startup. Sync through the appearance settings and Cantonese strings for the scale are not done. Not yet seen in a running build.
+- New: type fields in the appearance editor. Typeface, weight, italic, line height, letter spacing, capitals, alignment and maximum lines each have a reset button and apply live to the picked element, and a warning shows when the resulting text is under 12 px. Not yet seen in a running build.
+- New: a named palette in both colour tools. 48 named colours, a nearest-name line, sRGB, Display P3 and outside chips (Display P3 is an estimate) and a rainbow hue strip with keyboard control, in the Colour tool and the editor picker. Not yet seen in a running build.
+- New: a worked example and a practise control in the setting information panel. The practise control (switch, number or text) validates live and states that nothing is saved or sent; the panel keeps focus inside while open. No page supplies an example yet. Not yet seen in a running build.
+- New: a separate search for each group of the New tab catalog (Pinned, Pages, Settings and Tools), each with a count and its own pattern workbench. Pinned and Pages have a Close matching button that acts only on that group, with Undo. Not yet seen in a running build.
+- New: the General settings page explains itself. Each of its eight settings has an information button, and the seven that have a default show a Reset, after a confirmation, when they differ from it. Reset only changes the unsaved draft. Not yet seen in a running build.
+- Fix: the Cantonese source now covers the colour palette and General page help blocks.
 - New: named test cases and a simulated run in the history manager. A Test cases card keeps named
   cases for one automation in this browser (fake states, variables and an expected outcome),
   with rename, duplicate and delete. A simulated run decides state, numeric state, trigger,

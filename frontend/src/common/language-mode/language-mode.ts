@@ -28,6 +28,8 @@ export const YUE_PREFIXES = [
   "ui.page_tabs.",
   "ui.dialogs.quick-bar.",
   "ui.components.setting_info.",
+  "ui.common.color_palette.",
+  "ui.panel.config.core.section.core.general_help.",
   "ui.components.split_panels.",
   "ui.components.editor_save_bar.",
   "ui.components.starting_points.",

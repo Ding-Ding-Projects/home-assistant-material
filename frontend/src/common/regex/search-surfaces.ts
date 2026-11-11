@@ -85,7 +85,8 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   },
   {
     file: "components/ha-page-tabs.ts",
-    searches: "Pages in the New tab catalog",
+    searches:
+      "Pages in the New tab catalog, plus one field per catalog group (pinned, pages, settings, tools) that filters only that group",
   },
   {
     file: "components/locks/ha-lock-list.ts",

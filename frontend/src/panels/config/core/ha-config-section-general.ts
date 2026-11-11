@@ -20,15 +20,25 @@ import "../../../components/ha-timezone-picker";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/map/ha-map";
+import "../../../components/setting-info/ha-setting-info";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type { ConfigUpdateValues } from "../../../data/core";
 import { saveCoreConfig } from "../../../data/core";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
+import type { GeneralSettingId } from "./general-setting-help";
+import {
+  GENERAL_SETTING_DEFAULTS,
+  GENERAL_SETTING_HELP,
+  generalHelpKey,
+} from "./general-setting-help";
 
 @customElement("ha-config-section-general")
 class HaConfigSectionGeneral extends LitElement {
+  private _lang = new LanguageModeController(this);
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
@@ -94,37 +104,47 @@ class HaConfigSectionGeneral extends LitElement {
                 .value=${this._name}
                 @change=${this._handleChange}
               ></ha-input>
+              ${this._tools("name", disabled)}
               <div class="pair">
-                <ha-country-picker
-                  .label=${this.hass.localize(
-                    "ui.panel.config.core.section.core.core_config.country"
-                  )}
-                  name="country"
-                  .disabled=${disabled}
-                  .value=${this._country}
-                  @value-changed=${this._handleValueChanged}
-                ></ha-country-picker>
-                <ha-language-picker
-                  native-name
-                  .label=${this.hass.localize(
-                    "ui.panel.config.core.section.core.core_config.language"
-                  )}
-                  name="language"
-                  .value=${this._language}
-                  .disabled=${disabled}
-                  @closed=${stopPropagation}
-                  @value-changed=${this._handleValueChanged}
-                ></ha-language-picker>
-                <ha-timezone-picker
-                  .label=${this.hass.localize(
-                    "ui.panel.config.core.section.core.core_config.time_zone"
-                  )}
-                  name="timeZone"
-                  .disabled=${disabled}
-                  .value=${this._timeZone}
-                  @value-changed=${this._handleValueChanged}
-                  hide-clear-icon
-                ></ha-timezone-picker>
+                <div>
+                  <ha-country-picker
+                    .label=${this.hass.localize(
+                      "ui.panel.config.core.section.core.core_config.country"
+                    )}
+                    name="country"
+                    .disabled=${disabled}
+                    .value=${this._country}
+                    @value-changed=${this._handleValueChanged}
+                  ></ha-country-picker>
+                  ${this._tools("country", disabled)}
+                </div>
+                <div>
+                  <ha-language-picker
+                    native-name
+                    .label=${this.hass.localize(
+                      "ui.panel.config.core.section.core.core_config.language"
+                    )}
+                    name="language"
+                    .value=${this._language}
+                    .disabled=${disabled}
+                    @closed=${stopPropagation}
+                    @value-changed=${this._handleValueChanged}
+                  ></ha-language-picker>
+                  ${this._tools("language", disabled)}
+                </div>
+                <div>
+                  <ha-timezone-picker
+                    .label=${this.hass.localize(
+                      "ui.panel.config.core.section.core.core_config.time_zone"
+                    )}
+                    name="timeZone"
+                    .disabled=${disabled}
+                    .value=${this._timeZone}
+                    @value-changed=${this._handleValueChanged}
+                    hide-clear-icon
+                  ></ha-timezone-picker>
+                  ${this._tools("time_zone", disabled)}
+                </div>
                 <div>
                   <ha-currency-picker
                     .label=${this.hass.localize(
@@ -144,6 +164,7 @@ class HaConfigSectionGeneral extends LitElement {
                       "ui.panel.config.core.section.core.core_config.find_currency_value"
                     )}</a
                   >
+                  ${this._tools("currency", disabled)}
                 </div>
               </div>
               <section class="card">
@@ -153,10 +174,11 @@ class HaConfigSectionGeneral extends LitElement {
                   )}
                 </h3>
                 ${this._renderUnits(disabled)}
+                ${this._tools("unit_system", disabled)}
               </section>
             </div>
             <div class="column">
-              ${this._renderMap(canEdit)}
+              ${this._renderMap(canEdit)} ${this._tools("location", true)}
               <ha-input
                 name="elevation"
                 type="number"
@@ -175,6 +197,7 @@ class HaConfigSectionGeneral extends LitElement {
                   )}</span
                 >
               </ha-input>
+              ${this._tools("elevation", disabled)}
               <p class="hint">
                 ${this.hass.localize(
                   "ui.panel.config.core.section.core.core_config.location_hint"
@@ -300,6 +323,132 @@ class HaConfigSectionGeneral extends LitElement {
       </div>
     `;
   }
+
+  private _g(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(this.hass.localize as any, key, values);
+  }
+
+  private _settingLabel(id: GeneralSettingId): string {
+    const base = "ui.panel.config.core.section.core";
+    return this.hass.localize(
+      (id === "location"
+        ? `${base}.location_card.header`
+        : `${base}.core_config.${id === "name" ? "location_name" : id}`) as any
+    );
+  }
+
+  private _currentValue(id: GeneralSettingId): unknown {
+    switch (id) {
+      case "name":
+        return this._name;
+      case "country":
+        return this._country;
+      case "language":
+        return this._language;
+      case "time_zone":
+        return this._timeZone;
+      case "currency":
+        return this._currency;
+      case "unit_system":
+        return this._unitSystem;
+      case "elevation":
+        return this._elevation;
+      default:
+        return undefined;
+    }
+  }
+
+  private _atDefault(id: GeneralSettingId): boolean {
+    if (id === "location") {
+      return true;
+    }
+    let value = this._currentValue(id) ?? null;
+    if (id === "elevation") {
+      // The input keeps its value as text; compare the number it stands for.
+      return Number(value ?? 0) === GENERAL_SETTING_DEFAULTS.elevation;
+    }
+    if (id === "country" && value === "") {
+      value = null;
+    }
+    return value === GENERAL_SETTING_DEFAULTS[id];
+  }
+
+  private _tools(id: GeneralSettingId, disabled: boolean): TemplateResult {
+    const help = GENERAL_SETTING_HELP[id];
+    const label = this._settingLabel(id);
+    return html`<div class="tools">
+      <ha-setting-info
+        .hass=${this.hass}
+        .label=${label}
+        .description=${this._g(generalHelpKey(id, "description"))}
+        .reach=${this._g(generalHelpKey(id, "reach"))}
+        .holding=${this._g(generalHelpKey(id, "holding"))}
+        .defaultText=${this._g(generalHelpKey(id, "default"))}
+        .helpPath=${help.helpPath}
+      ></ha-setting-info>
+      ${
+        help.resettable && !disabled && !this._atDefault(id)
+          ? html`<ha-button
+              appearance="plain"
+              aria-label=${this._g(
+                "ui.panel.config.core.section.core.general_help.reset_label",
+                { name: label }
+              )}
+              @click=${this._resetSetting}
+              data-setting=${id}
+            >
+              ${this._g("ui.panel.config.core.section.core.general_help.reset")}
+            </ha-button>`
+          : nothing
+      }
+    </div>`;
+  }
+
+  private _resetSetting = async (ev: Event) => {
+    const id = (ev.currentTarget as HTMLElement).dataset
+      .setting as GeneralSettingId;
+    const label = this._settingLabel(id);
+    const base = "ui.panel.config.core.section.core.general_help";
+    if (
+      !(await showConfirmationDialog(this, {
+        title: this._g(`${base}.reset_title`, { name: label }),
+        text: this._g(`${base}.reset_text`, {
+          name: label,
+          value: this._g(generalHelpKey(id, "default")),
+        }),
+        confirmText: this._g(`${base}.reset_confirm`),
+        dismissText: this.hass.localize("ui.common.cancel"),
+      }))
+    ) {
+      return;
+    }
+    const defaults = GENERAL_SETTING_DEFAULTS;
+    switch (id) {
+      case "name":
+        this._name = defaults.name;
+        break;
+      case "country":
+        this._country = defaults.country;
+        break;
+      case "language":
+        this._language = defaults.language;
+        break;
+      case "time_zone":
+        this._timeZone = defaults.time_zone;
+        break;
+      case "currency":
+        this._currency = defaults.currency;
+        break;
+      case "unit_system":
+        this._unitSystem = defaults.unit_system;
+        break;
+      case "elevation":
+        this._elevation = defaults.elevation;
+        break;
+      default:
+        break;
+    }
+  };
 
   private _summary(): string {
     return this.hass.localize(
@@ -538,6 +687,13 @@ class HaConfigSectionGeneral extends LitElement {
         justify-content: flex-end;
         gap: var(--ha-space-2);
         margin-top: var(--ha-space-4);
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--ha-space-1);
       }
       ha-checkbox {
         display: block;

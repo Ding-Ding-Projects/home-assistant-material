@@ -76,8 +76,10 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       the language and picture buttons are not yet seen in a running build
 - [x] Bar of open pages: every page open by default, New tab catalog, close and reopen
 - [x] Bulk close: close the tabs that match a search, or the ones that do not, with Undo
-- [ ] Tab dragging and pinning, the order and pins in page history, and the phone sheet that
-      follows them. Built; not yet seen in a running build. Not built: a search for each group
+- [~] Tab dragging and pinning, the order and pins in page history, and the phone sheet that
+      follows them. Built; not yet seen in a running build. A separate search for each group of
+      the New tab catalog (Pinned, Pages, Settings, Tools) is built, with a Close matching button
+      on Pinned and Pages; not yet seen
 - [ ] Phone bar: Home, Search, Pages, Access and Menu at the bottom, a slim bar of open pages at
       the top. Built; not yet seen in a running build. The bar hides on scroll only on pages that
       scroll the window
@@ -117,9 +119,11 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       yet seen; the Resources preview cannot tell which dashboards use a resource. The other
       tables do not have it
 - [~] Guided forms and per-control information buttons: the information buttons are built and not
-      yet seen. Not built: the worked example and the practise control
-- [ ] Settings that explain themselves. Personal settings does and the information buttons exist
-      (built, not yet seen); other pages do not
+      yet seen. The worked example and the practise control are built into the setting panel and
+      not yet seen; no page supplies an example yet
+- [~] Settings that explain themselves. Personal settings does and the information buttons exist
+      (built, not yet seen); the General page now has an information button and a confirmed
+      Reset on its eight settings (built, not yet seen); other pages do not
 - [~] Resizable panels, collapsible filters and statistics: split panes and a resizable filter
       pane and the collapsible statistics strip are built and not yet seen. No page sets the
       strip's data yet
@@ -221,9 +225,13 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 ## Appearance
 
 - [~] Colour picker and translator: a Colour tab was seen; the appearance editor now has its own
-      picker (built, not yet seen); the board's named palette and rainbow are not built
-- [ ] Fonts and type scale. A fonts dialog is built and not yet seen; the type scale is not built
-- [ ] Appearance editor for type
+      picker (built, not yet seen); a 48-colour named palette, nearest-name line, gamut chips
+      and a rainbow hue strip are built in both pickers and not yet seen
+- [~] Fonts and type scale. A fonts dialog is built and not yet seen; the type scale (ratio,
+      base, per-step overrides, live preview) is built and unit-tested and not yet seen. Not
+      built: sync through appearance-sync and Cantonese strings for the scale
+- [~] Appearance editor for type: typeface, weight, italic, line height, letter spacing,
+      capitals, alignment and maximum lines are built in the editor and not yet seen
 - [ ] Appearance editor for fill and layers: picture layers, masks, blend, per-state layers
 
 ## Automations
