@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T04:47:53Z"
+    "at": "2026-11-11T05:11:47Z"
   },
   "title": "Deploy Assistant: Minecraft servers, AI models and virtual disks",
   "launch": {
@@ -16,8 +16,17 @@
     }
   ],
   "boards": {
-    "DeployModels.dc.html": {
+    "DeployWorldGen.dc.html": {
       "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 2051,
+      "title": "Deploy Assistant, the world generator with a chunk grid",
+      "expand": "fill",
+      "page": "all"
+    },
+    "DeployModels.dc.html": {
+      "x": 1420,
       "y": 0,
       "w": 1320,
       "h": 880,
@@ -26,7 +35,7 @@
       "page": "all"
     },
     "DeployModelStore.dc.html": {
-      "x": 1420,
+      "x": 2840,
       "y": 0,
       "w": 1320,
       "h": 880,
@@ -35,7 +44,7 @@
       "page": "all"
     },
     "DeployModelChat.dc.html": {
-      "x": 2840,
+      "x": 4260,
       "y": 0,
       "w": 1320,
       "h": 880,
@@ -44,8 +53,8 @@
       "page": "all"
     },
     "DeployDisks.dc.html": {
-      "x": 4260,
-      "y": 0,
+      "x": 0,
+      "y": 2271,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, virtual disks on Windows",
@@ -53,8 +62,8 @@
       "page": "all"
     },
     "DeployDiskCreate.dc.html": {
-      "x": 0,
-      "y": 1100,
+      "x": 1420,
+      "y": 2271,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, creating a virtual disk with its scripts shown",
@@ -62,8 +71,8 @@
       "page": "all"
     },
     "DeployDiskCompact.dc.html": {
-      "x": 1420,
-      "y": 1100,
+      "x": 2840,
+      "y": 2271,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, compacting: every mode explained",
@@ -71,8 +80,8 @@
       "page": "all"
     },
     "DeployPalette.dc.html": {
-      "x": 2840,
-      "y": 1100,
+      "x": 4260,
+      "y": 2271,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, Ctrl Shift F with live controls",
@@ -80,16 +89,17 @@
       "page": "all"
     },
     "DeployNarrow.dc.html": {
-      "x": 4260,
-      "y": 1100,
+      "x": 0,
+      "y": 3371,
       "w": 400,
-      "h": 2298,
+      "h": 2386,
       "title": "Deploy Assistant, a narrow window",
       "expand": "fill",
       "page": "all"
     }
   },
   "order": [
+    "DeployWorldGen.dc.html",
     "DeployModels.dc.html",
     "DeployModelStore.dc.html",
     "DeployModelChat.dc.html",
@@ -103,7 +113,7 @@
     "t-all": {
       "x": 0,
       "y": -320,
-      "text": "Deploy Assistant: Minecraft servers, AI models and virtual disks. 8 boards drawn from the app.",
+      "text": "Deploy Assistant: Minecraft servers, AI models and virtual disks. 9 boards drawn from the app.",
       "kind": "title1",
       "maxW": 5580,
       "page": "all"

@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T04:47:53Z"
+    "at": "2026-11-11T05:11:47Z"
   },
   "title": "Deploy Assistant: extensions, tools, the project pages offline, the update self-test, settings and more",
   "launch": {
@@ -20,7 +20,7 @@
       "x": 0,
       "y": 0,
       "w": 1320,
-      "h": 1609,
+      "h": 1852,
       "title": "Deploy Assistant, writing and checking the card",
       "expand": "fill",
       "page": "all"
@@ -29,7 +29,7 @@
       "x": 1420,
       "y": 0,
       "w": 1320,
-      "h": 969,
+      "h": 1057,
       "title": "Deploy Assistant, extensions with their permissions",
       "expand": "fill",
       "page": "all"
@@ -54,43 +54,43 @@
     },
     "DeployTools.dc.html": {
       "x": 0,
-      "y": 1829,
+      "y": 2072,
       "w": 1320,
-      "h": 1789,
+      "h": 1825,
       "title": "Deploy Assistant, tools",
       "expand": "fill",
       "page": "all"
     },
     "DeploySupport.dc.html": {
       "x": 1420,
-      "y": 1829,
+      "y": 2072,
       "w": 1320,
-      "h": 1305,
+      "h": 1341,
       "title": "Deploy Assistant, support and tickets",
       "expand": "fill",
       "page": "all"
     },
     "DeployChanges.dc.html": {
       "x": 2840,
-      "y": 1829,
+      "y": 2072,
       "w": 1320,
-      "h": 1734,
+      "h": 1960,
       "title": "Deploy Assistant, changes with the build it is",
       "expand": "fill",
       "page": "all"
     },
     "DeploySettings.dc.html": {
       "x": 4260,
-      "y": 1829,
+      "y": 2072,
       "w": 1320,
-      "h": 5729,
+      "h": 5765,
       "title": "Deploy Assistant, settings: modes, voice, schedule, name, updates",
       "expand": "fill",
       "page": "all"
     },
     "DeployDesign.dc.html": {
       "x": 0,
-      "y": 7778,
+      "y": 8057,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, its own design boards, offline",
@@ -99,7 +99,7 @@
     },
     "DeployFeatures.dc.html": {
       "x": 1420,
-      "y": 7778,
+      "y": 8057,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the project's features and their state",
@@ -108,7 +108,7 @@
     },
     "DeployStatus.dc.html": {
       "x": 2840,
-      "y": 7778,
+      "y": 8057,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the status page, offline",
@@ -117,7 +117,7 @@
     },
     "DeployQr.dc.html": {
       "x": 4260,
-      "y": 7778,
+      "y": 8057,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, a one-time code added from its QR code",
@@ -126,7 +126,7 @@
     },
     "DeploySelfTest.dc.html": {
       "x": 0,
-      "y": 8878,
+      "y": 9157,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the update self-test",
@@ -135,7 +135,7 @@
     },
     "DeployAdhd.dc.html": {
       "x": 1420,
-      "y": 8878,
+      "y": 9157,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, ADHD modes on: clock, next step, focus",
@@ -144,7 +144,7 @@
     },
     "DeployAdhdSettings.dc.html": {
       "x": 2840,
-      "y": 8878,
+      "y": 9157,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, ADHD modes and the narrator in Settings",

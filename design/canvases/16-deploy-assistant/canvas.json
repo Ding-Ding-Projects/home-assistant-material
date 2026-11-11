@@ -2,7 +2,7 @@
   "v": 3,
   "createdOnFiles": {
     "v": 1,
-    "at": "2026-11-11T04:47:53Z"
+    "at": "2026-11-11T05:11:47Z"
   },
   "title": "Deploy Assistant: the deploy wizard, instances, backups, downloads and Raspberry Pi cards",
   "launch": {
@@ -74,7 +74,7 @@
       "x": 2840,
       "y": 1384,
       "w": 1320,
-      "h": 1867,
+      "h": 1906,
       "title": "Deploy Assistant, deploying with live steps",
       "expand": "fill",
       "page": "all"
@@ -90,25 +90,25 @@
     },
     "DeployInstances.dc.html": {
       "x": 0,
-      "y": 3471,
+      "y": 3510,
       "w": 1320,
-      "h": 1446,
+      "h": 1534,
       "title": "Deploy Assistant, instance manager",
       "expand": "fill",
       "page": "all"
     },
     "DeployInstancesDark.dc.html": {
       "x": 1420,
-      "y": 3471,
+      "y": 3510,
       "w": 1320,
-      "h": 1323,
+      "h": 1411,
       "title": "Deploy Assistant, instance manager, dark",
       "expand": "fill",
       "page": "all"
     },
     "DeployInstanceMenu.dc.html": {
       "x": 2840,
-      "y": 3471,
+      "y": 3510,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, the tools of one instance",
@@ -117,25 +117,25 @@
     },
     "DeployBackups.dc.html": {
       "x": 4260,
-      "y": 3471,
+      "y": 3510,
       "w": 1320,
-      "h": 991,
+      "h": 1027,
       "title": "Deploy Assistant, backups and their schedule",
       "expand": "fill",
       "page": "all"
     },
     "DeployDownloads.dc.html": {
       "x": 0,
-      "y": 5137,
+      "y": 5264,
       "w": 1320,
-      "h": 1167,
+      "h": 1255,
       "title": "Deploy Assistant, automatic downloads",
       "expand": "fill",
       "page": "all"
     },
     "DeployPiChosen.dc.html": {
       "x": 1420,
-      "y": 5137,
+      "y": 5264,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, Raspberry Pi chosen in the wizard",
@@ -144,7 +144,7 @@
     },
     "DeployPiWrite.dc.html": {
       "x": 2840,
-      "y": 5137,
+      "y": 5264,
       "w": 1320,
       "h": 880,
       "title": "Deploy Assistant, writing a Raspberry Pi card",
