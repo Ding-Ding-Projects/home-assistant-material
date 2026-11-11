@@ -11,6 +11,8 @@ export interface JpegInfo {
   components: number;
   /** EXIF orientation, 1 when the file has none. */
   orientation: number;
+  /** Whether the file carries an Exif segment (location, camera, thumbnail). */
+  exif: boolean;
 }
 
 const exifOrientation = (
@@ -59,6 +61,7 @@ export const readJpeg = (bytes: Uint8Array): JpegInfo | undefined => {
   }
   let at = 2;
   let orientation = 1;
+  let sawExif = false;
   while (at + 4 <= bytes.length) {
     if (bytes[at] !== 0xff) {
       at++;
@@ -84,7 +87,19 @@ export const readJpeg = (bytes: Uint8Array): JpegInfo | undefined => {
     if (length < 2) {
       return undefined;
     }
-    if (marker === 0xe1) {
+    // Only the first Exif segment counts; an XMP or other APP1 segment after
+    // it must not reset the orientation.
+    if (
+      marker === 0xe1 &&
+      !sawExif &&
+      bytes[at + 4] === 0x45 &&
+      bytes[at + 5] === 0x78 &&
+      bytes[at + 6] === 0x69 &&
+      bytes[at + 7] === 0x66 &&
+      bytes[at + 8] === 0 &&
+      bytes[at + 9] === 0
+    ) {
+      sawExif = true;
       orientation = exifOrientation(
         bytes,
         at + 4,
@@ -96,11 +111,19 @@ export const readJpeg = (bytes: Uint8Array): JpegInfo | undefined => {
       if (at + 10 > bytes.length) {
         return undefined;
       }
+      const precision = bytes[at + 4];
+      const height = (bytes[at + 5] << 8) | bytes[at + 6];
+      const width = (bytes[at + 7] << 8) | bytes[at + 8];
+      // Eight bits per sample is what every reader and the PDF filter handle.
+      if (precision !== 8 || height === 0 || width === 0) {
+        return undefined;
+      }
       return {
-        height: (bytes[at + 5] << 8) | bytes[at + 6],
-        width: (bytes[at + 7] << 8) | bytes[at + 8],
+        height,
+        width,
         components: bytes[at + 9],
         orientation,
+        exif: sawExif,
       };
     }
     at += 2 + length;

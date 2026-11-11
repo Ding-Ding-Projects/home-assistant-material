@@ -97,6 +97,9 @@ export type ExtraResult =
     }
   | { ok: false; error: ConvertError };
 
+/** Most bytes the pictures of one PDF may add up to. */
+const MAX_PDF_BYTES = 150 * 1024 * 1024;
+
 /** Longest text that is typeset: the pages are capped long before this. */
 const MAX_DOCUMENT_CHARACTERS = 4_000_000;
 
@@ -172,10 +175,15 @@ const runArchive = async (
 
 const imagePdf = async (
   files: readonly NamedFile[],
-  paper: Paper
+  paper: Paper,
+  signal?: AbortSignal
 ): Promise<ExtraResult> => {
   const images: PdfImage[] = [];
+  let total = 0;
   for (const file of files) {
+    if (signal?.aborted) {
+      return failure("aborted");
+    }
     const prepared = await prepareImageForPdf(file.bytes, file.sniffed);
     if (!prepared.ok) {
       return {
@@ -189,6 +197,12 @@ const imagePdf = async (
     images.push(prepared.image);
     if (images.length > MAX_PAGES) {
       return failure("pdf_too_many_pages");
+    }
+    // Only compressed pictures are kept, and what they add up to is capped, so
+    // a long run of photos cannot fill the memory of a phone.
+    total += prepared.image.data.length;
+    if (total > MAX_PDF_BYTES) {
+      return failure("pdf_too_large");
     }
   }
   return {
@@ -212,7 +226,7 @@ const textOf = (
   }
   if (decoded.text.length > MAX_DOCUMENT_CHARACTERS) {
     return failure("document_text_too_large", {
-      detail: "4 million characters",
+      position: MAX_DOCUMENT_CHARACTERS,
     });
   }
   return { ok: true, text: decoded.text };
@@ -230,10 +244,11 @@ const blocksOf = (
 
 const runPdf = async (
   input: ExtraInput,
-  options: ExtraOptions
+  options: ExtraOptions,
+  signal?: AbortSignal
 ): Promise<ExtraResult> => {
   if (input.kind === "image-set" && input.files) {
-    return imagePdf(input.files, options.paper);
+    return imagePdf(input.files, options.paper, signal);
   }
   if (input.kind === "image") {
     return imagePdf(
@@ -244,7 +259,8 @@ const runPdf = async (
           sniffed: input.sniffed,
         },
       ],
-      options.paper
+      options.paper,
+      signal
     );
   }
   const text = textOf(input);
@@ -288,10 +304,11 @@ const runPdf = async (
 const runAudio = async (
   target: TargetId,
   input: ExtraInput,
-  options: ExtraOptions
+  options: ExtraOptions,
+  signal?: AbortSignal
 ): Promise<ExtraResult> => {
   const bytes = input.bytes ?? new Uint8Array(0);
-  const decoded = await decodeAudio(bytes, options.audioRate);
+  const decoded = await decodeAudio(bytes, options.audioRate, signal);
   if (!decoded.ok) {
     return decoded;
   }
@@ -317,7 +334,12 @@ const runAudio = async (
   if (!mime) {
     return failure("audio_encoder_missing");
   }
-  const recorded = await recordAudio(channels, decoded.audio.sampleRate, mime);
+  const recorded = await recordAudio(
+    channels,
+    decoded.audio.sampleRate,
+    mime,
+    signal
+  );
   if (!recorded.ok) {
     return recorded;
   }
@@ -370,15 +392,19 @@ const runVideo = async (
 export const runExtra = async (
   target: TargetId,
   input: ExtraInput,
-  options: ExtraOptions
+  options: ExtraOptions,
+  signal?: AbortSignal
 ): Promise<ExtraResult> => {
+  if (signal?.aborted) {
+    return failure("aborted");
+  }
   try {
     if (isArchiveTarget(target)) {
       return await runArchive(target, input);
     }
     switch (target) {
       case "pdf":
-        return await runPdf(input, options);
+        return await runPdf(input, options, signal);
       case "docx": {
         const text = textOf(input);
         if (!text.ok) {
@@ -414,7 +440,7 @@ export const runExtra = async (
       case "wav":
       case "audio-webm":
       case "audio-mp4":
-        return await runAudio(target, input, options);
+        return await runAudio(target, input, options, signal);
       case "video-png":
       case "video-jpeg":
       case "video-info":

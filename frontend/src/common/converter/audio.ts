@@ -9,7 +9,7 @@ import { failure } from "./types";
  */
 
 /** Largest compressed file that is decoded: it can be many times larger once decoded. */
-export const MAX_COMPRESSED_AUDIO_BYTES = 8 * 1024 * 1024;
+export const MAX_COMPRESSED_AUDIO_BYTES = 4 * 1024 * 1024;
 
 /** Longest sound that is decoded, in seconds. */
 export const MAX_AUDIO_SECONDS = 15 * 60;
@@ -165,13 +165,96 @@ export interface DecodedAudio {
   seconds: number;
 }
 
+/** Longest the browser may take to decode a sound before the wait is given up. */
+const DECODE_TIMEOUT_MS = 60_000;
+
+class StopWaiting extends Error {
+  constructor(readonly reason: "timeout" | "aborted") {
+    super(reason);
+  }
+}
+
+/**
+ * Waits for a promise, but no longer than `ms`, and stops at once when the
+ * signal is aborted. On a phone a decoder or a recorder can stay pending for
+ * ever (the tap that allowed sound has expired, or the tab went to the
+ * background), and nothing else would ever end the wait.
+ */
+const waitAtMost = <T>(
+  promise: Promise<T>,
+  ms: number,
+  signal?: AbortSignal
+): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new StopWaiting("aborted"));
+      return;
+    }
+    const finish = (settle: () => void) => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      settle();
+    };
+    const onAbort = () => finish(() => reject(new StopWaiting("aborted")));
+    const timer = setTimeout(
+      () => finish(() => reject(new StopWaiting("timeout"))),
+      ms
+    );
+    signal?.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => finish(() => resolve(value)),
+      (error) => finish(() => reject(error))
+    );
+  });
+
+const stopped = (error: unknown, fallback: string) =>
+  error instanceof StopWaiting
+    ? failure(error.reason === "timeout" ? "audio_timeout" : "aborted")
+    : failure(fallback);
+
+/**
+ * The length an MP4 or M4A file declares in its movie header, or undefined
+ * when it has none. It lets a long sound be refused before it is decoded
+ * into many times its size.
+ */
+export const readIsoSeconds = (bytes: Uint8Array): number | undefined => {
+  if (
+    bytes.length < 16 ||
+    String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]) !== "ftyp"
+  ) {
+    return undefined;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let at = 4; at + 28 <= bytes.length; at++) {
+    if (
+      bytes[at] === 0x6d &&
+      bytes[at + 1] === 0x76 &&
+      bytes[at + 2] === 0x68 &&
+      bytes[at + 3] === 0x64
+    ) {
+      // Version 0 has 32-bit times, version 1 has 64-bit times.
+      if (bytes[at + 4] === 1 && at + 36 <= bytes.length) {
+        const scale = view.getUint32(at + 24, false);
+        const duration =
+          view.getUint32(at + 28, false) * 2 ** 32 +
+          view.getUint32(at + 32, false);
+        return scale ? duration / scale : undefined;
+      }
+      const scale = view.getUint32(at + 16, false);
+      return scale ? view.getUint32(at + 20, false) / scale : undefined;
+    }
+  }
+  return undefined;
+};
+
 /**
  * Decodes the sound to the sample rate asked for. The browser does the
  * resampling as it decodes, so there is only one conversion step.
  */
 export const decodeAudio = async (
   bytes: Uint8Array,
-  sampleRate: number
+  sampleRate: number,
+  signal?: AbortSignal
 ): Promise<
   { ok: true; audio: DecodedAudio } | { ok: false; error: ConvertError }
 > => {
@@ -180,6 +263,12 @@ export const decodeAudio = async (
   }
   const header = readWavHeader(bytes);
   if (header && header.seconds > MAX_AUDIO_SECONDS) {
+    return failure("audio_too_long");
+  }
+  // Where the container says how long the sound is, that decides before the
+  // decoder is asked to make it many times larger.
+  const declared = header ? undefined : readIsoSeconds(bytes);
+  if (declared !== undefined && declared > MAX_AUDIO_SECONDS) {
     return failure("audio_too_long");
   }
   if (!header && bytes.length > MAX_COMPRESSED_AUDIO_BYTES) {
@@ -191,9 +280,13 @@ export const decodeAudio = async (
   try {
     const context = new OfflineAudioContext(2, 1, sampleRate);
     // A copy: decoding takes ownership of the buffer it is given.
-    buffer = await context.decodeAudioData(bytes.slice().buffer);
-  } catch (_err) {
-    return failure("audio_decode_failed");
+    buffer = await waitAtMost(
+      context.decodeAudioData(bytes.slice().buffer),
+      DECODE_TIMEOUT_MS,
+      signal
+    );
+  } catch (err) {
+    return stopped(err, "audio_decode_failed");
   }
   if (buffer.duration > MAX_AUDIO_SECONDS) {
     return failure("audio_too_long");
@@ -220,55 +313,77 @@ export const decodeAudio = async (
 export const recordAudio = async (
   channels: readonly Float32Array[],
   sampleRate: number,
-  mimeType: string
+  mimeType: string,
+  signal?: AbortSignal
 ): Promise<
   | { ok: true; bytes: Uint8Array; mime: string }
   | { ok: false; error: ConvertError }
 > => {
   const frames = channels[0]?.length ?? 0;
-  if (frames / sampleRate > MAX_RECORD_SECONDS) {
+  const seconds = frames / sampleRate;
+  if (seconds > MAX_RECORD_SECONDS) {
     return failure("audio_too_long_to_encode");
   }
+  // Neither the start nor the end is waited for beyond the sound's length plus
+  // a margin, and an abort stops it.
+  const limit = seconds * 1500 + 10_000;
   let context: AudioContext | undefined;
+  let source: AudioBufferSourceNode | undefined;
+  let recorder: MediaRecorder | undefined;
   try {
     context = new AudioContext({ sampleRate });
-    await context.resume();
+    await waitAtMost(context.resume(), limit, signal);
     const buffer = context.createBuffer(channels.length, frames, sampleRate);
     channels.forEach((channel, index) => {
       buffer.copyToChannel(channel as Float32Array<ArrayBuffer>, index);
     });
-    const source = context.createBufferSource();
+    source = context.createBufferSource();
     source.buffer = buffer;
     const destination = context.createMediaStreamDestination();
     source.connect(destination);
-    const recorder = new MediaRecorder(destination.stream, { mimeType });
+    const active = new MediaRecorder(destination.stream, { mimeType });
+    recorder = active;
     const chunks: BlobPart[] = [];
-    recorder.addEventListener("dataavailable", (event) => {
+    active.addEventListener("dataavailable", (event) => {
       if (event.data.size) {
         chunks.push(event.data);
       }
     });
     const finished = new Promise<void>((resolve, reject) => {
-      recorder.addEventListener("stop", () => resolve());
-      recorder.addEventListener("error", () => reject(new Error("recorder")));
+      active.addEventListener("stop", () => resolve());
+      active.addEventListener("error", () => reject(new Error("recorder")));
     });
     source.addEventListener("ended", () => {
-      if (recorder.state !== "inactive") {
-        recorder.stop();
+      if (active.state !== "inactive") {
+        active.stop();
       }
     });
-    recorder.start();
+    active.start();
     source.start();
-    await finished;
-    const blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
+    await waitAtMost(finished, limit, signal);
+    const blob = new Blob(chunks, { type: active.mimeType || mimeType });
     return {
       ok: true,
       bytes: new Uint8Array(await blob.arrayBuffer()),
       mime: blob.type || mimeType,
     };
-  } catch (_err) {
-    return failure("audio_encode_failed");
+  } catch (err) {
+    return stopped(err, "audio_encode_failed");
   } finally {
+    // Stop whatever is still running, so an abort or a timeout leaves nothing
+    // playing or recording in the background.
+    try {
+      source?.stop();
+    } catch (_err) {
+      // Never started, or already ended.
+    }
+    try {
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop();
+      }
+    } catch (_err) {
+      // Already stopped.
+    }
     await context?.close().catch(() => undefined);
   }
 };

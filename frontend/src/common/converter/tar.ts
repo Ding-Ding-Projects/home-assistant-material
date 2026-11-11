@@ -108,28 +108,50 @@ export const readTar = (bytes: Uint8Array): ArchiveReadResult => {
     }
     const type = String.fromCharCode(bytes[at + 156] || 0x30);
     const dataStart = at + BLOCK;
-    const declared = pax.size !== undefined ? Number(pax.size) : size;
-    if (declared > MAX_UNPACKED || !Number.isFinite(declared)) {
+    // A pax size only describes the file header it is attached to, never the
+    // header of the pax record or of a long-name record itself.
+    const isMeta = type === "x" || type === "g" || type === "L" || type === "K";
+    const declared =
+      !isMeta && pax.size !== undefined
+        ? /^\d{1,15}$/.test(pax.size)
+          ? Number(pax.size)
+          : Number.NaN
+        : size;
+    if (!Number.isSafeInteger(declared) || declared < 0) {
+      return failure("archive_corrupt");
+    }
+    if (declared > MAX_UNPACKED) {
       return failure("archive_too_big");
     }
     if (dataStart + declared > bytes.length) {
       return failure("archive_corrupt");
     }
     const data = bytes.subarray(dataStart, dataStart + declared);
-    at = dataStart + Math.ceil(declared / BLOCK) * BLOCK;
+    const next = dataStart + Math.ceil(declared / BLOCK) * BLOCK;
+    // Every header takes at least its own block, so the position always grows.
+    if (next <= at) {
+      return failure("archive_corrupt");
+    }
+    at = next;
 
     if (type === "x") {
       pax = { ...pax, ...parsePax(data) };
+      if (pax.size !== undefined && !/^\d{1,15}$/.test(pax.size)) {
+        return failure("archive_corrupt");
+      }
       continue;
     }
     if (type === "g") {
+      pax = {};
       continue;
     }
     if (type === "L") {
       longName = utf8Name(cstring(data, 0, data.length), true);
+      pax = {};
       continue;
     }
     if (type === "K") {
+      pax = {};
       continue;
     }
     let name = utf8Name(cstring(bytes, headerAt, 100), true);

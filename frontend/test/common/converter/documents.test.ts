@@ -301,6 +301,7 @@ describe("JPEG header", () => {
       height: 20,
       components: 3,
       orientation: 6,
+      exif: true,
     });
     expect(readJpeg(new Uint8Array([1, 2, 3]))).toBeUndefined();
   });

@@ -165,9 +165,20 @@ export class HaEditorSaveBar extends LitElement {
           box-sizing: border-box;
           /* The layout's inset already includes the phone bar, which a bar
              above the keyboard or above a sheet must not add again. */
+          /* The inset counts the phone bar; the bar's height is taken off
+             while the bar is hidden (it publishes its visible height). */
           padding-bottom: var(
             --ha-editor-save-bar-padding-bottom,
-            var(--safe-area-inset-bottom, 0px)
+            calc(
+              var(--safe-area-inset-bottom, 0px) - var(
+                  --ha-phone-bar-height,
+                  0px
+                ) +
+                var(
+                  --ha-phone-bar-visible-height,
+                  var(--ha-phone-bar-height, 0px)
+                )
+            )
           );
           background: var(
             --ha-color-surface-container,

@@ -12,7 +12,7 @@ import {
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { consume } from "../../../common/decorators/consume";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -24,7 +24,11 @@ import "../../../components/ha-card";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
 import "../../../components/history/ha-version-picker";
-import type { VersionPickerItem } from "../../../components/history/ha-version-picker";
+import type {
+  HaVersionPicker,
+  VersionPickerItem,
+} from "../../../components/history/ha-version-picker";
+import { RequestToken } from "../../../components/history/version-picker-logic";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
@@ -150,6 +154,10 @@ export class HaConfigAutomationRepo extends LitElement {
 
   private _detailRequest = 0;
 
+  private _compareRequest = new RequestToken();
+
+  @query("ha-version-picker") private _picker?: HaVersionPicker;
+
   private _l(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(
       `ui.panel.config.automation_history.${key}` as any,
@@ -189,6 +197,7 @@ export class HaConfigAutomationRepo extends LitElement {
   }
 
   private _reset() {
+    this._compareRequest.cancel();
     this._info = undefined;
     this._commits = [];
     this._detail = undefined;
@@ -252,6 +261,7 @@ export class HaConfigAutomationRepo extends LitElement {
     }
     const request = ++this._detailRequest;
     this._detail = undefined;
+    this._compareRequest.cancel();
     this._compareDiff = undefined;
     this._compareWith = "";
     try {
@@ -765,7 +775,25 @@ export class HaConfigAutomationRepo extends LitElement {
     `;
   }
 
-  private _renderCompare(key?: string) {
+  private _pickerCache?: {
+    commits: AutomationCommit[];
+    alias: string;
+    language: string;
+    items: VersionPickerItem[];
+  };
+
+  /** The same array until what it is built from changes. */
+  private _pickerItems(): VersionPickerItem[] {
+    const alias = this._info?.alias ?? "";
+    const language = this.hass.language;
+    const cache = this._pickerCache;
+    if (
+      cache?.commits === this._commits &&
+      cache.alias === alias &&
+      cache.language === language
+    ) {
+      return cache.items;
+    }
     const items: VersionPickerItem[] = [
       { id: WORKING, title: this._l("vh_compare_now") },
       ...this._commits.map((commit) => ({
@@ -775,6 +803,12 @@ export class HaConfigAutomationRepo extends LitElement {
         timestamp: commit.timestamp,
       })),
     ];
+    this._pickerCache = { commits: this._commits, alias, language, items };
+    return items;
+  }
+
+  private _renderCompare(key?: string) {
+    const items = this._pickerItems();
     return html`
       <div class="action compare">
         <span class="tile small">
@@ -971,12 +1005,16 @@ export class HaConfigAutomationRepo extends LitElement {
   }
 
   private _clearCompare() {
+    this._compareRequest.cancel();
     this._compareWith = "";
     this._compareDiff = undefined;
+    // The button that cleared the choice is gone: focus goes to the picker.
+    this.updateComplete.then(() => this._picker?.focusTrigger());
   }
 
   private async _compareChanged(ev: CustomEvent<{ value: string }>) {
     const other = ev.detail.value;
+    const token = this._compareRequest.begin();
     this._compareWith = other;
     const key = this._selectedKey;
     if (!other || !key || key === WORKING) {
@@ -997,8 +1035,13 @@ export class HaConfigAutomationRepo extends LitElement {
         older,
         newer === WORKING ? undefined : newer
       );
-      this._compareDiff = diff;
+      if (this._compareRequest.isCurrent(token)) {
+        this._compareDiff = diff;
+      }
     } catch (err: any) {
+      if (!this._compareRequest.isCurrent(token)) {
+        return;
+      }
       this._compareDiff = undefined;
       showAlertDialog(this, {
         title: this._l("action_failed"),

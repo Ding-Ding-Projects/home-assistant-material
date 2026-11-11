@@ -27,8 +27,13 @@ export type Block =
   | { type: "line"; text: string }
   | { type: "rule" };
 
+/**
+ * Every part of the pattern is bounded, so a hostile run of opening marks
+ * (a hundred thousand brackets, say) costs a fixed amount per mark instead of
+ * a scan to the end of the text for each one.
+ */
 const INLINE =
-  /(`+)([\s\S]*?[^`])\1(?!`)|(\*\*|__)(?=\S)([\s\S]*?\S)\3|(\*|_)(?=\S)([\s\S]*?\S)\5|!?\[([^\]]*)\]\(([^)\s]*)[^)]*\)/g;
+  /(`{1,20})([\s\S]{0,800}?[^`])\1(?!`)|(\*\*|__)(?=\S)([\s\S]{0,800}?\S)\3|(\*|_)(?=\S)([\s\S]{0,800}?\S)\5|!?\[([^\]\n]{0,300})\]\(([^)\s]{0,2000})(?:\s[^)\n]{0,2000})?\)/g;
 
 /** Bold, italic, code and links inside one run of text. */
 export const parseInline = (source: string): Inline[] => {
@@ -75,7 +80,27 @@ export const inlinePlain = (inlines: readonly Inline[]): string =>
   inlines.map((inline) => inline.text).join("");
 
 const FENCE = /^\s{0,3}(```|~~~)/;
-const HEADING = /^\s{0,3}(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;
+const HEADING = /^\s{0,3}(#{1,6})\s+(.*)$/;
+
+/** The heading text without trailing spaces or closing marks, in linear time. */
+const headingText = (raw: string): string => {
+  let end = raw.length;
+  while (end > 0 && /\s/.test(raw[end - 1])) {
+    end--;
+  }
+  let marks = end;
+  while (marks > 0 && raw[marks - 1] === "#") {
+    marks--;
+  }
+  // Closing marks only count when a space comes before them.
+  if (marks < end && marks > 0 && /\s/.test(raw[marks - 1])) {
+    end = marks;
+    while (end > 0 && /\s/.test(raw[end - 1])) {
+      end--;
+    }
+  }
+  return raw.slice(0, end);
+};
 const RULE = /^\s{0,3}([-*_])(\s*\1){2,}\s*$/;
 const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/;
 const QUOTE = /^\s{0,3}>\s?(.*)$/;
@@ -115,7 +140,7 @@ export const parseMarkdown = (text: string): Block[] => {
       blocks.push({
         type: "heading",
         level: heading[1].length,
-        inlines: parseInline(heading[2]),
+        inlines: parseInline(headingText(heading[2])),
       });
       continue;
     }

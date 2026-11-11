@@ -1,5 +1,5 @@
 import { canvasBlob } from "./image-convert";
-import { MAX_SIDE } from "./image-size";
+import { MAX_PIXELS, MAX_SIDE } from "./image-size";
 import type { ConvertError } from "./types";
 import { failure } from "./types";
 
@@ -61,9 +61,17 @@ const load = async (
   video.muted = true;
   video.preload = "auto";
   video.playsInline = true;
-  const ready = waitFor(video, "loadeddata");
+  // Some phones never fire loadeddata for a video that is not on the page,
+  // but every browser reports loadedmetadata; the picture itself is waited
+  // for by seeking.
+  const ready = waitFor(video, "loadedmetadata");
   video.src = url;
-  if (!(await ready) || !video.videoWidth || !Number.isFinite(video.duration)) {
+  if (
+    !(await ready) ||
+    !video.videoWidth ||
+    !Number.isFinite(video.duration) ||
+    video.duration <= 0
+  ) {
     dispose();
     return failure("video_unsupported_here", { detail: mime });
   }
@@ -109,7 +117,7 @@ export const extractVideoFrame = async (
   try {
     const width = video.videoWidth;
     const height = video.videoHeight;
-    if (width > MAX_SIDE || height > MAX_SIDE) {
+    if (width > MAX_SIDE || height > MAX_SIDE || width * height > MAX_PIXELS) {
       return failure("image_too_large", { detail: `${width} x ${height}` });
     }
     const at = Math.max(
@@ -119,12 +127,13 @@ export const extractVideoFrame = async (
         video.duration - 0.05
       )
     );
-    if (at > 0) {
-      const seeked = waitFor(video, "seeked");
-      video.currentTime = at;
-      if (!(await seeked)) {
-        return failure("video_seek_failed");
-      }
+    // Always seek, even to the start: that is what makes the browser decode
+    // a picture to draw, which loadedmetadata alone does not.
+    const target = Math.max(at, Math.min(0.001, video.duration / 2));
+    const seeked = waitFor(video, "seeked");
+    video.currentTime = target;
+    if (!(await seeked)) {
+      return failure("video_seek_failed");
     }
     const canvas = Object.assign(document.createElement("canvas"), {
       width,

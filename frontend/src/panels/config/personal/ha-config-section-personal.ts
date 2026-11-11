@@ -294,7 +294,7 @@ export class HaConfigSectionPersonal extends LitElement {
     if (!row) {
       return;
     }
-    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    row.scrollIntoView({ behavior: this._scrollBehavior(), block: "center" });
     (row.querySelector(".row-label") as HTMLElement | null)?.focus({
       preventScroll: true,
     });
@@ -1378,10 +1378,10 @@ export class HaConfigSectionPersonal extends LitElement {
       <ha-card class="preview-card" .header=${this._t("preview.title")}>
         <div class="card-content">
           <span class="preview-only">${this._t("preview_only")}</span>
-          <p class="group-note preview-status" role="status" aria-live="polite">
+          <p class="group-note preview-status" role="status">
             ${renderBilingual(status, mode, " · ")}
           </p>
-          <div class="sample-dialog" aria-live="polite">
+          <div class="sample-dialog">
             ${
               eff.dialogEmojis
                 ? html`<span class="sample-emoji" aria-hidden="true">😴</span>`
@@ -1724,8 +1724,16 @@ export class HaConfigSectionPersonal extends LitElement {
     const group = (ev.currentTarget as HTMLElement).dataset.group;
     this.shadowRoot
       ?.getElementById(`group-${group}`)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      ?.scrollIntoView({ behavior: this._scrollBehavior(), block: "start" });
   };
+
+  /** Smooth scrolling, unless the person or the device asks for less motion. */
+  private _scrollBehavior(): ScrollBehavior {
+    return this._reduceMotion ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+  }
 
   private _handleMenu = (ev: CustomEvent<{ item: { value: string } }>) => {
     if (ev.detail.item.value === "reset_all") {
@@ -1860,6 +1868,9 @@ export class HaConfigSectionPersonal extends LitElement {
       gap: var(--ha-space-1);
       position: sticky;
       top: var(--ha-space-4);
+      /* On a short window the lower part stays reachable by scrolling. */
+      max-height: calc(100dvh - 2 * var(--ha-space-4));
+      overflow-y: auto;
     }
     .groups-list {
       grid-area: list;
@@ -1872,6 +1883,8 @@ export class HaConfigSectionPersonal extends LitElement {
       grid-area: side;
       position: sticky;
       top: var(--ha-space-4);
+      max-height: calc(100dvh - 2 * var(--ha-space-4));
+      overflow-y: auto;
     }
     .group-link {
       border: 0;
@@ -1901,6 +1914,7 @@ export class HaConfigSectionPersonal extends LitElement {
       position: sticky;
       top: 0;
       z-index: 1;
+      max-height: none;
       padding: var(--ha-space-2) 0;
       background: var(--primary-background-color);
       flex-direction: row;
@@ -1916,6 +1930,8 @@ export class HaConfigSectionPersonal extends LitElement {
     }
     .narrow .preview-card {
       position: static;
+      max-height: none;
+      overflow: visible;
     }
     .row {
       display: flex;
@@ -2264,7 +2280,14 @@ export class HaConfigSectionPersonal extends LitElement {
       }
       .content:not(.narrow) .preview-card {
         position: static;
+        max-height: none;
+        overflow: visible;
       }
+    }
+    /* A group that is scrolled to stops under the pinned chip bar, not behind
+       it: the bar is 44 px of chips with 8 px above and below. */
+    .narrow .groups-list > ha-card {
+      scroll-margin-top: calc(60px + var(--ha-space-2));
     }
   `;
 }

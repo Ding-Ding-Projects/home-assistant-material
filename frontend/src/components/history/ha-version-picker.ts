@@ -18,6 +18,13 @@ import "../ha-relative-time";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
+import {
+  limitAfterItems,
+  parseBarHeight,
+  placeSheet,
+  shouldRestoreFocus,
+  versionListSignature,
+} from "./version-picker-logic";
 
 /** One choice of the picker: a saved version of something. */
 export interface VersionPickerItem {
@@ -44,6 +51,11 @@ export const VERSION_PICKER_PAGE = 200;
 const PANEL_WIDTH = 420;
 const PANEL_MARGIN = 8;
 const PANEL_MIN_HEIGHT = 260;
+
+/** True on a touch screen, where focusing a field raises the keyboard. */
+const isCoarsePointer = (): boolean =>
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: coarse)").matches;
 
 /**
  * Picks one version out of a list that can be long.
@@ -100,10 +112,38 @@ export class HaVersionPicker extends LitElement {
     );
   }
 
+  private _signature?: string;
+
+  private _samples: string[] = [];
+
+  private _samplesFor?: VersionPickerItem[];
+
   protected willUpdate(changed: PropertyValues<this>) {
     if (changed.has("items")) {
-      this._limit = VERSION_PICKER_PAGE;
+      // A new array with the same versions must not collapse "Show more".
+      const signature = versionListSignature(this.items);
+      this._limit = limitAfterItems(
+        this._signature,
+        signature,
+        this._limit,
+        VERSION_PICKER_PAGE
+      );
+      this._signature = signature;
     }
+  }
+
+  /** The titles for the pattern workbench, rebuilt only for a new list. */
+  private _patternSamples(): string[] {
+    if (this._samplesFor !== this.items) {
+      this._samplesFor = this.items;
+      this._samples = this.items.map((item) => item.title);
+    }
+    return this._samples;
+  }
+
+  /** Moves focus to the button, for a page that removes the control beside it. */
+  public focusTrigger() {
+    this._trigger?.focus();
   }
 
   protected render() {
@@ -116,7 +156,7 @@ export class HaVersionPicker extends LitElement {
         id="trigger"
         type="button"
         class=${classMap({ trigger: true, empty: !selected })}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded=${this._open ? "true" : "false"}
         aria-label=${this.label ? `${this.label}: ${text}` : nothing}
         ?disabled=${this.disabled}
@@ -125,7 +165,7 @@ export class HaVersionPicker extends LitElement {
         <span class="text">
           ${
             selected
-              ? html`<span class="title">${selected.title}</span>
+              ? html`<span class="title"><bdi>${selected.title}</bdi></span>
                   <span class="meta">${this._meta(selected)}</span>`
               : html`<span class="title">${text}</span>`
           }
@@ -137,8 +177,10 @@ export class HaVersionPicker extends LitElement {
         popover="auto"
         role="dialog"
         aria-label=${this.label || this._l("title")}
+        tabindex="-1"
         @toggle=${this._panelToggled}
         @keydown=${this._keydown}
+        @focusout=${this._focusOut}
       >
         <div class="header">
           <h2>${this.label || this._l("title")}</h2>
@@ -160,7 +202,7 @@ export class HaVersionPicker extends LitElement {
                   .accessibleLabel=${this._l("search", {
                     count: this.items.length,
                   })}
-                  .patternSamples=${this.items.map((item) => item.title)}
+                  .patternSamples=${this._patternSamples()}
                   @input=${this._searchChanged}
                 ></ha-input-search>
                 <p class="count" role="status">
@@ -173,8 +215,14 @@ export class HaVersionPicker extends LitElement {
                       : this._l("count", { count: this.items.length })
                   }
                 </p>
-                <div id="list" role="listbox" aria-label=${this._l("versions")}>
-                  ${shown.map((item) => this._renderOption(item))}
+                <div class="scroll">
+                  <div
+                    id="list"
+                    role="listbox"
+                    aria-label=${this._l("versions")}
+                  >
+                    ${shown.map((item) => this._renderOption(item))}
+                  </div>
                   ${
                     visible.length > shown.length
                       ? html`<button
@@ -230,7 +278,7 @@ export class HaVersionPicker extends LitElement {
         ${chosen ? html`<ha-svg-icon .path=${mdiCheck}></ha-svg-icon>` : nothing}
       </span>
       <span class="body">
-        <span class="title">${item.title}</span>
+        <span class="title"><bdi>${item.title}</bdi></span>
         <span class="meta">${this._meta(item, true)}</span>
       </span>
       ${
@@ -302,7 +350,66 @@ export class HaVersionPicker extends LitElement {
     this._limit = VERSION_PICKER_PAGE;
     this._open = true;
     this._panel?.showPopover();
-    this.updateComplete.then(() => this._searchField?.focus());
+    this._listen(true);
+    this.updateComplete.then(() => {
+      if (isCoarsePointer()) {
+        // Focusing the field would raise the keyboard over the list.
+        this._panel?.focus({ preventScroll: true });
+        return;
+      }
+      this._searchField?.focus();
+    });
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    this._listen(false);
+  }
+
+  /** Keeps the panel in place while the window or the visible area changes. */
+  private _listen(on: boolean) {
+    const viewport = window.visualViewport;
+    if (on) {
+      window.addEventListener("resize", this._reposition);
+      window.addEventListener("scroll", this._reposition, {
+        capture: true,
+        passive: true,
+      });
+      viewport?.addEventListener("resize", this._reposition);
+      viewport?.addEventListener("scroll", this._reposition);
+    } else {
+      window.removeEventListener("resize", this._reposition);
+      window.removeEventListener("scroll", this._reposition, true);
+      viewport?.removeEventListener("resize", this._reposition);
+      viewport?.removeEventListener("scroll", this._reposition);
+    }
+  }
+
+  private _reposition = () => {
+    if (this._open) {
+      this._position();
+    }
+  };
+
+  private _focusOut(ev: FocusEvent) {
+    const next = ev.relatedTarget as Node | null;
+    // Focus moved to something outside the panel: the list is done.
+    if (next && this._panel && !this._panel.contains(next)) {
+      this._close();
+    }
+  }
+
+  /** The height of the phone bar while it is shown. */
+  private _barHeight(): number {
+    const root = getComputedStyle(document.documentElement);
+    const own = parseBarHeight(
+      getComputedStyle(this).getPropertyValue("--ha-phone-bar-height"),
+      0
+    );
+    return parseBarHeight(
+      root.getPropertyValue("--ha-phone-bar-visible-height"),
+      own
+    );
   }
 
   private _close() {
@@ -329,6 +436,16 @@ export class HaVersionPicker extends LitElement {
     const below = window.innerHeight - rect.bottom - PANEL_MARGIN * 2;
     const above = rect.top - PANEL_MARGIN * 2;
     const style = panel.style;
+    const viewport = window.visualViewport;
+    const sheet = placeSheet({
+      layoutHeight: window.innerHeight,
+      viewportHeight: viewport?.height ?? window.innerHeight,
+      viewportOffsetTop: viewport?.offsetTop ?? 0,
+      barHeight: this._barHeight(),
+      margin: PANEL_MARGIN,
+    });
+    style.setProperty("--version-picker-sheet-lift", `${sheet.overlap}px`);
+    style.setProperty("--version-picker-sheet-max", `${sheet.maxHeight}px`);
     style.setProperty("--version-picker-left", `${left}px`);
     style.setProperty("--version-picker-width", `${width}px`);
     if (below >= PANEL_MIN_HEIGHT || below >= above) {
@@ -352,7 +469,17 @@ export class HaVersionPicker extends LitElement {
     const open = this._panel!.matches(":popover-open");
     if (!open && this._open) {
       this._open = false;
-      this._trigger?.focus();
+      this._listen(false);
+      let active: Element | null = document.activeElement;
+      while (active?.shadowRoot?.activeElement) {
+        active = active.shadowRoot.activeElement;
+      }
+      const insidePanel =
+        !!active && !!this._panel && this._panel.contains(active);
+      const onPage = !active || active === document.body;
+      if (shouldRestoreFocus(insidePanel, onPage)) {
+        this._trigger?.focus();
+      }
     }
   }
 
@@ -435,7 +562,13 @@ export class HaVersionPicker extends LitElement {
       if (ev.key === "ArrowDown" && options.length) {
         ev.preventDefault();
         this._focusOption(options, 0);
-      } else if (ev.key === "Enter" && this._search) {
+      } else if (
+        ev.key === "Enter" &&
+        this._search &&
+        // Keys of the buttons inside the field arrive here retargeted to the
+        // field: only Enter typed in the text input picks a version.
+        ev.composedPath()[0] instanceof HTMLInputElement
+      ) {
         const first = this._visible().find(
           (item) => item.id !== this.currentId
         );
@@ -539,12 +672,18 @@ export class HaVersionPicker extends LitElement {
         position: fixed;
         top: auto;
         inset-inline: var(--ha-space-3);
+        /* Above the bar while it is shown, and above the keyboard. */
         bottom: calc(
-          var(--ha-phone-bar-height, 0px) + var(--ha-space-2) +
+          var(--version-picker-sheet-lift, 0px) +
+            var(
+              --ha-phone-bar-visible-height,
+              var(--ha-phone-bar-height, 0px)
+            ) +
+            var(--ha-space-2) +
             var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
         );
         width: auto;
-        max-height: calc(100dvh - 140px);
+        max-height: var(--version-picker-sheet-max, calc(100dvh - 140px));
       }
     }
     .header {
@@ -570,13 +709,32 @@ export class HaVersionPicker extends LitElement {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
     }
-    #list {
+    .scroll {
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-1);
       flex: 1 1 auto;
       min-height: 0;
       overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .scroll > * {
+      flex-shrink: 0;
+    }
+    #panel:focus {
+      outline: none;
+    }
+    #list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+    }
+    .option .title {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
     }
     .option {
       display: flex;

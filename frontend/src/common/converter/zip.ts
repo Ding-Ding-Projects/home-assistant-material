@@ -78,12 +78,24 @@ export const readZip = async (
     return failure("archive_corrupt");
   }
   // The end record is the last 22 bytes plus a comment of up to 65535.
+  // A record only counts when its comment length reaches exactly the end of
+  // the file and the directory it names ends where the record starts: a
+  // forged record placed inside the comment fails both, so the search goes
+  // on to the real one. A looser second pass keeps archives with a little
+  // extra data between the directory and the end record readable.
   let eocd = -1;
   const lowest = Math.max(0, bytes.length - 22 - 0xffff);
-  for (let at = bytes.length - 22; at >= lowest; at--) {
-    if (view.getUint32(at, true) === SIG_EOCD) {
-      eocd = at;
-      break;
+  for (let pass = 0; pass < 2 && eocd < 0; pass++) {
+    for (let at = bytes.length - 22; at >= lowest; at--) {
+      if (
+        view.getUint32(at, true) === SIG_EOCD &&
+        at + 22 + view.getUint16(at + 20, true) === bytes.length &&
+        (pass === 1 ||
+          view.getUint32(at + 12, true) + view.getUint32(at + 16, true) === at)
+      ) {
+        eocd = at;
+        break;
+      }
     }
   }
   if (eocd < 0) {

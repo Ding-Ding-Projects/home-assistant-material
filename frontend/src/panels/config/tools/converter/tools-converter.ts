@@ -196,6 +196,9 @@ class ToolsConverter extends LitElement {
 
   @state() private _busy = false;
 
+  /** A document, archive, sound or video conversion is still running. */
+  @state() private _working = false;
+
   @state() private _status = "";
 
   @state() private _history: HistoryEntry[] = [];
@@ -227,6 +230,8 @@ class ToolsConverter extends LitElement {
 
   private _run = 0;
 
+  private _abort?: AbortController;
+
   private _loadRun = 0;
 
   private _timer?: number;
@@ -237,7 +242,15 @@ class ToolsConverter extends LitElement {
     super.disconnectedCallback();
     window.clearTimeout(this._timer);
     this._run++;
+    this._stopRunning();
+    this._busy = false;
     this._release();
+  }
+
+  /** Tells a running sound conversion to stop, and drops its late result. */
+  private _stopRunning(): void {
+    this._abort?.abort();
+    this._abort = undefined;
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -370,8 +383,10 @@ class ToolsConverter extends LitElement {
             <span class="source-names">
               ${this._files
                 .slice(0, 5)
-                .map((file) => file.name)
-                .join(", ")}${this._files.length > 5 ? "…" : ""}
+                .map(
+                  (file, index) =>
+                    html`${index ? ", " : ""}<bdi>${file.name}</bdi>`
+                )}${this._files.length > 5 ? "…" : ""}
             </span>
           </div>
           <ha-button appearance="filled" @click=${this._chooseFile}>
@@ -411,7 +426,7 @@ class ToolsConverter extends LitElement {
             <ha-svg-icon .path=${this._iconFor(this._inputKind)}></ha-svg-icon>
           </div>
           <div class="source-text">
-            <strong class="source-name">${this._fileName}</strong>
+            <strong class="source-name"><bdi>${this._fileName}</bdi></strong>
             <span
               >${this._l("detected", {
                 kind: this._l(`kind_${kind}`),
@@ -836,7 +851,7 @@ class ToolsConverter extends LitElement {
         }
         <ha-button
           appearance="filled"
-          ?disabled=${this._busy}
+          ?disabled=${this._busy || this._working}
           @click=${this._commit}
         >
           <ha-svg-icon slot="start" .path=${mdiSwapHorizontal}></ha-svg-icon>
@@ -882,7 +897,7 @@ class ToolsConverter extends LitElement {
           <span>${this._errorText(error)}</span>
           ${
             error.detail
-              ? html`<code class="detail">${error.detail}</code>`
+              ? html`<code class="detail"><bdi>${error.detail}</bdi></code>`
               : nothing
           }
         </div>
@@ -995,7 +1010,7 @@ class ToolsConverter extends LitElement {
           (file, index) => html`
             <li>
               <div class="file-text">
-                <strong>${file.path}</strong>
+                <strong><bdi>${file.path}</bdi></strong>
                 <span>${this._size(file.data.length)}</span>
               </div>
               <ha-button
@@ -1049,7 +1064,7 @@ class ToolsConverter extends LitElement {
             (entry) => html`
               <li>
                 <div class="history-text">
-                  <strong>${entry.name}</strong>
+                  <strong><bdi>${entry.name}</bdi></strong>
                   <span>
                     ${this._l("history_line", {
                       source: entry.source,
@@ -1260,7 +1275,13 @@ class ToolsConverter extends LitElement {
     const text = (ev.currentTarget as HTMLTextAreaElement).value;
     this._text = text;
     this._error = undefined;
-    if (text.length > MAX_BYTES) {
+    // The limit is in bytes: the text is measured as UTF-8, which is up to
+    // three times its length in characters.
+    if (
+      text.length > MAX_BYTES ||
+      (text.length * 3 > MAX_BYTES &&
+        new TextEncoder().encode(text).length > MAX_BYTES)
+    ) {
       this._error = { code: "too_large" };
       this._clearOutput();
       return;
@@ -1545,6 +1566,11 @@ class ToolsConverter extends LitElement {
 
   private _commit(): void {
     window.clearTimeout(this._timer);
+    // A heavy conversion that is still running blocks a second one, even when
+    // an option was changed meanwhile.
+    if (this._busy || this._working) {
+      return;
+    }
     this._convert(true);
   }
 
@@ -1559,6 +1585,7 @@ class ToolsConverter extends LitElement {
     // conversion so its late result cannot come back, and free the button.
     window.clearTimeout(this._timer);
     this._run++;
+    this._stopRunning();
     this._busy = false;
     this._release();
     this._output = undefined;
@@ -1577,6 +1604,24 @@ class ToolsConverter extends LitElement {
 
   private async _convert(commit: boolean): Promise<void> {
     const run = ++this._run;
+    // A new run stops what an earlier one still has going.
+    this._stopRunning();
+    try {
+      await this._convertNow(run, commit);
+    } catch (_err) {
+      // Whatever went wrong, the page must not stay busy.
+      if (run === this._run) {
+        this._error = { code: "write_failed" };
+        this._output = undefined;
+      }
+    } finally {
+      if (run === this._run && !this._working) {
+        this._busy = false;
+      }
+    }
+  }
+
+  private async _convertNow(run: number, commit: boolean): Promise<void> {
     const bytes = this._inputBytes;
     const target = this._target;
     const kind = this._inputKind;
@@ -1747,6 +1792,32 @@ class ToolsConverter extends LitElement {
     kind: InputKind,
     bytes: Uint8Array | undefined
   ): Promise<void> {
+    if (this._working) {
+      return;
+    }
+    const controller = new AbortController();
+    this._abort = controller;
+    this._working = true;
+    try {
+      await this._convertExtraBody(run, target, kind, bytes, controller.signal);
+    } finally {
+      this._working = false;
+      if (this._abort === controller) {
+        this._abort = undefined;
+      }
+      if (run === this._run) {
+        this._busy = false;
+      }
+    }
+  }
+
+  private async _convertExtraBody(
+    run: number,
+    target: TargetId,
+    kind: InputKind,
+    bytes: Uint8Array | undefined,
+    signal: AbortSignal
+  ): Promise<void> {
     this._busy = true;
     this._error = undefined;
     this._status = "";
@@ -1766,7 +1837,8 @@ class ToolsConverter extends LitElement {
         audioChannels: this._audioChannels,
         framePosition: this._framePosition,
         quality: this._quality,
-      }
+      },
+      signal
     );
     if (run !== this._run) {
       return;
@@ -2300,6 +2372,26 @@ class ToolsConverter extends LitElement {
           font-size: var(--ha-font-size-m);
           color: var(--primary-text-color);
         }
+        ha-input-search {
+          /* A touch target: 44 px high. */
+          --ha-input-search-height: 44px;
+        }
+        :host([narrow]) .category-head {
+          flex-wrap: wrap;
+        }
+        /* On a narrow screen the long status sentence gets its own line under
+           the title instead of a tall, narrow column beside the badge. */
+        :host([narrow]) .category-text {
+          display: contents;
+        }
+        :host([narrow]) .category-text strong {
+          flex: 1;
+          min-width: 0;
+        }
+        :host([narrow]) .category-text span {
+          order: 5;
+          flex: 1 1 100%;
+        }
         .pill {
           flex: none;
           padding: var(--ha-space-1) var(--ha-space-3);
@@ -2357,7 +2449,8 @@ class ToolsConverter extends LitElement {
           overflow-wrap: anywhere;
         }
         .not-offered {
-          margin: var(--ha-space-2) 0 var(--ha-space-2) var(--ha-space-8);
+          margin-block: var(--ha-space-2);
+          margin-inline: var(--ha-space-8) 0;
           font-size: var(--ha-font-size-s);
           color: var(--secondary-text-color);
         }

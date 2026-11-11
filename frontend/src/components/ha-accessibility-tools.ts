@@ -609,8 +609,10 @@ export class HaAccessibilityTools extends LitElement {
       #panel {
         top: auto;
         inset-inline: var(--ha-space-3);
+        /* The bar's height counts only while the bar is shown. */
         bottom: calc(
-          var(--ha-phone-bar-height, 0px) + var(--ha-space-2) +
+          var(--ha-phone-bar-visible-height, var(--ha-phone-bar-height, 0px)) +
+            var(--ha-space-2) +
             var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
         );
         width: auto;
@@ -639,6 +641,12 @@ export class HaAccessibilityTools extends LitElement {
       border: 1px solid var(--outline-hover-color);
       color: var(--secondary-text-color);
       white-space: nowrap;
+    }
+    /* A touch screen has no keyboard to press the shortcut on. */
+    @media (pointer: coarse) {
+      kbd {
+        display: none;
+      }
     }
     .row {
       display: flex;
@@ -730,7 +738,7 @@ export class HaAccessibilityTools extends LitElement {
         var(--ha-card-border-color, transparent);
     }
     .segments button {
-      height: var(--ha-space-9, 36px);
+      min-height: 44px;
       padding: 0 var(--ha-space-3);
       border-radius: var(--ha-border-radius-pill);
       font-size: var(--ha-font-size-m);
@@ -746,7 +754,7 @@ export class HaAccessibilityTools extends LitElement {
       display: inline-flex;
       align-items: center;
       gap: var(--ha-space-2);
-      height: var(--ha-space-10);
+      min-height: 44px;
       padding: 0 var(--ha-space-4);
       border-radius: var(--ha-border-radius-pill);
       font-weight: var(--ha-font-weight-medium);

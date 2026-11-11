@@ -154,9 +154,16 @@ export const openArchive = async (
       inner = await gunzip(bytes);
     } catch (err) {
       // Past the cap, or damaged: either way nothing was kept.
-      return failure(
-        err instanceof StreamLimitError ? "archive_ratio" : "archive_corrupt"
-      );
+      if (err instanceof StreamLimitError) {
+        // A small file that grows past the cap is a bomb; a large one that
+        // simply holds more than the cap is only too big.
+        return failure(
+          bytes.length * MAX_RATIO < MAX_UNPACKED
+            ? "archive_ratio"
+            : "archive_too_big"
+        );
+      }
+      return failure("archive_corrupt");
     }
     if (looksLikeTar(inner)) {
       return { ...checkPaths(readTar(inner)), kind: "tar-gz" };

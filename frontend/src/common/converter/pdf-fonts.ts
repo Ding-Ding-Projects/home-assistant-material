@@ -75,8 +75,45 @@ const HELVETICA = [
   500, 334, 260, 334, 584,
 ];
 
+// Helvetica widths of the characters WinAnsi adds above 0x7F, which are not
+// as wide as an average letter: the dashes, quotes, bullet and ellipsis.
+const HELVETICA_EXTRA: Record<number, number> = {
+  0x20ac: 556,
+  0x201a: 222,
+  0x0192: 556,
+  0x201e: 333,
+  0x2026: 1000,
+  0x2020: 556,
+  0x2021: 556,
+  0x02c6: 333,
+  0x2030: 1000,
+  0x0160: 667,
+  0x2039: 333,
+  0x0152: 1000,
+  0x017d: 611,
+  0x2018: 222,
+  0x2019: 222,
+  0x201c: 333,
+  0x201d: 333,
+  0x2022: 350,
+  0x2013: 556,
+  0x2014: 1000,
+  0x02dc: 333,
+  0x2122: 1000,
+  0x0161: 500,
+  0x203a: 333,
+  0x0153: 944,
+  0x017e: 500,
+  0x0178: 667,
+  0x00a0: 278,
+};
+
 const helveticaWidth = (character: string): number => {
   const code = character.codePointAt(0) ?? 0;
+  const extra = HELVETICA_EXTRA[code];
+  if (extra !== undefined) {
+    return extra;
+  }
   if (code >= 0x20 && code <= 0x7e) {
     return HELVETICA[code - 0x20];
   }

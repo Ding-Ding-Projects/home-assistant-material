@@ -16,7 +16,11 @@ import { readZip, writeZip } from "./zip";
 export type DocBlock = Block | { type: "table"; rows: string[][] };
 
 /** The largest main document part that is read. */
-export const MAX_DOCUMENT_BYTES = 30 * 1024 * 1024;
+export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
+
+/** A list level as a whole number from 0 to 4, whatever was stored. */
+const levelOf = (depth: number): number =>
+  Number.isFinite(depth) ? Math.min(4, Math.max(0, Math.trunc(depth))) : 0;
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
@@ -128,7 +132,7 @@ export const buildDocx = async (
       case "item":
         body += paragraph(
           block.inlines,
-          `<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${Math.min(4, block.depth)}"/><w:numId w:val="${block.ordered ? orderedGroups + 1 : 1}"/></w:numPr>`
+          `<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${levelOf(block.depth)}"/><w:numId w:val="${block.ordered ? orderedGroups + 1 : 1}"/></w:numPr>`
         );
         break;
       case "code":
@@ -345,13 +349,19 @@ const readBody = (parent: Element, numbers: NumberingInfo, out: DocBlock[]) => {
         out.push({ type: "heading", level: 1, inlines });
       } else if (numPr && firstChild(numPr, "numId")) {
         const numId = attr(firstChild(numPr, "numId"), "val") ?? "";
-        const ilvl = Number(attr(firstChild(numPr, "ilvl"), "val") ?? 0);
+        const level = Math.trunc(
+          Number(attr(firstChild(numPr, "ilvl"), "val") ?? 0)
+        );
+        // A level that is not a whole number from 0 to 4 is pulled into range.
+        const ilvl = Number.isFinite(level)
+          ? Math.min(4, Math.max(0, level))
+          : 0;
         if (numId !== "0" && inlines.length) {
           out.push({
             type: "item",
             ordered: numbers.ordered(numId, ilvl),
             number: 0,
-            depth: Math.min(4, ilvl),
+            depth: ilvl,
             inlines,
           });
         }
@@ -391,12 +401,18 @@ export const readDocx = async (bytes: Uint8Array): Promise<DocxResult> => {
     return failure("docx_too_large");
   }
   const parse = (data: Uint8Array): Document | undefined => {
-    const doc = new DOMParser().parseFromString(
-      new TextDecoder("utf-8").decode(data),
-      "application/xml"
-    );
+    const xml = new TextDecoder("utf-8").decode(data);
+    // A Word part never needs a doctype, and entities declared in one can
+    // expand into far more text than the file holds.
+    if (/<!(DOCTYPE|ENTITY)/i.test(xml)) {
+      return undefined;
+    }
+    const doc = new DOMParser().parseFromString(xml, "application/xml");
     return doc.getElementsByTagName("parsererror").length ? undefined : doc;
   };
+  if (/<!(DOCTYPE|ENTITY)/i.test(new TextDecoder("utf-8").decode(main))) {
+    return failure("docx_unsafe");
+  }
   const document = parse(main);
   const body = document ? firstChild(document.documentElement, "body") : null;
   if (!document || !body) {
@@ -415,8 +431,22 @@ export const readDocx = async (bytes: Uint8Array): Promise<DocxResult> => {
 
 const escapeMarkdown = (text: string): string =>
   text
-    .replace(/([\\`*])/g, "\\$1")
+    // Backslash, code, emphasis, brackets (links and images) and angle
+    // brackets (HTML) would all turn text into live Markdown.
+    .replace(/([\\`*[\]<>])/g, "\\$1")
     .replace(/(^|\s)_|_(?=\s|$)/g, (match) => match.replace("_", "\\_"));
+
+/**
+ * Escapes a mark that would make the start of a paragraph a heading, list,
+ * quote or numbered list.
+ */
+const escapeLineStart = (text: string): string =>
+  text
+    .replace(/^(\s*)([#>+-])/, "$1\\$2")
+    .replace(/^(\s*\d{1,9})([.)])/, "$1\\$2");
+
+const lineStarts = (text: string): string =>
+  text.split("\n").map(escapeLineStart).join("\n");
 
 const markdownInline = (inlines: readonly Inline[]): string =>
   inlines
@@ -450,7 +480,9 @@ const markdownInline = (inlines: readonly Inline[]): string =>
 const tableMarkdown = (rows: string[][]): string => {
   const width = Math.max(...rows.map((row) => row.length));
   const cell = (value: string | undefined) =>
-    (value ?? "").replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+    escapeMarkdown(value ?? "")
+      .replace(/\|/g, "\\|")
+      .replace(/\n/g, "<br>");
   const line = (row: string[]) =>
     `| ${Array.from({ length: width }, (_x, i) => cell(row[i])).join(" | ")} |`;
   return [
@@ -470,13 +502,14 @@ const nextMarker = (
   counters: Counter[],
   block: { ordered: boolean; depth: number }
 ): string => {
-  counters.length = block.depth + 1;
-  const level = counters[block.depth];
+  const depth = levelOf(block.depth);
+  counters.length = depth + 1;
+  const level = counters[depth];
   if (!level || level.ordered !== block.ordered) {
-    counters[block.depth] = { ordered: block.ordered, count: 0 };
+    counters[depth] = { ordered: block.ordered, count: 0 };
   }
-  counters[block.depth].count++;
-  return block.ordered ? `${counters[block.depth].count}.` : "-";
+  counters[depth].count++;
+  return block.ordered ? `${counters[depth].count}.` : "-";
 };
 
 export const docxToMarkdown = (blocks: readonly DocBlock[]): string => {
@@ -494,18 +527,18 @@ export const docxToMarkdown = (blocks: readonly DocBlock[]): string => {
         );
         break;
       case "paragraph": {
-        const text = markdownInline(block.inlines).trim();
+        const text = lineStarts(markdownInline(block.inlines).trim());
         if (text) {
           parts.push(text);
         }
         break;
       }
       case "quote":
-        parts.push(`> ${markdownInline(block.inlines).trim()}`);
+        parts.push(`> ${lineStarts(markdownInline(block.inlines).trim())}`);
         break;
       case "item": {
         const mark = nextMarker(counters, block);
-        const text = `${"  ".repeat(block.depth)}${mark} ${markdownInline(block.inlines).trim()}`;
+        const text = `${"  ".repeat(levelOf(block.depth))}${mark} ${lineStarts(markdownInline(block.inlines).trim())}`;
         if (previousItem) {
           parts[parts.length - 1] += `\n${text}`;
         } else {
@@ -551,7 +584,7 @@ export const docxToPlain = (blocks: readonly DocBlock[]): string => {
       }
       case "item": {
         const mark = nextMarker(counters, block);
-        const text = `${"  ".repeat(block.depth)}${mark} ${inlinePlain(block.inlines).trim()}`;
+        const text = `${"  ".repeat(levelOf(block.depth))}${mark} ${inlinePlain(block.inlines).trim()}`;
         if (previousItem) {
           parts[parts.length - 1] += `\n${text}`;
         } else {

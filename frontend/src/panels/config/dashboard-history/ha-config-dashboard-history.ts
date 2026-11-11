@@ -1,7 +1,7 @@
 import { mdiChevronRight, mdiRestore, mdiSourceBranch, mdiTab } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { QueryParamsController } from "../../../common/controllers/query-params-controller";
 import { formatShortDateTime } from "../../../common/datetime/format_date_time";
@@ -13,7 +13,11 @@ import "../../../components/ha-card";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
 import "../../../components/history/ha-version-picker";
-import type { VersionPickerItem } from "../../../components/history/ha-version-picker";
+import type {
+  HaVersionPicker,
+  VersionPickerItem,
+} from "../../../components/history/ha-version-picker";
+import { RequestToken } from "../../../components/history/version-picker-logic";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/input/ha-input-search";
@@ -117,6 +121,10 @@ export class HaConfigDashboardHistory extends LitElement {
 
   private _detailRequest = 0;
 
+  private _compareRequest = new RequestToken();
+
+  @query("ha-version-picker") private _picker?: HaVersionPicker;
+
   private _urlParams = new QueryParamsController(
     this,
     dashboardHistoryQueryParamConfig,
@@ -192,6 +200,7 @@ export class HaConfigDashboardHistory extends LitElement {
     this._error = undefined;
     this._detail = undefined;
     this._commits = [];
+    this._compareRequest.cancel();
     try {
       this._status = await fetchDashboardReposStatus(this.hass);
       this._remoteInput = this._repository?.remote ?? "";
@@ -225,6 +234,7 @@ export class HaConfigDashboardHistory extends LitElement {
     }
     const request = ++this._detailRequest;
     this._detail = undefined;
+    this._compareRequest.cancel();
     this._compareDiff = undefined;
     this._compareWith = "";
     const index = this._commits.findIndex((commit) => commit.sha === sha);
@@ -988,18 +998,33 @@ export class HaConfigDashboardHistory extends LitElement {
     this._writeUrl();
   }
 
+  private _pickerCache?: {
+    commits: DashboardCommit[];
+    items: VersionPickerItem[];
+  };
+
+  /** The same array until the commits change, so the picker keeps its state. */
   private _pickerItems(): VersionPickerItem[] {
-    return this._commits.map((commit) => ({
-      id: commit.sha,
-      title: commit.message,
-      short: commit.short,
-      timestamp: commit.timestamp,
-    }));
+    if (this._pickerCache?.commits !== this._commits) {
+      this._pickerCache = {
+        commits: this._commits,
+        items: this._commits.map((commit) => ({
+          id: commit.sha,
+          title: commit.message,
+          short: commit.short,
+          timestamp: commit.timestamp,
+        })),
+      };
+    }
+    return this._pickerCache.items;
   }
 
   private _clearCompare() {
+    this._compareRequest.cancel();
     this._compareWith = "";
     this._compareDiff = undefined;
+    // The button that cleared the choice is gone: focus goes to the picker.
+    this.updateComplete.then(() => this._picker?.focusTrigger());
   }
 
   private _overviewSearchChanged(ev: Event) {
@@ -1012,6 +1037,7 @@ export class HaConfigDashboardHistory extends LitElement {
 
   private async _compareChanged(ev: CustomEvent<{ value: string }>) {
     const other = ev.detail.value;
+    const token = this._compareRequest.begin();
     this._compareWith = other;
     const sha = this._selectedSha;
     if (!other || !sha || !this._dashboard) {
@@ -1031,8 +1057,13 @@ export class HaConfigDashboardHistory extends LitElement {
         newer,
         this._view
       );
-      this._compareDiff = diff;
+      if (this._compareRequest.isCurrent(token)) {
+        this._compareDiff = diff;
+      }
     } catch (err: any) {
+      if (!this._compareRequest.isCurrent(token)) {
+        return;
+      }
       this._compareDiff = undefined;
       showAlertDialog(this, {
         title: this._l("action_failed"),

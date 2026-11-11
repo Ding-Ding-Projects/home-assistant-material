@@ -1,3 +1,4 @@
+import { DECEIVING_CHARACTERS } from "./archive-types";
 import type { TargetId } from "./formats";
 
 const CHANGES_NOTHING_IN_NAME: TargetId[] = [
@@ -40,14 +41,45 @@ const EXTENSION: Partial<Record<TargetId, string>> = {
   "video-info": "txt",
 };
 
+const MAX_NAME = 120;
+
+const DEVICE_NAME =
+  /^(con|prn|aux|nul|conin\$|conout\$|com[0-9¹²³]|lpt[0-9¹²³])$/i;
+
+/** Cuts a name to the length, keeping the extension and whole characters. */
+const shorten = (name: string): string => {
+  if (name.length <= MAX_NAME) {
+    return name;
+  }
+  const dot = name.lastIndexOf(".");
+  const extension = dot > 0 && name.length - dot <= 16 ? name.slice(dot) : "";
+  let kept = "";
+  // Walking by code point never splits a surrogate pair.
+  for (const character of name.slice(0, name.length - extension.length)) {
+    if (kept.length + character.length + extension.length > MAX_NAME) {
+      break;
+    }
+    kept += character;
+  }
+  return kept + extension;
+};
+
 /** A name safe to save under, without a folder and without odd characters. */
 export const safeFileName = (name: string): string => {
-  const cleaned = (name.split(/[\\/]/).pop() ?? "")
+  const deceiving = new RegExp(DECEIVING_CHARACTERS.source, "g");
+  let cleaned = (name.split(/[\\/]/).pop() ?? "")
     // eslint-disable-next-line no-control-regex
-    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_")
-    .replace(/^\.+/, "")
-    .trim();
-  return cleaned.slice(0, 120) || "converted";
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "_")
+    .replace(deceiving, "")
+    .replace(/^[.\s]+/, "");
+  // Windows drops a trailing dot or space, so the saved name would differ
+  // from the one shown.
+  cleaned = cleaned.replace(/[.\s]+$/, "");
+  // A device name such as con or nul.txt cannot be saved on Windows.
+  if (DEVICE_NAME.test(cleaned.split(".")[0].trim())) {
+    cleaned = `_${cleaned}`;
+  }
+  return shorten(cleaned) || "converted";
 };
 
 /**

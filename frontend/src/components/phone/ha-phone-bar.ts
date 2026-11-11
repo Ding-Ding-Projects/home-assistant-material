@@ -13,7 +13,7 @@ import {
   mdiTabRemove,
   mdiUndo,
 } from "@mdi/js";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -46,6 +46,11 @@ const SWIPE_CLOSE_PX = 96;
 const SWIPE_SWITCH_PX = 48;
 /** The keyboard is up when the visible height drops by more than this. */
 const KEYBOARD_PX = 150;
+/**
+ * Set on the document root: the bar's height while it is shown and `0px` while
+ * it is hidden. Absent when there is no phone bar.
+ */
+const VISIBLE_HEIGHT_PROPERTY = "--ha-phone-bar-visible-height";
 
 /**
  * @element ha-phone-bar
@@ -123,6 +128,31 @@ export class HaPhoneBar extends LitElement {
     this.removeEventListener("focusin", this._handleFocusIn);
     this.removeEventListener("focusout", this._handleFocusOut);
     window.clearTimeout(this._undoTimer);
+    document.documentElement.style.removeProperty(VISIBLE_HEIGHT_PROPERTY);
+  }
+
+  protected updated(changed: PropertyValues) {
+    super.updated(changed);
+    if (changed.has("phone") || changed.has("_barHidden")) {
+      this._publishVisibleHeight();
+    }
+  }
+
+  /**
+   * Tells the rest of the page how tall the bar is right now: its height while
+   * shown, `0px` while hidden or when this is not a phone. Sheets and sticky
+   * bars read it to stay clear of the bar only while it is there.
+   */
+  private _publishVisibleHeight() {
+    const root = document.documentElement.style;
+    if (!this.phone) {
+      root.removeProperty(VISIBLE_HEIGHT_PROPERTY);
+      return;
+    }
+    const height =
+      getComputedStyle(this).getPropertyValue("--ha-phone-bar-height").trim() ||
+      "64px";
+    root.setProperty(VISIBLE_HEIGHT_PROPERTY, this._barHidden ? "0px" : height);
   }
 
   // The bar hides while scrolling down and returns on any scroll up.

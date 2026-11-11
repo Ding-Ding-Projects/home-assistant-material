@@ -30,12 +30,20 @@ export const RATIO_FLOOR = 1024 * 1024;
 const CONTROL = /[\u0000-\u001f\u007f]/;
 
 /**
+ * Characters that make a name lie about itself: C1 controls, zero-width and
+ * direction marks, the direction overrides and isolates, and the byte order
+ * mark. `evil<override>gpj.exe` is shown as `evilexe.jpg`.
+ */
+export const DECEIVING_CHARACTERS =
+  /[\u0080-\u009f\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
+
+/**
  * The path made safe to show and to save under, or undefined when it must be
  * refused: absolute paths, drive letters, paths that climb out with `..`,
  * and names with control characters.
  */
 export const safeArchivePath = (raw: string): string | undefined => {
-  if (CONTROL.test(raw)) {
+  if (CONTROL.test(raw) || DECEIVING_CHARACTERS.test(raw)) {
     return undefined;
   }
   const slashed = raw.replace(/\\/g, "/");

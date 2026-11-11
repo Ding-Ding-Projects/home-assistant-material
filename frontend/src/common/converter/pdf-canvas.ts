@@ -23,6 +23,9 @@ const SCALE = 2;
 /** Largest picture, in pixels, that is put in a PDF as pixels. */
 const MAX_PDF_PIXELS = 16_000_000;
 
+/** JPEG quality of a picture written again for a PDF. */
+const PICTURE_QUALITY = 0.88;
+
 const FAMILY: Record<FontKey, string> = {
   regular:
     '"Helvetica Neue", Arial, "PingFang SC", "PingFang TC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans CJK TC", sans-serif',
@@ -68,6 +71,8 @@ export const renderTextPagesAsImages = async (
     });
     const context = canvas.getContext("2d");
     if (!context) {
+      canvas.width = 0;
+      canvas.height = 0;
       return failure("image_canvas_failed");
     }
     context.fillStyle = "#ffffff";
@@ -87,15 +92,20 @@ export const renderTextPagesAsImages = async (
         context.stroke();
       }
     }
+    const width = canvas.width;
+    const height = canvas.height;
     const blob = await canvasBlob(canvas, "image/jpeg", 0.85);
+    // Free the page's pixels before the next page is drawn.
+    canvas.width = 0;
+    canvas.height = 0;
     if (!blob || blob.type !== "image/jpeg") {
       return failure("image_encode_unsupported");
     }
     images.push({
       kind: "jpeg",
       components: 3,
-      width: canvas.width,
-      height: canvas.height,
+      width,
+      height,
       data: new Uint8Array(await blob.arrayBuffer()),
       fullPage: true,
     });
@@ -104,9 +114,9 @@ export const renderTextPagesAsImages = async (
 };
 
 /**
- * A picture ready to go on a PDF page. A plain JPEG goes in unchanged, byte
- * for byte; anything else is decoded and written as pixels, on white where
- * it is transparent.
+ * A picture ready to go on a PDF page. A plain JPEG without Exif goes in
+ * unchanged, byte for byte; anything else is decoded and written again as a
+ * JPEG, on white where it is transparent.
  */
 export const prepareImageForPdf = async (
   bytes: Uint8Array,
@@ -120,6 +130,9 @@ export const prepareImageForPdf = async (
       info &&
       (info.components === 1 || info.components === 3) &&
       info.orientation === 1 &&
+      // A picture with Exif carries its location, camera and thumbnail, so it
+      // is drawn again instead of being embedded as it is.
+      !info.exif &&
       info.width * info.height <= MAX_PIXELS
     ) {
       return {
@@ -171,24 +184,35 @@ export const prepareImageForPdf = async (
       width,
       height,
     });
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return failure("image_canvas_failed");
+    try {
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return failure("image_canvas_failed");
+      }
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+      context.drawImage(bitmap, 0, 0, width, height);
+      // Keep only the compressed picture: raw pixels would add up to hundreds
+      // of megabytes for a handful of phone photos.
+      const blob = await canvasBlob(canvas, "image/jpeg", PICTURE_QUALITY);
+      if (!blob || blob.type !== "image/jpeg") {
+        return failure("image_encode_unsupported");
+      }
+      return {
+        ok: true,
+        image: {
+          kind: "jpeg",
+          components: 3,
+          width,
+          height,
+          data: new Uint8Array(await blob.arrayBuffer()),
+        },
+      };
+    } finally {
+      // Hand the pixel buffer back at once instead of waiting for collection.
+      canvas.width = 0;
+      canvas.height = 0;
     }
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, width, height);
-    context.drawImage(bitmap, 0, 0, width, height);
-    const rgba = context.getImageData(0, 0, width, height).data;
-    const rgb = new Uint8Array(width * height * 3);
-    for (let i = 0, j = 0; i < rgba.length; i += 4) {
-      rgb[j++] = rgba[i];
-      rgb[j++] = rgba[i + 1];
-      rgb[j++] = rgba[i + 2];
-    }
-    return {
-      ok: true,
-      image: { kind: "rgb", components: 3, width, height, data: rgb },
-    };
   } catch (_err) {
     return failure("image_canvas_failed");
   } finally {
