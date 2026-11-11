@@ -37,12 +37,13 @@ class MediaManageButton extends LitElement {
   @state() _uploading = 0;
 
   protected render() {
+    // Every action in the dialog needs an administrator
     if (
       !this.currentItem ||
+      !this._config.user?.is_admin ||
       !(
         isLocalMediaSourceContentId(this.currentItem.media_content_id || "") ||
-        (this._config.user?.is_admin &&
-          isImageUploadMediaSourceContentId(this.currentItem.media_content_id))
+        isImageUploadMediaSourceContentId(this.currentItem.media_content_id)
       )
     ) {
       return nothing;

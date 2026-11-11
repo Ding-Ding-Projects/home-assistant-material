@@ -17,6 +17,7 @@ import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { visuallyHiddenFileInputStyles } from "../../../../../resources/visually-hidden-file-input";
 import { goBack } from "../../../../../common/navigate";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-card";
@@ -594,11 +595,13 @@ class ZWaveJSConfigDashboard extends LitElement {
                       )}
                     </ha-button>
                     <input
+                      class="file-input-hidden"
+                      tabindex="-1"
+                      aria-hidden="true"
                       type="file"
                       id="nvm-restore-file"
                       accept=".bin"
                       @change=${this._handleRestoreFileSelected}
-                      hidden
                     />
                   </ha-list-item-base>
                   <ha-list-item-base>
@@ -922,6 +925,7 @@ class ZWaveJSConfigDashboard extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      visuallyHiddenFileInputStyles,
       css`
         .error-message {
           display: flex;

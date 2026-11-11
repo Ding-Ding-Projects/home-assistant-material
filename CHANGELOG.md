@@ -6,6 +6,38 @@ Every release is also listed, with its build results, on the
 Each day lists what changed that day, newest first. A release is made for every push, so a
 day can hold several releases. The interface shows this list under Settings, About, What changed.
 
+## 2026-11-11
+
+- Fixed: "Add media" did nothing on a phone because the file field sat outside the open dialog;
+  it now lives inside the button, uploads to the image upload folder, and every media folder shows
+  its filter field. Fixed in source; not yet seen on a phone.
+- New, not yet seen in a running build: media folders can be created, renamed, moved and deleted
+  from the Manage dialog, and the server refuses names that leave the media folder.
+- The paid cloud service is no longer shown anywhere in the interface. The server integration is
+  unchanged.
+- New, not yet seen: dashboard and automation history have a search field, and Compare uses a
+  searchable version picker. The history and recorded problems pages say "Git remote" in full.
+- New, not yet seen: the file converter packs and unpacks archives (ZIP, TAR, GZIP), makes PDFs
+  from text, Markdown and pictures, converts Word documents to and from text, makes WAV audio and
+  takes a still picture from a video. Reading PDFs, MP3 output and video-to-video conversion are
+  not offered.
+- New, not yet seen: a Dashboard tools dialog in edit mode with an outline and bulk actions, find
+  and replace of an entity ID, a check for missing entities, card templates and a preview width.
+- Fixed: settings saved on the instance now follow the signed-in account, so a second account on
+  the same browser no longer sees or uploads the first one's wording and appearance. Picture
+  layers can only be embedded images or paths on this instance. Error text hides secrets inside
+  values and query strings.
+- New, not yet seen: update installs show real stages and a recovery card, a Minecraft server page,
+  Ollama unload, model details and a test chat, a support page with a local support bundle, one
+  save bar in the automation, script and scene editors, and a reload button and a framing notice
+  on embedded pages. Eight more blocks have Cantonese.
+- Seen in a running build (build 96, 390 px wide): the Marketplace list scrolls with its group
+  header pinned, the Personal settings preview scrolls away, and the accessibility panel's rows no
+  longer overlap. Fixed in a later batch, not yet seen: its text size "+" button wrapped onto its
+  own line.
+- Releases: every release carries the Deploy Assistant installers, and runs replaced by a newer
+  push are cancelled and leave no release.
+
 ## 2026-11-10
 
 - New, not yet seen in a running build: an authenticator app card on the profile page, an

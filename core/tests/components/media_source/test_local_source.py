@@ -700,6 +700,7 @@ async def test_create_folder(
         "~home",
         " padded",
         "x" * 256,
+        "é" * 128,
     ],
 )
 async def test_create_folder_invalid_name(
@@ -929,7 +930,7 @@ async def test_remove_folder(
 
     msg = await _call(client, "remove_folder", media_content_id=f"{BASE_ID}/empty")
     assert msg["success"]
-    assert msg["result"] == {"files": 0, "folders": 1}
+    assert msg["result"] == {"files": 0, "folders": 0}
     assert not (root / "empty").exists()
 
     msg = await _call(client, "folder_info", media_content_id=f"{BASE_ID}/full")
@@ -943,7 +944,7 @@ async def test_remove_folder(
         client, "remove_folder", media_content_id=f"{BASE_ID}/full", recursive=True
     )
     assert msg["success"]
-    assert msg["result"] == {"files": 2, "folders": 2}
+    assert msg["result"] == {"files": 2, "folders": 1}
     assert not (root / "full").exists()
 
 
@@ -1018,6 +1019,274 @@ async def test_symlinks_are_not_followed_out(
     assert msg["error"]["code"] == "not_allowed"
     assert (outside / "secret.png").is_file()
     assert (root / "link").is_symlink()
+
+
+@pytest.mark.parametrize("location", [".", "./", ".\\", "a/./b", "./a", ""])
+@pytest.mark.parametrize("command", ["remove_folder", "rename", "move"])
+async def test_media_directory_itself_is_never_changed(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    temp_dir: str,
+    command: str,
+    location: str,
+) -> None:
+    """Test a dot location cannot name the media directory or escape its entry."""
+    root = Path(temp_dir)
+    (root / "a" / "b").mkdir(parents=True)
+    (root / "a" / "b" / "keep.png").touch()
+    (root / "dest").mkdir()
+    (root / "pic.png").touch()
+    client = await hass_ws_client(hass)
+    item_id = f"{BASE_ID}/{location}"
+    data: dict[str, object] = {"media_content_id": item_id}
+    if command == "remove_folder":
+        data["recursive"] = True
+    elif command == "rename":
+        data["new_name"] = "renamed"
+    else:
+        data["destination_media_content_id"] = f"{BASE_ID}/dest"
+
+    msg = await _call(client, command, **data)
+
+    assert not msg["success"]
+    assert msg["error"]["code"] == "not_allowed"
+    assert root.is_dir()
+    assert (root / "a" / "b" / "keep.png").is_file()
+    assert (root / "pic.png").is_file()
+    assert (root / "dest").is_dir()
+    assert not (root.parent / "renamed").exists()
+
+
+@pytest.mark.parametrize("location", ["a/..", "a/../", "..", "a/b/../.."])
+async def test_parent_references_are_refused(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str, location: str
+) -> None:
+    """Test a location with parent references is refused on every command."""
+    root = Path(temp_dir)
+    (root / "a").mkdir()
+    (root / "a" / "keep.png").touch()
+    client = await hass_ws_client(hass)
+    item_id = f"{BASE_ID}/{location}"
+
+    for command, data in (
+        ("remove_folder", {"media_content_id": item_id, "recursive": True}),
+        ("rename", {"media_content_id": item_id, "new_name": "renamed"}),
+        (
+            "move",
+            {
+                "media_content_id": item_id,
+                "destination_media_content_id": BASE_ID,
+            },
+        ),
+    ):
+        msg = await _call(client, command, **data)
+        assert msg["error"]["code"] == websocket_api.ERR_INVALID_FORMAT
+    assert (root / "a" / "keep.png").is_file()
+
+
+@pytest.mark.parametrize("location", [".", "./", ""])
+async def test_folder_info_and_create_on_root(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str, location: str
+) -> None:
+    """Test the root may be counted and may hold a new folder, nothing escapes."""
+    root = Path(temp_dir)
+    (root / "pic.png").touch()
+    client = await hass_ws_client(hass)
+
+    msg = await _call(
+        client, "folder_info", media_content_id=f"{BASE_ID}/{location}"
+    )
+    assert msg["result"] == {"files": 1, "folders": 0}
+
+    msg = await _call(
+        client,
+        "create_folder",
+        parent_media_content_id=f"{BASE_ID}/{location}",
+        name="made",
+    )
+    assert msg["success"]
+    assert (root / "made").is_dir()
+    assert not (root.parent / "made").exists()
+
+
+async def test_remove_folder_expected_counts(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str
+) -> None:
+    """Test the confirmed counts are enforced before anything is deleted."""
+    root = Path(temp_dir)
+    (root / "full" / "sub").mkdir(parents=True)
+    (root / "full" / "a.png").touch()
+    client = await hass_ws_client(hass)
+    target = f"{BASE_ID}/full"
+
+    msg = await _call(
+        client,
+        "remove_folder",
+        media_content_id=target,
+        recursive=True,
+        expected_files=0,
+        expected_folders=1,
+    )
+    assert msg["error"]["code"] == "changed"
+    msg = await _call(
+        client,
+        "remove_folder",
+        media_content_id=target,
+        recursive=True,
+        expected_files=1,
+        expected_folders=0,
+    )
+    assert msg["error"]["code"] == "changed"
+    assert (root / "full" / "a.png").is_file()
+
+    msg = await _call(
+        client,
+        "remove_folder",
+        media_content_id=target,
+        recursive=True,
+        expected_files=1,
+        expected_folders=1,
+    )
+    assert msg["success"]
+    assert msg["result"] == {"files": 1, "folders": 1}
+    assert not (root / "full").exists()
+
+
+async def test_remove_folder_unreadable_subfolder(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str
+) -> None:
+    """Test an unreadable subfolder stops the removal instead of being skipped."""
+    root = Path(temp_dir)
+    (root / "full" / "sub").mkdir(parents=True)
+    client = await hass_ws_client(hass)
+
+    def failing_walk(top: Path, onerror: Callable[[OSError], None] | None = None):
+        assert onerror is not None
+        onerror(OSError("/secret/server/path/sub"))
+        return iter(())
+
+    with patch(
+        "homeassistant.components.media_source.local_source.os.walk",
+        side_effect=failing_walk,
+    ):
+        msg = await _call(
+            client,
+            "remove_folder",
+            media_content_id=f"{BASE_ID}/full",
+            recursive=True,
+        )
+
+    assert not msg["success"]
+    assert msg["error"]["code"] == websocket_api.ERR_UNKNOWN_ERROR
+    assert "/secret" not in msg["error"]["message"]
+    assert (root / "full" / "sub").is_dir()
+
+
+async def test_errors_do_not_leak_server_paths(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str
+) -> None:
+    """Test an operating system error answers with a fixed message."""
+    root = Path(temp_dir)
+    (root / "empty").mkdir()
+    (root / "pic.png").touch()
+    client = await hass_ws_client(hass)
+
+    with patch("pathlib.Path.rmdir", side_effect=OSError("/secret/server/path")):
+        msg = await _call(client, "remove_folder", media_content_id=f"{BASE_ID}/empty")
+    assert msg["error"]["code"] == websocket_api.ERR_UNKNOWN_ERROR
+    assert "/secret" not in msg["error"]["message"]
+
+    with patch("pathlib.Path.unlink", side_effect=OSError("/secret/server/path")):
+        msg = await _call(
+            client,
+            "remove",
+            media_content_id=f"{BASE_ID}/pic.png",
+        )
+    assert msg["error"]["code"] == websocket_api.ERR_UNKNOWN_ERROR
+    assert "/secret" not in msg["error"]["message"]
+
+
+async def test_name_length_counts_bytes(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str
+) -> None:
+    """Test a name is limited to 255 bytes, not characters."""
+    client = await hass_ws_client(hass)
+
+    msg = await _call(
+        client, "create_folder", parent_media_content_id=BASE_ID, name="é" * 127
+    )
+    assert msg["success"]
+
+
+async def test_rename_to_hard_link_of_same_file_refused(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, temp_dir: str
+) -> None:
+    """Test only a case-only change may target an entry that is the same file."""
+    root = Path(temp_dir)
+    (root / "a.png").touch()
+    try:
+        (root / "b.png").hardlink_to(root / "a.png")
+    except OSError:
+        pytest.skip("Hard links are not available")
+    client = await hass_ws_client(hass)
+
+    msg = await _call(
+        client, "rename", media_content_id=f"{BASE_ID}/a.png", new_name="b.png"
+    )
+    assert msg["error"]["code"] == "exists"
+    assert (root / "a.png").is_file()
+    assert (root / "b.png").is_file()
+
+    msg = await _call(
+        client, "rename", media_content_id=f"{BASE_ID}/a.png", new_name="A.png"
+    )
+    assert msg["success"]
+    assert (root / "A.png").is_file()
+
+
+async def test_upload_and_remove_do_not_follow_links_out(
+    hass: HomeAssistant,
+    hass_client: ClientSessionGenerator,
+    hass_ws_client: WebSocketGenerator,
+    temp_dir: str,
+    tmp_path: Path,
+) -> None:
+    """Test a linked folder inside the media directory cannot be used to escape."""
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.png").write_bytes(b"secret")
+    root = Path(temp_dir)
+    try:
+        (root / "link").symlink_to(outside, target_is_directory=True)
+        (root / "filelink.png").symlink_to(outside / "secret.png")
+    except OSError:
+        pytest.skip("Symlinks are not available")
+    img = (Path(__file__).parent.parent / "image_upload/logo.png").read_bytes()
+    client = await hass_client()
+
+    for target, name in (
+        (f"{BASE_ID}/link", "new.png"),
+        (BASE_ID, "filelink.png"),
+    ):
+        pic = io.BytesIO(img)
+        pic.name = name
+        res = await client.post(
+            "/api/media_source/local_source/upload",
+            data={"media_content_id": target, "file": pic},
+        )
+        assert res.status == HTTPStatus.BAD_REQUEST, target
+    assert not (outside / "new.png").exists()
+    assert (outside / "secret.png").read_bytes() == b"secret"
+
+    ws_client = await hass_ws_client(hass)
+    msg = await _call(
+        ws_client,
+        "remove",
+        media_content_id=f"{BASE_ID}/link/secret.png",
+    )
+    assert not msg["success"]
+    assert msg["error"]["code"] == websocket_api.ERR_NOT_SUPPORTED
+    assert (outside / "secret.png").is_file()
 
 
 @pytest.mark.parametrize(

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getMediaBreadcrumbs,
   isMediaSourceRoot,
   isValidMediaName,
   normalizeMediaFolderId,
+  removeLocalMediaFolder,
 } from "../../src/data/media_source";
 
 describe("media folder helpers", () => {
@@ -68,5 +69,31 @@ describe("media folder helpers", () => {
     expect(isValidMediaName("Holiday 2026")).toBe(true);
     expect(isValidMediaName("x".repeat(255))).toBe(true);
     expect(isValidMediaName("x".repeat(256))).toBe(false);
+  });
+
+  it("counts the length of a name in bytes, as the server does", () => {
+    expect(isValidMediaName("é".repeat(127))).toBe(true);
+    expect(isValidMediaName("é".repeat(128))).toBe(false);
+  });
+
+  it("holds a folder removal to the counts the person confirmed", async () => {
+    const callWS = vi.fn().mockResolvedValue({ files: 1, folders: 0 });
+    await removeLocalMediaFolder(callWS as any, "media-source://x/a", true, {
+      files: 1,
+      folders: 0,
+    });
+    expect(callWS).toHaveBeenCalledWith({
+      type: "media_source/local_source/remove_folder",
+      media_content_id: "media-source://x/a",
+      recursive: true,
+      expected_files: 1,
+      expected_folders: 0,
+    });
+    await removeLocalMediaFolder(callWS as any, "media-source://x/a", false);
+    expect(callWS).toHaveBeenLastCalledWith({
+      type: "media_source/local_source/remove_folder",
+      media_content_id: "media-source://x/a",
+      recursive: false,
+    });
   });
 });

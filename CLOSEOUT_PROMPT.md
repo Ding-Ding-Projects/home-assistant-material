@@ -13,46 +13,68 @@ product matching it.
 
 ## Current state
 
-- `main` holds the work up to commit `fd656ab96` (batch 17 is `0d9dc73d4`; the Windows clone, build
-  crash and empty-release fixes are `5b2c6af85`). Other lanes may have uncommitted changes in the
-  working copy; stage files by explicit path.
-- Landed in the last batch: review fixes (Minecraft over SSH, automation and dashboard history,
-  Ollama, shared identity, import summary); appearance and personal wording saved on the instance;
-  authenticator card, activity tray and recovery card, schedules and shared defaults, information
-  buttons, split panes and a resizable filter pane, starting points; fixes for defects seen in
-  build 80; a plain clone on Windows; a local build that no longer crashes on many processors;
-  releases only for pushes that change the product.
+- `main` holds the work up to commit `662a8731e` (batch 18 is `8fa63f05d`, batch 19 is
+  `0d056629e`; the pinned group header fix is `f86ff751a`; the dashboard tools dialog is
+  `cbefeaf48`; the release workflow commits are `5b2c6af85`, `b64779d75` and `3ce9e087a`). Other
+  lanes may have uncommitted changes in the working copy; stage files by explicit path.
+- Commit `b64779d75` carries a message that belongs to another project. It copies the Deploy
+  Assistant installers onto a release straight after the release is created and withdraws a
+  release when no build job of its own attached a file. `3ce9e087a` records this; history is not
+  rewritten.
+- The hosted instance on the owner's network runs build 2026.11.1.96. Builds 88 and 91 were skipped
+  on purpose: settings saved on the instance could cross between two accounts on one browser;
+  batch 18 fixed it.
+- Landed: account-safe saving of settings on the instance, update install stages and recovery card,
+  the Minecraft server page, Ollama unload, details and test chat, the support page and bundle, one
+  save bar in the editors, embedded page panel changes, Cantonese additions, media folder
+  management and the "Add media" fix, the paid cloud service hidden in the interface (server
+  integration unchanged), history search and version picker, new converter formats, and the
+  dashboard tools dialog.
 
 ## Verified, and how
 
-- 623 server tests pass in a Linux container (passkey 143, Minecraft manager 217, Ollama suite 70,
-  frontend storage 36, automation and dashboard history 157).
-- Frontend type check clean; 5,093 frontend tests pass with the unchanged baseline of 3 failures
-  and 46 files that do not load.
-- The production frontend container build completes with the processor cap.
-- A plain clone checks out on Windows 11.
-- The changed server integrations load without errors in a running copy.
+- Verified by running: frontend type check clean; 5,337 frontend tests pass with the unchanged
+  baseline of 3 failures and 46 files that do not load; server tests in a Linux container: media
+  source 109 passed, Ollama 88 passed, and earlier on 11 November passkey 143, Minecraft manager
+  217, frontend storage 36, automation and dashboard history 157.
+- Seen in a running build (build 2026.11.1.96, throwaway copy, 390 px wide): the Marketplace list
+  scrolls with its group header pinned; on the Personal settings page the preview scrolls away and
+  only the group chips stay pinned; the accessibility panel's rows no longer overlap (its text size
+  "+" button wrapped onto its own line in that build; the batch 19 fix is unseen).
+- Release pipeline, observed: every release carries the Deploy Assistant installers (v2026.11.1.88,
+  .91, .93); runs replaced by a newer push are cancelled and leave no release; 37 empty releases
+  were removed by hand.
 
 ## Not verified
 
-- No page or component of the last batch has been opened in a browser: authenticator card,
-  activity tray and recovery card, schedules and shared defaults, information buttons, split panes
-  and filter pane resize, starting points, appearance and wording saved to the instance, the import
-  summary changes, and the archive list on the history pages.
-- No operating system image has been built since the file rename.
-- The new release workflow jobs have not run (attach the Deploy Assistant, withdraw an empty
-  release, no release for documentation-only pushes).
-- `deploy-assistant\build.bat` (added by another lane) has not been run; the build fix has been
-  tried on one computer only.
-- No real authenticator app, Docker host over SSH, Ollama server or forge remote has been used.
+- Not seen in any browser: update install progress and recovery card, the Minecraft server page,
+  Ollama unload, model details and test chat, the support page and bundle, the save bar, the
+  embedded page panel, media folder management, the "Add media" fix (reported broken on an iPhone;
+  fixed in source only), the image upload button, hiding of the cloud service, the new converter
+  formats, history search and version picker, the "Git remote" wording, Cantonese additions, the
+  dashboard tools dialog, and everything from the batch before (authenticator card, activity tray,
+  schedules, information buttons, split panes, starting points).
+- A documentation-only push publishing no release has not been observed.
+- The Minecraft manager has never been run against a real Docker host, the Ollama page never against
+  a real server, and passkeys never with a real authenticator.
+- No operating system image has been built since two unit files were renamed for Windows checkouts.
+- `deploy-assistant\build.bat` (another lane's) has not been run by this work.
+- The iPhone app's setup problems reported by the owner are not yet described.
+
+## Known open
+
+- The save bar can leave a blank strip when the phone's bottom bar hides on scroll.
+- An old logbook entry can still name the cloud service as an actor, and a voice pipeline already
+  set to a cloud voice shows a blank picker.
+- Reading PDFs, MP3 output and video-to-video conversion are not offered.
 
 ## Next steps
 
-1. Run the newest image or the served frontend and look at each page listed under "Not verified";
-   record what is seen in `docs/feature-status.md` and tick `ROADMAP.md` only then.
-2. Watch the next product push for the Deploy Assistant attachment and the absence of a release
-   for a documentation-only push; build an operating system image and confirm the two renamed
-   mount units are back under their real names.
+1. Open each page listed under "Not verified" in the hosted build or a throwaway copy, starting
+   with "Add media" on a phone; record what is seen in `docs/feature-status.md` and tick
+   `ROADMAP.md` only then.
+2. Watch the next documentation-only push for the absence of a release; build an operating system
+   image and confirm the two renamed mount units are back under their real names.
 3. Prove backups carry `automation_repos/` and `dashboard_repos/` (see `HANDOFF.md`).
 4. Remaining board work: the Tools code generator (needs a credential vault), schedule triggers
    from entities and web services, the guided form worked example and practise control, the update

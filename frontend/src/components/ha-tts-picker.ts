@@ -11,6 +11,10 @@ import {
 import { transform } from "../common/decorators/transform";
 import { fireEvent } from "../common/dom/fire_event";
 import { computeDomain } from "../common/entity/compute_domain";
+import {
+  isCloudEngine,
+  listOfferedEngines,
+} from "../data/engine-picker-options";
 import type { LocalizeFunc } from "../common/translations/localize";
 import { debounce } from "../common/util/debounce";
 import {
@@ -99,7 +103,7 @@ export class HaTTSPicker extends LitElement {
     if (!value && this.required) {
       for (const ttsEngine of this._engines) {
         if (
-          ttsEngine.engine_id !== this._cloudEngineId &&
+          !isCloudEngine(ttsEngine.engine_id, this._cloudEngineId) &&
           ttsEngine?.supported_languages?.length !== 0
         ) {
           value = ttsEngine.engine_id;
@@ -111,25 +115,27 @@ export class HaTTSPicker extends LitElement {
       value = NONE;
     }
 
-    const options: HaSelectOption[] = this._engines
-      .filter((engine) => engine.engine_id !== this._cloudEngineId)
-      .filter((engine) => !engine.deprecated || engine.engine_id === value)
-      .map((engine) => {
-        let label: string;
-        if (engine.engine_id.includes(".")) {
-          const stateObj = this._states[engine.engine_id];
-          label = stateObj
-            ? this._formatEntityName(stateObj)
-            : engine.engine_id;
-        } else {
-          label = engine.name || engine.engine_id;
-        }
-        return {
-          value: engine.engine_id,
-          label,
-          disabled: engine.supported_languages?.length === 0,
-        };
-      });
+    const options: HaSelectOption[] = listOfferedEngines(
+      this._engines,
+      this.value,
+      this._cloudEngineId,
+      true
+    ).map(({ engine, keptForCurrentValue }) => {
+      let label: string;
+      if (keptForCurrentValue) {
+        label = this._localize("ui.components.tts-picker.current_not_offered");
+      } else if (engine.engine_id.includes(".")) {
+        const stateObj = this._states[engine.engine_id];
+        label = stateObj ? this._formatEntityName(stateObj) : engine.engine_id;
+      } else {
+        label = engine.name || engine.engine_id;
+      }
+      return {
+        value: engine.engine_id,
+        label,
+        disabled: engine.supported_languages?.length === 0,
+      };
+    });
 
     if (!this.required || value === NONE) {
       options.unshift({

@@ -19,10 +19,13 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Release workflow compares a push with the last build that published images, so a
       documentation-only push on top of unbuilt code still builds that code. Built; builds 64 and
       65 went out without images before the fix, and no push since has shown the fix working
-- [ ] Release workflow, new jobs: a push that changes only documentation or design files publishes
-      no release, a run that attaches no file withdraws its release and tag, and every release
-      gets the newest Deploy Assistant installers copied onto it. Built; none of the three has run
-      on a real push. (The 37 releases with no files that the old workflow left were removed.)
+- [x] Every release carries the newest Deploy Assistant installers, copied on straight after the
+      release is created. Seen on v2026.11.1.88, .91 and .93. Runs replaced by a newer push are
+      cancelled and leave no release. (The 37 releases with no files that the old workflow left
+      were removed by hand.)
+- [ ] Release workflow: a push that changes only documentation or design files publishes no
+      release. Built; not yet observed. A run that attaches no file of its own withdraws its
+      release and tag (built, not observed)
 - [x] A plain `git clone` checks out on Windows 11: the two systemd mount units with a backslash
       in their names are stored as `__x2d__`. The rename back to the real names in the operating
       system post-build script is not yet seen in an operating system build
@@ -38,7 +41,11 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       Not yet booted in VirtualBox or on a Raspberry Pi
 - [ ] Boot the VirtualBox image and complete first-run setup
 - [ ] Boot a Raspberry Pi image and complete first-run setup
-- [ ] Observe a core update from one build to the next through Settings
+- [x] The hosted instance on the owner's network runs build 2026.11.1.96 (builds 88 and 91 were
+      skipped on purpose: they had a defect where settings saved on the instance could cross
+      between two accounts on one browser; fixed in batch 18)
+- [ ] Observe a core update from one build to the next through Settings. Update install progress
+      and the recovery card are built and not yet seen
 - [x] Add the operating system signing secrets (set 10 November 2026)
 - [ ] Observe an over-the-air operating system update between two builds signed with them. No
       operating system image has been booted with an over-the-air update
@@ -114,8 +121,12 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       30-day history with Undo is built and not yet seen; the board's colours by severity,
       action buttons and stacked toasts are not built
 - [~] Progress where it started, recovery where it broke: the activity tray and the recovery card
-      are built and not yet seen. Not built: the update dialog in the tray; draft recovery is
+      are built and not yet seen; update installs show real stages and a recovery card with
+      actions (built, not seen). Not built: the update dialog in the tray; draft recovery is
       design only
+- [x] Phone fixes seen in build 96 at 390 px: the Marketplace list scrolls with its group header
+      pinned, the Personal settings preview scrolls away, the accessibility panel's rows no
+      longer overlap. Not seen: the "+" text size button staying on one line (batch 19)
 - [~] Starting points for blank editors: built for an empty template editor and an empty dashboard
       sections view, not yet seen. Not built: other empty editors
 - [x] Version and updated-at on the first screen
@@ -170,7 +181,12 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       settings are built and not yet seen. Not built: triggers from an entity or a web service
 - [ ] Appearance choices and the personal wording file saved on the instance for the signed-in
       account, kept in backups. Built; not yet seen in a running build, and not tried from a
-      second computer or after a restore
+      second computer or after a restore. Batch 18 ties the saved settings to the account so
+      another account's cache is cleared first (unit tests; not seen with two accounts)
+- [ ] The paid cloud service is no longer shown anywhere in the interface (the server integration
+      is unchanged). Built; not seen. Open: an old logbook entry can still name it as an actor,
+      and a voice pipeline already set to a cloud voice shows a blank picker
+- [ ] Cantonese for eight more blocks, with a test that keeps them complete. Built; not seen
 - [ ] Renaming the app and logo customization. Built; not yet seen in a running build
 - [ ] Dim sum surprise (built only in the Deploy Assistant)
 
@@ -221,6 +237,15 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Review findings fixed in source and covered by server tests (Minecraft over SSH, automation
       and dashboard history, Ollama, shared identity, import summary); the pages that show them
       are not yet seen
+- [ ] Dashboard tools in edit mode: outline with bulk actions, find and replace of an entity ID,
+      a check, card templates, statistics and preview width. Built; unit tests of the editing
+      functions only, the dialog is not yet seen
+- [ ] Dashboard history and automation history: a search field and a searchable version picker
+      for Compare, and "Git remote" in full on the history and recorded problems pages. Built;
+      not yet seen
+- [ ] One save bar in every automation, script and scene editor mode (a read-only automation no
+      longer shows an enabled Save). Built; not yet seen. Open: the bar can leave a blank strip
+      when the phone's bottom bar hides on scroll
 
 ## Pages redrawn to their boards
 
@@ -277,16 +302,25 @@ matches its board, checked side by side.
 - [~] Offline help articles: the Help tool with 12 articles was seen; 40 articles and 1,392
       integration pages are bundled and not yet seen; no article per page yet
 - [ ] Rendered provider text
-- [~] File converter: data formats, images and text transforms are built and not yet seen;
-      documents, audio, video and archives are not
+- [~] File converter: data formats, images, text transforms, archives (ZIP, TAR, GZIP), pictures,
+      text and Markdown to PDF, Word documents to and from text, audio to WAV and a still picture
+      from a video are built and not yet seen. Not offered: reading PDFs, MP3 output and
+      video-to-video conversion
 - [x] Base64 toolkit: encode, decode and data URLs for text and files, under Tools
-- [~] Minecraft server manager: definitions, SSH hosts, version lookup and the Docker over SSH
-      target (start, stop, log) are built and covered by 217 server tests; no real Docker host has
-      been used and the page is not seen. Not built: the other four targets, backups, the world
+- [~] Minecraft server manager: definitions, SSH hosts, version lookup, the Docker over SSH
+      target (start, stop, log) and a server page with overview, logs, settings and removal tabs
+      are built and covered by 217 server tests; the manager has never been run against a real
+      Docker host and the page is not seen. Not built: the other four targets, backups, the world
       generator
-- [~] Local Ollama suite: servers, models, pull with progress and Cancel, and delete are built
-      (70 server tests, fake streams); no real Ollama server contacted and the page is not seen.
-      Not built: chat, helpers
+- [~] Local Ollama suite: servers, models, pull with progress and Cancel, delete, unload, model
+      details with the assistants that use a model, and a test chat that cannot control the home
+      are built (88 server tests, fake streams); the page has never been run against a real
+      Ollama server and is not seen. Not built: helpers
+- [ ] Support page with a local support bundle that is never sent anywhere. Built; not yet seen
+- [ ] Media folders: create, rename, move and delete in the Manage dialog, and the "Add media"
+      fix reported broken on an iPhone (fixed in source only), the image upload button and the
+      filter field on every media folder. Built; 109 server tests pass; not yet seen
+- [ ] Embedded page panel: reload and a notice when a page refuses framing. Built; not yet seen
 - [ ] External editor hand-off and publishing to a forge
 - [~] Drawing and annotation: a drawing board under Tools, built and not yet seen
 

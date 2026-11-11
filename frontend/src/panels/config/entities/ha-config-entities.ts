@@ -96,6 +96,7 @@ import { fetchEntitySourcesWithCache } from "../../../data/entity/entity_sources
 import type { ExposeEntitySettings } from "../../../data/expose";
 import {
   exposeEntities,
+  getListedVoiceAssistantIds,
   listExposedEntities,
   voiceAssistants,
 } from "../../../data/expose";
@@ -174,7 +175,7 @@ const getVoiceAssistantIds = (
   exposedEntities: Record<string, ExposeEntitySettings> | undefined,
   entityId: string
 ) =>
-  Object.keys(voiceAssistants).filter(
+  getListedVoiceAssistantIds().filter(
     (vaId) => exposedEntities?.[entityId]?.[vaId]
   );
 
@@ -1350,7 +1351,7 @@ export class HaConfigEntities extends LitElement {
     const exposeSettings: ExposeEntitySettings | undefined =
       this._exposedEntities?.[entityId];
     const options: EntityRegistryOptions = {};
-    Object.keys(voiceAssistants).forEach((vaId) => {
+    getListedVoiceAssistantIds().forEach((vaId) => {
       options[vaId] = {
         should_expose: exposeSettings?.[vaId],
       };

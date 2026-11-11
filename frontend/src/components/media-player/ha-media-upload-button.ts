@@ -36,6 +36,9 @@ class MediaUploadButton extends LitElement {
 
   @state() _uploading = 0;
 
+  // Where the last press said the upload goes
+  private _pressed?: { kind: "local" | "image"; id: string };
+
   @query("input") private _input?: HTMLInputElement;
 
   protected render() {
@@ -94,6 +97,10 @@ class MediaUploadButton extends LitElement {
     if (this._uploading > 0) {
       return;
     }
+    // The folder is fixed at the press: it may change while the chooser is open.
+    const kind = this._target();
+    const id = this.currentItem?.media_content_id;
+    this._pressed = kind && id ? { kind, id } : undefined;
     // Opened in the same step as the press: a browser only shows the file
     // chooser while it still counts the press as the person's own action.
     this._input?.click();
@@ -101,7 +108,9 @@ class MediaUploadButton extends LitElement {
 
   private async _filesChosen() {
     const input = this._input;
-    const kind = this._target();
+    const pressed = this._pressed;
+    this._pressed = undefined;
+    const kind = pressed?.kind;
     const files = input?.files ? Array.from(input.files) : [];
     if (input) {
       // Lets the same file be chosen again later.
@@ -111,7 +120,7 @@ class MediaUploadButton extends LitElement {
       return;
     }
     fireEvent(this, "uploading");
-    const target = this.currentItem!.media_content_id!;
+    const target = pressed!.id;
 
     for (let i = 0; i < files.length; i++) {
       this._uploading = files.length - i;

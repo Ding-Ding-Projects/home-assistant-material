@@ -1,6 +1,6 @@
 # Handoff
 
-Written 9 November 2026 and brought up to date on 10 November 2026 (after commits `5b2c6af85` and `0d9dc73d4`) for whoever picks this up next.
+Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 and 19, commits `8fa63f05d` and `0d056629e`) for whoever picks this up next.
 
 ## Where things stand
 
@@ -21,6 +21,58 @@ what has really been seen in a running build. Read both before trusting any summ
   was mistaken for a documentation-only push); the release workflow now compares with the last
   build that published images. Build 66 is the first with images again.
 - Open work is tracked in issues 1 to 11 of this repository and in the lists below.
+
+### What landed on 11 November 2026 (batches 18 and 19), and how far it is checked
+
+- `8fa63f05d` (batch 18): settings saved on the instance are tied to the signed-in account (a cache
+  from another account is cleared before anything is shown or uploaded); picture layers may only
+  be embedded images or paths on this instance; a hostile appearance value cannot write onto shared
+  prototypes; error text redaction hides secrets inside values, in query strings and after a raw
+  at-sign; a personal setting a person chose is kept even when it equals the default; Undo and Retry
+  in the activity tray run once. New: update install stages and a recovery card, the Minecraft
+  server page, Ollama unload, model details and test chat, the support page and bundle, one save
+  bar in the editors, embedded page panel changes, Cantonese for eight more blocks.
+- `f86ff751a`: the pinned group header in card-style lists (the Marketplace on a phone) no longer
+  lays out in the flow.
+- `cbefeaf48`: the Dashboard tools dialog in edit mode (`docs/features/dashboards/dashboard-tools.md`).
+- `0d056629e` (batch 19): the "Add media" fix, media folder management, the image upload button, the
+  paid cloud service hidden in the interface (server integration unchanged, by the owner's
+  instruction), history search and a version picker, "Git remote" wording, the accessibility "+"
+  button on one line, new converter formats (archives, PDF output, Word, audio to WAV, a still
+  from a video), and review fixes (read-only automation, slow restart, support bundle addresses,
+  Minecraft request pile-up, test chat model check).
+- Release workflow commits: `5b2c6af85` (see below), `b64779d75` (its message belongs to another
+  project; it copies the Deploy Assistant installers straight after the release is created and
+  withdraws a release when no build job of its own attached a file) and `3ce9e087a` (records what
+  `b64779d75` really changed). History is not rewritten.
+- Verified by running: frontend type check clean; 5,337 frontend tests pass with the unchanged
+  baseline of 3 failures and 46 files that do not load; server tests in a Linux container: media
+  source 109, Ollama 88, and earlier on 11 November passkey 143, Minecraft manager 217, frontend
+  storage 36, automation and dashboard history 157.
+- Seen in a running build (build 2026.11.1.96, throwaway copy, 390 px wide): the Marketplace list
+  scrolls with its group header pinned; the Personal settings preview scrolls away and only the
+  group chips stay pinned; the accessibility panel's rows no longer overlap (its "+" button wrapped
+  onto its own line in that build; the batch 19 fix is unseen).
+- Release pipeline, observed: every release carries the Deploy Assistant installers (v2026.11.1.88,
+  .91, .93); runs replaced by a newer push are cancelled and leave no release; 37 empty releases
+  were removed by hand. Not observed: a documentation-only push publishing no release.
+- The hosted instance on the owner's network runs build 2026.11.1.96. Builds 88 and 91 were skipped
+  on purpose because settings saved on the instance could cross between two accounts on one
+  browser; batch 18 fixed it.
+- Not seen in any browser: update install progress and recovery card, the Minecraft server page,
+  Ollama unload, model details and test chat, the support page and bundle, the save bar, the
+  embedded page panel, media folder management, the "Add media" fix (reported broken on an iPhone;
+  fixed in source only), the image upload button, hiding of the cloud service, the new converter
+  formats, history search and the version picker, the "Git remote" wording, the Cantonese
+  additions, and the dashboard tools dialog.
+- Known open: the save bar can leave a blank strip when the phone's bottom bar hides on scroll; an
+  old logbook entry can still name the cloud service as an actor and a voice pipeline already set
+  to a cloud voice shows a blank picker; reading PDFs, MP3 output and video-to-video conversion are
+  not offered; the Minecraft manager has never been run against a real Docker host; the Ollama page
+  has never been run against a real server; passkeys have never been used with a real
+  authenticator; no operating system image has been built since two unit files were renamed for
+  Windows checkouts; the iPhone app's setup problems reported by the owner are not yet described;
+  `deploy-assistant\build.bat` (another lane's) has not been run by this work.
 
 ### What the last two commits of 10 November 2026 changed, and how far it is checked
 
@@ -240,7 +292,9 @@ pickers, logs and the automation editor are not seen there; open port 8090.
    back with their history (item 1 above).
 3. Boot the VirtualBox image (`haos_ova-<version>.vdi.zip`) and a Raspberry Pi image, then an
    over-the-air update between two builds signed with the project's key.
-4. Open each page of the last batch in a running build and record what is seen: the authenticator
+4. Open each page of batches 18 and 19 in a running build (the list under "What landed on 11
+   November 2026") and record what is seen, starting with "Add media" on a phone.
+   Then open each page of the batch before: the authenticator
    card, the activity tray and recovery card, schedules and shared defaults, information buttons,
    split panes and the filter pane resize, starting points, appearance and wording saved to the
    instance (try a second browser and a restore), the import summary, and the archive list on the

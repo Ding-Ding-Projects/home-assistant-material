@@ -1109,7 +1109,8 @@
       },
       "tts-picker": {
         "tts": "Text-to-speech",
-        "none": "None"
+        "none": "None",
+        "current_not_offered": "Current engine (not offered in this build)"
       },
       "tts-voice-picker": {
         "voice": "Voice",
@@ -1240,7 +1241,8 @@
       },
       "stt-picker": {
         "stt": "Speech-to-text",
-        "none": "None"
+        "none": "None",
+        "current_not_offered": "Current engine (not offered in this build)"
       },
       "related-filter-menu": {
         "filter": "Filter",
@@ -1513,6 +1515,9 @@
           "error_not_found": "The item no longer exists.",
           "error_not_empty": "The folder is not empty.",
           "error_not_allowed": "That is not allowed here.",
+          "error_changed": "A folder changed after you confirmed. Delete it again to see what it holds now.",
+          "error_unknown": "The server could not do that. Check the Home Assistant log for details.",
+          "partly_moved": "{moved} of {total} items were moved before it stopped: {reason}",
           "highlight_button": "Click here to upload your first media",
           "upload_failed": "Upload failed: {reason}",
           "add_media": "Add media",
@@ -5892,7 +5897,7 @@
             "retention_for_this_system": "Retention for this system",
             "retention_for_location": "Retention for {location}",
             "not_found": "Not found",
-            "not_found_description": "Location matching ''{backupId}'' not found",
+            "not_found_description": "Location matching ''{agentId}'' not found",
             "error": "Could not fetch location details",
             "configuration": {
               "title": "Configuration",
@@ -7901,6 +7906,7 @@
                 }
               },
               "unsupported": "Unsupported",
+              "no_local_engine": "No local speech engine supports this language yet. Install a local speech engine, or choose a different language.",
               "unsupported_language": {
                 "header": "Your language is not supported",
                 "secondary": "Your language {language} is not supported yet. You can select a different language to continue.",

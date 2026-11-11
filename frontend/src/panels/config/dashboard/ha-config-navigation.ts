@@ -7,7 +7,6 @@ import { filterNavigationPages } from "../../../common/config/filter_navigation_
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-next";
-import type { CloudStatus } from "../../../data/cloud";
 import { getConfigEntries } from "../../../data/config_entries";
 import type { PageNavigation } from "../../../layouts/hass-tabs-subpage";
 import {
@@ -89,20 +88,7 @@ class HaConfigNavigation extends LitElement {
         this.hass.localize(
           `ui.panel.config.dashboard.${page.translationKey}.main`
         ),
-      description:
-        page.component === "cloud" && (page.info as CloudStatus)
-          ? page.info.logged_in
-            ? `
-                  ${this.hass.localize(
-                    "ui.panel.config.cloud.description_login"
-                  )}
-                `
-            : `
-                  ${this.hass.localize(
-                    "ui.panel.config.cloud.description_features"
-                  )}
-                `
-          : `
+      description: `
                 ${
                   this.summaries?.[page.path] ||
                   page.description ||

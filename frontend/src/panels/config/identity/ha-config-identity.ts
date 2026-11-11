@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { visuallyHiddenFileInputStyles } from "../../../resources/visually-hidden-file-input";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import type {
   Identity,
@@ -350,10 +351,12 @@ class HaConfigIdentity extends LitElement {
                   ${this._l("upload")}
                 </ha-button>
                 <input
+                  class="file-input-hidden"
+                  tabindex="-1"
+                  aria-hidden="true"
                   id="file"
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
-                  hidden
                   @change=${this._fileChosen}
                 />
               </div>
@@ -902,6 +905,7 @@ class HaConfigIdentity extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      visuallyHiddenFileInputStyles,
       css`
         .content {
           box-sizing: border-box;

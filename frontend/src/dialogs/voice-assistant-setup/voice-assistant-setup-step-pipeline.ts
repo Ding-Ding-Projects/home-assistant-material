@@ -204,12 +204,20 @@ export class HaVoiceAssistantSetupStepPipeline extends LitElement {
           <div class="segment"></div>
           <div class="segment"></div>
         </div>
-        <ha-select-box
-          max_columns="1"
-          .options=${options.supportedOptions}
-          .value=${this._value}
-          @value-changed=${this._valueChanged}
-        ></ha-select-box>
+        ${
+          options.supportedOptions.length
+            ? html`<ha-select-box
+                max_columns="1"
+                .options=${options.supportedOptions}
+                .value=${this._value}
+                @value-changed=${this._valueChanged}
+              ></ha-select-box>`
+            : html`<p class="no-local-engine">
+                ${this.hass.localize(
+                  "ui.panel.config.voice_assistants.satellite_wizard.pipeline.no_local_engine"
+                )}
+              </p>`
+        }
         ${
           options.unsupportedOptions.length
             ? html`<h3>
@@ -310,6 +318,9 @@ export class HaVoiceAssistantSetupStepPipeline extends LitElement {
         display: block;
       }
       ha-select-box:first-of-type {
+        margin-top: 32px;
+      }
+      .no-local-engine {
         margin-top: 32px;
       }
       .footer {

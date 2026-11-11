@@ -3,6 +3,7 @@ import { mdiContentCopy } from "@mdi/js";
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { consume } from "../../common/decorators/consume";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
 import { storage } from "../../common/decorators/storage";
@@ -180,12 +181,21 @@ class BrowseMediaTTS extends LitElement {
             }
           });
 
-          if (provider === "cloud") {
-            fetchCloudStatus(this._api.callWS).then((status) => {
-              if (status.logged_in) {
-                this._language = status.prefs.tts_default_voice[0];
-              }
-            });
+          // Only a server that still has the integration can answer, and a
+          // failed lookup must never surface as an error in the browser.
+          if (
+            provider === "cloud" &&
+            this._hassConfig?.config &&
+            isComponentLoaded(this._hassConfig.config, "cloud")
+          ) {
+            fetchCloudStatus(this._api.callWS).then(
+              (status) => {
+                if (status.logged_in) {
+                  this._language = status.prefs.tts_default_voice[0];
+                }
+              },
+              () => undefined
+            );
           }
         }
       }

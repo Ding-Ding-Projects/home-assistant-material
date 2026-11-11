@@ -25,6 +25,7 @@ import { apiContext, configContext } from "../../data/context";
 import { deleteImage, getIdFromUrl } from "../../data/image_upload";
 import type { MediaPlayerItem } from "../../data/media-player";
 import { MediaClassBrowserSettings } from "../../data/media-player";
+import type { MediaFolderCounts } from "../../data/media_source";
 import {
   browseLocalMediaPlayer,
   createLocalMediaFolder,
@@ -68,6 +69,7 @@ const FOLDER_ERROR_CODES = [
   "not_found",
   "not_empty",
   "not_allowed",
+  "changed",
 ];
 
 @customElement("dialog-media-manage")
@@ -97,6 +99,9 @@ class DialogMediaManage extends LitElement {
 
   @state() private _working = false;
 
+  // True while a delete confirmation is open, so nothing else can start under it
+  @state() private _confirming = false;
+
   @state() private _selected = new Set<string>();
 
   @state() private _open = false;
@@ -125,6 +130,7 @@ class DialogMediaManage extends LitElement {
     this._moving = undefined;
     this._uploading = false;
     this._working = false;
+    this._confirming = false;
     this._selected = new Set();
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
@@ -143,7 +149,9 @@ class DialogMediaManage extends LitElement {
   }
 
   private get _busy(): boolean {
-    return this._uploading || this._working || this._loading;
+    return (
+      this._uploading || this._working || this._loading || this._confirming
+    );
   }
 
   // Folder actions need a folder inside a media directory, not the list of them
@@ -524,7 +532,9 @@ class DialogMediaManage extends LitElement {
       }
       <div class="actions">
         <ha-button
-          .disabled=${this._working || alreadyHere || insideMoved}
+          .disabled=${
+            this._working || this._loading || alreadyHere || insideMoved
+          }
           @click=${this._confirmMove}
         >
           <ha-svg-icon .path=${mdiFolderMove} slot="start"></ha-svg-icon>
@@ -628,6 +638,12 @@ class DialogMediaManage extends LitElement {
     if (FOLDER_ERROR_CODES.includes(code)) {
       return this._localize(
         `ui.components.media-browser.file_management.error_${code}` as any
+      );
+    }
+    if (typeof code === "string") {
+      // A server answer this dialog does not know: its text may name a path
+      return this._localize(
+        "ui.components.media-browser.file_management.error_unknown"
       );
     }
     return err?.message || this._localize("ui.common.unknown_error");
@@ -757,16 +773,36 @@ class DialogMediaManage extends LitElement {
     const destination = normalizeMediaFolderId(this._pickerId);
     this._moving = undefined;
     this._pickerItem = undefined;
-    await this._run(async () => {
-      for (const item of moving) {
-        // eslint-disable-next-line no-await-in-loop
-        await moveLocalMedia(
-          this._api.callWS,
-          item.media_content_id,
-          destination
-        );
+    let moved = 0;
+    await this._run(
+      async () => {
+        for (const item of moving) {
+          // eslint-disable-next-line no-await-in-loop
+          await moveLocalMedia(
+            this._api.callWS,
+            item.media_content_id,
+            destination
+          );
+          moved++;
+        }
+      },
+      (err) => {
+        if (moved === 0) {
+          this._showFailure("action_failed", err);
+          return;
+        }
+        showAlertDialog(this, {
+          text: this._localize(
+            "ui.components.media-browser.file_management.partly_moved",
+            {
+              moved,
+              total: moving.length,
+              reason: this._errorText(err),
+            }
+          ),
+        });
       }
-    });
+    );
   }
 
   private _deleteSelected() {
@@ -780,6 +816,8 @@ class DialogMediaManage extends LitElement {
     const folders = items.filter((item) => item.can_expand);
     let held = { files: 0, folders: 0 };
     let heldFolders = 0;
+    // What the person is told each folder holds; the delete is held to it
+    const confirmedCounts = new Map<string, MediaFolderCounts>();
 
     if (folders.length) {
       this._working = true;
@@ -789,7 +827,8 @@ class DialogMediaManage extends LitElement {
             getLocalMediaFolderCounts(this._api.callWS, item.media_content_id)
           )
         );
-        for (const count of counts) {
+        for (const [index, count] of counts.entries()) {
+          confirmedCounts.set(folders[index].media_content_id, count);
           if (count.files || count.folders) {
             heldFolders++;
           }
@@ -807,7 +846,52 @@ class DialogMediaManage extends LitElement {
     }
 
     const hasContents = heldFolders > 0;
-    const confirmed = await showConfirmationDialog(this, {
+    this._confirming = true;
+    let confirmed: boolean;
+    try {
+      confirmed = await this._confirmDelete(items, hasContents, {
+        heldFolders,
+        held,
+      });
+    } finally {
+      this._confirming = false;
+    }
+    if (!confirmed) {
+      return;
+    }
+
+    await this._run(async () => {
+      await Promise.all(
+        items.map(async (item) => {
+          if (item.can_expand) {
+            const counts = confirmedCounts.get(item.media_content_id)!;
+            const hasInside = counts.files > 0 || counts.folders > 0;
+            await removeLocalMediaFolder(
+              this._api.callWS,
+              item.media_content_id,
+              hasInside,
+              counts
+            );
+          } else if (isLocalMediaSourceContentId(item.media_content_id)) {
+            await removeLocalMedia(this._api.callWS, item.media_content_id);
+          } else if (isImageUploadMediaSourceContentId(item.media_content_id)) {
+            const mediaId = getIdFromUrl(item.media_content_id);
+            if (mediaId) {
+              await deleteImage(this._api.callWS, mediaId);
+            }
+          }
+        })
+      );
+    });
+  }
+
+  private _confirmDelete(
+    items: MediaPlayerItem[],
+    hasContents: boolean,
+    summary: { heldFolders: number; held: MediaFolderCounts }
+  ): Promise<boolean> {
+    const { heldFolders, held } = summary;
+    return showConfirmationDialog(this, {
       text: hasContents
         ? this._localize(
             "ui.components.media-browser.file_management.confirm_delete_contents",
@@ -824,42 +908,29 @@ class DialogMediaManage extends LitElement {
           ),
       warning: true,
       destructive: hasContents,
-      confirmName:
-        hasContents && items.length === 1 ? items[0].title : undefined,
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    await this._run(async () => {
-      await Promise.all(
-        items.map(async (item) => {
-          if (item.can_expand) {
-            await removeLocalMediaFolder(
-              this._api.callWS,
-              item.media_content_id,
-              true
-            );
-          } else if (isLocalMediaSourceContentId(item.media_content_id)) {
-            await removeLocalMedia(this._api.callWS, item.media_content_id);
-          } else if (isImageUploadMediaSourceContentId(item.media_content_id)) {
-            const mediaId = getIdFromUrl(item.media_content_id);
-            if (mediaId) {
-              await deleteImage(this._api.callWS, mediaId);
-            }
-          }
-        })
-      );
+      // The same strength for one non-empty folder and for several items
+      confirmName: hasContents
+        ? items.length === 1
+          ? items[0].title
+          : String(items.length)
+        : undefined,
     });
   }
 
   // Runs one change, then shows the result in the list and on the Media page
-  private async _run(action: () => Promise<unknown>) {
+  private async _run(
+    action: () => Promise<unknown>,
+    onFailure?: (err: unknown) => void
+  ) {
     this._working = true;
     try {
       await action();
     } catch (err) {
-      this._showFailure("action_failed", err);
+      if (onFailure) {
+        onFailure(err);
+      } else {
+        this._showFailure("action_failed", err);
+      }
     } finally {
       this._working = false;
     }

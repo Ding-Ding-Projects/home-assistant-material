@@ -20,6 +20,7 @@ import { getNetworkUrls, type NetworkUrls } from "../../../data/network";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import type { HomeAssistant } from "../../../types";
 import { obfuscateUrl } from "../../../util/url";
+import { buildUrlSavePayload, initialExternalUrl } from "./external-url";
 
 @customElement("ha-config-url-form")
 class ConfigUrlForm extends SubscribeMixin(LitElement) {
@@ -355,14 +356,16 @@ class ConfigUrlForm extends SubscribeMixin(LitElement) {
     this._working = true;
     this._error = undefined;
     try {
-      await saveCoreConfig(this.hass, {
-        external_url: this._showCustomExternalUrl
-          ? this._external_url || null
-          : null,
-        internal_url: this._showCustomInternalUrl
-          ? this._internal_url || null
-          : null,
-      });
+      await saveCoreConfig(
+        this.hass,
+        buildUrlSavePayload({
+          externalUrl: this._external_url,
+          internalUrl: this._internal_url,
+          customExternal: this._showCustomExternalUrl,
+          customInternal: this._showCustomInternalUrl,
+          externalConfigured: !!this.hass.config.external_url,
+        })
+      );
     } catch (err: any) {
       this._error = err.message || err;
     } finally {
@@ -380,7 +383,12 @@ class ConfigUrlForm extends SubscribeMixin(LitElement) {
       this._cloudStatus?.logged_in && !this.hass.config.external_url
     );
     this._internal_url = this._urls?.internal ?? "";
-    this._external_url = this._urls?.external ?? "";
+    // An address that only the hosted service provides is not the person's
+    // own setting: leave the field empty rather than turning it into one.
+    this._external_url = initialExternalUrl(
+      this._urls,
+      this.hass.config.external_url
+    );
   }
 
   static styles = css`

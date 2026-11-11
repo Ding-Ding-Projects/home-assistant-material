@@ -14,6 +14,18 @@ export const voiceAssistants = {
   },
 } as const;
 
+// The assistants a person can see and choose. The ones that need the hosted
+// cloud service keep their entry in `voiceAssistants` so stored settings stay
+// readable and writable, but they are never listed.
+export const isCloudVoiceAssistant = (assistantId: string): boolean =>
+  assistantId.startsWith("cloud.");
+
+export const getListedVoiceAssistantIds =
+  (): (keyof typeof voiceAssistants)[] =>
+    (Object.keys(voiceAssistants) as (keyof typeof voiceAssistants)[]).filter(
+      (id) => !isCloudVoiceAssistant(id)
+    );
+
 export interface ExposeEntitySettings {
   conversation?: boolean;
   "cloud.alexa"?: boolean;

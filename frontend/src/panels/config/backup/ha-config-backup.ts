@@ -31,6 +31,7 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./ha-config-backup-backups";
 import "./ha-config-backup-overview";
+import { getVisibleBackupAgents } from "./helper/visible-agents";
 
 declare global {
   interface HASSDomEvents {
@@ -163,7 +164,8 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
     pageEl.info = this._info;
     pageEl.backups = this._info?.backups || [];
     pageEl.config = this._config;
-    pageEl.agents = this._agents;
+    // The hosted cloud location is never offered; a stored choice is kept
+    pageEl.agents = getVisibleBackupAgents(this._agents);
     pageEl.fetching = this._fetching;
     pageEl.uploadProgress = this._uploadProgress;
 

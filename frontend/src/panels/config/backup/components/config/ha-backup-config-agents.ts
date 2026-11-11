@@ -16,7 +16,6 @@ import type {
   BackupAgentsConfig,
 } from "../../../../../data/backup";
 import {
-  CLOUD_AGENT,
   computeBackupAgentName,
   isLocalAgent,
   isNetworkMountAgent,
@@ -25,6 +24,10 @@ import type { CloudStatus } from "../../../../../data/cloud";
 import type { HomeAssistant } from "../../../../../types";
 import { brandsUrl } from "../../../../../util/brands-url";
 import { isAgentSelectable } from "../../helper/backup-encryption";
+import {
+  getUnavailableBackupAgents,
+  getVisibleBackupAgents,
+} from "../../helper/visible-agents";
 
 const DEFAULT_AGENTS = [];
 
@@ -50,32 +53,6 @@ class HaBackupConfigAgents extends LitElement {
   }
 
   private _description(agentId: string) {
-    if (agentId === CLOUD_AGENT) {
-      if (
-        this.cloudStatus?.logged_in &&
-        !this.cloudStatus.active_subscription
-      ) {
-        return this.hass.localize(
-          "ui.panel.config.backup.agents.cloud_agent_no_subcription"
-        );
-      }
-      const description = this.hass.localize(
-        "ui.panel.config.backup.agents.cloud_agent_description"
-      );
-      if (!isAgentSelectable(agentId, this.hasEncryptionKey)) {
-        return html`${description}
-          <div class="unencrypted-warning">
-            <span class="dot warning"></span>
-            <span>
-              ${this.hass.localize(
-                "ui.panel.config.backup.agents.needs_encryption"
-              )}
-            </span>
-          </div>`;
-      }
-      return description;
-    }
-
     const texts: (TemplateResult | string)[] = [];
 
     if (isNetworkMountAgent(agentId)) {
@@ -123,30 +100,13 @@ class HaBackupConfigAgents extends LitElement {
     return join(texts, html`<span class="separator"> · </span>`);
   }
 
-  private _availableAgents = memoizeOne(
-    (agents: BackupAgent[], cloudStatus?: CloudStatus) =>
-      agents.filter(
-        (agent) => agent.agent_id !== CLOUD_AGENT || cloudStatus?.logged_in
-      )
+  private _availableAgents = memoizeOne((agents: BackupAgent[]) =>
+    getVisibleBackupAgents(agents)
   );
 
   private _unavailableAgents = memoizeOne(
-    (
-      agents: BackupAgent[],
-      selectedAgentIds: string[],
-      cloudStatus?: CloudStatus
-    ) => {
-      const availableAgentIds = this._availableAgents(agents, cloudStatus).map(
-        (agent) => agent.agent_id
-      );
-
-      return selectedAgentIds
-        .filter((agent) => !availableAgentIds.includes(agent))
-        .map<BackupAgent>((id) => ({
-          agent_id: id,
-          name: id.split(".")[1] || id, // Use the id as name as it is not available in the list
-        }));
-    }
+    (agents: BackupAgent[], selectedAgentIds: string[]) =>
+      getUnavailableBackupAgents(agents, selectedAgentIds)
   );
 
   private _renderAgentIcon(agentId: string) {
@@ -181,15 +141,8 @@ class HaBackupConfigAgents extends LitElement {
   }
 
   protected render() {
-    const availableAgents = this._availableAgents(
-      this.agents,
-      this.cloudStatus
-    );
-    const unavailableAgents = this._unavailableAgents(
-      this.agents,
-      this._value,
-      this.cloudStatus
-    );
+    const availableAgents = this._availableAgents(this.agents);
+    const unavailableAgents = this._unavailableAgents(this.agents, this._value);
 
     const allAgents = [...availableAgents, ...unavailableAgents];
 
@@ -206,10 +159,6 @@ class HaBackupConfigAgents extends LitElement {
                     allAgents
                   );
                   const description = this._description(agentId);
-                  const noCloudSubscription =
-                    agentId === CLOUD_AGENT &&
-                    this.cloudStatus?.logged_in &&
-                    !this.cloudStatus.active_subscription;
 
                   return html`
                     <ha-list-item-base>
@@ -239,11 +188,7 @@ class HaBackupConfigAgents extends LitElement {
                         id=${agentId}
                         .checked=${this._value.includes(agentId)}
                         .disabled=${
-                          (noCloudSubscription ||
-                            !isAgentSelectable(
-                              agentId,
-                              this.hasEncryptionKey
-                            )) &&
+                          !isAgentSelectable(agentId, this.hasEncryptionKey) &&
                           !this._value.includes(agentId)
                         }
                         @change=${this._agentToggled}

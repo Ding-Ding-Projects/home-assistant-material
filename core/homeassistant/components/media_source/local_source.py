@@ -5,7 +5,7 @@ import io
 import logging
 import mimetypes
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import shutil
 from typing import Any, Protocol, cast, override
 
@@ -64,7 +64,7 @@ def _validate_entry_name(name: str, *, media_file: bool) -> str:
     """Validate a new file or folder name and return it."""
     if (
         not name
-        or len(name) > MAX_NAME_LENGTH
+        or len(name.encode()) > MAX_NAME_LENGTH
         or name in (".", "..")
         or name != name.strip()
         or name.startswith(".")
@@ -86,11 +86,20 @@ def _validate_entry_name(name: str, *, media_file: bool) -> str:
     return name
 
 
+def _raise_walk_error(err: OSError) -> None:
+    """Re-raise an error found while walking a folder."""
+    raise err
+
+
 def _count_contents(folder: Path) -> tuple[int, int]:
-    """Return how many files and folders a folder holds, not following links."""
+    """Return how many files and folders a folder holds, not following links.
+
+    The folder itself is not counted. A link counts as a file. An unreadable
+    subfolder raises an OSError instead of being skipped.
+    """
     files = 0
     folders = 0
-    for dirpath, dirnames, filenames in os.walk(folder):
+    for dirpath, dirnames, filenames in os.walk(folder, onerror=_raise_walk_error):
         real_dirs = [
             name for name in dirnames if not (Path(dirpath) / name).is_symlink()
         ]
@@ -161,9 +170,14 @@ class LocalSource(MediaSource):
     async def async_delete_media(self, item: MediaSourceItem) -> None:
         """Delete media."""
         source_dir_id, location = self.async_parse_identifier(item)
-        item_path = self.async_full_path(source_dir_id, location)
+        full_path = self.async_full_path(source_dir_id, location)
+        root = Path(self.media_dirs[source_dir_id]).resolve()
 
         def _do_delete() -> None:
+            parent = full_path.parent.resolve()
+            if not parent.is_relative_to(root) or full_path.resolve() == root:
+                raise PathNotSupportedError("Path is not a file")
+            item_path = parent / full_path.name
             if not item_path.exists():
                 raise FileNotFoundError("Path does not exist")
 
@@ -192,10 +206,14 @@ class LocalSource(MediaSource):
         except ValueError as err:
             raise InvalidFileNameError from err
 
-        target_dir = self.async_full_path(source_dir_id, location)
+        full_dir = self.async_full_path(source_dir_id, location)
+        root = Path(self.media_dirs[source_dir_id]).resolve()
 
         def _do_move() -> None:
             """Move file to target."""
+            target_dir = full_dir.resolve()
+            if not target_dir.is_relative_to(root):
+                raise PathNotSupportedError("Path is outside the media folder")
             try:
                 target_path = target_dir / uploaded_file.filename
 
@@ -205,6 +223,9 @@ class LocalSource(MediaSource):
                 target_dir.mkdir(parents=True, exist_ok=True)
             except ValueError as err:
                 raise PathNotSupportedError("Invalid path") from err
+
+            if target_path.is_symlink():
+                raise PathNotSupportedError("Links cannot be overwritten")
 
             with target_path.open("wb") as target_fp:
                 shutil.copyfileobj(uploaded_file.file, target_fp)
@@ -230,12 +251,14 @@ class LocalSource(MediaSource):
 
     def _checked_entry(self, source_dir_id: str, location: str) -> Path:
         """Return an existing file or folder that may be renamed, moved or removed."""
-        if not location:
+        parts = [part for part in location.replace("\\", "/").split("/") if part]
+        if not parts or "." in parts:
             raise MediaFolderError("not_allowed", "The media folder itself is fixed")
-        entry_path = PurePosixPath(location)
-        parent = str(entry_path.parent)
-        parent_location = "" if parent == "." else parent
-        entry = self._checked_dir(source_dir_id, parent_location) / entry_path.name
+        parent_location = "/".join(parts[:-1])
+        entry = self._checked_dir(source_dir_id, parent_location) / parts[-1]
+        root = Path(self.media_dirs[source_dir_id]).resolve()
+        if not entry.name or entry == root:
+            raise MediaFolderError("not_allowed", "The media folder itself is fixed")
         if not os.path.lexists(entry):
             raise MediaFolderError("not_found", "Path does not exist")
         if entry.is_symlink():
@@ -274,7 +297,9 @@ class LocalSource(MediaSource):
             _validate_entry_name(new_name, media_file=entry.is_file())
             target = entry.parent / new_name
             if os.path.lexists(target) and not (
-                entry.name != new_name and entry.samefile(target)
+                entry.name != new_name
+                and entry.name.casefold() == new_name.casefold()
+                and entry.samefile(target)
             ):
                 raise MediaFolderError("exists", "Name already exists")
             entry.rename(target)
@@ -319,9 +344,19 @@ class LocalSource(MediaSource):
         return await self.hass.async_add_executor_job(_do_count)
 
     async def async_remove_folder(
-        self, item: MediaSourceItem, recursive: bool
+        self,
+        item: MediaSourceItem,
+        recursive: bool,
+        expected_files: int | None = None,
+        expected_folders: int | None = None,
     ) -> dict[str, int]:
-        """Remove a folder, and what it holds only when recursive is set."""
+        """Remove a folder, and what it holds only when recursive is set.
+
+        The answer counts what was removed inside the folder, in the same way as
+        folder info: the folder itself is not counted. When expected counts are
+        given and the live counts differ, nothing is removed and the error code
+        is "changed".
+        """
         source_dir_id, location = self.async_parse_identifier(item)
 
         def _do_remove() -> dict[str, int]:
@@ -331,11 +366,15 @@ class LocalSource(MediaSource):
             files, folders = _count_contents(entry)
             if (files or folders) and not recursive:
                 raise MediaFolderError("not_empty", "Folder is not empty")
+            if (expected_files is not None and expected_files != files) or (
+                expected_folders is not None and expected_folders != folders
+            ):
+                raise MediaFolderError("changed", "Folder contents changed")
             if recursive:
                 shutil.rmtree(entry)
             else:
                 entry.rmdir()
-            return {"files": files, "folders": folders + 1}
+            return {"files": files, "folders": folders}
 
         return await self.hass.async_add_executor_job(_do_remove)
 
@@ -714,7 +753,10 @@ async def websocket_remove_media(
     except PathNotSupportedError as err:
         connection.send_error(msg["id"], websocket_api.ERR_NOT_SUPPORTED, str(err))
     except OSError as err:
-        connection.send_error(msg["id"], websocket_api.ERR_UNKNOWN_ERROR, str(err))
+        LOGGER.error("Error removing media: %s", err)
+        connection.send_error(
+            msg["id"], websocket_api.ERR_UNKNOWN_ERROR, "Could not remove the file"
+        )
     else:
         connection.send_result(msg["id"])
 
@@ -753,7 +795,10 @@ async def _async_answer(
     except MediaFolderError as err:
         connection.send_error(msg["id"], err.code, str(err))
     except OSError as err:
-        connection.send_error(msg["id"], websocket_api.ERR_UNKNOWN_ERROR, str(err))
+        LOGGER.error("Error in media folder operation: %s", err)
+        connection.send_error(
+            msg["id"], websocket_api.ERR_UNKNOWN_ERROR, "The operation failed"
+        )
     else:
         connection.send_result(msg["id"], result)
 
@@ -856,6 +901,10 @@ async def websocket_folder_info(
         probatio.Required("type"): "media_source/local_source/remove_folder",
         probatio.Required("media_content_id"): str,
         probatio.Optional("recursive", default=False): bool,
+        probatio.Optional("expected_files"): probatio.All(int, probatio.Range(min=0)),
+        probatio.Optional("expected_folders"): probatio.All(
+            int, probatio.Range(min=0)
+        ),
     }
 )
 @websocket_api.require_admin
@@ -868,7 +917,14 @@ async def websocket_remove_folder(
         return
     source = cast(LocalSource, hass.data[DATA_LOCAL_SOURCE])
     await _async_answer(
-        connection, msg, source.async_remove_folder(item, msg["recursive"])
+        connection,
+        msg,
+        source.async_remove_folder(
+            item,
+            msg["recursive"],
+            msg.get("expected_files"),
+            msg.get("expected_folders"),
+        ),
     )
 
 

@@ -2,6 +2,7 @@ import { mdiFileCheckOutline, mdiFolderOpen, mdiTrayArrowDown } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { visuallyHiddenFileInputStyles } from "../../resources/visually-hidden-file-input";
 import { startInstanceSync } from "../../common/instance-sync/start-instance-sync";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { VocabularyError } from "../../common/vocabulary/personal-vocabulary";
@@ -111,9 +112,11 @@ export class HaPersonalWordingCard extends LitElement {
               )}
             </ha-button>
             <input
+              class="file-input-hidden"
+              tabindex="-1"
+              aria-hidden="true"
               type="file"
               accept=".json,application/json"
-              hidden
               @change=${this._fileChosen}
             />
           </div>
@@ -225,84 +228,87 @@ export class HaPersonalWordingCard extends LitElement {
     }
   }
 
-  static styles: CSSResultGroup = css`
-    :host {
-      display: block;
-      max-width: 600px;
-      margin: 0 auto var(--ha-space-4);
-    }
-    .description,
-    .note {
-      margin: 0;
-      color: var(--secondary-text-color);
-    }
-    .card-content {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-4);
-    }
-    .drop {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--ha-space-2);
-      padding: var(--ha-space-8) var(--ha-space-4);
-      border-radius: var(--ha-border-radius-3xl);
-      background: var(--ha-color-fill-primary-quiet-resting);
-      color: var(--ha-color-on-primary-quiet);
-      text-align: center;
-      outline: 2px dashed transparent;
-      outline-offset: -6px;
-    }
-    .drop.dragging {
-      outline-color: var(--primary-color);
-    }
-    .drop > ha-svg-icon {
-      --mdc-icon-size: 32px;
-    }
-    .drop-title {
-      font-size: var(--ha-font-size-xl);
-      font-weight: var(--ha-font-weight-medium);
-    }
-    .drop-format {
-      font-size: var(--ha-font-size-s);
-      margin-bottom: var(--ha-space-2);
-    }
-    .status {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-3);
-      min-height: var(--ha-space-12);
-    }
-    .status-text {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-    }
-    .status-label {
-      font-size: var(--ha-font-size-s);
-      font-weight: var(--ha-font-weight-medium);
-      color: var(--secondary-text-color);
-    }
-    .note {
-      font-size: var(--ha-font-size-s);
-    }
-    .status {
-      flex-wrap: wrap;
-    }
-    .status-text {
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-    @media all and (max-width: 450px) {
+  static styles: CSSResultGroup = [
+    visuallyHiddenFileInputStyles,
+    css`
+      :host {
+        display: block;
+        max-width: 600px;
+        margin: 0 auto var(--ha-space-4);
+      }
+      .description,
+      .note {
+        margin: 0;
+        color: var(--secondary-text-color);
+      }
+      .card-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-4);
+      }
       .drop {
-        padding: var(--ha-space-6) var(--ha-space-3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-8) var(--ha-space-4);
+        border-radius: var(--ha-border-radius-3xl);
+        background: var(--ha-color-fill-primary-quiet-resting);
+        color: var(--ha-color-on-primary-quiet);
+        text-align: center;
+        outline: 2px dashed transparent;
+        outline-offset: -6px;
+      }
+      .drop.dragging {
+        outline-color: var(--primary-color);
+      }
+      .drop > ha-svg-icon {
+        --mdc-icon-size: 32px;
       }
       .drop-title {
-        font-size: var(--ha-font-size-l);
+        font-size: var(--ha-font-size-xl);
+        font-weight: var(--ha-font-weight-medium);
       }
-    }
-  `;
+      .drop-format {
+        font-size: var(--ha-font-size-s);
+        margin-bottom: var(--ha-space-2);
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        min-height: var(--ha-space-12);
+      }
+      .status-text {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+      .status-label {
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        color: var(--secondary-text-color);
+      }
+      .note {
+        font-size: var(--ha-font-size-s);
+      }
+      .status {
+        flex-wrap: wrap;
+      }
+      .status-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      @media all and (max-width: 450px) {
+        .drop {
+          padding: var(--ha-space-6) var(--ha-space-3);
+        }
+        .drop-title {
+          font-size: var(--ha-font-size-l);
+        }
+      }
+    `,
+  ];
 }
 
 declare global {

@@ -1,22 +1,62 @@
 {
   "days": [
     {
+      "date": "2026-11-11",
+      "items": [
+        {
+          "text": "Fixed: \"Add media\" did nothing on a phone because the file field sat outside the open dialog; it now lives inside the button, uploads to the image upload folder, and every media folder shows its filter field. Fixed in source; not yet seen on a phone."
+        },
+        {
+          "text": "New, not yet seen in a running build: media folders can be created, renamed, moved and deleted from the Manage dialog, and the server refuses names that leave the media folder."
+        },
+        {
+          "text": "The paid cloud service is no longer shown anywhere in the interface. The server integration is unchanged."
+        },
+        {
+          "text": "New, not yet seen: dashboard and automation history have a search field, and Compare uses a searchable version picker. The history and recorded problems pages say \"Git remote\" in full."
+        },
+        {
+          "text": "New, not yet seen: the file converter packs and unpacks archives (ZIP, TAR, GZIP), makes PDFs from text, Markdown and pictures, converts Word documents to and from text, makes WAV audio and takes a still picture from a video. Reading PDFs, MP3 output and video-to-video conversion are not offered."
+        },
+        {
+          "text": "New, not yet seen: a Dashboard tools dialog in edit mode with an outline and bulk actions, find and replace of an entity ID, a check for missing entities, card templates and a preview width."
+        },
+        {
+          "text": "Fixed: settings saved on the instance now follow the signed-in account, so a second account on the same browser no longer sees or uploads the first one's wording and appearance. Picture layers can only be embedded images or paths on this instance. Error text hides secrets inside values and query strings."
+        },
+        {
+          "text": "New, not yet seen: update installs show real stages and a recovery card, a Minecraft server page, Ollama unload, model details and a test chat, a support page with a local support bundle, one save bar in the automation, script and scene editors, and a reload button and a framing notice on embedded pages. Eight more blocks have Cantonese."
+        },
+        {
+          "text": "Seen in a running build (build 96, 390 px wide): the Marketplace list scrolls with its group header pinned, the Personal settings preview scrolls away, and the accessibility panel's rows no longer overlap. Fixed in a later batch, not yet seen: its text size \"+\" button wrapped onto its own line."
+        },
+        {
+          "text": "Releases: every release carries the Deploy Assistant installers, and runs replaced by a newer push are cancelled and leave no release."
+        }
+      ]
+    },
+    {
       "date": "2026-11-10",
       "items": [
         {
-          "text": "New, not yet seen in a running build: an authenticator app card on the profile page, an activity tray and a recovery card, time rules and shared defaults for personal settings, information buttons beside settings, panes and a filter pane that can be resized, and starting points for empty editors."
+          "text": "New, not yet seen in a running build: an authenticator app card on the profile page, an activity tray and a recovery card, time rules and shared defaults for personal settings, information buttons beside settings, panes and a filter pane that can be resized, and starting points for empty editors.",
+          "commit": "8fa63f05de84"
         },
         {
-          "text": "Your appearance choices and personal wording file are now saved on the instance for your account, so another computer picks them up, and they are included in backups."
+          "text": "Your appearance choices and personal wording file are now saved on the instance for your account, so another computer picks them up, and they are included in backups.",
+          "commit": "8fa63f05de84"
         },
         {
-          "text": "Fixed: the Minecraft manager no longer reads the SSH config file, bounds what a host sends back, and only touches containers and volumes it created. A missing or truncated automations file can no longer set aside every automation history, and histories set aside can be listed and brought back. An Ollama download that stops early is reported as incomplete. The dashboard import summary shows the real host of an address and lists locks and covers that would be switched."
+          "text": "Fixed: the Minecraft manager no longer reads the SSH config file, bounds what a host sends back, and only touches containers and volumes it created. A missing or truncated automations file can no longer set aside every automation history, and histories set aside can be listed and brought back. An Ollama download that stops early is reported as incomplete. The dashboard import summary shows the real host of an address and lists locks and covers that would be switched.",
+          "commit": "8fa63f05de84"
         },
         {
-          "text": "Fixed: a plain `git clone` of the project now works on Windows, and the local frontend build no longer crashes on a computer with many processors."
+          "text": "Fixed: a plain `git clone` of the project now works on Windows, and the local frontend build no longer crashes on a computer with many processors.",
+          "commit": "8fa63f05de84"
         },
         {
-          "text": "Releases: a push that changes only documentation or design files no longer publishes a release, a release with no files is withdrawn, and every release carries the newest Deploy Assistant installers. The 37 releases that had no files were removed."
+          "text": "Releases: a push that changes only documentation or design files no longer publishes a release, a release with no files is withdrawn, and every release carries the newest Deploy Assistant installers. The 37 releases that had no files were removed.",
+          "commit": "8fa63f05de84"
         },
         {
           "text": "Minecraft servers can be started on another computer that runs Docker, reached over SSH: add the host with its own key, confirm its fingerprint, then start, stop, read the log and see the address to join. Versions are looked up only when you press Refresh.",

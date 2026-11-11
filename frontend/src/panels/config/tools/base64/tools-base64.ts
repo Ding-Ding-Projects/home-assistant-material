@@ -10,6 +10,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { visuallyHiddenFileInputStyles } from "../../../../resources/visually-hidden-file-input";
 import type {
   Base64Variant,
   TextEncoding,
@@ -190,7 +191,14 @@ class ToolsBase64 extends LitElement {
                 <ha-svg-icon slot="start" .path=${mdiFolderOpen}></ha-svg-icon>
                 ${l("choose_file")}
               </ha-button>
-              <input id="file" type="file" hidden @change=${this._fileChosen} />
+              <input
+                class="file-input-hidden"
+                tabindex="-1"
+                aria-hidden="true"
+                id="file"
+                type="file"
+                @change=${this._fileChosen}
+              />
             </header>
             ${
               this._file
@@ -625,6 +633,7 @@ class ToolsBase64 extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      visuallyHiddenFileInputStyles,
       css`
         :host {
           display: block;

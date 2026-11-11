@@ -19,6 +19,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { visuallyHiddenFileInputStyles } from "../../../../resources/visually-hidden-file-input";
 import type { ArchiveEntry } from "../../../../common/converter/archive-types";
 import { baseName } from "../../../../common/converter/archive-types";
 import { SAMPLE_RATES } from "../../../../common/converter/audio";
@@ -380,10 +381,12 @@ class ToolsConverter extends LitElement {
             ${this._l("remove_file")}
           </ha-button>
           <input
+            class="file-input-hidden"
+            tabindex="-1"
+            aria-hidden="true"
             id="file"
             type="file"
             multiple
-            hidden
             @change=${this._fileChosen}
           />
         </section>
@@ -423,10 +426,12 @@ class ToolsConverter extends LitElement {
             ${this._l("remove_file")}
           </ha-button>
           <input
+            class="file-input-hidden"
+            tabindex="-1"
+            aria-hidden="true"
             id="file"
             type="file"
             multiple
-            hidden
             @change=${this._fileChosen}
           />
           ${
@@ -448,10 +453,12 @@ class ToolsConverter extends LitElement {
             ${this._l("choose_file")}
           </ha-button>
           <input
+            class="file-input-hidden"
+            tabindex="-1"
+            aria-hidden="true"
             id="file"
             type="file"
             multiple
-            hidden
             @change=${this._fileChosen}
           />
         </div>
@@ -1896,6 +1903,7 @@ class ToolsConverter extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       haStyle,
+      visuallyHiddenFileInputStyles,
       css`
         :host {
           display: block;

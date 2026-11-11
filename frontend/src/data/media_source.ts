@@ -112,7 +112,12 @@ export const removeLocalMedia = async (
   });
 
 export type MediaFolderErrorCode =
-  "not_found" | "exists" | "invalid_name" | "not_empty" | "not_allowed";
+  | "not_found"
+  | "exists"
+  | "invalid_name"
+  | "not_empty"
+  | "not_allowed"
+  | "changed";
 
 export interface MediaFolderCounts {
   files: number;
@@ -164,12 +169,19 @@ export const getLocalMediaFolderCounts = (
 export const removeLocalMediaFolder = (
   callWS: HomeAssistant["callWS"],
   media_content_id: string,
-  recursive: boolean
+  recursive: boolean,
+  expected?: MediaFolderCounts
 ) =>
   callWS<MediaFolderCounts>({
     type: "media_source/local_source/remove_folder",
     media_content_id,
     recursive,
+    ...(expected
+      ? {
+          expected_files: expected.files,
+          expected_folders: expected.folders,
+        }
+      : {}),
   });
 
 /** The media content ID of a folder without the trailing "/." the root carries. */
@@ -211,7 +223,7 @@ export const getMediaBreadcrumbs = (
 /** Checks a new file or folder name the way the server does. */
 export const isValidMediaName = (name: string): boolean =>
   name.length > 0 &&
-  name.length <= 255 &&
+  new TextEncoder().encode(name).length <= 255 &&
   name === name.trim() &&
   !name.startsWith(".") &&
   !name.includes("~") &&
