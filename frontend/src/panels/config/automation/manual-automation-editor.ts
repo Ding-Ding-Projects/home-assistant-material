@@ -2,7 +2,7 @@ import type { HassEntity } from "home-assistant-js-websocket";
 import { load, YAML11_SCHEMA } from "js-yaml";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, queryAll } from "lit/decorators";
+import { customElement, property, queryAll, state } from "lit/decorators";
 import {
   any,
   array,
@@ -19,6 +19,8 @@ import { fireEvent } from "../../../common/dom/fire_event";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
+import "../../../components/ha-switch";
+import type { HaSwitch } from "../../../components/ha-switch";
 import type {
   AutomationConfig,
   Condition,
@@ -33,6 +35,7 @@ import {
 } from "../../../data/automation";
 import { getActionType, type Action } from "../../../data/script";
 import { showEditorToast } from "./editor-toast";
+import "./ha-automation-status-bar";
 import "./action/ha-automation-action";
 import type HaAutomationAction from "./action/ha-automation-action";
 import "./condition/ha-automation-condition";
@@ -81,11 +84,54 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
     HaAutomationAction | HaAutomationCondition
   >;
 
+  @state() private _toggleError?: string;
+
+  private async _toggleEnabled(ev: Event) {
+    const checked = (ev.currentTarget as HaSwitch).checked;
+    if (!this.stateObj) {
+      return;
+    }
+    this._toggleError = undefined;
+    try {
+      await this.hass.callService(
+        "automation",
+        checked ? "turn_on" : "turn_off",
+        { entity_id: this.stateObj.entity_id }
+      );
+    } catch (err: unknown) {
+      this._toggleError = this.hass.localize(
+        "ui.panel.config.automation.editor.status_bar.enabled_changed_failed",
+        { message: err instanceof Error ? err.message : String(err) }
+      );
+    }
+  }
+
   protected renderContent() {
+    const showSwitch = !!this.stateObj && this.stateObj.state !== "unavailable";
     return html`
+      <div class="title-row">
+        ${
+          this.config.alias
+            ? html`<h1 class="page-title">${this.config.alias}</h1>`
+            : nothing
+        }
+        ${
+          showSwitch
+            ? html`<ha-switch
+                class="enabled-switch"
+                .checked=${this.stateObj!.state === "on"}
+                .disabled=${this.disabled}
+                aria-label=${this.hass.localize(
+                  "ui.panel.config.automation.editor.status_bar.enabled_switch"
+                )}
+                @change=${this._toggleEnabled}
+              ></ha-switch>`
+            : nothing
+        }
+      </div>
       ${
-        this.config.alias
-          ? html`<h1 class="page-title">${this.config.alias}</h1>`
+        this._toggleError
+          ? html`<p class="toggle-error" role="alert">${this._toggleError}</p>`
           : nothing
       }
       ${
@@ -229,6 +275,11 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           sidebar
         ></ha-automation-action>
       </section>
+      <ha-automation-status-bar
+        .hass=${this.hass}
+        .config=${this.config}
+        .stateObj=${this.stateObj}
+      ></ha-automation-status-bar>
     `;
   }
 
@@ -509,6 +560,20 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         .header {
           display: flex;
           align-items: center;
+        }
+        .title-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-3);
+        }
+        .enabled-switch {
+          min-height: 44px;
+          min-width: 44px;
+        }
+        .toggle-error {
+          color: var(--ha-color-on-danger-normal, var(--error-color));
         }
         .page-title {
           margin: var(--ha-space-2) 0 var(--ha-space-1);

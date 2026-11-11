@@ -42,3 +42,30 @@ export const moveTabId = (
   rest.splice(after ? target + 1 : target, 0, from);
   return rest;
 };
+
+/**
+ * Whether a move would carry a tab across the boundary between pinned and
+ * unpinned tabs, which is never allowed: pinning is its own action.
+ */
+export const isMoveAcrossBlocked = (
+  pinned: readonly string[],
+  from: string,
+  to: string
+): boolean => pinned.includes(from) !== pinned.includes(to);
+
+/**
+ * Whether a key press asks to move the focused tab. Control with Shift works
+ * everywhere; Alt with Shift is the alternative for macOS, where Control with
+ * the arrows belongs to the system.
+ */
+export const isReorderKeydown = (ev: {
+  key: string;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey?: boolean;
+}): boolean =>
+  (ev.key === "ArrowLeft" || ev.key === "ArrowRight") &&
+  ev.shiftKey &&
+  !ev.metaKey &&
+  ev.ctrlKey !== ev.altKey;

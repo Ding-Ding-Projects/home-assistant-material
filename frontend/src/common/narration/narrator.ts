@@ -97,29 +97,41 @@ class Narrator {
     if (!parts.length) {
       return false;
     }
-    this._lastText = text;
-    this._lastAt = now;
-    synth.cancel();
-    const voices = synth.getVoices();
-    parts.forEach((part) => {
-      const utterance = new SpeechSynthesisUtterance(part.text);
-      utterance.lang = SPEECH_LANG_TAG[part.language];
-      utterance.rate = prefs.narratorRate;
-      utterance.pitch = prefs.narratorPitch;
-      const voice = pickVoice(
-        voices,
-        part.language,
-        part.language === "yue"
-          ? prefs.narratorVoiceCantonese
-          : prefs.narratorVoiceEnglish
-      );
-      if (voice) {
+    try {
+      const voices = synth.getVoices();
+      const utterances: SpeechSynthesisUtterance[] = [];
+      parts.forEach((part) => {
+        // Only a voice that runs on this device is used. With none, this
+        // part stays silent instead of falling back to the engine default,
+        // which may be a network voice.
+        const voice = pickVoice(
+          voices,
+          part.language,
+          part.language === "yue"
+            ? prefs.narratorVoiceCantonese
+            : prefs.narratorVoiceEnglish
+        );
+        if (!voice) {
+          return;
+        }
+        const utterance = new SpeechSynthesisUtterance(part.text);
         utterance.voice = voice;
-        utterance.lang = voice.lang;
+        utterance.lang = voice.lang || SPEECH_LANG_TAG[part.language];
+        utterance.rate = prefs.narratorRate;
+        utterance.pitch = prefs.narratorPitch;
+        utterances.push(utterance);
+      });
+      if (!utterances.length) {
+        return false;
       }
-      synth.speak(utterance);
-    });
-    return true;
+      this._lastText = text;
+      this._lastAt = now;
+      synth.cancel();
+      utterances.forEach((utterance) => synth.speak(utterance));
+      return true;
+    } catch (_err) {
+      return false;
+    }
   }
 
   /** Speaks a sample even while the narrator is off. */

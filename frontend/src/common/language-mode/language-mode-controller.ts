@@ -31,12 +31,17 @@ export class LanguageModeController implements ReactiveController {
 
   hostConnected() {
     this._mode = currentLanguageMode();
-    this._unsub = subscribePersonalPreferences((prefs) => {
-      if (prefs.languageMode !== this._mode) {
-        this._mode = prefs.languageMode;
-        this._host.requestUpdate();
-      }
-    });
+    try {
+      this._unsub = subscribePersonalPreferences((prefs) => {
+        if (prefs.languageMode !== this._mode) {
+          this._mode = prefs.languageMode;
+          this._host.requestUpdate();
+        }
+      });
+    } catch (_err) {
+      // Storage is unavailable: the mode stays English.
+      this._unsub = undefined;
+    }
   }
 
   hostDisconnected() {

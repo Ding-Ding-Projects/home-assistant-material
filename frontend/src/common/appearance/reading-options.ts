@@ -269,10 +269,16 @@ export const applyReadingOptions = (options: ReadingOptions) => {
 };
 
 /** The stored choices, as they are now. */
-export const getReadingOptions = (): ReadingOptions =>
-  normalizeReadingOptions(
-    getStorage().getValue<Partial<ReadingOptions>>(READING_STORAGE_KEY)
-  );
+export const getReadingOptions = (): ReadingOptions => {
+  // A damaged or blocked store must not stop the page: fall back to defaults.
+  try {
+    return normalizeReadingOptions(
+      getStorage().getValue<Partial<ReadingOptions>>(READING_STORAGE_KEY)
+    );
+  } catch (_err) {
+    return normalizeReadingOptions(undefined);
+  }
+};
 
 export const setReadingOptions = (options: ReadingOptions) => {
   getStorage().setValue(READING_STORAGE_KEY, options);

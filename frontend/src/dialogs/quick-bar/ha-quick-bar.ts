@@ -386,6 +386,14 @@ export class QuickBar extends LitElement {
         this._renderRow(item, item?.id === runningCommandId)
   );
 
+  // Only Enter and Space belong to the focused switch; every other key (arrows,
+  // Escape, Tab) still reaches the list.
+  private _switchKeydown(ev: KeyboardEvent) {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.stopPropagation();
+    }
+  }
+
   private _settingChanged(ev: Event) {
     const target = ev.currentTarget as HTMLInputElement & {
       settingKey: keyof PersonalPreferences;
@@ -414,7 +422,7 @@ export class QuickBar extends LitElement {
         .settingKey=${key}
         aria-label=${item.primary ?? ""}
         @click=${stopPropagation}
-        @keydown=${stopPropagation}
+        @keydown=${this._switchKeydown}
         @change=${this._settingChanged}
       ></ha-switch>`;
     }
@@ -917,6 +925,16 @@ export class QuickBar extends LitElement {
           prompt: item.assistPrompt,
           submit: true,
         });
+        return;
+      }
+
+      // personal setting selected: people who cannot open the settings panel
+      // (no path on the item), and Ctrl or Cmd with Enter for everyone,
+      // toggle the choice in place and keep the search open
+      if (item && "settingId" in item && (!item.path || newTab)) {
+        const key = settingKeys[item.settingId];
+        updatePersonalPreferences({ [key]: !getPersonalPreferences()[key] });
+        this._itemSelected = false;
         return;
       }
 

@@ -143,9 +143,15 @@ export const computeLocalize = async <Keys extends string = LocalizeKeys>(
     try {
       // Personal wording is applied here, where text becomes interface
       // text, so commands, addresses and stored names stay as they are.
-      return applyPersonalVocabulary(
-        translatedMessage.format<string>(argObject) as string
-      );
+      const formatted: unknown = translatedMessage.format<string>(argObject);
+      // With rich values (links, icons) the result is a list of parts. The
+      // plain text parts still get the wording; the rich ones are left alone.
+      if (Array.isArray(formatted)) {
+        return formatted.map((part) =>
+          typeof part === "string" ? applyPersonalVocabulary(part) : part
+        ) as unknown as string;
+      }
+      return applyPersonalVocabulary(formatted as string);
     } catch (err: any) {
       // eslint-disable-next-line no-console
       console.error("Translation error", key, language, err);

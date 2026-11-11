@@ -11,6 +11,7 @@ import "../../../../components/ha-svg-icon";
 import type { Option } from "../../../../data/script";
 import { AutomationSortableListMixin } from "../ha-automation-sortable-list-mixin";
 import { automationRowsStyles } from "../styles";
+import type { UnreachableReason } from "./choose-run";
 import "./ha-automation-option-row";
 import type HaAutomationOptionRow from "./ha-automation-option-row";
 import { scrollRowIntoView } from "../scroll-row-into-view";
@@ -20,6 +21,9 @@ export default class HaAutomationOption extends AutomationSortableListMixin<Opti
   LitElement
 ) {
   @property({ attribute: false }) public options!: Option[];
+
+  @property({ attribute: false })
+  public unreachable?: Map<number, UnreachableReason>;
 
   @property({ type: Boolean, attribute: "show-default" })
   public showDefaultActions = false;
@@ -58,6 +62,7 @@ export default class HaAutomationOption extends AutomationSortableListMixin<Opti
                 .first=${idx === 0}
                 .last=${idx === this.options.length - 1}
                 .option=${option}
+                .unreachable=${this.unreachable?.get(idx)}
                 .narrow=${this.narrow}
                 .disabled=${this.disabled}
                 @duplicate=${this.duplicateItem}

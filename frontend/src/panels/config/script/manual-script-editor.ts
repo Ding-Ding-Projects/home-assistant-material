@@ -1,8 +1,9 @@
-import { mdiHelpCircleOutline } from "@mdi/js";
+import { mdiHelpCircleOutline, mdiPlay, mdiTransitConnection } from "@mdi/js";
 import { load, YAML11_SCHEMA } from "js-yaml";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, query, queryAll } from "lit/decorators";
+import { customElement, property, query, queryAll } from "lit/decorators";
+import memoizeOne from "memoize-one";
 import {
   any,
   array,
@@ -16,8 +17,18 @@ import {
 import { ensureArray } from "../../../common/array/ensure-array";
 import { canOverrideAlphanumericInput } from "../../../common/dom/can-override-input";
 import { fireEvent } from "../../../common/dom/fire_event";
+import "../../../components/ha-button";
+import "../../../components/ha-button-toggle-group";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
+import "../../../components/ha-svg-icon";
+import "../../../components/input/ha-input";
+import type { HaInput } from "../../../components/input/ha-input";
+import {
+  AUTOMATION_DEFAULT_MAX,
+  AUTOMATION_DEFAULT_MODE,
+} from "../../../data/automation";
+import type { HomeAssistant, ToggleButton } from "../../../types";
 import type {
   Action,
   Fields,
@@ -26,6 +37,7 @@ import type {
 } from "../../../data/script";
 import {
   getActionType,
+  isMaxMode,
   MODES,
   normalizeScriptConfig,
 } from "../../../data/script";
@@ -65,6 +77,8 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
     HaAutomationAction | HaScriptFields
   >;
 
+  @property({ attribute: false }) public scriptId: string | null = null;
+
   private _openFields = false;
 
   public addFields() {
@@ -95,77 +109,219 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   }
 
   protected renderContent() {
+    const mode = this.config.mode || AUTOMATION_DEFAULT_MODE;
+    const canRun = !!this.scriptId && !this.disabled;
     return html`
+      <div class="title-block">
+        <h1 class="title">
+          ${
+            this.disabled
+              ? this.config.alias ||
+                this.hass.localize("ui.panel.config.script.editor.default_name")
+              : html`<button
+                  type="button"
+                  class="title-button"
+                  title=${this.hass.localize(
+                    "ui.panel.config.script.editor.board.rename_hint"
+                  )}
+                  @click=${this._renameClicked}
+                >
+                  ${
+                    this.config.alias ||
+                    this.hass.localize(
+                      "ui.panel.config.script.editor.board.untitled"
+                    )
+                  }
+                </button>`
+          }
+        </h1>
+        ${
+          this.config.description
+            ? html`<ha-markdown
+                class="description"
+                breaks
+                .content=${this.config.description}
+              ></ha-markdown>`
+            : nothing
+        }
+      </div>
+
+      <div class="mode-row" role="group" aria-labelledby="mode-label">
+        <span id="mode-label" class="mode-label">
+          ${this.hass.localize("ui.panel.config.script.editor.board.mode_label")}
+        </span>
+        <ha-button-toggle-group
+          .buttons=${this._modeButtons(this.hass.localize)}
+          .active=${mode}
+          .disabled=${this.disabled}
+          size="s"
+          @value-changed=${this._modeChanged}
+        ></ha-button-toggle-group>
+        ${
+          isMaxMode(mode)
+            ? html`<ha-input
+                class="max-input"
+                type="number"
+                .label=${this.hass.localize(
+                  `ui.panel.config.script.editor.board.max_${mode}`
+                )}
+                .value=${String(this.config.max ?? AUTOMATION_DEFAULT_MAX)}
+                .disabled=${this.disabled}
+                @input=${this._maxChanged}
+              ></ha-input>`
+            : nothing
+        }
+      </div>
+
       ${
-        this.config.description
-          ? html`<ha-markdown
-              class="description"
-              breaks
-              .content=${this.config.description}
-            ></ha-markdown>`
+        this.config.fields
+          ? html`<section class="card" aria-labelledby="fields-heading">
+              <div class="header">
+                <span class="tag tag-ask">
+                  ${this.hass.localize(
+                    "ui.panel.config.script.editor.board.fields_tag"
+                  )}
+                </span>
+                <h2 id="fields-heading" class="name">
+                  ${this.hass.localize(
+                    "ui.panel.config.script.editor.board.fields_title"
+                  )}
+                </h2>
+                <ha-icon-button
+                  .path=${mdiHelpCircleOutline}
+                  .label=${this.hass.localize(
+                    "ui.panel.config.script.editor.field.link_help_fields"
+                  )}
+                  href=${documentationUrl(
+                    this.hass,
+                    "/integrations/script/#fields"
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                ></ha-icon-button>
+              </div>
+              <ha-script-fields
+                .fields=${this.config.fields}
+                .highlightedFields=${this.pastedConfig?.fields}
+                @value-changed=${this._fieldsChanged}
+                .hass=${this.hass}
+                .disabled=${this.disabled}
+                .narrow=${this.narrow}
+                @open-sidebar=${this.openSidebar}
+                @request-close-sidebar=${this.triggerCloseSidebar}
+                @close-sidebar=${this.handleCloseSidebar}
+              ></ha-script-fields>
+            </section>`
           : nothing
       }
-    ${
-      this.config.fields
-        ? html`<div class="header">
-              <h2 id="fields-heading" class="name">
+
+      <section class="card" aria-labelledby="sequence-heading">
+        <div class="header">
+          <span class="tag tag-do">
+            ${this.hass.localize(
+              "ui.panel.config.script.editor.board.actions_tag"
+            )}
+          </span>
+          <h2 id="sequence-heading" class="name">
+            ${this.hass.localize(
+              "ui.panel.config.script.editor.board.actions_title"
+            )}
+          </h2>
+        </div>
+        <ha-automation-action
+          .actions=${this.config.sequence || []}
+          .highlightedActions=${this.pastedConfig?.sequence}
+          @value-changed=${this._sequenceChanged}
+          @open-sidebar=${this.openSidebar}
+          @request-close-sidebar=${this.triggerCloseSidebar}
+          @close-sidebar=${this.handleCloseSidebar}
+          .hass=${this.hass}
+          .editorDirty=${this.dirty}
+          .narrow=${this.narrow}
+          .disabled=${this.disabled || this.saving}
+          root
+          sidebar
+        ></ha-automation-action>
+      </section>
+
+      <div class="bottom-bar">
+        <ha-button
+          appearance="outlined"
+          variant="neutral"
+          .disabled=${!canRun}
+          title=${
+            this.scriptId
+              ? ""
+              : this.hass.localize(
+                  "ui.panel.config.script.editor.board.run_unsaved"
+                )
+          }
+          @click=${this._runClicked}
+        >
+          <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.script.editor.board.run_now")}
+        </ha-button>
+        ${
+          this.scriptId
+            ? html`<ha-button appearance="plain" @click=${this._traceClicked}>
+                <ha-svg-icon
+                  slot="start"
+                  .path=${mdiTransitConnection}
+                ></ha-svg-icon>
                 ${this.hass.localize(
-                  "ui.panel.config.script.editor.field.fields"
+                  "ui.panel.config.script.editor.board.see_past_runs"
                 )}
-              </h2>
-              <ha-icon-button
-                .path=${mdiHelpCircleOutline}
-                .label=${this.hass.localize(
-                  "ui.panel.config.script.editor.field.link_help_fields"
-                )}
-                href=${documentationUrl(
-                  this.hass,
-                  "/integrations/script/#fields"
-                )}
-                target="_blank"
-                rel="noreferrer"
-              ></ha-icon-button>
-            </div>
+              </ha-button>`
+            : nothing
+        }
+      </div>
+    `;
+  }
 
-            <ha-script-fields
-              role="region"
-              aria-labelledby="fields-heading"
-              .fields=${this.config.fields}
-              .highlightedFields=${this.pastedConfig?.fields}
-              @value-changed=${this._fieldsChanged}
-              .hass=${this.hass}
-              .disabled=${this.disabled}
-              .narrow=${this.narrow}
-              @open-sidebar=${this.openSidebar}
-              @request-close-sidebar=${this.triggerCloseSidebar}
-              @close-sidebar=${this.handleCloseSidebar}
-            ></ha-script-fields>`
-        : nothing
+  private _modeButtons = memoizeOne(
+    (localize: HomeAssistant["localize"]): ToggleButton[] =>
+      MODES.map((mode) => ({
+        value: mode,
+        label: localize(`ui.panel.config.script.editor.board.mode_${mode}`),
+      }))
+  );
+
+  private _renameClicked() {
+    fireEvent(this, "rename-script");
+  }
+
+  private _runClicked() {
+    fireEvent(this, "run-script");
+  }
+
+  private _traceClicked() {
+    fireEvent(this, "show-script-trace");
+  }
+
+  private _modeChanged(ev: CustomEvent<{ value: string }>) {
+    ev.stopPropagation();
+    const mode = ev.detail.value as (typeof MODES)[number];
+    if (!mode || mode === (this.config.mode || AUTOMATION_DEFAULT_MODE)) {
+      return;
     }
+    const value: ScriptConfig = { ...this.config, mode };
+    if (isMaxMode(mode)) {
+      value.max = this.config.max || AUTOMATION_DEFAULT_MAX;
+    } else {
+      delete value.max;
+    }
+    fireEvent(this, "value-changed", { value });
+  }
 
-    <div class="header">
-      <h2 id="sequence-heading" class="name">
-        ${this.hass.localize("ui.panel.config.script.editor.sequence")}
-      </h2>
-    </div>
-
-    <ha-automation-action
-      role="region"
-      aria-labelledby="sequence-heading"
-      .actions=${this.config.sequence || []}
-      .highlightedActions=${this.pastedConfig?.sequence}
-      @value-changed=${this._sequenceChanged}
-      @open-sidebar=${this.openSidebar}
-      @request-close-sidebar=${this.triggerCloseSidebar}
-      @close-sidebar=${this.handleCloseSidebar}
-      .hass=${this.hass}
-      .editorDirty=${this.dirty}
-      .narrow=${this.narrow}
-      .disabled=${this.disabled || this.saving}
-      root
-      sidebar
-    ></ha-automation-action>
-  </div>`;
+  private _maxChanged(ev: Event) {
+    ev.stopPropagation();
+    const max = Number((ev.target as HaInput).value);
+    if (!Number.isFinite(max) || max < 1) {
+      return;
+    }
+    fireEvent(this, "value-changed", {
+      value: { ...this.config, max: Math.floor(max) },
+    });
   }
 
   protected saveConfig() {
@@ -363,21 +519,87 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
       saveFabStyles,
       manualEditorStyles,
       css`
+        .title-block {
+          margin-bottom: var(--ha-space-4);
+        }
+        .title {
+          margin: 0;
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-normal);
+          overflow-wrap: anywhere;
+        }
+        .title-button {
+          all: unset;
+          cursor: pointer;
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          border-radius: var(--ha-border-radius-md);
+        }
+        .title-button:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .description {
+          margin-top: var(--ha-space-1);
+          color: var(--secondary-text-color);
+        }
+        .mode-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-4);
+        }
+        .mode-label {
+          color: var(--secondary-text-color);
+        }
+        .max-input {
+          width: 160px;
+          max-width: 100%;
+        }
+        .card {
+          padding: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
         .header {
           display: flex;
           align-items: center;
-        }
-        .header:first-child {
-          margin-top: -16px;
+          gap: var(--ha-space-3);
+          flex-wrap: wrap;
         }
         .header .name {
-          font-size: var(--ha-font-size-xl);
-          font-weight: var(--ha-font-weight-normal);
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-medium);
+          margin: var(--ha-space-2) 0;
           flex: 1;
+          min-width: 0;
         }
-
-        .description {
-          margin-top: 16px;
+        .tag {
+          padding: var(--ha-space-1) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill);
+          font-size: var(--ha-font-size-s);
+          font-weight: var(--ha-font-weight-medium);
+          color: var(--primary-text-color);
+        }
+        .tag-ask {
+          background: var(--ha-color-fill-primary-quiet-resting);
+        }
+        .tag-do {
+          background: var(--ha-color-fill-success-quiet-resting);
+        }
+        .bottom-bar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-3);
+          margin-bottom: var(--ha-space-8);
+        }
+        .bottom-bar ha-button,
+        ha-button-toggle-group {
+          min-height: 44px;
         }
 
         ha-icon-button {

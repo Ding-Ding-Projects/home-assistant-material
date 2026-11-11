@@ -38,7 +38,7 @@ class HassLoadingScreen extends LitElement {
 
   private _renderContent(): TemplateResult {
     return html`
-      <div class="content">
+      <div class="content" role="status" aria-live="polite">
         <ha-fade-in .delay=${500}>
           <ha-spinner></ha-spinner>
         </ha-fade-in>
@@ -67,6 +67,8 @@ class HassLoadingScreen extends LitElement {
     #loading-text {
       max-width: 350px;
       margin-top: var(--ha-space-4);
+      text-align: center;
+      color: var(--secondary-text-color);
     }
   `;
 }

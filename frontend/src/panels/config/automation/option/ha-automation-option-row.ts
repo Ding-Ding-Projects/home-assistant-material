@@ -27,6 +27,7 @@ import { truncateWithEllipsis } from "../../../../common/string/truncate-with-el
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 import "../../../../components/automation/ha-automation-row";
 import type { HaAutomationRow } from "../../../../components/automation/ha-automation-row";
+import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-card";
 import "../../../../components/ha-dropdown";
@@ -51,6 +52,7 @@ import type { Action, Option } from "../../../../data/script";
 import { migrateAutomationAction } from "../../../../data/script";
 import {
   showAlertDialog,
+  showConfirmationDialog,
   showPromptDialog,
 } from "../../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../../types";
@@ -71,7 +73,13 @@ import {
 } from "../styles";
 import "../trigger/ha-automation-trigger-references";
 import { getUiSupportWarnings, isConfigObject } from "../ui-support";
-import { runActions, testOption } from "./choose-run";
+import type { UnreachableReason } from "./choose-run";
+import {
+  getConditionsKey,
+  getConfigKey,
+  runActions,
+  testOption,
+} from "./choose-run";
 
 @customElement("ha-automation-option-row")
 export default class HaAutomationOptionRow extends LitElement {
@@ -97,6 +105,14 @@ export default class HaAutomationOptionRow extends LitElement {
   @property({ type: Boolean, attribute: "sort-selected" })
   public sortSelected = false;
 
+  /** Set when the config alone proves this option can never be chosen. */
+  @property({ attribute: false }) public unreachable?: UnreachableReason;
+
+  // What the visible test and run results were produced from.
+  private _testedKey?: string;
+
+  private _ranKey?: string;
+
   @state() private _expanded = false;
 
   @state() private _selected = false;
@@ -116,15 +132,27 @@ export default class HaAutomationOptionRow extends LitElement {
   @state() private _running = false;
 
   @state() private _runResult?: {
-    variant: "success" | "danger";
+    variant: "success" | "danger" | "neutral";
     text: string;
   };
 
   @state() private _testingNow = false;
 
+  // Synchronous guard; state updates are asynchronous.
+  private _runBusy = false;
+
+  private _configChanged() {
+    this._runResult = {
+      variant: "neutral",
+      text: this.hass.localize(
+        "ui.panel.config.automation.editor.actions.type.choose.config_changed"
+      ),
+    };
+  }
+
   /** Runs this option's actions now, without evaluating its conditions. */
   private _runSequence = async () => {
-    if (this._running) {
+    if (this._runBusy || !this.hass.user?.is_admin) {
       return;
     }
     const actions = (
@@ -133,6 +161,7 @@ export default class HaAutomationOptionRow extends LitElement {
         : ensureArray(this.defaultActions)
     ) as Action[];
     const localize = this.hass.localize;
+    const ranKey = getConfigKey(actions);
     if (!actions.length) {
       this._runResult = {
         variant: "danger",
@@ -142,10 +171,39 @@ export default class HaAutomationOptionRow extends LitElement {
       };
       return;
     }
+    this._runBusy = true;
+    // Run performs the actions for real, so it is confirmed first.
+    const confirmed = await showConfirmationDialog(this, {
+      title: localize(
+        "ui.panel.config.automation.editor.actions.type.choose.run_option_confirm_title"
+      ),
+      text: localize(
+        "ui.panel.config.automation.editor.actions.type.choose.run_confirm_text"
+      ),
+      confirmText: localize(
+        "ui.panel.config.automation.editor.actions.type.choose.run_option"
+      ),
+      dismissText: localize("ui.common.cancel"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      this._runBusy = false;
+      return;
+    }
     this._running = true;
     this._runResult = undefined;
     const result = await runActions(this.hass, actions);
     this._running = false;
+    this._runBusy = false;
+    const current = this.option
+      ? ensureArray(this.option.sequence)
+      : ensureArray(this.defaultActions);
+    if (getConfigKey(current) !== ranKey) {
+      // The actions were edited while running, so the answer would be stale.
+      this._configChanged();
+      return;
+    }
+    this._ranKey = ranKey;
     this._runResult =
       result.status === "success"
         ? {
@@ -173,46 +231,68 @@ export default class HaAutomationOptionRow extends LitElement {
     this._testingNow = false;
   };
 
+  private _renderUnreachable() {
+    if (!this.unreachable || !this.option) {
+      return nothing;
+    }
+    const { kind, by } = this.unreachable;
+    return html`<ha-alert alert-type="warning">
+      ${this.hass.localize(
+        `ui.panel.config.automation.editor.actions.type.choose.never_runs_${kind}`,
+        { number: by + 1 }
+      )}
+    </ha-alert>`;
+  }
+
   private _renderRunToolbar() {
+    if (!this.hass.user?.is_admin) {
+      // Testing and running call admin-only services.
+      return nothing;
+    }
     const localize = this.hass.localize;
     return html`<div class="run-toolbar">
-      ${
-        this.option
-          ? html`<ha-button
-              appearance="plain"
-              size="s"
-              .disabled=${this._testingNow}
-              @click=${this._testFromToolbar}
-            >
-              <ha-svg-icon slot="start" .path=${mdiFlask}></ha-svg-icon>
-              ${localize(
-                "ui.panel.config.automation.editor.actions.type.choose.test_option_button"
-              )}
-            </ha-button>`
-          : nothing
-      }
-      <ha-button
-        appearance="plain"
-        size="s"
-        .disabled=${this._running}
-        @click=${this._runSequence}
-      >
-        <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+        ${
+          this.option
+            ? html`<ha-button
+                appearance="plain"
+                size="s"
+                .disabled=${this._testingNow}
+                @click=${this._testFromToolbar}
+              >
+                <ha-svg-icon slot="start" .path=${mdiFlask}></ha-svg-icon>
+                ${localize(
+                  "ui.panel.config.automation.editor.actions.type.choose.test_option_button"
+                )}
+              </ha-button>`
+            : nothing
+        }
+        <ha-button
+          appearance="plain"
+          size="s"
+          .disabled=${this._running}
+          @click=${this._runSequence}
+        >
+          <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+          ${localize(
+            this._running
+              ? "ui.panel.config.automation.editor.actions.type.choose.running"
+              : this.option
+                ? "ui.panel.config.automation.editor.actions.type.choose.run_option"
+                : "ui.panel.config.automation.editor.actions.type.choose.run_default"
+          )}
+        </ha-button>
+        <span
+          class="run-result ${this._runResult?.variant ?? ""}"
+          role="status"
+          aria-live="polite"
+          >${this._runResult?.text ?? ""}</span
+        >
+      </div>
+      <p class="run-note">
         ${localize(
-          this._running
-            ? "ui.panel.config.automation.editor.actions.type.choose.running"
-            : this.option
-              ? "ui.panel.config.automation.editor.actions.type.choose.run_option"
-              : "ui.panel.config.automation.editor.actions.type.choose.run_default"
+          "ui.panel.config.automation.editor.actions.type.choose.run_note"
         )}
-      </ha-button>
-      <span
-        class="run-result ${this._runResult?.variant ?? ""}"
-        role="status"
-        aria-live="polite"
-        >${this._runResult?.text ?? ""}</span
-      >
-    </div>`;
+      </p>`;
   }
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
@@ -250,6 +330,26 @@ export default class HaAutomationOptionRow extends LitElement {
   }
 
   protected willUpdate(changedProperties: PropertyValues) {
+    // A result must never describe a config that is no longer on screen.
+    if (changedProperties.has("option") && this.option) {
+      if (this._testing && this._testedKey !== getConditionsKey(this.option)) {
+        window.clearTimeout(this._testingTimeout);
+        this._testing = false;
+      }
+      if (
+        this._runResult &&
+        this._ranKey !== getConfigKey(ensureArray(this.option.sequence))
+      ) {
+        this._runResult = undefined;
+      }
+    }
+    if (
+      changedProperties.has("defaultActions") &&
+      this._runResult &&
+      this._ranKey !== getConfigKey(ensureArray(this.defaultActions))
+    ) {
+      this._runResult = undefined;
+    }
     if (changedProperties.has("option") || changedProperties.has("_yamlMode")) {
       this._warnings =
         this._yamlMode && isConfigObject(this.option)
@@ -296,6 +396,7 @@ export default class HaAutomationOptionRow extends LitElement {
 
     const result = await testOption(this.hass, option);
     if (this.option !== option) {
+      this._configChanged();
       return;
     }
     if (result.status === "invalid") {
@@ -317,6 +418,7 @@ export default class HaAutomationOptionRow extends LitElement {
       return;
     }
     this._testingResult = result.status === "pass";
+    this._testedKey = getConditionsKey(option);
     this._testing = true;
     this._testingTimeout = window.setTimeout(() => {
       this._testing = false;
@@ -443,7 +545,7 @@ export default class HaAutomationOptionRow extends LitElement {
         .variant=${this._testingResult ? "success" : "warning"}
         slot="event"
         class="event-chip"
-        aria-live="polite"
+        aria-hidden="true"
       >
         ${this.hass.localize(
           `ui.panel.config.automation.editor.actions.type.choose.testing_${
@@ -451,6 +553,22 @@ export default class HaAutomationOptionRow extends LitElement {
           }`
         )}
       </ha-automation-row-event-chip>
+      <!-- Always rendered, so filling it is announced. -->
+      <span
+        class="visually-hidden"
+        slot="event"
+        role="status"
+        aria-live="polite"
+        >${
+          this._testing
+            ? this.hass.localize(
+                `ui.panel.config.automation.editor.actions.type.choose.testing_${
+                  this._testingResult ? "pass" : "error"
+                }`
+              )
+            : ""
+        }</span
+      >
 
       <slot name="icons" slot="icons"></slot>
 
@@ -626,7 +744,7 @@ export default class HaAutomationOptionRow extends LitElement {
         hidden: this.optionsInSidebar && this._collapsed,
       })}
     >
-      ${this._renderRunToolbar()}
+      ${this._renderUnreachable()} ${this._renderRunToolbar()}
       ${
         this.option
           ? html`
@@ -992,6 +1110,19 @@ export default class HaAutomationOptionRow extends LitElement {
         }
         h4 {
           margin-bottom: 8px;
+        }
+        .run-note {
+          margin: var(--ha-space-1) 0 var(--ha-space-2);
+          font-size: var(--ha-font-size-s, 0.875rem);
+          color: var(--secondary-text-color);
+        }
+        .visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
         }
         .run-toolbar {
           display: flex;

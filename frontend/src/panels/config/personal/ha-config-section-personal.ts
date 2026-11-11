@@ -10,6 +10,12 @@ import {
   subscribeAccessibilitySettings,
 } from "../../../common/accessibility/accessibility-tools";
 import { getStorage } from "../../../common/decorators/storage";
+import { renderBilingual } from "../../../common/language-mode/bilingual-text";
+import {
+  joinForMode,
+  stripFullStops,
+  textParts,
+} from "../../../common/language-mode/language-mode";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import {
   listVoices,
@@ -91,6 +97,9 @@ interface Row {
 
 const GROUPS: GroupId[] = ["language", "sound", "attention", "narrator"];
 
+/** After this long without a voice list, say that there is none. */
+const VOICE_WAIT_MS = 3000;
+
 /**
  * Personal settings: the choices that belong to one person in this browser,
  * grouped by what they are for. Each control says what it does and what its
@@ -111,6 +120,14 @@ export class HaConfigSectionPersonal extends LitElement {
   @state() private _reduceMotion = getAccessibilitySettings().reduceMotion;
 
   @state() private _voices: SpeechSynthesisVoice[] = [];
+
+  /** True once waiting for the voice list has gone on long enough. */
+  @state() private _voicesWaited = false;
+
+  /** True when the last "hear a sample" could not speak. */
+  @state() private _sampleFailed = false;
+
+  private _voiceTimer?: number;
 
   private _lang = new LanguageModeController(this);
 
@@ -133,6 +150,11 @@ export class HaConfigSectionPersonal extends LitElement {
       }),
     ];
     this._voices = listVoices();
+    this._voicesWaited = false;
+    window.clearTimeout(this._voiceTimer);
+    this._voiceTimer = window.setTimeout(() => {
+      this._voicesWaited = true;
+    }, VOICE_WAIT_MS);
     window.addEventListener("hashchange", this._hashChanged);
   }
 
@@ -173,6 +195,7 @@ export class HaConfigSectionPersonal extends LitElement {
   public disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("hashchange", this._hashChanged);
+    window.clearTimeout(this._voiceTimer);
     this._unsubs.forEach((unsub) => unsub());
     this._unsubs = [];
   }
@@ -196,17 +219,56 @@ export class HaConfigSectionPersonal extends LitElement {
     );
   }
 
+  /** Longer text as two language spans, one under the other. */
+  private _bl(key: string): TemplateResult {
+    return renderBilingual(
+      textParts(this.hass.localize, `ui.panel.config.personal.${key}`),
+      this._lang.mode,
+      "\n"
+    );
+  }
+
+  /** A text with the full stops removed from each language part. */
+  private _tNoStops(key: string): string {
+    const parts = textParts(
+      this.hass.localize,
+      `ui.panel.config.personal.${key}`
+    );
+    return joinForMode(
+      {
+        english: stripFullStops(parts.english),
+        cantonese:
+          parts.cantonese === undefined
+            ? undefined
+            : stripFullStops(parts.cantonese),
+      },
+      this._lang.mode
+    );
+  }
+
+  /** The name of a stored voice, not its address. */
+  private _voiceLabel(uri: string): string {
+    if (!uri) {
+      return this._t("voice_auto");
+    }
+    return (
+      this._voices.find((voice) => voice.voiceURI === uri)?.name ??
+      this._t("voice_auto")
+    );
+  }
+
   private _onOff(value: boolean): string {
     return this._t(value ? "on" : "off");
   }
 
   private _renderQuietHours(p: PersonalPreferences): TemplateResult {
     const label = this._t("quiet_hours.label");
+    const dayLocale =
+      this._lang.mode === "cantonese" ? "zh-HK" : this.hass.locale?.language;
     const dayName = (day: number) =>
-      new Date(2024, 0, 7 + day).toLocaleDateString(
-        this.hass.locale?.language,
-        { weekday: "short" }
-      );
+      new Date(2024, 0, 7 + day).toLocaleDateString(dayLocale, {
+        weekday: "short",
+      });
     return html`<ha-switch
         .checked=${p.quietHours}
         aria-label=${label}
@@ -604,7 +666,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("narrator_voice_english.default"),
         reach: this._tl("narrator_voice_english.reach"),
         active: true,
-        valueText: p.narratorVoiceEnglish || this._t("voice_auto"),
+        valueText: this._voiceLabel(p.narratorVoiceEnglish),
         isDefault: p.narratorVoiceEnglish === d.narratorVoiceEnglish,
         reset: () =>
           this._change({ narratorVoiceEnglish: d.narratorVoiceEnglish }),
@@ -618,7 +680,7 @@ export class HaConfigSectionPersonal extends LitElement {
         defaultText: this._t("narrator_voice_cantonese.default"),
         reach: this._tl("narrator_voice_cantonese.reach"),
         active: true,
-        valueText: p.narratorVoiceCantonese || this._t("voice_auto"),
+        valueText: this._voiceLabel(p.narratorVoiceCantonese),
         isDefault: p.narratorVoiceCantonese === d.narratorVoiceCantonese,
         reset: () =>
           this._change({ narratorVoiceCantonese: d.narratorVoiceCantonese }),
@@ -680,12 +742,19 @@ export class HaConfigSectionPersonal extends LitElement {
         isDefault: true,
         reset: () => undefined,
         control: html`<ha-button
-          appearance="plain"
-          size="small"
-          .disabled=${!speechAvailable()}
-          @click=${this._hearSample}
-          >${this._t("narrator_sample.label")}</ha-button
-        >`,
+            appearance="plain"
+            size="small"
+            .disabled=${!speechAvailable()}
+            @click=${this._hearSample}
+            >${this._t("narrator_sample.label")}</ha-button
+          >
+          ${
+            this._sampleFailed
+              ? html`<span class="silent" role="status"
+                  >${this._t("narrator_sample.failed")}</span
+                >`
+              : nothing
+          }`,
       },
     ];
   }
@@ -718,7 +787,7 @@ export class HaConfigSectionPersonal extends LitElement {
           >
         </ha-dropdown>
         <div class=${classMap({ content: true, narrow: this.narrow })}>
-          <p class="intro">${this._tl("intro")}</p>
+          <p class="intro">${this._bl("intro")}</p>
           <ha-input-search
             class="search"
             appearance="outlined"
@@ -792,7 +861,7 @@ export class HaConfigSectionPersonal extends LitElement {
         .header=${this._t(`group.${group}.title`)}
       >
         <div class="card-content">
-          <p class="group-note">${this._tl(`group.${group}.note`)}</p>
+          <p class="group-note">${this._bl(`group.${group}.note`)}</p>
           ${inGroup.map((row) => this._renderRow(row, searching))}
         </div>
       </ha-card>
@@ -818,7 +887,7 @@ export class HaConfigSectionPersonal extends LitElement {
           <div class="row-control">${row.control}</div>
         </div>
         <span class="row-description">
-          ${row.description}
+          ${this._bl(`${row.id}.description`)}
           ${
             searching
               ? html` <span class="group-tag"
@@ -831,7 +900,7 @@ export class HaConfigSectionPersonal extends LitElement {
           open
             ? html`<div class="row-details" id=${`${row.id}-details`}>
                 <span class=${classMap({ reach: true, inactive: !row.active })}
-                  >${row.reach}</span
+                  >${this._bl(`${row.id}.reach`)}</span
                 >
                 <span class="row-default"
                   >${this._t("default_prefix")} ${row.defaultText}</span
@@ -896,7 +965,11 @@ export class HaConfigSectionPersonal extends LitElement {
     );
     if (!voices.length) {
       return html`<span class="silent" role="status"
-        >${this._t(this._voices.length ? "voice_none" : "voice_loading")}</span
+        >${this._t(
+          this._voices.length || this._voicesWaited
+            ? "voice_none"
+            : "voice_loading"
+        )}</span
       >`;
     }
     const picked = voices.find((voice) => voice.voiceURI === chosen);
@@ -950,7 +1023,14 @@ export class HaConfigSectionPersonal extends LitElement {
   };
 
   private _hearSample = () => {
-    narrator.sample(this._tl("narrator_sample.text"));
+    // Both language parts go in; the narrator keeps the ones that match the
+    // "speak in" choice, so English display with Cantonese speech still works.
+    const parts = textParts(
+      this.hass.localize,
+      "ui.panel.config.personal.narrator_sample.text"
+    );
+    const text = [parts.english, parts.cantonese].filter(Boolean).join("\n");
+    this._sampleFailed = !narrator.sample(text);
   };
 
   private _toggleRow = (ev: Event) => {
@@ -994,7 +1074,7 @@ export class HaConfigSectionPersonal extends LitElement {
                 ${this._t("reset_all_line", {
                   name: row.label,
                   current: row.valueText,
-                  default: row.defaultText.replace(/\.$/, ""),
+                  default: this._tNoStops(`${row.id}.default`),
                 })}
               </li>`
           )}

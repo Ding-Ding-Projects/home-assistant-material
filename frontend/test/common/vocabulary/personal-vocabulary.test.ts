@@ -224,6 +224,14 @@ describe("loading and clearing", () => {
     expect(window.localStorage.getItem(VOCABULARY_STORAGE_KEY)).toBeNull();
   });
 
+  // Text with links arrives as a list of parts. Rewriting it as a string once
+  // replaced a Settings tip with an error message.
+  it("leaves text that is not a string as it is", () => {
+    loadPersonalVocabulary(bytes(good));
+    const parts = ["light", { link: true }];
+    expect(applyPersonalVocabulary(parts as unknown as string)).toBe(parts);
+  });
+
   it("changes nothing when a file fails", () => {
     loadPersonalVocabulary(bytes(good));
     const before = window.localStorage.getItem(VOCABULARY_STORAGE_KEY);

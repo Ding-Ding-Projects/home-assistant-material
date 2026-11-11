@@ -49,15 +49,110 @@ export const getChooseOutcome = (
   return hasDefault ? { kind: "default" } : { kind: "none" };
 };
 
-/** The conditions of an option as the server tests them (never `enabled`). */
-export const getTestableConditions = (option: Option): (Condition | string)[] =>
-  ensureArray<Condition | string>(option.conditions ?? []).map((condition) => {
-    if (typeof condition === "string") {
-      return condition;
+const isDisabled = (condition: unknown): boolean =>
+  typeof condition === "object" &&
+  condition !== null &&
+  (condition as { enabled?: unknown }).enabled === false;
+
+/**
+ * Leaves out disabled children at every depth, as the automation engine skips
+ * them. Children of and / or / not sit in `conditions` (or, in older configs,
+ * a non-string `condition`). The `enabled` flag itself is never sent.
+ */
+const withoutDisabled = (condition: Condition | string): Condition | string => {
+  if (typeof condition === "string") {
+    return condition;
+  }
+  const { enabled: _enabled, ...rest } = condition as Condition &
+    Record<string, unknown>;
+  for (const key of ["conditions", "condition"]) {
+    const children = rest[key];
+    if (children && typeof children === "object") {
+      rest[key] = ensureArray<Condition | string>(
+        children as Condition | Condition[]
+      )
+        .filter((child) => !isDisabled(child))
+        .map(withoutDisabled);
     }
-    const { enabled: _enabled, ...tested } = condition;
-    return tested;
+  }
+  return rest as Condition;
+};
+
+/**
+ * The conditions of an option as the server should test them: a disabled
+ * condition is left out, as the real automation skips it.
+ */
+export const getTestableConditions = (option: Option): (Condition | string)[] =>
+  ensureArray<Condition | string>(option.conditions ?? [])
+    .filter((condition) => !isDisabled(condition))
+    .map(withoutDisabled);
+
+/** A stable text form of a value, used to tell whether it was edited. */
+export const getConfigKey = (value: unknown): string =>
+  JSON.stringify(value ?? null);
+
+/**
+ * The part of an option a test result depends on. Editing the actions of an
+ * option never changes whether it passes, so only conditions count here.
+ */
+export const getConditionsKey = (option: Option): string =>
+  getConfigKey(getTestableConditions(option));
+
+/**
+ * True while the options on screen still carry exactly the conditions that
+ * were tested, in the same order. A stored result must never describe a
+ * config that is no longer shown.
+ */
+export const areTestResultsCurrent = (
+  testedKeys: readonly string[],
+  options: readonly Option[]
+): boolean =>
+  testedKeys.length === options.length &&
+  options.every(
+    (option, index) => getConditionsKey(option) === testedKeys[index]
+  );
+
+export type UnreachableReason =
+  | { kind: "after_unconditional"; by: number }
+  | { kind: "same_conditions"; by: number };
+
+/** True when the server always treats the option's conditions as passing. */
+const alwaysPasses = (option: Option): boolean =>
+  getTestableConditions(option).length === 0;
+
+/**
+ * Finds options that can never be chosen, using the config alone:
+ * - an option after one that always passes (no conditions, or every condition
+ *   disabled), because the first passing option wins;
+ * - an option whose conditions are identical to those of an earlier option,
+ *   because both are evaluated against the same state.
+ * Nothing is guessed: anything that depends on live state is left alone.
+ */
+export const getUnreachableOptions = (
+  options: readonly Option[]
+): Map<number, UnreachableReason> => {
+  const result = new Map<number, UnreachableReason>();
+  let firstAlwaysPasses: number | undefined;
+  const seen = new Map<string, number>();
+  options.forEach((option, index) => {
+    if (firstAlwaysPasses !== undefined) {
+      result.set(index, { kind: "after_unconditional", by: firstAlwaysPasses });
+      return;
+    }
+    if (alwaysPasses(option)) {
+      firstAlwaysPasses = index;
+      return;
+    }
+    const key = getConditionsKey(option);
+    const earlier = seen.get(key);
+    if (earlier !== undefined) {
+      result.set(index, { kind: "same_conditions", by: earlier });
+      return;
+    }
+    seen.set(key, index);
   });
+  return result;
+};
 
 /**
  * Checks right now whether every condition of an option passes. An option

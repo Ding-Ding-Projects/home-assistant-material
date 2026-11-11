@@ -174,7 +174,10 @@ export class DialogEnterCode
     return html`
       <ha-adaptive-dialog
         .open=${this._open}
-        header-title=${this._dialogParams.title ?? "Enter code"}
+        header-title=${
+          this._dialogParams.title ??
+          this.hass.localize("ui.dialogs.enter_code.title")
+        }
         width="small"
         @closed=${this._dialogClosed}
       >

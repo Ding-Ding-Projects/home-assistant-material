@@ -8,6 +8,20 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Fixed: builds 64 and 65 were published without images, because a push that changed many
+  files was mistaken for a documentation-only push. Build 66 is the first with images again.
+- The narrator only ever uses a voice that runs on the device. If there is none it stays
+  silent, so spoken text is never sent anywhere.
+- Choose step: a disabled condition is left out of a test, old results are cleared when the
+  step is edited, an option that can never run is marked, and Run asks first. The automation
+  editor has an on and off switch, a Check button, and a strip that shows its history.
+- The entity dialog has a tab row and a tools block (lock, appearance, read aloud, export),
+  and no longer shows the state twice.
+- The script editor is redrawn with a mode selector, Run now and See past runs. Maintenance
+  opens with what needs you. The error and loading screens are redrawn.
+- Tabs: fixes for screen readers and the keyboard, and the search shrinks to a button on a
+  narrow screen. The search of everything works for people who are not administrators.
+- Text that carries links keeps the personal wording on its plain parts.
 - Fixed: with a wording file loaded, the tip under Settings showed an error instead of its
   text. Text that carries links is now left as it is.
 - The choose step in the automation editor can test and run one option, the default actions,

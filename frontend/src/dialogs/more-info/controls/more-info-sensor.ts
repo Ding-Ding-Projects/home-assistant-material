@@ -235,10 +235,37 @@ class MoreInfoSensor extends LitElement {
       });
     }
     if (attrs.state_class) {
-      rows.push({
-        label: localize("ui.dialogs.more_info_control.sensor.state_class"),
-        value: String(attrs.state_class),
-      });
+      let stateClassLabel = "";
+      switch (attrs.state_class) {
+        case "measurement":
+          stateClassLabel = localize(
+            "ui.dialogs.more_info_control.sensor.state_class_measurement"
+          );
+          break;
+        case "measurement_angle":
+          stateClassLabel = localize(
+            "ui.dialogs.more_info_control.sensor.state_class_measurement_angle"
+          );
+          break;
+        case "total":
+          stateClassLabel = localize(
+            "ui.dialogs.more_info_control.sensor.state_class_total"
+          );
+          break;
+        case "total_increasing":
+          stateClassLabel = localize(
+            "ui.dialogs.more_info_control.sensor.state_class_total_increasing"
+          );
+          break;
+        default:
+          break;
+      }
+      if (stateClassLabel) {
+        rows.push({
+          label: localize("ui.dialogs.more_info_control.sensor.state_class"),
+          value: stateClassLabel,
+        });
+      }
     }
     if (!rows.length) {
       return nothing;

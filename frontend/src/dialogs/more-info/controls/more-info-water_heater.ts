@@ -1,5 +1,5 @@
 import type { ContextType } from "@lit/context";
-import { mdiAccountArrowRight } from "@mdi/js";
+import { mdiAccountArrowRight, mdiCheck } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
@@ -111,6 +111,14 @@ class MoreInfoWaterHeater extends LitElement {
                         .mode=${mode}
                         @click=${this._handleOperationModeClick}
                       >
+                        ${
+                          mode === stateObj.state
+                            ? html`<ha-svg-icon
+                                class="check"
+                                .path=${mdiCheck}
+                              ></ha-svg-icon>`
+                            : nothing
+                        }
                         ${this._formatters.formatEntityState(stateObj, mode)}
                       </button>
                     `
@@ -133,6 +141,10 @@ class MoreInfoWaterHeater extends LitElement {
                   )}
                 </div>
                 <ha-switch
+                  .accessibleLabel=${this._formatters.formatEntityAttributeName(
+                    stateObj,
+                    "away_mode"
+                  )}
                   .checked=${stateObj.attributes.away_mode === "on"}
                   .disabled=${unavailable}
                   @change=${this._handleAwayModeChanged}
@@ -246,6 +258,14 @@ class MoreInfoWaterHeater extends LitElement {
           font: inherit;
           font-weight: var(--ha-font-weight-medium);
           cursor: pointer;
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+        }
+        .check {
+          --mdc-icon-size: 18px;
         }
         .chip.selected {
           background: var(--secondary-background-color);

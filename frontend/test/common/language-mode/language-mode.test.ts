@@ -7,6 +7,7 @@ import {
   joinForMode,
   modeText,
   setYueStringsForTest,
+  stripFullStops,
   textParts,
   withLanguageMode,
   yueKeys,
@@ -50,6 +51,20 @@ describe("joinForMode", () => {
     expect(joinForMode({ english: "PIN", cantonese: "PIN" }, "bilingual")).toBe(
       "PIN"
     );
+  });
+});
+
+describe("closing full stops", () => {
+  it("shows text that differs only by full stops once", () => {
+    expect(joinForMode({ english: "5.", cantonese: "5。" }, "bilingual")).toBe(
+      "5."
+    );
+  });
+
+  it("strips closing full stops and keeps inner dots", () => {
+    expect(stripFullStops("Automatic.")).toBe("Automatic");
+    expect(stripFullStops("預設。")).toBe("預設");
+    expect(stripFullStops("1.5x.")).toBe("1.5x");
   });
 });
 

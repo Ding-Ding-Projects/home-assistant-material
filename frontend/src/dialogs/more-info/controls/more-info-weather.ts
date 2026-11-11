@@ -555,10 +555,24 @@ class MoreInfoWeather extends LitElement {
           top: 6px;
         }
 
+        .hero .temp span {
+          position: static;
+          display: inline-block;
+          vertical-align: top;
+          margin-top: 6px;
+          margin-inline-start: var(--ha-space-1);
+        }
+
+        .hero-main {
+          flex-wrap: wrap;
+          max-width: 100%;
+        }
+
         .summary {
           font-size: var(--ha-font-size-m);
           color: var(--secondary-text-color);
           max-width: 100%;
+          overflow-wrap: anywhere;
         }
 
         .time-ago {

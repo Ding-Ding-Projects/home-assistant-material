@@ -447,9 +447,13 @@ export class HaScriptEditor extends SubscribeMixin(
                               .narrow=${this.narrow}
                               .isWide=${this.isWide}
                               .config=${this.config}
+                              .scriptId=${this.scriptId}
                               .disabled=${this.readOnly}
                               .saving=${this.saving}
                               @value-changed=${this._valueChanged}
+                              @rename-script=${this._promptScriptAlias}
+                              @run-script=${this._runScript}
+                              @show-script-trace=${this._showTrace}
                               @editor-save=${this._handleSaveScript}
                               @save-script=${this._handleSaveScript}
                             >
@@ -1273,5 +1277,8 @@ declare global {
 
   interface HASSDomEvents {
     "save-script": undefined;
+    "rename-script": undefined;
+    "run-script": undefined;
+    "show-script-trace": undefined;
   }
 }

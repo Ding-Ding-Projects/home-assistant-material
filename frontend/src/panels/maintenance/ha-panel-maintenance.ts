@@ -13,6 +13,7 @@ import type { Lovelace } from "../lovelace/types";
 import "../lovelace/views/hui-view";
 import "../lovelace/views/hui-view-background";
 import "../lovelace/views/hui-view-container";
+import "./ha-maintenance-attention";
 
 const MAINTENANCE_LOVELACE_VIEW_CONFIG: LovelaceStrategyViewConfig = {
   strategy: {
@@ -97,6 +98,7 @@ class PanelMaintenance extends LitElement {
         .backButton=${this._searchParams.has("historyBack")}
       >
         <div slot="title">${this.hass.localize("panel.maintenance")}</div>
+        <ha-maintenance-attention .hass=${this.hass}></ha-maintenance-attention>
         ${
           this._lovelace
             ? html`

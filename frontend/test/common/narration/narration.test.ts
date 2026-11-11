@@ -7,6 +7,7 @@ import {
   pickVoice,
   selectSpeech,
   splitSegments,
+  voicesFor,
 } from "../../../src/common/narration/narration";
 
 describe("selectSpeech", () => {
@@ -41,11 +42,32 @@ describe("selectSpeech", () => {
 
 describe("pickVoice", () => {
   const voices = [
-    { voiceURI: "a", name: "A", lang: "en-US" },
-    { voiceURI: "b", name: "B", lang: "en-GB", default: true },
-    { voiceURI: "c", name: "C", lang: "zh-HK" },
-    { voiceURI: "d", name: "D", lang: "zh-CN" },
+    { voiceURI: "a", name: "A", lang: "en-US", localService: true },
+    {
+      voiceURI: "b",
+      name: "B",
+      lang: "en-GB",
+      default: true,
+      localService: true,
+    },
+    { voiceURI: "c", name: "C", lang: "zh-HK", localService: true },
+    { voiceURI: "d", name: "D", lang: "zh-CN", localService: true },
+    {
+      voiceURI: "n",
+      name: "Network",
+      lang: "en-US",
+      default: true,
+      localService: false,
+    },
+    { voiceURI: "ny", name: "NetYue", lang: "zh-HK", localService: false },
   ];
+
+  it("never picks a network voice, even a default or chosen one", () => {
+    expect(pickVoice(voices, "en", "n")?.name).toBe("B");
+    expect(voicesFor(voices, "en").map((v) => v.name)).toEqual(["B", "A"]);
+    expect(pickVoice([voices[5]], "yue", "ny")).toBeUndefined();
+    expect(pickVoice([voices[4]], "en", "")).toBeUndefined();
+  });
 
   it("prefers the chosen voice when it speaks the language", () => {
     expect(pickVoice(voices, "en", "a")?.name).toBe("A");

@@ -1,3 +1,4 @@
+import { mdiAlertCircleOutline } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -8,7 +9,7 @@ import "../components/ha-button";
 import "../components/ha-top-app-bar-fixed";
 import type { HomeAssistant } from "../types";
 import { reloadForUpdate } from "../util/recover-stale-build";
-import "../components/ha-alert";
+import "../components/ha-svg-icon";
 
 @customElement("hass-error-screen")
 class HassErrorScreen extends LitElement {
@@ -51,7 +52,15 @@ class HassErrorScreen extends LitElement {
     const localize = this._localize ?? this.hass?.localize;
     return html`
       <div class="content">
-        <ha-alert alert-type="error">${this.error}</ha-alert>
+        <div class="panel" role="alert">
+          <div class="tile">
+            <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
+          </div>
+          <h2 class="title">
+            ${localize?.("ui.status_screens.error_title") ?? nothing}
+          </h2>
+          <div class="message">${this.error}</div>
+        </div>
         <slot>
           ${
             this.showReload
@@ -105,8 +114,41 @@ class HassErrorScreen extends LitElement {
         a {
           color: var(--primary-color);
         }
-        ha-alert {
-          margin-bottom: 16px;
+        .panel {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--ha-space-2);
+          max-width: 480px;
+          margin-bottom: var(--ha-space-4);
+          padding: var(--ha-space-6);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--ha-color-fill-danger-quiet-resting);
+          color: var(--ha-color-on-danger-quiet);
+          text-align: center;
+        }
+        .tile {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 56px;
+          height: 56px;
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--card-background-color);
+        }
+        .title {
+          margin: 0;
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .message {
+          overflow-wrap: anywhere;
+        }
+        .message a {
+          color: inherit;
+        }
+        ha-button {
+          min-height: 44px;
         }
       `,
     ];

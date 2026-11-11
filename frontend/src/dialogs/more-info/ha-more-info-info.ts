@@ -12,9 +12,34 @@ import {
   DOMAINS_NO_INFO,
   DOMAINS_WITH_MORE_INFO,
 } from "./const";
+import { domainMoreInfoType } from "./state_more_info_control";
 import "./ha-more-info-history";
 import "./ha-more-info-logbook";
 import "./more-info-content";
+
+/**
+ * Kinds whose body draws its own state headline. The frame leaves its own
+ * state card out for these so the state is not shown twice. Kinds that are
+ * not listed here and have no dedicated body use the default body, which
+ * draws a headline too.
+ */
+const DOMAINS_WITH_OWN_HEADLINE = [
+  "automation",
+  "calendar",
+  "counter",
+  "date",
+  "datetime",
+  "group",
+  "image",
+  "person",
+  "remote",
+  "sensor",
+  "sun",
+  "timer",
+];
+
+/** Kinds whose body draws its own chart, so the frame draws none. */
+const DOMAINS_WITH_OWN_CHART = ["sensor"];
 
 @customElement("ha-more-info-info")
 export class MoreInfoInfo extends LitElement {
@@ -34,6 +59,10 @@ export class MoreInfoInfo extends LitElement {
     const entityRegObj = this.hass.entities[entityId];
     const domain = computeDomain(entityId);
     const isNewMoreInfo = stateObj && computeShowNewMoreInfo(stateObj);
+    const hasOwnHeadline =
+      DOMAINS_WITH_OWN_HEADLINE.includes(domain) ||
+      domainMoreInfoType(domain) === "default";
+    const hasOwnChart = DOMAINS_WITH_OWN_CHART.includes(domain);
     const isFullHeight =
       isNewMoreInfo || DOMAINS_FULL_HEIGHT_MORE_INFO.includes(domain);
 
@@ -68,7 +97,7 @@ export class MoreInfoInfo extends LitElement {
         }
         <div class="content">
           ${
-            DOMAINS_NO_INFO.includes(domain) || isNewMoreInfo
+            DOMAINS_NO_INFO.includes(domain) || isNewMoreInfo || hasOwnHeadline
               ? ""
               : html`
                   <state-card-content
@@ -80,6 +109,7 @@ export class MoreInfoInfo extends LitElement {
           }
           ${
             DOMAINS_WITH_MORE_INFO.includes(domain) ||
+            hasOwnChart ||
             !computeShowHistoryComponent(this.hass, entityId)
               ? ""
               : html`<ha-more-info-history

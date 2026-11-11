@@ -92,6 +92,20 @@ export const filterUnavailableBatteryEntities = (
     return states[entityId]?.state === "unavailable";
   });
 
+export const findMaintenanceEntityIds = (hass: HomeAssistant): string[] => {
+  const filters = maintenanceEntityFilters.map((filter) =>
+    generateEntityFilter(
+      hass.states,
+      hass.entities,
+      hass.devices,
+      hass.areas,
+      hass.floors,
+      filter
+    )
+  );
+  return findEntities(Object.keys(hass.states), filters);
+};
+
 const computeMaintenanceTileCard = (
   states: HomeAssistant["states"],
   entities: HomeAssistant["entities"],

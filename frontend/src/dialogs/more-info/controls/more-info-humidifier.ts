@@ -1,5 +1,5 @@
 import type { ContextType } from "@lit/context";
-import { mdiPower } from "@mdi/js";
+import { mdiCheck, mdiPower } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
@@ -58,6 +58,9 @@ class MoreInfoHumidifier extends LitElement {
     const isOn = stateObj.state === "on";
     const hasTarget = stateObj.attributes.humidity != null;
     const summary = [
+      hasTarget
+        ? `${this._formatters.formatEntityState(stateObj)}.`
+        : undefined,
       stateObj.attributes.action
         ? `${this._formatters.formatEntityAttributeValue(stateObj, "action")}.`
         : undefined,
@@ -125,6 +128,14 @@ class MoreInfoHumidifier extends LitElement {
                       .mode=${mode}
                       @click=${this._handleModeClick}
                     >
+                      ${
+                        mode === this._mode
+                          ? html`<ha-svg-icon
+                              class="check"
+                              .path=${mdiCheck}
+                            ></ha-svg-icon>`
+                          : nothing
+                      }
                       ${this._formatters.formatEntityAttributeValue(
                         stateObj,
                         "mode",
@@ -253,6 +264,14 @@ class MoreInfoHumidifier extends LitElement {
           font: inherit;
           font-weight: var(--ha-font-weight-medium);
           cursor: pointer;
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+        }
+        .check {
+          --mdc-icon-size: 18px;
         }
         .chip.selected {
           background: var(--secondary-background-color);

@@ -24,6 +24,7 @@ export const YUE_PREFIXES = [
   "ui.phone.",
   "ui.locks.",
   "ui.personal_wording.",
+  "ui.personal_prefs.",
 ] as const;
 
 export type Localize = (
@@ -78,8 +79,28 @@ export const fillPlaceholders = (template: string, values?: Values): string =>
 
 export const BILINGUAL_SEPARATOR = " · ";
 
-export const currentLanguageMode = (): LanguageMode =>
-  getPersonalPreferences().languageMode;
+/** The chosen mode; English when the browser storage cannot be read. */
+export const currentLanguageMode = (): LanguageMode => {
+  try {
+    return getPersonalPreferences().languageMode ?? "english";
+  } catch (_err) {
+    return "english";
+  }
+};
+
+/**
+ * Removes the closing full stops (`.` and `。`) so a sentence can sit inside
+ * another. Dots inside the text, such as the one in "1.5", are kept.
+ */
+export const stripFullStops = (text: string): string =>
+  text
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.。\s]+$/, "");
+
+/** True when two texts differ only by closing full stops and spacing. */
+export const sameIgnoringPunctuation = (a: string, b: string): boolean =>
+  stripFullStops(a).replace(/\s/g, "") === stripFullStops(b).replace(/\s/g, "");
 
 export interface ModeParts {
   english: string;
@@ -113,7 +134,9 @@ export const joinForMode = (
   if (mode === "cantonese") {
     return cantonese;
   }
-  return cantonese === english ? english : `${english}${separator}${cantonese}`;
+  return sameIgnoringPunctuation(cantonese, english)
+    ? english
+    : `${english}${separator}${cantonese}`;
 };
 
 /** A string in the chosen language mode. */

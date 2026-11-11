@@ -79,6 +79,8 @@ export interface VoiceInfo {
   name: string;
   lang: string;
   default?: boolean;
+  /** True when the voice runs on this device; a network voice sends text out. */
+  localService: boolean;
 }
 
 const CANTONESE_TAG = /^(yue|zh[-_]hk|zh[-_]yue)/i;
@@ -91,13 +93,20 @@ export const voiceMatchesLanguage = (
     ? CANTONESE_TAG.test(voice.lang)
     : /^en([-_]|$)/i.test(voice.lang);
 
-/** The voices that can speak a language, best first. */
+/**
+ * The voices that can speak a language, best first. Only voices that run on
+ * this device are offered: a network voice would send the spoken text to a
+ * server, and the narrator promises that nothing leaves the device.
+ */
 export const voicesFor = <T extends VoiceInfo>(
   voices: T[],
   language: SpeechLanguage
 ): T[] =>
   voices
-    .filter((voice) => voiceMatchesLanguage(voice, language))
+    .filter(
+      (voice) =>
+        voice.localService === true && voiceMatchesLanguage(voice, language)
+    )
     .sort((a, b) => Number(!!b.default) - Number(!!a.default));
 
 /**

@@ -2,6 +2,7 @@ import {
   mdiClose,
   mdiCog,
   mdiFormatPaint,
+  mdiMagnify,
   mdiHuman,
   mdiTranslate,
   mdiPin,
@@ -30,6 +31,7 @@ import {
 } from "../common/accessibility/accessibility-tools";
 import { storage } from "../common/decorators/storage";
 import { fireEvent } from "../common/dom/fire_event";
+import { filterNavigationPages } from "../common/config/filter_navigation_pages";
 import { navigate } from "../common/navigate";
 import { searchMatcher } from "../common/regex/filter";
 import type { BulkCloseMode } from "../common/tabs/bulk-close";
@@ -43,10 +45,17 @@ import {
   SYSTEM_PANELS,
 } from "../data/panel";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
+import type { LocalizeKeys } from "../common/translations/localize";
 import type { HomeAssistant, PanelInfo } from "../types";
+import { configSections } from "../panels/config/config-sections";
 import { isMac } from "../util/is_mac";
 import "./ha-icon";
-import { applyTabOrder, moveTabId } from "./tab-order";
+import {
+  applyTabOrder,
+  isMoveAcrossBlocked,
+  isReorderKeydown,
+  moveTabId,
+} from "./tab-order";
 import "./input/ha-input-search";
 import type { HaInputSearch } from "./input/ha-input-search";
 import "./ha-svg-icon";
@@ -65,6 +74,12 @@ declare global {
     /** Starts the tool that picks an element to edit its appearance. */
     "hass-pick-appearance": undefined;
   }
+}
+
+interface CatalogSettingsEntry {
+  path: string;
+  title: string;
+  iconPath?: string;
 }
 
 export interface PageTab {
@@ -189,16 +204,19 @@ export class HaPageTabs extends LitElement {
     const listed = tabs.filter((tab) => matches(tab.title, tab.urlPath));
 
     return html`
+      <!-- The tab list owns only the tab buttons. Pin and close buttons sit
+           beside them, outside the tab role, so each stays a plain button. -->
       <div
-        class="tabs"
+        class="tablist"
         role="tablist"
         aria-label=${this.hass.localize("ui.page_tabs.open_pages")}
-        @keydown=${this._handleTabKeydown}
-      >
+        aria-owns=${open.map((_tab, index) => `page-tab-${index}`).join(" ")}
+      ></div>
+      <div class="tabs" @keydown=${this._handleTabKeydown}>
         ${repeat(
           open,
           (tab) => tab.urlPath,
-          (tab) => {
+          (tab, index) => {
             const selected = tab.urlPath === current;
             const pinned = this._pinned.includes(tab.urlPath);
             const dropMark = this._dropMark;
@@ -226,10 +244,11 @@ export class HaPageTabs extends LitElement {
                 @dragend=${this._dragEnd}
               >
                 <button
+                  id=${`page-tab-${index}`}
                   class="tab-button"
                   role="tab"
                   aria-selected=${selected ? "true" : "false"}
-                  aria-keyshortcuts="Control+Shift+ArrowLeft Control+Shift+ArrowRight"
+                  aria-keyshortcuts="Control+Shift+ArrowLeft Control+Shift+ArrowRight Alt+Shift+ArrowLeft Alt+Shift+ArrowRight"
                   tabindex=${
                     selected ||
                     (!open.some((t) => t.urlPath === current) &&
@@ -249,10 +268,9 @@ export class HaPageTabs extends LitElement {
                 </button>
                 <button
                   class="pin"
-                  aria-label=${this.hass.localize(
-                    pinned ? "ui.page_tabs.unpin_tab" : "ui.page_tabs.pin_tab",
-                    { name: tab.title }
-                  )}
+                  aria-label=${this.hass.localize("ui.page_tabs.pin_tab", {
+                    name: tab.title,
+                  })}
                   aria-pressed=${pinned ? "true" : "false"}
                   .urlPath=${tab.urlPath}
                   @click=${this._togglePin}
@@ -325,41 +343,8 @@ export class HaPageTabs extends LitElement {
           @input=${this._filterChanged}
         ></ha-input-search>
         ${this._renderBulkClose(tabs, closed, current)}
-        <div class="catalog-list" role="list">
-          ${
-            listed.length
-              ? listed.map((tab) => {
-                  const isClosed = closed.has(tab.urlPath);
-                  return html`
-                    <button
-                      class=${classMap({ entry: true, closed: isClosed })}
-                      role="listitem"
-                      .urlPath=${tab.urlPath}
-                      @click=${this._openFromCatalog}
-                    >
-                      <span class="entry-icon">${this._renderIcon(tab)}</span>
-                      <span class="entry-text">
-                        <span class="entry-title">${tab.title}</span>
-                        <span class="entry-state"
-                          >${this.hass.localize(
-                            isClosed
-                              ? "ui.page_tabs.state_closed"
-                              : "ui.page_tabs.state_open"
-                          )}</span
-                        >
-                      </span>
-                      ${
-                        isClosed
-                          ? html`<ha-svg-icon .path=${mdiPlus}></ha-svg-icon>`
-                          : nothing
-                      }
-                    </button>
-                  `;
-                })
-              : html`<p class="empty">
-                  ${this.hass.localize("ui.page_tabs.no_match")}
-                </p>`
-          }
+        <div class="catalog-list">
+          ${this._renderCatalogGroups(listed, closed)}
         </div>
         <p class="catalog-note">
           ${this.hass.localize("ui.page_tabs.catalog_note")}
@@ -379,6 +364,14 @@ export class HaPageTabs extends LitElement {
         >
           <kbd slot="end">${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
         </ha-input-search>
+        <button
+          class="new-tab search-icon"
+          aria-label=${this.hass.localize("ui.page_tabs.search_everything")}
+          title=${this.hass.localize("ui.page_tabs.search_everything")}
+          @click=${this._openSearch}
+        >
+          <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
+        </button>
         <button
           class="new-tab"
           aria-label=${this.hass.localize("ui.page_tabs.edit_appearance")}
@@ -425,6 +418,135 @@ export class HaPageTabs extends LitElement {
         }
       </div>
     `;
+  }
+
+  // Settings pages from the settings overview, shown to this person only.
+  private _settingsEntries(): CatalogSettingsEntry[] {
+    const pages = filterNavigationPages(this.hass, [
+      ...configSections.dashboard,
+      ...configSections.dashboard_2,
+      ...configSections.dashboard_3,
+    ]);
+    const seen = new Set<string>();
+    const entries: CatalogSettingsEntry[] = [];
+    for (const page of pages) {
+      if (!page.translationKey || page.path.startsWith("#")) {
+        continue;
+      }
+      const title = this.hass.localize(
+        `ui.panel.config.dashboard.${page.translationKey}.main` as LocalizeKeys
+      );
+      if (!title || seen.has(page.path)) {
+        continue;
+      }
+      seen.add(page.path);
+      entries.push({ path: page.path, title, iconPath: page.iconPath });
+    }
+    return entries;
+  }
+
+  // The catalog in groups: pages (which can be tabs), then settings pages.
+  private _renderCatalogGroups(
+    listed: PageTab[],
+    closed: Set<string>
+  ): TemplateResult {
+    const matches = searchMatcher(this._filter);
+    const settings = this._settingsEntries().filter((entry) =>
+      matches(entry.title, entry.path)
+    );
+    if (!listed.length && !settings.length) {
+      return html`<p class="empty">
+        ${this.hass.localize("ui.page_tabs.no_match")}
+      </p>`;
+    }
+    return html`
+      ${
+        listed.length
+          ? html`<section
+              class="group"
+              role="group"
+              aria-labelledby="group-pages"
+            >
+              <h3 id="group-pages" class="group-title">
+                ${this.hass.localize("ui.page_tabs.group_pages")}
+              </h3>
+              <ul class="group-list">
+                ${listed.map((tab) => {
+                  const isClosed = closed.has(tab.urlPath);
+                  return html`<li>
+                    <button
+                      class=${classMap({ entry: true, closed: isClosed })}
+                      .urlPath=${tab.urlPath}
+                      @click=${this._openFromCatalog}
+                    >
+                      <span class="entry-icon">${this._renderIcon(tab)}</span>
+                      <span class="entry-text">
+                        <span class="entry-title">${tab.title}</span>
+                        <span class="entry-state"
+                          >${this.hass.localize(
+                            isClosed
+                              ? "ui.page_tabs.state_closed"
+                              : "ui.page_tabs.state_open"
+                          )}</span
+                        >
+                      </span>
+                      ${
+                        isClosed
+                          ? html`<ha-svg-icon .path=${mdiPlus}></ha-svg-icon>`
+                          : nothing
+                      }
+                    </button>
+                  </li>`;
+                })}
+              </ul>
+            </section>`
+          : nothing
+      }
+      ${
+        settings.length
+          ? html`<section
+              class="group"
+              role="group"
+              aria-labelledby="group-settings"
+            >
+              <h3 id="group-settings" class="group-title">
+                ${this.hass.localize("ui.page_tabs.group_settings")}
+              </h3>
+              <ul class="group-list">
+                ${settings.map(
+                  (entry) =>
+                    html`<li>
+                      <button
+                        class="entry"
+                        .path=${entry.path}
+                        @click=${this._openSettingsPage}
+                      >
+                        <span class="entry-icon">
+                          ${
+                            entry.iconPath
+                              ? html`<ha-svg-icon
+                                  .path=${entry.iconPath}
+                                ></ha-svg-icon>`
+                              : nothing
+                          }
+                        </span>
+                        <span class="entry-text">
+                          <span class="entry-title">${entry.title}</span>
+                        </span>
+                      </button>
+                    </li>`
+                )}
+              </ul>
+            </section>`
+          : nothing
+      }
+    `;
+  }
+
+  private _openSettingsPage(ev: Event) {
+    const path = (ev.currentTarget as HTMLElement & { path: string }).path;
+    this._catalog?.hidePopover();
+    navigate(path);
   }
 
   // Close tabs containing the text, or not containing it. The list under the
@@ -601,7 +723,13 @@ export class HaPageTabs extends LitElement {
   // Moves a tab beside another one. A tab never leaves its group: pinned tabs
   // stay in front, and pinning is its own button.
   private _moveTab(from: string, to: string, after: boolean) {
-    if (this._pinned.includes(from) !== this._pinned.includes(to)) {
+    if (isMoveAcrossBlocked(this._pinned, from, to)) {
+      const name = this._orderedTabs().find(
+        (tab) => tab.urlPath === from
+      )?.title;
+      this._announcement = this.hass.localize("ui.page_tabs.move_blocked", {
+        name: name ?? from,
+      });
       return;
     }
     const ids = this._orderedTabs().map((tab) => tab.urlPath);
@@ -638,7 +766,7 @@ export class HaPageTabs extends LitElement {
     if (
       !from ||
       from === target ||
-      this._pinned.includes(from) !== this._pinned.includes(target)
+      isMoveAcrossBlocked(this._pinned, from, target)
     ) {
       return;
     }
@@ -696,6 +824,10 @@ export class HaPageTabs extends LitElement {
     }
   }
 
+  private _openSearch() {
+    showQuickBar(this, {});
+  }
+
   private _pickAppearance() {
     fireEvent(this, "hass-pick-appearance");
   }
@@ -730,12 +862,8 @@ export class HaPageTabs extends LitElement {
     if (!buttons.length) {
       return;
     }
-    // Control and Shift with an arrow move the focused tab itself.
-    if (
-      ev.ctrlKey &&
-      ev.shiftKey &&
-      (ev.key === "ArrowLeft" || ev.key === "ArrowRight")
-    ) {
+    // Control or Alt with Shift and an arrow move the focused tab itself.
+    if (isReorderKeydown(ev)) {
       const focused = buttons.find((button) => button.matches(":focus")) as
         (HTMLButtonElement & { urlPath: string }) | undefined;
       if (!focused) {
@@ -793,6 +921,12 @@ export class HaPageTabs extends LitElement {
     button:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
+    }
+    .tablist {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
     }
     .tabs {
       display: flex;
@@ -971,6 +1105,24 @@ export class HaPageTabs extends LitElement {
       background-color: var(--primary-background-color);
       white-space: nowrap;
     }
+    .search-icon {
+      display: none;
+    }
+    /* Narrow bars trade the field for a button that opens the same search. */
+    @media (max-width: 700px) {
+      .top-search {
+        display: none;
+      }
+      .search-icon {
+        display: flex;
+      }
+      :host {
+        padding-inline: var(--ha-space-2);
+      }
+      .actions {
+        padding-inline-start: var(--ha-space-1);
+      }
+    }
     @media (max-width: 1100px) {
       .top-search {
         width: 180px;
@@ -1060,9 +1212,27 @@ export class HaPageTabs extends LitElement {
     .catalog-list {
       display: flex;
       flex-direction: column;
-      gap: var(--ha-space-1);
+      gap: var(--ha-space-2);
       overflow-y: auto;
       min-height: 0;
+    }
+    .group-title {
+      margin: 0;
+      padding: var(--ha-space-1) var(--ha-space-2);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .group-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .group-list .entry {
+      width: 100%;
     }
     .entry {
       display: flex;

@@ -1921,6 +1921,25 @@
         "clear": "Clear"
       },
       "more_info_control": {
+        "frame": {
+          "tabs": "Sections of this dialog",
+          "tab_details": "Details",
+          "tools_title": "Tools for this dialog",
+          "lock": "Lock this control",
+          "lock_description": "Ask for a credential before it can be changed",
+          "unlock": "Unlock this control",
+          "unlock_description": "Locked. Unlock it from the tools below.",
+          "appearance": "Edit appearance",
+          "appearance_description": "Colour, type and layers of this dialog",
+          "read_aloud": "Read it aloud",
+          "read_aloud_description": "The narrator reads the state and each change",
+          "export": "Export",
+          "export_description": "The text of this dialog as JSON, Markdown or plain text",
+          "export_json": "JSON",
+          "export_markdown": "Markdown",
+          "export_text": "Text",
+          "exported": "Saved {name}"
+        },
         "settings": "Settings",
         "edit": "Edit entity",
         "edit_domain": {
@@ -2062,7 +2081,11 @@
           "loading": "Loading history",
           "no_history": "No numeric history in this period",
           "type": "Type",
-          "state_class": "Measurement kind"
+          "state_class": "Measurement kind",
+          "state_class_measurement": "Measurement",
+          "state_class_measurement_angle": "Measurement (angle)",
+          "state_class_total": "Total",
+          "state_class_total_increasing": "Total, increasing"
         },
         "counter": {
           "counts_between": "Counts from {minimum} to {maximum}, {step} at a time.",
@@ -2934,6 +2957,10 @@
         }
       }
     },
+    "status_screens": {
+      "error_title": "Something went wrong",
+      "loading_title": "Loading"
+    },
     "weekdays": {
       "monday": "Monday",
       "tuesday": "Tuesday",
@@ -3366,6 +3393,32 @@
         "timeout": "The pattern took too long on this list and was stopped."
       }
     },
+    "personal_prefs": {
+      "momentum_bar": {
+        "offer": "Pick up where you left off: {path}",
+        "go": "Go back",
+        "dismiss": "Not now"
+      },
+      "quick_bar": {
+        "caption": "Personal settings",
+        "sound_effects": {
+          "label": "Action sounds",
+          "description": "Play a short sound when you turn a setting on, reset it, or try a sound."
+        },
+        "low_stimulation": {
+          "label": "Low stimulation",
+          "description": "Softens colour, shortens animations and silences action sounds and the spoken narrator."
+        },
+        "focus_spotlight": {
+          "label": "Focus spotlight",
+          "description": "Dims everything except the control that has the keyboard focus. Nothing is hidden."
+        },
+        "quiet_hours": {
+          "label": "Quiet hours",
+          "description": "Silences action sounds and the spoken narrator between two times, on the days you choose. Alarms are not changed."
+        }
+      }
+    },
     "personal_wording": {
       "title": "Your private vocabulary",
       "description": "Load your own private vocabulary file to rename things your way. It stays on this device and is checked in full before anything changes.",
@@ -3541,13 +3594,16 @@
       "search": "Search pages",
       "state_open": "Open",
       "state_closed": "Closed by you, open it",
-      "catalog_intro": "Tabs you close stay closed until you open them here. Drag a tab, or press Control and Shift with an arrow key, to move it. Pin a tab to keep it first.",
+      "catalog_intro": "Tabs you close stay closed until you open them here. Drag a tab, or press Control or Alt and Shift with an arrow key, to move it. Pin a tab to keep it first.",
       "catalog_note": "A fresh install opens every page in order. An update opens only pages you have never been offered. Visiting a page from a menu never adds a tab by itself.",
       "pin_tab": "Pin {name}",
       "unpin_tab": "Unpin {name}",
       "pinned": "{name} pinned",
       "unpinned": "{name} unpinned",
       "moved": "{name} moved to position {position} of {total}",
+      "move_blocked": "{name} cannot move past the pinned tabs. Pin or unpin it to change its group.",
+      "group_pages": "Pages",
+      "group_settings": "Settings",
       "no_match": "No page matches that search.",
       "bulk_close_matching": "{count, plural,\n  =0 {Close matching tabs}\n  one {Close # matching tab}\n  other {Close # matching tabs}\n}",
       "bulk_close_others": "{count, plural,\n  =0 {Close the other tabs}\n  one {Close # other tab}\n  other {Close the # other tabs}\n}",
@@ -7379,6 +7435,30 @@
             "rename": "[%key:ui::panel::config::automation::editor::triggers::rename%]",
             "show_trace": "Traces",
             "show_history": "History",
+            "status_bar": {
+              "enabled_switch": "Automation enabled",
+              "enabled_changed_failed": "Could not change whether the automation is on: {message}",
+              "repo_title": "This automation is its own repository",
+              "repo_details": "{folder}, {commits, plural,\n one {# commit}\n other {# commits}\n}",
+              "repo_dirty": "It has changes since the last commit.",
+              "repo_clean": "No changes since the last commit.",
+              "repo_history": "History, {commits, plural,\n one {# commit}\n other {# commits}\n}",
+              "run_now": "Run now",
+              "run_now_hint": "Runs the actions now and skips the conditions, as the Run action in the menu does.",
+              "check": "Check",
+              "checking": "Checking",
+              "check_hint": "Checks that the triggers, conditions and actions are valid and tests the conditions against the current state. Nothing runs and nothing is saved.",
+              "check_invalid": "Not valid ({part}): {message}",
+              "check_part_triggers": "triggers",
+              "check_part_conditions": "conditions",
+              "check_part_actions": "actions",
+              "check_ok_pass": "Valid, and the conditions pass right now.",
+              "check_ok_fail": "Valid, but the conditions do not pass right now.",
+              "check_ok_none": "Valid. There are no conditions to test.",
+              "check_error": "The check could not finish: {message}",
+              "past_runs": "See past runs",
+              "unsaved_note": "Checks use what is on screen, saved or not."
+            },
             "show_info": "More info",
             "default_name": "New automation",
             "missing_name": "Cannot save automation without a name",
@@ -8247,6 +8327,11 @@
                   "running": "Running…",
                   "run_success": "Ran successfully",
                   "run_no_actions": "There are no actions to run",
+                  "run_note": "Run really performs these actions now, without any trigger data. Test only checks conditions.",
+                  "run_confirm_title": "Run this step now?",
+                  "run_confirm_text": "This performs the actions for real, without trigger data, and cannot be undone.",
+                  "run_option_confirm_title": "Run these actions now?",
+                  "config_changed": "The configuration changed, so this result was dropped.",
                   "result_pass": "Passed",
                   "result_fail": "Failed",
                   "result_invalid": "Invalid conditions",
@@ -8255,6 +8340,8 @@
                   "outcome_default": "No option passes, so the default actions would run.",
                   "outcome_none": "No option passes and there are no default actions, so nothing would run.",
                   "outcome_unknown": "Option {number} could not be tested, so the result is unknown.",
+                  "never_runs_after_unconditional": "This option can never run: option {number} has no active conditions, so it always wins first.",
+                  "never_runs_same_conditions": "This option can never run: option {number} has exactly the same conditions and comes first.",
                   "testing_pass": "This option would run",
                   "testing_error": "This option would not run",
                   "conditions": "Conditions",
@@ -8691,6 +8778,25 @@
             "delete_confirm_text": "{name} will be permanently deleted.",
             "sequence": "Sequence",
             "sequence_sentence": "The sequence of actions of this script.",
+            "board": {
+              "untitled": "Name this script",
+              "rename_hint": "Change the name of this script",
+              "mode_label": "If it is already running",
+              "mode_single": "One at a time",
+              "mode_restart": "Restart",
+              "mode_queued": "Queue",
+              "mode_parallel": "Side by side",
+              "max_queued": "Queue length",
+              "max_parallel": "Most runs side by side",
+              "fields_tag": "Ask for",
+              "fields_title": "Fields the script asks for when it runs",
+              "fields_empty": "This script does not ask for anything when it runs.",
+              "actions_tag": "Do",
+              "actions_title": "These, in order",
+              "run_now": "Run now",
+              "run_unsaved": "Save the script before running it.",
+              "see_past_runs": "See past runs"
+            },
             "link_available_actions": "Learn more about available actions",
             "leave": {
               "unsaved_new_title": "Save new script?",
@@ -11749,7 +11855,8 @@
             "description": "Speaks a short sentence with the current choices, even while the narrator is off.",
             "default": "Nothing to reset.",
             "reach": "Active when this device has speech synthesis. It still follows the sound switch and quiet hours.",
-            "text": "This is the narrator. It reads the name of each control."
+            "text": "This is the narrator. It reads the name of each control.",
+            "failed": "Nothing could be spoken. This device may have no on-device voice for the chosen language, or sound is turned off or quiet."
           }
         },
         "entity_id_format": {
@@ -12394,7 +12501,25 @@
           },
           "maintenance": {
             "devices": "Devices",
-            "other_devices": "Other devices"
+            "other_devices": "Other devices",
+            "all_devices": "All batteries and problems",
+            "summary_attention": "The small jobs that keep the house running. {count, plural,\n  one {One needs you.}\n  other {# need you.}\n}",
+            "summary_clear": "The small jobs that keep the house running. Nothing needs you right now.",
+            "batteries": "Batteries",
+            "batteries_low": "{count} low",
+            "batteries_fine": "{count} are fine",
+            "updates": "Updates",
+            "updates_ready": "{count} ready",
+            "offline_label": "Offline",
+            "offline_devices": "{count, plural,\n  one {1 device}\n  other {# devices}\n}",
+            "all_fine": "All fine",
+            "low_battery": "{name} battery is low",
+            "update_ready": "{name} {version} is ready",
+            "update_from": "Installed version: {version}",
+            "offline": "{name} is unavailable",
+            "problem": "{name} reports a problem",
+            "details": "Details",
+            "review": "Review"
           },
           "home_media_players": {
             "media_players": "Media players",

@@ -502,6 +502,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         <div
           class=${this.mode === "yaml" ? "yaml-mode" : ""}
           @subscribe-automation-config=${this._subscribeAutomationConfig}
+          @automation-navigate=${this._navigateConfirmed}
         >
           ${
             this.mode === "gui"
@@ -881,6 +882,13 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
   private async _traceClicked(ev: MouseEvent) {
     if (isNavigationClick(ev)) {
       await this._showTrace();
+    }
+  }
+
+  private async _navigateConfirmed(ev: CustomEvent<{ path: string }>) {
+    ev.stopPropagation();
+    if (await this.confirmUnsavedChanged()) {
+      navigate(ev.detail.path);
     }
   }
 

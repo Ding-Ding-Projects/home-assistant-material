@@ -1,7 +1,9 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
+  mdiAccountVoice,
   mdiBackupRestore,
   mdiChartBoxOutline,
+  mdiChevronRight,
   mdiClose,
   mdiCodeBraces,
   mdiCogOutline,
@@ -9,8 +11,12 @@ import {
   mdiDevices,
   mdiDotsVertical,
   mdiDownload,
+  mdiExportVariant,
+  mdiFormatPaint,
   mdiInformationOutline,
   mdiLinkVariant,
+  mdiLock,
+  mdiLockOpenVariantOutline,
   mdiPencil,
   mdiPencilOff,
   mdiPencilOutline,
@@ -37,6 +43,24 @@ import {
   computeEntityNameParts,
   type EntityNameType,
 } from "../../common/entity/compute_entity_name_display";
+import {
+  isLocked,
+  readLocks,
+  subscribeLocks,
+  withLock,
+  writeLocks,
+} from "../../common/locks/element-locks";
+import {
+  collectPageExport,
+  exportContent,
+  exportFileName,
+  type ExportFormat,
+} from "../../common/page/export-page";
+import {
+  getPersonalPreferences,
+  subscribePersonalPreferences,
+  updatePersonalPreferences,
+} from "../../common/preferences/personal-preferences";
 import { shouldHandleRequestSelectedEvent } from "../../common/mwc/handle-request-selected-event";
 import {
   getHistoryState,
@@ -57,6 +81,8 @@ import type { HaDropdownSelectEvent } from "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
 import "../../components/ha-icon-button-prev";
+import "../../components/ha-svg-icon";
+import "../../components/ha-switch";
 import "./ha-more-info-related";
 import { downloadCameraSnapshot } from "../../data/camera";
 import { apiContext } from "../../data/context";
@@ -80,6 +106,7 @@ import {
 } from "../../resources/styles";
 import "../../state-summary/state-card-content";
 import type { HomeAssistant, HomeAssistantApi } from "../../types";
+import { fileDownload } from "../../util/file_download";
 import { showToast } from "../../util/toast";
 import { showConfirmationDialog } from "../generic/show-dialog-box";
 import {
@@ -130,6 +157,11 @@ declare global {
 }
 
 const DEFAULT_VIEW: MoreInfoView = "info";
+
+/** The key the tools at the foot of a dialog lock this dialog under. */
+const DIALOG_LOCK_KEY = "dialog:ha-more-info-dialog";
+
+const TAB_VIEWS: MoreInfoView[] = ["info", "history", "settings", "related"];
 
 const BREADCRUMB_NAME: EntityNameType[] = [
   "area",
@@ -183,6 +215,38 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
   @state() private _detailsYamlMode = false;
 
   @state() private _isEscapeEnabled = true;
+
+  @state() private _locked = false;
+
+  @state() private _narratorOn = false;
+
+  @state() private _exportedName = "";
+
+  private _unsubscribeLocks?: () => void;
+
+  private _unsubscribePreferences?: () => void;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._unsubscribeLocks = subscribeLocks(this._syncTools);
+    this._unsubscribePreferences = subscribePersonalPreferences(
+      this._syncTools
+    );
+    this._syncTools();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._unsubscribeLocks?.();
+    this._unsubscribePreferences?.();
+    this._unsubscribeLocks = undefined;
+    this._unsubscribePreferences = undefined;
+  }
+
+  private _syncTools = (): void => {
+    this._locked = isLocked(readLocks(), DIALOG_LOCK_KEY);
+    this._narratorOn = getPersonalPreferences().narratorEnabled;
+  };
 
   protected scrollFadeThreshold = 24;
 
@@ -589,6 +653,245 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
     this._setView("related");
   }
 
+  private _availableTabs(): MoreInfoView[] {
+    const entityId = this._entityId!;
+    const admin = !__DEMO__ && !!this.hass.user?.is_admin;
+    return TAB_VIEWS.filter((view) => {
+      switch (view) {
+        case "history":
+          return (
+            computeShowHistoryComponent(this.hass, entityId) ||
+            computeShowLogBookComponent(this.hass, entityId)
+          );
+        case "settings":
+        case "related":
+          return admin;
+        default:
+          return true;
+      }
+    });
+  }
+
+  private _tabLabel(view: MoreInfoView): string {
+    return view === "info"
+      ? this.hass.localize("ui.dialogs.more_info_control.frame.tab_details")
+      : this.hass.localize(
+          `ui.dialogs.more_info_control.${view}` as LocalizeKeys
+        );
+  }
+
+  private _tabClick(ev: Event) {
+    const view = (ev.currentTarget as HTMLElement).dataset.view as MoreInfoView;
+    if (view === this._currView) {
+      return;
+    }
+    if (view === "info") {
+      this._resetInitialView();
+      return;
+    }
+    this._setView(view);
+  }
+
+  private _tabKeydown(ev: KeyboardEvent) {
+    const tabs = Array.from(
+      this.shadowRoot!.querySelectorAll<HTMLElement>(".tabs [role='tab']")
+    );
+    const index = tabs.indexOf(ev.currentTarget as HTMLElement);
+    if (index < 0) {
+      return;
+    }
+    const rtl = computeRTL(
+      this.hass.language,
+      this.hass.translationMetadata.translations
+    );
+    let next = -1;
+    if (ev.key === "ArrowRight") {
+      next = index + (rtl ? -1 : 1);
+    } else if (ev.key === "ArrowLeft") {
+      next = index + (rtl ? 1 : -1);
+    } else if (ev.key === "Home") {
+      next = 0;
+    } else if (ev.key === "End") {
+      next = tabs.length - 1;
+    }
+    if (next < 0) {
+      return;
+    }
+    ev.preventDefault();
+    const target = tabs[(next + tabs.length) % tabs.length];
+    target.focus();
+    target.click();
+  }
+
+  private _renderTabs() {
+    if (
+      !this._entityId ||
+      this._childView ||
+      !(TAB_VIEWS as string[]).includes(this._currView)
+    ) {
+      return nothing;
+    }
+    const tabs = this._availableTabs();
+    if (tabs.length < 2) {
+      return nothing;
+    }
+    return html`
+      <div
+        class="tabs"
+        role="tablist"
+        aria-label=${this.hass.localize(
+          "ui.dialogs.more_info_control.frame.tabs"
+        )}
+      >
+        ${tabs.map(
+          (view) => html`
+            <button
+              type="button"
+              role="tab"
+              class=${classMap({ tab: true, active: view === this._currView })}
+              data-view=${view}
+              aria-selected=${view === this._currView ? "true" : "false"}
+              tabindex=${view === this._currView ? 0 : -1}
+              @click=${this._tabClick}
+              @keydown=${this._tabKeydown}
+            >
+              ${this._tabLabel(view)}
+            </button>
+          `
+        )}
+      </div>
+    `;
+  }
+
+  private _toggleLock() {
+    if (this._locked) {
+      return;
+    }
+    writeLocks(withLock(readLocks(), DIALOG_LOCK_KEY, true));
+  }
+
+  private _pickAppearance() {
+    fireEvent(this, "hass-pick-appearance");
+  }
+
+  private _toggleNarrator(ev: Event) {
+    updatePersonalPreferences({
+      narratorEnabled: (ev.target as HTMLInputElement).checked,
+    });
+  }
+
+  private _exportAs(ev: Event) {
+    const format = (ev.currentTarget as HTMLElement).dataset
+      .format as ExportFormat;
+    if (!this._contentElement || !this._entityId) {
+      return;
+    }
+    const stateObj = this.hass.states[this._entityId] as HassEntity | undefined;
+    const title = stateObj
+      ? computeEntityNameParts(stateObj, this.hass).entity || this._entityId
+      : this._entityId;
+    const page = collectPageExport(this._contentElement, title);
+    const { content, mime, extension } = exportContent(page, format);
+    const name = exportFileName(page, extension);
+    fileDownload(
+      URL.createObjectURL(new Blob([content], { type: mime })),
+      name
+    );
+    this._exportedName = name;
+  }
+
+  private _renderTools() {
+    const localize = this.hass.localize;
+    const key = (name: string) =>
+      localize(`ui.dialogs.more_info_control.frame.${name}` as LocalizeKeys);
+    return html`
+      <section class="tools" aria-label=${key("tools_title")}>
+        <button
+          type="button"
+          class="tool"
+          ?disabled=${this._locked}
+          @click=${this._toggleLock}
+        >
+          <span class="tool-icon"
+            ><ha-svg-icon
+              .path=${this._locked ? mdiLock : mdiLockOpenVariantOutline}
+            ></ha-svg-icon
+          ></span>
+          <span class="tool-text">
+            <span class="tool-title"
+              >${key(this._locked ? "unlock" : "lock")}</span
+            >
+            <span class="tool-description"
+              >${key(
+                this._locked ? "unlock_description" : "lock_description"
+              )}</span
+            >
+          </span>
+          <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
+        </button>
+        <button type="button" class="tool" @click=${this._pickAppearance}>
+          <span class="tool-icon"
+            ><ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon
+          ></span>
+          <span class="tool-text">
+            <span class="tool-title">${key("appearance")}</span>
+            <span class="tool-description"
+              >${key("appearance_description")}</span
+            >
+          </span>
+          <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
+        </button>
+        <label class="tool">
+          <span class="tool-icon"
+            ><ha-svg-icon .path=${mdiAccountVoice}></ha-svg-icon
+          ></span>
+          <span class="tool-text">
+            <span class="tool-title">${key("read_aloud")}</span>
+            <span class="tool-description"
+              >${key("read_aloud_description")}</span
+            >
+          </span>
+          <ha-switch
+            .checked=${this._narratorOn}
+            @change=${this._toggleNarrator}
+          ></ha-switch>
+        </label>
+        <div class="tool export">
+          <span class="tool-icon"
+            ><ha-svg-icon .path=${mdiExportVariant}></ha-svg-icon
+          ></span>
+          <span class="tool-text">
+            <span class="tool-title">${key("export")}</span>
+            <span class="tool-description">${key("export_description")}</span>
+            <span class="export-buttons">
+              ${(["json", "markdown", "text"] as ExportFormat[]).map(
+                (format) => html`
+                  <button
+                    type="button"
+                    class="chip"
+                    data-format=${format}
+                    @click=${this._exportAs}
+                  >
+                    ${key(`export_${format}`)}
+                  </button>
+                `
+              )}
+            </span>
+            ${
+              this._exportedName
+                ? html`<span class="tool-description" role="status"
+                    >${localize("ui.dialogs.more_info_control.frame.exported", {
+                      name: this._exportedName,
+                    })}</span
+                  >`
+                : nothing
+            }
+          </span>
+        </div>
+      </section>
+    `;
+  }
+
   protected render() {
     if (!this._entityId) {
       return nothing;
@@ -965,6 +1268,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
             "settings-view": this._currView === "settings",
           })}
         >
+          ${this._renderTabs()}
           ${keyed(
             this._entityId,
             html`
@@ -1006,6 +1310,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
                                     .hass=${this.hass}
                                     .entityId=${this._entityId}
                                   ></ha-more-info-history-and-logbook>
+                                  ${this._renderTools()}
                                 `
                               : this._currView === "related"
                                 ? html`
@@ -1204,6 +1509,134 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         ha-more-info-history-and-logbook {
           padding: var(--ha-space-2) 0 var(--ha-space-6) 0;
           display: block;
+        }
+
+        .tabs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-1) var(--ha-space-6) var(--ha-space-2);
+        }
+
+        .tab {
+          min-height: 44px;
+          min-width: 44px;
+          padding: 0 var(--ha-space-4);
+          border: none;
+          border-radius: var(--ha-border-radius-pill);
+          background: none;
+          color: var(--primary-text-color);
+          font: inherit;
+          font-weight: var(--ha-font-weight-medium);
+          cursor: pointer;
+        }
+
+        .tab:hover {
+          background: var(--secondary-background-color);
+        }
+
+        .tab.active {
+          background: var(--primary-text-color);
+          color: var(--card-background-color);
+        }
+
+        .tab:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+
+        .tools {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          padding: 0 var(--ha-space-6) var(--ha-space-4);
+        }
+
+        .tool {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
+          min-height: 44px;
+          padding: var(--ha-space-2);
+          border: none;
+          border-radius: var(--ha-border-radius-xl);
+          background: none;
+          color: var(--primary-text-color);
+          font: inherit;
+          text-align: start;
+          cursor: pointer;
+          box-sizing: border-box;
+          width: 100%;
+        }
+
+        .tool.export {
+          cursor: default;
+          align-items: flex-start;
+        }
+
+        .tool:disabled {
+          cursor: default;
+          opacity: 0.7;
+        }
+
+        .tool:not(:disabled):not(.export):hover {
+          background: var(--secondary-background-color);
+        }
+
+        .tool:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+
+        .tool-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: none;
+          width: 44px;
+          height: 44px;
+          border-radius: var(--ha-border-radius-lg);
+          background: var(--secondary-background-color);
+        }
+
+        .tool-text {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
+          gap: var(--ha-space-1);
+        }
+
+        .tool-title {
+          font-weight: var(--ha-font-weight-medium);
+        }
+
+        .tool-description {
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+
+        .export-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+        }
+
+        .chip {
+          min-height: 44px;
+          min-width: 44px;
+          padding: 0 var(--ha-space-4);
+          border: 1px solid var(--divider-color);
+          border-radius: var(--ha-border-radius-pill);
+          background: none;
+          color: var(--primary-text-color);
+          font: inherit;
+          cursor: pointer;
+        }
+
+        .chip:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
         }
 
         .title {

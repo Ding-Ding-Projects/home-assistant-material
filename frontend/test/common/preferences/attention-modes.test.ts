@@ -2,9 +2,36 @@ import { describe, expect, it } from "vitest";
 import {
   clockText,
   elapsedMinutes,
+  isPlainAppPath,
   MOMENTUM_MAX_AGE_MS,
   shouldOfferMomentum,
 } from "../../../src/common/preferences/attention-modes";
+
+// Protects the offer to go back from pointing at another site: only one plain
+// in-app path is accepted.
+describe("isPlainAppPath", () => {
+  it("accepts in-app paths", () => {
+    expect(isPlainAppPath("/")).toBe(true);
+    expect(isPlainAppPath("/config/areas?x=1#top")).toBe(true);
+  });
+
+  it("refuses addresses that leave the app", () => {
+    expect(isPlainAppPath("//evil.example")).toBe(false);
+    expect(isPlainAppPath("/\\evil.example")).toBe(false);
+    expect(isPlainAppPath("/a\\b")).toBe(false);
+    expect(isPlainAppPath("https://example.com")).toBe(false);
+    expect(isPlainAppPath("config")).toBe(false);
+    expect(isPlainAppPath("/a\nb")).toBe(false);
+    expect(isPlainAppPath(5)).toBe(false);
+  });
+});
+
+describe("clockText with a bad language tag", () => {
+  it("falls back to the default locale instead of throwing", () => {
+    const now = new Date(2024, 0, 3, 9, 5);
+    expect(() => clockText(now, now.getTime(), "not a tag!!")).not.toThrow();
+  });
+});
 
 describe("elapsedMinutes", () => {
   it("counts whole minutes and never goes negative", () => {

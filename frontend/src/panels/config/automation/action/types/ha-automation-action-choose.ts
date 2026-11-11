@@ -1,16 +1,28 @@
 import { mdiFlask, mdiPlay } from "@mdi/js";
-import { type CSSResultGroup, LitElement, css, html, nothing } from "lit";
+import {
+  type CSSResultGroup,
+  LitElement,
+  type PropertyValues,
+  css,
+  html,
+  nothing,
+} from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { ensureArray } from "../../../../../common/array/ensure-array";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-svg-icon";
 import type { Action, ChooseAction, Option } from "../../../../../data/script";
+import { showConfirmationDialog } from "../../../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import type { ChooseOutcome, OptionTestResult } from "../../option/choose-run";
 import {
+  areTestResultsCurrent,
   getChooseOutcome,
+  getConditionsKey,
+  getConfigKey,
+  getUnreachableOptions,
   runActions,
   testOption,
 } from "../../option/choose-run";
@@ -42,9 +54,26 @@ export class HaChooseAction extends LitElement implements ActionElement {
 
   @state() private _testOutcome?: ChooseOutcome;
 
+  // Conditions each stored test result was computed from.
+  private _testedKeys?: string[];
+
+  // The step a stored run result was produced for.
+  private _ranKey?: string;
+
   @state() private _running = false;
 
-  @state() private _runResult?: { variant: "success" | "danger"; text: string };
+  @state() private _runResult?: {
+    variant: "success" | "danger" | "neutral";
+    text: string;
+  };
+
+  // Whether the default actions existed when the stored test was computed.
+  private _testedHasDefault = false;
+
+  // Synchronous guards; state updates are asynchronous.
+  private _testRequest = 0;
+
+  private _runBusy = false;
 
   @query("ha-automation-option") private _optionElement?: HaAutomationOption;
 
@@ -53,6 +82,40 @@ export class HaChooseAction extends LitElement implements ActionElement {
 
   public static get defaultConfig(): ChooseAction {
     return { choose: [{ conditions: [], sequence: [] }] };
+  }
+
+  protected willUpdate(changedProperties: PropertyValues<this>) {
+    if (!changedProperties.has("action")) {
+      return;
+    }
+    const options = (
+      this.action?.choose ? ensureArray(this.action.choose) : []
+    ) as Option[];
+    if (
+      this._testResults &&
+      (!areTestResultsCurrent(this._testedKeys ?? [], options) ||
+        this._testedHasDefault !== this._hasDefault())
+    ) {
+      this._testResults = undefined;
+      this._testOutcome = undefined;
+      this._testedKeys = undefined;
+    }
+    if (
+      this._runResult &&
+      this._ranKey !== getConfigKey(this._stepWithoutEnabled())
+    ) {
+      this._runResult = undefined;
+      this._ranKey = undefined;
+    }
+  }
+
+  private _hasDefault() {
+    return ensureArray(this.action?.default ?? []).length > 0;
+  }
+
+  private _stepWithoutEnabled() {
+    const { enabled: _enabled, ...step } = this.action;
+    return step;
   }
 
   protected render() {
@@ -64,6 +127,7 @@ export class HaChooseAction extends LitElement implements ActionElement {
       ${this._renderToolbar()}
       <ha-automation-option
         .options=${options}
+        .unreachable=${this._unreachable(options)}
         .disabled=${this.disabled}
         @value-changed=${this._optionsChanged}
         .hass=${this.hass}
@@ -90,9 +154,28 @@ export class HaChooseAction extends LitElement implements ActionElement {
     `;
   }
 
+  private _unreachableCache?: {
+    options: Option[];
+    value: ReturnType<typeof getUnreachableOptions>;
+  };
+
+  private _unreachable(options: Option[]) {
+    if (this._unreachableCache?.options !== options) {
+      this._unreachableCache = {
+        options,
+        value: getUnreachableOptions(options),
+      };
+    }
+    return this._unreachableCache.value;
+  }
+
   private _renderToolbar() {
     const localize = this.hass.localize;
     const prefix = "ui.panel.config.automation.editor.actions.type.choose.";
+    if (!this.hass.user?.is_admin) {
+      // Testing and running call admin-only services.
+      return nothing;
+    }
     return html`
       <div class="toolbar">
         <ha-button
@@ -120,17 +203,28 @@ export class HaChooseAction extends LitElement implements ActionElement {
           >${this._runResult?.text ?? ""}</span
         >
       </div>
+      <p class="note">${localize(`${prefix}run_note`)}</p>
       ${this._renderTestResults()}
     `;
   }
 
   private _renderTestResults() {
-    if (!this._testResults || !this._testOutcome) {
-      return nothing;
-    }
+    // The live region always exists, so filling it is announced.
+    return html`<div class="results" role="status" aria-live="polite">
+      ${
+        this._testResults && this._testOutcome
+          ? this._renderResultList(this._testResults, this._testOutcome)
+          : nothing
+      }
+    </div>`;
+  }
+
+  private _renderResultList(
+    testResults: OptionTestResult[],
+    outcome: ChooseOutcome
+  ) {
     const localize = this.hass.localize;
     const prefix = "ui.panel.config.automation.editor.actions.type.choose.";
-    const outcome = this._testOutcome;
     let summary: string;
     switch (outcome.kind) {
       case "option":
@@ -150,9 +244,9 @@ export class HaChooseAction extends LitElement implements ActionElement {
         summary = localize(`${prefix}outcome_none`);
     }
     return html`
-      <div class="results" role="status" aria-live="polite">
+      <div>
         <ul>
-          ${this._testResults.map(
+          ${testResults.map(
             (result, index) => html`
               <li>
                 ${localize(`${prefix}option`, { number: index + 1 })}:
@@ -172,36 +266,81 @@ export class HaChooseAction extends LitElement implements ActionElement {
     const options = (
       this.action.choose ? ensureArray(this.action.choose) : []
     ) as Option[];
-    const action = this.action;
+    if (this._testing || !this.hass.user?.is_admin) {
+      return;
+    }
+    const request = ++this._testRequest;
     this._testing = true;
     this._testResults = undefined;
     this._testOutcome = undefined;
+    this._runResult = undefined;
+    const testedKeys = options.map(getConditionsKey);
+    const hadDefault = this._hasDefault();
     const results: OptionTestResult[] = await Promise.all(
       options.map((option) => testOption(this.hass, option))
     );
+    if (request !== this._testRequest) {
+      return;
+    }
     this._testing = false;
-    if (this.action !== action && this.action?.choose !== action.choose) {
+    const current = (
+      this.action?.choose ? ensureArray(this.action.choose) : []
+    ) as Option[];
+    if (
+      !areTestResultsCurrent(testedKeys, current) ||
+      hadDefault !== this._hasDefault()
+    ) {
       // The step was edited while testing, so the answer would be stale.
+      this._runResult = {
+        variant: "neutral",
+        text: this.hass.localize(
+          "ui.panel.config.automation.editor.actions.type.choose.config_changed"
+        ),
+      };
       return;
     }
     this._testResults = results;
-    this._testOutcome = getChooseOutcome(
-      results,
-      ensureArray(action.default ?? []).length > 0
-    );
+    this._testedKeys = testedKeys;
+    this._testedHasDefault = hadDefault;
+    this._testOutcome = getChooseOutcome(results, hadDefault);
   }
 
   /** Runs the whole step as the automation would, conditions included. */
   private async _runAll() {
-    if (this._running) {
+    if (this._runBusy || !this.hass.user?.is_admin) {
       return;
     }
     const localize = this.hass.localize;
-    const { enabled: _enabled, ...step } = this.action;
+    const prefix = "ui.panel.config.automation.editor.actions.type.choose.";
+    // Run performs the actions for real, so it is confirmed first.
+    this._runBusy = true;
+    const confirmed = await showConfirmationDialog(this, {
+      title: localize(`${prefix}run_confirm_title`),
+      text: localize(`${prefix}run_confirm_text`),
+      confirmText: localize(`${prefix}run_all`),
+      dismissText: localize("ui.common.cancel"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      this._runBusy = false;
+      return;
+    }
+    const step = this._stepWithoutEnabled();
+    const stepKey = getConfigKey(step);
     this._running = true;
     this._runResult = undefined;
     const result = await runActions(this.hass, step as Action);
     this._running = false;
+    this._runBusy = false;
+    if (stepKey !== getConfigKey(this._stepWithoutEnabled())) {
+      // The step was edited while it ran, so the answer would be stale.
+      this._runResult = {
+        variant: "neutral",
+        text: localize(`${prefix}config_changed`),
+      };
+      return;
+    }
+    this._ranKey = stepKey;
     this._runResult =
       result.status === "success"
         ? {
@@ -291,6 +430,11 @@ export class HaChooseAction extends LitElement implements ActionElement {
         }
         .status.danger {
           color: var(--ha-color-on-danger-normal, var(--error-color));
+        }
+        .note {
+          margin: 0 0 var(--ha-space-2);
+          font-size: var(--ha-font-size-s, 0.875rem);
+          color: var(--secondary-text-color);
         }
         .results {
           margin-bottom: var(--ha-space-3);

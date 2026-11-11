@@ -3,6 +3,7 @@ import { getStorage } from "../decorators/storage";
 import { narrator } from "../narration/narrator";
 import { attentionModes } from "./attention-modes";
 import { focusSpotlight } from "./focus-spotlight";
+import { safeGetStored, safeSetStored } from "./safe-storage";
 
 /**
  * Personal preferences: language mode, the two playfulness levels, action
@@ -216,7 +217,7 @@ export const normalizePersonalPreferences = (
 /** The stored choices, as they are now. */
 export const getPersonalPreferences = (): PersonalPreferences =>
   normalizePersonalPreferences(
-    getStorage().getValue<Partial<PersonalPreferences>>(
+    safeGetStored<Partial<PersonalPreferences>>(
       PERSONAL_PREFERENCES_STORAGE_KEY
     )
   );
@@ -229,13 +230,13 @@ export const updatePersonalPreferences = (
     ...getPersonalPreferences(),
     ...change,
   });
-  getStorage().setValue(PERSONAL_PREFERENCES_STORAGE_KEY, next);
+  safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, next);
   return next;
 };
 
 /** Removes every stored choice, so the defaults apply again. */
 export const resetPersonalPreferences = (): PersonalPreferences => {
-  getStorage().setValue(PERSONAL_PREFERENCES_STORAGE_KEY, undefined);
+  safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, undefined);
   return getPersonalPreferences();
 };
 
@@ -246,7 +247,6 @@ export const subscribePersonalPreferences = (
   getStorage().subscribeChanges(PERSONAL_PREFERENCES_STORAGE_KEY, () =>
     callback(getPersonalPreferences())
   );
-
 const STYLE_ID = "ha-personal-preferences";
 
 // Low stimulation shortens every animation that uses the theme's duration

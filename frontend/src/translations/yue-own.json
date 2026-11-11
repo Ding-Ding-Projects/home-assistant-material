@@ -41,7 +41,7 @@
             "narrator": {
               "title": "語音朗讀",
               "chip": "朗讀",
-              "note": "讀出你聚焦或者啟動嘅控制項名稱，用你部裝置自己嘅語音。冇嘢會傳送去任何地方。"
+              "note": "讀出你將焦點放喺或者撳落嘅控制元件名稱，用你部裝置自己嘅語音。冇嘢會傳送去任何地方。"
             }
           },
           "language_mode": {
@@ -108,7 +108,7 @@
           },
           "focus_spotlight": {
             "label": "焦點聚光燈",
-            "description": "除咗鍵盤焦點所在嗰個控制項，其他地方都變暗。冇嘢會被隱藏。",
+            "description": "除咗鍵盤焦點所在嗰個控制元件，其他地方都變暗。冇嘢會被隱藏。",
             "default": "關。",
             "reach": "喺所有地方生效。"
           },
@@ -119,19 +119,19 @@
             "reach": "喺所有地方生效。佢唔知道你做緊乜嘢任務，所以只顯示時間同分頁開咗幾耐。"
           },
           "momentum": {
-            "label": "接續上次",
+            "label": "繼續上次",
             "description": "記住你上一次去到邊一頁。下次打開應用程式如果喺另一頁，會提供一個掣帶你返去。",
             "default": "關。",
-            "reach": "喺所有地方生效。只會將頁面位址記喺呢個瀏覽器，最多提供 7 日。"
+            "reach": "喺所有地方生效。只會將頁面地址記喺呢個瀏覽器，最多提供 7 日。"
           },
           "momentum_bar": {
-            "offer": "接返上次嘅位置：{path}",
+            "offer": "繼續上次嘅位置：{path}",
             "go": "返去",
             "dismiss": "遲啲先"
           },
           "narrator_enabled": {
             "label": "語音朗讀",
-            "description": "讀出你聚焦或者啟動嘅控制項名稱。要自己開先會用。",
+            "description": "讀出你將焦點放喺或者撳落嘅控制元件名稱。要自己開先會用。",
             "default": "關。",
             "reach": "喺所有地方生效，前提係部裝置有語音合成。佢跟隨操作提示音開關、低刺激同靜音時段。",
             "unavailable": "呢個瀏覽器冇語音合成功能。",
@@ -183,8 +183,35 @@
             "description": "用而家嘅設定讀一句短句，就算朗讀關咗都得。",
             "default": "冇嘢要還原。",
             "reach": "部裝置有語音合成就生效。仍然跟隨提示音開關同靜音時段。",
-            "text": "呢個係朗讀功能，會讀出每個控制項嘅名稱。"
+            "text": "呢個係朗讀功能，會讀出每個控制元件嘅名稱。",
+            "failed": "讀唔到出聲。呢部裝置可能冇所選語言嘅本機語音，又或者聲音熄咗、而家係靜音時段。"
           }
+        }
+      }
+    },
+    "personal_prefs": {
+      "momentum_bar": {
+        "offer": "繼續上次嘅位置：{path}",
+        "go": "返去",
+        "dismiss": "遲啲先"
+      },
+      "quick_bar": {
+        "caption": "個人設定",
+        "sound_effects": {
+          "label": "操作提示音",
+          "description": "開關設定、還原設定或者試聽嗰陣，播一聲短短嘅提示音。"
+        },
+        "low_stimulation": {
+          "label": "低刺激",
+          "description": "色彩柔和啲、動畫縮短，同埋操作提示音同語音朗讀都會靜音。"
+        },
+        "focus_spotlight": {
+          "label": "焦點聚光燈",
+          "description": "除咗鍵盤焦點所在嗰個控制元件，其他地方都變暗。冇嘢會被隱藏。"
+        },
+        "quiet_hours": {
+          "label": "靜音時段",
+          "description": "喺你揀嘅日子，兩個時間之間唔播操作提示音，語音朗讀都會靜音。鬧鐘唔受影響。"
         }
       }
     },
@@ -245,7 +272,7 @@
       "back": "返回",
       "cancel": "取消",
       "close": "關閉",
-      "submit": "提交",
+      "submit": "確定",
       "unlock": "解鎖",
       "unlock_title": "解鎖「{name}」",
       "factor_pin": "PIN 碼",
@@ -284,12 +311,12 @@
       "credential_of": "第 {current} 項，共 {total} 項",
       "pin_enter": "輸入 PIN 碼",
       "pin_or_type": "或者直接打字",
-      "pin_hint": "按鍵同打字填嘅係同一個 PIN 碼。㩒 Enter 提交。",
+      "pin_hint": "按鍵同打字填嘅係同一個 PIN 碼。㩒 Enter 確定。",
       "keypad_type": "改為打字",
       "keypad_use": "用返鍵盤",
       "totp_copy": "複製",
       "totp_copied": "已複製",
-      "totp_qr": "一次性驗證碼密鑰嘅二維碼",
+      "totp_qr": "一次性驗證碼密鑰嘅 QR 碼",
       "totp_scan": "用驗證器應用程式掃描，或者自己輸入密鑰。",
       "totp_code_hint": "6 位數字，每 30 秒轉一次。",
       "factor_totp_field": "驗證器應用程式嘅驗證碼",
@@ -325,7 +352,7 @@
       "on_start_label": "啟動時鎖住",
       "on_start_note": "應用程式啟動嗰陣會遮住呢個瀏覽器嘅介面，直到呢個鎖被打開。唔會有人被登出。",
       "start_heading": "Home Assistant 已鎖住",
-      "start_note": "啟動時鎖住。解鎖後先可以用呢個瀏覽器嘅工作階段。",
+      "start_note": "啟動時鎖住。解鎖後先可以用呢個瀏覽器嘅登入狀態。",
       "start_scope": "只係遮住呢個瀏覽器嘅介面，唔會有人被登出，伺服器上亦唔會有任何改變。",
       "start_unlock_named": "解鎖「{name}」",
       "start_region": "啟動時鎖住",
@@ -355,7 +382,7 @@
         "too_large": "檔案大過 256 KiB。",
         "not_utf8": "檔案唔係 UTF-8 文字。",
         "malformed": "檔案唔係有效嘅 JSON，最外層要係物件。",
-        "too_deep": "檔案嵌套超過 8 層。",
+        "too_deep": "檔案嘅層數太多，超過 8 層。",
         "duplicate_key": "檔案入面有同名嘅鍵出現兩次。",
         "unsafe_key": "檔案用咗唔准用嘅鍵名。",
         "unknown_field": "檔案除咗 schemaVersion 同 entries 之外仲有其他欄位。",
