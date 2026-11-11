@@ -286,3 +286,33 @@
     toast(st.lang === 'yue' ? '點心驚喜熄唔到㗎，佢返咗嚟喇。' : st.funEn >= 3 ? 'Nice try. The dim sum surprise cannot be turned off; it slid back on.' : 'The dim sum surprise cannot be turned off.', { emoji: '🥟' });
   }
 
+  // ---------- School mode, shared with every app on this computer ----------
+  function schoolApply(v) {
+    var was = st.school; schoolInfo = v; if (!!v.on !== !!st.school) { st.school = !!v.on; save(); apply(); }
+    if (was !== st.school) toast((v.name || 'School mode') + (st.school ? ' is on' : ' is off') + (v.by && v.by !== 'Deploy Assistant' ? ', switched in ' + v.by : '') + '.');
+    shell(); render();
+  }
+  function schoolToggle() {
+    if (DEMO || !API.schoolSet) { setVal('school', !st.school, 'School mode'); render(); return; }
+    var want = !st.school;
+    var go2 = function (pin) { API.schoolSet({ on: want, pin: pin }).then(schoolApply, function (e) { toast(e.message); beep('bad'); }); };
+    if (!want && schoolInfo.locked) { dialog('Switch off ' + (schoolInfo.name || 'School mode'), '<p class="bm">This needs its PIN. It is the same in every app.</p><input class="input mono" id="scpin" type="password" inputmode="numeric" maxlength="12" aria-label="PIN" autocomplete="off"><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="scok">Switch off</button></div>', { focus: '#scpin' }); $('#scok').onclick = function () { var v = $('#scpin').value; closeDialog(); go2(v); }; return; }
+    go2('');
+  }
+  function schoolDialog() {
+    dialog('Name and PIN', '<p class="bm mu">Shared with every Ding Ding Projects app on this computer.</p><label class="col" style="gap:4px"><span class="ll">Its name</span><input class="input" id="scname" maxlength="40" value="' + esc(schoolInfo.name || 'School mode') + '"></label><label class="col" style="gap:4px"><span class="ll">New PIN to switch it off (4 to 12 digits; empty removes it)</span><input class="input mono" id="scnew" type="password" inputmode="numeric" maxlength="12" autocomplete="new-password"></label>' + (schoolInfo.locked ? '<label class="col" style="gap:4px"><span class="ll">Current PIN</span><input class="input mono" id="sccur" type="password" inputmode="numeric" maxlength="12" autocomplete="off"></label>' : '') + '<span class="field-err" id="scerr" role="alert"></span><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="scsave">Save</button></div>', { emoji: '🎒' });
+    $('#scsave').onclick = function () {
+      if (DEMO) { closeDialog(); toast('In the app this changes the shared name and PIN.'); return; }
+      var o = { name: $('#scname').value, pin: $('#sccur') ? $('#sccur').value : '' }; var np = $('#scnew').value; if (np || schoolInfo.locked) o.newPin = np;
+      if (!np && schoolInfo.locked && !o.pin) delete o.newPin;
+      API.schoolSet(o).then(function (v) { closeDialog(); schoolApply(v); toast(msg('saved')); }, function (e) { $('#scerr').textContent = e.message; });
+    };
+  }
+
+  // ---------- A celebration when your wording file is taken in ----------
+  function celebrate(text) {
+    var calm = st.reduceMotion || st.lowStim || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var c = document.createElement('div'); c.className = 'celebrate'; c.setAttribute('role', 'status'); c.innerHTML = '<div class="celecard"><span class="hl">' + (st.emoji && !st.school ? '🎉 ' : '') + esc(text) + '</span></div>';
+    if (!calm) for (var i = 0; i < 80; i++) { var bit = document.createElement('i'); bit.style.left = Math.random() * 100 + '%'; bit.style.background = ['var(--p)', 'var(--t)', 'var(--amber)', 'var(--green)', 'var(--err)'][i % 5]; bit.style.animationDelay = Math.random() * 0.6 + 's'; bit.style.transform = 'rotate(' + Math.random() * 360 + 'deg)'; c.appendChild(bit); }
+    $('#app').appendChild(c); c.addEventListener('click', function () { c.remove(); }); setTimeout(function () { c.remove(); }, calm ? 2500 : 3200);
+  }

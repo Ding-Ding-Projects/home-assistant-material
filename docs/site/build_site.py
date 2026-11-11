@@ -197,7 +197,7 @@ def main():
             'Check', 'CheckCircle', 'Alert', 'AlertCircle', 'ProgressClock', 'Home', 'PlayCircle', 'FormatListBulleted', 'BookOpenVariant', 'PaletteSwatch', 'Update',
             'Toolbox', 'Lifebuoy', 'Translate', 'Download', 'Upload', 'OpenInNew', 'DotsVertical', 'Backspace', 'Shuffle', 'Keyboard', 'TimerSand', 'Fullscreen',
             'Palette', 'SwapHorizontal', 'CodeBraces', 'ShieldKey', 'TicketConfirmation', 'FileSwap', 'Eyedropper', 'TabPlus', 'DragVertical', 'VolumeHigh', 'CalendarClock',
-            'School', 'MotionPauseOutline', 'FormatSize', 'ContrastCircle', 'EmoticonHappyOutline', 'Docker' if 'Docker' in icons_all else 'PackageDown', 'GestureTap', 'Sleep', 'QrcodeScan']
+            'School', 'MotionPauseOutline', 'FormatSize', 'ContrastCircle', 'EmoticonHappyOutline', 'Docker' if 'Docker' in icons_all else 'PackageDown', 'GestureTap', 'Sleep', 'QrcodeScan', 'GamepadVariant']
     icons = {k: icons_all[k] for k in want if k in icons_all}
     data = {'icons': icons, 'version': versions['core'], 'updated': changes[0]['date'] if changes else '', 'commit': changes[0]['sha'] if changes else '',
             'repo': 'https://github.com/' + versions['repository'], 'image': 'ghcr.io/' + versions['registry_owner'] + '/home-assistant-material',

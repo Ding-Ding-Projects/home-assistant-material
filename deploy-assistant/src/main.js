@@ -10,6 +10,7 @@ const { Extensions } = require('./backend/extensions');
 const updates = require('./backend/updates');
 const { DimSum } = require('./backend/dimsum');
 const ha = require('./backend/ha');
+const school = require('./backend/school');
 
 if (require('node:os').platform() === 'win32' && require('./squirrel-events')(app)) app.quit();
 
@@ -20,7 +21,10 @@ const dec = (s) => (s.startsWith('k:') ? safeStorage.decryptString(Buffer.from(s
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1320, height: 880, minWidth: 360, minHeight: 520, frame: false, show: false,
+    width: 1320, height: 880, minWidth: 360, minHeight: 520, show: false,
+    // On Windows the system draws the window buttons over our own title bar, so Snap layouts appear
+    // when you hover the maximise button. Elsewhere the window is frameless with the app's own buttons.
+    ...(process.platform === 'win32' ? { titleBarStyle: 'hidden', titleBarOverlay: { color: '#00000000', symbolColor: nativeTheme.shouldUseDarkColors ? '#E1E2E8' : '#191C20', height: 48 } } : { frame: false }),
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#111418' : '#F8F9FF',
     title: 'Home Assistant Material Deploy Assistant',
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
@@ -88,6 +92,14 @@ app.whenReady().then(() => {
     const f = freeName(dir, name); const tmp = f + '.partial-' + process.pid;
     fs.writeFileSync(tmp, buf); fs.renameSync(tmp, f); written.add(f); return f;
   };
+  h('school', () => school.read());
+  h('schoolSet', (o) => school.set(o));
+  school.watch((v) => send('school', v));
+  h('overlay', (dark) => { if (process.platform === 'win32' && win.setTitleBarOverlay) win.setTitleBarOverlay({ color: '#00000000', symbolColor: dark ? '#E1E2E8' : '#191C20', height: 48 }); return process.platform === 'win32'; });
+  h('extAdd', async () => { const r = await dialog.showOpenDialog(win, { title: 'Choose an extension folder (it holds manifest.json)', properties: ['openDirectory'] }); if (r.canceled) return ext.list(); return ext.addFrom(r.filePaths[0]); });
+  h('extRemove', (id) => ext.remove(id));
+  h('extMaster', (on) => ext.setMaster(on));
+  h('extRuns', () => ext.runs());
   h('pickFolder', async (title) => { const r = await dialog.showOpenDialog(win, { title: title || 'Choose where to save', properties: ['openDirectory', 'createDirectory'] }); if (r.canceled) return ''; pickedDirs.add(r.filePaths[0]); return r.filePaths[0]; });
   h('writeInto', (dir, name, bytes) => { if (!pickedDirs.has(dir)) throw new Error('Choose the folder first.'); return writeAtomic(dir, name, bytes); });
   h('writeBeside', (source, name, bytes) => { if (!path.isAbsolute(source) || !fs.existsSync(source)) throw new Error('The source file is no longer there.'); return writeAtomic(path.dirname(source), name, bytes); });

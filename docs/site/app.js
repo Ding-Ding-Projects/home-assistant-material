@@ -643,6 +643,43 @@
     });
   }
   var LADDER = [0, 0, 0, 5, 15, 60, 300];
+
+  // The unlock ladder: during a lockout wait, a game ends the wait (and only the wait: the lock stays
+  // locked and the PIN is still needed). Dim sum first, then ten sums after five wrong dishes, then
+  // whack-a-mole after one wrong sum, then the clock. School mode starts at the sums.
+  var LDISH = [['Har gow', 'Shrimp in a thin, see-through wrapper, pleated by hand'], ['Siu mai', 'Open-topped pork and shrimp dumplings'], ['Char siu bao', 'Soft steamed buns with sweet barbecued pork'], ['Cheung fun', 'Rice noodle rolls with soy sauce'], ['Lo mai gai', 'Sticky rice steamed in a lotus leaf'], ['Dan tat', 'Egg tarts with wobbly custard'], ['Lo bak go', 'Pan-fried turnip cake'], ['Fung zao', 'Braised chicken feet in black bean sauce']];
+  function ladderStart() { return st.school ? 'sums' : 'dimsum'; }
+  window.HAM_LADDER = function (k, back) { ladder(k, back || function () {}); };
+  function ladder(k, back) {
+    var lk = st.locks[k]; if (!lk) return; if (!lk.ladder) { lk.ladder = ladderStart(); lk.wrongDish = 0; save(); }
+    var won = function () { lk.until = Date.now(); lk.ladder = ''; save(); toast('The wait is over. The lock still needs its PIN.'); beep('on'); closeDialog(); back(); };
+    var fall = function (to, why) { lk.ladder = to; save(); toast(why); closeDialog(); if (to === 'clock') back(); else ladder(k, back); };
+    var left = function () { return Math.max(0, Math.ceil((lk.until - Date.now()) / 1000)); };
+    if (lk.ladder === 'dimsum') {
+      var pick = LDISH.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4), right = pick[Math.floor(Math.random() * 4)];
+      dialog('Which dish is this?', '<p class="bl">' + esc(right[1]) + '.</p><div class="col" style="gap:8px" role="group" aria-label="Choices">' + pick.map(function (d, i) { return '<button class="btn tonal" data-ld="' + i + '">' + esc(d[0]) + '</button>'; }).join('') + '</div><p class="bs mu" role="status">Right ends the ' + left() + '-second wait. ' + (5 - lk.wrongDish) + ' wrong answers left before the sums.</p>', { emoji: '🥟' });
+      $('#ov').addEventListener('click', function (e) { var b = e.target.closest('[data-ld]'); if (!b) return; if (pick[+b.dataset.ld] === right) won(); else { lk.wrongDish++; save(); if (lk.wrongDish >= 5) fall('sums', 'Five wrong dishes. On to ten easy sums: every one must be right.'); else { closeDialog(); ladder(k, back); toast('Not that one. ' + (5 - lk.wrongDish) + ' left.'); } } });
+      return;
+    }
+    if (lk.ladder === 'sums') {
+      var qs = Array.from({ length: 10 }, function () { var a = 1 + Math.floor(Math.random() * 20), b = 1 + Math.floor(Math.random() * 20), plus = Math.random() < 0.5 || a < b; return { q: a + (plus ? ' + ' : ' − ') + b, a: plus ? a + b : a - b }; }), n = 0;
+      var ask = function () { $('#lsq').textContent = 'Sum ' + (n + 1) + ' of 10: ' + qs[n].q + ' ='; $('#lsa').value = ''; $('#lsa').focus(); };
+      dialog('Ten easy sums', '<p class="bm mu">All ten right ends the ' + left() + '-second wait. One wrong goes to whack-a-mole.</p><label class="col" style="gap:6px"><span class="tl" id="lsq" aria-live="polite"></span><input class="input" id="lsa" inputmode="numeric" aria-labelledby="lsq" autocomplete="off"></label><div class="row"><span class="grow"></span><button class="btn fill" id="lsgo">Answer</button></div>', { emoji: '➕' });
+      var go2 = function () { var v = $('#lsa').value.trim(); if (!/^-?\d+$/.test(v)) { toast('Type a whole number.'); return; } if (+v !== qs[n].a) { fall('moles', qs[n].q + ' = ' + qs[n].a + '. On to whack-a-mole.'); return; } n++; if (n === 10) won(); else ask(); };
+      $('#lsgo').onclick = go2; $('#lsa').addEventListener('keydown', function (e) { if (e.key === 'Enter') go2(); }); ask(); return;
+    }
+    if (lk.ladder === 'moles') {
+      var hits = 0, need = 8, end = Date.now() + 20000, mole = -1, last = {}, timer;
+      dialog('Whack-a-mole', '<p class="bm mu">Hit ' + need + ' moles in 20 seconds. Click, tap, or press 1 to 9 for the holes, top left to bottom right.</p><div class="moles" id="moles" role="grid" aria-label="Holes">' + Array.from({ length: 9 }, function (_, i) { return '<button class="mole" data-mole="' + i + '" aria-label="Hole ' + (i + 1) + '"></button>'; }).join('') + '</div><p class="bm" id="molest" role="status" aria-live="polite">Score 0 of ' + need + '. 20 seconds left.</p>', { emoji: '🔨' });
+      var draw = function () { $$('.mole').forEach(function (b, i) { b.classList.toggle('up', i === mole); b.setAttribute('aria-label', 'Hole ' + (i + 1) + (i === mole ? ', a mole is up' : '')); b.textContent = i === mole ? '🐹' : ''; }); };
+      var tick = function () { if (!$('#moles')) { clearInterval(timer); return; } var s2 = Math.ceil((end - Date.now()) / 1000); if (s2 <= 0) { clearInterval(timer); if (hits >= need) won(); else fall('clock', 'Round lost with ' + hits + ' of ' + need + '. The games are done for this wait; the clock carries on.'); return; } var nx; do { nx = Math.floor(Math.random() * 9); } while (nx === mole); mole = nx; draw(); $('#molest').textContent = 'Score ' + hits + ' of ' + need + '. ' + s2 + ' seconds left.'; };
+      var whack = function (i) { if (Date.now() > end) return; if (i === mole && !last[mole]) { hits++; last = {}; last[mole] = 1; mole = -1; draw(); beep('on'); $('#molest').textContent = 'Score ' + hits + ' of ' + need + '.'; if (hits >= need) { clearInterval(timer); won(); } } };
+      $('#moles').addEventListener('click', function (e) { var b = e.target.closest('[data-mole]'); if (b) whack(+b.dataset.mole); });
+      $('#ov').addEventListener('keydown', function (e) { if (/^[1-9]$/.test(e.key)) whack(+e.key - 1); });
+      timer = setInterval(tick, st.reduceMotion ? 1400 : 900); tick(); return;
+    }
+    back();
+  }
   function askUnlock(k, after) {
     var lk = st.locks[k]; if (!lk) return; var entered = '';
     var order = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -650,7 +687,12 @@
       '<label class="col" style="gap:4px"><span class="bs mu">Or type it</span><input class="input mono" id="pintype" inputmode="numeric" type="password" aria-label="PIN" maxlength="12"></label><div class="bm" id="pinmsg" role="status"></div>' +
       '<div class="row" style="gap:8px"><button class="btn text sm" id="shuf">' + icon('Shuffle', 's') + 'Shuffle the keys</button><span class="grow"></span><button class="btn out" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="pinsub">Submit</button></div>', { focus: '#pintype', emoji: '🔑' });
     function dots() { $('#pdots').innerHTML = Array.from({ length: Math.max(4, entered.length) }).map(function (_, i) { return '<span class="' + (i < entered.length ? 'on' : '') + '"></span>'; }).join(''); }
-    function wait() { var left = Math.ceil((lk.until - Date.now()) / 1000); var sub = $('#pinsub'); if (!sub) return; if (left > 0) { sub.disabled = true; $('#pinmsg').textContent = 'Too many tries. Wait ' + left + ' seconds.'; setTimeout(wait, 500); } else { sub.disabled = false; if (/Wait/.test($('#pinmsg').textContent)) $('#pinmsg').textContent = ''; } }
+    function wait() {
+      var left = Math.ceil((lk.until - Date.now()) / 1000); var sub = $('#pinsub'); if (!sub) return;
+      var lb = $('#ladbtn');
+      if (left > 0) { sub.disabled = true; $('#pinmsg').textContent = 'Too many tries. Wait ' + left + ' seconds' + (lk.ladder === 'clock' ? ', or play no more: the games are used up for this wait.' : ', or play your way out.'); if (!lb && lk.ladder !== 'clock') { $('#pinmsg').insertAdjacentHTML('afterend', '<button class="btn tonal sm" id="ladbtn">' + icon('GamepadVariant', 's') + 'Play your way out</button>'); $('#ladbtn').onclick = function () { closeDialog(); ladder(k, function () { askUnlock(k, after); }); }; } setTimeout(wait, 500); }
+      else { sub.disabled = false; if (lb) lb.remove(); if (/Wait/.test($('#pinmsg').textContent)) $('#pinmsg').textContent = ''; }
+    }
     dots(); wait();
     $('#kp').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; var d = b.dataset.d; if (d === 'C') entered = ''; else if (d === 'B') entered = entered.slice(0, -1); else if (entered.length < 12) entered += d; $('#pintype').value = entered; dots(); });
     $('#pintype').addEventListener('input', function () { entered = this.value.replace(/\D/g, ''); dots(); });

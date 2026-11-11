@@ -78,3 +78,9 @@ details.fold>summary{cursor:pointer;min-height:40px;display:flex;align-items:cen
 .drawdisc{position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:28px;border:0;background:var(--surf);box-shadow:var(--e3);display:grid;place-items:center;cursor:pointer;color:var(--on)}
 .drawdisc span{position:absolute;right:6px;top:6px;width:12px;height:12px;border-radius:6px}
 @media (prefers-reduced-motion:reduce){.drawbar{transition:none}}.lowstim .drawbar{transition:none}
+.wcospace{width:140px;flex:none}
+.celebrate{position:fixed;inset:0;z-index:90;pointer-events:auto;overflow:hidden;display:grid;place-items:center;background:color-mix(in srgb,var(--surf) 40%,transparent)}
+.celebrate .celecard{padding:28px 36px;border-radius:32px;background:var(--pc);color:var(--on-pc);box-shadow:var(--e3);animation:celepop .4s cubic-bezier(.2,1.4,.4,1)}
+.celebrate i{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti 2.6s linear forwards}
+@keyframes confetti{to{top:110%;transform:rotate(720deg)}}@keyframes celepop{from{transform:scale(.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.celebrate .celecard{animation:none}}

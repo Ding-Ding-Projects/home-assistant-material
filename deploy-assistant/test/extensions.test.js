@@ -79,3 +79,32 @@ test('Home Assistant addresses must be HTTPS or this computer', () => {
   assert.throws(() => checkBase('https://user:pw@ha.example.com'), /user name/);
   assert.throws(() => entityState('https://ha.example.com', 't', 'light.kitchen'), /binary_sensor or input_boolean/);
 });
+
+test('School mode is shared through one file and a PIN guards switching it off', () => {
+  process.env.DING_DING_SHARED = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-school-'));
+  const school = require('../src/backend/school');
+  assert.equal(school.read().on, false);
+  school.set({ on: true, name: 'Study mode', newPin: '4321', app: 'test' });
+  const raw = fs.readFileSync(path.join(process.env.DING_DING_SHARED, 'school-mode.json'), 'utf8');
+  assert.doesNotMatch(raw, /4321/);
+  assert.deepEqual([school.read().on, school.read().name, school.read().locked], [true, 'Study mode', true]);
+  assert.throws(() => school.set({ on: false, pin: '0000' }), /not the School mode PIN/);
+  school.set({ on: false, pin: '4321' });
+  assert.equal(school.read().on, false);
+});
+
+test('extensions can be added from a folder, switched off together, and their runs kept', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-ext3-'));
+  const m = new Manager(dir);
+  const ext = new Extensions(m, path.join(__dirname, '..', 'src', 'extensions'));
+  const src = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-src-'));
+  fs.writeFileSync(path.join(src, 'manifest.json'), JSON.stringify({ manifestVersion: 1, id: 'hello', name: 'Hello', version: '1', main: 'i.js', commands: [{ id: 'hi', title: 'Hi' }] }));
+  fs.writeFileSync(path.join(src, 'i.js'), "process.stdin.on('data',()=>{});process.stdin.on('end',()=>process.stdout.write(JSON.stringify({title:'Hi',text:'hello'})+'\\n'))");
+  const list = ext.addFrom(src);
+  assert.ok(list.some((x) => x.id === 'hello' && !x.enabled));
+  ext.setEnabled('hello', true);
+  assert.equal((await ext.run('hello', 'hi')).text, 'hello');
+  ext.setMaster(false);
+  assert.throws(() => ext.run('hello', 'hi'), /switched off/);
+  assert.equal(ext.runs()[0].id, 'hello');
+});
