@@ -90,6 +90,20 @@ import {
   settingKeys,
   type SettingComboBoxItem,
 } from "./quick-bar-settings";
+import {
+  createNavigationState,
+  generatePlaceItems,
+  isNavigableEntry,
+  isWrappingMove,
+  moveActiveIndex,
+  navigationAfterQuery,
+  navigationWithIndex,
+  NO_ACTIVE_INDEX,
+  optionPosition,
+  spaceTogglesRow,
+  type MoveDirection,
+  type PlaceComboBoxItem,
+} from "./quick-bar-navigation";
 
 const SEPARATOR = "________";
 
@@ -104,7 +118,14 @@ type QuickBarComboBoxItem =
   | EntityComboBoxItem
   | DevicePickerItem
   | AssistComboBoxItem
-  | SettingComboBoxItem;
+  | SettingComboBoxItem
+  | PlaceComboBoxItem;
+
+// The part of the shared picker list the keyboard handling reads and drives.
+interface ActiveRowList extends HTMLElement {
+  getActiveItemIndex(): number;
+  setActiveItemIndex(index: number, focusItem?: boolean): void;
+}
 
 @customElement("ha-quick-bar")
 export class QuickBar extends LitElement {
@@ -169,6 +190,17 @@ export class QuickBar extends LitElement {
   @state() private _prefsVersion = 0;
 
   private _unsubPrefs?: () => void;
+
+  // The rows as the list shows them, and which one is active. The list marks
+  // its active row with a background only, so the quick bar also draws a ring
+  // and says the row aloud.
+  private _lastItems: (string | QuickBarComboBoxItem)[] = [];
+
+  private _nav = createNavigationState();
+
+  @state() private _activeId?: string;
+
+  @state() private _status = "";
 
   // #region lifecycle
   public async showDialog(params: QuickBarParams) {
@@ -266,6 +298,10 @@ export class QuickBar extends LitElement {
     this._open = false;
     this._itemSelected = false;
     this._runningCommandId = undefined;
+    this._activeId = undefined;
+    this._status = "";
+    this._nav = createNavigationState();
+    this._lastItems = [];
     this._unsubPrefs?.();
     this._unsubPrefs = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
@@ -331,19 +367,23 @@ export class QuickBar extends LitElement {
         @wa-show=${this._showTriggered}
         @wa-after-show=${this._dialogOpened}
         @closed=${this._dialogClosed}
+        @keydown=${this._keydownCapture}
       >
         ${
           !this._loading && this._opened
             ? html`<ha-picker-combo-box
                 id="combo-box"
                 @index-selected=${this._handleItemSelected}
+                @input=${this._scheduleActiveSync}
+                @focusout=${this._scheduleActiveSync}
                 .notFoundLabel=${this._t("ui.dialogs.quick-bar.nothing_found")}
                 .label=${this._t("ui.dialogs.quick-bar.title")}
                 .getItems=${this._getItems}
                 .rowRenderer=${this._getRowRenderer(
                   this._runningCommandId,
                   this.hass.states,
-                  this._prefsVersion
+                  this._prefsVersion,
+                  this._activeId
                 )}
                 mode="dialog"
                 .sections=${sections}
@@ -353,6 +393,9 @@ export class QuickBar extends LitElement {
               ></ha-picker-combo-box>`
             : nothing
         }
+        <div class="sr-only" role="status" aria-live="polite">
+          ${this._status}
+        </div>
         <div
           slot="footer"
           class="hints"
@@ -366,6 +409,10 @@ export class QuickBar extends LitElement {
           <span class="hint"
             ><kbd>${this._t("ui.dialogs.quick-bar.key_enter")}</kbd
             >${this._t("ui.dialogs.quick-bar.hint_go")}</span
+          >
+          <span class="hint"
+            ><kbd>${this._t("ui.dialogs.quick-bar.key_space")}</kbd
+            >${this._t("ui.dialogs.quick-bar.hint_toggle")}</span
           >
           <span class="hint"
             ><kbd>${ctrlOrCmdLabel(this.hass.localize)}</kbd
@@ -401,10 +448,15 @@ export class QuickBar extends LitElement {
     (
       runningCommandId?: string,
       _states?: HomeAssistant["states"],
-      _prefsVersion?: number
+      _prefsVersion?: number,
+      activeId?: string
     ) =>
       (item: QuickBarComboBoxItem) =>
-        this._renderRow(item, item?.id === runningCommandId)
+        this._renderRow(
+          item,
+          item?.id === runningCommandId,
+          !!item && item.id === activeId
+        )
   );
 
   // Only Enter and Space belong to the focused switch; every other key (arrows,
@@ -510,7 +562,11 @@ export class QuickBar extends LitElement {
     return nothing;
   }
 
-  private _renderRow(item: QuickBarComboBoxItem, running: boolean) {
+  private _renderRow(
+    item: QuickBarComboBoxItem,
+    running: boolean,
+    active = false
+  ) {
     if (!item) {
       return nothing;
     }
@@ -525,6 +581,11 @@ export class QuickBar extends LitElement {
           backgroundColor: running
             ? "var(--ha-color-fill-primary-normal-resting)"
             : undefined,
+          outline: active
+            ? "2px solid var(--primary-color, Highlight)"
+            : undefined,
+          outlineOffset: active ? "-2px" : undefined,
+          borderRadius: active ? "var(--ha-border-radius-md)" : undefined,
         })}
       >
         ${
@@ -644,13 +705,20 @@ export class QuickBar extends LitElement {
 
   private _getItems = (searchString: string, section: string) => {
     this._selectedSection = section as QuickBarSection | undefined;
-    return this._getItemsMemoized(
+    const previous = this._nav;
+    this._nav = navigationAfterQuery(previous, searchString);
+    if (this._nav !== previous) {
+      // Typing changes the rows, so the active row belongs to the old query.
+      this._activeId = undefined;
+    }
+    this._lastItems = this._getItemsMemoized(
       this._configEntryLookup,
       this._relatedIdSets,
       searchString,
       this._selectedSection,
       this._lang.mode
     );
+    return this._lastItems;
   };
 
   private _getItemsMemoized = memoizeOne(
@@ -729,9 +797,13 @@ export class QuickBar extends LitElement {
       }
 
       if (!section || section === "setting") {
-        let settingItems = generateSettingItems(this.hass).sort(
-          this._sortBySortingLabel
-        ) as PickerComboBoxItem[];
+        let settingItems = [
+          ...generateSettingItems(this.hass),
+          ...generatePlaceItems(
+            (key) => this._t(key),
+            !!this.hass.user?.is_admin
+          ),
+        ].sort(this._sortBySortingLabel) as PickerComboBoxItem[];
 
         if (filter) {
           settingItems = this._filterGroup("setting", settingItems, filter);
@@ -741,7 +813,9 @@ export class QuickBar extends LitElement {
           items.push(this._t("ui.dialogs.quick-bar.settings_title"));
         }
 
-        items.push(...(settingItems as SettingComboBoxItem[]));
+        items.push(
+          ...(settingItems as (SettingComboBoxItem | PlaceComboBoxItem)[])
+        );
       }
 
       if (!section || section === "entity") {
@@ -982,18 +1056,37 @@ export class QuickBar extends LitElement {
         return;
       }
 
+      // a place that already exists: the wording file card, the accessibility
+      // tools or the language mode row
+      if (item && "placeId" in item) {
+        this.closeDialog();
+        if (item.placeId === "accessibility_tools") {
+          // The accessibility panel opens with Alt+A, which the main layout
+          // listens for on the window. Wait for this dialog to close first.
+          setTimeout(() => {
+            window.dispatchEvent(
+              new KeyboardEvent("keydown", {
+                key: "a",
+                code: "KeyA",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+              })
+            );
+          }, 0);
+          return;
+        }
+        if (item.path) {
+          this._navigate(item.path, newTab);
+        }
+        return;
+      }
+
       // personal setting selected: people who cannot open the settings panel
       // (no path on the item), and Ctrl or Cmd with Enter for everyone,
       // toggle the choice in place and keep the search open
       if (item && "settingId" in item && (!item.path || newTab)) {
-        const key = settingKeys[item.settingId];
-        if (this._settingHeld(key)) {
-          showToast(this, {
-            message: this._heldMessage(key),
-          });
-        } else {
-          this._saveSetting({ [key]: !getPersonalPreferences()[key] });
-        }
+        this._toggleSettingInPlace(item);
         this._itemSelected = false;
         return;
       }
@@ -1071,6 +1164,17 @@ export class QuickBar extends LitElement {
     }
   }
 
+  private _toggleSettingInPlace(item: SettingComboBoxItem) {
+    const key = settingKeys[item.settingId];
+    if (this._settingHeld(key)) {
+      showToast(this, {
+        message: this._heldMessage(key),
+      });
+      return;
+    }
+    this._saveSetting({ [key]: !getPersonalPreferences()[key] });
+  }
+
   private _openShortcutDialog(ev: Event): void {
     ev.preventDefault();
     showShortcutsDialog(this);
@@ -1078,6 +1182,169 @@ export class QuickBar extends LitElement {
   }
 
   // #endregion interaction
+
+  // #region keyboard
+
+  private _getList(): ActiveRowList | undefined {
+    return (
+      this._comboBox?.shadowRoot?.querySelector<ActiveRowList>(".list") ??
+      undefined
+    );
+  }
+
+  // Runs before the picker list sees the key, because it listens on the dialog
+  // in the capture phase. It only takes the keys the list does not handle: the
+  // wrap at both ends, Space on a live switch, and Escape on an empty search.
+  private _keydownCapture = {
+    capture: true,
+    handleEvent: (ev: KeyboardEvent) => this._handleKeydown(ev),
+  };
+
+  private _handleKeydown(ev: KeyboardEvent) {
+    const combo = this._comboBox;
+    const list = this._getList();
+    if (!combo || !list || ev.defaultPrevented || ev.isComposing) {
+      return;
+    }
+    const path = ev.composedPath();
+    if (!path.includes(combo)) {
+      return;
+    }
+    const current = list.getActiveItemIndex();
+
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      const direction: MoveDirection =
+        ev.key === "ArrowDown" ? "next" : "previous";
+      if (isWrappingMove(this._lastItems, current, direction)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const target = moveActiveIndex(this._lastItems, current, direction);
+        if (target !== NO_ACTIVE_INDEX) {
+          list.setActiveItemIndex(target, true);
+        }
+      }
+      this._scheduleActiveSync();
+      return;
+    }
+
+    if (ev.key === " ") {
+      const fromSearch = path.some(
+        (el) => el instanceof HTMLElement && el.localName === "ha-input-search"
+      );
+      const item = this._lastItems[current];
+      if (
+        fromSearch &&
+        typeof item !== "string" &&
+        item &&
+        spaceTogglesRow({
+          query: this._nav.query,
+          hasLiveControl: this._hasLiveControl(item),
+          modifier: ev.ctrlKey || ev.metaKey,
+        })
+      ) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this._toggleLive(item);
+      }
+      return;
+    }
+
+    if (ev.key === "Escape") {
+      if (this._nav.query === "") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.closeDialog();
+      }
+      return;
+    }
+
+    if (
+      ev.key === "Home" ||
+      ev.key === "End" ||
+      ev.key === "PageUp" ||
+      ev.key === "PageDown"
+    ) {
+      this._scheduleActiveSync();
+    }
+  }
+
+  private _toggleableState(item: QuickBarComboBoxItem): HassEntity | undefined {
+    if (!("stateObj" in item) || !item.stateObj) {
+      return undefined;
+    }
+    const entityId = item.stateObj.entity_id;
+    const stateObj: HassEntity = this.hass.states[entityId] ?? item.stateObj;
+    return (stateObj.state === "on" || stateObj.state === "off") &&
+      canToggleState(this.hass, stateObj)
+      ? stateObj
+      : undefined;
+  }
+
+  private _hasLiveControl(item: QuickBarComboBoxItem): boolean {
+    return "settingId" in item || !!this._toggleableState(item);
+  }
+
+  // Space on the active row: the same change as its switch.
+  private _toggleLive(item: QuickBarComboBoxItem) {
+    if ("settingId" in item) {
+      this._toggleSettingInPlace(item);
+      const key = settingKeys[item.settingId];
+      this._announceToggle(item.primary, !!getPersonalPreferences()[key]);
+      return;
+    }
+    const stateObj = this._toggleableState(item);
+    if (stateObj) {
+      const turnOn = stateObj.state !== "on";
+      this.hass.callService("homeassistant", turnOn ? "turn_on" : "turn_off", {
+        entity_id: stateObj.entity_id,
+      });
+      this._announceToggle(item.primary, turnOn);
+    }
+  }
+
+  private _announceToggle(label: string | undefined, on: boolean) {
+    this._status = this._t(
+      on
+        ? "ui.dialogs.quick-bar.status_toggled_on"
+        : "ui.dialogs.quick-bar.status_toggled_off",
+      { label: label ?? "" }
+    );
+  }
+
+  // The list moves its active row after the key, so read it a moment later.
+  private _scheduleActiveSync = () => {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => this._syncActive())
+    );
+  };
+
+  private _syncActive() {
+    const list = this._getList();
+    if (!list || !this._open) {
+      return;
+    }
+    const index = list.getActiveItemIndex();
+    this._nav = navigationWithIndex(this._nav, index);
+    const entry = this._lastItems[index];
+    if (!isNavigableEntry(entry) || typeof entry === "string") {
+      this._activeId = undefined;
+      return;
+    }
+    if (entry.id === this._activeId) {
+      return;
+    }
+    this._activeId = entry.id;
+    const place = optionPosition(this._lastItems, index);
+    if (place) {
+      this._status = this._t("ui.dialogs.quick-bar.status_position", {
+        label: entry.primary ?? "",
+        position: place.position,
+        total: place.total,
+      });
+    }
+  }
+
+  // #endregion keyboard
 
   // #region styles
 
@@ -1132,6 +1399,18 @@ export class QuickBar extends LitElement {
           font: inherit;
           text-align: center;
           color: var(--primary-text-color);
+        }
+
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          margin: -1px;
+          padding: 0;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+          border: 0;
         }
 
         .live {

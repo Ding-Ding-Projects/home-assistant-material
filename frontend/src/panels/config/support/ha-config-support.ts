@@ -1,4 +1,6 @@
 import {
+  mdiChevronDown,
+  mdiChevronUp,
   mdiContentCopy,
   mdiDeleteOutline,
   mdiDownload,
@@ -10,28 +12,27 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
-import type {
-  SupportTicket,
-  TicketStatus,
-} from "../../../common/locks/support-tickets";
+import type { SupportTicket } from "../../../common/locks/support-tickets";
 import {
   DETAILS_LIMIT,
-  hasReply,
-  nextStatusIn,
   readTickets,
   SUBJECT_LIMIT,
   subscribeTickets,
-  ticketStatus,
   validateTicket,
   withoutTicket,
   withTicket,
   writeTickets,
 } from "../../../common/locks/support-tickets";
 import "../../../components/ha-button";
+import "../../../components/ha-button-toggle-group";
+import "../../../components/ha-checkbox";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-textarea";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import { fetchProblemLog } from "../../../data/problem_log";
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
@@ -40,6 +41,24 @@ import { fileDownload } from "../../../util/file_download";
 import { showToast } from "../../../util/toast";
 import type { BundleProblem } from "./support-bundle";
 import { buildSupportBundle, supportBundleFileName } from "./support-bundle";
+import type {
+  BundleReference,
+  TicketDeskStatus,
+  TicketExtras,
+  TicketRow,
+} from "./ticket-view-logic";
+import {
+  addNote,
+  countByStatus,
+  newExtra,
+  NOTE_LIMIT,
+  PAGE_LIMIT,
+  pruneExtras,
+  readExtras,
+  transitionExtra,
+  viewTickets,
+  writeExtras,
+} from "./ticket-view-logic";
 
 /**
  * The support desk as a page. Tickets are made and kept in this browser only
@@ -55,7 +74,21 @@ class HaConfigSupport extends LitElement {
 
   @state() private _tickets: SupportTicket[] = readTickets().tickets;
 
-  @state() private _now = Date.now();
+  @state() private _extras: TicketExtras = readExtras();
+
+  @state() private _query = "";
+
+  @state() private _statusFilter: TicketDeskStatus | "all" = "all";
+
+  @state() private _openNumber?: string;
+
+  @state() private _noteDraft = "";
+
+  @state() private _noteError = "";
+
+  @state() private _page = "";
+
+  @state() private _attach = false;
 
   @state() private _error = "";
 
@@ -71,24 +104,23 @@ class HaConfigSupport extends LitElement {
 
   private _bundleDate?: Date;
 
-  private _unsubscribe?: () => void;
+  private _bundleSize = 0;
 
-  private _timer?: number;
+  private _unsubscribe?: () => void;
 
   public connectedCallback(): void {
     super.connectedCallback();
     this._unsubscribe = subscribeTickets((store) => {
       this._tickets = store.tickets;
-      this._schedule();
+      this._extras = readExtras();
     });
     this._tickets = readTickets().tickets;
-    this._schedule();
+    this._extras = readExtras();
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._unsubscribe?.();
-    window.clearTimeout(this._timer);
   }
 
   private _l(key: string, values?: Record<string, string | number>): string {
@@ -96,21 +128,6 @@ class HaConfigSupport extends LitElement {
       `ui.panel.config.support.${key}` as any,
       values
     ) as string;
-  }
-
-  /** Draws again when the next ticket changes status. */
-  private _schedule(): void {
-    window.clearTimeout(this._timer);
-    this._now = Date.now();
-    const waits = this._tickets
-      .map((ticket) => nextStatusIn(ticket, this._now))
-      .filter((wait): wait is number => wait !== undefined);
-    if (waits.length) {
-      this._timer = window.setTimeout(
-        () => this._schedule(),
-        Math.min(...waits) + 50
-      );
-    }
   }
 
   protected render(): TemplateResult {
@@ -143,30 +160,183 @@ class HaConfigSupport extends LitElement {
   }
 
   private _renderTickets(): TemplateResult {
-    const tickets = [...this._tickets].reverse();
+    const all = viewTickets(this._tickets, this._extras, { query: "" });
+    const rows = viewTickets(this._tickets, this._extras, {
+      query: this._query,
+      status: this._statusFilter,
+    });
+    const counts = countByStatus(all);
+    const searching = this._query.trim() !== "" || this._statusFilter !== "all";
+    const search = this._l("tickets_search");
+    const buttons = [
+      { value: "all", label: `${this._l("filter_all")} ${all.length}` },
+      ...(["open", "waiting", "closed"] as const).map((status) => ({
+        value: status,
+        label: `${this._l(`desk_status_${status}`)} ${counts[status]}`,
+      })),
+    ];
     return html`<section class="card">
       <h3>${this._l("tickets_title")}</h3>
       <p class="note">${this._l("tickets_note")}</p>
       ${
-        tickets.length
-          ? html`<ul class="tickets">
-              ${tickets.map((ticket) => this._renderTicket(ticket))}
-            </ul>`
+        all.length
+          ? html`<ha-input-search
+                appearance="outlined"
+                .placeholder=${search}
+                .accessibleLabel=${search}
+                .value=${this._query}
+                .patternSamples=${this._tickets.map((item) => item.subject)}
+                @input=${this._queryChanged}
+              ></ha-input-search>
+              <ha-button-toggle-group
+                class="filter"
+                full-width
+                .ariaLabel=${this._l("filter_label")}
+                .buttons=${buttons}
+                .active=${this._statusFilter}
+                @value-changed=${this._statusFilterChanged}
+              ></ha-button-toggle-group>
+              ${
+                searching
+                  ? html`<p class="note" role="status">
+                      ${this._l("tickets_matches", {
+                        count: rows.length,
+                        total: all.length,
+                      })}
+                    </p>`
+                  : nothing
+              }
+              ${
+                rows.length
+                  ? html`<ul class="tickets">
+                      ${rows.map((row) => this._renderTicket(row))}
+                    </ul>`
+                  : html`<p class="note" role="status">
+                      ${this._l("tickets_empty_search")}
+                    </p>`
+              }`
           : html`<p class="note" role="status">${this._l("no_tickets")}</p>`
       }
     </section>`;
   }
 
-  private _renderTicket(ticket: SupportTicket): TemplateResult {
-    const status: TicketStatus = ticketStatus(ticket, this._now);
+  private _formatTime(at: number): string {
+    return new Date(at).toLocaleString(this.hass.language);
+  }
+
+  private _renderTicket(row: TicketRow): TemplateResult {
+    const { ticket, extra } = row;
+    const isOpen = this._openNumber === ticket.number;
+    const label = this._l("ticket_label", { number: ticket.number });
     return html`<li>
       <div class="head">
-        <span class="num"
-          >${this._l("ticket_label", { number: ticket.number })}</span
+        <span class="num">${label}</span>
+        <span
+          class=${classMap({ state: true, done: extra.status === "closed" })}
+          >${this._l(`desk_status_${extra.status}`)}</span
         >
-        <span class=${classMap({ state: true, done: status === "resolved" })}
-          >${this._l(`status_${status}`)}</span
+        <ha-button
+          appearance="plain"
+          aria-expanded=${isOpen ? "true" : "false"}
+          .ticketNumber=${ticket.number}
+          .title=${this._l(isOpen ? "ticket_hide" : "ticket_read", {
+            number: ticket.number,
+          })}
+          @click=${this._toggleTicket}
         >
+          <ha-svg-icon
+            slot="start"
+            .path=${isOpen ? mdiChevronUp : mdiChevronDown}
+          ></ha-svg-icon>
+          ${this._l(isOpen ? "ticket_hide" : "ticket_read", {
+            number: ticket.number,
+          })}
+        </ha-button>
+      </div>
+      <p class="text">${ticket.subject}</p>
+      ${isOpen ? this._renderTicketDetail(row) : nothing}
+    </li>`;
+  }
+
+  private _renderTicketDetail(row: TicketRow): TemplateResult {
+    const { ticket, extra } = row;
+    const moves: { to: TicketDeskStatus; key: string }[] =
+      extra.status === "open"
+        ? [
+            { to: "waiting", key: "mark_waiting" },
+            { to: "closed", key: "close_ticket" },
+          ]
+        : extra.status === "waiting"
+          ? [
+              { to: "open", key: "mark_open" },
+              { to: "closed", key: "close_ticket" },
+            ]
+          : [{ to: "open", key: "reopen_ticket" }];
+    return html`<div class="detail">
+      <p class="note">
+        ${this._l("ticket_opened", { time: this._formatTime(ticket.created) })}
+      </p>
+      ${
+        extra.page
+          ? html`<p class="note text">
+              ${this._l("ticket_page", { page: extra.page })}
+            </p>`
+          : nothing
+      }
+      <p class="text">${ticket.details || this._l("ticket_no_details")}</p>
+      ${
+        extra.bundle
+          ? html`<p class="note text">
+              ${this._l("ticket_bundle", {
+                name: extra.bundle.name,
+                size: extra.bundle.size,
+              })}
+            </p>`
+          : nothing
+      }
+      <h4>${this._l("notes_title")}</h4>
+      ${
+        extra.notes.length
+          ? html`<ul class="notes">
+              ${extra.notes.map(
+                (note) =>
+                  html`<li>
+                    <span class="note">${this._formatTime(note.at)}</span>
+                    <span class="text">${note.text}</span>
+                  </li>`
+              )}
+            </ul>`
+          : html`<p class="note">${this._l("notes_none")}</p>`
+      }
+      <ha-textarea
+        rows="2"
+        maxlength=${NOTE_LIMIT}
+        .label=${this._l("note_label")}
+        .value=${this._noteDraft}
+        @input=${this._noteChanged}
+      ></ha-textarea>
+      ${
+        this._noteError
+          ? html`<p class="error" role="alert">${this._noteError}</p>`
+          : nothing
+      }
+      <div class="buttons">
+        <ha-button
+          appearance="outlined"
+          .ticketNumber=${ticket.number}
+          @click=${this._addNote}
+          >${this._l("note_add")}</ha-button
+        >
+        ${moves.map(
+          (move) =>
+            html`<ha-button
+              appearance=${move.to === "closed" ? "filled" : "outlined"}
+              .ticketNumber=${ticket.number}
+              .moveTo=${move.to}
+              @click=${this._move}
+              >${this._l(move.key)}</ha-button
+            >`
+        )}
         <ha-button
           appearance="plain"
           .ticketNumber=${ticket.number}
@@ -177,14 +347,7 @@ class HaConfigSupport extends LitElement {
           ${this._l("remove")}
         </ha-button>
       </div>
-      <p class="text">${ticket.subject}</p>
-      ${ticket.details ? html`<p class="note text">${ticket.details}</p>` : nothing}
-      ${
-        hasReply(status)
-          ? html`<p class="reply">${this._l("first_reply")}</p>`
-          : nothing
-      }
-    </li>`;
+    </div>`;
   }
 
   private _renderForm(): TemplateResult {
@@ -197,15 +360,37 @@ class HaConfigSupport extends LitElement {
         .value=${this._subject}
         @input=${this._subjectChanged}
       ></ha-input>
-      <label class="area">
-        <span>${this._l("details")}</span>
-        <textarea
-          rows="3"
-          maxlength=${DETAILS_LIMIT}
-          autocomplete="off"
-          .value=${this._details}
-          @input=${this._detailsChanged}
-        ></textarea>
+      <ha-textarea
+        rows="3"
+        maxlength=${DETAILS_LIMIT}
+        .label=${this._l("details")}
+        .value=${this._details}
+        @input=${this._detailsChanged}
+      ></ha-textarea>
+      <ha-input
+        autocomplete="off"
+        maxlength=${PAGE_LIMIT}
+        .label=${this._l("form_page")}
+        .hint=${this._l("form_page_hint")}
+        .value=${this._page}
+        @input=${this._pageChanged}
+      ></ha-input>
+      <label class="attach">
+        <ha-checkbox
+          .checked=${this._attach && this._bundle !== undefined}
+          ?disabled=${this._bundle === undefined}
+          @change=${this._attachChanged}
+        ></ha-checkbox>
+        <span>
+          ${this._l("form_attach")}
+          <span class="note"
+            >${
+              this._bundle === undefined
+                ? this._l("form_attach_none")
+                : this._l("form_attach_hint")
+            }</span
+          >
+        </span>
       </label>
       <p class="note">${this._l("details_hint")}</p>
       ${
@@ -305,7 +490,49 @@ ${this._bundle}</pre>
   }
 
   private _detailsChanged(ev: Event): void {
-    this._details = (ev.target as HTMLTextAreaElement).value;
+    this._details = (ev.target as HTMLTextAreaElement).value ?? "";
+  }
+
+  private _pageChanged(ev: Event): void {
+    this._page = (ev.target as HaInput).value ?? "";
+  }
+
+  private _attachChanged(ev: Event): void {
+    this._attach = (ev.target as HTMLInputElement).checked;
+  }
+
+  private _queryChanged(ev: Event): void {
+    this._query = (ev.target as HaInputSearch).value ?? "";
+  }
+
+  private _statusFilterChanged(ev: CustomEvent<{ value: string }>): void {
+    ev.stopPropagation();
+    const value = ev.detail.value;
+    this._statusFilter =
+      value === "open" || value === "waiting" || value === "closed"
+        ? value
+        : "all";
+  }
+
+  private _noteChanged(ev: Event): void {
+    this._noteDraft = (ev.target as HTMLTextAreaElement).value ?? "";
+  }
+
+  private _ticketNumber(ev: Event): string {
+    return (ev.currentTarget as HTMLElement & { ticketNumber: string })
+      .ticketNumber;
+  }
+
+  private _toggleTicket(ev: Event): void {
+    const number = this._ticketNumber(ev);
+    this._openNumber = this._openNumber === number ? undefined : number;
+    this._noteDraft = "";
+    this._noteError = "";
+  }
+
+  private _saveExtras(extras: TicketExtras): void {
+    writeExtras(extras);
+    this._extras = readExtras();
   }
 
   private _open(): void {
@@ -314,20 +541,71 @@ ${this._bundle}</pre>
       return;
     }
     this._error = "";
-    writeTickets(
-      withTicket(readTickets(), this._subject, this._details, Date.now())
-    );
+    const now = Date.now();
+    const store = withTicket(readTickets(), this._subject, this._details, now);
+    const created = store.tickets[store.tickets.length - 1];
+    writeTickets(store);
+    const reference: BundleReference | undefined =
+      this._attach && this._bundle !== undefined
+        ? {
+            name: supportBundleFileName(this._bundleDate ?? new Date(now)),
+            size: this._bundleSize,
+            at: (this._bundleDate ?? new Date(now)).getTime(),
+          }
+        : undefined;
+    this._tickets = readTickets().tickets;
+    if (created) {
+      this._saveExtras({
+        ...pruneExtras(readExtras(), this._tickets),
+        [created.number]: newExtra(now, this._page, reference),
+      });
+      this._openNumber = created.number;
+    }
     this._subject = "";
     this._details = "";
-    this._tickets = readTickets().tickets;
-    this._schedule();
+    this._page = "";
+    this._attach = false;
+  }
+
+  private _addNote(ev: Event): void {
+    const number = this._ticketNumber(ev);
+    const extras = readExtras();
+    const base = extras[number] ?? newExtra(Date.now());
+    const next = addNote(base, this._noteDraft, Date.now());
+    if (!next) {
+      this._noteError = this._noteDraft.trim()
+        ? this._l("note_full")
+        : this._l("note_required");
+      return;
+    }
+    this._noteError = "";
+    this._noteDraft = "";
+    this._saveExtras({ ...extras, [number]: next });
+  }
+
+  private _move(ev: Event): void {
+    const number = this._ticketNumber(ev);
+    const to = (ev.currentTarget as HTMLElement & { moveTo: TicketDeskStatus })
+      .moveTo;
+    const extras = readExtras();
+    const next = transitionExtra(
+      extras[number] ?? newExtra(Date.now()),
+      to,
+      Date.now()
+    );
+    if (next) {
+      this._saveExtras({ ...extras, [number]: next });
+    }
   }
 
   private _remove(ev: Event): void {
-    const number = (ev.currentTarget as HTMLElement & { ticketNumber: string })
-      .ticketNumber;
+    const number = this._ticketNumber(ev);
     writeTickets(withoutTicket(readTickets(), number));
     this._tickets = readTickets().tickets;
+    this._saveExtras(pruneExtras(readExtras(), this._tickets));
+    if (this._openNumber === number) {
+      this._openNumber = undefined;
+    }
   }
 
   private _toggleHow(): void {
@@ -373,6 +651,7 @@ ${this._bundle}</pre>
         userAgent: navigator.userAgent,
       });
       this._bundleDate = generatedAt;
+      this._bundleSize = new Blob([this._bundle]).size;
     } finally {
       this._bundleBusy = false;
     }
@@ -518,30 +797,52 @@ ${this._bundle}</pre>
         overflow-wrap: anywhere;
         white-space: pre-wrap;
       }
-      .reply {
-        padding-inline-start: var(--ha-space-3);
-        border-inline-start: 3px solid var(--primary-color);
-        color: var(--secondary-text-color);
+      .detail {
+        display: grid;
+        gap: var(--ha-space-2);
+        padding-top: var(--ha-space-2);
+        border-top: 1px solid var(--divider-color);
       }
-      .area {
+      .detail h4 {
+        margin: 0;
+        font-size: var(--ha-font-size-m, 1rem);
+      }
+      .notes {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--ha-space-2);
+      }
+      .tickets .notes li {
+        display: grid;
+        gap: 0;
+        padding: var(--ha-space-2) var(--ha-space-3);
+        border-inline-start: 3px solid var(--primary-color);
+        border-radius: 0;
+        background: transparent;
+      }
+      .filter {
+        display: block;
+        min-width: 0;
+        overflow-x: auto;
+      }
+      .attach {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--ha-space-2);
+        min-height: 44px;
+        --ha-checkbox-min-touch-size: 44px;
+      }
+      .attach > span {
         display: grid;
         gap: var(--ha-space-1);
-        font-size: var(--ha-font-size-s, 0.85rem);
-        color: var(--secondary-text-color);
+        min-width: 0;
+        align-self: center;
       }
-      textarea {
-        box-sizing: border-box;
-        width: 100%;
+      .buttons ha-button {
         min-height: 44px;
-        resize: vertical;
-        padding: var(--ha-space-2) var(--ha-space-3);
-        border: 1px solid var(--divider-color);
-        border-radius: var(--ha-border-radius-lg);
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        font: inherit;
       }
-      textarea:focus-visible,
       .bundle:focus-visible {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;

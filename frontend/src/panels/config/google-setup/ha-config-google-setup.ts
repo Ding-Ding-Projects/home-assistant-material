@@ -12,6 +12,7 @@ import type { HaCheckbox } from "../../../components/ha-checkbox";
 import "../../../components/ha-file-upload";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-textarea";
 import "../../../components/input/ha-input";
 import "../../../components/input/ha-input-copy";
 import type { HaInput } from "../../../components/input/ha-input";
@@ -49,6 +50,17 @@ import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-c
 import "../../../layouts/hass-subpage";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
+import type { NestStepId } from "./nest-guidance";
+import {
+  NEST_CHECKLIST_KEY,
+  NEST_STEPS,
+  nestProgress,
+  nestRedirectUri,
+  restoreNestChecklist,
+  serializeNestChecklist,
+  validateNestClientText,
+  validateNestProjectId,
+} from "./nest-guidance";
 
 interface FilePickedEvent extends Event {
   detail: { files: File[] | FileList };
@@ -98,6 +110,11 @@ class HaConfigGoogleSetup extends LitElement {
 
   @state() private _storeResults: Record<string, string> = {};
 
+  @state() private _nestTicked = new Set<NestStepId>();
+
+  /** Pasted Nest client file; held in memory only and never stored. */
+  @state() private _nestClientText = "";
+
   /** Bumped on every pick so a slow earlier file read cannot overwrite a later one. */
   private _keyGeneration = 0;
 
@@ -110,6 +127,7 @@ class HaConfigGoogleSetup extends LitElement {
     this._keyText = undefined;
     this._keyProject = undefined;
     this._client = undefined;
+    this._nestClientText = "";
   }
 
   protected firstUpdated(): void {
@@ -119,6 +137,13 @@ class HaConfigGoogleSetup extends LitElement {
       this._restored = raw !== null;
     } catch (_err) {
       this._draft = emptyDraft();
+    }
+    try {
+      this._nestTicked = restoreNestChecklist(
+        localStorage.getItem(NEST_CHECKLIST_KEY)
+      );
+    } catch (_err) {
+      this._nestTicked = new Set();
     }
     this._load();
   }
@@ -381,6 +406,130 @@ class HaConfigGoogleSetup extends LitElement {
     if (this._draft.nestProjectId) {
       copyToClipboard(this._draft.nestProjectId, this);
     }
+  }
+
+  private _toggleNestStep(ev: Event): void {
+    const input = ev.target as HaCheckbox;
+    const next = new Set(this._nestTicked);
+    if (input.checked) {
+      next.add(input.dataset.step as NestStepId);
+    } else {
+      next.delete(input.dataset.step as NestStepId);
+    }
+    this._nestTicked = next;
+    try {
+      localStorage.setItem(NEST_CHECKLIST_KEY, serializeNestChecklist(next));
+    } catch (_err) {
+      // Saving is a convenience; the checklist works without it.
+    }
+  }
+
+  private _nestClientChanged(ev: Event): void {
+    this._nestClientText = (ev.target as HTMLTextAreaElement).value ?? "";
+  }
+
+  private _renderNestGuidance(): TemplateResult {
+    const progress = nestProgress(this._nestTicked);
+    const redirect = nestRedirectUri(
+      location.origin,
+      this._status?.my_link ?? false
+    );
+    const projectState = validateNestProjectId(this._draft.nestProjectId);
+    const clientText = this._nestClientText.trim();
+    const client = clientText
+      ? clientText.length > 20000
+        ? ({ ok: false, error: "too_large" } as GoogleClientParse)
+        : validateNestClientText(clientText)
+      : undefined;
+    return html`<div class="nest-guide">
+      <p class="note" role="status">
+        ${this._l("nest_progress", {
+          count: progress.done,
+          total: progress.total,
+        })}
+      </p>
+      <p class="note">${this._l("nest_privacy")}</p>
+      <ol class="guide">
+        ${NEST_STEPS.map(
+          (step) =>
+            html`<li>
+              <ha-checkbox
+                class="check"
+                data-step=${step.id}
+                .checked=${this._nestTicked.has(step.id)}
+                @change=${this._toggleNestStep}
+                >${this._l(`nest_step_${step.id}`)}</ha-checkbox
+              >
+              <p class="note">${this._l(`nest_step_${step.id}_text`)}</p>
+              ${
+                step.address
+                  ? html`<ha-input-copy
+                      .label=${this._l("nest_address")}
+                      .value=${step.address}
+                      readonly
+                    ></ha-input-copy>`
+                  : nothing
+              }
+              ${
+                step.id === "project_id"
+                  ? html`<ha-input
+                        .label=${this._l("nest_project")}
+                        .value=${this._draft.nestProjectId}
+                        .invalid=${projectState === "invalid"}
+                        .validationMessage=${this._l("nest_project_invalid")}
+                        .hint=${
+                          projectState === "valid"
+                            ? this._l("nest_project_valid")
+                            : this._l("nest_project_hint")
+                        }
+                        @input=${this._nestProjectChanged}
+                      ></ha-input>
+                      <ha-button
+                        appearance="plain"
+                        @click=${this._copyNestProject}
+                        >${this._l("copy")}</ha-button
+                      >`
+                  : nothing
+              }
+              ${
+                step.id === "redirect"
+                  ? html`<ha-input-copy
+                      .label=${this._l("redirect_label")}
+                      .value=${redirect}
+                      readonly
+                    ></ha-input-copy>`
+                  : nothing
+              }
+              ${
+                step.id === "oauth_client"
+                  ? html`<ha-textarea
+                        .label=${this._l("nest_client_paste")}
+                        .value=${this._nestClientText}
+                        rows="4"
+                        @input=${this._nestClientChanged}
+                      ></ha-textarea>
+                      ${
+                        client && !client.ok
+                          ? html`<ha-alert alert-type="error"
+                              >${this._clientErrorText(client)}</ha-alert
+                            >`
+                          : nothing
+                      }
+                      ${
+                        client?.ok
+                          ? html`<p role="status">
+                              ${this._l("nest_client_ok", {
+                                id: client.clientId,
+                              })}
+                            </p>`
+                          : nothing
+                      }`
+                  : nothing
+              }
+            </li>`
+        )}
+      </ol>
+    </div>`;
   }
 
   private _addIntegration(ev: Event): void {
@@ -783,16 +932,7 @@ class HaConfigGoogleSetup extends LitElement {
           ? html`<div class="nest">
               <h3>${this._l("nest_title")}</h3>
               <p class="note">${this._l("nest_text")}</p>
-              <div class="nest-row">
-                <ha-input
-                  .label=${this._l("nest_project")}
-                  .value=${this._draft.nestProjectId}
-                  @input=${this._nestProjectChanged}
-                ></ha-input>
-                <ha-button appearance="plain" @click=${this._copyNestProject}
-                  >${this._l("copy")}</ha-button
-                >
-              </div>
+              ${this._renderNestGuidance()}
             </div>`
           : nothing
       }

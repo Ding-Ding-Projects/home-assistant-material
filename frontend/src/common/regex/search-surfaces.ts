@@ -143,6 +143,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "The personal settings on the personal settings page",
   },
   {
+    file: "panels/config/support/ha-config-support.ts",
+    searches:
+      "Support tickets, by number, title, details, page, bundle file and notes",
+    matcher: "panels/config/support/ticket-view-logic.ts",
+  },
+  {
     file: "panels/config/scene/ha-scene-dashboard.ts",
     searches: "The scene cards, by name, area, category and label",
   },

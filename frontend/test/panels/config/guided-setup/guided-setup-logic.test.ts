@@ -116,7 +116,7 @@ describe("guided setup logic", () => {
     const raw = storage.map.get(draftKey("x", null)) ?? "";
     expect(raw).not.toContain("hunter2");
     expect(raw).not.toContain("abc");
-    const draft = loadDraft(storage, draftKey("x", null));
+    const draft = loadDraft(storage, draftKey("x", null), 5);
     // The group is named like a secret, so everything in it is left out.
     expect(draft?.data).toEqual({ name: "n" });
     expect(draft?.clearedSecrets.sort()).toEqual([
@@ -201,7 +201,7 @@ describe("guided setup logic", () => {
     const raw = storage.map.get(draftKey("y", null)) ?? "";
     expect(raw).not.toContain("abc");
     expect(raw).not.toContain("zzz");
-    expect(loadDraft(storage, draftKey("y", null))?.data).toEqual({
+    expect(loadDraft(storage, draftKey("y", null), 5)?.data).toEqual({
       extra: { k: 1 },
     });
     // Without any leaf the key-name pass still protects the draft.

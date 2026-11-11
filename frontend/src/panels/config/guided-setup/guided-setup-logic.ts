@@ -389,9 +389,15 @@ const clearedPaths = (
   return [...filled, ...extra];
 };
 
+/** The format of a stored draft. A different number is ignored. */
+export const DRAFT_VERSION = 1;
+
+/** A draft older than this is dropped instead of offered. */
+export const DRAFT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+
 /** What is kept in the browser. Secret values are never part of it. */
 export interface GuidedDraft {
-  version: 1;
+  version: typeof DRAFT_VERSION;
   step: GuidedStep;
   kind?: string;
   entityDomain: string | null;
@@ -427,7 +433,7 @@ export const saveDraft = (
   );
   const stored: GuidedDraft = {
     ...draft,
-    version: 1,
+    version: DRAFT_VERSION,
     data,
     clearedSecrets: clearedPaths(draft.data, leaves, removed),
     savedAt: now,
@@ -440,9 +446,19 @@ export const saveDraft = (
   }
 };
 
+/** True when the draft is newer than the age cap and not dated in the future. */
+export const isDraftFresh = (
+  draft: Pick<GuidedDraft, "savedAt">,
+  now: number = Date.now()
+): boolean =>
+  Number.isFinite(draft.savedAt) &&
+  draft.savedAt <= now + 60_000 &&
+  now - draft.savedAt <= DRAFT_MAX_AGE_MS;
+
 export const loadDraft = (
   storage: DraftStorage | undefined,
-  key: string
+  key: string,
+  now: number = Date.now()
 ): GuidedDraft | undefined => {
   if (!storage) {
     return undefined;
@@ -454,12 +470,18 @@ export const loadDraft = (
     }
     const parsed = JSON.parse(raw) as Loose;
     if (
-      parsed?.version !== 1 ||
+      parsed?.version !== DRAFT_VERSION ||
+      typeof parsed.savedAt !== "number" ||
       !GUIDED_STEPS.includes(parsed.step) ||
       parsed.data === null ||
       typeof parsed.data !== "object" ||
       !Array.isArray(parsed.clearedSecrets)
     ) {
+      return undefined;
+    }
+    if (!isDraftFresh(parsed as GuidedDraft, now)) {
+      // An expired draft is of no use to anyone: remove it.
+      clearDraft(storage, key);
       return undefined;
     }
     return parsed as GuidedDraft;
@@ -496,6 +518,11 @@ export interface StepContext {
   /** Problems found in the options. */
   errorCount: number;
   saved: boolean;
+  /**
+   * False when the options hold a problem, so no step after them can be
+   * opened. Left out, only the reached steps are checked.
+   */
+  optionsValid?: boolean;
 }
 
 /** How each step shows in the rail and whether it can be jumped to. */
@@ -518,7 +545,24 @@ export const stepStatus = (step: GuidedStep, ctx: StepContext): StepStatus => {
   return position < currentPosition ? "done" : "available";
 };
 
+/**
+ * A step can be selected when it was reached before, is not the current one,
+ * and, if it comes after the options, the options are valid.
+ */
 export const canJumpTo = (step: GuidedStep, ctx: StepContext): boolean => {
   const status = stepStatus(step, ctx);
-  return status !== "locked" && step !== ctx.current;
+  if (status === "locked" || step === ctx.current) {
+    return false;
+  }
+  const afterOptions =
+    GUIDED_STEPS.indexOf(step) > GUIDED_STEPS.indexOf("options");
+  return !(afterOptions && ctx.optionsValid === false);
 };
+
+/** Whether a draft is worth offering a Save and close for. */
+export const canSaveDraft = (
+  step: GuidedStep,
+  hasData: boolean,
+  serializable: boolean
+): boolean =>
+  serializable && hasData && (step === "options" || step === "review");

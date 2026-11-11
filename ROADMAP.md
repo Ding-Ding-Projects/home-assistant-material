@@ -91,7 +91,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [x] Private vocabulary file: choose or drop, checked in full, replace, clear
 - [ ] Wording file celebration and sounds. Built; not yet seen in a running build
 - [~] Command search on Ctrl+Shift+F: opens from the top bar; the search of everything lists
-      settings and entities with a live switch (built, not yet seen; pointer only so far)
+      settings and entities with a live switch (built, not yet seen; pointer only so far).
+      Keyboard wrap, Space to toggle, Escape and three new entries are built and not yet seen
 - [x] Per-element appearance editor: fill layers, text, shape, accent, size; this element or
       every one of its kind; menu, shortcut and pick tool
 - [~] Context menus on every element: the menu, its filter and shortcuts are in, with export,
@@ -173,23 +174,23 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Setup and first run
 
-- [ ] First-run setup: three steps, password strength, a preview of dates and units, a review
+- [~] First-run setup: three steps, password strength, a preview of dates and units, a review
       step, no cloud restore or outside links, no outside map lookup without a button. Built; not
       yet seen in a running build (the Welcome screen was seen with the old items; the fix is
-      unseen). Open: the integrations step is not interactive and a failed flow can leave both
-      buttons off
-- [ ] Every setup wizard is a fully interactive setup (real controls for every value, live
+      unseen). The integrations step now has cards and a failure-safe state machine; built, not
+      yet seen
+- [~] Every setup wizard is a fully interactive setup (real controls for every value, live
       validation, a real test where the server can do one, a live summary, Back and Next, jump
       to a step, save and resume, skip for optional steps). Guided setup, lock wizard, Google
-      setup and backup setup are built and not yet seen; save and resume and jump to a step are
-      not confirmed for each
+      setup and backup setup are built and not yet seen; guided setup now has a 14-day draft,
+      jump rules and Save and close, built and not yet seen; the others are not confirmed
 - [~] Guided setup for integrations without a setup screen: 223 of 240 get drawn fields and 17
       one checked YAML box; two were saved through the interface's connection. The wizard in the
       interface is not yet seen
-- [ ] Google one-time setup under Settings. Server status and a refused bad key were driven in a
+- [~] Google one-time setup under Settings. Server status and a refused bad key were driven in a
       running copy. Enabling services with a real key, the client file, the sign-in and the
       status of connected Google integrations are not exercised; the Nest registration guidance
-      is not built
+      is built (six-step checklist) and not yet seen
 - [ ] Passkey sign-in beside the password, with add and remove on the profile. The server tests
       (143) pass in a running copy; the sign-in page and the card are not yet seen and no real
       authenticator has been used. Review findings are listed in `HANDOFF.md`
@@ -337,7 +338,8 @@ matches its board, checked side by side.
 ## Tools
 
 - [ ] Extension support (built only in the Deploy Assistant)
-- [ ] Support tickets (a component exists and is not wired to a page)
+- [~] Support tickets: the Support page has a Tickets section (create, list, status, search,
+      notes, close and reopen); built, not yet seen in a running build
 - [~] Authenticator and QR pairing: the authenticator card on the profile page is built and not
       yet seen; the code generator in Tools is not built (the browser has no credential vault);
       QR pairing is the lock wizard's QR step, already built and not yet seen

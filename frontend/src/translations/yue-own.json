@@ -67,7 +67,50 @@
       }
     },
     "panel": {
+      "page-onboarding": {
+        "integration": {
+          "skip": "暫時跳過",
+          "status_needs_input": "需要輸入",
+          "status_failed": "失敗",
+          "set_up_item": "設定",
+          "set_up_item_label": "設定 {name}",
+          "result_added": "已經加咗 {name}。",
+          "result_needs_input": "設定未完成就關咗，所以仲需要你輸入。你其他嘅選擇會保留。",
+          "reason_timed_out": "設定喺時限內冇回應。你其他嘅選擇會保留，可以再試一次。",
+          "reason_ended_without_entry": "設定結束咗，但冇加到任何嘢。你其他嘅選擇會保留，可以再試一次。",
+          "reason_error": "開唔到設定。你其他嘅選擇會保留，可以再試一次。",
+          "reason_error_detail": "設定失敗：{detail}。你其他嘅選擇會保留，可以再試一次。",
+          "live_summary": "已加 {added} 個，{needs_input} 個需要輸入，{failed} 個失敗"
+        }
+      },
       "config": {
+        "google_setup": {
+          "nest_progress": "Nest 步驟完成咗 {count} / {total}",
+          "nest_privacy": "呢張清單入面嘅嘢一樣都唔會傳出去。網址只係以文字顯示，由你自己複製去瀏覽器開。",
+          "nest_address": "要複製嘅網址",
+          "nest_step_create_project": "建立 Google Cloud 專案",
+          "nest_step_create_project_text": "喺 Google Cloud 主控台開一個新專案，或者揀一個你本身用緊畀 Home Assistant 嘅專案。",
+          "nest_step_enable_api": "啟用 Smart Device Management API",
+          "nest_step_enable_api_text": "打開你專案嘅 API 頁面，然後將個 API 開啟。",
+          "nest_step_device_access": "登記 Device Access",
+          "nest_step_device_access_text": "登入 Device Access 主控台，同意條款，再繳付 Google 要求嘅一次性登記費。",
+          "nest_step_project_id": "記低 Device Access 專案 ID",
+          "nest_step_project_id_text": "喺嗰度建立一個 Device Access 專案。佢嘅 ID 係一串由英文字母、數字同橫線組成嘅長代碼，貼喺呢度。",
+          "nest_step_redirect": "加入呢個實例嘅重新導向網址",
+          "nest_step_redirect_text": "將下面個網址加落你 OAuth 用戶端嘅「已授權重新導向網址」入面。",
+          "nest_step_oauth_client": "建立 OAuth 用戶端",
+          "nest_step_oauth_client_text": "建立一個網頁應用程式用戶端，下載佢嘅 JSON 檔案，然後將檔案內容貼喺呢度檢查。貼上嘅內容只會喺呢頁入面檢查，唔會儲存，亦唔會傳送出去。",
+          "nest_project_hint": "格式好似 1b2c3d4e-5f60-7182-93a4-b5c6d7e8f901",
+          "nest_project_valid": "呢個睇落似 Device Access 專案 ID。",
+          "nest_project_invalid": "Device Access 專案 ID 係 32 個英文字母同數字，用橫線分成 8-4-4-4-12 五組。",
+          "nest_client_paste": "貼上 OAuth 用戶端檔案",
+          "nest_client_ok": "呢個用戶端檔案冇問題。用戶端 ID：{id}"
+        },
+        "guided_setup": {
+          "save_close": "儲存並關閉",
+          "leave_text": "你嘅進度會以草稿形式喺呢個瀏覽器保留 14 日，之後可以繼續。密碼同密鑰唔會保留。",
+          "leave_text_entry": "你對呢個設定做嘅更改仲未儲存，離開就會冇晒。"
+        },
         "core": {
           "section": {
             "core": {
@@ -980,6 +1023,26 @@
         "hint_use_here": "喺呢度使用控制元件",
         "key_enter": "Enter",
         "key_click": "按一下",
+        "key_space": "空白鍵",
+        "hint_toggle": "開關而家揀咗嗰行嘅掣",
+        "status_position": "{label}，第 {position} 個，共 {total} 個",
+        "status_toggled_on": "{label}已經開咗",
+        "status_toggled_off": "{label}已經閂咗",
+        "places": {
+          "caption": "開啟一個頁面或者面板",
+          "personal_wording": {
+            "label": "個人用語檔案",
+            "description": "揀、更換或者清除你自己嘅私人用語檔案。用語詞彙 JSON。"
+          },
+          "accessibility_tools": {
+            "label": "無障礙工具",
+            "description": "文字大小、對比、間距、朗讀同其他令頁面易用啲嘅方法。"
+          },
+          "language_mode": {
+            "label": "語言模式",
+            "description": "揀英文、廣東話或者兩樣一齊用喺介面度。"
+          }
+        },
         "commands": {
           "reload": {
             "all": "所有 YAML 設定",

@@ -42,6 +42,7 @@ import type {
 import {
   buildSummary,
   canJumpTo,
+  canSaveDraft,
   clearDraft,
   decorateField,
   defaultText,
@@ -614,7 +615,31 @@ export class HaGuidedSetupWizard extends LitElement {
       furthest: this._furthest,
       errorCount: this._allMessages().length,
       saved: this._saved,
+      optionsValid: this._form
+        ? !Object.keys(validateAll(this._leaves(), this._data)).length &&
+          !this._errors.length
+        : undefined,
     };
+  }
+
+  /** Whether Save and close is offered: a draft can only hold drawn forms. */
+  private _canSaveAndClose(): boolean {
+    return (
+      !this.entry &&
+      !this._saved &&
+      canSaveDraft(
+        this._step,
+        hasContent(this._data),
+        this._form?.serializable === true
+      )
+    );
+  }
+
+  /** Keeps the draft without asking and leaves the wizard. */
+  private _saveAndClose(): void {
+    window.clearTimeout(this._draftTimer);
+    this._storeDraft();
+    this._close();
   }
 
   private async _jump(ev: Event): Promise<void> {
@@ -785,7 +810,11 @@ export class HaGuidedSetupWizard extends LitElement {
     const showSummary = this._step === "options" && !!this._form?.serializable;
     return html`
       <div
-        class=${classMap({ wizard: true, wide: !this.narrow && showSummary })}
+        class=${classMap({
+          wizard: true,
+          side: !this.narrow,
+          wide: !this.narrow && showSummary,
+        })}
       >
         <h2>${title}</h2>
         ${this._renderRail()}
@@ -826,7 +855,13 @@ export class HaGuidedSetupWizard extends LitElement {
               <span class="label"
                 >${position + 1}. ${this._l(`step_${step}`)}</span
               >
-              <span class="sr-only">${this._l(`step_status_${status}`)}</span>
+              <span class="sr-only"
+                >${this._l(
+                  `step_status_${
+                    !jumpable && status === "available" ? "locked" : status
+                  }`
+                )}</span
+              >
             </button>
           </li>`;
         })}
@@ -1140,9 +1175,21 @@ ${maskYaml(this._yaml, leaves, this._l("secret_mask"))}</pre>
           <ha-button appearance="plain" @click=${this._back}>
             ${this._l("back")}
           </ha-button>
-          <ha-button @click=${this._save} .disabled=${this._busy}>
-            ${this._l("save")}
-          </ha-button>
+          <span class="end">
+            ${
+              this._canSaveAndClose()
+                ? html`<ha-button
+                    appearance="plain"
+                    @click=${this._saveAndClose}
+                  >
+                    ${this._l("save_close")}
+                  </ha-button>`
+                : nothing
+            }
+            <ha-button @click=${this._save} .disabled=${this._busy}>
+              ${this._l("save")}
+            </ha-button>
+          </span>
         </div>
       </section>
     `;
@@ -1205,6 +1252,13 @@ ${maskYaml(this._yaml, leaves, this._l("secret_mask"))}</pre>
       </ha-button>
       <span class="end">
         ${
+          this._canSaveAndClose()
+            ? html`<ha-button appearance="plain" @click=${this._saveAndClose}>
+                ${this._l("save_close")}
+              </ha-button>`
+            : nothing
+        }
+        ${
           canSkip
             ? html`<ha-button appearance="plain" @click=${this._review}>
                 ${this._l("skip_defaults")}
@@ -1239,8 +1293,26 @@ ${maskYaml(this._yaml, leaves, this._l("secret_mask"))}</pre>
         padding: var(--ha-space-4);
         box-sizing: border-box;
       }
+      .wizard.side {
+        display: grid;
+        grid-template-columns: 200px minmax(0, 1fr);
+        column-gap: var(--ha-space-6);
+        align-items: start;
+        max-width: 960px;
+      }
+      .wizard.side h2 {
+        grid-column: 1 / -1;
+      }
+      .wizard.side nav {
+        position: sticky;
+        top: var(--ha-space-4);
+      }
+      .wizard.side .rail {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--ha-space-2);
+      }
       .wizard.wide {
-        max-width: 1040px;
+        max-width: 1240px;
       }
       .wizard.wide .body {
         display: grid;

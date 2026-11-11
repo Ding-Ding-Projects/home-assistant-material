@@ -4,9 +4,13 @@ import {
   mdiCommentProcessingOutline,
   mdiDevices,
   mdiDotsVertical,
+  mdiDotsGrid,
   mdiDownload,
+  mdiExportVariant,
   mdiFileMultiple,
   mdiFormatListBulletedTriangle,
+  mdiFormatPaint,
+  mdiLock,
   mdiHelpCircleOutline,
   mdiHistory,
   mdiMagnify,
@@ -112,6 +116,13 @@ import type { PreviewWidth } from "./editor/dashboard-tools-dialog/show-dashboar
 import { showDashboardToolsDialog } from "./editor/dashboard-tools-dialog/show-dashboard-tools-dialog";
 import "../../components/page/ha-page-footer";
 import "../../components/page/ha-page-lock-banner";
+import "../../components/page/ha-page-tools";
+import {
+  dashboardPageToolsMode,
+  dashboardToolButtons,
+  usesSharedPageTools,
+} from "./dashboard-page-tools";
+import type { DashboardToolButton } from "./dashboard-page-tools";
 import { PageLockController } from "../../common/locks/page-lock-controller";
 import { LOVELACE_EDIT_TOAST_ID } from "./types";
 
@@ -207,6 +218,60 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
   private _conversation = memoizeOne((_components) =>
     isComponentLoaded(this.hass.config, "conversation")
   );
+
+  private _renderPageTools(locked: boolean): TemplateResult {
+    const mode = dashboardPageToolsMode(this._editMode, locked);
+    if (usesSharedPageTools(mode)) {
+      return html`<ha-page-tools
+        .compact=${this.narrow}
+        .pageTitle=${
+          this.panel ? getPanelTitle(this.hass, this.panel) : undefined
+        }
+      ></ha-page-tools>`;
+    }
+    return html`<div class="page-tools">
+      ${dashboardToolButtons(mode, this.narrow).map(
+        (button) => html`
+          <ha-icon-button
+            .label=${this.hass.localize(button.label)}
+            .path=${this._pageToolIcon(button)}
+            @click=${this._pageToolClicked(button)}
+          ></ha-icon-button>
+        `
+      )}
+    </div>`;
+  }
+
+  private _pageToolIcon(button: DashboardToolButton): string {
+    switch (button.tool) {
+      case "appearance":
+        return mdiFormatPaint;
+      case "history":
+        return mdiHistory;
+      case "export":
+        return mdiExportVariant;
+      case "lock":
+        return mdiLock;
+      case "help":
+        return mdiHelpCircleOutline;
+      default:
+        return mdiDotsGrid;
+    }
+  }
+
+  private _pageToolClicked(button: DashboardToolButton) {
+    return () => {
+      if (!button.panelTool) {
+        fireEvent(this, "hass-pick-appearance");
+        return;
+      }
+      fireEvent(this, "hass-page-tool", {
+        tool: button.panelTool,
+        root: this,
+        title: (this.panel && getPanelTitle(this.hass, this.panel)) || "",
+      });
+    };
+  }
 
   private _renderActionItems(): TemplateResult {
     const result: TemplateResult[] = [];
@@ -706,6 +771,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
                           @click=${this._editDashboard}
                         ></ha-icon-button>
                       </div>
+                      ${this._renderPageTools(locked)}
                       <div class="action-items">
                         ${this._renderActionItems()}
                       </div>
@@ -748,9 +814,10 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
                       ${
                         this.embedded
                           ? nothing
-                          : html`<div class="action-items" ?inert=${locked}>
-                              ${this._renderActionItems()}
-                            </div>`
+                          : html`${this._renderPageTools(locked)}
+                              <div class="action-items" ?inert=${locked}>
+                                ${this._renderActionItems()}
+                              </div>`
                       }
                     `
               }
@@ -1671,6 +1738,15 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         }
         .narrow .main-title {
           margin-inline-start: var(--ha-space-2);
+        }
+        .page-tools {
+          display: flex;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        ha-page-tools {
+          flex-shrink: 0;
+          color: inherit;
         }
         .action-items {
           white-space: nowrap;

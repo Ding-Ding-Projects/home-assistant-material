@@ -41,6 +41,21 @@ export const YUE_PREFIXES = [
   "ui.panel.config.identity.",
   "ui.panel.profile.authenticator.",
   "ui.panel.lovelace.import_export.summary.",
+  "ui.panel.page-onboarding.integration.skip",
+  "ui.panel.page-onboarding.integration.status_needs_input",
+  "ui.panel.page-onboarding.integration.status_failed",
+  "ui.panel.page-onboarding.integration.set_up_item",
+  "ui.panel.page-onboarding.integration.result_",
+  "ui.panel.page-onboarding.integration.reason_",
+  "ui.panel.page-onboarding.integration.live_summary",
+  "ui.panel.config.google_setup.nest_progress",
+  "ui.panel.config.google_setup.nest_privacy",
+  "ui.panel.config.google_setup.nest_address",
+  "ui.panel.config.google_setup.nest_step_",
+  "ui.panel.config.google_setup.nest_project_",
+  "ui.panel.config.google_setup.nest_client_",
+  "ui.panel.config.guided_setup.save_close",
+  "ui.panel.config.guided_setup.leave_text",
 ] as const;
 
 export type Localize = (
