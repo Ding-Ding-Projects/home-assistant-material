@@ -106,7 +106,7 @@ Later than the section below; where the two disagree, this one is newer.
   video-to-video conversion are not offered; the paid cloud service is hidden in the interface
   only and remains visible in a few places for someone who has it configured (an existing
   cloud-stored backup's location name, one entity filter); passkeys were run with a browser virtual authenticator, never with a hardware key or a phone; Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in build 111; no operating system image has been built since two unit files were renamed
-  for Windows checkouts; a documentation-only push publishing no release has not been observed.
+  for Windows checkouts; a documentation-only push (run 112, 11 November 2026) finished without publishing a release, as intended.
 - Closed by the owner's decision: the phone app's earlier setup problems (nothing left to fix).
 
 ### What landed on 11 November 2026 (batches 18 and 19), and how far it is checked
@@ -142,7 +142,7 @@ Later than the section below; where the two disagree, this one is newer.
   onto its own line in that build; the batch 19 fix is unseen).
 - Release pipeline, observed: every release carries the Deploy Assistant installers (v2026.11.1.88,
   .91, .93); runs replaced by a newer push are cancelled and leave no release; 37 empty releases
-  were removed by hand. Not observed: a documentation-only push publishing no release.
+  were removed by hand. Observed later: a documentation-only push (run 112, 11 November 2026) finished without publishing a release, as intended.
 - The hosted instance on the owner's network runs build 2026.11.1.96. Builds 88 and 91 were skipped
   on purpose because settings saved on the instance could cross between two accounts on one
   browser; batch 18 fixed it.

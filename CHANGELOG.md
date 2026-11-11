@@ -12,12 +12,13 @@ day can hold several releases. The interface shows this list under Settings, Abo
   an image with Java 21 and those versions need Java 25 (found by starting 26.3 for real). The
   image now follows the game version: Java 25 for 26.1 and newer, 21 for 1.20.5 to 1.21.x, 17
   for 1.17 to 1.20.4 and 8 for older versions. The Java 25 image was run by hand and started
-  vanilla 26.3 and Paper 26.3; the change has not been run through the manager.
+  vanilla 26.3 and Paper 26.3, and in build 111 26.3, 1.21.8, 1.20.1 and 1.16.5 all started
+  through the manager on their own Java.
 - New: the embedded page panel has a "Page not showing?" button. A page that refuses to be shown
   inside another page looks loaded to the browser, so no notice appeared by itself; the button
-  explains it. Not yet seen in a running build.
+  explains it. Seen in build 111.
 - Fixed: when no Ollama server answers, the Models section says so. It used to say the server
-  had no models. Not yet seen in a running build.
+  had no models. Seen in build 111.
 - Changed: the passkey documentation and message now say that a fresh sign-in, with the password
   or with a passkey, is what allows adding a passkey; that is how it has always behaved. Passkeys
   were run end to end in build 109 with a browser virtual authenticator.
@@ -29,7 +30,7 @@ day can hold several releases. The interface shows this list under Settings, Abo
   prompt that deletes something. Seen in build 109.
 - Fixed: cells in the Ollama models table no longer break inside words on a narrow screen; the
   table scrolls sideways instead. Found by running the pages against a real Ollama server, where
-  listing, pull, cancel, delete, unload and the test chat worked. The fix is not yet seen.
+  listing, pull, cancel, delete, unload and the test chat worked. Seen in build 109.
 - New: Activity has a permanent record. Everything the Activity page shows is also written to a Git
   repository in the configuration folder, one folder of chunk files for each day, committed in
   batches (every ten minutes and at shutdown) and never purged, rewritten or squashed. A Permanent

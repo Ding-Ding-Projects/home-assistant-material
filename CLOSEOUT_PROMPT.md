@@ -87,7 +87,7 @@ product matching it.
   Reload cleared it, and the toolbar fitted at 390 px wide. Also
   unseen: the activity record's search and a push to a real Git remote, and everything from the
   earlier batches that `docs/feature-status.md` still marks "not yet seen".
-- A documentation-only push publishing no release has not been observed.
+- Observed: a documentation-only push (run 112, 11 November 2026) finished without publishing a release, as intended.
 - Passkeys were run with a browser virtual authenticator, never with a hardware key or a phone.
   Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in
   build 111.
