@@ -144,6 +144,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          CODE_NAME: ${{ needs.codename.outputs.name }}
+          CODE_PHOTO: ${{ needs.codename.outputs.photo }}
         run: |
           set -euo pipefail
           # The version the build jobs stamped, read from the Debian package's name.
@@ -151,8 +153,9 @@ jobs:
           TAG="deploy-assistant-v${VERSION}"
           cd files
           sha256sum * > SHA256SUMS
-          CODENAME="${{ needs.codename.outputs.name }}"
-          PHOTO="${{ needs.codename.outputs.photo }}"
+          CODENAME="${CODE_NAME:-}"
+          PHOTO="${CODE_PHOTO:-}"
+          gh api "repos/${REPO}" --jq '"Token can push: " + (.permissions.push|tostring)' || true
           {
             if [ -n "$CODENAME" ]; then echo "Code name: ${CODENAME} (photo: ${PHOTO})"; else echo "No dim sum code name could be resolved from the public catalog for this build; it ships with its version alone."; fi
             echo
@@ -166,7 +169,7 @@ jobs:
             echo
             echo "Commit ${GITHUB_SHA}."
           } > ../notes.md
-          gh release create "$TAG" --repo "$REPO" --title "Deploy Assistant ${VERSION}${CODENAME:+ · ${CODENAME}}" --notes-file ../notes.md --latest=false --target "$GITHUB_SHA" ./*
+          gh release create "$TAG" --repo "$REPO" --title "Deploy Assistant ${VERSION}" --notes-file ../notes.md --latest=false --target "$GITHUB_SHA" ./*
       - name: Rebuild the project page
         env:
           GH_TOKEN: ${{ github.token }}
