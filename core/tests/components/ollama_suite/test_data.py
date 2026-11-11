@@ -13,6 +13,7 @@ from homeassistant.components.ollama_suite.data import (
     listed_size,
     map_error,
     mask_address,
+    shape_chat_chunk,
     shape_models,
     shape_progress,
     shape_running,
@@ -28,6 +29,22 @@ DETAILS = SimpleNamespace(
     parameter_size="3.2B",
     quantization_level="Q4_K_M",
 )
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        pytest.param("plain\ttext\nline", "plain\ttext\nline", id="keeps-layout"),
+        pytest.param("a\x00b\x1b[31mc\x7f", "ab[31mc", id="control-characters"),
+        pytest.param("a‮b‪c⁦d⁩", "abcd", id="direction-overrides"),
+        pytest.param("a‎b‏c؜d", "abcd", id="direction-marks"),
+        pytest.param("café 中文", "café 中文", id="letters"),
+    ],
+)
+def test_shape_chat_chunk_cleans_reply_text(content: str, expected: str) -> None:
+    """Reply text loses control characters and direction overrides only."""
+    item = SimpleNamespace(message=SimpleNamespace(content=content), done=False)
+    assert shape_chat_chunk(item) == (expected, None)
 
 
 @pytest.mark.parametrize(

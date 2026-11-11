@@ -1832,6 +1832,9 @@ export class HaConfigSectionPersonal extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-4);
       box-sizing: border-box;
+      /* The columns below answer to the width of the page itself, which is
+         narrower than the window while the sidebar is docked. */
+      container: personal-page / inline-size;
     }
     .intro,
     .group-note,
@@ -1906,7 +1909,7 @@ export class HaConfigSectionPersonal extends LitElement {
     }
     .narrow .group-link {
       flex: none;
-      min-height: 36px;
+      min-height: 44px;
       border: 1px solid var(--divider-color);
       border-radius: 12px;
       white-space: nowrap;
@@ -2240,13 +2243,27 @@ export class HaConfigSectionPersonal extends LitElement {
     .preview-status {
       font-size: var(--ha-font-size-s);
     }
-    @media (max-width: 900px) {
+    /* Three columns need about 960 px of page; below that the group list goes
+       and the preview stays beside the settings, and below 720 px the preview
+       sits under them. */
+    @container personal-page (max-width: 960px) {
       .content:not(.narrow) .layout {
         grid-template-columns: minmax(0, 1fr) 280px;
         grid-template-areas: "list side";
       }
       .content:not(.narrow) .groups {
         display: none;
+      }
+    }
+    @container personal-page (max-width: 720px) {
+      .content:not(.narrow) .layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "list"
+          "side";
+      }
+      .content:not(.narrow) .preview-card {
+        position: static;
       }
     }
   `;

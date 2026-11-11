@@ -247,6 +247,15 @@ export class HaSplitDivider extends LitElement {
       inset-block: 0;
       inset-inline: -2px;
     }
+    /* A finger needs about 44 px. The touch area grows only for a coarse
+       pointer, and only to the side of the handle that has room: the divider
+       is 12 px wide, so this reaches 16 px into each pane, over the pane's
+       padding and not over its scrollbar. */
+    @media (pointer: coarse) {
+      .handle::before {
+        inset-inline: -16px;
+      }
+    }
     .visually-hidden {
       position: absolute;
       width: 1px;

@@ -159,7 +159,6 @@ class HaConfigBackup extends SubscribeMixin(HassRouterPage) {
     pageEl.hass = this.hass;
     pageEl.route = this.routeTail;
     pageEl.narrow = this.narrow;
-    pageEl.cloudStatus = this.cloudStatus;
     pageEl.manager = this._manager;
     pageEl.info = this._info;
     pageEl.backups = this._info?.backups || [];

@@ -15,6 +15,7 @@ import type {
   MinecraftVersionLists,
 } from "../../../data/minecraft_manager";
 import {
+  canForceDeleteMinecraftServer,
   deleteMinecraftServer,
   isMinecraftFailure,
   fetchMinecraftHosts,
@@ -22,6 +23,7 @@ import {
   fetchMinecraftStatus,
   fetchMinecraftTargets,
   fetchMinecraftVersions,
+  minecraftWithTimeout,
 } from "../../../data/minecraft_manager";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
@@ -31,6 +33,8 @@ import { showToast } from "../../../util/toast";
 import "./ha-minecraft-hosts";
 import "./ha-minecraft-server";
 import "./ha-minecraft-wizard";
+
+const STATE_TIMEOUT_MS = 12000;
 
 type View = "list" | "create" | "hosts" | "server";
 
@@ -56,48 +60,73 @@ class HaConfigMinecraft extends LitElement {
 
   @state() private _selectedId?: string;
 
+  private _statesRun = 0;
+
   protected firstUpdated(): void {
     this._load();
   }
 
   private async _load(): Promise<void> {
     try {
-      const [servers, targets, hosts, versions] = await Promise.all([
+      const [servers, targets, hosts] = await Promise.all([
         fetchMinecraftServers(this.hass),
         fetchMinecraftTargets(this.hass),
         fetchMinecraftHosts(this.hass),
-        fetchMinecraftVersions(this.hass),
       ]);
       this._servers = servers.servers;
       this._targets = targets.targets;
       this._hosts = hosts.hosts;
-      this._versions = versions;
       this._error = undefined;
       this._loadStates(servers.servers);
     } catch (err: any) {
       this._error = err?.message ?? String(err);
     }
+    this._loadVersions();
   }
 
-  /** Reads the live state of every server the manager can start. */
+  /** The version lists come from outside, so a slow answer must not hold the page. */
+  private async _loadVersions(): Promise<void> {
+    try {
+      this._versions = await fetchMinecraftVersions(this.hass);
+    } catch {
+      // The pickers work without the lists; they show what they can.
+    }
+  }
+
+  /** Reloads only the server definitions, keeping the states already read. */
+  private async _reloadServers(): Promise<void> {
+    try {
+      this._servers = (await fetchMinecraftServers(this.hass)).servers;
+    } catch (err: any) {
+      showToast(this, { message: err?.message ?? String(err) });
+    }
+  }
+
+  /** Reads the live state of every server the manager can start, one chip at a time. */
   private async _loadStates(servers: MinecraftServer[]): Promise<void> {
-    const entries = await Promise.all(
+    const run = ++this._statesRun;
+    await Promise.all(
       servers.map(async (server) => {
-        if (server.target !== "ssh_docker" || server.edition !== "java") {
-          return [server.id, "unknown"] as const;
+        let runState: MinecraftRunState | "unknown" = "unknown";
+        if (server.target === "ssh_docker" && server.edition === "java") {
+          try {
+            const result = await minecraftWithTimeout(
+              fetchMinecraftStatus(this.hass, server.id),
+              STATE_TIMEOUT_MS,
+              undefined
+            );
+            if (result && !isMinecraftFailure(result)) {
+              runState = result.state;
+            }
+          } catch {
+            runState = "unknown";
+          }
         }
-        try {
-          const result = await fetchMinecraftStatus(this.hass, server.id);
-          return [
-            server.id,
-            isMinecraftFailure(result) ? "unknown" : result.state,
-          ] as const;
-        } catch {
-          return [server.id, "unknown"] as const;
+        if (run === this._statesRun) {
+          this._states = { ...this._states, [server.id]: runState };
         }
       })
     );
-    this._states = Object.fromEntries(entries);
   }
 
   private async _reloadHosts(): Promise<void> {
@@ -168,7 +197,10 @@ class HaConfigMinecraft extends LitElement {
     }
     try {
       let result = await deleteMinecraftServer(this.hass, server.id);
-      if (isMinecraftFailure(result) && result.code !== "container_exists") {
+      if (
+        isMinecraftFailure(result) &&
+        canForceDeleteMinecraftServer(result.code)
+      ) {
         const anyway = await showConfirmationDialog(this, {
           title: this._l("delete_unverified_title"),
           text: this._l("delete_unverified_text", { name: server.name }),
@@ -245,7 +277,7 @@ class HaConfigMinecraft extends LitElement {
         .versions=${this._versions}
         @minecraft-server-close=${this._closeSubview}
         @minecraft-server-closed-deleted=${this._closeSubview}
-        @minecraft-server-changed=${this._load}
+        @minecraft-server-changed=${this._reloadServers}
       ></ha-minecraft-server>`;
     }
     return this._renderList();

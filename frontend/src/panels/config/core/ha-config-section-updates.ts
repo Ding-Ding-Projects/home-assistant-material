@@ -23,6 +23,7 @@ import { navigate } from "../../../common/navigate";
 import "../../../components/animation/ha-fade-in";
 import "../../../components/entity/state-badge";
 import "../../../components/ha-alert";
+import { installUpdatesTracked } from "../../../components/update-progress/update-install-tracker";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
@@ -47,7 +48,6 @@ import {
   checkForEntityUpdates,
   filterUpdateEntities,
   filterUpdateEntitiesParameterized,
-  installUpdates,
   isSystemUpdate,
   latestVersionIsSkipped,
   updateIsInstalling,
@@ -650,7 +650,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       return;
     }
     try {
-      await installUpdates(this.hass, entityIds, false);
+      await installUpdatesTracked(this.hass, entityIds, false);
     } catch (err: any) {
       let message = extractApiErrorMessage(err);
       // The backend error embeds the raw entity_id; swap in the update's name.

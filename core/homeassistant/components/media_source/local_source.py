@@ -1,9 +1,11 @@
 """Local Media Source Implementation."""
 
+from collections.abc import Awaitable
 import io
 import logging
 import mimetypes
-from pathlib import Path
+import os
+from pathlib import Path, PurePosixPath
 import shutil
 from typing import Any, Protocol, cast, override
 
@@ -30,12 +32,14 @@ from .const import (
     DOWNLOAD_ONLY_MIME_TYPES,
     MEDIA_CLASS_MAP,
     MEDIA_MIME_TYPES,
+    URI_SCHEME,
 )
 from .error import Unresolvable
 from .models import BrowseMediaSource, MediaSource, MediaSourceItem, PlayMedia
 
 MAX_UPLOAD_SIZE = 1024 * 1024 * 20
 MAX_SEARCH_RESULTS = 100
+MAX_NAME_LENGTH = 255
 LOGGER = logging.getLogger(__name__)
 
 
@@ -45,6 +49,54 @@ class PathNotSupportedError(HomeAssistantError):
 
 class InvalidFileNameError(HomeAssistantError):
     """Error to indicate an invalid file name."""
+
+
+class MediaFolderError(HomeAssistantError):
+    """Error raised by a folder or rename operation, with a stable error code."""
+
+    def __init__(self, code: str, message: str) -> None:
+        """Initialize the error."""
+        super().__init__(message)
+        self.code = code
+
+
+def _validate_entry_name(name: str, *, media_file: bool) -> str:
+    """Validate a new file or folder name and return it."""
+    if (
+        not name
+        or len(name) > MAX_NAME_LENGTH
+        or name in (".", "..")
+        or name != name.strip()
+        or name.startswith(".")
+        or any(char in name for char in "/\\")
+        or any(ord(char) < 32 or ord(char) == 127 for char in name)
+    ):
+        raise MediaFolderError("invalid_name", "Invalid name")
+
+    try:
+        raise_if_invalid_filename(name)
+    except ValueError as err:
+        raise MediaFolderError("invalid_name", "Invalid name") from err
+
+    if media_file:
+        mime_type, _ = mimetypes.guess_type(name)
+        if not mime_type or mime_type.split("/")[0] not in MEDIA_MIME_TYPES:
+            raise MediaFolderError("invalid_name", "Not a media file name")
+
+    return name
+
+
+def _count_contents(folder: Path) -> tuple[int, int]:
+    """Return how many files and folders a folder holds, not following links."""
+    files = 0
+    folders = 0
+    for dirpath, dirnames, filenames in os.walk(folder):
+        real_dirs = [
+            name for name in dirnames if not (Path(dirpath) / name).is_symlink()
+        ]
+        folders += len(real_dirs)
+        files += len(filenames) + len(dirnames) - len(real_dirs)
+    return files, folders
 
 
 class UploadedFile(Protocol):
@@ -162,6 +214,130 @@ class LocalSource(MediaSource):
         )
 
         return f"{target_folder.media_source_id}/{uploaded_file.filename}"
+
+    def _checked_dir(self, source_dir_id: str, location: str) -> Path:
+        """Return an existing folder whose real path is inside the media directory."""
+        root = Path(self.media_dirs[source_dir_id]).resolve()
+        try:
+            real = self.async_full_path(source_dir_id, location).resolve(strict=True)
+        except FileNotFoundError as err:
+            raise MediaFolderError("not_found", "Folder does not exist") from err
+        if not real.is_relative_to(root):
+            raise MediaFolderError("not_allowed", "Path is outside the media folder")
+        if not real.is_dir():
+            raise MediaFolderError("not_allowed", "Path is not a folder")
+        return real
+
+    def _checked_entry(self, source_dir_id: str, location: str) -> Path:
+        """Return an existing file or folder that may be renamed, moved or removed."""
+        if not location:
+            raise MediaFolderError("not_allowed", "The media folder itself is fixed")
+        entry_path = PurePosixPath(location)
+        parent = str(entry_path.parent)
+        parent_location = "" if parent == "." else parent
+        entry = self._checked_dir(source_dir_id, parent_location) / entry_path.name
+        if not os.path.lexists(entry):
+            raise MediaFolderError("not_found", "Path does not exist")
+        if entry.is_symlink():
+            raise MediaFolderError("not_allowed", "Links cannot be changed")
+        return entry
+
+    def _media_id(self, source_dir_id: str, path: Path) -> str:
+        """Return the media content ID of a path inside a media directory."""
+        root = Path(self.media_dirs[source_dir_id]).resolve()
+        relative = path.relative_to(root).as_posix()
+        return f"{URI_SCHEME}{DOMAIN}/{source_dir_id}/{relative}"
+
+    async def async_create_folder(self, parent: MediaSourceItem, name: str) -> str:
+        """Create a folder and return its media content ID."""
+        source_dir_id, location = self.async_parse_identifier(parent)
+
+        def _do_create() -> str:
+            _validate_entry_name(name, media_file=False)
+            target = self._checked_dir(source_dir_id, location) / name
+            if os.path.lexists(target):
+                raise MediaFolderError("exists", "Name already exists")
+            try:
+                target.mkdir()
+            except FileExistsError as err:
+                raise MediaFolderError("exists", "Name already exists") from err
+            return self._media_id(source_dir_id, target)
+
+        return await self.hass.async_add_executor_job(_do_create)
+
+    async def async_rename(self, item: MediaSourceItem, new_name: str) -> str:
+        """Rename a file or folder and return its new media content ID."""
+        source_dir_id, location = self.async_parse_identifier(item)
+
+        def _do_rename() -> str:
+            entry = self._checked_entry(source_dir_id, location)
+            _validate_entry_name(new_name, media_file=entry.is_file())
+            target = entry.parent / new_name
+            if os.path.lexists(target) and not (
+                entry.name != new_name and entry.samefile(target)
+            ):
+                raise MediaFolderError("exists", "Name already exists")
+            entry.rename(target)
+            return self._media_id(source_dir_id, target)
+
+        return await self.hass.async_add_executor_job(_do_rename)
+
+    async def async_move(
+        self, item: MediaSourceItem, destination: MediaSourceItem
+    ) -> str:
+        """Move a file or folder into another folder of the same source."""
+        source_dir_id, location = self.async_parse_identifier(item)
+        dest_source_dir_id, dest_location = self.async_parse_identifier(destination)
+        if dest_source_dir_id != source_dir_id:
+            raise MediaFolderError(
+                "not_allowed", "Items can only move within the same media folder"
+            )
+
+        def _do_move() -> str:
+            entry = self._checked_entry(source_dir_id, location)
+            dest = self._checked_dir(source_dir_id, dest_location)
+            if entry.is_dir() and (dest == entry or dest.is_relative_to(entry)):
+                raise MediaFolderError(
+                    "not_allowed", "A folder cannot move into itself"
+                )
+            target = dest / entry.name
+            if os.path.lexists(target):
+                raise MediaFolderError("exists", "Name already exists")
+            shutil.move(str(entry), str(target))
+            return self._media_id(source_dir_id, target)
+
+        return await self.hass.async_add_executor_job(_do_move)
+
+    async def async_folder_info(self, item: MediaSourceItem) -> dict[str, int]:
+        """Return how many files and folders a folder holds."""
+        source_dir_id, location = self.async_parse_identifier(item)
+
+        def _do_count() -> dict[str, int]:
+            files, folders = _count_contents(self._checked_dir(source_dir_id, location))
+            return {"files": files, "folders": folders}
+
+        return await self.hass.async_add_executor_job(_do_count)
+
+    async def async_remove_folder(
+        self, item: MediaSourceItem, recursive: bool
+    ) -> dict[str, int]:
+        """Remove a folder, and what it holds only when recursive is set."""
+        source_dir_id, location = self.async_parse_identifier(item)
+
+        def _do_remove() -> dict[str, int]:
+            entry = self._checked_entry(source_dir_id, location)
+            if not entry.is_dir():
+                raise MediaFolderError("not_allowed", "Path is not a folder")
+            files, folders = _count_contents(entry)
+            if (files or folders) and not recursive:
+                raise MediaFolderError("not_empty", "Folder is not empty")
+            if recursive:
+                shutil.rmtree(entry)
+            else:
+                entry.rmdir()
+            return {"files": files, "folders": folders + 1}
+
+        return await self.hass.async_add_executor_job(_do_remove)
 
     @override
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
@@ -541,3 +717,161 @@ async def websocket_remove_media(
         connection.send_error(msg["id"], websocket_api.ERR_UNKNOWN_ERROR, str(err))
     else:
         connection.send_result(msg["id"])
+
+
+def _item_from_message(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    key: str,
+) -> MediaSourceItem | None:
+    """Return the local source item a message names, or answer with an error."""
+    try:
+        item = MediaSourceItem.from_uri(hass, msg[key], None)
+    except ValueError as err:
+        connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, str(err))
+        return None
+
+    if item.domain != DOMAIN:
+        connection.send_error(
+            msg["id"], websocket_api.ERR_INVALID_FORMAT, "Invalid media source domain"
+        )
+        return None
+    return item
+
+
+async def _async_answer(
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    operation: Awaitable[Any],
+) -> None:
+    """Run a folder operation and answer with its result or a stable error code."""
+    try:
+        result = await operation
+    except Unresolvable as err:
+        connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, str(err))
+    except MediaFolderError as err:
+        connection.send_error(msg["id"], err.code, str(err))
+    except OSError as err:
+        connection.send_error(msg["id"], websocket_api.ERR_UNKNOWN_ERROR, str(err))
+    else:
+        connection.send_result(msg["id"], result)
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "media_source/local_source/create_folder",
+        probatio.Required("parent_media_content_id"): str,
+        probatio.Required("name"): str,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_create_folder(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Create a folder."""
+    if (
+        parent := _item_from_message(
+            hass, connection, msg, "parent_media_content_id"
+        )
+    ) is None:
+        return
+    source = cast(LocalSource, hass.data[DATA_LOCAL_SOURCE])
+    await _async_answer(
+        connection,
+        msg,
+        _wrap_id(source.async_create_folder(parent, msg["name"])),
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "media_source/local_source/rename",
+        probatio.Required("media_content_id"): str,
+        probatio.Required("new_name"): str,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_rename(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Rename a file or folder."""
+    if (item := _item_from_message(hass, connection, msg, "media_content_id")) is None:
+        return
+    source = cast(LocalSource, hass.data[DATA_LOCAL_SOURCE])
+    await _async_answer(
+        connection, msg, _wrap_id(source.async_rename(item, msg["new_name"]))
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "media_source/local_source/move",
+        probatio.Required("media_content_id"): str,
+        probatio.Required("destination_media_content_id"): str,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_move(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Move a file or folder into another folder."""
+    if (item := _item_from_message(hass, connection, msg, "media_content_id")) is None:
+        return
+    if (
+        destination := _item_from_message(
+            hass, connection, msg, "destination_media_content_id"
+        )
+    ) is None:
+        return
+    source = cast(LocalSource, hass.data[DATA_LOCAL_SOURCE])
+    await _async_answer(
+        connection, msg, _wrap_id(source.async_move(item, destination))
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "media_source/local_source/folder_info",
+        probatio.Required("media_content_id"): str,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_folder_info(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return how many files and folders a folder holds."""
+    if (item := _item_from_message(hass, connection, msg, "media_content_id")) is None:
+        return
+    source = cast(LocalSource, hass.data[DATA_LOCAL_SOURCE])
+    await _async_answer(connection, msg, source.async_folder_info(item))
+
+
+@websocket_api.websocket_command(
+    {
+        probatio.Required("type"): "media_source/local_source/remove_folder",
+        probatio.Required("media_content_id"): str,
+        probatio.Optional("recursive", default=False): bool,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_remove_folder(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Remove a folder; a folder that is not empty only with recursive set."""
+    if (item := _item_from_message(hass, connection, msg, "media_content_id")) is None:
+        return
+    source = cast(LocalSource, hass.data[DATA_LOCAL_SOURCE])
+    await _async_answer(
+        connection, msg, source.async_remove_folder(item, msg["recursive"])
+    )
+
+
+async def _wrap_id(operation: Awaitable[str]) -> dict[str, str]:
+    """Wrap a media content ID in the answer shape."""
+    return {"media_content_id": await operation}

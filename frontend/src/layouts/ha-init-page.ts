@@ -1,5 +1,5 @@
 import { mdiAlertCircleOutline, mdiProgressClock } from "@mdi/js";
-import { css, html, LitElement, nothing } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import type { LocalizeFunc } from "../common/translations/localize";
@@ -44,22 +44,6 @@ export class HaInitPage extends LitElement {
         <ha-button size="s" appearance="filled" @click=${this._retry}>
           ${this.localize?.("ui.init.error.retry_now") || "Retry now"}
         </ha-button>
-        ${
-          location.host.includes("ui.nabu.casa")
-            ? html`<p class="message">
-                ${
-                  this.localize?.("ui.init.error.nabu_casa", {
-                    account_link:
-                      this.localize?.("ui.init.error.nabu_casa_account") ||
-                      "Nabu Casa account page",
-                  }) ||
-                  html`It is possible that you are seeing this screen because
-                  your Home Assistant is not currently connected. You can ask it
-                  to come online from your Nabu Casa account page.`
-                }
-              </p>`
-            : nothing
-        }
       </div>
     `;
   }

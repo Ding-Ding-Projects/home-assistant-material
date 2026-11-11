@@ -1,6 +1,5 @@
 import { mdiAlertCircle } from "@mdi/js";
-import type { TemplateResult } from "lit";
-import type { PropertyValues } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { redactDetails } from "../../common/activity/redact-details";

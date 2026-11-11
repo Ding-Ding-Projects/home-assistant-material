@@ -12,6 +12,8 @@ import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
+import "../../../components/history/ha-version-picker";
+import type { VersionPickerItem } from "../../../components/history/ha-version-picker";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/input/ha-input-search";
@@ -20,6 +22,7 @@ import type {
   DashboardCommit,
   DashboardArchive,
   DashboardRepository,
+  DashboardRepositoryView,
   DashboardReposStatus,
 } from "../../../data/dashboard_repos";
 import { describeHistoryError } from "../../../data/automation_repos";
@@ -87,6 +90,8 @@ export class HaConfigDashboardHistory extends LitElement {
   @state() private _error?: string;
 
   @state() private _search = "";
+
+  @state() private _overviewSearch = "";
 
   @state() private _showAll = false;
 
@@ -255,8 +260,36 @@ export class HaConfigDashboardHistory extends LitElement {
   private _visibleCommits(): DashboardCommit[] {
     const matches = searchMatcher(this._search);
     return this._commits.filter((commit) =>
-      matches(commit.message, commit.author, commit.sha)
+      matches(
+        commit.message,
+        commit.author,
+        commit.sha,
+        this._absoluteDate(commit)
+      )
     );
+  }
+
+  private _absoluteDate(commit: DashboardCommit): string {
+    return formatShortDateTime(
+      new Date(commit.timestamp * 1000),
+      this.hass.locale,
+      this.hass.config
+    );
+  }
+
+  /** The dashboards, and their tabs, that match the overview search. */
+  private _overviewMatches(): {
+    item: DashboardRepository;
+    views: DashboardRepositoryView[];
+  }[] {
+    const matches = searchMatcher(this._overviewSearch);
+    return (this._status?.dashboards ?? []).flatMap((item) => {
+      const own = matches(item.title, item.url_path, item.id);
+      const views = own
+        ? item.views
+        : item.views.filter((view) => matches(view.title, view.key, view.path));
+      return own || views.length ? [{ item, views }] : [];
+    });
   }
 
   private get _scopeTitle(): string {
@@ -319,14 +352,61 @@ export class HaConfigDashboardHistory extends LitElement {
     if (!status) {
       return nothing;
     }
+    const visible = this._overviewMatches();
+    const totalTabs = status.dashboards.reduce(
+      (sum, item) => sum + item.views.length,
+      0
+    );
+    const shownTabs = visible.reduce((sum, row) => sum + row.views.length, 0);
+    const search = this._l("overview_search", {
+      dashboards: status.dashboards.length,
+      tabs: totalTabs,
+    });
     return html`
       <h1>${this._l("title")}</h1>
       <p class="secondary">${this._l("description")}</p>
       ${
         status.dashboards.length
+          ? html`<div class="toolbar">
+                <ha-input-search
+                  appearance="outlined"
+                  .value=${this._overviewSearch}
+                  .placeholder=${search}
+                  .accessibleLabel=${search}
+                  .patternSamples=${status.dashboards.flatMap((item) => [
+                    item.title,
+                    ...item.views.map((view) => view.title || view.key),
+                  ])}
+                  @input=${this._overviewSearchChanged}
+                ></ha-input-search>
+              </div>
+              ${
+                this._overviewSearch
+                  ? html`<p class="secondary" role="status">
+                      ${this._l("overview_matches", {
+                        dashboards: visible.length,
+                        tabs: shownTabs,
+                      })}
+                    </p>`
+                  : nothing
+              }`
+          : nothing
+      }
+      ${
+        status.dashboards.length && !visible.length
+          ? html`<div class="empty">
+              <p>${this._l("overview_no_match")}</p>
+              <ha-button appearance="plain" @click=${this._clearOverviewSearch}
+                >${this._l("clear_search")}</ha-button
+              >
+            </div>`
+          : nothing
+      }
+      ${
+        status.dashboards.length
           ? html`<div class="grid">
-              ${status.dashboards.map(
-                (item) => html`
+              ${visible.map(
+                ({ item, views }) => html`
                   <ha-card class="dashboard">
                     <div class="card-head">
                       <span class="tile">
@@ -364,7 +444,7 @@ export class HaConfigDashboardHistory extends LitElement {
                           <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
                         </a>
                       </li>
-                      ${item.views.map(
+                      ${views.map(
                         (view) =>
                           html`<li>
                             <a
@@ -527,6 +607,13 @@ export class HaConfigDashboardHistory extends LitElement {
             .patternSamples=${this._commits.map((commit) => commit.message)}
             @input=${this._searchChanged}
           ></ha-input-search>
+          ${
+            filtering
+              ? html`<p class="secondary" role="status">
+                  ${this._l("commit_matches", { count: commits.length })}
+                </p>`
+              : nothing
+          }
           <ul class="commits">
             ${shown.map(
               (commit, index) =>
@@ -802,25 +889,29 @@ export class HaConfigDashboardHistory extends LitElement {
                   <div class="action compare">
                     <span class="action-text">
                       <b>${this._l("compare")}</b>
-                      <label class="compare-pick">
+                      <div class="compare-pick">
                         <span class="secondary"
                           >${this._l("compare_with")}</span
                         >
-                        <select
+                        <ha-version-picker
+                          .hass=${this.hass}
+                          .label=${this._l("compare_with")}
+                          .items=${this._pickerItems()}
                           .value=${this._compareWith}
-                          @change=${this._compareChanged}
-                        >
-                          <option value="">…</option>
-                          ${this._commits
-                            .filter((item) => item.sha !== sha)
-                            .map(
-                              (item) =>
-                                html`<option value=${item.sha}>
-                                  ${item.short}: ${item.message}
-                                </option>`
-                            )}
-                        </select>
-                      </label>
+                          .currentId=${sha ?? ""}
+                          @version-picker-changed=${this._compareChanged}
+                        ></ha-version-picker>
+                        ${
+                          this._compareWith
+                            ? html`<button
+                                class="link"
+                                @click=${this._clearCompare}
+                              >
+                                ${this._l("compare_clear")}
+                              </button>`
+                            : nothing
+                        }
+                      </div>
                       ${
                         this._compareDiff !== undefined
                           ? this._compareDiff.trim()
@@ -897,8 +988,30 @@ export class HaConfigDashboardHistory extends LitElement {
     this._writeUrl();
   }
 
-  private async _compareChanged(ev: Event) {
-    const other = (ev.currentTarget as HTMLSelectElement).value;
+  private _pickerItems(): VersionPickerItem[] {
+    return this._commits.map((commit) => ({
+      id: commit.sha,
+      title: commit.message,
+      short: commit.short,
+      timestamp: commit.timestamp,
+    }));
+  }
+
+  private _clearCompare() {
+    this._compareWith = "";
+    this._compareDiff = undefined;
+  }
+
+  private _overviewSearchChanged(ev: Event) {
+    this._overviewSearch = (ev.target as HaInputSearch).value ?? "";
+  }
+
+  private _clearOverviewSearch() {
+    this._overviewSearch = "";
+  }
+
+  private async _compareChanged(ev: CustomEvent<{ value: string }>) {
+    const other = ev.detail.value;
     this._compareWith = other;
     const sha = this._selectedSha;
     if (!other || !sha || !this._dashboard) {
@@ -1356,7 +1469,6 @@ export class HaConfigDashboardHistory extends LitElement {
       text-align: start;
     }
     button:focus-visible,
-    select:focus-visible,
     .yaml:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
@@ -1497,15 +1609,19 @@ export class HaConfigDashboardHistory extends LitElement {
       align-items: center;
       gap: var(--ha-space-2);
     }
-    select {
-      max-width: 100%;
-      min-height: 44px;
-      padding: 0 var(--ha-space-3);
-      border-radius: var(--ha-border-radius-md);
-      border: 1px solid var(--outline-color);
-      background: var(--card-background-color);
-      color: inherit;
-      font: inherit;
+    .compare-pick ha-version-picker {
+      flex: 1 1 240px;
+      min-width: 0;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2);
+    }
+    .toolbar ha-input-search {
+      flex: 1 1 280px;
+      min-width: 0;
     }
     .remote {
       min-width: 0;

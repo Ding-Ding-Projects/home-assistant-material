@@ -19,7 +19,10 @@ export const TICKET_LIMIT = 50;
 export const SUBJECT_LIMIT = 120;
 export const DETAILS_LIMIT = 1000;
 
-/** Milliseconds after opening at which the status moves on. */
+/**
+ * Milliseconds after opening at which the status moves on. The change is only
+ * the clock: nobody reviews, answers or resolves a ticket.
+ */
 export const REVIEW_AFTER_MS = 4000;
 export const REPLY_AFTER_MS = 9000;
 export const RESOLVED_AFTER_MS = 16000;

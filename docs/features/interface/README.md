@@ -9,4 +9,5 @@
 | [`split-panes.md`](split-panes.md) | Split panes and the resizable filter pane | Partly built (not seen) |
 | [`information-buttons-and-starting-points.md`](information-buttons-and-starting-points.md) | Information buttons beside settings, starting points for empty editors | Partly built (not seen) |
 | [`draft-recovery.md`](draft-recovery.md) | Draft recovery for editors | Designed only |
+| [`media-folder-management.md`](media-folder-management.md) | Create, open, rename, move and delete media folders in the Manage dialog | Built, not yet seen in a running build |
 | [`screens-and-pages.md`](screens-and-pages.md) | Status screens, not-found screen, maintenance, name and logo, release notes, backups encryption default | Built, not yet seen in a running build |

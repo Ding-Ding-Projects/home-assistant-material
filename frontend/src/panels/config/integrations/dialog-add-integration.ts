@@ -270,6 +270,10 @@ class AddIntegrationDialog extends LitElement {
       const yamlIntegrations: IntegrationListItem[] = [];
 
       Object.entries(i).forEach(([domain, integration]) => {
+        if (domain === "cloud") {
+          return;
+        }
+
         if (
           "integration_type" in integration &&
           integration.integration_type === "hardware"
@@ -777,15 +781,6 @@ class AddIntegrationDialog extends LitElement {
 
     if (integration.config_flow) {
       this._createFlow(integration.domain);
-      return;
-    }
-
-    if (
-      integration.domain === "cloud" &&
-      isComponentLoaded(this.hass.config, "cloud")
-    ) {
-      this.closeDialog();
-      navigate("/config/cloud");
       return;
     }
 

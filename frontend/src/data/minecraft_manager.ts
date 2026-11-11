@@ -191,6 +191,92 @@ export const shouldPollMinecraftLogs = (state: {
 }): boolean =>
   state.tab === "logs" && state.pageVisible && !state.paused && !state.busy;
 
+/** A started poll. Hand it back to the guard when the answer arrives. */
+export interface MinecraftPollTicket {
+  id: number;
+  epoch: number;
+}
+
+/**
+ * Keeps one poll in flight at a time, and lets the caller drop an answer that
+ * began before the last action. Without it an unreachable host collects one
+ * waiting request per timer tick, and a slow poll can overwrite fresher state.
+ */
+export class MinecraftPollGuard {
+  private _next = 0;
+
+  private _active?: number;
+
+  private _epoch = 0;
+
+  /** Starts a poll, or returns undefined while one is still in flight. */
+  public begin(): MinecraftPollTicket | undefined {
+    if (this._active !== undefined) {
+      return undefined;
+    }
+    this._next++;
+    this._active = this._next;
+    return { id: this._next, epoch: this._epoch };
+  }
+
+  /** Marks the poll as over. A poll that was invalidated frees nothing. */
+  public end(ticket: MinecraftPollTicket): void {
+    if (this._active === ticket.id) {
+      this._active = undefined;
+    }
+  }
+
+  /** Whether the answer still belongs to the current state. */
+  public isCurrent(ticket: MinecraftPollTicket): boolean {
+    return ticket.epoch === this._epoch;
+  }
+
+  /** Call when an action starts or ends: older answers are no longer wanted. */
+  public invalidate(): void {
+    this._epoch++;
+    this._active = undefined;
+  }
+}
+
+/** Failure codes where the host could not be reached or did not accept us. */
+const MINECRAFT_HOST_FAILURES = new Set([
+  "unknown_host",
+  "key_missing",
+  "host_key_untrusted",
+  "host_key_changed",
+  "fingerprint_mismatch",
+  "host_key_invalid",
+  "no_host_key",
+  "auth_failed",
+  "connect_failed",
+  "timeout",
+]);
+
+/**
+ * Whether removing a server definition without checking the host may be
+ * offered. Only a host that cannot be reached or signed in to qualifies; any
+ * other failure means the host answered and the failure should be fixed.
+ */
+export const canForceDeleteMinecraftServer = (code: string): boolean =>
+  MINECRAFT_HOST_FAILURES.has(code);
+
+/** Resolves with the fallback when the promise takes longer than `ms`. */
+export const minecraftWithTimeout = async <T, F>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: F
+): Promise<T | F> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<F>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 /** The definition sent to the server, with the name trimmed. */
 export const minecraftDraftPayload = (draft: MinecraftServerDraft) => {
   const { host_id: hostId, ...rest } = draft;

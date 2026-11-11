@@ -3,7 +3,12 @@ import type { UpdateStageInput } from "../../../src/components/update-progress/u
 import {
   buildProblemSummary,
   deriveUpdateStage,
+  graceCounts,
   isConnectionLostError,
+  START_SLOW_MS,
+  startIsSlow,
+  VERSION_CHECK_GRACE_MS,
+  versionTookEffect,
 } from "../../../src/components/update-progress/update-progress-logic";
 
 // Protects two promises: the install card never claims a stage or a percentage
@@ -95,6 +100,68 @@ describe("deriveUpdateStage", () => {
     expect(isConnectionLostError({ code: 3 })).toBe(true);
     expect(isConnectionLostError({ code: 1, message: "x" })).toBe(false);
     expect(isConnectionLostError(new Error("x"))).toBe(false);
+  });
+});
+
+describe("versionTookEffect", () => {
+  it("accepts the named target", () => {
+    expect(versionTookEffect("2", "2", "1")).toBe(true);
+    expect(versionTookEffect("1", "2", "1")).toBe(false);
+    expect(versionTookEffect(null, "2", "1")).toBe(false);
+  });
+
+  it("accepts a moved version once the entity is off or the instance restarted", () => {
+    // A newer version than the one named: the update still took effect
+    expect(versionTookEffect("3", "2", "1")).toBe(false);
+    expect(versionTookEffect("3", "2", "1", { entityState: "off" })).toBe(true);
+    expect(versionTookEffect("3", "2", "1", { restarted: true })).toBe(true);
+    // Unchanged is never a success, whatever the entity says
+    expect(versionTookEffect("1", "2", "1", { entityState: "off" })).toBe(
+      false
+    );
+    expect(versionTookEffect("1", "2", "1", { restarted: true })).toBe(false);
+  });
+
+  it("compares with the old version when no target was named", () => {
+    expect(versionTookEffect("2", undefined, "1")).toBe(true);
+    expect(versionTookEffect("1", undefined, "1")).toBe(false);
+  });
+
+  it("turns the stage to done for a moved version on an off entity", () => {
+    expect(
+      deriveUpdateStage({
+        ...base,
+        installedVersion: "2025.3.0",
+        entityState: "off",
+      })
+    ).toEqual({ stage: "done" });
+  });
+});
+
+describe("the wait for the new version", () => {
+  it("is at least five minutes", () => {
+    expect(VERSION_CHECK_GRACE_MS).toBeGreaterThanOrEqual(5 * 60 * 1000);
+  });
+
+  it("counts only with the socket up, a real entity state and a running instance", () => {
+    const ok = {
+      disconnected: false,
+      entityState: "on",
+      instanceState: "RUNNING",
+    };
+    expect(graceCounts(ok)).toBe(true);
+    expect(graceCounts({ ...ok, instanceState: undefined })).toBe(true);
+    expect(graceCounts({ ...ok, disconnected: true })).toBe(false);
+    expect(graceCounts({ ...ok, entityState: "unavailable" })).toBe(false);
+    expect(graceCounts({ ...ok, entityState: "unknown" })).toBe(false);
+    expect(graceCounts({ ...ok, entityState: undefined })).toBe(false);
+    expect(graceCounts({ ...ok, instanceState: "STARTING" })).toBe(false);
+  });
+
+  it("says an install is slow to start only while it is getting ready", () => {
+    expect(startIsSlow("preparing", 0, START_SLOW_MS - 1)).toBe(false);
+    expect(startIsSlow("preparing", 0, START_SLOW_MS)).toBe(true);
+    expect(startIsSlow("installing", 0, START_SLOW_MS * 5)).toBe(false);
   });
 });
 

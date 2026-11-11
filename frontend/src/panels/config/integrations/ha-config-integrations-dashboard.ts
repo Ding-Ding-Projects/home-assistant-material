@@ -289,13 +289,14 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
       const allEntries = [
         ...configEntries.filter(
           (entry) =>
-            entry.supports_options ||
-            this._manifests[entry.domain]?.integration_type !== "hardware" ||
-            entityEntries.some(
-              (entity) => entity.config_entry_id === entry.entry_id
-            )
+            entry.domain !== "cloud" &&
+            (entry.supports_options ||
+              this._manifests[entry.domain]?.integration_type !== "hardware" ||
+              entityEntries.some(
+                (entity) => entity.config_entry_id === entry.entry_id
+              ))
         ),
-        ...nonConfigEntry,
+        ...nonConfigEntry.filter((entry) => entry.domain !== "cloud"),
       ];
 
       let filteredConfigEntries: ConfigEntryExtended[];

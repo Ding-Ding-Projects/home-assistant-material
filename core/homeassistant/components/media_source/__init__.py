@@ -92,6 +92,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.http.register_view(local_source.LocalMediaView(hass, source))
     hass.http.register_view(local_source.UploadMediaView)
     websocket_api.async_register_command(hass, local_source.websocket_remove_media)
+    websocket_api.async_register_command(hass, local_source.websocket_create_folder)
+    websocket_api.async_register_command(hass, local_source.websocket_rename)
+    websocket_api.async_register_command(hass, local_source.websocket_move)
+    websocket_api.async_register_command(hass, local_source.websocket_folder_info)
+    websocket_api.async_register_command(hass, local_source.websocket_remove_folder)
 
     return True
 

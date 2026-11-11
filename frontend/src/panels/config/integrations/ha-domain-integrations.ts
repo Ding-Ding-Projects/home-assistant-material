@@ -1,7 +1,6 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
-import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { getShadowRootHost } from "../../../common/dom/get-shadow-root-host";
@@ -279,14 +278,6 @@ class HaDomainIntegrations extends LitElement {
     ev: HASSDomCurrentTargetEvent<HTMLElement & { domain: string }>
   ) {
     const domain = ev.currentTarget.domain;
-
-    if (
-      ["cloud", "google_assistant", "alexa"].includes(domain) &&
-      isComponentLoaded(this.hass.config, "cloud")
-    ) {
-      navigate("/config/cloud");
-      return;
-    }
 
     const integration = (ev.currentTarget as any).integration;
 

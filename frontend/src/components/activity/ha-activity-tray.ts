@@ -1,4 +1,9 @@
-import { mdiAlertCircle, mdiCancel, mdiCheckCircle } from "@mdi/js";
+import {
+  mdiAlertCircle,
+  mdiCancel,
+  mdiCheckCircle,
+  mdiInformationOutline,
+} from "@mdi/js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import {
@@ -134,7 +139,11 @@ export class HaActivityTray extends LitElement {
               ? html`<ha-svg-icon .path=${mdiAlertCircle}></ha-svg-icon>`
               : item.state === "cancelled"
                 ? html`<ha-svg-icon .path=${mdiCancel}></ha-svg-icon>`
-                : nothing
+                : item.state === "ended"
+                  ? html`<ha-svg-icon
+                      .path=${mdiInformationOutline}
+                    ></ha-svg-icon>`
+                  : nothing
         }
         <span class="name">${item.title}</span>
       </div>

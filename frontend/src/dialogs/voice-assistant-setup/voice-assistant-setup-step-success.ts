@@ -22,7 +22,6 @@ import {
   assistSatelliteAnnounce,
   setWakeWords,
 } from "../../data/assist_satellite";
-import { fetchCloudStatus } from "../../data/cloud";
 import { updateDeviceRegistryEntry } from "../../data/device/device_registry";
 import type { InputSelectEntity } from "../../data/input_select";
 import { setSelectOption } from "../../data/select";
@@ -335,11 +334,7 @@ export class HaVoiceAssistantSetupStepSuccess extends LitElement {
       return;
     }
 
-    const cloudStatus = await fetchCloudStatus(this.hass.callWS);
-
     showVoiceAssistantPipelineDetailDialog(this, {
-      cloudActiveSubscription:
-        cloudStatus.logged_in && cloudStatus.active_subscription,
       pipeline,
       updatePipeline: async (values) => {
         await updateAssistPipeline(this.hass!, pipeline!.id, values);

@@ -420,7 +420,9 @@ class MoreInfoUpdate extends LitElement {
     this._installError = undefined;
 
     const entityId = this.stateObj!.entity_id;
-    updateInstallTracker.begin(
+    // The generation ties the answer below to this run, so a late answer
+    // from an earlier install of the same update cannot change a newer one.
+    const generation = updateInstallTracker.begin(
       this._trackerDeps(),
       this.stateObj!,
       installData
@@ -434,10 +436,15 @@ class MoreInfoUpdate extends LitElement {
         undefined,
         false
       );
-      updateInstallTracker.finishCall(entityId);
+      updateInstallTracker.finishCall(
+        entityId,
+        undefined,
+        undefined,
+        generation
+      );
     } catch (err: any) {
       const message = await this._localizeInstallError(err);
-      updateInstallTracker.finishCall(entityId, err, message);
+      updateInstallTracker.finishCall(entityId, err, message, generation);
 
       if (this._isShown()) {
         this._installError = message;

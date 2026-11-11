@@ -1,5 +1,4 @@
 import {
-  mdiCloudLock,
   mdiDotsVertical,
   mdiPower,
   mdiRefresh,
@@ -154,32 +153,13 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
   }
 
   private _pages = memoizeOne(
-    (
-      cloudStatus,
-      isCloudLoaded,
-      hasExternalSettings,
-      isAppsInfoDismissed,
-      isHassioLoaded
-    ) => {
+    (hasExternalSettings, isAppsInfoDismissed, isHassioLoaded) => {
       const filterApps = (pages: PageNavigation[]) =>
         isAppsInfoDismissed && !isHassioLoaded
           ? pages.filter((page) => page.path !== "/config/apps")
           : pages;
       return [
-        ...(isCloudLoaded
-          ? filterApps([
-              {
-                component: "cloud",
-                path: "/config/cloud",
-                name: "Home Assistant Cloud",
-                info: cloudStatus,
-                iconPath: mdiCloudLock,
-                iconColor: "#3B808E",
-                translationKey: "cloud",
-              },
-              ...configSections.dashboard,
-            ])
-          : filterApps(configSections.dashboard)),
+        ...filterApps(configSections.dashboard),
         ...(hasExternalSettings
           ? configSections.dashboard_external_settings
           : []),
@@ -382,8 +362,6 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
             this.hass.localize
           )}
           .pages=${this._pages(
-            this.cloudStatus,
-            isComponentLoaded(this.hass.config, "cloud"),
             this.hass.auth.external?.config.hasSettingsScreen,
             this.hass.userData?.apps_info_dismissed,
             isComponentLoaded(this.hass.config, "hassio")

@@ -240,14 +240,29 @@ def listed_size(response: Any, name: str) -> tuple[bool, int | None]:
     return False, None
 
 
+CHAT_UNSAFE_CHARACTERS = re.compile(
+    "[\x00-\x08\x0b-\x1f\x7f-\x9f؜‎‏‪-‮⁦-⁩]"
+)
+
+
+def clean_chat_text(text: str) -> str:
+    """Drop control characters and text-direction overrides from reply text.
+
+    Line breaks and tabs stay. A model can otherwise reorder the text a reader
+    sees or hide characters in it.
+    """
+    return CHAT_UNSAFE_CHARACTERS.sub("", text)
+
+
 def shape_chat_chunk(item: Any) -> tuple[str, dict[str, Any] | None]:
     """Return the text of one chat message and, on the last one, its speed.
 
-    The speed is only given when the server reported real counts.
+    The speed is only given when the server reported real counts. The text has
+    control characters and direction overrides removed.
     """
     message = getattr(item, "message", None)
     content = getattr(message, "content", None)
-    text = content if isinstance(content, str) else ""
+    text = clean_chat_text(content) if isinstance(content, str) else ""
     if not getattr(item, "done", False):
         return text, None
     count = _count(getattr(item, "eval_count", None))
@@ -281,6 +296,32 @@ def shape_users(entry: Any, model: str) -> list[dict[str, Any]]:
         if len(users) >= MAX_USERS:
             break
     return users
+
+
+def shape_users_by_model(entry: Any) -> dict[str, list[dict[str, Any]]]:
+    """Map each model name (implied `latest` tag made explicit) to its users.
+
+    The map holds at most MAX_MODELS names and at most MAX_USERS users each.
+    """
+    by_model: dict[str, list[dict[str, Any]]] = {}
+    for subentry in entry.subentries.values():
+        stored = subentry.data.get("model")
+        if not isinstance(stored, str):
+            continue
+        key = _base_name(stored)
+        if key not in by_model and len(by_model) >= MAX_MODELS:
+            continue
+        users = by_model.setdefault(key, [])
+        if len(users) >= MAX_USERS:
+            continue
+        users.append(
+            {
+                "subentry_id": subentry.subentry_id,
+                "type": _short(subentry.subentry_type, 64),
+                "title": _short(subentry.title, 256),
+            }
+        )
+    return by_model
 
 
 class ChatTracker:

@@ -27,6 +27,7 @@ import {
   getPanelTitle,
 } from "../data/panel";
 import { activityStore } from "../common/activity/activity-store";
+import { adoptRunningInstalls } from "./update-progress/update-install-tracker";
 import type { PersistentNotification } from "../data/persistent_notification";
 import { subscribeNotifications } from "../data/persistent_notification";
 import { subscribeRepairsIssueRegistry } from "../data/repairs";
@@ -226,6 +227,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   public hassSubscribe() {
     this._instanceSync.ensure(this.hass.connection, this.hass.user?.id);
+    if (this.hass.user?.is_admin) {
+      // Installs already running after a reload show in the activity tray.
+      adoptRunningInstalls(this.hass);
+    }
     return [
       subscribeSharedIdentity(this.hass.connection),
       subscribeSharedPreferenceDefaults(this.hass.connection),

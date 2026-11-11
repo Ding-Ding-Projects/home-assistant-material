@@ -121,13 +121,10 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
   );
 
   protected render() {
-    const googleEnabled =
-      this._cloudStatus?.logged_in === true &&
-      this._cloudStatus.prefs.google_enabled === true;
+    // The cloud assistants are never offered in this interface
+    const googleEnabled = false;
 
-    const alexaEnabled =
-      this._cloudStatus?.logged_in === true &&
-      this._cloudStatus.prefs.alexa_enabled === true;
+    const alexaEnabled = false;
 
     const showAssistants = [...Object.keys(voiceAssistants)];
     const uiAssistants = [...showAssistants];

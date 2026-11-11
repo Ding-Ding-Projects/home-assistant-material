@@ -92,7 +92,6 @@ class HaConfigVoiceAssistants extends HassRouterPage {
 
   protected updatePageEl(pageEl) {
     pageEl.hass = this.hass;
-    pageEl.cloudStatus = this.cloudStatus;
     pageEl.narrow = this.narrow;
     pageEl.isWide = this.isWide;
     pageEl.route = this.routeTail;

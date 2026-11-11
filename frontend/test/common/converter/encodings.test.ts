@@ -204,8 +204,20 @@ describe("file contents", () => {
       "webp",
       "base64",
       "hex",
+      "pdf",
+      "zip",
+      "tar",
+      "tar-gz",
+      "gzip",
     ]);
-    expect(targetsFor("binary")).toEqual(["base64", "hex"]);
+    expect(targetsFor("binary")).toEqual([
+      "base64",
+      "hex",
+      "zip",
+      "tar",
+      "tar-gz",
+      "gzip",
+    ]);
     expect(targetsFor("text")).toContain("yaml");
     expect(targetsFor("text")).not.toContain("png");
   });

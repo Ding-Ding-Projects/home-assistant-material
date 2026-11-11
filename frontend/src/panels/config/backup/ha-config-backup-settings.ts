@@ -26,7 +26,6 @@ import {
 } from "../../../data/supervisor/update";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
-import { brandsUrl } from "../../../util/brands-url";
 import { documentationUrl } from "../../../util/documentation-url";
 import "./components/config/ha-backup-config-agents";
 import "./components/config/ha-backup-config-data";
@@ -254,60 +253,6 @@ class HaConfigBackupSettings extends LitElement {
                     : nothing
                 }
               </div>
-              ${
-                !this.cloudStatus?.logged_in &&
-                isComponentLoaded(this.hass.config, "cloud")
-                  ? html`<ha-card class="cloud-info">
-                      <div class="cloud-header">
-                        <img
-                          .src=${brandsUrl(
-                            {
-                              domain: "cloud",
-                              type: "icon",
-                              darkOptimized: this.hass.themes?.darkMode,
-                            },
-                            this.hass.auth.data.hassUrl
-                          )}
-                          crossorigin="anonymous"
-                          referrerpolicy="no-referrer"
-                          alt="Nabu Casa logo"
-                          slot="start"
-                        />
-                        <span
-                          >${this.hass.localize(
-                            "ui.panel.config.backup.settings.locations.ha_cloud_backup",
-                            {
-                              home_assistant_cloud: "Home Assistant Cloud",
-                            }
-                          )}</span
-                        >
-                      </div>
-                      <div class="card-content">
-                        ${this.hass.localize(
-                          "ui.panel.config.backup.settings.locations.ha_cloud_description"
-                        )}
-                      </div>
-                      <div class="card-actions">
-                        <ha-button
-                          appearance="plain"
-                          href="/config/cloud/login"
-                        >
-                          ${this.hass.localize(
-                            "ui.panel.config.voice_assistants.assistants.cloud.sign_in"
-                          )}
-                        </ha-button>
-                        <ha-button
-                          href="/config/cloud/register"
-                          appearance="filled"
-                        >
-                          ${this.hass.localize(
-                            "ui.panel.config.voice_assistants.assistants.cloud.try_one_month"
-                          )}
-                        </ha-button>
-                      </div>
-                    </ha-card>`
-                  : nothing
-              }
               <div class="card-actions">
                 <ha-button
                   size="s"

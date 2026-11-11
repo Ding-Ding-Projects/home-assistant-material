@@ -110,11 +110,13 @@ export class HaUpdateProgress extends LitElement {
     if (!this._connection || !this._api || !this._localize || !this._config) {
       return undefined;
     }
+    const instanceState = this._config.state;
     return {
       connection: this._connection.connection,
       localize: this._localize,
       callService: this._api.callService.bind(this._api),
       instanceVersion: this._config.version,
+      instanceState: () => instanceState,
       backupAvailable:
         isComponentLoaded(this._config, "backup") &&
         isComponentLoaded(this._config, "hassio"),
@@ -239,6 +241,11 @@ export class HaUpdateProgress extends LitElement {
           </li>`;
         })}
       </ol>
+      ${
+        run.slow
+          ? html`<p class="note slow">${this._l("slow_start")}</p>`
+          : nothing
+      }
       <p class="note">${this._l("keep_open_note")}</p>
     </section>`;
   }
@@ -276,13 +283,9 @@ export class HaUpdateProgress extends LitElement {
       this.stateObj!.state === "on" &&
       !attributes.auto_update &&
       attributes.skipped_version !== attributes.latest_version;
-    const supervisor = this._entityEntry?.platform === "hassio";
-    const logPath = supervisor
-      ? "/config/logs?provider=supervisor"
-      : "/config/logs";
     return html`<div class="failed">
       <ha-recovery-card
-        .hass=${{ localize: this._localize } as unknown as HomeAssistant}
+        .hass=${this._recoveryHass()}
         .heading=${this._l("failed_heading", { name: run.title })}
         .message=${this._l("failed_message")}
         .changed=${changed}
@@ -297,7 +300,7 @@ export class HaUpdateProgress extends LitElement {
       <div class="actions">
         ${
           this._isAdmin()
-            ? html`<ha-button appearance="plain" href=${logPath}
+            ? html`<ha-button appearance="plain" @click=${this._showLog}
                 >${this._l("show_log")}</ha-button
               >`
             : nothing
@@ -334,6 +337,31 @@ export class HaUpdateProgress extends LitElement {
           : nothing
       }
     </div>`;
+  }
+
+  private _recoveryHassFor?: LocalizeFunc;
+
+  private _recoveryHassValue?: HomeAssistant;
+
+  // The card only needs `localize`. The object is kept between renders so the
+  // card does not see a new `hass` each time.
+  private _recoveryHass(): HomeAssistant {
+    if (this._recoveryHassFor !== this._localize) {
+      this._recoveryHassFor = this._localize;
+      this._recoveryHassValue = {
+        localize: this._localize,
+      } as unknown as HomeAssistant;
+    }
+    return this._recoveryHassValue!;
+  }
+
+  // In-app navigation keeps the page, and with it the run being followed.
+  private _showLog(): void {
+    navigate(
+      this._entityEntry?.platform === "hassio"
+        ? "/config/logs?provider=supervisor"
+        : "/config/logs"
+    );
   }
 
   private _retry(): void {

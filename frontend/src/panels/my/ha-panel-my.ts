@@ -275,10 +275,6 @@ export const getMyRedirects = (): Redirects => ({
   config: {
     redirect: "/config/dashboard",
   },
-  cloud: {
-    component: "cloud",
-    redirect: "/config/cloud",
-  },
   config_flow_start: {
     redirect: "/config/integrations/dashboard/add",
     params: {

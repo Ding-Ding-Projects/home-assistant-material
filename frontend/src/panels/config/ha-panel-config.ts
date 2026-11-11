@@ -75,10 +75,6 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-tags",
         load: () => import("./tags/ha-config-tags"),
       },
-      cloud: {
-        tag: "ha-config-cloud",
-        load: () => import("./cloud/ha-config-cloud"),
-      },
       connectivity: {
         tag: "ha-config-connectivity",
         load: () => import("./connectivity/ha-config-connectivity"),

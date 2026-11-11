@@ -112,8 +112,12 @@ export interface MediaPlayerItemId {
 
 type MediaClass = MediaPlayerItem["media_class"];
 
-/** Folders with at least this many items get a filter field when their source cannot search. */
-const FILTER_MIN_CHILDREN = 10;
+/**
+ * Every folder gets a filter field when its source cannot search, however few
+ * items it holds: a field that comes and goes with the item count is harder to
+ * find than one that is always there.
+ */
+const FILTER_MIN_CHILDREN = 0;
 
 /** Case and accent insensitive, so "stefan" finds "Ștefan" and "DIGI" finds "Digi". */
 const normalizeForFilter = (value: string): string =>
@@ -453,9 +457,12 @@ export class HaMediaPlayerBrowse extends LitElement {
     const subtitle = this._i18n.localize(
       `ui.components.media-browser.class.${currentItem.media_class}`
     );
-    let children = isSearching
-      ? this._searchResults!
-      : currentItem.children || [];
+    let children = (
+      isSearching ? this._searchResults! : currentItem.children || []
+    ).filter(
+      // The paid cloud service's voice is never offered in this build.
+      (child) => !child.media_content_id?.startsWith("media-source://tts/cloud")
+    );
     const notShown = isSearching ? 0 : currentItem.not_shown || 0;
     const canPlayChildren = new Set<string>();
 

@@ -1084,7 +1084,9 @@ export class HaConfigAutomationHistory extends LitElement {
           <ha-input-search
             appearance="outlined"
             .value=${this._repoSearch}
-            .placeholder=${this._l("repo_search")}
+            .placeholder=${this._l("repo_search", {
+              count: status.automations.length,
+            })}
             .patternSamples=${status.automations.map(
               (item) => `${item.alias} ${item.repository}`
             )}
@@ -1416,7 +1418,7 @@ export class HaConfigAutomationHistory extends LitElement {
         <ha-input-search
           appearance="outlined"
           .value=${this._search}
-          .placeholder=${this._l("search")}
+          .placeholder=${this._l("search", { count: this._rows.length })}
           .patternSamples=${this._rows.map(
             (row) => `${row.alias}: ${row.message}`
           )}

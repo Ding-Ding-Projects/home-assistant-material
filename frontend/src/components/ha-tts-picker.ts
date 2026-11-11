@@ -97,14 +97,13 @@ export class HaTTSPicker extends LitElement {
 
     let value = this.value;
     if (!value && this.required) {
-      value = this._cloudEngineId;
-
-      if (!value) {
-        for (const ttsEngine of this._engines) {
-          if (ttsEngine?.supported_languages?.length !== 0) {
-            value = ttsEngine.engine_id;
-            break;
-          }
+      for (const ttsEngine of this._engines) {
+        if (
+          ttsEngine.engine_id !== this._cloudEngineId &&
+          ttsEngine?.supported_languages?.length !== 0
+        ) {
+          value = ttsEngine.engine_id;
+          break;
         }
       }
     }
@@ -113,6 +112,7 @@ export class HaTTSPicker extends LitElement {
     }
 
     const options: HaSelectOption[] = this._engines
+      .filter((engine) => engine.engine_id !== this._cloudEngineId)
       .filter((engine) => !engine.deprecated || engine.engine_id === value)
       .map((engine) => {
         let label: string;

@@ -2930,6 +2930,10 @@ export class HaRegexWorkbench extends LitElement {
       min-height: 0;
       flex: 1;
     }
+    /* Rows of a scrolling column keep their height instead of being squeezed. */
+    .body > * {
+      flex-shrink: 0;
+    }
     .body.plain {
       flex: none;
     }
@@ -3332,6 +3336,9 @@ export class HaRegexWorkbench extends LitElement {
       background-color: var(--primary-background-color);
       overflow-y: auto;
       box-sizing: border-box;
+    }
+    .sheet > * {
+      flex-shrink: 0;
     }
     .handle {
       align-self: center;

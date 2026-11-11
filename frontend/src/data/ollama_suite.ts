@@ -175,6 +175,20 @@ export const fetchOllamaModelUsers = (
     model,
   });
 
+/**
+ * The users of every model on a server, in one answer. The keys are model
+ * names with an implied `latest` tag made explicit.
+ */
+export const fetchOllamaUsersByModel = (hass: HomeAssistant, entryId: string) =>
+  hass.callWS<{ users_by_model: Record<string, OllamaModelUser[]> }>({
+    type: "ollama_suite/used_by",
+    entry_id: entryId,
+  });
+
+/** The key a model has in {@link fetchOllamaUsersByModel}. */
+export const ollamaModelUserKey = (name: string): string =>
+  name.includes(":") ? name : `${name}:latest`;
+
 /** The same limit the server applies to one test prompt. */
 export const OLLAMA_CHAT_MAX_PROMPT = 4000;
 
@@ -183,6 +197,8 @@ export interface OllamaChatEvent {
   text?: string;
   /** True when the reply was cut at the server's size limit. */
   truncated?: boolean;
+  /** True when the reply ended without any text (a model that only thinks). */
+  empty?: boolean;
   tokens?: number | null;
   /** Only set when the server reported real counts. */
   tokens_per_second?: number | null;

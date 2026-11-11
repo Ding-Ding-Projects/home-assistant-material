@@ -222,24 +222,6 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
             keys="name,language"
             @value-changed=${this._valueChanged}
           ></assist-pipeline-detail-config>
-          ${
-            !(
-              this.cloudStatus?.logged_in &&
-              this.cloudStatus.active_subscription
-            ) &&
-            (data.tts_engine === "cloud" || data.stt_engine === "cloud")
-              ? html`<ha-alert alert-type="warning">
-                  ${this.hass.localize(
-                    "ui.panel.config.voice_assistants.assistants.pipeline.detail.no_cloud_message"
-                  )}
-                  <ha-button size="s" href="/config/cloud" slot="action">
-                    ${this.hass.localize(
-                      "ui.panel.config.voice_assistants.assistants.pipeline.detail.no_cloud_action"
-                    )}
-                  </ha-button>
-                </ha-alert>`
-              : nothing
-          }
           <div class="steps">
             ${
               showWakeWord

@@ -23,6 +23,9 @@ declare global {
 
 const PREFIX = "ui.components.editor_save_bar.";
 
+/** The keyboard is up when the visible height drops by more than this. */
+const KEYBOARD_PX = 150;
+
 /**
  * The bar that stays at the bottom of an editor's scroll area. It shows
  * whether there are unsaved changes (or how many problems must be fixed first)
@@ -60,7 +63,33 @@ export class HaEditorSaveBar extends LitElement {
   /** Replaces the Save label, for an editor with its own wording. */
   @property({ attribute: false }) public saveLabel?: string;
 
+  /**
+   * True while the on-screen keyboard is up. The extra room kept for the phone
+   * bar is dropped then, so the bar rests on the keyboard instead of leaving a
+   * blank strip above it.
+   */
+  @property({ type: Boolean, reflect: true }) public keyboard = false;
+
   private _lang = new LanguageModeController(this);
+
+  public connectedCallback() {
+    super.connectedCallback();
+    window.visualViewport?.addEventListener("resize", this._handleViewport);
+    this._handleViewport();
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    window.visualViewport?.removeEventListener("resize", this._handleViewport);
+  }
+
+  private _handleViewport = () => {
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      return;
+    }
+    this.keyboard = window.innerHeight - viewport.height > KEYBOARD_PX;
+  };
 
   private _text(key: string, values?: Record<string, string | number>) {
     return this._lang.text(
@@ -134,12 +163,20 @@ export class HaEditorSaveBar extends LitElement {
           bottom: 0;
           z-index: 2;
           box-sizing: border-box;
-          padding-bottom: var(--safe-area-inset-bottom, 0px);
+          /* The layout's inset already includes the phone bar, which a bar
+             above the keyboard or above a sheet must not add again. */
+          padding-bottom: var(
+            --ha-editor-save-bar-padding-bottom,
+            var(--safe-area-inset-bottom, 0px)
+          );
           background: var(
             --ha-color-surface-container,
             var(--card-background-color)
           );
           border-top: var(--ha-border-width-sm, 1px) solid var(--divider-color);
+        }
+        :host([keyboard]) {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         .bar {
           display: flex;
@@ -199,6 +236,9 @@ export class HaEditorSaveBar extends LitElement {
         @media (max-width: 480px) {
           .bar {
             padding-inline: var(--ha-space-3);
+          }
+          .hint {
+            display: none;
           }
           .end {
             flex: 1 1 100%;

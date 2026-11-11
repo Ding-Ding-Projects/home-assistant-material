@@ -1,7 +1,7 @@
 import type { Connection } from "home-assistant-js-websocket";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-textarea";
@@ -21,14 +21,21 @@ type ChatState = "idle" | "running" | "done" | "stopped" | "error";
  * The reply is shown as plain text, never as markup.
  */
 @customElement("ha-ollama-chat")
-class HaOllamaChat extends LitElement {
+export class HaOllamaChat extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public entryId?: string;
 
   @property() public model?: string;
 
+  @query("ha-textarea") private _promptField?: HTMLElement;
+
   @state() private _prompt = "";
+
+  /** Puts the cursor in the prompt, for a link that opens the chat. */
+  public focusPrompt(): void {
+    this._promptField?.focus();
+  }
 
   @state() private _reply = "";
 
@@ -37,6 +44,8 @@ class HaOllamaChat extends LitElement {
   @state() private _code?: string;
 
   @state() private _truncated = false;
+
+  @state() private _empty = false;
 
   @state() private _speed?: number | null;
 
@@ -135,6 +144,7 @@ class HaOllamaChat extends LitElement {
     this._reply = "";
     this._code = undefined;
     this._truncated = false;
+    this._empty = false;
     this._speed = undefined;
     this._state = "running";
     this._watchConnection();
@@ -173,6 +183,7 @@ class HaOllamaChat extends LitElement {
     if (event.state === "done") {
       this._state = "done";
       this._truncated = !!event.truncated;
+      this._empty = !!event.empty;
       this._speed = event.tokens_per_second;
     } else {
       this._state = "error";
@@ -191,6 +202,7 @@ class HaOllamaChat extends LitElement {
     this._prompt = "";
     this._code = undefined;
     this._truncated = false;
+    this._empty = false;
     this._speed = undefined;
     this._state = "idle";
   }
@@ -244,6 +256,7 @@ class HaOllamaChat extends LitElement {
           ? html`<div
               class="reply"
               role="region"
+              dir="auto"
               aria-label=${this._l("reply")}
               .textContent=${this._reply}
             ></div>`
@@ -260,6 +273,9 @@ class HaOllamaChat extends LitElement {
         return this._l("stopped");
       case "done": {
         const parts = [this._l("done")];
+        if (this._empty) {
+          parts.push(this._l("empty"));
+        }
         if (this._truncated) {
           parts.push(this._l("truncated"));
         }
@@ -310,8 +326,9 @@ class HaOllamaChat extends LitElement {
         border-radius: var(--ha-border-radius-lg, 12px);
         background: var(--secondary-background-color);
         font: inherit;
-        max-height: 50vh;
+        max-height: 50dvh;
         overflow: auto;
+        unicode-bidi: isolate;
       }
     `,
   ];

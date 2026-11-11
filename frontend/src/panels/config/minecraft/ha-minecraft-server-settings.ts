@@ -27,6 +27,9 @@ import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./ha-minecraft-version-picker";
 
+/** The fields this form draws; a refusal for any other field is shown on its own. */
+const DRAWN_FIELDS = ["name", "port", "memory_mb", "version"];
+
 /** The editable settings of one server, saved through the update command. */
 @customElement("ha-minecraft-server-settings")
 class HaMinecraftServerSettings extends LitElement {
@@ -71,6 +74,25 @@ class HaMinecraftServerSettings extends LitElement {
     return this._draft
       ? minecraftFieldErrors(validateMinecraftDraft(this._draft))
       : {};
+  }
+
+  /** The first refusal for a field this form does not draw, such as the host. */
+  private get _generalError(): string | undefined {
+    const drawn = new Set(DRAWN_FIELDS);
+    return Object.entries(this._serverErrors).find(
+      ([field]) => !drawn.has(field)
+    )?.[1];
+  }
+
+  private _generalErrorText(code: string): string {
+    return (
+      this._l(`op_error.${code}`) ||
+      this._l(`error.${code}`, {
+        min: 1,
+        max: MINECRAFT_LIMITS.nameMax,
+      }) ||
+      this._l("op_error.unknown")
+    );
   }
 
   /** The text for a field: the server's refusal first, then local checks. */
@@ -213,6 +235,13 @@ class HaMinecraftServerSettings extends LitElement {
         this._failure
           ? html`<ha-alert alert-type="error"
               >${this._l(`op_error.${this._failure}`)}</ha-alert
+            >`
+          : nothing
+      }
+      ${
+        this._generalError
+          ? html`<ha-alert alert-type="error"
+              >${this._generalErrorText(this._generalError)}</ha-alert
             >`
           : nothing
       }

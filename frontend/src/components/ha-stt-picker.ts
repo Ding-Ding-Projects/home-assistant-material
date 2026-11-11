@@ -97,14 +97,13 @@ export class HaSTTPicker extends LitElement {
 
     let value = this.value;
     if (!value && this.required) {
-      value = this._cloudEngineId;
-
-      if (!value) {
-        for (const sttEngine of this._engines) {
-          if (sttEngine?.supported_languages?.length !== 0) {
-            value = sttEngine.engine_id;
-            break;
-          }
+      for (const sttEngine of this._engines) {
+        if (
+          sttEngine.engine_id !== this._cloudEngineId &&
+          sttEngine?.supported_languages?.length !== 0
+        ) {
+          value = sttEngine.engine_id;
+          break;
         }
       }
     }
@@ -112,20 +111,24 @@ export class HaSTTPicker extends LitElement {
       value = NONE;
     }
 
-    const options: HaSelectOption[] = this._engines.map((engine) => {
-      let label: string;
-      if (engine.engine_id.includes(".")) {
-        const stateObj = this._states[engine.engine_id];
-        label = stateObj ? this._formatEntityName(stateObj) : engine.engine_id;
-      } else {
-        label = engine.name || engine.engine_id;
-      }
-      return {
-        value: engine.engine_id,
-        label,
-        disabled: engine.supported_languages?.length === 0,
-      };
-    });
+    const options: HaSelectOption[] = this._engines
+      .filter((engine) => engine.engine_id !== this._cloudEngineId)
+      .map((engine) => {
+        let label: string;
+        if (engine.engine_id.includes(".")) {
+          const stateObj = this._states[engine.engine_id];
+          label = stateObj
+            ? this._formatEntityName(stateObj)
+            : engine.engine_id;
+        } else {
+          label = engine.name || engine.engine_id;
+        }
+        return {
+          value: engine.engine_id,
+          label,
+          disabled: engine.supported_languages?.length === 0,
+        };
+      });
 
     if (this.required || value === NONE) {
       options.unshift({

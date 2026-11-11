@@ -12,7 +12,6 @@ import "../../../components/ha-svg-icon";
 import type { BackupContent } from "../../../data/backup";
 import { fetchBackupInfo } from "../../../data/backup";
 import type { CloudStatus } from "../../../data/cloud";
-import { fetchCloudStatus } from "../../../data/cloud";
 import type { HardwareInfo } from "../../../data/hardware";
 import { BOARD_NAMES } from "../../../data/hardware";
 import type {
@@ -272,14 +271,7 @@ class HaConfigSystemNavigation extends LitElement {
     };
   }
 
-  private async _fetchNetworkStatus() {
-    if (isComponentLoaded(this.hass.config, "cloud")) {
-      const cloudStatus = await fetchCloudStatus(this.hass.callWS);
-      if (cloudStatus.logged_in) {
-        this._externalAccess = true;
-        return;
-      }
-    }
+  private _fetchNetworkStatus() {
     this._externalAccess = this.hass.config.external_url != null;
   }
 

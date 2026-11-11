@@ -94,3 +94,9 @@ export const locate = (
   }
   return { line, column: end - lineStart + 1 };
 };
+
+/** Most files that may be chosen together to be packed or turned into a PDF. */
+export const MAX_SET_FILES = 200;
+
+/** Most bytes the files of such a set may add up to. */
+export const MAX_SET_BYTES = 100 * 1024 * 1024;

@@ -1,7 +1,6 @@
 import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
-import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import { isIPAddress } from "../../../common/string/is_ip_address";
 import "../../../components/ha-alert";
@@ -14,7 +13,6 @@ import "../../../components/input/ha-input-copy";
 import type { HaInputCopy } from "../../../components/input/ha-input-copy";
 import "../../../components/item/ha-row-item";
 import type { CloudStatus } from "../../../data/cloud";
-import { fetchCloudStatus } from "../../../data/cloud";
 import { saveCoreConfig } from "../../../data/core";
 import type { HttpConfigWithMeta } from "../../../data/http";
 import { fetchHttpConfig } from "../../../data/http";
@@ -200,28 +198,6 @@ class ConfigUrlForm extends SubscribeMixin(LitElement) {
             </ha-input-copy>
           </div>
           ${
-            hasCloud || !isComponentLoaded(this.hass.config, "cloud")
-              ? nothing
-              : html`
-                  <ha-alert alert-type="info">
-                    ${this.hass.localize(
-                      "ui.panel.config.url.external_get_ha_cloud"
-                    )}
-                    <ha-button
-                      size="s"
-                      href="/config/cloud/register"
-                      slot="action"
-                    >
-                      <span class="no-wrap"
-                        >${this.hass.localize(
-                          "ui.panel.config.cloud.register.start_trial"
-                        )}</span
-                      >
-                    </ha-button>
-                  </ha-alert>
-                `
-          }
-          ${
             !this._showCustomExternalUrl && hasCloud
               ? html`
                   ${
@@ -341,16 +317,7 @@ class ConfigUrlForm extends SubscribeMixin(LitElement) {
   protected override firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
 
-    if (isComponentLoaded(this.hass.config, "cloud")) {
-      fetchCloudStatus(this.hass.callWS).then((cloudStatus) => {
-        this._cloudStatus = cloudStatus;
-        this._showCustomExternalUrl = !(
-          this._cloudStatus.logged_in && !this.hass.config.external_url
-        );
-      });
-    } else {
-      this._cloudStatus = null;
-    }
+    this._cloudStatus = null;
     this._fetchUrls();
     // Best-effort: the placeholder still works without it, just without a port.
     fetchHttpConfig(this.hass).then(

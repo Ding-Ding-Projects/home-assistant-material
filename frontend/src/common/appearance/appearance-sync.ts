@@ -128,6 +128,12 @@ const refreshLocal = () => {
   applying = true;
   try {
     reloadAppearance();
+    // Reading options and accessibility tools wait for the owner check too:
+    // saying the stored value again makes everything that applies them read
+    // it now.
+    for (const key of [READING_STORAGE_KEY, ACCESSIBILITY_STORAGE_KEY]) {
+      getStorage().setValue(key, getStorage().getValue(key));
+    }
   } finally {
     applying = false;
   }

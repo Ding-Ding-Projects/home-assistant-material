@@ -1,5 +1,6 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
+import { syncCacheUsable } from "../instance-sync/sync-owner";
 
 /**
  * Reading options: the typefaces of the interface, the weight of headings,
@@ -283,6 +284,11 @@ export const applyReadingOptions = (options: ReadingOptions) => {
 
 /** The stored choices, as they are now. */
 export const getReadingOptions = (): ReadingOptions => {
+  // A cache that belongs to a recorded account is not applied until that
+  // account is confirmed; until then the defaults hold.
+  if (!syncCacheUsable()) {
+    return normalizeReadingOptions(undefined);
+  }
   // A damaged or blocked store must not stop the page: fall back to defaults.
   try {
     return normalizeReadingOptions(

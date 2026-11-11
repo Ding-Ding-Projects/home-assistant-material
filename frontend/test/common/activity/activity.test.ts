@@ -77,6 +77,20 @@ describe("activity lifecycle", () => {
     expect(store.attentionCount).toBe(0);
   });
 
+  it("ends an activity neutrally, without claiming success or a cancel", () => {
+    const store = new ActivityStore();
+    const id = store.start({ title: "backup" });
+    store.finish(id, "ended", { message: "Ended." });
+    const item = store.get(id);
+    expect(item?.state).toBe("ended");
+    expect(item?.message).toBe("Ended.");
+    expect(item?.finishedAt).toBeDefined();
+    // It is finished, so it no longer asks for attention and cannot change.
+    expect(store.attentionCount).toBe(0);
+    store.finish(id, "failed");
+    expect(store.get(id)?.state).toBe("ended");
+  });
+
   it("tells a subscriber about each change", () => {
     const store = new ActivityStore();
     const seen: number[] = [];

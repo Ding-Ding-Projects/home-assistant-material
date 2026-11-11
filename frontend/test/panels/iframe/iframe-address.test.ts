@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  displayAddress,
+  hasHiddenAddressParts,
   isOwnOrigin,
   resolveAddress,
 } from "../../../src/panels/iframe/iframe-address";
@@ -33,6 +35,33 @@ describe("isOwnOrigin", () => {
   it("rejects an opaque origin and an address that cannot be read", () => {
     expect(isOwnOrigin("data:text/html,hello", BASE)).toBe(false);
     expect(isOwnOrigin("https://", BASE)).toBe(false);
+  });
+});
+
+describe("displayAddress", () => {
+  it("shows origin and path and hides the query and the user info", () => {
+    expect(displayAddress("https://other.example/a/b?token=abc#x", BASE)).toBe(
+      "https://other.example/a/b?…"
+    );
+    expect(displayAddress("https://user:pw@other.example/a", BASE)).toBe(
+      "https://other.example/a"
+    );
+    expect(displayAddress("/local/page", BASE)).toBe(
+      "https://home.example:8123/local/page"
+    );
+  });
+
+  it("never leaks a secret from an address that cannot be read", () => {
+    expect(displayAddress("https://user:pw@/a?token=abc", BASE)).not.toMatch(
+      /pw|abc/
+    );
+    expect(displayAddress("data:text/html,secret", BASE)).toBe("data:…");
+  });
+
+  it("says when something was hidden", () => {
+    expect(hasHiddenAddressParts("https://o.example/a?x=1", BASE)).toBe(true);
+    expect(hasHiddenAddressParts("https://u:p@o.example/a", BASE)).toBe(true);
+    expect(hasHiddenAddressParts("https://o.example/a", BASE)).toBe(false);
   });
 });
 

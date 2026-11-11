@@ -25,6 +25,19 @@ const EXTENSION: Partial<Record<TargetId, string>> = {
   hex: "hex.txt",
   "url-encode": "url.txt",
   "url-decode": "txt",
+  zip: "zip",
+  tar: "tar",
+  "tar-gz": "tar.gz",
+  pdf: "pdf",
+  docx: "docx",
+  "doc-text": "txt",
+  "doc-markdown": "md",
+  wav: "wav",
+  "audio-webm": "webm",
+  "audio-mp4": "m4a",
+  "video-png": "png",
+  "video-jpeg": "jpg",
+  "video-info": "txt",
 };
 
 /** A name safe to save under, without a folder and without odd characters. */
@@ -48,6 +61,10 @@ export const outputFileName = (
   outputIsText = true
 ): string => {
   const base = safeFileName(inputName || "converted");
+  if (target === "gzip") {
+    // A gzip keeps the whole name, so the original can be told afterwards.
+    return `${base}.gz`;
+  }
   const dot = base.lastIndexOf(".");
   const stem = dot > 0 ? base.slice(0, dot) : base;
   const original = dot > 0 ? base.slice(dot + 1) : "";

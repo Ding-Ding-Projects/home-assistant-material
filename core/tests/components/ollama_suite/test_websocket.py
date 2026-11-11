@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from pytest_homeassistant.common import MockConfigEntry
 
+from homeassistant.components.ollama_suite.data import ChatTracker
 from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
 from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant
@@ -453,6 +454,7 @@ async def test_chat_streams_reply_after_the_result(
     assert events[-1] == {
         "state": "done",
         "truncated": False,
+        "empty": False,
         "tokens": 20,
         "tokens_per_second": 10.0,
     }
@@ -475,7 +477,7 @@ async def test_chat_speed_unknown_without_counts(
         {
             "type": "ollama_suite/chat",
             "entry_id": entry.entry_id,
-            "model": "m",
+            "model": "llama3.2:3b",
             "prompt": "hi",
         }
     )
@@ -497,7 +499,7 @@ async def test_chat_cancel_releases_the_slot(
     request = {
         "type": "ollama_suite/chat",
         "entry_id": entry.entry_id,
-        "model": "m",
+        "model": "llama3.2:3b",
         "prompt": "hi",
     }
     await ws.send_json_auto_id(request)
@@ -525,7 +527,7 @@ async def test_chat_refuses_oversize_and_blank_prompts(
             {
                 "type": "ollama_suite/chat",
                 "entry_id": entry.entry_id,
-                "model": "m",
+                "model": "llama3.2:3b",
                 "prompt": prompt,
             }
         )
@@ -546,7 +548,7 @@ async def test_chat_reply_is_bounded(
             {
                 "type": "ollama_suite/chat",
                 "entry_id": entry.entry_id,
-                "model": "m",
+                "model": "llama3.2:3b",
                 "prompt": "hi",
             }
         )
@@ -555,6 +557,98 @@ async def test_chat_reply_is_bounded(
     assert "".join(e["text"] for e in events if e["state"] == "text") == "abcdefgh"
     assert events[-1]["state"] == "done"
     assert events[-1]["truncated"] is True
+
+
+async def test_chat_refuses_a_model_the_server_does_not_list(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A model that is not on the server never reaches the chat call."""
+    client = _client()
+    client.chat = AsyncMock()
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {
+            "type": "ollama_suite/chat",
+            "entry_id": entry.entry_id,
+            "model": "other:1b",
+            "prompt": "hi",
+        }
+    )
+    assert (await ws.receive_json())["error"]["code"] == "not_found"
+    client.chat.assert_not_called()
+
+
+async def test_chat_resend_after_a_finished_task_is_not_busy(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A task that is over but not yet released does not block a new chat."""
+    client = _client()
+    client.chat = AsyncMock(return_value=_chat_stream(["a"], final=_chat_final()))
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    finished = hass.loop.create_future()
+    finished.set_result(None)
+    with patch.object(ChatTracker, "task", return_value=finished):
+        await ws.send_json_auto_id(
+            {
+                "type": "ollama_suite/chat",
+                "entry_id": entry.entry_id,
+                "model": "llama3.2:3b",
+                "prompt": "hi",
+            }
+        )
+        assert (await ws.receive_json())["success"] is True
+        assert (await _collect(ws))[-1]["state"] == "done"
+
+
+async def test_chat_reply_without_text_is_marked_empty(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """A model that only thinks ends with done and the empty flag."""
+    client = _client()
+    client.chat = AsyncMock(return_value=_chat_stream([], final=_chat_final()))
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {
+            "type": "ollama_suite/chat",
+            "entry_id": entry.entry_id,
+            "model": "llama3.2:3b",
+            "prompt": "hi",
+        }
+    )
+    assert (await ws.receive_json())["success"] is True
+    events = await _collect(ws)
+    assert not [e for e in events if e["state"] == "text"]
+    assert events[-1]["state"] == "done"
+    assert events[-1]["empty"] is True
+
+
+async def test_chat_reply_text_has_no_control_or_direction_characters(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """Direction overrides and control characters never reach the reader."""
+    client = _client()
+    client.chat = AsyncMock(
+        return_value=_chat_stream(
+            ["a‮b\x00c", "⁦d\ne\x1b"], final=_chat_final()
+        )
+    )
+    entry = await _loaded_entry(hass, client)
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {
+            "type": "ollama_suite/chat",
+            "entry_id": entry.entry_id,
+            "model": "llama3.2:3b",
+            "prompt": "hi",
+        }
+    )
+    assert (await ws.receive_json())["success"] is True
+    events = await _collect(ws)
+    assert "".join(e["text"] for e in events if e["state"] == "text") == "abcd\ne"
+    assert events[-1]["empty"] is False
 
 
 async def test_chat_error_and_incomplete_are_plain_codes(
@@ -568,7 +662,7 @@ async def test_chat_error_and_incomplete_are_plain_codes(
     request = {
         "type": "ollama_suite/chat",
         "entry_id": entry.entry_id,
-        "model": "m",
+        "model": "llama3.2:3b",
         "prompt": "hi",
     }
     await ws.send_json_auto_id(request)
@@ -595,7 +689,7 @@ async def test_chat_and_used_by_are_admin_only(
         {
             "type": "ollama_suite/chat",
             "entry_id": entry.entry_id,
-            "model": "m",
+            "model": "llama3.2:3b",
             "prompt": "hi",
         }
     )
@@ -639,3 +733,32 @@ async def test_used_by_lists_matching_subentries(
         {"type": "ollama_suite/used_by", "entry_id": "nope", "model": "a:1"}
     )
     assert (await ws.receive_json())["error"]["code"] == "not_found"
+
+
+async def test_used_by_without_a_model_answers_for_the_whole_server(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
+    """One answer maps every model of the server to its users."""
+    entry = await _loaded_entry(hass, _client())
+    for title, model, kind in (
+        ("Assist", "a", "conversation"),
+        ("Tasks", "a:latest", "ai_task_data"),
+        ("Other", "b:1", "conversation"),
+    ):
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                data=MappingProxyType({"model": model}),
+                subentry_type=kind,
+                title=title,
+                unique_id=None,
+            ),
+        )
+    ws = await hass_ws_client(hass)
+    await ws.send_json_auto_id(
+        {"type": "ollama_suite/used_by", "entry_id": entry.entry_id}
+    )
+    by_model = (await ws.receive_json())["result"]["users_by_model"]
+    assert sorted(by_model) == ["a:latest", "b:1"]
+    assert sorted(u["title"] for u in by_model["a:latest"]) == ["Assist", "Tasks"]
+    assert [u["title"] for u in by_model["b:1"]] == ["Other"]

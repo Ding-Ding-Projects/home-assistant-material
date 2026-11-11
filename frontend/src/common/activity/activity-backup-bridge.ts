@@ -30,7 +30,7 @@ const doneLabel = (hass: Pick<HomeAssistant, "localize">, mode: Mode) =>
 // Ends the activity that is being followed without claiming it succeeded.
 const endNeutral = (hass: Pick<HomeAssistant, "localize">): void => {
   if (current && activityStore.get(current.id)?.state === "running") {
-    finishActivity(current.id, "cancelled", {
+    finishActivity(current.id, "ended", {
       message: modeText(hass.localize as any, "ui.activity.backup.ended"),
     });
   }

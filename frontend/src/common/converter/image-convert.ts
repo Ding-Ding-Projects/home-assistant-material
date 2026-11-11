@@ -37,7 +37,7 @@ export type ImageResult =
     }
   | { ok: false; error: ConvertError };
 
-const canvasBlob = async (
+export const canvasBlob = async (
   canvas: HTMLCanvasElement | OffscreenCanvas,
   type: string,
   quality: number | undefined

@@ -90,83 +90,83 @@ class HaConfigUpdates extends LitElement {
     const updates = this.updateEntities;
     const entities = entityRegistryByEntityId(this._entities);
 
+    // Each update is its own small list, so its progress card sits right under
+    // its own row instead of stacking above the whole list.
     return html`
-      ${updates.map(
-        (entity) =>
-          html`<ha-update-progress
-            .stateObj=${entity}
-            class="progress"
-          ></ha-update-progress>`
-      )}
-      <ha-list-base
-        aria-label=${this._localize("ui.panel.config.updates.caption")}
-      >
-        ${updates.map((entity) => {
-          const entityEntry = entities[entity.entity_id];
-          const deviceEntry =
-            entityEntry && entityEntry.device_id
-              ? this._devices[entityEntry.device_id]
-              : undefined;
+      ${updates.map((entity) => {
+        const entityEntry = entities[entity.entity_id];
+        const deviceEntry =
+          entityEntry && entityEntry.device_id
+            ? this._devices[entityEntry.device_id]
+            : undefined;
 
-          const areaName =
-            deviceEntry && deviceEntry.entry_type !== "service"
-              ? getDeviceArea(deviceEntry, this._areas, this._devices)?.name ||
-                this._localize("ui.panel.config.updates.no_area")
-              : undefined;
+        const areaName =
+          deviceEntry && deviceEntry.entry_type !== "service"
+            ? getDeviceArea(deviceEntry, this._areas, this._devices)?.name ||
+              this._localize("ui.panel.config.updates.no_area")
+            : undefined;
 
-          return html`
-            <ha-list-item-button
-              .entity_id=${entity.entity_id}
-              .hasMeta=${!this.narrow}
-              @click=${this._openMoreInfo}
+        return html`
+          <div class="update">
+            <ha-list-base
+              aria-label=${`${this._localize(
+                "ui.panel.config.updates.caption"
+              )}: ${entity.attributes.title || this._formatEntityName(entity)}`}
             >
-              <div slot="start">
-                <state-badge
-                  .title=${
-                    entity.attributes.title || this._formatEntityName(entity)
-                  }
-                  .stateObj=${entity}
-                  class=${ifDefined(
+              <ha-list-item-button
+                .entity_id=${entity.entity_id}
+                .hasMeta=${!this.narrow}
+                @click=${this._openMoreInfo}
+              >
+                <div slot="start">
+                  <state-badge
+                    .title=${
+                      entity.attributes.title || this._formatEntityName(entity)
+                    }
+                    .stateObj=${entity}
+                    class=${ifDefined(
+                      this.narrow && entity.attributes.in_progress
+                        ? "updating"
+                        : undefined
+                    )}
+                  ></state-badge>
+                  ${
                     this.narrow && entity.attributes.in_progress
-                      ? "updating"
-                      : undefined
-                  )}
-                ></state-badge>
+                      ? html`<div class="absolute">
+                          ${this._renderUpdateProgress(entity)}
+                        </div>`
+                      : nothing
+                  }
+                </div>
+                <span slot="headline"
+                  >${
+                    deviceEntry
+                      ? computeDeviceNameDisplay(deviceEntry, this._localize)
+                      : this._formatEntityName(entity)
+                  }</span
+                >
+                <span slot="supporting-text">
+                  ${areaName ? html`${areaName} ⸱ ` : nothing}
+                  ${entity.attributes.title} ${entity.attributes.latest_version}
+                  ${
+                    entity.attributes.skipped_version
+                      ? `(${this._localize("ui.panel.config.updates.skipped")})`
+                      : nothing
+                  }
+                </span>
                 ${
-                  this.narrow && entity.attributes.in_progress
-                    ? html`<div class="absolute">
+                  !this.narrow
+                    ? html`<div slot="end">
                         ${this._renderUpdateProgress(entity)}
                       </div>`
                     : nothing
                 }
-              </div>
-              <span slot="headline"
-                >${
-                  deviceEntry
-                    ? computeDeviceNameDisplay(deviceEntry, this._localize)
-                    : this._formatEntityName(entity)
-                }</span
-              >
-              <span slot="supporting-text">
-                ${areaName ? html`${areaName} ⸱ ` : nothing}
-                ${entity.attributes.title} ${entity.attributes.latest_version}
-                ${
-                  entity.attributes.skipped_version
-                    ? `(${this._localize("ui.panel.config.updates.skipped")})`
-                    : nothing
-                }
-              </span>
-              ${
-                !this.narrow
-                  ? html`<div slot="end">
-                      ${this._renderUpdateProgress(entity)}
-                    </div>`
-                  : nothing
-              }
-            </ha-list-item-button>
-          `;
-        })}
-      </ha-list-base>
+              </ha-list-item-button>
+            </ha-list-base>
+            <ha-update-progress .stateObj=${entity}></ha-update-progress>
+          </div>
+        `;
+      })}
     `;
   }
 

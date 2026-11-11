@@ -111,6 +111,115 @@ export const removeLocalMedia = async (
     media_content_id,
   });
 
+export type MediaFolderErrorCode =
+  "not_found" | "exists" | "invalid_name" | "not_empty" | "not_allowed";
+
+export interface MediaFolderCounts {
+  files: number;
+  folders: number;
+}
+
+export const createLocalMediaFolder = (
+  callWS: HomeAssistant["callWS"],
+  parent_media_content_id: string,
+  name: string
+) =>
+  callWS<{ media_content_id: string }>({
+    type: "media_source/local_source/create_folder",
+    parent_media_content_id,
+    name,
+  });
+
+export const renameLocalMedia = (
+  callWS: HomeAssistant["callWS"],
+  media_content_id: string,
+  new_name: string
+) =>
+  callWS<{ media_content_id: string }>({
+    type: "media_source/local_source/rename",
+    media_content_id,
+    new_name,
+  });
+
+export const moveLocalMedia = (
+  callWS: HomeAssistant["callWS"],
+  media_content_id: string,
+  destination_media_content_id: string
+) =>
+  callWS<{ media_content_id: string }>({
+    type: "media_source/local_source/move",
+    media_content_id,
+    destination_media_content_id,
+  });
+
+export const getLocalMediaFolderCounts = (
+  callWS: HomeAssistant["callWS"],
+  media_content_id: string
+) =>
+  callWS<MediaFolderCounts>({
+    type: "media_source/local_source/folder_info",
+    media_content_id,
+  });
+
+export const removeLocalMediaFolder = (
+  callWS: HomeAssistant["callWS"],
+  media_content_id: string,
+  recursive: boolean
+) =>
+  callWS<MediaFolderCounts>({
+    type: "media_source/local_source/remove_folder",
+    media_content_id,
+    recursive,
+  });
+
+/** The media content ID of a folder without the trailing "/." the root carries. */
+export const normalizeMediaFolderId = (mediaId: string): string =>
+  mediaId.replace(/\/\.?$/, "");
+
+/** True for the list of media directories, where nothing can be created or uploaded. */
+export const isMediaSourceRoot = (mediaId: string): boolean =>
+  /^media-source:\/\/media_source\/?$/.test(mediaId);
+
+export interface MediaBreadcrumb {
+  id: string;
+  name: string;
+}
+
+/**
+ * The folders from the one the dialog opened on down to the open one.
+ * `rootName` names the first entry.
+ */
+export const getMediaBreadcrumbs = (
+  rootId: string,
+  currentId: string,
+  rootName: string
+): MediaBreadcrumb[] => {
+  const root = normalizeMediaFolderId(rootId);
+  const current = normalizeMediaFolderId(currentId);
+  const crumbs: MediaBreadcrumb[] = [{ id: rootId, name: rootName }];
+  if (current === root || !current.startsWith(`${root}/`)) {
+    return crumbs;
+  }
+  let id = root;
+  for (const segment of current.slice(root.length + 1).split("/")) {
+    id = `${id}/${segment}`;
+    crumbs.push({ id, name: segment });
+  }
+  return crumbs;
+};
+
+/** Checks a new file or folder name the way the server does. */
+export const isValidMediaName = (name: string): boolean =>
+  name.length > 0 &&
+  name.length <= 255 &&
+  name === name.trim() &&
+  !name.startsWith(".") &&
+  !name.includes("~") &&
+  !name.includes("..") &&
+  !/[/\\]/.test(name) &&
+  // eslint-disable-next-line no-control-regex
+  !/[\u0000-\u001f\u007f]/.test(name);
+
 export const isStreamingMedia = (url: string): boolean =>
   url.includes("/api/image_proxy_stream") ||
   url.includes("/api/camera_proxy_stream");

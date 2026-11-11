@@ -1339,6 +1339,10 @@ export class HaPageTabs extends LitElement {
       overflow-y: auto;
       min-height: 0;
     }
+    /* Groups of a scrolling column keep their height instead of being squeezed. */
+    .catalog-list > * {
+      flex-shrink: 0;
+    }
     .group-title {
       margin: 0;
       padding: var(--ha-space-1) var(--ha-space-2);

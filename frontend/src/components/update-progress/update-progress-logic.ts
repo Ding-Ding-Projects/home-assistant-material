@@ -56,7 +56,45 @@ export interface UpdateStageInput {
   fromVersion: string | null | undefined;
   /** The wait for the new version to show up has run out. */
   graceExpired: boolean;
+  /** The entity's own state, `off` once it reports no update left. */
+  entityState?: string;
+  /** The websocket went down and came back during this run. */
+  restarted?: boolean;
 }
+
+/**
+ * How long the new version may take to show up once the instance is back and
+ * the entity reports a real state. A Raspberry Pi can take minutes to restart.
+ */
+export const VERSION_CHECK_GRACE_MS = 5 * 60 * 1000;
+
+/** How long an install may stay on "getting ready" before the card says so. */
+export const START_SLOW_MS = 60 * 1000;
+
+/** Entity states that say nothing about the update. */
+const NO_REAL_STATE = ["unavailable", "unknown"];
+
+/**
+ * True while the wait for the new version should be counted down. It runs only
+ * while the socket is up, the entity reports a real state and the instance
+ * itself is running: a restart in progress is not a failed update.
+ */
+export const graceCounts = (input: {
+  disconnected: boolean;
+  entityState: string | undefined;
+  instanceState: string | undefined;
+}): boolean =>
+  !input.disconnected &&
+  !!input.entityState &&
+  !NO_REAL_STATE.includes(input.entityState) &&
+  (input.instanceState === undefined || input.instanceState === "RUNNING");
+
+/** True when an install has stayed on "getting ready" for too long. */
+export const startIsSlow = (
+  stage: UpdateStage,
+  startedAt: number,
+  now: number
+): boolean => stage === "preparing" && now - startedAt >= START_SLOW_MS;
 
 export interface UpdateStageResult {
   stage: UpdateStage;
@@ -79,19 +117,31 @@ export const entityPercent = (
   return Math.min(100, Math.max(0, Math.floor(percentage)));
 };
 
-/** True when the installed version shows that the update took effect. */
+/**
+ * True when the installed version shows that the update took effect. The
+ * named target is the clearest proof. When the installed version moved on but
+ * is not that target (a newer version came out meanwhile, or the entity names
+ * the version differently), it counts once the entity reports no update left
+ * or the instance restarted.
+ */
 export const versionTookEffect = (
   installed: string | null | undefined,
   target: string | null | undefined,
-  from: string | null | undefined
+  from: string | null | undefined,
+  context: { entityState?: string; restarted?: boolean } = {}
 ): boolean => {
   if (!installed) {
     return false;
   }
-  if (target) {
-    return installed === target;
+  if (!target) {
+    return installed !== from;
   }
-  return installed !== from;
+  if (installed === target) {
+    return true;
+  }
+  return (
+    installed !== from && (context.entityState === "off" || !!context.restarted)
+  );
 };
 
 export const deriveUpdateStage = (
@@ -122,7 +172,8 @@ export const deriveUpdateStage = (
     versionTookEffect(
       input.installedVersion,
       input.targetVersion,
-      input.fromVersion
+      input.fromVersion,
+      { entityState: input.entityState, restarted: input.restarted }
     )
   ) {
     return { stage: "done" };

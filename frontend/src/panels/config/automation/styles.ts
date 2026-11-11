@@ -196,10 +196,9 @@ export const manualEditorStyles = css`
   }
 
   /* The save bar follows the last field and sticks to the bottom edge only
-     while that field is further down, so it never covers a field */
-  .content-wrapper ha-editor-save-bar {
-    margin-inline-end: calc(-1 * (var(--sidebar-width) + var(--sidebar-gap)));
-  }
+     while that field is further down, so it never covers a field. It ends at
+     the content column: the fixed sidebar owns the space beside it, and a bar
+     reaching under the sidebar could cover its bottom buttons. */
 
   .content-wrapper {
     padding-right: calc(var(--sidebar-width) + var(--sidebar-gap));
@@ -236,6 +235,9 @@ export const manualEditorStyles = css`
      reach and the sheet does not cover it */
   .has-bottom-sheet ha-editor-save-bar {
     bottom: var(--automation-bottom-sheet-covered-height);
+    /* The sheet sits between the bar and the phone bar, so the bar needs only
+       the real device inset */
+    --ha-editor-save-bar-padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   ha-automation-sidebar {
@@ -301,7 +303,10 @@ export const automationRowsStyles = css`
   ha-automation-condition-row,
   ha-automation-action-row,
   ha-automation-option-row {
-    scroll-margin-bottom: var(--automation-bottom-sheet-height, 0px);
+    scroll-margin-bottom: calc(
+      var(--automation-bottom-sheet-height, 0px) +
+        var(--ha-editor-save-bar-height, 80px)
+    );
   }
   .handle {
     padding: 4px;

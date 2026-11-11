@@ -10,8 +10,6 @@ const translations: Record<string, string> = {
   "ui.panel.config.integrations.caption": "Integrations",
   "ui.panel.config.logs.caption": "Logs",
   "ui.panel.config.backup.caption": "Backups",
-  "ui.panel.config.cloud.account.onboarding.ha_cloud_title":
-    "Home Assistant Cloud",
   "ui.panel.config.lovelace.resources.caption": "Resources",
   "ui.panel.config.apps.caption": "Apps",
 };
@@ -82,9 +80,6 @@ describe("getConfigSubpageTitle", () => {
   });
 
   it("names pages that are routed but not listed", () => {
-    expect(
-      getConfigSubpageTitle(hass, "/config/cloud/login", configSections)
-    ).toBe("Home Assistant Cloud");
     expect(
       getConfigSubpageTitle(hass, "/config/lovelace/resources", configSections)
     ).toBe("Resources");

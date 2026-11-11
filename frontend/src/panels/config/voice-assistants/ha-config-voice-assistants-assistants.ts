@@ -16,9 +16,6 @@ import type { HomeAssistant, Route } from "../../../types";
 import type { AssistPref } from "./assist-pref";
 import "./assist-current-device-pref";
 import "./assist-pref";
-import "./cloud-alexa-pref";
-import "./cloud-discover";
-import "./cloud-google-pref";
 import { voiceAssistantTabs } from "./ha-config-voice-assistants";
 
 /** How many voice devices the overview names before pointing at the list. */
@@ -125,24 +122,6 @@ export class HaConfigVoiceAssistantsAssistants extends LitElement {
               : nothing
           }
           <div class="others">
-            <div class="column">
-              ${
-                this.cloudStatus?.logged_in
-                  ? html`
-                      <cloud-alexa-pref
-                        .hass=${this.hass}
-                        .exposedEntities=${this.exposedEntities}
-                        .cloudStatus=${this.cloudStatus}
-                      ></cloud-alexa-pref>
-                      <cloud-google-pref
-                        .hass=${this.hass}
-                        .exposedEntities=${this.exposedEntities}
-                        .cloudStatus=${this.cloudStatus}
-                      ></cloud-google-pref>
-                    `
-                  : html`<cloud-discover .hass=${this.hass}></cloud-discover>`
-              }
-            </div>
             ${
               voiceDevices.length
                 ? html`<section class="devices">
@@ -235,15 +214,6 @@ export class HaConfigVoiceAssistantsAssistants extends LitElement {
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: var(--ha-space-4);
       align-items: start;
-    }
-    .column {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-4);
-      min-width: 0;
-    }
-    .column > * {
-      display: block;
     }
     .devices {
       box-sizing: border-box;

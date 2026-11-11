@@ -42,8 +42,9 @@ export class HaBlueprintScriptEditor extends HaBlueprintGenericEditor {
 
       <ha-editor-save-bar
         .hass=${this.hass}
-        .dirty=${this._dirtyState?.isDirty ?? false}
+        .dirty=${!this.disabled && (this._dirtyState?.isDirty ?? false)}
         .saving=${this.saving}
+        .disabled=${this.disabled}
         show-shortcut
         @save-bar-save=${this._saveScript}
       ></ha-editor-save-bar>

@@ -1,3 +1,5 @@
+/* eslint-disable no-bitwise -- reads binary headers */
+import { looksLikeTar } from "./tar";
 import { firstInvalidUtf8 } from "./utf8";
 
 /** What a file is, judged from its first bytes and never from its name. */
@@ -12,6 +14,11 @@ export type SniffedKind =
   | "svg"
   | "pdf"
   | "zip"
+  | "docx"
+  | "tar"
+  | "gzip"
+  | "audio"
+  | "video"
   | "text"
   | "binary";
 
@@ -32,6 +39,34 @@ const startsWith = (bytes: Uint8Array, signature: number[], at = 0) =>
 const ascii = (bytes: Uint8Array, from: number, to: number) =>
   String.fromCharCode(...bytes.subarray(from, to));
 
+/** Whether the ASCII text is among the bytes from the given place on. */
+const includesAscii = (bytes: Uint8Array, needle: string, from: number) => {
+  const first = needle.charCodeAt(0);
+  for (let at = Math.max(0, from); at + needle.length <= bytes.length; at++) {
+    if (bytes[at] === first) {
+      let same = true;
+      for (let i = 1; i < needle.length; i++) {
+        if (bytes[at + i] !== needle.charCodeAt(i)) {
+          same = false;
+          break;
+        }
+      }
+      if (same) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const looksLikeMp3 = (bytes: Uint8Array) =>
+  bytes.length > 4 &&
+  bytes[0] === 0xff &&
+  (bytes[1] & 0xe0) === 0xe0 &&
+  ((bytes[1] >> 1) & 3) !== 0 &&
+  ((bytes[1] >> 3) & 3) !== 1 &&
+  bytes[2] >> 4 !== 15;
+
 export const sniffContents = (bytes: Uint8Array): SniffedKind => {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
     return "png";
@@ -41,6 +76,12 @@ export const sniffContents = (bytes: Uint8Array): SniffedKind => {
   }
   if (ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "WEBP") {
     return "webp";
+  }
+  if (ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "WAVE") {
+    return "audio";
+  }
+  if (ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "AVI ") {
+    return "video";
   }
   if (ascii(bytes, 0, 4) === "GIF8") {
     return "gif";
@@ -58,12 +99,39 @@ export const sniffContents = (bytes: Uint8Array): SniffedKind => {
     ) {
       return "heic";
     }
+    // Any other brand is an MP4 family file: audio only for the audio brands.
+    return brand === "M4A " || brand === "M4B " ? "audio" : "video";
+  }
+  if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) {
+    return "video";
+  }
+  if (
+    ascii(bytes, 0, 4) === "OggS" ||
+    ascii(bytes, 0, 4) === "fLaC" ||
+    // ID3 tags carry a version of 2 to 4 and a zero revision; a text that
+    // merely starts with "ID3" does not.
+    (ascii(bytes, 0, 3) === "ID3" &&
+      bytes[3] >= 2 &&
+      bytes[3] <= 4 &&
+      bytes[4] === 0) ||
+    looksLikeMp3(bytes)
+  ) {
+    return "audio";
+  }
+  if (startsWith(bytes, [0x1f, 0x8b, 0x08])) {
+    return "gzip";
   }
   if (ascii(bytes, 0, 5) === "%PDF-") {
     return "pdf";
   }
   if (startsWith(bytes, [0x50, 0x4b, 0x03, 0x04])) {
-    return "zip";
+    // A Word document is a ZIP with a main document part.
+    return includesAscii(bytes, "word/document.xml", bytes.length - 262144)
+      ? "docx"
+      : "zip";
+  }
+  if (looksLikeTar(bytes)) {
+    return "tar";
   }
   const head = bytes.subarray(0, 8192);
   if (head.includes(0)) {

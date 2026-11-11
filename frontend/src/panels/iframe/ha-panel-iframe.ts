@@ -1,6 +1,7 @@
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import {
   mdiAlertCircleOutline,
+  mdiClose,
   mdiContentCopy,
   mdiInformationOutline,
   mdiOpenInNew,
@@ -17,7 +18,13 @@ import "../../layouts/hass-error-screen";
 import "../../layouts/hass-subpage";
 import type { HomeAssistant, PanelInfo } from "../../types";
 import { IFRAME_SANDBOX } from "../../util/iframe";
-import { isOwnOrigin, resolveAddress } from "./iframe-address";
+import { copyToClipboard } from "../../common/util/copy-clipboard";
+import {
+  displayAddress,
+  hasHiddenAddressParts,
+  isOwnOrigin,
+  resolveAddress,
+} from "./iframe-address";
 
 // How long a page may take to report that it loaded before the notice shows
 const LOAD_TIMEOUT_MS = 10000;
@@ -34,6 +41,9 @@ class HaPanelIframe extends LitElement {
   @state() private _reloadKey = 0;
 
   @state() private _notShown = false;
+
+  // The person closed the notice; it stays closed until the next reload
+  @state() private _noticeDismissed = false;
 
   @state() private _copyState?: "copied" | "failed";
 
@@ -54,6 +64,7 @@ class HaPanelIframe extends LitElement {
   protected willUpdate(changed: Map<PropertyKey, unknown>) {
     if (changed.has("panel")) {
       this._notShown = false;
+      this._noticeDismissed = false;
     }
   }
 
@@ -66,38 +77,31 @@ class HaPanelIframe extends LitElement {
   private _armTimer() {
     window.clearTimeout(this._loadTimer);
     this._loadTimer = window.setTimeout(() => {
-      // No answer in time: the page may be refusing to be framed
+      // No answer in time: the page may be refusing to be framed, or slow
       this._notShown = true;
     }, LOAD_TIMEOUT_MS);
   }
 
-  private _loaded(ev: Event) {
+  private _loaded() {
+    // The page answered, so the notice is no longer true. Whether a page of
+    // this instance was refused cannot be told from here: a frame that was
+    // refused, or that redirected elsewhere, has no readable document, and
+    // that is not proof of a refusal.
     window.clearTimeout(this._loadTimer);
     this._notShown = false;
-    const frame = ev.currentTarget as HTMLIFrameElement;
-    if (!this._isOwn) {
-      // A page on another origin cannot be inspected; nothing more can be
-      // told honestly than that it answered
-      return;
-    }
-    // The sandbox allows the same origin, so a page of this instance is
-    // readable. A frame that was refused shows a browser error page that is
-    // not readable.
-    try {
-      if (!frame.contentDocument) {
-        this._notShown = true;
-      }
-    } catch {
-      this._notShown = true;
-    }
   }
 
   private get _isOwn(): boolean {
     return isOwnOrigin(this.panel.config.url, location.href);
   }
 
+  private _dismissNotice() {
+    this._noticeDismissed = true;
+  }
+
   private _reload() {
     this._notShown = false;
+    this._noticeDismissed = false;
     this._reloadKey++;
   }
 
@@ -112,7 +116,8 @@ class HaPanelIframe extends LitElement {
     const url = resolveAddress(this.panel.config.url, location.href);
     window.clearTimeout(this._copyTimer);
     try {
-      await navigator.clipboard.writeText(url?.href ?? this.panel.config.url);
+      // Works on a plain http address too, where navigator.clipboard is absent
+      await copyToClipboard(url?.href ?? this.panel.config.url, this);
       this._copyState = "copied";
     } catch {
       this._copyState = "failed";
@@ -151,9 +156,11 @@ class HaPanelIframe extends LitElement {
     }
 
     const own = this._isOwn;
-    const address =
-      resolveAddress(this.panel.config.url, location.href)?.href ??
-      this.panel.config.url;
+    const address = displayAddress(this.panel.config.url, location.href);
+    const addressMasked = hasHiddenAddressParts(
+      this.panel.config.url,
+      location.href
+    );
 
     return html`
       <hass-subpage
@@ -164,14 +171,21 @@ class HaPanelIframe extends LitElement {
       >
         ${
           own
-            ? html`<ha-button
-                slot="toolbar-icon"
-                appearance="plain"
-                @click=${this._openNewWindow}
-              >
-                <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
-                ${this._text("open_new_window")}
-              </ha-button>`
+            ? this.narrow
+              ? html`<ha-icon-button
+                  slot="toolbar-icon"
+                  .path=${mdiOpenInNew}
+                  .label=${this._text("open_new_window")}
+                  @click=${this._openNewWindow}
+                ></ha-icon-button>`
+              : html`<ha-button
+                  slot="toolbar-icon"
+                  appearance="plain"
+                  @click=${this._openNewWindow}
+                >
+                  <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
+                  ${this._text("open_new_window")}
+                </ha-button>`
             : nothing
         }
         <ha-icon-button
@@ -187,6 +201,13 @@ class HaPanelIframe extends LitElement {
               : html`<div class="address-row">
                   <span class="address-label">${this._text("address")}</span>
                   <code class="address">${address}</code>
+                  ${
+                    addressMasked
+                      ? html`<span class="copy-status"
+                          >${this._text("address_masked")}</span
+                        >`
+                      : nothing
+                  }
                   <ha-icon-button
                     .path=${mdiContentCopy}
                     .label=${this._text("copy_address")}
@@ -206,13 +227,18 @@ class HaPanelIframe extends LitElement {
                 </div>`
           }
           ${
-            this._notShown
+            this._notShown && !this._noticeDismissed
               ? html`<div class="notice warn" role="status">
                   <ha-svg-icon .path=${mdiAlertCircleOutline}></ha-svg-icon>
-                  <span>
+                  <span class="notice-text">
                     ${this._text("not_shown")}
                     ${this._text(own ? "not_shown_open" : "not_shown_outside")}
                   </span>
+                  <ha-icon-button
+                    .path=${mdiClose}
+                    .label=${this._text("dismiss")}
+                    @click=${this._dismissNotice}
+                  ></ha-icon-button>
                 </div>`
               : nothing
           }
@@ -290,6 +316,15 @@ class HaPanelIframe extends LitElement {
     }
     .notice ha-svg-icon {
       flex: 0 0 auto;
+    }
+    .notice-text {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .notice ha-icon-button {
+      flex: 0 0 auto;
+      margin-inline-start: auto;
     }
   `;
 }

@@ -955,13 +955,15 @@
         "done": "已完成。",
         "failed": "失敗。",
         "cancelled": "已取消。",
+        "ended": "已結束。",
         "running": "進行中。"
       },
       "announce": {
         "running": "{title} 開始咗",
         "done": "{title} 完成咗",
         "failed": "{title} 失敗咗",
-        "cancelled": "{title} 已取消"
+        "cancelled": "{title} 已取消",
+        "ended": "{title} 結束咗"
       },
       "recovery": {
         "what_changed": "有咩改變：",

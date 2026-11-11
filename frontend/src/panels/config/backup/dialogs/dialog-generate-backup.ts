@@ -353,22 +353,6 @@ class DialogGenerateBackup
         ></ha-select>
       </ha-row-item>
       ${
-        this._noHaDisabledAgentIds().length
-          ? html`
-              <ha-alert
-                alert-type="info"
-                .title=${this.hass.localize(
-                  "ui.panel.config.backup.dialogs.generate.sync.ha_cloud_alert.title"
-                )}
-              >
-                ${this.hass.localize(
-                  "ui.panel.config.backup.dialogs.generate.sync.ha_cloud_alert.description"
-                )}
-              </ha-alert>
-            `
-          : nothing
-      }
-      ${
         this._needsKeyAgentIds().length
           ? html`
               <ha-alert

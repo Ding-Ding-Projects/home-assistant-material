@@ -24,7 +24,6 @@ import type { VoiceAssistantSetupDialogParams } from "./show-voice-assistant-set
 import "./voice-assistant-setup-step-area";
 import "./voice-assistant-setup-step-change-wake-word";
 import "./voice-assistant-setup-step-check";
-import "./voice-assistant-setup-step-cloud";
 import "./voice-assistant-setup-step-local";
 import "./voice-assistant-setup-step-pipeline";
 import "./voice-assistant-setup-step-success";
@@ -39,7 +38,6 @@ export const enum STEP {
   AREA,
   PIPELINE,
   SUCCESS,
-  CLOUD,
   LOCAL,
   CHANGE_WAKEWORD,
 }
@@ -268,29 +266,25 @@ export class HaVoiceAssistantSetupDialog extends LitElement {
                                 .assistEntityId=${assistSatelliteEntityId}
                                 @language-changed=${this._languageChanged}
                               ></ha-voice-assistant-setup-step-pipeline>`
-                            : this._step === STEP.CLOUD
-                              ? html`<ha-voice-assistant-setup-step-cloud
+                            : this._step === STEP.LOCAL
+                              ? html`<ha-voice-assistant-setup-step-local
                                   .hass=${this.hass}
-                                ></ha-voice-assistant-setup-step-cloud>`
-                              : this._step === STEP.LOCAL
-                                ? html`<ha-voice-assistant-setup-step-local
+                                  .language=${this._language}
+                                  .localOption=${this._localOption}
+                                  .assistConfiguration=${
+                                    this._assistConfiguration
+                                  }
+                                ></ha-voice-assistant-setup-step-local>`
+                              : this._step === STEP.SUCCESS
+                                ? html`<ha-voice-assistant-setup-step-success
                                     .hass=${this.hass}
-                                    .language=${this._language}
-                                    .localOption=${this._localOption}
                                     .assistConfiguration=${
                                       this._assistConfiguration
                                     }
-                                  ></ha-voice-assistant-setup-step-local>`
-                                : this._step === STEP.SUCCESS
-                                  ? html`<ha-voice-assistant-setup-step-success
-                                      .hass=${this.hass}
-                                      .assistConfiguration=${
-                                        this._assistConfiguration
-                                      }
-                                      .assistEntityId=${assistSatelliteEntityId}
-                                      .deviceId=${this._params.deviceId}
-                                    ></ha-voice-assistant-setup-step-success>`
-                                  : nothing
+                                    .assistEntityId=${assistSatelliteEntityId}
+                                    .deviceId=${this._params.deviceId}
+                                  ></ha-voice-assistant-setup-step-success>`
+                                : nothing
           }
         </div>
       </ha-dialog>
@@ -306,8 +300,7 @@ export class HaVoiceAssistantSetupDialog extends LitElement {
 
     this._languages = Object.entries(scores.languages)
       .filter(
-        ([_lang, score]) =>
-          score.cloud > 0 || score.full_local > 0 || score.focused_local > 0
+        ([_lang, score]) => score.full_local > 0 || score.focused_local > 0
       )
       .map(([lang, _score]) => lang);
 

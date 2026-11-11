@@ -39,7 +39,7 @@ import type { HomeAssistant } from "../../../types";
 import { fileDownload } from "../../../util/file_download";
 import { showToast } from "../../../util/toast";
 import type { BundleProblem } from "./support-bundle";
-import { buildSupportBundle } from "./support-bundle";
+import { buildSupportBundle, supportBundleFileName } from "./support-bundle";
 
 /**
  * The support desk as a page. Tickets are made and kept in this browser only
@@ -68,6 +68,8 @@ class HaConfigSupport extends LitElement {
   @state() private _bundle?: string;
 
   @state() private _bundleBusy = false;
+
+  private _bundleDate?: Date;
 
   private _unsubscribe?: () => void;
 
@@ -144,6 +146,7 @@ class HaConfigSupport extends LitElement {
     const tickets = [...this._tickets].reverse();
     return html`<section class="card">
       <h3>${this._l("tickets_title")}</h3>
+      <p class="note">${this._l("tickets_note")}</p>
       ${
         tickets.length
           ? html`<ul class="tickets">
@@ -166,7 +169,6 @@ class HaConfigSupport extends LitElement {
         >
         <ha-button
           appearance="plain"
-          size="small"
           .ticketNumber=${ticket.number}
           .title=${this._l("remove_ticket", { number: ticket.number })}
           @click=${this._remove}
@@ -339,36 +341,41 @@ ${this._bundle}</pre>
 
   private async _makeBundle(): Promise<void> {
     this._bundleBusy = true;
-    let problems: BundleProblem[] = [];
-    let problemsUnavailable = false;
     try {
-      const overview = await fetchProblemLog(this.hass);
-      problems = overview.problems.map((problem) => ({
-        title: problem.title,
-        logger: problem.logger,
-        level: problem.level,
-        version: problem.version,
-        count: problem.count,
-        last_seen: problem.last_seen,
-      }));
-    } catch (_err) {
-      problemsUnavailable = true;
+      let problems: BundleProblem[] = [];
+      let problemsUnavailable = false;
+      try {
+        const overview = await fetchProblemLog(this.hass);
+        problems = overview.problems.map((problem) => ({
+          title: problem.title,
+          logger: problem.logger,
+          level: problem.level,
+          version: problem.version,
+          count: problem.count,
+          last_seen: problem.last_seen,
+        }));
+      } catch (_err) {
+        problemsUnavailable = true;
+      }
+      const config = this.hass.config;
+      const generatedAt = new Date();
+      this._bundle = buildSupportBundle({
+        generatedAt,
+        version: config.version,
+        language: this.hass.language,
+        timeZone: config.time_zone,
+        state: config.state,
+        safeMode: Boolean(config.safe_mode),
+        recoveryMode: Boolean(config.recovery_mode),
+        components: config.components,
+        problems,
+        problemsUnavailable,
+        userAgent: navigator.userAgent,
+      });
+      this._bundleDate = generatedAt;
+    } finally {
+      this._bundleBusy = false;
     }
-    const config = this.hass.config;
-    this._bundle = buildSupportBundle({
-      generatedAt: new Date(),
-      version: config.version,
-      language: this.hass.language,
-      timeZone: config.time_zone,
-      state: config.state,
-      safeMode: Boolean(config.safe_mode),
-      recoveryMode: Boolean(config.recovery_mode),
-      components: config.components,
-      problems,
-      problemsUnavailable,
-      userAgent: navigator.userAgent,
-    });
-    this._bundleBusy = false;
   }
 
   private async _copyBundle(): Promise<void> {
@@ -386,7 +393,7 @@ ${this._bundle}</pre>
     const url = URL.createObjectURL(
       new Blob([this._bundle], { type: "text/plain" })
     );
-    fileDownload(url, "support-bundle.txt");
+    fileDownload(url, supportBundleFileName(this._bundleDate ?? new Date()));
     window.setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
@@ -493,6 +500,10 @@ ${this._bundle}</pre>
       .num {
         flex: 1;
         font-weight: 500;
+      }
+      .head ha-button {
+        min-height: 44px;
+        min-width: 44px;
       }
       .state {
         padding: 0 var(--ha-space-2);

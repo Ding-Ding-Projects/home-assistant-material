@@ -1,7 +1,7 @@
 import { mdiContentCopy } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
@@ -20,6 +20,7 @@ import type {
   MinecraftVersionLists,
 } from "../../../data/minecraft_manager";
 import {
+  canForceDeleteMinecraftServer,
   deleteMinecraftData,
   deleteMinecraftServer,
   fetchMinecraftLogs,
@@ -27,6 +28,7 @@ import {
   isMinecraftFailure,
   MINECRAFT_EULA_URL,
   MINECRAFT_IMAGE,
+  MinecraftPollGuard,
   minecraftJoinAddress,
   runMinecraftAction,
   setMinecraftEula,
@@ -74,6 +76,12 @@ class HaMinecraftServer extends LitElement {
 
   @state() private _confirmName = "";
 
+  @query("pre.log") private _logBox?: HTMLElement;
+
+  private _statusGuard = new MinecraftPollGuard();
+
+  private _logGuard = new MinecraftPollGuard();
+
   private _statusTimer?: number;
 
   private _logTimer?: number;
@@ -116,6 +124,8 @@ class HaMinecraftServer extends LitElement {
     super.disconnectedCallback();
     window.clearInterval(this._statusTimer);
     window.clearInterval(this._logTimer);
+    this._statusGuard.invalidate();
+    this._logGuard.invalidate();
   }
 
   private _shouldPollLogs(): boolean {
@@ -142,8 +152,15 @@ class HaMinecraftServer extends LitElement {
     if (this._busy) {
       return;
     }
+    const ticket = this._statusGuard.begin();
+    if (!ticket) {
+      return;
+    }
     try {
       const result = await fetchMinecraftStatus(this.hass, this.server.id);
+      if (!this._statusGuard.isCurrent(ticket)) {
+        return;
+      }
       if (isMinecraftFailure(result)) {
         this._code = result.code;
         this._status = undefined;
@@ -152,17 +169,29 @@ class HaMinecraftServer extends LitElement {
         this._status = result;
       }
     } catch {
-      this._code = "unknown";
+      if (this._statusGuard.isCurrent(ticket)) {
+        this._code = "unknown";
+      }
+    } finally {
+      this._statusGuard.end(ticket);
     }
   }
 
   private async _refreshLogs(): Promise<void> {
+    const ticket = this._logGuard.begin();
+    if (!ticket) {
+      return;
+    }
     try {
       const result = await fetchMinecraftLogs(
         this.hass,
         this.server.id,
         LOG_LINES
       );
+      if (!this._logGuard.isCurrent(ticket)) {
+        return;
+      }
+      const follow = this._logAtBottom();
       if (isMinecraftFailure(result)) {
         // An absent container has no log; that is not an error to show.
         this._logCode =
@@ -172,9 +201,28 @@ class HaMinecraftServer extends LitElement {
         this._logCode = undefined;
         this._lines = result.lines;
       }
+      if (follow) {
+        await this.updateComplete;
+        if (this._logBox) {
+          this._logBox.scrollTop = this._logBox.scrollHeight;
+        }
+      }
     } catch {
-      this._logCode = "unknown";
+      if (this._logGuard.isCurrent(ticket)) {
+        this._logCode = "unknown";
+      }
+    } finally {
+      this._logGuard.end(ticket);
     }
+  }
+
+  /** Whether the log box is scrolled to its end, or not shown yet. */
+  private _logAtBottom(): boolean {
+    const box = this._logBox;
+    if (!box) {
+      return true;
+    }
+    return box.scrollHeight - box.scrollTop - box.clientHeight <= 24;
   }
 
   private async _act(ev: Event): Promise<void> {
@@ -192,6 +240,20 @@ class HaMinecraftServer extends LitElement {
         return;
       }
     }
+    if (action === "stop" || action === "restart") {
+      const confirmed = await showConfirmationDialog(this, {
+        title: this._l(`detail.${action}_title`),
+        text: this._l(`detail.${action}_text`, { name: this.server.name }),
+        confirmText: this._l(`detail.${action}`),
+        dismissText: this._l("cancel"),
+        destructive: true,
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+    this._statusGuard.invalidate();
+    this._logGuard.invalidate();
     this._busy = action;
     this._code = undefined;
     try {
@@ -209,6 +271,8 @@ class HaMinecraftServer extends LitElement {
       this._code = "unknown";
     } finally {
       this._busy = undefined;
+      this._statusGuard.invalidate();
+      this._logGuard.invalidate();
     }
     await this._refreshStatus();
     if (this._tab === "logs") {
@@ -227,6 +291,7 @@ class HaMinecraftServer extends LitElement {
       this.server = result.server;
       fireEvent(this, "minecraft-server-changed");
     } catch {
+      (ev.target as HTMLInputElement).checked = !accepted;
       this._code = "unknown";
     }
   }
@@ -260,6 +325,7 @@ class HaMinecraftServer extends LitElement {
   }
 
   private async _deleteData(): Promise<void> {
+    this._statusGuard.invalidate();
     this._busy = "data";
     this._code = undefined;
     try {
@@ -278,6 +344,7 @@ class HaMinecraftServer extends LitElement {
       this._code = "unknown";
     } finally {
       this._busy = undefined;
+      this._statusGuard.invalidate();
     }
     await this._refreshStatus();
   }
@@ -299,7 +366,10 @@ class HaMinecraftServer extends LitElement {
     this._code = undefined;
     try {
       let result = await deleteMinecraftServer(this.hass, this.server.id);
-      if (isMinecraftFailure(result) && result.code !== "container_exists") {
+      if (
+        isMinecraftFailure(result) &&
+        canForceDeleteMinecraftServer(result.code)
+      ) {
         const anyway = await showConfirmationDialog(this, {
           title: this._l("delete_unverified_title"),
           text: this._l("delete_unverified_text", { name }),
@@ -694,12 +764,19 @@ ${
         flex: 1;
       }
       ha-tab-group {
+        display: block;
         min-width: 0;
+        max-width: 100%;
         border-bottom: 1px solid var(--divider-color);
       }
       ha-tab-group-tab::part(base) {
         min-height: 44px;
         padding: 2px 16px;
+      }
+      @media (max-width: 400px) {
+        ha-tab-group-tab::part(base) {
+          padding: 2px 12px;
+        }
       }
       .tag {
         padding: var(--ha-space-1) var(--ha-space-3);

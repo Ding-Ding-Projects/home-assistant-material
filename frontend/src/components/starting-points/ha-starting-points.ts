@@ -41,10 +41,14 @@ export class HaStartingPoints extends LitElement {
     }
     return html`
       ${this.heading ? html`<p class="heading">${this.heading}</p>` : nothing}
-      <ul class="cards" aria-label=${this.label ?? this.heading ?? ""}>
+      <div
+        class="cards"
+        role="list"
+        aria-label=${this.label ?? this.heading ?? ""}
+      >
         ${this.items.map(
           (item) =>
-            html`<li>
+            html`<div role="listitem">
               <button
                 type="button"
                 class="card"
@@ -59,9 +63,9 @@ export class HaStartingPoints extends LitElement {
                   <span class="description">${item.description}</span>
                 </span>
               </button>
-            </li>`
+            </div>`
         )}
-      </ul>
+      </div>
     `;
   }
 
@@ -83,7 +87,6 @@ export class HaStartingPoints extends LitElement {
       line-height: var(--ha-line-height-normal);
     }
     .cards {
-      list-style: none;
       margin: 0;
       padding: 0;
       display: grid;

@@ -1,6 +1,7 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { getStorage } from "../decorators/storage";
 import { isNotShown } from "../dom/is-not-shown";
+import { syncCacheUsable } from "../instance-sync/sync-owner";
 import { localVoicesForTag } from "../narration/narration";
 
 /**
@@ -51,10 +52,14 @@ export const normalizeAccessibilitySettings = (
 
 /** The stored choices, as they are now. */
 export const getAccessibilitySettings = (): AccessibilitySettings =>
+  // A cache that belongs to a recorded account is not applied until that
+  // account is confirmed; until then the defaults hold.
   normalizeAccessibilitySettings(
-    getStorage().getValue<Partial<AccessibilitySettings>>(
-      ACCESSIBILITY_STORAGE_KEY
-    )
+    syncCacheUsable()
+      ? getStorage().getValue<Partial<AccessibilitySettings>>(
+          ACCESSIBILITY_STORAGE_KEY
+        )
+      : undefined
   );
 
 /**

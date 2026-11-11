@@ -4,7 +4,6 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../common/dom/fire_event";
-import { computeDomain } from "../../../common/entity/compute_domain";
 import "../../../components/ha-button";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-form/ha-form";
@@ -41,8 +40,6 @@ export class DialogVoiceAssistantPipelineDetail extends DirtyStateProviderMixin<
 
   @state() private _hideWakeWord = false;
 
-  @state() private _cloudActive?: boolean;
-
   @state() private _error?: Record<string, string>;
 
   @state() private _submitting = false;
@@ -53,7 +50,6 @@ export class DialogVoiceAssistantPipelineDetail extends DirtyStateProviderMixin<
     this._params = params;
     this._open = true;
     this._error = undefined;
-    this._cloudActive = this._params.cloudActiveSubscription;
 
     if (
       this._params.pipeline &&
@@ -70,26 +66,6 @@ export class DialogVoiceAssistantPipelineDetail extends DirtyStateProviderMixin<
 
     this._hideWakeWord = true;
 
-    let sstDefault: string | undefined;
-    let ttsDefault: string | undefined;
-    if (this._cloudActive) {
-      for (const entity of Object.values(this.hass.entities)) {
-        if (entity.platform !== "cloud") {
-          continue;
-        }
-        if (computeDomain(entity.entity_id) === "stt") {
-          sstDefault = entity.entity_id;
-          if (ttsDefault) {
-            break;
-          }
-        } else if (computeDomain(entity.entity_id) === "tts") {
-          ttsDefault = entity.entity_id;
-          if (sstDefault) {
-            break;
-          }
-        }
-      }
-    }
     this._data = {
       ...(this._params.pipeline || {}),
       language:
@@ -98,8 +74,8 @@ export class DialogVoiceAssistantPipelineDetail extends DirtyStateProviderMixin<
           0,
           2
         ),
-      stt_engine: this._params.pipeline?.stt_engine || sstDefault,
-      tts_engine: this._params.pipeline?.tts_engine || ttsDefault,
+      stt_engine: this._params.pipeline?.stt_engine,
+      tts_engine: this._params.pipeline?.tts_engine,
     };
     this._initDirtyTracking({ type: "deep" }, this._data);
   }
@@ -193,24 +169,6 @@ export class DialogVoiceAssistantPipelineDetail extends DirtyStateProviderMixin<
             keys="conversation_engine,conversation_language,prefer_local_intents"
             @value-changed=${this._valueChanged}
           ></assist-pipeline-detail-conversation>
-          ${
-            !this._cloudActive &&
-            (this._data.tts_engine === "cloud" ||
-              this._data.stt_engine === "cloud")
-              ? html`
-                  <ha-alert alert-type="warning">
-                    ${this.hass.localize(
-                      "ui.panel.config.voice_assistants.assistants.pipeline.detail.no_cloud_message"
-                    )}
-                    <ha-button size="s" href="/config/cloud" slot="action">
-                      ${this.hass.localize(
-                        "ui.panel.config.voice_assistants.assistants.pipeline.detail.no_cloud_action"
-                      )}
-                    </ha-button>
-                  </ha-alert>
-                `
-              : nothing
-          }
           <assist-pipeline-detail-stt
             .hass=${this.hass}
             .data=${this._data}

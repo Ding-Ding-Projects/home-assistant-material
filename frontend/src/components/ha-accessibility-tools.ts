@@ -178,25 +178,27 @@ export class HaAccessibilityTools extends LitElement {
               >${localize("ui.accessibility_tools.text_size")}</span
             >
           </span>
-          <button
-            class="round"
-            aria-label=${localize("ui.accessibility_tools.text_smaller")}
-            ?disabled=${stepIndex <= 0}
-            @click=${this._textSmaller}
-          >
-            <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
-          </button>
-          <span class="value" role="status" aria-live="polite"
-            >${Math.round(settings.textScale * 100)}%</span
-          >
-          <button
-            class="round"
-            aria-label=${localize("ui.accessibility_tools.text_larger")}
-            ?disabled=${stepIndex >= TEXT_SCALE_STEPS.length - 1}
-            @click=${this._textLarger}
-          >
-            <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
-          </button>
+          <span class="stepper">
+            <button
+              class="round"
+              aria-label=${localize("ui.accessibility_tools.text_smaller")}
+              ?disabled=${stepIndex <= 0}
+              @click=${this._textSmaller}
+            >
+              <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
+            </button>
+            <span class="value" role="status" aria-live="polite"
+              >${Math.round(settings.textScale * 100)}%</span
+            >
+            <button
+              class="round"
+              aria-label=${localize("ui.accessibility_tools.text_larger")}
+              ?disabled=${stepIndex >= TEXT_SCALE_STEPS.length - 1}
+              @click=${this._textLarger}
+            >
+              <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+            </button>
+          </span>
         </div>
 
         <div class="row">
@@ -686,6 +688,13 @@ export class HaAccessibilityTools extends LitElement {
     .note {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
+    }
+    /* The smaller, value and larger controls stay together on one line. */
+    .stepper {
+      display: flex;
+      align-items: center;
+      flex: none;
+      gap: var(--ha-space-2);
     }
     .value {
       min-width: var(--ha-space-14);

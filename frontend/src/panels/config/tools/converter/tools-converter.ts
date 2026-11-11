@@ -19,6 +19,16 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import type { ArchiveEntry } from "../../../../common/converter/archive-types";
+import { baseName } from "../../../../common/converter/archive-types";
+import { SAMPLE_RATES } from "../../../../common/converter/audio";
+import type { Capabilities } from "../../../../common/converter/capabilities";
+import {
+  categoryStatus,
+  detectCapabilities,
+  NOT_OFFERED,
+  targetAvailable,
+} from "../../../../common/converter/capabilities";
 import { searchMatcher } from "../../../../common/regex/filter";
 import type {
   DataFormat,
@@ -39,8 +49,12 @@ import type {
 import {
   CATEGORIES,
   categoryOf,
+  isArchiveTarget,
+  isAudioTarget,
   isDataTarget,
+  isDocumentTarget,
   isImageTarget,
+  isVideoTarget,
   targetsFor,
 } from "../../../../common/converter/formats";
 import type { HistoryEntry } from "../../../../common/converter/history";
@@ -52,14 +66,27 @@ import {
   fitSize,
   readImageSize,
 } from "../../../../common/converter/image-size";
-import { outputFileName } from "../../../../common/converter/output-name";
+import {
+  outputFileName,
+  safeFileName,
+} from "../../../../common/converter/output-name";
+import type { ExtraOptions, NamedFile } from "../../../../common/converter/run";
+import {
+  allImages,
+  DEFAULT_EXTRA_OPTIONS,
+  runExtra,
+} from "../../../../common/converter/run";
 import type { StructuredOptions } from "../../../../common/converter/structured";
 import { convertStructured } from "../../../../common/converter/structured";
 import type {
   ConvertError,
   ConvertNote,
 } from "../../../../common/converter/types";
-import { MAX_BYTES } from "../../../../common/converter/types";
+import {
+  MAX_BYTES,
+  MAX_SET_BYTES,
+  MAX_SET_FILES,
+} from "../../../../common/converter/types";
 import {
   decodeUtf8Strict,
   encodeUtf8,
@@ -87,6 +114,16 @@ const CATEGORY_ICON: Record<CategoryId, string> = {
 
 const DATA_FORMATS: DataFormat[] = ["json", "yaml", "csv", "tsv", "markdown"];
 
+/** Most files listed in full after opening an archive. */
+const SHOWN_FILES = 300;
+
+/** Conversions that run only when Convert is pressed, not as options change. */
+const isExtraTarget = (target: TargetId): boolean =>
+  isArchiveTarget(target) ||
+  isAudioTarget(target) ||
+  isVideoTarget(target) ||
+  isDocumentTarget(target);
+
 interface Output {
   /** What is shown: the text, or a picture. */
   text?: string;
@@ -101,14 +138,21 @@ interface Output {
   height?: number;
   isText: boolean;
   truncated: boolean;
+  /** Size of the result; for a list of files, all of them added up. */
+  outputBytes: number;
+  /** The files an archive held, when the result is a list of them. */
+  files?: ArchiveEntry[];
+  folders?: number;
 }
 
 const formatKey = (target: TargetId) => target.replace(/-/g, "_");
 
 /**
- * File converter: pictures between PNG, JPEG and WebP, structured text
- * between JSON, YAML, CSV, TSV and Markdown tables, and text encodings.
- * Everything runs in this browser; nothing is uploaded or fetched.
+ * File converter: pictures, structured text, text encodings, archives (ZIP,
+ * TAR, GZIP), PDF and Word documents, sound, and pictures taken from a video.
+ * Everything runs in this browser; nothing is uploaded or fetched. What a
+ * format can do depends on the browser for sound and video, and the page
+ * lists a format only when it works on this device.
  */
 @customElement("tools-converter")
 class ToolsConverter extends LitElement {
@@ -161,6 +205,23 @@ class ToolsConverter extends LitElement {
 
   @state() private _dragging = false;
 
+  /** Several files chosen together, for packing into an archive or a PDF. */
+  @state() private _files: NamedFile[] = [];
+
+  @state() private _docMode: ExtraOptions["docMode"] =
+    DEFAULT_EXTRA_OPTIONS.docMode;
+
+  @state() private _paper: ExtraOptions["paper"] = DEFAULT_EXTRA_OPTIONS.paper;
+
+  @state() private _audioRate = DEFAULT_EXTRA_OPTIONS.audioRate;
+
+  @state() private _audioChannels: 1 | 2 = DEFAULT_EXTRA_OPTIONS.audioChannels;
+
+  @state() private _framePosition = DEFAULT_EXTRA_OPTIONS.framePosition;
+
+  /** What this device can do; sound and video differ by browser. */
+  private _caps: Capabilities = detectCapabilities();
+
   @query("#file") private _fileInput?: HTMLInputElement;
 
   private _run = 0;
@@ -207,13 +268,30 @@ class ToolsConverter extends LitElement {
 
   /** What the input is, as far as the page goes. */
   private get _inputKind(): InputKind | undefined {
+    if (this._files.length) {
+      return allImages(this._files) ? "image-set" : "set";
+    }
     if (this._fileBytes) {
-      if (IMAGE_KINDS.includes(this._sniffed)) {
+      const kind = this._sniffed;
+      if (IMAGE_KINDS.includes(kind)) {
         return "image";
       }
-      return this._sniffed === "text" ? "text" : "binary";
+      if (kind === "zip" || kind === "tar" || kind === "gzip") {
+        return "archive";
+      }
+      if (kind === "docx" || kind === "audio" || kind === "video") {
+        return kind;
+      }
+      return kind === "text" ? "text" : "binary";
     }
     return this._text ? "text" : undefined;
+  }
+
+  /** The targets of an input that this device can write. */
+  private _offered(kind: InputKind): TargetId[] {
+    return targetsFor(kind).filter((target) =>
+      targetAvailable(target, this._caps)
+    );
   }
 
   private get _inputBytes(): Uint8Array | undefined {
@@ -224,7 +302,31 @@ class ToolsConverter extends LitElement {
   }
 
   private get _inputName(): string {
+    if (this._files.length) {
+      return this._inputKind === "image-set" ? "images" : "files";
+    }
     return this._fileName;
+  }
+
+  private get _setBytes(): number {
+    return this._files.reduce((sum, file) => sum + file.bytes.length, 0);
+  }
+
+  private _iconFor(kind: InputKind | undefined): string {
+    switch (kind) {
+      case "image":
+      case "image-set":
+        return mdiFileImage;
+      case "audio":
+        return mdiMusicNote;
+      case "video":
+        return mdiVideo;
+      case "archive":
+      case "set":
+        return mdiFolderZip;
+      default:
+        return mdiFileDocument;
+    }
   }
 
   protected render(): TemplateResult {
@@ -251,6 +353,42 @@ class ToolsConverter extends LitElement {
   // The file, or the text to be converted.
   private _renderSource(): TemplateResult {
     const bytes = this._fileBytes;
+    if (this._files.length) {
+      return html`
+        <section class="card source">
+          <div class="source-icon">
+            <ha-svg-icon .path=${this._iconFor(this._inputKind)}></ha-svg-icon>
+          </div>
+          <div class="source-text">
+            <strong class="source-name">
+              ${this._l("files_chosen", {
+                count: this._files.length,
+                size: this._size(this._setBytes),
+              })}
+            </strong>
+            <span class="source-names">
+              ${this._files
+                .slice(0, 5)
+                .map((file) => file.name)
+                .join(", ")}${this._files.length > 5 ? "…" : ""}
+            </span>
+          </div>
+          <ha-button appearance="filled" @click=${this._chooseFile}>
+            ${this._l("change_file")}
+          </ha-button>
+          <ha-button appearance="plain" @click=${this._clearFile}>
+            ${this._l("remove_file")}
+          </ha-button>
+          <input
+            id="file"
+            type="file"
+            multiple
+            hidden
+            @change=${this._fileChosen}
+          />
+        </section>
+      `;
+    }
     if (bytes) {
       const kind = this._sniffed;
       const size = IMAGE_KINDS.includes(kind)
@@ -267,9 +405,7 @@ class ToolsConverter extends LitElement {
       return html`
         <section class="card source">
           <div class="source-icon">
-            <ha-svg-icon
-              .path=${IMAGE_KINDS.includes(kind) ? mdiFileImage : mdiFileDocument}
-            ></ha-svg-icon>
+            <ha-svg-icon .path=${this._iconFor(this._inputKind)}></ha-svg-icon>
           </div>
           <div class="source-text">
             <strong class="source-name">${this._fileName}</strong>
@@ -286,7 +422,20 @@ class ToolsConverter extends LitElement {
           <ha-button appearance="plain" @click=${this._clearFile}>
             ${this._l("remove_file")}
           </ha-button>
-          <input id="file" type="file" hidden @change=${this._fileChosen} />
+          <input
+            id="file"
+            type="file"
+            multiple
+            hidden
+            @change=${this._fileChosen}
+          />
+          ${
+            kind === "pdf"
+              ? html`<p class="note source-note">
+                  ${this._l("pdf_input_note")}
+                </p>`
+              : nothing
+          }
         </section>
       `;
     }
@@ -298,7 +447,13 @@ class ToolsConverter extends LitElement {
           <ha-button appearance="filled" @click=${this._chooseFile}>
             ${this._l("choose_file")}
           </ha-button>
-          <input id="file" type="file" hidden @change=${this._fileChosen} />
+          <input
+            id="file"
+            type="file"
+            multiple
+            hidden
+            @change=${this._fileChosen}
+          />
         </div>
         <label class="field">
           <span>${this._l("paste_label")}</span>
@@ -320,7 +475,7 @@ class ToolsConverter extends LitElement {
     if (!kind) {
       return nothing;
     }
-    const targets = targetsFor(kind);
+    const targets = this._offered(kind);
     return html`
       <section class="block">
         <h2 id="targets-label">${this._l("convert_to")}</h2>
@@ -491,6 +646,15 @@ class ToolsConverter extends LitElement {
         </section>
       `;
     }
+    if (isDocumentTarget(target) || isArchiveTarget(target)) {
+      return this._renderDocumentOptions(target);
+    }
+    if (isAudioTarget(target)) {
+      return this._renderAudioOptions(target);
+    }
+    if (isVideoTarget(target)) {
+      return this._renderVideoOptions(target);
+    }
     if (target === "base64") {
       return html`<section class="block options">
         <div class="switches full">
@@ -508,6 +672,147 @@ class ToolsConverter extends LitElement {
     return nothing;
   }
 
+  private _renderDocumentOptions(
+    target: TargetId
+  ): TemplateResult | typeof nothing {
+    if (target === "pdf" || target === "docx") {
+      const fromText = this._inputKind === "text";
+      return html`
+        <section class="block options">
+          ${
+            fromText
+              ? html`<label class="field">
+                  <span>${this._l("document_from")}</span>
+                  <select
+                    .value=${this._docMode}
+                    @change=${this._docModeChanged}
+                  >
+                    <option value="auto">
+                      ${this._l("document_from_auto")}
+                    </option>
+                    <option value="plain">
+                      ${this._l("document_from_plain")}
+                    </option>
+                    <option value="markdown">
+                      ${this._l("document_from_markdown")}
+                    </option>
+                  </select>
+                </label>`
+              : nothing
+          }
+          <label class="field">
+            <span>${this._l("paper")}</span>
+            <select .value=${this._paper} @change=${this._paperChanged}>
+              <option value="a4">${this._l("paper_a4")}</option>
+              <option value="letter">${this._l("paper_letter")}</option>
+            </select>
+          </label>
+          <p class="note full">
+            ${
+              target === "docx"
+                ? this._l("docx_note")
+                : fromText
+                  ? this._l("pdf_note_text")
+                  : this._l("pdf_note_images")
+            }
+          </p>
+        </section>
+      `;
+    }
+    if (target === "doc-text" || target === "doc-markdown") {
+      return html`<section class="block options">
+        <p class="note full">${this._l("docx_read_note")}</p>
+      </section>`;
+    }
+    return html`<section class="block options">
+      <p class="note full">${this._l("archive_safety")}</p>
+    </section>`;
+  }
+
+  private _renderAudioOptions(target: TargetId): TemplateResult {
+    return html`
+      <section class="block options">
+        <label class="field">
+          <span>${this._l("audio_rate")}</span>
+          <select
+            .value=${String(this._audioRate)}
+            @change=${this._audioRateChanged}
+          >
+            ${SAMPLE_RATES.map(
+              (rate) =>
+                html`<option value=${String(rate)}>
+                  ${this._l("audio_rate_option", { rate })}
+                </option>`
+            )}
+          </select>
+        </label>
+        <label class="field">
+          <span>${this._l("audio_channels")}</span>
+          <select
+            .value=${String(this._audioChannels)}
+            @change=${this._audioChannelsChanged}
+          >
+            <option value="2">${this._l("audio_stereo")}</option>
+            <option value="1">${this._l("audio_mono")}</option>
+          </select>
+        </label>
+        <p class="note full">
+          ${
+            target === "wav"
+              ? this._l("audio_note_wav")
+              : this._l("audio_note_realtime")
+          }
+        </p>
+      </section>
+    `;
+  }
+
+  private _renderVideoOptions(target: TargetId): TemplateResult {
+    if (target === "video-info") {
+      return html`<section class="block options">
+        <p class="note full">${this._l("video_note")}</p>
+      </section>`;
+    }
+    const png = target === "video-png";
+    return html`
+      <section class="block options">
+        <label class="field slider">
+          <span class="slider-head">
+            <span>${this._l("frame_position")}</span>
+            <output
+              >${this._l("percent_value", { percent: this._framePosition })}</output
+            >
+          </span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            .value=${String(this._framePosition)}
+            @input=${this._framePositionChanged}
+          />
+        </label>
+        ${
+          png
+            ? nothing
+            : html`<label class="field slider">
+                <span class="slider-head">
+                  <span>${this._l("quality")}</span>
+                  <output>${this._quality}</output>
+                </span>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  .value=${String(this._quality)}
+                  @input=${this._qualityChanged}
+                />
+              </label>`
+        }
+        <p class="note full">${this._l("video_note")}</p>
+      </section>
+    `;
+  }
+
   private _renderAction(): TemplateResult | typeof nothing {
     if (!this._target || !this._inputKind) {
       return nothing;
@@ -515,6 +820,13 @@ class ToolsConverter extends LitElement {
     return html`
       <section class="action">
         <p class="note">${this._l("privacy")}</p>
+        ${
+          this._busy && isExtraTarget(this._target)
+            ? html`<p class="note working" role="status">
+                ${this._l("working")}
+              </p>`
+            : nothing
+        }
         <ha-button
           appearance="filled"
           ?disabled=${this._busy}
@@ -542,10 +854,13 @@ class ToolsConverter extends LitElement {
         values[key] = value;
       }
     }
-    return this._l(`error_${error.code}`, {
-      limit: this._size(MAX_BYTES),
-      ...values,
-    });
+    const limit =
+      error.code === "set_too_large"
+        ? this._size(MAX_SET_BYTES)
+        : error.code === "too_many_files"
+          ? MAX_SET_FILES
+          : this._size(MAX_BYTES);
+    return this._l(`error_${error.code}`, { limit, ...values });
   }
 
   private _renderError(): TemplateResult | typeof nothing {
@@ -578,7 +893,7 @@ class ToolsConverter extends LitElement {
         <header>
           <h2>${this._l("result")}</h2>
           ${
-            out.isText
+            out.isText && !out.files
               ? html`<ha-button appearance="plain" @click=${this._copy}>
                   <ha-svg-icon
                     slot="start"
@@ -588,34 +903,49 @@ class ToolsConverter extends LitElement {
                 </ha-button>`
               : nothing
           }
-          <ha-button appearance="plain" @click=${this._download}>
-            <ha-svg-icon slot="start" .path=${mdiDownload}></ha-svg-icon>
-            ${this._l("download")}
-          </ha-button>
+          ${
+            out.files
+              ? nothing
+              : html`<ha-button appearance="plain" @click=${this._download}>
+                  <ha-svg-icon slot="start" .path=${mdiDownload}></ha-svg-icon>
+                  ${this._l("download")}
+                </ha-button>`
+          }
         </header>
         <p class="sizes" role="status">
-          ${this._l("sizes", {
-            before: this._size(out.inputBytes),
-            after: this._size(out.blob.size),
-          })}
+          ${
+            out.files
+              ? this._l("files_summary", {
+                  count: out.files.length,
+                  before: this._size(out.inputBytes),
+                  after: this._size(out.outputBytes),
+                })
+              : this._l("sizes", {
+                  before: this._size(out.inputBytes),
+                  after: this._size(out.outputBytes),
+                })
+          }
           ${
             out.width
               ? html` ${this._l("dimensions", { width: out.width, height: out.height ?? 0 })}`
               : nothing
           }
         </p>
+        ${out.files ? this._renderFiles(out) : nothing}
         ${
-          out.imageUrl
-            ? html`<img
-                class="preview"
-                src=${out.imageUrl}
-                alt=${this._l("preview_alt", { name: out.name })}
-              />`
-            : html`<pre
-                tabindex="0"
-                aria-label=${this._l("result")}
-                .textContent=${out.text ?? ""}
-              ></pre>`
+          out.files
+            ? nothing
+            : out.imageUrl
+              ? html`<img
+                  class="preview"
+                  src=${out.imageUrl}
+                  alt=${this._l("preview_alt", { name: out.name })}
+                />`
+              : html`<pre
+                  tabindex="0"
+                  aria-label=${this._l("result")}
+                  .textContent=${out.text ?? ""}
+                ></pre>`
         }
         ${
           out.truncated
@@ -639,8 +969,57 @@ class ToolsConverter extends LitElement {
               </div>`
             : nothing
         }
-        <p class="note">${this._l("file_name", { name: out.name })}</p>
+        ${
+          out.files
+            ? nothing
+            : html`<p class="note">
+                ${this._l("file_name", { name: out.name })}
+              </p>`
+        }
       </section>
+    `;
+  }
+
+  private _renderFiles(out: Output): TemplateResult {
+    const files = out.files ?? [];
+    return html`
+      <ul class="files">
+        ${files.slice(0, SHOWN_FILES).map(
+          (file, index) => html`
+            <li>
+              <div class="file-text">
+                <strong>${file.path}</strong>
+                <span>${this._size(file.data.length)}</span>
+              </div>
+              <ha-button
+                appearance="plain"
+                data-index=${index}
+                @click=${this._downloadFile}
+              >
+                <ha-svg-icon slot="start" .path=${mdiDownload}></ha-svg-icon>
+                ${this._l("download")}
+              </ha-button>
+            </li>
+          `
+        )}
+      </ul>
+      ${
+        files.length > SHOWN_FILES
+          ? html`<p class="note">
+              ${this._l("files_partial", {
+                shown: SHOWN_FILES,
+                count: files.length,
+              })}
+            </p>`
+          : nothing
+      }
+      ${
+        out.folders
+          ? html`<p class="note">
+              ${this._l("folders_count", { count: out.folders })}
+            </p>`
+          : nothing
+      }
     `;
   }
 
@@ -696,11 +1075,12 @@ class ToolsConverter extends LitElement {
   private _renderFormats(): TemplateResult {
     const matches = searchMatcher(this._search);
     const kind = this._inputKind;
-    const offered = kind ? targetsFor(kind) : undefined;
+    const offered = kind ? this._offered(kind) : undefined;
     const searching = this._search.trim() !== "";
     const total = CATEGORIES.reduce((sum, c) => sum + c.targets.length, 0);
     const formatRow = (target: TargetId) => {
-      const usable = !offered || offered.includes(target);
+      const here = targetAvailable(target, this._caps);
+      const usable = here && (!offered || offered.includes(target));
       return html`
         <li>
           <button
@@ -715,7 +1095,9 @@ class ToolsConverter extends LitElement {
               ${
                 usable
                   ? this._l(`format_${formatKey(target)}_desc`)
-                  : this._l("not_for_this_file")
+                  : here
+                    ? this._l("not_for_this_file")
+                    : this._l("not_on_this_device")
               }
             </span>
           </button>
@@ -760,8 +1142,15 @@ class ToolsConverter extends LitElement {
         visible.length
           ? html`<ul class="categories">
               ${visible.map(({ category, categoryName, targets }) => {
-                const available = category.targets.length > 0;
+                const status = categoryStatus(category.id, this._caps);
+                const available = status.state !== "unavailable";
                 const open = searching || this._open === category.id;
+                const ready = category.targets.filter((target) =>
+                  targetAvailable(target, this._caps)
+                ).length;
+                const notOffered = (NOT_OFFERED[category.id] ?? []).filter(
+                  (key) => !searching || matches(this._l(`not_offered_${key}`))
+                );
                 return html`
                   <li class="category">
                     <button
@@ -781,29 +1170,44 @@ class ToolsConverter extends LitElement {
                         <strong>${categoryName}</strong>
                         <span>
                           ${
-                            available
-                              ? this._l("category_ready", {
-                                  count: category.targets.length,
-                                })
-                              : this._l(`unavailable_${category.id}`)
+                            status.reason
+                              ? this._l(`status_reason_${status.reason}`)
+                              : this._l("category_ready", { count: ready })
                           }
                         </span>
                       </span>
+                      <span
+                        class=${classMap({ pill: true, [status.state]: true })}
+                        >${this._l(`status_${status.state}`)}</span
+                      >
                       ${
                         available
                           ? html`<ha-svg-icon
                               .path=${open ? mdiChevronDown : mdiChevronRight}
                             ></ha-svg-icon>`
-                          : html`<span class="pill"
-                              >${this._l("unavailable")}</span
-                            >`
+                          : nothing
                       }
                     </button>
                     ${
                       available && open
                         ? html`<ul class="format-list">
-                            ${targets.map(formatRow)}
-                          </ul>`
+                              ${targets.map(formatRow)}
+                            </ul>
+                            ${
+                              notOffered.length
+                                ? html`<div class="not-offered">
+                                    <h3>${this._l("not_offered_title")}</h3>
+                                    <ul>
+                                      ${notOffered.map(
+                                        (key) =>
+                                          html`<li>
+                                            ${this._l(`not_offered_${key}`)}
+                                          </li>`
+                                      )}
+                                    </ul>
+                                  </div>`
+                                : nothing
+                            }`
                         : nothing
                     }
                   </li>
@@ -828,15 +1232,17 @@ class ToolsConverter extends LitElement {
 
   private _fileChosen(ev: Event): void {
     const input = ev.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
+    const files = Array.from(input.files ?? []);
     input.value = "";
-    if (file) {
-      this._loadFile(file);
+    if (files.length) {
+      this._status = "";
+      this._loadFiles(files);
     }
   }
 
   private _clearFile(): void {
     this._loadRun++;
+    this._files = [];
     this._fileBytes = undefined;
     this._fileName = "";
     this._error = undefined;
@@ -874,15 +1280,62 @@ class ToolsConverter extends LitElement {
 
   private _drop(ev: DragEvent): void {
     this._dragging = false;
-    const files = ev.dataTransfer?.files;
-    if (!files?.length) {
+    const files = Array.from(ev.dataTransfer?.files ?? []);
+    if (!files.length) {
       return;
     }
     // This tool took the file: the app-wide drop import must not see it.
     ev.preventDefault();
     ev.stopPropagation();
-    this._status = files.length > 1 ? this._l("first_file_only") : "";
-    this._loadFile(files[0]);
+    this._status = "";
+    this._loadFiles(files);
+  }
+
+  private async _loadFiles(files: File[]): Promise<void> {
+    if (files.length === 1) {
+      await this._loadFile(files[0]);
+      return;
+    }
+    // Several files: they can be packed together, or become a PDF.
+    const load = ++this._loadRun;
+    this._error = undefined;
+    if (files.length > MAX_SET_FILES) {
+      this._error = { code: "too_many_files" };
+      return;
+    }
+    let total = 0;
+    for (const file of files) {
+      total += file.size;
+      if (file.size > MAX_BYTES) {
+        this._error = { code: "too_large", detail: file.name };
+        return;
+      }
+    }
+    if (total > MAX_SET_BYTES) {
+      this._error = { code: "set_too_large" };
+      return;
+    }
+    const read: NamedFile[] = [];
+    for (const file of files) {
+      try {
+        // One file at a time keeps the memory in use low.
+        // eslint-disable-next-line no-await-in-loop
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        read.push({ name: file.name, bytes, sniffed: sniffContents(bytes) });
+      } catch (_err) {
+        if (load === this._loadRun) {
+          this._error = { code: "read_failed", detail: file.name };
+        }
+        return;
+      }
+      if (load !== this._loadRun) {
+        return;
+      }
+    }
+    this._files = read;
+    this._fileBytes = undefined;
+    this._fileName = "";
+    this._afterInputChanged();
   }
 
   private async _loadFile(file: File): Promise<void> {
@@ -914,6 +1367,7 @@ class ToolsConverter extends LitElement {
       this._error = { code: "heic_unsupported", detail: file.name };
       return;
     }
+    this._files = [];
     this._fileBytes = bytes;
     this._fileName = file.name;
     this._sniffed = kind;
@@ -931,14 +1385,30 @@ class ToolsConverter extends LitElement {
       this._clearOutput();
       return;
     }
-    const offered = targetsFor(kind);
+    const offered = this._offered(kind);
     if (!this._target || !offered.includes(this._target)) {
-      this._target = this._defaultTarget(kind);
+      const wanted = this._defaultTarget(kind);
+      this._target = offered.includes(wanted) ? wanted : offered[0];
     }
     this._schedule();
   }
 
   private _defaultTarget(kind: InputKind): TargetId {
+    switch (kind) {
+      case "archive":
+        return "extract";
+      case "docx":
+        return "doc-markdown";
+      case "audio":
+        return "wav";
+      case "video":
+        return "video-png";
+      case "set":
+        return "zip";
+      case "image-set":
+        return "pdf";
+      default:
+    }
     if (kind === "image") {
       return this._sniffed === "jpeg" ? "webp" : "jpeg";
     }
@@ -1003,6 +1473,34 @@ class ToolsConverter extends LitElement {
 
   private _indentChanged(ev: Event): void {
     this._indent = (ev.currentTarget as HTMLSelectElement).value;
+    this._schedule();
+  }
+
+  private _docModeChanged(ev: Event): void {
+    this._docMode = (ev.currentTarget as HTMLSelectElement)
+      .value as ExtraOptions["docMode"];
+    this._schedule();
+  }
+
+  private _paperChanged(ev: Event): void {
+    this._paper = (ev.currentTarget as HTMLSelectElement)
+      .value as ExtraOptions["paper"];
+    this._schedule();
+  }
+
+  private _audioRateChanged(ev: Event): void {
+    this._audioRate = Number((ev.currentTarget as HTMLSelectElement).value);
+    this._schedule();
+  }
+
+  private _audioChannelsChanged(ev: Event): void {
+    this._audioChannels =
+      (ev.currentTarget as HTMLSelectElement).value === "1" ? 1 : 2;
+    this._schedule();
+  }
+
+  private _framePositionChanged(ev: Event): void {
+    this._framePosition = Number((ev.currentTarget as HTMLInputElement).value);
     this._schedule();
   }
 
@@ -1075,7 +1573,21 @@ class ToolsConverter extends LitElement {
     const bytes = this._inputBytes;
     const target = this._target;
     const kind = this._inputKind;
-    if (!bytes || !target || !kind) {
+    if (!target || !kind || (!bytes && !this._files.length)) {
+      this._clearOutput();
+      return;
+    }
+    if (isExtraTarget(target)) {
+      if (!commit) {
+        // Sound, video, archives and documents take real work: they run when
+        // Convert is pressed, and a result for other options is dropped.
+        this._clearOutput();
+        return;
+      }
+      await this._convertExtra(run, target, kind, bytes);
+      return;
+    }
+    if (!bytes) {
       this._clearOutput();
       return;
     }
@@ -1194,6 +1706,7 @@ class ToolsConverter extends LitElement {
       target,
       notes,
       inputBytes: bytes.length,
+      outputBytes: blob.size,
       width,
       height,
       isText: text !== undefined,
@@ -1217,6 +1730,134 @@ class ToolsConverter extends LitElement {
         blob,
       });
       this._status = this._l("saved_to_history", { name: outName });
+    }
+  }
+
+  /** Archives, documents, sound and video: run when Convert is pressed. */
+  private async _convertExtra(
+    run: number,
+    target: TargetId,
+    kind: InputKind,
+    bytes: Uint8Array | undefined
+  ): Promise<void> {
+    this._busy = true;
+    this._error = undefined;
+    this._status = "";
+    const result = await runExtra(
+      target,
+      {
+        kind,
+        name: this._inputName,
+        bytes,
+        sniffed: this._sniffed,
+        files: this._files.length ? this._files : undefined,
+      },
+      {
+        docMode: this._docMode,
+        paper: this._paper,
+        audioRate: this._audioRate,
+        audioChannels: this._audioChannels,
+        framePosition: this._framePosition,
+        quality: this._quality,
+      }
+    );
+    if (run !== this._run) {
+      return;
+    }
+    this._busy = false;
+    this._release();
+    if (!result.ok) {
+      this._error = result.error;
+      this._output = undefined;
+      return;
+    }
+    const inputBytes = this._files.length
+      ? this._setBytes
+      : (bytes?.length ?? 0);
+    const sourceName = this._inputName || this._l("pasted_text");
+    const stem = this._inputName || "text";
+    if (result.kind === "files") {
+      this._output = {
+        blob: new Blob([]),
+        name: "",
+        target,
+        notes: result.notes,
+        inputBytes,
+        outputBytes: result.entries.reduce(
+          (sum, entry) => sum + entry.data.length,
+          0
+        ),
+        isText: false,
+        truncated: false,
+        files: result.entries,
+        folders: result.folders,
+      };
+      return;
+    }
+    let blob: Blob;
+    let text: string | undefined;
+    let width: number | undefined;
+    let height: number | undefined;
+    if (result.kind === "bytes") {
+      blob = new Blob([result.bytes as BlobPart], { type: result.mime });
+      width = result.width;
+      height = result.height;
+    } else if (result.kind === "text") {
+      text = result.text;
+      blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    } else {
+      text = this._l("video_info_text", {
+        duration: this._number(result.duration),
+        width: result.width,
+        height: result.height,
+        size: this._size(inputBytes),
+      });
+      blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    }
+    const imageUrl = blob.type.startsWith("image/")
+      ? URL.createObjectURL(blob)
+      : undefined;
+    const name = outputFileName(stem, target, text !== undefined);
+    this._output = {
+      text:
+        text !== undefined
+          ? text.slice(0, SHOWN_CHARACTERS)
+          : imageUrl
+            ? undefined
+            : this._l("binary_result", { size: this._size(blob.size) }),
+      imageUrl,
+      blob,
+      name,
+      target,
+      notes: result.notes,
+      inputBytes,
+      outputBytes: blob.size,
+      width,
+      height,
+      isText: text !== undefined,
+      truncated: text !== undefined && text.length > SHOWN_CHARACTERS,
+    };
+    this._history = addHistory(this._history, {
+      id: this._nextId++,
+      name,
+      source: sourceName,
+      target,
+      inputBytes,
+      outputBytes: blob.size,
+      at: Date.now(),
+      blob,
+    });
+    this._status = this._l("saved_to_history", { name });
+  }
+
+  private _downloadFile(ev: Event): void {
+    const index = Number((ev.currentTarget as HTMLElement).dataset.index);
+    const entry = this._output?.files?.[index];
+    if (entry) {
+      fileDownload(
+        URL.createObjectURL(new Blob([entry.data as BlobPart])),
+        safeFileName(baseName(entry.path))
+      );
     }
   }
 
@@ -1652,10 +2293,69 @@ class ToolsConverter extends LitElement {
           color: var(--primary-text-color);
         }
         .pill {
+          flex: none;
           padding: var(--ha-space-1) var(--ha-space-3);
           border-radius: var(--ha-border-radius-pill);
           background: var(--card-background-color);
           font-size: var(--ha-font-size-s);
+        }
+        .pill.ready {
+          background: color-mix(
+            in srgb,
+            var(--success-color, var(--primary-color)) 22%,
+            var(--card-background-color)
+          );
+        }
+        .pill.limited {
+          background: color-mix(
+            in srgb,
+            var(--warning-color, var(--primary-color)) 26%,
+            var(--card-background-color)
+          );
+        }
+        .pill.unavailable {
+          background: color-mix(
+            in srgb,
+            var(--error-color) 18%,
+            var(--card-background-color)
+          );
+        }
+        .source-names {
+          overflow-wrap: anywhere;
+        }
+        .source-note {
+          flex: 1 1 100%;
+        }
+        .files {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+        }
+        .files li {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+        }
+        .file-text {
+          flex: 1 1 200px;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          font-size: var(--ha-font-size-s);
+          overflow-wrap: anywhere;
+        }
+        .not-offered {
+          margin: var(--ha-space-2) 0 var(--ha-space-2) var(--ha-space-8);
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+        }
+        .not-offered ul {
+          margin: var(--ha-space-1) 0 0;
+          padding-inline-start: var(--ha-space-5);
         }
         .format-list {
           display: flex;

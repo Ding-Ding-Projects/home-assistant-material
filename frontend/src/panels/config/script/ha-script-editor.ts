@@ -153,7 +153,7 @@ export class HaScriptEditor extends SubscribeMixin(
         .disabled=${this.saving}
         @click=${this._handleSaveScript}
       >
-        ${this.hass.localize("ui.common.save")}
+        ${this.hass.localize("ui.panel.config.script.editor.deprecated_migrated.save")}
       </ha-button>
     </ha-alert>`;
   }

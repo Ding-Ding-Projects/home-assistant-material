@@ -48,6 +48,7 @@ from .data import (
     shape_chat_chunk,
     shape_show,
     shape_users,
+    shape_users_by_model,
     valid_listed_name,
     valid_pull_name,
 )
@@ -369,17 +370,32 @@ async def ws_delete(
 
 
 @websocket_api.websocket_command(
-    {probatio.Required("type"): f"{DOMAIN}/used_by", **_ENTRY, **_MODEL}
+    {
+        probatio.Required("type"): f"{DOMAIN}/used_by",
+        **_ENTRY,
+        probatio.Optional("model"): probatio.All(
+            str, probatio.Length(min=1, max=MAX_NAME_LENGTH)
+        ),
+    }
 )
 @websocket_api.require_admin
 @callback
 def ws_used_by(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """List the conversation agents and AI tasks that use a model."""
+    """List the conversation agents and AI tasks that use a model.
+
+    Without a model, answer once for the whole server: a map from each model
+    name to its users.
+    """
     entry = hass.config_entries.async_get_entry(msg["entry_id"])
     if entry is None or entry.domain != OLLAMA_DOMAIN:
         connection.send_error(msg["id"], "not_found", "No such Ollama server")
+        return
+    if "model" not in msg:
+        connection.send_result(
+            msg["id"], {"users_by_model": shape_users_by_model(entry)}
+        )
         return
     connection.send_result(msg["id"], {"users": shape_users(entry, msg["model"])})
 
@@ -462,6 +478,7 @@ async def _async_chat(
         {
             "state": "done",
             "truncated": truncated,
+            "empty": sent == 0,
             "tokens": final["tokens"] if final else None,
             "tokens_per_second": final["tokens_per_second"] if final else None,
         }
@@ -493,13 +510,23 @@ async def ws_chat(
         return
     if (client := _client_for(hass, connection, msg)) is None:
         return
+    try:
+        async with asyncio.timeout(REQUEST_TIMEOUT):
+            listed, _ = listed_size(await client.list(), msg["model"])
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], map_error(err), "The server did not answer")
+        return
+    if not listed:
+        connection.send_error(msg["id"], "not_found", "The server has no such model")
+        return
     chats = _chats(hass)
     key = id(connection)
     previous = chats.task(key)
-    if previous is not None:
+    if previous is not None and not previous.done():
         if previous.cancelling():
             await asyncio.wait({previous}, timeout=CHAT_RELEASE_TIMEOUT)
-        if chats.task(key) is not None:
+        running = chats.task(key)
+        if running is not None and not running.done():
             connection.send_error(
                 msg["id"], "busy", "A chat is already running on this connection"
             )

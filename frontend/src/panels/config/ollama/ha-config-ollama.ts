@@ -29,6 +29,7 @@ import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
 import "../../../components/layout/ha-split-panels";
 import "./ha-ollama-chat";
+import type { HaOllamaChat } from "./ha-ollama-chat";
 import "./ha-ollama-pull";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
@@ -46,6 +47,8 @@ import {
   fetchOllamaModelUsers,
   fetchOllamaRunning,
   fetchOllamaServers,
+  fetchOllamaUsersByModel,
+  ollamaModelUserKey,
   unloadOllamaModel,
 } from "../../../data/ollama_suite";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
@@ -99,6 +102,9 @@ class HaConfigOllama extends LitElement {
 
   @state() private _usersError = false;
 
+  /** Who uses each model of the selected server; absent until known. */
+  @state() private _usersByModel?: Record<string, OllamaModelUser[]>;
+
   @state() private _unloading?: string;
 
   /** Guards against an older answer replacing a newer one. */
@@ -109,17 +115,28 @@ class HaConfigOllama extends LitElement {
   }
 
   // Where focus goes once the list or the detail has been drawn
-  private _pendingFocus?: "detail" | "row";
+  private _pendingFocus?: "detail" | "row" | "chat";
 
   private _lastOpened?: string;
 
   @query("#detail-heading") private _detailHeading?: HTMLElement;
+
+  @query("ha-ollama-chat") private _chat?: HaOllamaChat;
 
   @queryAll("button.link") private _modelLinks!: NodeListOf<HTMLElement>;
 
   protected updated(): void {
     const target = this._pendingFocus;
     if (!target) {
+      return;
+    }
+    if (target === "chat") {
+      // The chat is drawn once the model information has arrived.
+      if (this._chat) {
+        this._pendingFocus = undefined;
+        this._chat.focusPrompt();
+        this._chat.scrollIntoView({ block: "nearest" });
+      }
       return;
     }
     this._pendingFocus = undefined;
@@ -166,8 +183,10 @@ class HaConfigOllama extends LitElement {
     this._selected = undefined;
     this._info = undefined;
     this._users = undefined;
+    this._usersByModel = undefined;
     this._modelsError = undefined;
     this._loadingModels = true;
+    this._loadUsersByModel(entryId, id);
     const [models, running] = await Promise.allSettled([
       fetchOllamaModels(this.hass, entryId),
       fetchOllamaRunning(this.hass, entryId),
@@ -246,6 +265,37 @@ class HaConfigOllama extends LitElement {
         this._infoError = this._errorText(err);
       }
     }
+  }
+
+  /** One call for the whole server; the tags are left out when it fails. */
+  private async _loadUsersByModel(
+    serverId: string,
+    requestId: number
+  ): Promise<void> {
+    try {
+      const { users_by_model: usersByModel } = await fetchOllamaUsersByModel(
+        this.hass,
+        serverId
+      );
+      if (requestId === this._requestId) {
+        this._usersByModel = usersByModel;
+      }
+    } catch {
+      // The detail panel still asks for one model at a time.
+    }
+  }
+
+  private _testModel(ev: Event): void {
+    const name = (ev.currentTarget as HTMLElement).dataset.model;
+    if (!name) {
+      return;
+    }
+    if (this._selected !== name) {
+      this._openModel(ev);
+    }
+    // Replaces the heading focus that opening the model asks for.
+    this._pendingFocus = "chat";
+    this.requestUpdate();
   }
 
   private async _loadUsers(serverId: string, name: string): Promise<void> {
@@ -653,39 +703,41 @@ class HaConfigOllama extends LitElement {
                 }
                 ${
                   shown.length
-                    ? html`<table>
-                        <thead>
-                          <tr>
-                            ${this._sortHeader("name", this._l("col_name"))}
-                            ${this._sortHeader("size", this._l("col_size"))}
-                            ${
-                              this.narrow
-                                ? nothing
-                                : html`<th scope="col">
-                                      ${this._l("col_family")}
-                                    </th>
-                                    <th scope="col">
-                                      ${this._l("col_parameters")}
-                                    </th>
-                                    <th scope="col">
-                                      ${this._l("col_quantisation")}
-                                    </th>
-                                    ${this._sortHeader(
-                                      "modified_at",
-                                      this._l("col_modified")
-                                    )}`
-                            }
-                            <th scope="col">
-                              <span class="visually-hidden"
-                                >${this._l("col_actions")}</span
-                              >
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${shown.map((model) => this._renderModelRow(model))}
-                        </tbody>
-                      </table>`
+                    ? html`<div class="table-scroll">
+                        <table>
+                          <thead>
+                            <tr>
+                              ${this._sortHeader("name", this._l("col_name"))}
+                              ${this._sortHeader("size", this._l("col_size"))}
+                              ${
+                                this.narrow
+                                  ? nothing
+                                  : html`<th scope="col">
+                                        ${this._l("col_family")}
+                                      </th>
+                                      <th scope="col">
+                                        ${this._l("col_parameters")}
+                                      </th>
+                                      <th scope="col">
+                                        ${this._l("col_quantisation")}
+                                      </th>
+                                      ${this._sortHeader(
+                                        "modified_at",
+                                        this._l("col_modified")
+                                      )}`
+                              }
+                              <th scope="col">
+                                <span class="visually-hidden"
+                                  >${this._l("col_actions")}</span
+                                >
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${shown.map((model) => this._renderModelRow(model))}
+                          </tbody>
+                        </table>
+                      </div>`
                     : html`<p class="detail" role="status">
                         ${
                           total
@@ -733,6 +785,15 @@ class HaConfigOllama extends LitElement {
               </td>`
       }
       <td>
+        ${this._renderRowUsers(model)}
+        <ha-button
+          appearance="plain"
+          data-model=${model.name ?? ""}
+          aria-label=${this._l("row_test_named", { model: model.name ?? "" })}
+          @click=${this._testModel}
+        >
+          ${this._l("row_test")}
+        </ha-button>
         <ha-button
           appearance="plain"
           variant="danger"
@@ -744,6 +805,18 @@ class HaConfigOllama extends LitElement {
         </ha-button>
       </td>
     </tr>`;
+  }
+
+  private _renderRowUsers(model: OllamaModel): TemplateResult | typeof nothing {
+    const users = this._usersByModel?.[ollamaModelUserKey(model.name ?? "")];
+    if (!users?.length) {
+      return nothing;
+    }
+    return html`<span
+      class="tag"
+      title=${users.map((user) => user.title ?? "").join(", ")}
+      >${this._l("used_by")}</span
+    >`;
   }
 
   private _renderDetail(): TemplateResult {
@@ -998,6 +1071,7 @@ class HaConfigOllama extends LitElement {
       }
       .row {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: var(--ha-space-2);
         padding: var(--ha-space-2) 0;
@@ -1089,9 +1163,21 @@ class HaConfigOllama extends LitElement {
       }
       dl {
         display: grid;
-        grid-template-columns: max-content minmax(0, 1fr);
+        grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
         gap: var(--ha-space-1) var(--ha-space-3);
         margin: 0;
+      }
+      @media (max-width: 480px) {
+        dl {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        dd {
+          margin-bottom: var(--ha-space-2);
+        }
+      }
+      .table-scroll {
+        overflow-x: auto;
+        max-width: 100%;
       }
       dt {
         color: var(--secondary-text-color);

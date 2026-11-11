@@ -12,7 +12,12 @@
  * - Nothing is stored across a reload. The history is short and in memory.
  */
 
-export type ActivityState = "running" | "done" | "failed" | "cancelled";
+/**
+ * "ended" is the neutral end: the work stopped being followed and nothing says
+ * whether it succeeded, failed or was cancelled.
+ */
+export type ActivityState =
+  "running" | "done" | "failed" | "cancelled" | "ended";
 
 export type ActivityKind = "download" | "import" | "backup" | "other";
 

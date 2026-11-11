@@ -23,6 +23,8 @@ import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
+import "../../../components/history/ha-version-picker";
+import type { VersionPickerItem } from "../../../components/history/ha-version-picker";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
@@ -469,7 +471,9 @@ export class HaConfigAutomationRepo extends LitElement {
         <ha-input-search
           appearance="outlined"
           .value=${this._search}
-          .placeholder=${this._l("vh_search_commits")}
+          .placeholder=${this._l("vh_search_commits", {
+            count: this._commits.length,
+          })}
           .patternSamples=${this._commits.map((commit) => commit.message)}
           @input=${this._searchChanged}
         ></ha-input-search>
@@ -762,7 +766,15 @@ export class HaConfigAutomationRepo extends LitElement {
   }
 
   private _renderCompare(key?: string) {
-    const options = this._commits.filter((commit) => commit.sha !== key);
+    const items: VersionPickerItem[] = [
+      { id: WORKING, title: this._l("vh_compare_now") },
+      ...this._commits.map((commit) => ({
+        id: commit.sha,
+        title: this._label(commit),
+        short: this._short(commit.sha),
+        timestamp: commit.timestamp,
+      })),
+    ];
     return html`
       <div class="action compare">
         <span class="tile small">
@@ -771,23 +783,25 @@ export class HaConfigAutomationRepo extends LitElement {
         <span class="action-text">
           <b>${this._l("vh_compare")}</b>
           <span class="secondary">${this._l("vh_compare_hint")}</span>
-          <label class="compare-pick">
+          <div class="compare-pick">
             <span class="secondary">${this._l("vh_compare_with")}</span>
-            <select
+            <ha-version-picker
+              .hass=${this.hass}
+              .label=${this._l("vh_compare_with")}
+              .items=${items}
               .value=${this._compareWith}
-              ?disabled=${!key || key === WORKING}
-              @change=${this._compareChanged}
-            >
-              <option value="">…</option>
-              <option value=${WORKING}>${this._l("vh_compare_now")}</option>
-              ${options.map(
-                (commit) =>
-                  html`<option value=${commit.sha}>
-                    ${this._short(commit.sha)}: ${this._label(commit)}
-                  </option>`
-              )}
-            </select>
-          </label>
+              .currentId=${key ?? ""}
+              .disabled=${!key || key === WORKING}
+              @version-picker-changed=${this._compareChanged}
+            ></ha-version-picker>
+            ${
+              this._compareWith
+                ? html`<button class="link" @click=${this._clearCompare}>
+                    ${this._l("vh_compare_clear")}
+                  </button>`
+                : nothing
+            }
+          </div>
           ${
             this._compareDiff !== undefined
               ? this._compareDiff.trim()
@@ -956,8 +970,13 @@ export class HaConfigAutomationRepo extends LitElement {
     }
   }
 
-  private async _compareChanged(ev: Event) {
-    const other = (ev.currentTarget as HTMLSelectElement).value;
+  private _clearCompare() {
+    this._compareWith = "";
+    this._compareDiff = undefined;
+  }
+
+  private async _compareChanged(ev: CustomEvent<{ value: string }>) {
+    const other = ev.detail.value;
     this._compareWith = other;
     const key = this._selectedKey;
     if (!other || !key || key === WORKING) {
@@ -1102,8 +1121,7 @@ export class HaConfigAutomationRepo extends LitElement {
       text-align: start;
     }
     button:focus-visible,
-    input:focus-visible,
-    select:focus-visible {
+    input:focus-visible {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
     }
@@ -1325,15 +1343,12 @@ export class HaConfigAutomationRepo extends LitElement {
       align-items: center;
       gap: var(--ha-space-2);
     }
-    select {
-      max-width: 100%;
-      min-height: var(--ha-space-9);
-      padding: 0 var(--ha-space-3);
-      border-radius: var(--ha-border-radius-md);
-      border: 1px solid var(--outline-color);
-      background: var(--card-background-color);
-      color: inherit;
-      font: inherit;
+    .compare-pick ha-version-picker {
+      flex: 1 1 240px;
+      min-width: 0;
+    }
+    .compare-pick .link {
+      min-height: 44px;
     }
     .notice {
       padding: var(--ha-space-3) var(--ha-space-4);

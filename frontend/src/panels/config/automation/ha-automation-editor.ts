@@ -215,7 +215,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         .disabled=${this.saving}
         @click=${this._handleSaveAutomation}
       >
-        ${this.hass.localize("ui.common.save")}
+        ${this.hass.localize("ui.panel.config.automation.editor.deprecated_migrated.save")}
       </ha-button>
     </ha-alert>`;
   }
@@ -680,8 +680,9 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                     ></ha-yaml-editor>
                     <ha-editor-save-bar
                       .hass=${this.hass}
-                      .dirty=${this.isDirtyState}
+                      .dirty=${!this.readOnly && this.isDirtyState}
                       .saving=${this.saving}
+                      .disabled=${this.readOnly}
                       show-shortcut
                       @save-bar-save=${this._handleSaveAutomation}
                     ></ha-editor-save-bar>`

@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   authorizedKeysCommand,
+  canForceDeleteMinecraftServer,
+  MinecraftPollGuard,
+  minecraftWithTimeout,
   emptyMinecraftDraft,
   emptyMinecraftHostDraft,
   filterMinecraftVersions,
@@ -19,6 +22,79 @@ import type {
   MinecraftServer,
   MinecraftServerDraft,
 } from "../../src/data/minecraft_manager";
+
+describe("MinecraftPollGuard", () => {
+  it("allows one poll in flight at a time", () => {
+    const guard = new MinecraftPollGuard();
+    const first = guard.begin();
+    expect(first).toBeDefined();
+    expect(guard.begin()).toBeUndefined();
+    guard.end(first!);
+    expect(guard.begin()).toBeDefined();
+  });
+
+  it("drops an answer that began before an action", () => {
+    const guard = new MinecraftPollGuard();
+    const old = guard.begin()!;
+    guard.invalidate();
+    expect(guard.isCurrent(old)).toBe(false);
+    const fresh = guard.begin();
+    expect(fresh).toBeDefined();
+    expect(guard.isCurrent(fresh!)).toBe(true);
+  });
+
+  it("does not let a dropped poll free the slot of a newer one", () => {
+    const guard = new MinecraftPollGuard();
+    const old = guard.begin()!;
+    guard.invalidate();
+    const fresh = guard.begin()!;
+    guard.end(old);
+    expect(guard.begin()).toBeUndefined();
+    guard.end(fresh);
+    expect(guard.begin()).toBeDefined();
+  });
+});
+
+describe("canForceDeleteMinecraftServer", () => {
+  it.each(["connect_failed", "timeout", "auth_failed", "host_key_changed"])(
+    "offers the forced delete for %s",
+    (code) => {
+      expect(canForceDeleteMinecraftServer(code)).toBe(true);
+    }
+  );
+
+  it.each([
+    "container_exists",
+    "not_managed",
+    "docker_not_running",
+    "command_failed",
+    "unknown",
+  ])("does not offer the forced delete for %s", (code) => {
+    expect(canForceDeleteMinecraftServer(code)).toBe(false);
+  });
+});
+
+describe("minecraftWithTimeout", () => {
+  it("gives the answer when it arrives in time", async () => {
+    await expect(
+      minecraftWithTimeout(Promise.resolve("up"), 1000, "late")
+    ).resolves.toBe("up");
+  });
+
+  it("gives the fallback when the call takes too long", async () => {
+    vi.useFakeTimers();
+    try {
+      const slow = new Promise<string>(() => {
+        // never settles
+      });
+      const result = minecraftWithTimeout(slow, 5000, "late");
+      await vi.advanceTimersByTimeAsync(5000);
+      await expect(result).resolves.toBe("late");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 const valid = (): MinecraftServerDraft => ({
   ...emptyMinecraftDraft(),

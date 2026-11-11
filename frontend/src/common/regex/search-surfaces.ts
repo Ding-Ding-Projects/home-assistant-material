@@ -162,7 +162,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/dashboard-history/ha-config-dashboard-history.ts",
     searches:
-      "Commits of one dashboard or one of its views, by message, author and commit",
+      "Dashboards and their tabs, by title, address and key; and commits of one dashboard or one of its views, by message, author, date and commit",
+  },
+  {
+    file: "components/history/ha-version-picker.ts",
+    searches:
+      "Versions offered by the version picker of the history pages, by message, date and short identifier",
   },
   {
     file: "panels/config/automation/add-automation-element-dialog.ts",
