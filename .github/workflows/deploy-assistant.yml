@@ -32,6 +32,12 @@ jobs:
       run:
         working-directory: deploy-assistant
     steps:
+      # Git on Windows refuses to read some file names in the operating-system folder, even when
+      # the sparse checkout leaves them out. They are never written here, so the check is turned off.
+      - name: Allow the repository's file names on Windows
+        if: runner.os == 'Windows'
+        working-directory: ${{ runner.temp }}
+        run: git config --global core.protectNTFS false
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
