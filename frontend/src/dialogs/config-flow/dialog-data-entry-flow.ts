@@ -112,6 +112,12 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
 
   @state() private _flowHasProgressed = false;
 
+  // Steps the user has been shown in this flow (forms, menus and external
+  // steps). The flow reports no total, so this is a running count only.
+  @state() private _stepNumber = 0;
+
+  private _lastCountedStepId?: string;
+
   private _formStepRef = createRef<FormStepElement>();
 
   private _abortStepRef = createRef<AbortStepElement>();
@@ -123,6 +129,8 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
   public async showDialog(params: DataEntryFlowDialogParams): Promise<void> {
     this._initDirtyTracking({ type: "deep" });
     this._flowHasProgressed = Boolean(params.continueFlowId);
+    this._stepNumber = 0;
+    this._lastCountedStepId = undefined;
     this._params = params;
     this._instance = instance++;
     this._open = true;
@@ -231,6 +239,8 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
     this._loading = undefined;
     this._step = undefined;
     this._flowHasProgressed = false;
+    this._stepNumber = 0;
+    this._lastCountedStepId = undefined;
     this._params = undefined;
     this._handler = undefined;
     if (this._unsubDataEntryFlowProgress) {
@@ -440,6 +450,7 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
                               narrow
                               .flowConfig=${this._params.flowConfig}
                               .step=${this._step}
+                              .stepNumber=${this._stepNumber}
                               .hass=${this.hass}
                               .domain=${this._params.domain ?? this._step.handler}
                               @flow-step-footer-state-changed=${
@@ -680,6 +691,17 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
     await this.updateComplete;
     this._initDirtyTracking({ type: "deep" });
     this._step = _step;
+    if (
+      (_step.type === "form" ||
+        _step.type === "menu" ||
+        _step.type === "external") &&
+      `${_step.flow_id}/${_step.step_id}` !== this._lastCountedStepId
+    ) {
+      // The same step shown again (for example after a validation error from
+      // the flow) is not a new step.
+      this._lastCountedStepId = `${_step.flow_id}/${_step.step_id}`;
+      this._stepNumber += 1;
+    }
     if (
       (_step.type === "create_entry" || _step.type === "abort") &&
       _step.next_flow

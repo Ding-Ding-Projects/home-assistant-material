@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReactiveElement } from "lit";
 import { property, state } from "lit/decorators";
 import type { RouterOptions } from "../../src/layouts/hass-router-page";
-import { HassRouterPage } from "../../src/layouts/hass-router-page";
+import {
+  HassRouterPage,
+  shouldShowNotFound,
+} from "../../src/layouts/hass-router-page";
 import { panelIsReady } from "../../src/layouts/panel-ready";
 
 class TestRouter extends HassRouterPage {
@@ -484,6 +487,39 @@ describe("HassRouterPage item ids", () => {
     expect(secondLeaf.itemId).toBe("b");
 
     element.remove();
+  });
+});
+
+describe("shouldShowNotFound", () => {
+  const base = {
+    hasRoute: true,
+    path: "/missing",
+    defaultPage: undefined,
+    hasRouteOptions: false,
+    hasHass: true,
+  };
+
+  it("shows for an unknown sub-route with no default page", () => {
+    expect(shouldShowNotFound(base)).toBe(true);
+  });
+
+  it("does not show when the route exists (loading or loaded)", () => {
+    expect(shouldShowNotFound({ ...base, hasRouteOptions: true })).toBe(false);
+  });
+
+  it("does not show for the empty path", () => {
+    expect(shouldShowNotFound({ ...base, path: "" })).toBe(false);
+  });
+
+  it("does not show when a default page exists", () => {
+    expect(shouldShowNotFound({ ...base, defaultPage: "dashboard" })).toBe(
+      false
+    );
+  });
+
+  it("does not show without a route or without hass", () => {
+    expect(shouldShowNotFound({ ...base, hasRoute: false })).toBe(false);
+    expect(shouldShowNotFound({ ...base, hasHass: false })).toBe(false);
   });
 });
 

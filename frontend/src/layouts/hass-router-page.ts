@@ -4,7 +4,7 @@ import { property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { navigate } from "../common/navigate";
 import { computeRouteTail } from "../common/url/route";
-import type { Route } from "../types";
+import type { HomeAssistant, Route } from "../types";
 import { recoverFromStaleBuild } from "../util/recover-stale-build";
 import { PanelReady } from "./panel-ready";
 
@@ -45,6 +45,29 @@ export interface RouterOptions {
   beforeRender?: (page: string) => string | undefined;
   routes: Record<string, RouteOptions | string>;
 }
+
+/**
+ * Decide whether an unknown sub-route should show the page not found screen.
+ *
+ * It shows only when the router was mounted on a route, the requested page
+ * has no route entry (after redirects and `beforeRender`), the path is not
+ * empty, the router has no default page to fall back to, and the router can
+ * provide `hass` for the screen's text. An empty path is left alone because
+ * it redirects to the default page or is deliberately blank, and a page that
+ * is still loading always has a route entry, so it never reaches this check.
+ */
+export const shouldShowNotFound = (options: {
+  hasRoute: boolean;
+  path: string;
+  defaultPage?: string;
+  hasRouteOptions: boolean;
+  hasHass: boolean;
+}): boolean =>
+  options.hasRoute &&
+  !options.hasRouteOptions &&
+  options.path !== "" &&
+  options.defaultPage === undefined &&
+  options.hasHass;
 
 // Time to wait for code to load before we show loading screen.
 const LOADING_SCREEN_THRESHOLD = 400; // ms
@@ -163,6 +186,18 @@ export class HassRouterPage extends ReactiveElement {
       this._currentPage = "";
       if (this.lastChild) {
         this.removeChild(this.lastChild);
+      }
+      if (
+        route &&
+        shouldShowNotFound({
+          hasRoute: true,
+          path: route.path,
+          defaultPage,
+          hasRouteOptions: false,
+          hasHass: this._getHass() !== undefined,
+        })
+      ) {
+        this.appendChild(this.createNotFoundScreen(route));
       }
       return;
     }
@@ -314,6 +349,19 @@ export class HassRouterPage extends ReactiveElement {
   protected createLoadingScreen() {
     import("./hass-loading-screen");
     return document.createElement("hass-loading-screen");
+  }
+
+  // Routers that receive `hass` as a property can show the not found screen.
+  private _getHass(): HomeAssistant | undefined {
+    return (this as unknown as { hass?: HomeAssistant }).hass;
+  }
+
+  protected createNotFoundScreen(route: Route) {
+    import("./hass-not-found-screen");
+    const screen = document.createElement("hass-not-found-screen");
+    screen.hass = this._getHass()!;
+    screen.path = `${route.prefix}${route.path}`;
+    return screen;
   }
 
   protected createErrorScreen(error: string) {
