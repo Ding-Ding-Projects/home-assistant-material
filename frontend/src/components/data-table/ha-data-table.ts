@@ -152,6 +152,27 @@ const AUTO_FOCUS_ALLOWED_ACTIVE_TAGS = ["BODY", "HTML", "HOME-ASSISTANT"];
 // Default row height, used to fill the viewport with skeleton rows.
 const ROW_HEIGHT = 52;
 
+/**
+ * The selection after the header checkbox changes. With `keepHidden`, only
+ * the shown rows are added or removed and hidden ticked rows survive; without
+ * it, ticking selects exactly the shown rows and unticking clears everything.
+ */
+export const headerCheckboxSelection = (
+  current: readonly string[],
+  shownIds: readonly string[],
+  checked: boolean,
+  keepHidden: boolean
+): string[] => {
+  if (!keepHidden) {
+    return checked ? [...shownIds] : [];
+  }
+  if (checked) {
+    return [...new Set([...current, ...shownIds])];
+  }
+  const shown = new Set(shownIds);
+  return current.filter((id) => !shown.has(id));
+};
+
 @customElement("ha-data-table")
 export class HaDataTable extends LitElement {
   @state()
@@ -171,6 +192,15 @@ export class HaDataTable extends LitElement {
   @property({ type: Boolean }) public loading = false;
 
   @property({ type: Boolean }) public selectable = false;
+
+  /**
+   * Set by pages that show how many selected rows are hidden. The header
+   * checkbox then only adds or removes the shown rows; without it, ticking
+   * replaces the selection and unticking clears all of it, so a bulk action
+   * never reaches rows the person cannot see.
+   */
+  @property({ type: Boolean, attribute: "keep-hidden-selection" })
+  public keepHiddenSelection = false;
 
   @property({ type: Boolean }) public clickable = false;
 
@@ -1319,18 +1349,18 @@ export class HaDataTable extends LitElement {
   }
 
   private _handleHeaderRowCheckboxClick(ev: HASSDomTargetEvent<HaCheckbox>) {
-    const { ids, idSet } = this._shownRows(
+    const { ids } = this._shownRows(
       this._filteredVersion,
       this._collapsedGroups,
       this.groupColumn,
       this.id
     );
-    if (ev.target.checked) {
-      // Rows the search or filters hide keep the state they had
-      this._checkedRows = [...new Set([...this._checkedRows, ...ids])];
-    } else {
-      this._checkedRows = this._checkedRows.filter((id) => !idSet.has(id));
-    }
+    this._checkedRows = headerCheckboxSelection(
+      this._checkedRows,
+      ids,
+      ev.target.checked,
+      this.keepHiddenSelection
+    );
     this._lastSelectedRowId = null;
     this._checkedRowsChanged();
   }

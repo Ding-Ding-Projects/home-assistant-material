@@ -2,6 +2,7 @@ import {
   mdiDelete,
   mdiDotsVertical,
   mdiDownload,
+  mdiHistory,
   mdiHomeEdit,
   mdiInformationOutline,
   mdiPencil,
@@ -17,6 +18,7 @@ import memoize from "memoize-one";
 import { DataTableSettingsController } from "../../../../common/controllers/data-table-settings-controller";
 import { storage } from "../../../../common/decorators/storage";
 import type { HASSDomEvent } from "../../../../common/dom/fire_event";
+import { isComponentLoaded } from "../../../../common/config/is_component_loaded";
 import { navigate } from "../../../../common/navigate";
 import { stringCompare } from "../../../../common/string/compare";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
@@ -36,7 +38,7 @@ import "../../../../components/ha-icon-button";
 import "../../../../components/ha-icon-overflow-menu";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-switch";
-import { saveFrontendSystemData } from "../../../../data/frontend";
+import { dashboardHistoryUrl } from "../../../../data/dashboard_repos";
 import type { LovelaceRawConfig } from "../../../../data/lovelace/config/types";
 import {
   isStrategyDashboard,
@@ -73,6 +75,7 @@ import {
   exportDashboard,
   isGeneratedPage,
   makeEditableCopy,
+  saveDefaultPanel,
 } from "../../../lovelace/import-export/dashboard-actions";
 import { importChosenFile } from "../../../lovelace/import-export/dashboard-file-import";
 import { loadLovelaceResources } from "../../../lovelace/common/load-resources";
@@ -374,6 +377,18 @@ export class HaConfigLovelaceDashboards extends LitElement {
                       ),
                       action: () => this._handleEdit(dashboard),
                     },
+                    ...(isComponentLoaded(this.hass.config, "dashboard_repos")
+                      ? [
+                          {
+                            path: mdiHistory,
+                            label: this.hass.localize(
+                              "ui.panel.config.lovelace.dashboards.picker.history"
+                            ),
+                            action: () =>
+                              navigate(dashboardHistoryUrl(dashboard.url_path)),
+                          },
+                        ]
+                      : []),
                     {
                       label: this.hass.localize(
                         "ui.panel.config.lovelace.dashboards.picker.delete"
@@ -748,10 +763,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
       return;
     }
 
-    await saveFrontendSystemData(this.hass.connection, "core", {
-      ...this.hass.systemData,
-      default_panel: item.url_path,
-    });
+    await saveDefaultPanel(this.hass, item.url_path);
   };
 
   private _handleDelete = async (item: DataTableItem) => {

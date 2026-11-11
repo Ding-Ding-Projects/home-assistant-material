@@ -2,7 +2,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
-import { mdiDotsVertical } from "@mdi/js";
+import { mdiCheckCircle, mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import {
   ACCESSIBILITY_STORAGE_KEY,
@@ -12,10 +12,29 @@ import {
 import { getStorage } from "../../../common/decorators/storage";
 import { renderBilingual } from "../../../common/language-mode/bilingual-text";
 import {
+  fillPlaceholders,
   joinForMode,
+  sameIgnoringPunctuation,
   stripFullStops,
   textParts,
+  yueString,
 } from "../../../common/language-mode/language-mode";
+import {
+  checkAll,
+  createLockRecord,
+  PIN_PATTERN,
+} from "../../../common/locks/lock-credentials";
+import {
+  readLocks,
+  withLock,
+  withLockRecord,
+  withUpdatedRecord,
+  writeLocks,
+} from "../../../common/locks/element-locks";
+import {
+  playfulParts,
+  playfulText,
+} from "../../../common/playful/playful-text";
 import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import {
   listVoices,
@@ -36,9 +55,10 @@ import type {
 } from "../../../common/preferences/personal-preferences";
 import {
   DEFAULT_PERSONAL_PREFERENCES,
+  effectivePreferences,
   FUNNY_LEVEL_MAX,
   FUNNY_LEVEL_MIN,
-  getPersonalPreferences,
+  getStoredPreferences,
   initPersonalPreferences,
   LANGUAGE_MODES,
   NARRATOR_PITCH_MAX,
@@ -46,7 +66,11 @@ import {
   NARRATOR_RATE_MAX,
   NARRATOR_RATE_MIN,
   NARRATOR_SPEAK_IN,
+  PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
   resetPersonalPreferences,
+  SCHOOL_NAME_MAX,
+  SCHOOL_RULES,
+  schoolHeldFields,
   subscribePersonalPreferences,
   updatePersonalPreferences,
   VOLUME_MAX,
@@ -63,6 +87,7 @@ import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-slider";
+import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
 import "../../../components/ha-button-toggle-group";
 import type { HaSlider } from "../../../components/ha-slider";
@@ -72,15 +97,22 @@ import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import {
   showAlertDialog,
   showConfirmationDialog,
+  showPromptDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
+import { showToast } from "../../../util/toast";
 
-type GroupId = "language" | "sound" | "attention" | "narrator";
+type GroupId = "language" | "modes" | "sound" | "attention" | "narrator";
+
+/** The key School mode keeps its PIN under, in the shared lock store. */
+const SCHOOL_LOCK_KEY = "school-mode";
 
 interface Row {
   id: string;
   group: GroupId;
+  /** True while School mode holds this setting fixed. */
+  held?: boolean;
   label: string;
   description: string;
   defaultText: string;
@@ -95,7 +127,13 @@ interface Row {
   reset: () => void;
 }
 
-const GROUPS: GroupId[] = ["language", "sound", "attention", "narrator"];
+const GROUPS: GroupId[] = [
+  "language",
+  "modes",
+  "sound",
+  "attention",
+  "narrator",
+];
 
 /** After this long without a voice list, say that there is none. */
 const VOICE_WAIT_MS = 3000;
@@ -115,7 +153,11 @@ export class HaConfigSectionPersonal extends LitElement {
 
   @state() private _open = new Set<string>();
 
-  @state() private _prefs: PersonalPreferences = getPersonalPreferences();
+  /** The choices as stored, before School mode is laid over them. */
+  @state() private _prefs: PersonalPreferences = getStoredPreferences();
+
+  /** Long texts whose second language is shown on a narrow screen. */
+  @state() private _shownYue = new Set<string>();
 
   @state() private _reduceMotion = getAccessibilitySettings().reduceMotion;
 
@@ -136,11 +178,11 @@ export class HaConfigSectionPersonal extends LitElement {
   public connectedCallback() {
     super.connectedCallback();
     initPersonalPreferences();
-    this._prefs = getPersonalPreferences();
+    this._prefs = getStoredPreferences();
     this._reduceMotion = getAccessibilitySettings().reduceMotion;
     this._unsubs = [
-      subscribePersonalPreferences((prefs) => {
-        this._prefs = prefs;
+      subscribePersonalPreferences(() => {
+        this._prefs = getStoredPreferences();
       }),
       subscribeAccessibilitySettings((settings) => {
         this._reduceMotion = settings.reduceMotion;
@@ -156,7 +198,18 @@ export class HaConfigSectionPersonal extends LitElement {
       this._voicesWaited = true;
     }, VOICE_WAIT_MS);
     window.addEventListener("hashchange", this._hashChanged);
+    window.addEventListener(
+      PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
+      this._preferencesNotSaved
+    );
   }
+
+  // Tells the person when the browser could not keep a choice.
+  private _preferencesNotSaved = () => {
+    showToast(this, {
+      message: this.hass.localize("ui.dialogs.quick-bar.setting_not_saved"),
+    });
+  };
 
   protected firstUpdated() {
     this._goToHashRow();
@@ -195,6 +248,10 @@ export class HaConfigSectionPersonal extends LitElement {
   public disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("hashchange", this._hashChanged);
+    window.removeEventListener(
+      PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
+      this._preferencesNotSaved
+    );
     window.clearTimeout(this._voiceTimer);
     this._unsubs.forEach((unsub) => unsub());
     this._unsubs = [];
@@ -221,9 +278,59 @@ export class HaConfigSectionPersonal extends LitElement {
 
   /** Longer text as two language spans, one under the other. */
   private _bl(key: string): TemplateResult {
-    return renderBilingual(
-      textParts(this.hass.localize, `ui.panel.config.personal.${key}`),
+    const parts = textParts(
+      this.hass.localize,
+      `ui.panel.config.personal.${key}`
+    );
+    // On a narrow screen, a long text in both languages shows the second
+    // language only after a tap, so the page does not turn into a wall.
+    if (
+      this.narrow &&
+      this._lang.mode === "bilingual" &&
+      parts.cantonese !== undefined &&
+      parts.english.length > 60 &&
+      !sameIgnoringPunctuation(parts.cantonese, parts.english)
+    ) {
+      const shown = this._shownYue.has(key);
+      return html`${renderBilingual(parts, shown ? "bilingual" : "english", "\n")}
+        <button
+          type="button"
+          class="yue-toggle"
+          aria-expanded=${shown ? "true" : "false"}
+          data-key=${key}
+          @click=${this._toggleYue}
+        >
+          ${this.hass.localize(
+            `ui.panel.config.personal.${shown ? "hide_cantonese" : "show_cantonese"}`
+          )}
+        </button>`;
+    }
+    return renderBilingual(parts, this._lang.mode, "\n");
+  }
+
+  private _toggleYue = (ev: Event) => {
+    const key = (ev.currentTarget as HTMLElement).dataset.key as string;
+    const next = new Set(this._shownYue);
+    if (!next.delete(key)) {
+      next.add(key);
+    }
+    this._shownYue = next;
+  };
+
+  /** The playfulness levels in use now, School mode included. */
+  private _levels() {
+    const eff = effectivePreferences(this._prefs);
+    return { english: eff.funnyEnglish, cantonese: eff.funnyCantonese };
+  }
+
+  /** An optional message at the chosen levels, in the chosen language mode. */
+  private _play(key: string, values?: Record<string, string | number>) {
+    return playfulText(
+      this.hass.localize,
+      key,
       this._lang.mode,
+      this._levels(),
+      values,
       "\n"
     );
   }
@@ -345,10 +452,8 @@ export class HaConfigSectionPersonal extends LitElement {
   private _rows(): Row[] {
     const p = this._prefs;
     const d = DEFAULT_PERSONAL_PREFERENCES;
-    const modeButtons = LANGUAGE_MODES.map((mode) => ({
-      value: mode,
-      label: this._t(`language_mode.${mode}`),
-    }));
+    const held = schoolHeldFields(p);
+    const schoolName = p.schoolName;
     const silence = silenceReason(p);
     const narrationSilence = narratorSilence(p);
     const slider = (
@@ -372,10 +477,12 @@ export class HaConfigSectionPersonal extends LitElement {
     const toggle = (
       checked: boolean,
       label: string,
-      onChange: (ev: HASSDomTargetEvent<HaSwitch>) => void
+      onChange: (ev: HASSDomTargetEvent<HaSwitch>) => void,
+      disabled = false
     ) =>
       html`<ha-switch
         .checked=${checked}
+        .disabled=${disabled}
         aria-label=${label}
         @change=${onChange}
       ></ha-switch>`;
@@ -391,12 +498,9 @@ export class HaConfigSectionPersonal extends LitElement {
         active: true,
         valueText: this._t(`language_mode.${p.languageMode}`),
         isDefault: p.languageMode === d.languageMode,
+        held: held.has("languageMode"),
         reset: () => this._change({ languageMode: d.languageMode }, "reset"),
-        control: html`<ha-button-toggle-group
-          .buttons=${modeButtons}
-          .active=${p.languageMode}
-          @value-changed=${this._languageModeChanged}
-        ></ha-button-toggle-group>`,
+        control: this._renderModeCards(p, held.has("languageMode")),
       },
       {
         id: "funny_english",
@@ -405,18 +509,22 @@ export class HaConfigSectionPersonal extends LitElement {
         description: this._tl("funny_english.description"),
         defaultText: this._t("funny_english.default"),
         reach: this._tl("funny_english.reach"),
-        active: false,
+        active: true,
         valueText: String(p.funnyEnglish),
         isDefault: p.funnyEnglish === d.funnyEnglish,
+        held: held.has("funnyEnglish"),
         reset: () => this._change({ funnyEnglish: d.funnyEnglish }, "reset"),
-        control: slider(
-          p.funnyEnglish,
-          FUNNY_LEVEL_MIN,
-          FUNNY_LEVEL_MAX,
-          this._t("funny_english.label"),
-          (ev) =>
-            this._change({ funnyEnglish: (ev.target as HaSlider).value ?? 5 })
-        ),
+        control: html`${slider(
+            p.funnyEnglish,
+            FUNNY_LEVEL_MIN,
+            FUNNY_LEVEL_MAX,
+            this._t("funny_english.label"),
+            (ev) =>
+              this._change({
+                funnyEnglish: (ev.target as HaSlider).value ?? 5,
+              }),
+            held.has("funnyEnglish")
+          )}<span class="value">${p.funnyEnglish}</span>`,
       },
       {
         id: "funny_cantonese",
@@ -425,21 +533,82 @@ export class HaConfigSectionPersonal extends LitElement {
         description: this._tl("funny_cantonese.description"),
         defaultText: this._t("funny_cantonese.default"),
         reach: this._tl("funny_cantonese.reach"),
-        active: false,
+        active: true,
         valueText: String(p.funnyCantonese),
         isDefault: p.funnyCantonese === d.funnyCantonese,
+        held: held.has("funnyCantonese"),
         reset: () =>
           this._change({ funnyCantonese: d.funnyCantonese }, "reset"),
-        control: slider(
-          p.funnyCantonese,
-          FUNNY_LEVEL_MIN,
-          FUNNY_LEVEL_MAX,
-          this._t("funny_cantonese.label"),
-          (ev) =>
-            this._change({
-              funnyCantonese: (ev.target as HaSlider).value ?? 5,
-            })
+        control: html`${slider(
+            p.funnyCantonese,
+            FUNNY_LEVEL_MIN,
+            FUNNY_LEVEL_MAX,
+            this._t("funny_cantonese.label"),
+            (ev) =>
+              this._change({
+                funnyCantonese: (ev.target as HaSlider).value ?? 5,
+              }),
+            held.has("funnyCantonese")
+          )}<span class="value">${p.funnyCantonese}</span>`,
+      },
+      {
+        id: "dialog_emojis",
+        group: "language",
+        label: this._t("dialog_emojis.label"),
+        description: this._tl("dialog_emojis.description"),
+        defaultText: this._t("dialog_emojis.default"),
+        reach: this._tl("dialog_emojis.reach"),
+        active: true,
+        valueText: this._onOff(p.dialogEmojis),
+        isDefault: p.dialogEmojis === d.dialogEmojis,
+        held: held.has("dialogEmojis"),
+        reset: () => this._change({ dialogEmojis: d.dialogEmojis }),
+        control: toggle(
+          p.dialogEmojis,
+          this._t("dialog_emojis.label"),
+          (ev) => this._change({ dialogEmojis: ev.target.checked }),
+          held.has("dialogEmojis")
         ),
+      },
+      {
+        id: "one_thing",
+        group: "modes",
+        label: this._t("one_thing.label"),
+        description: this._tl("one_thing.description"),
+        defaultText: this._t("one_thing.default"),
+        reach: this._tl("one_thing.reach"),
+        active: true,
+        valueText: this._onOff(p.oneThingAtATime),
+        isDefault: p.oneThingAtATime === d.oneThingAtATime,
+        held: held.has("oneThingAtATime"),
+        reset: () => this._change({ oneThingAtATime: d.oneThingAtATime }),
+        control: toggle(
+          p.oneThingAtATime,
+          this._t("one_thing.label"),
+          (ev) => this._change({ oneThingAtATime: ev.target.checked }),
+          held.has("oneThingAtATime")
+        ),
+      },
+      {
+        id: "school_mode",
+        group: "modes",
+        label: this._t("school_mode.label"),
+        description: this._tl("school_mode.description"),
+        defaultText: this._t("school_mode.default"),
+        reach: this._tl("school_mode.reach"),
+        active: true,
+        valueText: this._onOff(p.schoolMode),
+        // While the mode is on it can only be changed with the PIN.
+        isDefault:
+          p.schoolMode ||
+          (p.schoolName === d.schoolName &&
+            p.schoolRules.join() === d.schoolRules.join()),
+        reset: () =>
+          this._change({
+            schoolName: d.schoolName,
+            schoolRules: d.schoolRules,
+          }),
+        control: this._renderSchool(p, schoolName),
       },
       {
         id: "sound_effects",
@@ -451,6 +620,7 @@ export class HaConfigSectionPersonal extends LitElement {
         active: true,
         valueText: this._onOff(p.soundEffects),
         isDefault: p.soundEffects === d.soundEffects,
+        held: held.has("soundEffects"),
         reset: () => this._change({ soundEffects: d.soundEffects }, "reset"),
         control: html`${toggle(
             p.soundEffects,
@@ -459,7 +629,8 @@ export class HaConfigSectionPersonal extends LitElement {
               this._change(
                 { soundEffects: ev.target.checked },
                 ev.target.checked ? "toggle-on" : undefined
-              )
+              ),
+            held.has("soundEffects")
           )}
           <ha-button appearance="plain" size="small" @click=${this._playSample}
             >${this._t("sound_effects.try")}</ha-button
@@ -551,11 +722,13 @@ export class HaConfigSectionPersonal extends LitElement {
         active: true,
         valueText: this._onOff(p.lowStimulation),
         isDefault: p.lowStimulation === d.lowStimulation,
+        held: held.has("lowStimulation"),
         reset: () => this._change({ lowStimulation: d.lowStimulation }),
         control: toggle(
           p.lowStimulation,
           this._t("low_stimulation.label"),
-          (ev) => this._change({ lowStimulation: ev.target.checked })
+          (ev) => this._change({ lowStimulation: ev.target.checked }),
+          held.has("lowStimulation")
         ),
       },
       {
@@ -836,7 +1009,12 @@ export class HaConfigSectionPersonal extends LitElement {
                       this._renderGroup(group, rows, searching)
                     )
                   : html`<p class="empty" role="status">
-                      ${this._t("search_empty", { query: this._filter.trim() })}
+                      ${this._play(
+                        "ui.personal_prefs.playful.personal_search_empty",
+                        {
+                          query: this._filter.trim(),
+                        }
+                      )}
                     </p>`
               }
             </div>
@@ -862,7 +1040,20 @@ export class HaConfigSectionPersonal extends LitElement {
       >
         <div class="card-content">
           <p class="group-note">${this._bl(`group.${group}.note`)}</p>
+          ${
+            group === "language"
+              ? html`<p class="group-note">${this._bl("playfulness_note")}</p>`
+              : nothing
+          }
           ${inGroup.map((row) => this._renderRow(row, searching))}
+          ${
+            group === "modes"
+              ? html`<div class="info" role="note">
+                  <p>${this._bl("no_praise")}</p>
+                  <p>${this._bl("honest_note")}</p>
+                </div>`
+              : nothing
+          }
         </div>
       </ha-card>
     `;
@@ -897,6 +1088,15 @@ export class HaConfigSectionPersonal extends LitElement {
           }
         </span>
         ${
+          row.held
+            ? html`<span class="silent" role="status"
+                >${this._t("school_mode.held", {
+                  name: this._prefs.schoolName,
+                })}</span
+              >`
+            : nothing
+        }
+        ${
           open
             ? html`<div class="row-details" id=${`${row.id}-details`}>
                 <span class=${classMap({ reach: true, inactive: !row.active })}
@@ -922,38 +1122,287 @@ export class HaConfigSectionPersonal extends LitElement {
   }
 
   private _renderPreview(): TemplateResult {
-    const p = this._prefs;
-    const show = (language: "en" | "yue", level: number) =>
-      this._t(`preview.${language}.level_${level}`);
-    const lines =
-      p.languageMode === "english"
-        ? [show("en", p.funnyEnglish)]
-        : p.languageMode === "cantonese"
-          ? [show("yue", p.funnyCantonese)]
-          : [show("en", p.funnyEnglish), show("yue", p.funnyCantonese)];
+    const eff = effectivePreferences(this._prefs);
+    const mode = this._lang.mode;
+    const loc = this.hass.localize;
+    const base = "ui.panel.config.personal.preview.dialog";
+    const statusKey = "ui.panel.config.personal.preview.status";
+    const modeName = textParts(
+      loc,
+      `ui.panel.config.personal.language_mode.${mode}`
+    );
+    const levels = { english: eff.funnyEnglish, cantonese: eff.funnyCantonese };
+    const statusValues = {
+      english: levels.english,
+      cantonese: levels.cantonese,
+    };
+    const statusYue = yueString(statusKey);
+    const status = {
+      english: loc(statusKey, { ...statusValues, mode: modeName.english }),
+      cantonese:
+        statusYue === undefined
+          ? undefined
+          : fillPlaceholders(statusYue, {
+              ...statusValues,
+              mode: modeName.cantonese ?? modeName.english,
+            }),
+    };
+    const bodyParts = playfulParts(
+      loc,
+      "ui.personal_prefs.playful.restart_demo.body",
+      levels
+    );
     return html`
       <ha-card class="preview-card" .header=${this._t("preview.title")}>
         <div class="card-content">
           <span class="preview-only">${this._t("preview_only")}</span>
-          <p class="group-note">${this._t("preview.note")}</p>
-          <div class="preview" role="status" aria-live="polite">
-            ${lines.map(
-              (line, index) =>
-                html`<p
-                  lang=${
-                    p.languageMode === "cantonese" ||
-                    (p.languageMode === "bilingual" && index === 1)
-                      ? "yue-Hant-HK"
-                      : "en"
-                  }
-                >
-                  ${line}
-                </p>`
-            )}
+          <p class="group-note preview-status" role="status" aria-live="polite">
+            ${renderBilingual(status, mode, " · ")}
+          </p>
+          <div class="sample-dialog" aria-live="polite">
+            ${
+              eff.dialogEmojis
+                ? html`<span class="sample-emoji" aria-hidden="true">😴</span>`
+                : nothing
+            }
+            <p class="sample-title">
+              ${renderBilingual(textParts(loc, `${base}.title`), mode, "\n")}
+            </p>
+            <p class="sample-body">${renderBilingual(bodyParts, mode, "\n")}</p>
+            <div class="sample-actions" aria-hidden="true">
+              <span class="sample-button text"
+                >${this._t("preview.dialog.not_now")}</span
+              >
+              <span class="sample-button filled"
+                >${this._t("preview.dialog.restart")}</span
+              >
+            </div>
           </div>
+          <p class="group-note">${this._bl("preview.dialog.caption")}</p>
+          <p class="group-note">${this._t("preview.note")}</p>
         </div>
       </ha-card>
     `;
+  }
+
+  /** Language mode as three cards, each with a short line under its name. */
+  private _renderModeCards(
+    p: PersonalPreferences,
+    held: boolean
+  ): TemplateResult {
+    const loc = this.hass.localize;
+    const title = (mode: LanguageMode) =>
+      loc(
+        mode === "cantonese"
+          ? "ui.panel.config.personal.language_mode.cantonese_native"
+          : mode === "english"
+            ? "ui.panel.config.personal.language_mode.english"
+            : "ui.panel.config.personal.language_mode.bilingual"
+      );
+    return html`<div
+      class="mode-cards"
+      role="group"
+      aria-label=${this._t("language_mode.label")}
+    >
+      ${LANGUAGE_MODES.map((mode) => {
+        const selected = p.languageMode === mode;
+        return html`<button
+          type="button"
+          class=${classMap({ "mode-card": true, selected })}
+          aria-pressed=${selected ? "true" : "false"}
+          ?disabled=${held}
+          data-mode=${mode}
+          @click=${this._modeCardClicked}
+        >
+          <span
+            class="mode-card-title"
+            lang=${mode === "cantonese" ? "yue-Hant-HK" : "en"}
+            >${title(mode)}</span
+          >
+          <span class="mode-card-sub"
+            >${this._t(`language_mode.sub.${mode}`)}</span
+          >
+          ${
+            selected
+              ? html`<ha-svg-icon
+                  class="mode-card-check"
+                  .path=${mdiCheckCircle}
+                ></ha-svg-icon>`
+              : nothing
+          }
+        </button>`;
+      })}
+    </div>`;
+  }
+
+  private _modeCardClicked = (ev: Event) => {
+    const mode = (ev.currentTarget as HTMLElement).dataset.mode as LanguageMode;
+    if (mode !== this._prefs.languageMode) {
+      this._change({ languageMode: mode });
+    }
+  };
+
+  /** The School mode switch, its name and the rules it applies. */
+  private _renderSchool(p: PersonalPreferences, name: string): TemplateResult {
+    return html`<ha-switch
+        .checked=${p.schoolMode}
+        aria-label=${this._t("school_mode.label")}
+        @change=${this._schoolSwitch}
+      ></ha-switch>
+      <span class="silent" role="status"
+        >${this._t(p.schoolMode ? "school_mode.status_on" : "school_mode.status_off")}</span
+      >
+      <div class="school">
+        <label class="school-name"
+          >${this._t("school_mode.name_label")}
+          <input
+            type="text"
+            maxlength=${SCHOOL_NAME_MAX}
+            .value=${name}
+            ?disabled=${p.schoolMode}
+            @change=${this._schoolName}
+          />
+        </label>
+        <fieldset class="school-rules" ?disabled=${p.schoolMode}>
+          <legend>${this._t("school_mode.rules_title")}</legend>
+          ${SCHOOL_RULES.map(
+            (rule) =>
+              html`<label class="rule"
+                ><input
+                  type="checkbox"
+                  .checked=${p.schoolRules.includes(rule)}
+                  data-rule=${rule}
+                  @change=${this._schoolRule}
+                />
+                ${this._t(`school_mode.rules.${rule}`)}</label
+              >`
+          )}
+        </fieldset>
+        ${
+          p.schoolMode
+            ? html`<span class="silent"
+                >${this._t("school_mode.locked_note")}</span
+              >`
+            : nothing
+        }
+      </div>`;
+  }
+
+  private _schoolName = (ev: Event) => {
+    const input = ev.target as HTMLInputElement;
+    this._change({ schoolName: input.value });
+    // Show what was kept when the typed name was empty.
+    input.value = this._prefs.schoolName;
+  };
+
+  private _schoolRule = (ev: Event) => {
+    const input = ev.target as HTMLInputElement;
+    const rule = input.dataset.rule as (typeof SCHOOL_RULES)[number];
+    const rules = this._prefs.schoolRules;
+    this._change({
+      schoolRules: input.checked
+        ? [...rules, rule]
+        : rules.filter((item) => item !== rule),
+    });
+  };
+
+  private _schoolSwitch = async (ev: HASSDomTargetEvent<HaSwitch>) => {
+    const toggle = ev.target;
+    if (toggle.checked) {
+      await this._schoolTurnOn();
+    } else {
+      await this._schoolTurnOff();
+    }
+    // A cancelled or refused change puts the switch back to what is stored.
+    toggle.checked = this._prefs.schoolMode;
+  };
+
+  private async _schoolTurnOn() {
+    const name = this._prefs.schoolName;
+    const pin = await showPromptDialog(this, {
+      title: this._t("school_mode.pin_set_title", { name }),
+      text: this._t("school_mode.pin_set_text"),
+      inputLabel: this._t("school_mode.pin_label"),
+      inputType: "password",
+      confirmText: this._t("on"),
+      emoji: "🎒",
+    });
+    if (pin === null) {
+      return;
+    }
+    if (!PIN_PATTERN.test(pin)) {
+      await showAlertDialog(this, {
+        title: this._t("school_mode.label"),
+        text: this._t("school_mode.pin_invalid", { name }),
+      });
+      return;
+    }
+    try {
+      const record = await createLockRecord(
+        {
+          key: SCHOOL_LOCK_KEY,
+          label: name,
+          policy: "pin",
+          duration: { kind: "session" },
+          pin,
+          onStart: false,
+        },
+        Date.now()
+      );
+      writeLocks(withLockRecord(readLocks(), record));
+      if (!readLocks().records?.[SCHOOL_LOCK_KEY]) {
+        throw new Error("not kept");
+      }
+    } catch (_err) {
+      await showAlertDialog(this, {
+        title: this._t("school_mode.label"),
+        text: this._t("school_mode.pin_not_saved", { name }),
+      });
+      return;
+    }
+    this._change({ schoolMode: true });
+    showToast(this, { message: this._t("school_mode.on_done", { name }) });
+  }
+
+  private async _schoolTurnOff() {
+    const name = this._prefs.schoolName;
+    const store = readLocks();
+    const record = store.records?.[SCHOOL_LOCK_KEY];
+    if (record) {
+      const pin = await showPromptDialog(this, {
+        title: this._t("school_mode.pin_off_title", { name }),
+        text: this._t("school_mode.pin_off_text"),
+        inputLabel: this._t("school_mode.pin_label"),
+        inputType: "password",
+        confirmText: this._t("off"),
+        emoji: "🎒",
+      });
+      if (pin === null) {
+        return;
+      }
+      const result = await checkAll(record, { pin }, Date.now());
+      // A wrong try is counted, so the next ones have to wait.
+      writeLocks(withUpdatedRecord(store, result.record));
+      if (result.outcome === "wait") {
+        await showAlertDialog(this, {
+          title: this._t("school_mode.label"),
+          text: this._t("school_mode.pin_wait", {
+            seconds: Math.ceil(result.waitMs / 1000),
+          }),
+        });
+        return;
+      }
+      if (result.outcome === "wrong") {
+        await showAlertDialog(this, {
+          title: this._t("school_mode.label"),
+          text: this._t("school_mode.pin_wrong", { name }),
+        });
+        return;
+      }
+    }
+    writeLocks(withLock(readLocks(), SCHOOL_LOCK_KEY, false));
+    this._change({ schoolMode: false });
+    showToast(this, { message: this._t("school_mode.off_done", { name }) });
   }
 
   private _renderVoicePicker(language: SpeechLanguage, chosen: string) {
@@ -1037,6 +1486,10 @@ export class HaConfigSectionPersonal extends LitElement {
     const id = (ev.currentTarget as HTMLElement).dataset.row as string;
     const open = new Set(this._open);
     if (!open.delete(id)) {
+      // One thing at a time: opening a row closes the others.
+      if (effectivePreferences(this._prefs).oneThingAtATime) {
+        open.clear();
+      }
       open.add(id);
     }
     this._open = open;
@@ -1060,7 +1513,8 @@ export class HaConfigSectionPersonal extends LitElement {
     if (!changing.length) {
       await showAlertDialog(this, {
         title: this._t("reset_all_title"),
-        text: this._t("reset_all_none"),
+        text: this._play("ui.personal_prefs.playful.personal_reset_none"),
+        emoji: "👍",
       });
       return;
     }
@@ -1081,6 +1535,7 @@ export class HaConfigSectionPersonal extends LitElement {
         </ul>`,
       confirmText: this._t("reset_all"),
       destructive: true,
+      emoji: "🔄",
     });
     if (confirmed) {
       this._resetAll();
@@ -1101,10 +1556,6 @@ export class HaConfigSectionPersonal extends LitElement {
     }
   }
 
-  private _languageModeChanged = (ev: CustomEvent<{ value: string }>) => {
-    this._change({ languageMode: ev.detail.value as LanguageMode });
-  };
-
   private _playSample = () => {
     playActionCue("sample");
   };
@@ -1120,9 +1571,21 @@ export class HaConfigSectionPersonal extends LitElement {
   }
 
   private _resetAll = () => {
+    const school = this._prefs;
     this._prefs = resetPersonalPreferences();
+    if (school.schoolMode) {
+      // School mode is turned off only with its PIN, never by a reset.
+      this._prefs = updatePersonalPreferences({
+        schoolMode: true,
+        schoolName: school.schoolName,
+        schoolRules: school.schoolRules,
+      });
+    }
     this._setReduceMotion(false);
     playActionCue("reset");
+    showToast(this, {
+      message: this._play("ui.personal_prefs.playful.personal_reset_done"),
+    });
   };
 
   static styles: CSSResultGroup = css`
@@ -1367,6 +1830,174 @@ export class HaConfigSectionPersonal extends LitElement {
       margin: 0 0 var(--ha-space-2);
       font-size: var(--ha-font-size-l);
       overflow-wrap: anywhere;
+    }
+    .mode-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--ha-space-2);
+      flex-basis: 100%;
+    }
+    .narrow .mode-cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .mode-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--ha-space-1);
+      min-height: 72px;
+      padding: var(--ha-space-3) var(--ha-space-4);
+      padding-inline-end: var(--ha-space-10, 40px);
+      font: inherit;
+      text-align: start;
+      color: var(--primary-text-color);
+      background: var(--secondary-background-color);
+      border: 2px solid transparent;
+      border-radius: 16px;
+      cursor: pointer;
+      overflow-wrap: anywhere;
+    }
+    .mode-card.selected {
+      background: var(--primary-color);
+      color: var(--text-primary-color);
+    }
+    .mode-card:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+    .mode-card:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .mode-card-title {
+      font-size: var(--ha-font-size-xl);
+    }
+    .mode-card-sub {
+      font-size: var(--ha-font-size-s);
+    }
+    .mode-card-check {
+      position: absolute;
+      inset-inline-end: var(--ha-space-3);
+      inset-block-start: var(--ha-space-3);
+    }
+    .level {
+      min-width: 2ch;
+    }
+    .school {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      flex-basis: 100%;
+    }
+    .school-name {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-2);
+    }
+    .school-name input {
+      min-height: 44px;
+      min-width: 0;
+      flex: 1 1 160px;
+      font: inherit;
+      color: var(--primary-text-color);
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      padding: 0 var(--ha-space-2);
+    }
+    .school-rules {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      min-width: 0;
+    }
+    .school-rules legend {
+      padding: 0;
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .rule {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-height: 44px;
+    }
+    .rule input {
+      width: 24px;
+      height: 24px;
+      flex: none;
+    }
+    .info {
+      padding: var(--ha-space-3) var(--ha-space-4);
+      border-radius: 16px;
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+      white-space: pre-line;
+    }
+    .info p {
+      margin: 0;
+    }
+    .info p + p {
+      margin-top: var(--ha-space-2);
+    }
+    .yue-toggle {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 var(--ha-space-2);
+      font: inherit;
+      color: var(--primary-color);
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .yue-toggle:focus-visible {
+      outline: 2px solid var(--primary-color);
+    }
+    .sample-dialog {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-5, 20px);
+      border-radius: 28px;
+      background: var(--card-background-color);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      min-width: 0;
+    }
+    .sample-emoji {
+      font-size: 32px;
+      line-height: 1;
+    }
+    .sample-dialog p {
+      margin: 0;
+      overflow-wrap: anywhere;
+      white-space: pre-line;
+    }
+    .sample-title {
+      font-size: var(--ha-font-size-xl);
+    }
+    .sample-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: var(--ha-space-2);
+    }
+    .sample-button {
+      padding: var(--ha-space-2) var(--ha-space-4);
+      border-radius: 20px;
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .sample-button.text {
+      color: var(--primary-color);
+    }
+    .sample-button.filled {
+      background: var(--primary-color);
+      color: var(--text-primary-color);
+    }
+    .preview-status {
+      font-size: var(--ha-font-size-s);
     }
     @media (max-width: 900px) {
       .content:not(.narrow) .layout {

@@ -4,40 +4,79 @@
       "date": "2026-11-10",
       "items": [
         {
-          "text": "Dashboards: built-in pages such as Overview have \"Edit cards and layout\", which makes an editable copy and opens it in the editor. On a phone the edit button sits beside the menu."
+          "text": "Fixed: on a phone the welcome banner covered the Overview header, so its menu and edit button could not be reached. \"Edit cards and layout\" now opens the copy in the editor."
         },
         {
-          "text": "Dashboards can be exported and imported, and a dashboard file dropped anywhere on the window is imported at once as a new dashboard, with Undo."
+          "text": "A dropped dashboard file shows what it contains before anything is made: outside addresses, custom cards and buttons that would call a service. Imports start hidden from the rail and visible to administrators only."
         },
         {
-          "text": "Every dashboard has its own history, and so has every tab: see what changed, compare two versions and go back. The dashboard's repository carries its tabs with it."
+          "text": "Dashboard history: set an address and push a dashboard with all its tabs, forget a dashboard's history, and a deleted dashboard's history is set aside, not reused."
         },
         {
-          "text": "Help links open a copy of the article inside the interface. Nothing opens a new tab or another browser for help. The first 44 articles are included, with their source and licence."
+          "text": "Help: every remaining help link opens inside the interface, including on the sign-in page. All 1,392 integration pages and their pictures are included. Community links are removed."
         },
         {
-          "text": "Passkeys: sign in with a fingerprint, face or security key on a secure address, beside the password, which stays. Add and remove passkeys on the profile page."
+          "text": "Passkeys: a flood of empty attempts can no longer stop passkey sign-in, and removing a passkey needs a recent password sign-in."
         },
         {
-          "text": "The automation editor moves: cards open and close smoothly, new steps slide in, results fade in. All of it respects the reduce-motion setting."
+          "text": "New tools: a file converter and a drawing board. New pages: Ollama servers and models, renaming the app and its logo, and release notes."
         },
         {
-          "text": "A page for Minecraft servers under Settings: define servers with a guided form. Starting them comes next."
+          "text": "Personal settings: language cards, playfulness sliders that change real messages, a switch for emojis in dialogs, one thing at a time, and School mode."
         },
         {
-          "text": "First-run setup no longer offers a cloud restore or links to outside sites, and nothing contacts an outside map service until you press a button that says so."
+          "text": "Fixed: a section could stay stuck half open, first-run setup could leave both buttons off, and a list's header checkbox could leave hidden rows selected."
         },
         {
-          "text": "Backups: a storage location that needs encryption is off while encryption is off, and a stored key is never replaced or removed without asking."
+          "text": "Builds: a documentation push on top of code no longer leaves that code unbuilt."
         },
         {
-          "text": "The selection bar is on the Automations and Scripts lists and no longer covers the last rows. Unknown pages under Settings show a not-found screen."
+          "text": "Dashboards: built-in pages such as Overview have \"Edit cards and layout\", which makes an editable copy and opens it in the editor. On a phone the edit button sits beside the menu.",
+          "commit": "bcbe96343acb"
         },
         {
-          "text": "Fixed: a debug log could have contained the key file used by Google setup. Secrets are masked more widely in the setup wizards."
+          "text": "Dashboards can be exported and imported, and a dashboard file dropped anywhere on the window is imported at once as a new dashboard, with Undo.",
+          "commit": "bcbe96343acb"
         },
         {
-          "text": "The launch screen no longer says the project is from the Open Home Foundation."
+          "text": "Every dashboard has its own history, and so has every tab: see what changed, compare two versions and go back. The dashboard's repository carries its tabs with it.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "Help links open a copy of the article inside the interface. Nothing opens a new tab or another browser for help. The first 44 articles are included, with their source and licence.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "Passkeys: sign in with a fingerprint, face or security key on a secure address, beside the password, which stays. Add and remove passkeys on the profile page.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "The automation editor moves: cards open and close smoothly, new steps slide in, results fade in. All of it respects the reduce-motion setting.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "A page for Minecraft servers under Settings: define servers with a guided form. Starting them comes next.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "First-run setup no longer offers a cloud restore or links to outside sites, and nothing contacts an outside map service until you press a button that says so.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "Backups: a storage location that needs encryption is off while encryption is off, and a stored key is never replaced or removed without asking.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "The selection bar is on the Automations and Scripts lists and no longer covers the last rows. Unknown pages under Settings show a not-found screen.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "Fixed: a debug log could have contained the key file used by Google setup. Secrets are masked more widely in the setup wizards.",
+          "commit": "bcbe96343acb"
+        },
+        {
+          "text": "The launch screen no longer says the project is from the Open Home Foundation.",
+          "commit": "bcbe96343acb"
         },
         {
           "text": "Google setup: a wizard under Settings sets Google up once for every Google integration. A service account key file can switch on the needed services (used once, never stored), the page shows the return address to copy, and the client file is read by dropping it.",

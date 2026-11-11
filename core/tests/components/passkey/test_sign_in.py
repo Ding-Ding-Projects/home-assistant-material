@@ -4,6 +4,7 @@ import asyncio
 from datetime import timedelta
 import hashlib
 from http import HTTPStatus
+import json
 import logging
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -221,12 +222,58 @@ async def test_challenge_is_single_use(
     await _assert_refused(second)
 
 
-async def test_challenge_is_spent_by_a_failed_attempt(
+async def test_refused_attempts_do_not_fill_the_replay_set(
+    hass: HomeAssistant,
+    hass_client_no_auth: ClientSessionGenerator,
+    account: Account,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Finishes that never carry a valid assertion cannot block real sign-ins."""
+    monkeypatch.setattr(
+        "homeassistant.components.passkey.sign_in_token.MAX_USED_SIGN_IN_TOKENS", 3
+    )
+    unknown = await create_account(hass, "Unknown", register=False)
+    client = await hass_client_no_auth()
+
+    for _ in range(10):
+        body = await (await _begin(client)).json()
+        assertion = unknown.authenticator.get(
+            body["options"], user_handle=unknown.handle
+        )
+        await _assert_refused(await _finish(client, body["challenge_id"], assertion))
+        await _assert_refused(await _finish(client, body["challenge_id"], {}))
+
+    assert hass.data[DATA_STORE].sign_in_tokens._used == {}
+    resp = await _sign_in(client, account.authenticator, account.handle)
+    assert resp.status == HTTPStatus.OK
+
+
+async def test_full_replay_set_still_lets_a_genuine_sign_in_through(
+    hass: HomeAssistant,
+    hass_client_no_auth: ClientSessionGenerator,
+    account: Account,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the replay set is full the oldest entry is dropped, not the newcomer."""
+    monkeypatch.setattr(
+        "homeassistant.components.passkey.sign_in_token.MAX_USED_SIGN_IN_TOKENS", 2
+    )
+    client = await hass_client_no_auth()
+
+    for counter in range(1, 5):
+        resp = await _sign_in(
+            client, account.authenticator, account.handle, counter=counter
+        )
+        assert resp.status == HTTPStatus.OK
+        assert len(hass.data[DATA_STORE].sign_in_tokens._used) <= 2
+
+
+async def test_failed_attempt_does_not_spend_the_challenge_but_a_good_one_does(
     hass: HomeAssistant,
     hass_client_no_auth: ClientSessionGenerator,
     account: Account,
 ) -> None:
-    """A refused attempt also uses up its challenge."""
+    """A refused assertion leaves the challenge usable once; success spends it."""
     client = await hass_client_no_auth()
     body = await (await _begin(client)).json()
     bad = account.authenticator.get(
@@ -235,7 +282,46 @@ async def test_challenge_is_spent_by_a_failed_attempt(
     good = account.authenticator.get(body["options"], user_handle=account.handle)
 
     await _assert_refused(await _finish(client, body["challenge_id"], bad))
+    assert (await _finish(client, body["challenge_id"], good)).status == HTTPStatus.OK
     await _assert_refused(await _finish(client, body["challenge_id"], good))
+
+
+async def test_replay_of_a_zero_counter_assertion_is_refused(
+    hass: HomeAssistant,
+    hass_client_no_auth: ClientSessionGenerator,
+    account: Account,
+) -> None:
+    """An authenticator without a counter is still protected by the token."""
+    client = await hass_client_no_auth()
+    body = await (await _begin(client)).json()
+    assertion = account.authenticator.get(
+        body["options"], user_handle=account.handle, counter=0
+    )
+
+    assert (
+        await _finish(client, body["challenge_id"], assertion)
+    ).status == HTTPStatus.OK
+    await _assert_refused(await _finish(client, body["challenge_id"], assertion))
+
+
+async def test_non_ascii_challenge_id_is_a_counted_refusal(
+    hass: HomeAssistant,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    """A token that is not plain ASCII is refused like any other bad token."""
+    client = await hass_client_no_auth()
+
+    with patch(
+        "homeassistant.components.http.ban.process_wrong_login", AsyncMock()
+    ) as wrong_login:
+        resp = await client.post(
+            FINISH_URL,
+            data=json.dumps({"challenge_id": "café.sig", "credential": {}}),
+            headers={**LOCALHOST, "Content-Type": "application/json"},
+        )
+
+    await _assert_refused(resp)
+    wrong_login.assert_awaited_once()
 
 
 async def test_challenge_expires(

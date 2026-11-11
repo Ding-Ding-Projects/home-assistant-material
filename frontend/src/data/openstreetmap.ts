@@ -36,7 +36,7 @@ export const searchPlaces = (
   limit?: number
 ): Promise<OpenStreetMapPlace[]> =>
   fetch(
-    `https://nominatim.openstreetmap.org/search.php?q=${address}&format=jsonv2${
+    `https://nominatim.openstreetmap.org/search.php?q=${encodeURIComponent(address)}&format=jsonv2${
       limit ? `&limit=${limit}` : ""
     }${addressdetails ? "&addressdetails=1" : ""}&accept-language=${
       hass.locale.language

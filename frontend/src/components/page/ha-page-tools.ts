@@ -371,9 +371,18 @@ export class HaPageTools extends LitElement {
       return;
     }
     this._reading = true;
-    const started = readAloud(chunks, this._i18n.language, () => {
-      this._reading = false;
-    });
+    const started = readAloud(
+      chunks,
+      this._i18n.language,
+      () => {
+        this._reading = false;
+      },
+      () => {
+        showToast(this, {
+          message: this._i18n.localize("ui.page_tools.no_device_voice"),
+        });
+      }
+    );
     if (!started) {
       showToast(this, {
         message: this._i18n.localize("ui.page_tools.no_device_voice"),

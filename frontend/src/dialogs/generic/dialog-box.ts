@@ -15,6 +15,7 @@ import type { HaTextArea } from "../../components/ha-textarea";
 import "../../components/input/ha-input";
 import type { HaInput } from "../../components/input/ha-input";
 import { DirtyStateProviderMixin } from "../../mixins/dirty-state-provider-mixin";
+import { getPersonalPreferences } from "../../common/preferences/personal-preferences";
 import type { HomeAssistant } from "../../types";
 import type { DialogBoxParams } from "./show-dialog-box";
 
@@ -86,6 +87,22 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     return true;
   }
 
+  // One emoji in front of the title, only when the person allows it. It is
+  // hidden from screen readers, so the title still says everything.
+  private _emoji() {
+    const emoji = this._params?.emoji;
+    const allowed = (() => {
+      try {
+        return getPersonalPreferences().dialogEmojis;
+      } catch (_err) {
+        return true;
+      }
+    })();
+    return emoji && allowed
+      ? html`<span class="emoji" aria-hidden="true">${emoji}</span> `
+      : nothing;
+  }
+
   protected render() {
     if (!this._params) {
       return nothing;
@@ -146,7 +163,7 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
                   ></ha-svg-icon> `
                 : nothing
             }
-            ${dialogTitle}
+            ${this._emoji()}${dialogTitle}
           </h1>
           ${
             this._params.subtitle
@@ -415,6 +432,9 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     }
     .after-input {
       margin-top: var(--ha-space-4);
+    }
+    .emoji {
+      margin-inline-end: var(--ha-space-2);
     }
     .title {
       font-weight: inherit;

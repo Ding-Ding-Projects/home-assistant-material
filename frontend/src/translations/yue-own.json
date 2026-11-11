@@ -42,6 +42,11 @@
               "title": "語音朗讀",
               "chip": "朗讀",
               "note": "讀出你將焦點放喺或者撳落嘅控制元件名稱，用你部裝置自己嘅語音。冇嘢會傳送去任何地方。"
+            },
+            "modes": {
+              "title": "學校模式同專注",
+              "chip": "模式",
+              "note": "只會改變畫面行為嘅模式，冇其他作用，亦唔係醫療工具。"
             }
           },
           "language_mode": {
@@ -51,19 +56,25 @@
             "reach": "套用喺個人設定頁、手機列、鎖同個人用字檔案。介面其餘部分暫時未有廣東話版本，會繼續顯示英文。",
             "english": "英文",
             "cantonese": "廣東話",
-            "bilingual": "兩樣都要"
+            "bilingual": "兩樣都要",
+            "cantonese_native": "廣東話",
+            "sub": {
+              "english": "一種語言",
+              "cantonese": "香港廣東話",
+              "bilingual": "英文先，廣東話喺旁邊"
+            }
           },
           "funny_english": {
             "label": "英文嘅趣味程度",
             "description": "由 1（好正經）到 5（盡情搞笑）。",
             "default": "5。",
-            "reach": "已儲存，只套用喺呢頁嘅預覽。介面其餘部分暫時未跟呢個程度。"
+            "reach": "套用喺呢度嘅預覽，同每條有趣味版本嘅訊息。冇趣味版本嘅訊息會保持原文。"
           },
           "funny_cantonese": {
             "label": "廣東話嘅趣味程度",
             "description": "由 1（好正經）到 5（盡情搞笑），同英文程度各自獨立。",
             "default": "5。",
-            "reach": "已儲存，只套用喺呢頁嘅預覽。介面其餘部分暫時未跟呢個程度。"
+            "reach": "套用喺呢度嘅預覽，同每條有趣味版本嘅訊息。冇趣味版本嘅訊息會保持原文。"
           },
           "sound_effects": {
             "label": "操作提示音",
@@ -185,6 +196,63 @@
             "reach": "部裝置有語音合成就生效。仍然跟隨提示音開關同靜音時段。",
             "text": "呢個係朗讀功能，會讀出每個控制元件嘅名稱。",
             "failed": "讀唔到出聲。呢部裝置可能冇所選語言嘅本機語音，又或者聲音熄咗、而家係靜音時段。"
+          },
+          "show_cantonese": "顯示廣東話",
+          "hide_cantonese": "收埋廣東話",
+          "playfulness_note": "改變選擇性訊息嘅語氣，事實永遠唔變。1 係好正經，5 係盡情搞笑。每種語言各有自己嘅程度。",
+          "level_value": "程度 {level}",
+          "no_praise": "呢啲設定入面唔會有連續紀錄、分數或者讚賞。開咗學校模式，趣味程度會一直關閉。",
+          "honest_note": "學校模式只係呢個瀏覽器入面嘅舒適功能，唔係保安防線，亦唔會控制邊個可以更改 Home Assistant 設定。",
+          "dialog_emojis": {
+            "label": "喺對話框同訊息框顯示表情符號",
+            "description": "每個有提供嘅對話框顯示一個合適嘅表情符號，永遠唔會出現喺按鈕、標籤或者螢幕閱讀器讀出嘅名稱。",
+            "default": "開。",
+            "reach": "對有提供表情符號嘅對話框生效。而家係呢頁嘅還原對話框同呢度嘅預覽，其他對話框暫時未有。"
+          },
+          "one_thing": {
+            "label": "一次一件事",
+            "description": "一次只展開一個摺疊面板：打開一個，旁邊其他嘅會自動收埋。",
+            "default": "關。",
+            "reach": "對所有將摺疊面板並排擺喺同一個列表嘅頁面生效，其他類型嘅區塊唔受影響。"
+          },
+          "school_mode": {
+            "label": "學校模式",
+            "description": "呢個瀏覽器嘅舒適設定。開咗之後，你揀嘅規則會一直生效，要用 PIN 先可以關閉。",
+            "default": "關。",
+            "reach": "只喺呢個瀏覽器生效。任何人只要清除呢個瀏覽器嘅儲存資料，就可以移除。",
+            "status_on": "喺呢個瀏覽器已開啟",
+            "status_off": "關閉",
+            "name_label": "名稱",
+            "rules_title": "開咗之後",
+            "rules": {
+              "plain_english": "純英文：冇廣東話、冇雙語模式、冇趣味",
+              "low_stimulation": "低刺激",
+              "quiet_sounds": "冇操作提示音",
+              "no_emojis": "對話框唔顯示表情符號",
+              "one_thing": "一次一件事"
+            },
+            "held": "{name}開咗期間由佢控制。",
+            "locked_note": "要先關閉模式，先可以改名或者改規則。",
+            "pin_set_title": "為{name}設定 PIN",
+            "pin_set_text": "揀 4 至 12 個數字。關閉模式嗰陣會要求呢個 PIN。佢會以加鹽雜湊形式儲存喺呢個瀏覽器。",
+            "pin_label": "PIN",
+            "pin_invalid": "PIN 要有 4 至 12 個數字。{name}保持關閉。",
+            "pin_off_title": "關閉{name}？",
+            "pin_off_text": "輸入你設定嘅 PIN。",
+            "pin_wrong": "PIN 唔啱。{name}保持開啟。",
+            "pin_wait": "試咗太多次，請 {seconds} 秒後再試。",
+            "pin_not_saved": "PIN 儲存唔到喺呢個瀏覽器。{name}保持關閉。",
+            "on_done": "{name}已開啟。",
+            "off_done": "{name}已關閉。"
+          },
+          "preview": {
+            "status": "即時預覽，{mode}，英文 {english}，廣東話 {cantonese}",
+            "dialog": {
+              "title": "重新啟動 Home Assistant？",
+              "not_now": "遲啲先",
+              "restart": "重新啟動",
+              "caption": "窄畫面會將第二種語言收喺撳一下之後，標籤就唔會擠逼。"
+            }
           }
         }
       }
@@ -212,6 +280,38 @@
         "quiet_hours": {
           "label": "靜音時段",
           "description": "喺你揀嘅日子，兩個時間之間唔播操作提示音，語音朗讀都會靜音。鬧鐘唔受影響。"
+        }
+      },
+      "playful": {
+        "restart_demo": {
+          "body": {
+            "level_1": "Home Assistant 會重新啟動，大約需要一分鐘。重新啟動期間，自動化會暫停。",
+            "level_2": "Home Assistant 大約一分鐘後重新啟動，期間自動化會暫停。",
+            "level_3": "Home Assistant 會休息大約一分鐘，之後返嚟。期間自動化會暫停。",
+            "level_4": "全部會小休大約一分鐘，之後精神啲返嚟。休息期間自動化會暫停。",
+            "level_5": "全部會瞓大約一分鐘先返嚟，精神啲。期間自動化會暫停，唔使擔心。"
+          }
+        },
+        "personal_search_empty": {
+          "level_1": "冇個人設定符合「{query}」。",
+          "level_2": "個人設定入面搵唔到「{query}」。",
+          "level_3": "呢度暫時搵唔到「{query}」。",
+          "level_4": "嗯，「{query}」喺個人設定入面一個都冇。",
+          "level_5": "周圍都搵過晒，「{query}」匿得好好，一個都冇。"
+        },
+        "personal_reset_none": {
+          "level_1": "所有個人設定都已經係預設值，唔會有任何改變。",
+          "level_2": "全部個人設定已經係預設值，冇嘢會變。",
+          "level_3": "全部已經係預設值，所以冇嘢要改。",
+          "level_4": "全部已經係預設值，冇嘢要還原，整整齊齊！",
+          "level_5": "每個設定都已經係預設值，冇嘢要還原，乾淨企理！"
+        },
+        "personal_reset_done": {
+          "level_1": "個人設定已經還原做預設值。",
+          "level_2": "所有個人設定已經返回預設值。",
+          "level_3": "還原完成，全部返回預設值。",
+          "level_4": "還原咗！每個設定都返去番原位。",
+          "level_5": "還原咗！全部打回原形，好似新嘅一樣。"
         }
       }
     },

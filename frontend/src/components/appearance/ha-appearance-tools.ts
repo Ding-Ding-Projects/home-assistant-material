@@ -58,6 +58,7 @@ import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import { isMac } from "../../util/is_mac";
 import "../ha-svg-icon";
 import "../input/ha-input-search";
+import { openHelpUrl } from "../help/open-help-article";
 import type { HaInputSearch } from "../input/ha-input-search";
 import type { PageTool } from "../page/ha-page-tools";
 import "./ha-appearance-editor";
@@ -779,7 +780,7 @@ export class HaAppearanceTools extends LitElement {
           id: "open_link_tab",
           icon: mdiTabPlus,
           label: this._l("menu_open_new_tab"),
-          run: () => window.open(link.href, "_blank", "noreferrer"),
+          run: () => openHelpUrl(this, link.href, "_blank", "noreferrer"),
         }
       );
     }
@@ -822,7 +823,8 @@ export class HaAppearanceTools extends LitElement {
           const started = readAloud(
             collectReadableText(element),
             this._i18n?.locale?.language ?? navigator.language,
-            () => undefined
+            () => undefined,
+            () => this._announce(this._l("no_device_voice"))
           );
           if (!started) {
             this._announce(this._l("no_device_voice"));

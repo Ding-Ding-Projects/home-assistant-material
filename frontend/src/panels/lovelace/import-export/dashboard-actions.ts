@@ -30,8 +30,10 @@ import {
   appendViewToConfig,
   buildDashboardEnvelope,
   buildViewEnvelope,
+  configIsAsImported,
   exportFileName,
   pickNewDashboardUrlPath,
+  removeImportedView,
 } from "./dashboard-file";
 
 /** The generated pages that can be turned into an editable dashboard. */
@@ -222,6 +224,64 @@ const takenUrlPaths = (
   return taken;
 };
 
+/** The address a new dashboard would get right now, for showing. */
+export const previewDashboardUrlPath = async (
+  hass: HomeAssistant,
+  title: string,
+  preferred: string | undefined
+): Promise<string> => {
+  const dashboards = await fetchDashboards(hass).catch(() => []);
+  return pickNewDashboardUrlPath(
+    title,
+    preferred,
+    takenUrlPaths(hass, dashboards)
+  );
+};
+
+// Imports and copies run one at a time. Each one reads the list of
+// dashboards when it starts, so two at once would pick the same address.
+let importQueue: Promise<unknown> = Promise.resolve();
+
+const inSequence = <T>(task: () => Promise<T>): Promise<T> => {
+  const run = importQueue.then(task, task);
+  importQueue = run.catch(() => undefined);
+  return run;
+};
+
+// Work that is already running, by name, so a repeated press adds nothing.
+const busyWork = new Set<string>();
+
+const runOnce = async (
+  name: string,
+  work: () => Promise<void>
+): Promise<void> => {
+  if (busyWork.has(name)) {
+    return;
+  }
+  busyWork.add(name);
+  try {
+    await work();
+  } finally {
+    busyWork.delete(name);
+  }
+};
+
+/**
+ * Saves the default page for everyone who has no personal default. The
+ * stored system data is read again first, so a change made elsewhere since
+ * the page was opened is kept.
+ */
+export const saveDefaultPanel = async (
+  hass: HomeAssistant,
+  urlPath: string
+): Promise<void> => {
+  const fresh = await fetchFrontendSystemData(hass.connection, "core");
+  await saveFrontendSystemData(hass.connection, "core", {
+    ...(fresh ?? {}),
+    default_panel: urlPath,
+  });
+};
+
 /** Waits briefly until a new dashboard is known as a page, then opens it. */
 const openDashboard = async (
   ctx: ImportExportContext,
@@ -247,33 +307,45 @@ const createDashboardWithConfig = async (
   settings: DashboardFileSettings,
   config: LovelaceConfig,
   preferredPath?: string
-): Promise<CreatedDashboard> => {
-  const dashboards = await fetchDashboards(hass);
-  const urlPath = pickNewDashboardUrlPath(
-    settings.title,
-    preferredPath,
-    takenUrlPaths(hass, dashboards)
-  );
-  const dashboard = await createDashboard(hass, {
-    url_path: urlPath,
-    mode: "storage",
-    title: settings.title,
-    icon: settings.icon,
-    require_admin: settings.require_admin,
-    show_in_sidebar: settings.show_in_sidebar,
+): Promise<CreatedDashboard> =>
+  inSequence(async () => {
+    const dashboards = await fetchDashboards(hass);
+    const urlPath = pickNewDashboardUrlPath(
+      settings.title,
+      preferredPath,
+      takenUrlPaths(hass, dashboards)
+    );
+    const dashboard = await createDashboard(hass, {
+      url_path: urlPath,
+      mode: "storage",
+      title: settings.title,
+      icon: settings.icon,
+      require_admin: settings.require_admin,
+      show_in_sidebar: settings.show_in_sidebar,
+    });
+    try {
+      await saveConfig(hass, dashboard.url_path, config);
+    } catch (err) {
+      // Leave nothing half made behind.
+      await deleteDashboard(hass, dashboard.id).catch(() => undefined);
+      throw err;
+    }
+    return { dashboard };
   });
-  try {
-    await saveConfig(hass, dashboard.url_path, config);
-  } catch (err) {
-    // Leave nothing half made behind.
-    await deleteDashboard(hass, dashboard.id).catch(() => undefined);
-    throw err;
-  }
-  return { dashboard };
-};
 
 export const importErrorText = (hass: HomeAssistant, error: string): string =>
   hass.localize(key(`errors.${error}`)) || hass.localize(key("errors.failed"));
+
+/** Who sees an imported dashboard. Chosen by the person, never by the file. */
+export interface ImportVisibility {
+  requireAdmin: boolean;
+  showInSidebar: boolean;
+}
+
+export const DEFAULT_IMPORT_VISIBILITY: ImportVisibility = {
+  requireAdmin: true,
+  showInSidebar: false,
+};
 
 const showImportError = (ctx: ImportExportContext, error: string) => {
   const hass = currentHass(ctx);
@@ -290,7 +362,8 @@ const showImportError = (ctx: ImportExportContext, error: string) => {
  */
 export const importDashboardData = async (
   ctx: ImportExportContext,
-  parsed: Extract<ParsedDashboardImport, { ok: true; kind: "dashboard" }>
+  parsed: Extract<ParsedDashboardImport, { ok: true; kind: "dashboard" }>,
+  options: ImportVisibility = DEFAULT_IMPORT_VISIBILITY
 ): Promise<void> => {
   const hass = currentHass(ctx);
   if (!hass.user?.is_admin) {
@@ -298,9 +371,14 @@ export const importDashboardData = async (
     return;
   }
   try {
+    // The person's choices count, whatever the file says.
     const { dashboard } = await createDashboardWithConfig(
       hass,
-      parsed.settings,
+      {
+        ...parsed.settings,
+        require_admin: options.requireAdmin,
+        show_in_sidebar: options.showInSidebar,
+      },
       parsed.config,
       parsed.settings.url_path
     );
@@ -320,6 +398,26 @@ export const importDashboardData = async (
         text: hass.localize(key("undo")),
         action: async () => {
           try {
+            // Undo removes the dashboard, so first check it is still as it
+            // was imported. If it was edited, the person decides.
+            const current = await fetchConfig(
+              currentHass(ctx).connection,
+              dashboard.url_path,
+              true
+            ).catch(() => undefined);
+            if (!current || !configIsAsImported(current, parsed.config)) {
+              const hassNow = currentHass(ctx);
+              const sure = await showConfirmationDialog(ctx.element, {
+                title: hassNow.localize(key("undo_edited.title")),
+                text: hassNow.localize(key("undo_edited.text")),
+                confirmText: hassNow.localize(key("undo_edited.confirm")),
+                dismissText: hassNow.localize("ui.common.cancel"),
+                destructive: true,
+              });
+              if (!sure) {
+                return;
+              }
+            }
             await deleteDashboard(currentHass(ctx), dashboard.id);
             showToast(ctx.element, {
               message: currentHass(ctx).localize(key("undone")),
@@ -353,19 +451,24 @@ export const importViewData = async (
     return;
   }
   try {
-    const raw = await fetchConfig(
-      hass.connection,
-      targetUrlPath === "lovelace" ? null : targetUrlPath,
-      true
-    );
-    // A dashboard that is generated has to be a plain configuration first.
-    const config = await expandLovelaceConfigStrategies(raw, hass);
-    const updated = appendViewToConfig(config, parsed.view);
-    await saveConfig(
-      hass,
-      targetUrlPath === "lovelace" ? null : targetUrlPath,
-      updated
-    );
+    // Read and save in one step, one import at a time, so a second import
+    // into the same dashboard starts from what the first one saved.
+    const addedView = await inSequence(async () => {
+      const raw = await fetchConfig(
+        hass.connection,
+        targetUrlPath === "lovelace" ? null : targetUrlPath,
+        true
+      );
+      // A dashboard that is generated has to be a plain configuration first.
+      const config = await expandLovelaceConfigStrategies(raw, hass);
+      const updated = appendViewToConfig(config, parsed.view);
+      await saveConfig(
+        hass,
+        targetUrlPath === "lovelace" ? null : targetUrlPath,
+        updated
+      );
+      return updated.views[updated.views.length - 1];
+    });
     showToast(ctx.element, {
       message: `${hass.localize(key("view_imported"))}${
         parsed.stripped ? ` ${hass.localize(key("stripped_note"))}` : ""
@@ -382,11 +485,24 @@ export const importViewData = async (
         text: hass.localize(key("undo")),
         action: async () => {
           try {
-            await saveConfig(
-              currentHass(ctx),
-              targetUrlPath === "lovelace" ? null : targetUrlPath,
-              raw
+            // Remove only the added view, and only while it is still as
+            // imported. Later edits to the dashboard are never overwritten.
+            const path = targetUrlPath === "lovelace" ? null : targetUrlPath;
+            const current = await fetchConfig(
+              currentHass(ctx).connection,
+              path,
+              true
             );
+            const without = removeImportedView(current, addedView);
+            if (!without) {
+              showToast(ctx.element, {
+                message: currentHass(ctx).localize(key("undo_view_changed")),
+                duration: 8000,
+                dismissable: true,
+              });
+              return;
+            }
+            await saveConfig(currentHass(ctx), path, without);
             showToast(ctx.element, {
               message: currentHass(ctx).localize(key("undone")),
             });
@@ -412,7 +528,7 @@ export const importViewData = async (
  * configuration, saves it as a new stored dashboard, offers to make it the
  * default page and opens it in edit mode. The generated page stays as it is.
  */
-export const makeEditableCopy = async (
+const copyGeneratedPage = async (
   ctx: ImportExportContext,
   source: { urlPath: string; title: string; rawConfig?: LovelaceRawConfig }
 ): Promise<void> => {
@@ -447,10 +563,7 @@ export const makeEditableCopy = async (
     });
     if (makeDefault) {
       try {
-        await saveFrontendSystemData(hass.connection, "core", {
-          ...currentHass(ctx).systemData,
-          default_panel: dashboard.url_path,
-        });
+        await saveDefaultPanel(currentHass(ctx), dashboard.url_path);
       } catch (err) {
         showToast(ctx.element, {
           message: hass.localize(key("edit_copy.default_failed"), {
@@ -472,3 +585,10 @@ export const makeEditableCopy = async (
     });
   }
 };
+
+/** Makes an editable copy. A repeated press while it runs does nothing. */
+export const makeEditableCopy = (
+  ctx: ImportExportContext,
+  source: { urlPath: string; title: string; rawConfig?: LovelaceRawConfig }
+): Promise<void> =>
+  runOnce(`copy:${source.urlPath}`, () => copyGeneratedPage(ctx, source));

@@ -32,6 +32,7 @@ import type { DeviceItem, DeviceStatus } from "./onboarding-devices-logic";
 import {
   buildDeviceItems,
   itemsToSetUp,
+  runSetupQueue,
   sourceKey,
   syncChoice,
 } from "./onboarding-devices-logic";
@@ -83,6 +84,8 @@ class OnboardingIntegrations extends SubscribeMixin(LitElement) {
   private _brandsAccessToken?: string;
 
   private _known = new Set<string>();
+
+  private _leaving = false;
 
   public hassSubscribe(): (UnsubscribeFunc | Promise<UnsubscribeFunc>)[] {
     return [
@@ -245,7 +248,6 @@ class OnboardingIntegrations extends SubscribeMixin(LitElement) {
         </ha-button>
         <ha-button
           appearance=${toSetUp.length ? "plain" : "filled"}
-          .disabled=${this._busy}
           @click=${this._finish}
         >
           ${this._localize("ui.panel.page-onboarding.integration.finish")}
@@ -370,24 +372,26 @@ class OnboardingIntegrations extends SubscribeMixin(LitElement) {
     }
     this._busy = true;
     try {
-      for (const flowId of itemsToSetUp(this._items(), this._chosen)) {
-        this._setProgress(flowId, "running");
-        // The dialogs are meant to run one after another.
-        // eslint-disable-next-line no-await-in-loop
-        const finished = await new Promise<boolean>((resolve) => {
-          showConfigFlowDialog(this, {
-            continueFlowId: flowId,
-            dialogClosedCallback: ({ flowFinished }) => resolve(flowFinished),
-          });
-        });
-        this._setProgress(flowId, finished ? "added" : "unfinished");
-      }
+      await runSetupQueue(
+        itemsToSetUp(this._items(), this._chosen),
+        (flowId) =>
+          new Promise<boolean>((resolve) => {
+            showConfigFlowDialog(this, {
+              continueFlowId: flowId,
+              dialogClosedCallback: ({ flowFinished }) => resolve(flowFinished),
+            });
+          }),
+        (flowId, status) => this._setProgress(flowId, status),
+        () => this._leaving
+      );
     } finally {
       this._busy = false;
     }
   }
 
   private async _finish() {
+    // Leaving the step ends any set-up still waiting on a dialog.
+    this._leaving = true;
     fireEvent(this, "onboarding-step", {
       type: "integration",
     });

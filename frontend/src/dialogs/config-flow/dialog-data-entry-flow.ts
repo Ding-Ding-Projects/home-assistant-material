@@ -147,6 +147,8 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
           params.startFlowHandler
         );
       } catch (err: any) {
+        // No step exists, so closing will not report back: do it here.
+        params.dialogClosedCallback?.({ flowFinished: false });
         this.closeDialog();
         let message = err.message || err.body || "Unknown error";
         if (typeof message !== "string") {
@@ -174,6 +176,8 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
           params.continueFlowId
         );
       } catch (err: any) {
+        // No step exists, so closing will not report back: do it here.
+        params.dialogClosedCallback?.({ flowFinished: false });
         this.closeDialog();
         let message = err.message || err.body || "Unknown error";
         if (typeof message !== "string") {
@@ -190,6 +194,7 @@ class DataEntryFlowDialog extends DirtyStateProviderMixin<
         return;
       }
     } else {
+      params.dialogClosedCallback?.({ flowFinished: false });
       return;
     }
 

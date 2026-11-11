@@ -11,6 +11,8 @@ interface BaseDialogBoxParams {
   title?: string;
   subtitle?: string;
   warning?: boolean;
+  /** One fitting emoji shown before the title when the person allows emojis. */
+  emoji?: string;
 }
 
 export interface AlertDialogParams extends BaseDialogBoxParams {

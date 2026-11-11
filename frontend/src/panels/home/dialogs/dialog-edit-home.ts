@@ -15,6 +15,7 @@ import type { ShortcutItem } from "../../../data/home_shortcuts";
 import type { HassDialog } from "../../../dialogs/make-dialog-manager";
 import { DirtyStateProviderMixin } from "../../../mixins/dirty-state-provider-mixin";
 import { haStyleDialog } from "../../../resources/styles";
+import { canEditCardsAndLayout } from "../../lovelace/import-export/can-edit-copy";
 import type { HomeAssistant, ValueChangedEvent } from "../../../types";
 import "../../../components/entity/ha-favorites-editor";
 import "../components/home-shortcuts-editor";
@@ -103,7 +104,7 @@ export class DialogEditHome
         </ha-alert>
 
         ${
-          this._params.editCardsAndLayout
+          this._params.editCardsAndLayout && canEditCardsAndLayout(this.hass)
             ? html`<div class="edit-layout">
                 <div class="edit-layout-text">
                   <strong

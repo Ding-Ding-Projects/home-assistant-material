@@ -11,7 +11,7 @@ import pytest
 from pytest_homeassistant.common import MockUser
 from pytest_homeassistant.typing import MockHAClientWebSocket, WebSocketGenerator
 
-from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
+from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN, Credentials
 from homeassistant.components.passkey.const import (
     MAX_PENDING_REGISTRATIONS_PER_USER,
     REGISTRATION_FRESH_WINDOW,
@@ -601,3 +601,105 @@ async def test_delete_all_of_another_user(
         await hass_ws_client(hass), "passkey/delete_all", user_id=account.user.id
     )
     assert allowed["result"] == {"removed": 1}
+
+
+async def _ws_with_credential_of(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    user: MockUser,
+    provider_type: str | None,
+) -> MockHAClientWebSocket:
+    credential = (
+        None
+        if provider_type is None
+        else Credentials(
+            auth_provider_type=provider_type,
+            auth_provider_id=None,
+            data={},
+            is_new=False,
+        )
+    )
+    if credential is not None:
+        user.credentials.append(credential)
+    refresh_token = await hass.auth.async_create_refresh_token(
+        user, "https://example.com/", credential=credential
+    )
+    return await hass_ws_client(hass, hass.auth.async_create_access_token(refresh_token))
+
+
+@pytest.mark.usefixtures("secure_origin")
+@pytest.mark.parametrize(
+    "provider_type",
+    [
+        pytest.param("insecure_example", id="other_provider"),
+        pytest.param(None, id="no_credential"),
+    ],
+)
+async def test_session_without_a_password_login_cannot_change_passkeys(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: MockUser,
+    account: Account,
+    provider_type: str | None,
+) -> None:
+    """A session that never proved a secret may not add or remove passkeys."""
+    ws = await _ws_with_credential_of(
+        hass, hass_ws_client, hass_admin_user, provider_type
+    )
+    credential_id = account.authenticator.credential_id_b64
+
+    begin = await _call(ws, "passkey/register_begin")
+    delete = await _call(
+        ws, "passkey/delete", credential_id=credential_id, user_id=account.user.id
+    )
+    delete_all = await _call(ws, "passkey/delete_all", user_id=account.user.id)
+
+    for resp in (begin, delete, delete_all):
+        assert resp["error"]["code"] == "recent_sign_in_required"
+    assert hass.data[DATA_STORE].get(credential_id) is not None
+
+
+async def test_stale_or_long_lived_session_cannot_remove_passkeys(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: MockUser,
+    account: Account,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Removing a passkey needs the same fresh sign-in as adding one."""
+    credential_id = account.authenticator.credential_id_b64
+    ws = await hass_ws_client(hass)
+    freezer.tick(REGISTRATION_FRESH_WINDOW + timedelta(seconds=1))
+
+    stale = [
+        await _call(
+            ws, "passkey/delete", credential_id=credential_id, user_id=account.user.id
+        ),
+        await _call(ws, "passkey/delete_all", user_id=account.user.id),
+    ]
+    long_lived = await hass.auth.async_create_refresh_token(
+        hass_admin_user,
+        client_name="Long lived",
+        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
+        access_token_expiration=timedelta(days=365),
+    )
+    ws_long = await hass_ws_client(
+        hass, hass.auth.async_create_access_token(long_lived)
+    )
+    stale += [
+        await _call(
+            ws_long,
+            "passkey/delete",
+            credential_id=credential_id,
+            user_id=account.user.id,
+        ),
+        await _call(ws_long, "passkey/delete_all", user_id=account.user.id),
+    ]
+
+    assert [resp["error"]["code"] for resp in stale] == ["recent_sign_in_required"] * 4
+    assert hass.data[DATA_STORE].get(credential_id) is not None
+    renamed = await _call(
+        ws, "passkey/rename", credential_id=credential_id, name="Kept",
+        user_id=account.user.id,
+    )
+    assert renamed["success"]

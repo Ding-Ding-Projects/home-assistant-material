@@ -111,6 +111,7 @@ import type {
   MarketplaceRepository,
   RepositoryFilters,
 } from "./dashboard-repositories";
+import { openHelpUrl } from "../../../components/help/open-help-article";
 import { documentationUrl } from "../../../util/documentation-url";
 import { renderRepositoryIcon } from "../tools/repository-icon";
 import {
@@ -380,9 +381,12 @@ export class HaMarketplaceDashboard extends LitElement {
           "ui.panel.marketplace.dashboard.search",
           { number: repositories.length }
         )}
-        .summary=${this._i18n.localize("ui.panel.marketplace.dashboard.summary", {
-          number: repositories.length,
-        })}
+        .summary=${this._i18n.localize(
+          "ui.panel.marketplace.dashboard.summary",
+          {
+            number: repositories.length,
+          }
+        )}
         .isWide=${this.isWide}
         .narrow=${this.narrow}
         .route=${this.route}
@@ -976,7 +980,8 @@ export class HaMarketplaceDashboard extends LitElement {
   }
 
   private _openDocumentation() {
-    window.open(
+    openHelpUrl(
+      this,
       documentationUrl(this._config, "/integrations/marketplace"),
       "_blank",
       "noreferrer=true"

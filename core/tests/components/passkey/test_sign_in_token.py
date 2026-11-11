@@ -105,18 +105,72 @@ def test_token_can_be_consumed_once(freezer: FrozenDateTimeFactory) -> None:
     assert challenge.token_id not in tokens._used
 
 
-def test_replay_set_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A full replay set refuses further tokens instead of growing."""
+def test_replay_set_is_bounded_and_drops_the_oldest(
+    monkeypatch: pytest.MonkeyPatch, freezer: FrozenDateTimeFactory
+) -> None:
+    """A full replay set stays the same size and makes room for the newcomer."""
     monkeypatch.setattr(
         "homeassistant.components.passkey.sign_in_token.MAX_USED_SIGN_IN_TOKENS", 2
     )
     tokens = SignInTokens()
-    verified = [tokens.verify(_issue(tokens)) for _ in range(3)]
-    assert all(verified)
+    verified = []
+    for _ in range(3):
+        challenge = tokens.verify(_issue(tokens))
+        assert challenge is not None
+        verified.append(challenge)
+        freezer.tick(timedelta(seconds=1))
 
-    results = [tokens.consume(item) for item in verified if item]
+    results = [tokens.consume(item) for item in verified]
+
+    assert results == [True, True, True]
+    assert set(tokens._used) == {verified[1].token_id, verified[2].token_id}
+
+
+def test_one_address_cannot_hold_more_than_its_share(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An address at its limit is refused while another address still gets in."""
+    monkeypatch.setattr(
+        "homeassistant.components.passkey.sign_in_token.MAX_USED_PER_REMOTE", 2
+    )
+    tokens = SignInTokens()
+    busy = [tokens.verify(_issue(tokens)) for _ in range(3)]
+    other = tokens.verify(_issue(tokens, remote="198.51.100.7"))
+    assert all(busy)
+    assert other is not None
+
+    results = [tokens.consume(item) for item in busy if item]
 
     assert results == [True, True, False]
+    assert tokens.consume(other) is True
+
+
+def test_expired_entries_leave_in_order_of_expiry(
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Only entries past their expiry are dropped, however many remain."""
+    tokens = SignInTokens()
+    first = tokens.verify(_issue(tokens))
+    freezer.tick(timedelta(minutes=3))
+    second = tokens.verify(_issue(tokens))
+    assert first is not None
+    assert second is not None
+    assert tokens.consume(first) is True
+    assert tokens.consume(second) is True
+
+    freezer.tick(timedelta(minutes=3))
+    third = tokens.verify(_issue(tokens))
+    assert third is not None
+    assert tokens.consume(third) is True
+
+    assert set(tokens._used) == {second.token_id, third.token_id}
+    assert tokens._per_remote == {"203.0.113.5": 2}
+
+
+@pytest.mark.parametrize("token", ["\ud800", "abc.\udfff", "café.sig"])
+def test_non_ascii_token_is_refused_without_raising(token: str) -> None:
+    """A string that cannot be encoded is a refusal, not an exception."""
+    assert SignInTokens().verify(token) is None
 
 
 @pytest.mark.parametrize(

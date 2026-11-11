@@ -1,3 +1,4 @@
+import { mdiViewDashboardEdit } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -8,10 +9,12 @@ import { ChildPanelReady } from "../../layouts/panel-ready";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import { generateLovelaceViewStrategy } from "../lovelace/strategies/get-strategy";
+import { makeEditableCopy } from "../lovelace/import-export/dashboard-actions";
 import type { Lovelace } from "../lovelace/types";
 import "../lovelace/views/hui-view";
 import "../lovelace/views/hui-view-container";
 import "../lovelace/views/hui-view-background";
+import "../../components/ha-icon-button";
 import "../../components/ha-top-app-bar-fixed";
 
 const LIGHT_LOVELACE_VIEW_CONFIG: LovelaceStrategyViewConfig = {
@@ -98,6 +101,20 @@ class PanelLight extends LitElement {
       >
         <div slot="title">${this.hass.localize("panel.light")}</div>
         ${
+          this.hass.user?.is_admin &&
+          !this.hass.kioskMode &&
+          !this.hass.config.recovery_mode
+            ? html`<ha-icon-button
+                slot="actionItems"
+                .path=${mdiViewDashboardEdit}
+                .label=${this.hass.localize(
+                  "ui.panel.lovelace.import_export.edit_cards_layout"
+                )}
+                @click=${this._editCardsAndLayout}
+              ></ha-icon-button>`
+            : nothing
+        }
+        ${
           this._lovelace
             ? html`
                 <hui-view-container .hass=${this.hass}>
@@ -145,6 +162,14 @@ class PanelLight extends LitElement {
       showToast: () => undefined,
     };
   }
+
+  // The generated page cannot be edited itself. Editing makes a copy.
+  private _editCardsAndLayout = () => {
+    void makeEditableCopy(
+      { hass: this.hass, element: this },
+      { urlPath: "light", title: this.hass.localize("panel.light") }
+    );
+  };
 
   static get styles(): CSSResultGroup {
     return [

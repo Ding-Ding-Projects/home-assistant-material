@@ -61,6 +61,21 @@ export interface ViewFileEnvelope {
   view: LovelaceViewConfig;
 }
 
+/** Most list items a summary names. The total stays exact. */
+export const SUMMARY_LIST_LIMIT = 20;
+
+/** A list cut to its first items, with the exact number there were. */
+export interface Capped<T> {
+  items: T[];
+  total: number;
+}
+
+/** One resource or module address that was removed from the file. */
+export interface RemovedEntry {
+  kind: "resource" | "module";
+  address: string;
+}
+
 export type ParsedDashboardImport =
   | {
       ok: true;
@@ -69,6 +84,7 @@ export type ParsedDashboardImport =
       config: LovelaceConfig;
       /** True when resource or module entries were removed. */
       stripped: boolean;
+      removed: Capped<RemovedEntry>;
     }
   | {
       ok: true;
@@ -76,6 +92,7 @@ export type ParsedDashboardImport =
       view: LovelaceViewConfig;
       sourceTitle?: string;
       stripped: boolean;
+      removed: Capped<RemovedEntry>;
     }
   | { ok: false; error: DashboardImportError };
 
@@ -92,6 +109,77 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const looksLikeYamlName = (name: string): boolean => /\.ya?ml$/i.test(name);
+
+// Characters that are invisible or change how text is laid out.
+const HIDDEN_RANGES: [number, number][] = [
+  [0x0000, 0x001f],
+  [0x007f, 0x009f],
+  [0x061c, 0x061c],
+  [0x200b, 0x200f],
+  [0x2028, 0x202e],
+  [0x2060, 0x2069],
+  [0xfeff, 0xfeff],
+];
+
+const isHiddenCharacter = (code: number): boolean =>
+  HIDDEN_RANGES.some(([from, to]) => code >= from && code <= to);
+
+/**
+ * Text from a file that is safe to show. Control characters, direction
+ * overrides and other invisible characters are replaced by their code, such
+ * as `U+202E`, so nothing can hide or reorder what is shown. Long text is cut.
+ */
+export const safeText = (value: string, max = 200): string => {
+  const parts: string[] = [];
+  for (const char of value) {
+    const code = char.codePointAt(0) as number;
+    parts.push(
+      isHiddenCharacter(code)
+        ? `U+${code.toString(16).toUpperCase().padStart(4, "0")}`
+        : char
+    );
+  }
+  const replaced = parts.join("");
+  const characters = Array.from(replaced);
+  return characters.length > max
+    ? `${characters.slice(0, max).join("")}…`
+    : replaced;
+};
+
+// Words that only a view has. A list of views is checked against these.
+const VIEW_KEYS = [
+  "title",
+  "path",
+  "icon",
+  "theme",
+  "type",
+  "cards",
+  "badges",
+  "sections",
+  "panel",
+  "subview",
+  "visible",
+  "max_columns",
+  "strategy",
+  "background",
+  "header",
+];
+
+const looksLikeView = (value: unknown): boolean =>
+  isRecord(value) && VIEW_KEYS.some((key) => key in value);
+
+/**
+ * True for a plain dashboard configuration: a top level list whose items look
+ * like views, in a file that is not a wording file. Wording files carry
+ * their own markers and are never taken as dashboards.
+ */
+export const isPlainDashboardConfig = (
+  parsed: Record<string, unknown>
+): boolean =>
+  Array.isArray(parsed.views) &&
+  !("schemaVersion" in parsed) &&
+  !("entries" in parsed) &&
+  parsed.views.every(looksLikeView);
 
 /** Parses file text as JSON, or as YAML when the file name says so. */
 const parseText = (name: string, text: string): unknown => {
@@ -123,8 +211,7 @@ export const routeDroppedFile = (name: string, text: string): DropRoute => {
   }
   if (
     parsed.format === DASHBOARD_FILE_FORMAT ||
-    (Array.isArray(parsed.views) &&
-      parsed.views.every((view) => isRecord(view)))
+    isPlainDashboardConfig(parsed)
   ) {
     return { route: "dashboard", parsed };
   }
@@ -134,7 +221,47 @@ export const routeDroppedFile = (name: string, text: string): DropRoute => {
 interface CleanState {
   nodes: number;
   stripped: boolean;
+  removed: RemovedEntry[];
+  removedTotal: number;
 }
+
+const newState = (): CleanState => ({
+  nodes: 0,
+  stripped: false,
+  removed: [],
+  removedTotal: 0,
+});
+
+const cappedRemoved = (state: CleanState): Capped<RemovedEntry> => ({
+  items: state.removed,
+  total: state.removedTotal,
+});
+
+const noteRemoved = (
+  state: CleanState,
+  kind: RemovedEntry["kind"],
+  address: unknown
+): void => {
+  state.stripped = true;
+  state.removedTotal += 1;
+  if (state.removed.length < SUMMARY_LIST_LIMIT) {
+    state.removed.push({
+      kind,
+      address: typeof address === "string" ? safeText(address) : "",
+    });
+  }
+};
+
+/** Notes every entry of a removed `resources` list, or the list itself. */
+const noteRemovedResources = (state: CleanState, value: unknown): void => {
+  if (Array.isArray(value) && value.length) {
+    value.forEach((item) =>
+      noteRemoved(state, "resource", isRecord(item) ? item.url : undefined)
+    );
+  } else {
+    noteRemoved(state, "resource", undefined);
+  }
+};
 
 /**
  * Copies plain data only. Dates become text, anything that is not plain data
@@ -174,8 +301,12 @@ const cleanData = (
       if (UNSAFE_KEYS.has(key)) {
         continue;
       }
-      if ((top && key === "resources") || CODE_LOADING_KEYS.has(key)) {
-        state.stripped = true;
+      if (top && key === "resources") {
+        noteRemovedResources(state, child);
+        continue;
+      }
+      if (CODE_LOADING_KEYS.has(key)) {
+        noteRemoved(state, "module", child);
         continue;
       }
       result[key] = cleanData(child, state, depth + 1, false);
@@ -232,7 +363,7 @@ export const validateDashboardFile = (
     if (!isRecord(parsed)) {
       return { ok: false, error: "not_dashboard" };
     }
-    const state: CleanState = { nodes: 0, stripped: false };
+    const state = newState();
 
     if (parsed.format === DASHBOARD_FILE_FORMAT) {
       const version = parsed.version;
@@ -256,6 +387,7 @@ export const validateDashboardFile = (
               ? source.dashboard_title.slice(0, MAX_TITLE_LENGTH)
               : undefined,
           stripped: state.stripped,
+          removed: cappedRemoved(state),
         };
       }
       if (parsed.kind !== "dashboard") {
@@ -268,7 +400,7 @@ export const validateDashboardFile = (
       );
     }
 
-    if (Array.isArray(parsed.views)) {
+    if (isPlainDashboardConfig(parsed)) {
       const title =
         typeof parsed.title === "string" && parsed.title.trim()
           ? parsed.title.trim().slice(0, MAX_TITLE_LENGTH)
@@ -309,6 +441,7 @@ const dashboardFromConfig = (
     settings,
     config: cleaned,
     stripped: state.stripped,
+    removed: cappedRemoved(state),
   };
 };
 
@@ -430,4 +563,259 @@ export const appendViewToConfig = (
     next.path = `${next.path}-${n}`;
   }
   return { ...config, views: [...config.views, next] };
+};
+
+const sortKeys = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(sortKeys);
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, sortKeys(value[key])])
+    );
+  }
+  return value;
+};
+
+/** Text of a value that does not depend on the order of object keys. */
+export const stableStringify = (value: unknown): string =>
+  JSON.stringify(sortKeys(value)) ?? "";
+
+/** True when a stored configuration is exactly what was imported. */
+export const configIsAsImported = (
+  current: unknown,
+  imported: LovelaceConfig
+): boolean => stableStringify(current) === stableStringify(imported);
+
+/**
+ * The configuration without the one view that an import added, or `undefined`
+ * when that view is no longer there exactly as it was imported. Every other
+ * view and setting is kept as it is now.
+ */
+export const removeImportedView = (
+  current: unknown,
+  imported: LovelaceViewConfig
+): LovelaceConfig | undefined => {
+  if (!isRecord(current) || !Array.isArray(current.views)) {
+    return undefined;
+  }
+  const wanted = stableStringify(imported);
+  for (let index = current.views.length - 1; index >= 0; index--) {
+    if (stableStringify(current.views[index]) === wanted) {
+      return {
+        ...current,
+        views: current.views.filter((_view, i) => i !== index),
+      } as LovelaceConfig;
+    }
+  }
+  return undefined;
+};
+
+export interface SummaryAddress {
+  host: string;
+  address: string;
+  where: string;
+}
+
+export interface SummaryCustomType {
+  type: string;
+  kind: "card" | "strategy";
+}
+
+export interface SummaryAction {
+  where: string;
+  action: string;
+  service: string;
+  target: string;
+}
+
+/** What a file contains, for the person to read before anything is made. */
+export interface ImportSummary {
+  kind: "dashboard" | "view";
+  title: string;
+  /** The address the file asks for, when it names one. */
+  urlPath: string;
+  views: number;
+  cards: number;
+  addresses: Capped<SummaryAddress>;
+  customTypes: Capped<SummaryCustomType>;
+  actions: Capped<SummaryAction>;
+  removed: Capped<RemovedEntry>;
+}
+
+// Actions that only move around or show things. Any other action is listed.
+const SAFE_ACTIONS = new Set(["navigate", "more-info", "none", "toggle"]);
+
+// Keys whose records are cards, rows, badges and the like, named by a label.
+const LABELLED_KEYS = new Set([
+  "views",
+  "sections",
+  "cards",
+  "card",
+  "entities",
+  "rows",
+  "badges",
+  "elements",
+  "features",
+]);
+
+const ADDRESS_PATTERN =
+  /(?:\b[a-z][a-z0-9+.-]*:\/\/|(?<![\w:/.])\/\/)[^\s"'<>`)\]]+/gi;
+const SCHEME_ADDRESS = /^\s*(?:javascript|data|vbscript|blob):/i;
+const AUTHORITY = /^(?:[a-z][a-z0-9+.-]*:)?\/\/([^/?#\s]*)/i;
+
+const addressesIn = (text: string): string[] => {
+  if (SCHEME_ADDRESS.test(text)) {
+    return [text.trim()];
+  }
+  return (text.match(ADDRESS_PATTERN) ?? []).map((found) =>
+    found.replace(/[.,;:!?]+$/, "")
+  );
+};
+
+/** The host of an address, shown first. Anything before an `@` is skipped. */
+const hostOf = (address: string): string => {
+  const authority = AUTHORITY.exec(address)?.[1];
+  if (authority !== undefined) {
+    return authority.slice(authority.lastIndexOf("@") + 1) || address;
+  }
+  const scheme = /^\s*([a-z]+):/i.exec(address)?.[1];
+  return scheme ? `${scheme}:` : address;
+};
+
+const labelOf = (node: Record<string, unknown>): string => {
+  for (const key of ["title", "name", "heading", "entity", "type"]) {
+    const value = node[key];
+    if (typeof value === "string" && value.trim()) {
+      return safeText(value.trim(), 80);
+    }
+  }
+  return "";
+};
+
+const targetOf = (node: Record<string, unknown>): string => {
+  if (node.action === "url") {
+    return safeText(String(node.url_path ?? node.url ?? ""));
+  }
+  const data = (isRecord(node.data) && node.data) || undefined;
+  const serviceData =
+    (isRecord(node.service_data) && node.service_data) || undefined;
+  const target =
+    node.target ?? serviceData?.entity_id ?? data?.entity_id ?? undefined;
+  if (target === undefined) {
+    return "";
+  }
+  return safeText(typeof target === "string" ? target : JSON.stringify(target));
+};
+
+/**
+ * Reads a checked import and lists what the person should know before it is
+ * made: counts, outside addresses, custom types and actions that run when
+ * pressed. Pure: nothing is changed and nothing in the file is run. Every
+ * list is cut to a few items but keeps its exact total.
+ */
+export const analyzeDashboardImport = (
+  parsed: Extract<ParsedDashboardImport, { ok: true }>
+): ImportSummary => {
+  const addresses = new Map<string, SummaryAddress>();
+  const customTypes = new Map<string, SummaryCustomType>();
+  const actions = new Map<string, SummaryAction>();
+  let cards = 0;
+
+  const addAddress = (address: string, where: string): void => {
+    const shown = safeText(address);
+    if (!addresses.has(shown)) {
+      addresses.set(shown, {
+        host: safeText(hostOf(address), 100),
+        address: shown,
+        where,
+      });
+    }
+  };
+
+  const walk = (node: unknown, key: string, where: string): void => {
+    if (Array.isArray(node)) {
+      node.forEach((item) => walk(item, key, where));
+      return;
+    }
+    if (typeof node === "string") {
+      addressesIn(node).forEach((address) => addAddress(address, where));
+      return;
+    }
+    if (!isRecord(node)) {
+      return;
+    }
+    let here = where;
+    if (
+      typeof node.type === "string" ||
+      typeof node.entity === "string" ||
+      LABELLED_KEYS.has(key)
+    ) {
+      here = labelOf(node) || where;
+    }
+    if (typeof node.type === "string" && node.type.startsWith("custom:")) {
+      const kind = key === "strategy" ? "strategy" : "card";
+      const type = safeText(node.type, 100);
+      customTypes.set(`${kind}\u0000${type}`, { type, kind });
+    }
+    if (typeof node.action === "string" && !SAFE_ACTIONS.has(node.action)) {
+      const service = node.perform_action ?? node.service;
+      const entry: SummaryAction = {
+        where: here,
+        action: safeText(node.action, 60),
+        service: typeof service === "string" ? safeText(service, 100) : "",
+        target: targetOf(node),
+      };
+      actions.set(
+        [entry.where, entry.action, entry.service, entry.target].join("\u0000"),
+        entry
+      );
+      // An address built by a template cannot be read in advance.
+      if (node.action === "url" && /\{[{%]/.test(entry.target)) {
+        addAddress(entry.target, here);
+      }
+    }
+    for (const [childKey, child] of Object.entries(node)) {
+      if (childKey === "cards" && Array.isArray(child)) {
+        cards += child.filter(isRecord).length;
+      } else if (childKey === "card" && isRecord(child)) {
+        cards += 1;
+      }
+      walk(child, childKey, here);
+    }
+  };
+
+  const capped = <T>(map: Map<string, T>): Capped<T> => ({
+    items: [...map.values()].slice(0, SUMMARY_LIST_LIMIT),
+    total: map.size,
+  });
+
+  let title: string;
+  let urlPath = "";
+  let views: number;
+  if (parsed.kind === "dashboard") {
+    title = safeText(parsed.settings.title, MAX_TITLE_LENGTH);
+    urlPath = safeText(parsed.settings.url_path, 100);
+    views = parsed.config.views.length;
+    walk(parsed.config, "", "");
+  } else {
+    const viewTitle = parsed.view.title ?? parsed.sourceTitle ?? "";
+    title = safeText(String(viewTitle), MAX_TITLE_LENGTH);
+    views = 1;
+    walk(parsed.view, "views", "");
+  }
+
+  return {
+    kind: parsed.kind,
+    title,
+    urlPath,
+    views,
+    cards,
+    addresses: capped(addresses),
+    customTypes: capped(customTypes),
+    actions: capped(actions),
+    removed: parsed.removed,
+  };
 };

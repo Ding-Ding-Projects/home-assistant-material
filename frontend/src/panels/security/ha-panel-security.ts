@@ -1,4 +1,4 @@
-import { mdiPencil } from "@mdi/js";
+import { mdiPencil, mdiViewDashboardEdit } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -17,6 +17,7 @@ import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import { showToast } from "../../util/toast";
 import { generateLovelaceViewStrategy } from "../lovelace/strategies/get-strategy";
+import { makeEditableCopy } from "../lovelace/import-export/dashboard-actions";
 import type { Lovelace } from "../lovelace/types";
 import { showEditSecurityDialog } from "./dialogs/show-dialog-edit-security";
 import "../lovelace/views/hui-view";
@@ -144,6 +145,20 @@ class PanelSecurity extends LitElement {
       >
         <div slot="title">${this.hass.localize("panel.security")}</div>
         ${
+          this.hass.user?.is_admin &&
+          !this.hass.kioskMode &&
+          !this.hass.config.recovery_mode
+            ? html`<ha-icon-button
+                slot="actionItems"
+                .path=${mdiViewDashboardEdit}
+                .label=${this.hass.localize(
+                  "ui.panel.lovelace.import_export.edit_cards_layout"
+                )}
+                @click=${this._editCardsAndLayout}
+              ></ha-icon-button>`
+            : nothing
+        }
+        ${
           this.hass.user?.is_admin && this._config
             ? html`<ha-icon-button
                 slot="actionItems"
@@ -243,6 +258,14 @@ class PanelSecurity extends LitElement {
     });
     await this._setLovelace();
   }
+
+  // The generated page cannot be edited itself. Editing makes a copy.
+  private _editCardsAndLayout = () => {
+    void makeEditableCopy(
+      { hass: this.hass, element: this },
+      { urlPath: "security", title: this.hass.localize("panel.security") }
+    );
+  };
 
   static get styles(): CSSResultGroup {
     return [

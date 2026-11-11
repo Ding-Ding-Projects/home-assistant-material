@@ -16,6 +16,7 @@ import { provideLiteI18nMixin } from "../mixins/provide-lite-i18n-mixin";
 import { registerServiceWorker } from "../util/register-service-worker";
 import "./ha-auth-flow";
 import "./ha-passkey-login";
+import { documentationUrlForVersion } from "../util/documentation-url";
 
 import("./ha-pick-auth-provider");
 
@@ -231,9 +232,7 @@ export class HaAuthorize extends provideLiteI18nMixin(
         <ha-button
           appearance="plain"
           variant="neutral"
-          href="https://www.home-assistant.io/docs/authentication/"
-          target="_blank"
-          rel="noreferrer noopener"
+          href=${documentationUrlForVersion("", "/docs/authentication/")}
         >
           ${this.localize("ui.panel.page-authorize.help")}
           <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>

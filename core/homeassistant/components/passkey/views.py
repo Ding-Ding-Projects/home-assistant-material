@@ -210,7 +210,7 @@ class PasskeyFinishView(HomeAssistantView):
         store = hass.data[DATA_STORE]
 
         pending = store.sign_in_tokens.verify(data["challenge_id"])
-        if pending is None or not store.sign_in_tokens.consume(pending):
+        if pending is None:
             return _sign_in_failed(self)
 
         if (
@@ -255,8 +255,10 @@ class PasskeyFinishView(HomeAssistantView):
         except CeremonyError:
             return _sign_in_failed(self)
 
-        # No await between the counter check and the update: two assertions
-        # carrying the same counter cannot both pass.
+        # No await between consuming the token, the counter check and the
+        # update: two assertions for one token or counter cannot both pass.
+        if not store.sign_in_tokens.consume(pending):
+            return _sign_in_failed(self)
         if counter_regressed(stored.sign_count, verified.new_sign_count):
             _LOGGER.warning(
                 "A passkey reported a sign counter that did not increase, "

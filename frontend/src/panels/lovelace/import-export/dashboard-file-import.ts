@@ -8,12 +8,14 @@ import {
 } from "./dashboard-actions";
 import type { ParsedDashboardImport } from "./dashboard-file";
 import {
+  analyzeDashboardImport,
   DASHBOARD_IMPORT_MAX_BYTES,
   parseDashboardFileText,
   routeDroppedFile,
   titleFromFileName,
   validateDashboardFile,
 } from "./dashboard-file";
+import { showImportSummaryDialog } from "./show-dialog-import-summary";
 import { showImportViewTargetDialog } from "./show-dialog-import-view-target";
 
 const refuse = (ctx: ImportExportContext, error: string) => {
@@ -46,14 +48,21 @@ export const importParsedFile = async (
     refuse(ctx, "admin_only");
     return;
   }
-  if (parsed.kind === "dashboard") {
-    await importDashboardData(ctx, parsed);
-    return;
-  }
-  showImportViewTargetDialog(ctx.element, {
-    currentUrlPath: currentDashboardPath(),
-    onSelected: (urlPath) => {
-      void importViewData(ctx, parsed, urlPath);
+  // A file is someone else's content. Show what it holds first; nothing is
+  // created until the person confirms.
+  showImportSummaryDialog(ctx.element, {
+    summary: analyzeDashboardImport(parsed),
+    onConfirm: (visibility) => {
+      if (parsed.kind === "dashboard") {
+        void importDashboardData(ctx, parsed, visibility);
+        return;
+      }
+      showImportViewTargetDialog(ctx.element, {
+        currentUrlPath: currentDashboardPath(),
+        onSelected: (urlPath) => {
+          void importViewData(ctx, parsed, urlPath);
+        },
+      });
     },
   });
 };

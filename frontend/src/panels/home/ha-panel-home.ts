@@ -38,6 +38,7 @@ import { showEditHomeDialog } from "./dialogs/show-dialog-edit-home";
 import { showNewOverviewDialog } from "./dialogs/show-dialog-new-overview";
 import { getPanelTitle, hasLegacyOverviewPanel } from "../../data/panel";
 import { makeEditableCopy } from "../lovelace/import-export/dashboard-actions";
+import { canEditCardsAndLayout } from "../lovelace/import-export/can-edit-copy";
 
 @customElement("ha-panel-home")
 class PanelHome extends SubscribeMixin(LitElement) {
@@ -238,23 +239,21 @@ class PanelHome extends SubscribeMixin(LitElement) {
   private _updateExtraActionItems() {
     const path = this.route?.path?.split("/")[1];
     // The generated page cannot be edited itself. Editing makes a copy.
-    const editCopy: ExtraActionItem[] =
-      this.hass.user?.is_admin &&
-      !this.hass.kioskMode &&
-      !this.hass.config.recovery_mode
-        ? [
-            {
-              icon: mdiViewDashboardEdit,
-              labelKey: "ui.panel.lovelace.import_export.edit_cards_layout",
-              action: this._editCardsAndLayout,
-              promoteOnNarrow: true,
-            },
-          ]
-        : [];
+    const editCopy: ExtraActionItem[] = canEditCardsAndLayout(this.hass)
+      ? [
+          {
+            icon: mdiViewDashboardEdit,
+            labelKey: "ui.panel.lovelace.import_export.edit_cards_layout",
+            action: this._editCardsAndLayout,
+            promoteOnNarrow: true,
+          },
+        ]
+      : [];
 
     if (path?.startsWith("areas-")) {
+      // The copy is made from the Overview, so it is not offered on an area
+      // page, where it would copy a page other than the one on screen.
       this._extraActionItems = [
-        ...editCopy,
         {
           icon: mdiPencil,
           labelKey: "ui.panel.lovelace.menu.edit_area",
@@ -271,7 +270,7 @@ class PanelHome extends SubscribeMixin(LitElement) {
         },
       ];
     } else {
-      this._extraActionItems = editCopy.length ? editCopy : undefined;
+      this._extraActionItems = undefined;
     }
   }
 
@@ -288,7 +287,7 @@ class PanelHome extends SubscribeMixin(LitElement) {
   private _editHome = () => {
     showEditHomeDialog(this, {
       config: this._config ?? {},
-      editCardsAndLayout: this.hass.user?.is_admin
+      editCardsAndLayout: canEditCardsAndLayout(this.hass)
         ? this._editCardsAndLayout
         : undefined,
       saveConfig: async (config) => {
@@ -496,7 +495,8 @@ class PanelHome extends SubscribeMixin(LitElement) {
       color: var(--text-primary-color);
       gap: var(--ha-space-2);
       position: fixed;
-      top: var(--header-height, 56px);
+      /* Below the header, which itself sits below the top inset. */
+      top: calc(var(--header-height, 56px) + var(--safe-area-inset-top, 0px));
       left: var(--ha-sidebar-width, 0px);
       right: 0;
       z-index: 5;

@@ -14,10 +14,15 @@ import "../ha-icon-button";
 import "../ha-markdown";
 import type { HaInputSearch } from "../input/ha-input-search";
 import "../input/ha-input-search";
+import type { HelpRedirects } from "./help-article-path";
 import {
   headingId,
   helpArticleUrl,
+  helpIntegrationDomain,
   HELP_INDEX_URL,
+  HELP_INTEGRATIONS_INDEX_URL,
+  HELP_NOTICE_URL,
+  resolveHelpPath,
   rewriteArticleLinks,
   splitSections,
 } from "./help-article-path";
@@ -35,6 +40,12 @@ interface HelpIndex {
   commit: string;
   fetched: string;
   articles: HelpIndexEntry[];
+  redirects?: HelpRedirects;
+}
+
+interface HelpIntegrationEntry {
+  domain: string;
+  title: string;
 }
 
 interface HelpArticleData {
@@ -47,6 +58,23 @@ interface HelpArticleData {
 }
 
 type LoadState = "loading" | "ready" | "missing" | "error";
+
+type View = "article" | "home" | "integrations" | "notice";
+
+/** The most results listed at once, so a very long list stays usable. */
+const MAX_LISTED = 150;
+
+const SECTION_KEYS = [
+  "docs",
+  "dashboards",
+  "faq",
+  "getting-started",
+  "voice_control",
+  "more-info",
+  "common-tasks",
+  "help",
+  "tag",
+] as const;
 
 /**
  * The reader for the offline help articles. Articles are bundled files
@@ -61,6 +89,8 @@ export class DialogHelpArticle
 
   @state() private _open = false;
 
+  @state() private _view: View = "article";
+
   @state() private _path?: string;
 
   @state() private _history: string[] = [];
@@ -71,14 +101,23 @@ export class DialogHelpArticle
 
   @state() private _index?: HelpIndex;
 
+  @state() private _integrations?: HelpIntegrationEntry[];
+
+  @state() private _notice?: string;
+
   @state() private _query = "";
+
+  @state() private _fallbackText?: Record<string, string>;
+
+  private _indexPromise?: Promise<void>;
 
   public showDialog(params: HelpArticleDialogParams): void {
     this._history = [];
     this._query = "";
     this._open = true;
     this._index = undefined;
-    this._loadIndex();
+    this._integrations = undefined;
+    this._indexPromise = this._loadIndex();
     this._goTo(params.path, params.hash ?? "");
   }
 
@@ -93,23 +132,122 @@ export class DialogHelpArticle
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
-  private async _loadIndex() {
+  /**
+   * The text of the reader. Pages that have no translations loaded (the
+   * sign-in page) get the English text from the bundled translation file,
+   * loaded only then.
+   */
+  private _t(key: string, values?: Record<string, string | number>): string {
+    const own = this.hass?.localize?.(
+      `ui.help.${key}` as never,
+      values as never
+    );
+    if (own) {
+      return own as string;
+    }
+    const text = this._fallbackText?.[key];
+    if (text === undefined) {
+      return "";
+    }
+    return text.replace(/\{(\w+)\}/g, (_all, name: string) =>
+      String(values?.[name] ?? "")
+    );
+  }
+
+  private async _loadFallbackText() {
+    if (this.hass?.localize?.("ui.help.title" as never)) {
+      return;
+    }
     try {
-      const response = await fetch(HELP_INDEX_URL);
-      if (response.ok) {
-        this._index = (await response.json()) as HelpIndex;
-      }
+      const strings = (await import("../../translations/en.json")) as {
+        default?: { ui: { help: Record<string, unknown> } };
+        ui?: { help: Record<string, unknown> };
+      };
+      const help = (strings.default ?? strings).ui!.help;
+      const flat: Record<string, string> = {};
+      const walk = (node: Record<string, unknown>, prefix: string) => {
+        for (const [name, value] of Object.entries(node)) {
+          if (typeof value === "string") {
+            flat[`${prefix}${name}`] = value;
+          } else if (value && typeof value === "object") {
+            walk(value as Record<string, unknown>, `${prefix}${name}.`);
+          }
+        }
+      };
+      walk(help, "");
+      this._fallbackText = flat;
     } catch (_err) {
-      this._index = undefined;
+      this._fallbackText = {};
     }
   }
 
+  private async _loadIndex() {
+    this._loadFallbackText();
+    const load = async <T>(url: string): Promise<T | undefined> => {
+      try {
+        const response = await fetch(url);
+        return response.ok ? ((await response.json()) as T) : undefined;
+      } catch (_err) {
+        return undefined;
+      }
+    };
+    const [index, integrations] = await Promise.all([
+      load<HelpIndex>(HELP_INDEX_URL),
+      load<{ integrations: HelpIntegrationEntry[] }>(
+        HELP_INTEGRATIONS_INDEX_URL
+      ),
+    ]);
+    this._index = index;
+    this._integrations = integrations?.integrations;
+  }
+
+  private _isBundled = (path: string): boolean => {
+    const { path: resolved } = resolveHelpPath(
+      path,
+      "",
+      this._index?.redirects
+    );
+    if (resolved === "/integrations") {
+      return true;
+    }
+    const domain = helpIntegrationDomain(resolved);
+    return domain
+      ? Boolean(this._integrations?.some((i) => i.domain === domain))
+      : Boolean(this._index?.articles.some((a) => a.path === resolved));
+  };
+
   private async _goTo(path: string, hash: string) {
     this._path = path;
-    this._state = "loading";
     this._article = undefined;
+    if (path === "/" || path === "") {
+      this._view = "home";
+      this._state = "ready";
+      return;
+    }
+    if (path === "/integrations") {
+      this._view = "integrations";
+      this._state = "ready";
+      return;
+    }
+    this._view = "article";
+    this._state = "loading";
+    await this._indexPromise;
+    if (this._path !== path) {
+      return;
+    }
+    const target = resolveHelpPath(path, hash, this._index?.redirects);
+    if (target.path === "/integrations") {
+      this._view = "integrations";
+      this._state = "ready";
+      return;
+    }
+    const url = helpArticleUrl(target.path);
+    if (!url) {
+      this._state = "missing";
+      return;
+    }
     try {
-      const response = await fetch(helpArticleUrl(path));
+      const response = await fetch(url);
       if (this._path !== path) {
         return;
       }
@@ -124,7 +262,7 @@ export class DialogHelpArticle
       this._article = (await response.json()) as HelpArticleData;
       this._state = "ready";
       await this.updateComplete;
-      this._scrollTo(hash);
+      this._scrollTo(target.hash);
     } catch (_err) {
       if (this._path === path) {
         this._state = "error";
@@ -141,25 +279,31 @@ export class DialogHelpArticle
     }
   }
 
+  private _push() {
+    if (this._path !== undefined) {
+      this._history = [...this._history, this._path];
+    }
+  }
+
   private _navigate = (ev: HASSDomEvent<HelpArticleNavigateDetail>) => {
     ev.stopPropagation();
     if (!ev.detail.path) {
       this._scrollTo(ev.detail.hash);
       return;
     }
-    if (this._path) {
-      this._history = [...this._history, this._path];
-    }
+    this._push();
     this._query = "";
     this._goTo(ev.detail.path, ev.detail.hash);
   };
 
   private _back() {
     const previous = this._history[this._history.length - 1];
-    if (!previous) {
+    if (previous === undefined) {
       return;
     }
     this._history = this._history.slice(0, -1);
+    this._view = "article";
+    this._query = "";
     this._goTo(previous, "");
   }
 
@@ -169,27 +313,64 @@ export class DialogHelpArticle
 
   private _openResult(ev: Event) {
     const path = (ev.currentTarget as HTMLElement).dataset.path!;
-    if (this._path) {
-      this._history = [...this._history, this._path];
-    }
+    this._push();
     this._query = "";
     this._goTo(path, "");
+  }
+
+  private _openHome() {
+    this._push();
+    this._query = "";
+    this._goTo("/", "");
+  }
+
+  private _openIntegrations() {
+    this._push();
+    this._query = "";
+    this._goTo("/integrations", "");
+  }
+
+  private async _openNotice() {
+    this._push();
+    this._query = "";
+    this._view = "notice";
+    this._path = "notice";
+    this._state = "loading";
+    try {
+      const response = await fetch(HELP_NOTICE_URL);
+      this._notice = response.ok ? await response.text() : undefined;
+      this._state = response.ok ? "ready" : "error";
+    } catch (_err) {
+      this._state = "error";
+    }
   }
 
   private _jump(ev: Event) {
     this._scrollTo((ev.currentTarget as HTMLElement).dataset.heading!);
   }
 
+  private _headerTitle(): string {
+    if (this._view === "home") {
+      return this._t("all_title");
+    }
+    if (this._view === "integrations") {
+      return this._t("integrations_title");
+    }
+    if (this._view === "notice") {
+      return this._t("notice_title");
+    }
+    return this._article?.title ?? this._t("title");
+  }
+
   protected render() {
-    if (!this._path) {
+    if (this._path === undefined) {
       return nothing;
     }
-    const localize = this.hass.localize;
     return html`
       <ha-dialog
         .open=${this._open}
         width="large"
-        header-title=${this._article?.title ?? localize("ui.help.title")}
+        header-title=${this._headerTitle()}
         @closed=${this._dialogClosed}
       >
         <div
@@ -202,15 +383,15 @@ export class DialogHelpArticle
               this._history.length
                 ? html`<ha-icon-button
                     .path=${mdiArrowLeft}
-                    .label=${localize("ui.help.back")}
+                    .label=${this._t("back")}
                     @click=${this._back}
                   ></ha-icon-button>`
                 : nothing
             }
             <ha-input-search
               appearance="outlined"
-              .placeholder=${localize("ui.help.search")}
-              .accessibleLabel=${localize("ui.help.search")}
+              .placeholder=${this._t("search")}
+              .accessibleLabel=${this._t("search")}
               .value=${this._query}
               .patternSamples=${(this._index?.articles ?? []).map(
                 (a) => a.title
@@ -218,69 +399,207 @@ export class DialogHelpArticle
               @input=${this._searchInput}
             ></ha-input-search>
           </div>
-          ${this._query.trim() ? this._renderResults() : this._renderArticle()}
+          ${this._renderBody()}
         </div>
       </ha-dialog>
     `;
   }
 
+  private _renderBody() {
+    if (this._query.trim()) {
+      return this._renderResults();
+    }
+    switch (this._view) {
+      case "home":
+        return this._renderHome();
+      case "integrations":
+        return this._renderIntegrations();
+      case "notice":
+        return this._renderNotice();
+      default:
+        return this._renderArticle();
+    }
+  }
+
+  private _resultButton(path: string, title: string, detail: string) {
+    return html`<li>
+      <button type="button" data-path=${path} @click=${this._openResult}>
+        <strong>${title}</strong>
+        <span>${detail}</span>
+      </button>
+    </li>`;
+  }
+
   private _renderResults() {
-    const localize = this.hass.localize;
     const matches = searchMatcher(this._query);
-    const results = (this._index?.articles ?? []).filter((a) =>
-      matches(a.title, a.path)
+    const articles =
+      this._view === "integrations"
+        ? []
+        : (this._index?.articles ?? []).filter((a) => matches(a.title, a.path));
+    const integrations = (this._integrations ?? []).filter((i) =>
+      matches(i.title, i.domain)
     );
-    return results.length
-      ? html`<ul class="results">
-          ${results.map(
-            (a) =>
-              html`<li>
-                <button
-                  type="button"
-                  data-path=${a.path}
-                  @click=${this._openResult}
+    const shownArticles = articles.slice(0, MAX_LISTED);
+    const shownIntegrations = integrations.slice(
+      0,
+      Math.max(0, MAX_LISTED - shownArticles.length)
+    );
+    if (!shownArticles.length && !shownIntegrations.length) {
+      return html`<p class="note">${this._t("no_results")}</p>`;
+    }
+    return html`
+      <ul class="results">
+        ${shownArticles.map((a) => this._resultButton(a.path, a.title, a.path))}
+        ${shownIntegrations.map((i) =>
+          this._resultButton(
+            `/integrations/${i.domain}`,
+            i.title,
+            `${this._t("integrations_title")}: ${i.domain}`
+          )
+        )}
+      </ul>
+      ${
+        articles.length + integrations.length >
+        shownArticles.length + shownIntegrations.length
+          ? html`<p class="note">
+              ${this._t("results_limited", { count: MAX_LISTED })}
+            </p>`
+          : nothing
+      }
+    `;
+  }
+
+  private _sectionLabel(segment: string): string {
+    return (SECTION_KEYS as readonly string[]).includes(segment)
+      ? this._t(`sections.${segment}`)
+      : this._t("sections.other");
+  }
+
+  private _renderHome() {
+    if (!this._index) {
+      return html`<p class="note">${this._t("loading")}</p>`;
+    }
+    const groups = new Map<string, HelpIndexEntry[]>();
+    for (const article of this._index.articles) {
+      const segment = article.path.split("/")[1] ?? "";
+      const key = (SECTION_KEYS as readonly string[]).includes(segment)
+        ? segment
+        : "other";
+      groups.set(key, [...(groups.get(key) ?? []), article]);
+    }
+    const order = [...SECTION_KEYS, "other"].filter((k) => groups.has(k));
+    return html`
+      <p class="note">${this._t("home_intro")}</p>
+      ${
+        this._integrations?.length
+          ? html`<section class="group">
+              <h3>${this._t("integrations_title")}</h3>
+              <button
+                type="button"
+                class="wide"
+                @click=${this._openIntegrations}
+              >
+                <strong>${this._t("integrations_open")}</strong>
+                <span
+                  >${this._t("integrations_intro", {
+                    count: this._integrations.length,
+                  })}</span
                 >
-                  <strong>${a.title}</strong>
-                  <span>${a.path}</span>
-                </button>
-              </li>`
+              </button>
+            </section>`
+          : nothing
+      }
+      ${order.map(
+        (key) =>
+          html`<section class="group">
+            <h3>${this._sectionLabel(key)}</h3>
+            <ul class="results">
+              ${groups
+                .get(key)!
+                .map((a) => this._resultButton(a.path, a.title, a.path))}
+            </ul>
+          </section>`
+      )}
+      <footer>
+        <p>${this._t("license")}</p>
+        <button type="button" class="link" @click=${this._openNotice}>
+          ${this._t("notice_link")}
+        </button>
+      </footer>
+    `;
+  }
+
+  private _renderIntegrations() {
+    const list = this._integrations;
+    if (!list) {
+      return html`<p class="note">${this._t("loading")}</p>`;
+    }
+    return html`
+      <p class="note">
+        ${this._t("integrations_intro", { count: list.length })}
+      </p>
+      <ul class="results">
+        ${list
+          .slice(0, MAX_LISTED)
+          .map((i) =>
+            this._resultButton(`/integrations/${i.domain}`, i.title, i.domain)
           )}
-        </ul>`
-      : html`<p class="note">${localize("ui.help.no_results")}</p>`;
+      </ul>
+      ${
+        list.length > MAX_LISTED
+          ? html`<p class="note">
+              ${this._t("results_limited", { count: MAX_LISTED })}
+            </p>`
+          : nothing
+      }
+    `;
+  }
+
+  private _renderNotice() {
+    if (this._state === "loading") {
+      return html`<p class="note">${this._t("loading")}</p>`;
+    }
+    if (this._state === "error" || !this._notice) {
+      return html`<p class="note">${this._t("error")}</p>`;
+    }
+    return html`<article>
+      <ha-markdown
+        .content=${rewriteArticleLinks(
+          this._notice,
+          () => false,
+          this._t("not_included")
+        )}
+      ></ha-markdown>
+    </article>`;
   }
 
   private _renderArticle() {
-    const localize = this.hass.localize;
     if (this._state === "loading") {
-      return html`<p class="note">${localize("ui.help.loading")}</p>`;
+      return html`<p class="note">${this._t("loading")}</p>`;
     }
     if (this._state === "error") {
-      return html`<p class="note">${localize("ui.help.error")}</p>`;
+      return html`<p class="note">${this._t("error")}</p>`;
     }
     if (this._state === "missing" || !this._article) {
       return html`
         <div class="missing">
-          <h3>${localize("ui.help.not_bundled_title")}</h3>
-          <p>
-            ${localize("ui.help.not_bundled_body", { path: this._path ?? "" })}
-          </p>
+          <h3>${this._t("not_bundled_title")}</h3>
+          <p>${this._t("not_bundled_body", { path: this._path ?? "" })}</p>
+          <button type="button" class="link" @click=${this._openHome}>
+            ${this._t("back_to_list")}
+          </button>
         </div>
       `;
     }
-    const bundled = new Set((this._index?.articles ?? []).map((a) => a.path));
-    const note = localize("ui.help.not_included");
-    const body = rewriteArticleLinks(
-      this._article.body,
-      (path) => bundled.has(path),
-      note
-    );
+    const note = this._t("not_included");
+    const body = rewriteArticleLinks(this._article.body, this._isBundled, note);
     const sections = splitSections(body);
-    const toc = sections.filter((s) => s.heading);
+    const toc = sections.filter((s) => s.heading && s.heading.level <= 3);
     return html`
       ${
         toc.length > 3
-          ? html`<nav class="toc" aria-label=${localize("ui.help.contents")}>
-              <strong>${localize("ui.help.contents")}</strong>
+          ? html`<nav class="toc" aria-label=${this._t("contents")}>
+              <strong>${this._t("contents")}</strong>
               <ul>
                 ${toc.map(
                   (s) =>
@@ -314,14 +633,20 @@ export class DialogHelpArticle
       </article>
       <footer>
         <p>
-          ${localize("ui.help.source", {
+          ${this._t("source", {
             path: this._article.source,
             commit: this._article.commit.slice(0, 7),
             date: this._article.fetched,
           })}
         </p>
-        <p>${localize("ui.help.license")}</p>
-        <p>${localize("ui.help.images_note")}</p>
+        <p>${this._t("license")}</p>
+        <p>${this._t("images_note")}</p>
+        <button type="button" class="link" @click=${this._openNotice}>
+          ${this._t("notice_link")}
+        </button>
+        <button type="button" class="link" @click=${this._openHome}>
+          ${this._t("back_to_list")}
+        </button>
       </footer>
     `;
   }
@@ -347,6 +672,10 @@ export class DialogHelpArticle
         .note {
           color: var(--secondary-text-color);
         }
+        .group h3 {
+          margin: var(--ha-space-4) 0 var(--ha-space-1);
+          font-size: var(--ha-font-size-l, 1rem);
+        }
         .toc {
           margin-bottom: var(--ha-space-4);
           padding: var(--ha-space-3) var(--ha-space-4);
@@ -360,7 +689,8 @@ export class DialogHelpArticle
           padding: 0;
         }
         .toc button,
-        .results button {
+        .results button,
+        button.wide {
           display: flex;
           flex-direction: column;
           width: 100%;
@@ -378,19 +708,37 @@ export class DialogHelpArticle
         .toc button {
           color: var(--primary-color);
         }
+        button.link {
+          min-height: 44px;
+          margin-inline-end: var(--ha-space-3);
+          padding: 0;
+          border: none;
+          background: none;
+          color: var(--primary-color);
+          font: inherit;
+          cursor: pointer;
+          text-decoration: underline;
+        }
         .toc button:hover,
         .results button:hover,
+        button.wide:hover,
         .toc button:focus-visible,
-        .results button:focus-visible {
+        .results button:focus-visible,
+        button.wide:focus-visible {
           background: var(--secondary-background-color);
         }
-        .results span {
+        .results span,
+        button.wide span {
           color: var(--secondary-text-color);
           font-size: var(--ha-font-size-s, 0.8125rem);
           overflow-wrap: anywhere;
         }
         article {
           overflow-wrap: anywhere;
+        }
+        article img {
+          max-width: 100%;
+          height: auto;
         }
         footer {
           margin-top: var(--ha-space-6);

@@ -23,8 +23,13 @@ export const markEnteringRows = (
   previousKeys: Set<string> | undefined
 ): Set<string> => {
   const current = new Set(keys);
-  if (!previousKeys || rows.length !== keys.length) {
+  if (!previousKeys) {
     return current;
+  }
+  if (rows.length !== keys.length) {
+    // Rows and keys are not paired yet; keep the last good baseline so the
+    // next update still compares against what was really shown.
+    return previousKeys;
   }
   const entering = rows.filter((_row, idx) => !previousKeys.has(keys[idx]));
   if (entering.length === 0 || entering.length > MAX_ANIMATED_ROWS) {
@@ -33,7 +38,7 @@ export const markEnteringRows = (
   for (const row of entering) {
     row.setAttribute(MOTION_ENTERING_ATTRIBUTE, "");
     const done = (ev: AnimationEvent) => {
-      if (ev.animationName !== "ha-automation-enter") {
+      if (ev.target !== row || ev.animationName !== "ha-automation-enter") {
         return;
       }
       row.removeAttribute(MOTION_ENTERING_ATTRIBUTE);

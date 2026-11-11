@@ -27,6 +27,8 @@ from .origin import async_resolve_relying_party
 from .store import DATA_STORE, PasskeyCredential, PasskeyStore
 
 _NAME = probatio.All(str, probatio.Length(max=256))
+PASSWORD_PROVIDER_TYPE = "homeassistant"
+REMOVE_SIGN_IN_MESSAGE = "Sign in again to remove a passkey"
 
 
 @callback
@@ -69,7 +71,9 @@ def _signed_in_recently(
     """Return True when this connection belongs to a fresh interactive sign-in.
 
     A passkey outlives every session, so only a normal session that was created
-    a moment ago may add one. A long-lived access token never can.
+    a moment ago may add or remove one. A long-lived access token never can.
+    The session must also come from a password login: a provider that asks for
+    no secret, such as trusted networks, proves nothing about the person.
     """
     if connection.refresh_token_id is None:
         return False
@@ -77,16 +81,18 @@ def _signed_in_recently(
     return (
         refresh_token is not None
         and refresh_token.token_type == TOKEN_TYPE_NORMAL
+        and refresh_token.credential is not None
+        and refresh_token.credential.auth_provider_type == PASSWORD_PROVIDER_TYPE
         and dt_util.utcnow() - refresh_token.created_at <= REGISTRATION_FRESH_WINDOW
     )
 
 
 def _send_sign_in_required(
-    connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    message: str = "Sign in again to add a passkey",
 ) -> None:
-    connection.send_error(
-        msg["id"], ERR_RECENT_SIGN_IN_REQUIRED, "Sign in again to add a passkey"
-    )
+    connection.send_error(msg["id"], ERR_RECENT_SIGN_IN_REQUIRED, message)
 
 
 def _owned_credential(
@@ -166,6 +172,9 @@ async def ws_delete(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Delete a passkey."""
+    if not _signed_in_recently(hass, connection):
+        _send_sign_in_required(connection, msg, REMOVE_SIGN_IN_MESSAGE)
+        return
     store = hass.data[DATA_STORE]
     if (credential := _owned_credential(store, connection, msg)) is None:
         return
@@ -185,6 +194,9 @@ async def ws_delete_all(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Delete every passkey of a user."""
+    if not _signed_in_recently(hass, connection):
+        _send_sign_in_required(connection, msg, REMOVE_SIGN_IN_MESSAGE)
+        return
     if (user_id := _target_user_id(connection, msg)) is None:
         return
     removed = await hass.data[DATA_STORE].async_remove_user(user_id)

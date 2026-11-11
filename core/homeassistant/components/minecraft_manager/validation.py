@@ -18,10 +18,11 @@ from .const import (
     TARGETS,
 )
 
+# Both patterns are used with fullmatch, so a trailing newline never passes.
 # Letters, digits, spaces and a few separators; must start with a letter or digit.
-NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.\-]*$")
+NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _.\-]*")
 # A release such as 1.21.4, a snapshot such as 25w45a, or the word latest.
-VERSION_PATTERN = re.compile(r"^(latest|[A-Za-z0-9][A-Za-z0-9._+\-]{0,39})$")
+VERSION_PATTERN = re.compile(r"(latest|[A-Za-z0-9][A-Za-z0-9._+\-]{0,39})")
 
 FIELDS = ("name", "edition", "flavour", "version", "port", "memory_mb", "target")
 
@@ -54,7 +55,7 @@ def validate_server(data: Any) -> tuple[dict[str, Any], list[dict[str, str]]]:
         name = name.strip()
         if len(name) > NAME_MAX_LENGTH:
             errors.append({"field": "name", "code": "too_long"})
-        elif not NAME_PATTERN.match(name):
+        elif not NAME_PATTERN.fullmatch(name):
             errors.append({"field": "name", "code": "invalid_characters"})
         else:
             cleaned["name"] = name
@@ -72,7 +73,7 @@ def validate_server(data: Any) -> tuple[dict[str, Any], list[dict[str, str]]]:
         errors.append({"field": "flavour", "code": "invalid_choice"})
 
     version = data.get("version")
-    if not isinstance(version, str) or not VERSION_PATTERN.match(version):
+    if not isinstance(version, str) or not VERSION_PATTERN.fullmatch(version):
         errors.append({"field": "version", "code": "invalid_version"})
     else:
         cleaned["version"] = version

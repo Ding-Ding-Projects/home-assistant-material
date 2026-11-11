@@ -276,6 +276,7 @@ export class HaConfigLabels extends LitElement {
         clickable
         id="label_id"
         selectable
+        keep-hidden-selection
         .selected=${this._selected.length}
         ?bulk-bar=${this._selected.length > 0}
         @selection-changed=${this._handleSelectionChanged}

@@ -12,6 +12,7 @@ import {
   mdiMicrophone,
   mdiCodeJson,
   mdiPalette,
+  mdiFileSwap,
   mdiCalendarClock,
   mdiFormatPaint,
   mdiMagnify,
@@ -165,6 +166,11 @@ const CATALOG_TOOLS: CatalogToolDefinition[] = [
     panel: "colour",
     translationKey: "ui.panel.config.tools.tabs.colour.title",
     iconPath: mdiPalette,
+  },
+  {
+    panel: "converter",
+    translationKey: "ui.panel.config.tools.tabs.converter.title",
+    iconPath: mdiFileSwap,
   },
   {
     panel: "debug",

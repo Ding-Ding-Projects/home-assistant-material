@@ -64,18 +64,6 @@ export class CloudCompanionPref extends LitElement {
                 </li>
               </ul>
             </div>
-            <div class="card-actions">
-              <ha-button
-                appearance="plain"
-                href="https://companion.home-assistant.io/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ${this.hass.localize(
-                  "ui.panel.config.cloud.account.companion.learn_more"
-                )}
-              </ha-button>
-            </div>
           </ha-card>
 
           <ha-card

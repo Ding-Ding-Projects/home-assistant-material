@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from homeassistant.components.minecraft_manager import targets
+from homeassistant.components.minecraft_manager.manager import MinecraftManager
 from homeassistant.components.minecraft_manager.validation import validate_server
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
@@ -39,6 +40,7 @@ def test_valid_definition() -> None:
         pytest.param({"edition": "pocket"}, "edition", "invalid_choice", id="edition"),
         pytest.param({"flavour": "bedrock"}, "flavour", "invalid_choice", id="flavour"),
         pytest.param({"version": "1.21; rm -rf"}, "version", "invalid_version", id="version"),
+        pytest.param({"version": "1.21.4\n"}, "version", "invalid_version", id="version-newline"),
         pytest.param({"port": 80}, "port", "out_of_range", id="low-port"),
         pytest.param({"port": True}, "port", "out_of_range", id="bool-port"),
         pytest.param({"memory_mb": 64}, "memory_mb", "out_of_range", id="memory"),
@@ -139,3 +141,37 @@ async def test_targets_command(
     await client.send_json({"id": 1, "type": "minecraft_manager/targets"})
     result = (await client.receive_json())["result"]["targets"]
     assert len(result) == 5
+
+
+async def test_port_conflicts_by_host(hass: HomeAssistant) -> None:
+    """Local targets share one host; the instance port is reserved."""
+    manager = MinecraftManager(hass)
+    manager._servers = {
+        "a": {**VALID, "id": "a", "name": "A", "target": "docker_socket", "state": "defined"},  # type: ignore[typeddict-item]
+        "b": {**VALID, "id": "b", "name": "B", "target": "ssh_process", "port": 25566, "state": "defined"},  # type: ignore[typeddict-item]
+    }
+    same_host = manager.conflicts({**VALID, "name": "C", "target": "local_process"})
+    assert {"field": "port", "code": "port_in_use"} in same_host
+    other_host = manager.conflicts({**VALID, "name": "C", "target": "ssh_docker"})
+    assert {"field": "port", "code": "port_in_use"} not in other_host
+    ssh_clash = manager.conflicts(
+        {**VALID, "name": "C", "target": "ssh_process", "port": 25566}
+    )
+    assert {"field": "port", "code": "port_in_use"} in ssh_clash
+    reserved = manager.conflicts({**VALID, "name": "C", "target": "supervisor", "port": 8123})
+    assert {"field": "port", "code": "port_reserved"} in reserved
+    assert {"field": "port", "code": "port_reserved"} not in manager.conflicts(
+        {**VALID, "name": "C", "target": "ssh_docker", "port": 8123}
+    )
+
+
+async def test_corrupt_stored_item_is_skipped(hass: HomeAssistant) -> None:
+    """A damaged stored entry does not break loading or listing."""
+    manager = MinecraftManager(hass)
+    with patch.object(
+        manager._store,
+        "async_load",
+        return_value={"servers": [{"id": "x"}, "junk", {**VALID, "id": "ok", "state": "defined"}]},
+    ):
+        await manager.async_load()
+    assert [item["id"] for item in manager.servers()] == ["ok"]

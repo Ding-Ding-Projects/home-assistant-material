@@ -353,14 +353,9 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
       text: html`
         <p>
           ${this.hass.localize("ui.panel.config.tag.detail.usage", {
-            companion_link: html`<a
-              href="https://companion.home-assistant.io/"
-              target="_blank"
-              rel="noreferrer"
-              >${this.hass!.localize(
-                "ui.panel.config.tag.detail.companion_apps"
-              )}</a
-            >`,
+            companion_link: this.hass!.localize(
+              "ui.panel.config.tag.detail.companion_apps"
+            ),
           })}
         </p>
         <p>

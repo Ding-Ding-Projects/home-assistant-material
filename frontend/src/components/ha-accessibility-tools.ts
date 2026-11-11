@@ -476,6 +476,11 @@ export class HaAccessibilityTools extends LitElement {
       this.hass.language,
       () => {
         this._reading = false;
+      },
+      () => {
+        showToast(this, {
+          message: this.hass.localize("ui.accessibility_tools.no_device_voice"),
+        });
       }
     );
     if (!started) {

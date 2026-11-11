@@ -31,6 +31,9 @@ import type { HomeAssistant } from "../../../types";
 const STEPS = ["basics", "version", "target", "review"] as const;
 type Step = (typeof STEPS)[number];
 
+/** Errors about the whole request carry this field instead of a setting. */
+const SERVER_FIELD = "server";
+
 /** The fields each step is responsible for. */
 const STEP_FIELDS: Record<Step, string[]> = {
   basics: ["name", "edition", "port", "memory_mb"],
@@ -71,6 +74,15 @@ class HaMinecraftWizard extends LitElement {
 
   private _errors(): MinecraftFieldError[] {
     return [...validateMinecraftDraft(this._draft), ...this._serverErrors];
+  }
+
+  /** Errors tied to a setting; the ones about the whole request are separate. */
+  private _fieldErrors(): MinecraftFieldError[] {
+    return this._errors().filter((error) => error.field !== SERVER_FIELD);
+  }
+
+  private _requestErrors(): MinecraftFieldError[] {
+    return this._serverErrors.filter((error) => error.field === SERVER_FIELD);
   }
 
   private _errorFor(field: string): string | undefined {
@@ -151,6 +163,11 @@ class HaMinecraftWizard extends LitElement {
       this._serverErrors = result.errors;
       this._touchStep("basics");
       this._touchStep("version");
+      if (result.errors.every((e) => e.field === SERVER_FIELD)) {
+        // Nothing to fix in a field: stay here and show the message.
+        this._step = "review";
+        return;
+      }
       this._step = result.errors.some((e) =>
         STEP_FIELDS.target.includes(e.field)
       )
@@ -487,9 +504,17 @@ class HaMinecraftWizard extends LitElement {
   }
 
   private _renderReview(): TemplateResult {
-    const errors = this._errors();
+    const errors = this._fieldErrors();
     return html`
       <p class="lead">${this._l("review_intro")}</p>
+      ${this._requestErrors().map(
+        (error) =>
+          html`<ha-alert alert-type="error"
+            >${this._l(`error.${error.code}`, {
+              max: MINECRAFT_LIMITS.nameMax,
+            })}</ha-alert
+          >`
+      )}
       <ha-alert alert-type="warning">${this._l("not_started_note")}</ha-alert>
       ${
         errors.length
@@ -520,7 +545,7 @@ class HaMinecraftWizard extends LitElement {
         last
           ? html`<ha-button
               @click=${this._create}
-              .disabled=${this._busy || this._errors().length > 0}
+              .disabled=${this._busy || this._fieldErrors().length > 0}
               >${this._l("create")}</ha-button
             >`
           : html`<ha-button @click=${this._next}>${this._l("next")}</ha-button>`

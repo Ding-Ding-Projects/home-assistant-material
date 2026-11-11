@@ -801,6 +801,7 @@ class HaAutomationPicker extends SubscribeMixin(LitElement) {
         )}
         .summary=${this._summary(automations)}
         selectable
+        keep-hidden-selection
         always-show-checkboxes
         footer-select
         .footerText=${this.hass.localize(

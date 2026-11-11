@@ -40,6 +40,7 @@ import type { HomeAssistant } from "../../../../types";
 import { showToast } from "../../../../util/toast";
 import { onboardingPanelCompleted } from "./cloud-account-status";
 import type { CloudOnboardingDialogParams } from "./show-dialog-cloud-onboarding";
+import { documentationUrl } from "../../../../util/documentation-url";
 
 @customElement("dialog-cloud-onboarding")
 export class DialogCloudOnboarding extends LitElement {
@@ -379,9 +380,7 @@ export class DialogCloudOnboarding extends LitElement {
         <div class="option-actions">
           <ha-button
             appearance="plain"
-            href="https://www.home-assistant.io/voice_control/"
-            target="_blank"
-            rel="noreferrer"
+            href=${documentationUrl(this.hass, "/voice_control/")}
           >
             ${this.hass.localize(
               "ui.panel.config.cloud.account.onboarding.learn_more"

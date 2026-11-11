@@ -40,6 +40,7 @@ import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
 import { showToast } from "../../../../util/toast";
 import { cloudSubpageStyle } from "./cloud-subpage-style";
+import { documentationUrl } from "../../../../util/documentation-url";
 
 export const getCloudTtsSupportedVoices = (
   language: string,
@@ -127,9 +128,7 @@ export class CloudTTSPref extends LitElement {
             <div class="card-actions">
               <ha-button
                 appearance="plain"
-                href="https://www.home-assistant.io/voice_control/"
-                target="_blank"
-                rel="noreferrer"
+                href=${documentationUrl(this.hass, "/voice_control/")}
               >
                 ${this.hass.localize(
                   "ui.panel.config.cloud.account.assist.link_learn_more"

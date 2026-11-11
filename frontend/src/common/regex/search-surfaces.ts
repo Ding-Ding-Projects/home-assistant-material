@@ -134,6 +134,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Entries of What changed, by text, commit and day",
   },
   {
+    file: "panels/config/release-notes/ha-config-release-notes.ts",
+    searches: "Release notes, by text, commit and day",
+  },
+  {
     file: "panels/config/notifications/ha-config-notifications.ts",
     searches: "Notifications, by title, text and id",
   },
@@ -247,6 +251,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     matcher: TABLE_WORKER,
   },
   {
+    file: "panels/config/tools/converter/tools-converter.ts",
+    searches: "The formats the file converter can write",
+  },
+  {
     file: "panels/config/tools/event/event-subscribe-card.ts",
     searches: "Keys and values of the events being listened to",
   },
@@ -266,6 +274,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/guided-setup/ha-config-guided-setup.ts",
     searches: "Integrations that have no setup screen",
+  },
+  {
+    file: "panels/config/ollama/ha-config-ollama.ts",
+    searches:
+      "Models stored on an Ollama server by name, family, size and quantisation",
   },
   {
     file: "panels/config/problem-log/ha-config-problem-log.ts",

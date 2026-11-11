@@ -64,6 +64,14 @@ const TOOLS_TABS = [
     panel: "colour",
     translationKey: "ui.panel.config.tools.tabs.colour.title",
   },
+  {
+    panel: "converter",
+    translationKey: "ui.panel.config.tools.tabs.converter.title",
+  },
+  {
+    panel: "drawing",
+    translationKey: "ui.panel.config.tools.tabs.drawing.title",
+  },
 ] as const;
 
 @customElement("ha-panel-tools")

@@ -34,6 +34,7 @@ import {
 import { getStatisticIds } from "../../data/recorder_statistic_ids";
 import type { HomeAssistantFormatters, ValueChangedEvent } from "../../types";
 import { documentationUrl } from "../../util/documentation-url";
+import { openHelpUrl } from "../help/open-help-article";
 import "../ha-combo-box-item";
 import "../ha-generic-picker";
 import type { HaGenericPicker } from "../ha-generic-picker";
@@ -626,7 +627,8 @@ export class HaStatisticPicker extends LitElement {
     const value = ev.detail.value;
 
     if (value === MISSING_ID) {
-      window.open(
+      openHelpUrl(
+        this,
         documentationUrl(this._config, this.helpMissingEntityUrl),
         "_blank"
       );

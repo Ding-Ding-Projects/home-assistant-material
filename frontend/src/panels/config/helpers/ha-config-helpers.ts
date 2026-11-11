@@ -765,6 +765,7 @@ export class HaConfigHelpers extends SubscribeMixin(LitElement) {
           }
         )}
         selectable
+        keep-hidden-selection
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}
         has-filters

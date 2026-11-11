@@ -251,9 +251,7 @@ export class HaConfigFlowCard extends LitElement {
         <br />
         <br />
         <a
-          href="https://www.home-assistant.io/integrations/application_credentials"
-          target="_blank"
-          rel="noreferrer"
+          href=${documentationUrl(this.hass, "/integrations/application_credentials")}
         >
           ${this.hass.localize(
             "ui.panel.config.integrations.config_entry.application_credentials.learn_more"

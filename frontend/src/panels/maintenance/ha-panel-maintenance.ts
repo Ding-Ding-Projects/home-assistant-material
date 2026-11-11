@@ -1,14 +1,17 @@
+import { mdiViewDashboardEdit } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { debounce } from "../../common/util/debounce";
 import { deepEqual } from "../../common/util/deep-equal";
+import "../../components/ha-icon-button";
 import "../../components/ha-top-app-bar-fixed";
 import type { LovelaceStrategyViewConfig } from "../../data/lovelace/config/view";
 import { ChildPanelReady } from "../../layouts/panel-ready";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import { generateLovelaceViewStrategy } from "../lovelace/strategies/get-strategy";
+import { makeEditableCopy } from "../lovelace/import-export/dashboard-actions";
 import type { Lovelace } from "../lovelace/types";
 import "../lovelace/views/hui-view";
 import "../lovelace/views/hui-view-background";
@@ -98,6 +101,20 @@ class PanelMaintenance extends LitElement {
         .backButton=${this._searchParams.has("historyBack")}
       >
         <div slot="title">${this.hass.localize("panel.maintenance")}</div>
+        ${
+          this.hass.user?.is_admin &&
+          !this.hass.kioskMode &&
+          !this.hass.config.recovery_mode
+            ? html`<ha-icon-button
+                slot="actionItems"
+                .path=${mdiViewDashboardEdit}
+                .label=${this.hass.localize(
+                  "ui.panel.lovelace.import_export.edit_cards_layout"
+                )}
+                @click=${this._editCardsAndLayout}
+              ></ha-icon-button>`
+            : nothing
+        }
         <ha-maintenance-attention .hass=${this.hass}></ha-maintenance-attention>
         ${
           this._lovelace
@@ -147,6 +164,14 @@ class PanelMaintenance extends LitElement {
       showToast: () => undefined,
     };
   }
+
+  // The generated page cannot be edited itself. Editing makes a copy.
+  private _editCardsAndLayout = () => {
+    void makeEditableCopy(
+      { hass: this.hass, element: this },
+      { urlPath: "maintenance", title: this.hass.localize("panel.maintenance") }
+    );
+  };
 
   static get styles(): CSSResultGroup {
     return [

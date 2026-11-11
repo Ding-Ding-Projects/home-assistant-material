@@ -232,6 +232,7 @@ DEFAULT_INTEGRATIONS = {
     "marketplace",
     "minecraft_manager",
     "network",
+    "ollama_suite",
     "passkey",
     "problem_log",
     "system_health",

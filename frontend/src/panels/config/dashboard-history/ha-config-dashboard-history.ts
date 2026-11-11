@@ -11,6 +11,8 @@ import "../../../components/ha-button";
 import "../../../components/ha-card";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
+import "../../../components/input/ha-input";
+import type { HaInput } from "../../../components/input/ha-input";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type {
@@ -19,13 +21,18 @@ import type {
   DashboardReposStatus,
 } from "../../../data/dashboard_repos";
 import {
+  CURRENT_STATE_NOT_RECORDED,
   dashboardHistoryQueryParamConfig,
   dashboardHistoryUrl,
   fetchDashboardDiff,
   fetchDashboardHistory,
   fetchDashboardReposStatus,
   fetchDashboardVersion,
+  forgetDashboardHistory,
+  isValidDashboardRemote,
+  pushDashboardRepository,
   restoreDashboardVersion,
+  setDashboardRemote,
 } from "../../../data/dashboard_repos";
 import {
   showAlertDialog,
@@ -87,6 +94,14 @@ export class HaConfigDashboardHistory extends LitElement {
 
   @state() private _notice?: string;
 
+  @state() private _remoteInput = "";
+
+  @state() private _remoteBusy = false;
+
+  @state() private _pushing = false;
+
+  @state() private _pushResult?: { ok: boolean; text: string };
+
   private _detailRequest = 0;
 
   private _urlParams = new QueryParamsController(
@@ -134,6 +149,7 @@ export class HaConfigDashboardHistory extends LitElement {
       this._search = "";
       this._showAll = false;
       this._notice = undefined;
+      this._pushResult = undefined;
       this._load();
     }
   }
@@ -157,6 +173,7 @@ export class HaConfigDashboardHistory extends LitElement {
     this._commits = [];
     try {
       this._status = await fetchDashboardReposStatus(this.hass);
+      this._remoteInput = this._repository?.remote ?? "";
       if (this._dashboard && this._repository) {
         this._commits = await fetchDashboardHistory(
           this.hass,
@@ -499,6 +516,149 @@ export class HaConfigDashboardHistory extends LitElement {
         </div>
         ${this._renderDetail(repository, selected)}
       </div>
+      ${this._renderRemote(repository)}
+      ${this._view ? nothing : this._renderForget(repository)}
+    `;
+  }
+
+  private _renderSecretsWarning() {
+    return html`<ha-alert
+      alert-type="warning"
+      .title=${this._l("secrets_title")}
+      >${this._l("secrets_text")}</ha-alert
+    >`;
+  }
+
+  private get _remoteError(): string | undefined {
+    const address = this._remoteInput.trim();
+    return address && !isValidDashboardRemote(address)
+      ? this._l("remote_invalid")
+      : undefined;
+  }
+
+  private _renderRemote(repository: DashboardRepository) {
+    const error = this._remoteError;
+    const saved = repository.remote ?? "";
+    const dirty = this._remoteInput.trim() !== saved;
+    const last = repository.last_push;
+    const canPush =
+      !!repository.remote &&
+      !repository.remote_unsafe &&
+      !dirty &&
+      !this._pushing &&
+      !this._remoteBusy;
+    const canSave =
+      dirty && !!this._remoteInput.trim() && !error && !this._remoteBusy;
+    const canRemove =
+      (!!repository.remote || repository.remote_unsafe) && !this._remoteBusy;
+    return html`
+      <ha-card class="detail remote">
+        <div class="detail-title">
+          <h2>${this._l("remote_title")}</h2>
+          <span class="secondary">${this._l("remote_description")}</span>
+        </div>
+        ${
+          repository.remote_unsafe
+            ? html`<ha-alert alert-type="warning"
+                >${this._l("remote_unsafe")}</ha-alert
+              >`
+            : nothing
+        }
+        <div class="remote-line">
+          <span class="secondary">${this._l("remote_current")}</span>
+          <code class="remote-address"
+            >${repository.remote ?? this._l("remote_none")}</code
+          >
+        </div>
+        ${this._renderSecretsWarning()}
+        <ha-input
+          appearance="outlined"
+          type="url"
+          .label=${this._l("remote_label")}
+          .hint=${this._l("remote_hint")}
+          .placeholder=${"https://example.com/team/dashboard.git"}
+          .value=${this._remoteInput}
+          .invalid=${!!error}
+          .validationMessage=${error ?? ""}
+          .disabled=${this._remoteBusy}
+          @input=${this._remoteChanged}
+        ></ha-input>
+        <div class="buttons">
+          <ha-button .disabled=${!canSave} @click=${this._saveRemote}
+            >${this._l("remote_save")}</ha-button
+          >
+          <ha-button
+            appearance="plain"
+            .disabled=${!canRemove}
+            @click=${this._removeRemote}
+            >${this._l("remote_remove")}</ha-button
+          >
+        </div>
+        <h3>${this._l("push_heading")}</h3>
+        <p class="statement">
+          ${
+            repository.remote
+              ? this._l("push_statement", { address: repository.remote })
+              : this._l("push_statement_no_remote")
+          }
+        </p>
+        <div class="buttons">
+          <ha-button .disabled=${!canPush} @click=${this._push}
+            >${this._l("push_now")}</ha-button
+          >
+        </div>
+        ${
+          dirty && repository.remote
+            ? html`<p class="secondary">${this._l("push_save_first")}</p>`
+            : nothing
+        }
+        ${
+          this._pushResult
+            ? html`<ha-alert
+                role="status"
+                alert-type=${this._pushResult.ok ? "success" : "error"}
+                >${this._pushResult.text}</ha-alert
+              >`
+            : nothing
+        }
+        ${
+          last
+            ? html`<p class="secondary">
+                ${
+                  last.ok
+                    ? this._l("last_push_ok")
+                    : this._l("last_push_failed", { error: last.error ?? "" })
+                }
+                <ha-relative-time
+                  .hass=${this.hass}
+                  .datetime=${new Date(last.time * 1000)}
+                ></ha-relative-time>
+              </p>`
+            : html`<p class="secondary">${this._l("never_pushed")}</p>`
+        }
+      </ha-card>
+    `;
+  }
+
+  private _renderForget(repository: DashboardRepository) {
+    return html`
+      <ha-card class="detail">
+        <div class="detail-title">
+          <h2>${this._l("forget_title")}</h2>
+          <span class="secondary"
+            >${this._l("forget_hint", { dashboard: repository.title })}</span
+          >
+        </div>
+        <div class="buttons">
+          <ha-button
+            variant="danger"
+            appearance="outlined"
+            .disabled=${this._busy}
+            @click=${this._forget}
+            >${this._l("forget")}</ha-button
+          >
+        </div>
+      </ha-card>
     `;
   }
 
@@ -555,6 +715,7 @@ export class HaConfigDashboardHistory extends LitElement {
                     ? html`<p class="notice" role="status">${this._notice}</p>`
                     : nothing
                 }
+                ${this._renderSecretsWarning()}
                 <div class="actions-list">
                   <button
                     class="action"
@@ -713,20 +874,176 @@ export class HaConfigDashboardHistory extends LitElement {
     }
     this._busy = true;
     try {
-      await restoreDashboardVersion(
+      let result;
+      try {
+        result = await restoreDashboardVersion(
+          this.hass,
+          this._dashboard,
+          sha,
+          this._view
+        );
+      } catch (err: any) {
+        if (err?.code !== CURRENT_STATE_NOT_RECORDED) {
+          throw err;
+        }
+        const goAnyway = await showConfirmationDialog(this, {
+          title: this._l("restore_unsaved_title"),
+          text: this._l("restore_unsaved_text", {
+            error: err?.message || "",
+          }),
+          confirmText: this._l("restore_unsaved_confirm"),
+          destructive: true,
+        });
+        if (!goAnyway) {
+          return;
+        }
+        result = await restoreDashboardVersion(
+          this.hass,
+          this._dashboard,
+          sha,
+          this._view,
+          true
+        );
+      }
+      this._notice = this._l(
+        result.new_view ? "restore_done_new_tab" : "restore_done",
+        { version: commit.short }
+      );
+      this._detail = undefined;
+      this._commit = undefined;
+      await this._load();
+      this._writeUrl();
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  private _remoteChanged(ev: Event) {
+    this._remoteInput = (ev.target as HaInput).value ?? "";
+  }
+
+  private async _refreshStatus() {
+    this._status = await fetchDashboardReposStatus(this.hass);
+  }
+
+  private async _saveRemote() {
+    if (!this._dashboard || this._remoteError) {
+      return;
+    }
+    this._remoteBusy = true;
+    try {
+      await setDashboardRemote(
         this.hass,
         this._dashboard,
-        sha,
-        this._view
+        this._remoteInput.trim() || null
       );
-      this._notice = this._l("restore_done", { version: commit.short });
-      // The save is committed a moment after it returns.
-      window.setTimeout(async () => {
-        this._detail = undefined;
-        this._commit = undefined;
-        await this._load();
-        this._writeUrl();
-      }, 1500);
+      await this._refreshStatus();
+      this._remoteInput = this._repository?.remote ?? "";
+      this._pushResult = undefined;
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    } finally {
+      this._remoteBusy = false;
+    }
+  }
+
+  private async _removeRemote() {
+    if (!this._dashboard) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("remote_remove_title"),
+      text: this._l("remote_remove_text"),
+      confirmText: this._l("remote_remove"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._remoteBusy = true;
+    try {
+      await setDashboardRemote(this.hass, this._dashboard, null);
+      await this._refreshStatus();
+      this._remoteInput = "";
+      this._pushResult = undefined;
+    } catch (err: any) {
+      showAlertDialog(this, {
+        title: this._l("action_failed"),
+        text: err?.message || String(err),
+      });
+    } finally {
+      this._remoteBusy = false;
+    }
+  }
+
+  private async _push() {
+    const repository = this._repository;
+    if (!this._dashboard || !repository?.remote) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("push_confirm_title"),
+      text: this._l("push_statement", { address: repository.remote }),
+      confirmText: this._l("push_now"),
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._pushing = true;
+    this._pushResult = undefined;
+    try {
+      const result = await pushDashboardRepository(this.hass, this._dashboard);
+      this._pushResult = result.pushed
+        ? { ok: true, text: this._l("push_done") }
+        : {
+            ok: false,
+            text: this._l("push_failed", { error: result.error ?? "" }),
+          };
+      await this._refreshStatus();
+    } catch (err: any) {
+      this._pushResult = {
+        ok: false,
+        text: this._l("push_failed", { error: err?.message || String(err) }),
+      };
+    } finally {
+      this._pushing = false;
+    }
+  }
+
+  private async _forget() {
+    const repository = this._repository;
+    if (!this._dashboard || !repository) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("forget_confirm_title", { dashboard: repository.title }),
+      text: this._l("forget_confirm_text", {
+        dashboard: repository.title,
+        count: repository.commits,
+      }),
+      confirmText: this._l("forget"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._busy = true;
+    try {
+      await forgetDashboardHistory(this.hass, this._dashboard);
+      this._notice = this._l("forget_done");
+      this._detail = undefined;
+      this._commit = undefined;
+      this._pushResult = undefined;
+      await this._load();
+      this._writeUrl();
     } catch (err: any) {
       showAlertDialog(this, {
         title: this._l("action_failed"),
@@ -1016,6 +1333,26 @@ export class HaConfigDashboardHistory extends LitElement {
       background: var(--card-background-color);
       color: inherit;
       font: inherit;
+    }
+    .remote {
+      min-width: 0;
+    }
+    .remote-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--ha-space-2);
+    }
+    .remote-address {
+      overflow-wrap: anywhere;
+    }
+    .statement {
+      overflow-wrap: anywhere;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
     }
     .notice {
       padding: var(--ha-space-3) var(--ha-space-4);

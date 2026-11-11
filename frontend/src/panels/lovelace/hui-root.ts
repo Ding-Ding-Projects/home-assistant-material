@@ -8,6 +8,7 @@ import {
   mdiFileMultiple,
   mdiFormatListBulletedTriangle,
   mdiHelpCircleOutline,
+  mdiHistory,
   mdiMagnify,
   mdiPencil,
   mdiPlus,
@@ -80,9 +81,11 @@ import { handleBackClick } from "../../layouts/back-navigation";
 import { ChildPanelReady } from "../../layouts/panel-ready";
 import { KeyboardShortcutMixin } from "../../mixins/keyboard-shortcut-mixin";
 import type { HomeAssistant, PanelInfo } from "../../types";
+import { openHelpUrl } from "../../components/help/open-help-article";
 import { documentationUrl } from "../../util/documentation-url";
 import { isMobileClient } from "../../util/is_mobile";
 import { showToast } from "../../util/toast";
+import { dashboardHistoryUrl } from "../../data/dashboard_repos";
 import { showAreaRegistryDetailDialog } from "../config/areas/show-dialog-area-registry-detail";
 import { showNewAutomationDialog } from "../config/automation/show-dialog-new-automation";
 import { showAddIntegrationDialog } from "../config/integrations/show-add-integration-dialog";
@@ -247,7 +250,27 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
       !__DEMO__ &&
       !!this.lovelace;
 
+    const canShowHistory =
+      canExport &&
+      isLovelaceDashboard &&
+      this.lovelace!.mode === "storage" &&
+      isComponentLoaded(this.hass.config, "dashboard_repos");
+
     const items: ActionItem[] = [
+      {
+        icon: mdiHistory,
+        key: "ui.panel.lovelace.history.dashboard",
+        overflowAction: this._handleDashboardHistory,
+        visible: canShowHistory,
+        overflow: true,
+      },
+      {
+        icon: mdiHistory,
+        key: "ui.panel.lovelace.history.view",
+        overflowAction: this._handleViewHistory,
+        visible: canShowHistory && this._editMode,
+        overflow: true,
+      },
       {
         icon: mdiFormatListBulletedTriangle,
         key: "ui.panel.lovelace.unused_entities.title",
@@ -846,6 +869,11 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     // Check for requested edit mode
     const searchParams = extractSearchParamsObject();
     if (searchParams.edit === "1") {
+      // A page that cannot be edited leaves the request alone: it is meant
+      // for the dashboard being navigated to, which has not mounted yet.
+      if (this.noEdit) {
+        return;
+      }
       this._clearParam("edit");
       if (this.hass!.user?.is_admin && this.lovelace!.mode === "storage") {
         this.lovelace!.setEditMode(true);
@@ -1235,8 +1263,37 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     );
   };
 
+  /** The dashboard URL path as the history page names it: the default has none. */
+  private _historyDashboard(): string | undefined {
+    const urlPath = this._urlPath();
+    return urlPath === "lovelace" ? undefined : urlPath;
+  }
+
+  private _handleDashboardHistory = () => {
+    navigate(dashboardHistoryUrl(this._historyDashboard()));
+  };
+
+  /**
+   * A view is recorded under its path when that is a safe name, so the
+   * history of this tab opens directly. A view without one is picked from
+   * the tab chips of the dashboard history instead.
+   */
+  private _handleViewHistory = () => {
+    const path =
+      typeof this._curView === "number"
+        ? this.config.views[this._curView]?.path
+        : undefined;
+    navigate(
+      dashboardHistoryUrl(
+        this._historyDashboard(),
+        path && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(path) ? path : undefined
+      )
+    );
+  };
+
   private _handleHelp = () => {
-    window.open(
+    openHelpUrl(
+      this,
       documentationUrl(this.hass, "/dashboards/"),
       "_blank",
       "noreferrer"

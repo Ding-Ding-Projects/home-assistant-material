@@ -28,8 +28,20 @@ export interface DashboardRepository {
   views: DashboardRepositoryView[];
   /** Keys of views that were deleted and whose history is kept. */
   removed: string[];
+  /** The remote address, with nothing a person could have typed secretly. */
   remote: string | null;
+  /** A remote is set but its address cannot be shown or used. */
+  remote_unsafe: boolean;
+  /** The last push to the remote, when there was one. */
+  last_push: DashboardPush | null;
   /** The reason the last save was not committed, when it was not. */
+  error: string | null;
+}
+
+export interface DashboardPush {
+  /** Seconds since 1970. */
+  time: number;
+  ok: boolean;
   error: string | null;
 }
 
@@ -97,18 +109,44 @@ export const fetchDashboardDiff = (
     ...(viewKey ? { view_key: viewKey } : {}),
   });
 
-/** Puts a dashboard, or one of its views, back as it was at a commit. */
+/** The error code of a restore that could not record the current state first. */
+export const CURRENT_STATE_NOT_RECORDED = "current_state_not_recorded";
+
+export interface DashboardRestoreResult {
+  /** The commit the restore made, when the new state was recorded. */
+  commit: string | null;
+  /** The tab no longer existed, so it was added as a new tab. */
+  new_view: boolean;
+}
+
+/**
+ * Puts a dashboard, or one of its views, back as it was at a commit. The
+ * current state is recorded first; without_saving_current accepts losing it
+ * when that cannot be done.
+ */
 export const restoreDashboardVersion = (
   hass: HomeAssistant,
   dashboardId: string,
   sha: string,
-  viewKey?: string
+  viewKey?: string,
+  withoutSavingCurrent = false
 ) =>
-  hass.callWS<undefined>({
+  hass.callWS<DashboardRestoreResult>({
     type: "dashboard_repos/restore",
     dashboard_id: dashboardId,
     sha,
     ...(viewKey ? { view_key: viewKey } : {}),
+    ...(withoutSavingCurrent ? { without_saving_current: true } : {}),
+  });
+
+/** Deletes the whole history of a dashboard and starts it again. */
+export const forgetDashboardHistory = (
+  hass: HomeAssistant,
+  dashboardId: string
+) =>
+  hass.callWS<{ commit: string | null }>({
+    type: "dashboard_repos/forget",
+    dashboard_id: dashboardId,
   });
 
 export const setDashboardRemote = (
@@ -126,10 +164,31 @@ export const pushDashboardRepository = (
   hass: HomeAssistant,
   dashboardId: string
 ) =>
-  hass.callWS<{ pushed: boolean; error: string | null }>({
+  hass.callWS<{ pushed: boolean; error: string | null; time: number }>({
     type: "dashboard_repos/push",
     dashboard_id: dashboardId,
   });
+
+const REMOTE_LIMIT = 500;
+const REMOTE_HOST = "[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?";
+const REMOTE_URL = new RegExp(
+  `^(?:https|ssh)://${REMOTE_HOST}(?::[0-9]{1,5})?/[A-Za-z0-9._~%+/-]*$`
+);
+const REMOTE_SCP = new RegExp(
+  `^git@${REMOTE_HOST}:[A-Za-z0-9._~%+/][A-Za-z0-9._~%+/-]*$`
+);
+
+/**
+ * The same rule the server applies: https://host/path, ssh://host/path or
+ * git@host:path, with no user name, password, query, fragment or space. The
+ * server stays the authority; this only answers early.
+ */
+export const isValidDashboardRemote = (address: string): boolean => {
+  const url = address.trim();
+  return (
+    url.length <= REMOTE_LIMIT && (REMOTE_URL.test(url) || REMOTE_SCP.test(url))
+  );
+};
 
 export const dashboardHistoryQueryParamConfig = {
   string: ["dashboard", "view", "commit"],

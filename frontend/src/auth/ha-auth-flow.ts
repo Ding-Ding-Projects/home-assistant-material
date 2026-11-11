@@ -31,6 +31,7 @@ import type {
 import "./ha-auth-form";
 import type { HaAuthForm } from "./ha-auth-form";
 import { consumeLocalize } from "../common/decorators/consume-context-entry";
+import { documentationUrlForVersion } from "../util/documentation-url";
 
 type State = "loading" | "error" | "step";
 
@@ -332,9 +333,7 @@ export class HaAuthFlow extends LitElement {
   private _renderForgotPassword() {
     return html`<a
       class="forgot-password"
-      href="https://www.home-assistant.io/docs/locked_out/#forgot-password"
-      target="_blank"
-      rel="noreferrer noopener"
+      href=${documentationUrlForVersion("", "/docs/locked_out/#forgot-password")}
       >${this._localize("ui.panel.page-authorize.forgot_password")}</a
     >`;
   }

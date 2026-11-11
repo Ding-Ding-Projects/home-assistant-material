@@ -6,7 +6,6 @@ import {
   mdiHandsPray,
   mdiHelp,
   mdiHome,
-  mdiHomeHeart,
   mdiKeyboard,
   mdiOpenInNew,
   mdiPackageVariantClosed,
@@ -22,6 +21,8 @@ import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { applyPersonalVocabulary } from "../../../common/vocabulary/personal-vocabulary";
 import type { LocalizeKeys } from "../../../common/translations/localize";
+import { readIdentity } from "../../../common/identity/identity";
+import "../identity/ha-identity-logo";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import "../../../components/ha-card";
 import "../../../components/ha-svg-icon";
@@ -94,6 +95,7 @@ class HaConfigInfo extends LitElement {
 
   protected render(): TemplateResult {
     const hass = this.hass;
+    const identity = readIdentity();
     const customUiList: { name: string; url: string; version: string }[] =
       (window as any).CUSTOM_UI_LIST || [];
     const coreStatus = this._updateStatus("update.home_assistant_core_update");
@@ -111,13 +113,27 @@ class HaConfigInfo extends LitElement {
               <section class="hero">
                 <div class="hero-top">
                   <span class="logo"
-                    ><ha-svg-icon .path=${mdiHomeHeart}></ha-svg-icon
+                    ><ha-identity-logo
+                      style="--identity-logo-size: 56px"
+                    ></ha-identity-logo
                   ></span>
                   <div class="hero-names">
                     <span class="eyebrow"
-                      >${hass.config.location_name || "Home Assistant Material"}</span
+                      >${identity.name || hass.config.location_name || "Home Assistant Material"}</span
                     >
-                    <span class="product">Home Assistant Material</span>
+                    <span class="product"
+                      >${
+                        identity.name
+                          ? this.hass.localize(
+                              "ui.panel.config.identity.shown_as",
+                              {
+                                product: "Home Assistant Material",
+                                name: identity.name,
+                              }
+                            )
+                          : "Home Assistant Material"
+                      }</span
+                    >
                   </div>
                   ${this._renderBadge(coreStatus, true)}
                 </div>

@@ -98,3 +98,44 @@ export const syncChoice = (
   }
   return { chosen: nextChosen, known: nextKnown };
 };
+
+/** Longest wait for one set-up dialog before it counts as unfinished. */
+export const SETUP_WAIT_LIMIT_MS = 15 * 60 * 1000;
+
+/**
+ * Sets up flows one after another. `run` resolves with whether the flow
+ * finished; when it never resolves (a dialog that never opened or never
+ * reported closing) the flow is marked unfinished after `limitMs` and the
+ * queue moves on. `shouldStop` ends the queue early, for example when the
+ * person leaves the step.
+ */
+export const runSetupQueue = async (
+  flowIds: readonly string[],
+  run: (flowId: string) => Promise<boolean>,
+  onStatus: (flowId: string, status: DeviceStatus) => void,
+  shouldStop: () => boolean,
+  limitMs: number = SETUP_WAIT_LIMIT_MS
+): Promise<void> => {
+  for (const flowId of flowIds) {
+    if (shouldStop()) {
+      return;
+    }
+    onStatus(flowId, "running");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // The dialogs are meant to run one after another.
+      // eslint-disable-next-line no-await-in-loop
+      const finished = await Promise.race([
+        run(flowId),
+        new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => resolve(false), limitMs);
+        }),
+      ]);
+      onStatus(flowId, finished ? "added" : "unfinished");
+    } catch (_err) {
+      onStatus(flowId, "unfinished");
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+};

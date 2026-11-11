@@ -7,6 +7,40 @@ import { fireEvent } from "../common/dom/fire_event";
 import { nextRender } from "../common/util/render-status";
 import "./ha-svg-icon";
 
+/** Parses one CSS time value ("0.25s", "250ms") to milliseconds; invalid is 0. */
+const parseTimeMs = (value: string): number => {
+  const text = value.trim();
+  const num = parseFloat(text);
+  if (!Number.isFinite(num) || num <= 0) {
+    return 0;
+  }
+  return text.endsWith("ms") ? num : text.endsWith("s") ? num * 1000 : 0;
+};
+
+/**
+ * The length in milliseconds of the height transition described by the
+ * computed `transition-property` and `transition-duration` lists. Returns 0
+ * when no height transition runs (a duration of 0s, "none" or an invalid
+ * value), in which case no `transitionend` will ever fire.
+ */
+export const heightTransitionMs = (
+  properties: string,
+  durations: string
+): number => {
+  const props = properties.split(",").map((p) => p.trim());
+  const times = durations.split(",").map(parseTimeMs);
+  let longest = 0;
+  props.forEach((prop, idx) => {
+    if (prop === "height" || prop === "all") {
+      longest = Math.max(longest, times[idx % times.length] ?? 0);
+    }
+  });
+  return longest;
+};
+
+/** Extra time allowed past the transition before completion is forced. */
+const COMPLETION_GRACE_MS = 50;
+
 @customElement("ha-expansion-panel")
 export class HaExpansionPanel extends LitElement {
   @property({ type: Boolean, reflect: true }) expanded = false;
@@ -26,6 +60,20 @@ export class HaExpansionPanel extends LitElement {
   @state() _showContent = this.expanded;
 
   @query(".container") private _container!: HTMLDivElement;
+
+  private _completionTimer?: number;
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._clearCompletionTimer();
+  }
+
+  private _clearCompletionTimer() {
+    if (this._completionTimer !== undefined) {
+      window.clearTimeout(this._completionTimer);
+      this._completionTimer = undefined;
+    }
+  }
 
   protected render(): TemplateResult {
     const chevronIcon = this.noCollapse
@@ -94,8 +142,18 @@ export class HaExpansionPanel extends LitElement {
     if (ev.target !== this._container || ev.propertyName !== "height") {
       return;
     }
-    this._container.style.removeProperty("height");
-    this._container.style.overflow = this.expanded ? "initial" : "hidden";
+    this._completeToggle();
+  }
+
+  /** Ends a toggle once: drops the inline height and settles the overflow. */
+  private _completeToggle() {
+    this._clearCompletionTimer();
+    const container = this._container;
+    if (!container) {
+      return;
+    }
+    container.style.removeProperty("height");
+    container.style.overflow = this.expanded ? "initial" : "hidden";
     this._showContent = this.expanded;
   }
 
@@ -124,14 +182,37 @@ export class HaExpansionPanel extends LitElement {
     const scrollHeight = this._container.scrollHeight;
     this._container.style.height = `${scrollHeight}px`;
 
-    if (!newExpanded) {
+    // `transitionend` never fires when the duration is 0 (reduced motion or a
+    // theme), the panel has no height to animate, or it is not displayed, so
+    // complete directly or after a fallback timer, once either way.
+    const style = getComputedStyle(this._container);
+    const duration = heightTransitionMs(
+      style.transitionProperty,
+      style.transitionDuration
+    );
+    const instant = duration === 0 || scrollHeight === 0;
+
+    this._clearCompletionTimer();
+    if (!newExpanded && !instant) {
       setTimeout(() => {
-        this._container.style.height = "0px";
+        // Skip if the toggle already completed or was reversed meanwhile.
+        if (!this.expanded && this._container.style.height) {
+          this._container.style.height = "0px";
+        }
       }, 0);
     }
 
     this.expanded = newExpanded;
     fireEvent(this, "expanded-changed", { expanded: this.expanded });
+
+    if (instant) {
+      this._completeToggle();
+      return;
+    }
+    this._completionTimer = window.setTimeout(
+      () => this._completeToggle(),
+      duration + COMPLETION_GRACE_MS
+    );
   }
 
   private _focusChanged(ev) {

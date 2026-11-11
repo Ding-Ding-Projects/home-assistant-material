@@ -11,6 +11,7 @@ import binascii
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
+import heapq
 import hmac
 from ipaddress import IPv6Address, ip_address, ip_network
 import json
@@ -19,7 +20,12 @@ from typing import Any
 
 from homeassistant.util import dt as dt_util
 
-from .const import CHALLENGE_TTL, MAX_TOKEN_LENGTH, MAX_USED_SIGN_IN_TOKENS
+from .const import (
+    CHALLENGE_TTL,
+    MAX_TOKEN_LENGTH,
+    MAX_USED_PER_REMOTE,
+    MAX_USED_SIGN_IN_TOKENS,
+)
 from .origin import RelyingParty
 
 
@@ -72,6 +78,8 @@ class SignInTokens:
         """Generate the signing key. It is never stored."""
         self._key = secrets.token_bytes(32)
         self._used: dict[str, datetime] = {}
+        self._expiries: list[tuple[datetime, str, str]] = []
+        self._per_remote: dict[str, int] = {}
 
     def _sign(self, body: str) -> str:
         return _encode(hmac.digest(self._key, body.encode(), hashlib.sha256))
@@ -105,7 +113,7 @@ class SignInTokens:
 
     def verify(self, token: str) -> SignInChallenge | None:
         """Return the content of a genuine, unexpired token, else None."""
-        if len(token) > MAX_TOKEN_LENGTH:
+        if len(token) > MAX_TOKEN_LENGTH or not token.isascii():
             return None
         body, separator, signature = token.partition(".")
         if not separator or not hmac.compare_digest(
@@ -132,12 +140,36 @@ class SignInTokens:
             return None
         return result
 
+    def _drop_earliest(self) -> None:
+        _, token_id, remote = heapq.heappop(self._expiries)
+        del self._used[token_id]
+        if self._per_remote[remote] <= 1:
+            del self._per_remote[remote]
+        else:
+            self._per_remote[remote] -= 1
+
     def consume(self, challenge: SignInChallenge) -> bool:
-        """Mark a token as used. Return False when it was used before or no room is left."""
+        """Mark a token as used.
+
+        Call this only once the assertion has been verified. Return False when
+        the token was used before or its address already holds too many entries.
+        A full set drops the entry that would expire first.
+        """
         now = dt_util.utcnow()
-        for token_id in [k for k, v in self._used.items() if v <= now]:
-            del self._used[token_id]
-        if challenge.token_id in self._used or len(self._used) >= MAX_USED_SIGN_IN_TOKENS:
+        while self._expiries and self._expiries[0][0] <= now:
+            self._drop_earliest()
+        if (
+            challenge.token_id in self._used
+            or self._per_remote.get(challenge.remote, 0) >= MAX_USED_PER_REMOTE
+        ):
             return False
+        if len(self._used) >= MAX_USED_SIGN_IN_TOKENS:
+            self._drop_earliest()
         self._used[challenge.token_id] = challenge.expires
+        heapq.heappush(
+            self._expiries, (challenge.expires, challenge.token_id, challenge.remote)
+        )
+        self._per_remote[challenge.remote] = (
+            self._per_remote.get(challenge.remote, 0) + 1
+        )
         return True

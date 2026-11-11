@@ -8,6 +8,24 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-10
 
+- Fixed: on a phone the welcome banner covered the Overview header, so its menu and edit
+  button could not be reached. "Edit cards and layout" now opens the copy in the editor.
+- A dropped dashboard file shows what it contains before anything is made: outside addresses,
+  custom cards and buttons that would call a service. Imports start hidden from the rail and
+  visible to administrators only.
+- Dashboard history: set an address and push a dashboard with all its tabs, forget a
+  dashboard's history, and a deleted dashboard's history is set aside, not reused.
+- Help: every remaining help link opens inside the interface, including on the sign-in page.
+  All 1,392 integration pages and their pictures are included. Community links are removed.
+- Passkeys: a flood of empty attempts can no longer stop passkey sign-in, and removing a
+  passkey needs a recent password sign-in.
+- New tools: a file converter and a drawing board. New pages: Ollama servers and models,
+  renaming the app and its logo, and release notes.
+- Personal settings: language cards, playfulness sliders that change real messages, a switch
+  for emojis in dialogs, one thing at a time, and School mode.
+- Fixed: a section could stay stuck half open, first-run setup could leave both buttons off,
+  and a list's header checkbox could leave hidden rows selected.
+- Builds: a documentation push on top of code no longer leaves that code unbuilt.
 - Dashboards: built-in pages such as Overview have "Edit cards and layout", which makes an
   editable copy and opens it in the editor. On a phone the edit button sits beside the menu.
 - Dashboards can be exported and imported, and a dashboard file dropped anywhere on the

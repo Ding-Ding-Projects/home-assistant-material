@@ -1,4 +1,3 @@
-import { mdiOpenInNew } from "@mdi/js";
 import { css, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../src/components/animation/ha-fade-in";
@@ -11,6 +10,7 @@ import { makeDialogManager } from "../../src/dialogs/make-dialog-manager";
 import { provideLiteI18nMixin } from "../../src/mixins/provide-lite-i18n-mixin";
 import { onBoardingStyles } from "../../src/onboarding/styles";
 import { haStyle } from "../../src/resources/styles";
+import { documentationUrlForVersion } from "../../src/util/documentation-url";
 import "./components/landing-page-logs";
 import "./components/landing-page-network";
 import {
@@ -117,12 +117,9 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
         <ha-button
           appearance="plain"
           variant="neutral"
-          href="https://www.home-assistant.io/getting-started/onboarding/"
-          target="_blank"
-          rel="noreferrer noopener"
+          href=${documentationUrlForVersion("", "/getting-started/onboarding/")}
         >
           ${this.localize("ui.panel.page-onboarding.help")}
-          <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
         </ha-button>
       </div>
     `;

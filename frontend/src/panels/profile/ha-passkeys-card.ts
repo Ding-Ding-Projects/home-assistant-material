@@ -247,9 +247,13 @@ class HaPasskeysCard extends LitElement {
     try {
       await deletePasskey(this.hass, passkey.id);
       await this._load();
-    } catch (_err: any) {
+    } catch (err) {
       await showAlertDialog(this, {
-        text: this.hass.localize("ui.panel.profile.passkeys.delete_failed"),
+        text: this.hass.localize(
+          toPasskeyError(err).kind === "sign_in_required"
+            ? "ui.panel.profile.passkeys.sign_in_again_to_remove"
+            : "ui.panel.profile.passkeys.delete_failed"
+        ),
       });
     } finally {
       this._busy = false;
@@ -275,9 +279,13 @@ class HaPasskeysCard extends LitElement {
     try {
       await deleteAllPasskeys(this.hass);
       await this._load();
-    } catch (_err: any) {
+    } catch (err) {
       await showAlertDialog(this, {
-        text: this.hass.localize("ui.panel.profile.passkeys.delete_failed"),
+        text: this.hass.localize(
+          toPasskeyError(err).kind === "sign_in_required"
+            ? "ui.panel.profile.passkeys.sign_in_again_to_remove"
+            : "ui.panel.profile.passkeys.delete_failed"
+        ),
       });
     } finally {
       this._busy = false;

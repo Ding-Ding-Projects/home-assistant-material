@@ -1,11 +1,13 @@
 import type { PropertyValues } from "lit";
+import { tabTitleSuffix } from "../common/identity/identity";
 import { getConfigSubpageTitle, getPanelTitleFromUrlPath } from "../data/panel";
 import { configSections } from "../panels/config/config-sections";
 import type { Constructor, HomeAssistant } from "../types";
 import type { HassBaseEl } from "./hass-base-mixin";
 
 const setPageTitle = (title: string | undefined) => {
-  document.title = title ? `${title} – Home Assistant` : "Home Assistant";
+  const name = tabTitleSuffix();
+  document.title = title ? `${title} – ${name}` : name;
 };
 
 const getRoutePath = (): string =>

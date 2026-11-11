@@ -509,6 +509,7 @@ class HaScriptPicker extends SubscribeMixin(LitElement) {
         @grouping-changed=${this._tableSettings.groupingChanged}
         @collapsed-changed=${this._handleCollapseChanged}
         selectable
+        keep-hidden-selection
         .selected=${this._selected.length}
         ?bulk-bar=${this._selected.length > 0}
         @selection-changed=${this._handleSelectionChanged}

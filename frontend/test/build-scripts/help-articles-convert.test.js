@@ -19,7 +19,7 @@ describe("convertArticle", () => {
       ].join("\n")
     );
     expect(title).toBe("Modes");
-    expect(body).toContain("Open **Settings** now.");
+    expect(body).toContain("Open **Settings** (x icon) now.");
     expect(body).toContain("> **Tip:**\n> Be careful");
     expect(body).not.toContain("{%");
   });

@@ -129,15 +129,6 @@ export class DialogStatisticsFix extends LitElement {
                             ${this.hass.localize(
                               "ui.panel.config.tools.tabs.statistics.fix_issue.state_class_removed.info_text_4"
                             )}
-                            <a
-                              href="https://contributors.home-assistant.io/core/entities/sensor/#long-term-statistics"
-                              target="_blank"
-                              rel="noreferrer noopener"
-                            >
-                              ${this.hass.localize(
-                                "ui.panel.config.tools.tabs.statistics.fix_issue.state_class_removed.info_text_4_link"
-                              )}</a
-                            >
                           </li>
                           <li>
                             ${this.hass.localize(

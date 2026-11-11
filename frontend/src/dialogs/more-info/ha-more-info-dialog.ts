@@ -48,6 +48,7 @@ import {
 } from "../../common/page/export-page";
 import {
   getPersonalPreferences,
+  PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
   subscribePersonalPreferences,
   updatePersonalPreferences,
 } from "../../common/preferences/personal-preferences";
@@ -217,13 +218,28 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
       this._syncTools
     );
     this._syncTools();
+    window.addEventListener(
+      PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
+      this._preferencesNotSaved
+    );
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._unsubscribePreferences?.();
     this._unsubscribePreferences = undefined;
+    window.removeEventListener(
+      PERSONAL_PREFERENCES_NOT_SAVED_EVENT,
+      this._preferencesNotSaved
+    );
   }
+
+  // Tells the person when the browser could not keep a choice.
+  private _preferencesNotSaved = (): void => {
+    showToast(this, {
+      message: this.hass.localize("ui.dialogs.quick-bar.setting_not_saved"),
+    });
+  };
 
   private _syncTools = (): void => {
     this._narratorOn = getPersonalPreferences().narratorEnabled;

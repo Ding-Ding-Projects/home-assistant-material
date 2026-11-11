@@ -34,6 +34,11 @@ import { updateCanInstall } from "../data/update";
 import { showEditSidebarDialog } from "../dialogs/sidebar/show-dialog-edit-sidebar";
 import { ScrollableFadeMixin } from "../mixins/scrollable-fade-mixin";
 import { SubscribeMixin } from "../mixins/subscribe-mixin";
+import {
+  IDENTITY_CHANGED_EVENT,
+  readIdentity,
+} from "../common/identity/identity";
+import "../panels/config/identity/ha-identity-logo";
 import { actionHandler } from "../panels/lovelace/common/directives/action-handler-directive";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant, PanelInfo, Route } from "../types";
@@ -187,6 +192,8 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   @state() private _hiddenPanels?: string[];
 
+  @state() private _identityName?: string;
+
   private _unsubPersistentNotifications: UnsubscribeFunc | undefined;
 
   @query(".before-spacer") private _scrollableList?: HTMLDivElement;
@@ -231,11 +238,18 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     super.connectedCallback();
     window.addEventListener("location-changed", this._pathChanged);
     window.addEventListener("popstate", this._pathChanged);
+    window.addEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+    this._identityChanged();
     this._pathChanged();
   }
 
+  private _identityChanged = () => {
+    this._identityName = readIdentity().name;
+  };
+
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
     window.removeEventListener("location-changed", this._pathChanged);
     window.removeEventListener("popstate", this._pathChanged);
   }
@@ -373,7 +387,13 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
             `
           : nothing
       }
-      <div class="title">${this.sidebarTitle}</div>
+      <div class="title">
+        <ha-identity-logo
+          custom-only
+          style="--identity-logo-size: 28px; margin-inline-end: 8px; vertical-align: middle"
+        ></ha-identity-logo
+        >${this._identityName || this.sidebarTitle}
+      </div>
     </div>`;
   }
 

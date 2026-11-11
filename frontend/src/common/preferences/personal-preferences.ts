@@ -3,6 +3,7 @@ import { getStorage } from "../decorators/storage";
 import { narrator } from "../narration/narrator";
 import { attentionModes } from "./attention-modes";
 import { focusSpotlight } from "./focus-spotlight";
+import { oneThingAtATime } from "./one-thing";
 import { safeGetStored, safeSetStored } from "./safe-storage";
 
 /**
@@ -38,6 +39,19 @@ export const NARRATOR_RATE_MAX = 2;
 export const NARRATOR_PITCH_MIN = 0.5;
 export const NARRATOR_PITCH_MAX = 2;
 
+/** What School mode can switch on while it is on; each has a real effect. */
+export const SCHOOL_RULES = [
+  "plain_english",
+  "low_stimulation",
+  "quiet_sounds",
+  "no_emojis",
+  "one_thing",
+] as const;
+
+export type SchoolRule = (typeof SCHOOL_RULES)[number];
+
+export const SCHOOL_NAME_MAX = 40;
+
 export const FUNNY_LEVEL_MIN = 1;
 export const FUNNY_LEVEL_MAX = 5;
 export const VOLUME_MIN = 0;
@@ -67,6 +81,16 @@ export interface PersonalPreferences {
   timeAwareness: boolean;
   /** Offers to take you back to the page you were last on. */
   momentum: boolean;
+  /** Shows one fitting emoji in dialogs that provide one. */
+  dialogEmojis: boolean;
+  /** Keeps one expansion panel open at a time among its siblings. */
+  oneThingAtATime: boolean;
+  /** A comfort setting in this browser, see `effectivePreferences`. */
+  schoolMode: boolean;
+  /** The name School mode is shown under. */
+  schoolName: string;
+  /** The rules School mode applies while it is on. */
+  schoolRules: SchoolRule[];
   /** Reads the name of the focused or activated control aloud. */
   narratorEnabled: boolean;
   narratorSpeakIn: NarratorSpeakIn;
@@ -93,6 +117,11 @@ export const DEFAULT_PERSONAL_PREFERENCES: PersonalPreferences = {
   quietDays: [0, 1, 2, 3, 4, 5, 6],
   timeAwareness: false,
   momentum: false,
+  dialogEmojis: true,
+  oneThingAtATime: false,
+  schoolMode: false,
+  schoolName: "School mode",
+  schoolRules: ["plain_english", "low_stimulation", "quiet_sounds"],
   narratorEnabled: false,
   narratorSpeakIn: "both",
   narratorVoiceEnglish: "",
@@ -147,6 +176,16 @@ const asText = (value: unknown, fallback: string) =>
 const asBool = (value: unknown, fallback: boolean) =>
   typeof value === "boolean" ? value : fallback;
 
+const asRules = (value: unknown, fallback: SchoolRule[]): SchoolRule[] =>
+  Array.isArray(value)
+    ? SCHOOL_RULES.filter((rule) => value.includes(rule))
+    : fallback;
+
+const asName = (value: unknown, fallback: string) =>
+  typeof value === "string" && value.trim()
+    ? value.trim().slice(0, SCHOOL_NAME_MAX)
+    : fallback;
+
 /** Fills gaps and drops anything that is not a valid stored value. */
 export const normalizePersonalPreferences = (
   stored?: Partial<PersonalPreferences> | null
@@ -185,6 +224,11 @@ export const normalizePersonalPreferences = (
     quietDays: asDays(source.quietDays, d.quietDays),
     timeAwareness: asBool(source.timeAwareness, d.timeAwareness),
     momentum: asBool(source.momentum, d.momentum),
+    dialogEmojis: asBool(source.dialogEmojis, d.dialogEmojis),
+    oneThingAtATime: asBool(source.oneThingAtATime, d.oneThingAtATime),
+    schoolMode: asBool(source.schoolMode, d.schoolMode),
+    schoolName: asName(source.schoolName, d.schoolName),
+    schoolRules: asRules(source.schoolRules, d.schoolRules),
     narratorEnabled: asBool(source.narratorEnabled, d.narratorEnabled),
     narratorSpeakIn: NARRATOR_SPEAK_IN.includes(
       source.narratorSpeakIn as NarratorSpeakIn
@@ -214,13 +258,74 @@ export const normalizePersonalPreferences = (
   };
 };
 
-/** The stored choices, as they are now. */
-export const getPersonalPreferences = (): PersonalPreferences =>
+/** The choices as the person made them, before School mode is applied. */
+export const getStoredPreferences = (): PersonalPreferences =>
   normalizePersonalPreferences(
     safeGetStored<Partial<PersonalPreferences>>(
       PERSONAL_PREFERENCES_STORAGE_KEY
     )
   );
+
+/**
+ * The preference fields that School mode takes over, by the rule that does
+ * it. While the mode is on these fields read as the rule says, whatever is
+ * stored; the stored choice itself is never changed, so it comes back when
+ * the mode is turned off.
+ */
+export const SCHOOL_RULE_FIELDS: Record<
+  SchoolRule,
+  (keyof PersonalPreferences)[]
+> = {
+  plain_english: ["languageMode", "funnyEnglish", "funnyCantonese"],
+  low_stimulation: ["lowStimulation"],
+  quiet_sounds: ["soundEffects"],
+  no_emojis: ["dialogEmojis"],
+  one_thing: ["oneThingAtATime"],
+};
+
+/** The fields School mode holds fixed right now. */
+export const schoolHeldFields = (
+  preferences: PersonalPreferences
+): Set<keyof PersonalPreferences> =>
+  new Set(
+    preferences.schoolMode
+      ? preferences.schoolRules.flatMap((rule) => SCHOOL_RULE_FIELDS[rule])
+      : []
+  );
+
+/** The choices with the rules of School mode laid over them. */
+export const effectivePreferences = (
+  preferences: PersonalPreferences
+): PersonalPreferences => {
+  if (!preferences.schoolMode) {
+    return preferences;
+  }
+  const rules = new Set(preferences.schoolRules);
+  return {
+    ...preferences,
+    languageMode: rules.has("plain_english")
+      ? "english"
+      : preferences.languageMode,
+    funnyEnglish: rules.has("plain_english")
+      ? FUNNY_LEVEL_MIN
+      : preferences.funnyEnglish,
+    funnyCantonese: rules.has("plain_english")
+      ? FUNNY_LEVEL_MIN
+      : preferences.funnyCantonese,
+    lowStimulation: rules.has("low_stimulation")
+      ? true
+      : preferences.lowStimulation,
+    soundEffects: rules.has("quiet_sounds") ? false : preferences.soundEffects,
+    dialogEmojis: rules.has("no_emojis") ? false : preferences.dialogEmojis,
+    oneThingAtATime: rules.has("one_thing")
+      ? true
+      : preferences.oneThingAtATime,
+  };
+};
+
+/** The stored choices as everything else in the interface reads them. */
+export const getPersonalPreferences = (): PersonalPreferences =>
+  effectivePreferences(getStoredPreferences());
 
 /** Fired on the window when a change could not be kept in browser storage. */
 export const PERSONAL_PREFERENCES_NOT_SAVED_EVENT =
@@ -247,7 +352,7 @@ export const savePersonalPreferences = (
   change: Partial<PersonalPreferences>
 ): { preferences: PersonalPreferences; saved: boolean } => {
   const next = normalizePersonalPreferences({
-    ...getPersonalPreferences(),
+    ...getStoredPreferences(),
     ...change,
   });
   const saved =
@@ -273,7 +378,7 @@ export const updatePersonalPreferences = (
 /** Removes every stored choice, so the defaults apply again. */
 export const resetPersonalPreferences = (): PersonalPreferences => {
   safeSetStored(PERSONAL_PREFERENCES_STORAGE_KEY, undefined);
-  return getPersonalPreferences();
+  return getStoredPreferences();
 };
 
 /** Calls back when the stored choices change, in this tab or another. */
@@ -328,6 +433,7 @@ export const applyPersonalPreferences = (
   focusSpotlight.setEnabled(preferences.focusSpotlight);
   attentionModes.apply(preferences);
   narrator.setEnabled(preferences.narratorEnabled);
+  oneThingAtATime.setEnabled(preferences.oneThingAtATime);
 };
 
 let initialized = false;

@@ -133,6 +133,13 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   @property({ type: Boolean }) public selectable = false;
 
   /**
+   * Keep selected rows that a search or filter hides when the header checkbox
+   * changes. Only for pages that show how many selected rows are hidden.
+   */
+  @property({ type: Boolean, attribute: "keep-hidden-selection" })
+  public keepHiddenSelection = false;
+
+  /**
    * Should rows be clickable.
    * @type {Boolean}
    */
@@ -775,6 +782,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .loadError=${this.loadError}
                   .filter=${this.filter}
                   .selectable=${this._rowsSelectable}
+                  .keepHiddenSelection=${this.keepHiddenSelection}
                   .id=${this.id}
                   .clickable=${this.clickable}
                   .appendRow=${this.appendRow}

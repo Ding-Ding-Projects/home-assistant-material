@@ -1,0 +1,11 @@
+{
+  "domain": "ollama_suite",
+  "name": "Ollama suite",
+  "after_dependencies": ["ollama"],
+  "codeowners": ["@home-assistant/core"],
+  "dependencies": ["http", "websocket_api"],
+  "documentation": "https://www.home-assistant.io/integrations/ollama",
+  "integration_type": "system",
+  "quality_scale": "internal",
+  "requirements": ["ollama==0.6.2"]
+}

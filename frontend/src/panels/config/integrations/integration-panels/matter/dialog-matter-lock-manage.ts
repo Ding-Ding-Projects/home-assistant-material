@@ -31,6 +31,7 @@ import { haStyleDialog } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import type { MatterLockManageDialogParams } from "./show-dialog-matter-lock-manage";
 import { showMatterLockUserEditDialog } from "./show-dialog-matter-lock-user-edit";
+import { documentationUrl } from "../../../../../util/documentation-url";
 
 @customElement("dialog-matter-lock-manage")
 class DialogMatterLockManage extends LitElement {
@@ -116,9 +117,7 @@ class DialogMatterLockManage extends LitElement {
   private _renderDocsLink() {
     return html`<a
       class="docs-link"
-      href="https://www.home-assistant.io/integrations/matter/#lock-user-and-credential-management"
-      target="_blank"
-      rel="noopener noreferrer"
+      href=${documentationUrl(this.hass, "/integrations/matter/#lock-user-and-credential-management")}
     >
       ${this.hass.localize("ui.panel.config.matter.lock.errors.learn_more")}
     </a>`;

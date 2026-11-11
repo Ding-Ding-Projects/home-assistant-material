@@ -18,6 +18,7 @@ dashboard_repos/<dashboard id>/views.lock    the commit each view repository is 
 dashboard_repos/<dashboard id>/views/<key>/view.yaml   one view, tracked as an ordinary file
 dashboard_repos/<dashboard id>/_removed/<key>/         a deleted view
 dashboard_repos/<dashboard id>/.views/<key>.git        the repository of one view (ignored)
+dashboard_repos/_removed/<id>-<UTC time>/    the repository of a deleted dashboard
 ```
 
 The dashboard id is the dashboard's URL path. The default dashboard uses the
@@ -63,13 +64,53 @@ Limits, stated plainly:
 
 ### Remote and push
 
-The automation feature has a remote setting and a push, so dashboards follow
-it: `dashboard_repos/set_remote` sets or removes `origin` of one dashboard
-repository (same address rules as automations: `https://`, `ssh://`, `git@` or
-an absolute path, with no credentials in it), and `dashboard_repos/push` sends
-it, with every view's history, never forced. Nothing is ever pushed or fetched
-unless a remote is set and a push is requested. The interface for these two
-commands is not built yet.
+`dashboard_repos/set_remote` sets or removes `origin` of one dashboard
+repository, and `dashboard_repos/push` sends it, with every view's history,
+never forced. Nothing is ever pushed or fetched unless a remote is set and a
+push is requested. The history page has a Remote section for both (see
+Interface).
+
+The address rule is stricter than the one the automation repositories use. An
+address is accepted only as:
+
+- `https://host/path`
+- `ssh://host/path`
+- `git@host:path`
+
+with an optional port, and with no user name or password (so `ssh://git@host/x`
+is refused; use the `git@host:path` form), no query string, no fragment, no
+space or control character, and at most 500 characters. A bare local path is
+refused when setting a remote. A bare local path that was stored earlier keeps
+working, and is shown as it is.
+
+The address is never handed back with anything that could hold a secret. When
+the stored address does not follow the rule (it was set before the rule was
+tightened), status reports `remote: null` and `remote_unsafe: true`, and a push
+is refused until the address is removed or set again. The text of a failed push
+is cut down to one line, the address and any user information are removed from
+it, and the result carries the time of the push. The last push (time, result,
+masked error) is kept in the repository's `.git` folder, outside the history,
+and returned by `dashboard_repos/status` as `last_push`.
+
+### What the history keeps, and forgetting it
+
+A dashboard configuration can hold secrets typed into cards: an address with a
+token in an iframe card, a webhook id. Every save commits them, so they are in
+every old version, in backups of the configuration folder, and in everything
+a push sends to a remote. Going back to an old version brings old values back.
+The history page says so beside the Restore action and in the Remote section.
+
+`dashboard_repos/forget` is the way out. It deletes the whole repository of
+one dashboard, with every tab's history, for good, and starts again from the
+dashboard as it is now. The interface asks for a confirmation that says what
+is deleted. Copies already pushed to a remote are not changed, and anything
+still typed into a card is in the new first version.
+
+When a dashboard is deleted, its repository is moved to
+`dashboard_repos/_removed/<id>-<UTC time>/` (a repository found at start-up
+with no matching dashboard is moved the same way). A new dashboard with the
+same address starts with an empty history. The moved folder is never read
+again by this feature; delete it by hand to remove its secrets.
 
 ### Stable view keys
 
@@ -104,6 +145,17 @@ configuration and are skipped (listed as such in the status). A save that
 changes nothing makes no commit. Messages are generated from the change
 (`Home: change cards`, `Add view X`, `Change settings: title`).
 
+Saves are coalesced: commits run one at a time, and a commit reads the newest
+saved configuration when its turn comes, so a storm of saves while one commit
+is waiting or running leaves at most one more commit waiting per dashboard.
+The listener never raises.
+
+Every view and the settings are written out and size-checked before the first
+commit, so one view over 2 MB refuses the whole save with nothing half
+recorded. Keys are compared lower-cased, so two views whose paths differ only
+by case never share a folder on a disk that ignores case. Names, keys and
+commit ids are matched in full (not "up to a trailing newline").
+
 A failure to commit never blocks the save: it is logged once and reported in
 `dashboard_repos/status` as `error`.
 
@@ -116,12 +168,21 @@ A failure to commit never blocks the save: it is logged once and reported in
 | `dashboard_repos/version` | The configuration at a commit, as data and YAML. |
 | `dashboard_repos/diff` | The difference between two commits, as text. |
 | `dashboard_repos/restore` | Put a dashboard or a view back to a commit. |
-| `dashboard_repos/set_remote`, `dashboard_repos/push` | Remote and push, as for automations. |
+| `dashboard_repos/forget` | Delete the whole history of a dashboard and start it again. |
+| `dashboard_repos/set_remote`, `dashboard_repos/push` | Remote and push, with the stricter address rule above. |
 
-Restoring writes the configuration back through Lovelace's own save, so open
-dashboards update, and the save makes a new commit "Restored to `<id>`".
-History is never rewritten or deleted. A restored tab that was deleted is
-added at the end and, being a new view, starts a new key.
+Restoring first waits for any save still queued and commits the current
+state ("Before restoring to `<id>`"), so going back never loses it. When that
+cannot be done the command refuses with the error code
+`current_state_not_recorded`, and the interface asks again with a second
+confirmation; only then does it send `without_saving_current`. One tab is put
+back by its key only, using the keys recorded at that commit of the current
+state, never its position or title. When no tab has the key any more the tab
+is added at the end as a new tab, and the result says so (`new_view`). The
+restored configuration is checked (a dashboard of views, each within the size
+limit) before it is saved. It is written back through Lovelace's own save, so
+open dashboards update, and the result carries the commit it made, so the
+page reloads when the server reports it. History is never rewritten.
 
 ### Safety
 
@@ -139,7 +200,24 @@ Without `dashboard`, the page lists the dashboards with a link to the history
 of each dashboard and each tab. With one, it shows the commits (searchable),
 the changes and the content of the selected commit, a comparison with another
 commit and a restore with a confirmation that states exactly what is replaced
-(the whole dashboard with all its tabs, or only the one tab).
+(the whole dashboard with all its tabs, or only the one tab, or a new tab when
+the tab no longer exists). A warning about secrets typed into cards sits next
+to Restore.
+
+Below the commits, an admin sees:
+
+- **Remote**: the current address (never with credentials), a field to set or
+  clear it that checks the same rule as the server in the browser (the server
+  stays the authority), the same warning about secrets, a plain statement of
+  what Push now sends (this dashboard's configuration, every tab and every old
+  version, including anything typed into cards), the Push now button with a
+  confirmation, the result, and the time of the last push. Nothing contacts a
+  remote unless an address is set and the button is pressed. Pushes are never
+  forced.
+- **Forget this dashboard's history** (whole-dashboard view only), with a
+  confirmation.
+
+Not built: a screen to list or delete the `_removed` archives.
 
 ## Verification
 
@@ -147,3 +225,16 @@ commit and a restore with a confirmation that states exactly what is replaced
 first save, unchanged save, one-view change, rename, reorder, delete, keys,
 reading back versions, diffs, notes, unsafe input, and cloning one dashboard
 repository into a fresh folder to read every tab's content and history.
+
+`core/tests/components/dashboard_repos/test_repos.py` also covers: names,
+keys and commit ids that end in a newline, one oversized view or oversized
+settings recording nothing, a deleted dashboard's history not being adopted by
+a new one, forgetting, hostile remote addresses (credentials in every scheme,
+query strings, fragments, bare paths, option-like and `ext::` strings, an
+embedded newline, over-long addresses), credentials set earlier never being
+shown or used, push errors and the last push, restoring by key only and adding
+a new tab when the key is gone, rejecting a configuration that cannot be
+recorded, keys that differ only by case, and the commit queue (a burst becomes
+one commit, a save during a commit queues one more, a failing commit is not
+raised). `frontend/test/data/dashboard_repos.test.ts` checks the browser copy
+of the address rule against the same list.

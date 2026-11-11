@@ -44,3 +44,13 @@ PORT_MAX: Final = 65535
 MEMORY_MIN_MB: Final = 512
 MEMORY_MAX_MB: Final = 65536
 MAX_SERVERS: Final = 200
+
+# Targets that run on the machine hosting this installation, so they share one
+# set of ports. The SSH targets run elsewhere and are checked against each other.
+LOCAL_HOST_TARGETS: Final = (
+    TARGET_SUPERVISOR,
+    TARGET_DOCKER_SOCKET,
+    TARGET_LOCAL_PROCESS,
+)
+# Ports this installation itself listens on, never offered to a server.
+RESERVED_LOCAL_PORTS: Final = (8123,)

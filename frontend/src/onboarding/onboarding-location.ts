@@ -256,7 +256,21 @@ class OnboardingLocation extends LitElement {
     super.firstUpdated(changedProps);
     setTimeout(() => this._input!.focus(), 100);
     this.addEventListener("keyup", (ev) => {
-      if (ev.key === "Enter") {
+      if (ev.key !== "Enter") {
+        return;
+      }
+      // Enter on a focused button or list item activates that control; it
+      // must not also save the step with a half-finished choice.
+      const activates = ev
+        .composedPath()
+        .some(
+          (el) =>
+            el instanceof HTMLElement &&
+            ["button", "a", "ha-button", "ha-list-item", "ha-input"].includes(
+              el.localName
+            )
+        );
+      if (!activates) {
         this._save(ev);
       }
     });

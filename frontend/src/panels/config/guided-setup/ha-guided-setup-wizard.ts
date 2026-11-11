@@ -871,12 +871,7 @@ export class HaGuidedSetupWizard extends LitElement {
         }
         <h3>${this._l("about_title")}</h3>
         <p>${this._l("about_text", { name: this.integration.name })}</p>
-        <ha-button
-          appearance="plain"
-          href=${this.integration.documentation}
-          target="_blank"
-          rel="noreferrer noopener"
-        >
+        <ha-button appearance="plain" href=${this.integration.documentation}>
           <ha-svg-icon slot="end" .path=${mdiOpenInNew}></ha-svg-icon>
           ${this._l("documentation")}
         </ha-button>

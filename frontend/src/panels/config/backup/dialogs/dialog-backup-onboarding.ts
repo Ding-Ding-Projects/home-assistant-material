@@ -66,6 +66,9 @@ const SAVE_STEPS = new Set<Step>([
   "locations",
 ]);
 
+/** Longest wait for one save before it counts as failed. */
+const SAVE_TIMEOUT_MS = 30000;
+
 const RECOMMENDED_CONFIG: BackupConfig = {
   automatic_backups_configured: false,
   create_backup: {
@@ -107,6 +110,9 @@ class DialogBackupOnboarding
   @state() private _params?: BackupOnboardingDialogParams;
 
   @state() private _config?: BackupConfig;
+
+  /** True while a save is pending; presses that would save again are ignored. */
+  @state() private _saving = false;
 
   @query("div") private _copyContainer?: HTMLElement;
 
@@ -189,10 +195,27 @@ class DialogBackupOnboarding
         this._config.create_backup.include_addons || [];
     }
 
-    await updateBackupConfig(this.hass, params);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        updateBackupConfig(this.hass, params),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("The save took too long.")),
+            SAVE_TIMEOUT_MS
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async _done() {
+    if (this._saving) {
+      return;
+    }
+    this._saving = true;
     try {
       await this._enqueueSave(true);
       this._params?.submit!(true);
@@ -202,6 +225,8 @@ class DialogBackupOnboarding
       // eslint-disable-next-line no-console
       console.error(err);
       showToast(this, { message: "Failed to save backup configuration" });
+    } finally {
+      this._saving = false;
     }
   }
 
@@ -214,12 +239,18 @@ class DialogBackupOnboarding
   }
 
   private async _nextStep() {
+    if (this._saving) {
+      return;
+    }
     if (this._step && SAVE_STEPS.has(this._step)) {
+      this._saving = true;
       try {
         await this._enqueueSave();
       } catch (err: any) {
         showToast(this, { message: err?.message ?? String(err) });
         return;
+      } finally {
+        this._saving = false;
       }
     }
     const index = STEPS.indexOf(this._step!);
@@ -272,7 +303,7 @@ class DialogBackupOnboarding
                           <ha-button
                             slot="primaryAction"
                             @click=${this._done}
-                            .disabled=${!this._isStepValid()}
+                            .disabled=${this._saving || !this._isStepValid()}
                           >
                             ${this.hass.localize(
                               "ui.panel.config.backup.dialogs.onboarding.save_and_create"
@@ -283,7 +314,7 @@ class DialogBackupOnboarding
                           <ha-button
                             slot="primaryAction"
                             @click=${this._nextStep}
-                            .disabled=${!this._isStepValid()}
+                            .disabled=${this._saving || !this._isStepValid()}
                           >
                             ${this.hass.localize("ui.common.next")}
                           </ha-button>
@@ -535,6 +566,9 @@ class DialogBackupOnboarding
     const currentKey = this._config!.create_backup.password;
     // The switch follows the stored key, never the click.
     target.checked = !!currentKey;
+    if (this._saving) {
+      return;
+    }
 
     const action = encryptionToggleAction(!!currentKey, wantsOn);
     if (action === "none") {
@@ -560,6 +594,7 @@ class DialogBackupOnboarding
       password = null;
     }
 
+    const previousConfig = this._config!;
     this._config = {
       ...this._config!,
       create_backup: {
@@ -572,10 +607,16 @@ class DialogBackupOnboarding
       },
     };
     this._updateDirtyState(this._config);
+    this._saving = true;
     try {
       await this._enqueueSave();
     } catch (err: any) {
+      // The server kept the old key, so the dialog must show it again.
+      this._config = previousConfig;
+      this._updateDirtyState(this._config);
       showToast(this, { message: err?.message ?? String(err) });
+    } finally {
+      this._saving = false;
     }
   }
 

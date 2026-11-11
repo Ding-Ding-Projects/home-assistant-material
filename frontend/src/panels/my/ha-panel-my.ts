@@ -1039,12 +1039,7 @@ class HaPanelMy extends LitElement {
         case "not_supported":
           error =
             this.hass.localize("ui.panel.my.not_supported", {
-              link: html`<a
-                target="_blank"
-                rel="noreferrer noopener"
-                href="https://my.home-assistant.io/faq.html#supported-pages"
-                >${this.hass.localize("ui.panel.my.faq_link")}</a
-              >`,
+              link: this.hass.localize("ui.panel.my.faq_link"),
             }) || "This redirect is not supported.";
           break;
         case "no_component":
@@ -1076,12 +1071,7 @@ class HaPanelMy extends LitElement {
           break;
         case "not_app":
           error = this.hass.localize("ui.panel.my.not_app", {
-            link: html`<a
-              target="_blank"
-              rel="noreferrer noopener"
-              href="https://companion.home-assistant.io/download"
-              >${this.hass.localize("ui.panel.my.download_app")}</a
-            >`,
+            link: this.hass.localize("ui.panel.my.download_app"),
           });
           break;
         case "url_error":

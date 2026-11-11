@@ -23,6 +23,7 @@ import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
+import { openAllHelpArticles } from "../../../components/help/open-help-article";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import "../../../components/page/ha-page-footer";
@@ -47,7 +48,6 @@ import { ChildPanelReady } from "../../../layouts/panel-ready";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle, haStyleScrollbar } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
-import { documentationUrl } from "../../../util/documentation-url";
 import { isMobileClient } from "../../../util/is_mobile";
 import { configSections } from "../config-sections";
 import "./ha-config-navigation";
@@ -57,43 +57,19 @@ type DashboardSummary<Key extends string, Item> = Record<Key, Item[]> & {
   total: number;
 };
 
-const randomTip = (openFn: any, hass: HomeAssistant, narrow: boolean) => {
+const randomTip = (
+  openFn: any,
+  openHelpFn: any,
+  hass: HomeAssistant,
+  narrow: boolean
+) => {
   const weighted: string[] = [];
   let tips = [
     {
-      content: hass.localize("ui.panel.config.tips.join", {
-        forums: html`<a
-          href="https://community.home-assistant.io"
-          target="_blank"
-          rel="noreferrer"
-          >${hass.localize("ui.panel.config.tips.join_forums")}</a
+      content: hass.localize("ui.panel.config.tips.help_articles", {
+        help_link: html`<a href="#" @click=${openHelpFn}
+          >${hass.localize("ui.panel.config.tips.help_articles_link")}</a
         >`,
-        social_media: html`<a
-          href=${documentationUrl(hass, `/socials`)}
-          target="_blank"
-          rel="noreferrer"
-          >${hass.localize("ui.panel.config.tips.social_media")}</a
-        >`,
-        discord: html`<a
-          href=${documentationUrl(hass, `/join-chat`)}
-          target="_blank"
-          rel="noreferrer"
-          >${hass.localize("ui.panel.config.tips.join_chat")}</a
-        >`,
-        blog: html`<a
-          href=${documentationUrl(hass, `/blog`)}
-          target="_blank"
-          rel="noreferrer"
-          >${hass.localize("ui.panel.config.tips.join_blog")}</a
-        >`,
-        newsletter: html`<span class="keep-together"
-          ><a
-            href="https://newsletter.openhomefoundation.org/"
-            target="_blank"
-            rel="noreferrer"
-            >${hass.localize("ui.panel.config.tips.join_newsletter")}</a
-          >
-        </span>`,
       }),
       weight: 2,
       narrow: true,
@@ -443,8 +419,19 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
     super.updated(changedProps);
 
     if (!this._tip && changedProps.has("hass")) {
-      this._tip = randomTip(this._openShortcutDialog, this.hass, this.narrow);
+      this._tip = randomTip(
+        this._openShortcutDialog,
+        this._openHelpArticles,
+        this.hass,
+        this.narrow
+      );
     }
+  }
+
+  private _openHelpArticles(ev: Event) {
+    ev.preventDefault();
+
+    openAllHelpArticles(this);
   }
 
   private _openShortcutDialog(ev: Event) {
