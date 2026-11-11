@@ -91,7 +91,7 @@ product matching it.
 - Passkeys were run with a browser virtual authenticator, never with a hardware key or a phone.
   Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in
   build 111.
-- No operating system image has been built since two unit files were renamed for Windows checkouts.
+- The operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted.
 - `deploy-assistant\build.bat` (another lane's) has not been run by this work.
 
 ## Known limits

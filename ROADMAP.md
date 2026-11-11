@@ -28,7 +28,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       release and tag (built, not observed)
 - [x] A plain `git clone` checks out on Windows 11: the two systemd mount units with a backslash
       in their names are stored as `__x2d__`. The rename back to the real names in the operating
-      system post-build script is not yet seen in an operating system build
+      system post-build script was seen in the operating system build of build 109: its log shows both
+      mount units enabled under their real names
 - [x] The local frontend container build no longer crashes on a machine with many processors
       (held to four processors, two on a retry). Seen on one computer; a second computer has not
       tried it

@@ -105,8 +105,7 @@ Later than the section below; where the two disagree, this one is newer.
   failing) and does not import entries from before it started; reading PDFs, MP3 output and
   video-to-video conversion are not offered; the paid cloud service is hidden in the interface
   only and remains visible in a few places for someone who has it configured (an existing
-  cloud-stored backup's location name, one entity filter); passkeys were run with a browser virtual authenticator, never with a hardware key or a phone; Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in build 111; no operating system image has been built since two unit files were renamed
-  for Windows checkouts; a documentation-only push (run 112, 11 November 2026) finished without publishing a release, as intended.
+  cloud-stored backup's location name, one entity filter); passkeys were run with a browser virtual authenticator, never with a hardware key or a phone; Minecraft 26.3 failed on the Java 21 image in build 109 and starts on the per-version image in build 111; the operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted; a documentation-only push (run 112, 11 November 2026) finished without publishing a release, as intended.
 - Closed by the owner's decision: the phone app's earlier setup problems (nothing left to fix).
 
 ### What landed on 11 November 2026 (batches 18 and 19), and how far it is checked
@@ -157,8 +156,7 @@ Later than the section below; where the two disagree, this one is newer.
   the phone app's setup problems are closed by the owner's decision): reading PDFs, MP3 output and
   video-to-video conversion are not offered; the Minecraft manager has never been run against a
   real Docker host; the Ollama page has never been run against a real server; passkeys have never
-  been used with a real authenticator; no operating system image has been built since two unit
-  files were renamed for Windows checkouts; `deploy-assistant\build.bat` (another lane's) has not
+  been used with a real authenticator; the operating system image was built in build 109 after the two unit files were renamed (the generic virtual machine image and the Raspberry Pi 3 image; the Raspberry Pi 4 and 5 jobs of that build were cancelled by a newer push), and the build log shows both mount units enabled under their real names; that image has not been booted; `deploy-assistant\build.bat` (another lane's) has not
   been run by this work.
 
 ### What the last two commits of 10 November 2026 changed, and how far it is checked
@@ -182,8 +180,7 @@ Later than the section below; where the two disagree, this one is newer.
   check is clean; 5,093 frontend tests pass with the baseline unchanged (3 failures and 46 files
   that do not load); the production frontend container build completes; a plain clone checks out
   on Windows 11; the changed server integrations load without errors in a running copy.
-- Not verified: none of the new pages or components has been opened in a browser; no operating
-  system image has been built since the file rename; the new release workflow jobs have not run;
+- Not verified: none of the new pages or components has been opened in a browser; the operating system image was built in build 109 since the file rename (see the newer section above); the new release workflow jobs have not run;
   `deploy-assistant\build.bat` (added by another lane) has not been run; the build fix has been
   tried on one computer only.
 - Boards that are now partly built: Authenticator (the profile card is built; the Tools code
