@@ -26,6 +26,18 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   dropped pictures already had. Audio and video are not converted. Unit tested only: not seen
   in a browser, and not tried on a phone.
 
+- Batch 37: the Supervisor unit tests were run for the first time (Python 3.14, throwaway
+  container). First run 4,030 passed, 34 failed, 75 errors, all from tests that still described
+  the upstream product (a telemetry attribute that no longer exists, diagnostics forced off,
+  image names, the version channel address). Tests were updated, no source under
+  `supervisor/supervisor/` changed. After: 4,139 passed, 0 failed, 0 errors, 1 skipped.
+- Release 2026.11.1.131 (batch 34) was opened in headless Edge on a throwaway instance at 1440
+  and 390 px: every visited page loaded with no page error, and the New tab catalog's sections
+  fill the panel width. The live instance was then moved to build 131 at about 11:07 am Toronto
+  time (core 2026.11.1.131, Supervisor 2026.11.0.131, no unsupported or unhealthy reasons). The
+  move recreates the container, and the address answered again without a restart of the front
+  proxy, which is the first sign that the proxy's repeated name lookup works.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

@@ -2,10 +2,12 @@
 
 import asyncio
 from collections.abc import AsyncGenerator, Generator
+from contextlib import ExitStack, contextmanager
 from datetime import datetime
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 from unittest.mock import ANY, AsyncMock, MagicMock, Mock, PropertyMock, patch
 from uuid import uuid4
@@ -615,7 +617,6 @@ async def coresys(
     """Create a CoreSys Mock."""
     with (
         patch("supervisor.bootstrap.initialize_system"),
-        patch("supervisor.utils.sentry.sentry_sdk.init"),
         patch("supervisor.core.Core._write_run_state"),
     ):
         coresys_obj = await initialize_coresys()
@@ -1076,26 +1077,47 @@ async def docker_logs(container: DockerContainer, supervisor_name) -> AsyncMock:
     return container.log
 
 
+@contextmanager
+def _patch_capture_hooks(
+    names: dict[str, bool], recorder: Mock
+) -> Generator[Mock]:
+    """Replace the named error capture hooks in every module that imported them.
+
+    The hooks in supervisor.utils.sentry do nothing in this build, so tests
+    observe the calls made to them. Each value tells whether the hook is a
+    coroutine function.
+    """
+    with ExitStack() as stack:
+        for module in list(sys.modules.values()):
+            if module is None or not getattr(
+                module, "__name__", ""
+            ).startswith("supervisor"):
+                continue
+            for name, is_async in names.items():
+                if name in vars(module):
+                    replacement = (
+                        AsyncMock(side_effect=recorder) if is_async else recorder
+                    )
+                    stack.enter_context(patch.object(module, name, replacement))
+        yield recorder
+
+
 @pytest.fixture
-async def capture_exception() -> Mock:
+def capture_exception() -> Generator[Mock]:
     """Mock capture exception method for testing."""
-    with (
-        patch("supervisor.utils.sentry.sentry_sdk.is_initialized", return_value=True),
-        patch(
-            "supervisor.utils.sentry.sentry_sdk.capture_exception"
-        ) as capture_exception,
+    recorder = Mock()
+    with _patch_capture_hooks(
+        {"async_capture_exception": True, "capture_exception": False}, recorder
     ):
-        yield capture_exception
+        yield recorder
 
 
 @pytest.fixture
-async def capture_message() -> Mock:
+def capture_message() -> Generator[Mock]:
     """Mock capture message method for testing."""
-    with (
-        patch("supervisor.utils.sentry.sentry_sdk.is_initialized", return_value=True),
-        patch("supervisor.utils.sentry.sentry_sdk.capture_message") as capture_message,
-    ):
-        yield capture_message
+    recorder = Mock()
+    with _patch_capture_hooks({"async_capture_message": True}, recorder):
+        yield recorder
 
 
 @pytest.fixture

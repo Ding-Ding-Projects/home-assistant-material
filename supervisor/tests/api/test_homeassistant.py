@@ -152,7 +152,7 @@ async def test_api_set_image(
     """Test changing the image for homeassistant."""
     api_client, root = core_api_client_with_root
     assert (
-        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+        coresys.homeassistant.image == "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
     )
     assert coresys.homeassistant.override_image is False
 
@@ -169,12 +169,12 @@ async def test_api_set_image(
     with patch.object(HomeAssistant, "save_data"):
         resp = await api_client.post(
             f"{root}/options",
-            json={"image": "ghcr.io/home-assistant/qemux86-64-homeassistant"},
+            json={"image": "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"},
         )
 
     assert resp.status == 200
     assert (
-        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+        coresys.homeassistant.image == "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
     )
     assert coresys.homeassistant.override_image is False
 
@@ -474,7 +474,7 @@ async def test_config_check(
 
     coresys.docker.containers.create.assert_called_once_with(
         {
-            "Image": "ghcr.io/home-assistant/qemux86-64-homeassistant:2025.1.0",
+            "Image": "ghcr.io/ding-ding-projects/qemux86-64-homeassistant:2025.1.0",
             "Labels": {"supervisor_managed": ""},
             "OpenStdin": False,
             "StdinOnce": False,
@@ -831,7 +831,7 @@ async def test_update_skips_health_check_when_core_not_running(
     """
     coresys.hardware.disk.get_disk_free_space = lambda x: 5000
     coresys.homeassistant.version = AwesomeVersion("2026.5.0b0")
-    coresys.homeassistant.set_image("ghcr.io/home-assistant/qemux86-64-homeassistant")
+    coresys.homeassistant.set_image("ghcr.io/ding-ding-projects/qemux86-64-homeassistant")
 
     update_call_count = 0
 
@@ -848,7 +848,7 @@ async def test_update_skips_health_check_when_core_not_running(
             Updater,
             "image_homeassistant",
             new=PropertyMock(
-                return_value="ghcr.io/home-assistant/qemux86-64-homeassistant"
+                return_value="ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
             ),
         ),
         patch.object(

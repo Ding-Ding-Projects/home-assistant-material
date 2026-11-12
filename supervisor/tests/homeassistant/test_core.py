@@ -692,7 +692,7 @@ async def test_start(
         block_till_run.assert_called_once()
         run.assert_called_once()
         assert (
-            run.call_args.args[0] == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+            run.call_args.args[0] == "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
         )
         assert run.call_args.kwargs["tag"] == AwesomeVersion("2023.7.0")
         assert run.call_args.kwargs["name"] == "homeassistant"
@@ -982,7 +982,7 @@ async def test_core_loads_wrong_image_for_machine(
         await coresys.homeassistant.core.load()
         pull_image.assert_called_once_with(
             ANY,
-            "ghcr.io/home-assistant/qemux86-64-homeassistant",
+            "ghcr.io/ding-ding-projects/qemux86-64-homeassistant",
             "2024.4.0",
             platform="linux/amd64",
             auth=None,
@@ -998,7 +998,7 @@ async def test_core_loads_wrong_image_for_machine(
         force=True,
     )
     assert (
-        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+        coresys.homeassistant.image == "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
     )
 
 
@@ -1135,7 +1135,7 @@ async def test_core_loads_wrong_image_for_architecture(
         await coresys.homeassistant.core.load()
         pull_image.assert_called_once_with(
             ANY,
-            "ghcr.io/home-assistant/qemux86-64-homeassistant",
+            "ghcr.io/ding-ding-projects/qemux86-64-homeassistant",
             "2024.4.0",
             platform="linux/amd64",
             auth=None,
@@ -1143,15 +1143,15 @@ async def test_core_loads_wrong_image_for_architecture(
 
     container.delete.assert_called_once_with(force=True, v=True)
     assert coresys.docker.images.delete.call_args_list[0] == call(
-        "ghcr.io/home-assistant/qemux86-64-homeassistant:latest",
+        "ghcr.io/ding-ding-projects/qemux86-64-homeassistant:latest",
         force=True,
     )
     assert coresys.docker.images.delete.call_args_list[1] == call(
-        "ghcr.io/home-assistant/qemux86-64-homeassistant:2024.4.0",
+        "ghcr.io/ding-ding-projects/qemux86-64-homeassistant:2024.4.0",
         force=True,
     )
     assert (
-        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+        coresys.homeassistant.image == "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
     )
 
 
@@ -1188,7 +1188,7 @@ async def test_load_missing_image_reinstalls_stored_version(
 
     pull_image.assert_called_once_with(
         ANY,
-        "ghcr.io/home-assistant/qemux86-64-homeassistant",
+        "ghcr.io/ding-ding-projects/qemux86-64-homeassistant",
         "2026.2.3",
         platform="linux/amd64",
         auth=None,
@@ -1196,7 +1196,7 @@ async def test_load_missing_image_reinstalls_stored_version(
     coresys.docker.containers.create.assert_not_called()
     assert coresys.homeassistant.version == AwesomeVersion("2026.2.3")
     assert (
-        coresys.homeassistant.image == "ghcr.io/home-assistant/qemux86-64-homeassistant"
+        coresys.homeassistant.image == "ghcr.io/ding-ding-projects/qemux86-64-homeassistant"
     )
     assert "Reinstalling Home Assistant 2026.2.3" in caplog.text
 
@@ -1260,7 +1260,7 @@ async def test_load_missing_image_fresh_install_uses_landingpage(
 
     pull_image.assert_called_once_with(
         ANY,
-        "ghcr.io/home-assistant/qemux86-64-homeassistant",
+        "ghcr.io/ding-ding-projects/qemux86-64-homeassistant",
         LANDINGPAGE,
         platform="linux/amd64",
         auth=None,

@@ -1,11 +1,13 @@
 """Test sentry data filter."""
 
+from collections.abc import Generator
 import os
 from unittest.mock import PropertyMock, patch
 
 from awesomeversion import AwesomeVersion
 import pytest
 
+from supervisor.config import CoreConfig
 from supervisor.const import SUPERVISOR_VERSION, CoreState
 from supervisor.coresys import CoreSys
 from supervisor.exceptions import (
@@ -84,6 +86,24 @@ SAMPLE_EVENT_AIOHTTP_EXTERNAL = {
 def sys_env(autouse=True):
     """Fixture to inject hassio env."""
     with patch.dict(os.environ, {"Test": "123"}):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def settable_diagnostics() -> Generator[None]:
+    """Let these tests set the diagnostics flag.
+
+    In this build CoreConfig.diagnostics is always False; filter_data itself is
+    unchanged and these tests cover its behaviour when the flag is set.
+    """
+
+    def _get(self: CoreConfig) -> bool | None:
+        return self.__dict__.get("_test_diagnostics")
+
+    def _set(self: CoreConfig, value: bool) -> None:
+        self.__dict__["_test_diagnostics"] = value
+
+    with patch.object(CoreConfig, "diagnostics", property(_get, _set)):
         yield
 
 
