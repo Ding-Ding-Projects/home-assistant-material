@@ -387,7 +387,7 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           );
           --wa-panel-border-radius: var(
             --ha-dialog-border-radius,
-            var(--ha-border-radius-3xl)
+            var(--ha-border-radius-4xl)
           );
           max-width: var(--ha-dialog-max-width, var(--safe-width));
         }
@@ -429,7 +429,10 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
 
         wa-dialog::part(dialog) {
           backdrop-filter: var(--ha-dialog-surface-backdrop-filter, none);
-          box-shadow: var(--dialog-box-shadow, var(--wa-shadow-l));
+          box-shadow: var(
+            --dialog-box-shadow,
+            var(--ha-shadow-overlay, var(--wa-shadow-l))
+          );
           color: var(--primary-text-color);
           min-width: var(--width, var(--full-width));
           max-width: var(--width, var(--full-width));
@@ -515,7 +518,7 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           );
           font-weight: var(
             --ha-dialog-header-title-font-weight,
-            var(--ha-font-weight-normal)
+            var(--ha-font-weight-title)
           );
           overflow: hidden;
           text-overflow: ellipsis;

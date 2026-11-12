@@ -34,7 +34,8 @@ export class HaDropdownItem extends DropdownItem {
       DropdownItem.styles,
       css`
         :host {
-          min-height: var(--ha-dropdown-item-min-height, var(--ha-space-10));
+          min-height: var(--ha-dropdown-item-min-height, var(--ha-space-11));
+          border-radius: var(--ha-dropdown-item-border-radius, 14px);
           overflow-wrap: break-word;
         }
 
@@ -53,12 +54,18 @@ export class HaDropdownItem extends DropdownItem {
 
         :host([selected]) {
           font-weight: var(--ha-font-weight-medium);
-          color: var(--primary-color);
-          background-color: var(--ha-color-fill-primary-quiet-resting);
-          --icon-primary-color: var(--primary-color);
+          color: var(--ha-color-on-primary-container, var(--primary-color));
+          background-color: var(
+            --ha-color-primary-container,
+            var(--ha-color-fill-primary-quiet-resting)
+          );
+          --icon-primary-color: var(
+            --ha-color-on-primary-container,
+            var(--primary-color)
+          );
         }
         :host([selected]:hover) {
-          background-color: var(--ha-color-fill-primary-quiet-hover);
+          background-color: var(--ha-color-fill-primary-normal-hover);
         }
 
         /* Long submenus, like the label list on a phone, scroll instead of

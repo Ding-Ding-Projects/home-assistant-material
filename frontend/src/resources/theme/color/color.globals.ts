@@ -13,43 +13,68 @@ export const colorStyles = css`
 
     /* main interface colors */
     --primary-color: var(--ha-color-primary-40);
-    --dark-primary-color: #004a76;
-    --darker-primary-color: #003c61;
-    --light-primary-color: #cee5ff;
+    --dark-primary-color: #1a47bd;
+    --darker-primary-color: #123a9e;
+    --light-primary-color: #dce4ff;
     --accent-color: #ff9800;
-    --divider-color: rgba(0, 0, 0, 0.12);
-    --outline-color: rgba(0, 0, 0, 0.12);
-    --outline-hover-color: rgba(0, 0, 0, 0.24);
-    --shadow-color: rgba(0, 0, 0, 0.16);
+    --divider-color: #e3e9f2;
+    --outline-color: #d6dbe5;
+    --outline-hover-color: #b9c0ce;
+    --shadow-color: rgba(20, 30, 60, 0.16);
 
     /* rgb */
-    --rgb-primary-color: 0, 99, 155;
+    --rgb-primary-color: 33, 85, 214;
     --rgb-accent-color: 255, 152, 0;
-    --rgb-primary-text-color: 24, 28, 32;
-    --rgb-secondary-text-color: 90, 95, 102;
+    --rgb-primary-text-color: 20, 23, 28;
+    --rgb-secondary-text-color: 74, 80, 92;
     --rgb-text-primary-color: 255, 255, 255;
-    --rgb-card-background-color: 241, 244, 249;
+    --rgb-card-background-color: 255, 255, 255;
 
     --rgb-warning-color: 255, 166, 0;
-    --rgb-error-color: 219, 68, 55;
-    --rgb-success-color: 67, 160, 71;
+    --rgb-error-color: 180, 42, 24;
+    --rgb-success-color: 26, 110, 62;
     --rgb-info-color: 3, 155, 229;
 
-    --scrollbar-thumb-color: rgb(194, 194, 194);
+    --scrollbar-thumb-color: rgb(194, 200, 212);
 
-    --error-color: #db4437;
+    --error-color: #b42a18;
     --warning-color: #ffa600;
-    --success-color: #43a047;
+    --success-color: #1a6e3e;
     --info-color: #039be5;
 
     /* backgrounds */
     /* The window is the tinted ground behind the navigation rail. The pane is
-       the white surface pages sit on. Cards are tinted so they read on it. */
-    --ha-color-window: #eef1f6;
-    --card-background-color: #f1f4f9;
-    --primary-background-color: #ffffff;
-    --secondary-background-color: #e9edf3;
-    --clear-background-color: #ffffff;
+       the soft surface pages sit on. Cards are white, raised with a soft
+       shadow, so they read on it. */
+    --ha-color-window: #eef2f8;
+    --card-background-color: #ffffff;
+    --primary-background-color: #f5f7fb;
+    --secondary-background-color: #edf1f7;
+    --clear-background-color: #f5f7fb;
+
+    /* surface tones (low to high) and outline */
+    --ha-color-surface-tone-1: #f5f7fb;
+    --ha-color-surface-tone-2: #edf1f7;
+    --ha-color-surface-tone-3: #e3e9f2;
+    --ha-color-outline: #d6dbe5;
+
+    /* container tones: a tinted fill and the text that sits on it */
+    --ha-color-primary-container: #dce4ff;
+    --ha-color-on-primary-container: #0b2a78;
+    --ha-color-tertiary: #6d44b8;
+    --ha-color-on-tertiary: #ffffff;
+    --ha-color-tertiary-container: #efe3ff;
+    --ha-color-on-tertiary-container: #3a1a73;
+    --ha-color-warning-container: #ffe9c7;
+    --ha-color-on-warning-container: #4d2c00;
+    --ha-color-error-container: #ffe1dc;
+    --ha-color-on-error-container: #b42a18;
+    --ha-color-success-container: #d4f4df;
+    --ha-color-on-success-container: #0f3d22;
+
+    /* soft, layered shadows */
+    --ha-shadow-card: 0 1px 2px rgba(20, 30, 60, 0.06), 0 8px 24px rgba(20, 30, 60, 0.07);
+    --ha-shadow-overlay: 0 2px 6px rgba(20, 30, 60, 0.08), 0 24px 48px rgba(20, 30, 60, 0.16);
 
     /* for label-badge */
     --label-badge-grey: #9e9e9e;
@@ -158,11 +183,11 @@ export const colorStyles = css`
     --input-idle-line-color: rgba(0, 0, 0, 0.42);
     --input-hover-line-color: rgba(0, 0, 0, 0.87);
     --input-disabled-line-color: rgba(0, 0, 0, 0.06);
-    --input-outlined-idle-border-color: rgba(0, 0, 0, 0.38);
-    --input-outlined-hover-border-color: rgba(0, 0, 0, 0.87);
-    --input-outlined-disabled-border-color: rgba(0, 0, 0, 0.06);
-    --input-fill-color: rgb(245, 245, 245);
-    --input-disabled-fill-color: rgb(250, 250, 250);
+    --input-outlined-idle-border-color: #b9c0ce;
+    --input-outlined-hover-border-color: #646a78;
+    --input-outlined-disabled-border-color: #e3e9f2;
+    --input-fill-color: #edf1f7;
+    --input-disabled-fill-color: #f5f7fb;
     --input-ink-color: rgba(0, 0, 0, 0.87);
     --input-label-ink-color: rgba(0, 0, 0, 0.6);
     --input-disabled-ink-color: rgba(0, 0, 0, 0.37);
@@ -343,20 +368,56 @@ export const colorStyles = css`
 
 export const darkColorStyles = css`
   html {
-    --ha-color-window: #0b0f13;
-    --primary-background-color: #14181d;
-    --card-background-color: #1d2126;
-    --secondary-background-color: #272b31;
-    --clear-background-color: #14181d;
-    --primary-text-color: #e0e2e8;
-    --secondary-text-color: #a8adb5;
-    --disabled-text-color: #6f6f6f;
-    --divider-color: rgba(225, 225, 225, 0.12);
-    --outline-color: rgba(225, 225, 225, 0.12);
-    --outline-hover-color: rgba(225, 225, 225, 0.24);
+    --ha-color-window: #0b0d11;
+    --primary-background-color: #1a1e25;
+    --card-background-color: #14171d;
+    --secondary-background-color: #20252d;
+    --clear-background-color: #1a1e25;
+    --primary-text-color: #e8eaf0;
+    --secondary-text-color: #bcc2cf;
+    --disabled-text-color: #7b8190;
+    --divider-color: #29303a;
+    --outline-color: #323844;
+    --outline-hover-color: #4a505c;
     --shadow-color: rgba(0, 0, 0, 0.48);
 
-    --scrollbar-thumb-color: rgb(110, 110, 110);
+    --primary-color: #a9c1ff;
+    --text-primary-color: #06235f;
+    --dark-primary-color: #8aa8f7;
+    --darker-primary-color: #628af0;
+    --light-primary-color: #1d3d8f;
+    --rgb-primary-color: 169, 193, 255;
+    --rgb-primary-text-color: 232, 234, 240;
+    --rgb-secondary-text-color: 188, 194, 207;
+    --rgb-text-primary-color: 6, 35, 95;
+    --rgb-card-background-color: 20, 23, 29;
+    --error-color: #e8604f;
+    --rgb-error-color: 232, 96, 79;
+    --success-color: #3fa768;
+    --rgb-success-color: 63, 167, 104;
+
+    --ha-color-surface-tone-1: #1a1e25;
+    --ha-color-surface-tone-2: #20252d;
+    --ha-color-surface-tone-3: #29303a;
+    --ha-color-outline: #323844;
+
+    --ha-color-primary-container: #1d3d8f;
+    --ha-color-on-primary-container: #dce4ff;
+    --ha-color-tertiary: #d2b6ff;
+    --ha-color-on-tertiary: #3a1a73;
+    --ha-color-tertiary-container: #432a78;
+    --ha-color-on-tertiary-container: #efe3ff;
+    --ha-color-warning-container: #4a3200;
+    --ha-color-on-warning-container: #ffe9c7;
+    --ha-color-error-container: #5c160c;
+    --ha-color-on-error-container: #ffb4a8;
+    --ha-color-success-container: #0f3d22;
+    --ha-color-on-success-container: #d4f4df;
+
+    --ha-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --ha-shadow-overlay: 0 24px 48px rgba(0, 0, 0, 0.55);
+
+    --scrollbar-thumb-color: rgb(80, 86, 98);
 
     --mdc-ripple-color: #aaaaaa;
     --mdc-linear-progress-buffer-color: rgba(255, 255, 255, 0.1);
@@ -367,8 +428,8 @@ export const darkColorStyles = css`
     --input-outlined-idle-border-color: rgba(255, 255, 255, 0.38);
     --input-outlined-hover-border-color: rgba(255, 255, 255, 0.87);
     --input-outlined-disabled-border-color: rgba(255, 255, 255, 0.06);
-    --input-fill-color: rgba(255, 255, 255, 0.05);
-    --input-disabled-fill-color: rgba(255, 255, 255, 0.02);
+    --input-fill-color: #20252d;
+    --input-disabled-fill-color: #1a1e25;
     --input-ink-color: rgba(255, 255, 255, 0.87);
     --input-label-ink-color: rgba(255, 255, 255, 0.6);
     --input-disabled-ink-color: rgba(255, 255, 255, 0.37);

@@ -7,9 +7,9 @@ import { extractVars } from "../../common/style/derived-css-vars";
  */
 export const semanticStyles = css`
   html {
-    --ha-box-shadow-s: 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.12);
-    --ha-box-shadow-m: 0 3px 6px -1px rgba(0, 0, 0, 0.1), 0 8px 16px -2px rgba(0, 0, 0, 0.15);
-    --ha-box-shadow-l: 0 6px 12px -3px rgba(0, 0, 0, 0.12), 0 16px 32px -6px rgba(0, 0, 0, 0.2);
+    --ha-box-shadow-s: 0 1px 2px rgba(20, 30, 60, 0.08), 0 2px 8px rgba(20, 30, 60, 0.06);
+    --ha-box-shadow-m: 0 1px 2px rgba(20, 30, 60, 0.06), 0 8px 24px rgba(20, 30, 60, 0.09);
+    --ha-box-shadow-l: 0 2px 6px rgba(20, 30, 60, 0.08), 0 24px 48px rgba(20, 30, 60, 0.16);
   }
 `;
 

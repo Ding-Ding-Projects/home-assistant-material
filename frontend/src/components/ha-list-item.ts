@@ -18,6 +18,7 @@ export class HaListItem extends ListItemBase {
       styles,
       css`
         :host {
+          border-radius: var(--ha-list-item-border-radius, 14px);
           padding-left: var(
             --mdc-list-side-padding-left,
             var(--mdc-list-side-padding, 20px)

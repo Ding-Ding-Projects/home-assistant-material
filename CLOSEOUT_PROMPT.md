@@ -153,6 +153,28 @@ product matching it.
     button style, an illustrated empty state, card shadow on phone rows.
   The owner has asked the design tool for a full modern redesign; more canvases are expected.
 
+- Batch 42, the foundation for the full modern redesign (canvases 23 to 27, style kit
+  `design/source/modern2/kit.css`), unit tested only, not seen in a browser:
+  - Default light and dark themes carry the kit's colours: window, page and card surfaces,
+    two further surface tones, outline, text, a retuned primary scale, a new tertiary tone,
+    and container pairs for primary, tertiary, warning, error and success. A custom primary
+    colour and user themes still override through the same properties.
+  - Soft card and overlay shadows; motion tokens (a spring and an ease curve, one entrance
+    duration) that the system reduced-motion setting and the accessibility tool both switch
+    off; heading weight 600 through a new title weight that the reading option still overrides.
+  - Shared components: cards (28 px radius, soft shadow, short entrance), buttons (hover lift,
+    press), the switch (52 by 32), dialogs, menus and their items, list items, chips, fields
+    (16 px radius; compact outlined fields become pills) and data table rows.
+  - Not done: the segmented control, the select field itself, per-row entrance animation
+    (rows are virtualised), hover lift on cards.
+  - Needs a browser, light and dark, 320 px and desktop, reduced motion on and off: dark
+    contrast for error, success and the lighter primary; the shadow on every card including
+    dashboards with nested cards; pages whose background is now a tint with white cards; the
+    larger switch in forms and right to left; field labels at the new radius; menus; chips;
+    custom themes and the primary colour picker; high-contrast mode.
+  Next: one pass per canvas for the page-specific layouts (24 everyday, 25 settings,
+  26 system and tools, 27 protocols and entity dialogs).
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

@@ -1,5 +1,9 @@
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
+import {
+  haMotionKeyframes,
+  haMotionTransition,
+} from "../resources/motion-styles";
 
 @customElement("ha-card")
 export class HaCard extends LitElement {
@@ -8,32 +12,31 @@ export class HaCard extends LitElement {
   @property({ type: Boolean, reflect: true }) public raised = false;
 
   static styles = css`
+    ${haMotionKeyframes}
+
     :host {
       background: var(
         --ha-card-background,
         var(--card-background-color, white)
       );
       backdrop-filter: var(--ha-card-backdrop-filter, none);
-      box-shadow: var(--ha-card-box-shadow, none);
+      box-shadow: var(--ha-card-box-shadow, var(--ha-shadow-card, none));
       box-sizing: border-box;
-      border-radius: var(--ha-card-border-radius, var(--ha-border-radius-3xl));
+      border-radius: var(--ha-card-border-radius, var(--ha-border-radius-4xl));
       border-width: var(--ha-card-border-width, 0px);
       border-style: solid;
       border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
       color: var(--primary-text-color);
       display: block;
-      transition: all 0.3s ease-out;
+      ${haMotionTransition}
+      animation: ha-rise var(--ha-animation-duration-enter, 1ms)
+        var(--ha-motion-spring, ease) backwards;
       position: relative;
     }
 
     :host([raised]) {
       border: none;
-      box-shadow: var(
-        --ha-card-box-shadow,
-        0px 2px 1px -1px rgba(0, 0, 0, 0.2),
-        0px 1px 1px 0px rgba(0, 0, 0, 0.14),
-        0px 1px 3px 0px rgba(0, 0, 0, 0.12)
-      );
+      box-shadow: var(--ha-card-box-shadow, var(--ha-shadow-overlay, none));
     }
 
     .card-header,
@@ -47,7 +50,7 @@ export class HaCard extends LitElement {
       display: block;
       margin-block-start: 0;
       margin-block-end: 0;
-      font-weight: var(--ha-font-weight-normal);
+      font-weight: var(--ha-font-weight-title, var(--ha-font-weight-normal));
     }
 
     /* clean-css ignore:start */

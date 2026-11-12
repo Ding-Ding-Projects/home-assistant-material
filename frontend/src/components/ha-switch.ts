@@ -76,7 +76,7 @@ export class HaSwitch extends Switch {
       Switch.styles,
       css`
         :host {
-          --wa-form-control-toggle-size: var(--ha-switch-size, 24px);
+          --wa-form-control-toggle-size: var(--ha-switch-size, 32px);
           --wa-form-control-required-content: var(
             --ha-switch-required-marker,
             var(--ha-input-required-marker, "*")
@@ -85,8 +85,8 @@ export class HaSwitch extends Switch {
             --ha-switch-required-marker-offset,
             0.1rem
           );
-          --thumb-size: var(--ha-switch-thumb-size, 18px);
-          --width: var(--ha-switch-width, 48px);
+          --thumb-size: var(--ha-switch-thumb-size, 20px);
+          --width: var(--ha-switch-width, 52px);
         }
 
         label {
@@ -115,12 +115,15 @@ export class HaSwitch extends Switch {
         .switch {
           background-color: var(
             --ha-switch-background-color,
-            var(--ha-color-fill-disabled-quiet-resting)
+            var(--ha-color-fill-neutral-normal-resting)
           );
           border-color: var(
             --ha-switch-border-color,
-            var(--ha-color-border-neutral-normal)
+            var(--ha-color-outline, var(--ha-color-border-neutral-normal))
           );
+          border-width: var(--wa-border-width-m);
+          transition-duration: var(--ha-animation-duration-normal);
+          transition-timing-function: var(--ha-motion-spring, ease);
         }
         label:not(.disabled):hover .switch,
         label:not(.disabled) .input:focus-visible ~ .switch {
@@ -135,11 +138,11 @@ export class HaSwitch extends Switch {
         .checked .switch {
           background-color: var(
             --ha-switch-checked-background-color,
-            var(--ha-color-fill-primary-normal-resting)
+            var(--ha-color-fill-primary-loud-resting)
           );
           border-color: var(
             --ha-switch-checked-border-color,
-            var(--ha-color-border-primary-loud)
+            var(--ha-color-fill-primary-loud-resting)
           );
         }
         label:not(.disabled).checked:hover .switch,
@@ -148,14 +151,14 @@ export class HaSwitch extends Switch {
             --ha-switch-checked-background-color-hover,
             var(
               --ha-switch-checked-background-color,
-              var(--ha-color-fill-primary-normal-hover)
+              var(--ha-color-fill-primary-loud-hover)
             )
           );
           border-color: var(
             --ha-switch-checked-border-color-hover,
             var(
               --ha-switch-checked-border-color,
-              var(--ha-color-border-primary-loud)
+              var(--ha-color-fill-primary-loud-hover)
             )
           );
         }
@@ -193,11 +196,11 @@ export class HaSwitch extends Switch {
         .checked .switch .thumb {
           background-color: var(
             --ha-switch-checked-thumb-background-color,
-            var(--ha-color-on-primary-normal)
+            var(--ha-color-on-primary-loud)
           );
           border-color: var(
             --ha-switch-checked-thumb-border-color,
-            var(--ha-color-on-primary-normal)
+            var(--ha-color-on-primary-loud)
           );
         }
         label:not(.disabled).checked:hover .switch .thumb,
@@ -206,14 +209,14 @@ export class HaSwitch extends Switch {
             --ha-switch-checked-thumb-background-color-hover,
             var(
               --ha-switch-checked-thumb-background-color,
-              var(--ha-color-on-primary-normal)
+              var(--ha-color-on-primary-loud)
             )
           );
           border-color: var(
             --ha-switch-checked-thumb-border-color-hover,
             var(
               --ha-switch-checked-thumb-border-color,
-              var(--ha-color-on-primary-normal)
+              var(--ha-color-on-primary-loud)
             )
           );
         }

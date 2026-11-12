@@ -53,7 +53,8 @@ export const haStyle = css`
     -webkit-font-smoothing: var(--ha-font-smoothing);
     -moz-osx-font-smoothing: var(--ha-moz-osx-font-smoothing);
     font-size: var(--ha-font-size-2xl);
-    font-weight: var(--ha-font-weight-normal);
+    font-weight: var(--ha-font-weight-title);
+    letter-spacing: var(--ha-letter-spacing-heading, 0);
     line-height: var(--ha-line-height-condensed);
   }
 
@@ -65,7 +66,8 @@ export const haStyle = css`
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: var(--ha-font-size-xl);
-    font-weight: var(--ha-font-weight-medium);
+    font-weight: var(--ha-font-weight-title);
+    letter-spacing: var(--ha-letter-spacing-heading, 0);
     line-height: var(--ha-line-height-normal);
   }
 
@@ -74,7 +76,7 @@ export const haStyle = css`
     -webkit-font-smoothing: var(--ha-font-smoothing);
     -moz-osx-font-smoothing: var(--ha-moz-osx-font-smoothing);
     font-size: var(--ha-font-size-l);
-    font-weight: var(--ha-font-weight-normal);
+    font-weight: var(--ha-font-weight-title);
     line-height: var(--ha-line-height-normal);
   }
 

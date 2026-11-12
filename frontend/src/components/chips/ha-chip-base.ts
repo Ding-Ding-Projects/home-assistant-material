@@ -369,12 +369,17 @@ export class HaChipBase extends HaButton {
           border-radius: inherit;
         }
         .container::before {
-          background: var(--ha-chip-container-color, transparent);
+          background: var(
+            --ha-chip-container-color,
+            var(--ha-color-surface-tone-2, transparent)
+          );
           opacity: var(--ha-chip-container-opacity, 1);
+          transition: background-color var(--ha-animation-duration-normal)
+            var(--ha-motion-ease, ease);
         }
         .container::after {
           border: var(--ha-chip-outline-width, 1px) solid
-            var(--ha-chip-outline-color, var(--outline-color));
+            var(--ha-chip-outline-color, transparent);
         }
         .button,
         .content {
@@ -408,7 +413,7 @@ export class HaChipBase extends HaButton {
           font-size: var(--ha-chip-label-size, 0.875rem);
           font-weight: var(
             --ha-chip-label-weight,
-            var(--ha-font-weight-normal)
+            var(--ha-font-weight-medium)
           );
           line-height: var(--ha-chip-label-line-height, 1.25rem);
           color: var(--ha-chip-label-color, var(--primary-text-color));

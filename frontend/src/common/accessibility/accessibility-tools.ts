@@ -155,6 +155,7 @@ html[data-a11y-contrast="most"][data-a11y-dark] {
   --ha-pane-outline: 2px solid #ffffff;
 }
 html[data-a11y-reduce-motion] {
+  --ha-animation-duration-enter: 1ms !important;
   --ha-animation-duration-instant: 1ms !important;
   --ha-animation-duration-fast: 1ms !important;
   --ha-animation-duration-normal: 1ms !important;

@@ -22,11 +22,16 @@ export const typographyStyles = css`
     --ha-font-weight-light: 300;
     --ha-font-weight-normal: 400;
     --ha-font-weight-medium: 500;
+    --ha-font-weight-semibold: 600;
     --ha-font-weight-bold: 700;
 
     --ha-font-family-heading: var(--ha-font-family-body);
     --ha-font-weight-body: var(--ha-font-weight-normal);
     --ha-font-weight-heading: var(--ha-font-weight-medium);
+    /* Titles in shared styles (page and card headings, dialog titles). The
+       reading option for heading weight replaces this as well. */
+    --ha-font-weight-title: var(--ha-font-weight-semibold);
+    --ha-letter-spacing-heading: -0.015em;
     --ha-font-weight-action: var(--ha-font-weight-medium);
 
     --ha-line-height-condensed: 1.2;

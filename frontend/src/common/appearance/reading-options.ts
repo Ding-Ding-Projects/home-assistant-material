@@ -247,7 +247,8 @@ export const readingOptionsToCss = (options: ReadingOptions): string => {
   }
   if (options.headingWeight !== 500) {
     rules.push(
-      `--ha-font-weight-heading: ${options.headingWeight} !important;`
+      `--ha-font-weight-heading: ${options.headingWeight} !important;`,
+      `--ha-font-weight-title: ${options.headingWeight} !important;`
     );
   }
   if (options.lineSpacing !== "standard") {

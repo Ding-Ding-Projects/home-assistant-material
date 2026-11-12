@@ -49,10 +49,17 @@ export const coreStyles = css`
     --ha-animation-duration-fast: 150ms;
     --ha-animation-duration-normal: 250ms;
     --ha-animation-duration-slow: 350ms;
+    --ha-animation-duration-enter: 450ms;
+
+    /* Expressive motion curves: a springy overshoot for things that arrive
+       and a smooth deceleration for state changes. */
+    --ha-motion-spring: cubic-bezier(0.2, 1.25, 0.32, 1);
+    --ha-motion-ease: cubic-bezier(0.2, 0, 0, 1);
   }
 
   @media (prefers-reduced-motion: reduce) {
     html {
+      --ha-animation-duration-enter: 1ms;
       --ha-animation-duration-none: 1ms;
       --ha-animation-duration-instant: 1ms;
       --ha-animation-duration-fast: 1ms;

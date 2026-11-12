@@ -59,10 +59,23 @@ export class HaButton extends Button {
           line-height: 1;
           -webkit-tap-highlight-color: transparent;
 
-          transition: background-color var(--ha-animation-duration-fast)
-            ease-out;
+          transition:
+            background-color var(--ha-animation-duration-fast) ease-out,
+            transform var(--ha-animation-duration-normal)
+              var(--ha-motion-spring, ease-out),
+            box-shadow var(--ha-animation-duration-normal)
+              var(--ha-motion-ease, ease-out);
           text-wrap: wrap;
           box-shadow: var(--ha-button-box-shadow);
+        }
+
+        @media (hover: hover) {
+          .button:not(.disabled):not(.loading):hover {
+            transform: translateY(-1px);
+          }
+        }
+        .button:not(.disabled):not(.loading):active {
+          transform: scale(0.97);
         }
 
         :host([size="xs"]) .button {

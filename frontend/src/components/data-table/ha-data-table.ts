@@ -1769,7 +1769,7 @@ export class HaDataTable extends LitElement {
             --ha-data-table-background,
             var(--data-table-background-color)
           );
-          border-radius: var(--ha-border-radius-sm);
+          border-radius: var(--ha-border-radius-xl);
           border-width: 1px;
           border-style: solid;
           border-color: var(--divider-color);
@@ -1780,7 +1780,10 @@ export class HaDataTable extends LitElement {
         }
 
         .mdc-data-table__row--selected {
-          background-color: rgba(var(--rgb-primary-color), 0.04);
+          background-color: var(
+            --ha-color-primary-container,
+            rgba(var(--rgb-primary-color), 0.04)
+          );
         }
 
         .mdc-data-table__row {
