@@ -15,8 +15,17 @@ day can hold several releases. The interface shows this list under Settings, Abo
   search and name fields in the tab panels take focus when they open; the selected tab scrolls
   fully into view; the automation editor's save bar sits at the page bottom with a bottom strip.
 - New: "Tab strip position" in Profile chooses the edge the tab strip docks to.
-- Known gaps in the tab options: settings pages and tools cannot yet be opened as tabs of their
-  own; settings section tabs and the phone Pages sheet have no groups, looks or locks.
+- New: a settings page or a tool chosen in the New tab catalog opens as a tab of its own, on the
+  wide strip and in the phone Pages sheet. Choosing it again goes to the tab it already has.
+  Closing the tab in use goes to the neighbouring tab.
+- New: the tabs of a settings section have their own right-click menu (also the menu key and a
+  long press), groups, their own look, locks, hide by text with a preview and undo, and a search
+  in the More list; they are listed in "Search all tabs". The phone Pages sheet has groups as
+  foldable sections, per-page looks and locks. All seen in a local build at 1440, 1000, 390 and
+  320 px, in the dark theme, right to left, Cantonese and both languages.
+- Known small points: "Search all tabs" names a section by its address, not its page name; in
+  both-languages mode one placeholder in the hide dialog is cut; the phone sheet lists groups
+  before loose pages while the wide strip keeps a group at its place in the order.
 
 ## 2026-11-11
 

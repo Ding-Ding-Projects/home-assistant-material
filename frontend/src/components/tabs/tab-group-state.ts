@@ -57,6 +57,9 @@ export const closedFor = (surface: string): string[] =>
     ? normalizeClosed(getStorage().getValue(CLOSED_STORAGE_KEY))
     : [];
 
+/** Strip names that other code registered, so they get proper tab labels. */
+const registered = new Map<string, () => StripSnapshot>();
+
 export const readStripState = (
   hass: HomeAssistant,
   surfaceName?: string
@@ -73,10 +76,19 @@ export const readStripState = (
     labels = new Map(pages.map((page) => [page.urlPath, page.title]));
     available = pages.map((page) => page.urlPath);
   } else {
-    // A strip we know only by its stored names: the ids are the best label.
+    // A strip that is on screen reports its own labels. One that is not is
+    // known only by its stored names, so the ids are the best label.
+    const provided = registered.get(surface)?.();
     available = [
-      ...new Set([...readSeen(surface), ...groups.flatMap((g) => g.members)]),
+      ...new Set([
+        ...(provided ? provided.tabs.map((tab) => tab.id) : []),
+        ...readSeen(surface),
+        ...groups.flatMap((g) => g.members),
+      ]),
     ];
+    if (provided) {
+      labels = new Map(provided.tabs.map((tab) => [tab.id, tab.label]));
+    }
   }
   const ordered =
     surface === DEFAULT_SURFACE
@@ -111,9 +123,6 @@ export const listSurfaces = (): string[] => {
   );
   return [...names];
 };
-
-/** Strip names that other code registered, so they get proper tab labels. */
-const registered = new Map<string, () => StripSnapshot>();
 
 /**
  * Lets another strip (for example the sections of a settings page) appear in

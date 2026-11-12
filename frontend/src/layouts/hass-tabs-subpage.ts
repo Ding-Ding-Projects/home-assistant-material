@@ -187,6 +187,21 @@ export class HassTabsSubpage extends LitElement {
 
   private _pageLock = new PageLockController(this);
 
+  /**
+   * The tab menu and its dialogs need the full state object. Most pages do not
+   * pass one in, so it is read from the app element, which always holds it.
+   * The language context re-renders this layout whenever it changes.
+   */
+  private _menuHass(): HomeAssistant | undefined {
+    return (
+      this.hass ??
+      (
+        document.querySelector("home-assistant") as
+          (HTMLElement & { hass?: HomeAssistant }) | null
+      )?.hass
+    );
+  }
+
   /** The pages this surface shows; two or more of them make a tab row. */
   private _getTabs = memoizeOne(
     (
@@ -306,7 +321,7 @@ export class HassTabsSubpage extends LitElement {
                   .narrow=${this._narrow}
                   .surface=${this.route.prefix}
                   .localize=${localize}
-                  .hass=${this.hass}
+                  .hass=${this._menuHass()}
                 ></ha-section-tabs>
               </div>`
             : ""

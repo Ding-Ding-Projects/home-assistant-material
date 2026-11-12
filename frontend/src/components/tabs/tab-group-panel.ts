@@ -243,6 +243,9 @@ export abstract class TabGroupPanel extends LitElement {
       .panel.sheet.bottom {
         max-height: 88dvh;
         width: auto;
+        /* A bottom sheet spans the whole width; the margin kept for a floating
+           panel would leave a gap beside it. */
+        max-width: none;
       }
       /* In the top layer the browser centres a panel and gives it its own
          frame; the panel places itself, so those defaults are taken off. */

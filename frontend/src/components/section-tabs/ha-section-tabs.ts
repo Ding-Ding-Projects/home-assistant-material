@@ -1813,7 +1813,6 @@ export const sectionTabsStyles = css`
     flex: 0 0 auto;
     max-width: 45%;
     overflow: hidden;
-    color: var(--tab-color, inherit);
     background-color: var(--tab-background, transparent);
     border-radius: var(--tab-radius, 0);
     font-weight: var(--tab-weight, inherit);
@@ -1821,6 +1820,14 @@ export const sectionTabsStyles = css`
     box-shadow: inset 0 0 0 var(--tab-border-width, 0)
       var(--tab-border-color, transparent);
     text-decoration: none;
+  }
+  /* More specific than the layout's own link colour, so a chosen text colour
+     is not overridden by it. The open tab keeps its own colour otherwise. */
+  ha-section-tabs a.section-tab {
+    color: var(--tab-color, var(--sidebar-text-color));
+  }
+  ha-section-tabs a.section-tab ha-tab[active] {
+    color: var(--tab-color, var(--primary-color));
   }
   ha-section-tabs .section-tab[hidden],
   ha-section-tabs .group-chip[hidden] {

@@ -2,6 +2,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import { navigate } from "../../common/navigate";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { setLockLocalize } from "../../common/locks/element-lock-session";
 import type { ClosePlanKind } from "../../common/tabs/tab-close-plans";
@@ -14,6 +15,11 @@ import {
   writeTabAppearance,
 } from "../../common/tabs/tab-appearance-store";
 import { tabLockKey } from "../../common/tabs/tab-locks";
+import {
+  neighbourTab,
+  parseDestinationId,
+  tabRoute,
+} from "../../common/tabs/tab-destinations";
 import type { HomeAssistant } from "../../types";
 import { showToast } from "../../util/toast";
 import type { HaAppearanceTools } from "../appearance/ha-appearance-tools";
@@ -631,7 +637,25 @@ export class HaPageTabMenu extends LitElement {
   }
 
   private _closeIds(ids: string[], snap: TabMenuState) {
+    // Closing the settings page or tool tab in use moves to the neighbouring
+    // tab, as the close button on the strip does.
+    const current = snap.planTabs.find((tab) => tab.current)?.id;
+    const leaving =
+      current &&
+      ids.includes(current) &&
+      parseDestinationId(current).kind !== "page"
+        ? neighbourTab(
+            snap.open.filter(
+              (id) =>
+                id === current || (!ids.includes(id) && !snap.locks[id]?.locked)
+            ),
+            current
+          )
+        : undefined;
     closeTabsAction(snap, ids);
+    if (leaving) {
+      navigate(tabRoute(leaving));
+    }
     const after = this._readState();
     const report = reportClose({ ids }, after.open);
     const names = (list: string[]) =>

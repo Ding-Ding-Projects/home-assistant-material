@@ -36,7 +36,26 @@ const { navigate, openLockPrompt, openLockWizard } = vi.hoisted(() => ({
   openLockWizard: vi.fn(),
 }));
 
+// What the New tab list offers; the real entries need a full account.
+const offered = vi.hoisted(() => ({
+  settings: [
+    { path: "/config/automation", title: "Automations", iconPath: "m-auto" },
+  ],
+  tools: [
+    {
+      path: "/config/tools/converter",
+      title: "File converter",
+      iconPath: "m-conv",
+    },
+  ],
+}));
+
 vi.mock("../../../src/common/navigate", () => ({ navigate }));
+vi.mock("../../../src/components/page-catalog-entries", () => ({
+  computeSettingsEntries: () => offered.settings,
+  computeToolEntries: () => offered.tools,
+  loadCatalogTranslations: async () => undefined,
+}));
 vi.mock("../../../src/components/locks/ha-lock-prompt", () => ({
   openLockPrompt,
 }));
@@ -44,6 +63,8 @@ vi.mock("../../../src/components/locks/ha-lock-wizard", () => ({
   openLockWizard,
 }));
 await import("../../../src/components/phone/ha-phone-bar");
+const { chooseDestination } =
+  await import("../../../src/components/tabs/destination-tabs");
 
 // The Pages sheet shows the same pages as the wide strip, so these protect
 // what a person on a phone relies on: a locked page does not open and cannot
@@ -426,5 +447,97 @@ describe("the look of a page", () => {
       tabId: "b",
       label: "Bravo",
     });
+  });
+});
+
+// A settings page or tool opened as a tab is a page of the sheet like any other:
+// it is listed with its title, selected by the address, opened by its own
+// route and never added twice. The wide strip reads the same saved list.
+describe("settings pages and tools in the sheet", () => {
+  const withConfig = () => {
+    const hass = makeHass();
+    hass.panels = {
+      ...hass.panels,
+      config: {
+        url_path: "config",
+        title: null,
+        icon: null,
+        component_name: "config",
+        config: null,
+        config_panel_domain: undefined,
+      },
+    } as unknown as typeof hass.panels;
+    return hass;
+  };
+
+  const mountWithConfig = async () => {
+    bar = document.createElement("ha-phone-bar") as HaPhoneBar;
+    bar.hass = withConfig();
+    bar.phone = true;
+    document.body.append(bar);
+    await settle(bar);
+  };
+
+  afterEach(() => {
+    window.history.pushState({}, "", "/");
+  });
+
+  it("lists an opened settings page as a page and marks it by the address", async () => {
+    chooseDestination("settings", "/config/automation");
+    window.history.pushState({}, "", "/config/automation");
+    await mountWithConfig();
+    expect(titles()).toContain("Automations");
+    expect(card("Automations").classList.contains("selected")).toBe(true);
+    expect(card("Delta").classList.contains("selected")).toBe(false);
+  });
+
+  it("opens it by its own route, not by its id", async () => {
+    chooseDestination("tool", "/config/tools/converter");
+    await mountWithConfig();
+    card("File converter")
+      .querySelector<HTMLButtonElement>(".card-main")!
+      .click();
+    expect(navigate).toHaveBeenCalledWith("/config/tools/converter");
+  });
+
+  it("opens a catalog row as a tab once, and the same row again adds none", async () => {
+    await mountWithConfig();
+    expect(titles()).not.toContain("Automations");
+    const toggle = async () => {
+      sheet().querySelector<HTMLButtonElement>(".new-tab-row")!.click();
+      await settle(bar);
+    };
+    const chooseRow = async () => {
+      await toggle();
+      Array.from(sheet().querySelectorAll<HTMLButtonElement>("button.entry"))
+        .find((el) => el.textContent!.includes("Automations"))!
+        .click();
+      await settle(bar);
+      expect(navigate).toHaveBeenLastCalledWith("/config/automation");
+      // Back to the open pages.
+      await toggle();
+    };
+    await chooseRow();
+    expect(titles().filter((title) => title === "Automations")).toHaveLength(1);
+    await chooseRow();
+    expect(titles().filter((title) => title === "Automations")).toHaveLength(1);
+    expect(getStorage().getValue("pageTabsDestinations")).toEqual({
+      main: ["settings:config/automation"],
+    });
+  });
+
+  it("goes to the neighbouring page when the one in use is closed", async () => {
+    chooseDestination("settings", "/config/automation");
+    chooseDestination("tool", "/config/tools/converter");
+    window.history.pushState({}, "", "/config/automation");
+    await mountWithConfig();
+    card("Automations")
+      .querySelector<HTMLButtonElement>(".card-close")!
+      .click();
+    await settle(bar);
+    expect(navigate).toHaveBeenLastCalledWith("/config/tools/converter");
+    expect(getStorage().getValue("pageTabsClosed")).toContain(
+      "settings:config/automation"
+    );
   });
 });

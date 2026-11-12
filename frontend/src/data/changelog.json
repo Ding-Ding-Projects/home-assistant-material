@@ -4,13 +4,21 @@
       "date": "2026-11-12",
       "items": [
         {
-          "text": "Fixed in the tab options, each seen in a local build: the \"Close other tabs\" preview lists every tab that stays open, with the reason; the group picker opened from \"Search all tabs\" no longer closes that search; \"Move to start\" and \"Move to end\" for a grouped tab stay inside its group and say so; the menu key and Shift+F10 open one menu, not two, and Escape gives focus back; search and name fields in the tab panels take focus when they open; the selected tab scrolls fully into view; the automation editor's save bar sits at the page bottom with a bottom strip."
+          "text": "Fixed in the tab options, each seen in a local build: the \"Close other tabs\" preview lists every tab that stays open, with the reason; the group picker opened from \"Search all tabs\" no longer closes that search; \"Move to start\" and \"Move to end\" for a grouped tab stay inside its group and say so; the menu key and Shift+F10 open one menu, not two, and Escape gives focus back; search and name fields in the tab panels take focus when they open; the selected tab scrolls fully into view; the automation editor's save bar sits at the page bottom with a bottom strip.",
+          "commit": "6330c10d93c1"
         },
         {
-          "text": "New: \"Tab strip position\" in Profile chooses the edge the tab strip docks to."
+          "text": "New: \"Tab strip position\" in Profile chooses the edge the tab strip docks to.",
+          "commit": "6330c10d93c1"
         },
         {
-          "text": "Known gaps in the tab options: settings pages and tools cannot yet be opened as tabs of their own; settings section tabs and the phone Pages sheet have no groups, looks or locks."
+          "text": "New: a settings page or a tool chosen in the New tab catalog opens as a tab of its own, on the wide strip and in the phone Pages sheet. Choosing it again goes to the tab it already has. Closing the tab in use goes to the neighbouring tab."
+        },
+        {
+          "text": "New: the tabs of a settings section have their own right-click menu (also the menu key and a long press), groups, their own look, locks, hide by text with a preview and undo, and a search in the More list; they are listed in \"Search all tabs\". The phone Pages sheet has groups as foldable sections, per-page looks and locks. All seen in a local build at 1440, 1000, 390 and 320 px, in the dark theme, right to left, Cantonese and both languages."
+        },
+        {
+          "text": "Known small points: \"Search all tabs\" names a section by its address, not its page name; in both-languages mode one placeholder in the hide dialog is cut; the phone sheet lists groups before loose pages while the wide strip keeps a group at its place in the order."
         }
       ]
     },

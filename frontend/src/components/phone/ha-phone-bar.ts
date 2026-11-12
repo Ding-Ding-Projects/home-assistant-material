@@ -76,16 +76,26 @@ import {
   filterGroupItems,
   TAB_GROUP_IDS,
 } from "../../common/tabs/tab-group-search";
+import { mainWindow } from "../../common/dom/get_main_window";
 import { getDefaultPanelUrlPath } from "../../data/panel";
 import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../../types";
 import type { PageTab } from "../ha-page-tabs";
 import {
   CLOSED_TABS_STORAGE_KEY,
-  computePageTabs,
   PINNED_TABS_STORAGE_KEY,
   TABS_ORDER_STORAGE_KEY,
 } from "../ha-page-tabs";
+import {
+  neighbourTab,
+  parseDestinationId,
+  tabRoute,
+} from "../../common/tabs/tab-destinations";
+import {
+  chooseDestination,
+  computeStripTabs,
+  currentTabId,
+} from "../tabs/destination-tabs";
 import type { GroupAppearanceStore } from "../tabs/tab-group-appearance-store";
 import {
   GROUP_APPEARANCE_STORAGE_KEY,
@@ -323,6 +333,8 @@ export class HaPhoneBar extends LitElement {
   public connectedCallback() {
     super.connectedCallback();
     window.addEventListener("scroll", this._handleScroll, { passive: true });
+    mainWindow.addEventListener("location-changed", this._locationChanged);
+    mainWindow.addEventListener("popstate", this._locationChanged);
     window.visualViewport?.addEventListener("resize", this._handleViewport);
     this.addEventListener("focusin", this._handleFocusIn);
     this.addEventListener("focusout", this._handleFocusOut);
@@ -367,6 +379,8 @@ export class HaPhoneBar extends LitElement {
     this._lockObserver?.disconnect();
     this._lockObserver = undefined;
     window.removeEventListener("scroll", this._handleScroll);
+    mainWindow.removeEventListener("location-changed", this._locationChanged);
+    mainWindow.removeEventListener("popstate", this._locationChanged);
     window.visualViewport?.removeEventListener("resize", this._handleViewport);
     this.removeEventListener("focusin", this._handleFocusIn);
     this.removeEventListener("focusout", this._handleFocusOut);
@@ -398,6 +412,11 @@ export class HaPhoneBar extends LitElement {
       "64px";
     root.setProperty(VISIBLE_HEIGHT_PROPERTY, this._barHidden ? "0px" : height);
   }
+
+  // The page in use follows the address, so the bar draws again when it changes.
+  private _locationChanged = () => {
+    this.requestUpdate();
+  };
 
   // The bar hides while scrolling down and returns on any scroll up.
   private _handleScroll = () => {
@@ -449,12 +468,7 @@ export class HaPhoneBar extends LitElement {
    * the groups together and the pages in no group, as the strip draws them.
    */
   private _tabs(): PageTab[] {
-    const tabs = computePageTabs(
-      this.hass.panels,
-      getDefaultPanelUrlPath(this.hass),
-      Boolean(this.hass.user?.is_admin),
-      this.hass.localize
-    );
+    const tabs = computeStripTabs(this.hass, PHONE_SURFACE);
     const byId = new Map(tabs.map((tab) => [tab.urlPath, tab]));
     return flattenSegments(
       phoneSegments({
@@ -464,6 +478,14 @@ export class HaPhoneBar extends LitElement {
         groups: this._groups,
       })
     ).flatMap((id) => byId.get(id) ?? []);
+  }
+
+  /**
+   * The page in use. A settings page or tool opened as a tab claims its own
+   * address, otherwise it is the panel being shown.
+   */
+  private _current(): string | undefined {
+    return currentTabId(this.hass, PHONE_SURFACE);
   }
 
   /** The name a page shows: the label the person gave it, else its title. */
@@ -586,7 +608,7 @@ export class HaPhoneBar extends LitElement {
     const tabs = this._tabs();
     const closed = new Set(this._closed);
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
-    const current = this.hass.panelUrl;
+    const current = this._current();
     const index = open.findIndex((tab) => tab.urlPath === current);
     const currentTab = tabs.find((tab) => tab.urlPath === current);
     const label = currentTab ? this._titleFor(currentTab) : current;
@@ -1130,7 +1152,7 @@ export class HaPhoneBar extends LitElement {
         settings,
         entryTexts,
         (entry) => entry.title,
-        (entry) => this._renderEntryRow(entry)
+        (entry) => this._renderEntryRow(entry, "settings")
       )}
       ${this._renderGroup(
         "tools",
@@ -1139,7 +1161,7 @@ export class HaPhoneBar extends LitElement {
         tools,
         entryTexts,
         (entry) => entry.title,
-        (entry) => this._renderEntryRow(entry)
+        (entry) => this._renderEntryRow(entry, "tool")
       )}
     `;
   }
@@ -1190,9 +1212,17 @@ export class HaPhoneBar extends LitElement {
     </section>`;
   }
 
-  private _renderEntryRow(entry: CatalogSettingsEntry): TemplateResult {
+  private _renderEntryRow(
+    entry: CatalogSettingsEntry,
+    kind: "settings" | "tool"
+  ): TemplateResult {
     return html`
-      <button class="entry" .path=${entry.path} @click=${this._openEntry}>
+      <button
+        class="entry"
+        .path=${entry.path}
+        .kind=${kind}
+        @click=${this._openEntry}
+      >
         <span class="entry-icon">
           ${
             entry.iconPath
@@ -1216,10 +1246,17 @@ export class HaPhoneBar extends LitElement {
     this._groupFilters = { ...this._groupFilters, [group]: field.value ?? "" };
   }
 
+  // Choosing a settings page or a tool opens it as its own tab, or focuses the
+  // tab it already has, and shows the page.
   private _openEntry(ev: Event) {
-    const path = (ev.currentTarget as HTMLElement & { path: string }).path;
+    const { path, kind } = ev.currentTarget as HTMLElement & {
+      path: string;
+      kind: "settings" | "tool";
+    };
     this._sheet?.hidePopover();
-    navigate(path);
+    const choice = chooseDestination(kind, path, PHONE_SURFACE);
+    this.requestUpdate();
+    navigate(choice.route ?? path);
   }
 
   private _renderCard(
@@ -1459,7 +1496,7 @@ export class HaPhoneBar extends LitElement {
     }
     this._closed = this._closed.filter((closed) => closed !== urlPath);
     this._hideSheet();
-    navigate(`/${urlPath}`);
+    navigate(tabRoute(urlPath));
   }
 
   /** The Pages button of the bottom bar: it stays when the sheet closes. */
@@ -1502,13 +1539,39 @@ export class HaPhoneBar extends LitElement {
     if (!ids.length) {
       return 0;
     }
+    const leaving = this._neighbourFor(ids);
     this._closed = [...this._closed, ...ids];
+    if (leaving) {
+      navigate(tabRoute(leaving));
+    }
     this._undo = { ids, name };
     window.clearTimeout(this._undoTimer);
     this._undoTimer = window.setTimeout(() => {
       this._undo = undefined;
     }, UNDO_MS);
     return ids.length;
+  }
+
+  // Closing the settings page or tool tab in use moves to the neighbouring
+  // tab, as the wide strip does, so the person is not left on a page with no tab.
+  private _neighbourFor(closing: string[]): string | undefined {
+    const current = this._current();
+    if (
+      !current ||
+      !closing.includes(current) ||
+      parseDestinationId(current).kind === "page"
+    ) {
+      return undefined;
+    }
+    const stays = this._tabs()
+      .map((tab) => tab.urlPath)
+      .filter(
+        (id) =>
+          !this._closed.includes(id) &&
+          (id === current ||
+            (!closing.includes(id) && this._pendingLock(id) === undefined))
+      );
+    return neighbourTab(stays, current);
   }
 
   // Closes what a plan lists and says how many closed out of how many were
@@ -1553,7 +1616,7 @@ export class HaPhoneBar extends LitElement {
     const ids = this._closable(
       this._tabs()
         .map((tab) => tab.urlPath)
-        .filter((id) => !this._closed.includes(id) && id !== this.hass.panelUrl)
+        .filter((id) => !this._closed.includes(id) && id !== this._current())
     );
     this._closeByPlan(ids, 0);
   }
@@ -1566,8 +1629,7 @@ export class HaPhoneBar extends LitElement {
   ) {
     const pinned = new Set(this._pinned);
     const ids = ev.detail.ids.filter(
-      (id) =>
-        !pinned.has(id) && !this._isLocked(id) && id !== this.hass.panelUrl
+      (id) => !pinned.has(id) && !this._isLocked(id) && id !== this._current()
     );
     this._closeByPlan(ids, ev.detail.kept, ev.detail.planned);
     this._finishPanel();
@@ -1688,7 +1750,7 @@ export class HaPhoneBar extends LitElement {
 
   private _runPageAction(id: string, action: PageActionId) {
     const pages = this._pages();
-    const current = this.hass.panelUrl;
+    const current = this._current();
     const title = pages.find((page) => page.id === id)?.title ?? id;
     const closeKinds: Partial<Record<PageActionId, CloseKind>> = {
       close: "close",
@@ -1814,7 +1876,7 @@ export class HaPhoneBar extends LitElement {
     if (open.length < 2) {
       return;
     }
-    const index = open.findIndex((tab) => tab.urlPath === this.hass.panelUrl);
+    const index = open.findIndex((tab) => tab.urlPath === this._current());
     const next = (index + step + open.length) % open.length;
     this._openPage(open[next].urlPath);
   }

@@ -118,6 +118,9 @@ type Target =
   | { kind: "strip"; anchor: HTMLElement };
 
 const BASE = "ui.components.section_tabs.";
+
+/** How long after opening a click on a row is taken for the lift of the long press. */
+const MENU_SETTLE_MS = 600;
 const MENU = "ui.page_tabs.menu.";
 
 /** The shared entries whose words say close; a section is hidden instead. */
@@ -183,8 +186,45 @@ export class HaSectionTabMenu extends LitElement {
 
   private _keepFocus = false;
 
+  /**
+   * A long press opens the menu under the finger, and the lift of that finger
+   * must not count as a tap on the row beneath. These remember whether a
+   * touch was down when the menu opened, and when it lifted.
+   */
+  private _touchDown = false;
+
+  private _openedDuringTouch = false;
+
+  private _touchUpAt = 0;
+
+  private _liftSeen = false;
+
+  private _reopened = false;
+
+  private _onPointerDown = (ev: PointerEvent) => {
+    if (ev.pointerType === "touch") {
+      // A new touch after the one that opened the menu is an ordinary tap.
+      if (this._liftSeen) {
+        this._openedDuringTouch = false;
+        this._liftSeen = false;
+      }
+      this._touchDown = true;
+    }
+  };
+
+  private _onPointerEnd = () => {
+    if (this._touchDown) {
+      this._touchDown = false;
+      this._touchUpAt = Date.now();
+      this._liftSeen = this._openedDuringTouch;
+    }
+  };
+
   public connectedCallback() {
     super.connectedCallback();
+    window.addEventListener("pointerdown", this._onPointerDown, true);
+    window.addEventListener("pointerup", this._onPointerEnd, true);
+    window.addEventListener("pointercancel", this._onPointerEnd, true);
     window.addEventListener("tab-context-menu", this._onTab);
     window.addEventListener("tab-group-context-menu", this._onGroup);
     window.addEventListener("strip-context-menu", this._onStrip);
@@ -192,6 +232,9 @@ export class HaSectionTabMenu extends LitElement {
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("pointerdown", this._onPointerDown, true);
+    window.removeEventListener("pointerup", this._onPointerEnd, true);
+    window.removeEventListener("pointercancel", this._onPointerEnd, true);
     window.removeEventListener("tab-context-menu", this._onTab);
     window.removeEventListener("tab-group-context-menu", this._onGroup);
     window.removeEventListener("strip-context-menu", this._onStrip);
@@ -741,6 +784,9 @@ export class HaSectionTabMenu extends LitElement {
     this._hideDialog?.close(false);
     this._editor?.close(false);
     this._target = target;
+    this._openedDuringTouch = this._touchDown;
+    this._liftSeen = false;
+    this._reopened = false;
     this._placement = undefined;
     this._active = this._rows.findIndex((row) => row.enabled);
     await this.updateComplete;
@@ -781,6 +827,18 @@ export class HaSectionTabMenu extends LitElement {
 
   private _toggled(ev: Event) {
     if ((ev as ToggleEvent).newState !== "closed") {
+      return;
+    }
+    // The finger that opened the menu with a long press lifts outside the menu,
+    // which the browser takes for a tap away from it. The menu stays once.
+    if (
+      this._liftSeen &&
+      !this._reopened &&
+      !this._keepFocus &&
+      Date.now() - this._touchUpAt < MENU_SETTLE_MS
+    ) {
+      this._reopened = true;
+      showPopover(this._menu);
       return;
     }
     window.removeEventListener("resize", this._place);
@@ -854,6 +912,15 @@ export class HaSectionTabMenu extends LitElement {
   }
 
   private _clicked(ev: Event) {
+    if (
+      this._openedDuringTouch &&
+      Date.now() - this._touchUpAt < MENU_SETTLE_MS
+    ) {
+      ev.preventDefault();
+      this._openedDuringTouch = false;
+      return;
+    }
+    this._openedDuringTouch = false;
     const index = Number((ev.currentTarget as HTMLElement).dataset.row ?? "-1");
     const row = this._rows[index];
     if (row?.enabled) {
