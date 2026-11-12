@@ -38,8 +38,10 @@ the same attempt budget. Like every lock here it is a speed bump, not security: 
 the tag, or able to send a `tag_scanned` event, can open it.
 
 Code: `frontend/src/common/locks/nfc-reader.ts`, `frontend/src/components/locks/ha-lock-nfc-listen.ts`,
-the `password_nfc` policy in `lock-credentials.ts`. Built and unit tested; not yet seen with a
-real tag.
+the `password_nfc` policy in `lock-credentials.ts`. Built and unit tested. Seen in a running build: the wizard asks for the
+password, then waits for the tag and says this desktop has no reader; a `tag_scanned` event fired
+through Home Assistant was read as the tag and Next opened. Not yet tried with a real tag or a
+phone's own reader.
 
 ## Verification
 
