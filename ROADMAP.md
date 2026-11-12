@@ -53,7 +53,9 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Observe an over-the-air operating system update between two builds signed with them. No
       operating system image has been booted with an over-the-air update
 - [ ] Run `build.bat --run` and `build-installer.bat` on Windows
-- [ ] Run `deploy-assistant\build.bat` on Windows (added by another lane; not run)
+- [ ] Run `deploy-assistant\build.bat` on Windows. Run once on 12 November: install, 21 tests
+      and the window build passed; the installer step made nothing on Node.js 26 (the script
+      now says so straight after the install). Needs a run on Node.js 22 or 24
 
 ## Hosting
 

@@ -72,6 +72,17 @@ if exist package-lock.json (
 )
 if errorlevel 1 goto :failed
 
+rem The package install can report success and still leave the desktop runtime unpacked: on
+rem Node.js 26 the unzip step it uses ends early without an error. The installer step would
+rem then finish with nothing made, so stop here and say why.
+if not exist "node_modules\electron\dist\electron.exe" (
+  echo The package install finished, but node_modules\electron\dist\electron.exe is missing.
+  for /f "delims=" %%v in ('node --version') do echo This computer runs Node.js %%v.
+  echo The release build uses Node.js 22. Newer versions can leave this file unpacked.
+  echo Use Node.js 22 or 24, then run: build.bat --clean
+  goto :failed
+)
+
 if defined DO_TEST (
   echo [2/4] Running the tests...
   call npm test

@@ -38,6 +38,34 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   move recreates the container, and the address answered again without a restart of the front
   proxy, which is the first sign that the proxy's repeated name lookup works.
 
+- Batch 38, Deploy Assistant on this Windows machine: `deploy-assistant\build.bat` was run for
+  the first time. Packages installed, 21 of 21 tests passed and the window built, but the
+  installer step produced nothing and the script ended with exit 1. Cause: this machine runs
+  Node.js 26, where the unzip step used by the package install and by the packager ends early
+  without an error, so the desktop runtime is never unpacked (the release build uses Node.js
+  22). `build.bat` now checks for the unpacked runtime straight after the install and says
+  which Node.js version to use. The installer and the packaged window are still unverified
+  here. The built window was driven unpackaged and headless with every outside call blocked and
+  nothing deployed: the welcome wizard, the Deploy page with its five targets, Instances,
+  Settings, search, the pattern workbench, dark theme, Cantonese mode and a 360 px wide window
+  were looked at. Defects seen and left for the design lane: Cantonese mode leaves the settings
+  row labels in English; at 360 px the header logo is cut and the step bar loses its labels; a
+  permanent horizontal scrollbar under the tab strip; the page can stay scrolled after the
+  wizard closes; the "Run it" and "Articles" tabs did not open in the walk (not confirmed as a
+  defect).
+- Why the full-mode container was found Exited (128) on 12 November, from a read-only look at
+  Docker Desktop's logs and the Windows event log: between about 2:51 and 3:07 am Toronto time
+  the Docker virtual machine recorded about 95 out-of-memory kills, stopped answering at 3:16
+  am, and Docker Desktop restarted uncleanly at 3:56 am. No Windows restart, sleep or update
+  was involved. The most likely reason the container stayed down is a known, open engine defect
+  (moby issue 54065, seen on the same engine version, 29.6.1): after an unclean engine exit a
+  container can be marked as stopped by hand, and `restart: unless-stopped` then skips it. The
+  number 128 itself could not be explained; the old container and its log no longer exist.
+  Not changed: `restart: always` in `compose.full.yaml` would bring it back in that case, but a
+  container stopped on purpose with `host.bat --stop` would then also return at the next engine
+  start; a memory limit on the outer container or on the Docker virtual machine would stop one
+  workload starving the rest. Both are the owner's decisions.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
