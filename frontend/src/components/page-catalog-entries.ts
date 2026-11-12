@@ -113,6 +113,21 @@ const CATALOG_TOOLS: CatalogToolDefinition[] = [
   },
 ];
 
+/**
+ * The settings and tools titles live in the settings translations, which are
+ * only loaded once a settings page has been opened. Load them when a catalog
+ * opens, so the rows have their titles wherever the catalog is opened from.
+ */
+export const loadCatalogTranslations = async (
+  hass: HomeAssistant
+): Promise<void> => {
+  try {
+    await hass.loadFragmentTranslation("config");
+  } catch (_err) {
+    // The rows without a title are left out below.
+  }
+};
+
 /** Settings pages from the settings overview, shown to this person only. */
 export const computeSettingsEntries = (
   hass: HomeAssistant
@@ -149,9 +164,11 @@ export const computeToolEntries = (
   }
   return CATALOG_TOOLS.filter(
     (tool) => !tool.component || isComponentLoaded(hass.config, tool.component)
-  ).map((tool) => ({
-    path: `/config/tools/${tool.panel}`,
-    title: hass.localize(tool.translationKey as LocalizeKeys),
-    iconPath: tool.iconPath,
-  }));
+  )
+    .map((tool) => ({
+      path: `/config/tools/${tool.panel}`,
+      title: hass.localize(tool.translationKey as LocalizeKeys),
+      iconPath: tool.iconPath,
+    }))
+    .filter((entry) => !!entry.title);
 };

@@ -27,9 +27,10 @@ import {
   extractApiErrorMessage,
   ignoreSupervisorError,
 } from "../../data/hassio/common";
-import type { HassioHostInfo } from "../../data/hassio/host";
+import type { HassioHostInfo, HostPowerAction } from "../../data/hassio/host";
 import {
   fetchHassioHostInfo,
+  hostPowerActions,
   rebootHost,
   shutdownHost,
 } from "../../data/hassio/host";
@@ -163,7 +164,12 @@ class DialogRestart extends LitElement {
       return nothing;
     }
 
-    const showMachine = !!this._hostInfo;
+    const machineOptions = MACHINE_OPTIONS.filter((option) =>
+      hostPowerActions(this._hostInfo).includes(
+        option.action as HostPowerAction
+      )
+    );
+    const showMachine = machineOptions.length > 0;
 
     return html`
       <ha-adaptive-dialog
@@ -202,7 +208,7 @@ class DialogRestart extends LitElement {
                                 "ui.dialogs.restart.this_machine"
                               )}
                             </div>
-                            ${MACHINE_OPTIONS.map((option) =>
+                            ${machineOptions.map((option) =>
                               this._renderOption(option)
                             )}
                           `

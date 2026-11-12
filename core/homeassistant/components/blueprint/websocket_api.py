@@ -5,6 +5,7 @@ from collections.abc import Callable, Coroutine
 import functools
 from typing import Any, cast
 
+import aiohttp
 import probatio
 
 from homeassistant.components import websocket_api
@@ -111,8 +112,40 @@ async def ws_import_blueprint(
     msg: dict[str, Any],
 ) -> None:
     """Import a blueprint."""
-    async with asyncio.timeout(10):
-        imported_blueprint = await importer.fetch_blueprint_from_url(hass, msg["url"])
+    try:
+        async with asyncio.timeout(10):
+            imported_blueprint = await importer.fetch_blueprint_from_url(
+                hass, msg["url"]
+            )
+    except aiohttp.ClientResponseError as err:
+        # Only the status is passed on, never the address or its query.
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_HOME_ASSISTANT_ERROR,
+            f"The server answered with HTTP status {err.status}",
+        )
+        return
+    except aiohttp.ClientConnectorDNSError:
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_HOME_ASSISTANT_ERROR,
+            "The host name could not be resolved",
+        )
+        return
+    except aiohttp.ClientConnectionError:
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_HOME_ASSISTANT_ERROR,
+            "Could not connect to the server",
+        )
+        return
+    except aiohttp.ClientError:
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_HOME_ASSISTANT_ERROR,
+            "The address could not be fetched",
+        )
+        return
 
     if imported_blueprint is None:
         connection.send_error(  # type: ignore[unreachable]

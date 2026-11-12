@@ -15,16 +15,19 @@ import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import { supportsFeature } from "../../common/entity/supports-feature";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import { subscribeBackupEvents } from "../../data/backup_manager";
+import type { HassioHassOSInfo } from "../../data/hassio/host";
 import type { UpdateEntity } from "../../data/update";
 import { installUpdates, UpdateEntityFeature } from "../../data/update";
 import type { HomeAssistant, HomeAssistantApi } from "../../types";
 import { watchEntityState } from "./entity-state-hub";
 import type { UpdateStage } from "./update-progress-logic";
 import {
+  classifyStagedInstall,
   deriveUpdateStage,
   errorText,
   graceCounts,
   isConnectionLostError,
+  isFinalStage,
   START_SLOW_MS,
   startIsSlow,
   VERSION_CHECK_GRACE_MS,
@@ -82,7 +85,17 @@ export interface UpdateRun {
   activityId: string;
   /** When the run last reached `done` or `failed`, absent while it runs. */
   finishedAt?: number;
+  /** "Later" was chosen while the install waits for a restart. */
+  restartDeferred?: boolean;
 }
+
+/** The title the Supervisor gives the operating system's update entity. */
+export const OS_UPDATE_TITLE = "Home Assistant Operating System";
+
+const OS_INFO_RETRY_MS = 5000;
+const OS_INFO_MAX_ATTEMPTS = 60;
+
+type OsInfoLite = Pick<HassioHassOSInfo, "version" | "version_pending">;
 
 interface RunInternal extends UpdateRun {
   deps: UpdateTrackerDeps;
@@ -102,6 +115,15 @@ interface RunInternal extends UpdateRun {
   graceFailureReported: boolean;
   closed: boolean;
   unsubs: (() => void)[];
+  /** The entity is the operating system's: it installs into a spare slot. */
+  isOs: boolean;
+  /** The install reached "restart required" at some point. */
+  staged: boolean;
+  /** The operating system's own info, read after the last (re)connect. */
+  osInfo?: OsInfoLite;
+  osFetching: boolean;
+  osInfoFailures: number;
+  osRetryTimer?: ReturnType<typeof setTimeout>;
 }
 
 type Listener = () => void;
@@ -139,7 +161,7 @@ class UpdateInstallTracker {
   /** Forget a finished run, for example when the card is dismissed. */
   public dismiss(entityId: string): void {
     const run = this._runs.get(entityId);
-    if (run && (run.stage === "done" || run.stage === "failed")) {
+    if (run && isFinalStage(run.stage)) {
       activityStore.dismiss(run.activityId);
       this._close(run);
       this._runs.delete(entityId);
@@ -275,6 +297,10 @@ class UpdateInstallTracker {
       generation: nextGeneration++,
       closed: false,
       unsubs: [],
+      isOs: title === OS_UPDATE_TITLE,
+      staged: false,
+      osFetching: false,
+      osInfoFailures: 0,
       activityId: startActivity({
         title: deps.localize("ui.update_progress.activity_title", {
           name: title,
@@ -300,11 +326,14 @@ class UpdateInstallTracker {
     const onDisconnected = () => {
       run.disconnected = true;
       run.restarted = true;
+      run.osInfo = undefined;
       this._clearGrace(run);
       this._evaluate(run);
     };
     const onReady = () => {
       run.disconnected = false;
+      run.osInfo = undefined;
+      run.osInfoFailures = 0;
       this._refreshEntity(run);
       this._evaluate(run);
     };
@@ -383,7 +412,7 @@ class UpdateInstallTracker {
       run.graceExpired = false;
       this._clearGrace(run);
     }
-    const result = deriveUpdateStage({
+    const derived = deriveUpdateStage({
       inProgress: !!attributes?.in_progress,
       supportsProgress: supportsFeature(
         run.entity,
@@ -403,13 +432,16 @@ class UpdateInstallTracker {
       entityState: run.entity.state,
       restarted: run.restarted,
     });
-    const finalStage = result.stage === "done" || result.stage === "failed";
-    if (!finalStage) {
+    const result = run.isOs ? this._osStage(run, derived) : derived;
+    if (!isFinalStage(result.stage)) {
       run.finishedAt = undefined;
     } else if (run.stage !== result.stage || run.finishedAt === undefined) {
       run.finishedAt = Date.now();
     }
     run.stage = result.stage;
+    if (result.stage !== "restart_required") {
+      run.restartDeferred = false;
+    }
     run.percent = result.percent;
     run.slow = startIsSlow(run.stage, run.startedAt, Date.now());
 
@@ -452,8 +484,21 @@ class UpdateInstallTracker {
       this._finish(run, "done", {
         message: localize("ui.update_progress.done", {
           name: run.title,
-          version: attributes?.installed_version ?? run.targetVersion ?? "",
+          version:
+            (run.isOs ? run.osInfo?.version : undefined) ??
+            attributes?.installed_version ??
+            run.targetVersion ??
+            "",
         }),
+      });
+    } else if (result.stage === "rolled_back") {
+      run.error = undefined;
+      this._finish(run, "failed", {
+        message: localize("ui.update_progress.rolled_back", {
+          name: run.title,
+          version: run.fromVersion ?? "",
+        }),
+        compact: true,
       });
     } else if (result.stage === "failed") {
       run.error =
@@ -487,6 +532,94 @@ class UpdateInstallTracker {
     this._notify();
   }
 
+  /**
+   * An operating system install only stages the new version into the other
+   * boot slot, so the update entity (which then reports the staged version as
+   * installed) cannot say whether it took effect. The operating system's own
+   * info does: its running version, and a staged version waiting for a
+   * restart. A run that reached "restart required" is judged by that info
+   * alone, again after every reconnect.
+   */
+  private _osStage(
+    run: RunInternal,
+    derived: ReturnType<typeof deriveUpdateStage>
+  ): ReturnType<typeof deriveUpdateStage> {
+    if (!run.staged) {
+      if (derived.stage !== "done") {
+        return derived;
+      }
+    } else if (run.disconnected) {
+      return { stage: "waiting" };
+    }
+    if (!run.osInfo) {
+      void this._fetchOsInfo(run);
+      return { stage: "checking" };
+    }
+    const outcome = classifyStagedInstall({
+      running: run.osInfo.version,
+      pending: run.osInfo.version_pending,
+      target: run.targetVersion,
+      from: run.fromVersion,
+    });
+    if (outcome === "restart_required") {
+      run.staged = true;
+      return { stage: "restart_required" };
+    }
+    return {
+      stage: outcome === "rolled_back" && !run.staged ? "done" : outcome,
+    };
+  }
+
+  private async _fetchOsInfo(run: RunInternal): Promise<void> {
+    if (run.osFetching) {
+      return;
+    }
+    run.osFetching = true;
+    try {
+      const info = await run.deps.connection.sendMessagePromise<
+        Pick<HassioHassOSInfo, "version" | "version_pending">
+      >({
+        type: "supervisor/api",
+        endpoint: "/os/info",
+        method: "get",
+      });
+      run.osInfo = info;
+      run.osInfoFailures = 0;
+    } catch (_err) {
+      run.osInfoFailures += 1;
+      if (run.staged && run.osInfoFailures < OS_INFO_MAX_ATTEMPTS) {
+        // The Supervisor can take a while to answer after a restart.
+        run.osFetching = false;
+        run.osRetryTimer = setTimeout(() => {
+          run.osRetryTimer = undefined;
+          if (!run.closed) {
+            this._evaluate(run);
+          }
+        }, OS_INFO_RETRY_MS);
+        return;
+      }
+      // Without the operating system's info, the entity's own version is all
+      // there is to go by.
+      run.osInfo = {
+        version: run.entity.attributes.installed_version,
+        version_pending: null,
+      };
+    }
+    run.osFetching = false;
+    if (!run.closed) {
+      this._evaluate(run);
+    }
+  }
+
+  /** Keep a run that waits for a restart as it is: "Later". */
+  public deferRestart(entityId: string): void {
+    const run = this._runs.get(entityId);
+    if (run?.stage === "restart_required") {
+      run.restartDeferred = true;
+      this._notify();
+    }
+  }
+
   private _finish(
     run: RunInternal,
     state: "done" | "failed",
@@ -500,6 +633,10 @@ class UpdateInstallTracker {
   private _close(run: RunInternal): void {
     run.closed = true;
     this._clearGrace(run);
+    if (run.osRetryTimer) {
+      clearTimeout(run.osRetryTimer);
+      run.osRetryTimer = undefined;
+    }
     if (run.slowTimer) {
       clearTimeout(run.slowTimer);
       run.slowTimer = undefined;
@@ -526,7 +663,8 @@ export interface UpdateTrayRow {
   title: string;
   /** The tracker's own activity entry, which the tray row replaces. */
   activityId: string;
-  state: "running" | "done" | "failed";
+  /** "attention": installed but a restart is needed, or it came back rolled back. */
+  state: "running" | "done" | "failed" | "attention";
   stage: UpdateStage;
   /** Only when the update entity reported one. */
   percent?: number;
@@ -535,6 +673,8 @@ export interface UpdateTrayRow {
   /** Error text with credentials hidden, only for a failed install. */
   details?: string;
   canRetry: boolean;
+  /** The row can be dismissed: it is not running and not waiting for a restart. */
+  dismissible: boolean;
   /** When a finished row leaves the tray, absent while it stays. */
   expiresAt?: number;
 }
@@ -551,12 +691,14 @@ export const deriveUpdateTrayRows = (
 ): UpdateTrayRow[] => {
   const rows: UpdateTrayRow[] = [];
   for (const run of [...runs].sort((a, b) => a.startedAt - b.startedAt)) {
-    const state =
+    const state: UpdateTrayRow["state"] =
       run.stage === "done"
         ? "done"
         : run.stage === "failed"
           ? "failed"
-          : "running";
+          : run.stage === "restart_required" || run.stage === "rolled_back"
+            ? "attention"
+            : "running";
     let expiresAt: number | undefined;
     if (state === "done") {
       expiresAt = (run.finishedAt ?? now) + UPDATE_ROW_LINGER_MS;
@@ -575,6 +717,7 @@ export const deriveUpdateTrayRows = (
       details:
         state === "failed" && run.error ? redactDetails(run.error) : undefined,
       canRetry: state === "failed" && run.canRetry,
+      dismissible: state !== "running" && run.stage !== "restart_required",
       expiresAt,
     });
   }

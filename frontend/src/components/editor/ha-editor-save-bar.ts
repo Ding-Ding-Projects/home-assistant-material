@@ -234,20 +234,16 @@ export class HaEditorSaveBar extends LitElement {
           bottom: 0;
           z-index: 2;
           box-sizing: border-box;
-          /* The layout's inset already includes the phone bar, which a bar
-             above the keyboard or above a sheet must not add again. */
-          /* The inset counts the phone bar; the bar's height is taken off
-             while the bar is hidden (it publishes its visible height). */
+          /* The page already ends above the phone bar, so only the device's
+             own inset is added: the layout's inset counts the bar, which
+             would double its height again. */
           padding-bottom: var(
             --ha-editor-save-bar-padding-bottom,
-            calc(
+            max(
+              0px,
               var(--safe-area-inset-bottom, 0px) - var(
                   --ha-phone-bar-height,
                   0px
-                ) +
-                var(
-                  --ha-phone-bar-visible-height,
-                  var(--ha-phone-bar-height, 0px)
                 )
             )
           );

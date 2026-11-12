@@ -376,6 +376,10 @@ export class HaToast extends LitElement {
        touch target. */
     .toast.stacked {
       position: relative;
+      /* The stack places it. Without this the fixed toast's own offsets
+         (half the width from the start, and up from the bottom) still moved
+         it, which pushed every toast sideways and its buttons off a phone. */
+      inset: auto;
       isolation: isolate;
       overflow: visible;
       background-color: transparent;

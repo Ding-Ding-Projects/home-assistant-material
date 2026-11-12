@@ -91,6 +91,15 @@ published build.
 - Release 2026.11.1.121 is the first complete release under the "publish only when every job is
   green" rule; the update feed moved with it. A real operating system update install on a booted
   virtual machine was started after that and its result is not recorded here yet.
+- Late on 11 November 2026: BUILD 122 HAS A REGRESSION (every toast pushed off a phone screen); the
+  hosted instance was moved to 122 too early and rolled back to 121. Do not move the hosted
+  instance to a build with interface changes before a browser pass on that exact build has
+  finished. The fix and the rest of that pass's findings are in the build after 122, measured in a
+  local build. A real operating system update install was seen in a virtual machine (see
+  `CHANGELOG.md`); its false "finished" message is fixed in source, not yet seen. Full mode works
+  with the published images of release 122 and was rehearsed with a copy of real settings
+  (`docs/features/hosting/full-mode.md` has the corrected copy command and the reverse proxy
+  note). The owner has said the hosted instance is a test instance and may be moved to full mode.
 - The noise in the frontend tests (135 unhandled errors from one layout test file) is removed:
   `test/setup.ts` defines the build-time values and form stubs.
 - Release 119 was not published: every build job of run 119 succeeded, including all four operating

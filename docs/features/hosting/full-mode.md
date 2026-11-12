@@ -76,9 +76,9 @@ sub-containers with the rights they ask for, inside this boundary.
 - Disk, as measured: about 7.1 GB on the data volume right after a first start (the inner
   engine's images), about 8.4 GB after installing six apps and a core update. Add the space for
   the apps you install and for backups.
-- Time, as measured on a fast connection: about 170 seconds from `docker run` on an empty
-  volume until the core answers, including all downloads. A start with everything already
-  present took about 30 seconds.
+- Time, as measured on a fast connection: about 2 minutes from an empty volume until the core
+  answers, including all downloads (166 s with a local image, 2 min 1 s through `host.bat --full`
+  with the published images). A start with everything already present took 17 to 31 seconds.
 - Network: the first start and every install download from `ghcr.io`, GitHub and Docker Hub.
 
 ## Start
@@ -141,15 +141,26 @@ container stopped:
 
 ```
 docker volume create ha-material-full-data
-docker run --rm -v "$PWD/config:/from:ro" -v ha-material-full-data:/to alpine sh -c "mkdir -p /to/supervisor/homeassistant && cp -a /from/. /to/supervisor/homeassistant/"
+docker run --rm -v "$PWD/config:/from:ro" -v ha-material-full-data:/to alpine sh -c "mkdir -p /to/supervisor/homeassistant && cp -a /from/. /to/supervisor/homeassistant/ && sed -i 's/\"server_port\": 8123/\"server_port\": 80/' /to/supervisor/homeassistant/.storage/http"
 ```
 
-The copy command was run on a throwaway folder and volume and the files arrived in the place
-the core reads them from. Starting a real migrated instance was **not** run. Two things to check
-after the first start: the core listens on port 80 inside the container (the Supervisor decides
-this), so a migrated `.storage/http` that sets another `server_port` must be changed back to 80
-or the published port will not answer; and integrations that depend on the plain mode's host
-networking (device discovery) behave as described under "What stays impossible".
+The last part of that command matters. In the full mode the core listens on port 80 inside the
+outer container (the Supervisor decides this). A plain instance's `.storage/http` says port
+8123, and with that value copied over the core starts but the published port never answers.
+
+This was rehearsed on 11 November 2026 with a copy of a real instance's `config` folder (11 MB,
+copied while that instance was running) and the published images of release 2026.11.1.122: after
+the copy and the port change the core answered 17.6 seconds after the start, its log had no
+errors, and the areas, dashboards, persons, devices and entities matched the copy (the
+`hassio` integration and its devices and entities were added). The recorder warned that its
+database had not been shut down cleanly, which is expected for a copy taken from a running
+instance: stop the plain container before copying to avoid it. Integrations that depend on the
+plain mode's host networking (device discovery) behave as described under "What stays
+impossible".
+
+If a reverse proxy in front of the plain container addressed it as
+`home-assistant-material:8123`, point it at `home-assistant-material-full:80` instead; both
+containers are on the same compose network.
 
 ## Go back to the plain mode
 
@@ -213,15 +224,18 @@ image rebuilt locally from this repository (see below):
 
 ## What was not verified, and known limits
 
-- **The release workflow job that publishes the outer image has not been run.** It is written
-  like the other image jobs and the image it describes was built locally from the same
-  Dockerfile.
-- **The currently published Supervisor image does not work in this mode yet.** It reports
-  `healthy: false` (`docker_gateway_unprotected`) because it tries to configure its firewall
-  through systemd. `supervisor/supervisor/host/firewall.py` in this repository now honours
-  `SUPERVISOR_FIREWALL_EXTERNAL=1`; the release that includes it publishes a Supervisor that
-  works. While unhealthy, the Supervisor refuses installs, updates and backups. The checks
-  above used an image built from that file on top of the published one.
+- The first checks above used a Supervisor image rebuilt locally. Since release 2026.11.1.122
+  the published images work: the workflow's job built and published the outer image, and on
+  11 November 2026 `host.bat --full --detached` was run end to end with the published outer
+  image and the published Supervisor 2026.11.0.122, which reported `healthy: true` (an older
+  Supervisor reports `docker_gateway_unprotected` in this mode and refuses installs, updates and
+  backups: use release 122 or later). File editor was installed from the store by clicking and
+  opened at 390 and 1440 px; `--logs`, `--stop` and a second start worked.
+- The Supervisor reports `supported: false` in this mode, listing what an operating system
+  would provide (AppArmor, the operating system agent, systemd and others). That is expected
+  and does not stop installs, backups or updates.
+- The compose file fixes the container name, the volume name and the bind address, so two full
+  instances cannot run side by side without editing a copy of it.
 - Only `amd64` ran. `arm64` is built by the workflow and untested; the machine name used for
   `arm64` is `qemuarm-64`.
 - Apps that ask for host network access, privileged mode or devices are not blocked by this

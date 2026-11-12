@@ -8,6 +8,28 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- Fixed: in build 122 every toast message was pushed sideways and upward, so its buttons were off
+  the screen on a phone. Build 122 should be skipped. Seen fixed in a local build: one toast and a
+  stack of three sit centred above the bottom bar at 390, 320 and 1440 px.
+- Fixed: an operating system update was called finished about 40 seconds after it started, before
+  any restart (seen on a real update from 18.5.109 to 18.5.121 in a virtual machine, which
+  otherwise worked: the update was verified with this project's certificate, the machine came
+  back in two minutes on the second boot slot, and the core update showed a real percentage). It
+  now ends with "Installed. Restart to finish", a Restart now button and a Later choice, and says
+  "is now on version" only when that version is running. Not yet seen in a running build.
+- Changed: "Reboot system", "Shut down system" and "Move data disk" show only where the Supervisor
+  says it can do them; the app store's Repositories page lists the built-in repositories.
+- Fixed, from the browser pass on build 122 (39 of 47 earlier defects were already seen fixed
+  there): toolbar chips are no longer cut; a row's checkbox can be tapped 44 px high; the
+  statistics strip's "Shown" follows the typed search; sub-tab labels never break inside a word;
+  the page catalog has its titles when opened from any page; the automation editor's bottom bar
+  is 113 px on a phone, down from 177; the Blueprints note holds its link; Delete and the menu
+  buttons on the dark selection bar are readable; dialog buttons and "Done" are 44 px on touch; a
+  blueprint that cannot be fetched again says why. All but the last were measured in a local
+  build.
+- "Full" hosting mode was run end to end with the published images of release 122
+  (`host.bat --full`), and rehearsed with a copy of a real instance's settings; the copy needs the
+  core's port changed to 80, which the documented command now does.
 - New: a second way to host the product, "full" mode (`host.bat --full`). One outer container
   runs its own small Docker engine; inside it the Supervisor, the core and every app run as
   containers of their own, so the app store, apps opening inside the interface, full backups that

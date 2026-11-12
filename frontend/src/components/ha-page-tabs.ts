@@ -58,6 +58,7 @@ import type { CatalogSettingsEntry } from "./page-catalog-entries";
 import {
   computeSettingsEntries,
   computeToolEntries,
+  loadCatalogTranslations,
 } from "./page-catalog-entries";
 import {
   applyTabOrder,
@@ -1114,6 +1115,8 @@ export class HaPageTabs extends LitElement {
       this._bulkClosed = [];
       this._groupFilters = { pinned: "", pages: "", settings: "", tools: "" };
       this._groupClosed = undefined;
+      // The settings and tools titles may not be loaded yet.
+      loadCatalogTranslations(this.hass).then(() => this.requestUpdate());
       this.updateComplete.then(() => this._search?.focus());
     }
   }

@@ -19,7 +19,46 @@ export type UpdateStage =
   | "waiting"
   | "checking"
   | "done"
-  | "failed";
+  | "failed"
+  /** Installed into the other boot slot; takes effect after a restart. */
+  | "restart_required"
+  /** The machine restarted and is running the version it had before. */
+  | "rolled_back";
+
+/** Stages where the run has nothing more to follow, except a failure. */
+export const isFinalStage = (stage: UpdateStage): boolean =>
+  stage === "done" || stage === "failed" || stage === "rolled_back";
+
+export type StagedInstallOutcome = "restart_required" | "done" | "rolled_back";
+
+/**
+ * What a Home Assistant Operating System install amounts to, read from the
+ * operating system's own info rather than from the update entity. That entity
+ * reports the pending (staged) version as `installed_version`, so it says the
+ * new version is in place while the machine still runs the old one.
+ */
+export const classifyStagedInstall = (input: {
+  /** The version the machine is running now. */
+  running: string | null | undefined;
+  /** A version installed into the other slot that waits for a restart. */
+  pending: string | null | undefined;
+  /** The version the install was started for. */
+  target: string | null | undefined;
+  /** The version that was running when the install was started. */
+  from: string | null | undefined;
+}): StagedInstallOutcome => {
+  if (input.pending && input.pending !== input.running) {
+    return "restart_required";
+  }
+  if (
+    input.running &&
+    input.running === input.from &&
+    input.target !== input.from
+  ) {
+    return "rolled_back";
+  }
+  return "done";
+};
 
 /** The steps in the order they happen, for the step list. */
 export const UPDATE_STAGE_ORDER: readonly UpdateStage[] = [

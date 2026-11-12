@@ -45,6 +45,7 @@ import type { CatalogSettingsEntry } from "../page-catalog-entries";
 import {
   computeSettingsEntries,
   computeToolEntries,
+  loadCatalogTranslations,
 } from "../page-catalog-entries";
 import "../ha-svg-icon";
 import "../ha-icon";
@@ -770,10 +771,19 @@ export class HaPhoneBar extends LitElement {
     this._filter = "";
     this._catalog = false;
     this._clearGroupFilters();
+    this._loadCatalogStrings();
+  }
+
+  // The settings and tools titles may not be loaded yet.
+  private _loadCatalogStrings() {
+    loadCatalogTranslations(this.hass).then(() => this.requestUpdate());
   }
 
   private _toggleCatalog() {
     this._catalog = !this._catalog;
+    if (this._catalog) {
+      this._loadCatalogStrings();
+    }
     this._filter = "";
     this._clearGroupFilters();
   }

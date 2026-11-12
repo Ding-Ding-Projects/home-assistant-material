@@ -307,6 +307,21 @@ export class HaBulkBar extends LitElement {
       --wa-color-on-normal: var(--ha-color-on-neutral-loud, #fff);
       --wa-color-on-quiet: var(--ha-color-on-neutral-loud, #fff);
     }
+    /* Outlined buttons inside the menus a page slots into the bar are not
+       direct children, so the light text colour reaches them as a property,
+       and a destructive outlined button takes a lighter red. The brand blue
+       and the plain red both read under 4 to 1 on the dark bar. */
+    .bar,
+    ::slotted([slot="actions"]) {
+      --ha-button-outlined-text-color: var(--ha-color-on-neutral-loud, #fff);
+    }
+    .bar ha-button[appearance~="outlined"][variant="danger"] {
+      --ha-button-outlined-text-color: color-mix(
+        in srgb,
+        var(--ha-color-on-danger-quiet, #dc3146) 60%,
+        #fff
+      );
+    }
     /* Every control in the bar and in its preview is a 44 px target on a
        touch screen or a narrow window. The custom properties reach the
        buttons and the menu items the page slots into the bar. */

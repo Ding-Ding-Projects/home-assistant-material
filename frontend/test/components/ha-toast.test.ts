@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { HaToast } from "../../src/components/ha-toast";
-import "../../src/components/ha-toast";
+import { HaToast } from "../../src/components/ha-toast";
 
 let toast: HaToast | undefined;
 
@@ -140,6 +139,23 @@ describe("ha-toast", () => {
     const message = element.shadowRoot!.querySelector(".assistive-message")!;
     expect(message.getAttribute("aria-live")).toBe("off");
     expect(message.textContent!.trim()).toBe("");
+  });
+
+  it("does not keep the fixed offsets on a stacked toast", () => {
+    // A stacked toast is placed by its stack. If it kept the fixed toast's
+    // offsets (half the width from the start, up from the bottom) a relative
+    // position would move it sideways and push its buttons off a phone screen.
+    const css = (HaToast.styles as unknown as { cssText: string }).cssText;
+    const rules = [...css.matchAll(/\.toast\.stacked\s*\{([^}]*)\}/g)].map(
+      (match) => match[1]
+    );
+    const relative = rules.filter((rule) => /position:\s*relative/.test(rule));
+    expect(relative.length).toBeGreaterThan(0);
+    for (const rule of relative) {
+      expect(rule).toMatch(/inset:\s*auto/);
+    }
+    // Nothing later in the sheet may give a stacked toast an offset back.
+    expect(css).not.toMatch(/\.toast\.stacked[^{]*\{[^}]*inset-inline-start:/);
   });
 
   it("does not emit a close event when already hidden", async () => {

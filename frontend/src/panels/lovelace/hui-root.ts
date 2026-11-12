@@ -1982,6 +1982,12 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           --mdc-theme-primary: var(--app-header-edit-text-color, #fff);
           --mdc-button-outline-color: var(--app-header-edit-text-color, #fff);
         }
+        /* A touch screen needs a 44 px button. */
+        @media (pointer: coarse) {
+          .exit-edit-mode {
+            --ha-button-height: 44px;
+          }
+        }
         .child-view-icon {
           opacity: 0.5;
         }

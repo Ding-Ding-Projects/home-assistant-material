@@ -73,6 +73,28 @@ export interface HostDisksUsage {
   children?: HostDisksUsage[];
 }
 
+export type HostPowerAction = "reboot" | "shutdown";
+
+/**
+ * The host power actions the Supervisor can really perform. It reports
+ * `reboot` and `shutdown` only when it has a connection to the host's service
+ * manager, so an instance without a host (the Supervisor running inside a
+ * container) lists none, and the controls would only fail. This reads the
+ * features, never the hosting mode, so a Home Assistant OS install is
+ * unchanged.
+ */
+export const hostPowerActions = (
+  info: Pick<HassioHostInfo, "features"> | null | undefined
+): HostPowerAction[] =>
+  (["reboot", "shutdown"] as const).filter((action) =>
+    info?.features?.includes(action)
+  );
+
+/** Moving the data disk needs Home Assistant OS on the host. */
+export const canMoveDatadisk = (
+  info: Pick<HassioHostInfo, "features"> | null | undefined
+): boolean => !!info?.features?.includes("haos");
+
 export const fetchHassioHostInfo = async (
   hass: HomeAssistant
 ): Promise<HassioHostInfo> =>
@@ -91,7 +113,7 @@ export const fetchHassioHassOsInfo = async (
     method: "get",
   });
 
-export const rebootHost = async (hass: HomeAssistant) =>
+export const rebootHost = async (hass: Pick<HomeAssistant, "callWS">) =>
   hass.callWS({
     type: "supervisor/api",
     endpoint: "/host/reboot",

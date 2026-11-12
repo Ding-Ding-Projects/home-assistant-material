@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchHostDisksUsage } from "../../src/data/hassio/host";
+import {
+  canMoveDatadisk,
+  fetchHostDisksUsage,
+  hostPowerActions,
+} from "../../src/data/hassio/host";
 import type { HomeAssistant } from "../../src/types";
 
 const mockHass = () => {
@@ -14,6 +18,32 @@ const mockHass = () => {
 
 const sentMessage = (callWS: ReturnType<typeof vi.fn>) =>
   callWS.mock.calls[0][0];
+
+// A Supervisor without a host connection (running inside a container) lists no
+// reboot or shutdown feature. The controls would only fail there, so they must
+// follow the features, and a real Home Assistant OS install must keep both.
+describe("host power gating", () => {
+  it("offers both on a host that reports both", () => {
+    expect(
+      hostPowerActions({ features: ["reboot", "shutdown", "haos", "network"] })
+    ).toEqual(["reboot", "shutdown"]);
+  });
+
+  it("offers none without a host connection", () => {
+    expect(hostPowerActions({ features: [] })).toEqual([]);
+    expect(hostPowerActions(undefined)).toEqual([]);
+  });
+
+  it("offers only what the host reports", () => {
+    expect(hostPowerActions({ features: ["reboot"] })).toEqual(["reboot"]);
+  });
+
+  it("allows moving the data disk only on Home Assistant OS", () => {
+    expect(canMoveDatadisk({ features: ["haos"] })).toBe(true);
+    expect(canMoveDatadisk({ features: ["reboot", "shutdown"] })).toBe(false);
+    expect(canMoveDatadisk(null)).toBe(false);
+  });
+});
 
 describe("fetchHostDisksUsage", () => {
   it("targets the data disk and sends no depth by default", async () => {

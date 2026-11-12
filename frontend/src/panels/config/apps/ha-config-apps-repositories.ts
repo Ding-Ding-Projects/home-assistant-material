@@ -1,6 +1,6 @@
 import { mdiDelete, mdiDeleteOff, mdiPlus } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -32,6 +32,7 @@ import "../../../layouts/hass-error-screen";
 import "../../../layouts/hass-loading-screen";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant, Route } from "../../../types";
+import { groupRepositories } from "./repository-groups";
 
 interface RepositoryRowData {
   slug: string;
@@ -113,19 +114,10 @@ export class HaConfigAppsRepositories extends LitElement {
     })
   );
 
-  private _filteredRepositories = memoizeOne((repos: HassioAddonRepository[]) =>
-    repos
-      .filter(
-        (repo) =>
-          repo.slug !== "core" &&
-          repo.slug !== "local" &&
-          repo.slug !== "a0d7b954" &&
-          repo.slug !== "5c53de3b" &&
-          repo.slug !== "d5369777"
-      )
-      .sort((a, b) =>
-        caseInsensitiveStringCompare(a.name, b.name, this.hass.locale.language)
-      )
+  private _groups = memoizeOne((repos: HassioAddonRepository[]) =>
+    groupRepositories(repos, (a, b) =>
+      caseInsensitiveStringCompare(a, b, this.hass.locale.language)
+    )
   );
 
   private _filteredUsedRepositories = memoizeOne(
@@ -166,7 +158,7 @@ export class HaConfigAppsRepositories extends LitElement {
       `;
     }
 
-    const repositories = this._filteredRepositories(this._repositories);
+    const { builtIn, own: repositories } = this._groups(this._repositories);
     const usedRepositories = this._filteredUsedRepositories(
       repositories,
       this._addon.addons
@@ -180,15 +172,59 @@ export class HaConfigAppsRepositories extends LitElement {
         back-path="/config/apps/available"
         .header=${this.hass.localize("ui.panel.config.apps.store.repositories")}
       >
-        <ha-data-table
-          .columns=${this._columns(this.hass.localize, usedRepositories)}
-          .data=${this._data(repositories)}
-          .noDataText=${this.hass.localize(
-            "ui.panel.config.apps.repositories.no_repositories"
-          )}
-          id="slug"
-          has-fab
-        ></ha-data-table>
+        <div class="content">
+          ${
+            builtIn.length
+              ? html`<section
+                  class="built-in"
+                  aria-labelledby="built-in-heading"
+                >
+                  <h2 id="built-in-heading">
+                    ${this.hass.localize(
+                      "ui.panel.config.apps.repositories.built_in_title"
+                    )}
+                  </h2>
+                  <p>
+                    ${this.hass.localize(
+                      "ui.panel.config.apps.repositories.built_in_description"
+                    )}
+                  </p>
+                  <ul>
+                    ${builtIn.map(
+                      (repo) =>
+                        html`<li>
+                          <span class="name">${repo.name}</span>
+                          <span class="badge"
+                            >${this.hass.localize(
+                              "ui.panel.config.apps.repositories.built_in"
+                            )}</span
+                          >
+                          <span class="meta"
+                            >${[repo.maintainer, repo.url]
+                              .filter(Boolean)
+                              .join(" · ")}</span
+                          >
+                        </li>`
+                    )}
+                  </ul>
+                  <h2>
+                    ${this.hass.localize(
+                      "ui.panel.config.apps.repositories.own_title"
+                    )}
+                  </h2>
+                </section>`
+              : nothing
+          }
+          <ha-data-table
+            .columns=${this._columns(this.hass.localize, usedRepositories)}
+            .data=${this._data(repositories)}
+            .noDataText=${this.hass.localize(
+              "ui.panel.config.apps.repositories.no_repositories"
+            )}
+            id="slug"
+            has-fab
+          ></ha-data-table>
+        </div>
         <ha-button size="l" @click=${this._showAddRepositoryDialog}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
           ${this.hass.localize("ui.panel.config.apps.repositories.add")}
@@ -265,9 +301,62 @@ export class HaConfigAppsRepositories extends LitElement {
       display: block;
       height: 100%;
     }
-    ha-data-table {
-      width: 100%;
+    .content {
+      display: flex;
+      flex-direction: column;
       height: 100%;
+    }
+    .built-in {
+      flex: none;
+      padding: var(--ha-space-4) var(--ha-space-4) 0;
+    }
+    h2 {
+      margin: var(--ha-space-4) 0 var(--ha-space-2);
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .built-in h2:first-child {
+      margin-top: 0;
+    }
+    .built-in p {
+      margin: 0 0 var(--ha-space-2);
+      color: var(--secondary-text-color);
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ha-space-1) var(--ha-space-2);
+      min-height: 48px;
+      padding: var(--ha-space-2) 0;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .name {
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+    .badge {
+      padding: 0 var(--ha-space-2);
+      border-radius: var(--ha-border-radius-pill, 999px);
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .meta {
+      flex-basis: 100%;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+      overflow-wrap: anywhere;
+    }
+    ha-data-table {
+      flex: 1;
+      min-height: 240px;
+      width: 100%;
       --data-table-border-width: 0;
     }
     ha-icon-button.delete {

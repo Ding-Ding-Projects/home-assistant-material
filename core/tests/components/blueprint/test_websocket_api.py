@@ -5,6 +5,12 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
+from aiohttp import (
+    ClientConnectionError,
+    ClientConnectorDNSError,
+    ClientError,
+    ClientResponseError,
+)
 import pytest
 from pytest_homeassistant.common import MockUser
 from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker
@@ -196,6 +202,46 @@ async def test_import_blueprint(
         "validation_errors": None,
         "exists": False,
     }
+
+
+@pytest.mark.parametrize(
+    ("exc", "message"),
+    [
+        (
+            ClientResponseError(Mock(), (), status=404),
+            "The server answered with HTTP status 404",
+        ),
+        (
+            ClientConnectorDNSError(Mock(), OSError("no host")),
+            "The host name could not be resolved",
+        ),
+        (
+            ClientConnectionError("closed"),
+            "Could not connect to the server",
+        ),
+        (ClientError("broken"), "The address could not be fetched"),
+    ],
+)
+async def test_import_blueprint_fetch_failure(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    hass_ws_client: WebSocketGenerator,
+    exc: Exception,
+    message: str,
+) -> None:
+    """Test a failed fetch reports a short reason and never the address."""
+    url = "https://example.invalid/blueprint.yaml?token=secret"
+    aioclient_mock.get(url, exc=exc)
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": "blueprint/import", "url": url})
+
+    msg = await client.receive_json()
+
+    assert not msg["success"]
+    assert msg["error"]["code"] == "home_assistant_error"
+    assert msg["error"]["message"] == message
+    assert "secret" not in msg["error"]["message"]
 
 
 @pytest.mark.usefixtures("setup_bp")

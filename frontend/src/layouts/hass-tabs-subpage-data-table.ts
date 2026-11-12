@@ -247,6 +247,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   @state() private _hasFilterChips = false;
 
+  /** How many rows the table shows after the search and the filters. */
+  @state() private _matchingRows?: number;
+
   // The width of the filter pane and whether the summary line is folded away,
   // both kept in this browser for each page
   @state() private _paneWidth?: number;
@@ -695,9 +698,16 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         </div>`
       : nothing;
 
-    const statisticsStrip = this.statistics?.length
+    // The page counts rows after its own filters; the search text is applied
+    // inside the table, so "shown" follows what the table reports.
+    const statistics = this.statistics?.map((item) =>
+      item.id === "shown" && this._matchingRows !== undefined
+        ? { ...item, value: this._matchingRows }
+        : item
+    );
+    const statisticsStrip = statistics?.length
       ? html`<ha-collapsible-statistics
-          .statistics=${this.statistics}
+          .statistics=${statistics}
           .storageKey=${statisticsStorageKey(this.route?.prefix) ?? ""}
         ></ha-collapsible-statistics>`
       : nothing;
@@ -892,6 +902,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   .initialCollapsedGroups=${this.initialCollapsedGroups}
                   .columnOrder=${this.columnOrder}
                   .hiddenColumns=${this.hiddenColumns}
+                  @filtered-rows-changed=${this._tableRowsChanged}
                 >
                   ${this._groupActionsSlots.map(
                     (slot) => html`<slot name=${slot} slot=${slot}></slot>`
@@ -1270,6 +1281,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     this._selectMode = true;
   }
 
+  private _tableRowsChanged() {
+    this._matchingRows = this._dataTable?.matchingRowCount;
+  }
+
   private _chipsSlotChanged(ev: Event) {
     this._hasFilterChips =
       (ev.target as HTMLSlotElement).assignedNodes({ flatten: true }).length >
@@ -1645,7 +1660,18 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
        become "Gr…"). */
     .narrow-header-row > :not(.flex),
     .table-header > :not(ha-input-search):not(.chips-spacer) {
-      flex-shrink: 0;
+      flex: none;
+    }
+    /* The chip is as wide as its label. Its own "100% of the parent" limit
+       resolves against a parent that is itself sized by the chip, which cut
+       the label short. */
+    .narrow-header-row ha-assist-chip,
+    .narrow-header-row ha-filter-pane-chip,
+    .table-header ha-assist-chip,
+    .table-header ha-filter-pane-chip {
+      flex: none;
+      max-width: none;
+      white-space: nowrap;
     }
 
     .selection-bar {

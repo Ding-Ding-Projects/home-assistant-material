@@ -26,6 +26,7 @@ import "../../../components/ha-svg-icon";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
 import type { HassioHostInfo, HostDisksUsage } from "../../../data/hassio/host";
 import {
+  canMoveDatadisk,
   fetchHassioHostInfo,
   fetchHostDisksUsage,
 } from "../../../data/hassio/host";
@@ -155,24 +156,28 @@ class HaConfigSectionStorage extends LitElement {
       <section class="card">
         <h3>${this.hass.localize("ui.panel.config.storage.the_disk")}</h3>
         ${this._renderDiskLifeTime(hostInfo.disk_life_time)}
-        <div class="row">
-          <span class="tile"
-            ><ha-svg-icon .path=${mdiSwapHorizontal}></ha-svg-icon
-          ></span>
-          <div class="text">
-            <span class="title"
-              >${this.hass.localize("ui.panel.config.storage.move_data")}</span
-            >
-            <span class="sub"
-              >${this.hass.localize(
-                "ui.panel.config.storage.move_data_description"
-              )}</span
-            >
-          </div>
-          <ha-button appearance="filled" @click=${this._moveDatadisk}>
-            ${this.hass.localize("ui.panel.config.storage.move_action")}
-          </ha-button>
-        </div>
+        ${
+          canMoveDatadisk(hostInfo)
+            ? html`<div class="row">
+                <span class="tile"
+                  ><ha-svg-icon .path=${mdiSwapHorizontal}></ha-svg-icon
+                ></span>
+                <div class="text">
+                  <span class="title"
+                    >${this.hass.localize("ui.panel.config.storage.move_data")}</span
+                  >
+                  <span class="sub"
+                    >${this.hass.localize(
+                      "ui.panel.config.storage.move_data_description"
+                    )}</span
+                  >
+                </div>
+                <ha-button appearance="filled" @click=${this._moveDatadisk}>
+                  ${this.hass.localize("ui.panel.config.storage.move_action")}
+                </ha-button>
+              </div>`
+            : nothing
+        }
       </section>
     `;
   }

@@ -20,6 +20,11 @@ import {
   connectionContext,
 } from "../../data/context";
 import type { EntityRegistryDisplayEntry } from "../../data/entity/entity_registry";
+import {
+  extractApiErrorMessage,
+  ignoreSupervisorError,
+} from "../../data/hassio/common";
+import { rebootHost } from "../../data/hassio/host";
 import type { UpdateEntity } from "../../data/update";
 import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../resources/styles";
@@ -176,7 +181,100 @@ export class HaUpdateProgress extends LitElement {
     if (run.stage === "done") {
       return this._renderDone(run);
     }
+    if (run.stage === "restart_required") {
+      return this._renderRestartRequired(run);
+    }
+    if (run.stage === "rolled_back") {
+      return this._renderRolledBack(run);
+    }
     return this._renderRunning(run);
+  }
+
+  // The operating system update is installed into the spare boot slot and
+  // takes effect after a restart, so the install is not finished yet.
+  private _renderRestartRequired(run: UpdateRun) {
+    return html`<section
+      class="card"
+      aria-label=${this._l("heading", { name: run.title })}
+    >
+      <p class="stage" role="status">
+        ${this._l("restart_required.heading", { name: run.title })}
+      </p>
+      <p class="note">
+        ${this._l("restart_required.text", {
+          version: run.targetVersion ?? "",
+          previous: run.fromVersion ?? "",
+        })}
+      </p>
+      <div class="actions">
+        ${
+          this._isAdmin()
+            ? html`<ha-button @click=${this._restartNow}
+                >${this._l("restart_required.restart_now")}</ha-button
+              >`
+            : nothing
+        }
+        ${
+          this._isAdmin() && !run.restartDeferred
+            ? html`<ha-button appearance="plain" @click=${this._later}
+                >${this._l("restart_required.later")}</ha-button
+              >`
+            : nothing
+        }
+      </div>
+      ${
+        this._actionError
+          ? html`<ha-alert alert-type="error">${this._actionError}</ha-alert>`
+          : nothing
+      }
+    </section>`;
+  }
+
+  private _renderRolledBack(run: UpdateRun) {
+    return html`<section
+      class="card"
+      aria-label=${this._l("heading", { name: run.title })}
+    >
+      <p class="stage" role="status">
+        ${this._l("rolled_back", {
+          name: run.title,
+          version: run.fromVersion ?? "",
+        })}
+      </p>
+      <div class="actions">
+        <ha-button appearance="plain" @click=${this._dismiss}
+          >${this._l("dismiss")}</ha-button
+        >
+      </div>
+    </section>`;
+  }
+
+  private _later(): void {
+    updateInstallTracker.deferRestart(this.stateObj!.entity_id);
+  }
+
+  private async _restartNow(): Promise<void> {
+    this._actionError = undefined;
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._localize("ui.dialogs.restart.reboot.confirm_title"),
+      text: this._localize("ui.dialogs.restart.reboot.confirm_description"),
+      confirmText: this._localize("ui.dialogs.restart.reboot.confirm_action"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await rebootHost({ callWS: this._api.callWS.bind(this._api) });
+    } catch (err: any) {
+      // The restart drops the connection, which is the expected end of the call.
+      if (
+        this._connection.connection.connected &&
+        !ignoreSupervisorError(err)
+      ) {
+        this._actionError = `${this._localize("ui.dialogs.restart.reboot.failed")} ${extractApiErrorMessage(err)}`;
+      }
+    }
   }
 
   private _stepState(

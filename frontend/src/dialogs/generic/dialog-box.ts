@@ -464,6 +464,12 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
     .title.alert {
       padding: 0 var(--ha-space-2);
     }
+    /* A touch screen needs a 44 px button. */
+    @media (pointer: coarse) {
+      ha-dialog-footer ha-button {
+        --ha-button-height: 44px;
+      }
+    }
     @media all and (min-width: 450px) and (min-height: 500px) {
       .title.alert {
         padding: 0 var(--ha-space-1);

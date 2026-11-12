@@ -3387,8 +3387,17 @@
         "waiting": "Waiting for Home Assistant to come back",
         "checking": "Checking the new version",
         "done": "Update installed",
-        "failed": "Update failed"
+        "failed": "Update failed",
+        "restart_required": "Installed. Restart to finish.",
+        "rolled_back": "Restarted on the previous version"
       },
+      "restart_required": {
+        "heading": "{name} is installed. Restart to finish.",
+        "text": "Version {version} takes effect after the system restarts. The previous version {previous} is kept in the other boot slot as the way back, so if the new version does not start, the system returns to it by itself.",
+        "restart_now": "Restart now",
+        "later": "Later"
+      },
+      "rolled_back": "{name} came back on version {version}, the version it had before. The new version did not start, and the system returned to the previous one.",
       "step": {
         "backing_up": "Backing up",
         "installing": "Installing",
@@ -5150,7 +5159,11 @@
             "add": "Add",
             "remove": "Remove",
             "used": "In use by installed apps",
-            "no_repositories": "You don't have any app repositories configured"
+            "no_repositories": "You have not added any repositories of your own",
+            "built_in_title": "Built in",
+            "built_in_description": "These come with Home Assistant. They can't be removed.",
+            "built_in": "Built in",
+            "own_title": "Added by you"
           },
           "registries": {
             "add_title": "Add registry",

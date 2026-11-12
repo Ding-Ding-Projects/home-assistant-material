@@ -381,18 +381,16 @@ export class HaAutomationBottomBar extends LitElement {
           bottom: 0;
           z-index: 2;
           box-sizing: border-box;
-          /* Sits above the phone bottom navigation, using the visible height
-             it publishes, so a hidden bar leaves no gap. */
+          /* The page already ends above the phone bottom navigation, so only
+             the device's own inset is added here. The layout's inset counts
+             the navigation, which would double its height again. */
           padding-bottom: var(
             --ha-automation-bottom-bar-padding-bottom,
-            calc(
+            max(
+              0px,
               var(--safe-area-inset-bottom, 0px) - var(
                   --ha-phone-bar-height,
                   0px
-                ) +
-                var(
-                  --ha-phone-bar-visible-height,
-                  var(--ha-phone-bar-height, 0px)
                 )
             )
           );

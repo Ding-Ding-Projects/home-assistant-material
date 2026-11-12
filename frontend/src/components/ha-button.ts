@@ -196,6 +196,13 @@ export class HaButton extends Button {
           color: var(--ha-color-on-disabled-quiet);
         }
 
+        /* A surface that is dark in both colour schemes (the selection bar)
+           can set a lighter text colour for outlined buttons, including ones
+           inside a menu it contains, by setting this property. */
+        :host([appearance~="outlined"]) .button:not(.disabled) {
+          color: var(--ha-button-outlined-text-color, var(--wa-color-on-quiet));
+        }
+
         :host([appearance~="outlined"]) .button.disabled {
           background-color: transparent;
           color: var(--ha-color-on-disabled-quiet);

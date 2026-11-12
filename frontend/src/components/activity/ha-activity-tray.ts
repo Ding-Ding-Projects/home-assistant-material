@@ -158,7 +158,7 @@ export class HaActivityTray extends LitElement {
       rows.filter((row) => row.state === "running").length;
     const hasFinished =
       plain.some((item) => item.state !== "running") ||
-      rows.some((row) => row.state !== "running");
+      rows.some((row) => row.dismissible);
     return html`<section aria-label=${this._l("title")}>
       <div class="head">
         <h2 tabindex="-1">
@@ -224,7 +224,7 @@ export class HaActivityTray extends LitElement {
         ${
           row.state === "done"
             ? html`<ha-svg-icon .path=${mdiCheckCircle}></ha-svg-icon>`
-            : row.state === "failed"
+            : row.state === "failed" || row.state === "attention"
               ? html`<ha-svg-icon .path=${mdiAlertCircle}></ha-svg-icon>`
               : nothing
         }
@@ -278,7 +278,7 @@ export class HaActivityTray extends LitElement {
           >${this._l("update_row.show")}</ha-button
         >
         ${
-          row.state !== "running"
+          row.dismissible
             ? html`<ha-button
                 appearance="plain"
                 data-entity-id=${row.entityId}
@@ -469,7 +469,7 @@ export class HaActivityTray extends LitElement {
   private _clearFinished(): void {
     activityStore.dismissFinished();
     this._updateRows
-      .filter((row) => row.state !== "running")
+      .filter((row) => row.dismissible)
       .forEach((row) => updateInstallTracker.dismiss(row.entityId));
     void this._keepFocus(0);
   }

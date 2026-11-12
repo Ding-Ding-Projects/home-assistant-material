@@ -141,12 +141,24 @@ export class HaTab extends LitElement {
     :host([narrow]) .name {
       font-size: var(--ha-font-size-xs);
       letter-spacing: 0;
-      /* A name that does not fit on one line takes a second line, and as a
-         last resort breaks inside the word, rather than being cut short. */
+      /* A name of several words that does not fit on one line takes a second
+         line. A word is never broken in the middle: a word that still does
+         not fit at the smallest size ends in an ellipsis. */
       white-space: normal;
-      overflow-wrap: anywhere;
+      overflow-wrap: normal;
+      word-break: normal;
+      hyphens: none;
       line-height: 1.1;
-      text-overflow: clip;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 359px) {
+      :host([narrow]) div {
+        padding: 0 1px;
+      }
+      :host([narrow]) .name {
+        font-size: 0.6875rem;
+      }
     }
 
     ::slotted([slot="icon"]) {

@@ -346,6 +346,14 @@ export class HaDataTable extends LitElement {
   }
 
   /**
+   * How many rows match the search and filters, whether or not their group is
+   * collapsed. The appended row is not counted.
+   */
+  public get matchingRowCount(): number {
+    return (this._filteredData || []).filter((row) => !row.append).length;
+  }
+
+  /**
    * The identifiers of the selectable rows the table shows now. Rows inside
    * collapsed groups are left out, as the person cannot see them. The list is
    * computed once per change of the filtered rows or the collapsed groups.
@@ -950,6 +958,7 @@ export class HaDataTable extends LitElement {
         )}
         class="mdc-data-table__row ${classMap({
           "group-header-row": isGroupHeader,
+          "append-row": !isGroupHeader,
         })}"
         .group=${row.groupHeader}
       >
@@ -1855,6 +1864,9 @@ export class HaDataTable extends LitElement {
           padding-inline-end: 0;
           width: 60px;
           min-width: 60px;
+          /* The checkbox's invisible 44 px hit area is taller than the cell
+             (the checkbox itself is 28 px): do not clip it. */
+          overflow: visible;
         }
 
         .mdc-data-table__table {
@@ -2069,6 +2081,13 @@ export class HaDataTable extends LitElement {
         }
 
         /* custom from here */
+
+        /* A row a page appends (a note, a card) is as tall as its content,
+           never shorter than a normal row. */
+        .mdc-data-table__row.append-row {
+          height: auto;
+          min-height: var(--data-table-row-height, 52px);
+        }
 
         .group-header {
           padding-top: 12px;
@@ -2301,6 +2320,12 @@ export class HaDataTable extends LitElement {
         :host([row-cards]) .mdc-data-table__header-row {
           border-bottom: none;
           height: var(--ha-space-10);
+        }
+        /* The tool row of a phone page holds 44 px chips on a touch screen: it
+           grows past 40 px instead of clipping them. */
+        :host([row-cards][narrow]) .mdc-data-table__header-row {
+          height: auto;
+          min-height: var(--ha-space-10);
         }
         :host([row-cards]) .mdc-data-table__header-cell {
           color: var(--secondary-text-color);
