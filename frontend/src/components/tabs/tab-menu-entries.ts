@@ -7,6 +7,9 @@ import {
   mdiCloseCircleMultiple,
   mdiClose,
   mdiDockBottom,
+  mdiDockWindow,
+  mdiChevronDoubleLeft,
+  mdiChevronDoubleRight,
   mdiDockLeft,
   mdiDockRight,
   mdiDockTop,
@@ -61,6 +64,9 @@ export type TabMenuEntryId =
   | "dock_right"
   | "dock_top"
   | "dock_bottom"
+  | "dock_float"
+  | "collapse_strip"
+  | "expand_strip"
   | "new_tab"
   | "edit_strip_appearance";
 
@@ -398,6 +404,8 @@ export const tabMenuEntries = (input: TabMenuInput): TabMenuEntry[] => {
 
 export interface StripMenuInput {
   dock: DockEdge;
+  /** The strip shows its tabs' icons only. */
+  collapsed?: boolean;
   hasClosed: boolean;
   /** At least one tab is open. */
   hasOpen?: boolean;
@@ -408,6 +416,7 @@ const DOCKS: [DockEdge, TabMenuEntryId, string, string][] = [
   ["right", "dock_right", "dock_right", mdiDockRight],
   ["top", "dock_top", "dock_top", mdiDockTop],
   ["bottom", "dock_bottom", "dock_bottom", mdiDockBottom],
+  ["float", "dock_float", "dock_float", mdiDockWindow],
 ];
 
 /** The entries of the menu of the empty space of the strip. */
@@ -420,6 +429,25 @@ export const stripMenuEntries = (input: StripMenuInput): TabMenuEntry[] => {
     destructive: false,
     checked: input.dock === edge,
   }));
+  entries.push(
+    input.collapsed
+      ? {
+          id: "expand_strip",
+          labelKey: key("expand_strip"),
+          icon: mdiChevronDoubleRight,
+          enabled: true,
+          destructive: false,
+          separatorBefore: true,
+        }
+      : {
+          id: "collapse_strip",
+          labelKey: key("collapse_strip"),
+          icon: mdiChevronDoubleLeft,
+          enabled: true,
+          destructive: false,
+          separatorBefore: true,
+        }
+  );
   entries.push(
     {
       id: "new_tab",

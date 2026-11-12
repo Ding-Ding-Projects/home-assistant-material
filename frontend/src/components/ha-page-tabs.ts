@@ -1,6 +1,15 @@
-import { mdiFormatPaint, mdiHuman, mdiMagnify, mdiTranslate } from "@mdi/js";
+import {
+  mdiChevronDoubleLeft,
+  mdiChevronDoubleRight,
+  mdiDockWindow,
+  mdiDrag,
+  mdiFormatPaint,
+  mdiHuman,
+  mdiMagnify,
+  mdiTranslate,
+} from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import {
@@ -9,7 +18,15 @@ import {
 } from "../common/accessibility/accessibility-tools";
 import { fireEvent } from "../common/dom/fire_event";
 import { LanguageModeController } from "../common/language-mode/language-mode-controller";
-import { isVerticalDock } from "../common/tabs/tab-dock";
+import {
+  floatFromPixels,
+  floatPixels,
+  isVerticalDock,
+  readCollapsed,
+  readFloat,
+  writeCollapsed,
+  writeFloat,
+} from "../common/tabs/tab-dock";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../types";
 import { applyTabOrder, moveTabId } from "./tab-order";
@@ -140,6 +157,11 @@ export class HaPageTabs extends LitElement {
 
   private _unsubAccessibility?: UnsubscribeFunc;
 
+  /** While the floating strip is being dragged: where the pointer took hold of it. */
+  private _drag?: { pointer: number; dx: number; dy: number };
+
+  private _onWindowResize = () => this._placeFloat();
+
   protected render(): TemplateResult | typeof nothing {
     if (!this.hass?.panels) {
       return nothing;
@@ -151,7 +173,60 @@ export class HaPageTabs extends LitElement {
     // the address (the most specific open tab wins).
     const current = this._store.currentTabId();
 
+    const edge = this._store.dock;
+    const collapsed = readCollapsed(this._store.surface);
+    // The arrows point the way the strip will go: toward its own edge to collapse.
+    const towardEdge =
+      edge === "right" ? mdiChevronDoubleRight : mdiChevronDoubleLeft;
+    const awayFromEdge =
+      edge === "right" ? mdiChevronDoubleLeft : mdiChevronDoubleRight;
     return html`
+      <div class="strip-tools">
+        ${
+          edge === "float"
+            ? html`<button
+                class="new-tab grip"
+                aria-label=${this._t("ui.page_tabs.float_handle")}
+                title=${this._t("ui.page_tabs.float_handle")}
+                @pointerdown=${this._dragStart}
+                @pointermove=${this._dragMove}
+                @pointerup=${this._dragEnd}
+                @pointercancel=${this._dragEnd}
+                @keydown=${this._gripKey}
+              >
+                <ha-svg-icon .path=${mdiDrag}></ha-svg-icon>
+              </button>`
+            : nothing
+        }
+        <button
+          class="new-tab dock-menu"
+          aria-label=${this._t("ui.page_tabs.menu.dock_setting_header")}
+          title=${this._t("ui.page_tabs.menu.dock_setting_header")}
+          aria-haspopup="menu"
+          @click=${this._openStripMenu}
+        >
+          <ha-svg-icon .path=${mdiDockWindow}></ha-svg-icon>
+        </button>
+        <button
+          class="new-tab collapse"
+          aria-label=${this._t(
+            collapsed
+              ? "ui.page_tabs.menu.expand_strip"
+              : "ui.page_tabs.menu.collapse_strip"
+          )}
+          title=${this._t(
+            collapsed
+              ? "ui.page_tabs.menu.expand_strip"
+              : "ui.page_tabs.menu.collapse_strip"
+          )}
+          aria-expanded=${collapsed ? "false" : "true"}
+          @click=${this._toggleCollapsed}
+        >
+          <ha-svg-icon
+            .path=${collapsed ? awayFromEdge : towardEdge}
+          ></ha-svg-icon>
+        </button>
+      </div>
       ${this._strip.render(open, current)}
       ${this._catalog.render(tabs, closed, current)}
       <div class="actions">
@@ -249,6 +324,132 @@ export class HaPageTabs extends LitElement {
       this.setAttribute("dock", edge);
     }
     this.toggleAttribute("vertical", isVerticalDock(edge));
+    this.toggleAttribute("collapsed", readCollapsed(this._store.surface));
+  }
+
+  protected updated(changed: PropertyValues) {
+    super.updated(changed);
+    this._placeFloat();
+  }
+
+  /** The menu of the strip itself: where it docks, collapsing, new tab and group. */
+  private _openStripMenu(ev: Event) {
+    this.dispatchEvent(
+      new CustomEvent("strip-context-menu", {
+        detail: {
+          anchor: ev.currentTarget as HTMLElement,
+          surface: this._store.surface,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private _toggleCollapsed() {
+    writeCollapsed(this._store.surface, !readCollapsed(this._store.surface));
+    this.requestUpdate();
+  }
+
+  private _windowSize() {
+    return { width: window.innerWidth, height: window.innerHeight };
+  }
+
+  /** Puts a floating strip where it was left, kept on screen; clears the place otherwise. */
+  private _placeFloat() {
+    if (this._store.dock !== "float") {
+      this.style.removeProperty("--ha-page-tabs-float-left");
+      this.style.removeProperty("--ha-page-tabs-float-top");
+      return;
+    }
+    if (this._drag) {
+      return;
+    }
+    const { left, top } = floatPixels(
+      readFloat(this._store.surface),
+      { width: this.offsetWidth, height: this.offsetHeight },
+      this._windowSize()
+    );
+    this._setFloat(left, top);
+  }
+
+  private _setFloat(left: number, top: number) {
+    this.style.setProperty("--ha-page-tabs-float-left", `${left}px`);
+    this.style.setProperty("--ha-page-tabs-float-top", `${top}px`);
+  }
+
+  private _saveFloat(left: number, top: number) {
+    writeFloat(
+      this._store.surface,
+      floatFromPixels(left, top, this._windowSize())
+    );
+  }
+
+  private _dragStart(ev: PointerEvent) {
+    if (ev.button !== 0) {
+      return;
+    }
+    const box = this.getBoundingClientRect();
+    this._drag = {
+      pointer: ev.pointerId,
+      dx: ev.clientX - box.left,
+      dy: ev.clientY - box.top,
+    };
+    (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+    this.toggleAttribute("dragging", true);
+    ev.preventDefault();
+  }
+
+  private _dragMove(ev: PointerEvent) {
+    if (!this._drag || ev.pointerId !== this._drag.pointer) {
+      return;
+    }
+    const size = this._windowSize();
+    const { left, top } = floatPixels(
+      floatFromPixels(
+        ev.clientX - this._drag.dx,
+        ev.clientY - this._drag.dy,
+        size
+      ),
+      { width: this.offsetWidth, height: this.offsetHeight },
+      size
+    );
+    this._setFloat(left, top);
+  }
+
+  private _dragEnd(ev: PointerEvent) {
+    if (!this._drag || ev.pointerId !== this._drag.pointer) {
+      return;
+    }
+    this._drag = undefined;
+    this.toggleAttribute("dragging", false);
+    const box = this.getBoundingClientRect();
+    this._saveFloat(box.left, box.top);
+  }
+
+  /** The arrow keys move a floating strip: 16 pixels, or 64 with Shift. */
+  private _gripKey(ev: KeyboardEvent) {
+    const step = ev.shiftKey ? 64 : 16;
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    const move = moves[ev.key];
+    if (!move) {
+      return;
+    }
+    ev.preventDefault();
+    const box = this.getBoundingClientRect();
+    const size = this._windowSize();
+    const { left, top } = floatPixels(
+      floatFromPixels(box.left + move[0], box.top + move[1], size),
+      { width: this.offsetWidth, height: this.offsetHeight },
+      size
+    );
+    this._setFloat(left, top);
+    this._saveFloat(left, top);
   }
 
   public connectedCallback() {
@@ -257,12 +458,14 @@ export class HaPageTabs extends LitElement {
     this._unsubAccessibility = subscribeAccessibilitySettings((settings) => {
       this._accessibilityButtonHidden = settings.hideButton;
     });
+    window.addEventListener("resize", this._onWindowResize);
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
+    window.removeEventListener("resize", this._onWindowResize);
   }
 
   private _openSearch() {
@@ -376,6 +579,51 @@ export class HaPageTabs extends LitElement {
       :host([vertical]) .search-icon {
         display: flex;
       }
+      .strip-tools .new-tab {
+        anchor-name: none;
+      }
+      .strip-tools {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        flex: none;
+      }
+      :host([vertical]) .strip-tools {
+        justify-content: space-between;
+      }
+      :host([vertical][collapsed]) .strip-tools {
+        flex-direction: column;
+      }
+      /* A collapsed bar keeps its tabs as icons; the tools at its foot go to the overflow of the rail. */
+      :host([collapsed]) .actions > :not(.profile):not(.search-icon) {
+        display: none;
+      }
+      :host([vertical][collapsed]) {
+        padding-inline: var(--ha-space-1);
+      }
+      :host([vertical][collapsed]) .search-icon {
+        display: flex;
+      }
+      /* Floating: a card over the page that the person drags by its handle. */
+      :host([dock="float"]) {
+        border: none;
+        border-radius: var(--ha-border-radius-3xl);
+        box-shadow: var(--ha-box-shadow-l);
+        background-color: var(
+          --ha-card-background,
+          var(--card-background-color, var(--primary-background-color))
+        );
+      }
+      .grip {
+        cursor: grab;
+        touch-action: none;
+      }
+      :host([dragging]) .grip {
+        cursor: grabbing;
+      }
+      :host([dragging]) {
+        opacity: 0.92;
+      }
       /* The catalog opens beside the bar, on the side of its edge. */
       :host([dock="left"]) #catalog {
         inset-inline-start: calc(
@@ -388,6 +636,12 @@ export class HaPageTabs extends LitElement {
         inset-inline-end: calc(
           var(--ha-pane-gap, 12px) + var(--ha-page-tabs-side-width, 208px) +
             var(--ha-space-3)
+        );
+      }
+      :host([dock="float"]) #catalog {
+        inset-inline-start: calc(
+          var(--ha-page-tabs-float-left, 120px) +
+            var(--ha-page-tabs-side-width, 208px) + var(--ha-space-3)
         );
       }
       :host([dock="bottom"]) #catalog {

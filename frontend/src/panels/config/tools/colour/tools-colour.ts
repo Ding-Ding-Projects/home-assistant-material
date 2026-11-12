@@ -638,11 +638,18 @@ class ToolsColour extends LitElement {
         }
         .typed {
           display: flex;
+          flex-wrap: wrap;
           align-items: flex-end;
           gap: var(--ha-space-2);
         }
         .typed ha-input {
-          flex: 1;
+          flex: 1 1 160px;
+          min-width: 0;
+        }
+        /* The picker button keeps its label on one line; on a narrow panel it moves under the field. */
+        .typed ha-button {
+          flex: none;
+          white-space: nowrap;
         }
         header {
           display: flex;

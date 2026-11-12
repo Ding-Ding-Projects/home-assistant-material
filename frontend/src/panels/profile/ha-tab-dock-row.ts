@@ -6,12 +6,16 @@ import { LanguageModeController } from "../../common/language-mode/language-mode
 import type { DockEdge } from "../../common/tabs/tab-dock";
 import {
   DOCK_EDGES,
+  COLLAPSE_STORAGE_KEY,
   DOCK_STORAGE_KEY,
   isDockEdge,
+  readCollapsed,
   readDock,
+  writeCollapsed,
   writeDock,
 } from "../../common/tabs/tab-dock";
 import "../../components/ha-select";
+import "../../components/ha-switch";
 import type { HaSelectSelectEvent } from "../../components/ha-select";
 import "../../components/item/ha-row-item";
 import { MAIN_SURFACE } from "../../components/tabs/tab-strip-layout";
@@ -31,6 +35,8 @@ class HaTabDockRow extends LitElement {
 
   @state() private _edge: DockEdge = readDock(MAIN_SURFACE);
 
+  @state() private _collapsed = readCollapsed(MAIN_SURFACE);
+
   private _lang = new LanguageModeController(this);
 
   private _stop?: () => void;
@@ -39,10 +45,14 @@ class HaTabDockRow extends LitElement {
     super.connectedCallback();
     const refresh = () => {
       this._edge = readDock(MAIN_SURFACE);
+      this._collapsed = readCollapsed(MAIN_SURFACE);
     };
     getStorage().subscribeChanges(DOCK_STORAGE_KEY, refresh);
-    this._stop = () =>
+    getStorage().subscribeChanges(COLLAPSE_STORAGE_KEY, refresh);
+    this._stop = () => {
       getStorage().unsubscribeChanges(DOCK_STORAGE_KEY, refresh);
+      getStorage().unsubscribeChanges(COLLAPSE_STORAGE_KEY, refresh);
+    };
     refresh();
   }
 
@@ -75,6 +85,20 @@ class HaTabDockRow extends LitElement {
           @selected=${this._selected}
         ></ha-select>
       </ha-row-item>
+      <ha-row-item>
+        <span slot="headline"
+          >${this._t(`${base}collapse_setting_header`)}</span
+        >
+        <span slot="supporting-text"
+          >${this._t(`${base}collapse_setting_description`)}</span
+        >
+        <ha-switch
+          slot="end"
+          .checked=${this._collapsed}
+          aria-label=${this._t(`${base}collapse_setting_header`)}
+          @change=${this._collapsedChanged}
+        ></ha-switch>
+      </ha-row-item>
     `;
   }
 
@@ -84,6 +108,10 @@ class HaTabDockRow extends LitElement {
     if (isDockEdge(value) && value !== this._edge) {
       writeDock(MAIN_SURFACE, value);
     }
+  }
+
+  private _collapsedChanged(ev: Event) {
+    writeCollapsed(MAIN_SURFACE, (ev.target as HTMLInputElement).checked);
   }
 
   static styles: CSSResultGroup = css`

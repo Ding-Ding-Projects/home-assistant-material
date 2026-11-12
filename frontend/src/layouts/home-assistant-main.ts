@@ -30,7 +30,12 @@ import "../components/ha-page-tabs";
 import { ensureInitialDock } from "../components/tabs/tab-store-controller";
 import { MAIN_SURFACE } from "../components/tabs/tab-strip-layout";
 import type { DockEdge } from "../common/tabs/tab-dock";
-import { DOCK_STORAGE_KEY, readDock } from "../common/tabs/tab-dock";
+import {
+  COLLAPSE_STORAGE_KEY,
+  DOCK_STORAGE_KEY,
+  readCollapsed,
+  readDock,
+} from "../common/tabs/tab-dock";
 import "../components/phone/ha-phone-bar";
 import "../components/page/ha-page-tool-panel";
 import type { HaPageToolPanel } from "../components/page/ha-page-tool-panel";
@@ -69,6 +74,8 @@ export class HomeAssistantMain extends LitElement {
 
   /** The edge the tab strip is docked to. */
   @state() private _tabsDock: DockEdge = readDock(MAIN_SURFACE);
+
+  @state() private _tabsCollapsed = readCollapsed(MAIN_SURFACE);
 
   @storage({
     key: DEBUG_SAFE_AREA_TOOL_STORAGE_KEY,
@@ -285,6 +292,9 @@ export class HomeAssistantMain extends LitElement {
       getStorage().subscribeChanges(DOCK_STORAGE_KEY, () => {
         this._tabsDock = readDock(MAIN_SURFACE);
       }),
+      getStorage().subscribeChanges(COLLAPSE_STORAGE_KEY, () => {
+        this._tabsCollapsed = readCollapsed(MAIN_SURFACE);
+      }),
     ];
     window.addEventListener("personal-vocabulary-changed", this._noteWording);
     window.addEventListener("keydown", this._handleAccessibilityShortcut);
@@ -379,6 +389,10 @@ export class HomeAssistantMain extends LitElement {
     } else {
       this.removeAttribute("tabs-dock");
     }
+    this.toggleAttribute(
+      "tabs-collapsed",
+      this._showTabs && this._tabsCollapsed
+    );
 
     this.toggleAttribute(
       "modal",
@@ -507,6 +521,15 @@ export class HomeAssistantMain extends LitElement {
           var(--ha-pane-gap) + var(--ha-page-tabs-side-width)
       );
     }
+    /* A collapsed strip is its tabs' icons: a narrow column on a side or
+       floating, the same bar on the top or bottom edge. */
+    :host(:not([modal])[tabs-collapsed]) {
+      --ha-page-tabs-side-width: 64px;
+    }
+    /* A floating strip sits over the page and takes no room from it. */
+    :host(:not([modal])[tabs-dock="float"]) {
+      --ha-page-tabs-height: 0px;
+    }
     /* A side strip is icons only on a narrow window. */
     @media (max-width: 1100px) {
       :host(:not([modal])) {
@@ -568,6 +591,16 @@ export class HomeAssistantMain extends LitElement {
     }
     :host([tabs-dock="left"]) ha-page-tabs {
       inset-inline-end: auto;
+    }
+    :host([tabs-dock="float"]) ha-page-tabs {
+      inset: auto;
+      left: var(--ha-page-tabs-float-left, 120px);
+      top: var(--ha-page-tabs-float-top, 96px);
+      width: var(--ha-page-tabs-side-width);
+      height: auto;
+      max-height: calc(100vh - 2 * var(--ha-pane-gap, 12px));
+      z-index: 6;
+      transition: none;
     }
     :host([tabs-dock="right"]) ha-page-tabs {
       inset-inline-start: auto;

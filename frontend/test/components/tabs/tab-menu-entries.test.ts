@@ -206,8 +206,8 @@ describe("tab menu entries", () => {
 });
 
 describe("strip menu entries", () => {
-  it("lists the four docks with the current one marked", () => {
-    (["left", "right", "top", "bottom"] as const).forEach((dock) => {
+  it("lists the four edges and floating with the current one marked", () => {
+    (["left", "right", "top", "bottom", "float"] as const).forEach((dock) => {
       const entries = stripMenuEntries({ dock, hasClosed: false });
       const docks = entries.filter((item) => item.id.startsWith("dock_"));
       expect(docks.map((item) => item.id)).toEqual([
@@ -215,11 +215,23 @@ describe("strip menu entries", () => {
         "dock_right",
         "dock_top",
         "dock_bottom",
+        "dock_float",
       ]);
       expect(
         docks.filter((item) => item.checked).map((item) => item.id)
       ).toEqual([`dock_${dock}`]);
     });
+  });
+
+  it("offers to collapse an expanded strip and to expand a collapsed one", () => {
+    const ids = (collapsed: boolean) =>
+      stripMenuEntries({ dock: "left", hasClosed: false, collapsed }).map(
+        (item) => item.id
+      );
+    expect(ids(false)).toContain("collapse_strip");
+    expect(ids(false)).not.toContain("expand_strip");
+    expect(ids(true)).toContain("expand_strip");
+    expect(ids(true)).not.toContain("collapse_strip");
   });
 
   it("offers the new tab, new group and appearance entries", () => {

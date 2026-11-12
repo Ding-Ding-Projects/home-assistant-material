@@ -1526,6 +1526,29 @@ export class TabStripController implements ReactiveController {
       .compact .pin-mark {
         display: none;
       }
+      /* A collapsed strip: each tab is its icon, its name in the tooltip and to screen readers. */
+      :host([collapsed]) .tab-icon {
+        display: inline-flex;
+      }
+      :host([collapsed]) .tab-button {
+        justify-content: center;
+        padding-inline: var(--ha-space-3);
+      }
+      :host([collapsed]) .pin-mark,
+      :host([collapsed]) .tab .pin,
+      :host([collapsed]) .tab .close,
+      :host([collapsed]) .group-name,
+      :host([collapsed]) .group-count {
+        display: none;
+      }
+      :host([collapsed]) .label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
       .compact .label {
         position: absolute;
         width: 1px;

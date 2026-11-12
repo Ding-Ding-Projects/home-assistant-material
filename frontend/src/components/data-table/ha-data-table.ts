@@ -2354,6 +2354,9 @@ export class HaDataTable extends LitElement {
           min-height: calc(
             var(--data-table-row-height, 52px) + var(--ha-space-2)
           );
+          /* A row that grew past one line keeps its text off the card's top edge. */
+          padding-top: var(--ha-space-2);
+          padding-bottom: calc(var(--ha-space-2) * 2);
         }
         :host([row-cards])
           .mdc-data-table__row[aria-rowindex]:not(.group-header-row):not(

@@ -8,7 +8,12 @@ import { setLockLocalize } from "../../common/locks/element-lock-session";
 import type { ClosePlanKind } from "../../common/tabs/tab-close-plans";
 import { reportClose } from "../../common/tabs/tab-close-plans";
 import type { DockEdge } from "../../common/tabs/tab-dock";
-import { readDock, writeDock } from "../../common/tabs/tab-dock";
+import {
+  readCollapsed,
+  readDock,
+  writeCollapsed,
+  writeDock,
+} from "../../common/tabs/tab-dock";
 import {
   readTabAppearance,
   resetTab,
@@ -257,6 +262,7 @@ export class HaPageTabMenu extends LitElement {
     this._dock = readDock(this.surface);
     this._entries = stripMenuEntries({
       dock: this._dock,
+      collapsed: readCollapsed(this.surface),
       hasClosed: snap.ordered.some((id) => snap.closed.includes(id)),
       hasOpen: snap.open.length > 0,
     });
@@ -583,11 +589,25 @@ export class HaPageTabMenu extends LitElement {
       case "dock_left":
       case "dock_right":
       case "dock_top":
-      case "dock_bottom": {
+      case "dock_bottom":
+      case "dock_float": {
         const edge = entry.id.slice(5) as DockEdge;
         writeDock(this.surface, edge);
         this._announce(
-          this._t(`${BASE}docked`, { edge: this._t(`${BASE}edge_${edge}`) })
+          edge === "float"
+            ? this._t(`${BASE}floated`)
+            : this._t(`${BASE}docked`, {
+                edge: this._t(`${BASE}edge_${edge}`),
+              })
+        );
+        break;
+      }
+      case "collapse_strip":
+      case "expand_strip": {
+        const collapsed = entry.id === "collapse_strip";
+        writeCollapsed(this.surface, collapsed);
+        this._announce(
+          this._t(`${BASE}${collapsed ? "collapsed" : "expanded"}`)
         );
         break;
       }

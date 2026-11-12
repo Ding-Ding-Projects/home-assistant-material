@@ -4664,7 +4664,16 @@
         "edge_bottom": "bottom",
         "new_tab": "New tab…",
         "edit_strip_appearance": "Edit strip appearance…",
-        "close_partial": "{count, plural,\n  one {Closed # tab}\n  other {Closed # tabs}\n}. These did not close: {failed}"
+        "close_partial": "{count, plural,\n  one {Closed # tab}\n  other {Closed # tabs}\n}. These did not close: {failed}",
+        "dock_float": "Float anywhere",
+        "collapse_strip": "Collapse tab strip",
+        "expand_strip": "Expand tab strip",
+        "floated": "Tab strip floats over the page. Drag its handle, or focus the handle and use the arrow keys, to move it.",
+        "collapsed": "Tab strip collapsed to icons",
+        "expanded": "Tab strip expanded",
+        "edge_float": "a floating panel",
+        "collapse_setting_header": "Collapse the tab strip",
+        "collapse_setting_description": "Shows each tab as its icon only. The name shows when you point at a tab."
       },
       "close_by_text": {
         "title_containing": "Close tabs containing text",
@@ -4715,7 +4724,8 @@
         "reset_property": "Reset {field}",
         "reset_tab": "Reset this tab",
         "reset_all": "Reset every tab"
-      }
+      },
+      "float_handle": "Move the tab strip. Drag it, or use the arrow keys (Shift moves further)."
     },
     "phone": {
       "navigation": "Main navigation",

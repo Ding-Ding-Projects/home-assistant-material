@@ -1651,7 +1651,12 @@ export class HaConfigAutomationHistory extends LitElement {
           }
         </ha-card>
         <div class="hero-actions">
-          <ha-button size="l" ?disabled=${this._pushing} @click=${this._push}>
+          <ha-button
+            class="hero-commit"
+            size="l"
+            ?disabled=${this._pushing}
+            @click=${this._push}
+          >
             <ha-svg-icon slot="start" .path=${mdiCloudUpload}></ha-svg-icon>
             ${this._commitLabel(status)}
           </ha-button>
@@ -2808,6 +2813,12 @@ export class HaConfigAutomationHistory extends LitElement {
       .hero,
       .repos-grid {
         grid-template-columns: minmax(0, 1fr);
+      }
+    }
+    /* Beside the list, the commit panel has its own button under the message, so the page shows one. */
+    @media (min-width: 901px) {
+      .hero-commit {
+        display: none;
       }
     }
     @media (max-width: 700px) {

@@ -1487,7 +1487,16 @@
         "edge_bottom": "下面",
         "new_tab": "新分頁…",
         "edit_strip_appearance": "編輯分頁列外觀…",
-        "close_partial": "已關閉 {count} 個分頁。呢啲關閉唔到：{failed}"
+        "close_partial": "已關閉 {count} 個分頁。呢啲關閉唔到：{failed}",
+        "dock_float": "任你擺邊度",
+        "collapse_strip": "收埋分頁列",
+        "expand_strip": "拉返開分頁列",
+        "floated": "分頁列而家浮喺頁面上面。拎住個柄拖，或者揀中個柄用方向鍵郁佢。",
+        "collapsed": "分頁列收咗做淨係公仔",
+        "expanded": "分頁列拉返開咗",
+        "edge_float": "浮喺度嘅板",
+        "collapse_setting_header": "收埋分頁列",
+        "collapse_setting_description": "每個分頁淨係出個公仔，指住先見個名。"
       },
       "close_by_text": {
         "title_containing": "關閉包含文字嘅分頁",
@@ -1538,7 +1547,8 @@
         "reset_property": "重設{field}",
         "reset_tab": "重設呢個分頁",
         "reset_all": "重設所有分頁"
-      }
+      },
+      "float_handle": "郁分頁列：拖佢，或者用方向鍵（撳住 Shift 行遠啲）。"
     },
     "dialogs": {
       "quick-bar": {

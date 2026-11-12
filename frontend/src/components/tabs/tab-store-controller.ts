@@ -12,7 +12,9 @@ import {
 } from "../../common/tabs/tab-appearance-store";
 import type { DockEdge } from "../../common/tabs/tab-dock";
 import {
+  COLLAPSE_STORAGE_KEY,
   DOCK_STORAGE_KEY,
+  FLOAT_STORAGE_KEY,
   readDock,
   writeDock,
 } from "../../common/tabs/tab-dock";
@@ -60,6 +62,8 @@ const KEYS = [
   GROUPS_STORAGE_KEY,
   DESTINATIONS_STORAGE_KEY,
   DOCK_STORAGE_KEY,
+  FLOAT_STORAGE_KEY,
+  COLLAPSE_STORAGE_KEY,
   TAB_APPEARANCE_STORAGE_KEY,
   GROUP_APPEARANCE_STORAGE_KEY,
   LOCKS_STORAGE_KEY,

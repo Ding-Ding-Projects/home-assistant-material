@@ -71,7 +71,7 @@ class HaConfigAppsInfo extends LitElement {
                 ${this.hass.localize("ui.panel.config.apps.info.learn_more")}
                 <ha-svg-icon slot="icon" .path=${mdiOpenInNew}></ha-svg-icon>
               </ha-button>
-              <ha-button @click=${this._dismiss} variant="danger">
+              <ha-button @click=${this._dismiss} appearance="outlined">
                 ${this.hass.localize("ui.panel.config.apps.info.dismiss")}
               </ha-button>
             </div>

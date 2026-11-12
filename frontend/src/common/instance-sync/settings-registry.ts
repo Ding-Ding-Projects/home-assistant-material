@@ -99,6 +99,12 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     holds: "Settings pages and tools opened as tabs",
   },
   { exact: "pageTabsDock", kind: "json", holds: "Tab strip edge" },
+  {
+    exact: "pageTabsFloat",
+    kind: "json",
+    holds: "Floating tab strip position",
+  },
+  { exact: "pageTabsCollapsed", kind: "json", holds: "Collapsed tab strips" },
   { exact: "pageTabsAppearance", kind: "json", holds: "Tab appearance" },
   {
     exact: "pageTabsGroupAppearance",
