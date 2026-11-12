@@ -1707,6 +1707,62 @@ async def test_deprecated_installation_issue_64bit_supervised(
 
 
 @pytest.mark.parametrize(
+    "arch",
+    [
+        "amd64",
+        "aarch64",
+    ],
+)
+async def test_no_installation_issue_supported_supervised(
+    hass: HomeAssistant,
+    issue_registry: ir.IssueRegistry,
+    freezer: FrozenDateTimeFactory,
+    arch: str,
+) -> None:
+    """Test no issue when the Supervisor reports its host as supported."""
+    with (
+        patch.dict(os.environ, MOCK_ENVIRON),
+        patch(
+            "homeassistant.components.hassio._is_32_bit",
+            return_value=False,
+        ),
+        patch(
+            "homeassistant.components.hassio.get_os_info",
+            return_value={"board": "generic-x86-64"},
+        ),
+        patch(
+            "homeassistant.components.hassio.get_info",
+            return_value={"hassos": None, "arch": arch, "supported": True},
+        ),
+        patch("homeassistant.components.hardware.async_setup", return_value=True),
+    ):
+        assert await async_setup_component(hass, HOMEASSISTANT_DOMAIN, {})
+        config_entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id=DOMAIN)
+        config_entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+        freezer.tick(REQUEST_REFRESH_DELAY)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+        await hass.services.async_call(
+            HOMEASSISTANT_DOMAIN,
+            SERVICE_UPDATE_ENTITY,
+            {
+                "entity_id": [
+                    "update.home_assistant_core_update",
+                    "update.home_assistant_supervisor_update",
+                ]
+            },
+            blocking=True,
+        )
+        freezer.tick(HASSIO_MAIN_UPDATE_INTERVAL)
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+
+    assert len(issue_registry.issues) == 0
+
+
+@pytest.mark.parametrize(
     ("board", "issue_id"),
     [
         ("rpi5", "deprecated_os_aarch64"),

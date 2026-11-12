@@ -318,9 +318,11 @@ def _check_deprecated_setup(hass: HomeAssistant) -> None:
     deprecated_architecture = bit32 and not (
         unsupported_board or unsupported_os_on_board
     )
-    if not is_haos or deprecated_architecture:
+    # The Supervisor decides whether the host it runs on is supported
+    deprecated_method = not is_haos and info.get("supported") is not True
+    if deprecated_method or deprecated_architecture:
         issue_id = "deprecated"
-        if not is_haos:
+        if deprecated_method:
             issue_id += "_method"
         if deprecated_architecture:
             issue_id += "_architecture"
