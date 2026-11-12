@@ -1,0 +1,157 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T19:30:00Z"
+  },
+  "title": "Home Assistant Material, modern remake",
+  "launch": {
+    "view": "canvas",
+    "page": "shell"
+  },
+  "pages": [
+    {
+      "id": "shell",
+      "name": "Navigation: dock, collapse, float"
+    },
+    {
+      "id": "pages",
+      "name": "Pages from the polish pass"
+    },
+    {
+      "id": "phone",
+      "name": "Phone"
+    }
+  ],
+  "boards": {
+    "ModernCollapsed.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1110,
+      "title": "Navigation pane collapsed, automation editor",
+      "expand": "fill",
+      "page": "shell"
+    },
+    "ModernTop.dc.html": {
+      "x": 0,
+      "y": 1310,
+      "w": 1536,
+      "h": 1110,
+      "title": "Docked top, automation history",
+      "expand": "fill",
+      "page": "shell"
+    },
+    "ModernFloat.dc.html": {
+      "x": 1656,
+      "y": 1310,
+      "w": 1536,
+      "h": 1110,
+      "title": "Floating pane over the overview, position menu open",
+      "expand": "fill",
+      "page": "shell"
+    },
+    "ModernPositions.dc.html": {
+      "x": 0,
+      "y": 2620,
+      "w": 1440,
+      "h": 740,
+      "title": "Every tab strip position, expanded and collapsed",
+      "expand": "fill",
+      "page": "shell"
+    },
+    "ModernDark.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1000,
+      "title": "Navigation pane, settings, dark",
+      "expand": "fill",
+      "page": "pages"
+    },
+    "ModernColour.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Colour tool",
+      "expand": "fill",
+      "page": "pages"
+    },
+    "ModernApps.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Apps without an app store",
+      "expand": "fill",
+      "page": "pages"
+    },
+    "ModernPhone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Phone, light: users, blueprints, open pages",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "ModernPhoneDark.dc.html": {
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Phone, dark: home, settings, colour",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1110,
+      "title": "Navigation pane, expanded, light",
+      "expand": "fill",
+      "page": "shell"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "ModernCollapsed.dc.html",
+    "ModernTop.dc.html",
+    "ModernFloat.dc.html",
+    "ModernPositions.dc.html",
+    "ModernDark.dc.html",
+    "ModernColour.dc.html",
+    "ModernApps.dc.html",
+    "ModernPhone.dc.html",
+    "ModernPhoneDark.dc.html"
+  ],
+  "notes": {
+    "t-shell": {
+      "x": 0,
+      "y": -320,
+      "text": "Navigation: one pane that docks to any edge, collapses to icons or floats anywhere. 5 boards.",
+      "kind": "title1",
+      "maxW": 3200,
+      "page": "shell"
+    },
+    "t-pages": {
+      "x": 0,
+      "y": -320,
+      "text": "Pages from the polish pass, remade: dark settings, colour tool, apps. 3 boards.",
+      "kind": "title1",
+      "maxW": 3200,
+      "page": "pages"
+    },
+    "t-phone": {
+      "x": 0,
+      "y": -320,
+      "text": "Phone, light and dark: rows as cards, open pages as a sheet. 2 boards.",
+      "kind": "title1",
+      "maxW": 3200,
+      "page": "phone"
+    }
+  },
+  "designSystems": []
+}

@@ -1,7 +1,7 @@
 # Design
 
 Design files for the Material Design 3 interface, kept in the repository so every canvas can be
-read back from here alone. 285 boards on 22 canvases, at most 15 boards on each.
+read back from here alone. 295 boards on 23 canvases, at most 15 boards on each.
 
 | Folder | Boards | What it holds |
 | --- | --- | --- |
@@ -27,6 +27,7 @@ read back from here alone. 285 boards on 22 canvases, at most 15 boards on each.
 | `canvases/20-deploy-assistant-managers` | 9 | Deploy Assistant: the Minecraft world generator, AI models, virtual disks, Ctrl Shift F and a narrow window; same script |
 | `canvases/21-dashboard-editor` | 4 | The dashboard editor's Dashboard tools: outline and bulk actions, replacing an entity, the check, templates, statistics, the preview width and a phone; drawn by `source/pages/p_editor.py` |
 | `canvases/22-live-app` | 15 | Home Assistant pages drawn from a running copy instead of by hand: each board shows one page at 1440 and 390 pixels, after the polish pass that fixed the tab strip, phone tables, scenes, to-do and personal settings; drawn by `source/pages/live_boards.py` |
+| `canvases/23-modern-remake` | 10 | A modern remake: one navigation pane that docks to any edge, collapses to icons or floats anywhere, plus settings, the automation editor and history, colour, apps and phone screens, light and dark; drawn by `source/modern/boards.py` |
 
 In each canvas folder, `canvas.json` is the index (one entry per board with its frame and title)
 and every `*.dc.html` is one board, a self-contained page.
