@@ -1,0 +1,275 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Protocols and dialogs",
+  "launch": {
+    "view": "canvas",
+    "page": "protocols"
+  },
+  "pages": [
+    {
+      "id": "protocols",
+      "name": "Protocols: Zigbee, Z-Wave, Matter, Thread, Bluetooth, MQTT, remotes, LoRaWAN, serial, discovery"
+    },
+    {
+      "id": "dialogs",
+      "name": "Entity dialogs: every domain, three per board"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Zigbee network",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07ZWave.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Z-Wave network",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07Matter.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "HexagonMultiple",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07Thread.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Thread networks",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07Bluetooth.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Bluetooth",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07MQTT.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "MQTT",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07Remotes.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Infrared and radio remotes",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07LoRaWAN.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "LoRaWAN",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07Serial.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Serial ports and Modbus",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07Discovery.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Network discovery browsers",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M07AppCreds.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Application credentials",
+      "expand": "fill",
+      "page": "protocols"
+    },
+    "M08LightClimateCover.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: light, climate, cover",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08LockAlarmCamera.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: lock, alarm, camera",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08MediaVacuumFan.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: media player, vacuum, fan",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08WeatherSensorUpdate.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: weather, sensor, update",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08PersonTimerCounter.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: person, timer, counter",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08HumidifierHeaterValve.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: humidifier, water heater, valve",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08SirenMowerRemote.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: siren, lawn mower, remote",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08SwitchToggleGroup.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: switch, toggle, group",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08AutomationScriptConversation.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: automation, script, conversation",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08DateTime.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: date, time, date and time",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08SunImageCalendar.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: sun, image, calendar",
+      "expand": "fill",
+      "page": "dialogs"
+    },
+    "M08SetupAny.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity dialogs: setup step, any other entity, and the menu",
+      "expand": "fill",
+      "page": "dialogs"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "M07ZWave.dc.html",
+    "M07Matter.dc.html",
+    "M07Thread.dc.html",
+    "M07Bluetooth.dc.html",
+    "M07MQTT.dc.html",
+    "M07Remotes.dc.html",
+    "M07LoRaWAN.dc.html",
+    "M07Serial.dc.html",
+    "M07Discovery.dc.html",
+    "M07AppCreds.dc.html",
+    "M08LightClimateCover.dc.html",
+    "M08LockAlarmCamera.dc.html",
+    "M08MediaVacuumFan.dc.html",
+    "M08WeatherSensorUpdate.dc.html",
+    "M08PersonTimerCounter.dc.html",
+    "M08HumidifierHeaterValve.dc.html",
+    "M08SirenMowerRemote.dc.html",
+    "M08SwitchToggleGroup.dc.html",
+    "M08AutomationScriptConversation.dc.html",
+    "M08DateTime.dc.html",
+    "M08SunImageCalendar.dc.html",
+    "M08SetupAny.dc.html"
+  ],
+  "notes": {
+    "t-protocols": {
+      "x": 0,
+      "y": -320,
+      "text": "Protocols: Zigbee, Z-Wave, Matter, Thread, Bluetooth, MQTT, remotes, LoRaWAN, serial, discovery. 11 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "protocols"
+    },
+    "t-dialogs": {
+      "x": 0,
+      "y": -320,
+      "text": "Entity dialogs: every domain, three per board. 12 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "dialogs"
+    }
+  },
+  "designSystems": []
+}
