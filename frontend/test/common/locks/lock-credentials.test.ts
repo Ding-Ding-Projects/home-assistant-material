@@ -14,14 +14,16 @@ import {
   checkAll,
   checkFactor,
   createLockRecord,
+  EITHER_POLICIES,
   finishAttempt,
   LOCK_POLICIES,
+  nfcTagIdentity,
   POLICY_FACTORS,
   totpAt,
   totpMatches,
 } from "../../../src/common/locks/lock-credentials";
 
-// Protects the per-lock credentials: that each of the six policies asks for
+// Protects the per-lock credentials: that each of the seven policies asks for
 // exactly its factors, that nothing readable is stored, that one-time codes
 // follow RFC 6238, that every factor spends one shared attempt budget and
 // that one lock never answers for another.
@@ -42,17 +44,23 @@ const make = (key: string, policy: LockPolicy, extra = {}) =>
       pin: "2468",
       password: "correct horse",
       totpSecret: RFC_SECRET,
+      nfcTag: TAG,
       ...extra,
     },
     NOW
   );
 
+const TAG = nfcTagIdentity("serial", "04:A1:B2:C3");
+
+/** Policies that ask for every factor, one after another. */
+const ALL_OF = LOCK_POLICIES.filter((policy) => !EITHER_POLICIES.has(policy));
+
 const code = async (secret: string, time: number) =>
   totpAt(base32Decode(secret)!, time);
 
-describe("the six policies", () => {
+describe("the seven policies", () => {
   it("ask for exactly their factors, in order", () => {
-    expect(LOCK_POLICIES).toHaveLength(6);
+    expect(LOCK_POLICIES).toHaveLength(7);
     expect(POLICY_FACTORS).toEqual({
       pin: ["pin"],
       password: ["password"],
@@ -60,6 +68,7 @@ describe("the six policies", () => {
       password_totp: ["password", "totp"],
       pin_totp: ["pin", "totp"],
       password_pin_totp: ["password", "pin", "totp"],
+      password_nfc: ["password", "nfc"],
     });
   });
 
@@ -71,30 +80,62 @@ describe("the six policies", () => {
       expect(!!record.pin).toBe(factors.includes("pin"));
       expect(!!record.password).toBe(factors.includes("password"));
       expect(!!record.totp).toBe(factors.includes("totp"));
+      expect(!!record.nfc).toBe(factors.includes("nfc"));
     }
   );
 
-  it.each(LOCK_POLICIES)(
-    "%s unlocks only with every factor",
-    async (policy) => {
-      const record = await make("element:/#a", policy);
-      const factors = POLICY_FACTORS[policy];
-      const right = {
-        pin: "2468",
-        password: "correct horse",
-        totp: await code(RFC_SECRET, NOW),
+  it.each(ALL_OF)("%s unlocks only with every factor", async (policy) => {
+    const record = await make("element:/#a", policy);
+    const factors = POLICY_FACTORS[policy];
+    const right = {
+      pin: "2468",
+      password: "correct horse",
+      totp: await code(RFC_SECRET, NOW),
+    };
+    expect((await checkAll(record, right, NOW)).outcome).toBe("ok");
+    for (const factor of factors) {
+      const wrong = {
+        ...right,
+        [factor]: factor === "totp" ? "000000" : "9999x",
       };
-      expect((await checkAll(record, right, NOW)).outcome).toBe("ok");
-      for (const factor of factors) {
-        const wrong = {
-          ...right,
-          [factor]: factor === "totp" ? "000000" : "9999x",
-        };
-        const result = await checkAll(record, wrong, NOW);
-        expect(result.outcome).toBe("wrong");
-      }
+      const result = await checkAll(record, wrong, NOW);
+      expect(result.outcome).toBe("wrong");
     }
-  );
+  });
+
+  it("opens an NFC lock with the tag alone or the password alone", async () => {
+    const record = await make("element:/#nfc", "password_nfc");
+    expect(record.nfc?.hash).not.toContain("04:a1");
+    expect((await checkAll(record, { nfc: TAG }, NOW)).outcome).toBe("ok");
+    expect(
+      (await checkAll(record, { password: "correct horse" }, NOW)).outcome
+    ).toBe("ok");
+    // The same tag read the other way is a different identity.
+    expect(
+      (
+        await checkAll(
+          record,
+          { nfc: nfcTagIdentity("tag", "04:A1:B2:C3") },
+          NOW
+        )
+      ).outcome
+    ).toBe("wrong");
+    expect(
+      (await checkAll(record, { nfc: nfcTagIdentity("serial", "ff") }, NOW))
+        .outcome
+    ).toBe("wrong");
+    expect((await checkAll(record, {}, NOW)).outcome).toBe("wrong");
+  });
+
+  it("will not make an NFC lock without the backup password or a tag", async () => {
+    await expect(
+      make("k", "password_nfc", { password: undefined })
+    ).rejects.toThrow();
+    await expect(make("k", "password_nfc", { nfcTag: "" })).rejects.toThrow();
+    await expect(
+      make("k", "password_nfc", { nfcTag: "no prefix" })
+    ).rejects.toThrow();
+  });
 
   it("refuses a policy whose credential is missing", async () => {
     await expect(

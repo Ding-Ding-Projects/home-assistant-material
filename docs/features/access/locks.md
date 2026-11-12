@@ -14,13 +14,32 @@ in this browser only, and clearing the site's storage removes every lock.
   then 15 seconds, 1 minute and 5 minutes; tries during a wait are refused.
 - Element locks: Lock this element in the right-click menu. The element is outlined with
   dashes. The Lock tool lists the locked elements of the page.
-- Locks with their own credentials: a lock chooses one of six ways in (PIN, password, PIN and
-  password, password and one-time code, PIN and one-time code, all three). A six-step wizard
+- Locks with their own credentials: a lock chooses one of seven ways in (PIN, password, PIN and
+  password, password and one-time code, PIN and one-time code, all three, or an NFC tag with a
+  password as backup). A six-step wizard
   with a progress line and a QR code for the one-time code sets it up and can try the new lock
   before it is saved. The unlock prompt has a keypad and manual entry sharing one count of
   tries and counts down a wait. The list of locks filters and selects several.
 
 Locks are never written to the local history.
+
+## NFC tag unlock
+
+An NFC tag can open a lock. The wizard asks for a password first, as the backup for a lost tag
+or a device that cannot read one, and only then for the tag. Either one opens the lock on its
+own: the prompt waits for the tag and offers **Use password instead**.
+
+A tag is heard two ways at once: this browser's own reader (Web NFC, on an Android phone over
+HTTPS), which gives the tag's serial number, and a scan with the Home Assistant app on any phone,
+which Home Assistant reports as a `tag_scanned` event. The prompt says which of the two it can
+hear. The two readings are kept apart, so a tag set up one way is tapped the same way. The lock
+keeps only a salted PBKDF2 hash of the tag's identity, like a password, and a wrong tag spends
+the same attempt budget. Like every lock here it is a speed bump, not security: anyone with
+the tag, or able to send a `tag_scanned` event, can open it.
+
+Code: `frontend/src/common/locks/nfc-reader.ts`, `frontend/src/components/locks/ha-lock-nfc-listen.ts`,
+the `password_nfc` policy in `lock-credentials.ts`. Built and unit tested; not yet seen with a
+real tag.
 
 ## Verification
 
