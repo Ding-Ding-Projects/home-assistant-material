@@ -166,6 +166,7 @@ export class HomeAssistantMain extends LitElement {
         .hass=${this.hass}
         .pageRoot=${this._pageRoot}
       ></ha-accessibility-tools>
+      <ha-dim-sum-surprise .hass=${this.hass}></ha-dim-sum-surprise>
       ${
         this._debugSafeAreaTool
           ? html`<ha-debug-safe-area-tool></ha-debug-safe-area-tool>`
@@ -177,6 +178,8 @@ export class HomeAssistantMain extends LitElement {
   protected firstUpdated() {
     import(/* webpackPreload: true */ "../components/ha-sidebar");
     import("../components/ha-snowflakes");
+    // Loaded after the shell is up, so it never delays the first render.
+    import("../components/dim-sum/ha-dim-sum-surprise");
 
     if (this.hass.auth.external) {
       this._externalSidebar =

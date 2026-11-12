@@ -5,6 +5,8 @@ import {
   mdiClose,
   mdiDelete,
   mdiDotsVertical,
+  mdiDownload,
+  mdiFileSwap,
   mdiFolder,
   mdiFolderMove,
   mdiFolderPlus,
@@ -17,13 +19,44 @@ import { customElement, state } from "lit/decorators";
 import { repeat } from "lit/directives/repeat";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { consume } from "../../common/decorators/consume";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
 import { transform } from "../../common/decorators/transform";
 import { fireEvent } from "../../common/dom/fire_event";
 import { MEDIA_LIBRARY_CHANGED_EVENT } from "../../common/file-drop/drop-upload-queue";
+import {
+  MAX_ZIP_BYTES,
+  prepareSingleDownload,
+  zipSelection,
+} from "../../common/media-manage/download";
+import type { DownloadFile } from "../../common/media-manage/download";
+import {
+  fetchItemFile,
+  ItemFileError,
+} from "../../common/media-manage/item-file";
+import {
+  extensionChanged,
+  isValidImageName,
+  nameTaken,
+} from "../../common/media-manage/names";
+import { dimSumDishProvider } from "../../common/media-manage/surprise-provider";
+import { getPersonalPreferences } from "../../common/preferences/personal-preferences";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import { apiContext, configContext } from "../../data/context";
-import { deleteImage, getIdFromUrl } from "../../data/image_upload";
+import {
+  createImageFolder,
+  deleteImage,
+  getIdFromUrl,
+  getImageBreadcrumbs,
+  imageFolderFromMediaId,
+  isValidImageFolderName,
+  listImageFolders,
+  MEDIA_PREFIX as IMAGE_SOURCE,
+  moveImages,
+  removeImageFolder,
+  renameImage,
+  renameImageFolder,
+} from "../../data/image_upload";
 import type { MediaPlayerItem } from "../../data/media-player";
 import { MediaClassBrowserSettings } from "../../data/media-player";
 import type { MediaFolderCounts } from "../../data/media_source";
@@ -48,6 +81,9 @@ import {
   showPromptDialog,
 } from "../../dialogs/generic/show-dialog-box";
 import type { HomeAssistantConfig } from "../../types";
+import { fileDownload } from "../../util/file_download";
+import { formatBytes } from "../../common/file-drop/format-bytes";
+import { showToast } from "../../util/toast";
 import "../ha-button";
 import "../ha-checkbox";
 import "../ha-dialog";
@@ -60,6 +96,7 @@ import "../ha-spinner";
 import "../ha-svg-icon";
 import "../ha-tip";
 import "./ha-media-upload-button";
+import { showMediaConvertDialog } from "./show-media-convert-dialog";
 import type { MediaManageDialogParams } from "./show-media-manage-dialog";
 
 const SOURCE_PREFIX = "media-source://media_source/";
@@ -71,11 +108,20 @@ const FOLDER_ERROR_CODES = [
   "not_empty",
   "not_allowed",
   "changed",
+  "too_deep",
 ];
 
 @customElement("dialog-media-manage")
 class DialogMediaManage extends LitElement {
-  @state() @consumeLocalize() private _localize!: LocalizeFunc;
+  @state() @consumeLocalize() private _baseLocalize!: LocalizeFunc;
+
+  private _lang = new LanguageModeController(this);
+
+  // Every string follows the language mode, English, Cantonese or both
+  private get _localize(): LocalizeFunc {
+    return ((key: string, values?: Record<string, string | number>) =>
+      this._lang.text(this._baseLocalize, key, values)) as LocalizeFunc;
+  }
 
   @state()
   @consume({ context: configContext, subscribe: true })
@@ -170,6 +216,17 @@ class DialogMediaManage extends LitElement {
     );
   }
 
+  private get _isImages(): boolean {
+    return isImageUploadMediaSourceContentId(
+      this._params?.currentItem.media_content_id || ""
+    );
+  }
+
+  // The folder of the image store that is open; empty for its top level
+  private get _imageFolder(): string {
+    return imageFolderFromMediaId(this._folderId) ?? "";
+  }
+
   private get _busy(): boolean {
     return (
       this._uploading || this._working || this._loading || this._confirming
@@ -178,7 +235,9 @@ class DialogMediaManage extends LitElement {
 
   // Folder actions need a folder inside a media directory, not the list of them
   private get _canManageFolders(): boolean {
-    return this._isLocal && !isMediaSourceRoot(this._folderId);
+    return (
+      this._isImages || (this._isLocal && !isMediaSourceRoot(this._folderId))
+    );
   }
 
   private _canChange(item: MediaPlayerItem): boolean {
@@ -221,14 +280,14 @@ class DialogMediaManage extends LitElement {
         ${
           this._hassioLoaded
             ? html`<ha-tip>
-                ${this._localize(
+                ${this._baseLocalize(
                   "ui.components.media-browser.file_management.tip_media_storage",
                   {
                     storage: html`<a
                       href="/config/storage"
                       @click=${this.closeDialog}
                     >
-                      ${this._localize(
+                      ${this._baseLocalize(
                         "ui.components.media-browser.file_management.tip_storage_panel"
                       )}</a
                     >`,
@@ -241,12 +300,23 @@ class DialogMediaManage extends LitElement {
     `;
   }
 
+  // The folders from the top down to the folder with this media content ID
+  private _crumbs(
+    rootId: string,
+    currentId: string,
+    rootName: string
+  ): { id: string; name: string }[] {
+    return this._isImages
+      ? getImageBreadcrumbs(imageFolderFromMediaId(currentId) ?? "", rootName)
+      : getMediaBreadcrumbs(rootId, currentId, rootName);
+  }
+
   private _renderBreadcrumbs(
     rootId: string,
     currentId: string,
     rootName: string
   ): TemplateResult {
-    const crumbs = getMediaBreadcrumbs(rootId, currentId, rootName);
+    const crumbs = this._crumbs(rootId, currentId, rootName);
     return html`<nav
       class="crumbs"
       aria-label=${this._localize(
@@ -294,7 +364,9 @@ class DialogMediaManage extends LitElement {
           ? this._renderBreadcrumbs(
               this._params!.currentItem.media_content_id,
               this._folderId,
-              this._params!.currentItem.title
+              this._isImages
+                ? this._localize("ui.drop_upload.place_images")
+                : this._params!.currentItem.title
             )
           : nothing
       }
@@ -325,7 +397,28 @@ class DialogMediaManage extends LitElement {
                             </ha-button>`
                           : nothing
                       }`
-                  : html`<ha-button
+                  : html`${
+                        this._selectedFiles().length
+                          ? html`<ha-button
+                              appearance="filled"
+                              .disabled=${this._busy}
+                              @click=${this._downloadSelected}
+                            >
+                              <ha-svg-icon
+                                .path=${mdiDownload}
+                                slot="start"
+                              ></ha-svg-icon>
+                              ${this._localize(
+                                `ui.components.media-browser.file_management.${
+                                  this._selectedFiles().length > 1
+                                    ? "download_zip"
+                                    : "download"
+                                }`,
+                                { count: this._selectedFiles().length }
+                              )}
+                            </ha-button>`
+                          : nothing
+                      }<ha-button
                         variant="danger"
                         .disabled=${this._busy}
                         @click=${this._deleteSelected}
@@ -468,22 +561,61 @@ class DialogMediaManage extends LitElement {
                     { name: item.title }
                   )}
                 ></ha-icon-button>
+                ${
+                  item.can_expand
+                    ? nothing
+                    : html`<ha-dropdown-item value="download">
+                        <ha-svg-icon
+                          .path=${mdiDownload}
+                          slot="icon"
+                        ></ha-svg-icon>
+                        ${this._localize(
+                          "ui.components.media-browser.file_management.download"
+                        )}
+                      </ha-dropdown-item>`
+                }
                 <ha-dropdown-item value="rename">
                   <ha-svg-icon .path=${mdiRenameBox} slot="icon"></ha-svg-icon>
                   ${this._localize(
-                    "ui.components.media-browser.file_management.rename"
+                    `ui.components.media-browser.file_management.${
+                      item.can_expand ? "rename" : "edit_name"
+                    }`
                   )}
                 </ha-dropdown-item>
-                <ha-dropdown-item value="move">
-                  <ha-svg-icon .path=${mdiFolderMove} slot="icon"></ha-svg-icon>
-                  ${this._localize(
-                    "ui.components.media-browser.file_management.move"
-                  )}
-                </ha-dropdown-item>
+                ${
+                  item.can_expand
+                    ? nothing
+                    : html`<ha-dropdown-item value="convert">
+                        <ha-svg-icon
+                          .path=${mdiFileSwap}
+                          slot="icon"
+                        ></ha-svg-icon>
+                        ${this._localize(
+                          "ui.components.media-browser.file_management.convert"
+                        )}
+                      </ha-dropdown-item>`
+                }
+                ${
+                  this._isImages && item.can_expand
+                    ? nothing
+                    : html`<ha-dropdown-item value="move">
+                        <ha-svg-icon
+                          .path=${mdiFolderMove}
+                          slot="icon"
+                        ></ha-svg-icon>
+                        ${this._localize(
+                          "ui.components.media-browser.file_management.move"
+                        )}
+                      </ha-dropdown-item>`
+                }
                 <ha-dropdown-item value="delete" variant="danger">
                   <ha-svg-icon .path=${mdiDelete} slot="icon"></ha-svg-icon>
                   ${this._localize(
-                    "ui.components.media-browser.file_management.delete_item"
+                    `ui.components.media-browser.file_management.${
+                      this._isImages && item.can_expand
+                        ? "remove_folder"
+                        : "delete_item"
+                    }`
                   )}
                 </ha-dropdown-item>
               </ha-dropdown>`
@@ -501,16 +633,19 @@ class DialogMediaManage extends LitElement {
       (item) => item.can_expand && !movingIds.has(item.media_content_id)
     );
     const here = normalizeMediaFolderId(this._pickerId);
-    const alreadyHere = moving.every(
-      (item) =>
-        normalizeMediaFolderId(item.media_content_id).replace(
-          /\/[^/]*$/,
-          ""
-        ) === here
-    );
-    const insideMoved = [...movingIds].some(
-      (id) => here === id || here.startsWith(`${id}/`)
-    );
+    // Images carry their folder; a moved item of the media library is told by its place
+    const alreadyHere = this._isImages
+      ? this._imageFolder === this._pickerFolder
+      : moving.every(
+          (item) =>
+            normalizeMediaFolderId(item.media_content_id).replace(
+              /\/[^/]*$/,
+              ""
+            ) === here
+        );
+    const insideMoved =
+      !this._isImages &&
+      [...movingIds].some((id) => here === id || here.startsWith(`${id}/`));
 
     return html`
       <p class="picker-text">
@@ -522,7 +657,9 @@ class DialogMediaManage extends LitElement {
       ${this._renderBreadcrumbs(
         sourceId,
         this._pickerId,
-        sourceId.slice(SOURCE_PREFIX.length)
+        this._isImages
+          ? this._localize("ui.drop_upload.place_images")
+          : sourceId.slice(SOURCE_PREFIX.length)
       )}
       ${
         !this._pickerItem || this._loading
@@ -577,6 +714,9 @@ class DialogMediaManage extends LitElement {
 
   // The media directory the open folder belongs to, e.g. media-source://media_source/local
   private _sourceRootId(): string {
+    if (this._isImages) {
+      return IMAGE_SOURCE;
+    }
     const id = normalizeMediaFolderId(this._folderId);
     const dir = id.slice(SOURCE_PREFIX.length).split("/")[0];
     return `${SOURCE_PREFIX}${dir}`;
@@ -644,6 +784,16 @@ class DialogMediaManage extends LitElement {
     );
   }
 
+  // The files among the selected items: folders are not downloaded
+  private _selectedFiles(): MediaPlayerItem[] {
+    return this._selectedItems().filter((item) => !item.can_expand);
+  }
+
+  // The image folder the move picker shows
+  private get _pickerFolder(): string {
+    return imageFolderFromMediaId(this._pickerId) ?? "";
+  }
+
   private _selectedItems(): MediaPlayerItem[] {
     return (this._currentItem?.children || []).filter((item) =>
       this._selected.has(item.media_content_id)
@@ -703,6 +853,16 @@ class DialogMediaManage extends LitElement {
     if (name === null || name === undefined) {
       return;
     }
+    if (this._isImages) {
+      if (!isValidImageFolderName(name)) {
+        this._showFailure("action_failed", { code: "invalid_name" });
+        return;
+      }
+      await this._run(() =>
+        createImageFolder(this._api.callWS, this._imageFolder, name)
+      );
+      return;
+    }
     if (!isValidMediaName(name)) {
       this._showFailure("action_failed", { code: "invalid_name" });
       return;
@@ -717,9 +877,12 @@ class DialogMediaManage extends LitElement {
   }
 
   private async _rename(item: MediaPlayerItem) {
+    const isFolder = item.can_expand;
     const name = await showPromptDialog(this, {
       title: this._localize(
-        "ui.components.media-browser.file_management.rename"
+        `ui.components.media-browser.file_management.${
+          isFolder ? "rename" : "edit_name"
+        }`
       ),
       inputLabel: this._localize(
         "ui.components.media-browser.file_management.new_name"
@@ -732,18 +895,67 @@ class DialogMediaManage extends LitElement {
     if (name === null || name === undefined || name === item.title) {
       return;
     }
-    if (!isValidMediaName(name)) {
+    let valid = isValidMediaName(name);
+    if (this._isImages) {
+      valid = isFolder ? isValidImageFolderName(name) : isValidImageName(name);
+    }
+    if (!valid) {
       this._showFailure("action_failed", { code: "invalid_name" });
       return;
     }
-    await this._run(() =>
-      renameLocalMedia(this._api.callWS, item.media_content_id, name)
+    // A name that is taken is refused here too; the server refuses it as well
+    const siblings = (this._currentItem?.children || []).map(
+      (child) => child.title
     );
+    if (nameTaken(name, siblings, item.title)) {
+      this._showFailure("action_failed", { code: "exists" });
+      return;
+    }
+    if (!isFolder && extensionChanged(item.title, name)) {
+      this._confirming = true;
+      let confirmed: boolean;
+      try {
+        confirmed = await showConfirmationDialog(this, {
+          text: this._localize(
+            "ui.components.media-browser.file_management.confirm_extension_change",
+            { from: item.title, to: name }
+          ),
+          warning: true,
+        });
+      } finally {
+        this._confirming = false;
+      }
+      if (!confirmed) {
+        return;
+      }
+    }
+    await this._run(() => {
+      if (this._isImages) {
+        return isFolder
+          ? renameImageFolder(
+              this._api.callWS,
+              imageFolderFromMediaId(item.media_content_id) ?? "",
+              name
+            )
+          : renameImage(
+              this._api.callWS,
+              getIdFromUrl(item.media_content_id) ?? "",
+              name
+            );
+      }
+      return renameLocalMedia(this._api.callWS, item.media_content_id, name);
+    });
   }
 
   private _handleRowAction(ev: HaDropdownSelectEvent) {
     const item = (ev.currentTarget as any).item as MediaPlayerItem;
     switch (ev.detail.item.value) {
+      case "download":
+        this._downloadItems([item]);
+        break;
+      case "convert":
+        this._convertItem(item);
+        break;
       case "rename":
         this._rename(item);
         break;
@@ -793,6 +1005,19 @@ class DialogMediaManage extends LitElement {
       return;
     }
     const destination = normalizeMediaFolderId(this._pickerId);
+    if (this._isImages) {
+      const imageDestination = this._pickerFolder;
+      this._moving = undefined;
+      this._pickerItem = undefined;
+      await this._run(() =>
+        moveImages(
+          this._api.callWS,
+          moving.map((item) => getIdFromUrl(item.media_content_id) ?? ""),
+          imageDestination
+        )
+      );
+      return;
+    }
     this._moving = undefined;
     this._pickerItem = undefined;
     let moved = 0;
@@ -833,6 +1058,10 @@ class DialogMediaManage extends LitElement {
 
   private async _delete(items: MediaPlayerItem[]) {
     if (!items.length || this._busy) {
+      return;
+    }
+    if (this._isImages && items.length === 1 && items[0].can_expand) {
+      await this._removeImageFolder(items[0]);
       return;
     }
     const folders = items.filter((item) => item.can_expand);
@@ -904,6 +1133,136 @@ class DialogMediaManage extends LitElement {
           }
         })
       );
+    });
+  }
+
+  // Removes a folder of the image store; its images move up, none is deleted
+  private async _removeImageFolder(item: MediaPlayerItem) {
+    const path = imageFolderFromMediaId(item.media_content_id) ?? "";
+    if (!path) {
+      return;
+    }
+    let images: number;
+    let folders: number;
+    this._working = true;
+    try {
+      const list = await listImageFolders(this._api.callWS);
+      const entry = list.folders.find((folder) => folder.path === path);
+      images = entry?.images ?? 0;
+      folders = entry?.folders ?? 0;
+    } catch (err) {
+      this._showFailure("action_failed", err);
+      return;
+    } finally {
+      this._working = false;
+    }
+    const hasContents = images > 0 || folders > 0;
+    this._confirming = true;
+    let confirmed: boolean;
+    try {
+      confirmed = await showConfirmationDialog(this, {
+        text: this._localize(
+          `ui.components.media-browser.file_management.${
+            hasContents
+              ? "confirm_remove_image_folder_contents"
+              : "confirm_remove_image_folder"
+          }`,
+          { name: item.title, images, folders }
+        ),
+        warning: true,
+      });
+    } finally {
+      this._confirming = false;
+    }
+    if (!confirmed) {
+      return;
+    }
+    await this._run(() =>
+      removeImageFolder(this._api.callWS, path, hasContents)
+    );
+  }
+
+  private _downloadSelected() {
+    this._downloadItems(this._selectedFiles());
+  }
+
+  // Saves one file as it is, or several together in one zip
+  private async _downloadItems(items: MediaPlayerItem[]) {
+    if (!items.length || this._busy) {
+      return;
+    }
+    const mgmt = "ui.components.media-browser.file_management";
+    this._working = true;
+    try {
+      if (items.length === 1) {
+        const file = await fetchItemFile(this._api, items[0]);
+        const prepared = await prepareSingleDownload(file, {
+          random: this._params?.random ?? Math.random,
+          schoolMode: getPersonalPreferences().schoolMode,
+          provider: dimSumDishProvider(this._api),
+          fetchPath: (path) => this._api.fetchWithAuth(path),
+        });
+        this._saveFile(prepared);
+        if (prepared.surprise) {
+          showToast(this, {
+            message: this._localize(`${mgmt}.download_surprise`, {
+              name: prepared.name,
+            }),
+            duration: 10000,
+            dismissable: true,
+          });
+        }
+        return;
+      }
+      const outcome = await zipSelection(items.length, (index) =>
+        fetchItemFile(this._api, items[index], MAX_ZIP_BYTES)
+      );
+      if (!outcome.ok) {
+        this._showTooLarge();
+        return;
+      }
+      this._saveFile(outcome.file);
+    } catch (err) {
+      if (err instanceof ItemFileError && err.code === "too_large") {
+        this._showTooLarge();
+      } else {
+        showAlertDialog(this, {
+          text: this._localize(`${mgmt}.download_failed`),
+        });
+      }
+    } finally {
+      this._working = false;
+    }
+  }
+
+  private _showTooLarge() {
+    showAlertDialog(this, {
+      text: this._localize(
+        "ui.components.media-browser.file_management.download_too_large",
+        { limit: formatBytes(MAX_ZIP_BYTES) }
+      ),
+    });
+  }
+
+  private _saveFile(file: DownloadFile) {
+    fileDownload(URL.createObjectURL(file.blob), file.name);
+  }
+
+  private _convertItem(item: MediaPlayerItem) {
+    const images = this._isImages;
+    showMediaConvertDialog(this, {
+      item,
+      store: images ? "image" : "media",
+      destination: images
+        ? this._imageFolder
+        : normalizeMediaFolderId(this._folderId),
+      existingNames: (this._currentItem?.children || []).map(
+        (child) => child.title
+      ),
+      onStored: () => {
+        this._changed();
+        void this._refreshMedia();
+      },
     });
   }
 

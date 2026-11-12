@@ -23,6 +23,8 @@ from homeassistant.helpers.typing import ConfigType, VolDictType
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, FOLDER_IMAGE
+from .folder_commands import async_register_folder_commands
+from .folders import FolderError, ImageFolders
 
 _LOGGER = logging.getLogger(__name__)
 STORAGE_KEY = "image"
@@ -32,10 +34,12 @@ MAX_SIZE = 1024 * 1024 * 50
 
 CREATE_FIELDS: VolDictType = {
     probatio.Required("file"): FileField,
+    probatio.Optional("folder", default=""): str,
 }
 
 UPDATE_FIELDS: VolDictType = {
     probatio.Optional("name"): probatio.All(str, probatio.NonEmpty()),
+    probatio.Optional("folder"): str,
 }
 
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
@@ -51,6 +55,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     image_dir = pathlib.Path(hass.config.path(FOLDER_IMAGE))
     hass.data[DOMAIN] = storage_collection = ImageStorageCollection(hass, image_dir)
     await storage_collection.async_load()
+    async_register_folder_commands(hass)
     ImageUploadStorageCollectionWebsocket(
         storage_collection,
         "image",
@@ -77,12 +82,33 @@ class ImageStorageCollection(collection.DictStorageCollection):
         )
         self.async_add_listener(self._change_listener)
         self.image_dir = image_dir
+        self.folders = ImageFolders(hass, self)
+
+    @override
+    async def async_load(self) -> None:
+        """Load the images and the folders."""
+        await self.folders.async_load()
+        await super().async_load()
+        self.folders.async_adopt_image_folders()
+
+    @override
+    def _deserialize_item(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Give images stored before folders existed the root folder."""
+        return {"folder": "", **data}
+
+    def _checked_folder(self, folder: str) -> str:
+        """Return a folder that exists, or raise a validation error."""
+        try:
+            return self.folders.require(folder)
+        except FolderError as err:
+            raise probatio.Invalid(str(err)) from err
 
     @override
     async def _process_create_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate the config is valid."""
         data = self.CREATE_SCHEMA(dict(data))
         uploaded_file: FileField = data["file"]
+        self._checked_folder(data["folder"])
 
         if uploaded_file.content_type not in (
             "image/gif",
@@ -145,7 +171,10 @@ class ImageStorageCollection(collection.DictStorageCollection):
         update_data: dict[str, Any],
     ) -> dict[str, Any]:
         """Return a new updated data object."""
-        return {**item, **self.UPDATE_SCHEMA(update_data)}
+        updates = self.UPDATE_SCHEMA(update_data)
+        if "folder" in updates:
+            self._checked_folder(updates["folder"])
+        return {**item, **updates}
 
     async def _change_listener(
         self,

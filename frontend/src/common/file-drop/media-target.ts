@@ -1,4 +1,8 @@
 import {
+  imageFolderFromMediaId,
+  imageFolderMediaId,
+} from "../../data/image_upload";
+import {
   isImageUploadMediaSourceContentId,
   isLocalMediaSourceContentId,
   isMediaSourceRoot,
@@ -23,6 +27,10 @@ export interface MediaLocation {
   folderName?: string;
   /** True when the person is looking at the image store. */
   inImageStore: boolean;
+  /** The image store folder open in the Media browser, when one is. */
+  imageFolder?: string;
+  /** The name of that folder, for messages. */
+  imageFolderName?: string;
   /** The player the Media browser is using, kept when going back there. */
   player: string;
 }
@@ -56,7 +64,15 @@ export const mediaLocationFromPath = (pathname: string): MediaLocation => {
     return { inImageStore: false, player };
   }
   if (isImageUploadMediaSourceContentId(last.id)) {
-    return { inImageStore: true, player };
+    const imageFolder = imageFolderFromMediaId(last.id);
+    return imageFolder
+      ? {
+          inImageStore: true,
+          player,
+          imageFolder,
+          imageFolderName: imageFolder.split("/").pop(),
+        }
+      : { inImageStore: true, player };
   }
   if (!isLocalMediaSourceContentId(last.id) || isMediaSourceRoot(last.id)) {
     return { inImageStore: false, player };
@@ -96,6 +112,19 @@ export const mediaBrowserPathForFolder = (
   return path;
 };
 
-/** The Media browser address of the image store. */
-export const mediaBrowserPathForImages = (player: string): string =>
-  `/media-browser/${player}${level("app", IMAGE_SOURCE_ROOT)}`;
+/** The Media browser address of the image store, or of one of its folders. */
+export const mediaBrowserPathForImages = (
+  player: string,
+  folder?: string
+): string => {
+  let path = `/media-browser/${player}${level("app", IMAGE_SOURCE_ROOT)}`;
+  if (!folder) {
+    return path;
+  }
+  let current = "";
+  for (const segment of folder.split("/")) {
+    current = current ? `${current}/${segment}` : segment;
+    path += level("directory", imageFolderMediaId(current));
+  }
+  return path;
+};

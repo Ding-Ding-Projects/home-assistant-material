@@ -81,6 +81,28 @@ describe("the addresses the buttons open", () => {
     );
   });
 
+  it("opens an image folder one level at a time", () => {
+    expect(mediaBrowserPathForImages("browser", "Holiday/2026")).toBe(
+      `/media-browser/browser/${enc("app", "media-source://image_upload")}/${enc("directory", "media-source://image_upload/folder/Holiday")}/${enc("directory", "media-source://image_upload/folder/Holiday/2026")}`
+    );
+  });
+
+  it("round-trips an image folder", () => {
+    expect(
+      mediaLocationFromPath(
+        mediaBrowserPathForImages("browser", "Holiday/2026")
+      )
+    ).toEqual({
+      inImageStore: true,
+      player: "browser",
+      imageFolder: "Holiday/2026",
+      imageFolderName: "2026",
+    });
+    expect(mediaLocationFromPath(mediaBrowserPathForImages("browser"))).toEqual(
+      { inImageStore: true, player: "browser" }
+    );
+  });
+
   it("round-trips: the address of a folder reads back as that folder", () => {
     const id = "media-source://media_source/local/Photos/2026";
     expect(

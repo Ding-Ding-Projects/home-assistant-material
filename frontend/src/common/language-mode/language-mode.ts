@@ -21,10 +21,12 @@ import yueSource from "../../translations/yue-own.json";
 /** The translation blocks the Cantonese source covers. */
 export const YUE_PREFIXES = [
   "ui.panel.config.personal.",
+  "ui.dim_sum.",
   "ui.phone.",
   "ui.locks.",
   "ui.personal_wording.",
   "ui.drop_upload.",
+  "ui.components.media-browser.file_management.",
   "ui.personal_prefs.",
   "ui.page_tabs.",
   "ui.dialogs.quick-bar.",

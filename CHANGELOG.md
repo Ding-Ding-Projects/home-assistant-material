@@ -39,6 +39,20 @@ day can hold several releases. The interface shows this list under Settings, Abo
   picker and follows the same path as a drop. Pasting a picture, video or audio file on a page
   does the same, except inside text fields and editors. The toolbar entry and paste were seen at
   phone width in a local build; the Pages sheet entry was not.
+- New: the image store has folders. From Manage in the Media page: New folder, open with a
+  breadcrumb, rename, move images, remove a folder (its images move up, none is deleted). Image
+  addresses do not change, so pictures used by people, areas and dashboards keep working. Uploads
+  go into the folder being looked at.
+- New: in Manage, for media and images: download an item, download a selection as one zip (up to
+  200 MB), edit a name (a taken name is refused), and convert an item with the built-in converter
+  into a new item beside the original. The image store keeps PNG and JPEG results only.
+- New: the dim sum surprise. One launch in ten shows a small card with one dish, its picture and
+  its name in English and Cantonese; it never takes focus and closes by itself. Personal settings
+  has its switch, which cannot be turned off. School mode hides all of it. One download in ten of
+  a single item arrives as a zip holding the file unchanged plus one dish picture, and says so.
+  Pictures come only from the public dim sum catalogue: the server fetches them with a plain
+  request that carries nothing about the instance and keeps them in its own storage. This is the
+  one feature that contacts an outside address.
 - New: when a repair fails, the repair dialog says so, and says separately when the failed repair
   left new issues behind.
 - Changed: in "full" hosting mode the checks that can never pass inside a container (no operating

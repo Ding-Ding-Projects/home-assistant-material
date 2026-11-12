@@ -577,6 +577,12 @@
             "default": "開。",
             "reach": "對有提供表情符號嘅對話框生效。而家係呢頁嘅還原對話框同呢度嘅預覽，其他對話框暫時未有。"
           },
+          "dim_sum": {
+            "label": "點心驚喜",
+            "description": "大約每十次開啟就有一次，會有一款點心過嚟打個招呼。佢唔會打擾你，過一陣會自己走。",
+            "default": "長開。",
+            "reach": "喺介面開啟時生效。首次設定、錯誤、更新、重新啟動、開住對話框同有未儲存嘅更改時唔會出現，學校模式開住時完全唔存在。佢閂唔到：開關會彈返開。每次要攞點心，都會向公開嘅點心相片目錄發出一個請求，唔會附帶任何可以認出呢個實例嘅資料。"
+          },
           "one_thing": {
             "label": "一次一件事",
             "description": "一次只展開一個摺疊面板：打開一個，旁邊其他嘅會自動收埋。",
@@ -772,6 +778,26 @@
             "confirm_view": "揀儀表板"
           }
         }
+      }
+    },
+    "dim_sum": {
+      "card_label": "點心驚喜",
+      "close": "關閉",
+      "announce": "點心驚喜：{name}。",
+      "photo_alt": "{name}嘅相",
+      "greeting": {
+        "level_1": "送你一款點心。",
+        "level_2": "呢度有一款點心俾你。",
+        "level_3": "有款點心過嚟打個招呼。",
+        "level_4": "睇下邊個嚟咗：一款點心。",
+        "level_5": "一款點心啱啱過嚟同你打招呼！"
+      },
+      "troll": {
+        "level_1": "點心驚喜閂唔到。",
+        "level_2": "點心驚喜閂唔到，開關會自動彈返開。",
+        "level_3": "唔好意思，點心驚喜閂唔到。",
+        "level_4": "好嘢嘗試。點心驚喜閂唔到㗎。",
+        "level_5": "好嘢嘗試。點心驚喜閂唔到㗎！"
       }
     },
     "personal_prefs": {
@@ -1105,7 +1131,9 @@
         "convert_failed": "{name} 被略過：轉換唔到（{reason}）。",
         "duplicate": "{name} 被略過：另一個擺低嘅檔案同名。",
         "exists": "{name} 被略過：已經有同名嘅檔案，冇替換任何嘢。"
-      }
+      },
+      "place_image_folder": "圖片，資料夾 {folder}",
+      "images_added_folder": "已加入 {count} 張圖片到資料夾 {folder}"
     },
     "personal_wording": {
       "title": "你嘅私人用字",
@@ -1924,6 +1952,71 @@
         "shortcut": "快速鍵：{keys}",
         "discard": "放棄更改",
         "save_failed": "儲存唔到：{message}"
+      },
+      "media-browser": {
+        "file_management": {
+          "title": "媒體管理",
+          "manage": "管理",
+          "no_items": "搵唔到媒體項目",
+          "location": "資料夾位置",
+          "folder": "資料夾",
+          "new_folder": "新增資料夾",
+          "folder_name": "資料夾名稱",
+          "create": "建立",
+          "rename": "改名",
+          "new_name": "新名稱",
+          "move": "移動",
+          "move_here": "移到呢度",
+          "move_to": "將 {count} 個項目移到：",
+          "no_folders": "呢度冇資料夾",
+          "actions": "{name} 嘅操作",
+          "delete_item": "刪除",
+          "confirm_delete_items": "要刪除 {count} 個項目嗎？",
+          "confirm_delete_contents": "將會刪除 {count} 個項目，包括 {nonempty} 個資料夾入面嘅所有嘢：{files} 個檔案同 {subfolders} 個子資料夾。呢個操作無法還原。",
+          "action_failed": "做唔到：{reason}",
+          "error_exists": "已經有同名嘅項目。",
+          "error_invalid_name": "呢個名用唔到。唔好用斜線、開頭嘅點同控制字元。",
+          "error_not_found": "項目已經唔存在。",
+          "error_not_empty": "資料夾唔係空嘅。",
+          "error_not_allowed": "呢度唔准咁做。",
+          "error_changed": "你確認之後資料夾有變動。請再刪除一次，睇下而家入面有咩。",
+          "error_unknown": "伺服器做唔到。請睇 Home Assistant 記錄了解詳情。",
+          "partly_moved": "停低之前已移動 {moved} / {total} 個項目：{reason}",
+          "highlight_button": "撳呢度上載你第一個媒體",
+          "upload_failed": "上載失敗：{reason}",
+          "add_media": "加入媒體",
+          "uploading": "上載緊 {count} 個檔案",
+          "confirm_delete": "要刪除 {count} 個檔案嗎？",
+          "delete": "刪除 {count} 個",
+          "deleting": "刪除緊 {count} 個",
+          "deselect_all": "全部取消選擇",
+          "select_all": "全選",
+          "tip_media_storage": "你可以喺 {storage} 面板為 Home Assistant 加更多儲存空間。",
+          "tip_storage_panel": "儲存",
+          "download": "下載",
+          "download_zip": "下載 {count} 個（壓縮檔）",
+          "edit_name": "修改名稱",
+          "convert": "轉換",
+          "convert_title": "轉換檔案",
+          "convert_to": "轉換成",
+          "convert_result_name": "新檔案會叫做 {name}。",
+          "convert_original_kept": "原本嘅檔案保持不變。",
+          "convert_image_store": "只提供圖片庫儲存到嘅圖片類型：PNG 同 JPEG。",
+          "convert_unsupported": "呢度轉換唔到呢個檔案。淨係圖片、聲音同影片可以。",
+          "convert_no_targets": "呢度冇可以轉換成嘅格式。",
+          "convert_read_failed": "讀唔到呢個檔案。",
+          "convert_name_taken": "呢度已經有個檔案叫 {name}，所以冇轉換。",
+          "convert_too_large": "轉換後嘅檔案超過 {limit} 上限，所以冇儲存。",
+          "convert_done": "已將 {name} 存喺原本檔案旁邊。",
+          "confirm_extension_change": "名稱嘅結尾由 {from} 變成 {to}。檔案本身唔會變。仍然要改名嗎？",
+          "confirm_remove_image_folder": "要移除資料夾 {name} 嗎？",
+          "confirm_remove_image_folder_contents": "要移除資料夾 {name} 嗎？入面 {images} 張圖片同 {folders} 個資料夾會移上一層。唔會刪除任何圖片。",
+          "download_surprise": "今次下載係一個壓縮檔 {name}，入面有一張點心相。你嘅檔案原封不動喺入面。",
+          "download_failed": "下載唔到呢個檔案。",
+          "download_too_large": "所選檔案加埋超過 {limit}。請揀少啲，或者逐個下載。",
+          "error_too_deep": "資料夾嵌套唔可以咁深。",
+          "remove_folder": "移除資料夾"
+        }
       }
     }
   }

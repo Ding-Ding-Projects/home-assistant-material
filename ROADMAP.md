@@ -221,7 +221,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       cloud-stored backup's location name, one entity filter)
 - [ ] Cantonese for eight more blocks, with a test that keeps them complete. Built; not seen
 - [ ] Renaming the app and logo customization. Built; not yet seen in a running build
-- [ ] Dim sum surprise (built only in the Deploy Assistant)
+- [x] Dim sum surprise: card at start with a dish from the public catalogue, always-on switch that springs back, hidden in School mode. Seen in a development build with the draw forced; the busy-moment rules (dialog, unsaved changes, connection down, update, error screen) are unit-tested, not seen
 
 ## Appearance
 

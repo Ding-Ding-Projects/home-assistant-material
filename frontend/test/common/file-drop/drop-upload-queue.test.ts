@@ -236,6 +236,50 @@ describe("uploading a drop", () => {
   });
 });
 
+describe("pictures dropped on an image folder", () => {
+  it("go into that folder, and the address opens it", async () => {
+    const h = harness({});
+    h.queue.enqueue(
+      job([makeFile("a.png")], {
+        target: "image",
+        location: {
+          inImageStore: true,
+          player: "browser",
+          imageFolder: "Holiday/2026",
+          imageFolderName: "2026",
+        },
+      })
+    );
+    await settle(h.queue);
+    expect(h.api.image).toHaveBeenCalledTimes(1);
+    expect((h.api.image as any).mock.calls[0][5]).toBe("Holiday/2026");
+    expect(h.toasts[0].message).toContain("ui.drop_upload.images_added_folder");
+    h.toasts[0].action!.action();
+    expect(h.navigated[0]).toContain(
+      encodeURIComponent(
+        "directory,media-source://image_upload/folder/Holiday/2026"
+      )
+    );
+  });
+
+  it("tells an open Media browser that images were added", async () => {
+    const h = harness({});
+    const changed = vi.fn();
+    window.addEventListener(MEDIA_LIBRARY_CHANGED_EVENT, changed);
+    h.queue.enqueue(job([makeFile("a.png")], { target: "image" }));
+    await settle(h.queue);
+    window.removeEventListener(MEDIA_LIBRARY_CHANGED_EVENT, changed);
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it("go to the top level without a folder", async () => {
+    const h = harness({});
+    h.queue.enqueue(job([makeFile("a.png")], { target: "image" }));
+    await settle(h.queue);
+    expect((h.api.image as any).mock.calls[0][5]).toBeUndefined();
+  });
+});
+
 describe("several drops", () => {
   it("wait their turn and each gets its own tray entry", async () => {
     let release!: () => void;

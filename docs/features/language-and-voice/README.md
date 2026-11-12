@@ -7,6 +7,7 @@
 | [`school-and-attention-modes.md`](school-and-attention-modes.md) | School mode, one thing at a time, attention modes | Built, not yet seen in a running build |
 
 | [`schedules-and-shared-defaults.md`](schedules-and-shared-defaults.md) | Time rules for personal settings, defaults an administrator sets for everyone | Partly built (not seen) |
+| [`dim-sum-surprise.md`](dim-sum-surprise.md) | A dim sum dish that sometimes drops by at start, always on, from the public photo catalogue | Built and seen in a development build (draw forced) |
 | [`saved-on-the-instance.md`](saved-on-the-instance.md) | Appearance and personal wording saved on the instance for the signed-in account | Built, not yet seen in a running build |
 
 All of these are choices on Settings, Personal settings (`frontend/src/panels/config/personal/`),

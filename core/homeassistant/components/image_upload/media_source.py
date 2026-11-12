@@ -16,6 +16,9 @@ from homeassistant.components.media_source import (
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, FOLDER_IMAGE
+from .folders import ImageFolders, name_of, parent_of
+
+FOLDER_PREFIX = "folder"
 
 
 async def async_get_media_source(hass: HomeAssistant) -> ImageUploadMediaSource:
@@ -58,10 +61,29 @@ class ImageUploadMediaSource(MediaSource):
         item: MediaSourceItem,
     ) -> BrowseMediaSource:
         """Return media."""
-        if item.identifier:
-            raise BrowseError("Unknown item")
+        collection = self.hass.data[DOMAIN]
+        folders: ImageFolders = collection.folders
 
-        children = [
+        folder = ""
+        if item.identifier:
+            prefix, _, folder = item.identifier.partition("/")
+            if prefix != FOLDER_PREFIX or not folders.exists(folder) or not folder:
+                raise BrowseError("Unknown item")
+
+        subfolders = [
+            BrowseMediaSource(
+                domain=DOMAIN,
+                identifier=f"{FOLDER_PREFIX}/{path}",
+                media_class=MediaClass.DIRECTORY,
+                media_content_type="",
+                title=name_of(path),
+                can_play=False,
+                can_expand=True,
+            )
+            for path in sorted(folders.async_list_paths(), key=str.casefold)
+            if parent_of(path) == folder
+        ]
+        images = [
             BrowseMediaSource(
                 domain=DOMAIN,
                 identifier=image["id"],
@@ -72,17 +94,18 @@ class ImageUploadMediaSource(MediaSource):
                 can_play=True,
                 can_expand=False,
             )
-            for image in self.hass.data[DOMAIN].data.values()
+            for image in collection.data.values()
+            if image.get("folder", "") == folder
         ]
 
         return BrowseMediaSource(
             domain=DOMAIN,
-            identifier=None,
-            media_class=MediaClass.APP,
+            identifier=f"{FOLDER_PREFIX}/{folder}" if folder else None,
+            media_class=MediaClass.DIRECTORY if folder else MediaClass.APP,
             media_content_type="",
-            title="Image upload",
+            title=name_of(folder) if folder else "Image upload",
             can_play=False,
             can_expand=True,
             children_media_class=MediaClass.IMAGE,
-            children=children,
+            children=[*subfolders, *images],
         )

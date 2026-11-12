@@ -134,6 +134,7 @@ import {
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
+import { dimSumSwitchOutcome } from "../../../common/dim-sum/dim-sum-switch";
 import { pickCurrentGroup } from "./current-group";
 import { showToast } from "../../../util/toast";
 
@@ -226,6 +227,11 @@ export class HaConfigSectionPersonal extends LitElement {
   @state() private _sampleFailed = false;
 
   private _voiceTimer?: number;
+
+  /** True while the message that the dim sum surprise stays on is showing. */
+  @state() private _dimSumNote = false;
+
+  private _dimSumTimer?: number;
 
   /** The group whose card is in view, marked in the group list. */
   @state() private _currentGroup?: string;
@@ -392,6 +398,7 @@ export class HaConfigSectionPersonal extends LitElement {
       this._preferencesNotSaved
     );
     window.clearTimeout(this._voiceTimer);
+    window.clearTimeout(this._dimSumTimer);
     this._groupObserver?.disconnect();
     this._groupObserver = undefined;
     this._observedKey = "";
@@ -593,7 +600,14 @@ export class HaConfigSectionPersonal extends LitElement {
     });
   };
 
+  /** The rows to show: the dim sum switch is not present while School mode is on. */
   private _rows(): Row[] {
+    return this._allRows().filter(
+      (row) => !(row.id === "dim_sum" && this._prefs.schoolMode)
+    );
+  }
+
+  private _allRows(): Row[] {
     const p = this._prefs;
     const d = getPreferenceDefaults();
     const held = schoolHeldFields(p);
@@ -718,6 +732,26 @@ export class HaConfigSectionPersonal extends LitElement {
           (ev) => this._change({ dialogEmojis: ev.target.checked }),
           held.has("dialogEmojis")
         ),
+      },
+      {
+        id: "dim_sum",
+        group: "language",
+        label: this._t("dim_sum.label"),
+        description: this._tl("dim_sum.description"),
+        defaultText: this._t("dim_sum.default"),
+        reach: this._tl("dim_sum.reach"),
+        active: true,
+        valueText: this._onOff(true),
+        // There is nothing to choose and nothing to reset: it is always on.
+        isDefault: true,
+        reset: () => undefined,
+        control: html`${toggle(
+            true,
+            this._t("dim_sum.label"),
+            this._dimSumSwitch
+          )}<span class="silent" role="status"
+            >${this._dimSumNote ? this._play("ui.dim_sum.troll") : ""}</span
+          >`,
       },
       {
         id: "one_thing",
@@ -1904,6 +1938,29 @@ export class HaConfigSectionPersonal extends LitElement {
       playActionCue(cue);
     }
   }
+
+  /** The surprise cannot be turned off: the switch slides back on. Nothing is stored. */
+  private _dimSumSwitch = (ev: HASSDomTargetEvent<HaSwitch>) => {
+    const outcome = dimSumSwitchOutcome(ev.target.checked);
+    if (!outcome.showNote) {
+      return;
+    }
+    const target = ev.target;
+    const springBack = () => {
+      target.checked = outcome.checked;
+    };
+    if (this._reduceMotion) {
+      springBack();
+    } else {
+      window.setTimeout(springBack, 250);
+    }
+    this._dimSumNote = true;
+    playActionCue("refused");
+    window.clearTimeout(this._dimSumTimer);
+    this._dimSumTimer = window.setTimeout(() => {
+      this._dimSumNote = false;
+    }, 6000);
+  };
 
   private _playSample = () => {
     playActionCue("sample");

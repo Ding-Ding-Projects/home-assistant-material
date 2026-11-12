@@ -81,7 +81,8 @@ export interface UploadApi {
     localize: LocalizeFunc,
     file: File,
     signal?: AbortSignal,
-    progress?: UploadProgress
+    progress?: UploadProgress,
+    folder?: string
   ) => Promise<unknown>;
   browse: typeof browseLocalMediaPlayer;
   convert: PictureConverter;
@@ -95,13 +96,19 @@ const defaultApi: UploadApi = {
           onProgress: progress.onProgress,
         })
       : uploadLocalMedia(fetchWithAuth, localize, folderId, file, signal),
-  image: (fetchWithAuth, localize, file, signal, progress) =>
+  image: (fetchWithAuth, localize, file, signal, progress, folder) =>
     progress
-      ? createImageWithProgress(progress.hass, localize, file, {
-          signal,
-          onProgress: progress.onProgress,
-        })
-      : createImage(fetchWithAuth, localize, file, signal),
+      ? createImageWithProgress(
+          progress.hass,
+          localize,
+          file,
+          {
+            signal,
+            onProgress: progress.onProgress,
+          },
+          folder
+        )
+      : createImage(fetchWithAuth, localize, file, signal, folder),
   browse: browseLocalMediaPlayer,
   convert: convertImage,
 };
@@ -220,7 +227,11 @@ export class DropUploadQueue {
 
   private _placeName(job: DropUploadJob, localize: LocalizeFunc): string {
     if (job.target === "image") {
-      return localize("ui.drop_upload.place_images");
+      return job.location.imageFolderName
+        ? localize("ui.drop_upload.place_image_folder", {
+            folder: job.location.imageFolderName,
+          })
+        : localize("ui.drop_upload.place_images");
     }
     return job.location.folderName
       ? localize("ui.drop_upload.place_folder", {
@@ -232,7 +243,7 @@ export class DropUploadQueue {
   private _openPath(job: DropUploadJob, folderId?: string): string {
     const player = job.location.player;
     if (job.target === "image") {
-      return mediaBrowserPathForImages(player);
+      return mediaBrowserPathForImages(player, job.location.imageFolder);
     }
     const id = folderId ?? job.location.folderId ?? DEFAULT_MEDIA_DIRECTORY;
     return mediaBrowserPathForFolder(player, id);
@@ -380,7 +391,8 @@ export class DropUploadQueue {
                 localize,
                 file,
                 entry.controller.signal,
-                progress
+                progress,
+                job.location.imageFolder || undefined
               )
             : this._api.media(
                 hass.fetchWithAuth,
@@ -435,7 +447,8 @@ export class DropUploadQueue {
     const total = job.files.length;
     const openPath = this._openPath(job, folderId);
 
-    if (added.length > 0 && job.target === "media") {
+    // The Media browser and the Manage dialog show the new files, in either store
+    if (added.length > 0) {
       window.dispatchEvent(
         new CustomEvent(MEDIA_LIBRARY_CHANGED_EVENT, { detail: { folderId } })
       );
@@ -522,7 +535,12 @@ export class DropUploadQueue {
       });
     }
     if (job.target === "image") {
-      return localize("ui.drop_upload.images_added", { count: added.length });
+      return job.location.imageFolderName
+        ? localize("ui.drop_upload.images_added_folder", {
+            count: added.length,
+            folder: job.location.imageFolderName,
+          })
+        : localize("ui.drop_upload.images_added", { count: added.length });
     }
     const folder = job.location.folderName;
     if (added.length === 1) {

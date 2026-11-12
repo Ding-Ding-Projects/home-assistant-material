@@ -1665,12 +1665,12 @@
           "new_name": "New name",
           "move": "Move",
           "move_here": "Move here",
-          "move_to": "Move {count} {count, plural,\n  one {item}\n  other {items}\n} to:",
+          "move_to": "Move {count, plural,\n  one {# item}\n  other {# items}\n} to:",
           "no_folders": "There are no folders here",
           "actions": "Actions for {name}",
           "delete_item": "Delete",
-          "confirm_delete_items": "Do you want to delete {count} {count, plural,\n  one {item}\n  other {items}\n}?",
-          "confirm_delete_contents": "{count} {count, plural,\n  one {item}\n  other {items}\n} will be deleted, including everything inside {nonempty} {nonempty, plural,\n  one {folder}\n  other {folders}\n}: {files} {files, plural,\n  one {file}\n  other {files}\n} and {subfolders} {subfolders, plural,\n  one {subfolder}\n  other {subfolders}\n}. This cannot be undone.",
+          "confirm_delete_items": "Do you want to delete {count, plural,\n  one {# item}\n  other {# items}\n}?",
+          "confirm_delete_contents": "{count, plural,\n  one {# item}\n  other {# items}\n} will be deleted, including everything inside {nonempty, plural,\n  one {# folder}\n  other {# folders}\n}: {files, plural,\n  one {# file}\n  other {# files}\n} and {subfolders, plural,\n  one {# subfolder}\n  other {# subfolders}\n}. This cannot be undone.",
           "action_failed": "That did not work: {reason}",
           "error_exists": "An item with that name already exists.",
           "error_invalid_name": "That name cannot be used. Avoid slashes, dots at the start, and control characters.",
@@ -1681,10 +1681,33 @@
           "error_unknown": "The server could not do that. Check the Home Assistant log for details.",
           "partly_moved": "{moved} of {total} items were moved before it stopped: {reason}",
           "highlight_button": "Click here to upload your first media",
+          "download": "Download",
+          "remove_folder": "Remove folder",
+          "download_zip": "Download {count} as zip",
+          "edit_name": "Edit name",
+          "convert": "Convert",
+          "convert_title": "Convert file",
+          "convert_to": "Convert to",
+          "convert_result_name": "The new file will be called {name}.",
+          "convert_original_kept": "The original stays as it is.",
+          "convert_image_store": "Only picture types the image store can keep are offered: PNG and JPEG.",
+          "convert_unsupported": "This file cannot be converted here. Only pictures, sound and video can.",
+          "convert_no_targets": "There is no format to convert this file to here.",
+          "convert_read_failed": "This file could not be read.",
+          "convert_name_taken": "A file called {name} already exists here, so nothing was converted.",
+          "convert_too_large": "The converted file is over the limit of {limit}, so it was not stored.",
+          "convert_done": "Stored {name} next to the original.",
+          "confirm_extension_change": "The ending of the name changes from {from} to {to}. The file itself does not change. Rename it anyway?",
+          "confirm_remove_image_folder": "Remove the folder {name}?",
+          "confirm_remove_image_folder_contents": "Remove the folder {name}? Its {images, plural, one {# image} other {# images}} and {folders, plural, one {# folder} other {# folders}} move up to the folder above. No image is deleted.",
+          "download_surprise": "This download came as a zip file, {name}, with a dim sum picture inside. Your file is in it, unchanged.",
+          "download_failed": "The file could not be downloaded.",
+          "download_too_large": "The selected files add up to more than {limit}. Select fewer files, or download them one at a time.",
+          "error_too_deep": "Folders cannot be nested this deeply.",
           "upload_failed": "Upload failed: {reason}",
           "add_media": "Add media",
-          "uploading": "Uploading {count} {count, plural,\n  one {file}\n  other {files}\n}",
-          "confirm_delete": "Do you want to delete {count} {count, plural,\n  one {file}\n  other {files}\n}?",
+          "uploading": "Uploading {count, plural,\n  one {# file}\n  other {# files}\n}",
+          "confirm_delete": "Do you want to delete {count, plural,\n  one {# file}\n  other {# files}\n}?",
           "delete": "Delete {count}",
           "deleting": "Deleting {count}",
           "deselect_all": "Deselect all",
@@ -3968,6 +3991,26 @@
         "timeout": "The pattern took too long on this list and was stopped."
       }
     },
+    "dim_sum": {
+      "card_label": "Dim sum surprise",
+      "close": "Close",
+      "announce": "Dim sum surprise: {name}.",
+      "photo_alt": "Photograph of {name}",
+      "greeting": {
+        "level_1": "A dim sum dish for you.",
+        "level_2": "Here is a dim sum dish for you.",
+        "level_3": "A dim sum dish dropped by to say hello.",
+        "level_4": "Look who dropped by: a dim sum dish.",
+        "level_5": "A dim sum dish just dropped by to say hello!"
+      },
+      "troll": {
+        "level_1": "The dim sum surprise cannot be turned off.",
+        "level_2": "The dim sum surprise cannot be turned off. The switch stays on.",
+        "level_3": "Sorry, the dim sum surprise cannot be turned off.",
+        "level_4": "Nice try. The dim sum surprise cannot be turned off.",
+        "level_5": "Nice try. Dim sum surprise cannot be turned off."
+      }
+    },
     "personal_prefs": {
       "playful": {
         "restart_demo": {
@@ -4057,6 +4100,7 @@
       },
       "place_media": "Media",
       "place_images": "Images",
+      "place_image_folder": "Images, folder {folder}",
       "place_folder": "Media, folder {folder}",
       "activity_title": "Adding {count, plural, one {# file} other {# files}} to {place}",
       "activity_waiting": "Waiting for the earlier upload",
@@ -4069,6 +4113,7 @@
       "failed": "{name} was not added: {reason}.",
       "some_added": "{added} of {total} files added to {place}",
       "images_added": "{count, plural, one {Image added} other {# images added}}",
+      "images_added_folder": "{count, plural, one {Image added to folder {folder}} other {# images added to folder {folder}}}",
       "file_added": "{name} added to Media",
       "file_added_folder": "{name} added to Media, folder {folder}",
       "files_added": "{count} files added to Media",
@@ -13997,6 +14042,12 @@
             "description": "One fitting emoji per dialog that provides one. Never in buttons, labels or screen reader names.",
             "default": "On.",
             "reach": "Active in dialogs that supply an emoji. Today that is the reset dialogs on this page and the preview here; other dialogs have none yet."
+          },
+          "dim_sum": {
+            "label": "Dim sum surprise",
+            "description": "About one start in ten, a dim sum dish drops by to say hello. It never interrupts, and it leaves by itself.",
+            "default": "Always on.",
+            "reach": "Active when the interface starts. It stays out of first-run setup, errors, updates, restarts, open dialogs and unsaved changes, and is not present at all while School mode is on. It cannot be turned off: the switch springs back on. Each time it shows, one request goes to the public dim sum photo catalogue, with nothing that identifies this instance."
           },
           "one_thing": {
             "label": "One thing at a time",

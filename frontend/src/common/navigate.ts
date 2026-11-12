@@ -108,6 +108,9 @@ export const unregisterUnsavedChangesGuard = (guard: UnsavedChangesGuard) => {
 const dirtyGuards = (): UnsavedChangesGuard[] =>
   [...unsavedChangesGuards].filter((guard) => guard.isDirty());
 
+/** True while a registered page holds changes that are not saved. */
+export const hasUnsavedChanges = (): boolean => dirtyGuards().length > 0;
+
 let pendingUnsavedPrompt: Promise<boolean> | undefined;
 
 /**

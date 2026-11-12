@@ -8,7 +8,7 @@ import { fireEvent } from "../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import { apiContext } from "../../data/context";
 import type { MediaPlayerItem } from "../../data/media-player";
-import { createImage } from "../../data/image_upload";
+import { createImage, imageFolderFromMediaId } from "../../data/image_upload";
 import {
   isImageUploadMediaSourceContentId,
   isLocalMediaSourceContentId,
@@ -128,7 +128,13 @@ class MediaUploadButton extends LitElement {
       try {
         // eslint-disable-next-line no-await-in-loop
         await (kind === "image"
-          ? createImage(this._api.fetchWithAuth, this._localize, files[i])
+          ? createImage(
+              this._api.fetchWithAuth,
+              this._localize,
+              files[i],
+              undefined,
+              imageFolderFromMediaId(target) || undefined
+            )
           : uploadLocalMedia(
               this._api.fetchWithAuth,
               this._localize,

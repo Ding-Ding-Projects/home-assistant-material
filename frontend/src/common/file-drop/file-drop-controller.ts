@@ -31,6 +31,8 @@ import {
 import { DropUploadQueue } from "./drop-upload-queue";
 import type { DropUploadJob } from "./drop-upload-queue";
 import { mediaLocationFromPath } from "./media-target";
+import type { MediaLocation } from "./media-target";
+import type { LocalizeFunc } from "../translations/localize";
 
 export interface FileDropHost {
   hass?: HomeAssistant;
@@ -42,6 +44,17 @@ const HIDE_AFTER_MS = 500;
 
 /** A drag that leaves the window ends quickly, without waiting for a timeout. */
 const LEAVE_HIDE_MS = 120;
+
+/** What the image zone is called: the image folder open in the browser, or the store. */
+const imagePlaceName = (
+  location: MediaLocation,
+  localize: LocalizeFunc
+): string =>
+  location.imageFolderName
+    ? localize("ui.drop_upload.place_image_folder", {
+        folder: location.imageFolderName,
+      })
+    : localize("ui.drop_upload.place_images");
 
 const hasFiles = (ev: DragEvent): boolean =>
   Boolean(ev.dataTransfer?.types.includes("Files"));
@@ -200,6 +213,7 @@ export class FileDropController {
     const place = location.folderName
       ? localize("ui.drop_upload.place_folder", { folder: location.folderName })
       : localize("ui.drop_upload.place_media");
+    const imagePlace = imagePlaceName(location, localize);
 
     if (!this._overlay) {
       this._overlay = document.createElement("ha-drop-upload-overlay");
@@ -218,10 +232,7 @@ export class FileDropController {
       description.total > 0
         ? localize("ui.drop_upload.overlay_summary", {
             count: description.total,
-            place:
-              defaultZone === "image"
-                ? localize("ui.drop_upload.place_images")
-                : place,
+            place: defaultZone === "image" ? imagePlace : place,
           })
         : place;
     const notes: string[] = [];
@@ -241,13 +252,20 @@ export class FileDropController {
     }
     overlay.note = notes.join(" ");
     overlay.defaultZone = defaultZone;
-    overlay.zones = this._zones(hass, place, offerImages, defaultZone);
+    overlay.zones = this._zones(
+      hass,
+      place,
+      imagePlace,
+      offerImages,
+      defaultZone
+    );
     overlay.active = overlay.zoneAt(ev.clientX, ev.clientY);
   }
 
   private _zones(
     hass: HomeAssistant,
     place: string,
+    imagePlace: string,
     offerImages: boolean,
     defaultZone: DropZone
   ): DropUploadZone[] {
@@ -265,7 +283,7 @@ export class FileDropController {
         ? [
             {
               id: "image" as const,
-              title: localize("ui.drop_upload.place_images"),
+              title: imagePlace,
               hint: localize("ui.drop_upload.zone_images_hint", {
                 limit: formatBytes(IMAGE_MAX_BYTES),
               }),
@@ -363,7 +381,13 @@ export class FileDropController {
     sheet.heading = localize("ui.drop_upload.sheet_heading");
     sheet.summary = localize("ui.drop_upload.sheet_summary", { count });
     sheet.cancelLabel = localize("ui.common.cancel");
-    sheet.zones = this._zones(hass, place, true, defaultZone);
+    sheet.zones = this._zones(
+      hass,
+      place,
+      imagePlaceName(location, localize),
+      true,
+      defaultZone
+    );
     this._sheet = sheet;
     document.body.append(sheet);
     try {

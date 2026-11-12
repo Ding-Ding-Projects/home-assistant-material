@@ -224,6 +224,7 @@ DEFAULT_INTEGRATIONS = {
     "application_credentials",
     "backup",
     "brands",
+    "dim_sum",
     "frontend",
     "google_setup",
     "guided_setup",
