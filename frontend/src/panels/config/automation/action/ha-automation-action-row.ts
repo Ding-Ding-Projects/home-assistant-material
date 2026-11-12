@@ -33,6 +33,12 @@ import "../trigger/ha-automation-trigger-references";
 import { targetExpandGroupContext } from "../../../../components/target-picker/target-expand-group-context";
 import { ensureArray } from "../../../../common/array/ensure-array";
 import { storage } from "../../../../common/decorators/storage";
+import {
+  detectMissingEntities,
+  releaseTarget,
+} from "../../../../common/problems/entity-detector";
+import { configKey } from "../../../../common/problems/missing-entities";
+import { clearProblem } from "../../../../common/problems/problem-store";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { preventDefaultStopPropagation } from "../../../../common/dom/prevent_default_stop_propagation";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
@@ -281,6 +287,9 @@ export default class HaAutomationActionRow extends LitElement {
 
   protected updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
+    if (changedProperties.has("action") || changedProperties.has("hass")) {
+      this._detectProblems();
+    }
     // Controller updates (trigger selection, ID migration, or cleanup) bypass the
     // sidebar's save callback. Refresh its snapshot unless it already has this
     // action, so ordinary sidebar edits do not reopen it and disrupt focus.
@@ -294,8 +303,60 @@ export default class HaAutomationActionRow extends LitElement {
     }
   }
 
+  private _problemId?: string;
+
+  /**
+   * Tells the problem detector when this step names entities that are gone.
+   * Only the step's own fields count: nested steps report for themselves.
+   */
+  private _detectProblems() {
+    if (!this.hass || !this.action) {
+      return;
+    }
+    const {
+      sequence: _sequence,
+      choose: _choose,
+      then: _then,
+      else: _else,
+      default: _default,
+      parallel: _parallel,
+      ...own
+    } = this.action as Record<string, unknown>;
+    const id = `automation-step:${window.location.pathname}:${configKey(own)}`;
+    if (this._problemId && this._problemId !== id) {
+      releaseTarget(this._problemId, this);
+      clearProblem(this._problemId);
+    }
+    this._problemId = id;
+    if (this.action.enabled === false) {
+      releaseTarget(id, this);
+      clearProblem(id);
+      return;
+    }
+    const localize = this.hass.localize;
+    const type = getAutomationActionType(this.action);
+    detectMissingEntities({
+      id,
+      element: this,
+      config: own,
+      hass: this.hass,
+      source: "automation-step",
+      location: localize("ui.problems.location.step", {
+        step: this.action.alias || type || "",
+      }),
+      manualSteps: [
+        localize("ui.problems.missing_entity.step_step_device"),
+        localize("ui.problems.missing_entity.step_step_pick"),
+        localize("ui.problems.missing_entity.step_step_save"),
+      ],
+      fix: () => this._onDisable(),
+      fixLabel: localize("ui.problems.missing_entity.step_fix"),
+    });
+  }
+
   public disconnectedCallback() {
     super.disconnectedCallback();
+    releaseTarget(this._problemId, this);
 
     if (this._runResultTimeout) {
       clearTimeout(this._runResultTimeout);

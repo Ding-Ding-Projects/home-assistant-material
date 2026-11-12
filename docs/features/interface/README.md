@@ -16,3 +16,4 @@
 | [`context-menu-entries.md`](context-menu-entries.md) | Context menu entries for what was clicked | Built, not yet seen in a running build |
 | [`media-folder-management.md`](media-folder-management.md) | Create, open, rename, move and delete media folders in the Manage dialog | Built, not yet seen in a running build |
 | [`screens-and-pages.md`](screens-and-pages.md) | Status screens, not-found screen, maintenance, name and logo, release notes, backups encryption default | Built, not yet seen in a running build |
+| [`problem-detector.md`](problem-detector.md) | Problem detector: outline and badge on the exact element, Fix, steps by hand, Repairs list with Teleport | Built, not yet seen in a running build |
