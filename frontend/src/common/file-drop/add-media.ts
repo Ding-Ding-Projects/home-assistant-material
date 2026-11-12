@@ -1,4 +1,5 @@
 import type { DropZone } from "./drop-routing";
+import { withMediaType } from "./media-file-type";
 
 /** What the window's file controller offers to the rest of the interface. */
 export interface AddMediaHandler {
@@ -17,8 +18,13 @@ export const registerAddMediaHandler = (
 /** True while the window can take files, so an entry point can be shown. */
 export const canAddMedia = (): boolean => handler !== undefined;
 
-/** The file types the system picker offers. */
-export const MEDIA_ACCEPT = "image/*,video/*,audio/*";
+/**
+ * The file types the system picker offers: none named, so every file can be
+ * chosen. A phone greys out any file it cannot play itself (Ogg audio, for
+ * one) when the picker is limited to media types, although the upload takes
+ * it. What is not media is turned away after it is chosen.
+ */
+export const MEDIA_ACCEPT = "";
 
 /** Opens the system file picker and resolves with what was chosen, or nothing. */
 export const openMediaFilePicker = (): Promise<File[]> =>
@@ -26,14 +32,16 @@ export const openMediaFilePicker = (): Promise<File[]> =>
     const input = document.createElement("input");
     input.type = "file";
     input.multiple = true;
-    input.accept = MEDIA_ACCEPT;
+    if (MEDIA_ACCEPT) {
+      input.accept = MEDIA_ACCEPT;
+    }
     input.hidden = true;
     const finish = (files: File[]) => {
       input.remove();
       resolve(files);
     };
     input.addEventListener("change", () =>
-      finish(Array.from(input.files ?? []))
+      finish(Array.from(input.files ?? []).map(withMediaType))
     );
     input.addEventListener("cancel", () => finish([]));
     document.body.append(input);

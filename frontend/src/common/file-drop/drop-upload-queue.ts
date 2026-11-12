@@ -560,7 +560,7 @@ export class DropUploadQueue {
   }
 }
 
-const skipText = (file: SkippedFile, localize: LocalizeFunc): string => {
+export const skipText = (file: SkippedFile, localize: LocalizeFunc): string => {
   switch (file.reason) {
     case "too_large":
       return localize("ui.drop_upload.skip.too_large", {
@@ -589,7 +589,10 @@ const skipText = (file: SkippedFile, localize: LocalizeFunc): string => {
   }
 };
 
-const warningText = (lines: string[], localize: LocalizeFunc): string => {
+export const warningText = (
+  lines: string[],
+  localize: LocalizeFunc
+): string => {
   const shown = lines.slice(0, WARNING_LINES);
   const more = lines.length - shown.length;
   if (more > 0) {

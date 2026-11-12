@@ -26,6 +26,15 @@ product matching it.
     for hide many, undo of a hide and remove from group. Pin, move, single hide and the menu
     element itself stay separate on purpose, because their behaviour differs.
 
+- Batch 36: the media upload button let no Ogg file be chosen on an iPhone, because the file
+  field was limited to media types and the phone greys out what it cannot play itself. The
+  field now names no type, so every file can be chosen. A chosen file with no type gets one
+  from its name (the server refuses an upload without a media type). Files that are not
+  pictures, video or audio are refused in the interface before anything is sent, in one message
+  that names them; the rest of the choice still uploads. Chosen pictures get the conversion
+  dropped pictures already had. Audio and video are not converted. Unit tested only: not seen
+  in a browser, and not tried on a phone.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

@@ -3,6 +3,14 @@ import { mdiUpload } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
+import { convertImage } from "../../common/converter/image-convert";
+import { planChosenFiles } from "../../common/file-drop/chosen-files";
+import { convertPicture } from "../../common/file-drop/drop-convert";
+import {
+  convertedText,
+  skipText,
+  warningText,
+} from "../../common/file-drop/drop-upload-queue";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
 import { fireEvent } from "../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../common/translations/localize";
@@ -46,6 +54,10 @@ class MediaUploadButton extends LitElement {
     if (!this.currentItem || !kind) {
       return nothing;
     }
+    // No file type is named on the field: a phone greys out every file it
+    // cannot play itself (Ogg audio, for one) when the chooser is limited.
+    // What is not a picture, video or audio file is turned away after it is
+    // chosen, before anything is sent.
     // The file field lives here, next to the button, and is never
     // `display: none`: this button is used inside dialogs, and a field added
     // to the page body sits outside the open dialog, where the browser treats
@@ -56,7 +68,6 @@ class MediaUploadButton extends LitElement {
         multiple
         tabindex="-1"
         aria-hidden="true"
-        .accept=${kind === "image" ? "image/*" : "audio/*,video/*,image/*"}
         @change=${this._filesChosen}
       />
       <ha-button
@@ -111,27 +122,63 @@ class MediaUploadButton extends LitElement {
     const pressed = this._pressed;
     this._pressed = undefined;
     const kind = pressed?.kind;
-    const files = input?.files ? Array.from(input.files) : [];
+    const chosen = input?.files ? Array.from(input.files) : [];
     if (input) {
       // Lets the same file be chosen again later.
       input.value = "";
     }
-    if (!files.length || !kind || this._uploading > 0) {
+    if (!chosen.length || !kind || this._uploading > 0) {
+      return;
+    }
+    // The same rules as a dropped file: what is not a picture, video or audio
+    // file is not sent, and pictures the target cannot take are converted.
+    const plan = planChosenFiles(chosen, kind === "image" ? "image" : "media");
+    if (plan.skipped.length > 0) {
+      showAlertDialog(this, {
+        text: warningText(
+          plan.skipped.map((file) => skipText(file, this._localize)),
+          this._localize
+        ),
+      });
+    }
+    if (!plan.items.length) {
       return;
     }
     fireEvent(this, "uploading");
     const target = pressed!.id;
+    const notes: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      this._uploading = files.length - i;
+    for (let i = 0; i < plan.items.length; i++) {
+      this._uploading = plan.items.length - i;
+      let file = plan.items[i].file;
 
       try {
+        const conversion = plan.items[i].conversion;
+        if (conversion) {
+          // eslint-disable-next-line no-await-in-loop
+          const outcome = await convertPicture(file, conversion, convertImage);
+          if (!outcome.ok) {
+            notes.push(
+              skipText(
+                {
+                  name: file.name,
+                  reason: "convert_failed",
+                  detail: outcome.code,
+                },
+                this._localize
+              )
+            );
+            continue;
+          }
+          notes.push(convertedText(outcome.change, this._localize));
+          file = outcome.file;
+        }
         // eslint-disable-next-line no-await-in-loop
         await (kind === "image"
           ? createImage(
               this._api.fetchWithAuth,
               this._localize,
-              files[i],
+              file,
               undefined,
               imageFolderFromMediaId(target) || undefined
             )
@@ -139,7 +186,7 @@ class MediaUploadButton extends LitElement {
               this._api.fetchWithAuth,
               this._localize,
               target,
-              files[i]
+              file
             ));
       } catch (err: any) {
         showAlertDialog(this, {
@@ -155,6 +202,9 @@ class MediaUploadButton extends LitElement {
     }
     this._uploading = 0;
     fireEvent(this, "media-refresh");
+    if (notes.length > 0) {
+      showAlertDialog(this, { text: warningText(notes, this._localize) });
+    }
   }
 
   static styles = css`
