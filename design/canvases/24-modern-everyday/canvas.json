@@ -1,0 +1,335 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Everyday",
+  "launch": {
+    "view": "canvas",
+    "page": "everyday"
+  },
+  "pages": [
+    {
+      "id": "everyday",
+      "name": "Everyday: home, dashboards, map, history, media, rooms"
+    },
+    {
+      "id": "everyday-2",
+      "name": "Everyday: maintenance, profile, Assist, states, sign in, first run, about"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Home, light",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01EnergyDark.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Energy, dark",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Phone.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Home on a phone",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Dashboard.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "A dashboard of your own, with views",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01DashEdit.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dashboard, edit mode with the card editor",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01CardPicker.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Card picker",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Map.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Map, people and zones",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Activity.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Activity, the logbook",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01History.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "History, graphs and state timelines",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Media.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Media browser and player",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Todo.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "To-do lists",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Calendar.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Calendar, month view",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Lights.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Lights, every room at once",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Climate.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Climate, thermostat and rooms",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M01Security.dc.html": {
+      "x": 3312,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Security, alarm, locks and cameras",
+      "expand": "fill",
+      "page": "everyday"
+    },
+    "M02Maintenance.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Maintenance",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Panel.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "An app or web page inside the pane",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Profile.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Profile, general",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02ProfileSecurity.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Profile, security",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Assist.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Assist, typed and spoken",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Shortcuts.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Keyboard shortcuts",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02States.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Empty, lost and loading states",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02MyLink.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "A link from the web asks to open a page",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02SignIn.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Sign in, second step, and trusted devices",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Pi.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "First-run wizard on a Raspberry Pi",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02FirstRun.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "First run, all six steps",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Preparing.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "The preparing page, before the first start",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02About.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "About, provenance and updates",
+      "expand": "fill",
+      "page": "everyday-2"
+    },
+    "M02Provider.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Provider text rendered, and its empty state",
+      "expand": "fill",
+      "page": "everyday-2"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "M01EnergyDark.dc.html",
+    "M01Phone.dc.html",
+    "M01Dashboard.dc.html",
+    "M01DashEdit.dc.html",
+    "M01CardPicker.dc.html",
+    "M01Map.dc.html",
+    "M01Activity.dc.html",
+    "M01History.dc.html",
+    "M01Media.dc.html",
+    "M01Todo.dc.html",
+    "M01Calendar.dc.html",
+    "M01Lights.dc.html",
+    "M01Climate.dc.html",
+    "M01Security.dc.html",
+    "M02Maintenance.dc.html",
+    "M02Panel.dc.html",
+    "M02Profile.dc.html",
+    "M02ProfileSecurity.dc.html",
+    "M02Assist.dc.html",
+    "M02Shortcuts.dc.html",
+    "M02States.dc.html",
+    "M02MyLink.dc.html",
+    "M02SignIn.dc.html",
+    "M02Pi.dc.html",
+    "M02FirstRun.dc.html",
+    "M02Preparing.dc.html",
+    "M02About.dc.html",
+    "M02Provider.dc.html"
+  ],
+  "notes": {
+    "t-everyday": {
+      "x": 0,
+      "y": -320,
+      "text": "Everyday: home, dashboards, map, history, media, rooms. 15 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "everyday"
+    },
+    "t-everyday-2": {
+      "x": 0,
+      "y": -320,
+      "text": "Everyday: maintenance, profile, Assist, states, sign in, first run, about. 14 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "everyday-2"
+    }
+  },
+  "designSystems": []
+}

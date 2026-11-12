@@ -1,0 +1,345 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: System and tools",
+  "launch": {
+    "view": "canvas",
+    "page": "system"
+  },
+  "pages": [
+    {
+      "id": "system",
+      "name": "System: voice, people, energy, cloud, updates, repairs, logs, backups"
+    },
+    {
+      "id": "tools",
+      "name": "Tools: network, storage, hardware, labs, restart, developer tools"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Voice assistants",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05OneVoice.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "One voice assistant, its four stages",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Expose.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Expose entities to assistants",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Tags.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Tags",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05People.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "People",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Users.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Users",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05EnergySetup.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Energy setup",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Cloud.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Home Assistant Cloud",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05System.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "System",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Updates.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Updates",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Repairs.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Repairs",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Logs.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Logs",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Backups.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Backups",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05BackupSettings.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Backup settings",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M05Analytics.dc.html": {
+      "x": 3312,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Analytics",
+      "expand": "fill",
+      "page": "system"
+    },
+    "M06Network.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Network",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06Storage.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Storage",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06Hardware.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Hardware",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06General.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "General",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06Labs.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Labs",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06AI.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "AI and entity IDs",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06Restart.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Restart options",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevYaml.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, YAML",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevStates.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, States",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevActions.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, Actions",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevTemplate.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, Template",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevEvents.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, Events",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevStatistics.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, Statistics",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevAssist.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, Assist",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M06DevDebug.dc.html": {
+      "x": 3312,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools, Debug and action history",
+      "expand": "fill",
+      "page": "tools"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "M05OneVoice.dc.html",
+    "M05Expose.dc.html",
+    "M05Tags.dc.html",
+    "M05People.dc.html",
+    "M05Users.dc.html",
+    "M05EnergySetup.dc.html",
+    "M05Cloud.dc.html",
+    "M05System.dc.html",
+    "M05Updates.dc.html",
+    "M05Repairs.dc.html",
+    "M05Logs.dc.html",
+    "M05Backups.dc.html",
+    "M05BackupSettings.dc.html",
+    "M05Analytics.dc.html",
+    "M06Network.dc.html",
+    "M06Storage.dc.html",
+    "M06Hardware.dc.html",
+    "M06General.dc.html",
+    "M06Labs.dc.html",
+    "M06AI.dc.html",
+    "M06Restart.dc.html",
+    "M06DevYaml.dc.html",
+    "M06DevStates.dc.html",
+    "M06DevActions.dc.html",
+    "M06DevTemplate.dc.html",
+    "M06DevEvents.dc.html",
+    "M06DevStatistics.dc.html",
+    "M06DevAssist.dc.html",
+    "M06DevDebug.dc.html"
+  ],
+  "notes": {
+    "t-system": {
+      "x": 0,
+      "y": -320,
+      "text": "System: voice, people, energy, cloud, updates, repairs, logs, backups. 15 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "system"
+    },
+    "t-tools": {
+      "x": 0,
+      "y": -320,
+      "text": "Tools: network, storage, hardware, labs, restart, developer tools. 15 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "tools"
+    }
+  },
+  "designSystems": []
+}
