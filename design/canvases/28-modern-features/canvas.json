@@ -1,0 +1,519 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Features",
+  "launch": {
+    "view": "canvas",
+    "page": "language"
+  },
+  "pages": [
+    {
+      "id": "language",
+      "name": "Language, playfulness and appearance"
+    },
+    {
+      "id": "everywhere",
+      "name": "Everywhere features: tabs, palette, patterns, menus, locks"
+    },
+    {
+      "id": "tools",
+      "name": "Tools: history, export, converters, Minecraft, drawing, motion editor"
+    },
+    {
+      "id": "phone",
+      "name": "On a phone: every feature moved, none removed"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Language modes and playfulness",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Wording.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Personal wording file and drop celebration",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Narrator.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Spoken narrator and action sounds",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Focus.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "School mode and focus modes",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Schedule.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Scheduled settings",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Rename.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Renaming the app and its logo",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09DimSum.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dim sum surprise",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Type.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Edit appearance, type at Word depth",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Fills.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Edit appearance, layered fills",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Colour.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Infinite colour picker and translator",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Fonts.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Fonts and type scale",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09A11y.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Accessibility tools everywhere",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Resize.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Resizable panels and folding filters",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M09Tokens.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Material Design 3 tokens",
+      "expand": "fill",
+      "page": "language"
+    },
+    "M10NewTab.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Every tab open, and the New tab catalog",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Palette.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Command palette with live controls",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Regex.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Pattern workbench on every search",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Context.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Context menu on every element",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Guided.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided forms and per-control help",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Extensions.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Extension manager and permission consent",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Starts.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Starting points for a blank editor",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Super.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Two-key super confirmation",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10LockWizard.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Toy lock wizard, six credential mixes",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Unlock.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Unlock prompt and the unlock ladder",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Tickets.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Support Tickets recovery desk",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10Authenticator.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Built-in authenticator",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M10QR.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "QR pairing for an authenticator",
+      "expand": "fill",
+      "page": "everywhere"
+    },
+    "M11History.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Local version history",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Export.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Export everything, every format",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Bulk.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Bulk actions on any list",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Changelog.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Changelog viewer with date range",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Help.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Offline help articles",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Notifications.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Notification centre and toasts",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Converter.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Universal local file converter",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Base64.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Base64 toolkit",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Ollama.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Local Ollama suite manager",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Editor.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "External editor and publishing to a forge",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Minecraft.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Minecraft server manager",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11World.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Minecraft world generator",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Draw.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Drawing and annotation board",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Progress.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Progress where it started, recovery where it broke",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M11Motion.dc.html": {
+      "x": 3312,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Animation and transition editor",
+      "expand": "fill",
+      "page": "tools"
+    },
+    "M12PhoneMore.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Toolbars fold into a menu, panels become sheets",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "M12PhoneLocks.dc.html": {
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Locks, codes and bulk actions on a phone",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "M12PhoneMotion.dc.html": {
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Motion editor and tools on a phone",
+      "expand": "fill",
+      "page": "phone"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "M09Wording.dc.html",
+    "M09Narrator.dc.html",
+    "M09Focus.dc.html",
+    "M09Schedule.dc.html",
+    "M09Rename.dc.html",
+    "M09DimSum.dc.html",
+    "M09Type.dc.html",
+    "M09Fills.dc.html",
+    "M09Colour.dc.html",
+    "M09Fonts.dc.html",
+    "M09A11y.dc.html",
+    "M09Resize.dc.html",
+    "M09Tokens.dc.html",
+    "M10NewTab.dc.html",
+    "M10Palette.dc.html",
+    "M10Regex.dc.html",
+    "M10Context.dc.html",
+    "M10Guided.dc.html",
+    "M10Extensions.dc.html",
+    "M10Starts.dc.html",
+    "M10Super.dc.html",
+    "M10LockWizard.dc.html",
+    "M10Unlock.dc.html",
+    "M10Tickets.dc.html",
+    "M10Authenticator.dc.html",
+    "M10QR.dc.html",
+    "M11History.dc.html",
+    "M11Export.dc.html",
+    "M11Bulk.dc.html",
+    "M11Changelog.dc.html",
+    "M11Help.dc.html",
+    "M11Notifications.dc.html",
+    "M11Converter.dc.html",
+    "M11Base64.dc.html",
+    "M11Ollama.dc.html",
+    "M11Editor.dc.html",
+    "M11Minecraft.dc.html",
+    "M11World.dc.html",
+    "M11Draw.dc.html",
+    "M11Progress.dc.html",
+    "M11Motion.dc.html",
+    "M12PhoneMore.dc.html",
+    "M12PhoneLocks.dc.html",
+    "M12PhoneMotion.dc.html"
+  ],
+  "notes": {
+    "t-language": {
+      "x": 0,
+      "y": -320,
+      "text": "Language, playfulness and appearance. 14 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "language"
+    },
+    "t-everywhere": {
+      "x": 0,
+      "y": -320,
+      "text": "Everywhere features: tabs, palette, patterns, menus, locks. 13 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "everywhere"
+    },
+    "t-tools": {
+      "x": 0,
+      "y": -320,
+      "text": "Tools: history, export, converters, Minecraft, drawing, motion editor. 15 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "tools"
+    },
+    "t-phone": {
+      "x": 0,
+      "y": -320,
+      "text": "On a phone: every feature moved, none removed. 3 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "phone"
+    }
+  },
+  "designSystems": []
+}
