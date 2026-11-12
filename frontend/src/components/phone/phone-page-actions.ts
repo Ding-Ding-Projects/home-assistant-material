@@ -7,12 +7,12 @@ import { isMoveAcrossBlocked, moveTabId } from "../tab-order";
  * tested: which actions a page offers, what each one would change, and what a
  * bulk close would close and keep.
  *
- * Seams for later slices:
- * - Locks: `PhonePage.locked` already protects a page from every close here.
- *   The phone bar passes `false` until the lock model exists.
- * - Groups: a group id on `PhonePage` and a "Move into group" entry in
- *   `pageActions` go here, with the move planners staying inside one group.
- * - Appearance: an "Edit appearance" entry in `pageActions`.
+ * Locks, groups and the look of a page are part of it: `PhonePage.locked`
+ * protects a page from every close, `PhonePage.groupId` keeps a move inside
+ * the page's own group, and `pageActions` offers lock, group and appearance
+ * entries when the caller turns those features on. The planners that write the
+ * order, the pinned list and the groups the way the wide strip does are in
+ * `phone-groups.ts`.
  */
 
 /** A page as the sheet sees it, listed in the order the person gave. */
@@ -22,13 +22,20 @@ export interface PhonePage {
   /** False while the person has closed it. */
   open: boolean;
   pinned: boolean;
-  /** Seam for the lock model: a locked page is never closed in bulk. */
+  /** A locked page is never closed in bulk, and never by swiping. */
   locked: boolean;
+  /** The group the page is in; a pinned page is never in a group. */
+  groupId?: string;
 }
 
 export type PageActionId =
   | "pin"
   | "unpin"
+  | "lock"
+  | "unlock"
+  | "move_into_group"
+  | "remove_from_group"
+  | "edit_appearance"
   | "close"
   | "close_others"
   | "close_above"
@@ -134,10 +141,17 @@ export const planClose = (
   return { ids, kept };
 };
 
-/** The open pages of the same group (pinned or not) as `id`, in order. */
+/**
+ * The open pages of the same section as `id`, in order: the pinned pages, the
+ * pages of one group, or the pages in no group.
+ */
 const sameGroupOpen = (pages: readonly PhonePage[], id: string) => {
   const page = pages.find((p) => p.id === id);
-  return page ? pages.filter((p) => p.open && p.pinned === page.pinned) : [];
+  return page
+    ? pages.filter(
+        (p) => p.open && p.pinned === page.pinned && p.groupId === page.groupId
+      )
+    : [];
 };
 
 export type MoveKind = "up" | "down" | "top" | "bottom";
@@ -227,11 +241,22 @@ export const planDrop = (
   return order.join("\n") === ids.join("\n") ? {} : { order };
 };
 
+/** Which optional groups of entries the per-page sheet offers. */
+export interface PageActionFeatures {
+  /** Lock page and Unlock page. */
+  locks?: boolean;
+  /** Move into group and Remove from group. */
+  groups?: boolean;
+  /** Edit appearance. */
+  appearance?: boolean;
+}
+
 /** The actions the per-page sheet offers for one page, in display order. */
 export const pageActions = (
   pages: readonly PhonePage[],
   id: string,
-  currentId?: string
+  currentId?: string,
+  features: PageActionFeatures = {}
 ): ActionEntry<PageActionId>[] => {
   const page = pages.find((p) => p.id === id);
   if (!page) {
@@ -252,8 +277,23 @@ export const pageActions = (
     reason: enabled ? undefined : reason,
     destructive: destructive || undefined,
   });
+  const optional: ActionEntry<PageActionId>[] = [];
+  if (features.locks) {
+    optional.push(entry(page.locked ? "unlock" : "lock", true));
+  }
+  if (features.groups) {
+    // A pinned page never joins a group; pinning takes a page out of its group.
+    optional.push(
+      entry("move_into_group", !page.pinned, "pinned"),
+      ...(page.groupId ? [entry("remove_from_group", true)] : [])
+    );
+  }
+  if (features.appearance) {
+    optional.push(entry("edit_appearance", true));
+  }
   return [
     entry(page.pinned ? "unpin" : "pin", true),
+    ...optional,
     entry("close", !closeReason, closeReason, true),
     entry("close_others", closing("others"), "nothing_to_close", true),
     entry("close_above", closing("above"), "nothing_to_close", true),

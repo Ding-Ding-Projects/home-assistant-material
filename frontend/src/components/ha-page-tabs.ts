@@ -147,7 +147,9 @@ export class HaPageTabs extends LitElement {
     const tabs = this._store.orderedTabs();
     const closed = new Set(this._store.closed);
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
-    const current = this.hass.panelUrl;
+    // The tab of the page shown, or of the settings page or tool tab that owns
+    // the address (the most specific open tab wins).
+    const current = this._store.currentTabId();
 
     return html`
       ${this._strip.render(open, current)}

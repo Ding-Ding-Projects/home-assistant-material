@@ -1,6 +1,8 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { ReactiveController } from "lit";
 import { getStorage } from "../../common/decorators/storage";
+import { mainWindow } from "../../common/dom/get_main_window";
+import { currentPath } from "../../common/url/current-path";
 import type { LockStore } from "../../common/locks/element-locks";
 import { LOCKS_STORAGE_KEY, readLocks } from "../../common/locks/element-locks";
 import type { TabAppearanceStore } from "../../common/tabs/tab-appearance-store";
@@ -21,6 +23,10 @@ import {
   readGroups,
   writeGroups,
 } from "../../common/tabs/tab-groups";
+import {
+  DESTINATIONS_STORAGE_KEY,
+  readDestinations,
+} from "../../common/tabs/tab-destination-list";
 import { migrateTabState } from "../../common/tabs/tab-migrate";
 import {
   SEEN_TABS_STORAGE_KEY,
@@ -29,6 +35,8 @@ import {
 } from "../../common/tabs/tab-seen";
 import { getDefaultPanelUrlPath } from "../../data/panel";
 import { computePageTabs } from "./compute-page-tabs";
+import { loadCatalogTranslations } from "../page-catalog-entries";
+import { computeStripTabs, currentTabId } from "./destination-tabs";
 import type { GroupAppearanceStore } from "./tab-group-appearance-store";
 import {
   GROUP_APPEARANCE_STORAGE_KEY,
@@ -50,6 +58,7 @@ const LEGACY_KEYS = [
 const KEYS = [
   ...LEGACY_KEYS,
   GROUPS_STORAGE_KEY,
+  DESTINATIONS_STORAGE_KEY,
   DOCK_STORAGE_KEY,
   TAB_APPEARANCE_STORAGE_KEY,
   GROUP_APPEARANCE_STORAGE_KEY,
@@ -106,6 +115,12 @@ export class TabStoreController implements ReactiveController {
 
   private _cache = new Map<string, unknown>();
 
+  /** The address shown when the list of tabs was last drawn. */
+  private _path = currentPath();
+
+  /** Whether the settings titles of destination tabs were asked for. */
+  private _titlesRequested = false;
+
   constructor(private readonly _host: TabsHost) {
     const storage = getStorage();
     KEYS.forEach((key) => storage.addFromStorage(key));
@@ -134,9 +149,24 @@ export class TabStoreController implements ReactiveController {
         })
       );
     }
+    // The selected tab follows the address, also inside one page (settings
+    // routes change without the panel changing).
+    mainWindow.addEventListener("location-changed", this._locationChanged);
+    mainWindow.addEventListener("popstate", this._locationChanged);
+    this._locationChanged();
   }
 
+  private _locationChanged = () => {
+    const path = currentPath();
+    if (path !== this._path) {
+      this._path = path;
+      this._host.requestUpdate();
+    }
+  };
+
   public hostDisconnected() {
+    mainWindow.removeEventListener("location-changed", this._locationChanged);
+    mainWindow.removeEventListener("popstate", this._locationChanged);
     this._unsubscribe.forEach((unsubscribe) => unsubscribe());
     this._unsubscribe = [];
     this._awayValues = KEYS.map((key) => this._snapshot(key));
@@ -145,7 +175,21 @@ export class TabStoreController implements ReactiveController {
   public hostUpdate() {
     if (this._host.hass?.panels) {
       this._remember();
+      this._loadDestinationTitles();
     }
+  }
+
+  // The titles of settings pages and tools live in the settings translations,
+  // which are loaded on demand. A strip that has destination tabs asks for them
+  // once, so the tabs are back after a reload without opening the catalog.
+  private _loadDestinationTitles() {
+    if (this._titlesRequested || !readDestinations(this.surface).length) {
+      return;
+    }
+    this._titlesRequested = true;
+    void loadCatalogTranslations(this._host.hass).then(() =>
+      this._host.requestUpdate()
+    );
   }
 
   private _snapshot(key: string): string {
@@ -168,8 +212,9 @@ export class TabStoreController implements ReactiveController {
     return this._cache.get(key) as T;
   }
 
+  /** The pages of the sidebar: the tabs the strip offers on its own. */
   private _availableIds(): string[] {
-    return this._allTabs().map((tab) => tab.urlPath);
+    return this._pageTabs().map((tab) => tab.urlPath);
   }
 
   /** Remembers the tabs on offer, and saves the lists a first run needs. */
@@ -270,7 +315,7 @@ export class TabStoreController implements ReactiveController {
     return this._cached("locks", readLocks);
   }
 
-  private _allTabs(): PageTab[] {
+  private _pageTabs(): PageTab[] {
     const hass = this._host.hass;
     return computePageTabs(
       hass.panels,
@@ -278,6 +323,18 @@ export class TabStoreController implements ReactiveController {
       Boolean(hass.user?.is_admin),
       hass.localize
     );
+  }
+
+  /** Every tab that can be in the strip: pages, then opened settings pages and tools. */
+  private _allTabs(): PageTab[] {
+    return computeStripTabs(this._host.hass, this.surface);
+  }
+
+  /** The tab selected for the location shown now. */
+  public currentTabId(): string | undefined {
+    return this._host.hass
+      ? currentTabId(this._host.hass, this.surface)
+      : undefined;
   }
 
   /** The strip's layout of the given tabs: pinned region, groups and loose tabs. */

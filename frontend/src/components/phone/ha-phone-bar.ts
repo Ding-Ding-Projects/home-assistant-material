@@ -6,9 +6,15 @@ import {
   mdiChevronLeft,
   mdiChevronRight,
   mdiClose,
+  mdiChevronDown,
   mdiDotsVertical,
   mdiDragVertical,
+  mdiFolderMove,
+  mdiFolderRemove,
+  mdiFormatPaint,
   mdiHome,
+  mdiLock,
+  mdiLockOpenVariant,
   mdiHuman,
   mdiMagnify,
   mdiMenu,
@@ -33,13 +39,38 @@ import {
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { pickFilesToAdd } from "../../common/file-drop/add-media";
-import { storage } from "../../common/decorators/storage";
+import { getStorage, storage } from "../../common/decorators/storage";
 import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import {
+  isUnlocked,
+  setLockLocalize,
+  subscribeUnlocks,
+} from "../../common/locks/element-lock-session";
+import type { LockStore } from "../../common/locks/element-locks";
+import { readLocks, subscribeLocks } from "../../common/locks/element-locks";
 import { navigate } from "../../common/navigate";
 import { searchMatcher } from "../../common/regex/filter";
 import type { BulkCloseMode } from "../../common/tabs/bulk-close";
+import type { TabAppearanceStore } from "../../common/tabs/tab-appearance-store";
+import {
+  readTabAppearance,
+  TAB_APPEARANCE_STORAGE_KEY,
+} from "../../common/tabs/tab-appearance-store";
+import type { TabGroup } from "../../common/tabs/tab-groups";
+import {
+  GROUPS_STORAGE_KEY,
+  readGroups,
+  setGroupCollapsed,
+  ungroupTabs,
+  writeGroups,
+} from "../../common/tabs/tab-groups";
+import {
+  groupLockKey,
+  tabLockKey,
+  tabLockState,
+} from "../../common/tabs/tab-locks";
 import type { TabGroupId } from "../../common/tabs/tab-group-search";
 import {
   filterGroupItems,
@@ -55,7 +86,21 @@ import {
   PINNED_TABS_STORAGE_KEY,
   TABS_ORDER_STORAGE_KEY,
 } from "../ha-page-tabs";
-import { applyTabOrder } from "../tab-order";
+import type { GroupAppearanceStore } from "../tabs/tab-group-appearance-store";
+import {
+  GROUP_APPEARANCE_STORAGE_KEY,
+  groupAppearanceFor,
+  groupChipStyle,
+  groupColourCss,
+  readGroupAppearance,
+} from "../tabs/tab-group-appearance-store";
+import "../tabs/ha-tab-appearance-editor";
+import type { HaTabAppearanceEditor } from "../tabs/ha-tab-appearance-editor";
+import "../tabs/ha-tab-group-editor";
+import "../tabs/ha-tab-group-menu";
+import "../tabs/ha-tab-group-picker";
+import { pendingLockKey, tabStyle } from "../tabs/tab-strip-layout";
+import { flattenSegments } from "../tabs/tab-strip-moves";
 import type { CatalogSettingsEntry } from "../page-catalog-entries";
 import {
   computeSettingsEntries,
@@ -69,6 +114,14 @@ import type { HaInputSearch } from "../input/ha-input-search";
 import type { PhoneActionItem } from "./ha-phone-tab-actions";
 import "./ha-phone-bulk-close";
 import "./ha-phone-tab-actions";
+import type { PhoneChange, PhoneChangeInput } from "./phone-groups";
+import {
+  groupIdOf,
+  phoneListing,
+  phoneSegments,
+  planPhoneDrop,
+  planPhoneMove,
+} from "./phone-groups";
 import type {
   ActionEntry,
   ActionReason,
@@ -83,9 +136,21 @@ import {
   headerActions,
   pageActions,
   planClose,
-  planDrop,
-  planMove,
 } from "./phone-page-actions";
+
+/** The strip the sheet shows: the wide strip's own lists, groups and locks. */
+const PHONE_SURFACE = "main";
+
+/** The lock windows the lock code adds to the page; the sheet sits under them. */
+const LOCK_PANELS = ["ha-lock-wizard", "ha-lock-prompt"];
+
+/** Actions that open another panel, which then takes the focus. */
+const PANEL_ACTIONS: PageActionId[] = [
+  "lock",
+  "unlock",
+  "move_into_group",
+  "edit_appearance",
+];
 
 const UNDO_MS = 5000;
 /** Holding a card this long opens its actions. */
@@ -96,6 +161,11 @@ const LONG_PRESS_SLOP_PX = 10;
 const PAGE_ACTION_VIEW: Record<PageActionId, [string, string]> = {
   pin: ["ui.phone.action_pin", mdiPin],
   unpin: ["ui.phone.action_unpin", mdiPinOff],
+  lock: ["ui.phone.action_lock", mdiLock],
+  unlock: ["ui.phone.action_unlock", mdiLockOpenVariant],
+  move_into_group: ["ui.phone.action_move_into_group", mdiFolderMove],
+  remove_from_group: ["ui.phone.action_remove_from_group", mdiFolderRemove],
+  edit_appearance: ["ui.phone.action_edit_appearance", mdiFormatPaint],
   close: ["ui.phone.action_close", mdiClose],
   close_others: ["ui.phone.action_close_others", mdiTabRemove],
   close_above: ["ui.phone.action_close_above", mdiTabRemove],
@@ -166,8 +236,20 @@ export class HaPhoneBar extends LitElement {
   @storage({ key: PINNED_TABS_STORAGE_KEY, state: true, subscribe: true })
   private _pinned: string[] = [];
 
+  /** What the shared tab stores hold for the wide strip, read once per change. */
+  @state() private _shared: {
+    groups: TabGroup[];
+    look: TabAppearanceStore;
+    groupLook: GroupAppearanceStore;
+    locks: LockStore;
+  } = { groups: [], look: {}, groupLook: {}, locks: readLocks() };
+
   // Draws the bar again when the language mode changes.
   private _lang = new LanguageModeController(this);
+
+  private _unsubscribe: (() => void)[] = [];
+
+  private _lockObserver?: MutationObserver;
 
   @state() private _barHidden = false;
 
@@ -209,6 +291,14 @@ export class HaPhoneBar extends LitElement {
 
   @query("#sheet") private _sheet?: HTMLElement;
 
+  @query("ha-tab-appearance-editor")
+  private _lookEditor?: HaTabAppearanceEditor;
+
+  @query('.item[data-item="pages"]') private _pagesItem?: HTMLElement;
+
+  @queryAll(".more")
+  private _moreButtons!: NodeListOf<HTMLElement & { urlPath?: string }>;
+
   @queryAll(".handle")
   private _handles!: NodeListOf<HTMLElement & { urlPath?: string }>;
 
@@ -236,10 +326,46 @@ export class HaPhoneBar extends LitElement {
     window.visualViewport?.addEventListener("resize", this._handleViewport);
     this.addEventListener("focusin", this._handleFocusIn);
     this.addEventListener("focusout", this._handleFocusOut);
+    const store = getStorage();
+    [
+      GROUPS_STORAGE_KEY,
+      TAB_APPEARANCE_STORAGE_KEY,
+      GROUP_APPEARANCE_STORAGE_KEY,
+    ].forEach((key) => {
+      store.addFromStorage(key);
+      this._unsubscribe.push(
+        store.subscribeChanges(key, () => this._refreshShared())
+      );
+    });
+    this._unsubscribe.push(
+      subscribeLocks(() => this._refreshShared()),
+      subscribeUnlocks(() => this.requestUpdate())
+    );
+    this._refreshShared();
+    // The lock windows are plain page elements, so an open sheet, which is in
+    // the top layer, would cover them: the sheet closes when one appears.
+    if (typeof MutationObserver !== "undefined") {
+      this._lockObserver = new MutationObserver((records) => {
+        if (
+          records.some((record) =>
+            Array.from(record.addedNodes).some((node) =>
+              LOCK_PANELS.includes(node.nodeName.toLowerCase())
+            )
+          )
+        ) {
+          this._hideSheet();
+        }
+      });
+      this._lockObserver.observe(document.body, { childList: true });
+    }
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._unsubscribe.forEach((stop) => stop());
+    this._unsubscribe = [];
+    this._lockObserver?.disconnect();
+    this._lockObserver = undefined;
     window.removeEventListener("scroll", this._handleScroll);
     window.visualViewport?.removeEventListener("resize", this._handleViewport);
     this.removeEventListener("focusin", this._handleFocusIn);
@@ -304,17 +430,80 @@ export class HaPhoneBar extends LitElement {
     this._barHidden = false;
   };
 
+  private _refreshShared() {
+    this._shared = {
+      groups: readGroups(PHONE_SURFACE),
+      look: readTabAppearance(),
+      groupLook: readGroupAppearance(),
+      locks: readLocks(),
+    };
+  }
+
+  /** The groups of the wide strip. A pinned page is never in one. */
+  private get _groups(): TabGroup[] {
+    return this._shared.groups;
+  }
+
+  /**
+   * The pages in the order of the wide strip: the pinned region first, then
+   * the groups together and the pages in no group, as the strip draws them.
+   */
   private _tabs(): PageTab[] {
-    return applyTabOrder(
-      computePageTabs(
-        this.hass.panels,
-        getDefaultPanelUrlPath(this.hass),
-        Boolean(this.hass.user?.is_admin),
-        this.hass.localize
-      ),
-      this._order,
-      this._pinned
+    const tabs = computePageTabs(
+      this.hass.panels,
+      getDefaultPanelUrlPath(this.hass),
+      Boolean(this.hass.user?.is_admin),
+      this.hass.localize
     );
+    const byId = new Map(tabs.map((tab) => [tab.urlPath, tab]));
+    return flattenSegments(
+      phoneSegments({
+        visible: tabs.map((tab) => tab.urlPath),
+        order: this._order,
+        pinned: this._pinned,
+        groups: this._groups,
+      })
+    ).flatMap((id) => byId.get(id) ?? []);
+  }
+
+  /** The name a page shows: the label the person gave it, else its title. */
+  private _titleFor(tab: PageTab): string {
+    return this._shared.look[PHONE_SURFACE]?.[tab.urlPath]?.label || tab.title;
+  }
+
+  /** Whether a page is locked, by its own lock or its group's. */
+  private _isLocked(id: string): boolean {
+    return tabLockState(this._shared.locks, PHONE_SURFACE, id, this._groups)
+      .locked;
+  }
+
+  /** The lock a page still waits on right now, or undefined. */
+  private _pendingLock(id: string): string | undefined {
+    return pendingLockKey(
+      this._shared.locks,
+      PHONE_SURFACE,
+      id,
+      this._groups,
+      (key) => isUnlocked(key)
+    );
+  }
+
+  /** The lock to ask about to unlock a page: its own, else its group's. */
+  private _lockKeyOf(id: string): string | undefined {
+    const lock = tabLockState(
+      this._shared.locks,
+      PHONE_SURFACE,
+      id,
+      this._groups
+    );
+    if (!lock.locked) {
+      return undefined;
+    }
+    if (lock.reasons.includes("tab")) {
+      return tabLockKey(PHONE_SURFACE, id);
+    }
+    const group = this._groups.find((item) => item.members.includes(id));
+    return group ? groupLockKey(PHONE_SURFACE, group.id) : undefined;
   }
 
   /** A string in the chosen language mode. */
@@ -323,23 +512,70 @@ export class HaPhoneBar extends LitElement {
     values?: Record<string, string | number>
   ): string => this._lang.text(this.hass.localize, key, values);
 
-  /** Pinned ids are left out: a pinned page is never closed in bulk. */
+  /** Pinned and locked ids are left out: such a page is never closed in bulk. */
   private _closable(ids: string[]): string[] {
-    return ids.filter((id) => !this._pinned.includes(id));
+    return ids.filter(
+      (id) => !this._pinned.includes(id) && !this._isLocked(id)
+    );
   }
 
   /**
-   * The pages as the actions see them, in the order shown. Seam for locks:
-   * `locked` is false until the tab lock model exists.
+   * The pages as the actions see them, in the order the sheet shows them: the
+   * pinned pages, the pages of each group, then the pages in no group.
    */
   private _pages(): PhonePage[] {
-    return this._tabs().map((tab) => ({
-      id: tab.urlPath,
-      title: tab.title,
-      open: !this._closed.includes(tab.urlPath),
-      pinned: this._pinned.includes(tab.urlPath),
-      locked: false,
-    }));
+    const tabs = this._tabs();
+    const byId = new Map(tabs.map((tab) => [tab.urlPath, tab]));
+    const listing = phoneListing({
+      visible: tabs.map((tab) => tab.urlPath),
+      order: this._order,
+      pinned: this._pinned,
+      groups: this._groups,
+    });
+    return [
+      ...listing.pinned,
+      ...listing.groups.flatMap((entry) => entry.ids),
+      ...listing.loose,
+    ].flatMap((id) => {
+      const tab = byId.get(id);
+      return tab
+        ? [
+            {
+              id,
+              title: this._titleFor(tab),
+              open: !this._closed.includes(id),
+              pinned: this._pinned.includes(id),
+              locked: this._isLocked(id),
+              groupId: groupIdOf(this._groups, this._pinned, id),
+            },
+          ]
+        : [];
+    });
+  }
+
+  /** What a move or a drop is planned from. */
+  private _changeInput(): PhoneChangeInput {
+    const tabs = this._tabs();
+    return {
+      all: tabs.map((tab) => tab.urlPath),
+      visible: tabs
+        .filter((tab) => !this._closed.includes(tab.urlPath))
+        .map((tab) => tab.urlPath),
+      order: this._order,
+      pinned: this._pinned,
+      groups: this._groups,
+    };
+  }
+
+  /** Saves what a move or a drop planned, the way the wide strip saves it. */
+  private _saveChange(change: PhoneChange) {
+    this._order = change.order;
+    if (change.pinned) {
+      this._pinned = change.pinned;
+    }
+    if (change.groups) {
+      writeGroups(PHONE_SURFACE, change.groups);
+    }
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -352,7 +588,8 @@ export class HaPhoneBar extends LitElement {
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
     const current = this.hass.panelUrl;
     const index = open.findIndex((tab) => tab.urlPath === current);
-    const label = tabs.find((tab) => tab.urlPath === current)?.title ?? current;
+    const currentTab = tabs.find((tab) => tab.urlPath === current);
+    const label = currentTab ? this._titleFor(currentTab) : current;
     const barItems: [string, string, string, () => void][] = [
       [
         "home",
@@ -570,11 +807,29 @@ export class HaPhoneBar extends LitElement {
           }
         </div>
         ${this._renderOverlay(current)}
+        <!-- The group picker, the group menu and the group editor, and the
+             look editor, are the elements of the wide strip. They listen for
+             their events on the window and open as sheets on a phone. They sit
+             inside the Pages sheet so a press in one does not dismiss it. -->
+        <ha-tab-group-picker
+          .hass=${this.hass}
+          .surface=${PHONE_SURFACE}
+        ></ha-tab-group-picker>
+        <ha-tab-group-menu
+          .hass=${this.hass}
+          .surface=${PHONE_SURFACE}
+        ></ha-tab-group-menu>
+        <ha-tab-group-editor
+          .hass=${this.hass}
+          .surface=${PHONE_SURFACE}
+        ></ha-tab-group-editor>
+        <ha-tab-appearance-editor .hass=${this.hass}></ha-tab-appearance-editor>
       </div>
     `;
   }
 
-  // The open pages, with the pinned ones in their own group at the top.
+  // The open pages: the pinned ones in their own section at the top, then the
+  // groups as sections that fold, then the pages in no group.
   private _renderOpenPages(
     listed: PageTab[],
     current: string | undefined
@@ -582,33 +837,184 @@ export class HaPhoneBar extends LitElement {
     if (!listed.length) {
       return html`<p class="empty">${this._text("ui.page_tabs.no_match")}</p>`;
     }
-    const pinned = listed.filter((tab) => this._pinned.includes(tab.urlPath));
-    const rest = listed.filter((tab) => !this._pinned.includes(tab.urlPath));
-    const grid = (tabs: PageTab[]) =>
+    const byId = new Map(listed.map((tab) => [tab.urlPath, tab]));
+    const listing = phoneListing({
+      visible: listed.map((tab) => tab.urlPath),
+      order: this._order,
+      pinned: this._pinned,
+      groups: this._groups,
+    });
+    const grid = (ids: string[], group?: TabGroup) =>
       html`<div class="grid">
-        ${tabs.map((tab) => this._renderCard(tab, tab.urlPath === current))}
+        ${ids.map((id) =>
+          this._renderCard(byId.get(id)!, id === current, group)
+        )}
       </div>`;
-    if (!pinned.length) {
-      return grid(rest);
-    }
+    const titled = (id: string, key: string, ids: string[]) =>
+      html`<section class="open-group" aria-labelledby=${id}>
+        <h3 id=${id} class="group-title">${this._text(key)}</h3>
+        ${grid(ids)}
+      </section>`;
+    const others = listing.groups.length > 0 || listing.pinned.length > 0;
     return html`
-      <section class="open-group" aria-labelledby="open-pinned">
-        <h3 id="open-pinned" class="group-title">
-          ${this._text("ui.page_tabs.group_pinned")}
-        </h3>
-        ${grid(pinned)}
-      </section>
       ${
-        rest.length
-          ? html`<section class="open-group" aria-labelledby="open-pages">
-              <h3 id="open-pages" class="group-title">
-                ${this._text("ui.page_tabs.group_pages")}
-              </h3>
-              ${grid(rest)}
-            </section>`
+        listing.pinned.length
+          ? titled("open-pinned", "ui.page_tabs.group_pinned", listing.pinned)
+          : nothing
+      }
+      ${listing.groups.map((entry) => this._renderGroupSection(entry, grid))}
+      ${
+        listing.loose.length
+          ? others
+            ? titled("open-pages", "ui.page_tabs.group_pages", listing.loose)
+            : grid(listing.loose)
           : nothing
       }
     `;
+  }
+
+  // One group of the strip as a section of the sheet: its header folds it and
+  // has its menu; a search shows what it found inside a folded group without
+  // changing the saved state.
+  private _renderGroupSection(
+    entry: { group: TabGroup; ids: string[] },
+    grid: (ids: string[], group?: TabGroup) => TemplateResult
+  ): TemplateResult {
+    const { group, ids } = entry;
+    const name = group.name || this._text("ui.page_tabs.groups_strip.unnamed");
+    const look = groupAppearanceFor(
+      this._shared.groupLook,
+      PHONE_SURFACE,
+      group.id
+    );
+    const locked = this._shared.locks.locked.includes(
+      groupLockKey(PHONE_SURFACE, group.id)
+    );
+    const searching = this._filter.trim() !== "";
+    const folded = group.collapsed && !searching;
+    const headingId = `group-${group.id}`;
+    return html`<section
+      class="open-group group-section"
+      aria-labelledby=${headingId}
+      style=${styleMap({
+        "--group-colour": look.color ?? groupColourCss(group.colour),
+      })}
+    >
+      <div
+        class="group-bar"
+        .groupId=${group.id}
+        @contextmenu=${this._groupContextMenu}
+      >
+        <h3 id=${headingId} class="group-heading">
+          <button
+            class=${classMap({ "group-toggle": true, folded })}
+            style=${styleMap(groupChipStyle(look))}
+            aria-expanded=${folded ? "false" : "true"}
+            aria-label=${this._text(
+              locked
+                ? "ui.page_tabs.groups_strip.header_label_locked"
+                : "ui.page_tabs.groups_strip.header_label",
+              { name, count: ids.length }
+            )}
+            title=${this._text(
+              folded
+                ? "ui.page_tabs.groups_strip.expand"
+                : "ui.page_tabs.groups_strip.collapse",
+              { name }
+            )}
+            .groupId=${group.id}
+            @click=${this._toggleGroup}
+          >
+            <ha-svg-icon
+              class=${classMap({ chevron: true, folded })}
+              .path=${mdiChevronDown}
+            ></ha-svg-icon>
+            <span class="group-dot" aria-hidden="true"></span>
+            <span class="group-name">${name}</span>
+            <span class="group-count" aria-hidden="true">${ids.length}</span>
+            ${
+              locked
+                ? html`<ha-svg-icon
+                    class="lock-mark"
+                    .path=${mdiLock}
+                  ></ha-svg-icon>`
+                : nothing
+            }
+          </button>
+        </h3>
+        <button
+          class="card-tool group-more"
+          aria-label=${this._text("ui.phone.group_actions", { name })}
+          aria-haspopup="dialog"
+          .groupId=${group.id}
+          @click=${this._openGroupMenu}
+        >
+          <ha-svg-icon .path=${mdiDotsVertical}></ha-svg-icon>
+        </button>
+      </div>
+      ${folded ? nothing : grid(ids, group)}
+    </section>`;
+  }
+
+  /** Whether the sheet is open. The popover test can throw where it is missing. */
+  private _sheetOpen(): boolean {
+    try {
+      return Boolean(this._sheet?.matches(":popover-open"));
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  private _hideSheet() {
+    if (this._sheetOpen()) {
+      this._sheet?.hidePopover();
+    }
+  }
+
+  // A press on a group header's own button folds or unfolds the group, and the
+  // wide strip draws it the same way.
+  private _toggleGroup(ev: Event) {
+    const id = (ev.currentTarget as HTMLElement & { groupId: string }).groupId;
+    const group = this._groups.find((item) => item.id === id);
+    if (!group) {
+      return;
+    }
+    writeGroups(
+      PHONE_SURFACE,
+      setGroupCollapsed(this._groups, id, !group.collapsed)
+    );
+    this._live = this._text(
+      group.collapsed
+        ? "ui.page_tabs.groups_strip.expand"
+        : "ui.page_tabs.groups_strip.collapse",
+      { name: group.name || this._text("ui.page_tabs.groups_strip.unnamed") }
+    );
+  }
+
+  // The menu of a group is the wide strip's group menu: rename, look, fold,
+  // move, ungroup, close its pages after a preview, lock and remove.
+  private _openGroupMenu(ev: Event) {
+    ev.stopPropagation();
+    const button = ev.currentTarget as HTMLElement & { groupId: string };
+    this._askGroupMenu(
+      button.groupId,
+      button.closest<HTMLElement>(".group-bar") ?? button
+    );
+  }
+
+  private _groupContextMenu(ev: Event) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const bar = ev.currentTarget as HTMLElement & { groupId: string };
+    this._askGroupMenu(bar.groupId, bar);
+  }
+
+  private _askGroupMenu(groupId: string, anchor: HTMLElement) {
+    window.dispatchEvent(
+      new CustomEvent("tab-group-context-menu", {
+        detail: { groupId, anchor, shift: false, surface: PHONE_SURFACE },
+      })
+    );
   }
 
   // The panel over the sheet: a page's actions, the header menu or the bulk
@@ -635,7 +1041,11 @@ export class HaPhoneBar extends LitElement {
         .heading=${t("ui.phone.actions_for", { name: page.title })}
         .closeLabel=${t("ui.phone.actions_close")}
         .items=${this._items(
-          pageActions(pages, page.id, current),
+          pageActions(pages, page.id, current, {
+            locks: true,
+            groups: true,
+            appearance: true,
+          }),
           PAGE_ACTION_VIEW
         )}
         @phone-action-select=${this._pageActionSelected}
@@ -812,19 +1222,32 @@ export class HaPhoneBar extends LitElement {
     navigate(path);
   }
 
-  private _renderCard(tab: PageTab, selected: boolean): TemplateResult {
+  private _renderCard(
+    tab: PageTab,
+    selected: boolean,
+    group?: TabGroup
+  ): TemplateResult {
     const pinned = this._pinned.includes(tab.urlPath);
     const mark = this._reorder?.to === tab.urlPath ? this._reorder : undefined;
+    // The look the person gave the page on the wide strip, and the lock mark.
+    const look = this._shared.look[PHONE_SURFACE]?.[tab.urlPath] ?? {};
+    const title = look.label || tab.title;
+    const locked = this._pendingLock(tab.urlPath) !== undefined;
+    const closable = !pinned && !this._isLocked(tab.urlPath);
     return html`
       <div
         class=${classMap({
           card: true,
           selected,
+          locked,
+          grouped: Boolean(group),
           dragging: this._reorder?.id === tab.urlPath,
           "drop-before": Boolean(mark) && !mark?.after,
           "drop-after": Boolean(mark?.after),
         })}
         style=${styleMap({
+          ...tabStyle(look),
+          ...(group ? { "--group-colour": groupColourCss(group.colour) } : {}),
           transform:
             this._dragId === tab.urlPath ? `translateX(${this._dragX}px)` : "",
           opacity:
@@ -845,8 +1268,29 @@ export class HaPhoneBar extends LitElement {
           .urlPath=${tab.urlPath}
           @click=${this._openFromSheet}
         >
-          <span class="entry-icon">${this._renderIcon(tab)}</span>
-          <span class="card-title">${tab.title}</span>
+          <span class="entry-icon"
+            >${
+              look.icon
+                ? html`<ha-icon .icon=${look.icon}></ha-icon>`
+                : this._renderIcon(tab)
+            }</span
+          >
+          <span class="card-title">${title}</span>
+          ${
+            locked
+              ? html`<ha-svg-icon
+                  class="lock-mark"
+                  .path=${mdiLock}
+                  role="img"
+                  aria-label=${this._text(
+                    pinned
+                      ? "ui.page_tabs.dock.pinned_locked_name"
+                      : "ui.page_tabs.dock.locked_name",
+                    { name: title }
+                  )}
+                ></ha-svg-icon>`
+              : nothing
+          }
           ${
             pinned
               ? html`<ha-svg-icon
@@ -854,7 +1298,7 @@ export class HaPhoneBar extends LitElement {
                   .path=${mdiPin}
                   role="img"
                   aria-label=${this._text("ui.page_tabs.pinned", {
-                    name: tab.title,
+                    name: title,
                   })}
                 ></ha-svg-icon>`
               : nothing
@@ -864,7 +1308,7 @@ export class HaPhoneBar extends LitElement {
           <button
             class="card-tool handle"
             aria-label=${this._text("ui.phone.reorder_handle", {
-              name: tab.title,
+              name: title,
             })}
             aria-keyshortcuts="ArrowUp ArrowDown"
             .urlPath=${tab.urlPath}
@@ -879,7 +1323,7 @@ export class HaPhoneBar extends LitElement {
           <button
             class="card-tool more"
             aria-label=${this._text("ui.phone.more_actions", {
-              name: tab.title,
+              name: title,
             })}
             aria-haspopup="dialog"
             .urlPath=${tab.urlPath}
@@ -888,12 +1332,12 @@ export class HaPhoneBar extends LitElement {
             <ha-svg-icon .path=${mdiDotsVertical}></ha-svg-icon>
           </button>
           ${
-            pinned
+            !closable
               ? nothing
               : html`<button
                   class="card-tool card-close"
                   aria-label=${this._text("ui.page_tabs.close_tab", {
-                    name: tab.title,
+                    name: title,
                   })}
                   .urlPath=${tab.urlPath}
                   @click=${this._closeCard}
@@ -1002,9 +1446,40 @@ export class HaPhoneBar extends LitElement {
     }
     const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
       .urlPath;
+    this._openPage(urlPath);
+  }
+
+  // Opens a page. A locked page asks to be unlocked first, beside the Pages
+  // button because the sheet closes, and opens once it is.
+  private _openPage(urlPath: string) {
+    const key = this._pendingLock(urlPath);
+    if (key) {
+      this._askUnlock(key, urlPath, () => this._openPage(urlPath));
+      return;
+    }
     this._closed = this._closed.filter((closed) => closed !== urlPath);
-    this._sheet?.hidePopover();
+    this._hideSheet();
     navigate(`/${urlPath}`);
+  }
+
+  /** The Pages button of the bottom bar: it stays when the sheet closes. */
+  private _pagesButton(): HTMLElement {
+    return this._pagesItem ?? this;
+  }
+
+  private _askUnlock(key: string, urlPath: string, onSuccess: () => void) {
+    const anchor = this._pagesButton();
+    this._hideSheet();
+    setLockLocalize(this.hass.localize);
+    void import("../locks/ha-lock-prompt").then(({ openLockPrompt }) =>
+      openLockPrompt(key, anchor, {
+        onSuccess,
+        returnTo: anchor,
+        title: this._text("ui.page_tabs.dock.unlock_prompt", {
+          name: this._titleOf(urlPath),
+        }),
+      })
+    );
   }
 
   // Reopens every closed page. The order, the pins and the page you are on
@@ -1015,9 +1490,8 @@ export class HaPhoneBar extends LitElement {
   }
 
   private _titleOf(urlPath: string) {
-    return (
-      this._tabs().find((tab) => tab.urlPath === urlPath)?.title ?? urlPath
-    );
+    const tab = this._tabs().find((item) => item.urlPath === urlPath);
+    return tab ? this._titleFor(tab) : urlPath;
   }
 
   /** Closes the pages and returns how many actually closed. */
@@ -1092,7 +1566,8 @@ export class HaPhoneBar extends LitElement {
   ) {
     const pinned = new Set(this._pinned);
     const ids = ev.detail.ids.filter(
-      (id) => !pinned.has(id) && id !== this.hass.panelUrl
+      (id) =>
+        !pinned.has(id) && !this._isLocked(id) && id !== this.hass.panelUrl
     );
     this._closeByPlan(ids, ev.detail.kept, ev.detail.planned);
     this._finishPanel();
@@ -1161,10 +1636,54 @@ export class HaPhoneBar extends LitElement {
 
   private _pageActionSelected(ev: HASSDomEvent<{ id: string }>) {
     const id = this._actionsFor;
+    const action = ev.detail.id as PageActionId;
     if (id) {
-      this._runPageAction(id, ev.detail.id as PageActionId);
+      this._runPageAction(id, action);
+    }
+    if (PANEL_ACTIONS.includes(action)) {
+      // Another panel takes the focus, so it is not given back to the row.
+      this._closePanels();
+      return;
     }
     this._finishPanel();
+  }
+
+  /** The "more" button of a page's card, to open a panel beside. */
+  private _moreButton(id: string): HTMLElement {
+    return (
+      Array.from(this._moreButtons).find((el) => el.urlPath === id) ??
+      this._pagesButton()
+    );
+  }
+
+  private _lockPage(id: string) {
+    const anchor = this._pagesButton();
+    const name = this._titleOf(id);
+    // The lock window sits in the page, under the sheet, so the sheet closes.
+    this._hideSheet();
+    setLockLocalize(this.hass.localize);
+    void import("../locks/ha-lock-wizard").then(({ openLockWizard }) =>
+      openLockWizard({
+        key: tabLockKey(PHONE_SURFACE, id),
+        label: this._text("ui.page_tabs.menu.lock_label", { name }),
+        anchor,
+        onStartDefault: false,
+        onCreated: () => {
+          this._live = this._text("ui.page_tabs.menu.locked", { name });
+        },
+      })
+    );
+  }
+
+  private _unlockPage(id: string) {
+    const key = this._lockKeyOf(id);
+    if (key) {
+      this._askUnlock(key, id, () => {
+        this._live = this._text("ui.page_tabs.dock.unlock_prompt", {
+          name: this._titleOf(id),
+        });
+      });
+    }
   }
 
   private _runPageAction(id: string, action: PageActionId) {
@@ -1187,6 +1706,34 @@ export class HaPhoneBar extends LitElement {
     const moveKind = moveKinds[action];
     if (action === "pin" || action === "unpin") {
       this._togglePin(id, title);
+    } else if (action === "lock") {
+      this._lockPage(id);
+    } else if (action === "unlock") {
+      this._unlockPage(id);
+    } else if (action === "move_into_group") {
+      // The wide strip's group picker, as a sheet on a phone.
+      window.dispatchEvent(
+        new CustomEvent("tab-group-picker-open", {
+          detail: {
+            tabIds: [id],
+            anchor: this._moreButton(id),
+            surface: PHONE_SURFACE,
+          },
+        })
+      );
+    } else if (action === "remove_from_group") {
+      writeGroups(PHONE_SURFACE, ungroupTabs(this._groups, [id]));
+      this._live = this._text("ui.page_tabs.menu.removed_from_group", {
+        name: title,
+      });
+    } else if (action === "edit_appearance") {
+      void this._lookEditor?.show({
+        surface: PHONE_SURFACE,
+        tabId: id,
+        label: title,
+        anchor: this._moreButton(id),
+        dock: "bottom",
+      });
     } else if (closeKind) {
       const plan = planClose(pages, id, closeKind, current);
       this._closeByPlan(plan.ids, plan.kept.length);
@@ -1196,10 +1743,14 @@ export class HaPhoneBar extends LitElement {
   }
 
   // Pinning saves the shown order first, so the page keeps its place within
-  // its new group, exactly as the tab bar does.
+  // its new group, exactly as the tab bar does. A pinned page is never in a
+  // group, so pinning takes a page out of its own.
   private _togglePin(id: string, title: string) {
     const pinned = this._pinned.includes(id);
     this._order = this._tabs().map((tab) => tab.urlPath);
+    if (!pinned && this._groups.some((group) => group.members.includes(id))) {
+      writeGroups(PHONE_SURFACE, ungroupTabs(this._groups, [id]));
+    }
     this._pinned = pinned
       ? this._pinned.filter((p) => p !== id)
       : [...this._pinned, id];
@@ -1209,22 +1760,24 @@ export class HaPhoneBar extends LitElement {
     );
   }
 
+  // A move stays inside the page's own section (the pinned pages, one group,
+  // or the pages in no group) and saves the lists the wide strip saves.
   private _applyMove(id: string, kind: MoveKind) {
     const pages = this._pages();
     const title = pages.find((page) => page.id === id)?.title ?? id;
-    const plan = planMove(pages, id, kind);
-    if (plan.blocked) {
+    const plan = planPhoneMove(this._changeInput(), id, kind);
+    if (!plan) {
+      return;
+    }
+    if ("blocked" in plan) {
       this._live = this._text(REASON_VIEW[plan.blocked]);
       return;
     }
-    if (!plan.order) {
-      return;
-    }
-    this._order = plan.order;
+    this._saveChange(plan);
     this._live = this._text("ui.page_tabs.moved", {
       name: title,
-      position: plan.position ?? 0,
-      total: plan.total ?? 0,
+      position: plan.position,
+      total: plan.total,
     });
   }
 
@@ -1263,7 +1816,7 @@ export class HaPhoneBar extends LitElement {
     }
     const index = open.findIndex((tab) => tab.urlPath === this.hass.panelUrl);
     const next = (index + step + open.length) % open.length;
-    navigate(`/${open[next].urlPath}`);
+    this._openPage(open[next].urlPath);
   }
 
   private _startDrag(ev: PointerEvent) {
@@ -1369,28 +1922,26 @@ export class HaPhoneBar extends LitElement {
       return;
     }
     const pages = this._pages();
-    const plan = planDrop(
-      pages,
+    const plan = planPhoneDrop(
+      this._changeInput(),
       reorder.id,
       reorder.to,
       Boolean(reorder.after)
     );
     const title = pages.find((page) => page.id === reorder.id)?.title ?? "";
-    if (plan.blocked) {
+    if (!plan) {
+      return;
+    }
+    if ("blocked" in plan) {
       this._live = this._text("ui.page_tabs.move_blocked", { name: title });
       return;
     }
-    if (plan.order) {
-      this._order = plan.order;
-      const open = plan.order.filter((id) =>
-        pages.some((page) => page.id === id && page.open)
-      );
-      this._live = this._text("ui.page_tabs.moved", {
-        name: title,
-        position: open.indexOf(reorder.id) + 1,
-        total: open.length,
-      });
-    }
+    this._saveChange(plan);
+    this._live = this._text("ui.page_tabs.moved", {
+      name: title,
+      position: plan.position,
+      total: plan.total,
+    });
   }
 
   private _cancelReorder() {
@@ -1429,11 +1980,16 @@ export class HaPhoneBar extends LitElement {
     const urlPath = this._dragId;
     const dx = this._dragX;
     this._cancelDrag();
-    if (
-      !urlPath ||
-      Math.abs(dx) < SWIPE_CLOSE_PX ||
-      this._pinned.includes(urlPath)
-    ) {
+    if (!urlPath || Math.abs(dx) < SWIPE_CLOSE_PX) {
+      return;
+    }
+    // A pinned or locked page does not close by swiping, and the sheet says why.
+    if (this._pinned.includes(urlPath) || this._isLocked(urlPath)) {
+      this._live = this._text(
+        this._pinned.includes(urlPath)
+          ? "ui.phone.reason_pinned"
+          : "ui.phone.reason_locked"
+      );
       return;
     }
     // The press that ends a swipe is not a tap on the card.
@@ -1776,15 +2332,91 @@ export class HaPhoneBar extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-1);
       padding: var(--ha-space-2);
-      border-radius: var(--ha-border-radius-2xl);
-      background-color: var(--card-background-color);
+      border-radius: var(--tab-radius, var(--ha-border-radius-2xl));
+      background-color: var(--tab-background, var(--card-background-color));
+      color: var(--tab-color, inherit);
+      font-weight: var(--tab-weight, inherit);
+      font-style: var(--tab-font-style, inherit);
       border: var(--ha-card-border-width, 1px) solid
-        var(--ha-card-border-color, var(--divider-color));
+        var(
+          --tab-border-color,
+          var(--ha-card-border-color, var(--divider-color))
+        );
       touch-action: pan-y;
       min-width: 0;
     }
+    .card.grouped {
+      border-inline-start: 4px solid var(--group-colour, var(--primary-color));
+    }
     .card.selected {
       border-color: var(--primary-text-color);
+    }
+    .lock-mark {
+      flex: none;
+      margin-inline-start: auto;
+      color: var(--secondary-text-color);
+      --mdc-icon-size: 18px;
+    }
+    .lock-mark + .pin-mark {
+      margin-inline-start: 0;
+    }
+    .group-section {
+      --group-colour: var(--primary-color);
+    }
+    .group-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      min-width: 0;
+    }
+    .group-heading {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .group-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      width: 100%;
+      min-height: 44px;
+      padding: 0 var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      text-align: start;
+      font-weight: inherit;
+      --mdc-icon-size: 20px;
+    }
+    .group-toggle:hover {
+      background-color: var(--ha-color-fill-neutral-quiet-resting);
+    }
+    .chevron {
+      flex: none;
+      transition: transform var(--ha-animation-duration-normal) ease;
+    }
+    .chevron.folded {
+      transform: rotate(-90deg);
+    }
+    :host(:dir(rtl)) .chevron.folded {
+      transform: rotate(90deg);
+    }
+    .group-dot {
+      flex: none;
+      width: 12px;
+      height: 12px;
+      border-radius: var(--ha-border-radius-circle);
+      background-color: var(--group-colour);
+    }
+    .group-name {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .group-count {
+      flex: none;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
     .card.dragging {
       opacity: 0.5;
@@ -1884,7 +2516,8 @@ export class HaPhoneBar extends LitElement {
       color: var(--secondary-text-color);
     }
     @media (prefers-reduced-motion: reduce) {
-      .bar {
+      .bar,
+      .chevron {
         transition: none;
       }
     }

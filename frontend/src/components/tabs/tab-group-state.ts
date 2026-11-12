@@ -1,5 +1,4 @@
 import { getStorage } from "../../common/decorators/storage";
-import { getDefaultPanelUrlPath } from "../../data/panel";
 import type { HomeAssistant } from "../../types";
 import { readLocks } from "../../common/locks/element-locks";
 import type { LockStore } from "../../common/locks/element-locks";
@@ -21,7 +20,7 @@ import {
   surfaceEntries,
 } from "../../common/tabs/tab-validate";
 import { GROUP_APPEARANCE_STORAGE_KEY } from "./tab-group-appearance-store";
-import { computePageTabs } from "./compute-page-tabs";
+import { computeStripTabs } from "./destination-tabs";
 
 /**
  * Reads what one strip looks like right now from storage and the panel list,
@@ -70,12 +69,7 @@ export const readStripState = (
   let labels = new Map<string, string>();
   let available: string[];
   if (surface === DEFAULT_SURFACE) {
-    const pages = computePageTabs(
-      hass.panels,
-      getDefaultPanelUrlPath(hass),
-      Boolean(hass.user?.is_admin),
-      hass.localize
-    );
+    const pages = computeStripTabs(hass, surface);
     labels = new Map(pages.map((page) => [page.urlPath, page.title]));
     available = pages.map((page) => page.urlPath);
   } else {

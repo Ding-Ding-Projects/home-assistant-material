@@ -93,6 +93,11 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
   { exact: "pageTabsPinned", kind: "json", holds: "Pinned tabs" },
   { exact: "pageTabsSeen", kind: "json", holds: "Tabs already offered" },
   { exact: "pageTabsGroups", kind: "json", holds: "Tab groups" },
+  {
+    exact: "pageTabsDestinations",
+    kind: "json",
+    holds: "Settings pages and tools opened as tabs",
+  },
   { exact: "pageTabsDock", kind: "json", holds: "Tab strip edge" },
   { exact: "pageTabsAppearance", kind: "json", holds: "Tab appearance" },
   {

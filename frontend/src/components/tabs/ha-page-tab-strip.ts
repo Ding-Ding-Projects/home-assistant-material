@@ -18,6 +18,11 @@ import {
 } from "../../common/locks/element-lock-session";
 import { closeTab } from "../../common/tabs/tab-seen";
 import {
+  neighbourTab,
+  parseDestinationId,
+  tabRoute,
+} from "../../common/tabs/tab-destinations";
+import {
   groupOf,
   toggleGroupCollapsed,
   ungroupTabs,
@@ -639,7 +644,7 @@ export class TabStripController implements ReactiveController {
       return;
     }
     const selected = strip.querySelector<HTMLElement>(".tab.selected");
-    const key = `${this._ctx.host.hass?.panelUrl}|${this._open.length}|${this._ctx.store.dock}`;
+    const key = `${this._ctx.store.currentTabId()}|${this._open.length}|${this._ctx.store.dock}`;
     if (!selected || key === this._revealedKey) {
       return;
     }
@@ -795,7 +800,7 @@ export class TabStripController implements ReactiveController {
       this._askUnlock(key, id, anchor, () => this.activate(id, anchor));
       return;
     }
-    navigate(`/${id}`);
+    navigate(tabRoute(id));
   }
 
   private _askUnlock(
@@ -825,8 +830,17 @@ export class TabStripController implements ReactiveController {
       this._askUnlock(key, id, anchor, () => this._close(id, anchor));
       return;
     }
+    // Closing the settings page or tool tab that is in use moves to the
+    // neighbouring tab, so the person is not left on a page with no tab.
+    const leaving =
+      parseDestinationId(id).kind !== "page" && store.currentTabId() === id
+        ? neighbourTab(flattenSegments(this._segments), id)
+        : undefined;
     if (!store.closed.includes(id)) {
       store.closed = closeTab(store.closed, id);
+    }
+    if (leaving) {
+      this.activate(leaving);
     }
   }
 

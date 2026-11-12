@@ -4,6 +4,12 @@ import { css, html, nothing } from "lit";
 import { styleMap } from "lit/directives/style-map";
 import { classMap } from "lit/directives/class-map";
 import { navigate } from "../../common/navigate";
+import { readDestinations } from "../../common/tabs/tab-destination-list";
+import {
+  destinationId,
+  parseDestinationId,
+  tabRoute,
+} from "../../common/tabs/tab-destinations";
 import { searchMatcher } from "../../common/regex/filter";
 import type { TabGroupId } from "../../common/tabs/tab-group-search";
 import {
@@ -27,6 +33,7 @@ import {
   computeSettingsEntries,
   computeToolEntries,
 } from "../page-catalog-entries";
+import { chooseDestination, isDestinationReachable } from "./destination-tabs";
 import "./ha-tab-search-results";
 import { openMasterSearch } from "./ha-tab-search-all";
 import { groupColourCss } from "./tab-group-appearance-store";
@@ -147,11 +154,14 @@ export class TabSearchesController implements ReactiveController {
   ) {
     const { t, host, store } = this._ctx;
     const matches = searchMatcher(filter);
-    const settings = computeSettingsEntries(host.hass).filter((entry) =>
-      matches(entry.title, entry.path)
+    // Only pages this person can reach are offered, since a choice opens a tab.
+    const reachable = (entry: CatalogSettingsEntry) =>
+      isDestinationReachable(host.hass, entry.path);
+    const settings = computeSettingsEntries(host.hass).filter(
+      (entry) => reachable(entry) && matches(entry.title, entry.path)
     );
-    const tools = computeToolEntries(host.hass).filter((entry) =>
-      matches(entry.title, entry.path)
+    const tools = computeToolEntries(host.hass).filter(
+      (entry) => reachable(entry) && matches(entry.title, entry.path)
     );
     const discovery = this._renderDiscovery();
     if (!listed.length && !settings.length && !tools.length) {
@@ -172,7 +182,13 @@ export class TabSearchesController implements ReactiveController {
         "pages",
         "group-pages",
         "ui.page_tabs.group_pages",
-        listed.filter((tab) => !pinned.includes(tab.urlPath)),
+        // Settings pages and tools opened as tabs are listed with the
+        // settings and tools below, where they can be opened or focused.
+        listed.filter(
+          (tab) =>
+            !pinned.includes(tab.urlPath) &&
+            parseDestinationId(tab.urlPath).kind === "page"
+        ),
         closed
       )}
       ${this._renderSettingsGroup(
@@ -433,6 +449,7 @@ export class TabSearchesController implements ReactiveController {
     if (!allEntries.length) {
       return nothing;
     }
+    const kind = group === "tools" ? "tool" : "settings";
     const entries = filterGroupItems(
       allEntries,
       this._groupFilters[group],
@@ -454,29 +471,36 @@ export class TabSearchesController implements ReactiveController {
             </p>`
       }
       <ul class="group-list">
-        ${entries.map(
-          (entry) =>
-            html`<li>
-              <button
-                class="entry"
-                .path=${entry.path}
-                @click=${this._openSettingsPage}
-              >
-                <span class="entry-icon">
-                  ${
-                    entry.iconPath
-                      ? html`<ha-svg-icon
-                          .path=${entry.iconPath}
-                        ></ha-svg-icon>`
-                      : nothing
-                  }
-                </span>
-                <span class="entry-text">
-                  <span class="entry-title">${entry.title}</span>
-                </span>
-              </button>
-            </li>`
-        )}
+        ${entries.map((entry) => {
+          const state = this._destinationState(kind, entry.path);
+          return html`<li>
+            <button
+              class=${classMap({ entry: true, closed: state === "closed" })}
+              .path=${entry.path}
+              .kind=${kind}
+              @click=${this._openSettingsPage}
+            >
+              <span class="entry-icon">
+                ${
+                  entry.iconPath
+                    ? html`<ha-svg-icon .path=${entry.iconPath}></ha-svg-icon>`
+                    : nothing
+                }
+              </span>
+              <span class="entry-text">
+                <span class="entry-title">${entry.title}</span>
+                <span class="entry-state"
+                  >${t(`ui.page_tabs.destinations.state_${state}`)}</span
+                >
+              </span>
+              ${
+                state === "open"
+                  ? nothing
+                  : html`<ha-svg-icon .path=${mdiPlus}></ha-svg-icon>`
+              }
+            </button>
+          </li>`;
+        })}
       </ul>
     </section>`;
   }
@@ -489,10 +513,11 @@ export class TabSearchesController implements ReactiveController {
     allTabs: PageTab[],
     closed: Set<string>
   ) {
-    const { t, host, store } = this._ctx;
+    const { t, store } = this._ctx;
     if (!allTabs.length) {
       return nothing;
     }
+    const currentId = store.currentTabId();
     const groupQuery = this._groupFilters[group];
     const shown = filterGroupItems(allTabs, groupQuery, (tab) => [
       tab.title,
@@ -504,7 +529,7 @@ export class TabSearchesController implements ReactiveController {
         id: tab.urlPath,
         texts: [tab.title, tab.urlPath],
         open: !closed.has(tab.urlPath),
-        current: tab.urlPath === host.hass.panelUrl,
+        current: tab.urlPath === currentId,
         pinned: pinned.includes(tab.urlPath),
       })),
       group,
@@ -661,12 +686,13 @@ export class TabSearchesController implements ReactiveController {
       .group;
     const closed = store.closed;
     const pinned = store.pinned;
+    const currentId = store.currentTabId();
     const { ids } = planGroupClose(
       store.orderedTabs().map((tab) => ({
         id: tab.urlPath,
         texts: [tab.title, tab.urlPath],
         open: !closed.includes(tab.urlPath),
-        current: tab.urlPath === host.hass.panelUrl,
+        current: tab.urlPath === currentId,
         pinned: pinned.includes(tab.urlPath),
       })),
       group,
@@ -690,10 +716,30 @@ export class TabSearchesController implements ReactiveController {
     host.requestUpdate();
   };
 
+  // Whether a settings page or tool has an open tab, a closed one, or none yet.
+  private _destinationState(
+    kind: "settings" | "tool",
+    path: string
+  ): "open" | "closed" | "none" {
+    const { store } = this._ctx;
+    const id = destinationId(kind, path);
+    if (!id || !readDestinations(store.surface).includes(id)) {
+      return "none";
+    }
+    return store.closed.includes(id) ? "closed" : "open";
+  }
+
+  // Choosing a settings page or a tool opens it as its own tab, or focuses the
+  // tab it already has, and shows the page.
   private _openSettingsPage = (ev: Event) => {
-    const path = (ev.currentTarget as HTMLElement & { path: string }).path;
+    const { store } = this._ctx;
+    const button = ev.currentTarget as HTMLElement & {
+      path: string;
+      kind: "settings" | "tool";
+    };
+    const choice = chooseDestination(button.kind, button.path, store.surface);
     this._hideCatalog();
-    navigate(path);
+    navigate(choice.route ?? button.path);
   };
 
   private _openFromCatalog = (ev: Event) => {
@@ -702,7 +748,7 @@ export class TabSearchesController implements ReactiveController {
       .urlPath;
     store.closed = store.closed.filter((closed) => closed !== urlPath);
     this._hideCatalog();
-    navigate(`/${urlPath}`);
+    navigate(tabRoute(urlPath));
   };
 
   // The search at the top starts the search of everything: what is typed

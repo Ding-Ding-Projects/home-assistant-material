@@ -261,6 +261,9 @@ const TAB_SURFACES = new Set([
   "ha-tab-group-editor",
   "ha-tab-search-all",
   "ha-tab-appearance-editor",
+  "ha-section-tabs",
+  "ha-section-tab-menu",
+  "ha-section-hide-dialog",
 ]);
 
 /**

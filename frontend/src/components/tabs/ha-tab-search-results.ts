@@ -20,6 +20,8 @@ import type { TabSearchRow } from "../../common/tabs/tab-search";
 import { groupLockKey, tabLockKey } from "../../common/tabs/tab-locks";
 import type { HomeAssistant } from "../../types";
 import "../ha-svg-icon";
+import { tabRoute } from "../../common/tabs/tab-destinations";
+import { currentTabId } from "./destination-tabs";
 import { closeTabs, togglePinTab } from "./tab-group-actions";
 import { readStripState } from "./tab-group-state";
 import { revealTabForSession } from "./tab-search-reveal";
@@ -260,7 +262,7 @@ export class HaTabSearchResults extends LitElement {
       revealTabForSession(row.surface, row.id);
     }
     if (row.surface === "main") {
-      navigate(`/${row.id}`);
+      navigate(tabRoute(row.id));
     } else {
       window.dispatchEvent(
         new CustomEvent("tab-search-activate", {
@@ -325,7 +327,7 @@ export class HaTabSearchResults extends LitElement {
       );
       return;
     }
-    if (row.id === this.hass.panelUrl) {
+    if (row.id === currentTabId(this.hass, row.surface)) {
       this._say(
         this._t("ui.page_tabs.searches.close_current", { name: row.label })
       );

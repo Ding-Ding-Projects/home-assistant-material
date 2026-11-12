@@ -46,6 +46,7 @@ import {
   removeGroupKeepingTabs,
 } from "./tab-group-actions";
 import type { GroupMove } from "./tab-group-actions";
+import { currentTabId } from "./destination-tabs";
 import { TabGroupPanel } from "./tab-group-panel";
 import { readStripState } from "./tab-group-state";
 
@@ -433,7 +434,7 @@ export class HaTabGroupMenu extends TabGroupPanel {
       groupPlanTabs(
         strip,
         this._groupId,
-        this.hass.panelUrl,
+        currentTabId(this.hass, this.surface),
         lockedAmong(strip, members, locks)
       )
     );

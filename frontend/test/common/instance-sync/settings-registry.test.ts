@@ -28,6 +28,7 @@ const MUST_SYNC = [
   "pageTabsPinned",
   "pageTabsSeen",
   "pageTabsGroups",
+  "pageTabsDestinations",
   "pageTabsDock",
   "pageTabsAppearance",
   "pageTabsGroupAppearance",

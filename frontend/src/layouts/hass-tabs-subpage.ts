@@ -306,6 +306,7 @@ export class HassTabsSubpage extends LitElement {
                   .narrow=${this._narrow}
                   .surface=${this.route.prefix}
                   .localize=${localize}
+                  .hass=${this.hass}
                 ></ha-section-tabs>
               </div>`
             : ""

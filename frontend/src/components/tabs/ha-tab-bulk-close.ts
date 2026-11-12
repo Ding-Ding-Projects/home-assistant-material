@@ -126,7 +126,7 @@ export class TabBulkCloseController {
   }
 
   private _close = (ev: Event) => {
-    const { host, store } = this._ctx;
+    const { store } = this._ctx;
     const mode = (ev.currentTarget as HTMLElement & { mode: BulkCloseMode })
       .mode;
     const closed = store.closed;
@@ -136,7 +136,7 @@ export class TabBulkCloseController {
         id: tab.urlPath,
         texts: [this._visibleLabel(tab)],
         open: !closed.includes(tab.urlPath),
-        current: this._protected(tab, host.hass.panelUrl, pinned),
+        current: this._protected(tab, store.currentTabId(), pinned),
       })),
       this._filter.get(),
       mode

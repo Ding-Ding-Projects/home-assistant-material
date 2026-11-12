@@ -29,6 +29,7 @@ export const HISTORY_SUBJECTS = {
   tabOrder: { key: "pageTabsOrder", keep: true },
   tabPins: { key: "pageTabsPinned", keep: true },
   tabGroups: { key: "pageTabsGroups", keep: false },
+  tabDestinations: { key: "pageTabsDestinations", keep: false },
   tabDock: { key: "pageTabsDock", keep: false },
   tabAppearance: { key: "pageTabsAppearance", keep: false },
   // That a lock (including a tab or group lock) changed. Only the fact is

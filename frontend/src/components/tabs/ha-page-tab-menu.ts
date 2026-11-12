@@ -14,12 +14,11 @@ import {
   writeTabAppearance,
 } from "../../common/tabs/tab-appearance-store";
 import { tabLockKey } from "../../common/tabs/tab-locks";
-import { getDefaultPanelUrlPath } from "../../data/panel";
 import type { HomeAssistant } from "../../types";
 import { showToast } from "../../util/toast";
 import type { HaAppearanceTools } from "../appearance/ha-appearance-tools";
 import "../ha-svg-icon";
-import { computePageTabs } from "./compute-page-tabs";
+import { computeStripTabs, currentTabId } from "./destination-tabs";
 import "./ha-tab-appearance-editor";
 import type { HaTabAppearanceEditor } from "./ha-tab-appearance-editor";
 import "./ha-tab-close-by-text";
@@ -200,15 +199,12 @@ export class HaPageTabMenu extends LitElement {
   };
 
   private _readState(): TabMenuState {
-    const tabs =
-      this.tabs ??
-      computePageTabs(
-        this.hass.panels,
-        getDefaultPanelUrlPath(this.hass),
-        Boolean(this.hass.user?.is_admin),
-        this.hass.localize
-      );
-    return readMenuState(this.surface, tabs, this.hass.panelUrl);
+    const tabs = this.tabs ?? computeStripTabs(this.hass, this.surface);
+    return readMenuState(
+      this.surface,
+      tabs,
+      currentTabId(this.hass, this.surface)
+    );
   }
 
   private async _openTab(detail: TabContextMenuDetail) {

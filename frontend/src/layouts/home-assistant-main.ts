@@ -270,6 +270,9 @@ export class HomeAssistantMain extends LitElement {
       getStorage().subscribeChanges(HISTORY_SUBJECTS.tabGroups.key, () =>
         noteLocalChange("tabGroups")
       ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabDestinations.key, () =>
+        noteLocalChange("tabDestinations")
+      ),
       getStorage().subscribeChanges(HISTORY_SUBJECTS.tabDock.key, () =>
         noteLocalChange("tabDock")
       ),

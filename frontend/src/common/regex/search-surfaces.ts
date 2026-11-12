@@ -120,6 +120,17 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "The groups of the tab group picker, by name",
   },
   {
+    file: "components/section-tabs/ha-section-tabs.ts",
+    searches:
+      "The tabs of a settings surface in its More tabs list: the tabs out of view, in collapsed groups, hidden and the arranging list, by visible label",
+  },
+  {
+    file: "components/section-tabs/ha-section-hide-dialog.ts",
+    searches:
+      "The visible label of the tabs of a settings surface, to review which ones Hide tabs containing text and Hide tabs not containing text would hide",
+    matcher: "common/tabs/tab-close-plans.ts",
+  },
+  {
     file: "components/locks/ha-lock-list.ts",
     searches: "The locks of this browser, by name, kind and policy",
   },

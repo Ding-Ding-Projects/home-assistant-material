@@ -4,6 +4,7 @@ import type { HomeAssistant } from "../../../src/types";
 /** Storage keys the tab group elements read and write. */
 export const TAB_KEYS = [
   "pageTabsGroups",
+  "pageTabsDestinations",
   "pageTabsPinned",
   "pageTabsOrder",
   "pageTabsClosed",
