@@ -1048,6 +1048,11 @@ export class HaAutomationTrace extends LitElement {
           font-size: var(--ha-font-size-xl);
           font-weight: var(--ha-font-weight-medium);
           overflow-wrap: anywhere;
+          /* The shared heading style cuts a long title to one line; the run
+             title wraps so the whole date and time can be read. */
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
         }
 
         p {
@@ -1094,13 +1099,19 @@ export class HaAutomationTrace extends LitElement {
           min-width: 0;
         }
 
+        /* The run picker takes a full row of its own, so the date and time
+           are never squeezed between the two arrow buttons; the arrows sit
+           on the row below it. */
         .pager {
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
+          justify-content: space-between;
           gap: var(--ha-space-1);
         }
         .pager ha-trace-picker {
-          flex: 1;
+          order: -1;
+          flex: 1 1 100%;
           min-width: 0;
           max-width: 500px;
         }

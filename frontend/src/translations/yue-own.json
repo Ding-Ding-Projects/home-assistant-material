@@ -155,7 +155,12 @@
         "guided_setup": {
           "save_close": "儲存並關閉",
           "leave_text": "你嘅進度會以草稿形式喺呢個瀏覽器保留 14 日，之後可以繼續。密碼同密鑰唔會保留。",
-          "leave_text_entry": "你對呢個設定做嘅更改仲未儲存，離開就會冇晒。"
+          "leave_text_entry": "你對呢個設定做嘅更改仲未儲存，離開就會冇晒。",
+          "no_entries": "呢度仲未設定任何嘢",
+          "no_entries_text": "呢啲整合冇自己嘅設定畫面。喺下面揀一個，就幫你寫好佢嘅 YAML，儲存之前會先俾你檢查。",
+          "can_set_up": "可以喺呢度設定",
+          "domain_level": "有自己嘅設定",
+          "show_more": "顯示更多"
         },
         "core": {
           "section": {
@@ -627,7 +632,8 @@
               "not_now": "遲啲先",
               "restart": "重新啟動",
               "caption": "窄畫面會將第二種語言收喺撳一下之後，標籤就唔會擠逼。"
-            }
+            },
+            "title": "預覽"
           }
         },
         "identity": {
@@ -734,6 +740,36 @@
           "submit_failed": "檢查唔到驗證碼。請再試。",
           "load_failed": "開始唔到設定。",
           "secret_note": "金鑰唔會寫入記錄、網址或者呢個瀏覽器嘅儲存空間，而且關閉呢個視窗就會忘記。"
+        },
+        "passkeys": {
+          "header": "通行密鑰",
+          "description": "用指紋、面容或者裝置嘅螢幕鎖登入，唔使再打密碼。你嘅密碼照樣用得。",
+          "unsupported": "通行密鑰需要安全嘅 https 地址，所以喺呢個地址用唔到。",
+          "empty": "你仲未有任何通行密鑰。",
+          "load_failed": "載入唔到通行密鑰。",
+          "created": "新增於 {date}",
+          "last_used": "最後使用：{date}",
+          "never_used": "從未使用",
+          "add": "新增通行密鑰",
+          "add_title": "新增一個通行密鑰",
+          "name": "通行密鑰名稱",
+          "add_failed": "未能新增通行密鑰",
+          "add_failed_text": "新增唔到通行密鑰，請再試一次。",
+          "rename": "重新命名通行密鑰",
+          "rename_failed": "重新命名唔到通行密鑰。",
+          "confirm_delete_title": "刪除通行密鑰？",
+          "confirm_delete_text": "通行密鑰「{name}」會被刪除，之後就唔可以再用佢登入。",
+          "delete_failed": "刪除唔到通行密鑰。",
+          "delete_all": "移除所有通行密鑰",
+          "confirm_delete_all_title": "移除所有通行密鑰？",
+          "confirm_delete_all_text": "你所有通行密鑰都會被移除，之後就唔可以再用任何一個登入。",
+          "sign_in_again": "為咗你嘅安全，通行密鑰只可以喺登入後一陣間內新增。請登出，再登入，然後再新增通行密鑰。",
+          "sign_in_again_to_remove": "為咗你嘅安全，通行密鑰只可以喺用密碼登入後一陣間內移除。請登出，再登入，然後再移除通行密鑰。",
+          "mfa_note": "用通行密鑰登入唔會再問第二重驗證，因為通行密鑰已經用你嘅裝置確認咗係你本人。",
+          "persistence_note": "你登出其他工作階段或者撤銷權杖之後，通行密鑰仍然有效。想佢失效，就喺呢度移除。"
+        },
+        "refresh_tokens": {
+          "header": "你登入咗嘅地方"
         }
       },
       "lovelace": {
@@ -1157,7 +1193,7 @@
       "clear_confirm": "呢個動作會將你嘅用字喺呢個帳戶所有裝置上刪走，所有標籤返回預設用字。",
       "clear_note": "清除會將你嘅用字喺呢個實例同呢個瀏覽器刪走，所有裝置都會冇咗，所有標籤返回預設用字。",
       "overlay_title": "已套用個人用字",
-      "overlay_count": "{count} 個標籤而家用你嘅講法",
+      "overlay_count": "{count} 個標籤而家用你嘅講法。",
       "overlay_everywhere": "呢份用字會取代你其他裝置上已儲存嘅用字。",
       "cleared": "已經還原做預設用字。",
       "not_applied": "檔案未有套用，你而家嘅用字冇變。",
@@ -2069,6 +2105,15 @@
           "error_too_deep": "資料夾嵌套唔可以咁深。",
           "remove_folder": "移除資料夾"
         }
+      }
+    },
+    "page_tools": {
+      "footer": {
+        "build": "Home Assistant Material {version}，於 {date} {time} 更新",
+        "build_no_time": "Home Assistant Material {version}",
+        "language": "語言：{language}",
+        "locked": "頁面已鎖定",
+        "menu_hint": "喺任何位置撳右鍵，就可以編輯外觀，或者鎖住呢個頁面"
       }
     }
   }

@@ -155,15 +155,49 @@ describe("the Cantonese source", () => {
     // The live preview on the personal page shows both languages side by
     // side from its own per-language samples, so its keys are not translated.
     const own = "ui.panel.config.personal.preview.";
+    // The default name of a new passkey is stored as the passkey's name, so
+    // it stays in English whatever the mode.
+    const stored = ["ui.panel.profile.passkeys.default_name"];
     const missing = Object.entries(english)
       .filter(
         ([key, text]) =>
           hasCantoneseBlock(key) &&
           !key.startsWith(own) &&
+          !stored.includes(key) &&
           typeof text === "string"
       )
       .map(([key]) => key)
       .filter((key) => yueString(key) === undefined);
     expect(missing).toEqual([]);
+  });
+
+  // A hand-written list of what must have Cantonese. The check above only
+  // looks inside blocks that are listed, so a block that was never listed
+  // would pass it while staying English.
+  it("has Cantonese for the page, card and footer strings that were gaps", () => {
+    const required = [
+      "ui.panel.config.personal.preview.title",
+      "ui.panel.config.personal.language_mode.english",
+      "ui.panel.config.personal.language_mode.bilingual",
+      "ui.panel.profile.passkeys.header",
+      "ui.panel.profile.passkeys.description",
+      "ui.panel.profile.passkeys.empty",
+      "ui.panel.profile.passkeys.add",
+      "ui.panel.profile.refresh_tokens.header",
+      "ui.panel.config.guided_setup.no_entries",
+      "ui.panel.config.guided_setup.can_set_up",
+      "ui.panel.config.guided_setup.domain_level",
+      "ui.panel.config.guided_setup.show_more",
+      "ui.page_tools.footer.build",
+      "ui.page_tools.footer.build_no_time",
+      "ui.page_tools.footer.language",
+      "ui.page_tools.footer.locked",
+      "ui.page_tools.footer.menu_hint",
+    ];
+    required.forEach((key) => {
+      expect(english[key], key).toBeTypeOf("string");
+      expect(yueString(key), key).toBeTypeOf("string");
+      expect(hasCantoneseBlock(key), key).toBe(true);
+    });
   });
 });

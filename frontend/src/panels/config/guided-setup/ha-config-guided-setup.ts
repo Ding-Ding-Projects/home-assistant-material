@@ -3,6 +3,7 @@ import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { classMap } from "lit/directives/class-map";
 import { customElement, property, state } from "lit/decorators";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
 import { navigate } from "../../../common/navigate";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-alert";
@@ -79,9 +80,14 @@ class HaConfigGuidedSetup extends LitElement {
 
   private _addressHandled = false;
 
+  // Draws the page again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  /** A page string, in the chosen language mode where it has Cantonese. */
   private _l(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(
-      `ui.panel.config.guided_setup.${key}` as any,
+    return this._lang.text(
+      this.hass.localize,
+      `ui.panel.config.guided_setup.${key}`,
       values
     );
   }

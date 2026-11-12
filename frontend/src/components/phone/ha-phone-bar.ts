@@ -42,6 +42,7 @@ import { pickFilesToAdd } from "../../common/file-drop/add-media";
 import { getStorage, storage } from "../../common/decorators/storage";
 import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
+import { spansForMode } from "../../common/language-mode/bilingual-text";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
   isUnlocked,
@@ -306,6 +307,10 @@ export class HaPhoneBar extends LitElement {
 
   @query('.item[data-item="pages"]') private _pagesItem?: HTMLElement;
 
+  @query("nav.bar") private _bar?: HTMLElement;
+
+  private _barResize?: ResizeObserver;
+
   @queryAll(".more")
   private _moreButtons!: NodeListOf<HTMLElement & { urlPath?: string }>;
 
@@ -386,6 +391,8 @@ export class HaPhoneBar extends LitElement {
     this.removeEventListener("focusout", this._handleFocusOut);
     window.clearTimeout(this._undoTimer);
     window.clearTimeout(this._pressTimer);
+    this._barResize?.disconnect();
+    this._barResize = undefined;
     document.documentElement.style.removeProperty(VISIBLE_HEIGHT_PROPERTY);
   }
 
@@ -393,6 +400,14 @@ export class HaPhoneBar extends LitElement {
     super.updated(changed);
     if (changed.has("phone") || changed.has("_barHidden")) {
       this._publishVisibleHeight();
+    }
+    if (
+      !this._barResize &&
+      this._bar &&
+      typeof ResizeObserver !== "undefined"
+    ) {
+      this._barResize = new ResizeObserver(() => this._publishVisibleHeight());
+      this._barResize.observe(this._bar);
     }
   }
 
@@ -407,9 +422,22 @@ export class HaPhoneBar extends LitElement {
       root.removeProperty(VISIBLE_HEIGHT_PROPERTY);
       return;
     }
-    const height =
+    const declared =
       getComputedStyle(this).getPropertyValue("--ha-phone-bar-height").trim() ||
       "64px";
+    // The bar can grow past its nominal height (two-line labels, larger
+    // text), so the published value is the larger of the two.
+    const bar = this._bar;
+    let height = declared;
+    if (bar) {
+      const padding =
+        parseFloat(getComputedStyle(bar).paddingBottom || "0") || 0;
+      const real = Math.ceil(bar.offsetHeight - padding);
+      const nominal = parseFloat(declared) || 0;
+      if (real > nominal) {
+        height = `${real}px`;
+      }
+    }
     root.setProperty(VISIBLE_HEIGHT_PROPERTY, this._barHidden ? "0px" : height);
   }
 
@@ -614,26 +642,21 @@ export class HaPhoneBar extends LitElement {
       [
         "home",
         mdiHome,
-        localize("ui.phone.home"),
+        "ui.phone.home",
         () => navigate(`/${getDefaultPanelUrlPath(this.hass)}`),
       ],
-      [
-        "search",
-        mdiMagnify,
-        localize("ui.phone.search"),
-        () => showQuickBar(this, {}),
-      ],
-      ["pages", mdiTab, localize("ui.phone.pages"), () => this._togglePages()],
+      ["search", mdiMagnify, "ui.phone.search", () => showQuickBar(this, {})],
+      ["pages", mdiTab, "ui.phone.pages", () => this._togglePages()],
       [
         "access",
         mdiHuman,
-        localize("ui.phone.access"),
+        "ui.phone.access",
         () => fireEvent(this, "hass-show-accessibility-tools"),
       ],
       [
         "menu",
         mdiMenu,
-        localize("ui.phone.menu"),
+        "ui.phone.menu",
         () => fireEvent(this, "hass-toggle-menu"),
       ],
     ];
@@ -714,8 +737,13 @@ export class HaPhoneBar extends LitElement {
         class=${classMap({ bar: true, hidden: this._barHidden })}
         aria-label=${localize("ui.phone.navigation")}
       >
-        ${barItems.map(
-          ([id, icon, text, run]) => html`
+        ${barItems.map(([id, icon, key, run]) => {
+          const text = localize(key);
+          const lines = spansForMode(
+            this._lang.parts(this.hass.localize, key),
+            this._lang.mode
+          );
+          return html`
             <button
               class=${classMap({
                 item: true,
@@ -738,10 +766,17 @@ export class HaPhoneBar extends LitElement {
                     : nothing
                 }
               </span>
-              <span class="item-label" aria-hidden="true">${text}</span>
+              <span class="item-label" aria-hidden="true"
+                >${lines.map(
+                  (line) =>
+                    html`<span class="item-line" lang=${line.lang}
+                      >${line.text}</span
+                    >`
+                )}</span
+              >
             </button>
-          `
-        )}
+          `;
+        })}
       </nav>
     `;
   }
@@ -2067,6 +2102,12 @@ export class HaPhoneBar extends LitElement {
 
   static styles: CSSResultGroup = css`
     :host {
+      /* The bar's real height: its nominal one, or more when labels take
+         more lines. */
+      --ha-phone-bar-room: max(
+        var(--ha-phone-bar-height, 64px),
+        var(--ha-phone-bar-visible-height, 0px)
+      );
       display: none;
       font-family: var(--ha-font-family-body);
       color: var(--primary-text-color);
@@ -2173,8 +2214,10 @@ export class HaPhoneBar extends LitElement {
     }
     .item {
       flex: 1;
-      min-width: 64px;
+      min-width: 0;
       min-height: 64px;
+      padding-block: var(--ha-space-1);
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -2213,20 +2256,34 @@ export class HaPhoneBar extends LitElement {
       line-height: 18px;
       text-align: center;
     }
+    /* In both-languages mode the two languages sit on two short lines, so a
+       label is never cut at 320 px. A line that is still too long wraps. */
     .item-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 100%;
       font-size: var(--ha-font-size-s);
       font-weight: var(--ha-font-weight-medium);
+      line-height: 1.15;
+      text-align: center;
+    }
+    .item-line {
       max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
+    }
+    .item-label:has(.item-line + .item-line) {
+      font-size: var(--ha-font-size-xs, 11px);
+    }
+    .item:has(.item-line + .item-line) .glyph {
+      height: 26px;
     }
     .toast {
       position: fixed;
       z-index: 8;
       inset-inline: var(--ha-space-3);
       bottom: calc(
-        var(--ha-phone-bar-height, 64px) + var(--ha-space-3) +
+        var(--ha-phone-bar-room) + var(--ha-space-3) +
           var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
       );
       display: flex;
@@ -2254,13 +2311,20 @@ export class HaPhoneBar extends LitElement {
       inset: auto;
       inset-inline: 0;
       bottom: calc(
-        var(--ha-phone-bar-height, 64px) +
+        var(--ha-phone-bar-room) +
           var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
       );
       margin: 0;
       width: auto;
       max-width: none;
-      max-height: calc(100dvh - 120px);
+      /* The window height less the bar and a margin at the top, so a long
+         list (the catalog especially) uses what room the phone has. */
+      max-height: calc(
+        100dvh - var(--ha-phone-bar-room) - var(--ha-space-8) - var(
+            --app-safe-area-inset-bottom,
+            env(safe-area-inset-bottom, 0px)
+          )
+      );
       box-sizing: border-box;
       padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-3);
       border: none;

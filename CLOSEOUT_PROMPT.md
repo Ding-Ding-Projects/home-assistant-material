@@ -75,6 +75,44 @@ product matching it.
   start; a memory limit on the outer container or on the Docker virtual machine would stop one
   workload starving the rest. Both are the owner's decisions.
 
+- Batch 39: the Repairs page showed "Unsupported installation method" above "This installation
+  is supported". The Supervisor integration's start-up check raised that repair for every
+  installation that is not the appliance operating system; it now raises it only when the
+  Supervisor does not report its host as supported. Not seen in a running build.
+- Viewing pass on published build 131, 12 November, three throwaway instances, headless Edge,
+  pictures inspected. Seen working: every main tab strip menu action carried through and
+  rechecked after a reload; settings section tab actions; "Search all tabs" naming the section;
+  dark theme; right to left; Cantonese and both-languages modes; the phone bar and Pages sheet
+  at 390 and 320 px; line and letter spacing; the wording file by upload and by drop with a
+  made-up file (applies, celebration, reload, refusal of bad files, clear); locks and the lock
+  wizard; link confirmation; the not-found page and the connection-lost toast; help articles
+  inside the interface with no outside request; name and logo; the automation editor's search,
+  nested search and entity filter; the Choose step; the history manager; the script editor;
+  media folders and uploads; the release notes page; backups with encryption off by default;
+  the problem log; dashboards (editable copy, export, dropped import); 14 tools pages.
+  Not driven: sounds and the narrator (not hearable), the starting screen, the embedded page
+  panel, a real backup, appearance masks and per-state layers (not built), outside-link
+  confirmation, the dim sum reload count.
+- Batch 40, fixes for what that pass found, unit tested only and not seen in a browser:
+  - The link confirmation page threw an error (a focus call before the button had rendered),
+    and the error log then fetched a source file from an outside host. Fixed, and the error log
+    now refuses any address that is not this instance's own origin.
+  - Locks: list rows stack in the narrow tool panel; the remove prompt stays inside the window;
+    wizard step 2 scrolls above its buttons; the panel text agrees with the list. The School
+    mode switch no longer shows on before the PIN is accepted (it never stored without one).
+  - An appearance fill on a data table was hidden under the table's own surface. The two-key
+    slider is no longer snapped back while a pointer is down on it; whether a drag failed for a
+    person, and not only for the headless driver, is still not known. The in-page copy of Run
+    now and Check in the automation editor is removed (the bottom bar has them). Trace page run
+    title and picker; scroll room under the sticky search; the colour tool labels its two names.
+  - Phone bar labels stack in both-languages mode at 320 px; the list footer clears the
+    floating button on a phone; sidebar labels wrap with wider letter spacing; the accessibility
+    panel fits; the New tab catalog uses the window height; the strip snaps at its edge;
+    37 Cantonese strings (passkeys, guided setup, footer, preview).
+  - Left open by those fixes: the heading weight choice reaches only the list page title (about
+    55 other title rules hard-code their weight); the phone bar height published to pages is
+    still a fixed 64 px in the main layout; the slim bar of open pages is hidden by design.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

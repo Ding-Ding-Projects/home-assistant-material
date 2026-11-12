@@ -1048,8 +1048,13 @@ export class HaLockWizard extends LitElement {
         background: var(--card-background-color, #fff);
         border-top: 1px solid var(--divider-color);
       }
+      /* The steps scroll inside their own row, so the last choice is never
+         drawn under the buttons below it. */
       .layout {
         min-height: 0;
+        overflow-y: auto;
+        padding-bottom: var(--ha-space-2);
+        scroll-padding-bottom: var(--ha-space-4);
       }
       .layout.wide {
         display: grid;

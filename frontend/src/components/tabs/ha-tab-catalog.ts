@@ -150,13 +150,18 @@ export class TabCatalogController {
     #catalog {
       position: fixed;
       inset: auto;
-      top: calc(var(--ha-page-tabs-top, 12px) + var(--ha-space-12));
+      --ha-catalog-top: calc(
+        var(--ha-page-tabs-top, 12px) + var(--ha-space-12)
+      );
+      top: var(--ha-catalog-top);
       inset-inline-start: calc(
         var(--ha-sidebar-width, 88px) + var(--ha-space-5)
       );
       margin: 0;
       width: min(760px, calc(100vw - 32px));
-      max-height: min(560px, calc(100dvh - 96px));
+      /* Uses the height of the window, keeping a margin below. The list
+         scrolls; the search and the notes stay in view. */
+      max-height: calc(100dvh - var(--ha-catalog-top) - var(--ha-space-4));
       box-sizing: border-box;
       padding: var(--ha-space-3);
       border: none;

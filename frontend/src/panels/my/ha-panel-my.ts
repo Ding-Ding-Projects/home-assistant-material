@@ -797,12 +797,27 @@ class HaPanelMy extends LitElement {
   }
 
   protected firstUpdated() {
-    this._cancelButton?.focus();
+    this._focusCancel();
   }
 
   protected updated(changedProps: PropertyValues) {
     if (changedProps.has("_plan") && this._plan) {
-      this._cancelButton?.focus();
+      this._focusCancel();
+    }
+  }
+
+  // The button is created by this render, but its own inner button element
+  // exists only after its first render. Focusing earlier throws, so wait.
+  private async _focusCancel() {
+    const button = this._cancelButton;
+    if (!button) {
+      return;
+    }
+    try {
+      await button.updateComplete;
+      button.focus();
+    } catch {
+      // Focus is a convenience; never let it surface as an error.
     }
   }
 

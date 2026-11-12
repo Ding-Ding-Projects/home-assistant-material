@@ -582,14 +582,18 @@ export class HaAccessibilityTools extends LitElement {
     #panel {
       position: fixed;
       inset: auto;
-      top: calc(
+      --ha-access-panel-top: calc(
         var(--ha-page-tabs-top, 12px) + var(--ha-page-tabs-height, 0px) +
           var(--ha-space-1)
       );
+      top: var(--ha-access-panel-top);
       inset-inline-end: calc(var(--ha-pane-gap, 0px) + var(--ha-space-3));
       margin: 0;
       width: min(440px, calc(100vw - 24px));
-      max-height: calc(100dvh - 96px);
+      /* Uses the room below the panel's top edge, so the closing note is
+         inside it whenever the window is tall enough; the panel scrolls
+         when it is not. */
+      max-height: calc(100dvh - var(--ha-access-panel-top) - var(--ha-space-3));
       box-sizing: border-box;
       padding: var(--ha-space-4);
       border: var(--ha-pane-outline, none);

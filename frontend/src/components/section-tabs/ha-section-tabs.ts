@@ -26,6 +26,7 @@ import { styleMap } from "lit/directives/style-map";
 import { getStorage, storage } from "../../common/decorators/storage";
 import { isNavigationClick } from "../../common/dom/is-navigation-click";
 import { fireEvent } from "../../common/dom/fire_event";
+import { spansForMode } from "../../common/language-mode/bilingual-text";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
   isUnlocked,
@@ -723,7 +724,15 @@ export class HaSectionTabs extends LitElement {
                 ${
                   this.narrow
                     ? html`<span class="more-label"
-                        >${this._t(`${BASE}more`)}</span
+                        >${spansForMode(
+                          this._lang.parts(this.localize, `${BASE}more`),
+                          this._lang.mode
+                        ).map(
+                          (line) =>
+                            html`<span class="more-line" lang=${line.lang}
+                              >${line.text}</span
+                            >`
+                        )}</span
                       >`
                     : nothing
                 }
@@ -1991,9 +2000,16 @@ export const sectionTabsStyles = css`
     font-size: var(--ha-font-size-xs);
   }
   ha-section-tabs .more-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     white-space: normal;
     overflow-wrap: normal;
     line-height: 1.1;
+    text-align: center;
+  }
+  ha-section-tabs .more-line {
+    max-width: 100%;
   }
   ha-section-tabs .more-popover {
     position: fixed;

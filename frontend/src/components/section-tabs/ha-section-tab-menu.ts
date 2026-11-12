@@ -999,7 +999,7 @@ export class HaSectionTabMenu extends LitElement {
       >
         <ha-svg-icon .path=${row.icon}></ha-svg-icon>
         <span class="label"
-          >${row.label}${
+          ><bdi>${row.label}</bdi>${
             row.note ? html`<span class="note">${row.note}</span>` : nothing
           }</span
         >

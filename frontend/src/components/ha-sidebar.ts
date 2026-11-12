@@ -1131,9 +1131,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         ha-list-item-button .item-text {
           display: block;
           max-width: 100%;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
+          /* A label wraps rather than being cut, so wider letter spacing and
+             larger text never hide part of a page name. */
+          white-space: normal;
+          overflow-wrap: anywhere;
           text-align: center;
           font-size: var(--ha-font-size-s);
           line-height: var(--ha-line-height-condensed);
@@ -1237,9 +1238,9 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         }
         .provenance span {
           max-width: 100%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          /* The stamp wraps rather than being cut, at any letter spacing. */
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
         .provenance .version {
           font-weight: var(--ha-font-weight-medium);

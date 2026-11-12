@@ -2315,7 +2315,10 @@ export class HaDataTable extends LitElement {
         /* Rows as cards. The card is drawn behind the row, so the row keeps
            its size and the columns keep their places. */
         :host([row-cards]) .mdc-data-table {
-          background: var(--primary-background-color);
+          background: var(
+            --ha-data-table-background,
+            var(--primary-background-color)
+          );
         }
         :host([row-cards]) .mdc-data-table__header-row {
           border-bottom: none;

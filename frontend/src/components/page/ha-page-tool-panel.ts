@@ -1049,9 +1049,11 @@ export class HaPageToolPanel extends LitElement {
     );
     const page = window.location.pathname;
     // Locks with their own credentials are in the list of locks below.
-    const elements = lockedElementPaths(this._locks, page).filter(
+    const elementPaths = lockedElementPaths(this._locks, page);
+    const elements = elementPaths.filter(
       (path) => !this._locks.records?.[elementLockKey(page, path)]
     );
+    const listedElements = elementPaths.length - elements.length;
     return html`
       <p class=${classMap({ state: true, locked })}>
         <ha-svg-icon
@@ -1184,7 +1186,11 @@ export class HaPageToolPanel extends LitElement {
                   : nothing
               }`
           : html`<p class="note">
-              ${localize("ui.page_tools.lock_panel.no_elements")}
+              ${localize(
+                listedElements
+                  ? "ui.page_tools.lock_panel.elements_in_list"
+                  : "ui.page_tools.lock_panel.no_elements"
+              )}
             </p>`
       }
 

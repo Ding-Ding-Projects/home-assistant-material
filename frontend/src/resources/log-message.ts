@@ -39,6 +39,37 @@ const detectFromUA = (
   return fallback;
 };
 
+/**
+ * Fetches a file used to resolve a stack trace (the script, its source map or
+ * a mapped source file). Only files served by this instance are fetched. The
+ * production source maps name sources on an outside host; those are refused
+ * so that logging an error never contacts anything else.
+ */
+export const fetchSameOriginText = async (
+  url: string,
+  base: string = location.href
+): Promise<string> => {
+  let parsed: URL;
+  try {
+    parsed = new URL(url, base);
+  } catch {
+    throw new Error("Invalid URL for stack trace resolution");
+  }
+  if (parsed.origin !== new URL(base).origin) {
+    throw new Error("Stack trace resolution only reads from this instance");
+  }
+  const response = await fetch(parsed.href, { credentials: "same-origin" });
+  if (!response.ok) {
+    throw new Error(`Failed to load ${parsed.pathname}`);
+  }
+  return response.text();
+};
+
+export const STACK_TRACE_OPTIONS = {
+  // stacktrace-gps accepts a custom request function that is not in the typings
+  ajax: (url: string) => fetchSameOriginText(url),
+} as StackTrace.StackTraceOptions;
+
 export const createLogMessage = async (
   error: unknown,
   intro?: string,
@@ -62,7 +93,7 @@ export const createLogMessage = async (
     lines.push(error.toString() || messageFallback);
     let stackLines: (string | undefined)[];
     try {
-      stackLines = (await fromError(error))
+      stackLines = (await fromError(error, STACK_TRACE_OPTIONS))
         .slice(0, MAX_STACK_FRAMES)
         .map((frame) => {
           frame.fileName ??= "";

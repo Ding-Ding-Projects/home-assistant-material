@@ -567,6 +567,19 @@ const applyStyles = (element: HTMLElement, styles: Record<string, string>) => {
   }
 };
 
+/**
+ * Some components paint an opaque surface inside themselves, which hides a
+ * fill set on the element. They read a custom property for it; a fill makes
+ * it transparent for that one element so the fill shows through.
+ */
+export const innerSurfaceStyles = (
+  element: HTMLElement,
+  box: Record<string, string>
+): Record<string, string> =>
+  element.localName === "ha-data-table" && box["background-image"]
+    ? { "--ha-data-table-background": "transparent" }
+    : {};
+
 /** Applies a choice to an element, replacing what was applied before. */
 export const applyAppearance = (
   element: HTMLElement,
@@ -581,6 +594,7 @@ export const applyAppearance = (
     applyStyles(card, box);
     applyStyles(element, inherited);
   } else {
+    Object.assign(box, innerSurfaceStyles(element, box));
     applyStyles(element, { ...box, ...inherited });
   }
 };

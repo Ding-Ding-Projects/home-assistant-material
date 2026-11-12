@@ -338,7 +338,14 @@ export const automationRowsStyles = css`
   }
   ha-automation-action-row {
     display: block;
-    scroll-margin-top: 48px;
+  }
+  /* The sticky search panel sits over the top of the editor, so a row that is
+     scrolled to keeps room above it for its own toolbar. */
+  ha-automation-trigger-row,
+  ha-automation-condition-row,
+  ha-automation-action-row,
+  ha-automation-option-row {
+    scroll-margin-top: var(--ha-automation-sticky-offset, 120px);
   }
   /* The part the open bottom sheet covers, see scrollRowIntoView */
   ha-automation-trigger-row,

@@ -228,6 +228,29 @@ describe("applying choices", () => {
     expect(element.getAttribute("style")).toBe("margin: 4px;");
   });
 
+  it("lets a fill show through a data table's own opaque surface, and only there", () => {
+    const layers = [
+      {
+        type: "color" as const,
+        color: "#336699",
+        opacity: 1,
+        blend: "normal" as const,
+        visible: true,
+      },
+    ];
+    const table = document.createElement("ha-data-table");
+    const other = document.createElement("div");
+    document.body.append(table, other);
+    applyAppearance(table, { layers });
+    applyAppearance(other, { layers });
+    expect(table.style.getPropertyValue("--ha-data-table-background")).toBe(
+      "transparent"
+    );
+    expect(other.style.getPropertyValue("--ha-data-table-background")).toBe("");
+    applyAppearance(table, { radius: 4 });
+    expect(table.style.getPropertyValue("--ha-data-table-background")).toBe("");
+  });
+
   it("applies a kind to every element of it and one element's own on top", () => {
     document.body.innerHTML = `<my-chip></my-chip><my-chip></my-chip><p></p>`;
     const [first, second] = Array.from(

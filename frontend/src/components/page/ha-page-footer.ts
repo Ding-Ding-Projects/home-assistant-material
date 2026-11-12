@@ -4,6 +4,7 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../common/decorators/consume";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { configContext, internationalizationContext } from "../../data/context";
 import "../ha-svg-icon";
 
@@ -34,11 +35,18 @@ export class HaPageFooter extends LitElement {
   @state()
   private _hassConfig?: ContextType<typeof configContext>;
 
+  // Draws the footer again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   protected render(): TemplateResult | typeof nothing {
     if (!this._i18n) {
       return nothing;
     }
-    const localize = this._i18n.localize;
+    // Each line follows the language mode where it has Cantonese.
+    const localize = (
+      key: string,
+      values?: Record<string, string | number>
+    ): string => this._lang.text(this._i18n.localize, key, values);
     const version =
       __MATERIAL_BUILD__ || this._hassConfig?.config?.version || __VERSION__;
     const built = new Date(__BUILD_TIME__);
@@ -99,7 +107,10 @@ export class HaPageFooter extends LitElement {
         var(--ha-space-8) + var(--safe-area-inset-right, 0px)
       );
       padding-bottom: var(--safe-area-inset-bottom, 0px);
-      white-space: nowrap;
+      /* The line wraps instead of being cut, which matters most when both
+         languages are shown. */
+      flex-wrap: wrap;
+      row-gap: var(--ha-space-1);
       overflow: hidden;
       background: var(--primary-background-color);
       color: var(--secondary-text-color);
@@ -111,10 +122,9 @@ export class HaPageFooter extends LitElement {
       flex: none;
     }
     .version {
-      flex: 1 1 0;
+      flex: 1 1 auto;
       min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow-wrap: anywhere;
     }
     .item {
       display: inline-flex;

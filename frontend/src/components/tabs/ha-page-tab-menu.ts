@@ -806,7 +806,7 @@ export class HaPageTabMenu extends LitElement {
         @click=${this._itemClicked}
       >
         <ha-svg-icon .path=${entry.icon}></ha-svg-icon>
-        <span class="label">${this._t(entry.labelKey)}</span>
+        <span class="label"><bdi>${this._t(entry.labelKey)}</bdi></span>
         ${
           radio && entry.checked
             ? html`<span class="mark" aria-hidden="true">●</span>`

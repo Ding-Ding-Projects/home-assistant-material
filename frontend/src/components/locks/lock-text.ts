@@ -60,28 +60,52 @@ export const describeElement = (element: Element): string => {
  * Places a floating panel beside an element, inside the window. A narrow
  * window gets the panel at its full width under the element instead.
  */
-export const anchorStyle = (
-  anchor: Element | undefined,
+export const placePanel = (
+  rect: { left: number; top: number; bottom: number } | undefined,
+  viewportWidth: number,
+  viewportHeight: number,
   width = 360
-): Record<string, string> => {
+): { left: number; top: number; width: number; maxHeight: number } => {
   const margin = 8;
-  const viewportWidth = document.documentElement.clientWidth;
-  const viewportHeight = document.documentElement.clientHeight;
-  const panelWidth = Math.min(width, viewportWidth - margin * 2);
-  const rect = anchor?.getBoundingClientRect();
+  const minHeight = 240;
+  const panelWidth = Math.max(0, Math.min(width, viewportWidth - margin * 2));
   let left = rect ? rect.left : (viewportWidth - panelWidth) / 2;
   left = Math.max(margin, Math.min(left, viewportWidth - panelWidth - margin));
   let top = rect ? rect.bottom + margin : margin * 4;
   // When the element is low on the screen, open above it.
   if (rect && top > viewportHeight * 0.55) {
-    top = Math.max(margin, rect.top - margin - viewportHeight * 0.5);
+    top = rect.top - margin - viewportHeight * 0.5;
   }
-  top = Math.max(margin, Math.min(top, viewportHeight * 0.5));
+  // The panel always starts inside the window, with room left for its content.
+  top = Math.min(
+    top,
+    viewportHeight * 0.5,
+    viewportHeight - minHeight - margin
+  );
+  top = Math.max(margin, top);
   return {
-    left: `${left}px`,
-    top: `${top}px`,
-    width: `${panelWidth}px`,
-    "max-height": `${Math.max(240, viewportHeight - top - margin)}px`,
+    left,
+    top,
+    width: panelWidth,
+    maxHeight: Math.max(minHeight, viewportHeight - top - margin),
+  };
+};
+
+export const anchorStyle = (
+  anchor: Element | undefined,
+  width = 360
+): Record<string, string> => {
+  const placed = placePanel(
+    anchor?.getBoundingClientRect(),
+    document.documentElement.clientWidth,
+    document.documentElement.clientHeight,
+    width
+  );
+  return {
+    left: `${placed.left}px`,
+    top: `${placed.top}px`,
+    width: `${placed.width}px`,
+    "max-height": `${placed.maxHeight}px`,
   };
 };
 

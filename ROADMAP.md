@@ -108,8 +108,9 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       unlocked by a hold or a PIN, with growing waits after wrong PINs. Unlocking elements with
       the PIN is written but only the hold was exercised; the other rungs of the board's ladder
       are not built
-- [ ] Locks with their own credentials and the lock wizard: six ways in, QR code, countdown,
-      list of locks. Built; not yet seen in a running build
+- [x] Locks with their own credentials and the lock wizard: six ways in, QR code, countdown,
+      list of locks. Seen in published build 131 on 12 November (wizard, locked screen, unlock, remove). Three
+      layout defects found there are fixed in source and not yet seen
 - [x] Two-key confirmation for destructive actions: every question marked destructive asks for
       two keys and a slide
 - [~] Local version history: appearance, accessibility and open tabs, with undo, from every page
@@ -162,13 +163,14 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       sections view, an empty automation and an empty script (six each), not yet seen. Not built: other empty editors
 - [x] Version and updated-at on the first screen
 - [x] Free, with nothing to buy: the About page says so, and says the project is independent
-- [ ] Link confirmation for a link that opens a page of the interface from outside. Built; not
-      yet seen in a running build
+- [ ] Link confirmation for a link that opens a page of the interface from outside. Seen in published build 131 on 12 November:
+      nothing opens before the choice. The page also threw an error and its error log fetched a
+      source file from an outside host; fixed in source (batch 40), not yet seen
 - [ ] Not-found screen for unknown pages under Settings, and the starting, connection lost,
       no-access, loading and error screens. Built; not yet seen in a running build
-- [ ] Help links open a copy of the article inside the interface, with 40 articles and 1,392
-      integration pages bundled (licence CC BY-NC-SA 4.0, with attribution). Built; not yet seen
-      in a running build. Open review findings are listed in `HANDOFF.md`
+- [x] Help links open a copy of the article inside the interface, with 40 articles and 1,392
+      integration pages bundled (licence CC BY-NC-SA 4.0, with attribution). Seen in published build 131 on 12 November on
+      five pages, with no request to another host. Open review findings are listed in `HANDOFF.md`
 - [x] Nothing is sent out: analytics, crash reports and diagnostics are removed
 - [ ] Problem log in a Git repository in the configuration folder, with private values removed.
       A forced error produced files and a commit in a running copy; the page that lists the
@@ -201,8 +203,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Language and voice
 
-- [ ] Language modes: English, Cantonese, both. Built for this project's own surfaces; not yet
-      seen in a running build. Cantonese for other pages is not written
+- [x] Language modes: English, Cantonese, both. Built for this project's own surfaces. Seen in published build 131 on 12 November
+      at 1440, 390 and 320 px. Cantonese for other pages is not written
 - [ ] Playfulness sliders that change real messages and the dialog emoji switch. Built; not yet
       seen in a running build
 - [ ] Spoken narrator (on-device voices only) and action sounds. Built; not yet seen or heard
@@ -222,7 +224,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       It remains visible in a few places for someone who has it configured (an existing
       cloud-stored backup's location name, one entity filter)
 - [ ] Cantonese for eight more blocks, with a test that keeps them complete. Built; not seen
-- [ ] Renaming the app and logo customization. Built; not yet seen in a running build
+- [x] Renaming the app and logo customization. Seen in published build 131 on 12 November (sidebar, tab title, reset;
+      the web app manifest keeps the original name)
 - [x] Dim sum surprise: card at start with a dish from the public catalogue, always-on switch that springs back, hidden in School mode. Seen in a development build with the draw forced; the busy-moment rules (dialog, unsaved changes, connection down, update, error screen) are unit-tested, not seen
 
 ## Appearance
@@ -240,16 +243,16 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 ## Automations
 
 - [x] Test buttons on every condition and every Choose option
-- [ ] The Choose step tests and runs one option, the default actions or the whole step; Run now
-      for automations and scripts asks first. Built; not yet seen in a running build
+- [x] The Choose step tests and runs one option, the default actions or the whole step; Run now
+      for automations and scripts asks first. Seen in published build 131 on 12 November
 - [x] A Git repository for each automation; every save is a commit
 - [x] A master repository; one push commits every automation repository, then the master
 - [x] History manager: every version, compare, test one, test many, run many
-- [ ] History manager: make live, export, Stop during a long test, a narrow screen. Built; not
-      yet seen
+- [x] History manager: make live, export, Stop during a long test, a narrow screen. Seen in published build 131 on 12 November
+      (Stop was pressed during a bulk test; no single long test could be made)
 - [ ] Automation editor motion, enable switch, Check button and history strip. Built; not yet
       seen in a running build. Review findings are listed in `HANDOFF.md`
-- [ ] Script editor redrawn with a mode selector, Run now and See past runs. Built; not yet seen.
+- [x] Script editor redrawn with a mode selector, Run now and See past runs. Seen in published build 131 on 12 November.
       Open: Save in a bottom bar
 - [~] Named test cases, and a simulated run that pretends the actions. Built in the history manager
       (create, rename, duplicate, delete, simulate one or all, condition trace, would-run list; nothing is
@@ -346,7 +349,7 @@ matches its board, checked side by side.
       yet seen; the code generator in Tools is not built (the browser has no credential vault);
       QR pairing is the lock wizard's QR step, already built and not yet seen
 - [x] Changelog viewer: What changed, under Settings, About
-- [ ] Release notes page. Built; not yet seen in a running build
+- [x] Release notes page. Seen in published build 131 on 12 November
 - [~] Offline help articles: the Help tool with 12 articles was seen; 40 articles and 1,392
       integration pages are bundled and not yet seen; no article per page yet
 - [ ] Rendered provider text

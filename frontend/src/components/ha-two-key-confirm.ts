@@ -58,9 +58,18 @@ export class HaTwoKeyConfirm extends LitElement {
     window.addEventListener("keydown", this._keydown, true);
     window.addEventListener("keyup", this._keyup, true);
     window.addEventListener("blur", this._releaseAll);
+    window.addEventListener("pointerup", this._endDrag, true);
+    window.addEventListener("pointercancel", this._endDrag, true);
     this._tick = window.setInterval(() => {
       this._now = Date.now();
-      if (!bothTurned(this._keys, this._now) && this._slide && !this._done) {
+      // A slide that is still under a finger is never snapped back because the
+      // keys timed out half-way; it is judged when the finger lifts.
+      if (
+        !bothTurned(this._keys, this._now) &&
+        this._slide &&
+        !this._done &&
+        !this._dragging
+      ) {
         this._slide = 0;
       }
     }, 250);
@@ -71,8 +80,20 @@ export class HaTwoKeyConfirm extends LitElement {
     window.removeEventListener("keydown", this._keydown, true);
     window.removeEventListener("keyup", this._keyup, true);
     window.removeEventListener("blur", this._releaseAll);
+    window.removeEventListener("pointerup", this._endDrag, true);
+    window.removeEventListener("pointercancel", this._endDrag, true);
     window.clearInterval(this._tick);
   }
+
+  private _dragging = false;
+
+  private _startDrag = (): void => {
+    this._dragging = true;
+  };
+
+  private _endDrag = (): void => {
+    this._dragging = false;
+  };
 
   private _typing(ev: KeyboardEvent): boolean {
     return ev
@@ -190,6 +211,7 @@ export class HaTwoKeyConfirm extends LitElement {
           .disabled=${!ready || this.disabled}
           aria-labelledby="slide-label"
           aria-describedby="note"
+          @pointerdown=${this._startDrag}
           @input=${this._slideInput}
           @change=${this._slideChange}
         ></ha-slider>

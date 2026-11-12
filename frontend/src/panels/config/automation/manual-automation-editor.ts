@@ -308,7 +308,6 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
       <ha-automation-status-bar
         .hass=${this.hass}
         .config=${this.config}
-        .stateObj=${this.stateObj}
         .dirty=${this.dirty}
       ></ha-automation-status-bar>
     `;

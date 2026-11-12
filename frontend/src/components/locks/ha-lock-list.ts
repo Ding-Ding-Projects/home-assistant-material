@@ -559,6 +559,7 @@ export class HaLockList extends LitElement {
   static styles: CSSResultGroup = css`
     :host {
       display: block;
+      container-type: inline-size;
     }
     h3 {
       margin: var(--ha-space-3) 0 var(--ha-space-2);
@@ -740,6 +741,31 @@ export class HaLockList extends LitElement {
     }
     .callout ha-svg-icon {
       flex: none;
+    }
+    /* The list sits in a narrow tool panel even on a wide screen, so the row
+       answers to the width of the list itself: the columns give way to
+       stacked lines and nothing is squeezed to one character per line. */
+    @container (max-width: 640px) {
+      .head {
+        display: none;
+      }
+      li:not(:has(.menu)) {
+        grid-template-columns: auto 40px minmax(0, 1fr);
+      }
+      li:not(:has(.menu)) .text,
+      li:not(:has(.menu)) .unlocks,
+      li:not(:has(.menu)) .state {
+        grid-column: 3;
+        min-width: 0;
+      }
+      li:not(:has(.menu)) .unlocks {
+        color: var(--secondary-text-color);
+        font-size: var(--ha-font-size-s, 0.85rem);
+        overflow-wrap: anywhere;
+      }
+      li:not(:has(.menu)) .actions {
+        grid-column: 1 / -1;
+      }
     }
     /* A phone: the row is two lines, with its actions in a sheet. */
     :host([narrow]) li,

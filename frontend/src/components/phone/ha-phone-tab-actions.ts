@@ -96,7 +96,7 @@ export class HaPhoneTabActions extends LitElement {
                   ><ha-svg-icon .path=${item.iconPath}></ha-svg-icon
                 ></span>
                 <span class="text">
-                  <span class="label">${item.label}</span>
+                  <span class="label"><bdi>${item.label}</bdi></span>
                   ${
                     item.note
                       ? html`<span class="note">${item.note}</span>`

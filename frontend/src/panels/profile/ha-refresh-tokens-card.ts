@@ -13,6 +13,7 @@ import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { relativeTime } from "../../common/datetime/relative_time";
 import { fireEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import "../../components/ha-button";
 import "../../components/ha-card";
 import "../../components/ha-dropdown";
@@ -53,6 +54,9 @@ class HaRefreshTokens extends LitElement {
 
   @property({ attribute: false }) public refreshTokens?: RefreshToken[];
 
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
   private _refreshTokens = memoizeOne(
     (refreshTokens: RefreshToken[]): RefreshToken[] =>
       refreshTokens
@@ -76,7 +80,10 @@ class HaRefreshTokens extends LitElement {
       : [];
     return html`
       <ha-card
-        .header=${this.hass.localize("ui.panel.profile.refresh_tokens.header")}
+        .header=${this._lang.text(
+          this.hass.localize,
+          "ui.panel.profile.refresh_tokens.header"
+        )}
       >
         <div class="card-content">
           ${this.hass.localize("ui.panel.profile.refresh_tokens.description")}

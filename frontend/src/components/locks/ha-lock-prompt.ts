@@ -156,10 +156,14 @@ export class HaLockPrompt extends LitElement {
   protected render(): TemplateResult {
     const record = this._record;
     const factors = record ? POLICY_FACTORS[record.policy] : [];
-    const style =
-      this._narrow || !record
-        ? {}
-        : anchorStyle(this.anchor, factors[this._step] === "pin" ? 640 : 400);
+    // An older lock has no record but still needs to be placed: without a
+    // position the fixed panel falls to the end of the page, off the screen.
+    const style = this._narrow
+      ? {}
+      : anchorStyle(
+          this.anchor,
+          record && factors[this._step] === "pin" ? 640 : 400
+        );
     return html`
       <div
         class=${classMap({

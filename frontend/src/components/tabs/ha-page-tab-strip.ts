@@ -1358,6 +1358,19 @@ export class TabStripController implements ReactiveController {
       .strip.has-pinned {
         scroll-padding-inline-start: calc(var(--pinned-size, 0px) + 8px);
       }
+      /* A scroll settles with a whole tab at the edge, not a cut piece of
+         one. Proximity snapping leaves a free scroll and a drag alone. */
+      :host(:not([vertical])) .strip {
+        scroll-snap-type: x proximity;
+      }
+      :host(:not([vertical])) .strip > * {
+        scroll-snap-align: start;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        :host(:not([vertical])) .strip {
+          scroll-snap-type: none;
+        }
+      }
       :host([vertical]) .strip {
         flex: 1 1 auto;
         flex-direction: column;
@@ -1382,18 +1395,20 @@ export class TabStripController implements ReactiveController {
           transparent
         );
       }
+      /* The start edge is fully clear for a few pixels before it fades in, so
+         the end of a scrolled-away tab never shows as a cut fragment. */
       .strip.more-start {
         mask-image: linear-gradient(
           to var(--float-start, left),
-          #000 calc(100% - 40px),
-          transparent
+          #000 calc(100% - 44px),
+          transparent calc(100% - 12px)
         );
       }
       .strip.more-start.more-end {
         mask-image: linear-gradient(
           to right,
-          transparent,
-          #000 40px,
+          transparent 12px,
+          #000 44px,
           #000 calc(100% - 40px),
           transparent
         );

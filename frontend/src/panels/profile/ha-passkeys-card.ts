@@ -4,6 +4,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { relativeTime } from "../../common/datetime/relative_time";
 import type { HASSDomCurrentTargetEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import "../../components/ha-alert";
 import "../../components/ha-button";
 import "../../components/ha-card";
@@ -42,6 +43,14 @@ class HaPasskeysCard extends LitElement {
 
   private _supported = isPasskeySupported();
 
+  // Draws the card again when the language mode changes.
+  private _lang = new LanguageModeController(this);
+
+  /** A string of this card, in the chosen language mode. */
+  private _text(key: string, values?: Record<string, string | number>): string {
+    return this._lang.text(this.hass.localize, key, values);
+  }
+
   public connectedCallback() {
     super.connectedCallback();
     this._load();
@@ -53,36 +62,32 @@ class HaPasskeysCard extends LitElement {
     }
 
     return html`
-      <ha-card
-        .header=${this.hass.localize("ui.panel.profile.passkeys.header")}
-      >
+      <ha-card .header=${this._text("ui.panel.profile.passkeys.header")}>
         <div class="card-content">
-          <p>${this.hass.localize("ui.panel.profile.passkeys.description")}</p>
+          <p>${this._text("ui.panel.profile.passkeys.description")}</p>
           <p class="note">
-            ${this.hass.localize("ui.panel.profile.passkeys.mfa_note")}
+            ${this._text("ui.panel.profile.passkeys.mfa_note")}
           </p>
           <p class="note">
-            ${this.hass.localize("ui.panel.profile.passkeys.persistence_note")}
+            ${this._text("ui.panel.profile.passkeys.persistence_note")}
           </p>
           ${
             this._supported
               ? nothing
               : html`<ha-alert alert-type="info">
-                  ${this.hass.localize("ui.panel.profile.passkeys.unsupported")}
+                  ${this._text("ui.panel.profile.passkeys.unsupported")}
                 </ha-alert>`
           }
           ${
             this._loadFailed
               ? html`<ha-alert alert-type="error">
-                  ${this.hass.localize("ui.panel.profile.passkeys.load_failed")}
+                  ${this._text("ui.panel.profile.passkeys.load_failed")}
                 </ha-alert>`
               : nothing
           }
           ${
             this._passkeys && !this._passkeys.length && !this._loadFailed
-              ? html`<p>
-                  ${this.hass.localize("ui.panel.profile.passkeys.empty")}
-                </p>`
+              ? html`<p>${this._text("ui.panel.profile.passkeys.empty")}</p>`
               : nothing
           }
           ${(this._passkeys ?? []).map(
@@ -93,7 +98,7 @@ class HaPasskeysCard extends LitElement {
                 <ha-icon-button
                   .passkey=${passkey}
                   .disabled=${this._busy}
-                  .label=${this.hass.localize("ui.panel.profile.passkeys.rename")}
+                  .label=${this._text("ui.panel.profile.passkeys.rename")}
                   .path=${mdiPencil}
                   @click=${this._rename}
                 ></ha-icon-button>
@@ -118,9 +123,7 @@ class HaPasskeysCard extends LitElement {
                         .disabled=${this._busy}
                         @click=${this._deleteAll}
                       >
-                        ${this.hass.localize(
-                          "ui.panel.profile.passkeys.delete_all"
-                        )}
+                        ${this._text("ui.panel.profile.passkeys.delete_all")}
                       </ha-button>`
                     : nothing
                 }
@@ -130,7 +133,7 @@ class HaPasskeysCard extends LitElement {
                         @click=${this._add}
                         .loading=${this._busy}
                       >
-                        ${this.hass.localize("ui.panel.profile.passkeys.add")}
+                        ${this._text("ui.panel.profile.passkeys.add")}
                       </ha-button>`
                     : nothing
                 }
@@ -142,14 +145,14 @@ class HaPasskeysCard extends LitElement {
   }
 
   private _describe(passkey: Passkey): string {
-    const created = this.hass.localize("ui.panel.profile.passkeys.created", {
+    const created = this._text("ui.panel.profile.passkeys.created", {
       date: relativeTime(new Date(passkey.created), this.hass.locale),
     });
     const used = passkey.last_used
-      ? this.hass.localize("ui.panel.profile.passkeys.last_used", {
+      ? this._text("ui.panel.profile.passkeys.last_used", {
           date: relativeTime(new Date(passkey.last_used), this.hass.locale),
         })
-      : this.hass.localize("ui.panel.profile.passkeys.never_used");
+      : this._text("ui.panel.profile.passkeys.never_used");
     return `${created} · ${used}`;
   }
 
@@ -168,12 +171,12 @@ class HaPasskeysCard extends LitElement {
 
   private async _add(): Promise<void> {
     const name = await showPromptDialog(this, {
-      title: this.hass.localize("ui.panel.profile.passkeys.add_title"),
-      inputLabel: this.hass.localize("ui.panel.profile.passkeys.name"),
+      title: this._text("ui.panel.profile.passkeys.add_title"),
+      inputLabel: this._text("ui.panel.profile.passkeys.name"),
       defaultValue: this.hass.localize(
         "ui.panel.profile.passkeys.default_name"
       ),
-      confirmText: this.hass.localize("ui.panel.profile.passkeys.add"),
+      confirmText: this._text("ui.panel.profile.passkeys.add"),
     });
     if (name === null) {
       return;
@@ -186,7 +189,7 @@ class HaPasskeysCard extends LitElement {
       const { kind } = toPasskeyError(err);
       if (kind !== "cancelled") {
         await showAlertDialog(this, {
-          title: this.hass.localize("ui.panel.profile.passkeys.add_failed"),
+          title: this._text("ui.panel.profile.passkeys.add_failed"),
           text: this.hass.localize(
             kind === "sign_in_required"
               ? "ui.panel.profile.passkeys.sign_in_again"
@@ -204,8 +207,8 @@ class HaPasskeysCard extends LitElement {
   ): Promise<void> {
     const passkey = ev.currentTarget.passkey;
     const name = await showPromptDialog(this, {
-      title: this.hass.localize("ui.panel.profile.passkeys.rename"),
-      inputLabel: this.hass.localize("ui.panel.profile.passkeys.name"),
+      title: this._text("ui.panel.profile.passkeys.rename"),
+      inputLabel: this._text("ui.panel.profile.passkeys.name"),
       defaultValue: passkey.name,
     });
     if (name === null || !name.trim() || name.trim() === passkey.name) {
@@ -217,7 +220,7 @@ class HaPasskeysCard extends LitElement {
       await this._load();
     } catch (_err: any) {
       await showAlertDialog(this, {
-        text: this.hass.localize("ui.panel.profile.passkeys.rename_failed"),
+        text: this._text("ui.panel.profile.passkeys.rename_failed"),
       });
     } finally {
       this._busy = false;
@@ -230,13 +233,10 @@ class HaPasskeysCard extends LitElement {
     const passkey = ev.currentTarget.passkey;
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass.localize(
-          "ui.panel.profile.passkeys.confirm_delete_title"
-        ),
-        text: this.hass.localize(
-          "ui.panel.profile.passkeys.confirm_delete_text",
-          { name: passkey.name }
-        ),
+        title: this._text("ui.panel.profile.passkeys.confirm_delete_title"),
+        text: this._text("ui.panel.profile.passkeys.confirm_delete_text", {
+          name: passkey.name,
+        }),
         confirmText: this.hass.localize("ui.common.delete"),
         destructive: true,
       }))
@@ -263,13 +263,9 @@ class HaPasskeysCard extends LitElement {
   private async _deleteAll(): Promise<void> {
     if (
       !(await showConfirmationDialog(this, {
-        title: this.hass.localize(
-          "ui.panel.profile.passkeys.confirm_delete_all_title"
-        ),
-        text: this.hass.localize(
-          "ui.panel.profile.passkeys.confirm_delete_all_text"
-        ),
-        confirmText: this.hass.localize("ui.panel.profile.passkeys.delete_all"),
+        title: this._text("ui.panel.profile.passkeys.confirm_delete_all_title"),
+        text: this._text("ui.panel.profile.passkeys.confirm_delete_all_text"),
+        confirmText: this._text("ui.panel.profile.passkeys.delete_all"),
         destructive: true,
       }))
     ) {

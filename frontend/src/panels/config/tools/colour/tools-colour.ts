@@ -243,11 +243,10 @@ class ToolsColour extends LitElement {
             )}
           </ul>
           <p class="nearest">
-            ${
-              nearest.distance < 0.5
-                ? this._p("nearest_exact", { name: nearestName })
-                : this._p("nearest_name", { name: nearestName })
-            }
+            ${this._l(
+              nearest.distance < 0.5 ? "family_exact" : "family_nearest",
+              { name: nearestName }
+            )}
           </p>
           <div class="gamut" role="group" aria-label=${this._p("gamut_label")}>
             ${GAMUTS.map(

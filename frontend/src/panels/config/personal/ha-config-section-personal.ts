@@ -1551,14 +1551,21 @@ export class HaConfigSectionPersonal extends LitElement {
     held: boolean
   ): TemplateResult {
     const loc = this.hass.localize;
+    // The Cantonese card is always named in Cantonese. The other two follow
+    // the language mode, so they read in Cantonese when Cantonese is chosen.
     const title = (mode: LanguageMode) =>
-      loc(
-        mode === "cantonese"
-          ? "ui.panel.config.personal.language_mode.cantonese_native"
-          : mode === "english"
-            ? "ui.panel.config.personal.language_mode.english"
-            : "ui.panel.config.personal.language_mode.bilingual"
-      );
+      mode === "cantonese"
+        ? loc("ui.panel.config.personal.language_mode.cantonese_native")
+        : renderBilingual(
+            textParts(
+              loc,
+              mode === "english"
+                ? "ui.panel.config.personal.language_mode.english"
+                : "ui.panel.config.personal.language_mode.bilingual"
+            ),
+            this._lang.mode,
+            " · "
+          );
     return html`<div
       class="mode-cards"
       role="group"
@@ -1667,7 +1674,11 @@ export class HaConfigSectionPersonal extends LitElement {
 
   private _schoolSwitch = async (ev: HASSDomTargetEvent<HaSwitch>) => {
     const toggle = ev.target;
-    if (toggle.checked) {
+    const turningOn = toggle.checked;
+    // The mode changes only once its PIN step is done, so the switch keeps
+    // showing what is stored while the PIN is asked for.
+    toggle.checked = this._prefs.schoolMode;
+    if (turningOn) {
       await this._schoolTurnOn();
     } else {
       await this._schoolTurnOff();

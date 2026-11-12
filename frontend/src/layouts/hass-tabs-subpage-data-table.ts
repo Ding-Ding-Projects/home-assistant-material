@@ -1376,7 +1376,8 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       margin: 0;
       font-family: var(--ha-font-family-heading, inherit);
       font-size: var(--ha-font-size-4xl);
-      font-weight: var(--ha-font-weight-medium);
+      /* Follows the heading weight chosen in Fonts and type. */
+      font-weight: var(--ha-font-weight-heading, var(--ha-font-weight-medium));
       line-height: var(--ha-line-height-condensed);
       color: var(--primary-text-color);
     }
@@ -1498,6 +1499,23 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
     :host([has-fab][narrow]) .footer-select {
       order: -1;
+    }
+    /* On a phone the floating button sits over the end of the footer row.
+       The footer keeps clear of it: its lines stack at the start side, in a
+       slightly taller row, and the text wraps in the room left. */
+    :host([has-footer][has-fab][narrow]) {
+      --list-footer-height: 76px;
+    }
+    :host([has-fab][narrow]) .list-footer {
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: var(--ha-space-1);
+      padding-inline-end: 196px;
+    }
+    :host([has-fab][narrow]) .list-footer-text {
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
     .table-header.with-chips ha-input-search {
       flex: 0 1 320px;

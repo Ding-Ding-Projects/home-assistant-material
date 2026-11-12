@@ -407,7 +407,7 @@ export class HaTabGroupMenu extends TabGroupPanel {
                         >
                           <ha-svg-icon .path=${entry.iconPath}></ha-svg-icon>
                           <span class="grow">
-                            ${entry.label}
+                            <bdi>${entry.label}</bdi>
                             ${
                               entry.note
                                 ? html`<span class="sub">${entry.note}</span>`

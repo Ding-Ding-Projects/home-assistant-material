@@ -62,6 +62,13 @@ export const YUE_PREFIXES = [
   "ui.panel.config.guided_setup.save_close",
   "ui.panel.config.guided_setup.leave_text",
   "ui.panel.config.automation.editor.search.",
+  "ui.panel.config.guided_setup.no_entries",
+  "ui.panel.config.guided_setup.can_set_up",
+  "ui.panel.config.guided_setup.domain_level",
+  "ui.panel.config.guided_setup.show_more",
+  "ui.panel.profile.passkeys.",
+  "ui.panel.profile.refresh_tokens.header",
+  "ui.page_tools.footer.",
 ] as const;
 
 export type Localize = (
