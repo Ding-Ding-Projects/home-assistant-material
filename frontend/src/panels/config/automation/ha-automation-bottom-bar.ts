@@ -396,28 +396,45 @@ export class HaAutomationBottomBar extends LitElement {
                 ) - var(--ha-page-tabs-bottom-inset, 0px)
             )
           );
+          /* The bar floats over the page as one rounded card, centred, so it
+             never reads as a second footer; the page shows around it. */
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--ha-space-2);
+          padding-top: var(--ha-space-2);
+          padding-inline: var(--ha-space-3);
+          pointer-events: none;
+        }
+        :host([keyboard]) {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .bar,
+        .dry {
+          pointer-events: auto;
           background: var(
             --ha-color-surface-container,
             var(--card-background-color)
           );
-          border-top: var(--ha-border-width-sm, 1px) solid var(--divider-color);
-        }
-        :host([keyboard]) {
-          padding-bottom: env(safe-area-inset-bottom, 0px);
+          box-shadow: var(--ha-box-shadow-l, 0 6px 24px rgba(0, 0, 0, 0.18));
         }
         .bar {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
+          justify-content: center;
           gap: var(--ha-space-3);
           box-sizing: border-box;
-          width: 100%;
-          padding: var(--ha-space-3) var(--ha-space-4);
+          width: fit-content;
+          max-width: 100%;
+          padding: var(--ha-space-2) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-3xl, 32px);
         }
         .status {
           flex: 1 1 200px;
           min-width: 0;
           overflow-wrap: anywhere;
+          padding-inline: var(--ha-space-2);
           font-size: var(--ha-font-size-s, 0.875rem);
           color: var(--secondary-text-color);
         }
@@ -446,6 +463,7 @@ export class HaAutomationBottomBar extends LitElement {
             grid-template-columns: repeat(3, minmax(0, 1fr));
             align-items: center;
             gap: var(--ha-space-2);
+            width: 100%;
             padding: var(--ha-space-2) var(--ha-space-3);
           }
           .status {
@@ -472,9 +490,9 @@ export class HaAutomationBottomBar extends LitElement {
           box-sizing: border-box;
           max-height: 50dvh;
           overflow-y: auto;
+          width: min(100%, 640px);
           padding: var(--ha-space-3) var(--ha-space-4);
-          border-bottom: var(--ha-border-width-sm, 1px) solid
-            var(--divider-color);
+          border-radius: var(--ha-border-radius-2xl, 24px);
         }
         .dry-head {
           display: flex;

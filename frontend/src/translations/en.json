@@ -4393,6 +4393,11 @@
     },
     "page_tabs": {
       "open_pages": "Open pages",
+      "pane": {
+        "home": "Home",
+        "pages": "Pages",
+        "system": "System"
+      },
       "close_tab": "Close {name}",
       "new_tab": "New tab",
       "catalog_title": "All pages",
@@ -4673,7 +4678,9 @@
         "expanded": "Tab strip expanded",
         "edge_float": "a floating panel",
         "collapse_setting_header": "Collapse the tab strip",
-        "collapse_setting_description": "Shows each tab as its icon only. The name shows when you point at a tab."
+        "collapse_setting_description": "Shows each tab as its icon only. The name shows when you point at a tab.",
+        "merge_setting_header": "One navigation pane",
+        "merge_setting_description": "Adds settings, developer tools, notifications and your profile to the tab strip and hides the side rail."
       },
       "close_by_text": {
         "title_containing": "Close tabs containing text",
@@ -5389,6 +5396,8 @@
           "summary": "Everything about this home, in one place.",
           "search": "Search settings",
           "search_empty": "No setting matches that search.",
+          "review_updates": "Review",
+          "fix_repairs": "Fix",
           "updates_ready": "{count, plural,\n  one {# update is ready}\n  other {# updates are ready}\n}",
           "repairs_waiting": "{count, plural,\n  one {# thing to repair}\n  other {# things to repair}\n}",
           "summaries": {
@@ -5744,7 +5753,10 @@
             "why_not_available": "Why you see this page instead of an app store",
             "installation_hint": "Apps require the Home Assistant Operating System. Learn more about installation methods in the documentation.",
             "learn_more": "Learn more",
-            "dismiss": "Don't show again"
+            "dismiss": "Don't show again",
+            "needs_os_title": "Apps need the Operating System",
+            "no_store_text": "Apps run beside Home Assistant: network monitoring, code editors, databases. This installation method has no app store, so there is nothing to install here.",
+            "compare_methods": "Compare installation methods"
           },
           "state": {
             "update_available": "Update available",

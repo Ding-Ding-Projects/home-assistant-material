@@ -1,9 +1,46 @@
 import { css } from "lit";
 
 /** What the lock wizard and the unlock prompt share: the panel, its header and the sheet on a phone. */
+/**
+ * Puts a lock panel in the browser's top layer. The page tool panel is a
+ * popover, so it sits in the top layer; a fixed element on the body, whatever
+ * its z-index, is drawn underneath it. Opened later, this one is drawn above.
+ */
+export const raiseToTopLayer = (element: HTMLElement): void => {
+  if (typeof element.showPopover !== "function" || !element.isConnected) {
+    return;
+  }
+  element.setAttribute("popover", "manual");
+  try {
+    element.showPopover();
+  } catch (_err: unknown) {
+    // Already shown.
+  }
+};
+
 export const lockPanelStyles = css`
   :host {
     display: contents;
+  }
+  /* In the top layer the host is a clear, window-sized box that passes clicks through. */
+  :host([popover]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    overflow: visible;
+    pointer-events: none;
+  }
+  :host([popover]) > * {
+    pointer-events: auto;
   }
   .panel {
     position: fixed;

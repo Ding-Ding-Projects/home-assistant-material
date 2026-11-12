@@ -14,6 +14,11 @@ import {
   writeCollapsed,
   writeDock,
 } from "../../common/tabs/tab-dock";
+import {
+  MERGE_STORAGE_KEY,
+  readMerged,
+  writeMerged,
+} from "../../common/tabs/tab-pane";
 import "../../components/ha-select";
 import "../../components/ha-switch";
 import type { HaSelectSelectEvent } from "../../components/ha-select";
@@ -37,6 +42,8 @@ class HaTabDockRow extends LitElement {
 
   @state() private _collapsed = readCollapsed(MAIN_SURFACE);
 
+  @state() private _merged = readMerged(MAIN_SURFACE);
+
   private _lang = new LanguageModeController(this);
 
   private _stop?: () => void;
@@ -46,12 +53,15 @@ class HaTabDockRow extends LitElement {
     const refresh = () => {
       this._edge = readDock(MAIN_SURFACE);
       this._collapsed = readCollapsed(MAIN_SURFACE);
+      this._merged = readMerged(MAIN_SURFACE);
     };
     getStorage().subscribeChanges(DOCK_STORAGE_KEY, refresh);
     getStorage().subscribeChanges(COLLAPSE_STORAGE_KEY, refresh);
+    getStorage().subscribeChanges(MERGE_STORAGE_KEY, refresh);
     this._stop = () => {
       getStorage().unsubscribeChanges(DOCK_STORAGE_KEY, refresh);
       getStorage().unsubscribeChanges(COLLAPSE_STORAGE_KEY, refresh);
+      getStorage().unsubscribeChanges(MERGE_STORAGE_KEY, refresh);
     };
     refresh();
   }
@@ -99,6 +109,18 @@ class HaTabDockRow extends LitElement {
           @change=${this._collapsedChanged}
         ></ha-switch>
       </ha-row-item>
+      <ha-row-item>
+        <span slot="headline">${this._t(`${base}merge_setting_header`)}</span>
+        <span slot="supporting-text"
+          >${this._t(`${base}merge_setting_description`)}</span
+        >
+        <ha-switch
+          slot="end"
+          .checked=${this._merged}
+          aria-label=${this._t(`${base}merge_setting_header`)}
+          @change=${this._mergedChanged}
+        ></ha-switch>
+      </ha-row-item>
     `;
   }
 
@@ -112,6 +134,10 @@ class HaTabDockRow extends LitElement {
 
   private _collapsedChanged(ev: Event) {
     writeCollapsed(MAIN_SURFACE, (ev.target as HTMLInputElement).checked);
+  }
+
+  private _mergedChanged(ev: Event) {
+    writeMerged(MAIN_SURFACE, (ev.target as HTMLInputElement).checked);
   }
 
   static styles: CSSResultGroup = css`

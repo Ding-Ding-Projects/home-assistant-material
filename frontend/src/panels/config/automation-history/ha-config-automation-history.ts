@@ -1587,7 +1587,7 @@ export class HaConfigAutomationHistory extends LitElement {
     const result = this._pushResult;
     return html`
       <div class="hero">
-        <ha-card class="master">
+        <ha-card class="master ${waiting ? "" : "clean"}">
           <div class="master-text">
             <span class="eyebrow">
               <ha-svg-icon .path=${mdiSourceBranch}></ha-svg-icon>
@@ -1651,15 +1651,6 @@ export class HaConfigAutomationHistory extends LitElement {
           }
         </ha-card>
         <div class="hero-actions">
-          <ha-button
-            class="hero-commit"
-            size="l"
-            ?disabled=${this._pushing}
-            @click=${this._push}
-          >
-            <ha-svg-icon slot="start" .path=${mdiCloudUpload}></ha-svg-icon>
-            ${this._commitLabel(status)}
-          </ha-button>
           <ha-button appearance="outlined" size="l" @click=${this._editRemote}>
             <ha-svg-icon slot="start" .path=${mdiCog}></ha-svg-icon>
             ${this._l("remote_settings")}
@@ -2677,6 +2668,9 @@ export class HaConfigAutomationHistory extends LitElement {
       padding: var(--ha-space-6);
       --ha-card-background: var(--ha-color-fill-primary-quiet-resting);
     }
+    .master.clean {
+      --ha-card-background: var(--ha-color-fill-success-quiet-resting);
+    }
     .master-text {
       display: flex;
       flex-direction: column;
@@ -2813,12 +2807,6 @@ export class HaConfigAutomationHistory extends LitElement {
       .hero,
       .repos-grid {
         grid-template-columns: minmax(0, 1fr);
-      }
-    }
-    /* Beside the list, the commit panel has its own button under the message, so the page shows one. */
-    @media (min-width: 901px) {
-      .hero-commit {
-        display: none;
       }
     }
     @media (max-width: 700px) {

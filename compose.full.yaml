@@ -25,7 +25,14 @@ services:
   homeassistant-full:
     image: ghcr.io/ding-ding-projects/home-assistant-material-full:${HA_MATERIAL_FULL_TAG:-latest}
     container_name: home-assistant-material-full
-    restart: unless-stopped
+    # "always", not "unless-stopped": after an unclean Docker engine exit the engine can mark a
+    # container as stopped by hand, and "unless-stopped" then leaves it down. The cost: a
+    # container stopped on purpose comes back at the next engine start; remove it with
+    # "docker compose -f compose.full.yaml down" to keep it away.
+    restart: always
+    # Everything inside (Supervisor, core, apps) shares this limit, so one runaway app cannot
+    # starve the rest of the computer. Raise it with HA_MATERIAL_FULL_MEMORY, for example 8g.
+    mem_limit: ${HA_MATERIAL_FULL_MEMORY:-6g}
     privileged: true
     # Time for the Supervisor to stop the core and the apps cleanly before Docker gives up.
     stop_grace_period: 3m

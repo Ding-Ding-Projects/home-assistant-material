@@ -182,11 +182,26 @@ class HaConfigNavigationList extends LitElement {
       width: 40px;
       height: 40px;
       border-radius: var(--ha-border-radius-lg);
-      background: var(--primary-background-color);
+      --_tile-bg: var(--ha-color-fill-primary-normal-resting);
+      --_tile-fg: var(--ha-color-on-primary-normal);
+      background: var(--_tile-bg, var(--primary-background-color));
     }
     .tile ha-svg-icon {
       padding: 0;
-      color: var(--primary-text-color);
+      color: var(--_tile-fg, var(--primary-text-color));
+    }
+    /* Tinted icon containers, cycling through four tones. */
+    .card:nth-child(4n + 2) .tile {
+      --_tile-bg: var(--ha-color-fill-success-normal-resting);
+      --_tile-fg: var(--ha-color-on-success-normal);
+    }
+    .card:nth-child(4n + 3) .tile {
+      --_tile-bg: var(--ha-color-fill-warning-normal-resting);
+      --_tile-fg: var(--ha-color-on-warning-normal);
+    }
+    .card:nth-child(4n) .tile {
+      --_tile-bg: var(--ha-color-fill-neutral-normal-resting);
+      --_tile-fg: var(--ha-color-on-neutral-normal, var(--primary-text-color));
     }
     .text {
       flex: 1;

@@ -1,9 +1,8 @@
-import { mdiOpenInNew, mdiPuzzle } from "@mdi/js";
+import { mdiEyeOff, mdiOpenInNew, mdiPuzzle } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-button";
-import "../../../components/ha-card";
 import "../../../components/ha-svg-icon";
 import { saveFrontendUserData } from "../../../data/frontend";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
@@ -30,52 +29,29 @@ class HaConfigAppsInfo extends LitElement {
         .header=${this.hass.localize("ui.panel.config.dashboard.apps.main")}
       >
         <div class="content">
-          <ha-card outlined>
-            <div class="card-content">
-              <div class="header">
-                <ha-svg-icon class="icon" .path=${mdiPuzzle}></ha-svg-icon>
-                <h1>
-                  ${this.hass.localize(
-                    "ui.panel.config.apps.info.what_is_an_app"
-                  )}
-                </h1>
-              </div>
-              <p>
-                ${this.hass.localize(
-                  "ui.panel.config.apps.info.what_is_an_app_description"
-                )}
-              </p>
-            </div>
-          </ha-card>
-
-          <ha-card outlined>
-            <div class="card-content">
-              <h2>
-                ${this.hass.localize(
-                  "ui.panel.config.apps.info.why_not_available"
-                )}
-              </h2>
-              <p>
-                ${this.hass.localize(
-                  "ui.panel.config.apps.info.installation_hint"
-                )}
-              </p>
-            </div>
-            <div class="card-actions">
-              <ha-button
-                appearance="plain"
-                href=${documentationUrl(this.hass, "/apps/")}
-                target="_blank"
-                rel="noreferrer"
-              >
-                ${this.hass.localize("ui.panel.config.apps.info.learn_more")}
-                <ha-svg-icon slot="icon" .path=${mdiOpenInNew}></ha-svg-icon>
-              </ha-button>
-              <ha-button @click=${this._dismiss} appearance="outlined">
-                ${this.hass.localize("ui.panel.config.apps.info.dismiss")}
-              </ha-button>
-            </div>
-          </ha-card>
+          <div class="icon-wrap">
+            <ha-svg-icon .path=${mdiPuzzle}></ha-svg-icon>
+          </div>
+          <h1>
+            ${this.hass.localize("ui.panel.config.apps.info.needs_os_title")}
+          </h1>
+          <p>
+            ${this.hass.localize("ui.panel.config.apps.info.no_store_text")}
+          </p>
+          <div class="actions">
+            <ha-button
+              href=${documentationUrl(this.hass, "/installation/")}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ha-svg-icon slot="start" .path=${mdiOpenInNew}></ha-svg-icon>
+              ${this.hass.localize("ui.panel.config.apps.info.compare_methods")}
+            </ha-button>
+            <ha-button @click=${this._dismiss} appearance="outlined">
+              <ha-svg-icon slot="start" .path=${mdiEyeOff}></ha-svg-icon>
+              ${this.hass.localize("ui.panel.config.apps.info.dismiss")}
+            </ha-button>
+          </div>
         </div>
       </hass-subpage>
     `;
@@ -99,62 +75,52 @@ class HaConfigAppsInfo extends LitElement {
       haStyle,
       css`
         .content {
-          max-width: 600px;
+          box-sizing: border-box;
+          max-width: 640px;
           margin: 0 auto;
-          padding: var(--ha-space-4);
+          padding: var(--ha-space-10) var(--ha-space-4);
           display: flex;
           flex-direction: column;
+          align-items: center;
+          text-align: center;
           gap: var(--ha-space-4);
         }
-
-        .card-content {
-          padding: var(--ha-space-4);
-        }
-
-        .header {
-          display: flex;
-          align-items: center;
-          gap: var(--ha-space-3);
-          margin-bottom: var(--ha-space-4);
-        }
-
-        .icon {
-          width: 40px;
-          height: 40px;
-          flex-shrink: 0;
+        .icon-wrap {
+          display: grid;
+          place-items: center;
+          width: 96px;
+          height: 96px;
+          border-radius: var(--ha-border-radius-3xl, 32px);
+          background: linear-gradient(
+            135deg,
+            var(--ha-color-fill-primary-normal-resting),
+            var(--ha-color-fill-neutral-normal-resting)
+          );
           color: var(--primary-color);
         }
-
+        .icon-wrap ha-svg-icon {
+          --mdc-icon-size: 48px;
+          width: 48px;
+          height: 48px;
+        }
         h1 {
           margin: 0;
-          font-size: var(--ha-font-size-xl);
-          font-weight: 500;
+          font-family: var(--ha-font-family-heading, inherit);
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(--ha-font-weight-medium);
+          line-height: var(--ha-line-height-condensed);
         }
-
-        h2 {
-          margin: 0 0 var(--ha-space-3);
-          font-size: var(--ha-font-size-l);
-          font-weight: 500;
-        }
-
         p {
           margin: 0;
           line-height: var(--ha-line-height-normal);
           color: var(--secondary-text-color);
         }
-
-        .card-actions {
+        .actions {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
           flex-wrap: wrap;
-          gap: var(--ha-space-2);
-          padding: var(--ha-space-2);
-          border-top: var(--ha-border-width-sm) solid var(--divider-color);
-        }
-
-        a {
-          text-decoration: none;
+          justify-content: center;
+          gap: var(--ha-space-3);
+          margin-top: var(--ha-space-2);
         }
       `,
     ];

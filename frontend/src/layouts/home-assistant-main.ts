@@ -36,6 +36,7 @@ import {
   readCollapsed,
   readDock,
 } from "../common/tabs/tab-dock";
+import { MERGE_STORAGE_KEY, readMerged } from "../common/tabs/tab-pane";
 import "../components/phone/ha-phone-bar";
 import "../components/page/ha-page-tool-panel";
 import type { HaPageToolPanel } from "../components/page/ha-page-tool-panel";
@@ -76,6 +77,9 @@ export class HomeAssistantMain extends LitElement {
   @state() private _tabsDock: DockEdge = readDock(MAIN_SURFACE);
 
   @state() private _tabsCollapsed = readCollapsed(MAIN_SURFACE);
+
+  /** The tab strip carries the rail's entries, so the rail is hidden. */
+  @state() private _tabsMerged = readMerged(MAIN_SURFACE);
 
   @storage({
     key: DEBUG_SAFE_AREA_TOOL_STORAGE_KEY,
@@ -295,6 +299,9 @@ export class HomeAssistantMain extends LitElement {
       getStorage().subscribeChanges(COLLAPSE_STORAGE_KEY, () => {
         this._tabsCollapsed = readCollapsed(MAIN_SURFACE);
       }),
+      getStorage().subscribeChanges(MERGE_STORAGE_KEY, () => {
+        this._tabsMerged = readMerged(MAIN_SURFACE);
+      }),
     ];
     window.addEventListener("personal-vocabulary-changed", this._noteWording);
     window.addEventListener("keydown", this._handleAccessibilityShortcut);
@@ -393,6 +400,7 @@ export class HomeAssistantMain extends LitElement {
       "tabs-collapsed",
       this._showTabs && this._tabsCollapsed
     );
+    this.toggleAttribute("tabs-merged", this._showTabs && this._tabsMerged);
 
     this.toggleAttribute(
       "modal",
@@ -620,6 +628,18 @@ export class HomeAssistantMain extends LitElement {
     :host([expanded]) {
       --ha-rail-width: calc(256px + var(--safe-area-inset-left, 0px));
       --ha-sidebar-width: var(--ha-rail-width);
+    }
+    /* One navigation pane: the strip carries settings, developer tools,
+       notifications and the person, so the rail is gone and only the pane gap
+       is left at the window edge. */
+    :host(:not([modal])[tabs-merged]) {
+      --ha-rail-width: calc(
+        var(--ha-pane-gap) + var(--safe-area-inset-left, 0px)
+      );
+      --ha-sidebar-width: var(--ha-rail-width);
+    }
+    :host(:not([modal])[tabs-merged]) ha-sidebar {
+      display: none;
     }
     :host([modal]) {
       --ha-sidebar-width: unset;

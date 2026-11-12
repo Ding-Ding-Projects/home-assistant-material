@@ -18,7 +18,6 @@ import "../../../components/ha-dropdown";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
-import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
@@ -305,7 +304,9 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                         class="banner updates"
                         href="/config/updates?historyBack=1"
                       >
-                        <ha-svg-icon .path=${mdiUpdate}></ha-svg-icon>
+                        <span class="banner-icon"
+                          ><ha-svg-icon .path=${mdiUpdate}></ha-svg-icon
+                        ></span>
                         <span class="banner-text">
                           <strong
                             >${this.hass.localize(
@@ -319,7 +320,11 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                               .join(", ")}</span
                           >
                         </span>
-                        <ha-icon-next></ha-icon-next>
+                        <span class="banner-action"
+                          >${this.hass.localize(
+                            "ui.panel.config.dashboard.review_updates"
+                          )}</span
+                        >
                       </a>`
                     : nothing
                 }
@@ -329,7 +334,9 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                         class="banner repairs"
                         href="/config/repairs?historyBack=1"
                       >
-                        <ha-svg-icon .path=${mdiWrench}></ha-svg-icon>
+                        <span class="banner-icon"
+                          ><ha-svg-icon .path=${mdiWrench}></ha-svg-icon
+                        ></span>
                         <span class="banner-text">
                           <strong
                             >${this.hass.localize(
@@ -339,7 +346,11 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
                           >
                           <span>${this._issueTitle(repairsIssues[0])}</span>
                         </span>
-                        <ha-icon-next></ha-icon-next>
+                        <span class="banner-action"
+                          >${this.hass.localize(
+                            "ui.panel.config.dashboard.fix_repairs"
+                          )}</span
+                        >
                       </a>`
                     : nothing
                 }
@@ -543,9 +554,42 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           min-height: 56px;
           box-sizing: border-box;
           padding: var(--ha-space-2) var(--ha-space-4);
-          border-radius: var(--ha-border-radius-xl);
+          border-radius: var(--ha-border-radius-3xl, 28px);
           color: var(--primary-text-color);
           text-decoration: none;
+        }
+        .banner {
+          padding: var(--ha-space-4) var(--ha-space-5);
+        }
+        .banner-icon {
+          flex: none;
+          display: grid;
+          place-items: center;
+          width: 48px;
+          height: 48px;
+          border-radius: var(--ha-border-radius-xl);
+          background: color-mix(
+            in srgb,
+            var(--card-background-color) 55%,
+            transparent
+          );
+        }
+        .banner.updates .banner-icon {
+          color: var(--primary-color);
+        }
+        .banner.repairs .banner-icon {
+          color: var(--warning-color);
+        }
+        .banner-action {
+          flex: none;
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-pill);
+          font-weight: var(--ha-font-weight-medium);
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
+        }
+        .banner.repairs .banner-action {
+          background: var(--warning-color);
         }
         .banner:focus-visible {
           outline: 3px solid var(--primary-color);

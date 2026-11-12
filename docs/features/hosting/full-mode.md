@@ -124,6 +124,19 @@ the Supervisor to stop (which stops the core and the apps), stops anything left,
 inner engine. This takes about ten seconds on an idle instance. The compose file allows three
 minutes before Docker gives up. Data is kept on the volume `ha-material-full-data`.
 
+The compose file uses `restart: always`, so a stopped container starts again when the Docker
+engine next starts (for example after the computer restarts). To keep it away, remove it with
+`docker compose -f compose.full.yaml down`; the data volume is kept. `always` was chosen over
+`unless-stopped` because, after an unclean engine exit, the engine can treat a running container
+as stopped by hand and leave it down.
+
+## Memory limit
+
+Everything in the outer container (the Supervisor, the core and every app) shares one memory
+limit, 6 GB unless `HA_MATERIAL_FULL_MEMORY` is set (for example `8g`). It keeps a runaway app
+from starving the rest of the computer. If the instance itself is short of memory, raise it and
+run `docker compose -f compose.full.yaml up -d` again.
+
 ## Update
 
 - **The core, apps and plugins** update from the interface (Settings, System, Updates), as on any

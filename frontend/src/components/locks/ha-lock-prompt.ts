@@ -35,7 +35,7 @@ import type { HaInput } from "../input/ha-input";
 import { openSupportDesk } from "../support/ha-support-desk";
 import "./ha-lock-pin-entry";
 import type { HaLockPinEntry } from "./ha-lock-pin-entry";
-import { lockPanelStyles } from "./lock-panel-styles";
+import { lockPanelStyles, raiseToTopLayer } from "./lock-panel-styles";
 import { anchorStyle, isNarrow, lockText, onNarrowChange } from "./lock-text";
 
 export interface LockPromptOptions {
@@ -104,6 +104,7 @@ export class HaLockPrompt extends LitElement {
       this._narrow = narrow;
     });
     window.addEventListener("keydown", this._escape, true);
+    raiseToTopLayer(this);
   }
 
   public disconnectedCallback(): void {

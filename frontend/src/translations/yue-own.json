@@ -84,6 +84,17 @@
         }
       },
       "config": {
+        "apps": {
+          "info": {
+            "needs_os_title": "應用程式要用 Operating System",
+            "no_store_text": "應用程式喺 Home Assistant 旁邊行，例如網絡監察、程式碼編輯器、資料庫。呢種安裝方式冇應用程式商店，所以呢度冇嘢可以安裝。",
+            "compare_methods": "比較各種安裝方式"
+          }
+        },
+        "dashboard": {
+          "review_updates": "睇吓",
+          "fix_repairs": "修理"
+        },
         "automation": {
           "editor": {
             "search": {
@@ -1216,6 +1227,11 @@
     },
     "page_tabs": {
       "open_pages": "已開啟嘅頁面",
+      "pane": {
+        "home": "主頁",
+        "pages": "頁面",
+        "system": "系統"
+      },
       "close_tab": "關閉{name}",
       "new_tab": "新分頁",
       "catalog_title": "所有頁面",
@@ -1496,7 +1512,9 @@
         "expanded": "分頁列拉返開咗",
         "edge_float": "浮喺度嘅板",
         "collapse_setting_header": "收埋分頁列",
-        "collapse_setting_description": "每個分頁淨係出個公仔，指住先見個名。"
+        "collapse_setting_description": "每個分頁淨係出個公仔，指住先見個名。",
+        "merge_setting_header": "一個導覽板",
+        "merge_setting_description": "將設定、開發者工具、通知同你嘅個人資料放埋入分頁列，並收埋側邊欄。"
       },
       "close_by_text": {
         "title_containing": "關閉包含文字嘅分頁",

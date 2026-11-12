@@ -18,6 +18,7 @@ import {
   readDock,
   writeDock,
 } from "../../common/tabs/tab-dock";
+import { MERGE_STORAGE_KEY } from "../../common/tabs/tab-pane";
 import type { StripSegment, TabGroup } from "../../common/tabs/tab-groups";
 import {
   GROUPS_STORAGE_KEY,
@@ -64,6 +65,7 @@ const KEYS = [
   DOCK_STORAGE_KEY,
   FLOAT_STORAGE_KEY,
   COLLAPSE_STORAGE_KEY,
+  MERGE_STORAGE_KEY,
   TAB_APPEARANCE_STORAGE_KEY,
   GROUP_APPEARANCE_STORAGE_KEY,
   LOCKS_STORAGE_KEY,

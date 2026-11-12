@@ -105,6 +105,7 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     holds: "Floating tab strip position",
   },
   { exact: "pageTabsCollapsed", kind: "json", holds: "Collapsed tab strips" },
+  { exact: "pageTabsMerged", kind: "json", holds: "Single navigation pane" },
   { exact: "pageTabsAppearance", kind: "json", holds: "Tab appearance" },
   {
     exact: "pageTabsGroupAppearance",

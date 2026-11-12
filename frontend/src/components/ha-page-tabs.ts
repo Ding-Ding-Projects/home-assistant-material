@@ -1,9 +1,13 @@
 import {
+  mdiBell,
   mdiChevronDoubleLeft,
   mdiChevronDoubleRight,
+  mdiCog,
   mdiDockWindow,
   mdiDrag,
   mdiFormatPaint,
+  mdiHammer,
+  mdiHome,
   mdiHuman,
   mdiMagnify,
   mdiTranslate,
@@ -12,6 +16,7 @@ import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { classMap } from "lit/directives/class-map";
 import {
   getAccessibilitySettings,
   subscribeAccessibilitySettings,
@@ -27,6 +32,8 @@ import {
   writeCollapsed,
   writeFloat,
 } from "../common/tabs/tab-dock";
+import { badgeText, paneLayout, readMerged } from "../common/tabs/tab-pane";
+import { subscribeNotifications } from "../data/persistent_notification";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../types";
 import { applyTabOrder, moveTabId } from "./tab-order";
@@ -157,6 +164,11 @@ export class HaPageTabs extends LitElement {
 
   private _unsubAccessibility?: UnsubscribeFunc;
 
+  /** New notifications, counted only while the pane carries the system entries. */
+  @state() private _notificationCount = 0;
+
+  private _unsubNotifications?: UnsubscribeFunc;
+
   /** While the floating strip is being dragged: where the pointer took hold of it. */
   private _drag?: { pointer: number; dx: number; dy: number };
 
@@ -175,6 +187,11 @@ export class HaPageTabs extends LitElement {
 
     const edge = this._store.dock;
     const collapsed = readCollapsed(this._store.surface);
+    const pane = paneLayout({
+      edge,
+      collapsed,
+      merged: readMerged(this._store.surface),
+    });
     // The arrows point the way the strip will go: toward its own edge to collapse.
     const towardEdge =
       edge === "right" ? mdiChevronDoubleRight : mdiChevronDoubleLeft;
@@ -182,6 +199,18 @@ export class HaPageTabs extends LitElement {
       edge === "right" ? mdiChevronDoubleLeft : mdiChevronDoubleRight;
     return html`
       <div class="strip-tools">
+        ${
+          pane.homeButton
+            ? html`<a
+                class="new-tab home"
+                href="/"
+                aria-label=${this._t("ui.page_tabs.pane.home")}
+                title=${this._t("ui.page_tabs.pane.home")}
+              >
+                <ha-svg-icon .path=${mdiHome}></ha-svg-icon>
+              </a>`
+            : nothing
+        }
         ${
           edge === "float"
             ? html`<button
@@ -227,10 +256,40 @@ export class HaPageTabs extends LitElement {
           ></ha-svg-icon>
         </button>
       </div>
+      ${pane.searchAtTop ? this._searches.renderTopSearch(tabs) : nothing}
+      ${
+        pane.sectionLabels
+          ? html`<div class="section-label">
+              ${this._t("ui.page_tabs.pane.pages")}
+            </div>`
+          : nothing
+      }
       ${this._strip.render(open, current)}
       ${this._catalog.render(tabs, closed, current)}
+      ${
+        pane.systemEntries && isVerticalDock(edge)
+          ? html`<nav
+              class="system"
+              aria-label=${this._t("ui.page_tabs.pane.system")}
+            >
+              ${
+                pane.sectionLabels
+                  ? html`<div class="section-label">
+                      ${this._t("ui.page_tabs.pane.system")}
+                    </div>`
+                  : nothing
+              }
+              ${this._renderSystemEntries(pane.systemNames)}
+            </nav>`
+          : nothing
+      }
       <div class="actions">
-        ${this._searches.renderTopSearch(tabs)}
+        ${pane.searchAtTop ? nothing : this._searches.renderTopSearch(tabs)}
+        ${
+          pane.systemEntries && !isVerticalDock(edge)
+            ? this._renderSystemEntries(false)
+            : nothing
+        }
         <button
           class="new-tab search-icon"
           aria-label=${this._t("ui.page_tabs.search_everything")}
@@ -280,6 +339,13 @@ export class HaPageTabs extends LitElement {
                 })}
               >
                 <ha-user-badge .user=${this.hass.user}></ha-user-badge>
+                ${
+                  pane.profileName
+                    ? html`<span class="profile-name"
+                        >${this.hass.user.name}</span
+                      >`
+                    : nothing
+                }
               </a>`
             : nothing
         }
@@ -307,6 +373,102 @@ export class HaPageTabs extends LitElement {
     `;
   }
 
+  /** Settings, developer tools and notifications: what the side rail carries. */
+  private _renderSystemEntries(names: boolean): TemplateResult {
+    const admin = Boolean(this.hass.user?.is_admin);
+    const onTools = window.location.pathname.startsWith("/config/tools");
+    const entry = (
+      className: string,
+      icon: string,
+      label: string,
+      selected: boolean,
+      href?: string,
+      onClick?: () => void
+    ) => {
+      const classes = classMap({
+        "system-item": true,
+        selected,
+        [className]: true,
+      });
+      const inner = html`<ha-svg-icon .path=${icon}></ha-svg-icon>${
+          names ? html`<span class="system-label">${label}</span>` : nothing
+        }`;
+      return href
+        ? html`<a
+            class=${classes}
+            href=${href}
+            aria-label=${label}
+            title=${label}
+            aria-current=${selected ? "page" : "false"}
+            >${inner}</a
+          >`
+        : html`<button
+            class=${classes}
+            aria-label=${label}
+            title=${label}
+            @click=${onClick}
+          >
+            ${inner}${this._renderBadge()}
+          </button>`;
+    };
+    return html`
+      ${
+        admin
+          ? entry(
+              "tools",
+              mdiHammer,
+              this.hass.localize("ui.sidebar.developer_tools"),
+              onTools,
+              "/config/tools"
+            )
+          : nothing
+      }
+      ${
+        admin
+          ? entry(
+              "settings",
+              mdiCog,
+              this.hass.localize("panel.config"),
+              this.hass.panelUrl === "config" && !onTools,
+              "/config"
+            )
+          : nothing
+      }
+      ${entry(
+        "notifications",
+        mdiBell,
+        this.hass.localize("ui.notification_drawer.title"),
+        false,
+        undefined,
+        () => fireEvent(this, "hass-show-notifications")
+      )}
+    `;
+  }
+
+  private _renderBadge() {
+    const text = badgeText(this._notificationCount);
+    return text
+      ? html`<span class="count" aria-hidden="true">${text}</span>`
+      : nothing;
+  }
+
+  /** Counts notifications only while the pane carries the system entries. */
+  private _syncNotifications() {
+    const wanted = readMerged(this._store.surface) && !!this.hass?.connection;
+    if (wanted && !this._unsubNotifications) {
+      this._unsubNotifications = subscribeNotifications(
+        this.hass.connection,
+        (notifications) => {
+          this._notificationCount = notifications.length;
+        }
+      );
+    } else if (!wanted && this._unsubNotifications) {
+      this._unsubNotifications();
+      this._unsubNotifications = undefined;
+      this._notificationCount = 0;
+    }
+  }
+
   // The tab menu asks for the New tab catalog. This shell owns it, so it opens
   // it and says so by cancelling the event.
   private _onCatalogOpen(ev: CustomEvent<{ surface?: string }>) {
@@ -325,11 +487,13 @@ export class HaPageTabs extends LitElement {
     }
     this.toggleAttribute("vertical", isVerticalDock(edge));
     this.toggleAttribute("collapsed", readCollapsed(this._store.surface));
+    this.toggleAttribute("merged", readMerged(this._store.surface));
   }
 
   protected updated(changed: PropertyValues) {
     super.updated(changed);
     this._placeFloat();
+    this._syncNotifications();
   }
 
   /** The menu of the strip itself: where it docks, collapsing, new tab and group. */
@@ -465,6 +629,8 @@ export class HaPageTabs extends LitElement {
     super.disconnectedCallback();
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
+    this._unsubNotifications?.();
+    this._unsubNotifications = undefined;
     window.removeEventListener("resize", this._onWindowResize);
   }
 
@@ -603,6 +769,95 @@ export class HaPageTabs extends LitElement {
       }
       :host([vertical][collapsed]) .search-icon {
         display: flex;
+      }
+      /* The merged pane: headings, the system entries and the person's name. */
+      .section-label {
+        padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-1);
+        font-size: var(--ha-font-size-s);
+        font-weight: var(--ha-font-weight-medium);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+      }
+      :host([vertical][merged]:not([collapsed])) .top-search {
+        display: flex;
+      }
+      :host([vertical][merged]:not([collapsed])) .search-icon {
+        display: none;
+      }
+      .system {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ha-space-1);
+        flex: none;
+        margin-top: auto;
+      }
+      :host([vertical][collapsed]) .system {
+        align-items: center;
+      }
+      .system-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-3);
+        min-height: var(--ha-space-10);
+        padding: 0 var(--ha-space-3);
+        border: none;
+        border-radius: var(--ha-border-radius-pill);
+        background: none;
+        color: var(--primary-text-color);
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .system-item:hover {
+        background: var(--secondary-background-color);
+      }
+      .system-item.selected {
+        background: var(--secondary-background-color);
+        color: var(--primary-color);
+      }
+      .system-item:focus-visible {
+        outline: 3px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .system-label {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .count {
+        position: absolute;
+        top: 2px;
+        inset-inline-end: 2px;
+        min-width: var(--ha-space-4);
+        padding: 0 var(--ha-space-1);
+        border-radius: var(--ha-border-radius-pill);
+        background: var(--error-color);
+        color: var(--text-primary-color);
+        font-size: var(--ha-font-size-xs);
+        line-height: var(--ha-space-4);
+        text-align: center;
+      }
+      :host([vertical][merged]:not([collapsed])) .count {
+        position: static;
+      }
+      :host([vertical][merged]:not([collapsed])) .profile {
+        align-items: center;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-1) var(--ha-space-3);
+        border-radius: var(--ha-border-radius-pill);
+      }
+      .profile-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      :host([vertical][merged]:not([collapsed])) .actions {
+        justify-content: flex-start;
       }
       /* Floating: a card over the page that the person drags by its handle. */
       :host([dock="float"]) {

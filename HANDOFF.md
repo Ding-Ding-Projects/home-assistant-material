@@ -104,6 +104,46 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
     55 other title rules hard-code their weight); the phone bar height published to pages is
     still a fixed 64 px in the main layout; the slim bar of open pages is hidden by design.
 
+- Build 137 (batches 36 to 40) passed a browser pass at 1440, 390 and 320 px and the live
+  full-mode instance was moved to it at about 3:31 pm Toronto time on 12 November: core
+  2026.11.1.137, Supervisor 2026.11.0.137, healthy, supported.
+- Owner decisions applied the same afternoon: `compose.full.yaml` now uses `restart: always`
+  and a memory limit (6 GB unless `HA_MATERIAL_FULL_MEMORY` is set); the live instance was
+  recreated with both and read back. `deploy-assistant\build.bat clean` was run with a portable
+  Node.js 22.23.5 first on the path: exit 0, installer, `RELEASES` and the full package were
+  made. The installer has not been run or installed here.
+- Viewing pass on published build 137, throwaway instance with an empty media folder, headless
+  Edge, pictures inspected. Seen working: the media upload button (inside the Manage dialog)
+  has no type filter, uploads audio and pictures, uploads a `.ogg` whose browser type is
+  empty, and refuses a text file and an archive in one dialog that names them; lock list rows
+  stack; lock wizard step 2 scrolls above its buttons; an appearance fill shows on a data
+  table (1440 px only); phone bar labels on two lines at 320 px in both-languages mode; the
+  list footer clears the floating button at 390 px; one Run now and one Check in the
+  automation editor; the close-by-text dialog's short placeholder with the hint below; the
+  phone Pages sheet in the wide strip's order; the link confirmation page with no error and no
+  request to another host; the New tab catalog using the window height.
+  Defect found: the lock remove prompt opened from the page tool panel was drawn underneath
+  it, because the tool panel is a popover in the top layer. Fixed in batch 41 (the prompt and
+  the wizard now enter the top layer too); not seen.
+  Not confirmed: the Repairs card fix on the live instance (needs the owner's session), and
+  the upload picker on a real iPhone.
+- Batch 41, first slice of design canvas `23-modern-remake`, unit tested only, not seen:
+  - Navigation: a per-strip setting "One navigation pane", off by default, in the profile and
+    synced. When on, on a wide window, the rail is hidden and the tab pane carries Pages and
+    System headings, Developer tools, Settings, Notifications with a count, a search field at
+    the top of a side pane, the person's name, and a home button on a top or bottom bar.
+    Not built: with the pane on, sidebar edit mode, per-page hiding, the update badge on
+    Settings and the Assist entry are out of view; the phone bar keeps Access where the board
+    shows Settings; no layout was seen at runtime (offsets with the rail hidden, top, bottom
+    and floating docks, right to left, both-languages mode).
+  - Pages: settings home tiles on tinted icon containers in four tones and banners with an
+    action pill; the automation editor's action bar floats as a rounded card (full width on a
+    phone); automation history has one Commit button at every width and a success tint when
+    nothing waits; the apps page is one centred message with two buttons.
+    Not built: a tertiary tone, the inverted action bar, the keyboard hint on Save, a tonal
+    button style, an illustrated empty state, card shadow on phone rows.
+  The owner has asked the design tool for a full modern redesign; more canvases are expected.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

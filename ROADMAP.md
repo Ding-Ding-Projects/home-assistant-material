@@ -55,7 +55,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Run `build.bat --run` and `build-installer.bat` on Windows
 - [ ] Run `deploy-assistant\build.bat` on Windows. Run once on 12 November: install, 21 tests
       and the window build passed; the installer step made nothing on Node.js 26 (the script
-      now says so straight after the install). Needs a run on Node.js 22 or 24
+      now says so straight after the install). Run again the same day with a portable
+      Node.js 22: exit 0 and the installer was made. Installing it is not verified
 
 ## Hosting
 
