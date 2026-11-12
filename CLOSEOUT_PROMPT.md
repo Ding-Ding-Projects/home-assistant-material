@@ -11,6 +11,63 @@ server integrations in `core/homeassistant/components/`, boards in `design/canva
 Assistant desktop app in `deploy-assistant/`). The goal is every board built and the running
 product matching it.
 
+## Batches 28 to 30, 12 November 2026 (early morning): read this first
+
+Commits `447cde08f`, `7b23aef30` and `4b47fc250`. "Local build" means the interface built from
+the working tree in a Linux container, served by a throwaway copy of a published build with the
+changed server files mounted over it, and driven with headless Edge. None of this had been seen
+in a published build when this was written; the release that carries it was still building.
+
+- Tab options: the strip docks to any edge (a new installation starts on the left, an existing
+  one stays at the top), pinned region, groups (picker, menu, editor, look, lock), per-tab look,
+  tab locks, overflow list, bulk close with a preview, four separate searches, a right-click menu
+  per tab. Settings section tabs are real tabs with overflow, pin, hide and reorder. The phone
+  Pages sheet has per-page actions and bulk close. Seen in a local build at all four edges, at
+  390 and 320 px, in the dark theme, right to left and Cantonese; seven defects found there were
+  fixed. Not exercised: dashboard edit mode with a docked strip, the colour field of the tab look
+  editor, the menu-key path, dragging a tab out of a group, both-languages mode, a true 200
+  percent display scale. Known leftovers: "Close other tabs" preview does not count the tab that
+  was right-clicked as staying open; opening the group picker from the all-tabs search closes
+  that panel; the automation editor's save bar floats above the page bottom with a left or bottom
+  strip (older than this work).
+- App install progress: bar, three steps and a log terminal on the app page, the store card and
+  the activity tray. Seen on a throwaway full-mode instance, including a dropped connection and a
+  failing install. The Supervisor reports only a percentage, so there is no layer list and no
+  Cancel. Not driven in a browser: rebuild, uninstall, an update from the Updates page, the app's
+  own log (full mode has no journal service).
+- Drop a picture, video or audio file on any page: overlay with Media and Images, upload queue in
+  the activity tray, a message with a jump to where the files went. Limits are 2 GB (media) and
+  50 MB (images); pictures the image store cannot take are converted, oversized ones re-encoded,
+  and the loss is stated. "Add media" for phones is in the Pages sheet menu, the Media toolbar,
+  the activity tray and the quick bar; paste works outside text fields. Seen in a local build
+  with simulated drags and a scripted file chooser, not with a real drag, clipboard or camera.
+- Image store folders, and download, edit name and convert in the Manage dialog for media and
+  images. Image ids and serve addresses are unchanged. Seen in a local build at 1440, 390 and
+  320 px. The picture chooser of the picture upload control goes through the media browser and
+  shows the folders.
+- Dim sum surprise: one draw per launch, shown one time in ten; the settings switch cannot be
+  turned off; School mode hides it; one single-item download in ten arrives as a zip with the
+  file unchanged plus a dish picture. Pictures come only from the public catalogue through the
+  `dim_sum` server component, the one feature that contacts an outside address. The card and the
+  zip were seen with the draw forced, against the real server component; a real random draw was
+  not observed. On one earlier first start the catalogue was not cached (cause unknown, possibly
+  a rate limit on the release list); an hourly retry covers it.
+- Search inside the automation and script editors, a search on every nested list, and a filter by
+  the entities used. Seen in a local build at 1440, 390 and 320 px; not in the dark theme,
+  Cantonese or right to left.
+- Repair dialog: a failed repair says so (seen); the second sentence, for a failed repair that
+  left new issues, is unit tested only.
+- Full hosting mode: the checks that cannot pass inside a container are no longer reported as
+  unsupported. Seen on a throwaway instance. Supervisor unit tests were not run. An existing
+  instance needs the new outer image and Supervisor.
+- Deploy Assistant: with a wording file in use, a new deployment is named with the file's word
+  for that kind of deployment. Seen in its headless demo and its tests (21 of 21); the built
+  desktop window was not driven.
+
+Checks on `4b47fc250`: type check clean apart from the two gallery errors; full suite 6,888
+passed with the 3 known build-script failures; server tests for `dim_sum` (48), `image_upload`
+and `media_source` (177) passed in the test container.
+
 ## Batch 27 state, 11 November 2026 (evening): read this first
 
 What landed in this batch, and exactly how far each part was checked. "Local build" below means
