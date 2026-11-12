@@ -543,7 +543,15 @@ export class HaSectionTabs extends LitElement {
     const layout = this._layout(state);
     return {
       surface: this._surface,
-      surfaceLabel: this._t(`${BASE}surface_label`, { route: this.surface }),
+      // Named by its first tabs, which a person recognises; an address is not
+      // a name.
+      surfaceLabel: this._t(`${BASE}surface_label`, {
+        route:
+          layout.all
+            .slice(0, 3)
+            .map((path) => this._label(path))
+            .join(", ") + (layout.all.length > 3 ? ", …" : ""),
+      }),
       tabs: layout.all.map((path) => ({
         id: path,
         label: this._label(path),
