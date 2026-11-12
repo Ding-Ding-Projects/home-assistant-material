@@ -40,6 +40,10 @@ export const PROBLEMS_CHANGED_EVENT = "ha-problems-changed";
 
 const IGNORED_KEY = "problemDetectorIgnored";
 
+/** Problems found on other pages are kept so Repairs can list them after a reload. */
+const SAVED_KEY = "problemDetectorFound";
+const SAVED_LIMIT = 200;
+
 type Listener = () => void;
 
 const problems = new Map<string, Problem>();
@@ -69,6 +73,46 @@ const writeIgnored = () => {
   }
 };
 
+type SavedProblem = Omit<Problem, "fix">;
+
+const readSaved = (): void => {
+  try {
+    const raw = window.localStorage.getItem(SAVED_KEY);
+    const list: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) {
+      return;
+    }
+    for (const item of list as SavedProblem[]) {
+      if (
+        item &&
+        typeof item.id === "string" &&
+        typeof item.title === "string" &&
+        typeof item.location === "string" &&
+        typeof item.path === "string" &&
+        (item.severity === "error" || item.severity === "warning")
+      ) {
+        // A saved problem has no Fix until the page that found it runs again.
+        problems.set(item.id, { ...item, fixLabel: undefined });
+      }
+    }
+  } catch (_err) {
+    // A damaged list is dropped; pages report their problems again.
+  }
+};
+
+readSaved();
+
+const writeSaved = () => {
+  try {
+    const list: SavedProblem[] = [...problems.values()]
+      .slice(-SAVED_LIMIT)
+      .map(({ fix: _fix, ...rest }) => rest);
+    window.localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+  } catch (_err) {
+    // Storage full or blocked: the list only lasts this session.
+  }
+};
+
 let scheduled = false;
 const notify = () => {
   if (scheduled) {
@@ -77,6 +121,7 @@ const notify = () => {
   scheduled = true;
   queueMicrotask(() => {
     scheduled = false;
+    writeSaved();
     listeners.forEach((listener) => listener());
     window.dispatchEvent(new CustomEvent(PROBLEMS_CHANGED_EVENT));
   });
@@ -205,6 +250,7 @@ export const subscribeProblems = (listener: Listener): (() => void) => {
 /** For tests: forget everything. */
 export const resetProblemStore = (): void => {
   problems.clear();
+  window.localStorage.removeItem(SAVED_KEY);
   targets.clear();
   waiters.clear();
   ignored = new Set();

@@ -2,9 +2,9 @@
  * Teleport: opens the page that shows a problem, scrolls its element into
  * view, and asks the overlay to spotlight it with the details beside it.
  */
+import { playTeleport } from "../dom/teleport-effect";
 import { navigate } from "../navigate";
 import { getProblem, whenTarget } from "./problem-store";
-import { motionReduced } from "./problem-settings";
 
 export const PROBLEM_SPOTLIGHT_EVENT = "ha-problem-spotlight";
 
@@ -27,11 +27,9 @@ export const teleportToProblem = async (id: string): Promise<boolean> => {
   }
   const element = await whenTarget(id);
   if (element) {
-    element.scrollIntoView({
-      block: "center",
-      inline: "nearest",
-      behavior: motionReduced() ? "auto" : "smooth",
-    });
+    // An instant jump: the teleport transition is the movement.
+    element.scrollIntoView({ block: "center", inline: "nearest" });
+    playTeleport(element);
   }
   window.dispatchEvent(
     new CustomEvent<ProblemSpotlightDetail>(PROBLEM_SPOTLIGHT_EVENT, {

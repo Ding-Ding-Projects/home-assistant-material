@@ -44,6 +44,7 @@ import { narrowViewportContext } from "../data/context";
 import { showNotificationDrawer } from "../dialogs/notifications/show-notification-drawer";
 import type { HomeAssistant, Route } from "../types";
 import "./partial-panel-resolver";
+import { trackTeleportOrigin } from "../common/dom/teleport-effect";
 
 declare global {
   // for fire event
@@ -193,6 +194,7 @@ export class HomeAssistantMain extends LitElement {
     // Loaded after the shell is up, so it never delays the first render.
     import("../components/dim-sum/ha-dim-sum-surprise");
     import("../components/problems/ha-problem-overlay");
+    trackTeleportOrigin();
 
     if (this.hass.auth.external) {
       this._externalSidebar =

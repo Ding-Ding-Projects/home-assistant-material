@@ -230,14 +230,14 @@ export class HaProblemOverlay extends LitElement {
   }
 
   private _renderSpotlight(box: Box) {
-    const x = box.left + box.width / 2;
-    const y = box.top + box.height / 2;
-    const radius = Math.max(box.width, box.height) / 2 + 40;
-    const mask = `radial-gradient(circle ${radius}px at ${x}px ${y}px, transparent 98%, #000 100%)`;
     return html`<div
       class="spotlight"
-      style=${styleMap({ "-webkit-mask": mask, mask })}
-      @click=${this._endSpotlight}
+      style=${styleMap({
+        top: `${box.top - 10}px`,
+        left: `${box.left - 10}px`,
+        width: `${box.width + 20}px`,
+        height: `${box.height + 20}px`,
+      })}
     ></div>`;
   }
 
@@ -444,9 +444,9 @@ export class HaProblemOverlay extends LitElement {
     }
     .spotlight {
       position: fixed;
-      inset: 0;
-      background: rgba(10, 10, 20, 0.55);
-      pointer-events: auto;
+      border-radius: var(--ha-border-radius-xl, 20px);
+      box-shadow: 0 0 0 200vmax rgba(10, 10, 20, 0.55);
+      pointer-events: none;
       animation: fade 0.4s ease-out both;
     }
     @keyframes fade {
