@@ -11,6 +11,44 @@ server integrations in `core/homeassistant/components/`, boards in `design/canva
 Assistant desktop app in `deploy-assistant/`). The goal is every board built and the running
 product matching it.
 
+## Batches 31 to 33, 12 November 2026 (morning): read this first
+
+Commits `6330c10d9`, `875b30677` and `8a37d4c04`, published together as release 2026.11.1.130.
+
+- Batch 31 closed the gaps left by the first tab pass (the "Close other tabs" preview lists what
+  stays and why, grouped tabs move inside their group, the menu key opens one menu, search fields
+  take focus) and added a "Tab strip position" row to Profile.
+- Batch 32: a settings page or a tool chosen in the New tab catalog opens as a tab of its own.
+  Settings section tabs have their own right-click menu with groups, looks, locks and hide by
+  text; the phone Pages sheet has locks, groups and looks.
+- Batch 33: fixes from a browser pass on batch 32 in a local build at 1440, 1000, 390 and 320 px
+  (most settings pages had no section tab menu; a chosen text colour did not show; lifting a
+  finger after a long press ran the menu row under it; phone sheets stopped short of the edge).
+
+Seen in the published build 130 on a throwaway instance with headless Edge, at 1440 and 390 px:
+every visited page loaded with no page error; a settings destination shows as a tab in the strip;
+right-click on a section tab opens the section tab menu (pin, hide, groups, move, look, lock);
+the New tab catalog opens; the phone bar, the section tabs above it and the Pages sheet show.
+The startup dim sum card appeared with a picture on one of the loads, which is the first time a
+truly random draw was seen in a published build.
+
+Not seen in the published build: the menus' actions carried through (they were driven in the
+local build only), dark theme, right to left, Cantonese, and a real finger on a real phone.
+
+Known and open:
+- In the New tab catalog at 1440 px the page list sits in the right half of the panel with the
+  left half empty: the strip's tab group rule shares the class name and the shadow root.
+  Fixed in source after build 130, not seen.
+- In both-languages mode one placeholder in the hide dialog is cut.
+- The phone sheet lists groups before loose pages; the wide strip keeps a group in place.
+- The shared tab menu actions write the main strip's keys, so section tabs use their own menu
+  element instead of reusing the shared one.
+- Why the full-mode container exited instead of restarting when the Docker engine restarted on
+  12 November is not known.
+
+The live instance was moved to build 130 after that pass (core 2026.11.1.130, Supervisor
+2026.11.0.130, no unsupported or unhealthy reasons).
+
 ## Batches 28 to 30, 12 November 2026 (early morning): read this first
 
 Commits `447cde08f`, `7b23aef30` and `4b47fc250`. "Local build" means the interface built from

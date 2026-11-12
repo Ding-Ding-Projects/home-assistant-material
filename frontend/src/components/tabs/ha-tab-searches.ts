@@ -802,6 +802,15 @@ export class TabSearchesController implements ReactiveController {
         display: none;
       }
     }
+    /* The strip's tab groups share this shadow root and the class name; a
+       catalog section is a plain block, not a group pill. */
+    #catalog section.group {
+      display: block;
+      padding: 0;
+      border-radius: 0;
+      background-color: transparent;
+      box-shadow: none;
+    }
     .group-head {
       display: flex;
       align-items: center;
