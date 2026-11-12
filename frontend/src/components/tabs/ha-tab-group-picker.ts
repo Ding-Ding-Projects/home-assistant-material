@@ -89,7 +89,7 @@ export class HaTabGroupPicker extends TabGroupPanel {
 
   protected _focusFirst() {
     const target = this._creating ? this._newName : this._pickerSearch;
-    target?.focus();
+    this._focusWhenReady(target);
   }
 
   protected render(): TemplateResult | typeof nothing {

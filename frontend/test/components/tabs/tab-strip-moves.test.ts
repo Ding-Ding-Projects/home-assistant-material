@@ -11,6 +11,7 @@ import {
   moveGroupNear,
   moveTabNear,
   moveTabToEnd,
+  planEdgeMove,
   planKeyboardMove,
 } from "../../../src/components/tabs/tab-strip-moves";
 
@@ -251,5 +252,51 @@ describe("applyChange", () => {
       groups: result.groups ?? [g],
     });
     expect(flattenSegments(after)).toEqual(change.visible);
+  });
+});
+
+describe("planEdgeMove", () => {
+  it("keeps a grouped tab inside its group and the group in place", () => {
+    const g = group("g1", ["b", "c", "d"]);
+    const { segments, context } = strip(["a", "b", "c", "d", "e"], [g]);
+    const start = planEdgeMove(segments, context, "d", "start")!;
+    expect(start.visible).toEqual(["a", "d", "b", "c", "e"]);
+    expect(start.groups?.[0].members).toEqual(["d", "b", "c"]);
+    const end = planEdgeMove(segments, context, "b", "end")!;
+    expect(end.visible).toEqual(["a", "c", "d", "b", "e"]);
+    expect(end.groups?.[0].members).toEqual(["c", "d", "b"]);
+  });
+
+  it("does nothing for a tab already at the edge of its region", () => {
+    const g = group("g1", ["b", "c"]);
+    const { segments, context } = strip(["a", "b", "c", "d"], [g]);
+    expect(planEdgeMove(segments, context, "b", "start")).toBeUndefined();
+    expect(planEdgeMove(segments, context, "c", "end")).toBeUndefined();
+    expect(planEdgeMove(segments, context, "a", "start")).toBeUndefined();
+    expect(planEdgeMove(segments, context, "d", "end")).toBeUndefined();
+  });
+
+  it("sends an ungrouped tab to the edge of the strip and never into a group", () => {
+    const g = group("g1", ["b", "c"]);
+    const { segments, context } = strip(["a", "b", "c", "d"], [g]);
+    expect(planEdgeMove(segments, context, "d", "start")?.visible).toEqual([
+      "d",
+      "a",
+      "b",
+      "c",
+    ]);
+    expect(planEdgeMove(segments, context, "a", "end")?.visible).toEqual([
+      "b",
+      "c",
+      "d",
+      "a",
+    ]);
+  });
+
+  it("stays in the pinned region for a pinned tab", () => {
+    const { segments, context } = strip(["p", "q", "a"], [], ["p", "q"]);
+    const change = planEdgeMove(segments, context, "p", "end")!;
+    expect(change.visible).toEqual(["q", "p", "a"]);
+    expect(change.pinned).toEqual(["q", "p"]);
   });
 });

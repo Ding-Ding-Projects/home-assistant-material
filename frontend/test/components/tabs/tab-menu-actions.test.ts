@@ -19,6 +19,7 @@ import { groupLockKey, tabLockKey } from "../../../src/common/tabs/tab-locks";
 import {
   closeTabsAction,
   moveAction,
+  movesAvailable,
   openEveryAction,
   readMenuState,
   removeFromGroupAction,
@@ -149,6 +150,43 @@ describe("tab menu actions", () => {
     expect(readGroups("main")[0].members).toEqual(["b", "c"]);
   });
 
+  it("moves a grouped tab to the start or end of its own group only", () => {
+    // The group sits in the middle of the strip; the move must not gather the
+    // group around the tab or take the tab out of it.
+    getStorage().setValue("pageTabsOrder", ["a", "b", "c", "d"]);
+    writeGroups("main", createGroup([], { members: ["b", "c"] }).groups);
+    expect(moveAction(readMenuState("main", tabs), "c", "start")).toEqual({
+      position: 2,
+      total: 4,
+    });
+    expect(readGroups("main")[0].members).toEqual(["c", "b"]);
+    expect(readMenuState("main", tabs).ordered).toEqual(["a", "c", "b", "d"]);
+    expect(moveAction(readMenuState("main", tabs), "c", "end")).toBeDefined();
+    expect(readGroups("main")[0].members).toEqual(["b", "c"]);
+    expect(readMenuState("main", tabs).ordered).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("enables only the moves that change something, group aware", () => {
+    getStorage().setValue("pageTabsOrder", ["a", "b", "c", "d"]);
+    writeGroups("main", createGroup([], { members: ["b", "c"] }).groups);
+    const state = readMenuState("main", tabs);
+    // The first member of the group is already at the start of its group, but
+    // can still go to the end of it.
+    expect(movesAvailable(state, "b")).toMatchObject({
+      start: false,
+      end: true,
+    });
+    // An ungrouped tab goes to the edge of the strip, not of a group.
+    expect(movesAvailable(state, "d")).toMatchObject({
+      start: true,
+      end: false,
+    });
+    expect(movesAvailable(state, "a")).toMatchObject({
+      start: false,
+      end: true,
+    });
+  });
+
   it("names a tab by its visible label, the one the person gave it", () => {
     getStorage().setValue("pageTabsAppearance", {
       main: { a: { label: "Home base" } },
@@ -215,7 +253,7 @@ describe("close previews", () => {
     const state = readMenuState("main", tabs, "a");
     const plain = planEdgeClose(state.planTabs, "d", "others");
     expect(plain.ids).toEqual(["b", "c"]);
-    expect(plain.protected.map((item) => item.id)).toEqual(["a"]);
+    expect(plain.protected.map((item) => item.id)).toEqual(["a", "d"]);
     const withPinned = planEdgeClose(state.planTabs, "d", "others", {
       includePinned: true,
     });

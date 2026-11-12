@@ -1,3 +1,4 @@
+import type { PropertyValues } from "lit";
 import { css, LitElement } from "lit";
 import { property, query, state } from "lit/decorators";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
@@ -10,6 +11,9 @@ import {
   onNarrowChange,
 } from "../locks/lock-text";
 import { lockPanelStyles } from "../locks/lock-panel-styles";
+
+/** The window event a panel sends after it closes, with its element name. */
+export const TAB_PANEL_CLOSED_EVENT = "tab-panel-closed";
 
 /** What the elements that open a panel send when they ask for one. */
 export interface TabGroupPanelOpen {
@@ -107,6 +111,31 @@ export abstract class TabGroupPanel extends LitElement {
   /** Reads the event's own details before the panel is shown. */
   protected abstract _beforeOpen(detail: any): boolean;
 
+  /**
+   * Focuses a field that draws its input a moment later (the search and text
+   * fields render their inner input after the panel does), trying again on the
+   * next frames until the focus is really inside it.
+   */
+  protected _focusWhenReady(target?: HTMLElement): void {
+    let tries = 0;
+    const attempt = () => {
+      if (!target?.isConnected || !this._open) {
+        return;
+      }
+      // Someone has already put the focus on another control of the panel (a
+      // person who started pressing keys): leave it there.
+      const current = this.shadowRoot?.activeElement;
+      if (current && current !== target && !target.contains(current)) {
+        return;
+      }
+      target.focus();
+      if (!target.matches(":focus-within") && ++tries < 20) {
+        requestAnimationFrame(attempt);
+      }
+    };
+    attempt();
+  }
+
   /** Puts focus on the first useful control after the panel opens. */
   protected abstract _focusFirst(): void;
 
@@ -119,9 +148,41 @@ export abstract class TabGroupPanel extends LitElement {
     if (panel && path.includes(panel)) {
       return;
     }
+    if (this._isRelatedPress(path)) {
+      return;
+    }
     // A press on the anchor itself is its own toggle; close without refocusing.
     this.close(false);
   };
+
+  // A panel is shown in the top layer, so the one opened last is always above
+  // the others (the group picker opened from Search all tabs sits over it, not
+  // behind it) and no stacking order of the strip can hide it.
+  protected updated(changed: PropertyValues): void {
+    super.updated(changed);
+    const panel = this._panelElement;
+    if (!this._open || !panel || typeof panel.showPopover !== "function") {
+      return;
+    }
+    try {
+      if (panel.matches(":popover-open")) {
+        return;
+      }
+      panel.setAttribute("popover", "manual");
+      panel.showPopover();
+    } catch (_err) {
+      // The browser has no popover support: the panel stays in the page.
+    }
+  }
+
+  /**
+   * Whether a press happened inside another panel this panel opened (for
+   * example the group picker opened from a search result), which must not
+   * count as a press outside.
+   */
+  protected _isRelatedPress(_path: readonly EventTarget[]): boolean {
+    return false;
+  }
 
   private _reposition = () => {
     if (!this._open) {
@@ -143,6 +204,11 @@ export abstract class TabGroupPanel extends LitElement {
     if (returnFocus && target?.isConnected) {
       target.focus();
     }
+    window.dispatchEvent(
+      new CustomEvent(TAB_PANEL_CLOSED_EVENT, {
+        detail: { panel: this.localName, surface: this.surface },
+      })
+    );
   }
 
   protected _afterClose(): void {
@@ -177,6 +243,20 @@ export abstract class TabGroupPanel extends LitElement {
       .panel.sheet.bottom {
         max-height: 88dvh;
         width: auto;
+      }
+      /* In the top layer the browser centres a panel and gives it its own
+         frame; the panel places itself, so those defaults are taken off. */
+      .panel[popover] {
+        margin: 0;
+        right: auto;
+        bottom: auto;
+        color: var(--primary-text-color);
+      }
+      .panel.sheet[popover] {
+        inset: 0;
+      }
+      .panel.sheet.bottom[popover] {
+        inset: auto 0 0 0;
       }
       .live {
         position: absolute;

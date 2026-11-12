@@ -104,6 +104,23 @@ describe("tab menu entries", () => {
     ).toHaveLength(1);
   });
 
+  it("says a grouped tab moves to the edge of its group, and trusts the planner", () => {
+    expect(entry("move_start", { grouped: true })?.labelKey).toBe(
+      "ui.page_tabs.menu.move_to_group_start"
+    );
+    expect(entry("move_end", { grouped: true })?.labelKey).toBe(
+      "ui.page_tabs.menu.move_to_group_end"
+    );
+    expect(entry("move_start")?.labelKey).toBe(
+      "ui.page_tabs.menu.move_to_start"
+    );
+    // The flat order says the middle tab can go to the start; the planner,
+    // which knows the tab is first in its group, says it cannot.
+    expect(
+      entry("move_start", { grouped: true, moves: { start: false } })?.enabled
+    ).toBe(false);
+  });
+
   it("offers Reset tab appearance only for a changed look", () => {
     expect(ids({ customised: false })).not.toContain("reset_appearance");
     expect(ids({ customised: true })).toContain("reset_appearance");

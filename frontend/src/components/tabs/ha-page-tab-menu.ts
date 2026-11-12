@@ -28,6 +28,7 @@ import type { TabMenuState } from "./tab-menu-actions";
 import {
   closeTabsAction,
   moveAction,
+  movesAvailable,
   openEveryAction,
   readMenuState,
   removeFromGroupAction,
@@ -239,6 +240,7 @@ export class HaPageTabMenu extends LitElement {
       ),
       dock: this._dock,
       rtl: document.dir === "rtl",
+      moves: movesAvailable(snap, detail.tabId),
     });
     await this._show({
       kind: "tab",

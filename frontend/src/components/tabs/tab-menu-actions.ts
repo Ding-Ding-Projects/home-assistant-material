@@ -29,10 +29,10 @@ import {
 import { closeTab, openEveryTab } from "../../common/tabs/tab-seen";
 import { cleanIds } from "../../common/tabs/tab-validate";
 import type { TabMoveKind } from "./tab-menu-entries";
-import { planMove } from "./tab-menu-entries";
 import {
   applyChange,
   flattenSegments,
+  planEdgeMove,
   planKeyboardMove,
 } from "./tab-strip-moves";
 import type { PageTab } from "./tab-types";
@@ -206,51 +206,70 @@ export const moveAction = (
   tabId: string,
   kind: TabMoveKind
 ): { position: number; total: number } | undefined => {
-  if (kind === "earlier" || kind === "later") {
-    // One step goes through the strip's own planner, so a tab moves past a
-    // whole group, leaves a group at its edge and re-orders the pinned list
-    // exactly as the keyboard move on the strip does.
-    const segments = layoutStrip({
-      visible: state.open,
-      order: state.ordered,
-      pinned: state.pinned,
-      groups: state.groups,
-    });
-    const change = planKeyboardMove(
-      segments,
-      { groups: state.groups, pinned: state.pinned },
-      tabId,
-      kind === "later"
-    );
-    if (!change) {
-      return undefined;
-    }
-    const result = applyChange({
-      fullOrder: state.ordered,
-      visibleBefore: flattenSegments(segments),
-      change,
-    });
-    writeOrder(result.order);
-    if (result.pinned) {
-      writePinnedIds(result.pinned);
-    }
-    if (result.groups) {
-      writeGroups(state.surface, result.groups);
-    }
-    return {
-      position: change.visible.indexOf(tabId) + 1,
-      total: state.open.length,
-    };
-  }
-  const plan = planMove(state.ordered, state.open, state.pinned, tabId, kind);
-  if (!plan) {
+  // Every move goes through the strip's own planner, so a tab moves past a
+  // whole group, leaves a group at its edge, stays inside its group for Move
+  // to start and Move to end, and re-orders the pinned list exactly as the
+  // keyboard move on the strip does.
+  const segments = stripSegments(state);
+  const change = planChange(state, segments, tabId, kind);
+  if (!change) {
     return undefined;
   }
-  writeOrder(plan.order);
-  if (plan.pinned) {
-    writePinnedIds(plan.pinned);
+  const result = applyChange({
+    fullOrder: state.ordered,
+    visibleBefore: flattenSegments(segments),
+    change,
+  });
+  writeOrder(result.order);
+  if (result.pinned) {
+    writePinnedIds(result.pinned);
   }
-  return { position: plan.position + 1, total: state.open.length };
+  if (result.groups) {
+    writeGroups(state.surface, result.groups);
+  }
+  return {
+    position: change.visible.indexOf(tabId) + 1,
+    total: state.open.length,
+  };
+};
+
+const stripSegments = (state: TabMenuState) =>
+  layoutStrip({
+    visible: state.open,
+    order: state.ordered,
+    pinned: state.pinned,
+    groups: state.groups,
+  });
+
+const planChange = (
+  state: TabMenuState,
+  segments: ReturnType<typeof stripSegments>,
+  tabId: string,
+  kind: TabMoveKind
+) => {
+  const context = { groups: state.groups, pinned: state.pinned };
+  return kind === "earlier" || kind === "later"
+    ? planKeyboardMove(segments, context, tabId, kind === "later")
+    : planEdgeMove(segments, context, tabId, kind);
+};
+
+/**
+ * Which of the four moves would change something for a tab, read from the same
+ * plan the move uses, so the menu enables exactly the moves that work.
+ */
+export const movesAvailable = (
+  state: TabMenuState,
+  tabId: string
+): Record<TabMoveKind, boolean> => {
+  const segments = stripSegments(state);
+  const can = (kind: TabMoveKind) =>
+    planChange(state, segments, tabId, kind) !== undefined;
+  return {
+    earlier: can("earlier"),
+    later: can("later"),
+    start: can("start"),
+    end: can("end"),
+  };
 };
 
 /** Takes a tab out of its group. */

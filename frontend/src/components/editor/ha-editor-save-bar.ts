@@ -231,7 +231,10 @@ export class HaEditorSaveBar extends LitElement {
         :host {
           display: block;
           position: sticky;
-          bottom: 0;
+          /* With the tab strip docked to the bottom, the page keeps room for
+             the strip under its content; the bar sits in that room so it rests
+             on the page footer, as it does for every other dock edge. */
+          bottom: calc(-1 * var(--ha-page-tabs-bottom-inset, 0px));
           z-index: 2;
           box-sizing: border-box;
           /* The page already ends above the phone bar, so only the device's
@@ -244,7 +247,7 @@ export class HaEditorSaveBar extends LitElement {
               var(--safe-area-inset-bottom, 0px) - var(
                   --ha-phone-bar-height,
                   0px
-                )
+                ) - var(--ha-page-tabs-bottom-inset, 0px)
             )
           );
           background: var(

@@ -317,6 +317,40 @@ export const planKeyboardMove = (
 };
 
 /**
+ * "Move to start" and "Move to end": a tab goes to the start or end of its own
+ * region. A pinned tab goes to the edge of the pinned region, a grouped tab to
+ * the edge of its group (it never leaves the group, and the group stays where
+ * it is), and an ungrouped tab to the edge of the strip after the pinned
+ * region. Undefined when the tab already is at that edge.
+ */
+export const planEdgeMove = (
+  segments: readonly StripSegment[],
+  context: MoveContext,
+  tabId: string,
+  edge: "start" | "end"
+): StripChange | undefined => {
+  const own = segments[segmentIndexOfTab(segments, tabId)];
+  if (!own) {
+    return undefined;
+  }
+  const end = edge === "end";
+  if (own.kind === "pinned" || own.kind === "group") {
+    const anchor = end ? own.ids[own.ids.length - 1] : own.ids[0];
+    return moveTabNear(segments, context, tabId, anchor, end);
+  }
+  const movable = segments.filter((segment) => segment.kind !== "pinned");
+  const target = end ? movable[movable.length - 1] : movable[0];
+  if (!target || target === own) {
+    return undefined;
+  }
+  return {
+    kind: "reorder",
+    tabId,
+    visible: reorderSegments(segments, `tab:${tabId}`, segmentKey(target), end),
+  };
+};
+
+/**
  * Where the group keys send a tab: the next or previous group in strip order,
  * or out of its group when there is none further on (`groupId` is null).
  * Undefined when nothing can change, for example a pinned tab.

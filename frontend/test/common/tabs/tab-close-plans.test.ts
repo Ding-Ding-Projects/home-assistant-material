@@ -103,11 +103,19 @@ describe("planEdgeClose", () => {
   it("closes the others except pinned, locked and current", () => {
     const plan = planEdgeClose(tabs, "light", "others");
     expect(plan.ids).toEqual(["climate"]);
-    expect(plan.protected.map((item) => item.id)).toEqual([
-      "p",
-      "overview",
-      "lock",
+    // Every tab that stays is listed in strip order, the tab the menu was
+    // opened on included, so the count matches what is left open.
+    expect(plan.protected).toEqual([
+      { id: "p", reasons: ["pinned"] },
+      { id: "overview", reasons: ["current"] },
+      { id: "light", reasons: ["target"] },
+      { id: "lock", reasons: ["locked"] },
     ]);
+  });
+
+  it("lists the target with its other reasons", () => {
+    const plan = planEdgeClose(tabs, "overview", "others");
+    expect(protectionOf(plan, "overview")).toEqual(["target", "current"]);
   });
 
   it("closes to the start and to the end of the target", () => {
@@ -115,7 +123,7 @@ describe("planEdgeClose", () => {
     expect(planEdgeClose(tabs, "lock", "to_end").ids).toEqual(["climate"]);
     expect(planEdgeClose(tabs, "p", "to_start")).toMatchObject({
       ids: [],
-      protected: [],
+      protected: [{ id: "p", reasons: ["target", "pinned"] }],
     });
   });
 

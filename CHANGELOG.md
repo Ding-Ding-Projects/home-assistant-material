@@ -6,6 +6,18 @@ Every release is also listed, with its build results, on the
 Each day lists what changed that day, newest first. A release is made for every push, so a
 day can hold several releases. The interface shows this list under Settings, About, What changed.
 
+## 2026-11-12
+
+- Fixed in the tab options, each seen in a local build: the "Close other tabs" preview lists every
+  tab that stays open, with the reason; the group picker opened from "Search all tabs" no longer
+  closes that search; "Move to start" and "Move to end" for a grouped tab stay inside its group
+  and say so; the menu key and Shift+F10 open one menu, not two, and Escape gives focus back;
+  search and name fields in the tab panels take focus when they open; the selected tab scrolls
+  fully into view; the automation editor's save bar sits at the page bottom with a bottom strip.
+- New: "Tab strip position" in Profile chooses the edge the tab strip docks to.
+- Known gaps in the tab options: settings pages and tools cannot yet be opened as tabs of their
+  own; settings section tabs and the phone Pages sheet have no groups, looks or locks.
+
 ## 2026-11-11
 
 - New: tab options. The tab strip can be docked to the left, right, top or bottom (a new

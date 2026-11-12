@@ -20,7 +20,7 @@ import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
 import "./ha-tab-search-results";
 import type { HaTabSearchResults } from "./ha-tab-search-results";
-import { TabGroupPanel } from "./tab-group-panel";
+import { TAB_PANEL_CLOSED_EVENT, TabGroupPanel } from "./tab-group-panel";
 import { readAllStrips, readLockStore } from "./tab-group-state";
 
 declare global {
@@ -75,10 +75,33 @@ export class HaTabSearchAll extends TabGroupPanel {
     this._unsubscribe = KEYS.map((key) =>
       storage.subscribeChanges(key, () => this.requestUpdate())
     );
+    window.addEventListener(TAB_PANEL_CLOSED_EVENT, this._relatedClosed);
   }
+
+  /** The group picker opened from a result is part of this panel's work. */
+  protected _isRelatedPress(path: readonly EventTarget[]): boolean {
+    return path.some(
+      (target) => (target as Element).localName === "ha-tab-group-picker"
+    );
+  }
+
+  // When the picker closes, focus goes back to the row it came from, or to the
+  // search field when that row is gone, so the panel never loses focus.
+  private _relatedClosed = (ev: Event) => {
+    const detail = (ev as CustomEvent<{ panel: string }>).detail;
+    if (!this._open || detail?.panel !== "ha-tab-group-picker") {
+      return;
+    }
+    this.updateComplete.then(() => {
+      if (this._open && !this.matches(":focus-within")) {
+        this._focusWhenReady(this._field);
+      }
+    });
+  };
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.removeEventListener(TAB_PANEL_CLOSED_EVENT, this._relatedClosed);
     this._unsubscribe.forEach((stop) => stop());
     this._unsubscribe = [];
   }
@@ -93,7 +116,7 @@ export class HaTabSearchAll extends TabGroupPanel {
   }
 
   protected _focusFirst() {
-    this._field?.focus();
+    this._focusWhenReady(this._field);
   }
 
   protected render(): TemplateResult | typeof nothing {

@@ -477,6 +477,10 @@ export class HomeAssistantMain extends LitElement {
        inset plus padding on the page panel. */
     :host(:not([modal])[tabs-dock="bottom"]) {
       --ha-page-tabs-height: 0px;
+      /* What the strip adds to the bottom of the page's safe area. Bars that
+         stick to the bottom of a page (the editors' save bars) take it off
+         again, so they rest on the page footer, not above the strip's room. */
+      --ha-page-tabs-bottom-inset: var(--ha-page-tabs-bar-height);
       --safe-area-inset-bottom: calc(
         var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
           var(--ha-pane-gap) + var(--ha-page-tabs-bar-height)

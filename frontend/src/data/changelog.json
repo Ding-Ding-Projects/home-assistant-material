@@ -1,6 +1,20 @@
 {
   "days": [
     {
+      "date": "2026-11-12",
+      "items": [
+        {
+          "text": "Fixed in the tab options, each seen in a local build: the \"Close other tabs\" preview lists every tab that stays open, with the reason; the group picker opened from \"Search all tabs\" no longer closes that search; \"Move to start\" and \"Move to end\" for a grouped tab stay inside its group and say so; the menu key and Shift+F10 open one menu, not two, and Escape gives focus back; search and name fields in the tab panels take focus when they open; the selected tab scrolls fully into view; the automation editor's save bar sits at the page bottom with a bottom strip."
+        },
+        {
+          "text": "New: \"Tab strip position\" in Profile chooses the edge the tab strip docks to."
+        },
+        {
+          "text": "Known gaps in the tab options: settings pages and tools cannot yet be opened as tabs of their own; settings section tabs and the phone Pages sheet have no groups, looks or locks."
+        }
+      ]
+    },
+    {
       "date": "2026-11-11",
       "items": [
         {
@@ -28,13 +42,16 @@
           "commit": "7b23aef30fbe"
         },
         {
-          "text": "New: the image store has folders. From Manage in the Media page: New folder, open with a breadcrumb, rename, move images, remove a folder (its images move up, none is deleted). Image addresses do not change, so pictures used by people, areas and dashboards keep working. Uploads go into the folder being looked at."
+          "text": "New: the image store has folders. From Manage in the Media page: New folder, open with a breadcrumb, rename, move images, remove a folder (its images move up, none is deleted). Image addresses do not change, so pictures used by people, areas and dashboards keep working. Uploads go into the folder being looked at.",
+          "commit": "4b47fc250959"
         },
         {
-          "text": "New: in Manage, for media and images: download an item, download a selection as one zip (up to 200 MB), edit a name (a taken name is refused), and convert an item with the built-in converter into a new item beside the original. The image store keeps PNG and JPEG results only."
+          "text": "New: in Manage, for media and images: download an item, download a selection as one zip (up to 200 MB), edit a name (a taken name is refused), and convert an item with the built-in converter into a new item beside the original. The image store keeps PNG and JPEG results only.",
+          "commit": "4b47fc250959"
         },
         {
-          "text": "New: the dim sum surprise. One launch in ten shows a small card with one dish, its picture and its name in English and Cantonese; it never takes focus and closes by itself. Personal settings has its switch, which cannot be turned off. School mode hides all of it. One download in ten of a single item arrives as a zip holding the file unchanged plus one dish picture, and says so. Pictures come only from the public dim sum catalogue: the server fetches them with a plain request that carries nothing about the instance and keeps them in its own storage. This is the one feature that contacts an outside address."
+          "text": "New: the dim sum surprise. One launch in ten shows a small card with one dish, its picture and its name in English and Cantonese; it never takes focus and closes by itself. Personal settings has its switch, which cannot be turned off. School mode hides all of it. One download in ten of a single item arrives as a zip holding the file unchanged plus one dish picture, and says so. Pictures come only from the public dim sum catalogue: the server fetches them with a plain request that carries nothing about the instance and keeps them in its own storage. This is the one feature that contacts an outside address.",
+          "commit": "4b47fc250959"
         },
         {
           "text": "New: when a repair fails, the repair dialog says so, and says separately when the failed repair left new issues behind.",

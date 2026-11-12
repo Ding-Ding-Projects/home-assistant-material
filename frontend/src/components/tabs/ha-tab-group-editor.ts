@@ -113,7 +113,7 @@ export class HaTabGroupEditor extends TabGroupPanel {
 
   protected _focusFirst() {
     const target = this._focusName ? this._nameField : this._firstButton;
-    target?.focus();
+    this._focusWhenReady(target);
   }
 
   protected render(): TemplateResult | typeof nothing {

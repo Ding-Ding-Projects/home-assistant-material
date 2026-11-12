@@ -28,7 +28,8 @@ export interface PlanTab {
   address?: string;
 }
 
-export type ProtectReason = "current" | "pinned" | "locked";
+/** `target` is the tab a menu was opened on; it never closes itself. */
+export type ProtectReason = "target" | "current" | "pinned" | "locked";
 
 export interface ProtectedTab {
   id: string;
@@ -124,29 +125,15 @@ export const planTextClose = (
   };
 };
 
-/** The open tabs on one side of a tab, or all others, for the edge plans. */
-const edgeCandidates = (
-  tabs: readonly PlanTab[],
-  targetId: string,
-  kind: "others" | "to_start" | "to_end"
-): PlanTab[] | undefined => {
-  const index = tabs.findIndex((tab) => tab.id === targetId);
-  if (index === -1) {
-    return undefined;
-  }
-  return tabs.filter(
-    (tab, position) =>
-      tab.open &&
-      tab.id !== targetId &&
-      (kind === "others" ||
-        (kind === "to_start" ? position < index : position > index))
-  );
-};
-
 /**
  * "Close other tabs", "Close tabs to the left" and "Close tabs to the
  * right". `tabs` is in strip order. In a right-to-left strip, pass the
  * kind that matches the screen: `to_start` is always the start of the list.
+ *
+ * The tab the menu was opened on always stays open, so it is listed with the
+ * reason `target` (plus any other reason it has), in strip order with the
+ * other protected tabs. The count of protected tabs is the count of tabs that
+ * stay open because of the plan's protection.
  */
 export const planEdgeClose = (
   tabs: readonly PlanTab[],
@@ -154,11 +141,37 @@ export const planEdgeClose = (
   kind: "others" | "to_start" | "to_end",
   options: PlanOptions = {}
 ): ClosePlan => {
-  const candidates = edgeCandidates(tabs, targetId, kind);
-  if (!candidates) {
+  const index = tabs.findIndex((tab) => tab.id === targetId);
+  if (index === -1) {
     return { kind, ids: [], protected: [], blocked: "unknown_tab" };
   }
-  return split(kind, candidates, options);
+  const ids: string[] = [];
+  const kept: ProtectedTab[] = [];
+  tabs.forEach((tab, position) => {
+    if (!tab.open) {
+      return;
+    }
+    if (tab.id === targetId) {
+      kept.push({
+        id: tab.id,
+        reasons: ["target", ...reasonsFor(tab, options)],
+      });
+      return;
+    }
+    if (
+      kind !== "others" &&
+      (kind === "to_start" ? position > index : position < index)
+    ) {
+      return;
+    }
+    const reasons = reasonsFor(tab, options);
+    if (reasons.length) {
+      kept.push({ id: tab.id, reasons });
+    } else {
+      ids.push(tab.id);
+    }
+  });
+  return { kind, ids, protected: kept };
 };
 
 export interface CloseReport {

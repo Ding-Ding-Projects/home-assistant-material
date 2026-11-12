@@ -256,6 +256,7 @@ export class TabStripController implements ReactiveController {
     this._unregisterSearch?.();
     this._unregisterSearch = undefined;
     this._cancelPress();
+    window.clearTimeout(this._revealCheck);
   }
 
   private _navItems(): HTMLElement[] {
@@ -644,6 +645,37 @@ export class TabStripController implements ReactiveController {
     }
     this._revealedKey = key;
     this._scrollInto(selected);
+    this._checkReveal();
+  }
+
+  private _revealCheck?: number;
+
+  // The tabs change width while the page opens (the selected tab shows its pin
+  // and close buttons, a label font arrives), which can leave a smooth scroll
+  // short of its target and the selected tab half under the fade. Once things
+  // have settled, a selected tab that is still not fully in view is brought in.
+  private _checkReveal() {
+    window.clearTimeout(this._revealCheck);
+    this._revealCheck = window.setTimeout(() => {
+      const strip = this._strip;
+      const selected = strip?.querySelector<HTMLElement>(".tab.selected");
+      if (!strip || !selected) {
+        return;
+      }
+      const area = strip.getBoundingClientRect();
+      const tab = selected.getBoundingClientRect();
+      const outside =
+        this._orientation === "vertical"
+          ? tab.top < area.top - 1 || tab.bottom > area.bottom + 1
+          : tab.left < area.left - 1 || tab.right > area.right + 1;
+      if (outside) {
+        selected.scrollIntoView({
+          inline: "nearest",
+          block: "nearest",
+          behavior: "instant",
+        });
+      }
+    }, 500);
   }
 
   private _scrollInto(element: HTMLElement) {

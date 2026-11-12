@@ -378,7 +378,9 @@ export class HaAutomationBottomBar extends LitElement {
         :host {
           display: block;
           position: sticky;
-          bottom: 0;
+          /* With the tab strip docked to the bottom, the bar sits in the room
+             the page keeps for the strip, so it rests on the page footer. */
+          bottom: calc(-1 * var(--ha-page-tabs-bottom-inset, 0px));
           z-index: 2;
           box-sizing: border-box;
           /* The page already ends above the phone bottom navigation, so only
@@ -391,7 +393,7 @@ export class HaAutomationBottomBar extends LitElement {
               var(--safe-area-inset-bottom, 0px) - var(
                   --ha-phone-bar-height,
                   0px
-                )
+                ) - var(--ha-page-tabs-bottom-inset, 0px)
             )
           );
           background: var(

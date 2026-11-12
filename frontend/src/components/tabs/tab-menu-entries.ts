@@ -101,6 +101,8 @@ export interface TabMenuInput {
   dock: DockEdge;
   /** The page reads right to left. */
   rtl?: boolean;
+  /** Which moves would change something, from the strip's own planner. */
+  moves?: Partial<Record<TabMoveKind, boolean>>;
 }
 
 const PREFIX = "ui.page_tabs.menu.";
@@ -226,7 +228,10 @@ export const tabMenuEntries = (input: TabMenuInput): TabMenuEntry[] => {
   const count = input.openIds.length;
   const pinned = input.pinnedIds.includes(input.tabId);
   const others = Math.max(0, count - 1);
+  // The owner reads `moves` from the strip's own move planner, which knows
+  // about groups; without it the flat order decides.
   const can = (kind: TabMoveKind) =>
+    input.moves?.[kind] ??
     moveTarget(input.openIds, input.pinnedIds, input.tabId, kind) !== undefined;
 
   const entries: TabMenuEntry[] = [
@@ -336,14 +341,15 @@ export const tabMenuEntries = (input: TabMenuInput): TabMenuEntry[] => {
     },
     {
       id: "move_start",
-      labelKey: key("move_to_start"),
+      // Inside a group the move stays inside it, and the words say so.
+      labelKey: key(input.grouped ? "move_to_group_start" : "move_to_start"),
       icon: mdiPageFirst,
       enabled: can("start"),
       destructive: false,
     },
     {
       id: "move_end",
-      labelKey: key("move_to_end"),
+      labelKey: key(input.grouped ? "move_to_group_end" : "move_to_end"),
       icon: mdiPageLast,
       enabled: can("end"),
       destructive: false,

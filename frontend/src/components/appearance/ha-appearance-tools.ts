@@ -236,17 +236,32 @@ const HOLDS_ITSELF = new Set(["ha-page-tool-panel", "ha-dialog-tools"]);
  * Shift+right-click, so this menu leaves those events alone.
  */
 const inTabStrip = (path: EventTarget[]): boolean =>
+  // The strip's own menus and panels too: the menu key sends its context-menu
+  // event when the key is released, by then from inside the menu the strip has
+  // just opened, and a second menu must not open over it.
   path.some(
+    (node) => node instanceof HTMLElement && TAB_SURFACES.has(node.localName)
+  ) ||
+  (path.some(
     (node) => node instanceof HTMLElement && node.localName === "ha-page-tabs"
   ) &&
-  path.some(
-    (node) =>
-      node instanceof HTMLElement &&
-      (node.getAttribute("role") === "tab" ||
-        node.getAttribute("role") === "tablist" ||
-        node.classList.contains("tabs") ||
-        node.classList.contains("tablist"))
-  );
+    path.some(
+      (node) =>
+        node instanceof HTMLElement &&
+        (node.getAttribute("role") === "tab" ||
+          node.getAttribute("role") === "tablist" ||
+          node.classList.contains("tabs") ||
+          node.classList.contains("tablist"))
+    ));
+
+const TAB_SURFACES = new Set([
+  "ha-page-tab-menu",
+  "ha-tab-group-menu",
+  "ha-tab-group-picker",
+  "ha-tab-group-editor",
+  "ha-tab-search-all",
+  "ha-tab-appearance-editor",
+]);
 
 /**
  * Appearance tools for every element.
@@ -773,6 +788,10 @@ export class HaAppearanceTools extends LitElement {
     point: { x: number; y: number },
     source: MenuSource
   ) {
+    // A menu asked for with the keyboard gives the focus back to the element
+    // it was asked on when it closes.
+    this._returnFocusTo =
+      source === "keyboard" ? this._deepActiveElement() : undefined;
     this._moveNear(chain);
     this._menuChain = chain;
     this._menuPoint = point;
@@ -861,7 +880,10 @@ export class HaAppearanceTools extends LitElement {
     }
   }
 
-  private _closeMenu() {
+  private _returnFocusTo?: HTMLElement;
+
+  /** Closes the menu. `returnFocus` puts the focus back where it was asked. */
+  private _closeMenu(returnFocus = false) {
     if (this._menu?.matches(":popover-open")) {
       this._menu.hidePopover();
     }
@@ -872,6 +894,11 @@ export class HaAppearanceTools extends LitElement {
     window.removeEventListener("resize", this._placeMenu);
     this._menuChain = undefined;
     this._sheetOffset = 0;
+    const target = this._returnFocusTo;
+    this._returnFocusTo = undefined;
+    if (returnFocus && target?.isConnected) {
+      target.focus();
+    }
   }
 
   /** The target the closest ancestor with an identity says it stands for. */
@@ -1156,7 +1183,9 @@ export class HaAppearanceTools extends LitElement {
     if (!item) {
       return;
     }
-    this._closeMenu();
+    // The item may move the focus on (an editor, a field); when it does not,
+    // it stays on the element the menu was asked for.
+    this._closeMenu(true);
     item.run();
   }
 
@@ -1176,7 +1205,7 @@ export class HaAppearanceTools extends LitElement {
       if (this._menuFilter) {
         this._menuFilter = "";
       } else {
-        this._closeMenu();
+        this._closeMenu(true);
       }
     } else if (
       ev.key.length === 1 &&
