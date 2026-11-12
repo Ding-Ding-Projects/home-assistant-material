@@ -28,6 +28,17 @@ day can hold several releases. The interface shows this list under Settings, Abo
   Images, the upload shows in the activity tray, and a message offers to open where the files
   went. Pages with their own drop area keep it; same-name files are skipped, never replaced; only
   an administrator can add media. Seen in a local build with simulated drags.
+- Changed: uploads can be larger: 2 GB for the media library (was 20 MB) and 50 MB for the image
+  store (was 10 MB), with a percentage while a file uploads. A reverse proxy in front of the
+  instance may have its own limit. A dropped picture the image store cannot take as it is (WebP,
+  BMP, AVIF) is converted to PNG, and a picture over the limit is re-encoded or resized to fit;
+  the result says what was converted and what was lost. Animated GIFs are never flattened, and
+  large audio or video is not converted. Seen in a local build.
+- New: "Add media" for phones and keyboards, since a phone cannot drag: in the Pages sheet menu
+  on a phone, the Media page toolbar, the activity tray and the quick bar. It opens the system
+  picker and follows the same path as a drop. Pasting a picture, video or audio file on a page
+  does the same, except inside text fields and editors. The toolbar entry and paste were seen at
+  phone width in a local build; the Pages sheet entry was not.
 - New: when a repair fails, the repair dialog says so, and says separately when the failed repair
   left new issues behind.
 - Changed: in "full" hosting mode the checks that can never pass inside a container (no operating

@@ -9472,7 +9472,7 @@
             "search": {
               "title": "Search this editor",
               "label": "Search steps",
-              "placeholder": "Search steps, entities, names and templates",
+              "placeholder": "Search steps and entities",
               "count": "{current} of {total, plural, one {# match} other {# matches}}",
               "no_matches": "No matching steps",
               "announce_match": "Match {current} of {total}: {title}",

@@ -4,25 +4,38 @@
       "date": "2026-11-11",
       "items": [
         {
-          "text": "New: tab options. The tab strip can be docked to the left, right, top or bottom (a new installation starts on the left; an existing one stays at the top until changed). Tabs can be pinned, grouped (name, colour, look, collapse, lock), given their own look, locked, moved and closed in bulk with a preview of what closes and what is protected. An overflow button lists tabs that do not fit. There are four separate searches, each with the pattern builder: this strip, inside a group, group names, and every open tab (Alt+Shift+F). A tab has its own right-click menu, also on the menu key and on a long press."
+          "text": "New: tab options. The tab strip can be docked to the left, right, top or bottom (a new installation starts on the left; an existing one stays at the top until changed). Tabs can be pinned, grouped (name, colour, look, collapse, lock), given their own look, locked, moved and closed in bulk with a preview of what closes and what is protected. An overflow button lists tabs that do not fit. There are four separate searches, each with the pattern builder: this strip, inside a group, group names, and every open tab (Alt+Shift+F). A tab has its own right-click menu, also on the menu key and on a long press.",
+          "commit": "447cde08f7fd"
         },
         {
-          "text": "New: the tabs of a settings section are real tabs with arrow-key movement, a \"More tabs\" list when they do not fit, pin, hide, reorder and \"Open every tab\", saved per section. On a phone, the Pages sheet has per-page actions, a pinned group, drag reordering and bulk close with a preview."
+          "text": "New: the tabs of a settings section are real tabs with arrow-key movement, a \"More tabs\" list when they do not fit, pin, hide, reorder and \"Open every tab\", saved per section. On a phone, the Pages sheet has per-page actions, a pinned group, drag reordering and bulk close with a preview.",
+          "commit": "447cde08f7fd"
         },
         {
-          "text": "New: installing an app from the app store shows a progress bar with its steps and a log terminal (follow, pause, search with the pattern builder, level filter, copy, export). The store card and the activity tray show the same progress, and it is still there after leaving the page. Seen in a running full-mode instance at phone and desktop width. The Supervisor reports a percentage only, so no layer list is shown."
+          "text": "New: installing an app from the app store shows a progress bar with its steps and a log terminal (follow, pause, search with the pattern builder, level filter, copy, export). The store card and the activity tray show the same progress, and it is still there after leaving the page. Seen in a running full-mode instance at phone and desktop width. The Supervisor reports a percentage only, so no layer list is shown.",
+          "commit": "447cde08f7fd"
         },
         {
-          "text": "New: a picture, video or audio file can be dropped on any page. An overlay offers Media or Images, the upload shows in the activity tray, and a message offers to open where the files went. Pages with their own drop area keep it; same-name files are skipped, never replaced; only an administrator can add media. Seen in a local build with simulated drags."
+          "text": "New: a picture, video or audio file can be dropped on any page. An overlay offers Media or Images, the upload shows in the activity tray, and a message offers to open where the files went. Pages with their own drop area keep it; same-name files are skipped, never replaced; only an administrator can add media. Seen in a local build with simulated drags.",
+          "commit": "447cde08f7fd"
         },
         {
-          "text": "New: when a repair fails, the repair dialog says so, and says separately when the failed repair left new issues behind."
+          "text": "Changed: uploads can be larger: 2 GB for the media library (was 20 MB) and 50 MB for the image store (was 10 MB), with a percentage while a file uploads. A reverse proxy in front of the instance may have its own limit. A dropped picture the image store cannot take as it is (WebP, BMP, AVIF) is converted to PNG, and a picture over the limit is re-encoded or resized to fit; the result says what was converted and what was lost. Animated GIFs are never flattened, and large audio or video is not converted. Seen in a local build."
         },
         {
-          "text": "Changed: in \"full\" hosting mode the checks that can never pass inside a container (no operating system, no systemd, no NetworkManager, no AppArmor and so on) are no longer reported as \"Unsupported system\" repairs; every other check still runs. Seen on a throwaway instance: nine reasons before, none after. An existing instance needs the new outer image and Supervisor. The unsupported-installation dialog explains each reason in one sentence and has no outside links."
+          "text": "New: \"Add media\" for phones and keyboards, since a phone cannot drag: in the Pages sheet menu on a phone, the Media page toolbar, the activity tray and the quick bar. It opens the system picker and follows the same path as a drop. Pasting a picture, video or audio file on a page does the same, except inside text fields and editors. The toolbar entry and paste were seen at phone width in a local build; the Pages sheet entry was not."
         },
         {
-          "text": "Deploy Assistant: with a wording file in use, a new deployment's container and Compose project are named with the file's word for that kind of deployment."
+          "text": "New: when a repair fails, the repair dialog says so, and says separately when the failed repair left new issues behind.",
+          "commit": "447cde08f7fd"
+        },
+        {
+          "text": "Changed: in \"full\" hosting mode the checks that can never pass inside a container (no operating system, no systemd, no NetworkManager, no AppArmor and so on) are no longer reported as \"Unsupported system\" repairs; every other check still runs. Seen on a throwaway instance: nine reasons before, none after. An existing instance needs the new outer image and Supervisor. The unsupported-installation dialog explains each reason in one sentence and has no outside links.",
+          "commit": "447cde08f7fd"
+        },
+        {
+          "text": "Deploy Assistant: with a wording file in use, a new deployment's container and Compose project are named with the file's word for that kind of deployment.",
+          "commit": "447cde08f7fd"
         },
         {
           "text": "Fixed: in build 122 every toast message was pushed sideways and upward, so its buttons were off the screen on a phone. Build 122 should be skipped. Seen fixed in a local build: one toast and a stack of three sit centred above the bottom bar at 390, 320 and 1440 px.",

@@ -4,7 +4,6 @@ import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import type { DropZone } from "../../common/file-drop/drop-routing";
-import "../ha-button";
 import "../ha-svg-icon";
 import type { DropUploadZone } from "./ha-drop-upload-overlay";
 
@@ -76,9 +75,9 @@ export class HaAddMediaSheet extends LitElement {
             </button>
           `
         )}
-        <ha-button appearance="plain" @click=${this._close}>
+        <button type="button" class="cancel" @click=${this._close}>
           ${this.cancelLabel}
-        </ha-button>
+        </button>
       </div>
     `;
   }
@@ -164,6 +163,22 @@ export class HaAddMediaSheet extends LitElement {
       border-radius: var(--ha-border-radius-lg, 16px);
       cursor: pointer;
       overflow-wrap: anywhere;
+    }
+    .cancel {
+      all: unset;
+      box-sizing: border-box;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--ha-border-radius-lg, 16px);
+      color: var(--primary-color);
+      font-weight: var(--ha-font-weight-medium, 500);
+      cursor: pointer;
+    }
+    .cancel:focus-visible,
+    .cancel:hover {
+      background: color-mix(in srgb, var(--primary-color) 12%, transparent);
     }
     .choice:hover,
     .choice:focus-visible {

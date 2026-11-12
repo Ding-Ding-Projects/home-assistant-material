@@ -89,7 +89,7 @@
             "search": {
               "title": "搜尋呢個編輯器",
               "label": "搜尋步驟",
-              "placeholder": "搜尋步驟、實體、名稱同範本",
+              "placeholder": "搜尋步驟同實體",
               "count": "第 {current} 個，共 {total} 個符合",
               "no_matches": "冇符合嘅步驟",
               "announce_match": "第 {current} 個符合，共 {total} 個：{title}",

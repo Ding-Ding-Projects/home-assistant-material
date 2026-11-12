@@ -209,6 +209,13 @@ describe("planDrop and dropAfter", () => {
 });
 
 describe("headerActions", () => {
+  it("offers adding media only to someone who may add it", () => {
+    expect(headerActions([]).map((e) => e.id)).not.toContain("add_media");
+    expect(headerActions([], undefined, true).map((e) => e.id)).toContain(
+      "add_media"
+    );
+  });
+
   it("offers Open every page only while a page is closed", () => {
     expect(headerActions(pages).map((e) => e.id)).toContain("open_every");
     const allOpen = pages.map((p) => ({ ...p, open: true }));

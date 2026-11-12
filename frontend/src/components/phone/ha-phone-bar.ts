@@ -17,6 +17,7 @@ import {
   mdiPlus,
   mdiTab,
   mdiTabPlus,
+  mdiUpload,
   mdiTabRemove,
   mdiUndo,
 } from "@mdi/js";
@@ -31,6 +32,7 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { pickFilesToAdd } from "../../common/file-drop/add-media";
 import { storage } from "../../common/decorators/storage";
 import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -109,6 +111,7 @@ const HEADER_ACTION_VIEW: Record<HeaderActionId, [string, string]> = {
   bulk_contain: ["ui.phone.action_bulk_contain", mdiTabRemove],
   bulk_not_contain: ["ui.phone.action_bulk_not_contain", mdiTabRemove],
   close_others: ["ui.phone.action_close_others_all", mdiTabRemove],
+  add_media: ["ui.drop_upload.add_media", mdiUpload],
 };
 
 const REASON_VIEW: Record<ActionReason, string> = {
@@ -643,7 +646,10 @@ export class HaPhoneBar extends LitElement {
       return html`<ha-phone-tab-actions
         .heading=${t("ui.phone.pages")}
         .closeLabel=${t("ui.phone.actions_close")}
-        .items=${this._items(headerActions(pages, current), HEADER_ACTION_VIEW)}
+        .items=${this._items(
+          headerActions(pages, current, Boolean(this.hass.user?.is_admin)),
+          HEADER_ACTION_VIEW
+        )}
         @phone-action-select=${this._headerActionSelected}
         @phone-actions-dismiss=${this._dismissOverlay}
       ></ha-phone-tab-actions>`;
@@ -1231,7 +1237,10 @@ export class HaPhoneBar extends LitElement {
       this._bulkMode = action === "bulk_contain" ? "matching" : "not_matching";
       return;
     }
-    if (action === "open_every") {
+    if (action === "add_media") {
+      // Called straight from the tap, so the file picker is allowed to open.
+      void pickFilesToAdd();
+    } else if (action === "open_every") {
       this._openEveryTab();
     } else if (action === "close_others") {
       this._closeOthers();

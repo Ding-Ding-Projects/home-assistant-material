@@ -39,7 +39,11 @@ export type PageActionId =
   | "move_bottom";
 
 export type HeaderActionId =
-  "open_every" | "bulk_contain" | "bulk_not_contain" | "close_others";
+  | "open_every"
+  | "bulk_contain"
+  | "bulk_not_contain"
+  | "close_others"
+  | "add_media";
 
 /** Why an action is not available, or why a page was kept. */
 export type ActionReason =
@@ -267,7 +271,8 @@ export const pageActions = (
  */
 export const headerActions = (
   pages: readonly PhonePage[],
-  currentId?: string
+  currentId?: string,
+  canAddMedia = false
 ): ActionEntry<HeaderActionId>[] => {
   const entries: ActionEntry<HeaderActionId>[] = [];
   if (pages.some((page) => !page.open)) {
@@ -291,6 +296,10 @@ export const headerActions = (
     closing("bulk_not_contain", anyOpen),
     closing("close_others", others > 0)
   );
+  // A phone has no drag and drop, so adding media is offered here.
+  if (canAddMedia) {
+    entries.push({ id: "add_media", enabled: true });
+  }
   return entries;
 };
 

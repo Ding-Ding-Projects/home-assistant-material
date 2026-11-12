@@ -86,30 +86,30 @@ export class HaAutomationSearchBar extends LitElement {
             @input=${this._queryChanged}
             @keydown=${this._fieldKeydown}
           ></ha-input-search>
-          <div class="nav">
-            ${this._renderCount(search)}
-            <ha-icon-button
-              .label=${this._t("previous")}
-              .path=${mdiChevronUp}
-              .disabled=${!total}
-              @click=${this._previous}
-            ></ha-icon-button>
-            <ha-icon-button
-              .label=${this._t("next")}
-              .path=${mdiChevronDown}
-              .disabled=${!total}
-              @click=${this._next}
-            ></ha-icon-button>
-            ${
-              search.active
-                ? html`<ha-icon-button
+          ${
+            search.active
+              ? html`<div class="nav">
+                  ${this._renderCount(search)}
+                  <ha-icon-button
+                    .label=${this._t("previous")}
+                    .path=${mdiChevronUp}
+                    .disabled=${!total}
+                    @click=${this._previous}
+                  ></ha-icon-button>
+                  <ha-icon-button
+                    .label=${this._t("next")}
+                    .path=${mdiChevronDown}
+                    .disabled=${!total}
+                    @click=${this._next}
+                  ></ha-icon-button>
+                  <ha-icon-button
                     .label=${this._t("clear")}
                     .path=${mdiClose}
                     @click=${this._clear}
-                  ></ha-icon-button>`
-                : nothing
-            }
-          </div>
+                  ></ha-icon-button>
+                </div>`
+              : nothing
+          }
         </div>
         ${this._renderPatternError(search)}
         <div class="row options">
@@ -477,6 +477,8 @@ export class HaAutomationSearchBar extends LitElement {
       border: 1px solid var(--divider-color);
       box-sizing: border-box;
       max-width: 100%;
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
     }
     .row {
       display: flex;
@@ -581,6 +583,7 @@ export class HaAutomationSearchBar extends LitElement {
       --ha-checkbox-min-touch-size: 44px;
     }
     .entity {
+      line-height: var(--ha-line-height-normal, 1.4);
       display: flex;
       align-items: center;
       gap: var(--ha-space-3);
