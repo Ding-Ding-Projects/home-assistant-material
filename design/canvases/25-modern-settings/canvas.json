@@ -1,0 +1,345 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Settings",
+  "launch": {
+    "view": "canvas",
+    "page": "settings"
+  },
+  "pages": [
+    {
+      "id": "settings",
+      "name": "Settings: devices, entities, helpers, automations and their history"
+    },
+    {
+      "id": "settings-2",
+      "name": "Settings: the settings home, scenes, scripts, blueprints, areas, apps, dashboards"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Integrations",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Integration.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "One integration",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03AddIntegration.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Add integration, pick, set up, assign areas",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Devices.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Devices",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Device.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "One device",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Entities.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entities",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03EntitySettings.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity settings",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Helpers.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Helpers",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Automations.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Automations",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03AutomationEditor.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Automation editor",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Choose.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Choose between options, with a test on every option",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03HistoryManager.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "History manager for automations",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Repo.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "One repository for each automation",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Master.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "The master repository of all automations",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M03Trace.dc.html": {
+      "x": 3312,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Automation trace, one past run",
+      "expand": "fill",
+      "page": "settings"
+    },
+    "M04SettingsHome.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Settings, the home of settings",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Guided.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "App settings that explain themselves",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Scenes.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Scenes",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04SceneEditor.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Scene editor",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Scripts.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Scripts",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04ScriptEditor.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Script editor",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Blueprints.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Blueprints",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Areas.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Areas and floors",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Area.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "One area",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Labels.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Labels",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Zones.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Zones on the map",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04AppsInstalled.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Apps, installed",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04AppStore.dc.html": {
+      "x": 0,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "App store",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04OneApp.dc.html": {
+      "x": 1656,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "One app",
+      "expand": "fill",
+      "page": "settings-2"
+    },
+    "M04Dashboards.dc.html": {
+      "x": 3312,
+      "y": 5040,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dashboards and resources",
+      "expand": "fill",
+      "page": "settings-2"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "M03Integration.dc.html",
+    "M03AddIntegration.dc.html",
+    "M03Devices.dc.html",
+    "M03Device.dc.html",
+    "M03Entities.dc.html",
+    "M03EntitySettings.dc.html",
+    "M03Helpers.dc.html",
+    "M03Automations.dc.html",
+    "M03AutomationEditor.dc.html",
+    "M03Choose.dc.html",
+    "M03HistoryManager.dc.html",
+    "M03Repo.dc.html",
+    "M03Master.dc.html",
+    "M03Trace.dc.html",
+    "M04SettingsHome.dc.html",
+    "M04Guided.dc.html",
+    "M04Scenes.dc.html",
+    "M04SceneEditor.dc.html",
+    "M04Scripts.dc.html",
+    "M04ScriptEditor.dc.html",
+    "M04Blueprints.dc.html",
+    "M04Areas.dc.html",
+    "M04Area.dc.html",
+    "M04Labels.dc.html",
+    "M04Zones.dc.html",
+    "M04AppsInstalled.dc.html",
+    "M04AppStore.dc.html",
+    "M04OneApp.dc.html",
+    "M04Dashboards.dc.html"
+  ],
+  "notes": {
+    "t-settings": {
+      "x": 0,
+      "y": -320,
+      "text": "Settings: devices, entities, helpers, automations and their history. 15 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "settings"
+    },
+    "t-settings-2": {
+      "x": 0,
+      "y": -320,
+      "text": "Settings: the settings home, scenes, scripts, blueprints, areas, apps, dashboards. 15 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "settings-2"
+    }
+  },
+  "designSystems": []
+}

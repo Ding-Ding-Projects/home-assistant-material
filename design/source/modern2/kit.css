@@ -164,3 +164,4 @@ svg circle[stroke-dasharray]{animation:ring 1.4s var(--ease) .3s both}
 .bnav{animation:rise .6s var(--spring) .3s both}
 .empty-art{animation:float 5s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.root *,.root *::before,.root *::after{animation:none!important;transition:none!important}}
+.tr>span,.trh>span{display:flex;align-items:center;min-width:0}
