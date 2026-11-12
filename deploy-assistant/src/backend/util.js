@@ -55,6 +55,15 @@ function slug(name) {
   return s || 'home';
 }
 
+// The name of an instance's container, Compose project or virtual machine. The first part
+// is the app's short name, or the word the person's own wording file gives for this kind
+// of deployment when one is in use; it is fixed when the instance is made.
+function namePrefix(text) {
+  const s = String(text || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20).replace(/-+$/, '');
+  return s;
+}
+function unitName(inst) { return (inst.prefix || 'ham') + '-' + inst.slug; }
+
 function uniqueSlug(name, taken) {
   const base = slug(name);
   let s = base;
@@ -153,4 +162,4 @@ function findProgram(names, extraDirs = []) {
   return null;
 }
 
-module.exports = { run, portFree, freePort, slug, uniqueSlug, waitForHttp, lanAddress, download, getJson, sha256File, stamp, exists, findProgram };
+module.exports = { run, portFree, freePort, slug, uniqueSlug, namePrefix, unitName, waitForHttp, lanAddress, download, getJson, sha256File, stamp, exists, findProgram };

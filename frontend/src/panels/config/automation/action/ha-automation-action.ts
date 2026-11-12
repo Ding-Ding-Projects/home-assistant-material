@@ -58,10 +58,11 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
 
   protected render() {
     return html`
+      ${this.renderListSearch()}
       <ha-sortable
         handle-selector=".handle"
         draggable-selector="ha-automation-action-row"
-        .disabled=${this.disabled}
+        .disabled=${this.disabled || this.reorderLocked}
         group="actions"
         invert-swap
         @item-moved=${this.itemMoved}
@@ -76,9 +77,12 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
               <ha-automation-action-row
                 .root=${this.root}
                 .sortableData=${action}
+                ?search-hidden=${this.isSearchHidden(action)}
+                ?search-match=${this.isSearchMatch(action)}
+                ?search-current=${this.isSearchCurrent(action)}
                 .index=${idx}
-                .first=${idx === 0}
-                .last=${idx === this.actions.length - 1}
+                .first=${idx === 0 || this.reorderLocked}
+                .last=${idx === this.actions.length - 1 || this.reorderLocked}
                 .action=${action}
                 .narrow=${this.narrow}
                 .disabled=${this.disabled}
@@ -104,6 +108,7 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
                             this.rowSortSelected === idx ? "active" : ""
                           }"
                           slot="icons"
+                          title=${this.reorderLockedText ?? nothing}
                           @keydown=${this.handleDragKeydown}
                           @click=${stopPropagation}
                           .index=${idx}
@@ -130,6 +135,7 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
                 "ui.panel.config.automation.editor.actions.add"
               )}
             </ha-button>
+            ${this.renderListSearchToggle()}
           </div>
         </div>
       </ha-sortable>

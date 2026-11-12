@@ -128,10 +128,11 @@ ensure_supervisor_image() {
 create_supervisor() {
   image_id="$(docker image inspect --format '{{.Id}}' "${SUPERVISOR_IMAGE}:latest")"
   current="$(docker inspect --format '{{.Image}}' hassio_supervisor 2>/dev/null || true)"
-  if [ -n "${current}" ] && [ "${current}" = "${image_id}" ]; then
+  if [ -n "${current}" ] && [ "${current}" = "${image_id}" ] \
+    && docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hassio_supervisor 2>/dev/null | grep -qx 'SUPERVISOR_CONTAINER_HOST=1'; then
     return 0
   fi
-  [ -n "${current}" ] && { log "The Supervisor image changed; replacing its container."; docker container rm --force hassio_supervisor >/dev/null 2>&1; }
+  [ -n "${current}" ] && { log "The Supervisor image or its settings changed; replacing its container."; docker container rm --force hassio_supervisor >/dev/null 2>&1; }
   rm -f "${SUPERVISOR_CIDFILE}"
   log "Creating the Supervisor container."
   # Same arguments as the operating system service, minus what only a real host has
@@ -151,6 +152,7 @@ create_supervisor() {
     -e "SUPERVISOR_SHARE=${SUPERVISOR_DATA}" \
     -e SUPERVISOR_NAME=hassio_supervisor \
     -e SUPERVISOR_FIREWALL_EXTERNAL=1 \
+    -e SUPERVISOR_CONTAINER_HOST=1 \
     -e "SUPERVISOR_MACHINE=${MACHINE}" \
     "${SUPERVISOR_IMAGE}:latest" >/dev/null
 }

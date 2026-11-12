@@ -47,7 +47,6 @@ const sortKeys = (a: string, b: string) => {
   return 0;
 };
 
-export const UNSUPPORTED_REASON_URL = {};
 export const UNHEALTHY_REASON_URL = {
   privileged: "/more-info/unsupported/privileged",
 };
@@ -259,21 +258,22 @@ class DialogSystemInformation extends LitElement {
           ${this._resolutionInfo!.unsupported.map(
             (reason) => html`
               <li>
-                <a
-                  href=${documentationUrl(
-                    this.hass,
-                    UNSUPPORTED_REASON_URL[reason] ||
-                      `/more-info/unsupported/${reason}`
-                  )}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <strong>
                   ${
                     this.hass.localize(
                       `ui.dialogs.unsupported.reasons.${reason}`
                     ) || reason
                   }
-                </a>
+                </strong>
+                <br />
+                ${
+                  this.hass.localize(
+                    `ui.dialogs.unsupported.reason_notes.${reason}`
+                  ) ||
+                  this.hass.localize(
+                    "ui.dialogs.unsupported.reason_notes.generic"
+                  )
+                }
               </li>
             `
           )}

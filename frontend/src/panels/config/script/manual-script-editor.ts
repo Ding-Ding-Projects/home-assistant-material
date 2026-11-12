@@ -48,6 +48,7 @@ import {
 import { documentationUrl } from "../../../util/documentation-url";
 import { showEditorToast } from "../automation/editor-toast";
 import "../automation/action/ha-automation-action";
+import "../automation/search/ha-automation-search-bar";
 import type HaAutomationAction from "../automation/action/ha-automation-action";
 import {
   ManualEditorMixin,
@@ -241,6 +242,7 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
             ></ha-starting-points>`
           : nothing
       }
+      <ha-automation-search-bar .hass=${this.hass}></ha-automation-search-bar>
       <section class="card" aria-labelledby="sequence-heading">
         <div class="header">
           <span class="tag tag-do">

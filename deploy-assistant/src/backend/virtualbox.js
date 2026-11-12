@@ -4,14 +4,14 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const extract = require('extract-zip');
-const { run, findProgram, waitForHttp, stamp } = require('./util');
+const { run, findProgram, waitForHttp, stamp, unitName } = require('./util');
 const { fetchImage } = require('./images');
 
 function vbox() {
   return findProgram(['VBoxManage', 'vboxmanage'], ['C:\\Program Files\\Oracle\\VirtualBox', '/usr/bin', '/usr/local/bin', '/Applications/VirtualBox.app/Contents/MacOS']);
 }
 const V = (args, opts) => { const b = vbox(); if (!b) return Promise.resolve({ code: -1, out: '', err: 'VirtualBox is not installed.' }); return run(b, args, opts); };
-const vm = (inst) => 'ham-' + inst.slug;
+const vm = (inst) => unitName(inst);
 
 async function check() {
   const b = vbox();

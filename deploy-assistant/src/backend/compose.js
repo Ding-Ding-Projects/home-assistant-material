@@ -4,18 +4,19 @@
 
 const IMAGE = 'ghcr.io/ding-ding-projects/home-assistant-material';
 
-function composeYaml({ slug, port, tag = 'latest', timezone = 'UTC', restart = 'unless-stopped', configPath = './config', memoryLimit = '' }) {
+function composeYaml({ slug, prefix = 'ham', port, tag = 'latest', timezone = 'UTC', restart = 'unless-stopped', configPath = './config', memoryLimit = '' }) {
   if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(slug)) throw new Error('The instance name must be lower-case letters, digits and dashes.');
+  if (!/^[a-z0-9][a-z0-9-]{0,19}$/.test(prefix)) throw new Error('The name prefix must be lower-case letters, digits and dashes.');
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('The port must be a whole number from 1 to 65535.');
   if (!/^[A-Za-z0-9._-]{1,128}$/.test(tag)) throw new Error('The image tag has characters a tag cannot have.');
   const lines = [
     '# Written by Home Assistant Material Deploy Assistant. Edit it from the app, or by hand;',
     '# the app reads it again before every start.',
-    'name: ham-' + slug,
+    'name: ' + prefix + '-' + slug,
     'services:',
     '  homeassistant:',
     '    image: ' + IMAGE + ':' + tag,
-    '    container_name: ham-' + slug,
+    '    container_name: ' + prefix + '-' + slug,
     '    restart: ' + restart,
     '    ports:',
     '      - "' + port + ':8123"',

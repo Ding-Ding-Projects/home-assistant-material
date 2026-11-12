@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { freePort, uniqueSlug, stamp } = require('./util');
+const { freePort, uniqueSlug, stamp, namePrefix } = require('./util');
 
 const TARGETS = { docker: require('./docker-local'), ssh: require('./ssh'), virtualbox: require('./virtualbox'), vmware: require('./vmware'), pi: require('./pi') };
 const LABEL = { docker: 'Docker on this computer', ssh: 'SSH host', virtualbox: 'VirtualBox', vmware: 'VMware', pi: 'Raspberry Pi' };
@@ -186,7 +186,7 @@ class Manager extends EventEmitter {
     if (o.target === 'ssh' && !o.hostId) throw new Error('Choose an SSH host first.');
     const slugs = this.db.instances.map((i) => i.slug);
     const inst = {
-      id: 'i' + Date.now().toString(36), name: String(o.name).slice(0, 60), slug: uniqueSlug(o.slug || o.name, slugs), target: o.target, hostId: o.hostId || undefined,
+      id: 'i' + Date.now().toString(36), name: String(o.name).slice(0, 60), slug: uniqueSlug(o.slug || o.name, slugs), target: o.target, hostId: o.hostId || undefined, prefix: namePrefix(o.namePrefix) || undefined,
       port: Number(o.port) || 0, tag: o.tag, timezone: o.timezone, memoryMb: Number(o.memoryMb), cpus: Number(o.cpus), diskGb: Number(o.diskGb) || 0, memoryLimit: o.memoryLimit,
       created: new Date().toISOString(), state: 'deploying', url: '', lanUrl: '', backups: [], backupsOn: o.backupsOn !== false, notes: ''
     };

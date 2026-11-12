@@ -41,10 +41,11 @@ export default class HaAutomationOption extends AutomationSortableListMixin<Opti
 
   protected render() {
     return html`
+      ${this.renderListSearch()}
       <ha-sortable
         handle-selector=".handle"
         draggable-selector="ha-automation-option-row"
-        .disabled=${this.disabled}
+        .disabled=${this.disabled || this.reorderLocked}
         group="options"
         invert-swap
         @item-moved=${this.itemMoved}
@@ -58,9 +59,12 @@ export default class HaAutomationOption extends AutomationSortableListMixin<Opti
             (option, idx) => html`
               <ha-automation-option-row
                 .sortableData=${option}
+                ?search-hidden=${this.isSearchHidden(option)}
+                ?search-match=${this.isSearchMatch(option)}
+                ?search-current=${this.isSearchCurrent(option)}
                 .index=${idx}
-                .first=${idx === 0}
-                .last=${idx === this.options.length - 1}
+                .first=${idx === 0 || this.reorderLocked}
+                .last=${idx === this.options.length - 1 || this.reorderLocked}
                 .option=${option}
                 .unreachable=${this.unreachable?.get(idx)}
                 .narrow=${this.narrow}
@@ -83,6 +87,7 @@ export default class HaAutomationOption extends AutomationSortableListMixin<Opti
                             this.rowSortSelected === idx ? "active" : ""
                           }"
                           slot="icons"
+                          title=${this.reorderLockedText ?? nothing}
                           @keydown=${this.handleDragKeydown}
                           @click=${stopPropagation}
                           .index=${idx}
@@ -124,6 +129,7 @@ export default class HaAutomationOption extends AutomationSortableListMixin<Opti
                   </ha-button>`
                 : nothing
             }
+            ${this.renderListSearchToggle()}
           </div>
         </div>
       </ha-sortable>

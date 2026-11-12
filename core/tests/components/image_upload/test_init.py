@@ -10,7 +10,7 @@ from PIL import Image
 import pytest
 from pytest_homeassistant.typing import ClientSessionGenerator, WebSocketGenerator
 
-from homeassistant.components.image_upload import DOMAIN
+from homeassistant.components.image_upload import DOMAIN, MAX_SIZE
 from homeassistant.components.websocket_api import TYPE_RESULT
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
@@ -149,3 +149,26 @@ async def test_upload_image_thumbnail_rgba_as_jpeg(
         # Verify the generated thumbnail is a valid JPEG
         thumbnail = Image.open(item_folder / "256x256")
         assert thumbnail.mode == "RGB"
+
+
+def test_upload_limit() -> None:
+    """The image store takes pictures up to 50 MiB."""
+    assert MAX_SIZE == 50 * 1024 * 1024
+
+
+async def test_upload_image_over_limit(
+    hass: HomeAssistant, hass_client: ClientSessionGenerator
+) -> None:
+    """A picture above the limit is refused with 413."""
+    with (
+        tempfile.TemporaryDirectory() as tempdir,
+        patch.object(hass.config, "path", return_value=tempdir),
+        patch("homeassistant.components.image_upload.MAX_SIZE", 1024),
+    ):
+        assert await async_setup_component(hass, DOMAIN, {})
+        client: ClientSession = await hass_client()
+
+        with TEST_IMAGE.open("rb") as fp:
+            res = await client.post("/api/image/upload", data={"file": fp})
+
+        assert res.status == 413

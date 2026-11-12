@@ -66,3 +66,21 @@ test('scheduled backups run once a day at the chosen time', async () => {
   await m.tick(t); await m.tick(t);
   assert.deepEqual(runs, ['backup']);
 });
+
+test('an instance is named with the wording file\'s word when one is given', () => {
+  const { namePrefix, unitName } = require('../src/backend/util');
+  // No wording file: the app's short name, as before.
+  assert.equal(unitName({ slug: 'home' }), 'ham-home');
+  assert.equal(namePrefix(''), '');
+  // A phrase from a wording file becomes a safe lower-case prefix.
+  const prefix = namePrefix('My Own Words!');
+  assert.equal(prefix, 'my-own-words');
+  assert.equal(unitName({ slug: 'home', prefix }), 'my-own-words-home');
+  const y = composeYaml({ slug: 'home', prefix, port: 8123 });
+  assert.match(y, /^name: my-own-words-home$/m);
+  assert.match(y, /container_name: my-own-words-home$/m);
+  // Nothing unsafe reaches a container name, and a long phrase is cut.
+  assert.match(namePrefix('  ../;rm -rf "x"  '), /^[a-z0-9-]*$/);
+  assert.ok(namePrefix('a'.repeat(80)).length <= 20);
+  assert.throws(() => composeYaml({ slug: 'home', prefix: 'Bad Name', port: 8123 }));
+});

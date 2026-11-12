@@ -1,10 +1,18 @@
+import { mdiClose, mdiMagnify } from "@mdi/js";
 import deepClone from "deep-clone-simple";
-import type { LitElement, PropertyValues } from "lit";
+import type { LitElement, PropertyValues, TemplateResult } from "lit";
+import { html, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import { ensureArray } from "../../../common/array/ensure-array";
+import { consume } from "../../../common/decorators/consume";
 import { storage } from "../../../common/decorators/storage";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { LanguageModeController } from "../../../common/language-mode/language-mode-controller";
+import { regexQuery } from "../../../common/regex/filter";
 import { nextRender } from "../../../common/util/render-status";
+import "../../../components/ha-icon-button";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { AutomationClipboard } from "../../../data/automation";
 import type { Constructor, HomeAssistant } from "../../../types";
 import {
@@ -12,6 +20,15 @@ import {
   markEnteringRows,
   measureRows,
 } from "./motion-helpers";
+import { scrollRowIntoView } from "./scroll-row-into-view";
+import type { AutomationSearchSnapshot } from "./search/automation-search-context";
+import {
+  automationSearchContext,
+  isRevealRow,
+  LIST_SEARCH_THRESHOLD,
+} from "./search/automation-search-context";
+
+const SEARCH_KEY = "ui.panel.config.automation.editor.search.";
 
 const rowKeys = new WeakMap<object, string>();
 
@@ -91,6 +108,27 @@ export const AutomationSortableListMixin = <T extends object>(
     })
     public _clipboard?: AutomationClipboard;
 
+    /**
+     * What the editor search shows. A list reads it to mark, hide and open its
+     * rows; it never changes it.
+     */
+    @state()
+    @consume({ context: automationSearchContext, subscribe: true })
+    protected searchContext?: AutomationSearchSnapshot;
+
+    /** The text of the search field of this list. Independent of the editor. */
+    @state() private _listQuery = "";
+
+    @state() private _listSearchOpen = false;
+
+    private _lang = new LanguageModeController(this);
+
+    // Rows this list opened to show a match, so clearing the search can close
+    // exactly those and leave every row the person opened alone.
+    private _autoExpanded = new Set<object>();
+
+    private _lastSearchToken?: number;
+
     protected focusLastItemOnChange = false;
 
     protected focusItemIndexOnChange?: number;
@@ -107,6 +145,221 @@ export const AutomationSortableListMixin = <T extends object>(
 
     protected getKey(item: T): string {
       return getAutomationRowKey(item);
+    }
+
+    private _searchText(
+      key: string,
+      values?: Record<string, string | number>
+    ): string {
+      return this._lang.text(this.hass.localize, `${SEARCH_KEY}${key}`, values);
+    }
+
+    // True for the lists the editor search already covers as a whole.
+    private get _isRootList(): boolean {
+      return !!(this as unknown as { root?: boolean }).root;
+    }
+
+    private get _rowItems(): object[] {
+      const items = this.items as unknown;
+      return Array.isArray(items)
+        ? items.filter((item) => !!item && typeof item === "object")
+        : [];
+    }
+
+    private get _listSearchShown(): boolean {
+      return (
+        !!this.searchContext &&
+        !this._isRootList &&
+        (this._listSearchOpen ||
+          this._listQuery !== "" ||
+          this._rowItems.length >= LIST_SEARCH_THRESHOLD)
+      );
+    }
+
+    /** True while a search hides rows, so a move would act on hidden rows. */
+    protected get reorderLocked(): boolean {
+      const search = this.searchContext;
+      return (
+        !!(search?.active && search.onlyMatching) ||
+        this._listQuery.trim() !== ""
+      );
+    }
+
+    protected get reorderLockedText(): string | undefined {
+      if (!this.reorderLocked) {
+        return undefined;
+      }
+      return this._listQuery.trim() !== ""
+        ? this._searchText("list_reorder_locked")
+        : this._searchText("reorder_locked");
+    }
+
+    protected isSearchHidden(item: object): boolean {
+      const search = this.searchContext;
+      if (!search) {
+        return false;
+      }
+      if (
+        search.active &&
+        search.onlyMatching &&
+        !search.visibleSet.has(item)
+      ) {
+        return true;
+      }
+      return (
+        this._listQuery.trim() !== "" &&
+        !search.subtreeMatches(item, this._listQuery)
+      );
+    }
+
+    protected isSearchMatch(item: object): boolean {
+      const search = this.searchContext;
+      return !!search?.active && search.matchSet.has(item);
+    }
+
+    protected isSearchCurrent(item: object): boolean {
+      return this.searchContext?.current?.item === item;
+    }
+
+    /** The search field of the list, shown when the list has enough rows. */
+    protected renderListSearch(): TemplateResult | typeof nothing {
+      if (!this._listSearchShown) {
+        return nothing;
+      }
+      const items = this._rowItems;
+      const shown = items.filter((item) => !this.isSearchHidden(item)).length;
+      const filtering = this._listQuery.trim() !== "";
+      const error = filtering ? regexQuery(this._listQuery)?.error : undefined;
+      return html`<div class="list-search">
+        <div class="list-search-row">
+          <ha-input-search
+            appearance="outlined"
+            .placeholder=${this._searchText("list_search_placeholder")}
+            .accessibleLabel=${this._searchText("list_search_label")}
+            .value=${this._listQuery}
+            @input=${this._listQueryChanged}
+            @keydown=${this._listSearchKeydown}
+          ></ha-input-search>
+          ${
+            this._listSearchOpen && items.length < LIST_SEARCH_THRESHOLD
+              ? html`<ha-icon-button
+                  .label=${this._searchText("list_search_close")}
+                  .path=${mdiClose}
+                  @click=${this._closeListSearch}
+                ></ha-icon-button>`
+              : nothing
+          }
+        </div>
+        ${
+          error
+            ? html`<p class="list-search-note error" role="status">
+                ${this.hass.localize(`ui.regex.filter_error.${error}` as any)}
+              </p>`
+            : filtering
+              ? html`<p
+                  class="list-search-note"
+                  role="status"
+                  aria-live="polite"
+                >
+                  ${
+                    shown
+                      ? this._searchText("list_count", {
+                          shown,
+                          total: items.length,
+                        })
+                      : this._searchText("list_no_matches")
+                  }
+                </p>`
+              : nothing
+        }
+      </div>`;
+    }
+
+    /** A button for the buttons row that opens the search of the list. */
+    protected renderListSearchToggle(): TemplateResult | typeof nothing {
+      if (!this.searchContext || this._isRootList || this._listSearchShown) {
+        return nothing;
+      }
+      return html`<ha-icon-button
+        .label=${this._searchText("list_search_toggle")}
+        .path=${mdiMagnify}
+        @click=${this._openListSearch}
+      ></ha-icon-button>`;
+    }
+
+    private _listQueryChanged(ev: Event) {
+      this._listQuery = (ev.target as HaInputSearch).value ?? "";
+    }
+
+    private _listSearchKeydown(ev: KeyboardEvent) {
+      if (ev.key === "Escape" && (this._listQuery || this._listSearchOpen)) {
+        ev.stopPropagation();
+        this._closeListSearch();
+      }
+    }
+
+    private _openListSearch = () => {
+      this._listSearchOpen = true;
+      this.updateComplete.then(() => {
+        this.renderRoot
+          .querySelector<HaInputSearch>("ha-input-search")
+          ?.focus();
+      });
+    };
+
+    private _closeListSearch = () => {
+      this._listQuery = "";
+      this._listSearchOpen = false;
+    };
+
+    // Opens the rows that hold the current match and brings it into view.
+    private _syncSearchReveal(changedProps: PropertyValues) {
+      if (!changedProps.has("searchContext")) {
+        return;
+      }
+      const search = this.searchContext;
+      if (!search?.active) {
+        this._lastSearchToken = search?.navigationToken;
+        if (this._autoExpanded.size) {
+          for (const row of this._getRows()) {
+            const item = (row as { sortableData?: object }).sortableData;
+            if (item && this._autoExpanded.has(item) && isRevealRow(row)) {
+              row.collapse();
+            }
+          }
+          this._autoExpanded.clear();
+        }
+        return;
+      }
+      if (search.navigationToken === this._lastSearchToken) {
+        return;
+      }
+      this._lastSearchToken = search.navigationToken;
+      let currentRow: HTMLElement | undefined;
+      for (const row of this._getRows()) {
+        const item = (row as { sortableData?: object }).sortableData;
+        if (!item) {
+          continue;
+        }
+        if (
+          search.revealSet.has(item) &&
+          isRevealRow(row) &&
+          !row.isExpanded()
+        ) {
+          row.expand();
+          this._autoExpanded.add(item);
+        }
+        if (search.current?.item === item) {
+          currentRow = row;
+        }
+      }
+      if (currentRow) {
+        const row = currentRow;
+        // Wait for the rows above it to open before measuring.
+        requestAnimationFrame(() =>
+          window.setTimeout(() => scrollRowIntoView(row), 150)
+        );
+      }
     }
 
     private _getRows(): HTMLElement[] {
@@ -126,6 +379,7 @@ export const AutomationSortableListMixin = <T extends object>(
         items.map((item) => this.getKey(item)),
         this._knownRowKeys
       );
+      this._syncSearchReveal(changedProps);
     }
 
     // Moves a row by keyboard and plays the move, since no drag animates it.
@@ -145,6 +399,9 @@ export const AutomationSortableListMixin = <T extends object>(
 
     protected moveUp(ev) {
       ev.stopPropagation();
+      if (this.reorderLocked) {
+        return;
+      }
       const index = (ev.target as any).index;
       if (!(ev.target as any).first) {
         const newIndex = index - 1;
@@ -158,6 +415,9 @@ export const AutomationSortableListMixin = <T extends object>(
 
     protected moveDown(ev) {
       ev.stopPropagation();
+      if (this.reorderLocked) {
+        return;
+      }
       const index = (ev.target as any).index;
       if (!(ev.target as any).last) {
         const newIndex = index + 1;
@@ -179,6 +439,9 @@ export const AutomationSortableListMixin = <T extends object>(
 
     protected itemMoved(ev: CustomEvent): void {
       ev.stopPropagation();
+      if (this.reorderLocked) {
+        return;
+      }
       const { oldIndex, newIndex } = ev.detail;
       this.move(oldIndex, newIndex);
     }
@@ -294,6 +557,9 @@ export const AutomationSortableListMixin = <T extends object>(
     }
 
     protected handleDragKeydown(ev: KeyboardEvent) {
+      if (this.reorderLocked) {
+        return;
+      }
       if (ev.key === "Enter" || ev.key === " ") {
         ev.stopPropagation();
         this.rowSortSelected =

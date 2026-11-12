@@ -64,6 +64,7 @@ import {
   type ActionCommandComboBoxItem,
   type NavigationComboBoxItem,
 } from "../../data/quick_bar";
+import { pickFilesToAdd } from "../../common/file-drop/add-media";
 import type { RelatedIdSets } from "../../common/search/related-context";
 import { sortRelatedFirst } from "../../common/search/related-context";
 import { relatedContext } from "../../data/context";
@@ -1119,6 +1120,13 @@ export class QuickBar extends LitElement {
       // command selected
       if (item && "action" in item) {
         const actionItem = item as ActionCommandComboBoxItem;
+        if (actionItem.action === "add_media") {
+          // The picker opens only from this key press or tap, so call it first.
+          const picked = pickFilesToAdd();
+          this.closeDialog();
+          await picked;
+          return;
+        }
         if (actionItem.action === "restart" || actionItem.action === "stop") {
           const confirmed = await showConfirmationDialog(this, {
             title: this.hass.localize(

@@ -170,10 +170,11 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
       return nothing;
     }
     return html`
+      ${this.renderListSearch()}
       <ha-sortable
         handle-selector=".handle"
         draggable-selector="ha-automation-condition-row"
-        .disabled=${this.disabled}
+        .disabled=${this.disabled || this.reorderLocked}
         group="conditions"
         invert-swap
         @item-moved=${this.itemMoved}
@@ -188,9 +189,12 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
               <ha-automation-condition-row
                 .root=${this.root}
                 .sortableData=${cond}
+                ?search-hidden=${this.isSearchHidden(cond)}
+                ?search-match=${this.isSearchMatch(cond)}
+                ?search-current=${this.isSearchCurrent(cond)}
                 .index=${idx}
-                .first=${idx === 0}
-                .last=${idx === this.conditions.length - 1}
+                .first=${idx === 0 || this.reorderLocked}
+                .last=${idx === this.conditions.length - 1 || this.reorderLocked}
                 .totalConditions=${this.conditions.length}
                 .condition=${cond}
                 .conditionDescriptions=${this._conditionDescriptions}
@@ -218,6 +222,7 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
                             this.rowSortSelected === idx ? "active" : ""
                           }"
                           slot="icons"
+                          title=${this.reorderLockedText ?? nothing}
                           @keydown=${this.handleDragKeydown}
                           @click=${stopPropagation}
                           .index=${idx}
@@ -244,6 +249,7 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
                 "ui.panel.config.automation.editor.conditions.add"
               )}
             </ha-button>
+            ${this.renderListSearchToggle()}
           </div>
         </div>
       </ha-sortable>

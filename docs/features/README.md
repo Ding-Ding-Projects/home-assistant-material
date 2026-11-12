@@ -20,6 +20,8 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`minecraft-server/`](minecraft-server/README.md) | Minecraft server manager (second slice: Docker over SSH) |
 | [`ollama/`](ollama/README.md) | Local Ollama suite (second slice: pull and delete) |
 | [`hosting/`](hosting/README.md) | The full hosting mode: one container with its own Docker engine, so apps, the app store, backups with apps and real updates work |
+| [`apps/`](apps/README.md) | Install progress and the log terminal for apps from the app store |
+| [`media/`](media/README.md) | Dropping a picture, video or audio file on any page to add it to Media or Images |
 | [`activity-record/`](activity-record/README.md) | Permanent record of the Activity page in a Git repository: what is kept, what can still be lost, size and the Permanent record page |
 
 Other documents: [`../automation-repositories.md`](../automation-repositories.md) for the Git

@@ -7,6 +7,7 @@ import memoizeOne from "memoize-one";
 import { consume } from "../../common/decorators/consume";
 import { ensureArray } from "../../common/array/ensure-array";
 import { fireEvent } from "../../common/dom/fire_event";
+import { searchMatcher } from "../../common/regex/filter";
 import { caseInsensitiveStringCompare } from "../../common/string/compare";
 import { internationalizationContext } from "../../data/context";
 import type { SelectOption, SelectSelector } from "../../data/selector";
@@ -23,8 +24,13 @@ import "../ha-select";
 import "../ha-select-box";
 import "../ha-sortable";
 import "../ha-svg-icon";
+import "../input/ha-input-search";
+import type { HaInputSearch } from "../input/ha-input-search";
 import "../radio/ha-radio-group";
 import "../radio/ha-radio-option";
+
+/** A list of options gets its own search field from this many options on. */
+const OPTION_SEARCH_THRESHOLD = 8;
 
 @customElement("ha-selector-select")
 export class HaSelectSelector extends LitElement {
@@ -46,6 +52,8 @@ export class HaSelectSelector extends LitElement {
   @property({ type: Boolean }) public disabled = false;
 
   @property({ type: Boolean }) public required = true;
+
+  @state() private _optionQuery = "";
 
   @query("ha-generic-picker") private _picker?: HaGenericPicker;
 
@@ -116,15 +124,17 @@ export class HaSelectSelector extends LitElement {
       !this.selector.select?.reorder &&
       this._mode === "list"
     ) {
+      const shownOptions = this._filterOptions(options);
       if (!this.selector.select?.multiple) {
         return html`
+          ${this._renderOptionSearch(options, shownOptions)}
           <ha-radio-group
             .label=${this.label}
             .disabled=${this.disabled}
             .value=${this.value}
             @change=${this._radioChanged}
           >
-            ${options.map(
+            ${shownOptions.map(
               (item: SelectOption) => html`
                 <ha-radio-option
                   .value=${item.value}
@@ -143,7 +153,8 @@ export class HaSelectSelector extends LitElement {
       return html`
         <div class="checkbox-list">
           ${this.label} ${this._renderHelper()}
-          ${options.map(
+          ${this._renderOptionSearch(options, shownOptions)}
+          ${shownOptions.map(
             (item: SelectOption) => html`
               <ha-checkbox
                 .checked=${value.includes(item.value)}
@@ -273,6 +284,40 @@ export class HaSelectSelector extends LitElement {
       >
       </ha-select>
     `;
+  }
+
+  private _filterOptions(options: SelectOption[]): SelectOption[] {
+    if (
+      options.length < OPTION_SEARCH_THRESHOLD ||
+      this._optionQuery.trim() === ""
+    ) {
+      return options;
+    }
+    const matches = searchMatcher(this._optionQuery);
+    return options.filter((option) => matches(option.label, option.value));
+  }
+
+  private _renderOptionSearch(options: SelectOption[], shown: SelectOption[]) {
+    if (options.length < OPTION_SEARCH_THRESHOLD) {
+      return nothing;
+    }
+    return html`<ha-input-search
+        appearance="outlined"
+        .value=${this._optionQuery}
+        .patternSamples=${options.map((option) => option.label)}
+        @input=${this._optionQueryChanged}
+      ></ha-input-search>
+      ${
+        this._optionQuery.trim() !== "" && !shown.length
+          ? html`<ha-input-helper-text
+              >${this._i18n.localize("ui.components.combo-box.no_match")}</ha-input-helper-text
+            >`
+          : nothing
+      }`;
+  }
+
+  private _optionQueryChanged(ev: Event) {
+    this._optionQuery = (ev.target as HaInputSearch).value ?? "";
   }
 
   private _renderHelper() {

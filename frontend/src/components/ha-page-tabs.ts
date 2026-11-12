@@ -1,79 +1,45 @@
-import {
-  mdiClose,
-  mdiCog,
-  mdiFormatPaint,
-  mdiMagnify,
-  mdiHuman,
-  mdiTranslate,
-  mdiPin,
-  mdiPinOff,
-  mdiPlus,
-  mdiTabPlus,
-  mdiTabRemove,
-  mdiUndo,
-} from "@mdi/js";
+import { mdiFormatPaint, mdiHuman, mdiMagnify, mdiTranslate } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
-import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import {
-  customElement,
-  property,
-  query,
-  queryAll,
-  state,
-} from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
-import { repeat } from "lit/directives/repeat";
-import memoizeOne from "memoize-one";
+import { customElement, property, state } from "lit/decorators";
 import {
   getAccessibilitySettings,
   subscribeAccessibilitySettings,
 } from "../common/accessibility/accessibility-tools";
-import { storage } from "../common/decorators/storage";
-import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { fireEvent } from "../common/dom/fire_event";
-import { navigate } from "../common/navigate";
-import { searchMatcher } from "../common/regex/filter";
-import type { BulkCloseMode } from "../common/tabs/bulk-close";
-import { planBulkClose } from "../common/tabs/bulk-close";
-import type { TabGroupId } from "../common/tabs/tab-group-search";
-import {
-  filterGroupItems,
-  planGroupClose,
-  TAB_GROUP_IDS,
-} from "../common/tabs/tab-group-search";
-import {
-  FIXED_PANELS,
-  getDefaultPanelUrlPath,
-  getPanelIcon,
-  getPanelIconPath,
-  getPanelTitle,
-  SYSTEM_PANELS,
-} from "../data/panel";
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
+import { isVerticalDock } from "../common/tabs/tab-dock";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
-import type { HomeAssistant, PanelInfo } from "../types";
-import { isMac } from "../util/is_mac";
-import "./ha-icon";
-import type { CatalogSettingsEntry } from "./page-catalog-entries";
-import {
-  computeSettingsEntries,
-  computeToolEntries,
-  loadCatalogTranslations,
-} from "./page-catalog-entries";
-import {
-  applyTabOrder,
-  isMoveAcrossBlocked,
-  isReorderKeydown,
-  moveTabId,
-} from "./tab-order";
-import "./input/ha-input-search";
-import type { HaInputSearch } from "./input/ha-input-search";
+import type { HomeAssistant } from "../types";
+import { applyTabOrder, moveTabId } from "./tab-order";
 import "./ha-svg-icon";
 import "./user/ha-user-badge";
+import { computePageTabs } from "./tabs/compute-page-tabs";
+import { TabStripController } from "./tabs/ha-page-tab-strip";
+import { TabBulkCloseController } from "./tabs/ha-tab-bulk-close";
+import { TabCatalogController } from "./tabs/ha-tab-catalog";
+import { TabSearchesController } from "./tabs/ha-tab-searches";
+import "./tabs/ha-page-tab-menu";
+import "./tabs/ha-tab-group-editor";
+import "./tabs/ha-tab-group-menu";
+import "./tabs/ha-tab-group-picker";
+import { tabSharedStyles } from "./tabs/tab-shared-styles";
+import {
+  CLOSED_TABS_STORAGE_KEY,
+  PINNED_TABS_STORAGE_KEY,
+  TABS_ORDER_STORAGE_KEY,
+  TabStoreController,
+} from "./tabs/tab-store-controller";
+import type { PageTab, TabModuleContext } from "./tabs/tab-types";
 
-export const CLOSED_TABS_STORAGE_KEY = "pageTabsClosed";
-export const TABS_ORDER_STORAGE_KEY = "pageTabsOrder";
-export const PINNED_TABS_STORAGE_KEY = "pageTabsPinned";
+export {
+  CLOSED_TABS_STORAGE_KEY,
+  TABS_ORDER_STORAGE_KEY,
+  PINNED_TABS_STORAGE_KEY,
+};
+export type { PageTab };
+export { computePageTabs };
 
 // The two pure functions live in `tab-order.ts` so they can be tested alone.
 export { applyTabOrder, moveTabId };
@@ -86,102 +52,55 @@ declare global {
   }
 }
 
-export interface PageTab {
-  urlPath: string;
-  title: string;
-  icon?: string;
-  iconPath?: string;
-}
-
-export const computePageTabs = memoizeOne(
-  (
-    panels: HomeAssistant["panels"],
-    defaultPanel: string,
-    isAdmin: boolean,
-    localize: HomeAssistant["localize"]
-  ): PageTab[] => {
-    if (!panels) {
-      return [];
-    }
-    const toTab = (panel: PanelInfo, title: string): PageTab => ({
-      urlPath: panel.url_path,
-      title,
-      icon: getPanelIcon(panel),
-      iconPath: getPanelIconPath(panel),
-    });
-    const tabs: PageTab[] = [];
-    Object.values(panels).forEach((panel) => {
-      if (
-        FIXED_PANELS.includes(panel.url_path) ||
-        SYSTEM_PANELS.includes(panel.url_path)
-      ) {
-        return;
-      }
-      const isDefault = panel.url_path === defaultPanel;
-      const title = getPanelTitle({ localize }, panel);
-      if (!isDefault && (!title || panel.show_in_sidebar === false)) {
-        return;
-      }
-      const tab = toTab(panel, title || panel.url_path);
-      if (isDefault) {
-        tabs.unshift(tab);
-      } else {
-        tabs.push(tab);
-      }
-    });
-    if (isAdmin && panels.config) {
-      tabs.push({
-        urlPath: "config",
-        title: localize("panel.config"),
-        iconPath: mdiCog,
-      });
-    }
-    return tabs;
-  }
-);
-
 /**
  * @element ha-page-tabs
  *
  * @summary
- * The bar of open pages at the top of the pane. Every page starts open, in
- * page order. A tab the person closes stays closed until they open it again
- * from the catalog behind the New tab button, which lists every page and can
- * reopen all of them at once. A page added by an update was never closed, so
- * it shows up open. Visiting a page from the navigation rail never adds a tab.
+ * The bar of open pages, docked to the left (the default for a new
+ * installation), right, top or bottom edge of the pane; an installation that
+ * already had saved tab state keeps the top edge until the person chooses
+ * another one. Every page starts open, in page order. A tab the person closes
+ * stays closed until they open it again from the catalog behind the New tab
+ * button, which lists every page and can reopen all of them at once. A page
+ * added by an update was never offered before, so it shows up open. Visiting a
+ * page from the navigation rail never adds a tab.
  *
- * Only the list of closed tabs is stored, in this browser.
+ * The closed tabs, the order, the pinned tabs, the groups, the edge, the look
+ * of each tab and the locks are stored, in this browser. The shell sets the
+ * `dock` attribute (and `vertical` for the left and right edges) for its own
+ * styles and for the layout that mounts it.
+ *
+ * This element is the shell. It owns `hass`, builds one context (the host, the
+ * translate function and the store) and gives it to the modules below, which
+ * render into this element's shadow root and keep their own state:
+ *
+ * - `TabStoreController` (`tabs/tab-store-controller.ts`): the saved closed,
+ *   order and pinned lists, and the ordered tab list built from them.
+ * - `TabStripController` (`tabs/ha-page-tab-strip.ts`): `render(open, current)`
+ *   draws the tab list, the tabs and the live region.
+ * - `TabCatalogController` (`tabs/ha-tab-catalog.ts`): `render(tabs, closed,
+ *   current)` draws the New tab button and the catalog popover; `filter` is the
+ *   catalog search text and `hide()` closes the popover.
+ * - `TabBulkCloseController` (`tabs/ha-tab-bulk-close.ts`): the two bulk close
+ *   actions inside the catalog.
+ * - `TabSearchesController` (`tabs/ha-tab-searches.ts`): the group searches of
+ *   the catalog and the search at the top of the bar.
+ *
+ * The shell also mounts, once, `ha-page-tab-menu`, `ha-tab-group-picker`,
+ * `ha-tab-group-menu` and `ha-tab-group-editor`, and opens the catalog when the
+ * menu fires the cancelable `tab-catalog-open`. The strip dispatches `tab-context-menu`,
+ * `tab-group-context-menu` and `strip-context-menu` from this element (bubbling
+ * and composed), and those elements listen for them and change state only
+ * through the model in `common/tabs`; the store controller re-renders the strip
+ * whenever one of the saved keys changes.
  */
 @customElement("ha-page-tabs")
 export class HaPageTabs extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @state()
-  @storage({ key: CLOSED_TABS_STORAGE_KEY, state: true, subscribe: true })
-  private _closed: string[] = [];
-
-  /** Every tab id in the order the person put them, saved in this browser. */
-  @state()
-  @storage({ key: TABS_ORDER_STORAGE_KEY, state: true, subscribe: true })
-  private _order: string[] = [];
-
-  /** Tabs that sit first and cannot be closed by accident. */
-  @state()
-  @storage({ key: PINNED_TABS_STORAGE_KEY, state: true, subscribe: true })
-  private _pinned: string[] = [];
-
-  /** The tab being dragged, and where it would land. */
-  @state() private _dragging?: string;
-
-  @state() private _dropMark?: { id: string; after: boolean };
-
-  /** Spoken after a tab moves or is pinned. */
-  @state() private _announcement = "";
-
-  @state() private _accessibilityButtonHidden =
-    getAccessibilitySettings().hideButton;
-
-  private _unsubAccessibility?: UnsubscribeFunc;
+  /** Gives the page panel, so the selected tab and the panel can name each other. */
+  @property({ attribute: false })
+  public panelProvider?: () => HTMLElement | null;
 
   private _lang = new LanguageModeController(this);
 
@@ -189,210 +108,52 @@ export class HaPageTabs extends LitElement {
   private _t = (key: string, values?: Record<string, string | number>) =>
     this._lang.text(this.hass.localize, key, values);
 
-  @state() private _filter = "";
+  private _store = new TabStoreController(this);
 
-  /** Tabs closed by the last bulk close, kept so it can be undone. */
-  @state() private _bulkClosed: string[] = [];
-
-  /** The search text of each group of the catalog, one field per group. */
-  @state() private _groupFilters: Record<TabGroupId, string> = {
-    pinned: "",
-    pages: "",
-    settings: "",
-    tools: "",
+  private _context: TabModuleContext = {
+    host: this,
+    t: this._t,
+    store: this._store,
   };
 
-  /** Tabs closed by the last group close, kept so that group can undo it. */
-  @state() private _groupClosed?: { group: TabGroupId; ids: string[] };
+  private _strip = new TabStripController(this._context);
 
-  /** Which ends of the strip have tabs scrolled out of view, so they fade instead of cutting a name. */
-  @state() private _hiddenEnds = { start: false, end: false };
+  private _bulkClose = new TabBulkCloseController(this._context, {
+    get: () => this._catalog.filter,
+    set: (value) => {
+      this._catalog.filter = value;
+    },
+  });
 
-  @query(".tabs") private _strip?: HTMLElement;
+  private _searches = new TabSearchesController(this._context, () =>
+    this._catalog.hide()
+  );
 
-  private _stripObserver?: ResizeObserver;
+  private _catalog: TabCatalogController = new TabCatalogController(
+    this._context,
+    this._bulkClose,
+    this._searches
+  );
 
-  @query("#catalog") private _catalog?: HTMLElement;
+  @state() private _accessibilityButtonHidden =
+    getAccessibilitySettings().hideButton;
 
-  @query("#catalog-search") private _search?: HaInputSearch;
-
-  @queryAll(".tab-button") private _tabButtons?: NodeListOf<HTMLButtonElement>;
-
-  private _computeTabs = computePageTabs;
+  private _unsubAccessibility?: UnsubscribeFunc;
 
   protected render(): TemplateResult | typeof nothing {
     if (!this.hass?.panels) {
       return nothing;
     }
-    const tabs = this._orderedTabs();
-    const closed = new Set(this._closed);
+    const tabs = this._store.orderedTabs();
+    const closed = new Set(this._store.closed);
     const open = tabs.filter((tab) => !closed.has(tab.urlPath));
     const current = this.hass.panelUrl;
-    const matches = searchMatcher(this._filter);
-    const listed = tabs.filter((tab) => matches(tab.title, tab.urlPath));
 
     return html`
-      <!-- The tab list owns only the tab buttons. Pin and close buttons sit
-           beside them, outside the tab role, so each stays a plain button. -->
-      <div
-        class="tablist"
-        role="tablist"
-        aria-label=${this._t("ui.page_tabs.open_pages")}
-        aria-owns=${open.map((_tab, index) => `page-tab-${index}`).join(" ")}
-      ></div>
-      <div
-        class=${classMap({
-          tabs: true,
-          "more-start": this._hiddenEnds.start,
-          "more-end": this._hiddenEnds.end,
-        })}
-        @keydown=${this._handleTabKeydown}
-        @scroll=${this._measureStrip}
-      >
-        ${repeat(
-          open,
-          (tab) => tab.urlPath,
-          (tab, index) => {
-            const selected = tab.urlPath === current;
-            const pinned = this._pinned.includes(tab.urlPath);
-            const dropMark = this._dropMark;
-            const mark =
-              dropMark && dropMark.id === tab.urlPath
-                ? dropMark.after
-                  ? "after"
-                  : "before"
-                : undefined;
-            return html`
-              <div
-                class=${classMap({
-                  tab: true,
-                  selected,
-                  pinned,
-                  dragging: this._dragging === tab.urlPath,
-                  "drop-before": mark === "before",
-                  "drop-after": mark === "after",
-                })}
-                draggable="true"
-                .urlPath=${tab.urlPath}
-                @dragstart=${this._dragStart}
-                @dragover=${this._dragOver}
-                @drop=${this._drop}
-                @dragend=${this._dragEnd}
-              >
-                <button
-                  id=${`page-tab-${index}`}
-                  class="tab-button"
-                  role="tab"
-                  aria-selected=${selected ? "true" : "false"}
-                  aria-keyshortcuts="Control+Shift+ArrowLeft Control+Shift+ArrowRight Alt+Shift+ArrowLeft Alt+Shift+ArrowRight"
-                  tabindex=${
-                    selected ||
-                    (!open.some((t) => t.urlPath === current) &&
-                      tab === open[0])
-                      ? "0"
-                      : "-1"
-                  }
-                  .urlPath=${tab.urlPath}
-                  @click=${this._openPage}
-                >
-                  ${
-                    pinned
-                      ? html`<ha-svg-icon .path=${mdiPin}></ha-svg-icon>`
-                      : nothing
-                  }
-                  <span class="label">${tab.title}</span>
-                </button>
-                <button
-                  class="pin"
-                  aria-label=${this._t("ui.page_tabs.pin_tab", {
-                    name: tab.title,
-                  })}
-                  aria-pressed=${pinned ? "true" : "false"}
-                  .urlPath=${tab.urlPath}
-                  @click=${this._togglePin}
-                >
-                  <ha-svg-icon
-                    .path=${pinned ? mdiPinOff : mdiPin}
-                  ></ha-svg-icon>
-                </button>
-                ${
-                  pinned
-                    ? nothing
-                    : html`<button
-                        class="close"
-                        aria-label=${this._t("ui.page_tabs.close_tab", {
-                          name: tab.title,
-                        })}
-                        .urlPath=${tab.urlPath}
-                        @click=${this._closeTab}
-                      >
-                        <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
-                      </button>`
-                }
-              </div>
-            `;
-          }
-        )}
-      </div>
-      <div class="visually-hidden" role="status" aria-live="polite">
-        ${this._announcement}
-      </div>
-      <button
-        class="new-tab"
-        popovertarget="catalog"
-        aria-label=${this._t("ui.page_tabs.new_tab")}
-        title=${this._t("ui.page_tabs.new_tab")}
-      >
-        <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
-      </button>
-      <div
-        id="catalog"
-        popover
-        role="dialog"
-        aria-label=${this._t("ui.page_tabs.catalog_title")}
-        @toggle=${this._catalogToggled}
-      >
-        <div class="catalog-header">
-          <span class="catalog-title"
-            >${this._t("ui.page_tabs.catalog_title")}</span
-          >
-          <button
-            class="text-button"
-            ?disabled=${closed.size === 0}
-            @click=${this._openEveryTab}
-          >
-            <ha-svg-icon .path=${mdiTabPlus}></ha-svg-icon>
-            ${this._t("ui.page_tabs.open_every_tab")}
-          </button>
-        </div>
-        <p class="catalog-note">${this._t("ui.page_tabs.catalog_intro")}</p>
-        <ha-input-search
-          id="catalog-search"
-          appearance="outlined"
-          .value=${this._filter}
-          .placeholder=${this._t("ui.page_tabs.search")}
-          .accessibleLabel=${this._t("ui.page_tabs.search")}
-          .patternSamples=${tabs.map((tab) => tab.title)}
-          @input=${this._filterChanged}
-        ></ha-input-search>
-        ${this._renderBulkClose(tabs, closed, current)}
-        <div class="catalog-list">
-          ${this._renderCatalogGroups(listed, closed)}
-        </div>
-        <p class="catalog-note">${this._t("ui.page_tabs.catalog_note")}</p>
-      </div>
+      ${this._strip.render(open, current)}
+      ${this._catalog.render(tabs, closed, current)}
       <div class="actions">
-        <ha-input-search
-          class="top-search"
-          appearance="outlined"
-          .placeholder=${this._t("ui.page_tabs.search_label")}
-          .accessibleLabel=${this._t("ui.page_tabs.search_everything")}
-          .patternSamples=${tabs.map((tab) => tab.title)}
-          @input=${this._topSearchInput}
-          @keydown=${this._topSearchKeydown}
-        >
-          <kbd slot="end">${isMac ? "⌘ ⇧ F" : "Ctrl Shift F"}</kbd>
-        </ha-input-search>
+        ${this._searches.renderTopSearch(tabs)}
         <button
           class="new-tab search-icon"
           aria-label=${this._t("ui.page_tabs.search_everything")}
@@ -446,411 +207,46 @@ export class HaPageTabs extends LitElement {
             : nothing
         }
       </div>
+      <!-- The menus and the group picker listen for the strip's events on
+           their own; they only need the instance and the strip they serve. -->
+      <ha-page-tab-menu
+        .hass=${this.hass}
+        .surface=${this._store.surface}
+        .tabs=${tabs}
+        @tab-catalog-open=${this._onCatalogOpen}
+      ></ha-page-tab-menu>
+      <ha-tab-group-picker
+        .hass=${this.hass}
+        .surface=${this._store.surface}
+      ></ha-tab-group-picker>
+      <ha-tab-group-menu
+        .hass=${this.hass}
+        .surface=${this._store.surface}
+      ></ha-tab-group-menu>
+      <ha-tab-group-editor
+        .hass=${this.hass}
+        .surface=${this._store.surface}
+      ></ha-tab-group-editor>
     `;
   }
 
-  private _renderSettingsGroup(
-    group: TabGroupId,
-    id: string,
-    titleKey: string,
-    allEntries: CatalogSettingsEntry[]
-  ): TemplateResult | typeof nothing {
-    if (!allEntries.length) {
-      return nothing;
-    }
-    const entries = filterGroupItems(
-      allEntries,
-      this._groupFilters[group],
-      (entry) => [entry.title, entry.path]
-    );
-    return html`<section class="group" role="group" aria-labelledby=${id}>
-      ${this._renderGroupHeader(group, id, titleKey, {
-        shown: entries.length,
-        total: allEntries.length,
-        samples: allEntries.map((entry) => entry.title),
-      })}
-      ${
-        entries.length
-          ? nothing
-          : html`<p class="empty">
-              ${this._t("ui.page_tabs.group_empty", {
-                name: this._t(titleKey),
-              })}
-            </p>`
-      }
-      <ul class="group-list">
-        ${entries.map(
-          (entry) =>
-            html`<li>
-              <button
-                class="entry"
-                .path=${entry.path}
-                @click=${this._openSettingsPage}
-              >
-                <span class="entry-icon">
-                  ${
-                    entry.iconPath
-                      ? html`<ha-svg-icon
-                          .path=${entry.iconPath}
-                        ></ha-svg-icon>`
-                      : nothing
-                  }
-                </span>
-                <span class="entry-text">
-                  <span class="entry-title">${entry.title}</span>
-                </span>
-              </button>
-            </li>`
-        )}
-      </ul>
-    </section>`;
-  }
-
-  // The catalog in groups: pages (which can be tabs), settings, then tools.
-
-  private _renderCatalogGroups(
-    listed: PageTab[],
-    closed: Set<string>
-  ): TemplateResult {
-    const matches = searchMatcher(this._filter);
-    const settings = computeSettingsEntries(this.hass).filter((entry) =>
-      matches(entry.title, entry.path)
-    );
-    const tools = computeToolEntries(this.hass).filter((entry) =>
-      matches(entry.title, entry.path)
-    );
-    if (!listed.length && !settings.length && !tools.length) {
-      return html`<p class="empty">${this._t("ui.page_tabs.no_match")}</p>`;
-    }
-    return html`
-      ${this._renderTabGroup(
-        "pinned",
-        "group-pinned",
-        "ui.page_tabs.group_pinned",
-        listed.filter((tab) => this._pinned.includes(tab.urlPath)),
-        closed
-      )}
-      ${this._renderTabGroup(
-        "pages",
-        "group-pages",
-        "ui.page_tabs.group_pages",
-        listed.filter((tab) => !this._pinned.includes(tab.urlPath)),
-        closed
-      )}
-      ${this._renderSettingsGroup(
-        "settings",
-        "group-settings",
-        "ui.page_tabs.group_settings",
-        settings
-      )}
-      ${this._renderSettingsGroup(
-        "tools",
-        "group-tools",
-        "ui.page_tabs.group_tools",
-        tools
-      )}
-    `;
-  }
-
-  // One group of tabs with its own search, count and Close matching button.
-  private _renderTabGroup(
-    group: "pinned" | "pages",
-    id: string,
-    titleKey: string,
-    allTabs: PageTab[],
-    closed: Set<string>
-  ): TemplateResult | typeof nothing {
-    if (!allTabs.length) {
-      return nothing;
-    }
-    const groupQuery = this._groupFilters[group];
-    const shown = filterGroupItems(allTabs, groupQuery, (tab) => [
-      tab.title,
-      tab.urlPath,
-    ]);
-    const plan = planGroupClose(
-      this._orderedTabs().map((tab) => ({
-        id: tab.urlPath,
-        texts: [tab.title, tab.urlPath],
-        open: !closed.has(tab.urlPath),
-        current: tab.urlPath === this.hass.panelUrl,
-        pinned: this._pinned.includes(tab.urlPath),
-      })),
-      group,
-      groupQuery,
-      { includePinned: true }
-    );
-    return html`<section class="group" role="group" aria-labelledby=${id}>
-      ${this._renderGroupHeader(group, id, titleKey, {
-        shown: shown.length,
-        total: allTabs.length,
-        samples: allTabs.map((tab) => tab.title),
-        close: { ids: plan.ids, blocked: plan.blocked },
-      })}
-      ${
-        shown.length
-          ? nothing
-          : html`<p class="empty">
-              ${this._t("ui.page_tabs.group_empty", {
-                name: this._t(titleKey),
-              })}
-            </p>`
-      }
-      <ul class="group-list">
-        ${shown.map((tab) => {
-          const isClosed = closed.has(tab.urlPath);
-          return html`<li>
-            <button
-              class=${classMap({ entry: true, closed: isClosed })}
-              .urlPath=${tab.urlPath}
-              @click=${this._openFromCatalog}
-            >
-              <span class="entry-icon">${this._renderIcon(tab)}</span>
-              <span class="entry-text">
-                <span class="entry-title">${tab.title}</span>
-                <span class="entry-state"
-                  >${this._t(
-                    isClosed
-                      ? "ui.page_tabs.state_closed"
-                      : "ui.page_tabs.state_open"
-                  )}</span
-                >
-              </span>
-              ${
-                isClosed
-                  ? html`<ha-svg-icon .path=${mdiPlus}></ha-svg-icon>`
-                  : nothing
-              }
-            </button>
-          </li>`;
-        })}
-      </ul>
-    </section>`;
-  }
-
-  // The header of a group: its title and count, its own search field, and for
-  // tab groups the button that closes the matching tabs of that group only.
-  private _renderGroupHeader(
-    group: TabGroupId,
-    id: string,
-    titleKey: string,
-    info: {
-      shown: number;
-      total: number;
-      samples: string[];
-      close?: { ids: string[]; blocked?: string };
-    }
-  ): TemplateResult {
-    const name = this._t(titleKey);
-    const groupQuery = this._groupFilters[group];
-    const undo =
-      this._groupClosed?.group === group ? this._groupClosed : undefined;
-    return html`
-      <div class="group-head">
-        <h3 id=${id} class="group-title">${name}</h3>
-        <span class="group-count" role="status"
-          >${this._t("ui.page_tabs.group_count", {
-            shown: info.shown,
-            total: info.total,
-          })}</span
-        >
-      </div>
-      <ha-input-search
-        class="group-search"
-        data-group=${group}
-        appearance="outlined"
-        .value=${groupQuery}
-        .placeholder=${this._t("ui.page_tabs.group_search", { name })}
-        .accessibleLabel=${this._t("ui.page_tabs.group_search", { name })}
-        .patternSamples=${info.samples}
-        @input=${this._groupFilterChanged}
-      ></ha-input-search>
-      ${
-        info.close
-          ? html`<div class="group-actions">
-              <button
-                class="text-button"
-                .group=${group}
-                ?disabled=${!info.close.ids.length}
-                @click=${this._closeGroupMatching}
-              >
-                <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-                ${this._t(
-                  group === "pinned"
-                    ? "ui.page_tabs.group_close_pinned"
-                    : "ui.page_tabs.bulk_close_matching",
-                  { count: info.close.ids.length }
-                )}
-              </button>
-              ${
-                undo
-                  ? html`<span class="bulk-note" role="status"
-                        >${this._t("ui.page_tabs.bulk_done", {
-                          count: undo.ids.length,
-                        })}</span
-                      >
-                      <button
-                        class="text-button"
-                        @click=${this._undoGroupClose}
-                      >
-                        <ha-svg-icon .path=${mdiUndo}></ha-svg-icon>
-                        ${this._t("ui.page_tabs.bulk_undo")}
-                      </button>`
-                  : info.close.blocked === "invalid"
-                    ? html`<span class="bulk-note"
-                        >${this._t("ui.page_tabs.bulk_invalid")}</span
-                      >`
-                    : nothing
-              }
-            </div>`
-          : nothing
-      }
-    `;
-  }
-
-  private _groupFilterChanged(ev: Event) {
-    const field = ev.target as HaInputSearch;
-    const group = field.dataset.group as TabGroupId | undefined;
-    if (!group || !TAB_GROUP_IDS.includes(group)) {
+  // The tab menu asks for the New tab catalog. This shell owns it, so it opens
+  // it and says so by cancelling the event.
+  private _onCatalogOpen(ev: CustomEvent<{ surface?: string }>) {
+    if ((ev.detail?.surface ?? "main") !== this._store.surface) {
       return;
     }
-    this._groupFilters = {
-      ...this._groupFilters,
-      [group]: field.value ?? "",
-    };
+    ev.preventDefault();
+    this._catalog.show();
   }
 
-  // Closes the matching tabs of one group. Other groups, the order, the pins
-  // and the page in use stay as they are, and Undo reopens exactly these.
-  private _closeGroupMatching(ev: Event) {
-    const group = (ev.currentTarget as HTMLElement & { group: TabGroupId })
-      .group;
-    const { ids } = planGroupClose(
-      this._orderedTabs().map((tab) => ({
-        id: tab.urlPath,
-        texts: [tab.title, tab.urlPath],
-        open: !this._closed.includes(tab.urlPath),
-        current: tab.urlPath === this.hass.panelUrl,
-        pinned: this._pinned.includes(tab.urlPath),
-      })),
-      group,
-      this._groupFilters[group],
-      { includePinned: true }
-    );
-    if (!ids.length) {
-      return;
+  protected willUpdate() {
+    // The edge the strip is docked to, for the styles of the bar and of the shell around it.
+    const edge = this._store.dock;
+    if (this.getAttribute("dock") !== edge) {
+      this.setAttribute("dock", edge);
     }
-    this._closed = [...this._closed, ...ids];
-    this._groupClosed = { group, ids };
-    this._groupFilters = { ...this._groupFilters, [group]: "" };
-  }
-
-  private _undoGroupClose() {
-    const reopen = new Set(this._groupClosed?.ids ?? []);
-    this._closed = this._closed.filter((urlPath) => !reopen.has(urlPath));
-    this._groupClosed = undefined;
-  }
-
-  private _openSettingsPage(ev: Event) {
-    const path = (ev.currentTarget as HTMLElement & { path: string }).path;
-    this._catalog?.hidePopover();
-    navigate(path);
-  }
-
-  // Close tabs containing the text, or not containing it. The list under the
-  // search field shows what the text matches, so it is the preview.
-  private _renderBulkClose(
-    tabs: PageTab[],
-    closed: Set<string>,
-    current: string | undefined
-  ): TemplateResult | typeof nothing {
-    if (this._bulkClosed.length && !this._filter) {
-      return html`<div class="bulk" role="status">
-        <span class="bulk-note"
-          >${this._t("ui.page_tabs.bulk_done", {
-            count: this._bulkClosed.length,
-          })}</span
-        >
-        <button class="text-button" @click=${this._undoBulkClose}>
-          <ha-svg-icon .path=${mdiUndo}></ha-svg-icon>
-          ${this._t("ui.page_tabs.bulk_undo")}
-        </button>
-      </div>`;
-    }
-    if (!this._filter.trim()) {
-      return nothing;
-    }
-    const candidates = tabs.map((tab) => ({
-      id: tab.urlPath,
-      texts: [tab.title, tab.urlPath],
-      open: !closed.has(tab.urlPath),
-      current: tab.urlPath === current || this._pinned.includes(tab.urlPath),
-    }));
-    const matching = planBulkClose(candidates, this._filter, "matching");
-    const others = planBulkClose(candidates, this._filter, "not_matching");
-    return html`<div class="bulk">
-      <div class="bulk-buttons">
-        <button
-          class="text-button"
-          .mode=${"matching"}
-          ?disabled=${!matching.ids.length}
-          @click=${this._bulkClose}
-        >
-          <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-          ${this._t("ui.page_tabs.bulk_close_matching", {
-            count: matching.ids.length,
-          })}
-        </button>
-        <button
-          class="text-button"
-          .mode=${"not_matching"}
-          ?disabled=${!others.ids.length}
-          @click=${this._bulkClose}
-        >
-          <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-          ${this._t("ui.page_tabs.bulk_close_others", {
-            count: others.ids.length,
-          })}
-        </button>
-      </div>
-      <span class="bulk-note"
-        >${this._t(
-          matching.blocked === "invalid"
-            ? "ui.page_tabs.bulk_invalid"
-            : "ui.page_tabs.bulk_note"
-        )}</span
-      >
-    </div>`;
-  }
-
-  private _bulkClose(ev: Event) {
-    const mode = (ev.currentTarget as HTMLElement & { mode: BulkCloseMode })
-      .mode;
-    const tabs = this._orderedTabs();
-    const { ids } = planBulkClose(
-      tabs.map((tab) => ({
-        id: tab.urlPath,
-        texts: [tab.title, tab.urlPath],
-        open: !this._closed.includes(tab.urlPath),
-        current:
-          tab.urlPath === this.hass.panelUrl ||
-          this._pinned.includes(tab.urlPath),
-      })),
-      this._filter,
-      mode
-    );
-    if (!ids.length) {
-      return;
-    }
-    this._closed = [...this._closed, ...ids];
-    this._bulkClosed = ids;
-    this._filter = "";
-  }
-
-  private _undoBulkClose() {
-    const reopen = new Set(this._bulkClosed);
-    this._closed = this._closed.filter((urlPath) => !reopen.has(urlPath));
-    this._bulkClosed = [];
+    this.toggleAttribute("vertical", isVerticalDock(edge));
   }
 
   public connectedCallback() {
@@ -865,227 +261,6 @@ export class HaPageTabs extends LitElement {
     super.disconnectedCallback();
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
-    this._stripObserver?.disconnect();
-    this._stripObserver = undefined;
-  }
-
-  protected updated(changed: PropertyValues) {
-    super.updated(changed);
-    if (this._strip && !this._stripObserver) {
-      this._stripObserver = new ResizeObserver(() => this._measureStrip());
-      this._stripObserver.observe(this._strip);
-    }
-    this._revealSelectedTab();
-    if (!changed.has("_hiddenEnds")) {
-      this._measureStrip();
-    }
-  }
-
-  /** Last selected page and tab count the strip was scrolled for. */
-  private _revealedKey?: string;
-
-  // Scrolls the selected tab clear of the edge fade. It only runs when the
-  // selected page or the open tabs change, so a person who scrolls the strip
-  // by hand is not pulled back on every other update.
-  private _revealSelectedTab() {
-    const strip = this._strip;
-    if (!strip) {
-      return;
-    }
-    const selected = strip.querySelector<HTMLElement>(".tab.selected");
-    const key = `${this.hass?.panelUrl}|${strip.children.length}`;
-    if (!selected || key === this._revealedKey) {
-      return;
-    }
-    this._revealedKey = key;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    selected.scrollIntoView({
-      inline: "nearest",
-      block: "nearest",
-      behavior: reduceMotion ? "instant" : "smooth",
-    });
-  }
-
-  private _measureStrip = () => {
-    const strip = this._strip;
-    if (!strip) {
-      return;
-    }
-    // scrollLeft is negative in a right-to-left strip, so the distance is measured from either side.
-    const scrolled = Math.abs(strip.scrollLeft);
-    const room = strip.scrollWidth - strip.clientWidth;
-    const start = scrolled > 1;
-    const end = room - scrolled > 1;
-    if (start !== this._hiddenEnds.start || end !== this._hiddenEnds.end) {
-      this._hiddenEnds = { start, end };
-    }
-  };
-
-  private _renderIcon(tab: PageTab) {
-    if (tab.iconPath) {
-      return html`<ha-svg-icon .path=${tab.iconPath}></ha-svg-icon>`;
-    }
-    if (tab.icon) {
-      return html`<ha-icon .icon=${tab.icon}></ha-icon>`;
-    }
-    return nothing;
-  }
-
-  private _openPage(ev: Event) {
-    const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
-      .urlPath;
-    navigate(`/${urlPath}`);
-  }
-
-  private _closeTab(ev: Event) {
-    ev.stopPropagation();
-    const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
-      .urlPath;
-    if (!this._closed.includes(urlPath) && !this._pinned.includes(urlPath)) {
-      this._closed = [...this._closed, urlPath];
-    }
-  }
-
-  private _orderedTabs(): PageTab[] {
-    return applyTabOrder(
-      this._computeTabs(
-        this.hass.panels,
-        getDefaultPanelUrlPath(this.hass),
-        Boolean(this.hass.user?.is_admin),
-        this.hass.localize
-      ),
-      this._order,
-      this._pinned
-    );
-  }
-
-  private _togglePin(ev: Event) {
-    ev.stopPropagation();
-    const tab = this._tabFor(ev.currentTarget as HTMLElement);
-    if (!tab) {
-      return;
-    }
-    const pinned = this._pinned.includes(tab.urlPath);
-    // Saving the shown order keeps the tab where it is within its new group.
-    this._order = this._orderedTabs().map((t) => t.urlPath);
-    this._pinned = pinned
-      ? this._pinned.filter((id) => id !== tab.urlPath)
-      : [...this._pinned, tab.urlPath];
-    this._announcement = this._t(
-      pinned ? "ui.page_tabs.unpinned" : "ui.page_tabs.pinned",
-      { name: tab.title }
-    );
-  }
-
-  private _tabFor(element: HTMLElement): PageTab | undefined {
-    const urlPath = (element as HTMLElement & { urlPath?: string }).urlPath;
-    return this._orderedTabs().find((tab) => tab.urlPath === urlPath);
-  }
-
-  // Moves a tab beside another one. A tab never leaves its group: pinned tabs
-  // stay in front, and pinning is its own button.
-  private _moveTab(from: string, to: string, after: boolean) {
-    if (isMoveAcrossBlocked(this._pinned, from, to)) {
-      const name = this._orderedTabs().find(
-        (tab) => tab.urlPath === from
-      )?.title;
-      this._announcement = this._t("ui.page_tabs.move_blocked", {
-        name: name ?? from,
-      });
-      return;
-    }
-    const ids = this._orderedTabs().map((tab) => tab.urlPath);
-    const next = moveTabId(ids, from, to, after);
-    if (next.join("\n") === ids.join("\n")) {
-      return;
-    }
-    this._order = next;
-    const open = next.filter((id) => !this._closed.includes(id));
-    const title = this._orderedTabs().find(
-      (tab) => tab.urlPath === from
-    )?.title;
-    this._announcement = this._t("ui.page_tabs.moved", {
-      name: title ?? from,
-      position: open.indexOf(from) + 1,
-      total: open.length,
-    });
-  }
-
-  private _dragStart(ev: DragEvent) {
-    const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
-      .urlPath;
-    this._dragging = urlPath;
-    if (ev.dataTransfer) {
-      ev.dataTransfer.effectAllowed = "move";
-      ev.dataTransfer.setData("text/plain", urlPath);
-    }
-  }
-
-  private _dragOver(ev: DragEvent) {
-    const from = this._dragging;
-    const target = (ev.currentTarget as HTMLElement & { urlPath: string })
-      .urlPath;
-    if (
-      !from ||
-      from === target ||
-      isMoveAcrossBlocked(this._pinned, from, target)
-    ) {
-      return;
-    }
-    ev.preventDefault();
-    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
-    const rtl = getComputedStyle(this).direction === "rtl";
-    const before = ev.clientX < rect.left + rect.width / 2;
-    const after = before === rtl;
-    if (this._dropMark?.id !== target || this._dropMark.after !== after) {
-      this._dropMark = { id: target, after };
-    }
-  }
-
-  private _drop(ev: DragEvent) {
-    ev.preventDefault();
-    const from = this._dragging;
-    const mark = this._dropMark;
-    this._dragEnd();
-    if (from && mark) {
-      this._moveTab(from, mark.id, mark.after);
-    }
-  }
-
-  private _dragEnd() {
-    this._dragging = undefined;
-    this._dropMark = undefined;
-  }
-
-  private _openFromCatalog(ev: Event) {
-    const urlPath = (ev.currentTarget as HTMLElement & { urlPath: string })
-      .urlPath;
-    this._closed = this._closed.filter((closed) => closed !== urlPath);
-    this._catalog?.hidePopover();
-    navigate(`/${urlPath}`);
-  }
-
-  // The search at the top starts the search of everything: what is typed
-  // or built here opens the full search with that text already in it.
-  private _topSearchInput(ev: Event) {
-    const field = ev.target as HaInputSearch;
-    const value = field.value ?? "";
-    if (!value) {
-      return;
-    }
-    field.value = "";
-    field.blur();
-    showQuickBar(this, { search: value });
-  }
-
-  private _topSearchKeydown(ev: KeyboardEvent) {
-    if (ev.key === "Enter") {
-      ev.preventDefault();
-      (ev.currentTarget as HaInputSearch).blur();
-      showQuickBar(this, {});
-    }
   }
 
   private _openSearch() {
@@ -1100,523 +275,131 @@ export class HaPageTabs extends LitElement {
     fireEvent(this, "hass-show-accessibility-tools");
   }
 
-  private _openEveryTab() {
-    this._closed = [];
-    this._bulkClosed = [];
-  }
-
-  private _filterChanged(ev: InputEvent) {
-    this._filter = (ev.target as HaInputSearch).value ?? "";
-  }
-
-  private _catalogToggled(ev: ToggleEvent) {
-    if (ev.newState === "open") {
-      this._filter = "";
-      this._bulkClosed = [];
-      this._groupFilters = { pinned: "", pages: "", settings: "", tools: "" };
-      this._groupClosed = undefined;
-      // The settings and tools titles may not be loaded yet.
-      loadCatalogTranslations(this.hass).then(() => this.requestUpdate());
-      this.updateComplete.then(() => this._search?.focus());
-    }
-  }
-
-  // Left and right arrows move between tabs, Home and End jump to the ends.
-  private _handleTabKeydown(ev: KeyboardEvent) {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(ev.key)) {
-      return;
-    }
-    const buttons = Array.from(this._tabButtons ?? []);
-    if (!buttons.length) {
-      return;
-    }
-    // Control or Alt with Shift and an arrow move the focused tab itself.
-    if (isReorderKeydown(ev)) {
-      const focused = buttons.find((button) => button.matches(":focus")) as
-        (HTMLButtonElement & { urlPath: string }) | undefined;
-      if (!focused) {
-        return;
-      }
-      const open = buttons.map(
-        (button) => (button as HTMLButtonElement & { urlPath: string }).urlPath
-      );
-      const rtl = getComputedStyle(this).direction === "rtl";
-      const forward = (ev.key === "ArrowRight") !== rtl;
-      const neighbour =
-        open[open.indexOf(focused.urlPath) + (forward ? 1 : -1)];
-      ev.preventDefault();
-      if (neighbour) {
-        this._moveTab(focused.urlPath, neighbour, forward);
-      }
-      return;
-    }
-    const index = buttons.findIndex((button) => button.matches(":focus"));
-    const rtl = getComputedStyle(this).direction === "rtl";
-    const forward = (ev.key === "ArrowRight") !== rtl;
-    const next =
-      ev.key === "Home"
-        ? 0
-        : ev.key === "End"
-          ? buttons.length - 1
-          : (index + (forward ? 1 : -1) + buttons.length) % buttons.length;
-    ev.preventDefault();
-    buttons[next].focus();
-  }
-
-  static styles: CSSResultGroup = css`
-    :host {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-1);
-      box-sizing: border-box;
-      height: 100%;
-      padding: 0 var(--ha-space-3) 0 var(--ha-space-5);
-      border-bottom: var(--ha-card-border-width, 0px) solid
-        var(--ha-card-border-color, transparent);
-      background-color: var(--primary-background-color);
-      color: var(--primary-text-color);
-      font-family: var(--ha-font-family-body);
-      user-select: none;
-    }
-    button {
-      font: inherit;
-      color: inherit;
-      border: none;
-      background: none;
-      cursor: pointer;
-      padding: 0;
-    }
-    button:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
-    }
-    .tablist {
-      position: absolute;
-      width: 0;
-      height: 0;
-      overflow: hidden;
-    }
-    .tabs {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-1);
-      min-width: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-      padding: var(--ha-space-1) 0;
-      /* A tab scrolled into view stays clear of the 40px edge fade. */
-      scroll-padding-inline: 48px;
-    }
-    .tabs::-webkit-scrollbar {
-      display: none;
-    }
-    .tabs.more-end {
-      mask-image: linear-gradient(
-        to var(--float-end, right),
-        #000 calc(100% - 40px),
-        transparent
-      );
-    }
-    .tabs.more-start {
-      mask-image: linear-gradient(
-        to var(--float-start, left),
-        #000 calc(100% - 40px),
-        transparent
-      );
-    }
-    .tabs.more-start.more-end {
-      mask-image: linear-gradient(
-        to right,
-        transparent,
-        #000 40px,
-        #000 calc(100% - 40px),
-        transparent
-      );
-    }
-    .tab {
-      display: flex;
-      align-items: center;
-      flex: none;
-      height: var(--ha-page-tab-height, var(--ha-space-10));
-      border-radius: var(--ha-border-radius-pill);
-      color: var(--secondary-text-color);
-      transition:
-        background-color var(--ha-animation-duration-fast) ease,
-        color var(--ha-animation-duration-fast) ease;
-    }
-    .tab:hover,
-    .tab:focus-within {
-      background-color: var(--ha-color-fill-neutral-quiet-resting);
-      color: var(--primary-text-color);
-    }
-    .tab.selected {
-      background-color: var(--primary-text-color);
-      color: var(--primary-background-color);
-    }
-    .tab-button {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2);
-      height: 100%;
-      padding-inline: var(--ha-space-4) var(--ha-space-4);
-      border-radius: var(--ha-border-radius-pill);
-      font-size: var(--ha-font-size-m);
-      font-weight: var(--ha-font-weight-medium);
-      white-space: nowrap;
-    }
-    .tab-button ha-svg-icon,
-    .tab-button ha-icon {
-      --mdc-icon-size: 18px;
-    }
-    /* The close button shows on the selected tab, and on hover or focus. */
-    .close {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: var(--ha-space-8);
-      height: var(--ha-space-8);
-      margin-inline: calc(-1 * var(--ha-space-3)) var(--ha-space-1);
-      border-radius: var(--ha-border-radius-circle);
-      --mdc-icon-size: 16px;
-    }
-    .tab.selected .close,
-    .tab:hover .close,
-    .tab:focus-within .close {
-      display: flex;
-    }
-    .close:hover,
-    .pin:hover {
-      background-color: rgba(127, 127, 127, 0.3);
-    }
-    /* The pin shows with the close button, and always on a pinned tab. */
-    .pin {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: var(--ha-space-8);
-      height: var(--ha-space-8);
-      margin-inline: calc(-1 * var(--ha-space-3)) var(--ha-space-1);
-      border-radius: var(--ha-border-radius-circle);
-      --mdc-icon-size: 16px;
-    }
-    .tab.selected .pin,
-    .tab:hover .pin,
-    .tab:focus-within .pin {
-      display: flex;
-    }
-    .tab.pinned .close {
-      display: none;
-    }
-    .tab.pinned .tab-button {
-      padding-inline-end: var(--ha-space-2);
-    }
-    .tab.dragging {
-      opacity: 0.5;
-    }
-    .tab.drop-before {
-      box-shadow: inset 3px 0 0 var(--primary-color);
-    }
-    .tab.drop-after {
-      box-shadow: inset -3px 0 0 var(--primary-color);
-    }
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-    /* A finger cannot hover: every tab shows its close button. */
-    @media (hover: none) {
-      .tab .close,
-      .tab .pin {
-        display: flex;
-      }
-      .tab.pinned .close {
-        display: none;
-      }
-    }
-    @media (max-width: 700px) {
-      :host #catalog {
-        inset-inline: var(--ha-space-4);
-        width: auto;
-      }
-    }
-    .new-tab {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: none;
-      width: var(--ha-space-10);
-      height: var(--ha-space-10);
-      border-radius: var(--ha-border-radius-circle);
-      color: var(--secondary-text-color);
-      anchor-name: --page-tabs-new;
-    }
-    a.new-tab {
-      text-decoration: none;
-    }
-    .profile {
-      display: flex;
-      flex: none;
-      border-radius: var(--ha-border-radius-circle);
-    }
-    .profile ha-user-badge {
-      width: var(--ha-space-9);
-      height: var(--ha-space-9);
-    }
-    .profile:focus-visible,
-    a.new-tab:focus-visible {
-      outline: 3px solid var(--primary-color);
-      outline-offset: 2px;
-    }
-    .new-tab:hover {
-      background-color: var(--ha-color-fill-neutral-quiet-resting);
-      color: var(--primary-text-color);
-    }
-    .actions {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-1);
-      flex: none;
-      margin-inline-start: auto;
-      padding-inline-start: var(--ha-space-4);
-    }
-    .top-search {
-      width: 300px;
-      --ha-input-search-height: var(--ha-space-10);
-      --ha-input-search-border-radius: var(--ha-border-radius-pill);
-    }
-    kbd {
-      font-family: var(--ha-font-family-body);
-      font-size: var(--ha-font-size-xs);
-      font-weight: var(--ha-font-weight-medium);
-      padding: var(--ha-space-1) var(--ha-space-2);
-      border-radius: var(--ha-border-radius-md);
-      border: 1px solid var(--outline-hover-color);
-      background-color: var(--primary-background-color);
-      white-space: nowrap;
-    }
-    .search-icon {
-      display: none;
-    }
-    /* Narrow bars trade the field for a button that opens the same search. */
-    @media (max-width: 700px) {
-      .top-search {
-        display: none;
-      }
-      .search-icon {
-        display: flex;
-      }
+  static styles: CSSResultGroup = [
+    tabSharedStyles,
+    TabStripController.styles,
+    css`
       :host {
-        padding-inline: var(--ha-space-2);
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        box-sizing: border-box;
+        height: 100%;
+        padding: 0 var(--ha-space-3) 0 var(--ha-space-5);
+        border-bottom: var(--ha-card-border-width, 0px) solid
+          var(--ha-card-border-color, transparent);
+        background-color: var(--primary-background-color);
+        color: var(--primary-text-color);
+        font-family: var(--ha-font-family-body);
+        user-select: none;
+      }
+      .profile {
+        display: flex;
+        flex: none;
+        border-radius: var(--ha-border-radius-circle);
+      }
+      .profile ha-user-badge {
+        width: var(--ha-space-9);
+        height: var(--ha-space-9);
+      }
+      .profile:focus-visible {
+        outline: 3px solid var(--primary-color);
+        outline-offset: 2px;
       }
       .actions {
-        padding-inline-start: var(--ha-space-1);
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        flex: none;
+        margin-inline-start: auto;
+        padding-inline-start: var(--ha-space-4);
       }
-    }
-    @media (max-width: 1100px) {
-      .top-search {
-        width: 180px;
-      }
-      kbd {
+      .search-icon {
         display: none;
       }
-    }
-    #catalog {
-      position: fixed;
-      inset: auto;
-      top: calc(var(--ha-page-tabs-top, 12px) + var(--ha-space-12));
-      inset-inline-start: calc(
-        var(--ha-sidebar-width, 88px) + var(--ha-space-5)
-      );
-      margin: 0;
-      width: min(760px, calc(100vw - 32px));
-      max-height: min(560px, calc(100dvh - 96px));
-      box-sizing: border-box;
-      padding: var(--ha-space-3);
-      border: none;
-      border-radius: var(--ha-border-radius-4xl);
-      background-color: var(--primary-background-color);
-      color: var(--primary-text-color);
-      box-shadow:
-        0 4px 8px 3px rgba(0, 0, 0, 0.1),
-        0 1px 3px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-      flex-direction: column;
-      gap: var(--ha-space-2);
-    }
-    #catalog:popover-open {
-      display: flex;
-    }
-    .catalog-header {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2);
-      padding: var(--ha-space-1) var(--ha-space-2);
-    }
-    .catalog-title {
-      flex: 1;
-      font-size: var(--ha-font-size-l);
-      font-weight: var(--ha-font-weight-medium);
-    }
-    .text-button {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--ha-space-2);
-      height: var(--ha-space-10);
-      padding: 0 var(--ha-space-4);
-      border-radius: var(--ha-border-radius-pill);
-      background-color: var(--ha-color-fill-primary-normal-resting);
-      color: var(--ha-color-on-primary-normal, var(--primary-text-color));
-      font-weight: var(--ha-font-weight-medium);
-      white-space: nowrap;
-      --mdc-icon-size: 18px;
-    }
-    .text-button[disabled] {
-      opacity: 0.5;
-      cursor: default;
-    }
-    #catalog-search {
-      --ha-input-search-height: var(--ha-space-12);
-      --ha-input-search-border-radius: var(--ha-border-radius-pill);
-    }
-    .bulk {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-    }
-    .bulk-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--ha-space-2);
-    }
-    .bulk-note {
-      padding: 0 var(--ha-space-2);
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
-    }
-    .bulk[role="status"] {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .catalog-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-2);
-      overflow-y: auto;
-      min-height: 0;
-    }
-    /* Groups of a scrolling column keep their height instead of being squeezed. */
-    .catalog-list > * {
-      flex-shrink: 0;
-    }
-    .group-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--ha-space-2);
-    }
-    .group-count {
-      padding-inline: var(--ha-space-2);
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
-    }
-    .group-search {
-      display: block;
-      margin-block: var(--ha-space-1);
-      --ha-input-search-height: var(--ha-space-11, 44px);
-      --ha-input-search-border-radius: var(--ha-border-radius-pill);
-    }
-    .group-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ha-space-2);
-      margin-bottom: var(--ha-space-1);
-    }
-    .group-actions .text-button {
-      min-height: 44px;
-    }
-    .group-title {
-      margin: 0;
-      padding: var(--ha-space-1) var(--ha-space-2);
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
-      font-weight: var(--ha-font-weight-medium);
-    }
-    .group-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
-      gap: var(--ha-space-1);
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .group-list .entry {
-      width: 100%;
-    }
-    .entry {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-4);
-      min-height: var(--ha-space-14);
-      padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-2)
-        var(--ha-space-2);
-      border-radius: var(--ha-border-radius-2xl);
-      text-align: start;
-    }
-    .entry:hover {
-      background-color: var(--card-background-color);
-    }
-    .entry.closed {
-      background-color: var(--ha-color-fill-primary-normal-resting);
-    }
-    .entry-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: none;
-      width: var(--ha-space-10);
-      height: var(--ha-space-10);
-      border-radius: var(--ha-border-radius-xl);
-      background-color: var(--secondary-background-color);
-    }
-    .entry.closed .entry-icon {
-      background-color: var(--primary-background-color);
-    }
-    .entry-text {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 0;
-    }
-    .entry-title {
-      font-weight: var(--ha-font-weight-medium);
-    }
-    .entry-state {
-      font-size: var(--ha-font-size-s);
-      color: var(--secondary-text-color);
-    }
-    .catalog-note {
-      margin: 0;
-      padding: 0 var(--ha-space-2);
-      color: var(--secondary-text-color);
-      font-size: var(--ha-font-size-s);
-    }
-    .empty {
-      margin: 0;
-      padding: var(--ha-space-4);
-      color: var(--secondary-text-color);
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .tab {
-        transition: none;
+      /* Narrow bars trade the field for a button that opens the same search. */
+      @media (max-width: 700px) {
+        .search-icon {
+          display: flex;
+        }
+        :host {
+          padding-inline: var(--ha-space-2);
+        }
+        .actions {
+          padding-inline-start: var(--ha-space-1);
+        }
       }
-    }
-  `;
+      ha-page-tab-menu,
+      ha-tab-group-picker,
+      ha-tab-group-menu,
+      ha-tab-group-editor {
+        display: contents;
+      }
+      /* The bar docked to the bottom edge has its border on top. */
+      :host([dock="bottom"]) {
+        border-bottom: none;
+        border-top: var(--ha-card-border-width, 0px) solid
+          var(--ha-card-border-color, transparent);
+      }
+      /* A bar on the left or right edge runs top to bottom: tabs, then the
+         New tab button, then the tools of the bar at the foot. */
+      :host([vertical]) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--ha-space-2);
+        padding: var(--ha-space-2);
+        border-bottom: none;
+      }
+      :host([dock="left"]) {
+        border-inline-end: var(--ha-card-border-width, 0px) solid
+          var(--ha-card-border-color, transparent);
+      }
+      :host([dock="right"]) {
+        border-inline-start: var(--ha-card-border-width, 0px) solid
+          var(--ha-card-border-color, transparent);
+      }
+      :host([vertical]) .actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-inline-start: 0;
+        padding-inline-start: 0;
+      }
+      :host([vertical]) > .new-tab {
+        align-self: center;
+      }
+      /* The search field needs the width of a top bar: a side bar uses the button. */
+      :host([vertical]) .top-search {
+        display: none;
+      }
+      :host([vertical]) .search-icon {
+        display: flex;
+      }
+      /* The catalog opens beside the bar, on the side of its edge. */
+      :host([dock="left"]) #catalog {
+        inset-inline-start: calc(
+          var(--ha-sidebar-width, 88px) +
+            var(--ha-page-tabs-side-width, 208px) + var(--ha-space-3)
+        );
+      }
+      :host([dock="right"]) #catalog {
+        inset-inline-start: auto;
+        inset-inline-end: calc(
+          var(--ha-pane-gap, 12px) + var(--ha-page-tabs-side-width, 208px) +
+            var(--ha-space-3)
+        );
+      }
+      :host([dock="bottom"]) #catalog {
+        top: auto;
+        bottom: calc(
+          var(--ha-page-tabs-bar-height, 52px) + var(--ha-pane-gap, 12px) +
+            var(--ha-space-3)
+        );
+      }
+    `,
+    TabCatalogController.styles,
+    TabBulkCloseController.styles,
+    TabSearchesController.styles,
+  ];
 }
 
 declare global {

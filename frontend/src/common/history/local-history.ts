@@ -6,8 +6,9 @@
  * It covers what is kept in this browser: appearance choices,
  * accessibility choices, closed tabs, the order of the tabs and pinned tabs. A change to the private
  * vocabulary is listed, but its text is never copied here, so clearing the
- * vocabulary leaves no copy behind. Locks are not listed at all: history
- * must not be a way around a lock.
+ * vocabulary leaves no copy behind. A change to a lock is listed as a fact
+ * only; its stored text holds credentials and is never copied, so history
+ * cannot be a way around a lock.
  */
 
 export const HISTORY_STORAGE_KEY = "localHistory";
@@ -27,6 +28,12 @@ export const HISTORY_SUBJECTS = {
   tabs: { key: "pageTabsClosed", keep: true },
   tabOrder: { key: "pageTabsOrder", keep: true },
   tabPins: { key: "pageTabsPinned", keep: true },
+  tabGroups: { key: "pageTabsGroups", keep: false },
+  tabDock: { key: "pageTabsDock", keep: false },
+  tabAppearance: { key: "pageTabsAppearance", keep: false },
+  // That a lock (including a tab or group lock) changed. Only the fact is
+  // listed: the stored text holds credentials, so it is never copied here.
+  tabLocks: { key: "elementLocks", keep: false },
   wording: { key: "personalVocabulary", keep: false },
 } as const;
 

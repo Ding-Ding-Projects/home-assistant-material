@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const tar = require('tar');
-const { run, waitForHttp, lanAddress, stamp } = require('./util');
+const { run, waitForHttp, lanAddress, stamp, unitName } = require('./util');
 const { composeYaml } = require('./compose');
 
 const DOCKER = process.platform === 'win32' ? 'docker.exe' : 'docker';
@@ -23,7 +23,7 @@ const compose = (inst, args, opts = {}) => run(DOCKER, ['compose', '-f', path.jo
 
 function write(inst) {
   fs.mkdirSync(path.join(inst.dir, 'config'), { recursive: true });
-  fs.writeFileSync(path.join(inst.dir, 'compose.yaml'), composeYaml({ slug: inst.slug, port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit }));
+  fs.writeFileSync(path.join(inst.dir, 'compose.yaml'), composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit }));
 }
 
 function urls(inst) {
@@ -48,14 +48,14 @@ async function deploy(inst, log, step) {
 }
 
 async function status(inst) {
-  const r = await run(DOCKER, ['inspect', '-f', '{{.State.Status}}', 'ham-' + inst.slug], { timeout: 15000 });
+  const r = await run(DOCKER, ['inspect', '-f', '{{.State.Status}}', unitName(inst)], { timeout: 15000 });
   if (r.code !== 0) return 'missing';
   const s = r.out.trim();
   return s === 'running' ? 'running' : s === 'restarting' ? 'starting' : 'stopped';
 }
 
 async function stats(inst) {
-  const r = await run(DOCKER, ['stats', '--no-stream', '--format', '{{.CPUPerc}}|{{.MemUsage}}', 'ham-' + inst.slug], { timeout: 15000 });
+  const r = await run(DOCKER, ['stats', '--no-stream', '--format', '{{.CPUPerc}}|{{.MemUsage}}', unitName(inst)], { timeout: 15000 });
   if (r.code !== 0) return null;
   const [cpu, mem] = r.out.trim().split('|');
   return { cpu: parseFloat(cpu) || 0, mem: (mem || '').split('/')[0].trim() };

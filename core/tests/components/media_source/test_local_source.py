@@ -23,7 +23,10 @@ from homeassistant.components.media_player import (
     SearchMediaQuery,
 )
 from homeassistant.components.media_source import const
-from homeassistant.components.media_source.local_source import MAX_SEARCH_RESULTS
+from homeassistant.components.media_source.local_source import (
+    MAX_SEARCH_RESULTS,
+    MAX_UPLOAD_SIZE,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.core_config import async_process_ha_core_config
 from homeassistant.setup import async_setup_component
@@ -1326,3 +1329,34 @@ async def test_folder_commands_require_admin(
     assert (root / "dest").is_dir()
     assert (root / "pic.png").is_file()
     assert not (root / "made").exists()
+
+
+def test_upload_limit() -> None:
+    """The media library takes files up to 2 GiB."""
+    assert MAX_UPLOAD_SIZE == 2 * 1024 * 1024 * 1024
+
+
+async def test_upload_view_over_limit(
+    hass: HomeAssistant,
+    hass_client: ClientSessionGenerator,
+    temp_dir: str,
+) -> None:
+    """A file above the limit is refused with 413 and nothing is stored."""
+    assert await async_setup_component(hass, "media_source", {})
+    client = await hass_client()
+    pic = io.BytesIO(b"x" * 4096)
+    pic.name = "big.png"
+
+    with patch(
+        "homeassistant.components.media_source.local_source.MAX_UPLOAD_SIZE", 1024
+    ):
+        res = await client.post(
+            "/api/media_source/local_source/upload",
+            data={
+                "media_content_id": "media-source://media_source/test_dir/.",
+                "file": pic,
+            },
+        )
+
+    assert res.status == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+    assert not (Path(temp_dir) / "big.png").is_file()

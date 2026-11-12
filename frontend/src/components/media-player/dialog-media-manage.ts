@@ -20,6 +20,7 @@ import { consume } from "../../common/decorators/consume";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
 import { transform } from "../../common/decorators/transform";
 import { fireEvent } from "../../common/dom/fire_event";
+import { MEDIA_LIBRARY_CHANGED_EVENT } from "../../common/file-drop/drop-upload-queue";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import { apiContext, configContext } from "../../data/context";
 import { deleteImage, getIdFromUrl } from "../../data/image_upload";
@@ -112,6 +113,27 @@ class DialogMediaManage extends LitElement {
   @state() private _pickerId = "";
 
   @state() private _pickerItem?: MediaPlayerItem;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener(MEDIA_LIBRARY_CHANGED_EVENT, this._libraryChanged);
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener(
+      MEDIA_LIBRARY_CHANGED_EVENT,
+      this._libraryChanged
+    );
+  }
+
+  // Files dropped on the window landed in the library while this is open.
+  private _libraryChanged = () => {
+    if (this._params && !this._uploading) {
+      this._changed();
+      this._refreshMedia();
+    }
+  };
 
   public showDialog(params: MediaManageDialogParams): void {
     this._params = params;

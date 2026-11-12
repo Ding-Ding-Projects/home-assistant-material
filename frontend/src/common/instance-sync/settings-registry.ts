@@ -91,6 +91,16 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
   { exact: "pageTabsClosed", kind: "json", holds: "Closed tabs" },
   { exact: "pageTabsOrder", kind: "json", holds: "Tab order" },
   { exact: "pageTabsPinned", kind: "json", holds: "Pinned tabs" },
+  { exact: "pageTabsSeen", kind: "json", holds: "Tabs already offered" },
+  { exact: "pageTabsGroups", kind: "json", holds: "Tab groups" },
+  { exact: "pageTabsDock", kind: "json", holds: "Tab strip edge" },
+  { exact: "pageTabsAppearance", kind: "json", holds: "Tab appearance" },
+  {
+    exact: "pageTabsGroupAppearance",
+    kind: "json",
+    holds: "Tab group appearance",
+  },
+  { exact: "sectionTabs", kind: "json", holds: "Settings section tabs" },
   {
     exact: "localHistory",
     kind: "json",

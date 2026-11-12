@@ -1325,6 +1325,14 @@ export default class HaAutomationActionRow extends LitElement {
     });
   }
 
+  /** True when the row shows its content. The editor search reads this. */
+  public isExpanded(): boolean {
+    if (this.optionsInSidebar) {
+      return !this._collapsed;
+    }
+    return !!this.shadowRoot!.querySelector("ha-expansion-panel")?.expanded;
+  }
+
   public expandAll() {
     this.expand();
 

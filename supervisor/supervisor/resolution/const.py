@@ -68,6 +68,27 @@ class UnsupportedReason(StrEnum):
     SYSTEM_ARCHITECTURE = "system_architecture"
 
 
+# Set to "1" by the full hosting mode (one outer container with its own Docker engine and no
+# operating system under the Supervisor). The reasons below only state that an operating
+# system, its agent, systemd, D-Bus, NetworkManager, AppArmor or the journald logging driver
+# is missing, which is the intended shape of that mode, so their evaluations are skipped.
+ENV_CONTAINER_HOST = "SUPERVISOR_CONTAINER_HOST"
+
+CONTAINER_HOST_EXPECTED_REASONS = frozenset(
+    {
+        UnsupportedReason.APPARMOR,
+        UnsupportedReason.DBUS,
+        UnsupportedReason.DOCKER_CONFIGURATION,
+        UnsupportedReason.NETWORK_MANAGER,
+        UnsupportedReason.OS,
+        UnsupportedReason.OS_AGENT,
+        UnsupportedReason.SYSTEMD,
+        UnsupportedReason.SYSTEMD_JOURNAL,
+        UnsupportedReason.SYSTEMD_RESOLVED,
+    }
+)
+
+
 class UnhealthyReason(StrEnum):
     """Reasons for unsupported status."""
 

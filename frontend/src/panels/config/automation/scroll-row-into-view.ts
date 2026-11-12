@@ -43,6 +43,8 @@ export const scrollRowIntoView = (row: HTMLElement) => {
   }
   row.scrollIntoView({
     block: bottom - top > visibleBottom - visibleTop ? "start" : "center",
-    behavior: "smooth",
+    behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
   });
 };

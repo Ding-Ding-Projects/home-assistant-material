@@ -16,7 +16,10 @@ class StorageClass {
       return;
     }
     window.addEventListener("storage", (ev: StorageEvent) => {
-      if (ev.key && this.hasKey(ev.key)) {
+      // A key nobody read yet is not cached, but a subscriber to it still has
+      // to hear about a value that arrives later (for example one synced from
+      // the instance after the first read found nothing).
+      if (ev.key && (this.hasKey(ev.key) || this._listeners[ev.key]?.length)) {
         this._storage[ev.key] = ev.newValue
           ? JSON.parse(ev.newValue)
           : ev.newValue;

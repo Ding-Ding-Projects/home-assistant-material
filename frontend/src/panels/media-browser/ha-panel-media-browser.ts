@@ -3,6 +3,7 @@ import {
   mdiDotsVertical,
   mdiGrid,
   mdiListBoxOutline,
+  mdiUpload,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -10,6 +11,8 @@ import { customElement, property, query, state } from "lit/decorators";
 import { storage } from "../../common/decorators/storage";
 import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
+import { pickFilesToAdd } from "../../common/file-drop/add-media";
+import { MEDIA_LIBRARY_CHANGED_EVENT } from "../../common/file-drop/drop-upload-queue";
 import { navigate } from "../../common/navigate";
 import "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
@@ -89,6 +92,24 @@ class PanelMediaBrowser extends LitElement {
 
   @query("ha-bar-media-player") private _player!: BarMediaPlayer;
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener(MEDIA_LIBRARY_CHANGED_EVENT, this._libraryChanged);
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener(
+      MEDIA_LIBRARY_CHANGED_EVENT,
+      this._libraryChanged
+    );
+  }
+
+  // Files dropped on the window landed in the library: show them.
+  private _libraryChanged = () => {
+    this._browser?.refresh();
+  };
+
   protected render(): TemplateResult {
     return html`
       <ha-top-app-bar-fixed .narrow=${this.narrow}>
@@ -116,6 +137,16 @@ class PanelMediaBrowser extends LitElement {
           .currentItem=${this._currentItem}
           @media-refresh=${this._refreshMedia}
         ></ha-media-manage-button>
+        ${
+          this.hass.user?.is_admin
+            ? html`<ha-icon-button
+                slot="actionItems"
+                .label=${this.hass.localize("ui.drop_upload.add_media")}
+                .path=${mdiUpload}
+                @click=${this._addMedia}
+              ></ha-icon-button>`
+            : nothing
+        }
         <ha-dropdown slot="actionItems" @wa-select=${this._handleMenuAction}>
           <ha-icon-button
             slot="trigger"
@@ -165,6 +196,10 @@ class PanelMediaBrowser extends LitElement {
         @player-picked=${this._playerPicked}
       ></ha-bar-media-player>
     `;
+  }
+
+  private _addMedia() {
+    void pickFilesToAdd();
   }
 
   private _handleMenuAction(ev: HaDropdownSelectEvent) {

@@ -24,6 +24,7 @@ import {
 } from "../../common/activity/activity-store";
 import { fireEvent } from "../../common/dom/fire_event";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
+import { pickFilesToAdd } from "../../common/file-drop/add-media";
 import { navigate } from "../../common/navigate";
 import { haStyle } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
@@ -166,6 +167,13 @@ export class HaActivityTray extends LitElement {
           ${running ? html`<span class="count">${this._l("running_count", { count: running })}</span>` : nothing}
         </h2>
         ${
+          this.hass.user?.is_admin
+            ? html`<ha-button appearance="plain" @click=${this._addMedia}
+                >${this.hass.localize("ui.drop_upload.add_media")}</ha-button
+              >`
+            : nothing
+        }
+        ${
           hasFinished
             ? html`<ha-button appearance="plain" @click=${this._clearFinished}
                 >${this._l("dismiss_finished")}</ha-button
@@ -178,6 +186,10 @@ export class HaActivityTray extends LitElement {
         ${plain.map((item) => this._renderItem(item))}
       </ul>
     </section>`;
+  }
+
+  private _addMedia() {
+    void pickFilesToAdd();
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
@@ -390,6 +402,16 @@ export class HaActivityTray extends LitElement {
             : nothing
         }
         ${
+          item.show
+            ? html`<ha-button
+                appearance="plain"
+                data-id=${item.id}
+                @click=${this._showItem}
+                >${this._l("show_details")}</ha-button
+              >`
+            : nothing
+        }
+        ${
           item.openPath
             ? html`<ha-button
                 appearance="plain"
@@ -457,6 +479,10 @@ export class HaActivityTray extends LitElement {
       activityStore.dismiss(item.id);
       void this._keepFocus(index);
     }
+  }
+
+  private _showItem(ev: Event): void {
+    this._itemOf(ev)?.show?.();
   }
 
   private _openItem(ev: Event): void {

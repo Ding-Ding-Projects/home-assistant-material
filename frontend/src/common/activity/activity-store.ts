@@ -49,6 +49,8 @@ export interface Activity {
   cancel?: () => void | Promise<void>;
   /** An address inside the interface where the work can be seen. */
   openPath?: string;
+  /** Opens a detailed view of the work, such as a progress dialog. */
+  show?: () => void;
   /** Already localized result of a finished activity. */
   message?: string;
   /** Raw technical text for a failure. Redacted before it is copied. */
@@ -68,7 +70,14 @@ export type ActivityInit = Pick<Activity, "title"> &
   Partial<
     Pick<
       Activity,
-      "kind" | "progress" | "status" | "cancel" | "openPath" | "undo" | "retry"
+      | "kind"
+      | "progress"
+      | "status"
+      | "cancel"
+      | "openPath"
+      | "show"
+      | "undo"
+      | "retry"
     >
   >;
 
@@ -164,6 +173,7 @@ export class ActivityStore {
       startedAt: this._now(),
       cancel: init.cancel,
       openPath: init.openPath,
+      show: init.show,
       undo: init.undo,
       retry: init.retry,
     };

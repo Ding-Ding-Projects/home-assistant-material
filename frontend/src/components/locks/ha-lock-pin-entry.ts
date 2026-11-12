@@ -264,6 +264,7 @@ export class HaLockPinEntry extends LitElement {
         .value=${this._value}
         ?disabled=${this.disabled}
         @input=${this._typed}
+        @keydown=${this._fieldKeydown}
       ></ha-input>
       ${
         this._narrow
@@ -304,6 +305,15 @@ export class HaLockPinEntry extends LitElement {
     const value = raw.replace(/\D/g, "").slice(0, PIN_MAX);
     this._setValue(value);
     (ev.target as HaInput).value = value;
+  }
+
+  // Enter in the field submits, as the hint says. The field is a custom
+  // element, so the form does not always treat the key as its own submit.
+  private _fieldKeydown(ev: KeyboardEvent): void {
+    if (ev.key === "Enter" && !ev.isComposing) {
+      ev.preventDefault();
+      this.submit();
+    }
   }
 
   private _clear(): void {

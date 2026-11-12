@@ -70,6 +70,11 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Labels in the filter pane of a list",
   },
   {
+    file: "components/ha-selector/ha-selector-select.ts",
+    searches:
+      "The options of a select field shown as a list of radio buttons or checkboxes, from eight options on",
+  },
+  {
     file: "components/ha-picker-combo-box.ts",
     searches:
       "The choices of every picker: entities, devices, areas, floors, labels, icons, languages and the rest. Pickers with sections search through the function their owner gives them",
@@ -85,9 +90,34 @@ export const SEARCH_SURFACES: SearchSurface[] = [
       "Open pages in the Pages sheet on a phone, and in its catalog the pages, plus one field per catalog group (pinned, pages, settings, tools) that filters only that group",
   },
   {
-    file: "components/ha-page-tabs.ts",
+    file: "components/phone/ha-phone-bulk-close.ts",
     searches:
-      "Pages in the New tab catalog, plus one field per catalog group (pinned, pages, settings, tools) that filters only that group",
+      "The visible title of the open pages, to review which ones Close pages containing text and Close pages not containing text would close",
+    matcher: "common/tabs/bulk-close.ts",
+  },
+  {
+    file: "components/tabs/ha-tab-close-by-text.ts",
+    searches:
+      "The visible label of the open tabs, to review which ones Close tabs containing text and Close tabs not containing text would close",
+    matcher: "common/tabs/tab-close-plans.ts",
+  },
+  {
+    file: "components/tabs/ha-tab-catalog.ts",
+    searches: "Pages in the New tab catalog, in the field at the top of it",
+  },
+  {
+    file: "components/tabs/ha-tab-searches.ts",
+    searches:
+      "One field per catalog group (pinned, pages, settings, tools) that filters only that group, plus the field at the top of the bar that hands its text to the search of everything, plus the tab searches: the open tabs of the strip, the groups by name, and one field inside each group the person made",
+  },
+  {
+    file: "components/tabs/ha-tab-search-all.ts",
+    searches:
+      "Search all tabs: every open tab on every strip, by visible label, in its own panel",
+  },
+  {
+    file: "components/tabs/ha-tab-group-picker.ts",
+    searches: "The groups of the tab group picker, by name",
   },
   {
     file: "components/locks/ha-lock-list.ts",
@@ -121,6 +151,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     file: "panels/config/apps/app-view/log/supervisor-app-log-tab.ts",
     searches: "Lines of an app's log",
     matcher: LOG_LINES,
+  },
+  {
+    file: "components/log-terminal/ha-log-terminal.ts",
+    searches:
+      "Lines of the log terminal that shows an app install, update or removal, and the app's own log",
+    matcher: "common/log-terminal/log-terminal-logic.ts",
   },
   {
     file: "panels/config/apps/ha-config-apps-available.ts",
@@ -301,6 +337,18 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   {
     file: "panels/config/voice-assistants/dialog-expose-entity.ts",
     searches: "Entities to expose to a voice assistant",
+  },
+  {
+    file: "panels/config/automation/search/ha-automation-search-bar.ts",
+    searches:
+      "The steps of the automation or script being edited, by description, alias, type, entity, device, area, label, service, template text and data values, plus the entities those steps use",
+    matcher: "panels/config/automation/search/automation-search.ts",
+  },
+  {
+    file: "panels/config/automation/ha-automation-sortable-list-mixin.ts",
+    searches:
+      "The rows of one nested list in the automation editor (Choose options, then and else, repeat, parallel, nested conditions), by everything inside each row",
+    matcher: "panels/config/automation/search/automation-search.ts",
   },
   {
     file: "panels/lovelace/editor/badge-editor/hui-badge-picker.ts",

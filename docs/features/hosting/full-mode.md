@@ -49,10 +49,22 @@ All of the following were run against a real instance in this mode (see "What wa
   and `operating_system` are empty in the Supervisor's host information).
 - **Device discovery by broadcast.** The inner engine has its own network, so mDNS and SSDP
   from the real network are not seen by the core. Add such devices by address.
-- **The Supervisor reports "unsupported".** It lists `apparmor`, `dbus`,
-  `docker_configuration`, `network_manager`, `os`, `os_agent`, `systemd`, `systemd_journal`
-  and `systemd_resolved`. This does not block anything the mode offers. It is expected, and
-  it is why Home Assistant's own support rules do not apply to this mode.
+- **Home Assistant's own support rules do not apply to this mode.** There is deliberately no
+  operating system under the Supervisor, so the Supervisor's checks that only state "there is
+  no operating system here" are skipped. The outer container starts the Supervisor with
+  `SUPERVISOR_CONTAINER_HOST=1`, and with it the Supervisor does not run the evaluations for
+  `apparmor` (no AppArmor in the inner engine's kernel view), `dbus`, `systemd`,
+  `systemd_journal` and `systemd_resolved` (no D-Bus or systemd in the container),
+  `network_manager`, `os` and `os_agent` (no operating system or its agent), and
+  `docker_configuration` (the inner engine logs with `json-file`, because there is no journald
+  to log to, which the check wants). None of these can be met by the start script, so none is
+  reported: the Supervisor shows `supported: true` and the Repairs page has no "Unsupported
+  system" cards. Every other check still runs and still reports a real problem (Docker
+  version, privileged mode, content trust, source modifications, restart policy and the
+  rest). An instance started before this change needs the outer container restarted on the new
+  outer image (the Supervisor container is then recreated with the switch) and a Supervisor of
+  the matching build; an older Supervisor ignores the switch and keeps reporting the nine
+  reasons, which the interface now explains in plain sentences without outside links.
 
 ## What "privileged" means here
 
@@ -231,9 +243,9 @@ image rebuilt locally from this repository (see below):
   Supervisor reports `docker_gateway_unprotected` in this mode and refuses installs, updates and
   backups: use release 122 or later). File editor was installed from the store by clicking and
   opened at 390 and 1440 px; `--logs`, `--stop` and a second start worked.
-- The Supervisor reports `supported: false` in this mode, listing what an operating system
-  would provide (AppArmor, the operating system agent, systemd and others). That is expected
-  and does not stop installs, backups or updates.
+- Before the `SUPERVISOR_CONTAINER_HOST` switch the Supervisor reported `supported: false`
+  here, listing what an operating system would provide. That never stopped installs, backups
+  or updates; the switch only removes the false alarm (see above).
 - The compose file fixes the container name, the volume name and the bind address, so two full
   instances cannot run side by side without editing a copy of it.
 - Only `amd64` ran. `arm64` is built by the workflow and untested; the machine name used for

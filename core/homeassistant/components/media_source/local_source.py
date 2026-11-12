@@ -37,7 +37,8 @@ from .const import (
 from .error import Unresolvable
 from .models import BrowseMediaSource, MediaSource, MediaSourceItem, PlayMedia
 
-MAX_UPLOAD_SIZE = 1024 * 1024 * 20
+# 2 GiB; aiohttp spools file fields to a temporary file, so uploads stay out of memory.
+MAX_UPLOAD_SIZE = 1024 * 1024 * 1024 * 2
 MAX_SEARCH_RESULTS = 100
 MAX_NAME_LENGTH = 255
 LOGGER = logging.getLogger(__name__)

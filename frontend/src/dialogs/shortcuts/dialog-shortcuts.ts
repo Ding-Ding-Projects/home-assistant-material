@@ -44,6 +44,10 @@ const _SHORTCUTS: Section[] = [
         descriptionTranslationKey: "ui.dialogs.shortcuts.searching.search",
       },
       {
+        shortcut: ["Alt", "Shift", "F"],
+        descriptionTranslationKey: "ui.page_tabs.searches.all_title",
+      },
+      {
         shortcut: ["C"],
         descriptionTranslationKey:
           "ui.dialogs.shortcuts.searching.search_command",

@@ -13,6 +13,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
+import { isComponentLoaded } from "../common/config/is_component_loaded";
 import { fireEvent } from "../common/dom/fire_event";
 import { stringCompare } from "../common/string/compare";
 import { computeRTL } from "../common/util/compute_rtl";
@@ -27,6 +28,8 @@ import {
   getPanelTitle,
 } from "../data/panel";
 import { activityStore } from "../common/activity/activity-store";
+import type { LocalizeFunc } from "../common/translations/localize";
+import { appJobTracker } from "../data/hassio/app-job-tracker";
 import { adoptRunningInstalls } from "./update-progress/update-install-tracker";
 import type { PersistentNotification } from "../data/persistent_notification";
 import { subscribeNotifications } from "../data/persistent_notification";
@@ -233,6 +236,19 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     if (this.hass.user?.is_admin) {
       // Installs already running after a reload show in the activity tray.
       adoptRunningInstalls(this.hass);
+      // The same for app installs and updates, which the Supervisor reports
+      // as jobs.
+      if (isComponentLoaded(this.hass.config, "hassio")) {
+        appJobTracker.watch({
+          connection: this.hass.connection,
+          // Read the current translations at the moment a line is written:
+          // the ones present now are replaced once translations finish loading.
+          api: { callApi: (...args) => this.hass.callApi(...args) },
+          localize: ((...args: Parameters<LocalizeFunc>) =>
+            this.hass.localize(...args)) as LocalizeFunc,
+          host: this,
+        });
+      }
     }
     return [
       subscribeSharedIdentity(this.hass.connection),

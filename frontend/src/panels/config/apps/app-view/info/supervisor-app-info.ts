@@ -43,6 +43,7 @@ import { navigate } from "../../../../../common/navigate";
 import { capitalizeFirstLetter } from "../../../../../common/string/capitalize-first-letter";
 import type { LocalizeKeys } from "../../../../../common/translations/localize";
 import { sanitizeHttpUrl } from "../../../../../common/url/sanitize-http-url";
+import "../../../../../components/app-job/ha-app-job-progress";
 import "../../../../../components/buttons/ha-progress-button";
 import "../../../../../components/chips/ha-assist-chip";
 import "../../../../../components/chips/ha-chip-set";
@@ -58,9 +59,12 @@ import type { HaSwitch } from "../../../../../components/ha-switch";
 import "../../../../../components/item/ha-row-item";
 import {
   apiContext,
+  connectionContext,
   internationalizationContext,
   registriesContext,
 } from "../../../../../data/context";
+import type { AppJobDeps } from "../../../../../data/hassio/app-job-tracker";
+import { trackAppCall } from "../../../../../data/hassio/app-job-tracker";
 import type {
   AddonCapability,
   HassioAddonDetails,
@@ -149,6 +153,9 @@ class SupervisorAppInfo extends MobileAwareMixin(LitElement) {
   @consume({ context: apiContext, subscribe: true })
   private api!: ContextType<typeof apiContext>;
 
+  @consume({ context: connectionContext, subscribe: true })
+  private _connection!: ContextType<typeof connectionContext>;
+
   @state() private _metrics?: HassioStats;
 
   @state() private _error?: string;
@@ -169,6 +176,16 @@ class SupervisorAppInfo extends MobileAwareMixin(LitElement) {
 
   protected mobileSizeQuery =
     "all and (max-width: 1120px), all and (max-height: 500px)";
+
+  // What the progress tracker needs to follow the work this page starts.
+  private _jobDeps(): AppJobDeps {
+    return {
+      connection: this._connection.connection,
+      api: this.api,
+      localize: this.i18n.localize,
+      host: this,
+    };
+  }
 
   private get _currentAddon(): HassioAddonDetails | StoreAddonDetails {
     return this._addon || this.addon;
@@ -1023,6 +1040,10 @@ class SupervisorAppInfo extends MobileAwareMixin(LitElement) {
       }
       <div class="app">
         ${this._renderHero()}
+        <ha-app-job-progress
+          .slug=${(this._currentAddon as HassioAddonDetails).slug}
+          terminal
+        ></ha-app-job-progress>
         <div class="columns">
           <div class="info-column">
             ${this._renderUpdateBanner()} ${this._renderOptionsCard()}
@@ -1312,7 +1333,13 @@ class SupervisorAppInfo extends MobileAwareMixin(LitElement) {
     const addon = this._currentAddon as HassioAddonDetails;
 
     try {
-      await installHassioAddon(this.api.callWS, addon.slug);
+      await trackAppCall(
+        this._jobDeps(),
+        addon.slug,
+        "install",
+        () => installHassioAddon(this.api.callWS, addon.slug),
+        addon.name
+      );
       const eventdata = {
         success: true,
         response: undefined,
@@ -1401,7 +1428,13 @@ class SupervisorAppInfo extends MobileAwareMixin(LitElement) {
     const addon = this._currentAddon as HassioAddonDetails;
 
     try {
-      await rebuildLocalAddon(this.api.callWS, addon.slug);
+      await trackAppCall(
+        this._jobDeps(),
+        addon.slug,
+        "rebuild",
+        () => rebuildLocalAddon(this.api.callWS, addon.slug),
+        addon.name
+      );
     } catch (err: any) {
       showAlertDialog(this, {
         title: this.i18n.localize(
@@ -1530,7 +1563,13 @@ class SupervisorAppInfo extends MobileAwareMixin(LitElement) {
     this._uninstalling = true;
     this._error = undefined;
     try {
-      await uninstallHassioAddon(this.api.callWS, addon.slug, removeConfig);
+      await trackAppCall(
+        this._jobDeps(),
+        addon.slug,
+        "uninstall",
+        () => uninstallHassioAddon(this.api.callWS, addon.slug, removeConfig),
+        addon.name
+      );
       const eventdata = {
         success: true,
         response: undefined,

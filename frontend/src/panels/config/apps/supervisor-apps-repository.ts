@@ -11,6 +11,7 @@ import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { navigate } from "../../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../../common/string/compare";
+import "../../../components/app-job/ha-app-job-progress";
 import "../../../components/ha-app-icon";
 import "../../../components/ha-card";
 import "../../../components/ha-svg-icon";
@@ -97,6 +98,10 @@ export class SupervisorAppsRepositoryEl extends LitElement {
                       <div class="description-text">${addon.description}</div>
                     </div>
                   </div>
+                  <ha-app-job-progress
+                    compact
+                    .slug=${addon.slug}
+                  ></ha-app-job-progress>
                   <div class="footer">
                     <div class="tags">
                       ${
@@ -261,6 +266,9 @@ export class SupervisorAppsRepositoryEl extends LitElement {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        ha-app-job-progress {
+          margin-bottom: var(--ha-space-3);
         }
         .footer {
           display: flex;

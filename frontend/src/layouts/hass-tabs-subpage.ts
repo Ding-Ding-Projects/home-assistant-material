@@ -16,9 +16,8 @@ import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
 import type { HASSDomTargetEvent } from "../common/dom/fire_event";
 import { fireEvent } from "../common/dom/fire_event";
-import { isNavigationClick } from "../common/dom/is-navigation-click";
 import { PageLockController } from "../common/locks/page-lock-controller";
-import { getHistoryState, navigate } from "../common/navigate";
+import { getHistoryState } from "../common/navigate";
 import type {
   LocalizeFunc,
   LocalizeKeys,
@@ -30,7 +29,12 @@ import "../components/page/ha-page-footer";
 import "../components/page/ha-page-lock-banner";
 import "../components/page/ha-page-tools";
 import "../components/ha-svg-icon";
-import "../components/ha-tab";
+import type { SectionTabItem } from "../components/section-tabs/ha-section-tabs";
+import { sectionTabsStyles } from "../components/section-tabs/ha-section-tabs";
+import {
+  SECTION_TAB_PANEL_ID,
+  sectionTabDomId,
+} from "../components/section-tabs/section-tabs-model";
 import {
   configContext,
   entitiesContext,
@@ -183,59 +187,36 @@ export class HassTabsSubpage extends LitElement {
 
   private _pageLock = new PageLockController(this);
 
+  /** The pages this surface shows; two or more of them make a tab row. */
   private _getTabs = memoizeOne(
     (
       tabs: PageNavigation[],
-      activeTab: PageNavigation | undefined,
       _components: string[],
       _language: string,
       _userData: CoreFrontendUserData | undefined,
-      _narrow: boolean,
-      localize: LocalizeFunc,
       entities: ContextType<typeof entitiesContext>
-    ) => {
+    ): PageNavigation[] => {
       const shownTabs = tabs.filter((page) =>
         canShowPage({ ...this._hassConfig, entities }, page)
       );
-
-      if (shownTabs.length < 2) {
-        this.showTabs = false;
-        if (shownTabs.length === 1) {
-          const page = shownTabs[0];
-          return [this._tabName(page, localize)];
-        }
-        return [""];
-      }
-
-      this.showTabs = true;
-      return shownTabs.map(
-        (page) => html`
-          <a
-            href=${page.path}
-            aria-current=${ifDefined(
-              page.path === activeTab?.path ? "page" : undefined
-            )}
-            @click=${this._tabClicked}
-          >
-            <ha-tab
-              .active=${page.path === activeTab?.path}
-              .narrow=${this._narrow}
-              .badge=${page.badge}
-              .name=${this._tabName(page, localize)}
-            >
-              ${
-                page.iconPath
-                  ? html`<ha-svg-icon
-                      slot="icon"
-                      .path=${page.iconPath}
-                    ></ha-svg-icon>`
-                  : ""
-              }
-            </ha-tab>
-          </a>
-        `
-      );
+      this.showTabs = shownTabs.length >= 2;
+      return shownTabs;
     }
+  );
+
+  /** What the tab row needs of each page. */
+  private _getTabItems = memoizeOne(
+    (
+      shown: PageNavigation[],
+      _language: string,
+      localize: LocalizeFunc
+    ): SectionTabItem[] =>
+      shown.map((page) => ({
+        path: page.path,
+        label: this._tabName(page, localize) ?? "",
+        iconPath: page.iconPath,
+        badge: page.badge,
+      }))
   );
 
   public willUpdate(changedProperties: PropertyValues<this>) {
@@ -252,20 +233,22 @@ export class HassTabsSubpage extends LitElement {
 
   protected render(): TemplateResult {
     const localize = this._i18n.localize;
-    const tabs = this._getTabs(
+    const shown = this._getTabs(
       this.tabs,
-      this._activeTab,
       this._hassConfig.config.components,
       this._i18n.language,
       this._hassConfig.userData,
-      this._narrow,
-      localize,
       this._entities
     );
+    const tabItems = this._getTabItems(shown, this._i18n.language, localize);
     const backPath = sanitizeNavigationPath(this.backPath);
     const activeName =
       this._activeTab && this._tabName(this._activeTab, localize);
-    const title = this.showTabs ? activeName : (tabs[0] as string);
+    const title = this.showTabs
+      ? activeName
+      : shown.length === 1
+        ? this._tabName(shown[0], localize)
+        : "";
     const hiddenHeading =
       !this.contentHeading && (this._hasCustomHeader || this._hasCustomToolbar)
         ? title
@@ -312,13 +295,19 @@ export class HassTabsSubpage extends LitElement {
           </div>
         </slot>
         ${
-          this.showTabs && !this._narrow
-            ? html`<div id="tabbar" class="tab-row">${tabs}</div>`
-            : ""
-        }
-        ${
-          this.showTabs && this._narrow
-            ? html`<div id="tabbar" class="bottom-bar">${tabs}</div>`
+          this.showTabs
+            ? html`<div
+                id="tabbar"
+                class=${this._narrow ? "bottom-bar" : "tab-row"}
+              >
+                <ha-section-tabs
+                  .tabs=${tabItems}
+                  .activePath=${this._activeTab?.path}
+                  .narrow=${this._narrow}
+                  .surface=${this.route.prefix}
+                  .localize=${localize}
+                ></ha-section-tabs>
+              </div>`
             : ""
         }
       </div>
@@ -336,6 +325,13 @@ export class HassTabsSubpage extends LitElement {
         }
         <div
           class="content ha-scrollbar"
+          role=${ifDefined(this.showTabs ? "tabpanel" : undefined)}
+          id=${ifDefined(this.showTabs ? SECTION_TAB_PANEL_ID : undefined)}
+          aria-labelledby=${ifDefined(
+            this.showTabs && this._activeTab
+              ? sectionTabDomId(this._activeTab.path)
+              : undefined
+          )}
           ?inert=${locked}
           @scroll=${this._saveScrollPos}
         >
@@ -376,19 +372,18 @@ export class HassTabsSubpage extends LitElement {
   /** The title shown in the header: the open tab, or the only page. */
   private _title(): string | undefined {
     const localize = this._i18n.localize;
-    const tabs = this._getTabs(
+    const shown = this._getTabs(
       this.tabs,
-      this._activeTab,
       this._hassConfig.config.components,
       this._i18n.language,
       this._hassConfig.userData,
-      this._narrow,
-      localize,
       this._entities
     );
     return this.showTabs
       ? this._activeTab && this._tabName(this._activeTab, localize)
-      : (tabs[0] as string);
+      : shown.length === 1
+        ? this._tabName(shown[0], localize)
+        : "";
   }
 
   protected updated(changedProperties: PropertyValues<this>): void {
@@ -495,18 +490,10 @@ export class HassTabsSubpage extends LitElement {
     }
   }
 
-  private async _tabClicked(ev: MouseEvent): Promise<void> {
-    const href = isNavigationClick(ev);
-    if (!href) {
-      return;
-    }
-
-    await navigate(href, { replace: true });
-  }
-
   static get styles(): CSSResultGroup {
     return [
       haStyleScrollbar,
+      sectionTabsStyles,
       css`
         :host {
           display: flex;
@@ -567,35 +554,10 @@ export class HassTabsSubpage extends LitElement {
           color: var(--sidebar-text-color);
           text-decoration: none;
         }
-        .bottom-bar a {
-          width: 25%;
-        }
-
         #tabbar {
           display: flex;
           font-size: var(--ha-font-size-m);
           overflow: hidden;
-        }
-
-        #tabbar > a {
-          overflow: hidden;
-          max-width: 45%;
-        }
-
-        #tabbar > a:focus-visible {
-          outline: var(--wa-focus-ring);
-          outline-offset: calc(-1 * var(--wa-focus-ring-width));
-          background-color: rgba(var(--rgb-secondary-text-color), 0.08);
-        }
-
-        @supports (color: color-mix(in srgb, black, transparent)) {
-          #tabbar > a:focus-visible {
-            background-color: color-mix(
-              in srgb,
-              var(--secondary-text-color) 8%,
-              transparent
-            );
-          }
         }
 
         .visually-hidden {

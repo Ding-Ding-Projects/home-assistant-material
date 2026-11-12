@@ -95,6 +95,9 @@ export class HaPageFooter extends LitElement {
         var(--ha-page-footer-height, 40px) + var(--safe-area-inset-bottom, 0px)
       );
       padding: 0 var(--ha-space-8);
+      padding-inline-end: calc(
+        var(--ha-space-8) + var(--safe-area-inset-right, 0px)
+      );
       padding-bottom: var(--safe-area-inset-bottom, 0px);
       white-space: nowrap;
       overflow: hidden;

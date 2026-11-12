@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client } = require('ssh2');
 const { composeYaml } = require('./compose');
-const { waitForHttp, stamp } = require('./util');
+const { waitForHttp, stamp, unitName } = require('./util');
 
 function connect(host) {
   return new Promise((resolve, reject) => {
@@ -56,7 +56,7 @@ function urls(inst) { return { url: 'http://' + inst.host.address + ':' + inst.p
 async function deploy(inst, log, step) {
   return withHost(inst, async (c) => {
     step('config', 'Writing the configuration on ' + inst.host.address);
-    const yaml = composeYaml({ slug: inst.slug, port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit });
+    const yaml = composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit });
     const mk = await exec(c, 'mkdir -p ' + remoteDir(inst) + '/config && cat > ' + remoteDir(inst) + '/compose.yaml', { input: require('node:stream').Readable.from([yaml]) });
     if (mk.code !== 0) throw new Error('Could not write the configuration on the host. ' + mk.err.trim());
     const used = await exec(c, '(ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -E ":' + inst.port + '\\b" | head -1');
@@ -76,10 +76,10 @@ async function deploy(inst, log, step) {
 
 const dc = (inst, args, opts) => withHost(inst, (c) => exec(c, 'cd ' + remoteDir(inst) + ' && docker compose ' + args, opts));
 async function status(inst) {
-  try { const r = await withHost(inst, (c) => exec(c, 'docker inspect -f {{.State.Status}} ham-' + inst.slug)); if (r.code !== 0) return 'missing'; const s = r.out.trim(); return s === 'running' ? 'running' : s === 'restarting' ? 'starting' : 'stopped'; } catch { return 'unreachable'; }
+  try { const r = await withHost(inst, (c) => exec(c, 'docker inspect -f {{.State.Status}} ' + unitName(inst))); if (r.code !== 0) return 'missing'; const s = r.out.trim(); return s === 'running' ? 'running' : s === 'restarting' ? 'starting' : 'stopped'; } catch { return 'unreachable'; }
 }
 async function stats(inst) {
-  try { const r = await withHost(inst, (c) => exec(c, "docker stats --no-stream --format '{{.CPUPerc}}|{{.MemUsage}}' ham-" + inst.slug)); if (r.code !== 0) return null; const [cpu, mem] = r.out.trim().split('|'); return { cpu: parseFloat(cpu) || 0, mem: (mem || '').split('/')[0].trim() }; } catch { return null; }
+  try { const r = await withHost(inst, (c) => exec(c, "docker stats --no-stream --format '{{.CPUPerc}}|{{.MemUsage}}' " + unitName(inst))); if (r.code !== 0) return null; const [cpu, mem] = r.out.trim().split('|'); return { cpu: parseFloat(cpu) || 0, mem: (mem || '').split('/')[0].trim() }; } catch { return null; }
 }
 const start = (inst) => dc(inst, 'up -d');
 const stop = (inst) => dc(inst, 'stop');

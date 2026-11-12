@@ -503,7 +503,10 @@
     if (checks[target] && !checks[target].ok) { toast(w(target) + ': ' + checks[target].detail + ' ' + (checks[target].fix || '')); go('deploy:target-' + target); return; }
     var hostId = target === 'ssh' ? (($('#sshhost') || {}).value || (D.hosts[0] || {}).id) : '';
     try {
-      var id = await API.deploy(Object.assign({ target: target, hostId: hostId }, overrides || {}));
+      // With a wording file in use, the container or virtual machine is named with the file's
+      // own word for this kind of deployment, in place of the app's short name.
+      var kindWord = st.vocab ? st.vocab[target === 'docker' || target === 'ssh' ? 'Docker-hosted web app' : 'appliance OS image'] : '';
+      var id = await API.deploy(Object.assign({ target: target, hostId: hostId, namePrefix: typeof kindWord === 'string' ? kindWord : '' }, overrides || {}));
       progress[id] = { step: (STEPS[target] || [])[0], text: 'Starting', fraction: 0, log: [], done: false, t0: Date.now() };
       addActivity(id, 'Deploy started (' + w(target) + ')', 'action'); beep('on');
       st.active = 'deploy'; save(); await reload(); render();

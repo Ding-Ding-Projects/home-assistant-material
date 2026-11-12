@@ -34,6 +34,7 @@ import type {
 } from "../../../types";
 import { showToast } from "../../../util/toast";
 import "./ha-automation-sidebar";
+import "./search/ha-automation-search-scope";
 import type HaAutomationSidebar from "./ha-automation-sidebar";
 
 export const SIDEBAR_DEFAULT_WIDTH = 500;
@@ -144,7 +145,12 @@ export const ManualEditorMixin = <TConfig>(
           >
             <div class="content">
               <slot name="alerts"></slot>
-              ${this.renderContent()}
+              <ha-automation-search-scope
+                .hass=${this.hass}
+                .config=${this.config}
+              >
+                ${this.renderContent()}
+              </ha-automation-search-scope>
             </div>
             <ha-editor-save-bar
               .hass=${this.hass}

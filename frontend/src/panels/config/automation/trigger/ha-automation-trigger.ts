@@ -66,10 +66,11 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
 
   protected render() {
     return html`
+      ${this.renderListSearch()}
       <ha-sortable
         handle-selector=".handle"
         draggable-selector="ha-automation-trigger-row"
-        .disabled=${this.disabled}
+        .disabled=${this.disabled || this.reorderLocked}
         group="triggers"
         invert-swap
         @item-moved=${this.itemMoved}
@@ -83,9 +84,12 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
             (trg, idx) => html`
               <ha-automation-trigger-row
                 .sortableData=${trg}
+                ?search-hidden=${this.isSearchHidden(trg)}
+                ?search-match=${this.isSearchMatch(trg)}
+                ?search-current=${this.isSearchCurrent(trg)}
                 .index=${idx}
-                .first=${idx === 0}
-                .last=${idx === this.triggers.length - 1}
+                .first=${idx === 0 || this.reorderLocked}
+                .last=${idx === this.triggers.length - 1 || this.reorderLocked}
                 .trigger=${trg}
                 .triggerDescriptions=${this._triggerDescriptions}
                 @duplicate=${this.duplicateItem}
@@ -112,6 +116,7 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
                             this.rowSortSelected === idx ? "active" : ""
                           }"
                           slot="icons"
+                          title=${this.reorderLockedText ?? nothing}
                           @keydown=${this.handleDragKeydown}
                           @click=${stopPropagation}
                           .index=${idx}
@@ -138,6 +143,7 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
               )}
               <ha-svg-icon .path=${mdiPlus} slot="start"></ha-svg-icon>
             </ha-button>
+            ${this.renderListSearchToggle()}
           </div>
         </div>
       </ha-sortable>

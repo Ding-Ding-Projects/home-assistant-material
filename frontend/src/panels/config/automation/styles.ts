@@ -287,6 +287,48 @@ export const automationRowsStyles = css`
   .rows.no-sidebar {
     margin-inline-end: 0;
   }
+  /* The editor search and the search of a list. A hidden row is not removed,
+     so the order and the index of every row stay what they are. */
+  .rows > [search-hidden] {
+    display: none;
+  }
+  .rows > [search-match] {
+    outline: 2px dashed var(--primary-color);
+    outline-offset: 3px;
+    border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));
+  }
+  .rows > [search-match][search-current] {
+    outline-style: solid;
+    outline-width: 3px;
+  }
+  .list-search {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ha-space-1);
+    margin-block-end: var(--ha-space-3);
+  }
+  .list-search-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-1);
+  }
+  .list-search-row ha-input-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    --ha-input-search-border-radius: var(--ha-border-radius-pill);
+  }
+  .list-search-row ha-icon-button,
+  .buttons ha-icon-button {
+    --ha-icon-button-size: 44px;
+  }
+  .list-search-note {
+    margin: 0;
+    font-size: var(--ha-font-size-s, 0.875rem);
+    color: var(--secondary-text-color);
+  }
+  .list-search-note.error {
+    color: var(--error-color);
+  }
   .sortable-ghost {
     background: none;
     border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));

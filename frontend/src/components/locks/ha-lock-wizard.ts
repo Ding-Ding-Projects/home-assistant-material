@@ -72,6 +72,12 @@ export interface LockWizardTarget {
   page?: string;
   /** Called after the lock was made. */
   onCreated?: () => void;
+  /**
+   * Whether "locked on start" begins ticked. On by default; a lock on one
+   * small thing, such as a tab, starts with it off so the whole app is not
+   * covered at start by surprise.
+   */
+  onStartDefault?: boolean;
 }
 
 /** The seven steps, in order. The names are lock wording keys. */
@@ -161,6 +167,9 @@ export class HaLockWizard extends LitElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    if (this.target.onStartDefault === false) {
+      this._onStart = false;
+    }
     const active = document.activeElement;
     this._returnTo =
       active instanceof HTMLElement && active !== document.body

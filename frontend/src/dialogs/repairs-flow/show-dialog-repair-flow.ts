@@ -6,6 +6,7 @@ import {
   createRepairsFlow,
   deleteRepairsFlow,
   fetchRepairsFlow,
+  fetchRepairsIssues,
   handleRepairsFlowStep,
 } from "../../data/repairs";
 import type { DataEntryFlowDialogParams } from "../config-flow/show-dialog-data-entry-flow";
@@ -15,6 +16,8 @@ import {
 } from "../config-flow/show-dialog-data-entry-flow";
 import type { HomeAssistant } from "../../types";
 import "./dialog-repairs-issue-subtitle";
+import "./ha-repair-failed-notice";
+import { issueKey } from "./repair-failure";
 
 const mergePlaceholders = (issue: RepairsIssue, step: DataEntryFlowStep) =>
   step.description_placeholders && issue.translation_placeholders
@@ -40,7 +43,10 @@ export const showRepairsFlowDialog = (
   element: HTMLElement,
   issue: RepairsIssue,
   dialogParams?: Omit<DataEntryFlowDialogParams, "flowConfig">
-): void =>
+): void => {
+  // The issues that exist before the repair starts, so a repair that fails
+  // can say whether it also left new ones behind.
+  let issuesBefore: string[] | undefined;
   showFlowDialog(
     element,
     {
@@ -52,6 +58,13 @@ export const showRepairsFlowDialog = (
       flowType: "repair_flow",
       showDevices: false,
       createFlow: async (hass, handler) => {
+        try {
+          issuesBefore = (await fetchRepairsIssues(hass.connection)).issues.map(
+            issueKey
+          );
+        } catch (_err) {
+          issuesBefore = undefined;
+        }
         const [step] = await Promise.all([
           createRepairsFlow(hass, handler, issue.issue_id),
           hass.loadBackendTranslation("issues", issue.domain),
@@ -91,18 +104,22 @@ export const showRepairsFlowDialog = (
           mergePlaceholders(issue, step)
         );
 
-        return html`${renderIssueDescription(hass, issue)}
-        ${
-          description
-            ? html`
-                <ha-markdown
-                  breaks
-                  allow-svg
-                  .content=${description}
-                ></ha-markdown>
-              `
-            : step.reason
-        }`;
+        return html`<ha-repair-failed-notice
+            .hass=${hass}
+            .issuesBefore=${issuesBefore}
+          ></ha-repair-failed-notice>
+          ${renderIssueDescription(hass, issue)}
+          ${
+            description
+              ? html`
+                  <ha-markdown
+                    breaks
+                    allow-svg
+                    .content=${description}
+                  ></ha-markdown>
+                `
+              : step.reason
+          }`;
       },
 
       renderShowFormStepHeader(hass, step) {
@@ -355,3 +372,4 @@ export const showRepairsFlowDialog = (
       },
     }
   );
+};

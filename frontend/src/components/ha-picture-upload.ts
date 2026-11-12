@@ -3,6 +3,9 @@ import { mdiImagePlus } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { convertImage } from "../common/converter/image-convert";
+import { convertPicture, planPicture } from "../common/file-drop/drop-convert";
+import { IMAGE_MAX_BYTES } from "../common/file-drop/drop-routing";
 import { consume } from "../common/decorators/consume";
 import {
   apiContext,
@@ -110,7 +113,7 @@ export class HaPictureUpload extends LitElement {
           .value=${this._pickedFile}
           @file-picked=${this._handleFilePicked}
           @change=${this._handleFileCleared}
-          accept="image/png, image/jpeg, image/gif"
+          accept="image/png, image/jpeg, image/gif, image/webp, image/bmp, image/avif"
         ></ha-file-upload>
       `;
     }
@@ -145,8 +148,23 @@ export class HaPictureUpload extends LitElement {
   }
 
   private async _handleFilePicked(ev) {
-    const file = ev.detail.files[0];
+    let file: File = ev.detail.files[0];
     this._pickedFile = file;
+    const plan = planPicture(file, "image", IMAGE_MAX_BYTES);
+    if (plan.action === "convert") {
+      // WebP, BMP and AVIF become PNG in this browser; nothing is uploaded.
+      const outcome = await convertPicture(file, plan, convertImage);
+      if (!outcome.ok) {
+        this._pickedFile = undefined;
+        showAlertDialog(this, {
+          text: this._i18n.localize(
+            "ui.components.picture-upload.unsupported_format"
+          ),
+        });
+        return;
+      }
+      file = outcome.file;
+    }
     if (this.crop) {
       this._cropFile(file);
     } else {

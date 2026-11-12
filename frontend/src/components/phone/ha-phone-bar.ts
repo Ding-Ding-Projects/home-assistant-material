@@ -1,12 +1,19 @@
 import {
+  mdiArrowCollapseDown,
+  mdiArrowCollapseUp,
+  mdiArrowDown,
+  mdiArrowUp,
   mdiChevronLeft,
   mdiChevronRight,
   mdiClose,
+  mdiDotsVertical,
+  mdiDragVertical,
   mdiHome,
   mdiHuman,
   mdiMagnify,
   mdiMenu,
   mdiPin,
+  mdiPinOff,
   mdiPlus,
   mdiTab,
   mdiTabPlus,
@@ -15,16 +22,22 @@ import {
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, query, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { storage } from "../../common/decorators/storage";
+import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
 import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { navigate } from "../../common/navigate";
 import { searchMatcher } from "../../common/regex/filter";
 import type { BulkCloseMode } from "../../common/tabs/bulk-close";
-import { planBulkClose } from "../../common/tabs/bulk-close";
 import type { TabGroupId } from "../../common/tabs/tab-group-search";
 import {
   filterGroupItems,
@@ -51,8 +64,64 @@ import "../ha-svg-icon";
 import "../ha-icon";
 import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
+import type { PhoneActionItem } from "./ha-phone-tab-actions";
+import "./ha-phone-bulk-close";
+import "./ha-phone-tab-actions";
+import type {
+  ActionEntry,
+  ActionReason,
+  CloseKind,
+  HeaderActionId,
+  MoveKind,
+  PageActionId,
+  PhonePage,
+} from "./phone-page-actions";
+import {
+  dropAfter,
+  headerActions,
+  pageActions,
+  planClose,
+  planDrop,
+  planMove,
+} from "./phone-page-actions";
 
 const UNDO_MS = 5000;
+/** Holding a card this long opens its actions. */
+const LONG_PRESS_MS = 500;
+/** Moving further than this cancels a long press. */
+const LONG_PRESS_SLOP_PX = 10;
+
+const PAGE_ACTION_VIEW: Record<PageActionId, [string, string]> = {
+  pin: ["ui.phone.action_pin", mdiPin],
+  unpin: ["ui.phone.action_unpin", mdiPinOff],
+  close: ["ui.phone.action_close", mdiClose],
+  close_others: ["ui.phone.action_close_others", mdiTabRemove],
+  close_above: ["ui.phone.action_close_above", mdiTabRemove],
+  close_below: ["ui.phone.action_close_below", mdiTabRemove],
+  move_up: ["ui.phone.action_move_up", mdiArrowUp],
+  move_down: ["ui.phone.action_move_down", mdiArrowDown],
+  move_top: ["ui.phone.action_move_top", mdiArrowCollapseUp],
+  move_bottom: ["ui.phone.action_move_bottom", mdiArrowCollapseDown],
+};
+
+const HEADER_ACTION_VIEW: Record<HeaderActionId, [string, string]> = {
+  open_every: ["ui.phone.action_open_every", mdiTabPlus],
+  bulk_contain: ["ui.phone.action_bulk_contain", mdiTabRemove],
+  bulk_not_contain: ["ui.phone.action_bulk_not_contain", mdiTabRemove],
+  close_others: ["ui.phone.action_close_others_all", mdiTabRemove],
+};
+
+const REASON_VIEW: Record<ActionReason, string> = {
+  pinned: "ui.phone.reason_pinned",
+  locked: "ui.phone.reason_locked",
+  current: "ui.phone.reason_current",
+  nothing_to_close: "ui.phone.reason_nothing_to_close",
+  at_top: "ui.phone.reason_at_top",
+  at_bottom: "ui.phone.reason_at_bottom",
+};
+
+/** Where focus goes when a panel over the sheet closes. */
+type FocusTarget = { row: string } | "header" | "pages";
 const SWIPE_CLOSE_PX = 96;
 const SWIPE_SWITCH_PX = 48;
 /** The keyboard is up when the visible height drops by more than this. */
@@ -120,9 +189,35 @@ export class HaPhoneBar extends LitElement {
 
   @state() private _dragX = 0;
 
+  /** The page whose actions panel is open. */
+  @state() private _actionsFor?: string;
+
+  /** True while the sheet's header menu is open. */
+  @state() private _headerMenu = false;
+
+  /** Set while the bulk close review is open. */
+  @state() private _bulkMode?: BulkCloseMode;
+
+  /** The page being dragged by its handle, and the drop mark. */
+  @state() private _reorder?: { id: string; to?: string; after?: boolean };
+
+  /** Said out loud by the sheet's live region. */
+  @state() private _live = "";
+
   @query("#sheet") private _sheet?: HTMLElement;
 
+  @queryAll(".handle")
+  private _handles!: NodeListOf<HTMLElement & { urlPath?: string }>;
+
   private _undoTimer?: number;
+
+  private _pressTimer?: number;
+
+  private _pressX = 0;
+
+  private _pressY = 0;
+
+  private _returnFocus: FocusTarget = "pages";
 
   private _lastScrollY = 0;
 
@@ -147,6 +242,7 @@ export class HaPhoneBar extends LitElement {
     this.removeEventListener("focusin", this._handleFocusIn);
     this.removeEventListener("focusout", this._handleFocusOut);
     window.clearTimeout(this._undoTimer);
+    window.clearTimeout(this._pressTimer);
     document.documentElement.style.removeProperty(VISIBLE_HEIGHT_PROPERTY);
   }
 
@@ -227,6 +323,20 @@ export class HaPhoneBar extends LitElement {
   /** Pinned ids are left out: a pinned page is never closed in bulk. */
   private _closable(ids: string[]): string[] {
     return ids.filter((id) => !this._pinned.includes(id));
+  }
+
+  /**
+   * The pages as the actions see them, in the order shown. Seam for locks:
+   * `locked` is false until the tab lock model exists.
+   */
+  private _pages(): PhonePage[] {
+    return this._tabs().map((tab) => ({
+      id: tab.urlPath,
+      title: tab.title,
+      open: !this._closed.includes(tab.urlPath),
+      pinned: this._pinned.includes(tab.urlPath),
+      locked: false,
+    }));
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -353,6 +463,7 @@ export class HaPhoneBar extends LitElement {
                   id === "home" &&
                   current === getDefaultPanelUrlPath(this.hass),
               })}
+              data-item=${id}
               aria-label=${text}
               .run=${run}
               @click=${this._runItem}
@@ -386,16 +497,6 @@ export class HaPhoneBar extends LitElement {
     const listed = (this._catalog ? tabs : open).filter((tab) =>
       matches(tab.title, tab.urlPath)
     );
-    const candidates = tabs.map((tab) => ({
-      id: tab.urlPath,
-      texts: [tab.title, tab.urlPath],
-      open: !closed.has(tab.urlPath),
-      current: tab.urlPath === current || this._pinned.includes(tab.urlPath),
-    }));
-    const filtering = Boolean(this._filter.trim());
-    const matching = planBulkClose(candidates, this._filter, "matching");
-    const rest = planBulkClose(candidates, this._filter, "not_matching");
-    const others = candidates.filter((c) => c.open && !c.current).length;
 
     return html`
       <div
@@ -424,16 +525,14 @@ export class HaPhoneBar extends LitElement {
                   <ha-svg-icon .path=${mdiTabPlus}></ha-svg-icon>
                   ${localize("ui.page_tabs.open_every_tab")}
                 </button>`
-              : filtering
-                ? nothing
-                : html`<button
-                    class="text-button"
-                    ?disabled=${others === 0}
-                    @click=${this._closeOthers}
-                  >
-                    <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-                    ${localize("ui.phone.close_others")}
-                  </button>`
+              : html`<button
+                  class="round header-more"
+                  aria-label=${localize("ui.phone.more_pages")}
+                  aria-haspopup="dialog"
+                  @click=${this._openHeaderMenu}
+                >
+                  <ha-svg-icon .path=${mdiDotsVertical}></ha-svg-icon>
+                </button>`
           }
         </div>
         <ha-input-search
@@ -445,41 +544,7 @@ export class HaPhoneBar extends LitElement {
           .patternSamples=${tabs.map((tab) => tab.title)}
           @input=${this._filterChanged}
         ></ha-input-search>
-        ${
-          filtering && !this._catalog
-            ? html`<div class="bulk">
-                <button
-                  class="text-button"
-                  .mode=${"matching"}
-                  ?disabled=${!matching.ids.length}
-                  @click=${this._bulkClose}
-                >
-                  <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-                  ${localize("ui.page_tabs.bulk_close_matching", {
-                    count: matching.ids.length,
-                  })}
-                </button>
-                <button
-                  class="text-button"
-                  .mode=${"not_matching"}
-                  ?disabled=${!rest.ids.length}
-                  @click=${this._bulkClose}
-                >
-                  <ha-svg-icon .path=${mdiTabRemove}></ha-svg-icon>
-                  ${localize("ui.phone.close_the_rest", {
-                    count: rest.ids.length,
-                  })}
-                </button>
-                ${
-                  matching.blocked === "invalid"
-                    ? html`<span class="note"
-                        >${localize("ui.page_tabs.bulk_invalid")}</span
-                      >`
-                    : nothing
-                }
-              </div>`
-            : nothing
-        }
+        <span class="live" role="status">${this._live}</span>
         <button class="new-tab-row" @click=${this._toggleCatalog}>
           <span class="entry-icon"
             ><ha-svg-icon
@@ -498,17 +563,106 @@ export class HaPhoneBar extends LitElement {
           ${
             this._catalog
               ? this._renderCatalogGroups(listed, closed, matches)
-              : listed.length
-                ? listed.map((tab) =>
-                    this._renderCard(tab, tab.urlPath === current)
-                  )
-                : html`<p class="empty">
-                    ${localize("ui.page_tabs.no_match")}
-                  </p>`
+              : this._renderOpenPages(listed, current)
           }
         </div>
+        ${this._renderOverlay(current)}
       </div>
     `;
+  }
+
+  // The open pages, with the pinned ones in their own group at the top.
+  private _renderOpenPages(
+    listed: PageTab[],
+    current: string | undefined
+  ): TemplateResult {
+    if (!listed.length) {
+      return html`<p class="empty">${this._text("ui.page_tabs.no_match")}</p>`;
+    }
+    const pinned = listed.filter((tab) => this._pinned.includes(tab.urlPath));
+    const rest = listed.filter((tab) => !this._pinned.includes(tab.urlPath));
+    const grid = (tabs: PageTab[]) =>
+      html`<div class="grid">
+        ${tabs.map((tab) => this._renderCard(tab, tab.urlPath === current))}
+      </div>`;
+    if (!pinned.length) {
+      return grid(rest);
+    }
+    return html`
+      <section class="open-group" aria-labelledby="open-pinned">
+        <h3 id="open-pinned" class="group-title">
+          ${this._text("ui.page_tabs.group_pinned")}
+        </h3>
+        ${grid(pinned)}
+      </section>
+      ${
+        rest.length
+          ? html`<section class="open-group" aria-labelledby="open-pages">
+              <h3 id="open-pages" class="group-title">
+                ${this._text("ui.page_tabs.group_pages")}
+              </h3>
+              ${grid(rest)}
+            </section>`
+          : nothing
+      }
+    `;
+  }
+
+  // The panel over the sheet: a page's actions, the header menu or the bulk
+  // close review. At most one is open.
+  private _renderOverlay(current: string | undefined) {
+    const t = this._text;
+    if (this._bulkMode) {
+      return html`<ha-phone-bulk-close
+        .mode=${this._bulkMode}
+        .pages=${this._pages()}
+        .currentId=${current}
+        .text=${t}
+        @phone-bulk-confirm=${this._bulkConfirm}
+        @phone-bulk-dismiss=${this._dismissOverlay}
+      ></ha-phone-bulk-close>`;
+    }
+    const pages = this._pages();
+    if (this._actionsFor) {
+      const page = pages.find((p) => p.id === this._actionsFor);
+      if (!page) {
+        return nothing;
+      }
+      return html`<ha-phone-tab-actions
+        .heading=${t("ui.phone.actions_for", { name: page.title })}
+        .closeLabel=${t("ui.phone.actions_close")}
+        .items=${this._items(
+          pageActions(pages, page.id, current),
+          PAGE_ACTION_VIEW
+        )}
+        @phone-action-select=${this._pageActionSelected}
+        @phone-actions-dismiss=${this._dismissOverlay}
+      ></ha-phone-tab-actions>`;
+    }
+    if (this._headerMenu) {
+      return html`<ha-phone-tab-actions
+        .heading=${t("ui.phone.pages")}
+        .closeLabel=${t("ui.phone.actions_close")}
+        .items=${this._items(headerActions(pages, current), HEADER_ACTION_VIEW)}
+        @phone-action-select=${this._headerActionSelected}
+        @phone-actions-dismiss=${this._dismissOverlay}
+      ></ha-phone-tab-actions>`;
+    }
+    return nothing;
+  }
+
+  private _items<T extends string>(
+    entries: ActionEntry<T>[],
+    view: Record<T, [string, string]>
+  ): PhoneActionItem[] {
+    return entries.map((entry) => ({
+      id: entry.id,
+      label: this._text(view[entry.id][0]),
+      iconPath: view[entry.id][1],
+      enabled: entry.enabled,
+      destructive: entry.destructive,
+      note: entry.reason ? this._text(REASON_VIEW[entry.reason]) : undefined,
+    }));
   }
 
   // The catalog in groups, as on a wide window: pinned pages, pages, settings
@@ -654,9 +808,16 @@ export class HaPhoneBar extends LitElement {
 
   private _renderCard(tab: PageTab, selected: boolean): TemplateResult {
     const pinned = this._pinned.includes(tab.urlPath);
+    const mark = this._reorder?.to === tab.urlPath ? this._reorder : undefined;
     return html`
       <div
-        class=${classMap({ card: true, selected })}
+        class=${classMap({
+          card: true,
+          selected,
+          dragging: this._reorder?.id === tab.urlPath,
+          "drop-before": Boolean(mark) && !mark?.after,
+          "drop-after": Boolean(mark?.after),
+        })}
         style=${styleMap({
           transform:
             this._dragId === tab.urlPath ? `translateX(${this._dragX}px)` : "",
@@ -670,6 +831,7 @@ export class HaPhoneBar extends LitElement {
         @pointermove=${this._moveDrag}
         @pointerup=${this._endCardDrag}
         @pointercancel=${this._cancelDrag}
+        @contextmenu=${this._cardContextMenu}
       >
         <button
           class="card-main"
@@ -692,20 +854,48 @@ export class HaPhoneBar extends LitElement {
               : nothing
           }
         </button>
-        ${
-          pinned
-            ? nothing
-            : html`<button
-                class="card-close"
-                aria-label=${this._text("ui.page_tabs.close_tab", {
-                  name: tab.title,
-                })}
-                .urlPath=${tab.urlPath}
-                @click=${this._closeCard}
-              >
-                <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
-              </button>`
-        }
+        <div class="card-tools">
+          <button
+            class="card-tool handle"
+            aria-label=${this._text("ui.phone.reorder_handle", {
+              name: tab.title,
+            })}
+            aria-keyshortcuts="ArrowUp ArrowDown"
+            .urlPath=${tab.urlPath}
+            @pointerdown=${this._startReorder}
+            @pointermove=${this._moveReorder}
+            @pointerup=${this._endReorder}
+            @pointercancel=${this._cancelReorder}
+            @keydown=${this._handleKeydown}
+          >
+            <ha-svg-icon .path=${mdiDragVertical}></ha-svg-icon>
+          </button>
+          <button
+            class="card-tool more"
+            aria-label=${this._text("ui.phone.more_actions", {
+              name: tab.title,
+            })}
+            aria-haspopup="dialog"
+            .urlPath=${tab.urlPath}
+            @click=${this._openPageActions}
+          >
+            <ha-svg-icon .path=${mdiDotsVertical}></ha-svg-icon>
+          </button>
+          ${
+            pinned
+              ? nothing
+              : html`<button
+                  class="card-tool card-close"
+                  aria-label=${this._text("ui.page_tabs.close_tab", {
+                    name: tab.title,
+                  })}
+                  .urlPath=${tab.urlPath}
+                  @click=${this._closeCard}
+                >
+                  <ha-svg-icon .path=${mdiClose}></ha-svg-icon>
+                </button>`
+          }
+        </div>
       </div>
     `;
   }
@@ -761,6 +951,9 @@ export class HaPhoneBar extends LitElement {
   }
 
   private _sheetToggled(ev: ToggleEvent) {
+    this._closePanels();
+    this._reorder = undefined;
+    this._live = "";
     if (ev.newState === "closed") {
       this._closedAt = Date.now();
       this._catalog = false;
@@ -808,8 +1001,11 @@ export class HaPhoneBar extends LitElement {
     navigate(`/${urlPath}`);
   }
 
+  // Reopens every closed page. The order, the pins and the page you are on
+  // are not touched: only the closed list is cleared.
   private _openEveryTab() {
     this._closed = [];
+    this._live = this._text("ui.phone.opened_all");
   }
 
   private _titleOf(urlPath: string) {
@@ -818,20 +1014,36 @@ export class HaPhoneBar extends LitElement {
     );
   }
 
-  private _closeIds(requested: string[], name: string) {
-    const ids = this._closable(requested);
+  /** Closes the pages and returns how many actually closed. */
+  private _closeIds(requested: string[], name: string): number {
+    const ids = this._closable(requested).filter(
+      (id) => !this._closed.includes(id)
+    );
     if (!ids.length) {
-      return;
+      return 0;
     }
-    this._closed = [
-      ...this._closed,
-      ...ids.filter((id) => !this._closed.includes(id)),
-    ];
+    this._closed = [...this._closed, ...ids];
     this._undo = { ids, name };
     window.clearTimeout(this._undoTimer);
     this._undoTimer = window.setTimeout(() => {
       this._undo = undefined;
     }, UNDO_MS);
+    return ids.length;
+  }
+
+  // Closes what a plan lists and says how many closed out of how many were
+  // planned, and how many were kept.
+  private _closeByPlan(ids: string[], kept: number, planned = ids.length) {
+    const closed = this._closeIds(ids, this._countName(ids));
+    const parts = [
+      planned
+        ? this._text("ui.phone.bulk_report", { closed, planned })
+        : this._text("ui.phone.nothing_closed"),
+    ];
+    if (kept) {
+      parts.push(this._text("ui.phone.kept_report", { count: kept }));
+    }
+    this._live = parts.join(" ");
   }
 
   private _undoClose() {
@@ -863,26 +1075,168 @@ export class HaPhoneBar extends LitElement {
         .map((tab) => tab.urlPath)
         .filter((id) => !this._closed.includes(id) && id !== this.hass.panelUrl)
     );
-    this._closeIds(ids, this._countName(ids));
+    this._closeByPlan(ids, 0);
   }
 
-  private _bulkClose(ev: Event) {
-    const mode = (ev.currentTarget as HTMLElement & { mode: BulkCloseMode })
-      .mode;
-    const { ids } = planBulkClose(
-      this._tabs().map((tab) => ({
-        id: tab.urlPath,
-        texts: [tab.title, tab.urlPath],
-        open: !this._closed.includes(tab.urlPath),
-        current:
-          tab.urlPath === this.hass.panelUrl ||
-          this._pinned.includes(tab.urlPath),
-      })),
-      this._filter,
-      mode
+  // The review step confirmed. A page that became pinned or the current page
+  // since the review opened is dropped, and the report says how many closed
+  // out of how many were planned.
+  private _bulkConfirm(
+    ev: HASSDomEvent<{ ids: string[]; planned: number; kept: number }>
+  ) {
+    const pinned = new Set(this._pinned);
+    const ids = ev.detail.ids.filter(
+      (id) => !pinned.has(id) && id !== this.hass.panelUrl
     );
-    this._closeIds(ids, this._countName(ids));
-    this._filter = "";
+    this._closeByPlan(ids, ev.detail.kept, ev.detail.planned);
+    this._finishPanel();
+  }
+
+  private _openHeaderMenu() {
+    this._returnFocus = "header";
+    this._actionsFor = undefined;
+    this._bulkMode = undefined;
+    this._headerMenu = true;
+  }
+
+  private _showPageActions(id: string, returnTo: FocusTarget) {
+    this._returnFocus = returnTo;
+    this._headerMenu = false;
+    this._bulkMode = undefined;
+    this._actionsFor = id;
+  }
+
+  private _openPageActions(ev: Event) {
+    ev.stopPropagation();
+    const id = (ev.currentTarget as HTMLElement & { urlPath: string }).urlPath;
+    this._showPageActions(id, { row: id });
+  }
+
+  // A right click, the menu key and a long press on a touch screen.
+  private _cardContextMenu(ev: Event) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const id = (ev.currentTarget as HTMLElement & { urlPath: string }).urlPath;
+    this._showPageActions(id, { row: id });
+  }
+
+  private _closePanels() {
+    this._actionsFor = undefined;
+    this._headerMenu = false;
+    this._bulkMode = undefined;
+  }
+
+  private _dismissOverlay() {
+    this._finishPanel();
+  }
+
+  // Closes whatever is open over the sheet and puts focus back where the
+  // person came from: the row, the header menu button or the Pages button.
+  private async _finishPanel() {
+    const target = this._returnFocus;
+    this._closePanels();
+    await this.updateComplete;
+    const root = this.shadowRoot;
+    if (!root) {
+      return;
+    }
+    let element: HTMLElement | null | undefined;
+    if (typeof target === "object") {
+      element = Array.from(
+        root.querySelectorAll<HTMLElement & { urlPath?: string }>(".more")
+      ).find((el) => el.urlPath === target.row);
+    } else if (target === "header") {
+      element = root.querySelector<HTMLElement>(".header-more");
+    }
+    (
+      element ?? root.querySelector<HTMLElement>('.item[data-item="pages"]')
+    )?.focus();
+  }
+
+  private _pageActionSelected(ev: HASSDomEvent<{ id: string }>) {
+    const id = this._actionsFor;
+    if (id) {
+      this._runPageAction(id, ev.detail.id as PageActionId);
+    }
+    this._finishPanel();
+  }
+
+  private _runPageAction(id: string, action: PageActionId) {
+    const pages = this._pages();
+    const current = this.hass.panelUrl;
+    const title = pages.find((page) => page.id === id)?.title ?? id;
+    const closeKinds: Partial<Record<PageActionId, CloseKind>> = {
+      close: "close",
+      close_others: "others",
+      close_above: "above",
+      close_below: "below",
+    };
+    const moveKinds: Partial<Record<PageActionId, MoveKind>> = {
+      move_up: "up",
+      move_down: "down",
+      move_top: "top",
+      move_bottom: "bottom",
+    };
+    const closeKind = closeKinds[action];
+    const moveKind = moveKinds[action];
+    if (action === "pin" || action === "unpin") {
+      this._togglePin(id, title);
+    } else if (closeKind) {
+      const plan = planClose(pages, id, closeKind, current);
+      this._closeByPlan(plan.ids, plan.kept.length);
+    } else if (moveKind) {
+      this._applyMove(id, moveKind);
+    }
+  }
+
+  // Pinning saves the shown order first, so the page keeps its place within
+  // its new group, exactly as the tab bar does.
+  private _togglePin(id: string, title: string) {
+    const pinned = this._pinned.includes(id);
+    this._order = this._tabs().map((tab) => tab.urlPath);
+    this._pinned = pinned
+      ? this._pinned.filter((p) => p !== id)
+      : [...this._pinned, id];
+    this._live = this._text(
+      pinned ? "ui.page_tabs.unpinned" : "ui.page_tabs.pinned",
+      { name: title }
+    );
+  }
+
+  private _applyMove(id: string, kind: MoveKind) {
+    const pages = this._pages();
+    const title = pages.find((page) => page.id === id)?.title ?? id;
+    const plan = planMove(pages, id, kind);
+    if (plan.blocked) {
+      this._live = this._text(REASON_VIEW[plan.blocked]);
+      return;
+    }
+    if (!plan.order) {
+      return;
+    }
+    this._order = plan.order;
+    this._live = this._text("ui.page_tabs.moved", {
+      name: title,
+      position: plan.position ?? 0,
+      total: plan.total ?? 0,
+    });
+  }
+
+  private _headerActionSelected(ev: HASSDomEvent<{ id: string }>) {
+    const action = ev.detail.id as HeaderActionId;
+    if (action === "bulk_contain" || action === "bulk_not_contain") {
+      // The review replaces the menu; focus returns to the menu button when
+      // it closes.
+      this._headerMenu = false;
+      this._bulkMode = action === "bulk_contain" ? "matching" : "not_matching";
+      return;
+    }
+    if (action === "open_every") {
+      this._openEveryTab();
+    } else if (action === "close_others") {
+      this._closeOthers();
+    }
+    this._finishPanel();
   }
 
   // The previous or next open page, in the order of the tab bar.
@@ -911,13 +1265,39 @@ export class HaPhoneBar extends LitElement {
 
   private _startCardDrag(ev: PointerEvent) {
     this._dragStartX = ev.clientX;
-    this._dragId = (
-      ev.currentTarget as HTMLElement & { urlPath: string }
-    ).urlPath;
+    const id = (ev.currentTarget as HTMLElement & { urlPath: string }).urlPath;
+    this._dragId = id;
     this._dragX = 0;
+    // Holding the card opens its actions, as a long press does elsewhere.
+    this._pressX = ev.clientX;
+    this._pressY = ev.clientY;
+    window.clearTimeout(this._pressTimer);
+    this._pressTimer = window.setTimeout(
+      () => this._longPress(id),
+      LONG_PRESS_MS
+    );
+  }
+
+  private _longPress(id: string) {
+    this._pressTimer = undefined;
+    this._cancelDrag();
+    // The lift of the finger that opened the panel is not a tap on the card.
+    this._swallowClick = true;
+    window.setTimeout(() => {
+      this._swallowClick = false;
+    }, 400);
+    this._showPageActions(id, { row: id });
   }
 
   private _moveDrag(ev: PointerEvent) {
+    if (
+      this._pressTimer !== undefined &&
+      Math.hypot(ev.clientX - this._pressX, ev.clientY - this._pressY) >
+        LONG_PRESS_SLOP_PX
+    ) {
+      window.clearTimeout(this._pressTimer);
+      this._pressTimer = undefined;
+    }
     if (!this._dragId) {
       return;
     }
@@ -925,8 +1305,104 @@ export class HaPhoneBar extends LitElement {
   }
 
   private _cancelDrag() {
+    window.clearTimeout(this._pressTimer);
+    this._pressTimer = undefined;
     this._dragId = undefined;
     this._dragX = 0;
+  }
+
+  // Reorder by the drag handle. The handle captures the pointer, the card
+  // under the finger shows a drop mark, and lifting the finger moves the page
+  // there. Pinned pages move among pinned pages only.
+  private _startReorder(ev: PointerEvent) {
+    ev.stopPropagation();
+    const handle = ev.currentTarget as HTMLElement & { urlPath: string };
+    handle.setPointerCapture(ev.pointerId);
+    window.clearTimeout(this._pressTimer);
+    this._pressTimer = undefined;
+    this._cancelDrag();
+    this._reorder = { id: handle.urlPath };
+  }
+
+  private _moveReorder(ev: PointerEvent) {
+    if (!this._reorder) {
+      return;
+    }
+    ev.stopPropagation();
+    const hit = this.shadowRoot
+      ?.elementFromPoint(ev.clientX, ev.clientY)
+      ?.closest<HTMLElement & { urlPath?: string }>(".card");
+    const to = hit?.urlPath;
+    if (!hit || !to || to === this._reorder.id) {
+      this._reorder = { id: this._reorder.id };
+      return;
+    }
+    const rect = hit.getBoundingClientRect();
+    const grid = hit.parentElement;
+    const singleColumn = !grid || rect.width > grid.clientWidth * 0.7;
+    this._reorder = {
+      id: this._reorder.id,
+      to,
+      after: dropAfter(
+        { x: ev.clientX, y: ev.clientY },
+        rect,
+        singleColumn,
+        getComputedStyle(this).direction === "rtl"
+      ),
+    };
+  }
+
+  private _endReorder(ev: PointerEvent) {
+    const reorder = this._reorder;
+    this._reorder = undefined;
+    ev.stopPropagation();
+    if (!reorder?.to) {
+      return;
+    }
+    const pages = this._pages();
+    const plan = planDrop(
+      pages,
+      reorder.id,
+      reorder.to,
+      Boolean(reorder.after)
+    );
+    const title = pages.find((page) => page.id === reorder.id)?.title ?? "";
+    if (plan.blocked) {
+      this._live = this._text("ui.page_tabs.move_blocked", { name: title });
+      return;
+    }
+    if (plan.order) {
+      this._order = plan.order;
+      const open = plan.order.filter((id) =>
+        pages.some((page) => page.id === id && page.open)
+      );
+      this._live = this._text("ui.page_tabs.moved", {
+        name: title,
+        position: open.indexOf(reorder.id) + 1,
+        total: open.length,
+      });
+    }
+  }
+
+  private _cancelReorder() {
+    this._reorder = undefined;
+  }
+
+  // Up and Down on the handle move the page one place, for keyboards and
+  // switch devices. Focus stays on the page's own handle afterwards.
+  private async _handleKeydown(ev: KeyboardEvent) {
+    const kind: MoveKind | undefined =
+      ev.key === "ArrowUp" ? "up" : ev.key === "ArrowDown" ? "down" : undefined;
+    if (!kind || ev.ctrlKey || ev.altKey || ev.metaKey) {
+      return;
+    }
+    ev.preventDefault();
+    const id = (ev.currentTarget as HTMLElement & { urlPath: string }).urlPath;
+    this._applyMove(id, kind);
+    await this.updateComplete;
+    Array.from(this._handles)
+      .find((el) => el.urlPath === id)
+      ?.focus();
   }
 
   private _endTopDrag() {
@@ -1208,10 +1684,13 @@ export class HaPhoneBar extends LitElement {
       --ha-input-search-height: 48px;
       --ha-input-search-border-radius: var(--ha-border-radius-pill);
     }
-    .bulk {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--ha-space-2);
+    .live {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
     .note {
       font-size: var(--ha-font-size-s);
@@ -1270,11 +1749,20 @@ export class HaPhoneBar extends LitElement {
       flex-shrink: 0;
     }
     .list.cards {
+      gap: var(--ha-space-3);
+    }
+    .open-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+    }
+    .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: var(--ha-space-2);
     }
     .card {
+      position: relative;
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-1);
@@ -1288,6 +1776,25 @@ export class HaPhoneBar extends LitElement {
     }
     .card.selected {
       border-color: var(--primary-text-color);
+    }
+    .card.dragging {
+      opacity: 0.5;
+    }
+    /* The drop mark: a bar on the side of the card the page lands on. */
+    .card.drop-before::before,
+    .card.drop-after::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      width: 4px;
+      border-radius: 2px;
+      background-color: var(--primary-color);
+    }
+    .card.drop-before::before {
+      inset-inline-start: 2px;
+    }
+    .card.drop-after::after {
+      inset-inline-end: 2px;
     }
     .card-main {
       display: flex;
@@ -1303,8 +1810,14 @@ export class HaPhoneBar extends LitElement {
       color: var(--secondary-text-color);
       --mdc-icon-size: 18px;
     }
-    .card-close {
-      align-self: flex-end;
+    .card-tools {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0;
+      min-width: 0;
+    }
+    .card-tool {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1312,6 +1825,14 @@ export class HaPhoneBar extends LitElement {
       height: 44px;
       border-radius: var(--ha-border-radius-circle);
       color: var(--secondary-text-color);
+    }
+    .handle {
+      touch-action: none;
+      cursor: grab;
+      margin-inline-end: auto;
+    }
+    .header-more {
+      margin-inline-start: auto;
     }
     .group {
       display: flex;
@@ -1358,9 +1879,23 @@ export class HaPhoneBar extends LitElement {
         transition: none;
       }
     }
-    @media (max-width: 340px) {
-      .list.cards {
+    /* One column below 400 px, so three 44 px tools fit a card at 320 px. */
+    @media (max-width: 400px) {
+      .grid {
         grid-template-columns: minmax(0, 1fr);
+      }
+      .card.drop-before::before,
+      .card.drop-after::after {
+        inset-block: auto;
+        inset-inline: 0;
+        width: auto;
+        height: 4px;
+      }
+      .card.drop-before::before {
+        inset-block-start: 2px;
+      }
+      .card.drop-after::after {
+        inset-block-end: 2px;
       }
     }
   `;

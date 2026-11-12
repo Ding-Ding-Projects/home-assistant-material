@@ -1,6 +1,8 @@
 import type { LocalizeFunc } from "../common/translations/localize";
 import { timeCacheEntityPromiseFunc } from "../common/util/time-cache-entity-promise-func";
 import type { HomeAssistant } from "../types";
+import type { UploadProgressOptions } from "../util/upload-with-progress";
+import { postFormWithProgress } from "../util/upload-with-progress";
 import type { MediaPlayerItem, SearchMediaResult } from "./media-player";
 
 export interface ResolvedMediaSource {
@@ -81,7 +83,8 @@ export const uploadLocalMedia = async (
   fetchWithAuth: HomeAssistant["fetchWithAuth"],
   localize: LocalizeFunc,
   media_content_id: string,
-  file: File
+  file: File,
+  signal?: AbortSignal
 ) => {
   const fd = new FormData();
   fd.append("media_content_id", media_content_id);
@@ -89,6 +92,7 @@ export const uploadLocalMedia = async (
   const resp = await fetchWithAuth("/api/media_source/local_source/upload", {
     method: "POST",
     body: fd,
+    signal,
   });
   if (resp.status === 413) {
     throw new Error(
@@ -100,6 +104,32 @@ export const uploadLocalMedia = async (
     throw new Error(localize("ui.common.unknown_error"));
   }
   return resp.json();
+};
+
+export const uploadLocalMediaWithProgress = async (
+  hass: Pick<HomeAssistant, "auth">,
+  localize: LocalizeFunc,
+  media_content_id: string,
+  file: File,
+  options: UploadProgressOptions = {}
+) => {
+  const fd = new FormData();
+  fd.append("media_content_id", media_content_id);
+  fd.append("file", file);
+  const resp = await postFormWithProgress(
+    hass,
+    "/api/media_source/local_source/upload",
+    fd,
+    options
+  );
+  if (resp.status === 413) {
+    throw new Error(
+      localize("ui.common.upload_file_too_large", { name: file.name })
+    );
+  } else if (resp.status !== 200) {
+    throw new Error(localize("ui.common.unknown_error"));
+  }
+  return JSON.parse(resp.body);
 };
 
 export const removeLocalMedia = async (

@@ -43,6 +43,7 @@ import {
 import { getActionType, type Action } from "../../../data/script";
 import { showEditorToast } from "./editor-toast";
 import "./ha-automation-status-bar";
+import "./search/ha-automation-search-bar";
 import "./action/ha-automation-action";
 import type HaAutomationAction from "./action/ha-automation-action";
 import "./condition/ha-automation-condition";
@@ -171,6 +172,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
             ></ha-starting-points>`
           : nothing
       }
+      <ha-automation-search-bar .hass=${this.hass}></ha-automation-search-bar>
       <section class="section">
         <div class="header">
           <h2 id="triggers-heading" class="name">

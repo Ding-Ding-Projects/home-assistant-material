@@ -8,6 +8,35 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-11
 
+- New: tab options. The tab strip can be docked to the left, right, top or bottom (a new
+  installation starts on the left; an existing one stays at the top until changed). Tabs can be
+  pinned, grouped (name, colour, look, collapse, lock), given their own look, locked, moved and
+  closed in bulk with a preview of what closes and what is protected. An overflow button lists
+  tabs that do not fit. There are four separate searches, each with the pattern builder: this
+  strip, inside a group, group names, and every open tab (Alt+Shift+F). A tab has its own
+  right-click menu, also on the menu key and on a long press.
+- New: the tabs of a settings section are real tabs with arrow-key movement, a "More tabs" list
+  when they do not fit, pin, hide, reorder and "Open every tab", saved per section. On a phone,
+  the Pages sheet has per-page actions, a pinned group, drag reordering and bulk close with a
+  preview.
+- New: installing an app from the app store shows a progress bar with its steps and a log
+  terminal (follow, pause, search with the pattern builder, level filter, copy, export). The store
+  card and the activity tray show the same progress, and it is still there after leaving the
+  page. Seen in a running full-mode instance at phone and desktop width. The Supervisor reports
+  a percentage only, so no layer list is shown.
+- New: a picture, video or audio file can be dropped on any page. An overlay offers Media or
+  Images, the upload shows in the activity tray, and a message offers to open where the files
+  went. Pages with their own drop area keep it; same-name files are skipped, never replaced; only
+  an administrator can add media. Seen in a local build with simulated drags.
+- New: when a repair fails, the repair dialog says so, and says separately when the failed repair
+  left new issues behind.
+- Changed: in "full" hosting mode the checks that can never pass inside a container (no operating
+  system, no systemd, no NetworkManager, no AppArmor and so on) are no longer reported as
+  "Unsupported system" repairs; every other check still runs. Seen on a throwaway instance: nine
+  reasons before, none after. An existing instance needs the new outer image and Supervisor. The
+  unsupported-installation dialog explains each reason in one sentence and has no outside links.
+- Deploy Assistant: with a wording file in use, a new deployment's container and Compose project
+  are named with the file's word for that kind of deployment.
 - Fixed: in build 122 every toast message was pushed sideways and upward, so its buttons were off
   the screen on a phone. Build 122 should be skipped. Seen fixed in a local build: one toast and a
   stack of three sit centred above the bottom bar at 390, 320 and 1440 px.

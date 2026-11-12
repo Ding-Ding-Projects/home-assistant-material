@@ -4,6 +4,7 @@ import {
   mdiReload,
   mdiServerNetwork,
   mdiStorePlus,
+  mdiUpload,
 } from "@mdi/js";
 import { componentsWithService } from "../common/config/components_with_service";
 import {
@@ -283,9 +284,27 @@ const generateServerControlCommands = (
   });
 };
 
+const generateMediaCommands = (
+  hass: HomeAssistant
+): ActionCommandComboBoxItem[] => {
+  const primary = hass.localize("ui.drop_upload.add_media");
+  const secondary = hass.localize("ui.drop_upload.add_media_command_type");
+  return [
+    {
+      id: "add_media",
+      primary,
+      icon_path: mdiUpload,
+      secondary,
+      sorting_label: `${primary}_${secondary}`,
+      action: "add_media",
+    },
+  ];
+};
+
 export const generateActionCommands = (
   hass: HomeAssistant
 ): ActionCommandComboBoxItem[] => [
+  ...generateMediaCommands(hass),
   ...generateReloadCommands(hass),
   ...generateServerControlCommands(hass),
 ];

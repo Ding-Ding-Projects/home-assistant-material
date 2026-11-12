@@ -231,6 +231,24 @@ type MenuSource = "pointer" | "keyboard" | "touch";
 const HOLDS_ITSELF = new Set(["ha-page-tool-panel", "ha-dialog-tools"]);
 
 /**
+ * Whether an event came from the tab strip. The strip has its own tab menu
+ * (`ha-page-tab-menu`), which also opens the tab appearance editor on
+ * Shift+right-click, so this menu leaves those events alone.
+ */
+const inTabStrip = (path: EventTarget[]): boolean =>
+  path.some(
+    (node) => node instanceof HTMLElement && node.localName === "ha-page-tabs"
+  ) &&
+  path.some(
+    (node) =>
+      node instanceof HTMLElement &&
+      (node.getAttribute("role") === "tab" ||
+        node.getAttribute("role") === "tablist" ||
+        node.classList.contains("tabs") ||
+        node.classList.contains("tablist"))
+  );
+
+/**
  * Appearance tools for every element.
  *
  * - Right-click, long press, the menu key or Shift+F10 on anything opens a
@@ -550,7 +568,7 @@ export class HaAppearanceTools extends LitElement {
 
   private _contextMenu = (ev: MouseEvent) => {
     const path = ev.composedPath();
-    if (this._isOwn(path)) {
+    if (this._isOwn(path) || inTabStrip(path)) {
       return;
     }
     const target = path.find(
@@ -641,7 +659,7 @@ export class HaAppearanceTools extends LitElement {
     this._cancelHold();
     this._holdOpened = false;
     const path = ev.composedPath();
-    if (ev.touches.length !== 1 || this._isOwn(path)) {
+    if (ev.touches.length !== 1 || this._isOwn(path) || inTabStrip(path)) {
       return;
     }
     const target = path.find(
@@ -1286,6 +1304,9 @@ export class HaAppearanceTools extends LitElement {
     }
     // The menu key and Shift+F10 open the menu for the focused element.
     if (ev.key === "ContextMenu" || (ev.key === "F10" && ev.shiftKey)) {
+      if (inTabStrip(ev.composedPath())) {
+        return;
+      }
       const active = this._deepActiveElement();
       if (
         !active ||

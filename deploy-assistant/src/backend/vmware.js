@@ -3,14 +3,14 @@
 // It joins VMware's NAT network; the app reads its address from VMware Tools and gives that link.
 const fs = require('node:fs');
 const path = require('node:path');
-const { run, findProgram, waitForHttp, stamp } = require('./util');
+const { run, findProgram, waitForHttp, stamp, unitName } = require('./util');
 const { fetchImage } = require('./images');
 
 const DIRS = ['C:\\Program Files (x86)\\VMware\\VMware Workstation', 'C:\\Program Files\\VMware\\VMware Workstation', 'C:\\Program Files (x86)\\VMware\\VMware Workstation\\OVFTool', 'C:\\Program Files\\VMware\\VMware Workstation\\OVFTool', '/usr/bin', '/usr/lib/vmware-ovftool', '/Applications/VMware Fusion.app/Contents/Library', '/Applications/VMware Fusion.app/Contents/Library/VMware OVF Tool'];
 const vmrun = () => findProgram(['vmrun'], DIRS);
 const ovftool = () => findProgram(['ovftool'], DIRS);
 const kind = () => (process.platform === 'darwin' ? 'fusion' : 'ws');
-const vmx = (inst) => path.join(inst.dir, 'ham-' + inst.slug, 'ham-' + inst.slug + '.vmx');
+const vmx = (inst) => path.join(inst.dir, unitName(inst), unitName(inst) + '.vmx');
 const R = (args, opts) => { const b = vmrun(); if (!b) return Promise.resolve({ code: -1, out: '', err: 'VMware is not installed.' }); return run(b, ['-T', kind()].concat(args), opts); };
 
 async function check() {
@@ -33,7 +33,7 @@ async function deploy(inst, log, step, ctx) {
   const img = await fetchImage(/^haos_ova-.*\.ova$/, ctx.cacheDir, log, (f) => step('image', 'Downloading the operating system image', f));
   step('config', 'Creating the virtual machine');
   fs.mkdirSync(inst.dir, { recursive: true });
-  await must(run(ovftool(), ['--acceptAllEulas', '--skipManifestCheck', '--name=ham-' + inst.slug, '--allowExtraConfig', img.file, inst.dir], { onLine: log, timeout: 30 * 60000 }), 'Importing the image');
+  await must(run(ovftool(), ['--acceptAllEulas', '--skipManifestCheck', '--name=' + unitName(inst), '--allowExtraConfig', img.file, inst.dir], { onLine: log, timeout: 30 * 60000 }), 'Importing the image');
   let text = fs.readFileSync(vmx(inst), 'utf8');
   const set = (k, v) => { const re = new RegExp('^' + k.replace(/\./g, '\\.') + '\\s*=.*$', 'm'); text = re.test(text) ? text.replace(re, k + ' = "' + v + '"') : text + '\n' + k + ' = "' + v + '"'; };
   set('memsize', String(inst.memoryMb || 4096));

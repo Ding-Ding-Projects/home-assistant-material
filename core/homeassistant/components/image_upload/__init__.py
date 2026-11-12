@@ -28,7 +28,7 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_KEY = "image"
 STORAGE_VERSION = 1
 VALID_SIZES = {256, 512}
-MAX_SIZE = 1024 * 1024 * 10
+MAX_SIZE = 1024 * 1024 * 50
 
 CREATE_FIELDS: VolDictType = {
     probatio.Required("file"): FileField,
@@ -109,6 +109,8 @@ class ImageStorageCollection(collection.DictStorageCollection):
             image = Image.open(uploaded_file.file)
         except UnidentifiedImageError as err:
             raise probatio.Invalid("Unable to identify image file") from err
+        except Image.DecompressionBombError as err:
+            raise probatio.Invalid("Image has too many pixels") from err
 
         # Reset content
         uploaded_file.file.seek(0)

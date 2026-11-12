@@ -23,6 +23,8 @@ export type LocalizeKeys =
   | `ui.dialogs.quick-bar.commands.${string}`
   | `ui.dialogs.unhealthy.reasons.${string}`
   | `ui.dialogs.unsupported.reasons.${string}`
+  | `ui.dialogs.unsupported.reason_notes.${string}`
+  | `ui.drop_upload.convert_reason.${string}`
   | `ui.panel.config.${string}.${"caption" | "description"}`
   | `ui.panel.config.dashboard.${string}`
   | `ui.panel.config.mqtt.${string}`

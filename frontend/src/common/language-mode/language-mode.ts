@@ -24,9 +24,11 @@ export const YUE_PREFIXES = [
   "ui.phone.",
   "ui.locks.",
   "ui.personal_wording.",
+  "ui.drop_upload.",
   "ui.personal_prefs.",
   "ui.page_tabs.",
   "ui.dialogs.quick-bar.",
+  "ui.components.section_tabs.",
   "ui.components.setting_info.",
   "ui.common.color_palette.",
   "ui.panel.config.core.section.core.general_help.",
@@ -38,6 +40,7 @@ export const YUE_PREFIXES = [
   "ui.notification_toast.more_waiting",
   "ui.instance_sync.",
   "ui.activity.",
+  "ui.app_job.",
   "ui.panel.config.identity.",
   "ui.panel.profile.authenticator.",
   "ui.panel.lovelace.import_export.summary.",
@@ -56,6 +59,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.google_setup.nest_client_",
   "ui.panel.config.guided_setup.save_close",
   "ui.panel.config.guided_setup.leave_text",
+  "ui.panel.config.automation.editor.search.",
 ] as const;
 
 export type Localize = (

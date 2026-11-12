@@ -471,6 +471,9 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
           align-items: center;
           gap: var(--ha-space-2);
           padding: var(--ha-space-6) var(--ha-space-8) var(--ha-space-3);
+          padding-inline-end: calc(
+            var(--ha-space-8) + var(--safe-area-inset-right, 0px)
+          );
           color: var(--sidebar-icon-color);
         }
         :host([narrow]) header {

@@ -15,19 +15,12 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { regexRanges, searchMatcher } from "../common/regex/filter";
+import { parseAnsiSegments } from "../common/string/ansi-segments";
+import { ansiStyles } from "../resources/ansi-styles";
 import "./ha-button";
 import "./ha-svg-icon";
 
 const LINE_TIMESTAMP = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/;
-
-interface State {
-  bold: boolean;
-  italic: boolean;
-  underline: boolean;
-  strikethrough: boolean;
-  foregroundColor: null | string;
-  backgroundColor: null | string;
-}
 
 @customElement("ha-ansi-to-html")
 export class HaAnsiToHtml extends LitElement {
@@ -81,88 +74,30 @@ export class HaAnsiToHtml extends LitElement {
     }
   }
 
-  static styles = css`
-    pre {
-      margin: 0;
-    }
-    pre.wrap {
-      white-space: pre-wrap;
-      overflow-wrap: break-word;
-    }
-    .context {
-      color: var(--secondary-text-color);
-    }
-    .expand {
-      display: block;
-      margin: var(--ha-space-1) 0;
-      font-family: var(--ha-font-family-body);
-      white-space: normal;
-    }
-    .bold {
-      font-weight: var(--ha-font-weight-bold);
-    }
-    .italic {
-      font-style: italic;
-    }
-    .underline {
-      text-decoration: underline;
-    }
-    .strikethrough {
-      text-decoration: line-through;
-    }
-    .underline.strikethrough {
-      text-decoration: underline line-through;
-    }
-    .fg-red {
-      color: var(--error-color);
-    }
-    .fg-green {
-      color: var(--success-color);
-    }
-    .fg-yellow {
-      color: var(--warning-color);
-    }
-    .fg-blue {
-      color: var(--info-color);
-    }
-    .fg-magenta {
-      color: rgb(118, 38, 113);
-    }
-    .fg-cyan {
-      color: rgb(44, 181, 233);
-    }
-    .fg-white {
-      color: rgb(204, 204, 204);
-    }
-    .bg-black {
-      background-color: rgb(0, 0, 0);
-    }
-    .bg-red {
-      background-color: var(--error-color);
-    }
-    .bg-green {
-      background-color: var(--success-color);
-    }
-    .bg-yellow {
-      background-color: var(--warning-color);
-    }
-    .bg-blue {
-      background-color: var(--info-color);
-    }
-    .bg-magenta {
-      background-color: rgb(118, 38, 113);
-    }
-    .bg-cyan {
-      background-color: rgb(44, 181, 233);
-    }
-    .bg-white {
-      background-color: rgb(204, 204, 204);
-    }
-
-    ::highlight(search-results) {
-      background-color: var(--ha-color-fill-primary-normal-resting);
-    }
-  `;
+  static styles = [
+    ansiStyles,
+    css`
+      pre {
+        margin: 0;
+      }
+      pre.wrap {
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
+      .context {
+        color: var(--secondary-text-color);
+      }
+      .expand {
+        display: block;
+        margin: var(--ha-space-1) 0;
+        font-family: var(--ha-font-family-body);
+        white-space: normal;
+      }
+      ::highlight(search-results) {
+        background-color: var(--ha-color-fill-primary-normal-resting);
+      }
+    `,
+  ];
 
   /**
    * add new lines to the log
@@ -192,157 +127,12 @@ export class HaAnsiToHtml extends LitElement {
   private _addLine(line: string, top: boolean) {
     const lineDiv = document.createElement("div");
 
-    // eslint-disable-next-line no-control-regex
-    const re = /\x1b(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1b\\))/g;
-    let i = 0;
-
-    const state: State = {
-      bold: false,
-      italic: false,
-      underline: false,
-      strikethrough: false,
-      foregroundColor: null,
-      backgroundColor: null,
-    };
-
-    const addPart = (content) => {
+    parseAnsiSegments(line).forEach((segment) => {
       const span = document.createElement("span");
-      if (state.bold) {
-        span.classList.add("bold");
-      }
-      if (state.italic) {
-        span.classList.add("italic");
-      }
-      if (state.underline) {
-        span.classList.add("underline");
-      }
-      if (state.strikethrough) {
-        span.classList.add("strikethrough");
-      }
-      if (state.foregroundColor !== null) {
-        span.classList.add(`fg-${state.foregroundColor}`);
-      }
-      if (state.backgroundColor !== null) {
-        span.classList.add(`bg-${state.backgroundColor}`);
-      }
-      span.appendChild(document.createTextNode(content));
+      segment.classes.forEach((name) => span.classList.add(name));
+      span.appendChild(document.createTextNode(segment.text));
       lineDiv.appendChild(span);
-    };
-
-    let match;
-
-    while ((match = re.exec(line)) !== null) {
-      const j = match!.index;
-      const substring = line.substring(i, j);
-      if (substring) {
-        addPart(substring);
-      }
-      i = j + match[0].length;
-
-      if (match[1] === undefined) {
-        continue;
-      }
-
-      match[1].split(";").forEach((colorCode: string) => {
-        switch (parseInt(colorCode, 10)) {
-          case 0:
-            // reset
-            state.bold = false;
-            state.italic = false;
-            state.underline = false;
-            state.strikethrough = false;
-            state.foregroundColor = null;
-            state.backgroundColor = null;
-            break;
-          case 1:
-            state.bold = true;
-            break;
-          case 3:
-            state.italic = true;
-            break;
-          case 4:
-            state.underline = true;
-            break;
-          case 9:
-            state.strikethrough = true;
-            break;
-          case 22:
-            state.bold = false;
-            break;
-          case 23:
-            state.italic = false;
-            break;
-          case 24:
-            state.underline = false;
-            break;
-          case 29:
-            state.strikethrough = false;
-            break;
-          case 30:
-            // foreground black
-            state.foregroundColor = null;
-            break;
-          case 31:
-            state.foregroundColor = "red";
-            break;
-          case 32:
-            state.foregroundColor = "green";
-            break;
-          case 33:
-            state.foregroundColor = "yellow";
-            break;
-          case 34:
-            state.foregroundColor = "blue";
-            break;
-          case 35:
-            state.foregroundColor = "magenta";
-            break;
-          case 36:
-            state.foregroundColor = "cyan";
-            break;
-          case 37:
-            state.foregroundColor = "white";
-            break;
-          case 39:
-            // foreground reset
-            state.foregroundColor = null;
-            break;
-          case 40:
-            state.backgroundColor = "black";
-            break;
-          case 41:
-            state.backgroundColor = "red";
-            break;
-          case 42:
-            state.backgroundColor = "green";
-            break;
-          case 43:
-            state.backgroundColor = "yellow";
-            break;
-          case 44:
-            state.backgroundColor = "blue";
-            break;
-          case 45:
-            state.backgroundColor = "magenta";
-            break;
-          case 46:
-            state.backgroundColor = "cyan";
-            break;
-          case 47:
-            state.backgroundColor = "white";
-            break;
-          case 49:
-            // background reset
-            state.backgroundColor = null;
-            break;
-        }
-      });
-    }
-
-    const substring = line.substring(i);
-    if (substring) {
-      addPart(substring);
-    }
+    });
 
     if (top) {
       this._pre?.prepend(lineDiv);

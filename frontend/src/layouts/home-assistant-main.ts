@@ -3,17 +3,7 @@ import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
-import {
-  importWordingFile,
-  looksLikeWordingFile,
-  reportWordingImport,
-} from "../common/vocabulary/wording-import";
-import { handleDroppedDashboardFile } from "../panels/lovelace/import-export/dashboard-file-import";
-import {
-  hideFileDropIndicator,
-  showFileDropIndicator,
-} from "../panels/lovelace/import-export/ha-file-drop-indicator";
-import { showToast } from "../util/toast";
+import { FileDropController } from "../common/file-drop/file-drop-controller";
 import {
   applyAccessibilitySettings,
   getAccessibilitySettings,
@@ -37,6 +27,10 @@ import "../components/ha-accessibility-tools";
 import type { HaAccessibilityTools } from "../components/ha-accessibility-tools";
 import "../components/ha-drawer";
 import "../components/ha-page-tabs";
+import { ensureInitialDock } from "../components/tabs/tab-store-controller";
+import { MAIN_SURFACE } from "../components/tabs/tab-strip-layout";
+import type { DockEdge } from "../common/tabs/tab-dock";
+import { DOCK_STORAGE_KEY, readDock } from "../common/tabs/tab-dock";
 import "../components/phone/ha-phone-bar";
 import "../components/page/ha-page-tool-panel";
 import type { HaPageToolPanel } from "../components/page/ha-page-tool-panel";
@@ -73,6 +67,9 @@ export class HomeAssistantMain extends LitElement {
   /** Below 700 px the tab bar gives way to the bottom bar. */
   @state() private _phone = false;
 
+  /** The edge the tab strip is docked to. */
+  @state() private _tabsDock: DockEdge = readDock(MAIN_SURFACE);
+
   @storage({
     key: DEBUG_SAFE_AREA_TOOL_STORAGE_KEY,
     state: true,
@@ -89,6 +86,11 @@ export class HomeAssistantMain extends LitElement {
   private _unsubHistory: UnsubscribeFunc[] = [];
 
   private _noteWording = () => noteLocalChange("wording");
+  // One router for every file dropped anywhere in the window.
+  private _fileDrop = new FileDropController(() => ({
+    hass: this.hass,
+    element: this,
+  }));
 
   @query("ha-accessibility-tools")
   private _accessibilityTools?: HaAccessibilityTools;
@@ -122,7 +124,10 @@ export class HomeAssistantMain extends LitElement {
       <div class="pane-frame" aria-hidden="true"></div>
       ${
         isPanelReady && !sidebarNarrow
-          ? html`<ha-page-tabs .hass=${this.hass}></ha-page-tabs>`
+          ? html`<ha-page-tabs
+              .hass=${this.hass}
+              .panelProvider=${this._pagePanel}
+            ></ha-page-tabs>`
           : nothing
       }
       ${
@@ -148,6 +153,8 @@ export class HomeAssistantMain extends LitElement {
         ${
           isPanelReady
             ? html`<partial-panel-resolver
+                id="page-panel"
+                role="tabpanel"
                 .hass=${this.hass}
                 .route=${this.route}
                 slot="appContent"
@@ -225,6 +232,9 @@ export class HomeAssistantMain extends LitElement {
 
   public connectedCallback() {
     super.connectedCallback();
+    // An installation that already had tabs keeps its strip at the top.
+    ensureInitialDock(MAIN_SURFACE);
+    this._tabsDock = readDock(MAIN_SURFACE);
     // Stored personal settings apply on every page, not only after the
     // personal settings page has been opened.
     initPersonalPreferences();
@@ -254,11 +264,25 @@ export class HomeAssistantMain extends LitElement {
       getStorage().subscribeChanges(HISTORY_SUBJECTS.tabPins.key, () =>
         noteLocalChange("tabPins")
       ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabGroups.key, () =>
+        noteLocalChange("tabGroups")
+      ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabDock.key, () =>
+        noteLocalChange("tabDock")
+      ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabAppearance.key, () =>
+        noteLocalChange("tabAppearance")
+      ),
+      getStorage().subscribeChanges(HISTORY_SUBJECTS.tabLocks.key, () =>
+        noteLocalChange("tabLocks")
+      ),
+      getStorage().subscribeChanges(DOCK_STORAGE_KEY, () => {
+        this._tabsDock = readDock(MAIN_SURFACE);
+      }),
     ];
     window.addEventListener("personal-vocabulary-changed", this._noteWording);
     window.addEventListener("keydown", this._handleAccessibilityShortcut);
-    window.addEventListener("dragover", this._handleWordingDragOver);
-    window.addEventListener("drop", this._handleWordingDrop);
+    this._fileDrop.connect();
     this._unsubAccessibility = subscribeAccessibilitySettings(() =>
       this._applyAccessibility()
     );
@@ -277,8 +301,7 @@ export class HomeAssistantMain extends LitElement {
       this._noteWording
     );
     window.removeEventListener("keydown", this._handleAccessibilityShortcut);
-    window.removeEventListener("dragover", this._handleWordingDragOver);
-    window.removeEventListener("drop", this._handleWordingDrop);
+    this._fileDrop.disconnect();
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
   }
@@ -289,53 +312,6 @@ export class HomeAssistantMain extends LitElement {
       Boolean(this.hass?.themes?.darkMode)
     );
   }
-
-  // A wording file can be dropped anywhere in the window. A drop that a page
-  // already took (an upload field, a card editor) is left to that page.
-  private _handleWordingDragOver = (ev: DragEvent) => {
-    if (!ev.defaultPrevented && ev.dataTransfer?.types.includes("Files")) {
-      ev.preventDefault();
-      showFileDropIndicator(
-        this.hass?.localize("ui.panel.lovelace.import_export.drop_to_import") ??
-          ""
-      );
-    }
-  };
-
-  private _handleWordingDrop = async (ev: DragEvent) => {
-    hideFileDropIndicator();
-    const files = ev.dataTransfer?.files;
-    if (ev.defaultPrevented || !files?.length) {
-      return;
-    }
-    // Never let a dropped file replace the page.
-    ev.preventDefault();
-    // A dashboard file is imported as a dashboard. Any other file goes on to
-    // the wording import below, unchanged.
-    if (
-      files.length === 1 &&
-      (await handleDroppedDashboardFile(
-        { hass: this.hass, element: this },
-        files[0]
-      ))
-    ) {
-      return;
-    }
-    const result =
-      files.length === 1 && looksLikeWordingFile(files[0])
-        ? await importWordingFile(files[0])
-        : ({ ok: false, error: "not_json" } as const);
-    reportWordingImport(result, this.hass.localize);
-    if (result.ok) {
-      return;
-    }
-    showToast(this, {
-      message: `${this.hass.localize("ui.personal_wording.not_applied")} ${this.hass.localize(
-        `ui.personal_wording.error.${result.error}`
-      )}`,
-      duration: 8000,
-    });
-  };
 
   // Alt+A opens the accessibility tools, also while their button is hidden.
   private _handleAccessibilityShortcut = (ev: KeyboardEvent) => {
@@ -352,6 +328,21 @@ export class HomeAssistantMain extends LitElement {
   };
 
   private _pageRoot = (): Node | null => this._panelResolver ?? null;
+
+  /** The page panel, so the selected tab and the panel can name each other. */
+  private _pagePanel = (): HTMLElement | null => this._panelResolver ?? null;
+
+  /** The tab strip is drawn only where the rail is docked beside the pane. */
+  private get _showTabs(): boolean {
+    const sidebarNarrow =
+      this._sidebarNarrow || this._externalSidebar || this.hass.kioskMode;
+    return Boolean(
+      this.hass.panels &&
+      this.hass.userData &&
+      this.hass.systemData &&
+      !sidebarNarrow
+    );
+  }
 
   public willUpdate(changedProps: PropertyValues<this>) {
     if (changedProps.has("narrow")) {
@@ -375,6 +366,13 @@ export class HomeAssistantMain extends LitElement {
     this.toggleAttribute("expanded", this.hass.dockedSidebar === "docked");
 
     this.toggleAttribute("phone", this._showPhoneBar);
+
+    // Tells the styles which edge the strip takes, only while it is drawn.
+    if (this._showTabs) {
+      this.setAttribute("tabs-dock", this._tabsDock);
+    } else {
+      this.removeAttribute("tabs-dock");
+    }
 
     this.toggleAttribute(
       "modal",
@@ -408,9 +406,10 @@ export class HomeAssistantMain extends LitElement {
          normally, which breaks UI automation such as the companion app E2E. */
       isolation: isolate;
       /* The rail grows with the text size so its labels still fit. */
-      --ha-sidebar-width: calc(
+      --ha-rail-width: calc(
         88px * var(--ha-font-size-scale, 1) + var(--safe-area-inset-left, 0px)
       );
+      --ha-sidebar-width: var(--ha-rail-width);
       --ha-top-app-bar-width: calc(
         100% - var(--ha-sidebar-width) - var(--safe-area-inset-right, 0px)
       );
@@ -425,9 +424,16 @@ export class HomeAssistantMain extends LitElement {
     :host(:not([modal])) {
       --ha-pane-gap: 12px;
       --ha-pane-radius: var(--ha-border-radius-4xl);
-      --ha-page-tabs-height: calc(
+      /* The strip's own thickness on a top or bottom edge, and on a left or
+         right edge. --ha-page-tabs-height is what the strip takes from the
+         top of the pane (pages and panels read it); it is 0 on the other
+         edges, which tell pages about their space through the safe-area
+         properties below. */
+      --ha-page-tabs-bar-height: calc(
         52px + 8px * (var(--ha-font-size-scale, 1) - 1)
       );
+      --ha-page-tabs-height: var(--ha-page-tabs-bar-height);
+      --ha-page-tabs-side-width: calc(208px * var(--ha-font-size-scale, 1));
       --ha-page-tabs-top: calc(
         var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
           var(--ha-pane-gap)
@@ -461,6 +467,51 @@ export class HomeAssistantMain extends LitElement {
           var(--ha-phone-bar-height)
       );
     }
+    /* The strip's edge. The top edge is the default above. On the other
+       edges the strip takes nothing from the top of the pane, and pages are
+       told about the space it does take: through the safe-area properties
+       for the right and bottom edges, and, on the left, through the content
+       inset plus padding on the page panel. */
+    :host(:not([modal])[tabs-dock="bottom"]) {
+      --ha-page-tabs-height: 0px;
+      --safe-area-inset-bottom: calc(
+        var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-pane-gap) + var(--ha-page-tabs-bar-height)
+      );
+    }
+    :host(:not([modal])[tabs-dock="left"]) {
+      --ha-page-tabs-height: 0px;
+      --ha-page-tabs-inset-start: var(--ha-page-tabs-side-width);
+      --safe-area-content-inset-left: var(--ha-page-tabs-side-width);
+      --ha-top-app-bar-width: calc(
+        100% - var(--ha-sidebar-width) - var(
+            --safe-area-inset-right,
+            0px
+          ) - var(--ha-page-tabs-side-width)
+      );
+    }
+    :host(:not([modal])[tabs-dock="right"]) {
+      --ha-page-tabs-height: 0px;
+      --safe-area-inset-right: calc(
+        var(--app-safe-area-inset-right, env(safe-area-inset-right, 0px)) +
+          var(--ha-pane-gap) + var(--ha-page-tabs-side-width)
+      );
+    }
+    /* A side strip is icons only on a narrow window. */
+    @media (max-width: 1100px) {
+      :host(:not([modal])) {
+        --ha-page-tabs-side-width: 72px;
+      }
+    }
+    :host([tabs-dock="left"]) partial-panel-resolver {
+      box-sizing: border-box;
+      padding-inline-start: var(--ha-page-tabs-inset-start, 0px);
+      /* Fixed bars inside pages start at --ha-sidebar-width: with the strip on
+         the left they must start after it as well. */
+      --ha-sidebar-width: calc(
+        var(--ha-rail-width) + var(--ha-page-tabs-inset-start, 0px)
+      );
+    }
     .pane-frame {
       display: none;
     }
@@ -486,8 +537,30 @@ export class HomeAssistantMain extends LitElement {
       top: var(--ha-page-tabs-top);
       inset-inline-start: var(--ha-sidebar-width);
       inset-inline-end: var(--ha-pane-gap);
-      height: var(--ha-page-tabs-height);
+      height: var(--ha-page-tabs-bar-height);
       transition: inset-inline-start var(--ha-animation-duration-normal) ease;
+    }
+    :host([tabs-dock="bottom"]) ha-page-tabs {
+      top: auto;
+      bottom: calc(
+        var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-pane-gap)
+      );
+    }
+    :host([tabs-dock="left"]) ha-page-tabs,
+    :host([tabs-dock="right"]) ha-page-tabs {
+      bottom: calc(
+        var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-pane-gap)
+      );
+      height: auto;
+      width: var(--ha-page-tabs-side-width);
+    }
+    :host([tabs-dock="left"]) ha-page-tabs {
+      inset-inline-end: auto;
+    }
+    :host([tabs-dock="right"]) ha-page-tabs {
+      inset-inline-start: auto;
     }
     /* The rail starts at the top of the window, not under the bar. */
     :host(:not([modal])) ha-sidebar {
@@ -495,9 +568,15 @@ export class HomeAssistantMain extends LitElement {
         --app-safe-area-inset-top,
         env(safe-area-inset-top, 0px)
       );
+      /* Nor does it stop above a strip docked to the bottom of the pane. */
+      --safe-area-inset-bottom: calc(
+        var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+          var(--ha-pane-gap)
+      );
     }
     :host([expanded]) {
-      --ha-sidebar-width: calc(256px + var(--safe-area-inset-left, 0px));
+      --ha-rail-width: calc(256px + var(--safe-area-inset-left, 0px));
+      --ha-sidebar-width: var(--ha-rail-width);
     }
     :host([modal]) {
       --ha-sidebar-width: unset;
