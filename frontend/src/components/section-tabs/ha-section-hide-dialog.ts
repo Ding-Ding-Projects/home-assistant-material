@@ -177,8 +177,8 @@ export class HaSectionHideDialog extends LitElement {
                     ? html`<ha-input-search
                         appearance="outlined"
                         .value=${this._query}
-                        .label=${this._t(`${BASE}field`)}
-                        .placeholder=${this._t(`${BASE}field`)}
+                        .placeholder=${this._t("ui.common.search")}
+                        .hint=${this._t(`${BASE}field`)}
                         .accessibleLabel=${this._t(`${BASE}field`)}
                         .patternSamples=${request!
                           .input()

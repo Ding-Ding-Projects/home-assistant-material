@@ -2,6 +2,30 @@
 
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 
+## Batches 34 and 35, 12 November 2026 (late morning): read this first
+
+- Batch 34 (`e163a99be`): the New tab catalog's page list sat in the right half of the panel
+  because the strip's group pill rule shared a class name with the catalog sections. Fixed in
+  source; not yet seen in a build.
+- Batch 35: three tab leftovers, built and unit tested, not seen in a browser.
+  - Both hide dialogs keep a short placeholder; the long field text is the supporting text below
+    the field, which wraps, so both-languages mode no longer cuts it. How the wrapped text looks
+    at 320 px has not been looked at.
+  - The phone Pages sheet lists pages in the wide strip's order (a group sits where its first
+    member is) by using the strip's own layout function.
+  - The shared tab menu actions take the surface's store as a parameter. Section tabs reuse them
+    for hide many, undo of a hide and remove from group. Pin, move, single hide and the menu
+    element itself stay separate on purpose, because their behaviour differs.
+
+The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
+container came back by itself, but the address did not answer for about ten minutes. Cause: the
+local front proxy (a small nginx container outside this repository that forwards port 8123 to
+the full-mode container) looked the container's name up once at start and kept the old address
+after the container came back on another one. The proxy now looks the name up again every few
+seconds. That was confirmed by a restart of the proxy only (page 200, websocket upgrade 101);
+an engine restart with the new setting has not been seen. The earlier exit (128) on 12 November
+is still unexplained.
+
 ## Batches 31 to 33, 12 November 2026 (morning): read this first
 
 Commits `6330c10d9`, `875b30677` and `8a37d4c04`, published together as release 2026.11.1.130.

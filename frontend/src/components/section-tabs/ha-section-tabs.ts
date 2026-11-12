@@ -72,6 +72,12 @@ import {
   isRevealed,
   subscribeReveals,
 } from "../tabs/tab-search-reveal";
+import type { TabMenuStore } from "../tabs/tab-menu-actions";
+import {
+  closeTabsAction,
+  removeFromGroupAction,
+  undoCloseAction,
+} from "../tabs/tab-menu-actions";
 import type { TabMoveKind } from "../tabs/tab-menu-entries";
 import { pendingLockKey, tabStyle } from "../tabs/tab-strip-layout";
 import "./ha-section-tab-menu";
@@ -86,8 +92,9 @@ import {
   hideSections,
   moveSectionGroup,
   moveSectionTab,
-  restoreSections,
   sectionLayout,
+  sectionMenuState,
+  sectionMenuStore,
   sectionSurface,
 } from "./section-surface";
 import type {
@@ -339,6 +346,12 @@ export class HaSectionTabs extends LitElement {
   private _save(next: SectionTabsState): void {
     this._store = writeSectionState(this._store, this.surface, next);
   }
+
+  /** This surface's lists, in the shape the shared menu actions write. */
+  private _menuStore: TabMenuStore = sectionMenuStore(
+    () => this._state(),
+    (next) => this._save(next)
+  );
 
   private _allPaths(): string[] {
     return this.tabs.map((tab) => tab.path);
@@ -1213,7 +1226,7 @@ export class HaSectionTabs extends LitElement {
       return true;
     },
     removeFromGroup: (path) => {
-      writeGroups(this._surface, ungroupTabs(this._data.groups, [path]));
+      removeFromGroupAction(sectionMenuState(this._snapshot()), path);
       this._announce(
         this._t("ui.page_tabs.menu.removed_from_group", {
           name: this._label(path),
@@ -1297,11 +1310,17 @@ export class HaSectionTabs extends LitElement {
    * section is never hidden; the plans already keep pinned and locked ones.
    */
   private _hideMany(paths: string[]): void {
+    // The open section is dropped here; the shared close action then saves the
+    // hidden list under this surface's own entry, never the wide strip's keys.
     const result = hideSections(this._state(), paths, this.activePath);
     if (!result.hidden.length) {
       return;
     }
-    this._save(result.state);
+    closeTabsAction(
+      sectionMenuState(this._snapshot()),
+      result.hidden,
+      this._menuStore
+    );
     const message =
       result.hidden.length === 1
         ? this._t(`${BASE}hidden_done`, { name: this._label(result.hidden[0]) })
@@ -1313,7 +1332,7 @@ export class HaSectionTabs extends LitElement {
       action: {
         text: this._t("ui.page_tabs.bulk_undo"),
         action: () => {
-          this._save(restoreSections(this._state(), result.hidden));
+          undoCloseAction(result.hidden, this._menuStore);
           this._announce(
             this._t(`${BASE}restored`, { count: result.hidden.length })
           );

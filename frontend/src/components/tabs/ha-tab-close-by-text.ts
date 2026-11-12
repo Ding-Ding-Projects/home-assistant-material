@@ -200,8 +200,8 @@ export class HaTabCloseByText extends LitElement {
                     ? html`<ha-input-search
                         appearance="outlined"
                         .value=${this._query}
-                        .label=${this._t(`${base}field`)}
-                        .placeholder=${this._t(`${base}field`)}
+                        .placeholder=${this._t("ui.common.search")}
+                        .hint=${this._t(`${base}field`)}
                         .accessibleLabel=${this._t(`${base}field`)}
                         .patternSamples=${snap.planTabs
                           .filter((tab) => tab.open)

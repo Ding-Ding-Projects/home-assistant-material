@@ -324,8 +324,9 @@ describe("groups from the per-page actions", () => {
     row.click();
     await settle(bar);
     expect(readGroups("main")[0].members).toEqual(["b", "c"]);
-    // The group is a section of its own, ahead of the pages in no group.
-    expect(titles()).toEqual(["Bravo", "Charlie", "Alpha", "Delta"]);
+    // The group is a section of its own, at the place of its first member
+    // among the pages in no group, as the wide strip draws it.
+    expect(titles()).toEqual(["Alpha", "Bravo", "Charlie", "Delta"]);
     expect(sheet().querySelector(".group-count")!.textContent).toBe("2");
   });
 

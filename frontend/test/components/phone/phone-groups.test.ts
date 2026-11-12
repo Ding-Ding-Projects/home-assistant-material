@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { TabGroup } from "../../../src/common/tabs/tab-groups";
+import { layoutStrip } from "../../../src/common/tabs/tab-groups";
+import { flattenSegments } from "../../../src/components/tabs/tab-strip-moves";
 import {
   groupIdOf,
   phoneListing,
+  phoneSections,
   planPhoneDrop,
   planPhoneMove,
 } from "../../../src/components/phone/phone-groups";
@@ -62,6 +65,49 @@ describe("phoneListing", () => {
     expect(groupIdOf(groups, ["p"], "b")).toBe("g1");
     expect(groupIdOf(groups, ["p"], "p")).toBeUndefined();
     expect(groupIdOf(groups, ["p"], "a")).toBeUndefined();
+  });
+});
+
+describe("phoneSections", () => {
+  it("puts a group at the place of its first member, as the wide strip does", () => {
+    // Order: p q a b c d e, with b and c grouped. The strip draws a, then the
+    // group where b was, then d and e; the old sheet listed all groups first.
+    const sections = phoneSections(input());
+    expect(sections.map((section) => section.kind)).toEqual([
+      "pinned",
+      "loose",
+      "group",
+      "loose",
+    ]);
+    expect(sections.map((section) => section.ids)).toEqual([
+      ["p", "q"],
+      ["a"],
+      ["b", "c"],
+      ["d", "e"],
+    ]);
+  });
+
+  it("lists the pages in the same order as the wide strip", () => {
+    const layout = input();
+    const strip = flattenSegments(
+      layoutStrip({
+        visible: layout.visible,
+        order: layout.order,
+        pinned: layout.pinned,
+        groups: layout.groups,
+      })
+    );
+    expect(phoneSections(layout).flatMap((section) => section.ids)).toEqual(
+      strip
+    );
+  });
+
+  it("keeps pages in no group that sit side by side in one block", () => {
+    const sections = phoneSections(input({ groups: [] }));
+    expect(sections.map((section) => section.ids)).toEqual([
+      ["p", "q"],
+      ["a", "b", "c", "d", "e"],
+    ]);
   });
 });
 

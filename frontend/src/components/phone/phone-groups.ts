@@ -44,16 +44,51 @@ export const phoneSegments = (input: PhoneLayoutInput): StripSegment[] =>
     groups: input.groups,
   });
 
-/** The sheet's sections: pinned, then every group, then the loose pages. */
-export const phoneListing = (input: PhoneLayoutInput): PhoneListing => {
-  const listing: PhoneListing = { pinned: [], groups: [], loose: [] };
+/** One block of the sheet, in the order the wide strip draws it. */
+export type PhoneSection =
+  | { kind: "pinned"; ids: string[] }
+  | { kind: "group"; group: TabGroup; ids: string[] }
+  | { kind: "loose"; ids: string[] };
+
+/**
+ * The sheet's blocks in the wide strip's order: the pinned region first, then,
+ * following the saved page order, each run of pages in no group and each group
+ * (at the place of its first member). Pages in no group that sit side by side
+ * share one block.
+ */
+export const phoneSections = (input: PhoneLayoutInput): PhoneSection[] => {
+  const sections: PhoneSection[] = [];
   phoneSegments(input).forEach((segment) => {
     if (segment.kind === "pinned") {
-      listing.pinned.push(...segment.ids);
+      sections.push({ kind: "pinned", ids: [...segment.ids] });
     } else if (segment.kind === "group") {
-      listing.groups.push({ group: segment.group, ids: segment.ids });
+      sections.push({
+        kind: "group",
+        group: segment.group,
+        ids: [...segment.ids],
+      });
     } else {
-      listing.loose.push(segment.id);
+      const last = sections[sections.length - 1];
+      if (last?.kind === "loose") {
+        last.ids.push(segment.id);
+      } else {
+        sections.push({ kind: "loose", ids: [segment.id] });
+      }
+    }
+  });
+  return sections;
+};
+
+/** The same blocks sorted by kind: pinned, every group, then all loose pages. */
+export const phoneListing = (input: PhoneLayoutInput): PhoneListing => {
+  const listing: PhoneListing = { pinned: [], groups: [], loose: [] };
+  phoneSections(input).forEach((section) => {
+    if (section.kind === "pinned") {
+      listing.pinned.push(...section.ids);
+    } else if (section.kind === "group") {
+      listing.groups.push({ group: section.group, ids: section.ids });
+    } else {
+      listing.loose.push(...section.ids);
     }
   });
   return listing;

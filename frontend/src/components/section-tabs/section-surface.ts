@@ -14,7 +14,8 @@ import { layoutStrip } from "../../common/tabs/tab-groups";
 import { tabLockState } from "../../common/tabs/tab-locks";
 import type { GroupMove } from "../tabs/tab-group-actions";
 import { planGroupMove } from "../tabs/tab-group-actions";
-import type { TabMenuState } from "../tabs/tab-menu-actions";
+import { cleanIds } from "../../common/tabs/tab-validate";
+import type { TabMenuState, TabMenuStore } from "../tabs/tab-menu-actions";
 import type { TabMoveKind } from "../tabs/tab-menu-entries";
 import {
   applyChange,
@@ -404,6 +405,26 @@ export const restoreSections = (
 ): SectionTabsState => ({
   ...state,
   hidden: state.hidden.filter((id) => !ids.includes(id)),
+});
+
+// ---- The saved lists of one surface, for the shared menu actions ----
+
+/**
+ * The lists the shared tab menu actions read and write, taken from one
+ * surface's entry of the `sectionTabs` store instead of the wide strip's keys:
+ * hidden sections are the closed tabs. `read` and `write` are the surface's own
+ * state, so nothing here can reach the wide strip's storage keys.
+ */
+export const sectionMenuStore = (
+  read: () => SectionTabsState,
+  write: (next: SectionTabsState) => void
+): TabMenuStore => ({
+  readClosed: () => [...read().hidden],
+  writeClosed: (ids) => write({ ...read(), hidden: cleanIds([...ids]) }),
+  readOrder: () => [...read().order],
+  writeOrder: (ids) => write({ ...read(), order: cleanIds([...ids]) }),
+  readPinned: () => [...read().pinned],
+  writePinned: (ids) => write({ ...read(), pinned: cleanIds([...ids]) }),
 });
 
 // ---- The state the shared menu entries are made from ----

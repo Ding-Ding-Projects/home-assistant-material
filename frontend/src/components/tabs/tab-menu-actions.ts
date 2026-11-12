@@ -60,34 +60,56 @@ export interface TabMenuState {
   locks: Record<string, { locked: boolean; byGroup: boolean }>;
 }
 
-const store = () => getStorage();
+/**
+ * The three saved lists the menu actions read and write for one surface: the
+ * closed (hidden) tabs, the page order and the pinned tabs. Groups, looks and
+ * locks are keyed by the surface name and need no store of their own.
+ */
+export interface TabMenuStore {
+  readClosed: () => string[];
+  writeClosed: (ids: readonly string[]) => void;
+  readOrder: () => string[];
+  writeOrder: (ids: readonly string[]) => void;
+  readPinned: () => string[];
+  writePinned: (ids: readonly string[]) => void;
+}
 
-export const readClosed = (): string[] =>
-  normalizeClosed(store().getValue(CLOSED_STORAGE_KEY));
+const storage = () => getStorage();
 
-export const readOrder = (): string[] =>
-  normalizeOrder(store().getValue(ORDER_STORAGE_KEY));
+/** The wide strip's own lists, saved under its storage keys. */
+export const mainStripStore: TabMenuStore = {
+  readClosed: () => normalizeClosed(storage().getValue(CLOSED_STORAGE_KEY)),
+  writeClosed: (ids) =>
+    storage().setValue(CLOSED_STORAGE_KEY, cleanIds([...ids])),
+  readOrder: () => normalizeOrder(storage().getValue(ORDER_STORAGE_KEY)),
+  writeOrder: (ids) =>
+    storage().setValue(ORDER_STORAGE_KEY, cleanIds([...ids])),
+  readPinned: () => normalizePinned(storage().getValue(PINNED_STORAGE_KEY)),
+  writePinned: (ids) =>
+    storage().setValue(PINNED_STORAGE_KEY, normalizePinned([...ids])),
+};
 
-export const readPinnedIds = (): string[] =>
-  normalizePinned(store().getValue(PINNED_STORAGE_KEY));
+export const readClosed = (store: TabMenuStore = mainStripStore): string[] =>
+  store.readClosed();
 
-const writeClosed = (ids: readonly string[]): void =>
-  store().setValue(CLOSED_STORAGE_KEY, cleanIds([...ids]));
+export const readOrder = (store: TabMenuStore = mainStripStore): string[] =>
+  store.readOrder();
 
-const writeOrder = (ids: readonly string[]): void =>
-  store().setValue(ORDER_STORAGE_KEY, cleanIds([...ids]));
+export const readPinnedIds = (store: TabMenuStore = mainStripStore): string[] =>
+  store.readPinned();
 
-const writePinnedIds = (ids: readonly string[]): void =>
-  store().setValue(PINNED_STORAGE_KEY, normalizePinned([...ids]));
-
-/** Reads the saved state of a strip. `tabs` are the pages in natural order. */
+/**
+ * Reads the saved state of a strip. `tabs` are the pages in natural order.
+ * `store` holds the lists of the surface; the wide strip's by default.
+ */
 export const readMenuState = (
   surface: string,
   tabs: readonly PageTab[],
-  current?: string
+  current?: string,
+  store: TabMenuStore = mainStripStore
 ): TabMenuState => {
-  const closed = readClosed();
-  const pinned = readPinnedIds();
+  const closed = store.readClosed();
+  const pinned = store.readPinned();
   const groups = readGroups(surface);
   // The strip's own layout, so the menu sees tabs in the order the strip draws
   // them: the pinned list first, and the members of a group together.
@@ -95,7 +117,7 @@ export const readMenuState = (
   const ordered = flattenSegments(
     layoutStrip({
       visible: tabs.map((tab) => tab.urlPath),
-      order: readOrder(),
+      order: store.readOrder(),
       pinned,
       groups,
     })
@@ -160,15 +182,16 @@ export const unlockKeyFor = (
  */
 export const togglePinAction = (
   state: TabMenuState,
-  tabId: string
+  tabId: string,
+  store: TabMenuStore = mainStripStore
 ): { pinned: boolean } => {
   const wasPinned = state.pinned.includes(tabId);
-  writeOrder(state.ordered);
+  store.writeOrder(state.ordered);
   if (wasPinned) {
-    writePinnedIds(unpinTab(state.pinned, tabId));
+    store.writePinned(unpinTab(state.pinned, tabId));
     return { pinned: false };
   }
-  writePinnedIds(pinTab(state.pinned, tabId));
+  store.writePinned(pinTab(state.pinned, tabId));
   if (groupOf(state.groups, tabId)) {
     writeGroups(state.surface, ungroupTabs(state.groups, [tabId]));
   }
@@ -178,25 +201,30 @@ export const togglePinAction = (
 /** Closes tabs. The previous closed list is returned for Undo. */
 export const closeTabsAction = (
   state: TabMenuState,
-  ids: readonly string[]
+  ids: readonly string[],
+  store: TabMenuStore = mainStripStore
 ): { previous: string[] } => {
   const previous = [...state.closed];
-  writeClosed(ids.reduce((list, id) => closeTab(list, id), previous));
+  store.writeClosed(ids.reduce((list, id) => closeTab(list, id), previous));
   return { previous };
 };
 
 /** Undo for a close: the tabs it closed open again, nothing else changes. */
-export const undoCloseAction = (ids: readonly string[]): void => {
+export const undoCloseAction = (
+  ids: readonly string[],
+  store: TabMenuStore = mainStripStore
+): void => {
   const reopen = new Set(ids);
-  writeClosed(readClosed().filter((id) => !reopen.has(id)));
+  store.writeClosed(store.readClosed().filter((id) => !reopen.has(id)));
 };
 
 /** Open every tab: only the closed list changes. */
 export const openEveryAction = (
-  state: TabMenuState
+  state: TabMenuState,
+  store: TabMenuStore = mainStripStore
 ): { reopened: string[] } => {
   const { closed, reopened } = openEveryTab(state.ordered, state.closed);
-  writeClosed(closed);
+  store.writeClosed(closed);
   return { reopened };
 };
 
@@ -204,7 +232,8 @@ export const openEveryAction = (
 export const moveAction = (
   state: TabMenuState,
   tabId: string,
-  kind: TabMoveKind
+  kind: TabMoveKind,
+  store: TabMenuStore = mainStripStore
 ): { position: number; total: number } | undefined => {
   // Every move goes through the strip's own planner, so a tab moves past a
   // whole group, leaves a group at its edge, stays inside its group for Move
@@ -220,9 +249,9 @@ export const moveAction = (
     visibleBefore: flattenSegments(segments),
     change,
   });
-  writeOrder(result.order);
+  store.writeOrder(result.order);
   if (result.pinned) {
-    writePinnedIds(result.pinned);
+    store.writePinned(result.pinned);
   }
   if (result.groups) {
     writeGroups(state.surface, result.groups);

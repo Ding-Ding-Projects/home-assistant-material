@@ -127,7 +127,7 @@ import "./ha-phone-tab-actions";
 import type { PhoneChange, PhoneChangeInput } from "./phone-groups";
 import {
   groupIdOf,
-  phoneListing,
+  phoneSections,
   phoneSegments,
   planPhoneDrop,
   planPhoneMove,
@@ -548,31 +548,29 @@ export class HaPhoneBar extends LitElement {
   private _pages(): PhonePage[] {
     const tabs = this._tabs();
     const byId = new Map(tabs.map((tab) => [tab.urlPath, tab]));
-    const listing = phoneListing({
+    const sections = phoneSections({
       visible: tabs.map((tab) => tab.urlPath),
       order: this._order,
       pinned: this._pinned,
       groups: this._groups,
     });
-    return [
-      ...listing.pinned,
-      ...listing.groups.flatMap((entry) => entry.ids),
-      ...listing.loose,
-    ].flatMap((id) => {
-      const tab = byId.get(id);
-      return tab
-        ? [
-            {
-              id,
-              title: this._titleFor(tab),
-              open: !this._closed.includes(id),
-              pinned: this._pinned.includes(id),
-              locked: this._isLocked(id),
-              groupId: groupIdOf(this._groups, this._pinned, id),
-            },
-          ]
-        : [];
-    });
+    return sections
+      .flatMap((section) => section.ids)
+      .flatMap((id) => {
+        const tab = byId.get(id);
+        return tab
+          ? [
+              {
+                id,
+                title: this._titleFor(tab),
+                open: !this._closed.includes(id),
+                pinned: this._pinned.includes(id),
+                locked: this._isLocked(id),
+                groupId: groupIdOf(this._groups, this._pinned, id),
+              },
+            ]
+          : [];
+      });
   }
 
   /** What a move or a drop is planned from. */
@@ -860,7 +858,9 @@ export class HaPhoneBar extends LitElement {
       return html`<p class="empty">${this._text("ui.page_tabs.no_match")}</p>`;
     }
     const byId = new Map(listed.map((tab) => [tab.urlPath, tab]));
-    const listing = phoneListing({
+    // The blocks come in the wide strip's order: a group sits at the place of
+    // its first member among the pages in no group.
+    const sections = phoneSections({
       visible: listed.map((tab) => tab.urlPath),
       order: this._order,
       pinned: this._pinned,
@@ -877,22 +877,24 @@ export class HaPhoneBar extends LitElement {
         <h3 id=${id} class="group-title">${this._text(key)}</h3>
         ${grid(ids)}
       </section>`;
-    const others = listing.groups.length > 0 || listing.pinned.length > 0;
-    return html`
-      ${
-        listing.pinned.length
-          ? titled("open-pinned", "ui.page_tabs.group_pinned", listing.pinned)
-          : nothing
+    const others = sections.some((section) => section.kind !== "loose");
+    let looseRuns = 0;
+    return html`${sections.map((section) => {
+      if (section.kind === "pinned") {
+        return titled("open-pinned", "ui.page_tabs.group_pinned", section.ids);
       }
-      ${listing.groups.map((entry) => this._renderGroupSection(entry, grid))}
-      ${
-        listing.loose.length
-          ? others
-            ? titled("open-pages", "ui.page_tabs.group_pages", listing.loose)
-            : grid(listing.loose)
-          : nothing
+      if (section.kind === "group") {
+        return this._renderGroupSection(section, grid);
       }
-    `;
+      looseRuns++;
+      return others
+        ? titled(
+            looseRuns === 1 ? "open-pages" : `open-pages-${looseRuns}`,
+            "ui.page_tabs.group_pages",
+            section.ids
+          )
+        : grid(section.ids);
+    })}`;
   }
 
   // One group of the strip as a section of the sheet: its header folds it and
