@@ -85,6 +85,7 @@ import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-elemen
 import "./blueprint-automation-editor";
 import "./ha-automation-bottom-bar";
 import "./tools/ha-automation-tools-panel";
+import { showStepRow } from "./tools/find-step-row";
 import type { EditorDomainHooks } from "./ha-automation-script-editor-mixin";
 import {
   AutomationScriptEditorMixin,
@@ -719,6 +720,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                 .narrow=${this.narrow}
                 .applyConfig=${this._applyToolConfig}
                 @closed=${this._closeTools}
+                @tool-show-step=${this._showToolStep}
               ></ha-automation-tools-panel>`
             : nothing
         }
@@ -1444,6 +1446,15 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
 
   private _closeTools = () => {
     this._toolsOpen = false;
+  };
+
+  private _showToolStep = async (ev: CustomEvent<{ path: string }>) => {
+    ev.stopPropagation();
+    this._toolsOpen = false;
+    await this.updateComplete;
+    if (this.shadowRoot && this.config) {
+      showStepRow(this.shadowRoot, this.config, ev.detail.path);
+    }
   };
 
   private _applyToolConfig = (config: AutomationConfig) => {

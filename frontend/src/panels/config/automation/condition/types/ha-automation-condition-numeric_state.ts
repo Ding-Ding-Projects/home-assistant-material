@@ -23,6 +23,7 @@ import type { HomeAssistant } from "../../../../../types";
 const numericStateConditionStruct = object({
   alias: optional(string()),
   note: optional(string()),
+  editor_locked: optional(boolean()),
   condition: literal("numeric_state"),
   entity_id: optional(string()),
   attribute: optional(string()),

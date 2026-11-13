@@ -1,3 +1,4 @@
+import { getFirstDrawMs } from "../../common/card-first-draw";
 import { cardEntities } from "../dashboard-tools";
 import type { CardLike } from "./deep-dom";
 import { findRenderedCards, renderedCardLabel } from "./deep-dom";
@@ -16,6 +17,8 @@ export interface CardTiming {
   type: string;
   /** Milliseconds for one render of the card's own element; undefined when the card cannot be measured this way. */
   ms?: number;
+  /** Milliseconds from creating the card to its first finished render; undefined when not recorded. */
+  firstDrawMs?: number;
   /** Entities named in the card's configuration. */
   entities: number;
   element: HTMLElement;
@@ -77,6 +80,7 @@ export const measureCards = async (
       label: renderedCardLabel(card),
       type: String(card.config?.type ?? "card"),
       ms,
+      firstDrawMs: getFirstDrawMs(element),
       entities: cardEntities(card.config ?? {}).length,
       element,
     });

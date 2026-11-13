@@ -86,6 +86,7 @@ export class HuiDashboardLayout extends LitElement {
     }
     return html`
       <p class="hint">${this._t("intro")}</p>
+      <p class="hint">${this._t("resize_tip")}</p>
       ${[...sections.entries()].map(
         ([section, cards]) => html`
           <section>

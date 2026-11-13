@@ -49,6 +49,7 @@ import { getStatisticIds } from "../../../data/recorder_statistic_ids";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { panelIsReady } from "../../../layouts/panel-ready";
+import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import type { HomeAssistant, Route } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
 import { roundWithOneDecimal } from "../../../util/calculate";
@@ -86,6 +87,9 @@ class HaConfigSectionStorage extends LitElement {
 
   @state() private _statisticsCount?: number;
 
+  // The entity whose history storage is shown instead of the overview.
+  @state() private _usageEntity?: string;
+
   private async _loadRecorder(): Promise<void> {
     if (!isComponentLoaded(this.hass.config, "recorder")) {
       this._recorderInfo = null;
@@ -97,6 +101,9 @@ class HaConfigSectionStorage extends LitElement {
       this._recorderInfo = null;
       return;
     }
+    // Loaded apart so the charts are not part of the first paint of the page.
+    import("./recorder-storage-overview").catch(() => undefined);
+    import("./recorder-storage-entity").catch(() => undefined);
     try {
       this._statisticsCount = (await getStatisticIds(this.hass)).length;
     } catch (_err) {
@@ -124,27 +131,62 @@ class HaConfigSectionStorage extends LitElement {
     return html`
       <hass-subpage
         back-path="/config/system"
+        .backCallback=${this._usageEntity ? this._closeUsageEntity : undefined}
         .hass=${this.hass}
         .narrow=${this.narrow}
-        .header=${this.hass.localize("ui.panel.config.storage.caption")}
+        .header=${
+          this._usageEntity ??
+          this.hass.localize("ui.panel.config.storage.caption")
+        }
       >
         <div class="page">
           ${
-            this._error
-              ? html`<ha-alert alert-type="error"
-                  >${this._error.message || this._error.code}</ha-alert
-                >`
-              : nothing
+            this._usageEntity
+              ? html`<ha-recorder-storage-entity
+                  .hass=${this.hass}
+                  .narrow=${this.narrow}
+                  .entityId=${this._usageEntity}
+                ></ha-recorder-storage-entity>`
+              : this._renderPage()
           }
-          ${this._hostInfo ? this._renderHero(this._hostInfo) : nothing}
-          <div class="cards">
-            ${this._hostInfo ? this._renderDiskCard(this._hostInfo) : nothing}
-            ${this._renderRecorderCard()} ${this._renderMountsCard()}
-          </div>
         </div>
       </hass-subpage>
     `;
   }
+
+  private _renderPage(): TemplateResult {
+    return html`
+      ${
+        this._error
+          ? html`<ha-alert alert-type="error"
+              >${this._error.message || this._error.code}</ha-alert
+            >`
+          : nothing
+      }
+      ${
+        this._recorderInfo
+          ? html`<ha-recorder-storage-overview
+              .hass=${this.hass}
+              .narrow=${this.narrow}
+              @storage-entity-selected=${this._openUsageEntity}
+            ></ha-recorder-storage-overview>`
+          : nothing
+      }
+      ${this._hostInfo ? this._renderHero(this._hostInfo) : nothing}
+      <div class="cards">
+        ${this._hostInfo ? this._renderDiskCard(this._hostInfo) : nothing}
+        ${this._renderRecorderCard()} ${this._renderMountsCard()}
+      </div>
+    `;
+  }
+
+  private _openUsageEntity(ev: HASSDomEvent<{ entityId: string }>): void {
+    this._usageEntity = ev.detail.entityId;
+  }
+
+  private _closeUsageEntity = (): void => {
+    this._usageEntity = undefined;
+  };
 
   /** Used and total space, from the detailed report when it has arrived. */
   private _spaceFigures(hostInfo: HassioHostInfo) {

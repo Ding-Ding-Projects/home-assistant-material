@@ -1,11 +1,21 @@
-import { mdiFlash, mdiSolarPower, mdiTransmissionTower } from "@mdi/js";
+import {
+  mdiCurrencyUsd,
+  mdiFlash,
+  mdiSolarPower,
+  mdiTransmissionTower,
+} from "@mdi/js";
+import type { HassConfig } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { consume } from "../../../../common/decorators/consume";
 import { formatNumber } from "../../../../common/number/format_number";
 import "../../../../components/ha-svg-icon";
-import { internationalizationContext } from "../../../../data/context";
+import { transform } from "../../../../common/decorators/transform";
+import {
+  configContext,
+  internationalizationContext,
+} from "../../../../data/context";
 import type { EnergyData } from "../../../../data/energy";
 import {
   computeConsumptionData,
@@ -13,12 +23,16 @@ import {
   validateEnergyCollectionKey,
 } from "../../../../data/energy";
 import { EnergyCollectionController } from "../../../../data/energy-collection-controller";
-import type { HomeAssistantInternationalization } from "../../../../types";
+import type {
+  HomeAssistantConfig,
+  HomeAssistantInternationalization,
+} from "../../../../types";
+import { computeEnergyTotalCost } from "./energy-total-cost";
 import type { LovelaceCard } from "../../types";
 import type { EnergyTotalsCardConfig } from "../types";
 
 interface Tile {
-  key: "used" | "solar" | "returned";
+  key: "used" | "solar" | "returned" | "cost";
   icon: string;
   value: number;
 }
@@ -37,6 +51,13 @@ class HuiEnergyTotalsCard extends LitElement implements LovelaceCard {
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n!: HomeAssistantInternationalization;
+
+  @state()
+  @consume({ context: configContext, subscribe: true })
+  @transform<HomeAssistantConfig, HassConfig>({
+    transformer: ({ config }) => config,
+  })
+  private _hassConfig!: HassConfig;
 
   constructor() {
     super();
@@ -91,6 +112,16 @@ class HuiEnergyTotalsCard extends LitElement implements LovelaceCard {
         value: summedData.total.to_grid,
       });
     }
+    // The cost tile appears only when the energy configuration has cost
+    // statistics with data in this period, and a currency is set.
+    const cost = computeEnergyTotalCost(
+      this._data.prefs,
+      this._data.info,
+      this._data.stats
+    );
+    if (cost !== undefined && this._hassConfig?.currency) {
+      tiles.push({ key: "cost", icon: mdiCurrencyUsd, value: cost });
+    }
     if (!tiles.length) {
       return nothing;
     }
@@ -104,10 +135,17 @@ class HuiEnergyTotalsCard extends LitElement implements LovelaceCard {
               ${localize(`ui.panel.lovelace.cards.energy.energy_totals.${tile.key}`)}
             </span>
             <span class="value"
-              >${formatNumber(tile.value, this._i18n.locale, {
-                maximumFractionDigits: 1,
-              })}
-              kWh</span
+              >${
+                tile.key === "cost"
+                  ? formatNumber(tile.value, this._i18n.locale, {
+                      style: "currency",
+                      currency: this._hassConfig.currency!,
+                    })
+                  : html`${formatNumber(tile.value, this._i18n.locale, {
+                      maximumFractionDigits: 1,
+                    })}
+                    kWh`
+              }</span
             >
           </div>`
       )}
@@ -147,6 +185,13 @@ class HuiEnergyTotalsCard extends LitElement implements LovelaceCard {
       background: color-mix(
         in srgb,
         var(--accent-color, var(--primary-color)) 22%,
+        var(--card-background-color)
+      );
+    }
+    .tile.cost {
+      background: color-mix(
+        in srgb,
+        var(--warning-color) 22%,
         var(--card-background-color)
       );
     }

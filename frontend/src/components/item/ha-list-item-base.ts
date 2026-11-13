@@ -100,8 +100,12 @@ export class HaListItemBase extends HaRowItem {
         outline: var(--ha-list-item-focus-width) solid transparent;
         outline-offset: var(--ha-list-item-focus-offset);
         transition:
-          outline-color var(--ha-animation-duration-fast) ease-out,
-          background-color var(--ha-animation-duration-fast) ease-out;
+          outline-color
+            var(--ha-motion-lists-duration, var(--ha-animation-duration-fast))
+            var(--ha-motion-lists-curve, ease-out),
+          background-color
+            var(--ha-motion-lists-duration, var(--ha-animation-duration-fast))
+            var(--ha-motion-lists-curve, ease-out);
       }
       @keyframes ha-list-item-focus-in {
         from {

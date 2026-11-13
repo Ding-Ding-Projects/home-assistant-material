@@ -208,6 +208,80 @@ export const setRoleHidden = (
   return hidden ? [...rest, hideRoleCondition(roleId)] : rest;
 };
 
+// ---- View only ---------------------------------------------------------------
+
+/** What a role gets for one card: hidden, view only, or full use. */
+export type RoleLevel = "hide" | "view" | "use";
+
+/**
+ * Whether the list marks the role as view only: a list entry that is exactly
+ * the role condition for this one role.
+ */
+export const isRoleViewOnly = (
+  viewOnly: VisibilityCondition[] | undefined,
+  roleId: string
+): boolean =>
+  (viewOnly ?? []).some((c) => {
+    const l = loose(c);
+    return (
+      l.condition === "role" &&
+      l.enabled !== false &&
+      l.roles?.length === 1 &&
+      l.roles[0] === roleId
+    );
+  });
+
+/**
+ * A copy of the view-only conditions with the role turned on or off. Every
+ * other entry is kept. The list never holds the role twice.
+ */
+export const setRoleViewOnly = (
+  viewOnly: VisibilityCondition[] | undefined,
+  roleId: string,
+  on: boolean
+): VisibilityCondition[] => {
+  const rest = (viewOnly ?? []).filter((c) => {
+    const l = loose(c);
+    return !(
+      l.condition === "role" &&
+      l.roles?.length === 1 &&
+      l.roles[0] === roleId
+    );
+  });
+  return on ? [...rest, roleLeaf(roleId)] : rest;
+};
+
+/** The level a role has for a card, from its visibility and view-only lists. */
+export const roleLevel = (
+  visibility: VisibilityCondition[] | undefined,
+  viewOnly: VisibilityCondition[] | undefined,
+  roleId: string
+): RoleLevel | "custom" => {
+  const rule = roleRule(visibility, roleId);
+  if (rule === "custom") {
+    return "custom";
+  }
+  if (rule === "hide") {
+    return "hide";
+  }
+  return isRoleViewOnly(viewOnly, roleId) ? "view" : "use";
+};
+
+/**
+ * The visibility and view-only lists after one role is moved to a level.
+ * Hide adds the one-tap hide and clears view only; View clears the hide and
+ * adds view only; Use clears both.
+ */
+export const setRoleLevel = (
+  visibility: VisibilityCondition[] | undefined,
+  viewOnly: VisibilityCondition[] | undefined,
+  roleId: string,
+  level: RoleLevel
+): { visibility: VisibilityCondition[]; view_only: VisibilityCondition[] } => ({
+  visibility: setRoleHidden(visibility, roleId, level === "hide"),
+  view_only: setRoleViewOnly(viewOnly, roleId, level === "view"),
+});
+
 // ---- Who can see this ------------------------------------------------------
 
 /** true / false when known from the person alone, undefined when it depends on more. */

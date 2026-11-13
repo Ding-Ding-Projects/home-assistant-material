@@ -343,3 +343,30 @@ describe("the app's own log", () => {
     vi.useRealTimers();
   });
 });
+
+describe("starting again after a failure", () => {
+  it("sends the call again as a new run, only once the first one ended", async () => {
+    const call = vi
+      .fn()
+      .mockRejectedValueOnce({ body: { message: "No space left" } })
+      .mockResolvedValueOnce(undefined);
+    await expect(
+      tracker.trackAppCall(deps(), "core_mosquitto", "install", call, "M")
+    ).rejects.toBeDefined();
+    const failed = tracker.appJobTracker.get("core_mosquitto")!;
+    expect(failed.run.failed).toBe(true);
+    expect(failed.canRetry).toBe(true);
+
+    await tracker.appJobTracker.retry("core_mosquitto");
+    expect(call).toHaveBeenCalledTimes(2);
+    const again = tracker.appJobTracker.get("core_mosquitto")!;
+    expect(again.run.failed).toBe(false);
+
+    // A run that is still going is never started a second time.
+    const running = vi.fn().mockResolvedValue(undefined);
+    tracker.appJobTracker.setRetry("core_mosquitto", running);
+    tracker.appJobTracker.begin(deps(), "core_mosquitto", "install", "M");
+    await tracker.appJobTracker.retry("core_mosquitto");
+    expect(running).not.toHaveBeenCalled();
+  });
+});

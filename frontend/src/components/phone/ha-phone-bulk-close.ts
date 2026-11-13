@@ -1,4 +1,4 @@
-import { mdiTabRemove } from "@mdi/js";
+import { mdiLock, mdiTabRemove } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
@@ -9,12 +9,13 @@ import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
 import { phoneOverlayStyles, trapTab } from "./phone-overlay";
 import type { ActionReason, PhonePage } from "./phone-page-actions";
-import { planTitleBulkClose } from "./phone-page-actions";
+import { planTitleBulkClose, planTitleBulkLock } from "./phone-page-actions";
 
 declare global {
   interface HASSDomEvents {
     "phone-bulk-confirm": { ids: string[]; planned: number; kept: number };
     "phone-bulk-dismiss": undefined;
+    "phone-bulk-lock": { ids: string[] };
   }
 }
 
@@ -70,6 +71,7 @@ export class HaPhoneBulkClose extends LitElement {
       this.mode,
       this.currentId
     );
+    const lockPlan = planTitleBulkLock(this.pages, this._query, this.mode);
     const heading = t(
       this.mode === "matching"
         ? "ui.phone.action_bulk_contain"
@@ -115,6 +117,14 @@ export class HaPhoneBulkClose extends LitElement {
         <div class="buttons">
           <button class="text-button back" @click=${this._dismiss}>
             ${t("ui.phone.bulk_back")}
+          </button>
+          <button
+            class="text-button lock-pages"
+            ?disabled=${!lockPlan.ids.length}
+            @click=${this._lock}
+          >
+            <ha-svg-icon .path=${mdiLock}></ha-svg-icon>
+            ${t("ui.phone.bulk_lock", { count: lockPlan.ids.length })}
           </button>
           <button
             class="text-button confirm"
@@ -193,6 +203,15 @@ export class HaPhoneBulkClose extends LitElement {
       planned: preview.ids.length,
       kept: preview.kept.length,
     });
+  }
+
+  // One wizard locks every page that matches; the pages are worked out again
+  // from the current list, like the close.
+  private _lock() {
+    const plan = planTitleBulkLock(this.pages, this._query, this.mode);
+    if (plan.ids.length) {
+      fireEvent(this, "phone-bulk-lock", { ids: plan.ids });
+    }
   }
 
   private _dismiss() {

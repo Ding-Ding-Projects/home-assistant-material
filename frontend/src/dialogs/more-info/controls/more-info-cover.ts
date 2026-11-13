@@ -116,7 +116,6 @@ class MoreInfoCover extends LitElement {
       !supportsTiltPosition;
 
     return html`
-      <p class="headline">${this._formatters.formatEntityState(this.stateObj)}</p>
       <p class="subline">
         ${
           this._positionDisplay ||

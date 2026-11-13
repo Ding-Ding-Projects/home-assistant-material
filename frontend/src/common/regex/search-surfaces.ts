@@ -337,6 +337,15 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Kinds of YAML configuration that can be reloaded",
   },
   {
+    file: "panels/config/extensions/ha-config-extensions.ts",
+    searches:
+      "Dashboard resources by address and type, and custom panels by name",
+  },
+  {
+    file: "panels/config/help/ha-config-help.ts",
+    searches: "Titles and paths of the offline help articles, on the Help page",
+  },
+  {
     file: "panels/config/guided-setup/ha-config-guided-setup.ts",
     searches: "Integrations that have no setup screen",
   },

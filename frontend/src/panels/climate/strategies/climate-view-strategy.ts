@@ -70,6 +70,12 @@ export const hasClimateEntities = (hass: HomeAssistant): boolean => {
   );
 };
 
+// A thermostat tile shows its current temperature as a large number.
+const bigNumberTile = (card: LovelaceCardConfig): LovelaceCardConfig =>
+  card.type === "tile" && String(card.entity).startsWith("climate.")
+    ? { ...card, appearance: "big-number" }
+    : card;
+
 const processAreasForClimate = (
   areaIds: string[],
   hass: HomeAssistant,
@@ -135,7 +141,7 @@ const processAreasForClimate = (
           features: [{ type: "trend-graph" }],
         });
       } else {
-        areaCards.push(computeTileCard(entityId));
+        areaCards.push(bigNumberTile(computeTileCard(entityId)));
       }
     }
 

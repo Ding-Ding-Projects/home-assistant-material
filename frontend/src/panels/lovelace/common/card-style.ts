@@ -26,7 +26,19 @@ export interface CardStyleConfig {
   border_radius?: string | number;
   /** Background colour, same formats as the text colour. */
   background?: string;
+  /** Inner padding, for example `16` or `1rem`. */
+  padding?: string | number;
+  /** Shadow strength: none, soft, medium or strong. */
+  shadow?: string;
 }
+
+/** The shadow choices, each mapped to a fixed shadow built from theme colours. */
+export const CARD_SHADOWS: Record<string, string> = {
+  none: "none",
+  soft: "0 1px 3px 0 rgb(0 0 0 / 12%), 0 1px 2px -1px rgb(0 0 0 / 12%)",
+  medium: "0 4px 8px -2px rgb(0 0 0 / 18%), 0 2px 4px -2px rgb(0 0 0 / 14%)",
+  strong: "0 12px 24px -6px rgb(0 0 0 / 28%), 0 4px 8px -4px rgb(0 0 0 / 20%)",
+};
 
 export const CARD_STYLE_KEYS = [
   "font_size",
@@ -36,6 +48,8 @@ export const CARD_STYLE_KEYS = [
   "border_color",
   "border_radius",
   "background",
+  "padding",
+  "shadow",
 ] as const;
 
 export type CardStyleKey = (typeof CARD_STYLE_KEYS)[number];
@@ -137,6 +151,18 @@ export const computeCardStyleProperties = (
   const background = sanitizeCardStyleColor(style.background);
   if (background) {
     result["--ha-card-background"] = background;
+  }
+
+  const padding = sanitizeCardStyleLength(style.padding);
+  if (padding) {
+    result["--ha-card-padding"] = padding;
+  }
+
+  if (
+    typeof style.shadow === "string" &&
+    Object.prototype.hasOwnProperty.call(CARD_SHADOWS, style.shadow)
+  ) {
+    result["--ha-card-box-shadow"] = CARD_SHADOWS[style.shadow];
   }
 
   return result;

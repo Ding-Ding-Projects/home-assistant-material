@@ -183,7 +183,11 @@ export class HomeAreaViewStrategy extends ReactiveElement {
               } satisfies ButtonHeadingBadgeConfig,
             ],
           } satisfies HeadingCardConfig,
-          ...light.map(computeTileCard),
+          ...light.map((entityId) => ({
+            ...computeTileCard(entityId),
+            // A light that is on glows with its own colour.
+            appearance: "lit",
+          })),
         ],
       });
     }
@@ -203,7 +207,13 @@ export class HomeAreaViewStrategy extends ReactiveElement {
                 }
               : undefined,
           } satisfies HeadingCardConfig,
-          ...climate.map(computeTileCard),
+          ...climate.map((entityId) => {
+            const card = computeTileCard(entityId);
+            // A thermostat shows its current temperature as a large number.
+            return card.type === "tile" && entityId.startsWith("climate.")
+              ? { ...card, appearance: "big-number" }
+              : card;
+          }),
         ],
       });
     }

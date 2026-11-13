@@ -6,8 +6,19 @@ export interface WhoCanSeeDialogParams {
   title: string;
   /** The conditions that decide whether it is shown. */
   conditions: VisibilityCondition[];
-  /** Called with the new conditions when a role is hidden or shown again. */
-  apply: (conditions: VisibilityCondition[]) => void;
+  /**
+   * The conditions that mark the item as view only. When set (a card), each
+   * role can be Hidden, View or Use; when absent only Show and Hide are offered.
+   */
+  viewOnly?: VisibilityCondition[];
+  /**
+   * Called with the new conditions (and the new view-only conditions when the
+   * item supports view only) when a role is moved to another level.
+   */
+  apply: (
+    conditions: VisibilityCondition[],
+    viewOnly?: VisibilityCondition[]
+  ) => void;
 }
 
 export const loadWhoCanSeeDialog = () => import("./dialog-who-can-see");

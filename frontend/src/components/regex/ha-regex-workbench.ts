@@ -47,6 +47,23 @@ import {
 } from "../../common/regex/query";
 import type { RiskFinding } from "../../common/regex/risk";
 import { analyzeRisk } from "../../common/regex/risk";
+import type { SourceDialect } from "../../common/regex/dialect";
+import { importPattern, SOURCE_DIALECTS } from "../../common/regex/dialect";
+import type {
+  CollectedLines,
+  FileEncoding,
+  FileInput,
+  LineBreak,
+} from "../../common/regex/file-search";
+import {
+  collectLines,
+  detectLineBreak,
+  FILE_ENCODINGS,
+  FILE_SEARCH_LIMITS,
+  LINE_BREAKS,
+} from "../../common/regex/file-search";
+import type { TraceStep } from "../../common/regex/trace";
+import { TRACE_MAX_STEPS } from "../../common/regex/trace";
 import type { RegexOutcome } from "../../common/regex/runner";
 import {
   cancelRegexEvaluations,
@@ -84,6 +101,7 @@ const TABS = [
   "cases",
   "performance",
   "code",
+  "files",
   "library",
   "engine",
 ] as const;
@@ -311,6 +329,29 @@ export class HaRegexWorkbench extends LitElement {
 
   @state() private _growth?: GrowthRow[];
 
+  @state() private _trace?: RegexOutcome<"trace">;
+
+  /** The dialect a pattern is brought in from, and what was typed. */
+  @state() private _dialect: SourceDialect = "python";
+
+  @state() private _dialectSource = "";
+
+  /** The files picked for the file search, and how to read them. */
+  @state() private _files: FileInput[] = [];
+
+  @state() private _encoding: FileEncoding = "auto";
+
+  @state() private _lineBreak: LineBreak = "auto";
+
+  @state() private _fileHits?: {
+    collected: CollectedLines;
+    matched: boolean[];
+  };
+
+  @state() private _fileStatus = "";
+
+  @query("#search-files") private _filesInput?: HTMLInputElement;
+
   @state() private _busy = false;
 
   @state() private _target: CodeTarget = "javascript";
@@ -418,6 +459,18 @@ export class HaRegexWorkbench extends LitElement {
     // On a phone there is no useful room beside the field: the panel takes
     // the visible screen, which shrinks while the keyboard is up.
     const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+    if (narrow && !this._keyboard) {
+      // A phone: the workbench is a sheet that rises from the bottom, above
+      // the phone bar.
+      this._placement = {
+        width: `${width}px`,
+        left: `${margin}px`,
+        top: "auto",
+        bottom: "calc(12px + var(--ha-phone-bar-height, 0px))",
+        "max-height": `${Math.max(240, visibleHeight * 0.8)}px`,
+      };
+      return;
+    }
     if (narrow || visibleHeight < 600) {
       this._placement = {
         width: `${width}px`,
@@ -852,9 +905,11 @@ export class HaRegexWorkbench extends LitElement {
                     ? this._renderPerformance()
                     : this._tab === "code"
                       ? this._renderCode()
-                      : this._tab === "library"
-                        ? this._renderLibrary()
-                        : this._renderEngine()
+                      : this._tab === "files"
+                        ? this._renderFiles()
+                        : this._tab === "library"
+                          ? this._renderLibrary()
+                          : this._renderEngine()
         }
       </div>
     `;
@@ -1817,11 +1872,105 @@ export class HaRegexWorkbench extends LitElement {
                 `
               : nothing
           }
-          <h3>${this._l("performance.trace")}</h3>
-          <p class="note">${this._l("performance.trace_unavailable")}</p>
+          ${this._renderTrace()}
         </section>
       </div>
     `;
+  }
+
+  // The step trace: how the first match is built, piece by piece. It comes
+  // from the engine itself, so it is not the engine's own backtracking.
+  private _renderTrace() {
+    const outcome = this._trace;
+    let status = "";
+    let steps: TraceStep[] = [];
+    if (outcome?.status === "ok") {
+      const trace = outcome.result.trace;
+      steps = trace.steps;
+      if (trace.status === "no_match") {
+        status = this._l("performance.trace_no_match");
+      } else if (trace.status === "too_long") {
+        status = this._l("performance.trace_too_long", {
+          max: TRACE_MAX_STEPS,
+        });
+      } else if (trace.status === "unsupported") {
+        status = this._l(
+          trace.reason === "alternation"
+            ? "performance.trace_alternation"
+            : "performance.trace_construct"
+        );
+      }
+    } else if (outcome?.status === "timeout") {
+      status = this._l("status.timeout", { limit: outcome.limitMs });
+    } else if (outcome?.status === "unavailable") {
+      status = this._l("status.unavailable");
+    } else if (outcome?.status === "invalid") {
+      status = outcome.message;
+    }
+    return html`
+      <h3>${this._l("performance.trace")}</h3>
+      <p class="note">${this._l("performance.trace_note")}</p>
+      <div>
+        <button
+          class="tonal"
+          ?disabled=${this._busy || !this._usable || !this._sample}
+          @click=${this._runTrace}
+        >
+          <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
+          ${this._l("performance.run_trace")}
+        </button>
+      </div>
+      ${
+        steps.length
+          ? html`<ol class="trace" aria-label=${this._l("performance.trace")}>
+              ${steps.map(
+                (step, index) => html`
+                  <li>
+                    <span class="trace-number" aria-hidden="true"
+                      >${index + 1}</span
+                    >
+                    <code>${step.source}</code>
+                    <span class="trace-where">${this._traceText(step)}</span>
+                  </li>
+                `
+              )}
+            </ol>`
+          : nothing
+      }
+      <p class="note" role="status" aria-live="polite">${status}</p>
+    `;
+  }
+
+  private _traceText(step: TraceStep): string {
+    switch (step.kind) {
+      case "text":
+        return this._l("performance.trace_took", {
+          from: step.from,
+          to: step.to ?? step.from,
+          text: step.text,
+        });
+      case "gave_back":
+        return this._l("performance.trace_gave_back", {
+          from: step.from,
+          to: step.to ?? step.from,
+        });
+      case "unreached":
+        return this._l("performance.trace_unreached", { from: step.from });
+      default:
+        return this._l("performance.trace_position", { at: step.from });
+    }
+  }
+
+  private async _runTrace() {
+    this._busy = true;
+    this._trace = await evaluateRegex({
+      type: "trace",
+      pattern: this._pattern,
+      flags: this._flags,
+      sample: this._sample,
+      from: 0,
+    });
+    this._busy = false;
   }
 
   // ---- Code ----
@@ -1875,7 +2024,325 @@ export class HaRegexWorkbench extends LitElement {
           }
         </section>
       </div>
+      ${this._renderImport()}
     `;
+  }
+
+  // Writing in another dialect: a pattern typed for Python or PCRE is
+  // rewritten as JavaScript, so it can be tried here.
+  private _renderImport() {
+    const result = this._dialectSource
+      ? importPattern(this._dialectSource, this._dialect)
+      : undefined;
+    return html`
+      <section class="import">
+        <h3>${this._l("dialect_title")}</h3>
+        <p class="note">${this._l("dialect_note")}</p>
+        <div class="field">
+          <ha-select
+            .label=${this._l("dialect_write_in")}
+            .value=${this._dialect}
+            .options=${SOURCE_DIALECTS.filter(
+              (dialect) => dialect !== "javascript"
+            ).map((dialect) => ({
+              value: dialect,
+              label: this._l(`dialect_name_${dialect}`),
+            }))}
+            @selected=${this._dialectChanged}
+          ></ha-select>
+        </div>
+        <div class="field">
+          <ha-input
+            appearance="outlined"
+            type="text"
+            .label=${this._l("dialect_pattern")}
+            autocomplete="off"
+            spellcheck="false"
+            .maxlength=${REGEX_LIMITS.pattern}
+            .value=${this._dialectSource}
+            @input=${this._dialectSourceChanged}
+          ></ha-input>
+        </div>
+        ${
+          result
+            ? html`
+                <h3>${this._l("dialect_result")}</h3>
+                <pre class="marked code">${result.pattern}</pre>
+                <p class="note">
+                  ${
+                    result.flags
+                      ? this._l("dialect_flags", { flags: result.flags })
+                      : this._l("dialect_no_flags")
+                  }
+                </p>
+                ${
+                  result.notes.length || result.unsupported.length
+                    ? html`<ul class="warnings">
+                        ${result.notes.map(
+                          (note) =>
+                            html`<li>${this._l(`dialect_note_${note}`)}</li>`
+                        )}
+                        ${result.unsupported.map(
+                          (reason) =>
+                            html`<li>
+                              ${this._l("dialect_unsupported", {
+                                reason: this._l(`dialect_reason_${reason}`),
+                              })}
+                            </li>`
+                        )}
+                      </ul>`
+                    : nothing
+                }
+                <div>
+                  <button class="tonal" @click=${this._useImported}>
+                    <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
+                    ${this._l("dialect_use")}
+                  </button>
+                </div>
+              `
+            : nothing
+        }
+      </section>
+    `;
+  }
+
+  private _dialectChanged(ev: HaSelectSelectEvent<string>) {
+    this._dialect = String(ev.detail.value) as SourceDialect;
+  }
+
+  private _dialectSourceChanged(ev: Event) {
+    this._dialectSource = (ev.target as HaInput).value ?? "";
+  }
+
+  private _useImported() {
+    const result = importPattern(this._dialectSource, this._dialect);
+    this._pattern = result.pattern;
+    this._flags = result.flags;
+    this._mode = "regex";
+    this._tab = "build";
+  }
+
+  // ---- Search files ----
+
+  // The files are the ones the person picks on this device. They are read here
+  // and searched here, and nothing is sent anywhere.
+  private _renderFiles() {
+    const collected = this._fileHits?.collected;
+    const hits = collected
+      ? collected.lines.filter((_line, index) => this._fileHits!.matched[index])
+      : [];
+    const shown = hits.slice(0, 200);
+    return html`
+      <div class="columns">
+        <section>
+          <h3>${this._l("files_title")}</h3>
+          <p class="note">
+            ${this._l("files_note", {
+              files: FILE_SEARCH_LIMITS.files,
+              size: Math.round(FILE_SEARCH_LIMITS.bytes / (1024 * 1024)),
+            })}
+          </p>
+          <div class="row">
+            <button class="outlined" @click=${this._chooseFiles}>
+              <ha-svg-icon .path=${mdiUpload}></ha-svg-icon>
+              ${this._l("files_choose")}
+            </button>
+            <input
+              class="file-input-hidden"
+              tabindex="-1"
+              aria-hidden="true"
+              id="search-files"
+              type="file"
+              multiple
+              @change=${this._filesChosen}
+            />
+          </div>
+          ${
+            this._files.length
+              ? html`<ul class="saved">
+                  ${this._files.map(
+                    (file) => html`<li><code>${file.name}</code></li>`
+                  )}
+                </ul>`
+              : html`<p class="note">${this._l("files_none")}</p>`
+          }
+          <h3>${this._l("files_layout_title")}</h3>
+          <div class="row">
+            <div class="field">
+              <ha-select
+                .label=${this._l("files_encoding")}
+                .value=${this._encoding}
+                .options=${FILE_ENCODINGS.map((encoding) => ({
+                  value: encoding,
+                  label: this._l(
+                    `files_encoding_${encoding.replace("-", "_")}`
+                  ),
+                }))}
+                @selected=${this._encodingChanged}
+              ></ha-select>
+            </div>
+            <div class="field">
+              <ha-select
+                .label=${this._l("files_line_breaks")}
+                .value=${this._lineBreak}
+                .options=${LINE_BREAKS.map((lineBreak) => ({
+                  value: lineBreak,
+                  label: this._l(`files_line_break_${lineBreak}`),
+                }))}
+                @selected=${this._lineBreakChanged}
+              ></ha-select>
+            </div>
+          </div>
+          <p class="note">${this._l("files_layout_note")}</p>
+          <div>
+            <button
+              class="tonal"
+              ?disabled=${this._busy || !this._usable || !this._files.length}
+              @click=${this._searchFiles}
+            >
+              <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
+              ${this._l("files_search")}
+            </button>
+          </div>
+          <p class="note" role="status" aria-live="polite">
+            ${this._busy ? this._l("status.running") : this._fileStatus}
+          </p>
+        </section>
+        <section>
+          <h3>${this._l("files_results")}</h3>
+          ${
+            collected
+              ? html`
+                  <p class="count">
+                    ${this._l("files_found", {
+                      hits: hits.length,
+                      lines: collected.lines.length,
+                    })}
+                  </p>
+                  ${
+                    shown.length
+                      ? html`<ul class="saved file-hits">
+                          ${shown.map(
+                            (hit) =>
+                              html`<li>
+                                <code class="where"
+                                  >${hit.file}:${hit.line}</code
+                                >
+                                <code>${hit.text}</code>
+                              </li>`
+                          )}
+                        </ul>`
+                      : nothing
+                  }
+                  ${
+                    hits.length > shown.length
+                      ? html`<p class="note">
+                          ${this._l("files_more", { shown: shown.length })}
+                        </p>`
+                      : nothing
+                  }
+                  ${collected.skipped.map(
+                    (skip) =>
+                      html`<p class="note">
+                        ${this._l(`files_skipped_${skip.reason}`, {
+                          name: skip.name,
+                        })}
+                      </p>`
+                  )}
+                  ${collected.invalid.map(
+                    (name) =>
+                      html`<p class="note">
+                        ${this._l("files_invalid", { name })}
+                      </p>`
+                  )}
+                  ${
+                    collected.truncated
+                      ? html`<p class="note">
+                          ${this._l("files_truncated", {
+                            lines: FILE_SEARCH_LIMITS.lines,
+                            length: FILE_SEARCH_LIMITS.lineLength,
+                          })}
+                        </p>`
+                      : nothing
+                  }
+                `
+              : html`<p class="note">${this._l("files_not_searched")}</p>`
+          }
+        </section>
+      </div>
+    `;
+  }
+
+  private _chooseFiles() {
+    this._filesInput?.click();
+  }
+
+  private async _filesChosen(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const picked = Array.from(input.files ?? []);
+    input.value = "";
+    this._fileHits = undefined;
+    // A file over the limit is named and skipped without being read.
+    this._files = await Promise.all(
+      picked.slice(0, FILE_SEARCH_LIMITS.files + 1).map(async (file) => ({
+        name: file.name,
+        bytes:
+          file.size > FILE_SEARCH_LIMITS.bytes
+            ? new Uint8Array(FILE_SEARCH_LIMITS.bytes + 1)
+            : new Uint8Array(await file.arrayBuffer()),
+      }))
+    );
+    // A guess at the line break, shown to the person, never applied for them.
+    const first = this._files.find(
+      (file) => file.bytes.length <= FILE_SEARCH_LIMITS.bytes
+    );
+    const guess = first
+      ? detectLineBreak(new TextDecoder().decode(first.bytes))
+      : undefined;
+    this._fileStatus = guess
+      ? this._l("files_detected", {
+          lineBreak: this._l(`files_line_break_${guess}`),
+        })
+      : "";
+  }
+
+  private _encodingChanged(ev: HaSelectSelectEvent<string>) {
+    this._encoding = String(ev.detail.value) as FileEncoding;
+    this._fileHits = undefined;
+  }
+
+  private _lineBreakChanged(ev: HaSelectSelectEvent<string>) {
+    this._lineBreak = String(ev.detail.value) as LineBreak;
+    this._fileHits = undefined;
+  }
+
+  private async _searchFiles() {
+    this._busy = true;
+    this._fileStatus = "";
+    const collected = collectLines(
+      this._files,
+      this._encoding,
+      this._lineBreak
+    );
+    const outcome = await evaluateRegex({
+      type: "cases",
+      pattern: this._pattern,
+      flags: this._flags,
+      cases: collected.lines.map((line) => line.text),
+    });
+    this._busy = false;
+    if (outcome.status === "ok") {
+      this._fileHits = { collected, matched: outcome.result.matched };
+    } else if (outcome.status === "timeout") {
+      this._fileHits = undefined;
+      this._fileStatus = this._l("status.timeout", { limit: outcome.limitMs });
+    } else if (outcome.status === "invalid") {
+      this._fileHits = undefined;
+      this._fileStatus = outcome.message;
+    } else {
+      this._fileHits = undefined;
+      this._fileStatus = this._l("status.unavailable");
+    }
   }
 
   // ---- Library ----
@@ -2751,6 +3218,48 @@ export class HaRegexWorkbench extends LitElement {
       }
       p {
         margin: 0;
+      }
+      .import {
+        margin-top: var(--ha-space-4);
+      }
+      .file-hits li {
+        display: grid;
+        gap: var(--ha-space-1);
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .file-hits .where {
+        color: var(--secondary-text-color);
+      }
+      .trace {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--ha-space-2);
+      }
+      .trace li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: var(--ha-space-2);
+        min-width: 0;
+      }
+      .trace-number {
+        display: inline-grid;
+        place-items: center;
+        flex: none;
+        width: 24px;
+        height: 24px;
+        border-radius: var(--ha-border-radius-circle);
+        background: var(--ha-color-tertiary-container);
+        color: var(--ha-color-on-tertiary-container);
+        font-size: var(--ha-font-size-s);
+      }
+      .trace-where {
+        color: var(--secondary-text-color);
+        overflow-wrap: anywhere;
+        min-width: 0;
       }
       .note {
         font-size: var(--ha-font-size-s);

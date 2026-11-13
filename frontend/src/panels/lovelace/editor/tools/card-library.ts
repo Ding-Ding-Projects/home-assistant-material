@@ -133,3 +133,125 @@ export const removeFromLibrary = (
   library: CardLibraryEntry[],
   id: string
 ): CardLibraryEntry[] => library.filter((e) => e.id !== id);
+
+// ---- Sharing one card as a file ------------------------------------------------
+
+export const CARD_FILE_FORMAT = "dashboard-card";
+export const CARD_FILE_VERSION = 1;
+/** Largest file accepted on import, in characters. */
+export const CARD_FILE_MAX_CHARS = 200_000;
+const CARD_FILE_MAX_DEPTH = 24;
+const CARD_FILE_MAX_NODES = 5000;
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+export interface CardFile {
+  format: typeof CARD_FILE_FORMAT;
+  version: typeof CARD_FILE_VERSION;
+  name: string;
+  /** The inputs the card asks for when it is inserted, for the reader of the file. */
+  inputs: string[];
+  card: Record<string, unknown>;
+}
+
+/** The file for one saved card: its latest version, with the names of its inputs. */
+export const buildCardFile = (
+  entry: CardLibraryEntry,
+  versionAt?: number
+): { filename: string; text: string } => {
+  const version =
+    entry.versions.find((v) => v.at === versionAt) ?? latestVersion(entry);
+  const file: CardFile = {
+    format: CARD_FILE_FORMAT,
+    version: CARD_FILE_VERSION,
+    name: entry.name,
+    inputs: findInputs(version.card),
+    card: version.card,
+  };
+  const slug =
+    entry.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "card";
+  return {
+    filename: `card-${slug}.json`,
+    text: JSON.stringify(file, null, 2),
+  };
+};
+
+export type ParsedCardFile =
+  | { ok: true; name: string; card: Record<string, unknown>; inputs: string[] }
+  | {
+      ok: false;
+      reason: "too_large" | "not_json" | "wrong_format" | "no_card" | "unsafe";
+    };
+
+/** True when the value is plain data that is small enough and holds no dangerous key. */
+const isSafeData = (value: unknown): boolean => {
+  let nodes = 0;
+  const walk = (item: unknown, depth: number): boolean => {
+    nodes++;
+    if (nodes > CARD_FILE_MAX_NODES || depth > CARD_FILE_MAX_DEPTH) {
+      return false;
+    }
+    if (Array.isArray(item)) {
+      return item.every((child) => walk(child, depth + 1));
+    }
+    if (item && typeof item === "object") {
+      return Object.entries(item as Record<string, unknown>).every(
+        ([key, child]) => !FORBIDDEN_KEYS.has(key) && walk(child, depth + 1)
+      );
+    }
+    return (
+      item === null || ["string", "number", "boolean"].includes(typeof item)
+    );
+  };
+  return walk(value, 0);
+};
+
+/**
+ * Reads a card file. Nothing is trusted: the text is size limited, must be
+ * JSON in the card file format, and the card must be plain data of a bounded
+ * size with a card type.
+ */
+export const parseCardFile = (text: string): ParsedCardFile => {
+  if (text.length > CARD_FILE_MAX_CHARS) {
+    return { ok: false, reason: "too_large" };
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch (_err) {
+    return { ok: false, reason: "not_json" };
+  }
+  const file = data as Partial<CardFile> | null;
+  if (
+    !file ||
+    typeof file !== "object" ||
+    file.format !== CARD_FILE_FORMAT ||
+    file.version !== CARD_FILE_VERSION
+  ) {
+    return { ok: false, reason: "wrong_format" };
+  }
+  const { card, name } = file;
+  if (
+    !card ||
+    typeof card !== "object" ||
+    Array.isArray(card) ||
+    typeof card.type !== "string" ||
+    !card.type ||
+    card.type.length > 100 ||
+    typeof name !== "string" ||
+    !name.trim()
+  ) {
+    return { ok: false, reason: "no_card" };
+  }
+  if (!isSafeData(card)) {
+    return { ok: false, reason: "unsafe" };
+  }
+  return {
+    ok: true,
+    name: name.trim().slice(0, 100),
+    card,
+    inputs: findInputs(card),
+  };
+};

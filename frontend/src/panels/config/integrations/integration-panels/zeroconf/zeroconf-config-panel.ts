@@ -16,6 +16,11 @@ import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
 import type { ZeroconfDiscoveryData } from "../../../../../data/zeroconf";
 import { SubscribeMixin } from "../../../../../mixins/subscribe-mixin";
+import type { DiscoveryCounts } from "../discovery-counts";
+import {
+  discoveryStatistics,
+  subscribeOtherDiscoveryCounts,
+} from "../discovery-counts";
 import { storage } from "../../../../../common/decorators/storage";
 import type { HASSDomEvent } from "../../../../../common/dom/fire_event";
 import { subscribeZeroconfDiscovery } from "../../../../../data/zeroconf";
@@ -30,6 +35,9 @@ export class ZeroconfConfigPanel extends SubscribeMixin(LitElement) {
   @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
+
+  // How many entries the other discovery browsers hold, shown beside this one
+  @state() private _counts: DiscoveryCounts = {};
 
   @state() private _data: ZeroconfDiscoveryData[] = [];
 
@@ -51,6 +59,13 @@ export class ZeroconfConfigPanel extends SubscribeMixin(LitElement) {
       subscribeZeroconfDiscovery(this.hass.connection, (data) => {
         this._data = data;
       }),
+      ...subscribeOtherDiscoveryCounts(
+        this.hass,
+        "zeroconf",
+        (browser, count) => {
+          this._counts = { ...this._counts, [browser]: count };
+        }
+      ),
     ];
   }
 
@@ -116,6 +131,10 @@ export class ZeroconfConfigPanel extends SubscribeMixin(LitElement) {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         .data=${this._dataWithIds(this._data)}
+        .statistics=${discoveryStatistics(this.hass.localize, {
+          ...this._counts,
+          zeroconf: this._data.length,
+        })}
         .summary=${this.hass.localize("ui.panel.config.zeroconf.summary")}
         .footerText=${this.hass.localize("ui.panel.config.zeroconf.footer", {
           count: this._data.length,

@@ -1,6 +1,8 @@
 import {
   mdiCheck,
   mdiDevices,
+  mdiSignal,
+  mdiRadioTower,
   mdiPlus,
   mdiLanConnect,
   mdiCloseCircleOutline,
@@ -19,10 +21,15 @@ import "../../../../../components/ha-svg-icon";
 import "../../../../../components/item/ha-list-item-button";
 import "../../../../../components/list/ha-list-nav";
 import type { LoRaWANDevices } from "../../../../../data/lorawan";
-import { subscribeLoRaWANDevices } from "../../../../../data/lorawan";
+import {
+  strongestLoRaWANReception,
+  subscribeLoRaWANDevices,
+} from "../../../../../data/lorawan";
 import "../../../../../layouts/hass-subpage";
 import { panelIsReady } from "../../../../../layouts/panel-ready";
 import { haLora } from "../../../../../resources/ha-icons";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import type { HomeAssistant } from "../../../../../types";
 
 @customElement("lorawan-overview")
@@ -123,6 +130,9 @@ export class LoRaWANOverview extends LitElement {
         ${
           snapshot
             ? html`
+                <ha-protocol-stat-tiles
+                  .tiles=${this._statTiles(snapshot)}
+                ></ha-protocol-stat-tiles>
                 <ha-card class="summary">
                   <div class="summary-content">
                     <div
@@ -195,6 +205,45 @@ export class LoRaWANOverview extends LitElement {
     </hass-subpage>`;
   }
 
+  // Numbers the devices report: how many, which gateways heard them and the
+  // best signal any of them was received with.
+  private _statTiles(snapshot: LoRaWANDevices): ProtocolStatTile[] {
+    const localize = this.hass.localize;
+    const tiles: ProtocolStatTile[] = [
+      {
+        label: localize("ui.panel.config.lorawan.overview.tile_sensors"),
+        value: snapshot.devices.length,
+        icon: mdiDevices,
+        tone: "success",
+      },
+    ];
+    const gateways = new Set(
+      snapshot.devices.flatMap((device) =>
+        device.receptions.map((reception) => reception.gateway_id)
+      )
+    );
+    if (gateways.size) {
+      tiles.push({
+        label: localize("ui.panel.config.lorawan.overview.tile_gateways"),
+        value: gateways.size,
+        icon: mdiRadioTower,
+        tone: "primary",
+      });
+    }
+    const rssi = snapshot.devices
+      .map((device) => strongestLoRaWANReception(device.receptions)?.rssi)
+      .filter((value): value is number => typeof value === "number");
+    if (rssi.length) {
+      tiles.push({
+        label: localize("ui.panel.config.lorawan.overview.tile_best_rssi"),
+        value: `${Math.max(...rssi)} dBm`,
+        icon: mdiSignal,
+        tone: "tertiary",
+      });
+    }
+    return tiles;
+  }
+
   private _addDevice() {
     fireEvent(this, "show-dialog", {
       dialogTag: "dialog-lorawan-add-device",
@@ -215,6 +264,10 @@ export class LoRaWANOverview extends LitElement {
       overflow: hidden;
       margin: 0 auto var(--ha-space-4);
       max-width: 600px;
+    }
+    ha-protocol-stat-tiles {
+      max-width: 600px;
+      margin: 0 auto var(--ha-space-4);
     }
     .page-heading {
       display: flex;

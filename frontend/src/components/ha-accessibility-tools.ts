@@ -48,6 +48,7 @@ import type {
   LineSpacing,
   ReadingOptions,
 } from "../common/appearance/reading-options";
+import { startMotionProfiles } from "../common/appearance/motion-profiles";
 import { startTypeScale } from "../common/appearance/type-scale";
 import { storage } from "../common/decorators/storage";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
@@ -93,6 +94,8 @@ export class HaAccessibilityTools extends LitElement {
 
   private _stopTypeScale?: () => void;
 
+  private _stopMotionProfiles?: () => void;
+
   private _unsubReadingOptions?: () => void;
 
   @query("#panel") private _panel?: HTMLElement;
@@ -128,6 +131,8 @@ export class HaAccessibilityTools extends LitElement {
     // A stored type scale holds from the start, not only while the fonts
     // dialog is open.
     this._stopTypeScale = startTypeScale();
+    // The motion profile in use holds from the start as well.
+    this._stopMotionProfiles = startMotionProfiles();
     this._unsubReadingOptions = subscribeReadingOptions((options) => {
       this._options = options;
     });
@@ -138,6 +143,7 @@ export class HaAccessibilityTools extends LitElement {
     super.disconnectedCallback();
     this._stopReadingOptions?.();
     this._stopTypeScale?.();
+    this._stopMotionProfiles?.();
     this._unsubReadingOptions?.();
     if (this._reading) {
       stopReadingAloud();

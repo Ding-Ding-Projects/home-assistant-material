@@ -121,16 +121,27 @@ class HaPanelDevDebug extends SubscribeMixin(LitElement) {
     haStyle,
     css`
       ha-card {
-        margin-bottom: var(--ha-space-4);
+        margin-bottom: 0;
+        border-radius: var(--ha-border-radius-3xl);
       }
       .card-content {
         padding: var(--ha-space-2);
       }
       .content {
-        padding: var(--ha-space-7) var(--ha-space-5) var(--ha-space-4);
-        display: block;
-        max-width: 600px;
+        padding: var(--ha-space-4) var(--ha-space-5) var(--ha-space-6);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: var(--ha-space-4);
+        max-width: 1100px;
         margin: 0 auto;
+        box-sizing: border-box;
+      }
+      @media (max-width: 800px) {
+        .content {
+          grid-template-columns: minmax(0, 1fr);
+          padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+        }
       }
     `,
   ];

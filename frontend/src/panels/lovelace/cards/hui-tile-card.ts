@@ -302,6 +302,7 @@ export class HuiTileCard extends LitElement implements LovelaceCard {
       <ha-card
         style=${styleMap(style)}
         class=${classMap({ active })}
+        data-appearance=${ifDefined(this._config.appearance)}
         role=${ifDefined(hasFeatures ? "group" : undefined)}
         aria-labelledby=${ifDefined(hasFeatures ? "name" : undefined)}
       >
@@ -383,6 +384,18 @@ export class HuiTileCard extends LitElement implements LovelaceCard {
               : nothing
           }
         </ha-tile-container>
+        ${
+          this._config.appearance === "big-number"
+            ? html`<div class="big-state" aria-hidden="true">
+                <state-display
+                  .stateObj=${stateObj}
+                  .content=${
+                    domain === "climate" ? "current_temperature" : undefined
+                  }
+                ></state-display>
+              </div>`
+            : nothing
+        }
       </ha-card>
     `;
   }
@@ -395,6 +408,23 @@ export class HuiTileCard extends LitElement implements LovelaceCard {
       }
       ha-card.active {
         --tile-color: var(--state-icon-color);
+      }
+      /* A lit tile glows with the colour of its entity while it is active. */
+      ha-card[data-appearance="lit"].active {
+        background: color-mix(
+          in srgb,
+          var(--tile-color) 22%,
+          var(--card-background-color)
+        );
+      }
+      .big-state {
+        padding: 0 var(--ha-space-4) var(--ha-space-3);
+        font-family: var(--ha-font-family-heading, inherit);
+        font-size: var(--ha-font-size-3xl);
+        font-weight: var(--ha-font-weight-semibold, 600);
+        line-height: var(--ha-line-height-condensed);
+        letter-spacing: -0.02em;
+        color: var(--primary-text-color);
       }
       ha-tile-badge {
         position: absolute;

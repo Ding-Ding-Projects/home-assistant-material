@@ -2,7 +2,11 @@ import type { PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { mdiAccountLock } from "@mdi/js";
 import { fireEvent } from "../../../../common/dom/fire_event";
+import "../../../../components/ha-button";
+import "../../../../components/ha-svg-icon";
+import { showWhoCanSeeDialog } from "../who-can-see/show-dialog-who-can-see";
 import { stringCompare } from "../../../../common/string/compare";
 import "../../../../components/ha-switch";
 import type { HaSwitch } from "../../../../components/ha-switch";
@@ -102,12 +106,30 @@ export class HuiViewVisibilityEditor extends LitElement {
         .hass=${this.hass}
         .conditions=${this._config.visibility ?? []}
       ></ha-visibility-status>
+      <ha-button appearance="plain" @click=${this._whoCanSee}>
+        <ha-svg-icon slot="start" .path=${mdiAccountLock}></ha-svg-icon>
+        ${this.hass.localize("ui.panel.lovelace.editor.who_can_see.menu")}
+      </ha-button>
       <ha-card-conditions-editor
         .hass=${this.hass}
         .conditions=${this._config.visibility ?? []}
         @value-changed=${this._conditionsChanged}
       ></ha-card-conditions-editor>
     `;
+  }
+
+  private _whoCanSee(): void {
+    showWhoCanSeeDialog(this, {
+      title: this._config.title || this._config.path || "",
+      conditions: this._config.visibility ?? [],
+      apply: (visibility) => {
+        this._config = {
+          ...this._config,
+          visibility: visibility.length ? visibility : undefined,
+        };
+        fireEvent(this, "view-conditions-changed", { visibility });
+      },
+    });
   }
 
   private _conditionsChanged(ev: CustomEvent): void {

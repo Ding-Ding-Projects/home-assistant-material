@@ -111,8 +111,10 @@ export class HaDropdown extends Dropdown {
           padding: var(--ha-space-2);
           border-radius: var(--ha-border-radius-2xl);
           box-shadow: var(--ha-shadow-overlay, var(--wa-shadow-m));
-          animation: ha-pop var(--ha-animation-duration-normal)
-            var(--ha-motion-spring, ease) backwards;
+          animation: ha-pop
+            var(--ha-motion-menus-duration, var(--ha-animation-duration-normal))
+            var(--ha-motion-menus-curve, var(--ha-motion-spring, ease))
+            backwards;
           --auto-size-available-width: calc(
             var(--safe-width, 100vw) - var(--ha-space-5)
           );

@@ -14,6 +14,7 @@ import "../../../../../components/item/ha-list-item-button";
 import "../../../../../components/list/ha-list-nav";
 import type { InfraredDevice } from "../../../../../data/infrared";
 import "../../../../../layouts/hass-subpage";
+import "../ha-protocol-stat-tiles";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
 
@@ -59,6 +60,26 @@ export class InfraredConfigDashboard extends LitElement {
             <h1>${this.hass.localize("ui.panel.config.infrared.title")}</h1>
             <p>${this.hass.localize("ui.panel.config.infrared.summary")}</p>
           </div>
+          <ha-protocol-stat-tiles
+            .tiles=${[
+              {
+                label: this.hass.localize(
+                  "ui.panel.config.infrared.tile_transmitters"
+                ),
+                value: deviceCount,
+                icon: mdiRemote,
+                tone: "warning",
+              },
+              {
+                label: this.hass.localize(
+                  "ui.panel.config.infrared.tile_online"
+                ),
+                value: onlineCount,
+                icon: mdiCheck,
+                tone: "success",
+              },
+            ]}
+          ></ha-protocol-stat-tiles>
           <ha-card class="content network-status">
             <div class="card-content">
               <div class="heading">
@@ -117,7 +138,8 @@ export class InfraredConfigDashboard extends LitElement {
           padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
         }
 
-        ha-card {
+        ha-card,
+        ha-protocol-stat-tiles {
           margin: 0px auto var(--ha-space-4);
           max-width: 600px;
         }

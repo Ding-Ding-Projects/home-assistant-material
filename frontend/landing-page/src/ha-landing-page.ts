@@ -1,3 +1,4 @@
+import { mdiHome } from "@mdi/js";
 import { css, html, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../src/components/animation/ha-fade-in";
@@ -58,26 +59,31 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
     }
 
     return html`
+      <div class="intro">
+        <div class="logo" aria-hidden="true">
+          <ha-svg-icon .path=${mdiHome}></ha-svg-icon>
+        </div>
+        <h1>${this.localize("header")}</h1>
+        ${
+          showProgress
+            ? html`
+                <p>${this.localize("subheader")}</p>
+                <ha-progress-bar
+                  .indeterminate=${this._progress <= 0}
+                  .value=${this._progress > 0 ? this._progress : undefined}
+                  .loading=${this._progress >= 0}
+                  >${
+                    this._progress > 0
+                      ? `${Math.round(this._progress)}%`
+                      : nothing
+                  }</ha-progress-bar
+                >
+              `
+            : nothing
+        }
+      </div>
       <ha-card>
         <div class="card-content">
-          <h1>${this.localize("header")}</h1>
-          ${
-            showProgress
-              ? html`
-                  <p>${this.localize("subheader")}</p>
-                  <ha-progress-bar
-                    .indeterminate=${this._progress <= 0}
-                    .value=${this._progress > 0 ? this._progress : undefined}
-                    .loading=${this._progress >= 0}
-                    >${
-                      this._progress > 0
-                        ? `${Math.round(this._progress)}%`
-                        : nothing
-                    }</ha-progress-bar
-                  >
-                `
-              : nothing
-          }
           ${
             networkIssue || this._networkInfoError
               ? html`
@@ -278,6 +284,55 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
     haStyle,
     onBoardingStyles,
     css`
+      /* The logo breathes, the title and the bar are centred, the log sits in a card. */
+      .intro {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--ha-space-2);
+        margin-bottom: var(--ha-space-6);
+      }
+      .intro h1 {
+        margin: var(--ha-space-3) 0 0;
+        font-weight: var(
+          --ha-font-weight-semibold,
+          var(--ha-font-weight-medium)
+        );
+        letter-spacing: -0.01em;
+      }
+      .intro p {
+        margin: 0 0 var(--ha-space-2);
+        color: var(--secondary-text-color);
+      }
+      .intro ha-progress-bar {
+        width: 100%;
+      }
+      .logo {
+        display: grid;
+        place-items: center;
+        width: 84px;
+        height: 84px;
+        border-radius: var(--ha-border-radius-3xl);
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--ha-color-tertiary, var(--accent-color, var(--primary-color)))
+        );
+        color: var(--text-primary-color, #fff);
+        --mdc-icon-size: 48px;
+        animation: breathe 3.2s ease-in-out infinite;
+      }
+      @keyframes breathe {
+        50% {
+          transform: scale(1.06);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .logo {
+          animation: none;
+        }
+      }
       .footer {
         padding-top: 8px;
         display: flex;
@@ -308,7 +363,7 @@ class HaLandingPage extends provideLiteI18nMixin(LandingPageBaseElement) {
         align-items: center;
       }
       ha-progress-bar {
-        --ha-progress-bar-track-height: 20px;
+        --ha-progress-bar-track-height: 12px;
       }
     `,
   ];

@@ -42,6 +42,7 @@ class MoreInfoCounter extends LitElement {
     const hasMaximum = maximum !== undefined && maximum !== null;
 
     return html`
+      <div class="value">${this.stateObj.state}</div>
       <div class="value-row">
         <ha-control-button
           class="round"
@@ -52,7 +53,23 @@ class MoreInfoCounter extends LitElement {
         >
           <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
         </ha-control-button>
-        <div class="value">${this.stateObj.state}</div>
+        <ha-button
+          appearance="outlined"
+          variant="neutral"
+          .action=${"reset"}
+          @click=${this._handleActionClick}
+          .disabled=${disabled}
+        >
+          <ha-svg-icon slot="start" .path=${mdiRestart}></ha-svg-icon>
+          ${
+            initial !== undefined
+              ? this._localize(
+                  "ui.dialogs.more_info_control.counter.reset_to",
+                  { value: initial }
+                )
+              : this._localize("ui.card.counter.actions.reset")
+          }
+        </ha-button>
         <ha-control-button
           class="round primary"
           .label=${this._localize("ui.card.counter.actions.increment")}
@@ -80,25 +97,6 @@ class MoreInfoCounter extends LitElement {
             </div>`
           : nothing
       }
-      <div class="actions">
-        <ha-button
-          appearance="outlined"
-          variant="neutral"
-          .action=${"reset"}
-          @click=${this._handleActionClick}
-          .disabled=${disabled}
-        >
-          <ha-svg-icon slot="start" .path=${mdiRestart}></ha-svg-icon>
-          ${
-            initial !== undefined
-              ? this._localize(
-                  "ui.dialogs.more_info_control.counter.reset_to",
-                  { value: initial }
-                )
-              : this._localize("ui.card.counter.actions.reset")
-          }
-        </ha-button>
-      </div>
       ${
         hasMinimum || hasMaximum || step !== undefined
           ? html`<div class="stats">
@@ -170,6 +168,7 @@ class MoreInfoCounter extends LitElement {
     }
 
     .value {
+      margin: 0 auto var(--ha-space-3);
       min-width: 64px;
       text-align: center;
       font-size: 64px;

@@ -356,6 +356,57 @@ product matching it.
   - Checks: full suite 7,208 passed with the 3 known build-script failures; type check clean
     apart from the two known gallery errors.
 
+- Batch 48, the owner's "build all": the boards earlier batches had left unbuilt, built for
+  real, with new server calls where a number or a pause did not exist. Unit tested; nothing
+  seen in a browser except the server calls, which were run for real (below).
+  - Server (`core/`): `recorder/storage/overview` and `recorder/storage/entity`
+    (`components/recorder/storage_usage.py`, administrators only, in the recorder executor,
+    bounded), and `editor_locked` accepted and dropped on automation steps in
+    `helpers/config_validation.py`. The pytest files could not run on this machine (the
+    Python here lacks the product's packages), so the three changed files were mounted into
+    a throwaway container of build 348 and called over the websocket: the instance starts,
+    the overview returns the SQLite file size, table size, 14 days of growth and the biggest
+    entities, the entity call returns rows per day and the keep days, a limit of 9999 is
+    refused, and steps carrying `editor_locked` validate.
+  - Storage page: ring with the measured database size, growth chart, biggest entities, and
+    a per-entity view with an estimated saving before a purge behind a typed confirmation.
+    Not built: switching recording off for one entity or limiting how often it records (the
+    recorder's filter is start-up configuration; no call changes it while running).
+  - Automation tools: live breakpoints with Step, Continue and Stop through the server's
+    existing trace debugging commands; saved test cases with a coverage map; replay of a
+    recorded day from real history; locks on steps; a flow node jumps to its step; more
+    sentence patterns.
+  - Motion: an "Animation and transitions" page under Personal settings (profiles, master
+    switch, speed, nine element kinds, a curve editor, live preview). Reduced motion always
+    wins. Seven shared components read a timing token with their old timing as the fallback.
+  - Help page for the offline bundle; a guidance note in integration setup dialogs; progress
+    with the failed step, Start again and Copy details for app jobs; an Extensions page for
+    dashboard resources and custom panels with recorded consent. Not built: resuming an app
+    job part way (the Supervisor cannot), enabling or disabling a resource (no such field).
+  - Dashboards: drag to resize in sections, "Make phone friendly", a view-only level for
+    presentation roles, history compare with an earlier period, tap feedback, padding and
+    shadow in the Style tab, first-draw time, card files, a Cameras section, an energy Cost
+    tile.
+  - Phone: quick tools in the Pages sheet, pages as a card grid, picking an element by
+    touch, the tool panel and workbench as bottom sheets, a lock on one appearance value,
+    several pages locked at once. Workbench: a step trace of its own, Python and PCRE
+    import, search in files picked from the device, encodings.
+    Not built: tables as cards and a folding tool pill on a phone (shared table and layout
+    parts, left for a next round); searching the instance's own configuration files (needs a
+    server call that reads files, a security decision for the owner).
+  - Entity dialogs show the state once; timer with labelled buttons and +5 minutes; counter,
+    person; number tiles on the protocol pages from real data, MQTT rates measured by the
+    page after Listen; one assistant's pipeline strip with a real last-run time. Not built:
+    analytics switches (analytics is deliberately a no-op in this product).
+  - Shell and everyday: role line and a tools menu in the pane, segmented control and select
+    to the kit, a summary line under settings titles (check for pages that now show two),
+    home greeting line and "Needs you" with repairs and open doors, big-number and lit
+    tiles, loading, not-found and error screens, the "preparing" page
+    (`frontend/landing-page/`).
+  - Checks: full suite 7,362 passed; the 3 known build-script failures and the help bundle
+    test that times out under load and passes alone (42 of 42). Type check clean apart from
+    the two known gallery errors.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

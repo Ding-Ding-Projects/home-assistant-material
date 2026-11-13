@@ -68,6 +68,8 @@ export interface AppJobSnapshot {
   hasIcon?: boolean;
   buffer: LogBuffer;
   appLog: AppLogState;
+  /** The call that started the run can be sent again from the beginning. */
+  canRetry: boolean;
 }
 
 interface RunInternal {
@@ -104,6 +106,9 @@ const asLevel = (level: "info" | "error"): LogLevel => level;
 class AppJobTracker {
   private _runs = new Map<string, RunInternal>();
 
+  /** How to send the call of each app's run again. */
+  private _retries = new Map<string, () => Promise<unknown>>();
+
   private _listeners = new Set<Listener>();
 
   private _deps?: AppJobDeps;
@@ -132,10 +137,33 @@ class AppJobTracker {
     return [...this._runs.values()].map((internal) => this._snapshot(internal));
   }
 
+  /** Remember how to send the call of the run for this app again. */
+  public setRetry(slug: string, retry: () => Promise<unknown>): void {
+    this._retries.set(slug, retry);
+  }
+
+  /**
+   * Sends the call of a finished run again, from the beginning: the
+   * Supervisor cannot resume an install, rebuild or removal part way. The
+   * new run replaces the old one and reports its own end.
+   */
+  public async retry(slug: string): Promise<void> {
+    const retry = this._retries.get(slug);
+    if (!retry || !this._runs.get(slug)?.run.done) {
+      return;
+    }
+    try {
+      await retry();
+    } catch (_err) {
+      // The run shows its own failure.
+    }
+  }
+
   /** Forget a finished run, for example when its card is dismissed. */
   public dismiss(slug: string): void {
     const internal = this._runs.get(slug);
     if (internal?.run.done) {
+      this._retries.delete(slug);
       this._release(internal);
       if (internal.activityId) {
         activityStore.dismiss(internal.activityId);
@@ -264,6 +292,10 @@ class AppJobTracker {
     name?: string,
     startedAt = Date.now()
   ): RunInternal {
+    if (!callPending) {
+      // A run found by reading the Supervisor's jobs has no call to resend.
+      this._retries.delete(slug);
+    }
     const existing = this._runs.get(slug);
     if (existing) {
       this._release(existing);
@@ -615,6 +647,7 @@ class AppJobTracker {
       hasIcon: internal.hasIcon,
       buffer: internal.buffer,
       appLog: internal.appLog,
+      canRetry: this._retries.has(internal.run.slug),
     };
   }
 
@@ -639,6 +672,9 @@ export const trackAppCall = async <T>(
   call: () => Promise<T>,
   name?: string
 ): Promise<T> => {
+  appJobTracker.setRetry(slug, () =>
+    trackAppCall(deps, slug, kind, call, name)
+  );
   const generation = appJobTracker.begin(deps, slug, kind, name);
   try {
     const result = await call();

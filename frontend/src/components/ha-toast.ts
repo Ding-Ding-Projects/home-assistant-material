@@ -353,8 +353,18 @@ export class HaToast extends LitElement {
         var(--ha-space-2)
       );
       transition:
-        opacity var(--ha-animation-duration-fast, 150ms) ease,
-        transform var(--ha-animation-duration-fast, 150ms) ease;
+        opacity
+          var(
+            --ha-motion-toasts-duration,
+            var(--ha-animation-duration-fast, 150ms)
+          )
+          var(--ha-motion-toasts-curve, ease),
+        transform
+          var(
+            --ha-motion-toasts-duration,
+            var(--ha-animation-duration-fast, 150ms)
+          )
+          var(--ha-motion-toasts-curve, ease);
     }
 
     .toast.visible {

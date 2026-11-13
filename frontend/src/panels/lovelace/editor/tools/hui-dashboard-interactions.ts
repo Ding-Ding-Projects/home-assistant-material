@@ -6,9 +6,17 @@ import "../../../../components/ha-alert";
 import type { ActionConfig } from "../../../../data/lovelace/config/action";
 import type { LovelaceCardConfig } from "../../../../data/lovelace/config/card";
 import type { HomeAssistant } from "../../../../types";
+import "../../../../components/ha-select";
+import {
+  FEEDBACK_EFFECTS,
+  parseFeedbackEffect,
+} from "../../common/card-feedback";
 import "../../components/hui-action-editor";
 import type { InteractionKey } from "./dashboard-edit";
 import { INTERACTION_KEYS, supportsInteractions } from "./dashboard-edit";
+
+/** `tap_action` is the `tap` gesture, and so on. */
+const gestureOf = (key: InteractionKey): string => key.replace(/_action$/, "");
 
 /**
  * Tap, hold and double tap of one card, each with its action. These are the
@@ -48,10 +56,52 @@ export class HuiDashboardInteractions extends LitElement {
                 .key=${key}
                 @value-changed=${this._changed}
               ></hui-action-editor>
+              <ha-select
+                .label=${this._t("animation")}
+                .value=${this._effect(key)}
+                .gesture=${gestureOf(key)}
+                .options=${FEEDBACK_EFFECTS.map((value) => ({
+                  value,
+                  label: this._t(`effects.${value}`),
+                }))}
+                @selected=${this._feedbackChanged}
+              ></ha-select>
             </div>`
         )}
       </div>
+      <p class="hint">${this._t("animation_note")}</p>
     `;
+  }
+
+  private _effect(key: InteractionKey): string {
+    const feedback = this.card?.gesture_feedback as
+      Record<string, unknown> | undefined;
+    return parseFeedbackEffect(feedback?.[gestureOf(key)]) ?? "none";
+  }
+
+  private _feedbackChanged(ev: CustomEvent<{ value?: string }>) {
+    ev.stopPropagation();
+    const gesture = (ev.currentTarget as HTMLElement & { gesture: string })
+      .gesture;
+    const effect = parseFeedbackEffect(ev.detail.value);
+    if (!this.card || !effect) {
+      return;
+    }
+    const feedback: Record<string, string> = {
+      ...(this.card.gesture_feedback as Record<string, string> | undefined),
+    };
+    if (effect === "none") {
+      delete feedback[gesture];
+    } else {
+      feedback[gesture] = effect;
+    }
+    const card: LovelaceCardConfig = { ...this.card };
+    if (Object.keys(feedback).length) {
+      card.gesture_feedback = feedback;
+    } else {
+      delete card.gesture_feedback;
+    }
+    fireEvent(this, "dashboard-card-change", { card });
   }
 
   private _changed(ev: CustomEvent<{ value?: ActionConfig }>) {

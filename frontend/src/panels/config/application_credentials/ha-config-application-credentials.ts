@@ -20,6 +20,7 @@ import {
   deleteApplicationCredential,
   fetchApplicationCredentials,
 } from "../../../data/application_credential";
+import { getConfigEntries } from "../../../data/config_entries";
 import { domainToName } from "../../../data/integration";
 import {
   showAlertDialog,
@@ -38,6 +39,10 @@ export class HaConfigApplicationCredentials extends LitElement {
   @state() public _applicationCredentials: ApplicationCredential[] = [];
 
   @state() private _loading = true;
+
+  // Domains that have at least one configured entry: the credentials of
+  // those integrations are in use.
+  @state() private _configuredDomains?: Set<string>;
 
   @state() private _loadFailed = false;
 
@@ -125,6 +130,35 @@ export class HaConfigApplicationCredentials extends LitElement {
     }
   );
 
+  private _statistics = memoizeOne(
+    (
+      credentials: ApplicationCredential[],
+      configuredDomains: Set<string> | undefined,
+      localize: LocalizeFunc
+    ) => [
+      {
+        id: "credentials",
+        label: localize(
+          "ui.panel.config.application_credentials.picker.statistics.credentials"
+        ),
+        value: credentials.length,
+      },
+      ...(configuredDomains
+        ? [
+            {
+              id: "in_use",
+              label: localize(
+                "ui.panel.config.application_credentials.picker.statistics.in_use"
+              ),
+              value: credentials.filter((credential) =>
+                configuredDomains.has(credential.domain)
+              ).length,
+            },
+          ]
+        : []),
+    ]
+  );
+
   private _getApplicationCredentials = memoizeOne(
     (applicationCredentials: ApplicationCredential[], localize: LocalizeFunc) =>
       applicationCredentials.map((credential) => ({
@@ -137,6 +171,17 @@ export class HaConfigApplicationCredentials extends LitElement {
     super.firstUpdated(changedProperties);
     this._loadTranslations();
     this._fetchApplicationCredentials();
+    this._fetchConfiguredDomains();
+  }
+
+  private async _fetchConfiguredDomains() {
+    try {
+      const entries = await getConfigEntries(this.hass);
+      this._configuredDomains = new Set(entries.map((entry) => entry.domain));
+    } catch (_err) {
+      // The "in use" number is left out when the entries cannot be read
+      this._configuredDomains = undefined;
+    }
   }
 
   protected render() {
@@ -169,6 +214,11 @@ export class HaConfigApplicationCredentials extends LitElement {
         )}
         .footerText=${this.hass.localize(
           "ui.panel.config.application_credentials.picker.footer"
+        )}
+        .statistics=${this._statistics(
+          this._applicationCredentials,
+          this._configuredDomains,
+          this.hass.localize
         )}
         .selected=${this._selected.length}
         @selection-changed=${this._handleSelectionChanged}

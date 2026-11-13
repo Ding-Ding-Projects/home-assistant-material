@@ -9,6 +9,12 @@ import type { LovelaceCardConfig } from "../../../../data/lovelace/config/card";
 import type { HomeAssistant } from "../../../../types";
 import type { CardStyleConfig } from "../../common/card-style";
 import {
+  FEEDBACK_EFFECTS,
+  FEEDBACK_GESTURES,
+  parseFeedbackEffect,
+} from "../../common/card-feedback";
+import {
+  CARD_SHADOWS,
   CARD_STYLE_KEYS,
   isCardStyleEmpty,
   resetCardStyle,
@@ -33,6 +39,7 @@ const SCHEMA = [
   { name: "border_width", required: false, selector: lengthSelector(16) },
   { name: "border_color", required: false, selector: { ui_color: {} } },
   { name: "border_radius", required: false, selector: lengthSelector(64) },
+  { name: "padding", required: false, selector: lengthSelector(48) },
 ] as const satisfies readonly HaFormSchema[];
 
 /**
@@ -62,6 +69,23 @@ export class HuiCardStyleEditor extends LitElement {
   private _label = (schema: HaFormSchema): string =>
     this._t(`fields.${schema.name}`);
 
+  private _schema = memoizeOne((_language: string) => [
+    ...SCHEMA,
+    {
+      name: "shadow",
+      required: false,
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: Object.keys(CARD_SHADOWS).map((value) => ({
+            value,
+            label: this._t(`shadows.${value}`),
+          })),
+        },
+      },
+    } as const satisfies HaFormSchema,
+  ]);
+
   protected render() {
     const style = this.config.style as CardStyleConfig | undefined;
     return html`
@@ -69,11 +93,10 @@ export class HuiCardStyleEditor extends LitElement {
       <ha-form
         .hass=${this.hass}
         .data=${this._data(style)}
-        .schema=${SCHEMA}
+        .schema=${this._schema(this.hass.language)}
         .computeLabel=${this._label}
         @value-changed=${this._valueChanged}
       ></ha-form>
-      <p class="hint">${this._t("padding_note")}</p>
       <div class="actions">
         <ha-button
           appearance="plain"
@@ -88,7 +111,65 @@ export class HuiCardStyleEditor extends LitElement {
           ? html`<p class="hint" role="status">${this._t("ignored")}</p>`
           : ""
       }
+      <h3>${this._t("feedback_title")}</h3>
+      <p class="hint">${this._t("feedback_hint")}</p>
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._feedbackData(this.config.gesture_feedback)}
+        .schema=${this._feedbackSchema(this.hass.language)}
+        .computeLabel=${this._feedbackLabel}
+        @value-changed=${this._feedbackChanged}
+      ></ha-form>
     `;
+  }
+
+  private _feedbackData = memoizeOne(
+    (feedback: unknown): Record<string, unknown> => ({
+      ...(feedback && typeof feedback === "object" ? feedback : {}),
+    })
+  );
+
+  private _feedbackLabel = (schema: HaFormSchema): string =>
+    this._t(`gestures.${schema.name}`);
+
+  private _feedbackSchema = memoizeOne((_language: string) =>
+    FEEDBACK_GESTURES.map(
+      (name) =>
+        ({
+          name,
+          required: false,
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: FEEDBACK_EFFECTS.map((value) => ({
+                value,
+                label: this._t(`effects.${value}`),
+              })),
+            },
+          },
+        }) as const satisfies HaFormSchema
+    )
+  );
+
+  private _feedbackChanged(
+    ev: CustomEvent<{ value: Record<string, unknown> }>
+  ) {
+    ev.stopPropagation();
+    const value = ev.detail.value;
+    const feedback: Record<string, string> = {};
+    FEEDBACK_GESTURES.forEach((gesture) => {
+      const effect = parseFeedbackEffect(value[gesture]);
+      if (effect && effect !== "none") {
+        feedback[gesture] = effect;
+      }
+    });
+    const next: LovelaceCardConfig = { ...this.config };
+    if (Object.keys(feedback).length) {
+      next.gesture_feedback = feedback;
+    } else {
+      delete next.gesture_feedback;
+    }
+    fireEvent(this, "value-changed", { value: next });
   }
 
   private _valueChanged(ev: CustomEvent<{ value: Record<string, unknown> }>) {
@@ -123,6 +204,11 @@ export class HuiCardStyleEditor extends LitElement {
       margin: 0 0 var(--ha-space-3);
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
+    }
+    h3 {
+      margin: var(--ha-space-5) 0 var(--ha-space-1);
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-title, 600);
     }
     .actions {
       display: flex;

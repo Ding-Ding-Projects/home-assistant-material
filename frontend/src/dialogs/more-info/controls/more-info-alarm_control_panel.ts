@@ -10,9 +10,9 @@ import "../../../components/ha-control-button";
 import "../../../components/ha-state-icon";
 import type { AlarmControlPanelEntity } from "../../../data/alarm_control_panel";
 import { setProtectedAlarmControlPanelMode } from "../../../data/alarm_control_panel";
-import { apiContext, formattersContext } from "../../../data/context";
+import { apiContext } from "../../../data/context";
 import "../../../state-control/alarm_control_panel/ha-state-control-alarm_control_panel-modes";
-import type { HomeAssistantApi, HomeAssistantFormatters } from "../../../types";
+import type { HomeAssistantApi } from "../../../types";
 import "../../../components/ha-relative-time";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
@@ -26,10 +26,6 @@ class MoreInfoAlarmControlPanel extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
-
-  @state()
-  @consume({ context: formattersContext, subscribe: true })
-  private _formatters!: HomeAssistantFormatters;
 
   @property({ attribute: false }) public stateObj?: AlarmControlPanelEntity;
 
@@ -46,20 +42,6 @@ class MoreInfoAlarmControlPanel extends LitElement {
     );
   }
 
-  private _headlineClass() {
-    const current = this.stateObj!.state;
-    if (current === "disarmed") {
-      return "headline";
-    }
-    if (current === "triggered") {
-      return "headline bad";
-    }
-    if (current === "arming" || current === "pending") {
-      return "headline warn";
-    }
-    return "headline ok";
-  }
-
   protected render() {
     if (!this._localize || !this.stateObj) {
       return nothing;
@@ -70,9 +52,6 @@ class MoreInfoAlarmControlPanel extends LitElement {
       "--icon-color": color,
     };
     return html`
-      <p class=${this._headlineClass()}>
-        ${this._formatters.formatEntityState(this.stateObj)}
-      </p>
       <p class="subline">
         <ha-relative-time
           .datetime=${this.stateObj.last_changed}

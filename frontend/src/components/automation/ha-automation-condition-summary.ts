@@ -1,5 +1,5 @@
 import { provide, type ContextType } from "@lit/context";
-import { mdiCommentTextOutline } from "@mdi/js";
+import { mdiCommentTextOutline, mdiLockOutline } from "@mdi/js";
 import type { HassServiceTarget } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -10,6 +10,7 @@ import type { Condition } from "../../data/automation";
 import { getRowNote } from "../../data/automation";
 import type { ConditionDescription } from "../../data/condition";
 import { internationalizationContext } from "../../data/context";
+import { isLocked } from "../../panels/config/automation/tools/step-toggle";
 import "../../panels/config/automation/ha-automation-row-options";
 import "../../panels/config/automation/ha-automation-row-threshold";
 import { getDeviceTarget } from "../../panels/config/automation/target/get_device_target";
@@ -111,6 +112,19 @@ export class HaAutomationConditionSummary extends LitElement {
                   ><p>${truncateWithEllipsis(note, 250)}</p></ha-tooltip
                 >
               `
+            : nothing
+        }
+        ${
+          isLocked(this.condition)
+            ? html`<ha-svg-icon
+                tabindex="0"
+                role="img"
+                .path=${mdiLockOutline}
+                aria-label=${this._i18n.localize(
+                  "ui.panel.config.automation.editor.note.locked"
+                )}
+                class="note-indicator"
+              ></ha-svg-icon>`
             : nothing
         }
       </h3>

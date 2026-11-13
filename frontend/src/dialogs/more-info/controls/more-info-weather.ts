@@ -287,7 +287,6 @@ class MoreInfoWeather extends LitElement {
           }
         </div>
         <div class="summary">
-          ${this._formatters.formatEntityState(this.stateObj)}.
           ${getSecondaryWeatherAttribute(
             this._formatters.formatEntityAttributeValue,
             this._i18n.localize,

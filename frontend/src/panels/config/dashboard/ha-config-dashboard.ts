@@ -21,7 +21,7 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-menu-button";
 import "../../../components/ha-tip";
-import { openAllHelpArticles } from "../../../components/help/open-help-article";
+import { navigate } from "../../../common/navigate";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import "../../../components/page/ha-page-footer";
@@ -420,7 +420,7 @@ class HaConfigDashboard extends SubscribeMixin(LitElement) {
   private _openHelpArticles(ev: Event) {
     ev.preventDefault();
 
-    openAllHelpArticles(this);
+    navigate("/config/help");
   }
 
   private _openShortcutDialog(ev: Event) {

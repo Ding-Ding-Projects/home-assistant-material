@@ -77,21 +77,42 @@ class HassNotFoundScreen extends LitElement {
       padding: var(--ha-space-6);
       border-radius: var(--ha-border-radius-3xl);
       background: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card);
       text-align: center;
     }
+    /* A rounded tile that floats a little (not under reduced motion). */
     .tile {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 56px;
-      height: 56px;
-      border-radius: var(--ha-border-radius-xl);
-      background: var(--primary-background-color);
+      width: 88px;
+      height: 88px;
+      margin-bottom: var(--ha-space-3);
+      border-radius: var(--ha-border-radius-3xl);
+      background: linear-gradient(
+        135deg,
+        var(--ha-color-primary-container),
+        var(--ha-color-tertiary-container, var(--ha-color-primary-container))
+      );
+      color: var(--ha-color-on-primary-container);
+      --mdc-icon-size: 44px;
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tile {
+        animation: none;
+      }
     }
     .title {
       margin: 0;
-      font-size: var(--ha-font-size-xl);
-      font-weight: var(--ha-font-weight-medium);
+      font-size: var(--ha-font-size-2xl);
+      font-weight: var(--ha-font-weight-semibold, var(--ha-font-weight-medium));
+      letter-spacing: -0.01em;
     }
     .message {
       color: var(--secondary-text-color);

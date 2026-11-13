@@ -363,10 +363,20 @@ export const toSentence = (lines: Line[], ctx: LanguageContext): string =>
     .join(" ");
 
 /**
- * Sentence to draft for a small set of patterns:
- *   "when <entity> turns on|off, turn on|off <entity>"
- *   "at HH:MM turn on|off <entity>"
- * The entities are matched by their entity id or their exact friendly name.
+ * Sentence to draft. A sentence is a trigger phrase followed by one or more
+ * actions, joined by a comma, "then" or nothing:
+ *
+ *   when <entity> turns on|off [for N minutes]
+ *   when <entity> goes above|below <number> [for N minutes]
+ *   at HH:MM  |  at 7:30 pm  |  at sunset|sunrise [plus|minus N minutes]
+ *   N minutes before|after sunset|sunrise  |  when the sun sets|rises
+ *
+ *   turn on|off <entity>  |  toggle <entity>
+ *   several actions joined by "and", for example
+ *   "turn on <entity> and <entity> and turn off <entity>"
+ *
+ * Entities are matched by their entity id or their exact friendly name. Nothing
+ * outside these patterns is guessed.
  */
 export interface DraftResult {
   config?: {
@@ -381,9 +391,216 @@ export interface DraftResult {
   unknown?: string;
 }
 
+interface EntityRef {
+  id: string;
+  name: string;
+}
+
+const NUMBER = "(-?\\d+(?:\\.\\d+)?)";
+const UNIT = "(?:\\s*(?:%|°[cf]?|degrees|percent|watts?|w|kw|lux|ppm))?";
+const DURATION =
+  "(\\d+(?:\\.\\d+)?)\\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)";
+const FOR_SUFFIX = `(?:\\s+for\\s+${DURATION})?`;
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** A length of time as HH:MM:SS, or undefined when it is more than a day. */
+const clockOf = (amount: string, unit: string): string | undefined => {
+  const factor = /^h/i.test(unit) ? 3600 : /^m/i.test(unit) ? 60 : 1;
+  const seconds = Math.round(Number(amount) * factor);
+  if (!(seconds >= 0) || seconds >= 24 * 3600) {
+    return undefined;
+  }
+  return `${pad2(Math.floor(seconds / 3600))}:${pad2(Math.floor((seconds % 3600) / 60))}:${pad2(seconds % 60)}`;
+};
+
+const NO_PATTERN: DraftResult = { problem: "no_pattern" };
+
+type TriggerParse = { trigger: Rec } | DraftResult;
+
+const parseTrigger = (
+  raw: string,
+  find: (name: string) => string | undefined
+): TriggerParse => {
+  const text = raw
+    .trim()
+    .replace(/^(?:every day|each day|daily)[,\s]+/i, "")
+    .trim();
+  const entityOrUnknown = (name: string): string | DraftResult => {
+    const id = find(name);
+    return id ?? { problem: "unknown_entity", unknown: name };
+  };
+  const withFor = (
+    trigger: Rec,
+    amount: string | undefined,
+    unit: string | undefined
+  ): TriggerParse => {
+    if (amount === undefined || unit === undefined) {
+      return { trigger };
+    }
+    const clock = clockOf(amount, unit);
+    return clock ? { trigger: { ...trigger, for: clock } } : NO_PATTERN;
+  };
+
+  let m = new RegExp(`^when (.+?) turns (on|off)${FOR_SUFFIX}$`, "i").exec(
+    text
+  );
+  if (m) {
+    const id = entityOrUnknown(m[1]);
+    if (typeof id !== "string") {
+      return id;
+    }
+    return withFor(
+      { trigger: "state", entity_id: id, to: m[2].toLowerCase() },
+      m[3],
+      m[4]
+    );
+  }
+
+  m = new RegExp(
+    `^when (.+?) (?:goes|rises|climbs|gets|drops|falls|is|becomes) (above|over|higher than|greater than|below|under|lower than|less than) ${NUMBER}${UNIT}${FOR_SUFFIX}$`,
+    "i"
+  ).exec(text);
+  const exceeds = m
+    ? undefined
+    : new RegExp(
+        `^when (.+?) exceeds ${NUMBER}${UNIT}${FOR_SUFFIX}$`,
+        "i"
+      ).exec(text);
+  if (m || exceeds) {
+    const name = (m ?? exceeds)![1];
+    const id = entityOrUnknown(name);
+    if (typeof id !== "string") {
+      return id;
+    }
+    const upper = exceeds ? true : /^(above|over|higher|greater)/i.test(m![2]);
+    const value = Number(exceeds ? exceeds[2] : m![3]);
+    return withFor(
+      {
+        trigger: "numeric_state",
+        entity_id: id,
+        [upper ? "above" : "below"]: value,
+      },
+      exceeds ? exceeds[3] : m![4],
+      exceeds ? exceeds[4] : m![5]
+    );
+  }
+
+  const sunEvent = (word: string) =>
+    /^(sunset|sets|goes down)$/i.test(word) ? "sunset" : "sunrise";
+  m = /^when the sun (sets|rises|goes down|comes up)$/i.exec(text);
+  if (m) {
+    return { trigger: { trigger: "sun", event: sunEvent(m[1]) } };
+  }
+  m = new RegExp(
+    `^at (sunrise|sunset)(?:\\s*(plus|minus|\\+|-)\\s*${DURATION})?$`,
+    "i"
+  ).exec(text);
+  if (m) {
+    const trigger: Rec = { trigger: "sun", event: sunEvent(m[1]) };
+    if (m[2]) {
+      const clock = clockOf(m[3], m[4]);
+      if (!clock) {
+        return NO_PATTERN;
+      }
+      trigger.offset = /^(minus|-)$/i.test(m[2]) ? `-${clock}` : clock;
+    }
+    return { trigger };
+  }
+  m = new RegExp(`^${DURATION} (before|after) (sunrise|sunset)$`, "i").exec(
+    text
+  );
+  if (m) {
+    const clock = clockOf(m[1], m[2]);
+    if (!clock) {
+      return NO_PATTERN;
+    }
+    return {
+      trigger: {
+        trigger: "sun",
+        event: sunEvent(m[4]),
+        offset: /^before$/i.test(m[3]) ? `-${clock}` : clock,
+      },
+    };
+  }
+
+  m = /^at (\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(text);
+  if (m && (m[2] !== undefined || m[3] !== undefined)) {
+    let hour = Number(m[1]);
+    const minute = Number(m[2] ?? 0);
+    if (m[3]) {
+      if (hour < 1 || hour > 12) {
+        return NO_PATTERN;
+      }
+      hour = (hour % 12) + (m[3].toLowerCase() === "pm" ? 12 : 0);
+    }
+    if (hour > 23 || minute > 59) {
+      return NO_PATTERN;
+    }
+    return {
+      trigger: { trigger: "time", at: `${pad2(hour)}:${pad2(minute)}:00` },
+    };
+  }
+  return NO_PATTERN;
+};
+
+const ACTION_START = /^(?:turn (on|off)|switch (on|off)|toggle)\b\s*/i;
+
+const parseActions = (
+  raw: string,
+  find: (name: string) => string | undefined
+): { actions: Rec[] } | DraftResult => {
+  const actions: Rec[] = [];
+  let rest = raw.trim();
+  let lastVerb: string | undefined;
+  while (rest) {
+    const start = ACTION_START.exec(rest);
+    let verb = lastVerb;
+    if (start) {
+      verb = (start[1] ?? start[2] ?? "toggle").toLowerCase();
+      rest = rest.slice(start[0].length);
+    }
+    if (!verb) {
+      return NO_PATTERN;
+    }
+    // The longest stretch before an "and" (or the end) that names an entity, so
+    // that a name containing "and" still matches.
+    const ends = [...rest.matchAll(/\s+and\s+/gi)].map((hit) => hit.index!);
+    ends.push(rest.length);
+    let end: number | undefined;
+    let id: string | undefined;
+    for (const candidate of [...ends].reverse()) {
+      const found = find(rest.slice(0, candidate));
+      if (found) {
+        end = candidate;
+        id = found;
+        break;
+      }
+    }
+    if (end === undefined || id === undefined) {
+      return {
+        problem: "unknown_entity",
+        unknown: rest.slice(0, ends[0]).trim(),
+      };
+    }
+    actions.push({
+      action: `homeassistant.${verb === "toggle" ? "toggle" : `turn_${verb}`}`,
+      target: { entity_id: id },
+    });
+    rest = rest
+      .slice(end)
+      .replace(/^\s+and\s+/i, "")
+      .trim();
+    lastVerb = verb;
+  }
+  return actions.length ? { actions } : NO_PATTERN;
+};
+
+const ACTION_WORD = /\b(?:turn (?:on|off)|switch (?:on|off)|toggle)\b/i;
+
 export const draftFromSentence = (
   sentence: string,
-  entities: { id: string; name: string }[]
+  entities: EntityRef[]
 ): DraftResult => {
   const text = sentence.trim().replace(/[.!]+$/, "");
   const find = (raw: string): string | undefined => {
@@ -392,59 +609,28 @@ export const draftFromSentence = (
       (e) => e.id.toLowerCase() === wanted || e.name.toLowerCase() === wanted
     )?.id;
   };
-  const action = (verb: string, entity: string): Rec => ({
-    action: `homeassistant.turn_${verb}`,
-    target: { entity_id: entity },
-  });
-  const state = (word: string) => (word === "on" ? "on" : "off");
-  let m = /^when (.+?) turns (on|off),? turn (on|off) (.+)$/i.exec(text);
-  if (m) {
-    const source = find(m[1]);
-    const target = find(m[4]);
-    if (!source || !target) {
-      return { problem: "unknown_entity", unknown: !source ? m[1] : m[4] };
-    }
-    return {
-      config: {
-        alias: text,
-        description: "",
-        triggers: [
-          {
-            trigger: "state",
-            entity_id: source,
-            to: state(m[2].toLowerCase()),
-          },
-        ],
-        conditions: [],
-        actions: [action(m[3].toLowerCase(), target)],
-      },
-    };
+  const split = ACTION_WORD.exec(text);
+  if (!split || split.index === 0) {
+    return NO_PATTERN;
   }
-  m = /^at (\d{1,2}):(\d{2}),? turn (on|off) (.+)$/i.exec(text);
-  if (m) {
-    const target = find(m[4]);
-    if (!target) {
-      return { problem: "unknown_entity", unknown: m[4] };
-    }
-    const hour = Number(m[1]);
-    const minute = Number(m[2]);
-    if (hour > 23 || minute > 59) {
-      return { problem: "no_pattern" };
-    }
-    return {
-      config: {
-        alias: text,
-        description: "",
-        triggers: [
-          {
-            trigger: "time",
-            at: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
-          },
-        ],
-        conditions: [],
-        actions: [action(m[3].toLowerCase(), target)],
-      },
-    };
+  const triggerText = text
+    .slice(0, split.index)
+    .replace(/(?:[,\s]|\bthen\b)+$/i, "");
+  const trigger = parseTrigger(triggerText, find);
+  if (!("trigger" in trigger)) {
+    return trigger;
   }
-  return { problem: "no_pattern" };
+  const parsed = parseActions(text.slice(split.index), find);
+  if (!("actions" in parsed)) {
+    return parsed;
+  }
+  return {
+    config: {
+      alias: text,
+      description: "",
+      triggers: [trigger.trigger],
+      conditions: [],
+      actions: parsed.actions,
+    },
+  };
 };

@@ -122,8 +122,14 @@ export class HaSwitch extends Switch {
             var(--ha-color-outline, var(--ha-color-border-neutral-normal))
           );
           border-width: var(--wa-border-width-m);
-          transition-duration: var(--ha-animation-duration-normal);
-          transition-timing-function: var(--ha-motion-spring, ease);
+          transition-duration: var(
+            --ha-motion-switches-duration,
+            var(--ha-animation-duration-normal)
+          );
+          transition-timing-function: var(
+            --ha-motion-switches-curve,
+            var(--ha-motion-spring, ease)
+          );
         }
         label:not(.disabled):hover .switch,
         label:not(.disabled) .input:focus-visible ~ .switch {

@@ -76,6 +76,13 @@ export class HuiToolPerf extends ToolView {
           >${this._t("perf.entities", { count: card.entities })}</span
         >
         ${
+          card.firstDrawMs === undefined
+            ? nothing
+            : html`<span class="muted"
+                >${this._t("perf.first_draw", { ms: card.firstDrawMs })}</span
+              >`
+        }
+        ${
           card.ms === undefined
             ? html`<span class="muted">${this._t("perf.not_measurable")}</span>`
             : html`<div class="bar" aria-hidden="true">

@@ -4,6 +4,7 @@ import {
   mdiChevronDoubleRight,
   mdiCog,
   mdiDockWindow,
+  mdiDotsVertical,
   mdiDrag,
   mdiFormatPaint,
   mdiHammer,
@@ -25,6 +26,7 @@ import {
 } from "../common/accessibility/accessibility-tools";
 import { activityStore } from "../common/activity/activity-store";
 import { fireEvent } from "../common/dom/fire_event";
+import { navigate } from "../common/navigate";
 import {
   IDENTITY_CHANGED_EVENT,
   readIdentity,
@@ -51,6 +53,8 @@ import { showVoiceCommandDialog } from "../dialogs/voice-command-dialog/show-ha-
 import "../panels/config/identity/ha-identity-logo";
 import type { HomeAssistant } from "../types";
 import { applyTabOrder, moveTabId } from "./tab-order";
+import "./ha-dropdown";
+import "./ha-dropdown-item";
 import "./ha-svg-icon";
 import "./user/ha-user-badge";
 import { computePageTabs } from "./tabs/compute-page-tabs";
@@ -370,70 +374,10 @@ export class HaPageTabs extends LitElement {
         >
           <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
         </button>
-        <button
-          class="new-tab"
-          aria-label=${this._t("ui.page_tabs.edit_appearance")}
-          title=${this._t("ui.page_tabs.edit_appearance")}
-          @click=${this._pickAppearance}
-        >
-          <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
-        </button>
-        <a
-          class="new-tab"
-          href="/profile/localization"
-          aria-label=${this._t("ui.page_tabs.language")}
-          title=${this._t("ui.page_tabs.language")}
-        >
-          <ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>
-        </a>
-        ${
-          this._accessibilityButtonHidden
-            ? nothing
-            : html`<button
-                class="new-tab"
-                aria-label=${this.hass.localize("ui.accessibility_tools.title")}
-                title=${this.hass.localize("ui.accessibility_tools.title")}
-                @click=${this._openAccessibility}
-              >
-                <ha-svg-icon .path=${mdiHuman}></ha-svg-icon>
-              </button>`
-        }
-        ${
-          pane.railTools
-            ? html`<button
-                class="new-tab"
-                aria-label=${this.hass.localize("ui.sidebar.edit_sidebar")}
-                title=${this.hass.localize("ui.sidebar.edit_sidebar")}
-                @click=${this._editSidebar}
-              >
-                <ha-svg-icon .path=${mdiPlaylistEdit}></ha-svg-icon>
-              </button>`
-            : nothing
-        }
+        ${pane.profileName ? nothing : this._renderTools(pane.railTools)}
         <div class="person">
-          ${
-            this.hass.user
-              ? html`<a
-                  class="profile"
-                  href="/profile"
-                  aria-label=${this._t("ui.page_tabs.profile", {
-                    name: this.hass.user.name,
-                  })}
-                  title=${this._t("ui.page_tabs.profile", {
-                    name: this.hass.user.name,
-                  })}
-                >
-                  <ha-user-badge .user=${this.hass.user}></ha-user-badge>
-                  ${
-                    pane.profileName
-                      ? html`<span class="profile-name"
-                          >${this.hass.user.name}</span
-                        >`
-                      : nothing
-                  }
-                </a>`
-              : nothing
-          }
+          ${this._renderProfile(pane.profileName)}
+          ${pane.profileName ? this._renderPersonMenu() : nothing}
           ${
             pane.railTools &&
             this.hass.config?.components?.includes("conversation")
@@ -470,6 +414,149 @@ export class HaPageTabs extends LitElement {
         .surface=${this._store.surface}
       ></ha-tab-group-editor>
     `;
+  }
+
+  /** The tools of a bar or of a narrow pane: appearance, language, accessibility, sidebar. */
+  private _renderTools(railTools: boolean): TemplateResult {
+    return html`
+      <button
+        class="new-tab"
+        aria-label=${this._t("ui.page_tabs.edit_appearance")}
+        title=${this._t("ui.page_tabs.edit_appearance")}
+        @click=${this._pickAppearance}
+      >
+        <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
+      </button>
+      <a
+        class="new-tab"
+        href="/profile/localization"
+        aria-label=${this._t("ui.page_tabs.language")}
+        title=${this._t("ui.page_tabs.language")}
+      >
+        <ha-svg-icon .path=${mdiTranslate}></ha-svg-icon>
+      </a>
+      ${
+        this._accessibilityButtonHidden
+          ? nothing
+          : html`<button
+              class="new-tab"
+              aria-label=${this.hass.localize("ui.accessibility_tools.title")}
+              title=${this.hass.localize("ui.accessibility_tools.title")}
+              @click=${this._openAccessibility}
+            >
+              <ha-svg-icon .path=${mdiHuman}></ha-svg-icon>
+            </button>`
+      }
+      ${
+        railTools
+          ? html`<button
+              class="new-tab"
+              aria-label=${this.hass.localize("ui.sidebar.edit_sidebar")}
+              title=${this.hass.localize("ui.sidebar.edit_sidebar")}
+              @click=${this._editSidebar}
+            >
+              <ha-svg-icon .path=${mdiPlaylistEdit}></ha-svg-icon>
+            </button>`
+          : nothing
+      }
+    `;
+  }
+
+  /** The words under the person's name: owner, administrator or user. */
+  private _roleLabel(): string {
+    const user = this.hass.user;
+    if (!user) {
+      return "";
+    }
+    return this._t(
+      user.is_owner
+        ? "ui.page_tabs.pane.role_owner"
+        : user.is_admin
+          ? "ui.page_tabs.pane.role_admin"
+          : "ui.page_tabs.pane.role_user"
+    );
+  }
+
+  /** The person's picture, and in the wide pane their name with the role under it. */
+  private _renderProfile(wide: boolean): TemplateResult | typeof nothing {
+    const user = this.hass.user;
+    if (!user) {
+      return nothing;
+    }
+    const label = this._t("ui.page_tabs.profile", { name: user.name });
+    return html`<a
+      class="profile"
+      href="/profile"
+      aria-label=${label}
+      title=${label}
+    >
+      <ha-user-badge .user=${user}></ha-user-badge>
+      ${
+        wide
+          ? html`<span class="profile-text"
+              ><span class="profile-name">${user.name}</span
+              ><span class="profile-role">${this._roleLabel()}</span></span
+            >`
+          : nothing
+      }
+    </a>`;
+  }
+
+  /** The tools the wide pane keeps out of sight, in the menu at its foot. */
+  private _renderPersonMenu(): TemplateResult {
+    const label = this._t("ui.page_tabs.pane.more_tools");
+    return html`<ha-dropdown
+      class="person-menu"
+      placement="top-end"
+      @wa-select=${this._personMenuSelect}
+    >
+      <button
+        slot="trigger"
+        class="new-tab"
+        aria-label=${label}
+        title=${label}
+        aria-haspopup="menu"
+      >
+        <ha-svg-icon .path=${mdiDotsVertical}></ha-svg-icon>
+      </button>
+      <ha-dropdown-item value="appearance">
+        <ha-svg-icon slot="icon" .path=${mdiFormatPaint}></ha-svg-icon>
+        ${this._t("ui.page_tabs.edit_appearance")}
+      </ha-dropdown-item>
+      <ha-dropdown-item value="language">
+        <ha-svg-icon slot="icon" .path=${mdiTranslate}></ha-svg-icon>
+        ${this._t("ui.page_tabs.language")}
+      </ha-dropdown-item>
+      ${
+        this._accessibilityButtonHidden
+          ? nothing
+          : html`<ha-dropdown-item value="accessibility">
+              <ha-svg-icon slot="icon" .path=${mdiHuman}></ha-svg-icon>
+              ${this.hass.localize("ui.accessibility_tools.title")}
+            </ha-dropdown-item>`
+      }
+      <ha-dropdown-item value="sidebar">
+        <ha-svg-icon slot="icon" .path=${mdiPlaylistEdit}></ha-svg-icon>
+        ${this.hass.localize("ui.sidebar.edit_sidebar")}
+      </ha-dropdown-item>
+    </ha-dropdown>`;
+  }
+
+  private _personMenuSelect(ev: CustomEvent<{ item: { value: string } }>) {
+    switch (ev.detail.item.value) {
+      case "appearance":
+        this._pickAppearance();
+        break;
+      case "language":
+        navigate("/profile/localization");
+        break;
+      case "accessibility":
+        this._openAccessibility();
+        break;
+      case "sidebar":
+        this._editSidebar();
+        break;
+    }
   }
 
   /** Settings, developer tools and notifications: what the side rail carries. */
@@ -915,7 +1002,9 @@ export class HaPageTabs extends LitElement {
         flex-direction: column;
       }
       /* A collapsed bar keeps its tabs as icons; the tools at its foot go to the overflow of the rail. */
-      :host([collapsed]) .actions > :not(.person):not(.search-icon) {
+      :host([collapsed])
+        .actions
+        > :not(.person):not(.search-icon):not(.system-item.tools) {
         display: none;
       }
       /* The person and Assist: one row where the pane has room, plain
@@ -1030,11 +1119,28 @@ export class HaPageTabs extends LitElement {
         padding: var(--ha-space-1) var(--ha-space-3);
         border-radius: var(--ha-border-radius-pill);
       }
-      .profile-name {
+      .profile-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        line-height: 1.25;
+      }
+      .profile-name,
+      .profile-role {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      .profile-name {
+        font-weight: var(--ha-font-weight-semibold, 600);
+      }
+      .profile-role {
+        font-size: var(--ha-font-size-s);
+        color: var(--secondary-text-color);
+      }
+      .person-menu {
+        display: contents;
       }
       :host([vertical][merged]:not([collapsed])) .actions {
         justify-content: flex-start;

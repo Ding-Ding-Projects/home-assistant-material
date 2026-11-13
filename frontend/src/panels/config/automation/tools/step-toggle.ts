@@ -6,15 +6,15 @@ import {
 } from "./step-model";
 
 /**
- * Switches one step of an automation on or off by writing or removing the
- * product's own `enabled: false` on it. Returns a new configuration and leaves
- * the one it was given untouched, or undefined when the path names no step.
- * Paths follow the trace convention, for example `action/1/then/0`.
+ * Changes one step of an automation through the given function. Returns a new
+ * configuration and leaves the one it was given untouched, or undefined when the
+ * path names no step. Paths follow the trace convention, for example
+ * `action/1/then/0`.
  */
-export const setStepEnabled = <T extends object>(
+export const editStep = <T extends object>(
   config: T,
   path: string,
-  enabled: boolean
+  change: (step: Rec) => void
 ): T | undefined => {
   const clone = structuredClone(config) as Rec;
   const [section, ...rest] = path.split("/");
@@ -64,10 +64,42 @@ export const setStepEnabled = <T extends object>(
   if (!isRec(target)) {
     return undefined;
   }
-  if (enabled) {
-    delete target.enabled;
-  } else {
-    target.enabled = false;
-  }
+  change(target);
   return clone as T;
 };
+
+export const setStepEnabled = <T extends object>(
+  config: T,
+  path: string,
+  enabled: boolean
+): T | undefined =>
+  editStep(config, path, (step) => {
+    if (enabled) {
+      delete step.enabled;
+    } else {
+      step.enabled = false;
+    }
+  });
+
+/** The key that marks a step as locked against accidental edits. */
+export const LOCK_KEY = "editor_locked";
+
+export const isLocked = (item: unknown): boolean =>
+  isRec(item) && item[LOCK_KEY] === true;
+
+/**
+ * Locks or unlocks one step. The lock is a guard against accidental edits in the
+ * editor, stored beside the step the way a note is. It is not security.
+ */
+export const setStepLocked = <T extends object>(
+  config: T,
+  path: string,
+  locked: boolean
+): T | undefined =>
+  editStep(config, path, (step) => {
+    if (locked) {
+      step[LOCK_KEY] = true;
+    } else {
+      delete step[LOCK_KEY];
+    }
+  });

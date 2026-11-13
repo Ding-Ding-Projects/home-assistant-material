@@ -14,6 +14,11 @@ import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
 import type { DHCPDiscoveryData } from "../../../../../data/dhcp";
 import { SubscribeMixin } from "../../../../../mixins/subscribe-mixin";
+import type { DiscoveryCounts } from "../discovery-counts";
+import {
+  discoveryStatistics,
+  subscribeOtherDiscoveryCounts,
+} from "../discovery-counts";
 
 import { subscribeDHCPDiscovery } from "../../../../../data/dhcp";
 
@@ -27,6 +32,9 @@ export class DHCPConfigPanel extends SubscribeMixin(LitElement) {
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
+  // How many entries the other discovery browsers hold, shown beside this one
+  @state() private _counts: DiscoveryCounts = {};
+
   @state() private _data: DHCPDiscoveryData[] = [];
 
   private _tableSettings = new DataTableSettingsController(this, {});
@@ -35,6 +43,9 @@ export class DHCPConfigPanel extends SubscribeMixin(LitElement) {
     return [
       subscribeDHCPDiscovery(this.hass.connection, (data) => {
         this._data = data;
+      }),
+      ...subscribeOtherDiscoveryCounts(this.hass, "dhcp", (browser, count) => {
+        this._counts = { ...this._counts, [browser]: count };
       }),
     ];
   }
@@ -99,6 +110,10 @@ export class DHCPConfigPanel extends SubscribeMixin(LitElement) {
         back-path="/config/integrations/integration/dhcp"
         .columns=${this._columns(this.hass.localize)}
         .data=${this._dataWithIds(this._data)}
+        .statistics=${discoveryStatistics(this.hass.localize, {
+          ...this._counts,
+          dhcp: this._data.length,
+        })}
         .summary=${this.hass.localize("ui.panel.config.dhcp.summary")}
         .footerText=${this.hass.localize("ui.panel.config.dhcp.footer", {
           count: this._data.length,

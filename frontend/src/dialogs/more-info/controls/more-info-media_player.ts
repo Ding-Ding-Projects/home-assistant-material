@@ -138,7 +138,8 @@ class MoreInfoMediaPlayer extends LitElement {
 
     if (this.stateObj.state === UNAVAILABLE) {
       return this._renderEmptyCover(
-        this._formatters.formatEntityState(this.stateObj)
+        this._formatters.formatEntityState(this.stateObj),
+        mdiMusicNote
       );
     }
 

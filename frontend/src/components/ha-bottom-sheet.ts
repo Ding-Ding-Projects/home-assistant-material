@@ -372,8 +372,14 @@ export class HaBottomSheet extends ScrollableFadeMixin(LitElement) {
           --wa-color-surface-raised: transparent;
           --spacing: 0;
           --size: var(--ha-bottom-sheet-height, auto);
-          --show-duration: ${BOTTOM_SHEET_ANIMATION_DURATION_MS}ms;
-          --hide-duration: ${BOTTOM_SHEET_ANIMATION_DURATION_MS}ms;
+          --show-duration: var(
+            --ha-motion-sheets-duration,
+            ${BOTTOM_SHEET_ANIMATION_DURATION_MS}ms
+          );
+          --hide-duration: var(
+            --ha-motion-sheets-duration,
+            ${BOTTOM_SHEET_ANIMATION_DURATION_MS}ms
+          );
         }
         wa-drawer::part(dialog) {
           max-height: min(

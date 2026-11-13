@@ -3,7 +3,10 @@ import {
   mdiCheck,
   mdiCog,
   mdiDevices,
+  mdiMessageText,
+  mdiPound,
   mdiShape,
+  mdiSpeedometer,
   mdiTune,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
@@ -35,7 +38,10 @@ import { mdiMqttLogo } from "../../../../../resources/mqtt-logo-svg";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import { showToast } from "../../../../../util/toast";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import "./mqtt-subscribe-card";
+import type { MqttListenStats } from "./mqtt-subscribe-card";
 
 const qosLevel = ["0", "1", "2"];
 
@@ -78,6 +84,9 @@ export class MQTTConfigPanel extends LitElement {
   private _retain = false;
 
   @state() private _configEntry?: ConfigEntry | null;
+
+  // Measured by the listener on this page; unknown until it has heard a message
+  @state() private _listenStats?: MqttListenStats;
 
   protected firstUpdated(changedProperties: PropertyValues<this>) {
     super.firstUpdated(changedProperties);
@@ -133,9 +142,16 @@ export class MQTTConfigPanel extends LitElement {
       >
         <div class="page">
           ${this._renderHero(isOnline, deviceIds.size)}
+          <ha-protocol-stat-tiles
+            class="tiles"
+            .tiles=${this._statTiles(deviceIds.size, entityCount)}
+          ></ha-protocol-stat-tiles>
           <div class="grid">
             ${this._renderPublishCard()}
-            <mqtt-subscribe-card .hass=${this.hass}></mqtt-subscribe-card>
+            <mqtt-subscribe-card
+              .hass=${this.hass}
+              @mqtt-listen-stats=${this._listenStatsChanged}
+            ></mqtt-subscribe-card>
           </div>
           <section class="broker">
             <h2>${this.hass.localize("ui.panel.config.mqtt.broker_title")}</h2>
@@ -147,6 +163,55 @@ export class MQTTConfigPanel extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  private _listenStatsChanged(ev: CustomEvent<MqttListenStats>) {
+    this._listenStats = ev.detail;
+  }
+
+  private _statTiles(deviceCount: number, entityCount: number) {
+    const localize = this.hass.localize;
+    const tiles: ProtocolStatTile[] = [
+      {
+        label: localize("ui.panel.config.mqtt.tile_devices"),
+        value: deviceCount,
+        icon: mdiDevices,
+        tone: "tertiary",
+      },
+      {
+        label: localize("ui.panel.config.mqtt.tile_entities"),
+        value: entityCount,
+        icon: mdiShape,
+        tone: "primary",
+      },
+    ];
+    const stats = this._listenStats;
+    if (stats) {
+      tiles.push(
+        {
+          label: localize("ui.panel.config.mqtt.tile_topics_heard"),
+          value: stats.topics,
+          icon: mdiPound,
+          tone: "success",
+        },
+        {
+          label: localize("ui.panel.config.mqtt.tile_messages_heard"),
+          value: stats.count,
+          icon: mdiMessageText,
+          tone: "warning",
+        }
+      );
+      // An average over the time the listener has run, from the first start
+      if (stats.elapsedMs >= 1000) {
+        tiles.push({
+          label: localize("ui.panel.config.mqtt.tile_rate"),
+          value: `${(stats.count / (stats.elapsedMs / 1000)).toFixed(1)}/s`,
+          icon: mdiSpeedometer,
+          tone: "primary",
+        });
+      }
+    }
+    return tiles;
   }
 
   private _renderNotConfigured() {
@@ -464,6 +529,9 @@ export class MQTTConfigPanel extends LitElement {
         }
         .chip.error {
           --chip-color: var(--error-color);
+        }
+        .tiles {
+          margin-bottom: var(--ha-space-4);
         }
         .grid {
           display: grid;

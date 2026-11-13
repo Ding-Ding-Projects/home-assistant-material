@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { setStepEnabled } from "../../../../../src/panels/config/automation/tools/step-toggle";
+import {
+  isLocked,
+  setStepEnabled,
+  setStepLocked,
+} from "../../../../../src/panels/config/automation/tools/step-toggle";
 
 const config = {
   triggers: [
@@ -53,5 +57,25 @@ describe("setStepEnabled", () => {
   it("returns undefined for a path that names nothing", () => {
     expect(setStepEnabled(config, "action/9", false)).toBeUndefined();
     expect(setStepEnabled(config, "action/1/then/4", false)).toBeUndefined();
+  });
+});
+
+describe("setStepLocked", () => {
+  it("writes and removes the lock marker without touching the input", () => {
+    const locked = setStepLocked(config, "action/0", true)!;
+    expect(locked.actions[0]).toEqual({
+      action: "light.turn_on",
+      editor_locked: true,
+    });
+    expect(isLocked(locked.actions[0])).toBe(true);
+    expect(isLocked(config.actions[0])).toBe(false);
+    expect(setStepLocked(locked, "action/0", false)!.actions[0]).toEqual({
+      action: "light.turn_on",
+    });
+  });
+
+  it("locks a nested step", () => {
+    const next = setStepLocked(config, "action/1/then/0", true)!;
+    expect((next.actions[1] as any).then[0].editor_locked).toBe(true);
   });
 });

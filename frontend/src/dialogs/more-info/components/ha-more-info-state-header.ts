@@ -1,5 +1,5 @@
 import type { TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
 import "../../../components/ha-absolute-time";
@@ -49,9 +49,14 @@ export class HaMoreInfoStateHeader extends LitElement {
 
   protected render(): TemplateResult {
     const stateDisplay = this.stateOverride ?? this._localizeState();
+    // The dialog header already shows the plain state once: the body only
+    // repeats it when it adds something (a speed, brightness, status, a
+    // relative timestamp).
+    const plainState = this._formatters?.formatEntityState(this.stateObj);
+    const repeatsHeader = stateDisplay === plainState || stateDisplay === "";
 
     return html`
-      <p class="state">${stateDisplay}</p>
+      ${repeatsHeader ? nothing : html`<p class="state">${stateDisplay}</p>`}
       <div class="time-row">
         <p class="last-changed" @click=${this._toggleAbsolute}>
           ${

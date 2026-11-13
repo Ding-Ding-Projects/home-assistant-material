@@ -177,6 +177,8 @@ describe("a failure in the middle", () => {
       "pending",
       "pending",
     ]);
+    // The step that was under way is the one that broke.
+    expect(view.failedStep).toBe("pulling");
   });
 
   it("describes the failure as one error line", () => {

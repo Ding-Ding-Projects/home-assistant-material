@@ -3,6 +3,9 @@
  * can be stopped by ending this worker. See `runner.ts`.
  */
 
+import type { TraceResult } from "./trace";
+import { traceMatch } from "./trace";
+
 export interface RegexGroupResult {
   /** Undefined when the group did not take part in the match. */
   text?: string;
@@ -43,6 +46,14 @@ export type RegexWorkerRequest =
       flags: string;
       sample: string;
       iterations: number;
+    }
+  | {
+      id: number;
+      type: "trace";
+      pattern: string;
+      flags: string;
+      sample: string;
+      from: number;
     };
 
 export type RegexWorkerResult =
@@ -60,7 +71,8 @@ export type RegexWorkerResult =
       groupPositions: boolean;
     }
   | { type: "cases"; matched: boolean[]; durationMs: number }
-  | { type: "time"; timings: number[]; total: number };
+  | { type: "time"; timings: number[]; total: number }
+  | { type: "trace"; trace: TraceResult };
 
 export type RegexWorkerResponse =
   | { id: number; ok: true; result: RegexWorkerResult }
@@ -230,6 +242,18 @@ const time = (
   return { type: "time", timings, total };
 };
 
+const trace = (
+  request: Extract<RegexWorkerRequest, { type: "trace" }>
+): RegexWorkerResult => ({
+  type: "trace",
+  trace: traceMatch(
+    request.pattern,
+    request.flags,
+    request.sample,
+    request.from
+  ),
+});
+
 self.onmessage = (ev: MessageEvent<RegexWorkerRequest>) => {
   const request = ev.data;
   let response: RegexWorkerResponse;
@@ -239,7 +263,9 @@ self.onmessage = (ev: MessageEvent<RegexWorkerRequest>) => {
         ? run(request)
         : request.type === "cases"
           ? cases(request)
-          : time(request);
+          : request.type === "trace"
+            ? trace(request)
+            : time(request);
     response = { id: request.id, ok: true, result };
   } catch (err: unknown) {
     response = {

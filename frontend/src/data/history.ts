@@ -52,6 +52,8 @@ export interface LineChartEntity {
   entity_id: string;
   states: LineChartState[];
   statistics?: LineChartState[];
+  /** True for the earlier-period copy drawn dashed and lighter next to the real series. */
+  compare?: boolean;
 }
 
 export interface LineChartUnit {
@@ -743,6 +745,94 @@ export const isTimelineEntity = (
 ): boolean =>
   !isNumericEntity(domain, currentState, undefined) &&
   !LINE_CHART_DOMAINS.includes(domain);
+
+/** How far back the compared period lies. */
+export type ComparePeriod = "previous" | "day" | "week";
+
+/** The longest window for which an earlier period is fetched, in hours. */
+export const MAX_COMPARE_WINDOW_HOURS = 24 * 31;
+
+/**
+ * The shift in milliseconds for a compare period, or undefined when the
+ * period is not one of the known names or the window is too long to fetch
+ * a second time.
+ */
+export const computeCompareShiftMs = (
+  period: unknown,
+  hoursToShow: number
+): number | undefined => {
+  if (
+    !Number.isFinite(hoursToShow) ||
+    hoursToShow <= 0 ||
+    hoursToShow > MAX_COMPARE_WINDOW_HOURS
+  ) {
+    return undefined;
+  }
+  switch (period) {
+    case "previous":
+      return hoursToShow * 3_600_000;
+    case "day":
+      return 24 * 3_600_000;
+    case "week":
+      return 7 * 24 * 3_600_000;
+    default:
+      return undefined;
+  }
+};
+
+const shiftStates = (states: LineChartState[], shiftMs: number) =>
+  states.map((s) => ({ ...s, last_changed: s.last_changed + shiftMs }));
+
+/**
+ * Adds an earlier period to a history result as lighter, dashed series. The
+ * earlier result's timestamps are moved forward by `shiftMs` so both periods
+ * share one time axis. Only numeric line charts take part: an entity that has
+ * no series in the current result for the same unit is left out, and so are
+ * timelines and the multi-line climate, humidifier and water heater charts.
+ */
+export const addComparisonToHistory = (
+  current: HistoryResult,
+  earlier: HistoryResult,
+  shiftMs: number
+): HistoryResult => {
+  if (!earlier.line.length) {
+    return current;
+  }
+  const line = current.line.map((unit) => ({
+    ...unit,
+    data: [...unit.data],
+  }));
+  for (const earlierUnit of earlier.line) {
+    const target = line.find(
+      (unit) =>
+        unit.unit === earlierUnit.unit &&
+        unit.device_class === earlierUnit.device_class
+    );
+    if (!target) {
+      continue;
+    }
+    for (const data of earlierUnit.data) {
+      const domain = computeDomain(data.entity_id);
+      const hasPrimary = target.data.some(
+        (d) => !d.compare && d.entity_id === data.entity_id
+      );
+      if (
+        !hasPrimary ||
+        LINE_CHART_DOMAINS.includes(domain) ||
+        data.states.length === 0
+      ) {
+        continue;
+      }
+      target.data.push({
+        ...data,
+        compare: true,
+        states: shiftStates(data.states, shiftMs),
+        statistics: undefined,
+      });
+    }
+  }
+  return { ...current, line };
+};
 
 export const mergeHistoryResults = (
   historyResult: HistoryResult,

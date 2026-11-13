@@ -16,11 +16,16 @@ import {
   appJobTracker,
   isAppJobVisible,
 } from "../../data/hassio/app-job-tracker";
+import { copyToClipboard } from "../../common/util/copy-clipboard";
 import { haStyle } from "../../resources/styles";
+import { showToast } from "../../util/toast";
 import "../ha-alert";
 import "../ha-app-icon";
 import "../ha-button";
 import "../log-terminal/ha-log-terminal";
+
+/** The newest lines of the run's log that Copy details adds. */
+const DETAIL_LINES = 20;
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -256,15 +261,30 @@ export class HaAppJobProgress extends LitElement {
               ${view.steps.map(
                 (step) =>
                   html`<li
-                    class=${classMap({ [step.state]: true })}
+                    class=${classMap({
+                      [step.state]: true,
+                      broke: view.failedStep === step.id,
+                    })}
                     aria-current=${step.state === "current" ? "step" : "false"}
                   >
-                    <span class="marker" aria-hidden="true"></span>
+                    <span class="marker" aria-hidden="true"
+                      >${
+                        step.state === "done"
+                          ? "✓"
+                          : view.failedStep === step.id
+                            ? "!"
+                            : view.steps.indexOf(step) + 1
+                      }</span
+                    >
                     <span class="label"
                       >${this._l(`step.${step.id}`)}<span
                         class="visually-hidden"
                       >
-                        ${this._l(`step_state.${step.state}`)}</span
+                        ${
+                          view.failedStep === step.id
+                            ? this._l("step_state.failed")
+                            : this._l(`step_state.${step.state}`)
+                        }</span
                       ></span
                     >
                   </li>`
@@ -281,6 +301,15 @@ export class HaAppJobProgress extends LitElement {
               alert-type="error"
               .title=${this._l("failed_heading", { name: snapshot.name })}
             >
+              ${
+                view.failedStep
+                  ? html`<p class="broke-at">
+                      ${this._l("failed_at", {
+                        step: this._l(`step.${view.failedStep}`),
+                      })}
+                    </p>`
+                  : nothing
+              }
               ${view.errorMessage ?? this._l("failed_unknown")}
             </ha-alert>`
           : nothing
@@ -288,11 +317,33 @@ export class HaAppJobProgress extends LitElement {
       ${
         view.end === "running"
           ? html`<p class="note">${this._l("keep_open_note")}</p>`
-          : html`<div class="actions">
-              <ha-button appearance="plain" @click=${this._dismiss}
-                >${this._l("dismiss")}</ha-button
-              >
-            </div>`
+          : html`${
+                view.end === "failed" && snapshot.canRetry
+                  ? html`<p class="note">${this._l("start_again_note")}</p>`
+                  : nothing
+              }
+              <div class="actions">
+                ${
+                  view.end === "failed" && snapshot.canRetry
+                    ? html`<ha-button @click=${this._retry}
+                        >${this._l("start_again")}</ha-button
+                      >`
+                    : nothing
+                }
+                ${
+                  view.end === "failed"
+                    ? html`<ha-button
+                        appearance="filled"
+                        variant="neutral"
+                        @click=${this._copyDetails}
+                        >${this._l("copy_details")}</ha-button
+                      >`
+                    : nothing
+                }
+                <ha-button appearance="plain" @click=${this._dismiss}
+                  >${this._l("dismiss")}</ha-button
+                >
+              </div>`
       }
       ${
         this.terminal
@@ -310,6 +361,39 @@ export class HaAppJobProgress extends LitElement {
 
   private _dismiss(): void {
     appJobTracker.dismiss(this.slug);
+  }
+
+  private _retry(): void {
+    void appJobTracker.retry(this.slug);
+  }
+
+  /** The facts of a failed run as plain text, for a message to someone else. */
+  private async _copyDetails(): Promise<void> {
+    const snapshot = this._snapshot;
+    if (!snapshot) {
+      return;
+    }
+    const { run } = snapshot;
+    const view = deriveAppJobView(run, this._now);
+    const recent = snapshot.buffer.lines
+      .slice(-DETAIL_LINES)
+      .map((line) => line.text);
+    const text = [
+      this._l(`title.${run.kind}`, { name: snapshot.name }),
+      `${this._l("detail_app")}: ${run.slug}`,
+      `${this._l("detail_started")}: ${new Date(run.startedAt).toISOString()}`,
+      view.failedStep
+        ? `${this._l("detail_step")}: ${this._l(`step.${view.failedStep}`)}`
+        : undefined,
+      `${this._l("detail_message")}: ${view.errorMessage ?? this._l("failed_unknown")}`,
+      `${this._l("elapsed", { time: formatElapsed(view.elapsedMs) })}`,
+      recent.length ? `${this._l("detail_log")}:` : undefined,
+      ...recent,
+    ]
+      .filter((line): line is string => line !== undefined)
+      .join("\n");
+    await copyToClipboard(text, this);
+    showToast(this, { message: this._l("details_copied") });
   }
 
   static styles = [
@@ -410,35 +494,47 @@ export class HaAppJobProgress extends LitElement {
         margin: var(--ha-space-3) 0 0;
         padding: 0;
         display: flex;
-        flex-direction: column;
-        gap: var(--ha-space-1);
+        flex-wrap: wrap;
+        gap: var(--ha-space-2);
       }
       .steps li {
         display: flex;
         align-items: center;
         gap: var(--ha-space-2);
-        min-height: 32px;
+        min-height: 40px;
+        padding: 0 var(--ha-space-3);
+        border-radius: 999px;
+        background: var(--ha-color-surface-tone-2, var(--divider-color));
         color: var(--secondary-text-color);
       }
+      .steps li.done {
+        background: var(--ha-color-success-container, var(--divider-color));
+        color: var(--ha-color-on-success-container, inherit);
+      }
       .steps li.current {
-        color: var(--primary-text-color);
-        font-weight: var(--ha-font-weight-medium);
+        background: var(--ha-color-primary-container);
+        color: var(--ha-color-on-primary-container);
+        font-weight: var(--ha-font-weight-semibold, 600);
+      }
+      .steps li.broke {
+        background: var(--ha-color-error-container, var(--divider-color));
+        color: var(--ha-color-on-error-container, inherit);
+        font-weight: var(--ha-font-weight-semibold, 600);
       }
       .marker {
+        display: grid;
+        place-items: center;
         flex: none;
-        width: 12px;
-        height: 12px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
-        border: 2px solid var(--secondary-text-color);
-        box-sizing: border-box;
+        background: var(--card-background-color);
+        font-size: var(--ha-font-size-s, 0.8125rem);
+        font-weight: var(--ha-font-weight-semibold, 600);
       }
-      li.done .marker {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-      }
-      li.current .marker {
-        border-color: var(--primary-color);
-        background: var(--primary-background-color);
+      .broke-at {
+        margin: 0 0 var(--ha-space-1);
+        font-weight: var(--ha-font-weight-semibold, 600);
       }
       ha-alert {
         display: block;

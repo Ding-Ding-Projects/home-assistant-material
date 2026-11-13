@@ -532,6 +532,8 @@ export interface HistoryGraphCardConfig extends LovelaceCardConfig {
   fit_y_data?: boolean;
   split_device_classes?: boolean;
   expand_legend?: boolean;
+  /** Also draw an earlier period as dashed, lighter series (numeric graphs only). */
+  compare_period?: "previous" | "day" | "week";
 }
 
 export interface StatisticsGraphCardConfig extends EnergyCardBaseConfig {
@@ -723,6 +725,13 @@ export interface TileCardConfig extends LovelaceCardConfig, TileActionsConfig {
   features?: LovelaceCardFeatureConfig[];
   features_position?: LovelaceCardFeaturePosition;
   time_format?: TimestampRenderingFormat;
+  /**
+   * Optional look. "big-number" draws the state as a large number under the
+   * name (the current temperature for a thermostat). "lit" tints the whole
+   * card with the colour of the entity while it is active, so a light that
+   * is on glows. Left out, the tile is drawn as before.
+   */
+  appearance?: "big-number" | "lit";
 }
 
 export interface HeadingCardConfig extends LovelaceCardConfig {

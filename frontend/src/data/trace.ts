@@ -333,3 +333,84 @@ export const isTriggerPath = (path: string): boolean =>
 export const getTriggerPathFromTrace = (
   steps: Record<string, BaseTraceStep[]>
 ): string | undefined => Object.keys(steps).find((path) => isTriggerPath(path));
+
+/** A run that stopped at a breakpoint and waits for a command. */
+export interface BreakpointHit {
+  domain: string;
+  item_id: string;
+  run_id: string;
+  node: string;
+}
+
+/** A breakpoint the instance holds. A run id of `*` applies to every run. */
+export interface TraceBreakpoint {
+  domain: string;
+  item_id: string;
+  run_id: string;
+  node: string;
+}
+
+/**
+ * Listens for runs that stop at a breakpoint. The instance only accepts new
+ * breakpoints while someone listens, and it clears all breakpoints and lets
+ * halted runs go on when the last listener ends.
+ */
+export const subscribeBreakpointHits = (
+  hass: HomeAssistant,
+  callback: (hit: BreakpointHit) => void
+): Promise<() => Promise<void>> =>
+  hass.connection.subscribeMessage<BreakpointHit>(callback, {
+    type: "trace/debug/breakpoint/subscribe",
+  });
+
+export const listBreakpoints = (
+  hass: HomeAssistant
+): Promise<TraceBreakpoint[]> =>
+  hass.callWS({ type: "trace/debug/breakpoint/list" });
+
+export const setBreakpoint = (
+  hass: HomeAssistant,
+  domain: string,
+  item_id: string,
+  node: string,
+  run_id?: string
+): Promise<void> =>
+  hass.callWS({
+    type: "trace/debug/breakpoint/set",
+    domain,
+    item_id,
+    node,
+    run_id,
+  });
+
+export const clearBreakpoint = (
+  hass: HomeAssistant,
+  domain: string,
+  item_id: string,
+  node: string,
+  run_id?: string
+): Promise<void> =>
+  hass.callWS({
+    type: "trace/debug/breakpoint/clear",
+    domain,
+    item_id,
+    node,
+    run_id,
+  });
+
+export type DebugCommand = "continue" | "step" | "stop";
+
+/** Resumes, single steps or stops a run that is halted at a breakpoint. */
+export const debugRun = (
+  hass: HomeAssistant,
+  command: DebugCommand,
+  domain: string,
+  item_id: string,
+  run_id: string
+): Promise<void> =>
+  hass.callWS({
+    type: `trace/debug/${command}`,
+    domain,
+    item_id,
+    run_id,
+  });

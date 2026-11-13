@@ -58,7 +58,6 @@ class MoreInfoWaterHeater extends LitElement {
     const unavailable = stateObj.state === UNAVAILABLE;
     const hasTarget = stateObj.attributes.temperature != null;
     const summary = [
-      `${this._formatters.formatEntityState(stateObj)}.`,
       currentTemperature != null
         ? this._localize("ui.dialogs.more_info_control.water_heater.now", {
             value: this._formatters.formatEntityAttributeValue(
@@ -73,17 +72,17 @@ class MoreInfoWaterHeater extends LitElement {
 
     return html`
       <div class="hero">
-        <div class="target">
-          ${
-            hasTarget
-              ? this._formatters.formatEntityAttributeValue(
+        ${
+          hasTarget
+            ? html`<div class="target">
+                ${this._formatters.formatEntityAttributeValue(
                   stateObj,
                   "temperature"
-                )
-              : this._formatters.formatEntityState(stateObj)
-          }
-        </div>
-        <div class="summary">${summary}</div>
+                )}
+              </div>`
+            : nothing
+        }
+        ${summary ? html`<div class="summary">${summary}</div>` : nothing}
       </div>
       <div class="controls">
         <ha-state-control-water_heater-temperature
@@ -245,32 +244,32 @@ class MoreInfoWaterHeater extends LitElement {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
-          gap: var(--ha-space-2);
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1);
           margin-bottom: var(--ha-space-4);
-        }
-        .chip {
-          min-height: 36px;
-          padding: 0 var(--ha-space-4);
-          border-radius: var(--ha-border-radius-lg);
-          border: 1px solid var(--divider-color);
-          background: none;
-          color: var(--primary-text-color);
-          font: inherit;
-          font-weight: var(--ha-font-weight-medium);
-          cursor: pointer;
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--secondary-background-color);
         }
         .chip {
           display: inline-flex;
           align-items: center;
-          gap: var(--ha-space-1);
+          min-height: 40px;
+          padding: 0 var(--ha-space-4);
+          border: none;
+          border-radius: var(--ha-border-radius-3xl);
+          background: transparent;
+          color: var(--secondary-text-color);
+          font: inherit;
+          font-weight: var(--ha-font-weight-medium);
+          cursor: pointer;
         }
         .check {
-          --mdc-icon-size: 18px;
+          display: none;
         }
         .chip.selected {
-          background: var(--secondary-background-color);
-          border-color: var(--primary-color);
-          color: var(--primary-color);
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
         .chip:disabled {
           opacity: 0.5;

@@ -61,6 +61,7 @@ const ENTITY_DATASET_SUFFIXES = [
   "-target_humidity",
   "-humidifying",
   "-on",
+  "-earlier",
 ];
 
 @customElement("state-history-chart-line")
@@ -403,7 +404,11 @@ export class StateHistoryChartLine extends LitElement {
               const stateObj = this._states?.[item.entityId];
               let value: string | undefined;
 
-              if (stateObj) {
+              // The earlier-period series has no current value to show.
+              if (
+                stateObj &&
+                !(item.dataset.id as string)?.endsWith("-earlier")
+              ) {
                 // For climate temperature datasets, show temperature values
                 const datasetId = item.dataset.id as string;
                 if (

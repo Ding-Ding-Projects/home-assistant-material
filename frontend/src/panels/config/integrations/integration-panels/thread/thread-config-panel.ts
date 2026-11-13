@@ -54,6 +54,8 @@ import {
   showPromptDialog,
 } from "../../../../../dialogs/generic/show-dialog-box";
 import "../../../../../layouts/hass-subpage";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import { SubscribeMixin } from "../../../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
@@ -124,6 +126,10 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
         </ha-dropdown>
         <div class="page">
           ${this._renderHero(networks)}
+          <ha-protocol-stat-tiles
+            class="tiles"
+            .tiles=${this._statTiles(networks)}
+          ></ha-protocol-stat-tiles>
           <div class="layout">
             <div class="main">
               <h2>
@@ -178,6 +184,42 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
         </div>
       </hass-subpage>
     `;
+  }
+
+  // Numbers the discovered routers and the stored datasets report
+  private _statTiles(networks: {
+    preferred?: ThreadNetwork;
+    networks: ThreadNetwork[];
+  }): ProtocolStatTile[] {
+    const networkCount =
+      (networks.preferred ? 1 : 0) + networks.networks.length;
+    const routerCount =
+      (networks.preferred?.routers?.length ?? 0) +
+      networks.networks.reduce((n, net) => n + (net.routers?.length ?? 0), 0);
+    const localize = this.hass.localize;
+    const tiles: ProtocolStatTile[] = [
+      {
+        label: localize("ui.panel.config.thread.tile_networks"),
+        value: networkCount,
+        icon: mdiLanConnect,
+        tone: "primary",
+      },
+      {
+        label: localize("ui.panel.config.thread.tile_border_routers"),
+        value: routerCount,
+        icon: mdiDevices,
+        tone: "tertiary",
+      },
+    ];
+    const channel = networks.preferred?.dataset?.channel;
+    if (channel) {
+      tiles.push({
+        label: localize("ui.panel.config.thread.tile_channel"),
+        value: channel,
+        tone: "warning",
+      });
+    }
+    return tiles;
   }
 
   private _renderHero(networks: {
@@ -952,6 +994,9 @@ export class ThreadConfigPanel extends SubscribeMixin(LitElement) {
       .hero p {
         margin: 0;
         line-height: var(--ha-line-height-normal);
+      }
+      .tiles {
+        margin-bottom: var(--ha-space-4);
       }
       .layout {
         display: grid;

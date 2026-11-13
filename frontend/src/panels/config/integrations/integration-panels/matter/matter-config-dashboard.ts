@@ -24,6 +24,8 @@ import type { DeviceRegistryEntry } from "../../../../../data/device/device_regi
 import type { MatterNetworkTopologyNode } from "../../../../../data/matter";
 import { fetchMatterNetworkTopology } from "../../../../../data/matter";
 import "../../../../../layouts/hass-subpage";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import { animationStyles } from "../../../../../resources/theme/animations.globals";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
@@ -117,6 +119,10 @@ export class MatterConfigDashboard extends LitElement {
       >
         <div class="page">
           ${this._renderHero(isOnline, deviceIds.size)}
+          <ha-protocol-stat-tiles
+            class="tiles"
+            .tiles=${this._statTiles(deviceIds.size)}
+          ></ha-protocol-stat-tiles>
           <div class="columns">
             <div class="column">
               ${this._renderAddCard()}
@@ -135,6 +141,43 @@ export class MatterConfigDashboard extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  // Numbers the server reports: devices, and how many use each network.
+  private _statTiles(deviceCount: number): ProtocolStatTile[] {
+    const localize = this.hass.localize;
+    const tiles: ProtocolStatTile[] = [
+      {
+        label: localize("ui.panel.config.matter.panel.tile_devices"),
+        value: deviceCount,
+        icon: mdiDevices,
+        tone: "success",
+      },
+    ];
+    const nodes = (this._topologyNodes ?? []).filter(
+      (node) => node.ha_device_id
+    );
+    if (nodes.length) {
+      const count = (type: string) =>
+        nodes.filter((node) => node.network_type === type).length;
+      const networks: [string, string, ProtocolStatTile["tone"]][] = [
+        ["thread", "tile_thread", "tertiary"],
+        ["wifi", "tile_wifi", "warning"],
+        ["ethernet", "tile_ethernet", "primary"],
+      ];
+      for (const [type, key, tone] of networks) {
+        const value = count(type);
+        if (value > 0) {
+          tiles.push({
+            label: localize(`ui.panel.config.matter.panel.${key}` as any),
+            value,
+            icon: mdiVectorPolyline,
+            tone,
+          });
+        }
+      }
+    }
+    return tiles;
   }
 
   private _addDevice() {
@@ -535,6 +578,10 @@ export class MatterConfigDashboard extends LitElement {
           flex-direction: column;
           gap: var(--ha-space-2);
           min-width: min(220px, 100%);
+        }
+
+        .tiles {
+          margin-bottom: var(--ha-space-4);
         }
 
         .columns {

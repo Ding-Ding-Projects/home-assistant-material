@@ -261,6 +261,8 @@ export interface AppJobView {
   percent?: number;
   /** Steps for a run that pulls an image, empty for the other kinds. */
   steps: AppJobStep[];
+  /** The step that was under way when a run failed, for runs with steps. */
+  failedStep?: AppJobPhase;
   elapsedMs: number;
   errorMessage?: string;
   /** A stage the Supervisor named that is not one of the known ones. */
@@ -312,6 +314,10 @@ export const deriveAppJobView = (run: AppJobRun, now: number): AppJobView => {
     phase,
     percent: run.progress === undefined ? undefined : Math.floor(run.progress),
     steps,
+    failedStep:
+      end === "failed" && steps.length
+        ? APP_JOB_STEPS[Math.min(run.rank, APP_JOB_STEPS.length - 1)]
+        : undefined,
     elapsedMs: Math.max(0, (run.finishedAt ?? now) - run.startedAt),
     errorMessage: run.failed ? run.errorMessage : undefined,
     unknownStage,

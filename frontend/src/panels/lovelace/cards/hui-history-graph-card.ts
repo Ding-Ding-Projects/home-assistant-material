@@ -12,8 +12,11 @@ import "../../../components/ha-card";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-tooltip";
 import {
+  addComparisonToHistory,
+  computeCompareShiftMs,
   computeHistory,
   convertStatisticsToHistory,
+  fetchDateWS,
   mergeHistoryResults,
   subscribeHistoryStatesTimeWindow,
   type HistoryResult,
@@ -66,6 +69,12 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
   private _subscribed?: Promise<(() => Promise<void>) | undefined>;
 
   private _stateHistory?: HistoryResult;
+
+  private _compareHistory?: HistoryResult;
+
+  private _compareShiftMs?: number;
+
+  private _redrawTicks = 0;
 
   public getCardSize(): number {
     return this._config?.title ? 2 : 0 + 2 * (this._entityIds?.length || 1);
@@ -189,18 +198,63 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
     });
 
     await this._fetchStatistics();
+    await this._fetchComparison();
 
     this._setRedrawTimer();
   }
 
   private _mergeHistory() {
     if (this._stateHistory) {
-      this._history = mergeHistoryResults(
+      const merged = mergeHistoryResults(
         this._stateHistory,
         this._statisticsHistory,
         this._config?.split_device_classes
       );
+      this._history =
+        this._compareHistory && this._compareShiftMs
+          ? addComparisonToHistory(
+              merged,
+              this._compareHistory,
+              this._compareShiftMs
+            )
+          : merged;
     }
+  }
+
+  /**
+   * Fetches the earlier period when `compare_period` is set: one bounded
+   * request for the same entities and window length, moved back by the
+   * period. A failed request just leaves the comparison out.
+   */
+  private async _fetchComparison() {
+    const shift = computeCompareShiftMs(
+      this._config?.compare_period,
+      this._hoursToShow
+    );
+    if (!shift || !this.hass) {
+      this._compareHistory = undefined;
+      this._compareShiftMs = undefined;
+      return;
+    }
+    const end = new Date(Date.now() - shift);
+    const start = new Date(end.getTime() - this._hoursToShow * 3_600_000);
+    try {
+      const states = await fetchDateWS(this.hass, start, end, this._entityIds);
+      // Only entities that have recorded states in the earlier window: the
+      // current state must not stand in for missing history.
+      this._compareHistory = computeHistory(
+        this.hass,
+        states,
+        Object.keys(states),
+        this.hass.localize,
+        this._config?.split_device_classes
+      );
+      this._compareShiftMs = shift;
+    } catch (_err) {
+      this._compareHistory = undefined;
+      this._compareShiftMs = undefined;
+    }
+    this._mergeHistory();
   }
 
   private async _fetchStatistics() {
@@ -233,6 +287,12 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
   }
 
   private _redrawGraph() {
+    // The earlier period moves with the clock: fetch it again every ten minutes.
+    this._redrawTicks++;
+    if (this._compareShiftMs && this._redrawTicks % 10 === 0) {
+      this._fetchComparison();
+      return;
+    }
     if (this._history) {
       this._history = { ...this._history };
     }
@@ -298,7 +358,8 @@ export class HuiHistoryGraphCard extends LitElement implements LovelaceCard {
     if (
       changedProps.has("_config") &&
       (oldConfig?.entities !== this._config.entities ||
-        oldConfig?.hours_to_show !== this._config.hours_to_show)
+        oldConfig?.hours_to_show !== this._config.hours_to_show ||
+        oldConfig?.compare_period !== this._config.compare_period)
     ) {
       this._unsubscribeHistory();
       this._subscribeHistory();

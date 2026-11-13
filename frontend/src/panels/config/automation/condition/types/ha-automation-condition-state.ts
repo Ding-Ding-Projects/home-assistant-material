@@ -28,6 +28,7 @@ import type { ConditionElement } from "../ha-automation-condition-row";
 const stateConditionStruct = object({
   alias: optional(string()),
   note: optional(string()),
+  editor_locked: optional(boolean()),
   condition: literal("state"),
   entity_id: optional(string()),
   attribute: optional(string()),

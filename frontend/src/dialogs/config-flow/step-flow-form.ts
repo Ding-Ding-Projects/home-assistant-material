@@ -16,6 +16,7 @@ import type {
   HaFormSelector,
 } from "../../components/ha-form/types";
 import "../../components/ha-markdown";
+import "./step-flow-description-note";
 import "../../components/ha-spinner";
 import { autocompleteLoginFields } from "../../data/auth";
 import {
@@ -116,6 +117,20 @@ class StepFlowForm extends LitElement {
     );
   });
 
+  private _renderDescription() {
+    const description = this.flowConfig.renderShowFormStepDescription(
+      this.hass,
+      this.step
+    );
+    return description
+      ? html`<step-flow-description-note
+          .hass=${this.hass}
+          .domain=${this.domain ?? this.step.handler}
+          >${description}</step-flow-description-note
+        >`
+      : nothing;
+  }
+
   protected render(): TemplateResult {
     const step = this.step;
     const stepData = this._stepDataProcessed;
@@ -123,7 +138,7 @@ class StepFlowForm extends LitElement {
     return html`
       <div class="content" @click=${this._clickHandler}>
         ${this._renderStepIndicator()}
-        ${this.flowConfig.renderShowFormStepDescription(this.hass, this.step)}
+        ${this._renderDescription()}
         ${
           this._errorMsg
             ? html`<ha-alert alert-type="error">${this._errorMsg}</ha-alert>`

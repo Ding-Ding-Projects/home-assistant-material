@@ -11,7 +11,6 @@ import secondsToDuration from "../../../common/datetime/seconds_to_duration";
 import type { HASSDomCurrentTargetEvent } from "../../../common/dom/fire_event";
 import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-button";
-import "../../../components/ha-control-button";
 import "../../../components/ha-svg-icon";
 import type { HaButton } from "../../../components/ha-button";
 import "../../../components/ha-duration-input";
@@ -148,48 +147,57 @@ class MoreInfoTimer extends LitElement {
           ${
             timerState === "active"
               ? html`
-                  <ha-control-button
-                    class="primary"
-                    .label=${this._localize("ui.card.timer.actions.pause")}
+                  <ha-button
+                    appearance="accent"
                     .action=${"pause"}
                     @click=${this._handleActionClick}
                   >
-                    <ha-svg-icon .path=${mdiPause}></ha-svg-icon>
-                  </ha-control-button>
+                    <ha-svg-icon slot="start" .path=${mdiPause}></ha-svg-icon>
+                    ${this._localize("ui.card.timer.actions.pause")}
+                  </ha-button>
                 `
               : nothing
           }
           ${
             timerState === "paused"
               ? html`
-                  <ha-control-button
-                    class="primary"
-                    .label=${this._localize("ui.card.timer.actions.start")}
+                  <ha-button
+                    appearance="accent"
                     .action=${"start"}
                     @click=${this._handleActionClick}
                   >
-                    <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
-                  </ha-control-button>
+                    <ha-svg-icon slot="start" .path=${mdiPlay}></ha-svg-icon>
+                    ${this._localize("ui.card.timer.actions.start")}
+                  </ha-button>
                 `
               : nothing
           }
           ${
             timerState === "active" || timerState === "paused"
               ? html`
-                  <ha-control-button
-                    .label=${this._localize("ui.card.timer.actions.cancel")}
+                  <ha-button
+                    appearance="outlined"
+                    variant="neutral"
                     .action=${"cancel"}
                     @click=${this._handleActionClick}
                   >
-                    <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
-                  </ha-control-button>
-                  <ha-control-button
-                    .label=${this._localize("ui.card.timer.actions.finish")}
+                    <ha-svg-icon slot="start" .path=${mdiStop}></ha-svg-icon>
+                    ${this._localize("ui.card.timer.actions.cancel")}
+                  </ha-button>
+                  <ha-button
+                    appearance="outlined"
+                    variant="neutral"
                     .action=${"finish"}
                     @click=${this._handleActionClick}
                   >
-                    <ha-svg-icon .path=${mdiCheck}></ha-svg-icon>
-                  </ha-control-button>
+                    <ha-svg-icon slot="start" .path=${mdiCheck}></ha-svg-icon>
+                    ${this._localize("ui.card.timer.actions.finish")}
+                  </ha-button>
+                  <ha-button appearance="plain" @click=${this._addFiveMinutes}>
+                    ${this._localize(
+                      "ui.dialogs.more_info_control.timer.add_five_minutes"
+                    )}
+                  </ha-button>
                 `
               : nothing
           }
@@ -236,6 +244,14 @@ class MoreInfoTimer extends LitElement {
     this._api.callService("timer", "start", {
       entity_id: this.stateObj!.entity_id,
       ...(this._duration ? { duration: this._duration } : {}),
+    });
+  }
+
+  // Adds five minutes to the running or paused timer.
+  private _addFiveMinutes(): void {
+    this._api.callService("timer", "change", {
+      entity_id: this.stateObj!.entity_id,
+      duration: "00:05:00",
     });
   }
 
@@ -304,20 +320,9 @@ class MoreInfoTimer extends LitElement {
       }
       .round-actions {
         display: flex;
+        flex-wrap: wrap;
         justify-content: center;
         gap: var(--ha-space-3);
-      }
-      .round-actions ha-control-button {
-        --control-button-border-radius: 50%;
-        --control-button-icon-color: var(--primary-text-color);
-        width: 56px;
-        height: 56px;
-        flex: none;
-      }
-      .round-actions ha-control-button.primary {
-        --control-button-background-color: var(--primary-color);
-        --control-button-background-opacity: 1;
-        --control-button-icon-color: var(--text-primary-color);
       }
       .ring.finished {
         animation: timer-finished-pulse 0.5s ease-in-out 2;

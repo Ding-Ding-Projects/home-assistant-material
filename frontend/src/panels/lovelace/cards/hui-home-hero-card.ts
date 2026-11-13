@@ -1,4 +1,5 @@
 import {
+  mdiDoorOpen,
   mdiLightbulb,
   mdiLock,
   mdiLockOpenVariant,
@@ -8,9 +9,10 @@ import {
   mdiPlus,
   mdiSkipNext,
   mdiUpdate,
+  mdiWrench,
 } from "@mdi/js";
-import type { HassEntity } from "home-assistant-js-websocket";
-import type { CSSResultGroup, TemplateResult } from "lit";
+import type { HassEntity, UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
@@ -30,6 +32,7 @@ import "../../home/components/ha-home-power-tile";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-switch";
+import { subscribeRepairsIssueRegistry } from "../../../data/repairs";
 import type { HomeAssistant } from "../../../types";
 import type { LovelaceCard, LovelaceGridOptions } from "../types";
 import type { HomeHeroCardConfig } from "./types";
@@ -45,6 +48,43 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: HomeHeroCardConfig;
+
+  /** Repairs that are open and not ignored, for the administrator. */
+  @state() private _repairs = 0;
+
+  private _unsubRepairs?: UnsubscribeFunc;
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._subscribeRepairs();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._unsubRepairs?.();
+    this._unsubRepairs = undefined;
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    if (changed.has("hass")) {
+      this._subscribeRepairs();
+    }
+  }
+
+  private _subscribeRepairs(): void {
+    if (this._unsubRepairs || !this.isConnected || !this.hass?.user?.is_admin) {
+      return;
+    }
+    this._unsubRepairs = subscribeRepairsIssueRegistry(
+      this.hass.connection,
+      (registry) => {
+        this._repairs = registry.issues.filter(
+          (issue) => !issue.ignored
+        ).length;
+      }
+    );
+  }
 
   public setConfig(config: HomeHeroCardConfig): void {
     this._config = config;
@@ -76,13 +116,26 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     const locks = this._locks(hass.states, hass.entities);
     const mediaId = this._media(hass.states, hass.entities);
     const updates = this._updates(hass.states, hass.user?.is_admin);
-    if (!room && !climateId && !locks && !mediaId && !updates) {
+    if (
+      !room &&
+      !climateId &&
+      !locks &&
+      !mediaId &&
+      !updates &&
+      !this._repairs &&
+      !this._doors(hass.states).length
+    ) {
       return nothing;
     }
-    const needsYou = !!locks?.unlocked.length || updates > 0;
+    const doors = this._doors(hass.states);
+    const needsYou =
+      !!locks?.unlocked.length ||
+      updates > 0 ||
+      this._repairs > 0 ||
+      doors.length > 0;
     return html`
       <div class="heroes">
-        ${needsYou ? this._renderNeeds(locks, updates) : nothing}
+        ${needsYou ? this._renderNeeds(locks, updates, doors) : nothing}
         ${room ? this._renderRoom(room) : nothing}
         ${climateId ? this._renderClimate(hass.states[climateId]) : nothing}
         <ha-home-power-tile .hass=${hass}></ha-home-power-tile>
@@ -258,7 +311,8 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
    */
   private _renderNeeds(
     locks: ReturnType<typeof lockFacts>,
-    updates: number
+    updates: number,
+    doors: string[]
   ): TemplateResult {
     const hass = this.hass!;
     const localize = hass.localize;
@@ -274,7 +328,15 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
         <header>
           <span class="tile"
             ><ha-svg-icon
-              .path=${open.length ? mdiLockOpenVariant : mdiUpdate}
+              .path=${
+                open.length
+                  ? mdiLockOpenVariant
+                  : this._repairs > 0 && !updates
+                    ? mdiWrench
+                    : doors.length && !updates
+                      ? mdiDoorOpen
+                      : mdiUpdate
+              }
             ></ha-svg-icon
           ></span>
           <span class="pill"
@@ -326,9 +388,55 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
               </div>`
             : nothing
         }
+        ${
+          this._repairs > 0
+            ? html`<div class="need">
+                <h2>
+                  ${localize("ui.panel.lovelace.cards.home_hero.repairs_open", {
+                    count: this._repairs,
+                  })}
+                </h2>
+                <button
+                  type="button"
+                  class="action quiet"
+                  @click=${this._openRepairs}
+                >
+                  ${localize("ui.panel.lovelace.cards.home_hero.review_repairs")}
+                </button>
+              </div>`
+            : nothing
+        }
+        ${
+          doors.length > 0
+            ? html`<div class="need">
+                <h2>
+                  ${localize("ui.panel.lovelace.cards.home_hero.doors_open", {
+                    count: doors.length,
+                  })}
+                </h2>
+                <span class="caption"
+                  >${doors
+                    .map((entityId) => computeStateName(hass.states[entityId]))
+                    .join(", ")}</span
+                >
+              </div>`
+            : nothing
+        }
       </section>
     `;
   }
+
+  /** Door sensors that report open, by their real device class. */
+  private _doors = memoizeOne((states: HomeAssistant["states"]): string[] =>
+    Object.values(states)
+      .filter(
+        (stateObj) =>
+          stateObj.entity_id.startsWith("binary_sensor.") &&
+          stateObj.attributes.device_class === "door" &&
+          stateObj.state === "on"
+      )
+      .map((stateObj) => stateObj.entity_id)
+  );
 
   private _updates = memoizeOne(
     (states: HomeAssistant["states"], isAdmin?: boolean): number =>
@@ -340,6 +448,10 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
           ).length
         : 0
   );
+
+  private _openRepairs(): void {
+    navigate("/config/repairs?historyBack=1");
+  }
 
   private _openUpdates(): void {
     navigate("/config/updates?historyBack=1");

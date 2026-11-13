@@ -154,9 +154,12 @@ export class HaPickerField extends PickerMixin(LitElement) {
           padding-inline-end: var(--ha-space-2);
           box-sizing: border-box;
           background-color: var(--ha-color-form-background);
-          border-radius: var(--ha-border-radius-sm);
-          border-end-end-radius: 0;
-          border-end-start-radius: 0;
+          border-radius: var(
+            --ha-picker-field-radius,
+            var(--ha-border-radius-sm)
+          );
+          border-end-end-radius: var(--ha-picker-field-radius, 0);
+          border-end-start-radius: var(--ha-picker-field-radius, 0);
           cursor: pointer;
           --ha-ripple-color: var(--primary-text-color);
         }
@@ -201,7 +204,7 @@ export class HaPickerField extends PickerMixin(LitElement) {
         }
 
         .field:after {
-          display: block;
+          display: var(--ha-picker-field-line-display, block);
           content: "";
           position: absolute;
           pointer-events: none;

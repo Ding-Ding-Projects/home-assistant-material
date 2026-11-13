@@ -42,6 +42,9 @@ class HassSubpage extends LitElement {
    */
   @property() public breadcrumb?: string;
 
+  /** One line of plain words under the title, on a wide screen. */
+  @property() public summary?: string;
+
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n?: ContextType<typeof internationalizationContext>;
@@ -79,6 +82,11 @@ class HassSubpage extends LitElement {
             <span class="title-text"
               ><slot name="header">${this.header}</slot></span
             >
+            ${
+              this.summary && !this.narrow
+                ? html`<span class="summary">${this.summary}</span>`
+                : nothing
+            }
           </div>
           <div class="tool-pill">
             <ha-page-tools
@@ -269,6 +277,14 @@ class HassSubpage extends LitElement {
           );
         }
         .title-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .summary {
+          margin-top: var(--ha-space-1);
+          font-size: var(--ha-font-size-m);
+          color: var(--secondary-text-color);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;

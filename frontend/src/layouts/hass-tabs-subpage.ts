@@ -167,6 +167,13 @@ export class HassTabsSubpage extends LitElement {
   @property() public breadcrumb?: string;
 
   /**
+   * One line of plain words under the title, on a wide screen. Pages under
+   * Settings get the description of their section when nothing is given; an
+   * empty text shows none.
+   */
+  @property() public summary?: string;
+
+  /**
    * Set when the content shows the page title as its heading, so the title
    * in the header is not a second heading.
    */
@@ -271,6 +278,7 @@ export class HassTabsSubpage extends LitElement {
         : undefined;
     const locked = this._pageLock.locked;
     const breadcrumb = this.breadcrumb ?? this._breadcrumb(title);
+    const summary = title ? this._summary() : undefined;
 
     return html`
       <div class="toolbar ${classMap({ narrow: this._narrow })}">
@@ -299,7 +307,11 @@ export class HassTabsSubpage extends LitElement {
                       ? html`<span class="bar-title">${title}</span>`
                       : html`<h1>${title}</h1>`
                 }</slot
-              >${this._narrow ? nothing : html`<slot name="subtitle"></slot>`}
+              >${
+                summary && !this._narrow
+                  ? html`<span class="summary">${summary}</span>`
+                  : nothing
+              }${this._narrow ? nothing : html`<slot name="subtitle"></slot>`}
             </div>
             <div class="tool-pill">
               <ha-page-tools
@@ -390,6 +402,24 @@ export class HassTabsSubpage extends LitElement {
       sectionKey ? localize(sectionKey as LocalizeKeys) : undefined,
     ].filter((part): part is string => !!part && part !== title);
     return parts.length ? parts.join(", ") : undefined;
+  }
+
+  /** The line under the title: the given one, or the description of the Settings section. */
+  private _summary(): string | undefined {
+    if (this.summary !== undefined) {
+      return this.summary || undefined;
+    }
+    if (this.mainPage || !this.route?.prefix?.startsWith("/config")) {
+      return undefined;
+    }
+    const sectionKey = sectionResolver?.(this.tabs);
+    if (!sectionKey?.endsWith(".main")) {
+      return undefined;
+    }
+    const text = this._i18n.localize(
+      `${sectionKey.slice(0, -".main".length)}.secondary` as LocalizeKeys
+    );
+    return text || undefined;
   }
 
   /** The title shown in the header: the open tab, or the only page. */
@@ -711,6 +741,16 @@ export class HassTabsSubpage extends LitElement {
           display: block;
           margin: 0;
           font: inherit;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .summary {
+          display: block;
+          margin-top: var(--ha-space-1);
+          font-size: var(--ha-font-size-m);
+          line-height: var(--ha-line-height-condensed);
+          color: var(--secondary-text-color);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;

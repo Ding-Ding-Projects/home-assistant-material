@@ -74,16 +74,9 @@ export class HuiHomeGreetingCard extends LitElement implements LovelaceCard {
     if (!parts.length) {
       return hass.localize("ui.panel.lovelace.cards.home_greeting.nothing");
     }
-    let sentence: string;
-    try {
-      sentence = new Intl.ListFormat(hass.locale.language, {
-        style: "long",
-        type: "conjunction",
-      }).format(parts);
-    } catch (_err) {
-      sentence = parts.join(", ");
-    }
-    return `${sentence.charAt(0).toLocaleUpperCase(hass.locale.language)}${sentence.slice(1)}.`;
+    // Facts side by side, the way the summary line of a page reads.
+    const sentence = parts.join(" · ");
+    return `${sentence.charAt(0).toLocaleUpperCase(hass.locale.language)}${sentence.slice(1)}`;
   }
 
   protected render(): TemplateResult | typeof nothing {

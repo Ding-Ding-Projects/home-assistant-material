@@ -386,3 +386,33 @@ export const planTitleBulkClose = (
   }
   return { ids, kept };
 };
+
+/**
+ * The pages "Lock these pages" would lock together: the open pages whose
+ * visible title matches the text, as the close review matches them, leaving
+ * out the pages that already have a lock. Pinned pages and the page that is
+ * open can be locked, unlike closed. An empty text or an unusable pattern
+ * selects nothing.
+ */
+export const planTitleBulkLock = (
+  pages: readonly PhonePage[],
+  query: string,
+  mode: BulkCloseMode
+): { ids: string[]; blocked?: "empty" | "invalid" } => {
+  const plan = planBulkClose(
+    pages.map((page) => ({
+      id: page.id,
+      texts: [page.title],
+      open: page.open,
+      current: false,
+    })),
+    query,
+    mode
+  );
+  if (plan.blocked) {
+    return { ids: [], blocked: plan.blocked };
+  }
+  return {
+    ids: plan.ids.filter((id) => !pages.find((page) => page.id === id)?.locked),
+  };
+};

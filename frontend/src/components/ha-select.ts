@@ -201,8 +201,20 @@ export class HaSelect extends LitElement {
     :host {
       position: relative;
     }
+    /* The select field of the modern kit: a rounded tonal field, no underline. */
+    ha-picker-field {
+      --ha-picker-field-radius: var(--ha-border-radius-xl);
+      --ha-picker-field-line-display: none;
+      --ha-color-form-background: var(--ha-color-surface-tone-2);
+    }
     ha-picker-field.opened {
       --mdc-text-field-idle-line-color: var(--primary-color);
+      box-shadow: 0 0 0 2px var(--primary-color);
+      border-radius: var(--ha-border-radius-xl);
+    }
+    ha-picker-field:focus-within {
+      box-shadow: 0 0 0 2px var(--primary-color);
+      border-radius: var(--ha-border-radius-xl);
     }
     ha-dropdown-item .content {
       display: flex;

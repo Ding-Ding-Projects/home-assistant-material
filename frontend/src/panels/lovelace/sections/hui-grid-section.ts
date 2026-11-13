@@ -18,7 +18,8 @@ import type { HuiCard } from "../cards/hui-card";
 import { computeCardGridSize } from "../common/compute-card-grid-size";
 import "../components/hui-card-edit-mode";
 import type { LovelacePath } from "../editor/lovelace-path";
-import { moveAtPath } from "../editor/lovelace-path";
+import { getAtPath, moveAtPath, setAtPath } from "../editor/lovelace-path";
+import "../components/hui-card-resize-handle";
 import type { Lovelace } from "../types";
 
 const CARD_SORTABLE_OPTIONS: HaSortableOptions = {
@@ -27,6 +28,8 @@ const CARD_SORTABLE_OPTIONS: HaSortableOptions = {
   direction: "vertical",
   invertedSwapThreshold: 0.7,
   group: "card",
+  // The resize handle starts a resize, never a drag of the whole card.
+  filter: "hui-card-resize-handle",
 } as HaSortableOptions;
 
 const IMPORT_MODE_CARD_SORTABLE_OPTIONS: HaSortableOptions = {
@@ -140,6 +143,21 @@ export class GridSection extends LitElement implements LovelaceSectionElement {
                           >
                             ${card}
                           </hui-card-edit-mode>
+                          ${
+                            this.importOnly
+                              ? nothing
+                              : html`<hui-card-resize-handle
+                                  .hass=${this.hass}
+                                  .columns=${columns}
+                                  .rows=${rows}
+                                  .minColumns=${gridOptions.min_columns}
+                                  .maxColumns=${gridOptions.max_columns}
+                                  .minRows=${gridOptions.min_rows}
+                                  .maxRows=${gridOptions.max_rows}
+                                  .cardIndex=${idx}
+                                  @card-grid-resize=${this._cardResized}
+                                ></hui-card-resize-handle>`
+                          }
                         `
                       : card
                   }
@@ -174,6 +192,25 @@ export class GridSection extends LitElement implements LovelaceSectionElement {
   private _cardVisibilityChanged() {
     // Re-render, so the hidden class follows the card's visibility
     this.requestUpdate();
+  }
+
+  /** Saves a card's new size from the resize handle as its grid options. */
+  private _cardResized(ev: CustomEvent<{ columns: number; rows: number }>) {
+    ev.stopPropagation();
+    const index = (ev.currentTarget as HTMLElement & { cardIndex: number })
+      .cardIndex;
+    const path = [...this.path!, "cards", index];
+    const card = getAtPath<LovelaceCardConfig>(this.lovelace!.config, path);
+    if (!card || typeof card !== "object") {
+      return;
+    }
+    const { columns, rows } = ev.detail;
+    this.lovelace!.saveConfig(
+      setAtPath(this.lovelace!.config, path, {
+        ...card,
+        grid_options: { ...card.grid_options, columns, rows },
+      })
+    );
   }
 
   private _cardMoved(ev) {
@@ -259,6 +296,10 @@ export class GridSection extends LitElement implements LovelaceSectionElement {
 
         .container.edit-mode .card {
           min-height: calc((var(--row-height) - var(--row-gap)) / 2);
+        }
+
+        .container.edit-mode .card:hover hui-card-resize-handle {
+          --resize-grip-opacity: 1;
         }
 
         .card.fit-rows {

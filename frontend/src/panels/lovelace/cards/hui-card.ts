@@ -12,7 +12,12 @@ import {
 } from "../../../common/problems/entity-detector";
 import { configKey } from "../../../common/problems/missing-entities";
 import { clearProblem } from "../../../common/problems/problem-store";
+import { evaluateConditionsLocally } from "../../../common/condition/evaluate-locally";
+import { dropInvalidConditions } from "../../../common/condition/sanitize";
+import { playCardFeedback } from "../common/card-feedback";
+import { trackFirstDraw } from "../common/card-first-draw";
 import { computeCardStyleProperties } from "../common/card-style";
+import type { VisibilityCondition } from "../common/validate-condition";
 import { migrateLayoutToGridOptions } from "../common/compute-card-grid-size";
 import { computeCardSize } from "../common/compute-card-size";
 import { getConfigEntityId } from "../common/get-config-entity-id";
@@ -57,6 +62,7 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
     }
     this.setupConditionalListeners();
     this._updateVisibility();
+    this._updateViewOnly();
     this._detectProblems();
   }
 
@@ -109,11 +115,13 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener("hass-action", this._handleGestureFeedback);
     releaseTarget(this._problemId, this);
   }
 
   public connectedCallback() {
     super.connectedCallback();
+    this.addEventListener("hass-action", this._handleGestureFeedback);
     this._updateVisibility();
     this._detectProblems();
   }
@@ -190,6 +198,7 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
       });
     }
     this._elementConfig = config;
+    trackFirstDraw(this, this._element);
     if (this.hass) {
       this._element.hass = this.hass;
     }
@@ -226,6 +235,7 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
       this.removeChild(this.lastChild);
     }
     this._updateVisibility();
+    this._updateViewOnly();
   }
 
   protected willUpdate(changedProps: PropertyValues<this>): void {
@@ -296,6 +306,9 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
     if (changedProps.has("config")) {
       this._applyCardStyle();
     }
+    if (changedProps.has("config") || changedProps.has("preview")) {
+      this._updateViewOnly();
+    }
   }
 
   private _styleProperties: string[] = [];
@@ -340,6 +353,106 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
     const visible = conditionsMet ?? this._conditionsVisible();
     this._setElementVisibility(visible);
   }
+
+  private _viewOnlyMark?: HTMLElement;
+
+  private _positionSet = false;
+
+  /**
+   * True when the card's `view_only` conditions are met for this person. The
+   * conditions are evaluated in this browser, like a role condition, and the
+   * result is presentation only: it does not limit what the person can do.
+   */
+  private _isViewOnly(): boolean {
+    const conditions = this.config?.view_only;
+    if (
+      this.preview ||
+      !this.hass ||
+      !Array.isArray(conditions) ||
+      conditions.length === 0
+    ) {
+      return false;
+    }
+    const valid = dropInvalidConditions(conditions);
+    if (!valid.length) {
+      return false;
+    }
+    return (
+      evaluateConditionsLocally(
+        [
+          {
+            condition: "or",
+            conditions: valid,
+          } as unknown as VisibilityCondition,
+        ],
+        this.hass,
+        this._conditionContext
+      ) === true
+    );
+  }
+
+  /**
+   * Makes the card view only: its element cannot be focused or operated, it
+   * is marked as disabled for assistive technology and a small "View only"
+   * mark is shown. The mark is not part of the card element, so it stays
+   * readable.
+   */
+  private _updateViewOnly() {
+    const on = this._isViewOnly();
+    if (this._element) {
+      this._element.inert = on;
+    }
+    this.toggleAttribute("view-only", on);
+    if (on) {
+      this.setAttribute("aria-disabled", "true");
+      if (!this._viewOnlyMark?.isConnected) {
+        const mark = document.createElement("span");
+        mark.textContent =
+          this.hass?.localize(
+            "ui.panel.lovelace.editor.who_can_see.view_only_mark"
+          ) ?? "";
+        Object.assign(mark.style, {
+          position: "absolute",
+          insetBlockStart: "var(--ha-space-2)",
+          insetInlineEnd: "var(--ha-space-2)",
+          padding: "2px var(--ha-space-2)",
+          borderRadius: "var(--ha-border-radius-pill)",
+          background: "var(--ha-color-surface-tone-3, rgba(0,0,0,0.08))",
+          color: "var(--secondary-text-color)",
+          fontSize: "var(--ha-font-size-xs)",
+          fontWeight: "var(--ha-font-weight-semibold, 600)",
+          pointerEvents: "none",
+          zIndex: "1",
+        });
+        this._viewOnlyMark = mark;
+      }
+      if (this.style.position === "") {
+        this.style.position = "relative";
+        this._positionSet = true;
+      }
+      if (this._viewOnlyMark && !this._viewOnlyMark.isConnected) {
+        this.appendChild(this._viewOnlyMark);
+      }
+    } else {
+      this.removeAttribute("aria-disabled");
+      this._viewOnlyMark?.remove();
+      if (this._positionSet) {
+        this.style.removeProperty("position");
+        this._positionSet = false;
+      }
+    }
+  }
+
+  private _handleGestureFeedback = (ev: Event) => {
+    const gesture = (ev as CustomEvent<{ action?: string }>).detail?.action;
+    if (this.preview || !gesture || !this.config?.gesture_feedback) {
+      return;
+    }
+    const feedback = this.config.gesture_feedback as Record<string, unknown>;
+    if (Object.prototype.hasOwnProperty.call(feedback, gesture)) {
+      playCardFeedback(this, feedback[gesture]);
+    }
+  };
 
   private _setElementVisibility(visible: boolean) {
     if (!this._element) return;

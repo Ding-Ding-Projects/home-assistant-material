@@ -54,6 +54,7 @@ const cardConfigStruct = assign(
     min_y_axis: optional(number()),
     max_y_axis: optional(number()),
     fit_y_data: optional(boolean()),
+    compare_period: optional(enums(["previous", "day", "week"])),
   })
 );
 
@@ -148,6 +149,21 @@ export class HuiHistoryGraphCardEditor
             ],
           },
           selector: { boolean: {} },
+        },
+        {
+          name: "compare_period",
+          required: false,
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: ["previous", "day", "week"].map((value) => ({
+                value,
+                label: localize(
+                  `ui.panel.lovelace.editor.card.history-graph.compare_period_options.${value}`
+                ),
+              })),
+            },
+          },
         },
       ] as const satisfies readonly HaFormSchema[]
   );
@@ -316,9 +332,9 @@ export class HuiHistoryGraphCardEditor
   private _computeHelperCallback = (
     schema: SchemaUnion<ReturnType<typeof this._schema>>
   ) =>
-    schema.name === "label_position"
+    schema.name === "label_position" || schema.name === "compare_period"
       ? this.hass!.localize(
-          "ui.panel.lovelace.editor.card.history-graph.label_position_helper"
+          `ui.panel.lovelace.editor.card.history-graph.${schema.name}_helper`
         )
       : undefined;
 
@@ -328,6 +344,7 @@ export class HuiHistoryGraphCardEditor
     switch (schema.name) {
       case "show_names":
       case "label_position":
+      case "compare_period":
       case "logarithmic_scale":
       case "expand_legend":
       case "min_y_axis":

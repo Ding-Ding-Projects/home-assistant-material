@@ -11,6 +11,7 @@ import {
   mdiDelete,
   mdiDotsVertical,
   mdiIdentifier,
+  mdiLockOutline,
   mdiPlayCircleOutline,
   mdiPlaylistEdit,
   mdiPlusCircleMultipleOutline,
@@ -121,6 +122,7 @@ import "./types/ha-automation-trigger-webhook";
 import "./types/ha-automation-trigger-zone";
 import { renderCtrlOrCmd } from "../../../../common/keyboard/ctrl-or-cmd";
 import { scrollRowIntoView } from "../scroll-row-into-view";
+import { isLocked } from "../tools/step-toggle";
 import { targetExpandGroupContext } from "../../../../components/target-picker/target-expand-group-context";
 
 export interface TriggerElement extends LitElement {
@@ -362,6 +364,19 @@ export default class HaAutomationTriggerRow extends LitElement {
                   ><p>${truncateWithEllipsis(note, 250)}</p></ha-tooltip
                 >
               `
+            : nothing
+        }
+        ${
+          isLocked(this.trigger)
+            ? html`<ha-svg-icon
+                role="img"
+                tabindex="0"
+                .path=${mdiLockOutline}
+                aria-label=${this.hass.localize(
+                  "ui.panel.config.automation.editor.note.locked"
+                )}
+                class="note-indicator"
+              ></ha-svg-icon>`
             : nothing
         }
       </h3>

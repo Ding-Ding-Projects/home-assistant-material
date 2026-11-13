@@ -76,7 +76,8 @@ import type { HelpArticle } from "../../common/page/help-articles";
 import { HELP_ARTICLES } from "../../common/page/help-articles";
 import { searchMatcher } from "../../common/regex/filter";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
-import { internationalizationContext } from "../../data/context";
+import { internationalizationContext, userContext } from "../../data/context";
+import { navigate } from "../../common/navigate";
 import { fileDownload } from "../../util/file_download";
 import "../ha-button";
 import { openAllHelpArticles } from "../help/open-help-article";
@@ -108,6 +109,9 @@ export class HaPageToolPanel extends LitElement {
   @consume({ context: internationalizationContext, subscribe: true })
   @state()
   private _i18n!: ContextType<typeof internationalizationContext>;
+
+  @consume({ context: userContext, subscribe: true })
+  private _user?: ContextType<typeof userContext>;
 
   @state() private _tool?: PageTool;
 
@@ -1499,6 +1503,12 @@ export class HaPageToolPanel extends LitElement {
   }
 
   private _allHelp(): void {
+    // Settings, and so the Help page, are for administrators; everyone else
+    // gets the reader dialog.
+    if (this._user?.is_admin) {
+      navigate("/config/help");
+      return;
+    }
     openAllHelpArticles(this);
   }
 
@@ -1542,6 +1552,18 @@ export class HaPageToolPanel extends LitElement {
     #panel:popover-open {
       display: flex;
       flex-direction: column;
+    }
+    /* A phone: the panel is a sheet that rises from the bottom, above the
+       phone bar. */
+    @media (max-width: 600px) {
+      #panel {
+        top: auto;
+        bottom: calc(var(--ha-space-3) + var(--ha-phone-bar-height, 0px));
+        inset-inline: var(--ha-space-3);
+        width: auto;
+        max-height: 80vh;
+        max-height: 80dvh;
+      }
     }
     header {
       display: flex;

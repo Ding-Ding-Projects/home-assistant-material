@@ -238,6 +238,43 @@ export class SecurityViewStrategy extends ReactiveElement {
       });
     }
 
+    // The cameras with their live pictures, only when there are cameras.
+    const cameraIds = entities.filter((entityId) =>
+      entityId.startsWith("camera.")
+    );
+    if (cameraIds.length > 0) {
+      sections.push({
+        type: "grid",
+        column_span: 2,
+        cards: [
+          {
+            type: "heading",
+            heading: hass.localize(
+              "ui.panel.lovelace.strategy.security.cameras"
+            ),
+            icon: "mdi:cctv",
+          },
+          ...cameraIds.map(
+            (entityId) =>
+              ({
+                type: "picture-entity",
+                entity: entityId,
+                camera_view: "live",
+                show_state: false,
+                show_name: true,
+                grid_options: { columns: 6 },
+              }) satisfies LovelaceCardConfig
+          ),
+        ],
+      });
+    }
+
+    // Cameras have their own section, so they are not repeated as tiles.
+    const tileEntities =
+      cameraIds.length > 0
+        ? entities.filter((entityId) => !entityId.startsWith("camera."))
+        : entities;
+
     const floorCount =
       hierarchy.floors.length + (hierarchy.areas.length ? 1 : 0);
 
@@ -262,7 +299,7 @@ export class SecurityViewStrategy extends ReactiveElement {
         ],
       };
 
-      const areaCards = processAreasForSecurity(areaIds, hass, entities);
+      const areaCards = processAreasForSecurity(areaIds, hass, tileEntities);
 
       if (areaCards.length > 0) {
         section.cards!.push(...areaCards);
@@ -289,7 +326,7 @@ export class SecurityViewStrategy extends ReactiveElement {
       const areaCards = processAreasForSecurity(
         hierarchy.areas,
         hass,
-        entities
+        tileEntities
       );
 
       if (areaCards.length > 0) {
@@ -299,7 +336,7 @@ export class SecurityViewStrategy extends ReactiveElement {
     }
 
     // Process unassigned entities
-    const unassignedCards = processUnassignedEntities(hass, entities);
+    const unassignedCards = processUnassignedEntities(hass, tileEntities);
 
     if (unassignedCards.length > 0) {
       const section: LovelaceSectionRawConfig = {

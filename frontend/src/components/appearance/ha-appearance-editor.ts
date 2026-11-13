@@ -9,6 +9,8 @@ import {
   mdiEyeOff,
   mdiGradientHorizontal,
   mdiImage,
+  mdiLock,
+  mdiLockOpenVariantOutline,
   mdiPalette,
   mdiPlus,
   mdiRestore,
@@ -37,6 +39,7 @@ import {
   composedParent,
   contrastRatio,
   cssColorToHex,
+  elementPath,
   hasDroppedOutsideImages,
   isAKind,
   isEmptyAppearance,
@@ -46,6 +49,17 @@ import {
 } from "../../common/appearance/element-appearance";
 import { appearanceSync } from "../../common/appearance/appearance-sync";
 import { consume } from "../../common/decorators/consume";
+import {
+  isUnlocked,
+  setLockLocalize,
+  subscribeUnlocks,
+} from "../../common/locks/element-lock-session";
+import {
+  isLocked,
+  readLocks,
+  subscribeLocks,
+} from "../../common/locks/element-locks";
+import { valueLockKey } from "../../common/locks/value-locks";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { internationalizationContext } from "../../data/context";
 import "../instance-sync/ha-instance-sync-status";
@@ -192,10 +206,77 @@ export class HaAppearanceEditor extends LitElement {
     return !!this._panel?.matches(":popover-open");
   }
 
+  public connectedCallback() {
+    super.connectedCallback();
+    // A lock made or opened somewhere else changes what can be edited here.
+    this._stopLocks = subscribeLocks(() => this.requestUpdate());
+    this._stopUnlocks = subscribeUnlocks(() => this.requestUpdate());
+  }
+
+  private _stopLocks?: () => void;
+
+  private _stopUnlocks?: () => void;
+
   public disconnectedCallback() {
     super.disconnectedCallback();
+    this._stopLocks?.();
+    this._stopUnlocks?.();
     this._flushPersist();
     window.clearInterval(this._timer);
+  }
+
+  // ---- Locks on single values ----
+
+  /** The key of the lock on one value of what is being edited. */
+  private _valueKey(field: string): string | undefined {
+    const element = this._element;
+    if (!element) {
+      return undefined;
+    }
+    return valueLockKey({
+      page: window.location.pathname,
+      subject:
+        this._scope === "kind"
+          ? `kind:${element.localName}`
+          : elementPath(element),
+      field,
+    });
+  }
+
+  /** Whether a value is locked and not opened: it cannot be changed now. */
+  private _valueLocked(field: string): boolean {
+    const key = this._valueKey(field);
+    return !!key && isLocked(readLocks(), key) && !isUnlocked(key);
+  }
+
+  private _valueLockPressed(ev: Event) {
+    const button = ev.currentTarget as HTMLElement & { key: ScalarKey };
+    const key = this._valueKey(button.key);
+    if (!key) {
+      return;
+    }
+    if (this._i18n) {
+      setLockLocalize(this._i18n.localize);
+    }
+    const name = this._l(`field_${button.key}`);
+    if (isLocked(readLocks(), key)) {
+      void import("../locks/ha-lock-prompt").then(({ openLockPrompt }) =>
+        openLockPrompt(key, button, {
+          returnTo: button,
+          title: this._l("unlock_value", { name }),
+        })
+      );
+      return;
+    }
+    void import("../locks/ha-lock-wizard").then(({ openLockWizard }) =>
+      openLockWizard({
+        key,
+        label: this._l("lock_value_label", { name }),
+        anchor: button,
+        page: document.title,
+        onStartDefault: false,
+      })
+    );
   }
 
   protected willUpdate(changed: PropertyValues) {
@@ -309,6 +390,11 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _set<K extends ScalarKey>(key: K, value: ElementAppearance[K]) {
+    if (this._valueLocked(key)) {
+      // A locked value stays as it is until the lock is opened.
+      this.requestUpdate();
+      return;
+    }
     const next = { ...this._appearance };
     if (value === undefined) {
       delete next[key];
@@ -866,6 +952,7 @@ export class HaAppearanceEditor extends LitElement {
         .key=${key}
         .contrastWith=${this._backgroundColor()}
         .contrastName=${this._l("picker_the_background")}
+        ?inert=${this._valueLocked(key)}
         @appearance-color-changed=${this._scalarColorChanged}
         @appearance-color-committed=${this._flushPersist}
       ></ha-appearance-color-picker>
@@ -874,17 +961,40 @@ export class HaAppearanceEditor extends LitElement {
   }
 
   private _clearButton(key: ScalarKey) {
-    return this._appearance[key] === undefined
-      ? nothing
-      : html`<button
-          class="icon small"
-          .key=${key}
-          aria-label=${this._l("use_theme")}
-          title=${this._l("use_theme")}
-          @click=${this._clearScalar}
-        >
-          <ha-svg-icon .path=${mdiRestore}></ha-svg-icon>
-        </button>`;
+    const stored = this._valueKey(key);
+    const locked = !!stored && isLocked(readLocks(), stored);
+    const name = this._l(`field_${key}`);
+    const label = locked
+      ? this._l("unlock_value", { name })
+      : this._l("lock_value", { name });
+    return html`${
+      this._appearance[key] === undefined || this._valueLocked(key)
+        ? nothing
+        : html`<button
+            class="icon small"
+            .key=${key}
+            aria-label=${this._l("use_theme")}
+            title=${this._l("use_theme")}
+            @click=${this._clearScalar}
+          >
+            <ha-svg-icon .path=${mdiRestore}></ha-svg-icon>
+          </button>`
+    }${
+      stored
+        ? html`<button
+            class=${classMap({ icon: true, small: true, "value-lock": true, on: locked })}
+            .key=${key}
+            aria-label=${label}
+            aria-pressed=${locked ? "true" : "false"}
+            title=${label}
+            @click=${this._valueLockPressed}
+          >
+            <ha-svg-icon
+              .path=${locked ? mdiLock : mdiLockOpenVariantOutline}
+            ></ha-svg-icon>
+          </button>`
+        : nothing
+    }`;
   }
 
   private _scalarRange(
@@ -907,6 +1017,7 @@ export class HaAppearanceEditor extends LitElement {
         .value=${(value ?? fallback) * scale}
         .key=${key}
         .scale=${scale}
+        ?inert=${this._valueLocked(key)}
         @change=${this._scalarRangeChanged}
       ></ha-slider>
       <output
@@ -944,6 +1055,7 @@ export class HaAppearanceEditor extends LitElement {
         aria-label=${this._l(`field_${key}`)}
         .value=${value}
         .options=${options}
+        ?inert=${this._valueLocked(key)}
         @selected=${this._scalarSelect}
       ></ha-select>
       ${this._clearButton(key)}
@@ -993,6 +1105,7 @@ export class HaAppearanceEditor extends LitElement {
           <ha-switch
             .checked=${this._appearance.italic === true}
             aria-label=${this._l("field_italic")}
+            ?inert=${this._valueLocked("italic")}
             @change=${this._italicChanged}
           ></ha-switch>
           ${this._clearButton("italic")}
@@ -1078,8 +1191,10 @@ export class HaAppearanceEditor extends LitElement {
                 label: this._l(`shadow_${level}`),
               })),
             ]}
+            ?inert=${this._valueLocked("shadow")}
             @selected=${this._scalarSelect}
           ></ha-select>
+          ${this._clearButton("shadow")}
         </div>
       </section>
     `;
@@ -1558,6 +1673,10 @@ export class HaAppearanceEditor extends LitElement {
       width: var(--ha-space-8);
       height: var(--ha-space-8);
       --mdc-icon-size: 18px;
+    }
+    .icon.value-lock.on {
+      background: var(--ha-color-primary-container);
+      color: var(--ha-color-on-primary-container);
     }
     .icon:hover:not([disabled]) {
       background: var(--ha-color-fill-neutral-quiet-hover);

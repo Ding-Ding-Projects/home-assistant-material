@@ -1577,7 +1577,6 @@ export class TabStripController implements ReactiveController {
       .tab.selected .close,
       .tab:hover .close,
       .tab:focus-within .close,
-      .tab.selected .pin,
       .tab:hover .pin,
       .tab:focus-within .pin {
         display: flex;

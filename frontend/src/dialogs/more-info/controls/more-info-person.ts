@@ -85,16 +85,12 @@ class MoreInfoPerson extends LitElement {
               : html`<span>${name.charAt(0).toUpperCase()}</span>`
           }
         </div>
-        <div class="where">
-          <div class="zone">
-            ${this._formatters.formatEntityState(stateObj)}
-          </div>
-          <div class="since">
-            ${this._localize("ui.dialogs.more_info_control.person.since")}
-            <ha-relative-time
-              .datetime=${stateObj.last_changed}
-            ></ha-relative-time>
-          </div>
+        <div class="since">
+          <span class="dot"></span>
+          ${this._localize("ui.dialogs.more_info_control.person.since")}
+          <ha-relative-time
+            .datetime=${stateObj.last_changed}
+          ></ha-relative-time>
         </div>
       </div>
       ${
@@ -199,43 +195,51 @@ class MoreInfoPerson extends LitElement {
 
     .presence {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: var(--ha-space-4);
+      gap: var(--ha-space-3);
       margin-bottom: var(--ha-space-4);
     }
 
     .avatar {
-      width: 64px;
-      height: 64px;
+      width: 120px;
+      height: 120px;
       flex: none;
       display: grid;
       place-items: center;
       overflow: hidden;
-      border-radius: var(--ha-border-radius-2xl, 24px);
-      background: var(--primary-color);
-      color: var(--text-primary-color);
-      font-size: var(--ha-font-size-2xl);
+      border-radius: var(--ha-border-radius-circle);
+      background: var(--ha-color-success-container, var(--primary-color));
+      color: var(--ha-color-on-success-container, var(--text-primary-color));
+      font-size: 48px;
+      font-weight: var(--ha-font-weight-title, 700);
+    }
+
+    .since {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      padding: var(--ha-space-1) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill, 999px);
+      background: var(
+        --ha-color-success-container,
+        var(--secondary-background-color)
+      );
+      color: var(--ha-color-on-success-container, var(--primary-text-color));
       font-weight: var(--ha-font-weight-medium);
+    }
+
+    .since .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
     }
 
     .avatar img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-    }
-
-    .where {
-      min-width: 0;
-    }
-
-    .zone {
-      font-size: var(--ha-font-size-3xl);
-      line-height: var(--ha-line-height-condensed);
-      overflow-wrap: anywhere;
-    }
-
-    .since {
-      color: var(--secondary-text-color);
     }
 
     ha-map {
@@ -246,24 +250,22 @@ class MoreInfoPerson extends LitElement {
     }
 
     .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: var(--ha-space-2);
       margin-bottom: var(--ha-space-4);
     }
 
     .stat {
       display: flex;
-      flex-direction: column;
-      gap: var(--ha-space-1);
-      padding: var(--ha-space-3);
-      border-radius: var(--ha-border-radius-xl);
-      background: var(--secondary-background-color);
+      flex-direction: row;
+      align-items: baseline;
+      gap: var(--ha-space-6);
       min-width: 0;
     }
 
     .stat-label {
-      font-size: var(--ha-font-size-s);
+      flex: 0 0 40%;
       color: var(--secondary-text-color);
     }
 

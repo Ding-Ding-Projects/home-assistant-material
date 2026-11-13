@@ -1,5 +1,6 @@
 /* eslint-disable lit/prefer-query-decorators -- the row and the first key are found by what is shown now */
 import {
+  mdiCheck,
   mdiDotsVertical,
   mdiFileDocumentOutline,
   mdiInformationOutline,
@@ -28,6 +29,7 @@ import {
   writeLocks,
 } from "../../common/locks/element-locks";
 import { isPageLockKey, lockPageName } from "../../common/locks/lock-where";
+import { isValueLockKey } from "../../common/locks/value-locks";
 import { searchMatcher } from "../../common/regex/filter";
 import "../ha-checkbox";
 import type { HaCheckbox } from "../ha-checkbox";
@@ -172,7 +174,7 @@ export class HaLockList extends LitElement {
           )}
         </div>
       </div>
-      ${!this._narrow && selected.length ? this._renderBulk(selected) : nothing}
+      ${selected.length ? this._renderBulk(selected) : nothing}
       ${
         rows.length
           ? html`${
@@ -216,7 +218,10 @@ export class HaLockList extends LitElement {
   private _renderBulk(selected: string[]): TemplateResult {
     const anyOpen = selected.some((key) => isUnlocked(key));
     const anyLocked = selected.some((key) => !isUnlocked(key));
-    return html`<div class="bulk" role="group">
+    return html`<div
+      class=${classMap({ bulk: true, bottom: this._narrow })}
+      role="group"
+    >
       <span>${lockText("selected_count", { count: selected.length })}</span>
       ${
         anyLocked
@@ -247,9 +252,8 @@ export class HaLockList extends LitElement {
       return lockText("kind_page");
     }
     const page = lockPageName(this._store, key);
-    return page
-      ? lockText("kind_on_page", { kind: lockText("kind_element"), page })
-      : lockText("kind_element");
+    const kind = lockText(isValueLockKey(key) ? "kind_value" : "kind_element");
+    return page ? lockText("kind_on_page", { kind, page }) : kind;
   }
 
   private _support(ev: Event): void {
@@ -316,17 +320,44 @@ export class HaLockList extends LitElement {
               @change=${this._pick}
             ></ha-checkbox>`
       }
-      <span class="icon">
-        <ha-svg-icon
-          .path=${
-            open
-              ? mdiLockOpenVariantOutline
-              : key.startsWith("page:")
-                ? mdiFileDocumentOutline
-                : mdiLock
-          }
-        ></ha-svg-icon>
-      </span>
+      ${
+        this._narrow
+          ? html`<button
+              type="button"
+              class=${classMap({
+                icon: true,
+                pickable: true,
+                picked: this._selected.includes(key),
+              })}
+              data-key=${key}
+              aria-pressed=${this._selected.includes(key) ? "true" : "false"}
+              aria-label=${lockText("select_row", { name: this._rowName(key) })}
+              @click=${this._pickIcon}
+            >
+              <ha-svg-icon
+                .path=${
+                  this._selected.includes(key)
+                    ? mdiCheck
+                    : open
+                      ? mdiLockOpenVariantOutline
+                      : key.startsWith("page:")
+                        ? mdiFileDocumentOutline
+                        : mdiLock
+                }
+              ></ha-svg-icon>
+            </button>`
+          : html`<span class="icon">
+              <ha-svg-icon
+                .path=${
+                  open
+                    ? mdiLockOpenVariantOutline
+                    : key.startsWith("page:")
+                      ? mdiFileDocumentOutline
+                      : mdiLock
+                }
+              ></ha-svg-icon>
+            </span>`
+      }
       <div class="text">
         <span class="name">${record?.label || this._rowName(key)}</span>
         <span class="note">${this._kindText(key)}</span>
@@ -445,6 +476,15 @@ export class HaLockList extends LitElement {
     this._selected = input.checked
       ? [...this._selected, key]
       : this._selected.filter((item) => item !== key);
+  }
+
+  // On a phone the round mark of a row selects it, so locks can be chosen
+  // together without a column of boxes.
+  private _pickIcon(ev: Event): void {
+    const key = (ev.currentTarget as HTMLElement).dataset.key ?? "";
+    this._selected = this._selected.includes(key)
+      ? this._selected.filter((item) => item !== key)
+      : [...this._selected, key];
   }
 
   private _clearSelection(): void {
@@ -668,6 +708,28 @@ export class HaLockList extends LitElement {
       padding: var(--ha-space-2) var(--ha-space-3);
       border-radius: var(--ha-border-radius-lg);
       background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    }
+    /* A phone: the bar for the chosen locks sits above the phone bar. */
+    .bulk.bottom {
+      position: fixed;
+      z-index: 5;
+      inset-inline: var(--ha-space-3);
+      inset-block-end: calc(
+        var(--ha-space-3) + var(--ha-phone-bar-height, 0px)
+      );
+      margin: 0;
+      border-radius: var(--ha-border-radius-3xl);
+      background: var(--card-background-color);
+      box-shadow: var(--ha-shadow-overlay, var(--ha-shadow-card, none));
+    }
+    button.icon.pickable {
+      min-height: 40px;
+      padding: 0;
+      border: none;
+    }
+    button.icon.pickable.picked {
+      background: var(--ha-color-primary-container);
+      color: var(--ha-color-on-primary-container);
     }
     ul {
       list-style: none;

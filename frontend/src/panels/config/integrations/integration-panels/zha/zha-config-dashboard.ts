@@ -16,6 +16,8 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import { isComponentLoaded } from "../../../../../common/config/is_component_loaded";
 import type { HASSDomCurrentTargetEvent } from "../../../../../common/dom/fire_event";
 import { navigate } from "../../../../../common/navigate";
@@ -177,6 +179,10 @@ class ZHAConfigDashboard extends LitElement {
       >
         <div class="page">
           ${this._renderHero(deviceOnline, deviceCount, weakDevices.length)}
+          <ha-protocol-stat-tiles
+            class="tiles"
+            .tiles=${this._statTiles(deviceCount, weakDevices.length)}
+          ></ha-protocol-stat-tiles>
           <div class="columns">
             ${this._renderNetworkCard(deviceCount, weakDevices)}
             <div class="column">
@@ -188,6 +194,39 @@ class ZHAConfigDashboard extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  // Numbers the network reports; the online and weak counts wait for the
+  // device list to load.
+  private _statTiles(
+    deviceCount: number,
+    weakCount: number
+  ): ProtocolStatTile[] {
+    const localize = this.hass.localize;
+    const tiles: ProtocolStatTile[] = [
+      {
+        label: localize("ui.panel.config.zha.configuration_page.tile_devices"),
+        value: deviceCount,
+        icon: mdiDevices,
+        tone: "tertiary",
+      },
+    ];
+    if (this._asyncDataLoaded) {
+      tiles.push(
+        {
+          label: localize("ui.panel.config.zha.configuration_page.tile_online"),
+          value: Math.max(deviceCount - this._offlineDevices, 0),
+          tone: "success",
+        },
+        {
+          label: localize("ui.panel.config.zha.configuration_page.tile_weak"),
+          value: weakCount,
+          icon: mdiSignalCellular1,
+          tone: "warning",
+        }
+      );
+    }
+    return tiles;
   }
 
   private _heroTitle(deviceOnline: boolean, deviceCount: number): string {
@@ -894,6 +933,10 @@ class ZHAConfigDashboard extends LitElement {
           flex-direction: column;
           gap: var(--ha-space-2);
           min-width: min(220px, 100%);
+        }
+
+        .tiles {
+          margin-bottom: var(--ha-space-4);
         }
 
         .columns {

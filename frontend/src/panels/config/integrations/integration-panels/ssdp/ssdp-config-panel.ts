@@ -16,6 +16,11 @@ import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
 import type { SSDPDiscoveryData } from "../../../../../data/ssdp";
 import { SubscribeMixin } from "../../../../../mixins/subscribe-mixin";
+import type { DiscoveryCounts } from "../discovery-counts";
+import {
+  discoveryStatistics,
+  subscribeOtherDiscoveryCounts,
+} from "../discovery-counts";
 import { storage } from "../../../../../common/decorators/storage";
 import type { HASSDomEvent } from "../../../../../common/dom/fire_event";
 import { subscribeSSDPDiscovery } from "../../../../../data/ssdp";
@@ -30,6 +35,9 @@ export class SSDPConfigPanel extends SubscribeMixin(LitElement) {
   @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
+
+  // How many entries the other discovery browsers hold, shown beside this one
+  @state() private _counts: DiscoveryCounts = {};
 
   @state() private _data: SSDPDiscoveryData[] = [];
 
@@ -50,6 +58,9 @@ export class SSDPConfigPanel extends SubscribeMixin(LitElement) {
     return [
       subscribeSSDPDiscovery(this.hass.connection, (data) => {
         this._data = data;
+      }),
+      ...subscribeOtherDiscoveryCounts(this.hass, "ssdp", (browser, count) => {
+        this._counts = { ...this._counts, [browser]: count };
       }),
     ];
   }
@@ -110,6 +121,10 @@ export class SSDPConfigPanel extends SubscribeMixin(LitElement) {
         .filter=${this._tableSettings.search}
         @search-changed=${this._tableSettings.searchChanged}
         .data=${this._dataWithIds(this._data)}
+        .statistics=${discoveryStatistics(this.hass.localize, {
+          ...this._counts,
+          ssdp: this._data.length,
+        })}
         .summary=${this.hass.localize("ui.panel.config.ssdp.summary")}
         .footerText=${this.hass.localize("ui.panel.config.ssdp.footer", {
           count: this._data.length,

@@ -44,6 +44,8 @@ import type {
 import { listSerialPortsWithUsage } from "../../../../../data/usb";
 import { showConfigFlowDialog } from "../../../../../dialogs/config-flow/show-dialog-config-flow";
 import "../../../../../layouts/hass-subpage";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import { panelIsReady } from "../../../../../layouts/panel-ready";
 import { mdiEsphomeLogo } from "../../../../../resources/esphome-logo-svg";
 import { haStyle } from "../../../../../resources/styles";
@@ -550,6 +552,32 @@ export class SerialConfigDashboard extends LitElement {
     }
 
     return html`
+      <ha-protocol-stat-tiles
+        class="tiles"
+        .tiles=${
+          [
+            {
+              label: this.hass.localize("ui.panel.config.serial.tile_ports"),
+              value: connected.length + available.length + disconnected.length,
+              icon: mdiCableData,
+              tone: "primary",
+            },
+            {
+              label: this.hass.localize("ui.panel.config.serial.tile_in_use"),
+              value: connected.length,
+              icon: mdiCheck,
+              tone: "success",
+            },
+            {
+              label: this.hass.localize(
+                "ui.panel.config.serial.tile_available"
+              ),
+              value: available.length,
+              tone: "tertiary",
+            },
+          ] satisfies ProtocolStatTile[]
+        }
+      ></ha-protocol-stat-tiles>
       ${this._renderStatusCard(
         connected.length,
         available.length,
@@ -623,6 +651,9 @@ export class SerialConfigDashboard extends LitElement {
           color: var(--secondary-text-color);
         }
 
+        .tiles {
+          grid-column: 1 / -1;
+        }
         .cards {
           display: grid;
           grid-template-columns: repeat(

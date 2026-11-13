@@ -73,6 +73,8 @@ export function generateStateHistoryChartLineData(
 
   const names = params.names || {};
   const colors = params.colors || {};
+  // Colour each real series ended up with, so its earlier-period copy matches.
+  const seriesColors: Record<string, string> = {};
   entityStates.forEach((states, dataIdx) => {
     const domain = states.domain;
     const name = names[states.entity_id] || states.name;
@@ -109,11 +111,15 @@ export function generateStateHistoryChartLineData(
       id: string,
       nameY: string,
       clr?: string,
-      fill = false
+      fill = false,
+      earlier = false
     ) => {
       if (!clr) {
         clr = getGraphColorByIndex(colorIndex, computedStyles);
         colorIndex++;
+      }
+      if (!earlier) {
+        seriesColors[states.entity_id] = clr;
       }
       data.push({
         id,
@@ -129,6 +135,7 @@ export function generateStateHistoryChartLineData(
         animationDurationUpdate: 0,
         lineStyle: {
           width: fill ? 0 : 1.5,
+          ...(earlier ? { type: "dashed", opacity: 0.55 } : {}),
         },
         areaStyle: fill
           ? {
@@ -372,7 +379,17 @@ export function generateStateHistoryChartLineData(
         pushData(entityState.last_changed, series);
       });
     } else {
-      addDataSet(states.entity_id, name, color);
+      if (states.compare) {
+        addDataSet(
+          `${states.entity_id}-earlier`,
+          localize("ui.components.history_charts.earlier", { name }),
+          seriesColors[states.entity_id] ?? color,
+          false,
+          true
+        );
+      } else {
+        addDataSet(states.entity_id, name, color);
+      }
 
       let lastValue: number;
       let lastDate: number;
@@ -446,7 +463,12 @@ export function generateStateHistoryChartLineData(
     const nowMs = params.now.getTime();
     // allow 1s of leeway for "now"
     const isUpToNow = nowMs - endTimeMs <= 1000;
-    if (domain === "sensor" && isUpToNow && data.length === 1) {
+    if (
+      domain === "sensor" &&
+      isUpToNow &&
+      data.length === 1 &&
+      !states.compare
+    ) {
       const stateObj = currentStates[states.entity_id];
       const currentValue = stateObj ? safeParseFloat(stateObj.state) : null;
       if (currentValue !== null) {

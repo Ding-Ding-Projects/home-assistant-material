@@ -443,6 +443,9 @@
             "english": "英文",
             "cantonese": "廣東話",
             "bilingual": "兩樣都要",
+            "sample_label": "呢個語言模式嘅例子",
+            "sample": "已經儲存咗你嘅更改。",
+            "sample_playful": "搞掂晒！",
             "cantonese_native": "廣東話",
             "sub": {
               "english": "一種語言",
@@ -593,7 +596,8 @@
             "label": "喺對話框同訊息框顯示表情符號",
             "description": "每個有提供嘅對話框顯示一個合適嘅表情符號，永遠唔會出現喺按鈕、標籤或者螢幕閱讀器讀出嘅名稱。",
             "default": "開。",
-            "reach": "對有提供表情符號嘅對話框生效。而家係呢頁嘅還原對話框同呢度嘅預覽，其他對話框暫時未有。"
+            "reach": "對有提供表情符號嘅對話框生效。而家係呢頁嘅還原對話框同呢度嘅預覽，其他對話框暫時未有。",
+            "sample": "已經儲存咗你嘅更改。"
           },
           "dim_sum": {
             "label": "點心驚喜",
@@ -913,6 +917,7 @@
       "search": "搜尋",
       "pages": "頁面",
       "access": "存取",
+      "quick_tools": "快捷工具",
       "settings": "設定",
       "settings_with_count": "設定，有 {count} 項需要處理",
       "accessibility_tools": "無障礙工具",
@@ -968,6 +973,9 @@
       "bulk_preview": "會閂 {count} 個頁面",
       "bulk_kept": "有 {count} 個頁面符合條件，但會保留",
       "bulk_confirm": "閂晒 {count} 個頁面",
+      "bulk_lock": "鎖住 {count} 個頁面",
+      "bulk_lock_label": "{count} 個頁面",
+      "bulk_locked": "已經鎖咗 {count} 個頁面。",
       "bulk_back": "返回",
       "bulk_report": "計劃閂 {planned} 個，已經閂咗 {closed} 個。",
       "kept_report": "保留咗 {count} 個頁面。",
@@ -1075,6 +1083,7 @@
       "shared_pin": "共用 PIN 碼",
       "kind_page": "頁面",
       "kind_element": "元素",
+      "kind_value": "外觀數值",
       "col_element": "元素",
       "col_unlocks": "解鎖方式",
       "col_state": "狀態",
@@ -1254,7 +1263,11 @@
       "pane": {
         "home": "主頁",
         "pages": "頁面",
-        "system": "系統"
+        "system": "系統",
+        "role_owner": "擁有者",
+        "role_admin": "管理員",
+        "role_user": "用戶",
+        "more_tools": "外觀、語言、無障礙同側欄"
       },
       "close_tab": "關閉{name}",
       "new_tab": "新分頁",
@@ -1848,8 +1861,19 @@
       "step_state": {
         "done": "完成",
         "current": "進行中",
-        "pending": "未開始"
+        "pending": "未開始",
+        "failed": "喺呢度停咗"
       },
+      "failed_at": "喺呢一步停咗：{step}。",
+      "start_again": "重新開始",
+      "start_again_note": "會由頭再做一次。Supervisor 冇辦法由中途繼續。",
+      "copy_details": "複製詳情",
+      "details_copied": "已經複製詳情",
+      "detail_app": "應用程式",
+      "detail_started": "開始時間",
+      "detail_step": "停咗喺",
+      "detail_message": "原因",
+      "detail_log": "最新嘅記錄",
       "percent": "完成咗 {percent}%",
       "working_no_percent": "處理緊，冇回報百分比",
       "stage_reported": "Supervisor 回報：{stage}",

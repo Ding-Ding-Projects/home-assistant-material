@@ -12,6 +12,7 @@ import { FALLBACK_DOMAIN_ICONS } from "../../../../../data/icons";
 import type { RadioFrequencyTransmitter } from "../../../../../data/radio_frequency";
 import { DOMAIN } from "../../../../../data/radio_frequency";
 import "../../../../../layouts/hass-subpage";
+import "../ha-protocol-stat-tiles";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
 
@@ -46,6 +47,26 @@ export class RadioFrequencyConfigDashboard extends LitElement {
         back-path="/config/connectivity"
       >
         <div class="container">
+          <ha-protocol-stat-tiles
+            .tiles=${[
+              {
+                label: this.hass.localize(
+                  "ui.panel.config.radio_frequency.tile_transmitters"
+                ),
+                value: total,
+                icon: FALLBACK_DOMAIN_ICONS[DOMAIN],
+                tone: "warning",
+              },
+              {
+                label: this.hass.localize(
+                  "ui.panel.config.radio_frequency.tile_online"
+                ),
+                value: online,
+                icon: mdiCheck,
+                tone: "success",
+              },
+            ]}
+          ></ha-protocol-stat-tiles>
           <ha-card class="network-status">
             <div class="card-content">
               <div class="heading">
@@ -107,7 +128,8 @@ export class RadioFrequencyConfigDashboard extends LitElement {
           padding: var(--ha-space-2) var(--ha-space-4) var(--ha-space-4);
         }
 
-        ha-card {
+        ha-card,
+        ha-protocol-stat-tiles {
           margin: 0px auto var(--ha-space-4);
           max-width: 600px;
         }

@@ -394,20 +394,25 @@ export class HuiCardOptions extends LitElement {
       );
   }
 
-  private _applyVisibility(visibility: VisibilityCondition[]): void {
+  private _applyVisibility(
+    visibility: VisibilityCondition[],
+    viewOnly?: VisibilityCondition[]
+  ): void {
     const lovelace = this.lovelace;
     const config = this._cardConfig;
     if (!lovelace || !config || !this.path) {
       return;
     }
-    const { visibility: _old, ...rest } = config;
-    lovelace.saveConfig(
-      setAtPath(
-        lovelace.config,
-        this.path,
-        visibility.length ? { ...rest, visibility } : rest
-      )
-    );
+    const { visibility: _old, view_only: oldViewOnly, ...rest } = config;
+    const nextViewOnly = viewOnly ?? oldViewOnly;
+    const next: LovelaceCardConfig = { ...rest };
+    if (visibility.length) {
+      next.visibility = visibility;
+    }
+    if (nextViewOnly?.length) {
+      next.view_only = nextViewOnly;
+    }
+    lovelace.saveConfig(setAtPath(lovelace.config, this.path, next));
   }
 
   private _setRoleHidden(roleId: string, hidden: boolean): void {
@@ -424,7 +429,9 @@ export class HuiCardOptions extends LitElement {
     showWhoCanSeeDialog(this, {
       title: config.type,
       conditions: config.visibility ?? [],
-      apply: (conditions) => this._applyVisibility(conditions),
+      viewOnly: config.view_only ?? [],
+      apply: (conditions, viewOnly) =>
+        this._applyVisibility(conditions, viewOnly),
     });
   }
 

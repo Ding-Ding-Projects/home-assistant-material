@@ -11,7 +11,7 @@ import type { LocalizeFunc } from "../../../common/translations/localize";
 import "../../../components/ha-control-button";
 import "../../../components/ha-control-button-group";
 import "../../../components/ha-state-icon";
-import { apiContext, formattersContext } from "../../../data/context";
+import { apiContext } from "../../../data/context";
 import type { LockEntity } from "../../../data/lock";
 import {
   LockEntityFeature,
@@ -20,7 +20,7 @@ import {
   isJammed,
 } from "../../../data/lock";
 import "../../../state-control/lock/ha-state-control-lock-toggle";
-import type { HomeAssistantApi, HomeAssistantFormatters } from "../../../types";
+import type { HomeAssistantApi } from "../../../types";
 import "../../../components/ha-relative-time";
 import { moreInfoBoardStyle } from "../components/more-info-board-style";
 import { moreInfoControlStyle } from "../components/more-info-control-style";
@@ -39,10 +39,6 @@ class MoreInfoLock extends LitElement {
   @state()
   @consumeLocalize()
   private _localize!: LocalizeFunc;
-
-  @state()
-  @consume({ context: formattersContext, subscribe: true })
-  private _formatters!: HomeAssistantFormatters;
 
   @property({ attribute: false }) public stateObj?: LockEntity;
 
@@ -109,16 +105,6 @@ class MoreInfoLock extends LitElement {
     );
   }
 
-  private _headlineClass() {
-    if (isJammed(this.stateObj!)) {
-      return "headline bad";
-    }
-    if (this.stateObj!.state === "locked") {
-      return "headline ok";
-    }
-    return this.stateObj!.state === "unlocked" ? "headline warn" : "headline";
-  }
-
   protected render() {
     if (!this._localize || !this.stateObj) {
       return nothing;
@@ -132,9 +118,6 @@ class MoreInfoLock extends LitElement {
     };
 
     return html`
-      <p class=${this._headlineClass()}>
-        ${this._formatters.formatEntityState(this.stateObj)}
-      </p>
       <p class="subline">
         <ha-relative-time
           .datetime=${this.stateObj.last_changed}

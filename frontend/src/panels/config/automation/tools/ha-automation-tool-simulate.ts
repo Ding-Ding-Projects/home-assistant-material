@@ -19,6 +19,7 @@ import { dryRunAutomation } from "../automation-dry-run";
 import type { AutomationToolContext } from "./registry";
 import type { Situation } from "./simulate";
 import { buildSimulationHass, UNSUPPORTED_PREFIX, WEEKDAYS } from "./simulate";
+import "./ha-automation-replay-day";
 import { iconForKindName } from "./step-icons";
 import type { StepKind } from "./step-model";
 import { isRec, stepTitle } from "./step-model";
@@ -38,6 +39,8 @@ export class HaAutomationToolSimulate extends LitElement {
     const now = new Date();
     return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   })();
+
+  @state() private _mode: "fake" | "replay" = "fake";
 
   @state() private _weekday = "";
 
@@ -61,6 +64,38 @@ export class HaAutomationToolSimulate extends LitElement {
   }
 
   protected render() {
+    return html`
+      <div class="modes" role="group" aria-label=${this._t("title")}>
+        ${(["replay", "fake"] as const).map(
+          (mode) =>
+            html`<button
+              type="button"
+              class=${classMap({ mode: true, active: this._mode === mode })}
+              aria-pressed=${this._mode === mode}
+              .mode=${mode}
+              @click=${this._setMode}
+            >
+              ${this._t(`mode_${mode}`)}
+            </button>`
+        )}
+      </div>
+      ${
+        this._mode === "replay"
+          ? html`<ha-automation-replay-day
+              .context=${this.context}
+            ></ha-automation-replay-day>`
+          : this._renderFake()
+      }
+    `;
+  }
+
+  private _setMode(ev: Event) {
+    this._mode = (
+      ev.currentTarget as HTMLElement & { mode: "fake" | "replay" }
+    ).mode;
+  }
+
+  private _renderFake() {
     return html`
       <div class="grid">
         <section class="card">
@@ -286,6 +321,35 @@ export class HaAutomationToolSimulate extends LitElement {
     return [
       haStyle,
       css`
+        .modes {
+          display: inline-flex;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1);
+          margin-bottom: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          background: var(
+            --ha-color-surface-tone-2,
+            var(--secondary-background-color)
+          );
+        }
+        .mode {
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border: none;
+          border-radius: var(--ha-border-radius-pill, 999px);
+          background: transparent;
+          color: var(--primary-text-color);
+          font: inherit;
+          cursor: pointer;
+        }
+        .mode.active {
+          background: var(--card-background-color);
+          box-shadow: var(--ha-shadow-card, none);
+          font-weight: var(--ha-font-weight-semibold);
+        }
+        .mode:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
         .grid {
           display: grid;
           grid-template-columns: repeat(

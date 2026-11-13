@@ -1481,11 +1481,14 @@ def script_action(value: Any) -> dict:
     return ACTION_TYPE_SCHEMAS[action](value)
 
 
+CONF_EDITOR_LOCKED = "editor_locked"
+
 SCRIPT_SCHEMA = probatio.All(ensure_list, [script_action])
 
 SCRIPT_ACTION_BASE_SCHEMA: VolDictType = {
     probatio.Optional(CONF_ALIAS): string,
     probatio.Remove(CONF_NOTE): str,  # Is only used in frontend
+    probatio.Remove(CONF_EDITOR_LOCKED): boolean,  # Is only used in frontend
     probatio.Optional(CONF_CONTINUE_ON_ERROR): boolean,
     probatio.Optional(CONF_ENABLED): probatio.Any(boolean, template),
 }
@@ -1557,6 +1560,7 @@ NUMERIC_STATE_THRESHOLD_SCHEMA = probatio.Any(
 CONDITION_BASE_SCHEMA: VolDictType = {
     probatio.Optional(CONF_ALIAS): string,
     probatio.Remove(CONF_NOTE): str,  # Is only used in frontend
+    probatio.Remove(CONF_EDITOR_LOCKED): boolean,  # Is only used in frontend
     probatio.Optional(CONF_ENABLED): probatio.Any(boolean, template),
 }
 
@@ -1918,6 +1922,7 @@ TRIGGER_BASE_SCHEMA = probatio.Schema(
         probatio.Optional(CONF_VARIABLES): SCRIPT_VARIABLES_SCHEMA,
         probatio.Optional(CONF_ENABLED): probatio.Any(boolean, template),
         probatio.Remove(CONF_NOTE): str,  # Is only used in frontend
+        probatio.Remove(CONF_EDITOR_LOCKED): boolean,  # Is only used in frontend
     }
 )
 

@@ -100,7 +100,7 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
                 @move-up=${this.moveUp}
                 @value-changed=${this.itemChanged}
                 .hass=${this.hass}
-                .disabled=${this.disabled}
+                .disabled=${this.disabled || trg.editor_locked === true}
                 .narrow=${this.narrow}
                 .highlight=${this.highlightedTriggers?.includes(trg)}
                 .optionsInSidebar=${this.optionsInSidebar}

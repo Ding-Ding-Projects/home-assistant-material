@@ -19,6 +19,7 @@ const MUST_SYNC = [
   "supportTickets",
   "supportTicketExtras",
   "typeScale",
+  "motionProfiles",
   "lockKeypadShuffle",
   "personalPreferences",
   "preferenceSchedules",

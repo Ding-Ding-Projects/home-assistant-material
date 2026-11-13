@@ -2454,6 +2454,28 @@ def test_base_schemas_accept_note(
 
 
 @pytest.mark.parametrize(("validator", "base_config"), _NOTE_SCHEMA_PARAMS)
+@pytest.mark.usefixtures("hass")
+def test_base_schemas_accept_editor_locked(
+    validator: Callable[[dict[str, Any]], dict[str, Any]],
+    base_config: dict[str, Any],
+) -> None:
+    """Test that the editor lock marker is accepted and stripped from the output."""
+    validated = validator({**base_config, "editor_locked": True})
+    assert "editor_locked" not in validated
+
+
+@pytest.mark.parametrize(("validator", "base_config"), _NOTE_SCHEMA_PARAMS)
+@pytest.mark.usefixtures("hass")
+def test_base_schemas_reject_invalid_editor_locked(
+    validator: Callable[[dict[str, Any]], dict[str, Any]],
+    base_config: dict[str, Any],
+) -> None:
+    """Test that the editor lock marker must be a boolean."""
+    with pytest.raises(probatio.Invalid):
+        validator({**base_config, "editor_locked": [1]})
+
+
+@pytest.mark.parametrize(("validator", "base_config"), _NOTE_SCHEMA_PARAMS)
 @pytest.mark.parametrize(
     "invalid_note",
     [

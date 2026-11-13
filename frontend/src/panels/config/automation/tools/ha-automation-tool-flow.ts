@@ -9,6 +9,7 @@ import { css, html, LitElement, nothing, svg } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-svg-icon";
 import { haStyle } from "../../../../resources/styles";
@@ -167,24 +168,32 @@ export class HaAutomationToolFlow extends LitElement {
         height: `${NODE_H}px`,
       })}
     >
-      <span class="icon">
-        <ha-svg-icon
-          .path=${node.role === "branch" ? mdiSourceBranch : stepKindIcon(node.kind)}
-        ></ha-svg-icon>
-      </span>
-      <span class="text">
-        <span class="role">
-          ${this._t(`role.${node.role}` as any)}${
-            node.disabled ? html` · ${this._t("off")}` : nothing
+      <button
+        type="button"
+        class="node-button"
+        title=${this._t("show_step")}
+        .nodePath=${node.path}
+        @click=${this._showStep}
+      >
+        <span class="icon">
+          <ha-svg-icon
+            .path=${node.role === "branch" ? mdiSourceBranch : stepKindIcon(node.kind)}
+          ></ha-svg-icon>
+        </span>
+        <span class="text">
+          <span class="role">
+            ${this._t(`role.${node.role}` as any)}${
+              node.disabled ? html` · ${this._t("off")}` : nothing
+            }
+          </span>
+          <span class="title">${this._title(node)}</span>
+          ${
+            node.detail && node.role !== "branch"
+              ? html`<span class="detail">${node.detail}</span>`
+              : nothing
           }
         </span>
-        <span class="title">${this._title(node)}</span>
-        ${
-          node.detail && node.role !== "branch"
-            ? html`<span class="detail">${node.detail}</span>`
-            : nothing
-        }
-      </span>
+      </button>
     </li>`;
   }
 
@@ -213,6 +222,12 @@ export class HaAutomationToolFlow extends LitElement {
         ></rect>
       </svg>
     </div>`;
+  }
+
+  private _showStep(ev: Event) {
+    const path = (ev.currentTarget as HTMLElement & { nodePath: string })
+      .nodePath;
+    fireEvent(this, "tool-show-step", { path });
   }
 
   private _updateView = () => {
@@ -329,14 +344,29 @@ export class HaAutomationToolFlow extends LitElement {
         .node {
           position: absolute;
           box-sizing: border-box;
-          display: flex;
-          align-items: center;
-          gap: var(--ha-space-3);
-          padding: var(--ha-space-2) var(--ha-space-3);
           border-radius: var(--ha-border-radius-xl);
           background: var(--card-background-color);
           box-shadow: var(--ha-shadow-card, none);
           border: 1px solid var(--ha-color-outline, var(--divider-color));
+        }
+        .node-button {
+          all: unset;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          width: 100%;
+          height: 100%;
+          padding: var(--ha-space-2) var(--ha-space-3);
+          border-radius: inherit;
+          cursor: pointer;
+        }
+        .node-button:focus-visible {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+        .node:hover {
+          border-color: var(--primary-color);
         }
         .node.branch {
           background: var(
@@ -435,6 +465,10 @@ export class HaAutomationToolFlow extends LitElement {
 }
 
 declare global {
+  interface HASSDomEvents {
+    /** A tool asks the editor to show one step in its list. */
+    "tool-show-step": { path: string };
+  }
   interface HTMLElementTagNameMap {
     "ha-automation-tool-flow": HaAutomationToolFlow;
   }

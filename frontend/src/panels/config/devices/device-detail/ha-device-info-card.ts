@@ -16,6 +16,7 @@ import type { DeviceRegistryEntry } from "../../../../data/device/device_registr
 import type { LabelRegistryEntry } from "../../../../data/label/label_registry";
 import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import { brandsUrl } from "../../../../util/brands-url";
 
 @customElement("ha-device-info-card")
 export class HaDeviceCard extends LitElement {
@@ -24,6 +25,14 @@ export class HaDeviceCard extends LitElement {
   @property({ attribute: false }) public device!: DeviceRegistryEntry;
 
   @property({ type: Boolean }) public narrow = false;
+
+  /**
+   * Integration whose brand image is shown as the device thumbnail. Nothing is
+   * shown when no domain is given or the brand has no image.
+   */
+  @property({ attribute: false }) public thumbnailDomain?: string;
+
+  @state() private _thumbnailFailed = false;
 
   @consume({ context: labelsContext, subscribe: true })
   @state()
@@ -67,6 +76,26 @@ export class HaDeviceCard extends LitElement {
         )}
       >
         <div class="card-content">
+          ${
+            this.thumbnailDomain && !this._thumbnailFailed
+              ? html`<div class="thumbnail">
+                  <img
+                    alt=""
+                    src=${brandsUrl(
+                      {
+                        domain: this.thumbnailDomain,
+                        type: "icon",
+                        darkOptimized: this.hass.themes?.darkMode,
+                      },
+                      this.hass.auth.data.hassUrl
+                    )}
+                    crossorigin="anonymous"
+                    referrerpolicy="no-referrer"
+                    @error=${this._thumbnailError}
+                  />
+                </div>`
+              : nothing
+          }
           ${
             this.device.model
               ? html`<div class="model">
@@ -239,6 +268,10 @@ export class HaDeviceCard extends LitElement {
     );
   }
 
+  private _thumbnailError() {
+    this._thumbnailFailed = true;
+  }
+
   private _computeDeviceNameDisplay(deviceId: string) {
     const device = this.hass.devices[deviceId];
     return device
@@ -261,6 +294,23 @@ export class HaDeviceCard extends LitElement {
         }
         .device {
           width: 30%;
+        }
+        .thumbnail {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 120px;
+          margin-bottom: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-2xl, 20px);
+          background: var(
+            --ha-color-primary-container,
+            var(--secondary-background-color)
+          );
+        }
+        .thumbnail img {
+          max-width: 96px;
+          max-height: 72px;
+          object-fit: contain;
         }
         .labels {
           display: flex;

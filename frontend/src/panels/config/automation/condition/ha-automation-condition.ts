@@ -198,7 +198,7 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
                 .totalConditions=${this.conditions.length}
                 .condition=${cond}
                 .conditionDescriptions=${this._conditionDescriptions}
-                .disabled=${this.disabled}
+                .disabled=${this.disabled || cond.editor_locked === true}
                 .narrow=${this.narrow}
                 @duplicate=${this.duplicateItem}
                 @paste=${this.pasteItem}

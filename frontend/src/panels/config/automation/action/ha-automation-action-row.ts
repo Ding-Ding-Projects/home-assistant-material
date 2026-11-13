@@ -12,6 +12,7 @@ import {
   mdiContentPaste,
   mdiDelete,
   mdiDotsVertical,
+  mdiLockOutline,
   mdiPlay,
   mdiPlayCircleOutline,
   mdiPlaylistEdit,
@@ -134,6 +135,7 @@ import "./types/ha-automation-action-wait_for_trigger";
 import "./types/ha-automation-action-wait_template";
 import { renderCtrlOrCmd } from "../../../../common/keyboard/ctrl-or-cmd";
 import { scrollRowIntoView } from "../scroll-row-into-view";
+import { isLocked } from "../tools/step-toggle";
 
 export interface ActionElement extends LitElement {
   action: Action;
@@ -509,6 +511,19 @@ export default class HaAutomationActionRow extends LitElement {
                   ><p>${truncateWithEllipsis(note, 250)}</p></ha-tooltip
                 >
               `
+            : nothing
+        }
+        ${
+          isLocked(this.action)
+            ? html`<ha-svg-icon
+                role="img"
+                tabindex="0"
+                .path=${mdiLockOutline}
+                aria-label=${this.hass.localize(
+                  "ui.panel.config.automation.editor.note.locked"
+                )}
+                class="note-indicator"
+              ></ha-svg-icon>`
             : nothing
         }
         ${

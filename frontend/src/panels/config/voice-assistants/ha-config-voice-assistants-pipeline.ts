@@ -17,6 +17,8 @@ import type {
 import {
   deleteAssistPipeline,
   fetchAssistPipelineLanguages,
+  getAssistPipelineRun,
+  listAssistPipelineRuns,
   listAssistPipelines,
   setAssistPipelinePreferred,
   updateAssistPipeline,
@@ -82,6 +84,10 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
 
   @state() private _tryResult?: TryResult;
 
+  // The latest recorded run of this assistant: how long it took end to end.
+  // undefined while loading, null when there is no run or it cannot be read.
+  @state() private _lastRun?: { seconds: number; failed: boolean } | null;
+
   private _loadedId?: string;
 
   private get _pipelineId(): string {
@@ -138,6 +144,54 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
     this._pipeline = pipeline;
     this._data = { ...pipeline };
     this._initDirtyTracking({ type: "deep" }, this._data);
+    this._loadLastRun(id);
+  }
+
+  private async _loadLastRun(id: string) {
+    this._lastRun = undefined;
+    try {
+      const { pipeline_runs: runs } = await listAssistPipelineRuns(
+        this.hass,
+        id
+      );
+      if (id !== this._pipelineId) {
+        return;
+      }
+      if (!runs.length) {
+        this._lastRun = null;
+        return;
+      }
+      const latest = [...runs].sort((a, b) =>
+        b.timestamp.localeCompare(a.timestamp)
+      )[0];
+      const { events } = await getAssistPipelineRun(
+        this.hass,
+        id,
+        latest.pipeline_run_id
+      );
+      if (id !== this._pipelineId) {
+        return;
+      }
+      const start = events.find((event) => event.type === "run-start");
+      const end = [...events]
+        .reverse()
+        .find((event) => event.type === "run-end" || event.type === "error");
+      this._lastRun =
+        start && end
+          ? {
+              seconds:
+                (new Date(end.timestamp).getTime() -
+                  new Date(start.timestamp).getTime()) /
+                1000,
+              failed: events.some((event) => event.type === "error"),
+            }
+          : null;
+    } catch (_err) {
+      // The run listing is optional: the strip simply shows no run
+      if (id === this._pipelineId) {
+        this._lastRun = null;
+      }
+    }
   }
 
   private _hasWakeWordEntities = memoizeOne((states: HomeAssistant["states"]) =>
@@ -260,7 +314,7 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
               ></assist-pipeline-detail-tts>
             </div>
           </div>
-          ${this._renderTryIt()}
+          ${this._renderRunStrip(showWakeWord)} ${this._renderTryIt()}
           <div class="footer">
             <ha-button
               appearance="plain"
@@ -290,6 +344,55 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
           </div>
         </div>
       </hass-subpage>
+    `;
+  }
+
+  private _renderRunStrip(showWakeWord: boolean) {
+    const stages = [
+      ...(showWakeWord ? ["wakeword"] : []),
+      "stt",
+      "conversation",
+      "tts",
+    ];
+    const last = this._lastRun;
+    return html`
+      <section class="run">
+        <h3>
+          ${this.hass.localize(
+            "ui.panel.config.voice_assistants.assistants.pipeline.page.pipeline"
+          )}
+        </h3>
+        <div class="strip" aria-hidden="true">
+          ${stages.map((stage) => html`<span class="seg ${stage}"></span>`)}
+        </div>
+        <div class="run-row">
+          <span class="last-run ${last?.failed ? "failed" : ""}">
+            <span class="dot"></span>
+            ${
+              last
+                ? this.hass.localize(
+                    last.failed
+                      ? "ui.panel.config.voice_assistants.assistants.pipeline.page.last_run_failed"
+                      : "ui.panel.config.voice_assistants.assistants.pipeline.page.last_run",
+                    { seconds: last.seconds.toFixed(1) }
+                  )
+                : this.hass.localize(
+                    "ui.panel.config.voice_assistants.assistants.pipeline.page.no_runs"
+                  )
+            }
+          </span>
+          <ha-button
+            appearance="filled"
+            variant="neutral"
+            href="/config/voice-assistants/debug/${this._pipeline!.id}"
+          >
+            <ha-svg-icon slot="start" .path=${mdiBug}></ha-svg-icon>
+            ${this.hass.localize(
+              "ui.panel.config.voice_assistants.assistants.pipeline.page.open_debugger"
+            )}
+          </ha-button>
+        </div>
+      </section>
     `;
   }
 
@@ -344,15 +447,6 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
               </dl>`
             : nothing
         }
-        <ha-button
-          appearance="plain"
-          href="/config/voice-assistants/debug/${this._pipeline!.id}"
-        >
-          <ha-svg-icon slot="start" .path=${mdiBug}></ha-svg-icon>
-          ${this.hass.localize(
-            "ui.panel.config.voice_assistants.assistants.pipeline.page.open_debugger"
-          )}
-        </ha-button>
       </section>
     `;
   }
@@ -557,6 +651,59 @@ export class HaConfigVoiceAssistantsPipeline extends DirtyStateProviderMixin<
           font-weight: var(--ha-font-weight-medium);
           line-height: 24px;
           text-align: center;
+        }
+        .run {
+          padding: var(--ha-space-5) var(--ha-space-6);
+          border-radius: var(--ha-border-radius-3xl);
+          background: var(--card-background-color);
+        }
+        .run h3 {
+          margin: 0 0 var(--ha-space-4);
+          font-size: var(--ha-font-size-xl);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .strip {
+          display: flex;
+          gap: var(--ha-space-2);
+        }
+        .seg {
+          flex: 1;
+          height: 10px;
+          border-radius: var(--ha-border-radius-pill, 999px);
+          background: var(--primary-color);
+        }
+        .seg.stt {
+          background: var(--ha-color-tertiary-40, var(--accent-color));
+        }
+        .seg.conversation {
+          background: var(--success-color);
+        }
+        .seg.tts {
+          background: var(--warning-color);
+        }
+        .run-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-3);
+          margin-top: var(--ha-space-4);
+        }
+        .last-run {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          color: var(--success-color);
+          font-weight: var(--ha-font-weight-medium);
+        }
+        .last-run.failed {
+          color: var(--error-color);
+        }
+        .last-run .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
         }
         .try {
           padding: var(--ha-space-5) var(--ha-space-6);

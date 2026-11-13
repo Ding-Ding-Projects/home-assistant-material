@@ -27,10 +27,12 @@ export class HaCard extends LitElement {
       border-style: solid;
       border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
       color: var(--primary-text-color);
+      padding: var(--ha-card-padding, 0px);
       display: block;
       ${haMotionTransition}
-      animation: ha-rise var(--ha-animation-duration-enter, 1ms)
-        var(--ha-motion-spring, ease) backwards;
+      animation: ha-rise
+        var(--ha-motion-cards-duration, var(--ha-animation-duration-enter, 1ms))
+        var(--ha-motion-cards-curve, var(--ha-motion-spring, ease)) backwards;
       position: relative;
     }
 

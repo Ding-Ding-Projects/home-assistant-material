@@ -50,6 +50,7 @@ from homeassistant.util.unit_conversion import (
     VolumeFlowRateConverter,
 )
 
+from . import storage_usage
 from .models import StatisticMeanType, StatisticPeriod
 from .statistics import (
     UNIT_CLASS_TO_UNIT_CONVERTER,
@@ -156,6 +157,7 @@ def async_setup(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_update_statistics_issues)
     websocket_api.async_register_command(hass, ws_update_statistics_metadata)
     websocket_api.async_register_command(hass, ws_validate_statistics)
+    storage_usage.async_setup(hass)
 
 
 def _ws_get_statistic_during_period(

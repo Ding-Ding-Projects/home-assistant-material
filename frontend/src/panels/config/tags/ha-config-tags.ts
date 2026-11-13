@@ -1,7 +1,6 @@
 import {
   mdiDelete,
   mdiFormatListBulleted,
-  mdiHelpCircleOutline,
   mdiMemoryArrowDown,
   mdiNfcVariant,
   mdiPencil,
@@ -342,12 +341,6 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           .label=${localize("ui.panel.config.tag.show_list")}
           .path=${mdiFormatListBulleted}
         ></ha-icon-button>
-        <ha-icon-button
-          slot="toolbar-icon"
-          @click=${this._showHelp}
-          .label=${localize("ui.common.help")}
-          .path=${mdiHelpCircleOutline}
-        ></ha-icon-button>
         <div class="page">
           <header class="page-head">
             <h1>${localize("ui.panel.config.tag.caption")}</h1>
@@ -359,6 +352,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
                       count: this._tags.length,
                     })
               }
+              <ha-button
+                appearance="plain"
+                size="s"
+                @click=${this._showHelp}
+                >${localize("ui.panel.config.tag.how_used")}</ha-button
+              >
             </p>
           </header>
           ${
@@ -526,12 +525,6 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
           @click=${this._toggleView}
           .label=${this.hass.localize("ui.panel.config.tag.show_cards")}
           .path=${mdiViewGridOutline}
-        ></ha-icon-button>
-        <ha-icon-button
-          slot="toolbar-icon"
-          @click=${this._showHelp}
-          .label=${this.hass.localize("ui.common.help")}
-          .path=${mdiHelpCircleOutline}
         ></ha-icon-button>
         <ha-button slot="fab" size="l" @click=${this._addTag}>
           <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>

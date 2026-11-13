@@ -4,7 +4,7 @@ import { customElement, property } from "lit/decorators";
 import { getHistoryState } from "../common/navigate";
 import "../components/animation/ha-fade-in";
 import "../components/ha-top-app-bar-fixed";
-import "../components/ha-spinner";
+import "../components/skeleton/ha-skeleton";
 import type { HomeAssistant } from "../types";
 
 @customElement("hass-loading-screen")
@@ -47,7 +47,17 @@ class HassLoadingScreen extends LitElement {
         }
       >
         <ha-fade-in .delay=${500}>
-          <ha-spinner></ha-spinner>
+          <div class="placeholder" aria-hidden="true">
+            <ha-skeleton effect="sheen"></ha-skeleton>
+            <ha-skeleton effect="sheen"></ha-skeleton>
+            <div class="blocks">
+              <ha-skeleton effect="sheen"></ha-skeleton>
+              <ha-skeleton effect="sheen"></ha-skeleton>
+              <ha-skeleton effect="sheen"></ha-skeleton>
+              <ha-skeleton effect="sheen"></ha-skeleton>
+            </div>
+            <ha-skeleton effect="sheen"></ha-skeleton>
+          </div>
         </ha-fade-in>
         ${
           this.message
@@ -70,6 +80,31 @@ class HassLoadingScreen extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
+    }
+    /* Shimmering placeholders in a card: the shape of a page that is coming. */
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      box-sizing: border-box;
+      width: min(360px, calc(100vw - 32px));
+      padding: var(--ha-space-5);
+      border-radius: var(--ha-border-radius-3xl);
+      background: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card);
+      --ha-skeleton-border-radius: var(--ha-border-radius-pill);
+    }
+    .placeholder > ha-skeleton {
+      height: 12px;
+    }
+    .blocks {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--ha-space-3);
+    }
+    .blocks ha-skeleton {
+      height: 88px;
+      --ha-skeleton-border-radius: var(--ha-border-radius-xl);
     }
     #loading-text {
       max-width: 350px;

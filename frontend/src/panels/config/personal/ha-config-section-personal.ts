@@ -10,6 +10,7 @@ import {
 import { classMap } from "lit/directives/class-map";
 import { mdiCheckCircle, mdiChevronRight, mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import { navigate } from "../../../common/navigate";
 import {
   ACCESSIBILITY_STORAGE_KEY,
   getAccessibilitySettings,
@@ -728,12 +729,15 @@ export class HaConfigSectionPersonal extends LitElement {
         isDefault: follows("dialogEmojis"),
         held: held.has("dialogEmojis"),
         reset: () => this._follow(["dialogEmojis"]),
-        control: toggle(
-          p.dialogEmojis,
-          this._t("dialog_emojis.label"),
-          (ev) => this._change({ dialogEmojis: ev.target.checked }),
-          held.has("dialogEmojis")
-        ),
+        control: html`${toggle(
+            p.dialogEmojis,
+            this._t("dialog_emojis.label"),
+            (ev) => this._change({ dialogEmojis: ev.target.checked }),
+            held.has("dialogEmojis")
+          )}
+          <p class="sample success" role="status">
+            ${p.dialogEmojis ? "🎉 " : ""}${this._t("dialog_emojis.sample")}
+          </p>`,
       },
       {
         id: "dim_sum",
@@ -1099,6 +1103,14 @@ export class HaConfigSectionPersonal extends LitElement {
     ];
   }
 
+  private _motionText(key: string): string {
+    return this.hass.localize(`ui.panel.config.motion_editor.${key}` as any);
+  }
+
+  private _openMotion() {
+    navigate("/config/personal-motion");
+  }
+
   protected willUpdate() {
     this._scheduleNow = currentScheduleEvaluation(
       schoolHeldFields(this._prefs)
@@ -1122,6 +1134,10 @@ export class HaConfigSectionPersonal extends LitElement {
     const showShared =
       !!this.hass.user?.is_admin &&
       matches(this._t("shared.title"), this._t("shared.note"));
+    const showMotion = matches(
+      this._motionText("link_title"),
+      this._motionText("link_note")
+    );
     return html`
       <hass-subpage
         back-path="/config"
@@ -1225,7 +1241,7 @@ export class HaConfigSectionPersonal extends LitElement {
             </div>
             <div class="groups-list">
               ${
-                rows.length || showSchedules || showShared
+                rows.length || showSchedules || showShared || showMotion
                   ? html`${GROUPS.map((group) =>
                       this._renderGroup(group, rows, searching)
                     )}
@@ -1246,6 +1262,29 @@ export class HaConfigSectionPersonal extends LitElement {
                             <ha-personal-shared-defaults
                               .hass=${this.hass}
                             ></ha-personal-shared-defaults>
+                          </div>`
+                        : nothing
+                    }
+                    ${
+                      showMotion
+                        ? html`<div id="group-motion">
+                            <button
+                              type="button"
+                              class="motion-link"
+                              @click=${this._openMotion}
+                            >
+                              <span class="text">
+                                <span class="title"
+                                  >${this._motionText("link_title")}</span
+                                >
+                                <span class="note"
+                                  >${this._motionText("link_note")}</span
+                                >
+                              </span>
+                              <ha-svg-icon
+                                .path=${mdiChevronRight}
+                              ></ha-svg-icon>
+                            </button>
                           </div>`
                         : nothing
                     }`
@@ -1612,39 +1651,47 @@ export class HaConfigSectionPersonal extends LitElement {
             " · "
           );
     return html`<div
-      class="mode-cards"
-      role="group"
-      aria-label=${this._t("language_mode.label")}
-    >
-      ${LANGUAGE_MODES.map((mode) => {
-        const selected = p.languageMode === mode;
-        return html`<button
-          type="button"
-          class=${classMap({ "mode-card": true, selected })}
-          aria-pressed=${selected ? "true" : "false"}
-          ?disabled=${held}
-          data-mode=${mode}
-          @click=${this._modeCardClicked}
-        >
-          <span
-            class="mode-card-title"
-            lang=${mode === "cantonese" ? "yue-Hant-HK" : "en"}
-            >${title(mode)}</span
+        class="mode-cards"
+        role="group"
+        aria-label=${this._t("language_mode.label")}
+      >
+        ${LANGUAGE_MODES.map((mode) => {
+          const selected = p.languageMode === mode;
+          return html`<button
+            type="button"
+            class=${classMap({ "mode-card": true, selected })}
+            aria-pressed=${selected ? "true" : "false"}
+            ?disabled=${held}
+            data-mode=${mode}
+            @click=${this._modeCardClicked}
           >
-          <span class="mode-card-sub"
-            >${this._t(`language_mode.sub.${mode}`)}</span
-          >
-          ${
-            selected
-              ? html`<ha-svg-icon
-                  class="mode-card-check"
-                  .path=${mdiCheckCircle}
-                ></ha-svg-icon>`
-              : nothing
-          }
-        </button>`;
-      })}
-    </div>`;
+            <span
+              class="mode-card-title"
+              lang=${mode === "cantonese" ? "yue-Hant-HK" : "en"}
+              >${title(mode)}</span
+            >
+            <span class="mode-card-sub"
+              >${this._t(`language_mode.sub.${mode}`)}</span
+            >
+            ${
+              selected
+                ? html`<ha-svg-icon
+                    class="mode-card-check"
+                    .path=${mdiCheckCircle}
+                  ></ha-svg-icon>`
+                : nothing
+            }
+          </button>`;
+        })}
+      </div>
+      <div
+        class="sample"
+        role="status"
+        aria-label=${this._t("language_mode.sample_label")}
+      >
+        <p>${this._tl("language_mode.sample")}</p>
+        <p>${this._tl("language_mode.sample_playful")}</p>
+      </div>`;
   }
 
   private _modeCardClicked = (ev: Event) => {
@@ -2156,6 +2203,35 @@ export class HaConfigSectionPersonal extends LitElement {
       max-height: calc(100dvh - 2 * var(--ha-space-4));
       overflow-y: auto;
     }
+    .motion-link {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-3);
+      width: 100%;
+      padding: var(--ha-space-4) var(--ha-space-5);
+      border: none;
+      border-radius: var(--ha-border-radius-4xl);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
+    }
+    .motion-link:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .motion-link .text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .motion-link .title {
+      font-weight: var(--ha-font-weight-semibold, 600);
+    }
+    .motion-link .note {
+      color: var(--secondary-text-color);
+    }
     .groups-list {
       grid-area: list;
       display: flex;
@@ -2391,6 +2467,27 @@ export class HaConfigSectionPersonal extends LitElement {
       margin: 0 0 var(--ha-space-2);
       font-size: var(--ha-font-size-l);
       overflow-wrap: anywhere;
+    }
+    /* A line of real text in the chosen language, so the choice can be read. */
+    .sample {
+      flex-basis: 100%;
+      min-width: 0;
+      margin: var(--ha-space-2) 0 0;
+      padding: var(--ha-space-3) var(--ha-space-4);
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--ha-color-fill-neutral-quiet-resting);
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+    .sample p {
+      margin: 0;
+    }
+    .sample p + p {
+      margin-top: var(--ha-space-2);
+    }
+    .sample.success {
+      background: var(--ha-color-success-container);
+      color: var(--ha-color-on-success-container);
     }
     .mode-cards {
       display: grid;

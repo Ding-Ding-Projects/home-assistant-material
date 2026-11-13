@@ -363,6 +363,28 @@ export class HaControlSelect extends LitElement {
       margin-inline-end: initial;
       margin-bottom: var(--control-select-padding);
     }
+    /* The segmented control of the modern kit: a tonal track with a pill,
+       a surface-coloured pill under the chosen option. The vertical form
+       keeps its fill. */
+    :host(:not([vertical])) {
+      --control-select-border-radius: var(--ha-border-radius-pill, 22px);
+      --control-select-background: var(--ha-color-surface-tone-2);
+      --control-select-background-opacity: 1;
+    }
+    :host(:not([vertical])) .option.selected {
+      color: var(--primary-text-color);
+    }
+    :host(:not([vertical])) .option.selected::before {
+      background-color: var(--card-background-color, #fff);
+      box-shadow: var(--ha-shadow-card);
+    }
+    :host(:not([vertical])) .option:hover::before {
+      background-color: var(--ha-color-surface-tone-3);
+      opacity: 1;
+    }
+    :host(:not([vertical])) .option.selected:hover::before {
+      background-color: var(--card-background-color, #fff);
+    }
   `;
 }
 

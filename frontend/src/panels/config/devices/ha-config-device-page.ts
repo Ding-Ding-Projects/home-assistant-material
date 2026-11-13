@@ -716,7 +716,11 @@ export class HaConfigDevicePage extends LitElement {
             `
           : ""
       }
-      <ha-device-info-card .hass=${this.hass} .device=${device}>
+      <ha-device-info-card
+        .hass=${this.hass}
+        .device=${device}
+        .thumbnailDomain=${integrations[0]?.domain}
+      >
         ${deviceInfo}
         ${
           firstDeviceAction || actions.length

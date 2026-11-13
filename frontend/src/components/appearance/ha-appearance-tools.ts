@@ -339,6 +339,13 @@ export class HaAppearanceTools extends LitElement {
 
   @state() private _pickName = "";
 
+  /** Touch: an element is outlined and waits for a second tap or Confirm. */
+  @state() private _pickArmed = false;
+
+  private _pickIndex = 0;
+
+  private _pickTouch = false;
+
   @state() private _announcement = "";
 
   @query("#menu") private _menu?: HTMLElement;
@@ -1377,6 +1384,9 @@ export class HaAppearanceTools extends LitElement {
     }
     this._picking = true;
     this._pickOutline = { display: "none" };
+    this._pickArmed = false;
+    this._pickIndex = 0;
+    window.addEventListener("pointerdown", this._pickDown, true);
     window.addEventListener("pointermove", this._pickMove, true);
     window.addEventListener("click", this._pickClick, true);
     await this.updateComplete;
@@ -1393,6 +1403,8 @@ export class HaAppearanceTools extends LitElement {
     }
     this._picking = false;
     this._pickCandidate = undefined;
+    this._pickArmed = false;
+    window.removeEventListener("pointerdown", this._pickDown, true);
     window.removeEventListener("pointermove", this._pickMove, true);
     window.removeEventListener("click", this._pickClick, true);
     [this._pickBox, this._banner].forEach((box) => {
@@ -1402,7 +1414,48 @@ export class HaAppearanceTools extends LitElement {
     });
   }
 
+  // Remembers whether the press that leads to the next click is a touch.
+  private _pickDown = (ev: PointerEvent) => {
+    this._pickTouch = ev.pointerType === "touch" || ev.pointerType === "pen";
+  };
+
+  /** Outlines the element at `index` of the candidate chain. */
+  private _outlinePick(index: number) {
+    const chain = this._pickCandidate;
+    if (!chain?.length) {
+      return;
+    }
+    this._pickIndex = Math.min(Math.max(index, 0), chain.length - 1);
+    const element = chain[this._pickIndex];
+    const rect = element.getBoundingClientRect();
+    this._pickName = kindLabel(element.localName);
+    this._pickOutline = {
+      left: `${rect.left - 2}px`,
+      top: `${rect.top - 2}px`,
+      width: `${rect.width + 4}px`,
+      height: `${rect.height + 4}px`,
+    };
+  }
+
+  // Touch: the Confirm button, or a second tap on the outlined element.
+  private _confirmPick() {
+    const chain = this._pickCandidate;
+    const index = this._pickIndex;
+    this._stopPicking();
+    if (chain?.length) {
+      this._edit(chain, index, "element");
+    }
+  }
+
+  // Touch: moves the outline to the element that contains the outlined one.
+  private _pickUpOneLevel() {
+    this._outlinePick(this._pickIndex + 1);
+  }
+
   private _pickMove = (ev: PointerEvent) => {
+    if (ev.pointerType === "touch" || this._pickArmed) {
+      return;
+    }
     const path = ev.composedPath();
     if (this._isOwn(path)) {
       return;
@@ -1431,6 +1484,25 @@ export class HaAppearanceTools extends LitElement {
     }
     ev.preventDefault();
     ev.stopPropagation();
+    if (this._pickTouch) {
+      // A tap outlines; a second tap on the outlined element confirms.
+      const tapped = this._chainFrom(
+        ev
+          .composedPath()
+          .find((node): node is Element => node instanceof Element)
+      );
+      const outlined = this._pickCandidate?.[this._pickIndex];
+      if (this._pickArmed && outlined && tapped.includes(outlined)) {
+        this._confirmPick();
+        return;
+      }
+      if (tapped.length) {
+        this._pickCandidate = tapped;
+        this._pickArmed = true;
+        this._outlinePick(this._defaultIndex(tapped));
+      }
+      return;
+    }
     const chain =
       this._pickCandidate ??
       this._chainFrom(
@@ -1583,7 +1655,23 @@ export class HaAppearanceTools extends LitElement {
       </div>
       <div id="banner" popover="manual" role="status">
         <ha-svg-icon .path=${mdiFormatPaint}></ha-svg-icon>
-        <span>${this._l("pick_hint")}</span>
+        <span
+          >${
+            this._pickArmed
+              ? this._l("pick_touch_confirm_hint", { name: this._pickName })
+              : this._l("pick_hint")
+          }</span
+        >
+        ${
+          this._pickArmed
+            ? html`<button class="pick-confirm" @click=${this._confirmPick}>
+                  ${this._l("pick_confirm")}
+                </button>
+                <button @click=${this._pickUpOneLevel}>
+                  ${this._l("pick_up_one_level")}
+                </button>`
+            : nothing
+        }
         <button @click=${this._cancelPicking}>${this._l("pick_cancel")}</button>
       </div>
       <ha-appearance-editor></ha-appearance-editor>
@@ -1864,6 +1952,15 @@ export class HaAppearanceTools extends LitElement {
       display: flex;
       align-items: center;
       gap: var(--ha-space-3);
+    }
+    #banner {
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: calc(100vw - 2 * var(--ha-space-4));
+    }
+    #banner .pick-confirm {
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
     }
     #banner button {
       padding: var(--ha-space-1) var(--ha-space-3);

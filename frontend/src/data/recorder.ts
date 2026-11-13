@@ -178,6 +178,81 @@ export const getRecorderEntityOptions = (
     entity_id,
   });
 
+/** One local day of the history table: the day's start (seconds) and its rows. */
+export interface RecorderStorageDay {
+  start: number;
+  rows: number;
+}
+
+export interface RecorderStorageEntityRows {
+  entity_id: string;
+  rows: number;
+  /** Rows times the average row size of the states table. An estimate. */
+  estimated_bytes: number | null;
+}
+
+export interface RecorderStorageOverview {
+  database: {
+    engine: "sqlite" | "mysql" | "postgresql" | null;
+    /** Measured. Null when the database engine cannot report it. */
+    size_bytes: number | null;
+    size_source: "file" | "engine_query" | null;
+  };
+  states: {
+    rows: number;
+    /** Seconds since the epoch, null when there are no rows. */
+    oldest: number | null;
+    newest: number | null;
+    table_bytes: number | null;
+    average_row_bytes: number | null;
+  };
+  growth: RecorderStorageDay[];
+  entities: RecorderStorageEntityRows[];
+}
+
+export interface RecorderStorageEntity {
+  rows: number;
+  first: number | null;
+  last: number | null;
+  per_day: RecorderStorageDay[];
+  estimated_bytes: number | null;
+  average_row_bytes: number | null;
+  total_rows: number;
+  table_bytes: number | null;
+  recording_excluded: boolean;
+  keep_days: number;
+}
+
+export const getRecorderStorageOverview = (
+  hass: Pick<HomeAssistant, "callWS">,
+  limit = 50
+) =>
+  hass.callWS<RecorderStorageOverview>({
+    type: "recorder/storage/overview",
+    limit,
+  });
+
+export const getRecorderStorageEntity = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entity_id: string,
+  days = 30
+) =>
+  hass.callWS<RecorderStorageEntity>({
+    type: "recorder/storage/entity",
+    entity_id,
+    days,
+  });
+
+export const purgeRecorderEntity = (
+  hass: Pick<HomeAssistant, "callService">,
+  entity_id: string,
+  keepDays: number
+) =>
+  hass.callService("recorder", "purge_entities", {
+    entity_id,
+    keep_days: keepDays,
+  });
+
 export const getStatisticMetadata = (
   callWS: HomeAssistant["callWS"],
   statistic_ids?: string[]

@@ -8,6 +8,7 @@ import {
   planDrop,
   planMove,
   planTitleBulkClose,
+  planTitleBulkLock,
 } from "../../../src/components/phone/phone-page-actions";
 
 // The Pages sheet closes and moves pages, so these protect the rules that keep
@@ -274,5 +275,31 @@ describe("planTitleBulkClose", () => {
       ["lovelace", "current"],
       ["logbook", "locked"],
     ]);
+  });
+});
+
+// Locking pages together uses the same title match as closing them, locks the
+// pinned and current pages too, and leaves out the pages that are already
+// locked and the pages that are closed.
+describe("planTitleBulkLock", () => {
+  it("selects open pages by title, pinned ones included", () => {
+    expect(planTitleBulkLock(pages, "e", "matching").ids).toEqual([
+      "energy",
+      "lovelace",
+      "climate",
+    ]);
+  });
+
+  it("leaves out locked and closed pages", () => {
+    const result = planTitleBulkLock(pages, "o", "matching").ids;
+    expect(result).not.toContain("logbook");
+    expect(result).not.toContain("history");
+  });
+
+  it("selects nothing without usable text", () => {
+    expect(planTitleBulkLock(pages, "", "matching")).toEqual({
+      ids: [],
+      blocked: "empty",
+    });
   });
 });

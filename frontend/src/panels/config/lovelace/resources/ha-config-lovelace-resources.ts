@@ -50,6 +50,10 @@ import { haStyle } from "../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../types";
 import { loadLovelaceResources } from "../../../lovelace/common/load-resources";
 import { lovelaceResourcesTabs } from "../ha-config-lovelace";
+import {
+  consentBeforeResourceSave,
+  recordResourceConsent,
+} from "../../extensions/extension-consent";
 import { showResourceDetailDialog } from "./show-dialog-lovelace-resource-detail";
 import { storage } from "../../../../common/decorators/storage";
 import {
@@ -406,14 +410,18 @@ export class HaConfigLovelaceResources extends LitElement {
     showResourceDetailDialog(this, {
       resource,
       createResource: async (values) => {
+        await consentBeforeResourceSave(this, this.hass!, values);
         const created = await createResource(this.hass!, values);
+        recordResourceConsent(this.hass!, created);
         this._resources = this._resources!.concat(created).sort((res1, res2) =>
           stringCompare(res1.url, res2.url, this.hass!.locale.language)
         );
         loadLovelaceResources([created], this.hass!);
       },
       updateResource: async (values) => {
+        await consentBeforeResourceSave(this, this.hass!, values, resource);
         const updated = await updateResource(this.hass!, resource!.id, values);
+        recordResourceConsent(this.hass!, updated);
         this._resources = this._resources!.map((res) =>
           res === resource ? updated : res
         );

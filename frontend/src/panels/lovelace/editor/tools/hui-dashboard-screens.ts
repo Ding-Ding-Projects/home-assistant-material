@@ -1,12 +1,19 @@
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import type { LocalizeKeys } from "../../../../common/translations/localize";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
 import type { HomeAssistant } from "../../../../types";
-import { SCREENS, viewAddress } from "./dashboard-screens";
+import {
+  capCardWidths,
+  findWideCards,
+  PHONE_GRID_COLUMNS,
+  SCREENS,
+  viewAddress,
+} from "./dashboard-screens";
 
 /**
  * Phone, tablet, wall panel and desktop side by side. Each screen is a frame
@@ -26,10 +33,81 @@ export class HuiDashboardScreens extends LitElement {
 
   @state() private _nonce = 0;
 
-  private _t(key: string): string {
+  @state() private _previewing = false;
+
+  private _t(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(
-      `ui.panel.lovelace.editor.dashboard_tools.editing.screens.${key}` as LocalizeKeys
+      `ui.panel.lovelace.editor.dashboard_tools.editing.screens.${key}` as LocalizeKeys,
+      values
     );
+  }
+
+  private _wideCards() {
+    return findWideCards(this.config, this.view);
+  }
+
+  private _renderWideWarning() {
+    const wide = this._wideCards();
+    if (!wide.length) {
+      return nothing;
+    }
+    return html`
+      <ha-alert alert-type="warning">
+        ${this._t("wide_warning", {
+          count: wide.length,
+          columns: PHONE_GRID_COLUMNS,
+        })}
+        <ha-button
+          slot="action"
+          size="s"
+          @click=${this._togglePreview}
+          .disabled=${this._previewing}
+        >
+          ${this._t("make_friendly")}
+        </ha-button>
+      </ha-alert>
+      ${
+        this._previewing
+          ? html`<div class="preview" role="group">
+              <h3>${this._t("preview_title")}</h3>
+              <ul>
+                ${wide.map(
+                  (card) =>
+                    html`<li>
+                      <span class="name">${card.label}</span>
+                      <span class="size"
+                        >${this._t("preview_row", {
+                          from: card.columns,
+                          to: PHONE_GRID_COLUMNS,
+                        })}</span
+                      >
+                    </li>`
+                )}
+              </ul>
+              <p class="hint">${this._t("preview_note")}</p>
+              <div class="actions">
+                <ha-button @click=${this._applyFriendly}>
+                  ${this._t("apply")}
+                </ha-button>
+                <ha-button appearance="plain" @click=${this._togglePreview}>
+                  ${this._t("cancel")}
+                </ha-button>
+              </div>
+            </div>`
+          : nothing
+      }
+    `;
+  }
+
+  private _togglePreview() {
+    this._previewing = !this._previewing;
+  }
+
+  private _applyFriendly() {
+    this._previewing = false;
+    fireEvent(this, "dashboard-config-change", {
+      config: capCardWidths(this.config, this._wideCards()),
+    });
   }
 
   protected render() {
@@ -37,6 +115,7 @@ export class HuiDashboardScreens extends LitElement {
     const src = viewAddress(window.location.pathname, view?.path, this.view);
     return html`
       <p class="hint">${this._t("intro")}</p>
+      ${this._renderWideWarning()}
       <div class="actions">
         <ha-button @click=${this._toggle}>
           ${this._t(this._shown ? "hide" : "show")}
@@ -104,6 +183,40 @@ export class HuiDashboardScreens extends LitElement {
       display: flex;
       gap: var(--ha-space-2);
       margin-bottom: var(--ha-space-3);
+    }
+    ha-alert {
+      display: block;
+      margin-bottom: var(--ha-space-3);
+    }
+    .preview {
+      margin-bottom: var(--ha-space-4);
+      padding: var(--ha-space-4);
+      border-radius: var(--ha-border-radius-xl);
+      background: var(
+        --ha-color-surface-tone-1,
+        var(--secondary-background-color)
+      );
+    }
+    .preview h3 {
+      margin: 0 0 var(--ha-space-2);
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-semibold);
+    }
+    .preview ul {
+      list-style: none;
+      margin: 0 0 var(--ha-space-2);
+      padding: 0;
+    }
+    .preview li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-3);
+      padding: var(--ha-space-1) 0;
+    }
+    .name {
+      flex: 1 1 160px;
+      font-family: var(--ha-font-family-code);
+      font-size: var(--ha-font-size-s);
     }
     .screens {
       display: flex;

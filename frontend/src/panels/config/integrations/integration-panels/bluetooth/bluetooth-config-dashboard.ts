@@ -35,6 +35,8 @@ import {
 import type { ConfigEntry } from "../../../../../data/config_entries";
 import { getConfigEntries } from "../../../../../data/config_entries";
 import "../../../../../layouts/hass-subpage";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant, Route } from "../../../../../types";
 
@@ -198,6 +200,37 @@ export class BluetoothConfigDashboard extends LitElement {
               ${this.hass.localize(`ui.panel.config.bluetooth.status_${status}`)}
             </span>
           </section>
+          <ha-protocol-stat-tiles
+            class="tiles"
+            .tiles=${
+              [
+                {
+                  label: this.hass.localize(
+                    "ui.panel.config.bluetooth.tile_adapters"
+                  ),
+                  value: adapterCount,
+                  icon: mdiBluetooth,
+                  tone: "primary",
+                },
+                {
+                  label: this.hass.localize(
+                    "ui.panel.config.bluetooth.tile_heard"
+                  ),
+                  value: this._advertisementData.length,
+                  icon: mdiBroadcast,
+                  tone: "tertiary",
+                },
+                {
+                  label: this.hass.localize(
+                    "ui.panel.config.bluetooth.tile_connected"
+                  ),
+                  value: usedSlots,
+                  icon: mdiLinkVariant,
+                  tone: "success",
+                },
+              ] satisfies ProtocolStatTile[]
+            }
+          ></ha-protocol-stat-tiles>
           ${this._renderAdapters()}
 
           <ha-card class="network-card">
@@ -350,6 +383,9 @@ export class BluetoothConfigDashboard extends LitElement {
         }
         :host([narrow]) .page {
           padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
+        }
+        .tiles {
+          margin-bottom: var(--ha-space-4);
         }
         .hero {
           display: flex;

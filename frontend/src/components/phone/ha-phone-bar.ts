@@ -14,6 +14,7 @@ import {
   mdiFormatPaint,
   mdiCog,
   mdiHome,
+  mdiHuman,
   mdiLock,
   mdiLockOpenVariant,
   mdiMagnify,
@@ -934,6 +935,40 @@ export class HaPhoneBar extends LitElement {
                 </button>`
           }
         </div>
+        ${
+          this._catalog
+            ? nothing
+            : html`<div
+                class="quick-tools"
+                role="group"
+                aria-label=${localize("ui.phone.quick_tools")}
+              >
+                <button class="quick-tool" @click=${this._quickSearch}>
+                  <span class="quick-icon search"
+                    ><ha-svg-icon .path=${mdiMagnify}></ha-svg-icon
+                  ></span>
+                  <span class="quick-label"
+                    >${localize("ui.phone.search")}</span
+                  >
+                </button>
+                <button class="quick-tool" @click=${this._quickAccess}>
+                  <span class="quick-icon access"
+                    ><ha-svg-icon .path=${mdiHuman}></ha-svg-icon
+                  ></span>
+                  <span class="quick-label"
+                    >${localize("ui.phone.access")}</span
+                  >
+                </button>
+                <button class="quick-tool" @click=${this._toggleCatalog}>
+                  <span class="quick-icon new-tab"
+                    ><ha-svg-icon .path=${mdiTabPlus}></ha-svg-icon
+                  ></span>
+                  <span class="quick-label"
+                    >${localize("ui.page_tabs.new_tab")}</span
+                  >
+                </button>
+              </div>`
+        }
         <ha-input-search
           id="sheet-search"
           appearance="outlined"
@@ -1191,6 +1226,7 @@ export class HaPhoneBar extends LitElement {
         .currentId=${current}
         .text=${t}
         @phone-bulk-confirm=${this._bulkConfirm}
+        @phone-bulk-lock=${this._bulkLock}
         @phone-bulk-dismiss=${this._dismissOverlay}
       ></ha-phone-bulk-close>`;
     }
@@ -1629,6 +1665,18 @@ export class HaPhoneBar extends LitElement {
     loadCatalogTranslations(this.hass).then(() => this.requestUpdate());
   }
 
+  // The quick tools: search and accessibility close the sheet first so the
+  // panel they open is not hidden behind it.
+  private _quickSearch() {
+    this._hideSheet();
+    showQuickBar(this, {});
+  }
+
+  private _quickAccess() {
+    this._hideSheet();
+    fireEvent(this, "hass-show-accessibility-tools");
+  }
+
   private _toggleCatalog() {
     this._catalog = !this._catalog;
     if (this._catalog) {
@@ -1802,6 +1850,39 @@ export class HaPhoneBar extends LitElement {
       (id) => !pinned.has(id) && !this._isLocked(id) && id !== this._current()
     );
     this._closeByPlan(ids, ev.detail.kept, ev.detail.planned);
+    this._finishPanel();
+  }
+
+  // The pages that matched are locked together: one wizard, and each page
+  // gets its own lock with the same way to unlock.
+  private _bulkLock(ev: HASSDomEvent<{ ids: string[] }>) {
+    const ids = ev.detail.ids.filter((id) => !this._isLocked(id));
+    if (!ids.length) {
+      return;
+    }
+    const anchor = this._pagesButton();
+    this._hideSheet();
+    setLockLocalize(this.hass.localize);
+    const named = ids.map((id) => ({
+      key: tabLockKey(PHONE_SURFACE, id),
+      label: this._text("ui.page_tabs.menu.lock_label", {
+        name: this._titleOf(id),
+      }),
+    }));
+    void import("../locks/ha-lock-wizard").then(({ openLockWizard }) =>
+      openLockWizard({
+        key: named[0].key,
+        label: this._text("ui.phone.bulk_lock_label", { count: ids.length }),
+        also: named.slice(1),
+        anchor,
+        onStartDefault: false,
+        onCreated: () => {
+          this._live = this._text("ui.phone.bulk_locked", {
+            count: ids.length,
+          });
+        },
+      })
+    );
     this._finishPanel();
   }
 
@@ -2545,6 +2626,40 @@ export class HaPhoneBar extends LitElement {
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);
     }
+    .quick-tools {
+      display: flex;
+      justify-content: space-around;
+      gap: var(--ha-space-2);
+    }
+    .quick-tool {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--ha-space-1);
+      min-width: 64px;
+      min-height: 48px;
+      font-size: var(--ha-font-size-s);
+    }
+    .quick-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: var(--ha-border-radius-xl);
+    }
+    .quick-icon.search {
+      background-color: var(--ha-color-primary-container);
+      color: var(--ha-color-on-primary-container);
+    }
+    .quick-icon.access {
+      background-color: var(--ha-color-tertiary-container);
+      color: var(--ha-color-on-tertiary-container);
+    }
+    .quick-icon.new-tab {
+      background-color: var(--ha-color-warning-container);
+      color: var(--ha-color-on-warning-container);
+    }
     .new-tab-row,
     .entry {
       display: flex;
@@ -2607,21 +2722,19 @@ export class HaPhoneBar extends LitElement {
     }
     /* The open pages are rows of one rounded card, as the design draws them. */
     .grid {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border-radius: var(--ha-border-radius-3xl);
-      background-color: var(--card-background-color);
-      box-shadow: var(--ha-shadow-card, none);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--ha-space-3);
     }
     .card {
       position: relative;
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-1);
-      padding: var(--ha-space-2) var(--ha-space-3);
-      border-radius: var(--tab-radius, 0);
-      background-color: var(--tab-background, transparent);
+      padding: var(--ha-space-2);
+      border-radius: var(--tab-radius, var(--ha-border-radius-3xl));
+      background-color: var(--tab-background, var(--card-background-color));
+      box-shadow: var(--ha-shadow-card, none);
       color: var(--tab-color, inherit);
       font-weight: var(--tab-weight, inherit);
       font-style: var(--tab-font-style, inherit);
@@ -2629,8 +2742,30 @@ export class HaPhoneBar extends LitElement {
       touch-action: pan-y;
       min-width: 0;
     }
-    .card + .card {
-      border-top: 1px solid var(--divider-color);
+    /* A page card: a large tinted tile for the icon, then the title. */
+    .card .card-main {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--ha-space-2);
+    }
+    .card .card-main .entry-icon {
+      width: auto;
+      height: 72px;
+      border-radius: var(--ha-border-radius-2xl);
+      background: linear-gradient(
+        135deg,
+        var(--ha-color-primary-container, var(--secondary-background-color)),
+        var(--ha-color-tertiary-container, var(--secondary-background-color))
+      );
+      color: var(--ha-color-on-primary-container, inherit);
+      --mdc-icon-size: 28px;
+    }
+    .card .card-main .lock-mark,
+    .card .card-main .pin-mark {
+      position: absolute;
+      inset-block-start: var(--ha-space-3);
+      inset-inline-end: var(--ha-space-3);
+      margin: 0;
     }
     .card-text {
       display: flex;
@@ -2820,8 +2955,8 @@ export class HaPhoneBar extends LitElement {
         transition: none;
       }
     }
-    /* One column below 400 px, so three 44 px tools fit a card at 320 px. */
-    @media (max-width: 400px) {
+    /* One column below 340 px, so three 44 px tools fit a card at 320 px. */
+    @media (max-width: 340px) {
       .grid {
         grid-template-columns: minmax(0, 1fr);
       }

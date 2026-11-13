@@ -309,6 +309,7 @@ export class HaConfigRoles extends LitElement {
             <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
             <span>
               ${this.hass.localize("ui.panel.config.roles.views_and_cards_hint")}
+              ${this.hass.localize("ui.panel.config.roles.view_only_hint")}
             </span>
           </div>
         </ha-card>

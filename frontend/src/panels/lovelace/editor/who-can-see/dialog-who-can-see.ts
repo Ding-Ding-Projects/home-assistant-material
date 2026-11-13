@@ -11,11 +11,16 @@ import "../../../../components/user/ha-user-badge";
 import {
   evaluateForPerson,
   normalizeRoles,
+  roleLevel,
   roleRule,
   setRoleHidden,
+  setRoleLevel,
   visibilityByRole,
 } from "../../../../data/presentation-roles";
-import type { RoleVisibility } from "../../../../data/presentation-roles";
+import type {
+  RoleLevel,
+  RoleVisibility,
+} from "../../../../data/presentation-roles";
 import type { User } from "../../../../data/user";
 import { fetchUsers } from "../../../../data/user";
 import { haStyleDialog } from "../../../../resources/styles";
@@ -36,6 +41,8 @@ export class DialogWhoCanSee extends LitElement {
 
   @state() private _conditions: VisibilityCondition[] = [];
 
+  @state() private _viewOnly: VisibilityCondition[] = [];
+
   @state() private _users: User[] = [];
 
   @state() private _open = false;
@@ -43,6 +50,7 @@ export class DialogWhoCanSee extends LitElement {
   public async showDialog(params: WhoCanSeeDialogParams): Promise<void> {
     this._params = params;
     this._conditions = params.conditions;
+    this._viewOnly = params.viewOnly ?? [];
     this._open = true;
     try {
       this._users = (await fetchUsers(this.hass.callWS))
@@ -76,6 +84,7 @@ export class DialogWhoCanSee extends LitElement {
     }
     const roles = normalizeRoles(this.hass.systemData?.presentation_roles);
     const byRole = visibilityByRole(this._conditions, roles);
+    const supportsView = !!this._params.viewOnly;
     return html`
       <ha-dialog
         .open=${this._open}
@@ -92,6 +101,15 @@ export class DialogWhoCanSee extends LitElement {
           ${this.hass.localize("ui.panel.lovelace.editor.who_can_see.roles")}
         </h3>
         ${
+          this._params.viewOnly
+            ? html`<p class="muted">
+                ${this.hass.localize(
+                  "ui.panel.lovelace.editor.who_can_see.view_note"
+                )}
+              </p>`
+            : nothing
+        }
+        ${
           byRole.length
             ? byRole.map(
                 ({ role, sees }) => html`
@@ -107,30 +125,61 @@ export class DialogWhoCanSee extends LitElement {
                               "ui.panel.config.roles.custom_rule"
                             )}
                           </span>`
-                        : html`<ha-button-toggle-group
-                            size="s"
-                            .buttons=${[
-                              {
-                                label: this.hass.localize(
-                                  "ui.panel.config.roles.show"
-                                ),
-                                value: "show",
-                              },
-                              {
-                                label: this.hass.localize(
-                                  "ui.panel.config.roles.hide"
-                                ),
-                                value: "hide",
-                              },
-                            ]}
-                            .active=${
-                              roleRule(this._conditions, role.id) === "hide"
-                                ? "hide"
-                                : "show"
-                            }
-                            data-id=${role.id}
-                            @value-changed=${this._ruleChanged}
-                          ></ha-button-toggle-group>`
+                        : supportsView
+                          ? html`<ha-button-toggle-group
+                              size="s"
+                              .buttons=${[
+                                {
+                                  label: this.hass.localize(
+                                    "ui.panel.config.roles.level_hidden"
+                                  ),
+                                  value: "hide",
+                                },
+                                {
+                                  label: this.hass.localize(
+                                    "ui.panel.config.roles.level_view"
+                                  ),
+                                  value: "view",
+                                },
+                                {
+                                  label: this.hass.localize(
+                                    "ui.panel.config.roles.level_use"
+                                  ),
+                                  value: "use",
+                                },
+                              ]}
+                              .active=${roleLevel(
+                                this._conditions,
+                                this._viewOnly,
+                                role.id
+                              )}
+                              data-id=${role.id}
+                              @value-changed=${this._levelChanged}
+                            ></ha-button-toggle-group>`
+                          : html`<ha-button-toggle-group
+                              size="s"
+                              .buttons=${[
+                                {
+                                  label: this.hass.localize(
+                                    "ui.panel.config.roles.show"
+                                  ),
+                                  value: "show",
+                                },
+                                {
+                                  label: this.hass.localize(
+                                    "ui.panel.config.roles.hide"
+                                  ),
+                                  value: "hide",
+                                },
+                              ]}
+                              .active=${
+                                roleRule(this._conditions, role.id) === "hide"
+                                  ? "hide"
+                                  : "show"
+                              }
+                              data-id=${role.id}
+                              @value-changed=${this._ruleChanged}
+                            ></ha-button-toggle-group>`
                     }
                   </div>
                 `
@@ -176,6 +225,22 @@ export class DialogWhoCanSee extends LitElement {
     if (roleId) {
       this._setHidden(roleId, ev.detail.value === "hide");
     }
+  }
+
+  private _levelChanged(ev: CustomEvent<{ value: string }>) {
+    const roleId = (ev.currentTarget as HTMLElement).dataset.id;
+    const level = ev.detail.value as RoleLevel;
+    if (
+      !roleId ||
+      !["hide", "view", "use"].includes(level) ||
+      roleLevel(this._conditions, this._viewOnly, roleId) === level
+    ) {
+      return;
+    }
+    const next = setRoleLevel(this._conditions, this._viewOnly, roleId, level);
+    this._conditions = next.visibility;
+    this._viewOnly = next.view_only;
+    this._params?.apply(this._conditions, this._viewOnly);
   }
 
   private _setHidden(roleId: string, hidden: boolean) {

@@ -30,6 +30,10 @@ export const lightEntityFilters: EntityFilter[] = [
   { domain: "light", entity_category: "none" },
 ];
 
+// A light that is on glows with its own colour.
+const litTile = (card: LovelaceCardConfig): LovelaceCardConfig =>
+  card.type === "tile" ? { ...card, appearance: "lit" } : card;
+
 const processAreasForLight = (
   areaIds: string[],
   hass: HomeAssistant,
@@ -57,7 +61,7 @@ const processAreasForLight = (
     const computeTileCard = computeAreaTileCardConfig(hass, false);
 
     for (const entityId of areaLights) {
-      areaCards.push(computeTileCard(entityId));
+      areaCards.push(litTile(computeTileCard(entityId)));
     }
 
     if (areaCards.length > 0) {
@@ -184,7 +188,7 @@ const processUnassignedLights = (
   const computeTileCard = computeAreaTileCardConfig(hass, false);
 
   for (const entityId of unassignedLights) {
-    areaCards.push(computeTileCard(entityId));
+    areaCards.push(litTile(computeTileCard(entityId)));
   }
 
   return areaCards;

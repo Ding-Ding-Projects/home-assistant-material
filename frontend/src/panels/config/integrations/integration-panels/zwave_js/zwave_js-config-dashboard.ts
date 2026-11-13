@@ -7,8 +7,11 @@ import {
   mdiPlus,
   mdiPoll,
   mdiQrcode,
+  mdiCheck,
   mdiRefresh,
   mdiShape,
+  mdiShieldCheck,
+  mdiSleep,
   mdiTextBoxOutline,
   mdiTune,
   mdiVectorPolyline,
@@ -25,6 +28,8 @@ import "../../../../../components/ha-icon-button";
 import "../../../../../components/ha-icon-next";
 import "../../../../../components/ha-spinner";
 import "../../../../../components/ha-svg-icon";
+import "../ha-protocol-stat-tiles";
+import type { ProtocolStatTile } from "../ha-protocol-stat-tiles";
 import "../../../../../components/item/ha-list-item-base";
 import "../../../../../components/item/ha-list-item-button";
 import "../../../../../components/list/ha-list-base";
@@ -47,6 +52,7 @@ import {
   NodeStatus,
   ProvisioningEntryStatus,
   restoreZwaveNVM,
+  SecurityClass,
   subscribeS2Inclusion,
   subscribeZwaveNVMBackup,
 } from "../../../../../data/zwave_js";
@@ -177,6 +183,10 @@ class ZWaveJSConfigDashboard extends LitElement {
                     offlineDevices,
                     notReadyDevices
                   )}
+                  <ha-protocol-stat-tiles
+                    class="tiles"
+                    .tiles=${this._statTiles()}
+                  ></ha-protocol-stat-tiles>
                   <div class="columns">
                     <div class="column">
                       ${this._renderNetworkCard()} ${this._renderBackupCard()}
@@ -191,6 +201,53 @@ class ZWaveJSConfigDashboard extends LitElement {
         </div>
       </hass-subpage>
     `;
+  }
+
+  // Numbers the controller really reports for its nodes; nothing estimated.
+  private _statTiles(): ProtocolStatTile[] {
+    const nodes = this._network!.controller.nodes;
+    const localize = this.hass.localize;
+    const tiles: ProtocolStatTile[] = [
+      {
+        label: localize("ui.panel.config.zwave_js.dashboard.tile_devices"),
+        value: nodes.length,
+        icon: mdiDevices,
+        tone: "tertiary",
+      },
+      {
+        label: localize("ui.panel.config.zwave_js.dashboard.tile_ready"),
+        value: nodes.filter((node) => node.ready).length,
+        icon: mdiCheck,
+        tone: "success",
+      },
+      {
+        label: localize("ui.panel.config.zwave_js.dashboard.tile_asleep"),
+        value: nodes.filter((node) => node.status === NodeStatus.Asleep).length,
+        icon: mdiSleep,
+        tone: "warning",
+      },
+    ];
+    // The strongest security class any node was granted
+    const strength = [
+      SecurityClass.S2_AccessControl,
+      SecurityClass.S2_Authenticated,
+      SecurityClass.S2_Unauthenticated,
+      SecurityClass.S0_Legacy,
+    ];
+    const strongest = strength.find((securityClass) =>
+      nodes.some((node) => node.highest_security_class === securityClass)
+    );
+    if (strongest !== undefined) {
+      tiles.push({
+        label: localize("ui.panel.config.zwave_js.dashboard.tile_security"),
+        value: localize(
+          `ui.panel.config.zwave_js.security_classes.${SecurityClass[strongest]}.title`
+        ),
+        icon: mdiShieldCheck,
+        tone: "primary",
+      });
+    }
+    return tiles;
   }
 
   private _renderHero(
@@ -1025,6 +1082,10 @@ class ZWaveJSConfigDashboard extends LitElement {
           flex-direction: column;
           gap: var(--ha-space-2);
           min-width: min(220px, 100%);
+        }
+
+        .tiles {
+          margin-bottom: var(--ha-space-4);
         }
 
         .columns {

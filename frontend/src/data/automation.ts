@@ -98,6 +98,7 @@ export interface TriggerList {
 export interface BaseTrigger {
   alias?: string;
   note?: string;
+  editor_locked?: boolean;
   /** @deprecated Use `trigger` instead */
   platform?: string;
   trigger: string;
@@ -248,6 +249,7 @@ interface BaseCondition {
   condition: string;
   alias?: string;
   note?: string;
+  editor_locked?: boolean;
   enabled?: boolean;
   options?: Record<string, unknown>;
 }
@@ -499,16 +501,23 @@ export const migrateAutomationConfig = <
 export const TRIGGER_ROW_CONFIG_KEYS = [
   "alias",
   "note",
+  "editor_locked",
   "id",
   "enabled",
   "variables",
 ] as const;
 
-export const CONDITION_ROW_CONFIG_KEYS = ["alias", "note", "enabled"] as const;
+export const CONDITION_ROW_CONFIG_KEYS = [
+  "alias",
+  "note",
+  "editor_locked",
+  "enabled",
+] as const;
 
 export const ACTION_ROW_CONFIG_KEYS = [
   "alias",
   "note",
+  "editor_locked",
   "enabled",
   "continue_on_error",
 ] as const;

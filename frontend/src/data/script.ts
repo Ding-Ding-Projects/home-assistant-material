@@ -39,6 +39,7 @@ export const isMaxMode = arrayLiteralIncludes(MODES_MAX);
 export const baseActionStruct = object({
   alias: optional(string()),
   note: optional(string()),
+  editor_locked: optional(boolean()),
   continue_on_error: optional(boolean()),
   enabled: optional(boolean()),
 });
@@ -121,6 +122,8 @@ const getScriptFields = (services: HassServices, entityId: string) =>
 interface BaseAction {
   alias?: string;
   note?: string;
+  /** Guards the step against accidental edits in the editor. */
+  editor_locked?: boolean;
   continue_on_error?: boolean;
   enabled?: boolean;
 }

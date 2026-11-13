@@ -3,6 +3,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { mdiContentCopy } from "@mdi/js";
 import { formatTime } from "../../../../../common/datetime/format_time";
+import { fireEvent } from "../../../../../common/dom/fire_event";
 import { copyToClipboard } from "../../../../../common/util/copy-clipboard";
 import "../../../../../components/ha-button";
 import "../../../../../components/ha-card";
@@ -20,6 +21,22 @@ import { storage } from "../../../../../common/decorators/storage";
 import "../../../../../components/ha-switch";
 
 const qosLevel = ["0", "1", "2"];
+
+/** What the listener has measured since it was last started. */
+export interface MqttListenStats {
+  /** Messages received since listening started. */
+  count: number;
+  /** Different topics those messages came on. */
+  topics: number;
+  /** Milliseconds between starting and the latest message. */
+  elapsedMs: number;
+}
+
+declare global {
+  interface HASSDomEvents {
+    "mqtt-listen-stats": MqttListenStats;
+  }
+}
 
 @customElement("mqtt-subscribe-card")
 class MqttSubscribeCard extends LitElement {
@@ -59,6 +76,13 @@ class MqttSubscribeCard extends LitElement {
   }[] = [];
 
   private _messageCount = 0;
+
+  // Measured only while this page is open and the listener runs
+  private _heardCount = 0;
+
+  private _heardTopics = new Set<string>();
+
+  private _heardSince = 0;
 
   public disconnectedCallback() {
     super.disconnectedCallback();
@@ -217,6 +241,9 @@ class MqttSubscribeCard extends LitElement {
       this._subscribed();
       this._subscribed = undefined;
     } else {
+      this._heardCount = 0;
+      this._heardTopics = new Set();
+      this._heardSince = Date.now();
       const unsubscribe = await subscribeMQTTTopic(
         this.hass!,
         this._topic,
@@ -232,6 +259,13 @@ class MqttSubscribeCard extends LitElement {
   }
 
   private _handleMessage(message: MQTTMessage) {
+    this._heardCount++;
+    this._heardTopics.add(message.topic);
+    fireEvent(this, "mqtt-listen-stats", {
+      count: this._heardCount,
+      topics: this._heardTopics.size,
+      elapsedMs: Date.now() - this._heardSince,
+    });
     const tail =
       this._messages.length > 30 ? this._messages.slice(0, 29) : this._messages;
     let payload: string;

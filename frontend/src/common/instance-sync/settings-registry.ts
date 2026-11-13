@@ -73,6 +73,11 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     holds: "Every lock, with its PIN check data and wrong-try counters",
   },
   {
+    exact: "extensionConsents",
+    kind: "json",
+    holds: "Which extensions were allowed, at which address, by whom and when",
+  },
+  {
     exact: "supportTickets",
     kind: "json",
     holds: "Support desk tickets",
@@ -86,6 +91,11 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     exact: "typeScale",
     kind: "json",
     holds: "Type scale: base size, ratio and per-step sizes",
+  },
+  {
+    exact: "motionProfiles",
+    kind: "json",
+    holds: "Motion profiles: the profile in use and the person's own profiles",
   },
   // Tabs, history, saved content
   { exact: "pageTabsClosed", kind: "json", holds: "Closed tabs" },

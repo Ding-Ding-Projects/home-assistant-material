@@ -13,6 +13,7 @@ export const baseTriggerStruct = object({
   id: optional(string()),
   enabled: optional(boolean()),
   note: optional(string()),
+  editor_locked: optional(boolean()),
 });
 
 export const optionStruct = object({

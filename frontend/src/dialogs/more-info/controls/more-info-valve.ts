@@ -72,10 +72,11 @@ class MoreInfoValve extends LitElement {
       this._formatters.formatEntityAttributeValue
     );
 
+    // The dialog header shows the plain state; only add what it lacks.
     if (positionStateDisplay) {
       return `${stateDisplay} · ${positionStateDisplay}`;
     }
-    return stateDisplay;
+    return undefined;
   }
 
   protected render() {
@@ -107,7 +108,11 @@ class MoreInfoValve extends LitElement {
 
     return html`
       <div class="hero">
-        <div class="state">${this._stateOverride}</div>
+        ${
+          this._stateOverride
+            ? html`<div class="state">${this._stateOverride}</div>`
+            : nothing
+        }
         <div class="since">
           ${this._localize("ui.dialogs.more_info_control.valve.changed")}
           <ha-relative-time

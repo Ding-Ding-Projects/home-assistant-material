@@ -1,6 +1,6 @@
 import type { TemplateResult } from "lit";
 import { css, html, nothing } from "lit";
-import { customElement, state } from "lit/decorators";
+import { customElement, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { searchMatcher } from "../../../../common/regex/filter";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
@@ -15,9 +15,13 @@ import type { LovelaceCardConfig } from "../../../../data/lovelace/config/card";
 import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
 import type { LovelaceViewConfig } from "../../../../data/lovelace/config/view";
 import { insertCards, outline } from "../dashboard-tools";
+import { fileDownload } from "../../../../util/file_download";
 import {
   applyInputs,
+  buildCardFile,
+  CARD_FILE_MAX_CHARS,
   findInputs,
+  parseCardFile,
   latestVersion,
   removeFromLibrary,
   restoreVersion,
@@ -41,6 +45,8 @@ const cardAt = (
 
 @customElement("hui-tool-library")
 export class HuiToolLibrary extends ToolView {
+  @query(".file-input") private _fileInput?: HTMLInputElement;
+
   @state() private _library?: CardLibraryEntry[];
 
   @state() private _filter = "";
@@ -142,6 +148,24 @@ export class HuiToolLibrary extends ToolView {
           ${this._t("library.save")}
         </ha-button>
       </div>
+      <div class="row">
+        <ha-button
+          appearance="outlined"
+          .disabled=${this._busy}
+          @click=${this._chooseFile}
+        >
+          ${this._t("library.import_file")}
+        </ha-button>
+        <input
+          class="file-input"
+          type="file"
+          accept=".json,application/json"
+          tabindex="-1"
+          aria-hidden="true"
+          @change=${this._fileChosen}
+        />
+        <span class="muted">${this._t("library.file_note")}</span>
+      </div>
       <ha-input-search
         appearance="outlined"
         .label=${this._t("library.search")}
@@ -219,6 +243,13 @@ export class HuiToolLibrary extends ToolView {
                   @click=${this._insert}
                 >
                   ${this._t("library.insert")}
+                </ha-button>
+                <ha-button
+                  appearance="plain"
+                  .entry=${entry}
+                  @click=${this._share}
+                >
+                  ${this._t("library.share")}
                 </ha-button>
                 <ha-button
                   appearance="plain"
@@ -341,6 +372,54 @@ export class HuiToolLibrary extends ToolView {
     );
   }
 
+  /** Saves the shown version of one card as a JSON file on this device. */
+  private _share(ev: Event) {
+    const entry = (
+      ev.currentTarget as HTMLElement & { entry: CardLibraryEntry }
+    ).entry;
+    const index = this._version ?? entry.versions.length - 1;
+    const { filename, text } = buildCardFile(entry, entry.versions[index]?.at);
+    const url = URL.createObjectURL(
+      new Blob([text], { type: "application/json" })
+    );
+    fileDownload(url, filename);
+    this._notice = this._t("library.shared", { name: entry.name });
+  }
+
+  private _chooseFile() {
+    this._fileInput?.click();
+  }
+
+  /** Reads a chosen card file, checks it and adds it to the library as a card or a new version. */
+  private async _fileChosen(ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) {
+      return;
+    }
+    this._error = undefined;
+    this._notice = undefined;
+    if (file.size > CARD_FILE_MAX_CHARS * 4) {
+      this._error = this._t("library.import_failed.too_large");
+      return;
+    }
+    const parsed = parseCardFile(await file.text());
+    if (!parsed.ok) {
+      this._error = this._t(`library.import_failed.${parsed.reason}`);
+      return;
+    }
+    this._busy = true;
+    const before = this._all;
+    const next = saveToLibrary(before, parsed.name, parsed.card);
+    if (next === before) {
+      this._notice = this._t("library.unchanged", { name: parsed.name });
+    } else if (await this._store(next)) {
+      this._notice = this._t("library.imported", { name: parsed.name });
+    }
+    this._busy = false;
+  }
+
   private async _restore(ev: Event) {
     const entry = (
       ev.currentTarget as HTMLElement & { entry: CardLibraryEntry }
@@ -376,6 +455,9 @@ export class HuiToolLibrary extends ToolView {
     return [
       ToolView.styles,
       css`
+        .file-input {
+          display: none;
+        }
         .detail {
           flex: 1 1 100%;
           display: flex;

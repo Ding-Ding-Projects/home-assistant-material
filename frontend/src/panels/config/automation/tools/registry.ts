@@ -10,6 +10,7 @@ import {
   mdiAlertOutline,
   mdiTextBoxOutline,
   mdiToggleSwitchOutline,
+  mdiFlaskOutline,
 } from "@mdi/js";
 import type { ManualAutomationConfig } from "../../../../data/automation";
 import type { HomeAssistant } from "../../../../types";
@@ -130,4 +131,12 @@ export const AUTOMATION_TOOLS: AutomationToolEntry[] = [
       open: () => TOOL_MODULES[id](),
     })
   ),
+  {
+    id: "tests",
+    icon: mdiFlaskOutline,
+    labelKey: "ui.panel.config.automation.editor.tools.tests.title",
+    descriptionKey: "ui.panel.config.automation.editor.tools.tests.description",
+    element: "ha-automation-tool-tests",
+    open: () => import("./ha-automation-tool-tests"),
+  },
 ];

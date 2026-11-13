@@ -75,6 +75,12 @@ export interface LockWizardTarget {
   /** Called after the lock was made. */
   onCreated?: () => void;
   /**
+   * More things locked with the same choices in the same wizard: each gets
+   * its own lock record with the same unlock way, so one pass locks them all.
+   * `label` then names the whole group, such as "3 pages".
+   */
+  also?: { key: string; label: string }[];
+  /**
    * Whether "locked on start" begins ticked. On by default; a lock on one
    * small thing, such as a tab, starts with it off so the whole app is not
    * covered at start by surprise.
@@ -1065,22 +1071,35 @@ export class HaLockWizard extends LitElement {
     this._busy = true;
     try {
       const has = (factor: LockFactor) => this._factors.includes(factor);
-      const record = await createLockRecord(
-        {
-          key: this.target.key,
-          label: this.target.label,
-          policy: this._policy,
-          duration: this._duration,
-          page: this.target.page ?? document.title,
-          onStart: this._onStart,
-          pin: has("pin") ? this._pin : undefined,
-          password: has("password") ? this._password : undefined,
-          totpSecret: has("totp") ? this._totpSecret : undefined,
-          nfcTag: has("nfc") ? this._nfcTag : undefined,
-        },
-        Date.now()
+      const members = [
+        { key: this.target.key, label: this.target.label },
+        ...(this.target.also ?? []),
+      ];
+      // Locks made together are each named for what they lock.
+      const records = await Promise.all(
+        members.map((member) =>
+          createLockRecord(
+            {
+              key: member.key,
+              label: member.label,
+              policy: this._policy,
+              duration: this._duration,
+              page: this.target.page ?? document.title,
+              onStart: this._onStart,
+              pin: has("pin") ? this._pin : undefined,
+              password: has("password") ? this._password : undefined,
+              totpSecret: has("totp") ? this._totpSecret : undefined,
+              nfcTag: has("nfc") ? this._nfcTag : undefined,
+            },
+            Date.now()
+          )
+        )
       );
-      writeLocks(withLockRecord(readLocks(), record));
+      const store = records.reduce(
+        (current, record) => withLockRecord(current, record),
+        readLocks()
+      );
+      writeLocks(store);
       applyElementLocks();
       this._pin = "";
       this._password = "";

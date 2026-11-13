@@ -61,9 +61,17 @@ export class HaButton extends Button {
 
           transition:
             background-color var(--ha-animation-duration-fast) ease-out,
-            transform var(--ha-animation-duration-normal)
-              var(--ha-motion-spring, ease-out),
-            box-shadow var(--ha-animation-duration-normal)
+            transform
+              var(
+                --ha-motion-buttons-duration,
+                var(--ha-animation-duration-normal)
+              )
+              var(--ha-motion-buttons-curve, var(--ha-motion-spring, ease-out)),
+            box-shadow
+              var(
+                --ha-motion-buttons-duration,
+                var(--ha-animation-duration-normal)
+              )
               var(--ha-motion-ease, ease-out);
           text-wrap: wrap;
           box-shadow: var(--ha-button-box-shadow);

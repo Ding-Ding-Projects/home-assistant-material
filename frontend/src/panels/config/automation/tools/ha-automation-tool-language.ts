@@ -77,6 +77,9 @@ export class HaAutomationToolLanguage extends LitElement {
           <ul class="hint patterns">
             <li>${this._t("pattern_state")}</li>
             <li>${this._t("pattern_time")}</li>
+            <li>${this._t("pattern_numeric")}</li>
+            <li>${this._t("pattern_sun")}</li>
+            <li>${this._t("pattern_and")}</li>
           </ul>
           <ha-textarea
             .label=${this._t("sentence_label")}
