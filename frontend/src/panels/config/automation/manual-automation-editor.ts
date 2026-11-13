@@ -68,6 +68,7 @@ import "./ha-automation-status-bar";
 import "./search/ha-automation-search-bar";
 import "./action/ha-automation-action";
 import "./action/ha-automation-continue-on-error-all";
+import { inheritContinueOnError } from "./action/continue-on-error-all";
 import type HaAutomationAction from "./action/ha-automation-action";
 import "./condition/ha-automation-condition";
 import type HaAutomationCondition from "./condition/ha-automation-condition";
@@ -635,8 +636,12 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
   private _actionChanged(ev: CustomEvent): void {
     ev.stopPropagation();
     this.resetPastedConfig();
+    const actions = inheritContinueOnError(
+      this.config.actions,
+      ev.detail.value as Action[]
+    );
     fireEvent(this, "value-changed", {
-      value: { ...this.config!, actions: ev.detail.value as Action[] },
+      value: { ...this.config!, actions },
     });
   }
 

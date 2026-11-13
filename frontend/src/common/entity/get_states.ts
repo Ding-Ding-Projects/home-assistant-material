@@ -301,6 +301,8 @@ export const DOMAIN_OPTIONS_ATTRIBUTES: Record<
     preset_mode: "preset_modes",
     swing_mode: "swing_modes",
     swing_horizontal_mode: "swing_horizontal_modes",
+    vane_horizontal: "vane_horizontal_positions",
+    vane_vertical: "vane_vertical_positions",
   },
   cover: {
     speed: "supported_speeds",

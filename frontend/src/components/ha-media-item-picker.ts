@@ -49,6 +49,7 @@ export class HaMediaItemPicker extends LitElement {
 
   @property({ attribute: false }) public context?: {
     filter_entity?: string | string[];
+    allow_local_media?: boolean;
   };
 
   private _contextEntities: string[] | undefined;
@@ -67,13 +68,10 @@ export class HaMediaItemPicker extends LitElement {
 
   protected render() {
     const entityId = this._getActiveEntityId();
-
-    const stateObj = entityId ? this.hass.states[entityId] : undefined;
-
-    const supportsBrowse =
-      !entityId ||
-      (stateObj &&
-        supportsFeature(stateObj, MediaPlayerEntityFeature.BROWSE_MEDIA));
+    const allowLocal = this.context?.allow_local_media;
+    const supportsBrowse = !entityId || this._canBrowse(entityId);
+    const canOpenBrowser =
+      !this.disabled && (Boolean(entityId) || this._hasAccept || allowLocal);
 
     if (this.selector.media?.image_upload && !this.value) {
       return html`${this.label ? html`<label>${this.label}</label>` : nothing}
@@ -114,7 +112,7 @@ export class HaMediaItemPicker extends LitElement {
             `
       }
       ${
-        !supportsBrowse
+        !supportsBrowse && !allowLocal
           ? html`
               ${this.label ? html`<label>${this.label}</label>` : nothing}
               <ha-alert>
@@ -133,8 +131,9 @@ export class HaMediaItemPicker extends LitElement {
           : html`${this.label ? html`<label>${this.label}</label>` : nothing}
               <ha-card
                 outlined
-                tabindex="0"
+                tabindex=${canOpenBrowser ? 0 : -1}
                 role="button"
+                aria-disabled=${String(!canOpenBrowser)}
                 aria-label=${
                   !this.value?.media_content_id
                     ? this.hass.localize(
@@ -144,11 +143,7 @@ export class HaMediaItemPicker extends LitElement {
                 }
                 @click=${this._pickMedia}
                 @keydown=${this._handleKeyDown}
-                class=${
-                  this.disabled || (!entityId && !this._hasAccept)
-                    ? "disabled"
-                    : ""
-                }
+                class=${!canOpenBrowser ? "disabled" : ""}
               >
                 <div class="content-container">
                   <div class="thumbnail">
@@ -277,10 +272,20 @@ export class HaMediaItemPicker extends LitElement {
   }
 
   private _pickMedia() {
+    const selected = this._getActiveEntityId();
+    if (
+      this.disabled ||
+      (!selected && !this._hasAccept && !this.context?.allow_local_media)
+    ) {
+      return;
+    }
+    const useLocal =
+      this.context?.allow_local_media &&
+      (!selected || !this._canBrowse(selected));
     showMediaBrowserDialog(this, {
       action: "pick",
-      entityId: this._getActiveEntityId(),
-      navigateIds: this.value?.metadata?.navigateIds,
+      entityId: useLocal ? undefined : selected,
+      navigateIds: useLocal ? undefined : this.value?.metadata?.navigateIds,
       accept: this.selector.media?.accept,
       defaultId: this.value?.media_content_id,
       defaultType: this.value?.media_content_type,
@@ -309,6 +314,13 @@ export class HaMediaItemPicker extends LitElement {
         });
       },
     });
+  }
+
+  private _canBrowse(entityId: string): boolean {
+    const entity = this.hass.states[entityId];
+    return (
+      !!entity && supportsFeature(entity, MediaPlayerEntityFeature.BROWSE_MEDIA)
+    );
   }
 
   private _getActiveEntityId(): string | undefined {

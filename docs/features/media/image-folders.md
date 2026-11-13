@@ -90,6 +90,10 @@ Every file in the Manage dialog, for the media library and the image store, has 
   JPEG are offered there, and the dialog says so. What a conversion loses is shown from the converter's own
   notes (for example that transparent areas were filled with white).
 
+The dialog reports whether it is converting locally or uploading the copy. Cancel stops
+the active step. If the upload had already begun, check the folder before retrying because
+the server may have received the copy. The original remains in place.
+
 All of these are for administrators, like the Manage dialog itself. The Media browser itself has no item
 menu, so these live in the Manage dialog.
 

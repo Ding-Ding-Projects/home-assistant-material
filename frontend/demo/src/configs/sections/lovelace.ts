@@ -357,6 +357,9 @@ export const demoLovelaceSections: DemoConfig["lovelace"] = (localize) => ({
               name: "Core",
               icon: "mdi:home-assistant",
             },
+            ...(!isFrontpageEmbed
+              ? [{ type: "repairs", hide_empty: false }]
+              : []),
           ],
         },
       ],

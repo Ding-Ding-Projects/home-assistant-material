@@ -33,7 +33,11 @@ turn_on:
           - siren.SirenEntityFeature.DURATION
       required: false
       selector:
-        text:
+        number:
+          min: 0
+          step: 1
+          mode: box
+          unit_of_measurement: s
 
 turn_off:
   target:

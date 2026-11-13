@@ -4,11 +4,11 @@ name: Release
 # but only after the whole run has succeeded.
 # This workflow runs no tests and no lint. It builds, packages and publishes.
 #
-# No GitHub release exists while the build jobs run. Each job hands its files to the
-# last job (publish) as workflow artifacts. Publish needs every other job to have
-# succeeded, then creates one normal release with every file, reads it back, and only
-# then moves the update feed. A failed or cancelled run publishes no release and does
-# not move the feed. Container images are not releases: they are pushed by their own
+# No GitHub release exists while the build jobs run. The build jobs upload their
+# files as workflow artifacts, which also back up the release downloads. Publish
+# needs every other job to have succeeded. It creates one normal release with every
+# file, reads it back, and then moves the update feed. A failed or cancelled run
+# publishes no release and does not move the feed. Container images are pushed by their own
 # jobs, so an image tag can exist for a build that never becomes a release.
 #
 # Pushes that only touch documentation or design files build nothing and publish no
@@ -164,7 +164,7 @@ jobs:
           name: frontend-wheel
           path: frontend/dist/*.whl
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 14
 
   translations:
     name: Collect integration translations
@@ -194,7 +194,7 @@ jobs:
           name: translations
           path: translations.tar.gz
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
   core:
     name: Build ${{ matrix.arch }} core images
@@ -575,7 +575,7 @@ jobs:
             /mnt/output/images/SHA256SUMS.${{ matrix.board.id }}
           if-no-files-found: error
           compression-level: 0
-          retention-days: 3
+          retention-days: 14
 
       - name: Record whether updates over the air can be offered
         run: echo "${{ steps.key.outputs.persistent }}" > persistent.txt
@@ -585,7 +585,7 @@ jobs:
         with:
           name: os-signing-${{ matrix.board.id }}
           path: persistent.txt
-          retention-days: 3
+          retention-days: 14
 
       - name: Save the compiler cache
         if: success()
@@ -632,7 +632,7 @@ jobs:
           name: release-assistant
           path: files/*
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 14
 
   # The only job that creates the release. It runs only when every job above it
   # succeeded (no always(): a failed, cancelled or skipped job skips this one), so a
@@ -813,15 +813,51 @@ jobs:
           python3 scripts/ci/check-release.py readback.json file-list.txt
 
           # The release is complete. Move the update feed. Operating system entries
-          # advance only when the images were signed with the persistent key; with a
-          # one-time key the feed keeps its previous operating system versions (the
-          # hassos entries), so no update that cannot be installed is ever offered.
-          os_args=()
-          if grep -rqx "false" signing; then
-            echo "Operating system images were signed with a one-time key. The update feed keeps its operating system entries unchanged."
-          else
-            os_args=(--os "${TAG}")
-          fi
+          # advance only when all boards report that they used the persistent key.
+          os_args=(--os "${TAG}")
+          for id in $(jq -r '.[].id' <<< "${BOARDS}"); do
+            if ! cmp -s "signing/os-signing-${id}/persistent.txt" <(printf 'true\n'); then
+              echo "No persistent signing confirmation for ${id}. Keeping the existing operating system feed entries."
+              os_args=()
+              break
+            fi
+          done
           scripts/ci/publish-channel.sh "${BUILD}" "${os_args[@]}"
           armed=0
           gh release view "${TAG}" --json tagName,isDraft,isPrerelease,url
+
+      - name: Record release recovery information
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          PUBLISH_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p recovery
+          printf 'Run: %s/%s/actions/runs/%s\nSource: %s\nRelease: %s\nJob status: %s\n' \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
+            "$GITHUB_SHA" "$TAG" "$PUBLISH_STATUS" > recovery/build.txt
+          for name in notes.md file-list.txt readback.json; do
+            if [ -f "$name" ]; then cp "$name" recovery/; fi
+          done
+          if [ -f out/stable.json ]; then cp out/stable.json recovery/; fi
+          if [ -d signing ]; then
+            find signing -type f -name persistent.txt -print0 |
+              while IFS= read -r -d '' name; do
+                cp "$name" "recovery/$(basename "$(dirname "$name")").txt"
+              done
+          fi
+          {
+            printf '\n### Backup downloads\n\n'
+            printf 'The run keeps the frontend wheel, operating system images and Deploy Assistant files under Artifacts.\n'
+            printf 'Use the source and release in the recovery artifact to verify a manual release.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release recovery information
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: publication-recovery-${{ github.run_attempt }}
+          path: recovery/
+          if-no-files-found: warn
+          retention-days: 14

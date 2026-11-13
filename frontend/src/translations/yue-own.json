@@ -89,6 +89,13 @@
         }
       },
       "config": {
+        "tools": {
+          "tabs": {
+            "converter": {
+              "error_image_timeout": "圖片處理等候太耐。請試用較細嘅圖片或另一個瀏覽器。"
+            }
+          }
+        },
         "apps": {
           "info": {
             "needs_os_title": "應用程式要用 Operating System",
@@ -128,6 +135,13 @@
         },
         "automation": {
           "editor": {
+            "actions": {
+              "type": {
+                "event": {
+                  "event_data_template": "事件資料（舊式範本）"
+                }
+              }
+            },
             "search": {
               "title": "搜尋呢個編輯器",
               "label": "搜尋步驟",
@@ -1981,7 +1995,30 @@
       }
     },
     "components": {
+      "string_builder": {
+        "composition_heading": "你嘅文字",
+        "insert_help": "將項目拖入文字。你亦可以先將游標放喺文字入面，再揀要插入嘅項目。"
+      },
+      "action-field-adapter": {
+        "amount": "日數或星期數",
+        "unit": "時間單位",
+        "days": "日",
+        "weeks": "星期",
+        "weekdays": "星期幾",
+        "time": "時間",
+        "active": "啟用",
+        "sunday": "星期日",
+        "monday": "星期一",
+        "tuesday": "星期二",
+        "wednesday": "星期三",
+        "thursday": "星期四",
+        "friday": "星期五",
+        "saturday": "星期六"
+      },
       "object-editor": {
+        "add_custom_entry": "加入自訂項目",
+        "custom_value": "自訂值或範本",
+        "saved_value_type": "呢個已儲存嘅值用咗另一種類型，原值保留喺下面。",
         "visual": "圖像編輯",
         "yaml": "YAML",
         "empty_title": "未有選項",
@@ -2259,6 +2296,8 @@
           "partly_moved": "停低之前已移動 {moved} / {total} 個項目：{reason}",
           "highlight_button": "撳呢度上載你第一個媒體",
           "upload_failed": "上載失敗：{reason}",
+          "upload_cancelled": "已取消上載。重試前請先檢查目的地資料夾。",
+          "upload_timeout": "傳輸等候太耐，已經停止。重試前請先檢查目的地資料夾。",
           "add_media": "加入媒體",
           "uploading": "上載緊 {count} 個檔案",
           "confirm_delete": "要刪除 {count} 個檔案嗎？",
@@ -2276,6 +2315,10 @@
           "convert_to": "轉換成",
           "convert_result_name": "新檔案會叫做 {name}。",
           "convert_original_kept": "原本嘅檔案保持不變。",
+          "convert_phase_converting": "正在本機轉換…",
+          "convert_phase_uploading": "正在上載轉換後嘅副本…",
+          "convert_timeout": "呢個步驟等候太耐，已經停止。原檔案冇變更。",
+          "convert_upload_cancelled": "上載已停止。伺服器可能已收到副本。重試前請重新整理資料夾。原檔案冇變更。",
           "convert_image_store": "只提供圖片庫儲存到嘅圖片類型：PNG 同 JPEG。",
           "convert_unsupported": "呢度轉換唔到呢個檔案。淨係圖片、聲音同影片可以。",
           "convert_no_targets": "呢度冇可以轉換成嘅格式。",

@@ -82,16 +82,23 @@ export const convertItem = async (
   target: TargetId,
   signal?: AbortSignal
 ): Promise<ItemConversion> => {
+  if (signal?.aborted) return { ok: false, error: { code: "aborted" } };
   if (bytes.length > MAX_BYTES) {
     return { ok: false, error: { code: "too_large", detail: name } };
   }
   const outName = outputFileName(name, target, false);
   if (isImageTarget(target)) {
-    const result = await convertImage(bytes, source.sniffed, {
-      format: target as ImageFormat,
-      quality: DEFAULT_EXTRA_OPTIONS.quality,
-      resize: { mode: "keep" },
-    });
+    const result = await convertImage(
+      bytes,
+      source.sniffed,
+      {
+        format: target as ImageFormat,
+        quality: DEFAULT_EXTRA_OPTIONS.quality,
+        resize: { mode: "keep" },
+      },
+      signal
+    );
+    if (signal?.aborted) return { ok: false, error: { code: "aborted" } };
     if (!result.ok) {
       return result;
     }
@@ -112,6 +119,7 @@ export const convertItem = async (
     DEFAULT_EXTRA_OPTIONS,
     signal
   );
+  if (signal?.aborted) return { ok: false, error: { code: "aborted" } };
   if (!result.ok) {
     return result;
   }

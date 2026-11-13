@@ -4,6 +4,7 @@ import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { parseTemplate } from "../../common/string-builder/parse";
 import { serializePieces } from "../../common/string-builder/serialize";
 import type { Piece } from "../../common/string-builder/types";
@@ -44,6 +45,7 @@ const RUN_ONLY = /\b(trigger|wait|repeat|this|variables)\b/;
  */
 @customElement("ha-string-builder-dialog")
 export class HaStringBuilderDialog extends LitElement {
+  private _languageMode = new LanguageModeController(this);
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   /** The text the field holds when the builder is opened. */
@@ -88,6 +90,13 @@ export class HaStringBuilderDialog extends LitElement {
 
   protected render() {
     const template = this._template;
+    const composition = this._pieces.map((piece) =>
+      piece.kind === "text"
+        ? piece.text
+        : html`<span class="piece-summary"
+            >${this._t(`kinds.${piece.kind}`)}</span
+          >`
+    );
     return html`
       <ha-adaptive-dialog
         .open=${this.open}
@@ -105,6 +114,12 @@ export class HaStringBuilderDialog extends LitElement {
               >`
         }
         <div class="content">
+          <section class="composition">
+            <h3 id="sb-composition">${this._t("composition_heading")}</h3>
+            <div class="rendered" aria-labelledby="sb-composition">
+              <span>${composition}</span>
+            </div>
+          </section>
           <ha-string-builder-editor
             .hass=${this.hass}
             .pieces=${this._pieces}
@@ -189,7 +204,7 @@ ${template || this._t("template_empty")}</pre>
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
-    return this.hass.localize(`${KEY}.${key}` as any, values as any);
+    return this._languageMode.text(this.hass.localize, `${KEY}.${key}`, values);
   }
 
   private _piecesChanged(ev: CustomEvent<{ pieces: Piece[] }>) {
@@ -323,6 +338,12 @@ ${template || this._t("template_empty")}</pre>
         overflow-wrap: anywhere;
         min-height: 1.5em;
       }
+      .composition .rendered {
+        white-space: normal;
+      }
+      .composition .rendered > span {
+        white-space: pre-wrap;
+      }
       .template {
         font-family: var(--ha-font-family-code);
         font-size: var(--ha-font-size-s);
@@ -330,6 +351,13 @@ ${template || this._t("template_empty")}</pre>
       }
       .muted {
         color: var(--secondary-text-color);
+      }
+      .piece-summary {
+        display: inline-block;
+        padding: 0 var(--ha-space-2);
+        background: var(--ha-color-primary-container);
+        color: var(--ha-color-on-primary-container);
+        border-radius: var(--ha-border-radius-pill);
       }
     `,
   ];

@@ -10,9 +10,12 @@ import "./ha-entity-state-picker";
 
 @customElement("ha-entity-states-picker")
 export class HaEntityStatesPicker extends LitElement {
-  @property({ attribute: false }) public entityId?: string;
+  @property({ attribute: false }) public entityId?: string | string[];
 
   @property() public attribute?: string;
+
+  @property({ type: Boolean, attribute: false }) public commonOptionsOnly =
+    false;
 
   @property({ attribute: false }) public extraOptions?: any[];
 
@@ -63,6 +66,7 @@ export class HaEntityStatesPicker extends LitElement {
               .index=${index}
               .entityId=${this.entityId}
               .attribute=${this.attribute}
+              .commonOptionsOnly=${this.commonOptionsOnly}
               .extraOptions=${this.extraOptions}
               .hideStates=${hide.filter((v) => v !== state)}
               .allowCustomValue=${this.allowCustomValue}
@@ -88,6 +92,7 @@ export class HaEntityStatesPicker extends LitElement {
                 html`<ha-entity-state-picker
                   .entityId=${this.entityId}
                   .attribute=${this.attribute}
+                  .commonOptionsOnly=${this.commonOptionsOnly}
                   .extraOptions=${this.extraOptions}
                   .hideStates=${hide}
                   .allowCustomValue=${this.allowCustomValue}

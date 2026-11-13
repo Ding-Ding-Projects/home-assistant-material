@@ -29,8 +29,9 @@ desktop app has its own [folder](deploy-assistant/README.md).
 
 Open the [browser demo](https://ding-ding-projects.github.io/home-assistant-material/demo/) to use the
 Home Assistant Material interface with a sample home. The [speech options example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_action_options)
-and the [scene action example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_scene_dictionary)
-open the real automation editor. Save a change and reopen the example to see it in your browser.
+and the [media picker example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_play_media)
+open the real automation editor. The [sample dashboard](https://ding-ding-projects.github.io/home-assistant-material/demo/#/lovelace/home)
+includes an editable Repairs card. Save a change and reopen an example to see it in your browser.
 Actions in the demo affect sample entities only.
 
 ## Run the container

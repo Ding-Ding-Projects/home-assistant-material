@@ -7,6 +7,7 @@ import memoizeOne from "memoize-one";
 import { keyed } from "lit/directives/keyed";
 import {
   clearObjectDraft,
+  getObjectDraft,
   transferObjectDrafts,
 } from "../common/object-editor/object-model";
 import "./ha-selector/ha-selector-object";
@@ -21,6 +22,7 @@ import { LanguageModeController } from "../common/language-mode/language-mode-co
 import { computeObjectId } from "../common/entity/compute_object_id";
 import { supportsFeature } from "../common/entity/supports-feature";
 import { hasTemplate } from "../common/string/has-template";
+import { actionFieldAdapterKind } from "../data/action-field-adapters";
 import {
   fetchIntegrationManifest,
   type IntegrationManifest,
@@ -33,17 +35,19 @@ import {
   fillFieldDefaults,
   filterTargetForSelector,
   resolveEntityIDs,
+  type MediaSelectorValue,
   type Selector,
   type TargetSelector,
 } from "../data/selector";
+import { SirenEntityFeature } from "../data/siren";
 import type { HassServiceTargetWithExclude } from "../data/target";
 import type { HomeAssistant, ValueChangedEvent } from "../types";
 import { documentationUrl } from "../util/documentation-url";
 import { getSelectorFallbackValue } from "./ha-form/get-selector-fallback-value";
+import "./ha-action-field-adapter";
 import "./ha-icon-button";
 import "./ha-markdown";
 import "./ha-selector/ha-selector";
-import type { HaSelector } from "./ha-selector/ha-selector";
 import "./ha-service-picker";
 import "./ha-service-section-icon";
 import "./ha-svg-icon";
@@ -70,6 +74,41 @@ const showOptionalToggle = (field) =>
 // A switch fits next to its label, even when the editor is narrow.
 const isBooleanSelector = (selector?: Selector): boolean =>
   !!selector && "boolean" in selector;
+
+const sirenToneChoices = (
+  hass: HomeAssistant,
+  targetEntities: string[] | null
+): { value: string; label: string }[] => {
+  const states = [...new Set(targetEntities ?? [])].map(
+    (entityId) => hass.states[entityId]
+  );
+  if (states.some((entity) => !entity)) return [];
+
+  const available = states
+    .filter(
+      (entity) => entity && supportsFeature(entity, SirenEntityFeature.TONES)
+    )
+    .map(({ attributes }) => {
+      const tones = attributes.available_tones;
+      if (Array.isArray(tones)) {
+        return tones
+          .filter(
+            (tone) => typeof tone === "number" || typeof tone === "string"
+          )
+          .map((tone) => ({ value: String(tone), label: String(tone) }));
+      }
+      return tones && typeof tones === "object"
+        ? Object.entries(tones)
+            .filter(([, name]) => typeof name === "string")
+            .map(([value, name]) => ({ value, label: String(name) }))
+        : [];
+    });
+  return (available[0] ?? []).filter(
+    ({ value }, index, first) =>
+      first.findIndex((tone) => tone.value === value) === index &&
+      available.every((tones) => tones.some((tone) => tone.value === value))
+  );
+};
 
 interface Field extends Omit<HassService["fields"][string], "selector"> {
   key: string;
@@ -123,6 +162,8 @@ export class HaServiceControl extends LitElement {
 
   @state() private _checkedKeys = new Set();
 
+  @state() private _legacyMediaValue?: MediaSelectorValue;
+
   @state() private _manifest?: IntegrationManifest;
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
@@ -159,6 +200,7 @@ export class HaServiceControl extends LitElement {
     if (oldValue?.action !== this.value?.action) {
       this._checkedKeys = new Set();
       this._stickySelector = {};
+      this._legacyMediaValue = undefined;
     }
 
     const serviceData = this._getServiceInfo(
@@ -402,44 +444,35 @@ export class HaServiceControl extends LitElement {
   };
 
   private _filterField(
-    filter: ExtHassService["fields"][number]["filter"],
+    filter: NonNullable<Field["filter"]>,
     targetEntities: string[] | null
   ) {
-    if (targetEntities === null) {
-      return true; // Target is a template, show all fields
-    }
-    if (!targetEntities.length) {
-      return false;
-    }
+    return (
+      targetEntities === null ||
+      targetEntities.some((entityId) =>
+        this._matchesFieldTarget(filter, entityId)
+      )
+    );
+  }
+
+  private _matchesFieldTarget(
+    filter: NonNullable<Field["filter"]>,
+    entityId: string
+  ): boolean {
+    const entity = this.hass.states[entityId];
+    if (!entity) return false;
     if (
-      targetEntities.some((entityId) => {
-        const entityState = this.hass.states[entityId];
-        if (!entityState) {
-          return false;
-        }
-        if (
-          filter!.supported_features?.some((feature) =>
-            supportsFeature(entityState, feature)
-          )
-        ) {
-          return true;
-        }
-        if (
-          filter!.attribute &&
-          Object.entries(filter!.attribute).some(
-            ([attribute, values]) =>
-              attribute in entityState.attributes &&
-              attributeFilter(values, entityState.attributes[attribute])
-          )
-        ) {
-          return true;
-        }
-        return false;
-      })
+      filter.supported_features?.some((feature) =>
+        supportsFeature(entity, feature)
+      )
     ) {
       return true;
     }
-    return false;
+    return Object.entries(filter.attribute ?? {}).some(
+      ([attribute, values]) =>
+        attribute in entity.attributes &&
+        attributeFilter(values, entity.attributes[attribute])
+    );
   }
 
   private _targetSelector = memoizeOne(
@@ -467,9 +500,19 @@ export class HaServiceControl extends LitElement {
     );
 
     const wholeData = !serviceData?.hasSelector.length;
+    const data = this._value?.data;
+    const actionDataRequired =
+      !serviceData ||
+      serviceData.flatFields.some((field) => field.key !== "entity_id") ||
+      (data !== undefined &&
+        (typeof data !== "object" ||
+          data === null ||
+          Array.isArray(data) ||
+          Object.keys(data).some((key) => key !== "entity_id"))) ||
+      getObjectDraft(this.value, "$data")?.valid === false;
     const additionalData = Object.fromEntries(
       Object.entries(this._value?.data || {}).filter(
-        ([key]) => !serviceData?.hasSelector.includes(key)
+        ([key]) => !this._dataEditorKeys(serviceData).includes(key)
       )
     );
 
@@ -586,7 +629,9 @@ export class HaServiceControl extends LitElement {
     }
     ${
       wholeData
-        ? this._renderDataDictionary(this._value?.data, false)
+        ? actionDataRequired && this._value?.action
+          ? this._renderDataDictionary(data, false)
+          : nothing
         : serviceData?.fields.map((dataField) => {
             if (!dataField.fields) {
               return this._renderField(
@@ -642,6 +687,63 @@ export class HaServiceControl extends LitElement {
     ${!wholeData ? this._renderDataDictionary(additionalData, true) : nothing} `;
   }
 
+  /** Legacy play-media actions keep their split data until explicitly edited. */
+  private _usesLegacyMedia(service: ExtHassService | undefined): boolean {
+    const data = this._value?.data;
+    return (
+      this._value?.action === "media_player.play_media" &&
+      !!data &&
+      !("media" in data) &&
+      ("media_content_id" in data || "media_content_type" in data) &&
+      [data.media_content_id, data.media_content_type].every(
+        (value) =>
+          value === undefined ||
+          (typeof value === "string" && !hasTemplate(value))
+      ) &&
+      !!service?.flatFields.some(
+        (field) =>
+          field.key === "media" && field.selector && "media" in field.selector
+      )
+    );
+  }
+
+  private _dataEditorKeys(service: ExtHassService | undefined): string[] {
+    return this._usesLegacyMedia(service)
+      ? [
+          ...(service?.hasSelector || []),
+          "media_content_id",
+          "media_content_type",
+        ]
+      : service?.hasSelector || [];
+  }
+
+  private _fieldValue(key: string): unknown {
+    const data = this._value?.data;
+    if (
+      key !== "media" ||
+      !this._usesLegacyMedia(
+        this._getServiceInfo(this._value?.action, this.hass.services)
+      )
+    ) {
+      return data?.[key];
+    }
+    const cached = this._legacyMediaValue;
+    const browseId = cached?.metadata?.browse_entity_id;
+    const sameItem =
+      cached?.media_content_id === data?.media_content_id &&
+      cached?.media_content_type === data?.media_content_type;
+    const metadata = sameItem
+      ? cached?.metadata
+      : browseId
+        ? { browse_entity_id: browseId }
+        : undefined;
+    return {
+      media_content_id: data?.media_content_id,
+      media_content_type: data?.media_content_type,
+      ...(metadata ? { metadata } : {}),
+    } satisfies MediaSelectorValue;
+  }
+
   private _renderDataDictionary(value: unknown, additional: boolean) {
     const service = this._getServiceInfo(
       this._value?.action,
@@ -682,7 +784,7 @@ export class HaServiceControl extends LitElement {
           .selector=${{ object: {} }}
           .context=${{ draft_owner: this.value, draft_key: additional ? "$additional" : "$data", known_options: { action: this._value?.action, field: "data", target: this._value?.target } }}
           .dictionaryOnly=${true}
-          .reservedKeys=${additional ? service?.hasSelector || [] : separateEntity ? ["entity_id"] : []}
+          .reservedKeys=${additional ? this._dataEditorKeys(service) : separateEntity ? ["entity_id"] : []}
           .manualOptions=${manualOptions}
           .label=${this._lang.text(this.hass.localize, additional ? "ui.components.object-editor.additional_data" : "ui.components.service-control.action_data")}
           .value=${displayValue}
@@ -704,9 +806,9 @@ export class HaServiceControl extends LitElement {
     const additional = (
       ev.currentTarget as HTMLElement & { dataAdditional: boolean }
     ).dataAdditional;
-    const keys =
+    const keys = this._dataEditorKeys(
       this._getServiceInfo(this._value?.action, this.hass.services)
-        ?.hasSelector || [];
+    );
     const retained = additional
       ? Object.fromEntries(
           Object.entries(this._value?.data || {}).filter(([key]) =>
@@ -758,25 +860,38 @@ export class HaServiceControl extends LitElement {
     serviceName: string | undefined,
     targetEntities: string[] | null
   ) => {
-    if (
-      dataField.filter &&
-      !this._filterField(dataField.filter, targetEntities)
-    ) {
+    const filter = dataField.filter;
+    const fieldEntities =
+      filter && targetEntities
+        ? targetEntities.filter((entityId) =>
+            this._matchesFieldTarget(filter, entityId)
+          )
+        : targetEntities;
+    if (filter && fieldEntities?.length === 0) {
       return nothing;
     }
 
-    const fieldDataHasTemplate =
-      this._value?.data && hasTemplate(this._value.data[dataField.key]);
+    const fieldValue = this._fieldValue(dataField.key);
+    const fieldDataHasTemplate = hasTemplate(fieldValue);
+    const adapterKind = actionFieldAdapterKind(
+      this._value?.action,
+      dataField.key,
+      fieldValue
+    );
 
-    const selector =
-      fieldDataHasTemplate &&
-      typeof this._value!.data![dataField.key] === "string"
+    const toneOptions =
+      this._value?.action === "siren.turn_on" && dataField.key === "tone"
+        ? sirenToneChoices(this.hass, fieldEntities)
+        : [];
+    const selector: Selector =
+      fieldDataHasTemplate && typeof fieldValue === "string"
         ? { template: null }
-        : fieldDataHasTemplate &&
-            typeof this._value!.data![dataField.key] === "object"
+        : fieldDataHasTemplate && typeof fieldValue === "object"
           ? { object: null }
           : (this._stickySelector[dataField.key] ??
-            dataField?.selector ?? { object: {} });
+            (toneOptions.length
+              ? { select: { options: toneOptions, custom_value: true } }
+              : (dataField?.selector ?? { object: {} })));
 
     if (fieldDataHasTemplate) {
       // Hold this selector type until the field is cleared
@@ -794,34 +909,47 @@ export class HaServiceControl extends LitElement {
     }
 
     const inline = isBooleanSelector(selector);
-    const selectorTemplate = html`<ha-selector
-      .context=${{
-        ...this._selectorContext(targetEntities, this.stringBuilder),
-        draft_owner: this.value,
-        draft_key: dataField.key,
-        known_options: {
-          action: this._value?.action,
-          field: dataField.key,
-          target: this._value?.target,
-          entityIds: targetEntities || undefined,
-          language: this._value?.data?.language,
-        },
-      }}
-      .disabled=${
-        this.disabled ||
-        (showOptional &&
-          !this._checkedKeys.has(dataField.key) &&
-          (!this._value?.data || this._value.data[dataField.key] === undefined))
-      }
-      .hass=${this.hass}
-      .selector=${selector}
-      .key=${dataField.key}
-      @value-changed=${this._serviceDataChanged}
-      .value=${this._value?.data ? this._value.data[dataField.key] : undefined}
-      .placeholder=${dataField.default}
-      .localizeValue=${this._localizeValueCallback}
-      .required=${dataField.required}
-    ></ha-selector>`;
+    const disabled =
+      this.disabled ||
+      (showOptional &&
+        !this._checkedKeys.has(dataField.key) &&
+        fieldValue === undefined);
+    const selectorTemplate = adapterKind
+      ? html`<ha-action-field-adapter
+          .hass=${this.hass}
+          .kind=${adapterKind}
+          .key=${dataField.key}
+          .value=${fieldValue}
+          .disabled=${disabled}
+          .required=${dataField.required}
+          @value-changed=${this._serviceDataChanged}
+        ></ha-action-field-adapter>`
+      : html`<ha-selector
+          .context=${{
+            ...this._selectorContext(fieldEntities, this.stringBuilder),
+            allow_local_media:
+              this._value?.action === "media_player.play_media" &&
+              dataField.key === "media",
+            draft_owner: this.value,
+            draft_key: dataField.key,
+            known_options: {
+              action: this._value?.action,
+              field: dataField.key,
+              target: this._value?.target,
+              entityIds: fieldEntities || undefined,
+              language: this._value?.data?.language,
+            },
+          }}
+          .disabled=${disabled}
+          .hass=${this.hass}
+          .selector=${selector}
+          .key=${dataField.key}
+          @value-changed=${this._serviceDataChanged}
+          .value=${toneOptions.length && typeof fieldValue === "number" ? String(fieldValue) : fieldValue}
+          .placeholder=${dataField.default}
+          .localizeValue=${this._localizeValueCallback}
+          .required=${dataField.required}
+        ></ha-selector>`;
 
     // `hasOptional` is kept in the signature for callers; the toggle now sits
     // at the end of the row, so no spacer is needed.
@@ -871,8 +999,7 @@ export class HaServiceControl extends LitElement {
                 .key=${dataField.key}
                 .checked=${
                   this._checkedKeys.has(dataField.key) ||
-                  (!!this._value?.data &&
-                    this._value.data[dataField.key] !== undefined)
+                  fieldValue !== undefined
                 }
                 .disabled=${this.disabled}
                 @change=${this._checkboxChanged}
@@ -888,6 +1015,7 @@ export class HaServiceControl extends LitElement {
     (targetEntities: string[] | null, stringBuilder: boolean) => ({
       filter_entity: targetEntities || undefined,
       string_builder: stringBuilder,
+      common_options_only: true,
     })
   );
 
@@ -948,6 +1076,16 @@ export class HaServiceControl extends LitElement {
       clearObjectDraft(this.value, key);
       this._checkedKeys.delete(key);
       data = { ...this._value?.data };
+      if (
+        key === "media" &&
+        this._usesLegacyMedia(
+          this._getServiceInfo(this._value?.action, this.hass.services)
+        )
+      ) {
+        delete data.media_content_id;
+        delete data.media_content_type;
+        this._legacyMediaValue = undefined;
+      }
       delete data[key];
       delete this._stickySelector[key];
     }
@@ -1051,7 +1189,7 @@ export class HaServiceControl extends LitElement {
 
   private _serviceDataChanged(
     ev: HASSDomEvent<{ value: unknown; isValid?: boolean }> &
-      HASSDomCurrentTargetEvent<HaSelector & { key: string }>
+      HASSDomCurrentTargetEvent<HTMLElement & { key: string }>
   ) {
     ev.stopPropagation();
     if (ev.detail.isValid === false) {
@@ -1060,6 +1198,36 @@ export class HaServiceControl extends LitElement {
     }
     const key = ev.currentTarget.key;
     const value = ev.detail.value;
+    if (
+      key === "media" &&
+      this._usesLegacyMedia(
+        this._getServiceInfo(this._value?.action, this.hass.services)
+      )
+    ) {
+      if (this.disabled) return;
+      const picked = value as MediaSelectorValue | undefined;
+      this._legacyMediaValue = picked;
+      if (
+        picked &&
+        !picked.media_content_id &&
+        !picked.media_content_type &&
+        (picked.entity_id || picked.metadata?.browse_entity_id)
+      ) {
+        return;
+      }
+      const data = { ...this._value?.data };
+      for (const mediaKey of [
+        "media_content_id",
+        "media_content_type",
+      ] as const) {
+        const mediaValue = picked?.[mediaKey];
+        if (mediaValue === undefined || mediaValue === "") {
+          delete data[mediaKey];
+        } else data[mediaKey] = mediaValue;
+      }
+      fireEvent(this, "value-changed", { value: { ...this._value, data } });
+      return;
+    }
     if (
       this._value?.data?.[key] === value ||
       ((!this._value?.data || !(key in this._value.data)) &&

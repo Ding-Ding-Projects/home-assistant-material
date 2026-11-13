@@ -6,8 +6,9 @@ import {
 } from "@mdi/js";
 import type { TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
+import { BUILDER_PIECE_DRAG_TYPE } from "../../common/string-builder/drag";
 import {
   ARITHMETIC_OPS,
   COMPARE_OPS,
@@ -78,6 +79,16 @@ export class HaStringBuilderPiece extends LitElement {
   @property({ type: Boolean }) public last = false;
 
   @property({ type: Boolean }) public disabled = false;
+
+  @query(
+    ".body textarea, .body ha-entity-picker, .body ha-input, .body ha-textarea, .body ha-select"
+  )
+  private _editor?: HTMLElement;
+
+  public async focusEditor() {
+    await this.updateComplete;
+    this._editor?.focus();
+  }
 
   private _t(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(`${KEY}.${key}` as any, values as any);
@@ -296,15 +307,82 @@ export class HaStringBuilderPiece extends LitElement {
   // One renderer per kind
 
   private _renderText(text: string) {
-    return html`<ha-textarea
-      .label=${this._t("fields.text")}
-      .value=${text}
-      .disabled=${this.disabled}
-      resize="auto"
-      autocapitalize="none"
-      spellcheck="false"
-      @input=${this._onInput("text")}
-    ></ha-textarea>`;
+    return html`
+      <label class="text-label">
+        ${this._t("fields.text")}
+        <textarea
+          .value=${text}
+          .disabled=${this.disabled}
+          rows="2"
+          autocapitalize="none"
+          spellcheck="false"
+          @input=${this._textInput}
+          @click=${this._textCaret}
+          @keyup=${this._textCaret}
+          @select=${this._textCaret}
+          @dragover=${this._textDragOver}
+          @drop=${this._textDrop}
+        ></textarea>
+      </label>
+    `;
+  }
+
+  private _textInput(ev: Event) {
+    this._onInput("text")(ev);
+    this._textCaret(ev);
+  }
+
+  private _textCaret(ev: Event) {
+    const text = ev.currentTarget as HTMLTextAreaElement;
+    fireEvent(this, "builder-text-caret", {
+      pieceId: this.piece.id,
+      offset: text.selectionEnd,
+    });
+  }
+
+  private _textDragOver(ev: DragEvent) {
+    if (
+      !this.disabled &&
+      ev.dataTransfer?.types.includes(BUILDER_PIECE_DRAG_TYPE)
+    ) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  private _textDrop(ev: DragEvent) {
+    if (
+      this.disabled ||
+      !ev.dataTransfer?.types.includes(BUILDER_PIECE_DRAG_TYPE)
+    ) {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    const field = ev.currentTarget as HTMLTextAreaElement;
+    const shadowRoots: ShadowRoot[] = [];
+    let parent: Node = field;
+    while (parent.getRootNode() instanceof ShadowRoot) {
+      const root = parent.getRootNode() as ShadowRoot;
+      shadowRoots.push(root);
+      parent = root.host;
+    }
+    const doc = field.ownerDocument;
+    const caret = doc.caretPositionFromPoint?.(ev.clientX, ev.clientY, {
+      shadowRoots,
+    });
+    const fallback =
+      caret?.offsetNode === field
+        ? null
+        : doc.caretRangeFromPoint?.(ev.clientX, ev.clientY);
+    const offset =
+      caret?.offsetNode === field
+        ? caret.offset
+        : fallback?.startContainer === field
+          ? fallback.startOffset
+          : field.selectionEnd;
+    fireEvent(this, "builder-text-drop", { pieceId: this.piece.id, offset });
   }
 
   private _renderState(piece: Piece & { kind: "state" }) {
@@ -646,6 +724,29 @@ export class HaStringBuilderPiece extends LitElement {
         font-weight: var(--ha-font-weight-semibold);
         overflow-wrap: anywhere;
         margin-inline: var(--ha-space-1);
+      }
+      .text-label {
+        display: grid;
+        gap: var(--ha-space-1);
+      }
+      .text-label textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 48px;
+        resize: vertical;
+        padding: var(--ha-space-3);
+        color: var(--primary-text-color);
+        background: var(
+          --ha-color-surface-tone-1,
+          var(--secondary-background-color)
+        );
+        border: 1px solid var(--divider-color);
+        border-radius: var(--ha-border-radius-md);
+        font: inherit;
+      }
+      .text-label textarea:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 1px;
       }
       ha-icon-button {
         --ha-icon-button-size: 36px;

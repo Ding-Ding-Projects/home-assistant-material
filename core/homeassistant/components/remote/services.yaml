@@ -11,7 +11,8 @@ turn_on:
         supported_features:
           - remote.RemoteEntityFeature.ACTIVITY
       selector:
-        text:
+        state:
+          attribute: current_activity
 
 toggle:
   target:

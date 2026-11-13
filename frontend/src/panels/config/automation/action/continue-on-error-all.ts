@@ -11,6 +11,8 @@
  * left as it is.
  */
 
+import { transferObjectDrafts } from "../../../../common/object-editor/object-model";
+
 export type ContinueOnErrorState = "all" | "none" | "mixed";
 
 const KEY = "continue_on_error";
@@ -169,16 +171,15 @@ const applyToStep =
       return item;
     }
     const withNested = mapNested(item, applyToStep(on));
-    if (on) {
-      return withNested[KEY] === true
-        ? withNested
-        : { ...withNested, [KEY]: true };
+    let result = withNested;
+    if (on && withNested[KEY] !== true) {
+      result = { ...withNested, [KEY]: true };
+    } else if (!on && KEY in withNested) {
+      const { [KEY]: _removed, ...rest } = withNested;
+      result = rest;
     }
-    if (!(KEY in withNested)) {
-      return withNested;
-    }
-    const { [KEY]: _removed, ...rest } = withNested;
-    return rest;
+    if (result !== item) transferObjectDrafts(item, result);
+    return result;
   };
 
 /**
@@ -190,3 +191,10 @@ export const setContinueOnErrorAll = <T>(actions: T, on: boolean): T => {
   const result = mapList(actions, applyToStep(on));
   return result.value as T;
 };
+
+/** New actions inherit the all-actions setting. Explicit per-step edits can still turn it off. */
+export const inheritContinueOnError = <T>(previous: unknown, next: T): T =>
+  continueOnErrorState(previous) === "all" &&
+  countContinueOnErrorActions(next) > countContinueOnErrorActions(previous)
+    ? setContinueOnErrorAll(next, true)
+    : next;

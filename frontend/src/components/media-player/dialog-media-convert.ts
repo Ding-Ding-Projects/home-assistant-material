@@ -75,6 +75,8 @@ class DialogMediaConvert extends LitElement {
 
   @state() private _working = false;
 
+  @state() private _phase?: "converting" | "uploading";
+
   @state() private _problem = "";
 
   @state() private _source?: ConvertSource;
@@ -93,6 +95,9 @@ class DialogMediaConvert extends LitElement {
   private _abort?: AbortController;
 
   public showDialog(params: MediaConvertDialogParams): void {
+    this._abort?.abort();
+    this._working = false;
+    this._phase = undefined;
     this._params = params;
     this._problem = "";
     this._source = undefined;
@@ -110,8 +115,57 @@ class DialogMediaConvert extends LitElement {
   }
 
   public closeDialog() {
+    this._abort?.abort();
     this._open = false;
     return true;
+  }
+
+  public disconnectedCallback() {
+    this._abort?.abort();
+    super.disconnectedCallback();
+  }
+
+  private _cancel = () => {
+    const uploading = this._working && this._phase === "uploading";
+    this._abort?.abort();
+    if (uploading) {
+      this._working = false;
+      this._phase = undefined;
+      this._problem = this._localize(`${MANAGE}.convert_upload_cancelled`);
+    } else this.closeDialog();
+  };
+
+  private _bounded<T>(
+    operation: () => Promise<T>,
+    controller: AbortController,
+    milliseconds: number
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const signal = controller.signal;
+      const abort = () => {
+        clearTimeout(timer);
+        reject(signal.reason || new DOMException("Cancelled", "AbortError"));
+      };
+      const timer = setTimeout(
+        () => controller.abort(new DOMException("Timed out", "TimeoutError")),
+        milliseconds
+      );
+      signal.addEventListener("abort", abort, { once: true });
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+      Promise.resolve()
+        .then(() => {
+          if (signal.aborted) throw signal.reason;
+          return operation();
+        })
+        .then(resolve, reject)
+        .finally(() => {
+          clearTimeout(timer);
+          signal.removeEventListener("abort", abort);
+        });
+    });
   }
 
   private _dialogClosed(): void {
@@ -137,17 +191,43 @@ class DialogMediaConvert extends LitElement {
 
   private async _load(params: MediaConvertDialogParams): Promise<void> {
     this._loading = true;
+    const controller = new AbortController();
+    this._abort = controller;
     try {
       // The converter's own wording (format names, notes, errors) is in the
       // settings translations, which the Media page has not loaded
-      await this._i18n.loadFragmentTranslation("config");
+      await this._bounded(
+        () => this._i18n.loadFragmentTranslation("config"),
+        controller,
+        15_000
+      );
     } catch (_err) {
       // The names then fall back to the format identifiers
     }
+    if (this._params !== params || !this._open) return;
+    const reader = new AbortController();
+    this._abort = reader;
     try {
-      const file = await fetchItemFile(this._api, params.item, MAX_READ);
-      const bytes = new Uint8Array(await file.blob.arrayBuffer());
-      if (this._params !== params) {
+      const bytes = await this._bounded(
+        async () => {
+          const file = await fetchItemFile(
+            {
+              ...this._api,
+              fetchWithAuth: (path, init) =>
+                this._api.fetchWithAuth(path, {
+                  ...init,
+                  signal: reader.signal,
+                }),
+            },
+            params.item,
+            MAX_READ
+          );
+          return new Uint8Array(await file.blob.arrayBuffer());
+        },
+        reader,
+        60_000
+      );
+      if (this._params !== params || reader.signal.aborted) {
         return;
       }
       const source = sourceOf(bytes);
@@ -165,14 +245,20 @@ class DialogMediaConvert extends LitElement {
       this._targets = targets;
       this._target = targets[0];
     } catch (err) {
-      if (this._params === params) {
+      if (this._params === params && !reader.signal.aborted) {
         this._problem =
           err instanceof ItemFileError && err.code === "too_large"
             ? this._errorText("too_large", params.item.title)
             : this._localize(`${MANAGE}.convert_read_failed`);
       }
+      if (
+        this._params === params &&
+        reader.signal.reason?.name === "TimeoutError"
+      ) {
+        this._problem = this._localize(`${MANAGE}.convert_timeout`);
+      }
     } finally {
-      this._loading = false;
+      if (this._params === params) this._loading = false;
     }
   }
 
@@ -213,7 +299,7 @@ class DialogMediaConvert extends LitElement {
           ${
             this._loading
               ? html`<div class="refresh"><ha-spinner></ha-spinner></div>`
-              : this._problem
+              : this._problem && !this._target
                 ? html`<p class="problem" role="alert">${this._problem}</p>`
                 : html`
                     <div
@@ -265,22 +351,18 @@ class DialogMediaConvert extends LitElement {
                     </p>
                   `
           }
+          ${this._target && this._problem ? html`<p class="problem" role="alert">${this._problem}</p>` : nothing}
+          ${this._phase ? html`<p class="info" role="status" aria-live="polite">${this._localize(`${MANAGE}.convert_phase_${this._phase}`)}</p>` : nothing}
         </div>
         <div class="actions">
           <ha-button
-            .disabled=${
-              this._loading || this._working || !this._target || !!this._problem
-            }
+            .disabled=${this._loading || this._working || !this._target}
             .loading=${this._working}
             @click=${this._convert}
           >
             ${this._localize(`${MANAGE}.convert`)}
           </ha-button>
-          <ha-button
-            appearance="plain"
-            .disabled=${this._working}
-            @click=${this.closeDialog}
-          >
+          <ha-button appearance="plain" @click=${this._cancel}>
             ${this._localize("ui.common.cancel")}
           </ha-button>
         </div>
@@ -340,15 +422,27 @@ class DialogMediaConvert extends LitElement {
     }
     this._problem = "";
     this._working = true;
-    this._abort = new AbortController();
+    const controller = new AbortController();
+    this._abort = controller;
+    this._phase = "converting";
+    const current = () =>
+      this._params === params &&
+      this._abort === controller &&
+      !controller.signal.aborted;
     try {
-      const result = await convertItem(
-        params.item.title,
-        bytes,
-        source,
-        target,
-        this._abort.signal
+      const result = await this._bounded(
+        () =>
+          convertItem(
+            params.item.title,
+            bytes,
+            source,
+            target,
+            controller.signal
+          ),
+        controller,
+        60_000
       );
+      if (!current()) return;
       if (!result.ok) {
         this._problem = this._errorText(result.error.code, result.error.detail);
         return;
@@ -361,41 +455,59 @@ class DialogMediaConvert extends LitElement {
         });
         return;
       }
-      try {
-        if (params.store === "image") {
-          await createImage(
-            this._api.fetchWithAuth,
-            this._localize,
-            result.file,
-            undefined,
-            params.destination || undefined
-          );
-        } else {
-          await uploadLocalMedia(
-            this._api.fetchWithAuth,
-            this._localize,
-            params.destination,
-            result.file
-          );
-        }
-      } catch (err: any) {
-        this._problem = this._localize(`${MANAGE}.upload_failed`, {
-          reason: err?.message || this._localize("ui.common.unknown_error"),
-        });
-        return;
-      }
+      this._phase = "uploading";
+      await this._bounded(
+        () =>
+          params.store === "image"
+            ? createImage(
+                this._api.fetchWithAuth,
+                this._localize,
+                result.file,
+                controller.signal,
+                params.destination || undefined
+              )
+            : uploadLocalMedia(
+                this._api.fetchWithAuth,
+                this._localize,
+                params.destination,
+                result.file,
+                controller.signal
+              ),
+        controller,
+        60_000
+      );
+      if (!current()) return;
       const losses = this._notesText(result.notes);
       showToast(this, {
-        message: `${this._localize(`${MANAGE}.convert_done`, {
-          name: result.file.name,
-        })}${losses ? ` ${losses}` : ""}`,
+        message: `${this._localize(`${MANAGE}.convert_done`, { name: result.file.name })}${losses ? ` ${losses}` : ""}`,
         duration: 10000,
         dismissable: true,
       });
       params.onStored?.();
       this.closeDialog();
+    } catch (error) {
+      if (this._params !== params || this._abort !== controller) return;
+      if (controller.signal.reason?.name === "TimeoutError") {
+        this._problem = this._localize(
+          this._phase === "uploading"
+            ? `${MANAGE}.convert_upload_cancelled`
+            : `${MANAGE}.convert_timeout`
+        );
+      } else if (!controller.signal.aborted) {
+        this._problem =
+          this._phase === "uploading"
+            ? this._localize(`${MANAGE}.upload_failed`, {
+                reason:
+                  (error as Error)?.message ||
+                  this._localize("ui.common.unknown_error"),
+              })
+            : this._errorText("image_canvas_failed");
+      }
     } finally {
-      this._working = false;
+      if (this._abort === controller) {
+        this._working = false;
+        this._phase = undefined;
+      }
     }
   }
 

@@ -32,6 +32,8 @@ create_event:
         date:
     in:
       example: '{"days": 2} or {"weeks": 2}'
+      selector:
+        object:
     location:
       example: "Conference Room - F123, Bldg. 002"
       selector:

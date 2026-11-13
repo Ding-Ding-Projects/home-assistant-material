@@ -10,4 +10,5 @@
 | [`multi-select-clipboard-and-duplicate.md`](multi-select-clipboard-and-duplicate.md) | Select many cards, shared clipboard, duplicate, Dashboards card, swiping between dashboards | Built, not yet seen in a running build |
 | [`light-sliders-energy-colours-and-colour-picker.md`](light-sliders-energy-colours-and-colour-picker.md) | Light card sliders, energy colours, rainbow colour picker | Energy colours run on a throwaway instance; cards not yet seen |
 | [`../dashboard-history/README.md`](../dashboard-history/README.md) | History per dashboard and per tab, with remote and push | Built, exercised on a running copy |
-| [`resource-upload.md`](resource-upload.md) | Add a dashboard module or stylesheet from a local file | Implemented, release verification pending |
+| [`resource-upload.md`](resource-upload.md) | Add a dashboard module or stylesheet from a local file | Verified in an isolated instance of build 429 |
+| [`visual-configuration.md`](visual-configuration.md) | Edit Repairs and dashboard configuration with visual controls | See the guide and sample dashboard |

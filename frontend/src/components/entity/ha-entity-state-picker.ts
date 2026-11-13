@@ -6,8 +6,10 @@ import memoizeOne from "memoize-one";
 import { ensureArray } from "../../common/array/ensure-array";
 import { consume } from "../../common/decorators/consume";
 import { consumeEntityStates } from "../../common/decorators/consume-context-entry";
+import { computeDomain } from "../../common/entity/compute_domain";
+import { UNAVAILABLE, UNKNOWN } from "../../data/entity/entity";
 import { fireEvent } from "../../common/dom/fire_event";
-import { getStates } from "../../common/entity/get_states";
+import { getOptionsAttribute, getStates } from "../../common/entity/get_states";
 import {
   formattersContext,
   internationalizationContext,
@@ -23,6 +25,9 @@ export class HaEntityStatePicker extends LitElement {
   @property({ attribute: false }) public entityId?: string | string[];
 
   @property() public attribute?: string;
+
+  @property({ type: Boolean, attribute: false }) public commonOptionsOnly =
+    false;
 
   @property({ attribute: false }) public extraOptions?: PickerComboBoxItem[];
 
@@ -68,9 +73,10 @@ export class HaEntityStatePicker extends LitElement {
       entityId: string | string[] | undefined,
       attribute: string | undefined,
       hideStates: string[] | undefined,
-      extraOptions: PickerComboBoxItem[] | undefined
+      extraOptions: PickerComboBoxItem[] | undefined,
+      commonOptionsOnly = false
     ): PickerComboBoxItem[] => {
-      const entityIds = entityId ? ensureArray(entityId) : [];
+      const entityIds = [...new Set(entityId ? ensureArray(entityId) : [])];
 
       const entitiesOptions = entityIds.map<PickerComboBoxItem[]>(
         (entityIdItem) => {
@@ -78,12 +84,28 @@ export class HaEntityStatePicker extends LitElement {
             states?.[entityIdItem] ||
             ({ entity_id: entityIdItem, attributes: {} } as HassEntity);
 
-          const options = getStates(
-            states ?? {},
-            language,
-            stateObj,
+          const optionsAttribute = getOptionsAttribute(
+            computeDomain(entityIdItem),
             attribute
-          ).filter((s) => !hideStates?.includes(s));
+          );
+          // Action choices must be advertised by every selected entity. A
+          // missing list cannot establish that an option is accepted.
+          const declaredOptions = optionsAttribute
+            ? stateObj.attributes[optionsAttribute]
+            : undefined;
+          const options = (
+            commonOptionsOnly && optionsAttribute
+              ? Array.isArray(declaredOptions)
+                ? declaredOptions.filter((value) => typeof value === "string")
+                : []
+              : getStates(states ?? {}, language, stateObj, attribute)
+          ).filter(
+            (s) =>
+              !hideStates?.includes(s) &&
+              (!commonOptionsOnly ||
+                attribute ||
+                (s !== UNKNOWN && s !== UNAVAILABLE))
+          );
 
           return options
             .map((s) => {
@@ -100,11 +122,17 @@ export class HaEntityStatePicker extends LitElement {
         }
       );
 
+      const commonIds = commonOptionsOnly
+        ? entitiesOptions.map((items) => new Set(items.map((item) => item.id)))
+        : undefined;
       const options: PickerComboBoxItem[] = [];
       const optionsSet = new Set<string>();
       for (const entityOptions of entitiesOptions) {
         for (const option of entityOptions) {
-          if (!optionsSet.has(option.id)) {
+          if (
+            !optionsSet.has(option.id) &&
+            (!commonIds || commonIds.every((ids) => ids.has(option.id)))
+          ) {
             optionsSet.add(option.id);
             options.push(option);
           }
@@ -134,7 +162,8 @@ export class HaEntityStatePicker extends LitElement {
       this.entityId,
       this.attribute,
       this.hideStates,
-      this.extraOptions
+      this.extraOptions,
+      this.commonOptionsOnly
     );
 
   private _valueRenderer: PickerValueRenderer = (value: string) => {
