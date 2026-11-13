@@ -1167,15 +1167,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         }
         :host([expanded]) ha-list-item-button::part(base) {
           flex-direction: row;
-          /* A row without a link is a native button, which centres its
-             text; rows read from the start edge like the linked ones. */
-          justify-content: flex-start;
-          text-align: start;
         }
         :host([expanded]) ha-list-item-button::part(content) {
           flex: 1 1 auto;
           width: auto;
-          text-align: start;
         }
         :host([expanded]) ha-list-item-button.selected::part(start) {
           background-color: transparent;

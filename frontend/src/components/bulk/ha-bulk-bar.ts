@@ -27,6 +27,9 @@ const PREVIEW_ICONS: Record<BulkPreviewKind, string> = {
   warning: mdiAlert,
 };
 
+/** Set on the document while a bulk bar is shown; read by the list layout. */
+const BULK_BAR_HEIGHT_PROPERTY = "--ha-bulk-bar-height";
+
 declare global {
   interface HASSDomEvents {
     "bulk-select-page": undefined;
@@ -79,6 +82,39 @@ export class HaBulkBar extends LitElement {
   @state() private _pending?: string;
 
   @state() private _armed = false;
+
+  private _resizeObserver?: ResizeObserver;
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    document.documentElement.style.removeProperty(BULK_BAR_HEIGHT_PROPERTY);
+  }
+
+  protected firstUpdated(): void {
+    // Tell the list layout how tall the bar is, so its own selection bar,
+    // which floats in the same place, sits above this one instead of on it.
+    this._resizeObserver = new ResizeObserver(() => this._publishHeight());
+    this._resizeObserver.observe(this);
+    this._publishHeight();
+  }
+
+  protected updated(): void {
+    this._publishHeight();
+  }
+
+  private _publishHeight(): void {
+    const height = this.count ? this.offsetHeight : 0;
+    if (height) {
+      document.documentElement.style.setProperty(
+        BULK_BAR_HEIGHT_PROPERTY,
+        `${height}px`
+      );
+    } else {
+      document.documentElement.style.removeProperty(BULK_BAR_HEIGHT_PROPERTY);
+    }
+  }
 
   protected willUpdate(changed: Map<string, unknown>): void {
     if (changed.has("count") && this._pending) {

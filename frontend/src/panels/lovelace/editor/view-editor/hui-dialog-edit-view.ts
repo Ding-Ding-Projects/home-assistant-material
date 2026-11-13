@@ -702,6 +702,9 @@ export class HuiDialogEditView extends DirtyStateProviderMixin<LovelaceViewConfi
           font-size: inherit;
           font-weight: inherit;
         }
+        ha-tab-group {
+          padding-inline: var(--ha-space-4);
+        }
         ha-tab-group-tab {
           flex: 1;
         }

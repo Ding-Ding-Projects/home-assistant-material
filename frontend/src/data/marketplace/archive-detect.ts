@@ -229,7 +229,9 @@ const cleanScalar = (raw: string): string => {
   return value.replace(/\s+#.*$/, "").trim();
 };
 
-const TOP_KEY = /^([A-Za-z0-9_.-]+|"[^"]+"|'[^']+'):[ \t]*(.*)$/;
+// A plain key may hold spaces between words ("My Theme:"), as theme names do.
+const TOP_KEY =
+  /^([A-Za-z0-9_.-]+(?: +[A-Za-z0-9_.-]+)*|"[^"]+"|'[^']+'):[ \t]*(.*)$/;
 const CHILD_KEY = /^([ \t]+)([A-Za-z0-9_-]+):[ \t]*(.*)$/;
 
 interface YamlScan {

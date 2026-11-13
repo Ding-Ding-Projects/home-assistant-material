@@ -1756,7 +1756,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       margin-inline: auto;
       width: max-content;
       max-width: calc(100% - var(--ha-space-6));
-      bottom: calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
+      bottom: calc(
+        var(--ha-space-6) + var(--safe-area-inset-bottom, 0px) +
+          var(--ha-bulk-bar-height, 0px)
+      );
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -1802,7 +1805,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       max-width: none;
       bottom: calc(
         var(--ha-space-3) + var(--ha-phone-bar-visible-height, 0px) +
-          var(--safe-area-inset-bottom, 0px)
+          var(--safe-area-inset-bottom, 0px) + var(--ha-bulk-bar-height, 0px)
       );
       justify-content: space-between;
       /* On a phone the bar is a light bottom sheet above the phone bar, with

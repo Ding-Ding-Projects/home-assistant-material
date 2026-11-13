@@ -279,6 +279,10 @@ ${template || this._t("template_empty")}</pre>
   static styles = [
     haStyle,
     css`
+      ha-adaptive-dialog {
+        /* Let the subtitle wrap instead of being cut at a narrow width. */
+        --ha-dialog-header-white-space: normal;
+      }
       .content {
         display: flex;
         flex-direction: column;

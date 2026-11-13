@@ -1106,7 +1106,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
       const root = localize("ui.panel.config.lovelace.caption");
       breadcrumb =
         dashboardTitle && dashboardTitle !== title
-          ? `${root} › ${dashboardTitle}`
+          ? [root, dashboardTitle].filter(Boolean).join(" › ")
           : root;
     }
 

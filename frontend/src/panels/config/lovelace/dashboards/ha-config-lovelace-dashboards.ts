@@ -463,7 +463,10 @@ export class HaConfigLovelaceDashboards extends LitElement {
       dashboards: LovelaceDashboard[],
       defaultUrlPath: string | null,
       panels: HomeAssistant["panels"],
-      hiddenKey: string
+      hiddenKey: string,
+      // Only a cache key: the type names are looked up with this function, and
+      // it changes once the dashboard translations have loaded.
+      _localize: HomeAssistant["localize"]
     ) => {
       const hidden = new Set(hiddenKey ? hiddenKey.split("\n") : []);
       const result: DataTableItem[] = [];
@@ -547,7 +550,8 @@ export class HaConfigLovelaceDashboards extends LitElement {
                   this.hass.systemData?.dashboard_visibility,
                   this.hass,
                   [defaultPanel]
-                ).join("\n")
+                ).join("\n"),
+                this.hass.localize
               )
         }
         .initialGroupColumn=${this._tableSettings.grouping}
@@ -659,7 +663,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
     }
     return html`<div
       role="cell"
-      style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 12px 16px; margin-top: 8px; border-radius: 16px; background: var(--secondary-background-color); color: var(--secondary-text-color);"
+      style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 4px 16px; border-radius: 16px; background: var(--secondary-background-color); color: var(--secondary-text-color);"
     >
       <ha-svg-icon .path=${mdiInformationOutline}></ha-svg-icon>
       <span

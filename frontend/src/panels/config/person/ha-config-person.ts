@@ -90,13 +90,12 @@ export class HaConfigPerson extends LitElement {
         .route=${this.route}
         back-path="/config"
         .tabs=${configSections.persons}
+        .summary=${hass.localize("ui.panel.config.person.summary")}
       >
         <div class="page">
           <header>
             <div class="titles">
-              <h1>${hass.localize("ui.panel.config.person.caption")}</h1>
               <p>
-                ${hass.localize("ui.panel.config.person.summary")}
                 <a
                   href=${documentationUrl(hass, "/integrations/person/")}
                   target="_blank"
@@ -392,20 +391,8 @@ export class HaConfigPerson extends LitElement {
         flex: 1;
         min-width: 220px;
       }
-      h1 {
-        margin: 0;
-        font-family: var(--ha-font-family-heading, inherit);
-        font-size: var(--ha-font-size-4xl);
-        font-weight: var(--ha-font-weight-medium);
-        line-height: var(--ha-line-height-condensed);
-      }
-      @media (max-width: 600px) {
-        h1 {
-          font-size: var(--ha-font-size-2xl);
-        }
-      }
       .titles p {
-        margin: var(--ha-space-1) 0 0;
+        margin: 0;
         font-size: var(--ha-font-size-l);
         color: var(--secondary-text-color);
       }

@@ -16,7 +16,6 @@ import type { Hsv } from "../../common/color/translate-color";
 import {
   formatColor,
   hsvToRgb,
-  nearestNamed,
   parseColor,
   rgbToHsv,
   toHex,
@@ -205,7 +204,6 @@ export class HaAppearanceColorPicker extends LitElement {
 
   private _renderPicker(r: number, g: number, b: number, hex: string) {
     const formats = formatColor({ r, g, b, a: 1 });
-    const named = nearestNamed(r, g, b);
     const values: Record<Notation, string> = {
       ...formats,
       lch: toLch(r, g, b),
@@ -315,9 +313,6 @@ export class HaAppearanceColorPicker extends LitElement {
         </div>
         <p class=${classMap({ note: true, error: this._typedBad })}>
           ${this._typedBad ? this._l("picker_type_bad") : this._l("picker_type_note")}
-        </p>
-        <p class="note">
-          ${this._l("picker_named", { name: named.name, hex: named.hex })}
         </p>
         <p class="note">
           ${

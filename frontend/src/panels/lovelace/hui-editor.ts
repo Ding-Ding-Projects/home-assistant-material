@@ -267,6 +267,7 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
         }
 
         .status-bar {
+          flex: none;
           display: flex;
           flex-wrap: wrap;
           align-items: center;
@@ -311,7 +312,10 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
         ha-yaml-editor {
           display: flex;
           flex-direction: column;
-          height: 100%;
+          /* Take the space the status bar leaves, rather than the full height
+             of the content, which pushed the bar past the window bottom. */
+          flex: 1 1 0;
+          height: auto;
           min-height: 0;
         }
 

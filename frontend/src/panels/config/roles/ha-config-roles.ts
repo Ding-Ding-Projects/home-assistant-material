@@ -118,17 +118,13 @@ export class HaConfigRoles extends LitElement {
         .route=${this.route}
         back-path="/config"
         .tabs=${configSections.persons}
+        .summary=${this.hass.localize("ui.panel.config.roles.summary", {
+          count: roles.length,
+        })}
       >
         <div class="page">
           <header>
-            <div class="titles">
-              <h1>${this.hass.localize("ui.panel.config.roles.caption")}</h1>
-              <p>
-                ${this.hass.localize("ui.panel.config.roles.summary", {
-                  count: roles.length,
-                })}
-              </p>
-            </div>
+            <div class="titles"></div>
             <ha-button size="l" @click=${this._newRole} .disabled=${this._busy}>
               <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
               ${this.hass.localize("ui.panel.config.roles.new_role")}
@@ -488,23 +484,6 @@ export class HaConfigRoles extends LitElement {
       .titles {
         flex: 1;
         min-width: 220px;
-      }
-      h1 {
-        margin: 0;
-        font-family: var(--ha-font-family-heading, inherit);
-        font-size: var(--ha-font-size-4xl);
-        font-weight: var(--ha-font-weight-medium);
-        line-height: var(--ha-line-height-condensed);
-      }
-      @media (max-width: 600px) {
-        h1 {
-          font-size: var(--ha-font-size-2xl);
-        }
-      }
-      .titles p {
-        margin: var(--ha-space-1) 0 0;
-        font-size: var(--ha-font-size-l);
-        color: var(--secondary-text-color);
       }
       ha-alert {
         display: block;

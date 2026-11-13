@@ -1094,6 +1094,10 @@ export class HaPageTabs extends LitElement {
         display: flex;
         align-items: center;
         gap: var(--ha-space-3);
+        /* An entry without a link is a native button, which centres what it
+           holds; every entry reads from the start edge. */
+        justify-content: flex-start;
+        text-align: start;
         min-height: var(--ha-space-10);
         padding: 0 var(--ha-space-3);
         border: none;

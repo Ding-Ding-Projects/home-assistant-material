@@ -406,6 +406,12 @@ export class HuiToolWall extends ToolView {
           border-radius: var(--ha-border-radius-lg);
           background: var(--secondary-background-color);
         }
+        /* The shared row rule gives inputs a 200px flex basis, which in a
+           column would become a 200px tall empty block. */
+        .panel ha-input,
+        .panel ha-entity-picker {
+          flex: none;
+        }
         .head {
           display: flex;
           align-items: center;

@@ -333,6 +333,13 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         back-path="/config/connectivity"
         .route=${this.route}
         .tabs=${configSections.tags}
+        .summary=${
+          this._loading
+            ? localize("ui.panel.config.tag.summary")
+            : localize("ui.panel.config.tag.count", {
+                count: this._tags.length,
+              })
+        }
         has-fab
       >
         <ha-icon-button
@@ -343,19 +350,8 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         ></ha-icon-button>
         <div class="page">
           <header class="page-head">
-            <h1>${localize("ui.panel.config.tag.caption")}</h1>
             <p>
-              ${
-                this._loading
-                  ? localize("ui.panel.config.tag.summary")
-                  : localize("ui.panel.config.tag.count", {
-                      count: this._tags.length,
-                    })
-              }
-              <ha-button
-                appearance="plain"
-                size="s"
-                @click=${this._showHelp}
+              <ha-button appearance="plain" size="s" @click=${this._showHelp}
                 >${localize("ui.panel.config.tag.how_used")}</ha-button
               >
             </p>
@@ -945,15 +941,8 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
     :host([narrow]) .page {
       padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-20);
     }
-    .page-head h1 {
-      margin: 0;
-      font-family: var(--ha-font-family-heading, inherit);
-      font-size: var(--ha-font-size-4xl);
-      font-weight: var(--ha-font-weight-normal);
-      line-height: var(--ha-line-height-condensed);
-    }
     .page-head p {
-      margin: var(--ha-space-2) 0 0;
+      margin: 0;
       color: var(--secondary-text-color);
     }
     .card-tools {

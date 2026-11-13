@@ -1,3 +1,4 @@
+import { mdiHelpCircleOutline } from "@mdi/js";
 import type { ContextType } from "@lit/context";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -536,6 +537,12 @@ export class HassTabsSubpage extends LitElement {
   private _toolbarIconsChanged(ev: Event): void {
     const slot = ev.target as HTMLSlotElement;
     orderToolPillItems(slot);
+    for (const item of slot.assignedElements({ flatten: true })) {
+      item.toggleAttribute(
+        "data-own-help",
+        (item as { path?: string }).path === mdiHelpCircleOutline
+      );
+    }
     this._foldTools = inspectToolbarSlot(slot).foldable;
   }
 
@@ -723,6 +730,11 @@ export class HassTabsSubpage extends LitElement {
         }
         :host(:not([narrow])) .tool-pill ::slotted(*) {
           order: 0;
+        }
+        /* The pill already ends with the shared help button: a help button a
+           page adds of its own would be a second one beside it. */
+        :host(:not([narrow])) .tool-pill ::slotted([data-own-help]) {
+          display: none;
         }
         :host(:not([narrow])) .toolbar-content {
           height: auto;
