@@ -9,6 +9,8 @@ import "../../../../components/entity/ha-entity-picker";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-icon-button";
+import type { HaSelectSelectEvent } from "../../../../components/ha-select";
+import "../../../../components/ha-select";
 import "../../../../components/ha-spinner";
 import "../../../../components/input/ha-input";
 import { haStyle } from "../../../../resources/styles";
@@ -22,6 +24,9 @@ import type { StepKind } from "./step-model";
 import { isRec, stepTitle } from "./step-model";
 
 const DRY = "ui.panel.config.automation.editor.dry_run.";
+
+/** The select cannot hold an empty value, so "any day" has its own marker. */
+const ANY_WEEKDAY = "any";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -67,23 +72,18 @@ export class HaAutomationToolSimulate extends LitElement {
             .value=${this._time}
             @input=${this._timeChanged}
           ></ha-input>
-          <label class="field">
-            <span>${this._t("weekday")}</span>
-            <select @change=${this._weekdayChanged}>
-              <option value="" ?selected=${this._weekday === ""}>
-                ${this._t("weekday_any")}
-              </option>
-              ${WEEKDAYS.map(
-                (_d, i) =>
-                  html`<option
-                    value=${String(i)}
-                    ?selected=${this._weekday === String(i)}
-                  >
-                    ${this._t(`weekday_${i}`)}
-                  </option>`
-              )}
-            </select>
-          </label>
+          <ha-select
+            .label=${this._t("weekday")}
+            .value=${this._weekday === "" ? ANY_WEEKDAY : this._weekday}
+            .options=${[
+              { value: ANY_WEEKDAY, label: this._t("weekday_any") },
+              ...WEEKDAYS.map((_d, i) => ({
+                value: String(i),
+                label: this._t(`weekday_${i}`),
+              })),
+            ]}
+            @selected=${this._weekdayChanged}
+          ></ha-select>
           <h4>${this._t("states")}</h4>
           ${this._overrides.map((row, index) => this._renderRow(row, index))}
           <ha-button appearance="plain" @click=${this._addRow}>
@@ -226,8 +226,10 @@ export class HaAutomationToolSimulate extends LitElement {
     this._time = (ev.target as HTMLInputElement).value;
   }
 
-  private _weekdayChanged(ev: Event) {
-    this._weekday = (ev.target as HTMLSelectElement).value;
+  private _weekdayChanged(ev: HaSelectSelectEvent<string>) {
+    const value = ev.detail.value;
+    this._weekday =
+      value === undefined || value === ANY_WEEKDAY ? "" : String(value);
   }
 
   private _addRow() {
@@ -315,18 +317,9 @@ export class HaAutomationToolSimulate extends LitElement {
           gap: var(--ha-space-2);
           align-items: center;
         }
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: var(--ha-space-1);
-        }
-        select {
-          font: inherit;
-          padding: var(--ha-space-2);
-          border-radius: var(--ha-border-radius-md);
-          border: 1px solid var(--ha-color-outline, var(--divider-color));
-          background: var(--card-background-color);
-          color: var(--primary-text-color);
+        ha-select {
+          display: block;
+          width: 100%;
         }
         .hint {
           margin: 0;

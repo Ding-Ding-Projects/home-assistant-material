@@ -824,8 +824,8 @@ ${JSON.stringify(toolCall.result, null, 2)}</pre>
           overflow-wrap: break-word;
           scroll-margin-top: var(--ha-space-6);
           margin: var(--ha-space-2) 0;
-          padding: var(--ha-space-2);
-          border-radius: var(--ha-border-radius-xl);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-2xl);
         }
         @media all and (max-width: 450px), all and (max-height: 500px) {
           .message {
@@ -837,13 +837,19 @@ ${JSON.stringify(toolCall.result, null, 2)}</pre>
           margin-inline-start: var(--ha-space-6);
           margin-inline-end: initial;
           align-self: flex-end;
-          border-bottom-right-radius: 0px;
-          --markdown-link-color: var(--text-primary-color);
+          border-end-end-radius: var(--ha-border-radius-sm);
+          --markdown-link-color: var(
+            --ha-color-on-primary-container,
+            var(--text-primary-color)
+          );
           background-color: var(
             --chat-background-color-user,
-            var(--primary-color)
+            var(--ha-color-primary-container, var(--primary-color))
           );
-          color: var(--text-primary-color);
+          color: var(
+            --ha-color-on-primary-container,
+            var(--text-primary-color)
+          );
           direction: var(--direction);
         }
         .message.hass {
@@ -851,10 +857,11 @@ ${JSON.stringify(toolCall.result, null, 2)}</pre>
           margin-inline-end: var(--ha-space-6);
           margin-inline-start: initial;
           align-self: flex-start;
-          border-bottom-left-radius: 0px;
+          border-end-start-radius: var(--ha-border-radius-sm);
+          box-shadow: var(--ha-shadow-card, none);
           background-color: var(
             --chat-background-color-hass,
-            var(--secondary-background-color)
+            var(--card-background-color, var(--secondary-background-color))
           );
 
           color: var(--primary-text-color);
@@ -989,6 +996,14 @@ ${JSON.stringify(toolCall.result, null, 2)}</pre>
           }
         }
 
+        /* The microphone and the send button are the biggest controls: filled circles. */
+        ha-icon-button.listening-icon,
+        .listening-icon ha-icon-button {
+          --ha-icon-button-size: 44px;
+          border-radius: var(--ha-border-radius-circle);
+          background: var(--primary-color);
+          color: var(--text-primary-color);
+        }
         .unsupported {
           color: var(--error-color);
           position: absolute;

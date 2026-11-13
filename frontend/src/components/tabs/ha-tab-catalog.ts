@@ -6,7 +6,8 @@ import type { HaInputSearch } from "../input/ha-input-search";
 import "../ha-svg-icon";
 import { loadCatalogTranslations } from "../page-catalog-entries";
 import type { TabBulkCloseController } from "./ha-tab-bulk-close";
-import type { TabSearchesController } from "./ha-tab-searches";
+import { CATALOG_KINDS } from "./ha-tab-searches";
+import type { CatalogKind, TabSearchesController } from "./ha-tab-searches";
 import type { PageTab, TabModuleContext } from "./tab-types";
 
 /**
@@ -111,6 +112,27 @@ export class TabCatalogController {
           .patternSamples=${tabs.map((tab) => tab.title)}
           @input=${this._filterChanged}
         ></ha-input-search>
+        <div
+          class="kind-chips"
+          role="group"
+          aria-label=${t("ui.page_tabs.kind_filter_label")}
+        >
+          ${CATALOG_KINDS.map(
+            (kind) =>
+              html`<button
+                class="kind-chip"
+                aria-pressed=${this._searches.kind === kind ? "true" : "false"}
+                .kind=${kind}
+                @click=${this._kindChosen}
+              >
+                ${t(
+                  kind === "all"
+                    ? "ui.page_tabs.kind_all"
+                    : `ui.page_tabs.group_${kind}`
+                )}
+              </button>`
+          )}
+        </div>
         ${this._bulk.render(tabs, closed, current)}
         <div class="catalog-list">
           ${this._searches.renderCatalogGroups(listed, closed, this._filter)}
@@ -119,6 +141,12 @@ export class TabCatalogController {
       </div>
     `;
   }
+
+  private _kindChosen = (ev: Event) => {
+    this._searches.kind = (
+      ev.currentTarget as HTMLElement & { kind: CatalogKind }
+    ).kind;
+  };
 
   private _openEveryTab = () => {
     this._ctx.store.closed = [];
@@ -195,6 +223,31 @@ export class TabCatalogController {
     #catalog-search {
       --ha-input-search-height: var(--ha-space-12);
       --ha-input-search-border-radius: var(--ha-border-radius-pill);
+    }
+    .kind-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
+      padding: 0 var(--ha-space-1);
+    }
+    .kind-chip {
+      min-height: 44px;
+      padding: 0 var(--ha-space-4);
+      border: none;
+      border-radius: var(--ha-border-radius-pill);
+      background-color: var(--card-background-color);
+      color: var(--secondary-text-color);
+      font: inherit;
+      font-weight: var(--ha-font-weight-medium);
+      cursor: pointer;
+    }
+    .kind-chip[aria-pressed="true"] {
+      background-color: var(--primary-text-color);
+      color: var(--primary-background-color);
+    }
+    .kind-chip:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
     }
     .catalog-list {
       display: flex;

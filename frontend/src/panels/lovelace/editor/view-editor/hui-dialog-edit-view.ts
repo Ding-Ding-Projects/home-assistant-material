@@ -191,6 +191,7 @@ export class HuiDialogEditView extends DirtyStateProviderMixin<LovelaceViewConfi
               .hass=${this.hass}
               .config=${this._config}
               @view-visibility-changed=${this._viewVisibilityChanged}
+              @view-conditions-changed=${this._viewConditionsChanged}
             ></hui-view-visibility-editor>
           `;
           break;
@@ -642,6 +643,23 @@ export class HuiDialogEditView extends DirtyStateProviderMixin<LovelaceViewConfi
       this._config = config;
       this._updateDirtyState(config);
     }
+  }
+
+  private _viewConditionsChanged(
+    ev: CustomEvent<{ visibility: LovelaceViewConfig["visibility"] }>
+  ): void {
+    if (!this._config) {
+      return;
+    }
+    const config: LovelaceViewConfig = {
+      ...this._config,
+      visibility: ev.detail.visibility,
+    };
+    if (!config.visibility?.length) {
+      delete config.visibility;
+    }
+    this._config = config;
+    this._updateDirtyState(config);
   }
 
   private _viewYamlChanged(ev: CustomEvent) {

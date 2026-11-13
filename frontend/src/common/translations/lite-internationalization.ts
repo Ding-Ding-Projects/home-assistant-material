@@ -23,7 +23,7 @@ export const buildLiteInternationalization = (
   locale: {
     language,
     number_format: NumberFormat.language,
-    time_format: TimeFormat.language,
+    time_format: TimeFormat.twenty_four,
     date_format: DateFormat.language,
     time_zone: TimeZone.local,
     first_weekday: FirstWeekday.language,

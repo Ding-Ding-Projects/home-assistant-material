@@ -42,6 +42,16 @@ import { isGroupLocked } from "../../common/tabs/tab-locks";
 import { renderTabIcon } from "./tab-icons";
 import type { PageTab, TabModuleContext } from "./tab-types";
 
+/** The kind chips of the catalog. */
+export type CatalogKind = "all" | "pages" | "settings" | "tools";
+
+export const CATALOG_KINDS: CatalogKind[] = [
+  "all",
+  "pages",
+  "settings",
+  "tools",
+];
+
 const EMPTY_GROUP_FILTERS: Record<TabGroupId, string> = {
   pinned: "",
   pages: "",
@@ -71,6 +81,9 @@ export class TabSearchesController implements ReactiveController {
 
   /** Tabs closed by the last group close, kept so that group can undo it. */
   private _groupClosed?: { group: TabGroupId; ids: string[] };
+
+  /** Which kind of destination the catalog lists: the filter chips. */
+  private _kind: CatalogKind = "all";
 
   /** Search 1: the open tabs of this strip. */
   private _stripQuery = "";
@@ -120,8 +133,19 @@ export class TabSearchesController implements ReactiveController {
     void openMasterSearch(host.hass, target);
   }
 
+  /** Which kind of destination the catalog lists. */
+  public get kind(): CatalogKind {
+    return this._kind;
+  }
+
+  public set kind(value: CatalogKind) {
+    this._kind = value;
+    this._ctx.host.requestUpdate();
+  }
+
   /** Clears every group search and the last group close, as the catalog opens. */
   public reset() {
+    this._kind = "all";
     this._groupFilters = { ...EMPTY_GROUP_FILTERS };
     this._groupClosed = undefined;
     this._stripQuery = "";
@@ -163,8 +187,18 @@ export class TabSearchesController implements ReactiveController {
     const tools = computeToolEntries(host.hass).filter(
       (entry) => reachable(entry) && matches(entry.title, entry.path)
     );
-    const discovery = this._renderDiscovery();
-    if (!listed.length && !settings.length && !tools.length) {
+    // The kind chips narrow the catalog to pages, settings or tools; the tab
+    // searches belong to the full view only.
+    const kind = this._kind;
+    const discovery = kind === "all" ? this._renderDiscovery() : nothing;
+    const showPages = kind === "all" || kind === "pages";
+    const showSettings = kind === "all" || kind === "settings";
+    const showTools = kind === "all" || kind === "tools";
+    if (
+      (!showPages || !listed.length) &&
+      (!showSettings || !settings.length) &&
+      (!showTools || !tools.length)
+    ) {
       return html`${discovery}
         <p class="empty">${t("ui.page_tabs.no_match")}</p>`;
     }
@@ -175,7 +209,7 @@ export class TabSearchesController implements ReactiveController {
         "pinned",
         "group-pinned",
         "ui.page_tabs.group_pinned",
-        listed.filter((tab) => pinned.includes(tab.urlPath)),
+        showPages ? listed.filter((tab) => pinned.includes(tab.urlPath)) : [],
         closed
       )}
       ${this._renderTabGroup(
@@ -184,24 +218,26 @@ export class TabSearchesController implements ReactiveController {
         "ui.page_tabs.group_pages",
         // Settings pages and tools opened as tabs are listed with the
         // settings and tools below, where they can be opened or focused.
-        listed.filter(
-          (tab) =>
-            !pinned.includes(tab.urlPath) &&
-            parseDestinationId(tab.urlPath).kind === "page"
-        ),
+        showPages
+          ? listed.filter(
+              (tab) =>
+                !pinned.includes(tab.urlPath) &&
+                parseDestinationId(tab.urlPath).kind === "page"
+            )
+          : [],
         closed
       )}
       ${this._renderSettingsGroup(
         "settings",
         "group-settings",
         "ui.page_tabs.group_settings",
-        settings
+        showSettings ? settings : []
       )}
       ${this._renderSettingsGroup(
         "tools",
         "group-tools",
         "ui.page_tabs.group_tools",
-        tools
+        showTools ? tools : []
       )}
     `;
   }
@@ -853,8 +889,31 @@ export class TabSearchesController implements ReactiveController {
       padding: 0;
       list-style: none;
     }
+    /* Every destination is a tile: tinted icon, name, state. */
+    #catalog .group-list {
+      gap: var(--ha-space-2);
+    }
     .group-list .entry {
       width: 100%;
+      min-height: var(--ha-space-16, 64px);
+      background-color: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card, none);
+      border-radius: var(--ha-border-radius-3xl, 20px);
+    }
+    .group-list .entry:hover,
+    .group-list .entry:focus-visible {
+      background-color: var(
+        --ha-color-surface-tone-2,
+        var(--card-background-color)
+      );
+    }
+    .group-list .entry .entry-icon {
+      background-color: var(--ha-color-primary-container);
+      color: var(--ha-color-on-primary-container);
+    }
+    .group-list .entry.closed {
+      box-shadow: none;
+      border: 1px dashed var(--ha-color-outline, var(--divider-color));
     }
     .entry {
       display: flex;

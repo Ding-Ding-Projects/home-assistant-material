@@ -65,6 +65,11 @@ export interface LovelaceBaseViewConfig {
   panel?: boolean;
   background?: LovelaceDashboardBackgroundConfig;
   visible?: boolean | ShowViewConfig[];
+  /**
+   * Conditions (entity state, time, screen and so on, with and, or and not
+   * groups) that must all hold for the view to show in the navigation.
+   */
+  visibility?: VisibilityCondition[];
   subview?: boolean;
   back_path?: string;
   // Only used for section view, it should move to a section view config type when the views will have dedicated editor.

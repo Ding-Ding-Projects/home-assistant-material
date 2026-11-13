@@ -47,6 +47,11 @@ import "../../../../components/ha-icon-overflow-menu";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-switch";
 import { dashboardHistoryUrl } from "../../../../data/dashboard_repos";
+import {
+  getDashboardConditions,
+  hiddenDashboardPaths,
+  saveDashboardConditions,
+} from "../../../../data/dashboard-visibility";
 import type { LovelaceRawConfig } from "../../../../data/lovelace/config/types";
 import {
   isStrategyDashboard,
@@ -120,6 +125,8 @@ type DataTableItem = Pick<
   "icon" | "title" | "show_in_sidebar" | "require_admin" | "mode" | "url_path"
 > & {
   default: boolean;
+  /** Its "show only when" conditions do not hold now, so navigation skips it. */
+  hidden_now?: boolean;
   filename: string;
   localized_type: string;
   type: string;
@@ -253,7 +260,16 @@ export class HaConfigLovelaceDashboards extends LitElement {
           extraTemplate: (dashboard) =>
             html`<span
               style="display: block; color: var(--secondary-text-color); font-size: var(--ha-font-size-s);"
-              >/${dashboard.url_path}</span
+              >/${dashboard.url_path}${
+                dashboard.hidden_now
+                  ? html` ·
+                      <span style="color: var(--warning-color);"
+                        >${localize(
+                          "ui.panel.config.lovelace.dashboards.detail.visibility.hidden_now"
+                        )}</span
+                      >`
+                  : nothing
+              }</span
             >`,
         },
       };
@@ -432,8 +448,10 @@ export class HaConfigLovelaceDashboards extends LitElement {
     (
       dashboards: LovelaceDashboard[],
       defaultUrlPath: string | null,
-      panels: HomeAssistant["panels"]
+      panels: HomeAssistant["panels"],
+      hiddenKey: string
     ) => {
+      const hidden = new Set(hiddenKey ? hiddenKey.split("\n") : []);
       const result: DataTableItem[] = [];
 
       PANEL_DASHBOARDS.forEach((panel) => {
@@ -449,6 +467,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
           url_path: panelInfo.url_path,
           filename: "",
           default: defaultUrlPath === panelInfo.url_path,
+          hidden_now: hidden.has(panelInfo.url_path),
           require_admin: panelInfo.require_admin || false,
           type: "built_in",
           localized_type: this._localizeType("built_in"),
@@ -467,6 +486,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
                 filename: "",
                 ...dashboard,
                 default: defaultUrlPath === dashboard.url_path,
+                hidden_now: hidden.has(dashboard.url_path),
                 type: "user_created",
                 localized_type: this._localizeType("user_created"),
               }) satisfies DataTableItem
@@ -505,7 +525,16 @@ export class HaConfigLovelaceDashboards extends LitElement {
         .data=${
           this._loading
             ? []
-            : this._getItems(this._dashboards, defaultPanel, this.hass.panels)
+            : this._getItems(
+                this._dashboards,
+                defaultPanel,
+                this.hass.panels,
+                hiddenDashboardPaths(
+                  this.hass.systemData?.dashboard_visibility,
+                  this.hass,
+                  [defaultPanel]
+                ).join("\n")
+              )
         }
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
@@ -911,6 +940,24 @@ export class HaConfigLovelaceDashboards extends LitElement {
     return taken;
   }
 
+  /** Drops the "show only when" entries of deleted dashboards (best effort). */
+  private _forgetVisibility(urlPaths: string[]): void {
+    const map = this.hass.systemData?.dashboard_visibility;
+    if (!this.hass.user?.is_admin || !map) {
+      return;
+    }
+    urlPaths
+      .filter((urlPath) => getDashboardConditions(map, urlPath).length)
+      .reduce(
+        (chain, urlPath) =>
+          chain.then(() =>
+            saveDashboardConditions(this.hass.connection, urlPath, [])
+          ),
+        Promise.resolve()
+      )
+      .catch(() => undefined);
+  }
+
   private async _deleteDashboard(
     dashboard: LovelaceDashboard
   ): Promise<boolean> {
@@ -930,6 +977,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
     }
     try {
       await deleteDashboard(this.hass!, dashboard.id);
+      this._forgetVisibility([dashboard.url_path]);
       this._dashboards = this._dashboards.filter((res) => res !== dashboard);
       return true;
     } catch (_err: any) {
@@ -1050,6 +1098,7 @@ export class HaConfigLovelaceDashboards extends LitElement {
     const doneIds = new Set(result.succeeded.map((row) => row.id));
     if (action === "delete") {
       const gone = new Set(result.succeeded.map((row) => row.url_path));
+      this._forgetVisibility([...gone]);
       this._dashboards = this._dashboards.filter(
         (dashboard) => !gone.has(dashboard.url_path)
       );

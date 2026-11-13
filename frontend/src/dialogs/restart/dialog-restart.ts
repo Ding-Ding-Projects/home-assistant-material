@@ -138,6 +138,7 @@ class DialogRestart extends LitElement {
           option: true,
           selected,
           danger: !!option.danger,
+          [`tone-${option.action}`]: true,
         })}
         aria-checked=${selected ? "true" : "false"}
         .action=${option.action}
@@ -432,11 +433,52 @@ class DialogRestart extends LitElement {
           padding: var(--ha-space-3) var(--ha-space-4);
           border: var(--ha-border-width-md) solid transparent;
           border-radius: var(--ha-border-radius-xl);
-          background: var(--secondary-background-color);
+          background: transparent;
           color: var(--primary-text-color);
           font: inherit;
           text-align: start;
           cursor: pointer;
+        }
+
+        .option:hover:not(:disabled) {
+          background: var(
+            --ha-color-surface-tone-1,
+            var(--secondary-background-color)
+          );
+        }
+
+        /* Each choice wears its own tint, from the gentlest to the strongest. */
+        .option {
+          --tone-bg: var(
+            --ha-color-primary-container,
+            var(--card-background-color)
+          );
+          --tone-fg: var(--ha-color-on-primary-container, var(--primary-color));
+        }
+        .option.tone-restart {
+          --tone-bg: var(
+            --ha-color-warning-container,
+            var(--card-background-color)
+          );
+          --tone-fg: var(--ha-color-on-warning-container, var(--warning-color));
+        }
+        .option.tone-restart-safe-mode {
+          --tone-bg: var(
+            --ha-color-tertiary-container,
+            var(--card-background-color)
+          );
+          --tone-fg: var(
+            --ha-color-on-tertiary-container,
+            var(--primary-color)
+          );
+        }
+        .option.tone-reboot,
+        .option.tone-shutdown {
+          --tone-bg: var(
+            --ha-color-error-container,
+            var(--card-background-color)
+          );
+          --tone-fg: var(--ha-color-on-error-container, var(--error-color));
         }
 
         .option:disabled {
@@ -457,13 +499,6 @@ class DialogRestart extends LitElement {
           border-color: var(--primary-color);
         }
 
-        .option.danger {
-          background: var(
-            --error-container-color,
-            var(--secondary-background-color)
-          );
-        }
-
         .option.danger.selected {
           border-color: var(--error-color);
         }
@@ -476,7 +511,8 @@ class DialogRestart extends LitElement {
           width: 40px;
           height: 40px;
           border-radius: var(--ha-border-radius-lg);
-          background: var(--card-background-color);
+          background: var(--tone-bg);
+          color: var(--tone-fg);
         }
 
         .text {

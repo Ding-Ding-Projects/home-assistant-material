@@ -57,7 +57,7 @@ beforeEach(async () => {
   stubMatchMedia(false);
   resetTabStorage();
   // A strip docked on top reads left to right; the vertical wording has its own test.
-  getStorage().setValue("pageTabsDock", { main: "top" });
+  getStorage().setValue("pageTabsEdge", { main: "top" });
   editorEvents.length = 0;
   window.addEventListener("tab-group-editor-open", onEditor);
   anchor = document.createElement("button");
@@ -133,7 +133,7 @@ describe("ha-tab-group-menu", () => {
   });
 
   it("words the moves for a vertical strip", async () => {
-    getStorage().setValue("pageTabsDock", { main: "left" });
+    getStorage().setValue("pageTabsEdge", { main: "left" });
     writeGroups("main", [group("g1", ["a", "b"])]);
     await open();
     expect(item("groups.move_down")).toBeTruthy();

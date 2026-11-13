@@ -7,6 +7,7 @@ import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-svg-icon";
+import "../../home/components/ha-panel-heading";
 import type {
   AlarmControlPanelEntity,
   AlarmMode,
@@ -88,11 +89,18 @@ export class HuiSecurityAlarmCard extends LitElement implements LovelaceCard {
       return nothing;
     }
     const alarms = this._alarms(this.hass.states);
-    if (!alarms.length) {
-      return nothing;
-    }
     const lines = this._lines();
-    return html`${alarms.map((alarm) => this._renderAlarm(alarm, lines))}`;
+    const summary = [
+      alarms.length ? this.hass.formatEntityState(alarms[0]) : "",
+      lines,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return html`<ha-panel-heading
+        .heading=${this.hass.localize("panel.security")}
+        .summary=${summary}
+      ></ha-panel-heading>
+      ${alarms.map((alarm) => this._renderAlarm(alarm, lines))}`;
   }
 
   private _renderAlarm(alarm: HassEntity, lines: string) {

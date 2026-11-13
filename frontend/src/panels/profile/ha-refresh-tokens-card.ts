@@ -365,6 +365,30 @@ class HaRefreshTokens extends LitElement {
           display: flex;
           justify-content: flex-end;
         }
+        /* The device icon sits on a tinted tile, the current session is a pill. */
+        ha-list-item-base ha-svg-icon[slot="start"] {
+          box-sizing: content-box;
+          padding: var(--ha-space-2);
+          border-radius: var(--ha-border-radius-lg);
+          background: color-mix(
+            in srgb,
+            var(--primary-color) 16%,
+            var(--card-background-color)
+          );
+          color: var(--primary-text-color);
+        }
+        .current-session {
+          display: inline-flex;
+          align-items: center;
+          padding: 0 var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill);
+          background: color-mix(
+            in srgb,
+            var(--success-color) 24%,
+            var(--card-background-color)
+          );
+          color: var(--primary-text-color);
+        }
       `,
     ];
   }

@@ -247,6 +247,10 @@ export interface EnergySelfSufficiencyGaugeCardConfig extends EnergyCardConfig {
   type: "energy-self-sufficiency-gauge";
 }
 
+export interface EnergyTotalsCardConfig extends EnergyCardBaseConfig {
+  type: "energy-totals";
+}
+
 export interface EnergyGridNeutralityGaugeCardConfig extends EnergyCardConfig {
   type: "energy-grid-neutrality-gauge";
 }
@@ -748,6 +752,9 @@ export type LightsSummaryCardConfig = LovelaceCardConfig;
 
 // The top of the Security page takes no options: it shows the alarm panels.
 export type SecurityAlarmCardConfig = LovelaceCardConfig;
+
+// The locks list on the Security page takes no options: it lists the locks.
+export type SecurityLocksCardConfig = LovelaceCardConfig;
 
 export interface PageHeadingCardConfig extends LovelaceCardConfig {
   heading: string;

@@ -447,9 +447,26 @@ export class HaIntegrationCard extends LitElement {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+        /* The brand icon sits on a soft rounded tile, as on the board. */
         img {
-          width: 40px;
-          height: 40px;
+          box-sizing: border-box;
+          width: 48px;
+          height: 48px;
+          padding: var(--ha-space-2);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--ha-color-surface-tone-2, rgba(0, 0, 0, 0.05));
+          object-fit: contain;
+        }
+        .pill::before {
+          content: "";
+          flex: none;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .pill:has(ha-spinner)::before {
+          display: none;
         }
         .supporting-text {
           display: flex;

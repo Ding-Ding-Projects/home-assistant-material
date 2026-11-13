@@ -1279,6 +1279,8 @@
       "group_pages": "頁面",
       "group_settings": "設定",
       "group_tools": "工具",
+      "kind_all": "全部",
+      "kind_filter_label": "顯示",
       "no_match": "冇頁面符合呢個搜尋。",
       "bulk_close_matching": "關閉 {count} 個符合嘅分頁",
       "bulk_close_others": "關閉其餘 {count} 個分頁",

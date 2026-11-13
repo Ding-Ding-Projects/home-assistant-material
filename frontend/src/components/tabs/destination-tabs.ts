@@ -20,6 +20,7 @@ import {
 } from "../../common/tabs/tab-pins";
 import { openTab } from "../../common/tabs/tab-seen";
 import { DEFAULT_SURFACE } from "../../common/tabs/tab-validate";
+import { visiblePanels } from "../../data/dashboard-visibility";
 import { getDefaultPanelUrlPath } from "../../data/panel";
 import type { HomeAssistant } from "../../types";
 import {
@@ -167,7 +168,7 @@ export const computeStripTabs = (
 ): PageTab[] =>
   mergeTabs(
     computePageTabs(
-      hass.panels,
+      visiblePanels(hass, getDefaultPanelUrlPath(hass)),
       getDefaultPanelUrlPath(hass),
       Boolean(hass.user?.is_admin),
       hass.localize

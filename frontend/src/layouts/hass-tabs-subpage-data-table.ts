@@ -438,6 +438,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
 
   protected willUpdate(changedProperties: PropertyValues) {
     this.toggleAttribute("has-footer", this._hasFooter);
+    this.toggleAttribute("floating-selection", this._showSelectionBar);
 
     this._loadLayout();
 
@@ -756,65 +757,6 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         @page-title-changed=${this._pageTitleChanged}
       >
         ${
-          this._showSelectionBar
-            ? html`<div class="selection-bar" slot="toolbar">
-                <div class="selection-controls">
-                  <ha-icon-button
-                    .path=${mdiClose}
-                    @click=${this._disableSelectMode}
-                    .label=${localize(
-                      "ui.components.subpage-data-table.exit_selection_mode"
-                    )}
-                  ></ha-icon-button>
-                  <ha-dropdown @wa-select=${this._handleSelect}>
-                    <ha-assist-chip
-                      .label=${localize(
-                        "ui.components.subpage-data-table.select"
-                      )}
-                      slot="trigger"
-                    >
-                      <ha-svg-icon
-                        slot="icon"
-                        .path=${mdiFormatListChecks}
-                      ></ha-svg-icon>
-                      <ha-svg-icon
-                        slot="trailing-icon"
-                        .path=${mdiMenuDown}
-                      ></ha-svg-icon
-                    ></ha-assist-chip>
-                    <ha-dropdown-item value="all">
-                      ${localize("ui.components.subpage-data-table.select_all")}
-                    </ha-dropdown-item>
-                    <ha-dropdown-item value="none">
-                      ${localize("ui.components.subpage-data-table.select_none")}
-                    </ha-dropdown-item>
-                    <wa-divider></wa-divider>
-                    <ha-dropdown-item value="disable_select_mode">
-                      ${localize(
-                        "ui.components.subpage-data-table.exit_selection_mode"
-                      )}
-                    </ha-dropdown-item>
-                  </ha-dropdown>
-                  ${
-                    this.selected !== undefined
-                      ? html`<p>
-                          ${localize(
-                            "ui.components.subpage-data-table.selected",
-                            {
-                              selected: this.selected || "0",
-                            }
-                          )}
-                        </p>`
-                      : nothing
-                  }
-                </div>
-                <div class="center-vertical">
-                  <slot name="selection-bar"></slot>
-                </div>
-              </div>`
-            : nothing
-        }
-        ${
           this.showFilters
             ? !showPane
               ? nothing
@@ -955,6 +897,70 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         }
         <div slot="fab"><slot name="fab"></slot></div>
       </hass-tabs-subpage>
+      ${
+        this._showSelectionBar
+          ? html`<div
+              class="selection-bar"
+              role="toolbar"
+              aria-label=${localize(
+                "ui.components.subpage-data-table.selected",
+                { selected: this.selected || "0" }
+              )}
+            >
+              <div class="selection-controls">
+                <ha-icon-button
+                  .path=${mdiClose}
+                  @click=${this._disableSelectMode}
+                  .label=${localize(
+                    "ui.components.subpage-data-table.exit_selection_mode"
+                  )}
+                ></ha-icon-button>
+                ${
+                  this.selected !== undefined
+                    ? html`<p role="status">
+                        ${localize(
+                          "ui.components.subpage-data-table.selected",
+                          {
+                            selected: this.selected || "0",
+                          }
+                        )}
+                      </p>`
+                    : nothing
+                }
+                <ha-dropdown @wa-select=${this._handleSelect}>
+                  <ha-assist-chip
+                    .label=${localize("ui.components.subpage-data-table.select")}
+                    slot="trigger"
+                  >
+                    <ha-svg-icon
+                      slot="icon"
+                      .path=${mdiFormatListChecks}
+                    ></ha-svg-icon>
+                    <ha-svg-icon
+                      slot="trailing-icon"
+                      .path=${mdiMenuDown}
+                    ></ha-svg-icon
+                  ></ha-assist-chip>
+                  <ha-dropdown-item value="all">
+                    ${localize("ui.components.subpage-data-table.select_all")}
+                  </ha-dropdown-item>
+                  <ha-dropdown-item value="none">
+                    ${localize("ui.components.subpage-data-table.select_none")}
+                  </ha-dropdown-item>
+                  <wa-divider></wa-divider>
+                  <ha-dropdown-item value="disable_select_mode">
+                    ${localize(
+                      "ui.components.subpage-data-table.exit_selection_mode"
+                    )}
+                  </ha-dropdown-item>
+                </ha-dropdown>
+              </div>
+              <div class="center-vertical">
+                <slot name="selection-bar"></slot>
+              </div>
+            </div>`
+          : nothing
+      }
       ${
         this.showFilters && !showPane
           ? html`<ha-adaptive-dialog
@@ -1357,6 +1363,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     :host {
       display: block;
       height: 100%;
+      position: relative;
     }
 
     .page-heading {
@@ -1692,17 +1699,77 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       white-space: nowrap;
     }
 
+    /* The bulk bar floats at the bottom centre of the list, a dark rounded
+       pill, and rises in when rows are ticked. On a phone it spans the width
+       above the phone bar. */
     .selection-bar {
-      background: rgba(var(--rgb-primary-color), 0.1);
-      width: 100%;
-      height: 100%;
+      position: absolute;
+      z-index: 6;
+      inset-inline: 0;
+      margin-inline: auto;
+      width: max-content;
+      max-width: calc(100% - var(--ha-space-6));
+      bottom: calc(var(--ha-space-6) + var(--safe-area-inset-bottom, 0px));
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      padding: 8px 12px;
+      justify-content: center;
+      gap: var(--ha-space-2) var(--ha-space-4);
+      padding: var(--ha-space-2) var(--ha-space-4);
       box-sizing: border-box;
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--ha-color-neutral-10, #1b1b1f);
+      color: var(--ha-color-on-neutral-loud, #fff);
+      box-shadow: var(--ha-shadow-overlay, 0 8px 24px rgba(0, 0, 0, 0.3));
       font-size: var(--ha-font-size-m);
-      --ha-assist-chip-container-color: var(--card-background-color);
+      --ha-assist-chip-container-color: transparent;
+      --ha-button-theme-color: currentColor;
+      --ha-button-outlined-text-color: var(--ha-color-on-neutral-loud, #fff);
+      --wa-color-on-normal: var(--ha-color-on-neutral-loud, #fff);
+      --wa-color-on-quiet: var(--ha-color-on-neutral-loud, #fff);
+      --primary-text-color: var(--ha-color-on-neutral-loud, #fff);
+      --secondary-text-color: var(--ha-color-on-neutral-loud, #fff);
+      --mdc-icon-button-size: 40px;
+      animation: selection-bar-rise var(--ha-animation-duration-enter, 250ms)
+        var(--ha-motion-spring, ease-out);
+    }
+    @keyframes selection-bar-rise {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .selection-bar {
+        animation: none;
+      }
+    }
+    :host([narrow]) .selection-bar {
+      inset-inline: var(--ha-space-3);
+      margin-inline: 0;
+      width: auto;
+      max-width: none;
+      bottom: calc(
+        var(--ha-space-3) + var(--ha-phone-bar-visible-height, 0px) +
+          var(--safe-area-inset-bottom, 0px)
+      );
+      justify-content: space-between;
+    }
+    :host([floating-selection]) ha-data-table {
+      --data-table-empty-row-height: calc(
+        112px + var(--ha-phone-bar-visible-height, 0px) +
+          var(--safe-area-inset-bottom, 0px)
+      );
+    }
+    :host([floating-selection][narrow]) ha-data-table {
+      --data-table-empty-row-height: calc(
+        176px + var(--ha-phone-bar-visible-height, 0px) +
+          var(--safe-area-inset-bottom, 0px)
+      );
     }
 
     .selection-controls {
@@ -1712,9 +1779,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
 
     .selection-controls p {
-      margin-left: 8px;
-      margin-inline-start: 8px;
-      margin-inline-end: initial;
+      margin: 0;
+      font-weight: var(--ha-font-weight-medium);
+      white-space: nowrap;
     }
 
     .center-vertical {
@@ -1727,6 +1794,10 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     ha-filter-pane-chip {
       --ha-assist-chip-container-shape: 10px;
       --ha-assist-chip-container-color: var(--card-background-color);
+    }
+
+    .selection-bar ha-assist-chip {
+      --ha-assist-chip-container-color: transparent;
     }
 
     .select-mode-chip {

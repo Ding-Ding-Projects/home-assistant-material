@@ -81,6 +81,18 @@ export class EnergyOverviewViewStrategy extends ReactiveElement {
       ],
     });
 
+    view.sections!.push({
+      type: "grid",
+      column_span: 3,
+      cards: [
+        {
+          type: "energy-totals",
+          collection_key: collectionKey,
+          grid_options: { columns: "full" },
+        },
+      ],
+    });
+
     if (isEnergyCardVisible("overview", "energy-distribution", prefs, hidden)) {
       view.sections!.push({
         type: "grid",

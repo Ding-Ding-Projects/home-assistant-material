@@ -23,6 +23,7 @@ import type { HomeAssistant } from "../../../types";
 import type {
   LogbookCardConfig,
   SecurityAlarmCardConfig,
+  SecurityLocksCardConfig,
 } from "../../lovelace/cards/types";
 import { computeAreaTileCardConfig } from "../../lovelace/strategies/areas/helpers/areas-strategy-helper";
 import { computeFavoriteCardConfig } from "../../lovelace/strategies/helpers/favorite-cards";
@@ -219,6 +220,20 @@ export class SecurityViewStrategy extends ReactiveElement {
             heading_style: "title",
           },
           ...favoriteEntities.map(computeFavoriteCardConfig),
+        ],
+      });
+    }
+
+    // The locks as one list, with a button to lock each one that is open.
+    if (entities.some((entityId) => entityId.startsWith("lock."))) {
+      sections.push({
+        type: "grid",
+        column_span: 2,
+        cards: [
+          {
+            type: "security-locks",
+            grid_options: { columns: "full" },
+          } satisfies SecurityLocksCardConfig,
         ],
       });
     }

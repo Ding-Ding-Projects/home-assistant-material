@@ -7,6 +7,7 @@ import {
   mdiPlay,
   mdiPlus,
   mdiSkipNext,
+  mdiUpdate,
 } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, TemplateResult } from "lit";
@@ -22,6 +23,7 @@ import {
   lockFacts,
   playingMedia,
 } from "../../../common/home/home-hero";
+import { navigate } from "../../../common/navigate";
 import { formatNumber } from "../../../common/number/format_number";
 import "../../../components/ha-control-slider";
 import "../../home/components/ha-home-power-tile";
@@ -73,15 +75,18 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
     const climateId = this._climate(hass.states, hass.entities);
     const locks = this._locks(hass.states, hass.entities);
     const mediaId = this._media(hass.states, hass.entities);
-    if (!room && !climateId && !locks && !mediaId) {
+    const updates = this._updates(hass.states, hass.user?.is_admin);
+    if (!room && !climateId && !locks && !mediaId && !updates) {
       return nothing;
     }
+    const needsYou = !!locks?.unlocked.length || updates > 0;
     return html`
       <div class="heroes">
+        ${needsYou ? this._renderNeeds(locks, updates) : nothing}
         ${room ? this._renderRoom(room) : nothing}
         ${climateId ? this._renderClimate(hass.states[climateId]) : nothing}
         <ha-home-power-tile .hass=${hass}></ha-home-power-tile>
-        ${locks ? this._renderLocks(locks) : nothing}
+        ${locks && !needsYou ? this._renderLocks(locks) : nothing}
         ${mediaId ? this._renderMedia(hass.states[mediaId]) : nothing}
       </div>
     `;
@@ -244,6 +249,100 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
         >
       </section>
     `;
+  }
+
+  /**
+   * What needs a decision: doors that are not locked and updates waiting to
+   * be installed. It is built only from the real entities and is not drawn
+   * when there is nothing to decide.
+   */
+  private _renderNeeds(
+    locks: ReturnType<typeof lockFacts>,
+    updates: number
+  ): TemplateResult {
+    const hass = this.hass!;
+    const localize = hass.localize;
+    const open = locks?.unlocked ?? [];
+    const names = open
+      .map((entityId) => computeStateName(hass.states[entityId]))
+      .join(", ");
+    return html`
+      <section
+        class="hero needs"
+        aria-label=${localize("ui.panel.lovelace.cards.home_hero.needs_you")}
+      >
+        <header>
+          <span class="tile"
+            ><ha-svg-icon
+              .path=${open.length ? mdiLockOpenVariant : mdiUpdate}
+            ></ha-svg-icon
+          ></span>
+          <span class="pill"
+            >${localize("ui.panel.lovelace.cards.home_hero.needs_you")}</span
+          >
+        </header>
+        ${
+          open.length
+            ? html`<div class="need">
+                <h2>
+                  ${localize("ui.panel.lovelace.cards.home_hero.not_locked", {
+                    count: open.length,
+                  })}
+                </h2>
+                <span class="caption"
+                  >${names} ·
+                  ${localize("ui.panel.lovelace.cards.home_hero.doors", {
+                    count: locks!.locks.length,
+                  })}</span
+                >
+                <button
+                  type="button"
+                  class="action"
+                  data-locks=${open.join(",")}
+                  @click=${this._lockAll}
+                >
+                  <ha-svg-icon .path=${mdiLock}></ha-svg-icon>
+                  ${localize("ui.panel.lovelace.cards.home_hero.lock_all")}
+                </button>
+              </div>`
+            : nothing
+        }
+        ${
+          updates > 0
+            ? html`<div class="need">
+                <h2>
+                  ${localize(
+                    "ui.panel.lovelace.cards.home_hero.updates_waiting",
+                    { count: updates }
+                  )}
+                </h2>
+                <button
+                  type="button"
+                  class="action ${open.length ? "quiet" : ""}"
+                  @click=${this._openUpdates}
+                >
+                  ${localize("ui.panel.lovelace.cards.home_hero.review_updates")}
+                </button>
+              </div>`
+            : nothing
+        }
+      </section>
+    `;
+  }
+
+  private _updates = memoizeOne(
+    (states: HomeAssistant["states"], isAdmin?: boolean): number =>
+      isAdmin
+        ? Object.values(states).filter(
+            (stateObj) =>
+              stateObj.entity_id.startsWith("update.") &&
+              stateObj.state === "on"
+          ).length
+        : 0
+  );
+
+  private _openUpdates(): void {
+    navigate("/config/updates?historyBack=1");
   }
 
   private _renderLocks(locks: NonNullable<ReturnType<typeof lockFacts>>) {
@@ -443,6 +542,51 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
         var(--primary-background-color)
       );
     }
+    .hero.needs {
+      grid-column: span 2;
+      gap: var(--ha-space-3);
+      background: color-mix(
+        in srgb,
+        var(--warning-color) 40%,
+        var(--primary-background-color)
+      );
+    }
+    .need {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--ha-space-2);
+    }
+    .need + .need {
+      padding-top: var(--ha-space-3);
+      border-top: 1px solid var(--divider-color);
+      width: 100%;
+    }
+    .pill {
+      margin-inline-start: auto;
+      padding: var(--ha-space-1) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-pill);
+      background: var(--primary-background-color);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .action {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+      min-height: var(--ha-space-12);
+      padding: 0 var(--ha-space-5);
+      border: none;
+      border-radius: var(--ha-border-radius-pill);
+      background: var(--primary-color);
+      color: var(--text-primary-color, #fff);
+      font-weight: var(--ha-font-weight-medium);
+      --mdc-icon-size: 20px;
+    }
+    .action.quiet {
+      background: var(--primary-background-color);
+      color: var(--primary-text-color);
+    }
     .hero.media {
       background: color-mix(
         in srgb,
@@ -565,6 +709,7 @@ export class HuiHomeHeroCard extends LitElement implements LovelaceCard {
       outline-offset: 2px;
     }
     @media (max-width: 600px) {
+      .hero.needs,
       .hero.room {
         grid-column: auto;
       }

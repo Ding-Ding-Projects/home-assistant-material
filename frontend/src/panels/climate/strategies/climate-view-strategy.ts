@@ -292,25 +292,46 @@ export class ClimateViewStrategy extends ReactiveElement {
     // The first thermostat is drawn large at the top of the page.
     const thermostat = featuredClimate(hass.states, hass.entities);
 
+    const thermostats = allEntities.filter(
+      (entityId) =>
+        entityId.startsWith("climate.") && !hass.entities[entityId]?.hidden
+    ).length;
+
+    const heading = {
+      type: "page-heading",
+      heading: hass.localize("panel.climate"),
+      ...(thermostats > 0 && {
+        summary: hass.localize("ui.panel.lovelace.strategy.climate.summary", {
+          count: thermostats,
+        }),
+      }),
+    } satisfies LovelaceCardConfig;
+
     return {
       type: "sections",
       max_columns: 2,
       sections: sections,
-      ...(thermostat && {
-        header: {
-          layout: "responsive",
-          card: {
-            type: "thermostat",
-            entity: thermostat,
-            features: [
-              {
-                type: "climate-hvac-modes",
-                style: "icons",
-              },
-            ],
-          } satisfies LovelaceCardConfig,
-        },
-      }),
+      header: {
+        layout: "responsive",
+        card: thermostat
+          ? ({
+              type: "vertical-stack",
+              cards: [
+                heading,
+                {
+                  type: "thermostat",
+                  entity: thermostat,
+                  features: [
+                    {
+                      type: "climate-hvac-modes",
+                      style: "icons",
+                    },
+                  ],
+                },
+              ],
+            } satisfies LovelaceCardConfig)
+          : heading,
+      },
     };
   }
 }

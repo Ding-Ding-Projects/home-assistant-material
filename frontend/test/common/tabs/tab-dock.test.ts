@@ -22,7 +22,7 @@ import {
 // The dock edge is left by default and chosen per strip.
 
 describe("dock", () => {
-  beforeEach(() => getStorage().setValue("pageTabsDock", undefined));
+  beforeEach(() => getStorage().setValue("pageTabsEdge", undefined));
 
   it("defaults to the left edge for every strip", () => {
     expect(dockFor({}, "main")).toBe("left");

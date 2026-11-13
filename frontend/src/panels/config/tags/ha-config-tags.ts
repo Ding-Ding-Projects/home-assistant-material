@@ -1,11 +1,13 @@
 import {
   mdiDelete,
+  mdiFormatListBulleted,
   mdiHelpCircleOutline,
   mdiMemoryArrowDown,
   mdiNfcVariant,
   mdiPencil,
   mdiPlus,
   mdiRobot,
+  mdiViewGridOutline,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -34,8 +36,13 @@ import type {
   RowClickedEvent,
   SelectionChangedEvent,
 } from "../../../components/data-table/ha-data-table";
+import { searchMatcher } from "../../../common/regex/filter";
+import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
+import "../../../components/input/ha-input-search";
+import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import "../../../components/ha-icon-overflow-menu";
 import "../../../components/ha-relative-time";
 import "../../../components/ha-svg-icon";
@@ -57,6 +64,8 @@ import {
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import { buildListStatistics } from "../../../components/layout/list-statistics";
+import "../../../layouts/hass-loading-screen";
+import "../../../layouts/hass-tabs-subpage";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
@@ -80,6 +89,16 @@ export interface TagRowData extends Tag {
   last_scanned_datetime: Date | null;
 }
 
+const VIEW_STORAGE_KEY = "tags-view";
+
+const readStoredView = (): "cards" | "list" => {
+  try {
+    return localStorage.getItem(VIEW_STORAGE_KEY) === "list" ? "list" : "cards";
+  } catch (_err: any) {
+    return "cards";
+  }
+};
+
 @customElement("ha-config-tags")
 export class HaConfigTags extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -97,6 +116,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   @state() private _loadFailed = false;
 
   @state() private _selected: string[] = [];
+
+  // Cards are the default view; the list keeps sorting, columns and bulk
+  // delete. The choice is remembered on this device.
+  @state() private _view: "cards" | "list" = readStoredView();
+
+  @state() private _cardSearch = "";
 
   // Which automations use which tag, read when a selection is first made
   @state() private _usage?: Record<string, string[]>;
@@ -280,6 +305,178 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   }
 
   protected render() {
+    return this._view === "cards" ? this._renderCards() : this._renderList();
+  }
+
+  private _toggleView = () => {
+    this._view = this._view === "cards" ? "list" : "cards";
+    this._selected = [];
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, this._view);
+    } catch (_err: any) {
+      // The choice is not remembered when storage is unavailable.
+    }
+  };
+
+  private _handleCardSearch = (ev: Event) => {
+    this._cardSearch = (ev.target as HaInputSearch).value ?? "";
+  };
+
+  private _renderCards() {
+    const localize = this.hass.localize;
+    const matches = searchMatcher(this._cardSearch);
+    const tags = this._data(this._tags).filter((tag) =>
+      matches(tag.display_name, tag.id)
+    );
+    return html`
+      <hass-tabs-subpage
+        .hass=${this.hass}
+        back-path="/config/connectivity"
+        .route=${this.route}
+        .tabs=${configSections.tags}
+        has-fab
+      >
+        <ha-icon-button
+          slot="toolbar-icon"
+          @click=${this._toggleView}
+          .label=${localize("ui.panel.config.tag.show_list")}
+          .path=${mdiFormatListBulleted}
+        ></ha-icon-button>
+        <ha-icon-button
+          slot="toolbar-icon"
+          @click=${this._showHelp}
+          .label=${localize("ui.common.help")}
+          .path=${mdiHelpCircleOutline}
+        ></ha-icon-button>
+        <div class="page">
+          <header class="page-head">
+            <h1>${localize("ui.panel.config.tag.caption")}</h1>
+            <p>
+              ${
+                this._loading
+                  ? localize("ui.panel.config.tag.summary")
+                  : localize("ui.panel.config.tag.count", {
+                      count: this._tags.length,
+                    })
+              }
+            </p>
+          </header>
+          ${
+            this._loading
+              ? html`<hass-loading-screen
+                  no-toolbar
+                  .hass=${this.hass}
+                ></hass-loading-screen>`
+              : this._loadFailed
+                ? html`<ha-alert alert-type="error">
+                    ${localize("ui.panel.config.tag.load_failed")}
+                    <ha-button
+                      slot="action"
+                      size="s"
+                      appearance="plain"
+                      @click=${this._retryFetchTags}
+                    >
+                      ${localize("ui.common.retry")}
+                    </ha-button>
+                  </ha-alert>`
+                : html`
+                    <div class="card-tools">
+                      <ha-input-search
+                        appearance="outlined"
+                        .value=${this._cardSearch}
+                        @input=${this._handleCardSearch}
+                        .placeholder=${localize("ui.panel.config.tag.search")}
+                        .accessibleLabel=${localize(
+                          "ui.panel.config.tag.search"
+                        )}
+                      ></ha-input-search>
+                    </div>
+                    <div class="waiting">${this._waitingCard(localize)}</div>
+                    ${
+                      tags.length
+                        ? html`<div class="cards">
+                            ${tags.map((tag) => this._renderTagCard(tag))}
+                          </div>`
+                        : html`<p class="empty">
+                            ${localize("ui.panel.config.tag.no_tags")}
+                          </p>`
+                    }
+                  `
+          }
+        </div>
+        <ha-button slot="fab" size="l" @click=${this._addTag}>
+          <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+          ${localize("ui.panel.config.tag.add_tag")}
+        </ha-button>
+      </hass-tabs-subpage>
+    `;
+  }
+
+  private _renderTagCard(tag: TagRowData) {
+    const localize = this.hass.localize;
+    const device = tag.device_id ? this.hass.devices[tag.device_id] : undefined;
+    const deviceName = device?.name_by_user || device?.name;
+    return html`
+      <ha-card outlined class="tag-card">
+        <button
+          class="tag-main"
+          .tag=${tag}
+          @click=${this._handleEditClick}
+          aria-label=${
+            localize("ui.panel.config.tag.edit") + ": " + tag.display_name
+          }
+        >
+          <span class="tag-icon"
+            ><ha-svg-icon .path=${mdiNfcVariant}></ha-svg-icon
+          ></span>
+          <span class="tag-name">${tag.display_name}</span>
+          <span class="tag-scanned">
+            ${
+              tag.last_scanned_datetime
+                ? html`<ha-relative-time
+                      .datetime=${tag.last_scanned_datetime}
+                      capitalize
+                    ></ha-relative-time
+                    >${
+                      deviceName
+                        ? html`,
+                          ${localize("ui.panel.config.tag.scanned_by", {
+                            device: deviceName,
+                          })}`
+                        : nothing
+                    }`
+                : localize("ui.panel.config.tag.never_scanned")
+            }
+          </span>
+        </button>
+        <div class="tag-actions">
+          <ha-button
+            appearance="accent"
+            size="s"
+            .tag=${tag}
+            @click=${this._handleCreateAutomationClick}
+          >
+            <ha-svg-icon slot="start" .path=${mdiRobot}></ha-svg-icon>
+            ${localize("ui.panel.config.tag.create_automation")}
+          </ha-button>
+          ${
+            this._canWriteTags
+              ? html`<ha-button
+                  appearance="plain"
+                  size="s"
+                  .tag=${tag}
+                  @click=${this._handleWriteClick}
+                >
+                  ${localize("ui.panel.config.tag.write")}
+                </ha-button>`
+              : nothing
+          }
+        </div>
+      </ha-card>
+    `;
+  }
+
+  private _renderList() {
     return html`
       <hass-tabs-subpage-data-table
         .hass=${this.hass}
@@ -324,6 +521,12 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
         @row-click=${this._editTag}
         id="id"
       >
+        <ha-icon-button
+          slot="toolbar-icon"
+          @click=${this._toggleView}
+          .label=${this.hass.localize("ui.panel.config.tag.show_cards")}
+          .path=${mdiViewGridOutline}
+        ></ha-icon-button>
         <ha-icon-button
           slot="toolbar-icon"
           @click=${this._showHelp}
@@ -740,6 +943,92 @@ export class HaConfigTags extends SubscribeMixin(LitElement) {
   };
 
   static styles: CSSResultGroup = css`
+    .page {
+      box-sizing: border-box;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--ha-space-4) var(--ha-space-8) var(--ha-space-20);
+    }
+    :host([narrow]) .page {
+      padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-20);
+    }
+    .page-head h1 {
+      margin: 0;
+      font-family: var(--ha-font-family-heading, inherit);
+      font-size: var(--ha-font-size-4xl);
+      font-weight: var(--ha-font-weight-normal);
+      line-height: var(--ha-line-height-condensed);
+    }
+    .page-head p {
+      margin: var(--ha-space-2) 0 0;
+      color: var(--secondary-text-color);
+    }
+    .card-tools {
+      margin-top: var(--ha-space-6);
+      max-width: 420px;
+    }
+    .waiting {
+      margin-inline: calc(var(--ha-space-4) * -1);
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+      gap: var(--ha-space-4);
+      margin-top: var(--ha-space-4);
+    }
+    .empty {
+      margin-top: var(--ha-space-6);
+      text-align: center;
+      color: var(--secondary-text-color);
+    }
+    .tag-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: var(--ha-space-5) var(--ha-space-4) var(--ha-space-4);
+      gap: var(--ha-space-3);
+    }
+    .tag-main {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--ha-space-2);
+      width: 100%;
+      cursor: pointer;
+      border-radius: var(--ha-border-radius-xl);
+    }
+    .tag-main:focus-visible {
+      outline: var(--ha-border-width-md, 2px) solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .tag-icon {
+      display: grid;
+      place-items: center;
+      width: 96px;
+      height: 96px;
+      border-radius: var(--ha-border-radius-circle, 50%);
+      background: var(--ha-color-primary-container, rgba(0, 0, 0, 0.06));
+      color: var(--ha-color-on-primary-container, var(--primary-color));
+      --mdc-icon-size: 44px;
+    }
+    .tag-name {
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-medium);
+      overflow-wrap: anywhere;
+    }
+    .tag-scanned {
+      font-size: var(--ha-font-size-s);
+      color: var(--secondary-text-color);
+    }
+    .tag-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--ha-space-2);
+    }
     .bulk {
       position: fixed;
       z-index: 4;

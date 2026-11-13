@@ -4,6 +4,8 @@ import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
+import type { LocalizeFunc } from "../common/translations/localize";
 import type { KeyName, TwoKeyState } from "../common/confirm/two-key";
 import {
   bothTurned,
@@ -21,6 +23,8 @@ import { internationalizationContext } from "../data/context";
 import "./ha-slider";
 import type { HaSlider } from "./ha-slider";
 import "./ha-svg-icon";
+import "./input/ha-input";
+import type { HaInput } from "./input/ha-input";
 
 declare global {
   interface HASSDomEvents {
@@ -30,6 +34,9 @@ declare global {
 }
 
 const KEYS: KeyName[] = ["one", "two"];
+
+/** How long the phone hold button must be held, in milliseconds. */
+const HOLD_MS = 1500;
 
 /**
  * The guard on anything that destroys data: turn two keys, then move the
@@ -49,12 +56,41 @@ export class HaTwoKeyConfirm extends LitElement {
 
   @state() private _slide = 0;
 
+  /**
+   * True on a touch screen with no keyboard or mouse: the two keys are held
+   * with letters or two fingers there, so the phone form is "type the word,
+   * then hold the button".
+   */
+  @state() private _touch = false;
+
+  @state() private _word = "";
+
+  /** How far the hold button has filled, from 0 to 1. */
+  @state() private _held = 0;
+
+  private _holdStart?: number;
+
+  private _holdTimer?: number;
+
+  private _touchQuery?: MediaQueryList;
+
   private _done = false;
 
   private _tick?: number;
 
+  private _touchChanged = (): void => {
+    this._touch = this._touchQuery?.matches ?? false;
+  };
+
   public connectedCallback(): void {
     super.connectedCallback();
+    if (typeof window.matchMedia === "function") {
+      this._touchQuery = window.matchMedia(
+        "(pointer: coarse) and (hover: none)"
+      );
+      this._touch = this._touchQuery.matches;
+      this._touchQuery.addEventListener?.("change", this._touchChanged);
+    }
     window.addEventListener("keydown", this._keydown, true);
     window.addEventListener("keyup", this._keyup, true);
     window.addEventListener("blur", this._releaseAll);
@@ -83,6 +119,133 @@ export class HaTwoKeyConfirm extends LitElement {
     window.removeEventListener("pointerup", this._endDrag, true);
     window.removeEventListener("pointercancel", this._endDrag, true);
     window.clearInterval(this._tick);
+    this._touchQuery?.removeEventListener?.("change", this._touchChanged);
+    this._stopHold();
+  }
+
+  private get _wordMatches(): boolean {
+    const word = this._i18n?.localize("ui.dialogs.two_key.phone_word") ?? "";
+    return (
+      word !== "" &&
+      this._word.trim().toLocaleUpperCase() === word.toLocaleUpperCase()
+    );
+  }
+
+  private _wordInput(ev: Event): void {
+    this._word = (ev.currentTarget as HaInput).value ?? "";
+    if (!this._wordMatches) {
+      this._stopHold();
+    }
+  }
+
+  private _startHold(): void {
+    if (this.disabled || this._done || !this._wordMatches || this._holdTimer) {
+      return;
+    }
+    this._holdStart = Date.now();
+    this._holdTimer = window.setInterval(() => {
+      const fraction = Math.min(
+        1,
+        (Date.now() - (this._holdStart ?? Date.now())) / HOLD_MS
+      );
+      this._held = fraction;
+      if (fraction >= 1) {
+        this._stopHold(false);
+        if (!this._done && this._wordMatches) {
+          this._done = true;
+          fireEvent(this, "two-key-confirmed");
+        }
+      }
+    }, 40);
+  }
+
+  // Letting go early starts over: nothing is kept between two holds.
+  private _stopHold(reset = true): void {
+    window.clearInterval(this._holdTimer);
+    this._holdTimer = undefined;
+    this._holdStart = undefined;
+    if (reset && !this._done) {
+      this._held = 0;
+    }
+  }
+
+  private _holdKeydown(ev: KeyboardEvent): void {
+    if ((ev.key === "Enter" || ev.key === " ") && !ev.repeat) {
+      ev.preventDefault();
+      this._startHold();
+    }
+  }
+
+  private _holdKeyup(ev: KeyboardEvent): void {
+    if (ev.key === "Enter" || ev.key === " ") {
+      this._stopHold();
+    }
+  }
+
+  private _renderPhone(localize: LocalizeFunc): TemplateResult {
+    const word = localize("ui.dialogs.two_key.phone_word");
+    const ready = this._wordMatches;
+    const holding = this._held > 0 && this._held < 1;
+    return html`
+      <ha-input
+        id="phone-word"
+        class="phone-word"
+        type="text"
+        .label=${localize("ui.dialogs.two_key.phone_type", { word })}
+        autocomplete="off"
+        autocapitalize="characters"
+        enterkeyhint="done"
+        .spellcheck=${false}
+        .disabled=${this.disabled}
+        .value=${this._word}
+        @input=${this._wordInput}
+      ></ha-input>
+      <button
+        type="button"
+        class=${classMap({ hold: true, ready })}
+        ?disabled=${this.disabled || !ready}
+        aria-describedby="phone-note"
+        @pointerdown=${this._holdPointerDown}
+        @pointerup=${this._holdPointerUp}
+        @pointercancel=${this._holdPointerUp}
+        @lostpointercapture=${this._holdPointerUp}
+        @contextmenu=${this._noMenu}
+        @keydown=${this._holdKeydown}
+        @keyup=${this._holdKeyup}
+        @blur=${this._holdPointerUp}
+      >
+        <span
+          class="hold-fill"
+          aria-hidden="true"
+          style=${styleMap({ width: `${Math.round(this._held * 100)}%` })}
+        ></span>
+        <span class="hold-text" role="status" aria-live="polite"
+          >${localize(
+            !ready
+              ? "ui.dialogs.two_key.phone_locked"
+              : holding
+                ? "ui.dialogs.two_key.phone_holding"
+                : "ui.dialogs.two_key.phone_hold"
+          )}</span
+        >
+      </button>
+      <p id="phone-note" class="note">
+        ${localize("ui.dialogs.two_key.phone_note")}
+      </p>
+    `;
+  }
+
+  private _holdPointerDown(ev: PointerEvent): void {
+    (ev.currentTarget as HTMLElement).setPointerCapture?.(ev.pointerId);
+    this._startHold();
+  }
+
+  private _holdPointerUp(): void {
+    this._stopHold();
+  }
+
+  private _noMenu(ev: Event): void {
+    ev.preventDefault();
   }
 
   private _dragging = false;
@@ -140,6 +303,9 @@ export class HaTwoKeyConfirm extends LitElement {
       return nothing;
     }
     const localize = this._i18n.localize;
+    if (this._touch) {
+      return this._renderPhone(localize);
+    }
     const now = this._now;
     const ready = bothTurned(this._keys, now);
     const waitingFor = KEYS.find((key) => !isTurned(this._keys, key, now));
@@ -374,6 +540,60 @@ export class HaTwoKeyConfirm extends LitElement {
         var(--error-color) 40%,
         transparent
       );
+    }
+    /* The phone form: type the word, then hold the button until it fills. */
+    .phone-word {
+      display: block;
+      width: 100%;
+      letter-spacing: 0.04em;
+    }
+    .hold {
+      position: relative;
+      display: block;
+      width: 100%;
+      min-height: 60px;
+      margin-top: var(--ha-space-3);
+      padding: 0;
+      border: none;
+      border-radius: var(--ha-border-radius-pill);
+      overflow: hidden;
+      background: color-mix(
+        in srgb,
+        var(--error-color) 35%,
+        var(--primary-background-color)
+      );
+      color: var(--primary-text-color);
+      font: inherit;
+      font-weight: var(--ha-font-weight-medium);
+      cursor: pointer;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    .hold.ready {
+      background: var(--error-color);
+      color: var(--text-primary-color, #fff);
+    }
+    .hold[disabled] {
+      cursor: default;
+    }
+    .hold:focus-visible {
+      outline: 3px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .hold-fill {
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: 0;
+      background: rgba(0, 0, 0, 0.28);
+      pointer-events: none;
+    }
+    .hold-text {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 60px;
     }
     .note {
       margin: var(--ha-space-3) 0 0;

@@ -1,4 +1,5 @@
 import type { Connection } from "home-assistant-js-websocket";
+import type { VisibilityCondition } from "../panels/lovelace/common/validate-condition";
 import type { ShortcutItem } from "./home_shortcuts";
 
 export interface SurveyInteraction {
@@ -51,6 +52,11 @@ export interface CoreFrontendSystemData {
   default_panel?: string;
   onboarded_version?: string;
   onboarded_date?: string;
+  /**
+   * "Show only when" conditions for dashboards, by dashboard URL path. They
+   * only decide whether a dashboard is listed in navigation.
+   */
+  dashboard_visibility?: Record<string, VisibilityCondition[]>;
   surveys?: {
     onboarding?: SurveyInteraction;
   };

@@ -72,6 +72,10 @@ import "./ha-appearance-color-picker";
 /** The value of the "from the theme" choice in a select. */
 const UNSET = "__unset";
 
+const APPEARANCE_TABS = ["type", "fills", "colour", "shape"] as const;
+
+type AppearanceTab = (typeof APPEARANCE_TABS)[number];
+
 type ScalarKey = Exclude<keyof ElementAppearance, "layers">;
 
 type RangeKey =
@@ -123,6 +127,8 @@ export class HaAppearanceEditor extends LitElement {
   @state() private _side: "left" | "right" = "right";
 
   @state() private _urlError = false;
+
+  @state() private _tab: AppearanceTab = "type";
 
   @query("#panel") private _panel?: HTMLElement;
 
@@ -365,9 +371,23 @@ export class HaAppearanceEditor extends LitElement {
           </button>
         </header>
         <div class="body">
-          ${this._renderChain()} ${this._renderScope()} ${this._renderFill()}
-          ${this._renderText()} ${this._renderShape()} ${this._renderAccent()}
-          ${this._renderSize()} ${this._renderContrast()}
+          ${this._renderChain()} ${this._renderScope()} ${this._renderTabs()}
+          <div
+            class="tabpanel"
+            id="appearance-tabpanel"
+            role="tabpanel"
+            aria-labelledby="appearance-tab-${this._tab}"
+          >
+            ${
+              this._tab === "type"
+                ? this._renderText()
+                : this._tab === "fills"
+                  ? this._renderFill()
+                  : this._tab === "colour"
+                    ? html`${this._renderAccent()} ${this._renderContrast()}`
+                    : html`${this._renderShape()} ${this._renderSize()}`
+            }
+          </div>
         </div>
         <footer>
           <span class="note"
@@ -431,6 +451,64 @@ export class HaAppearanceEditor extends LitElement {
         </div>
       </section>
     `;
+  }
+
+  // Type, Fills, Colour and Shape are tabs; the edited element stays the
+  // live sample, since every change is applied to it as it is made.
+  private _renderTabs() {
+    return html`
+      <div
+        class="tabs"
+        role="tablist"
+        aria-label=${this._l("tabs_label")}
+        @keydown=${this._tabKeydown}
+      >
+        ${APPEARANCE_TABS.map(
+          (tab) => html`
+            <button
+              class=${classMap({ tab: true, on: tab === this._tab })}
+              id="appearance-tab-${tab}"
+              role="tab"
+              aria-selected=${tab === this._tab ? "true" : "false"}
+              aria-controls="appearance-tabpanel"
+              tabindex=${tab === this._tab ? "0" : "-1"}
+              .tab=${tab}
+              @click=${this._pickTab}
+            >
+              ${this._l(`tab_${tab}`)}
+            </button>
+          `
+        )}
+      </div>
+    `;
+  }
+
+  private _pickTab(ev: Event) {
+    this._tab = (ev.currentTarget as HTMLElement & { tab: AppearanceTab }).tab;
+  }
+
+  private _tabKeydown(ev: KeyboardEvent) {
+    const step =
+      ev.key === "ArrowRight" ? 1 : ev.key === "ArrowLeft" ? -1 : undefined;
+    const home = ev.key === "Home";
+    const end = ev.key === "End";
+    if (step === undefined && !home && !end) {
+      return;
+    }
+    ev.preventDefault();
+    const last = APPEARANCE_TABS.length - 1;
+    const rtl = getComputedStyle(this).direction === "rtl";
+    const index = APPEARANCE_TABS.indexOf(this._tab);
+    const next = home
+      ? 0
+      : end
+        ? last
+        : Math.min(last, Math.max(0, index + (rtl ? -step! : step!)));
+    this._tab = APPEARANCE_TABS[next];
+    const target = (ev.currentTarget as HTMLElement).children[next];
+    this.updateComplete.then(() =>
+      (target as HTMLElement | undefined)?.focus()
+    );
   }
 
   private _renderScope() {
@@ -1407,6 +1485,40 @@ export class HaAppearanceEditor extends LitElement {
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-2);
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-1);
+      border-radius: var(--ha-border-radius-pill);
+      background: var(--secondary-background-color);
+      align-self: flex-start;
+    }
+    .tab {
+      min-height: 44px;
+      padding: 0 var(--ha-space-4);
+      border: none;
+      border-radius: var(--ha-border-radius-pill);
+      background: none;
+      color: var(--secondary-text-color);
+      font: inherit;
+      font-weight: var(--ha-font-weight-medium);
+      cursor: pointer;
+    }
+    .tab.on {
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      box-shadow: var(--ha-shadow-card, none);
+    }
+    .tab:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .tabpanel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-5);
     }
     .section-head {
       display: flex;

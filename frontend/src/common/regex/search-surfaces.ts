@@ -252,6 +252,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "Integrations and brands to add",
   },
   {
+    file: "panels/config/tags/ha-config-tags.ts",
+    searches: "Tags in the card view",
+  },
+  {
     file: "panels/config/integrations/dialog-live-log.ts",
     searches: "Lines of an integration's live log",
     matcher: LOG_LINES,
@@ -376,7 +380,8 @@ export const SEARCH_SURFACES: SearchSurface[] = [
   },
   {
     file: "panels/lovelace/editor/tools/hui-tool-entities.ts",
-    searches: "Entities used on a dashboard, by entity ID, card type and card name",
+    searches:
+      "Entities used on a dashboard, by entity ID, card type and card name",
   },
   {
     file: "panels/lovelace/editor/tools/hui-tool-library.ts",

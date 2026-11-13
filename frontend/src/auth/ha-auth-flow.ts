@@ -168,6 +168,14 @@ export class HaAuthFlow extends LitElement {
         ha-auth-flow .actions.end {
           justify-content: flex-end;
         }
+        ha-auth-flow .actions.stack {
+          flex-direction: column-reverse;
+          align-items: stretch;
+          text-align: center;
+        }
+        ha-auth-flow .actions.stack ha-button::part(base) {
+          width: 100%;
+        }
         ha-auth-flow .user-list {
           display: flex;
           flex-direction: column;
@@ -346,7 +354,7 @@ export class HaAuthFlow extends LitElement {
         </ha-button>
       </div>`;
     }
-    return html`<div class="actions">
+    return html`<div class="actions stack">
       ${this._renderForgotPassword()}
       ${
         this._userChoices(step)

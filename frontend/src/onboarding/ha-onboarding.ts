@@ -40,6 +40,7 @@ import {
   onboardIntegrationStep,
 } from "../data/onboarding";
 import { subscribeUser } from "../data/ws-user";
+import { showAlertDialog } from "../dialogs/generic/show-dialog-box";
 import { makeDialogManager } from "../dialogs/make-dialog-manager";
 import { litLocalizeLiteMixin } from "../mixins/lit-localize-lite-mixin";
 import { HassElement } from "../state/hass-element";
@@ -486,7 +487,11 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
         });
         await this._connectHass(auth);
       } catch (_err: any) {
-        alert("Ah snap, something went wrong!");
+        await showAlertDialog(this, {
+          text:
+            this.localize("ui.panel.page-onboarding.sign_in_error") ||
+            "Something went wrong while signing you in. The page will reload.",
+        });
         location.reload();
       } finally {
         this._loading = false;
@@ -530,7 +535,12 @@ class HaOnboarding extends litLocalizeLiteMixin(HassElement) {
         this.hass!.connection.close();
         await this.hass!.auth.revoke();
 
-        alert(`Unable to finish onboarding: ${err.message}`);
+        await showAlertDialog(this, {
+          text:
+            this.localize("ui.panel.page-onboarding.finish_error", {
+              error: err.message,
+            }) || `Unable to finish onboarding: ${err.message}`,
+        });
 
         document.location.assign("/?");
         return;

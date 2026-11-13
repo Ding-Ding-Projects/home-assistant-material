@@ -27,6 +27,7 @@ import { cache } from "lit/directives/cache";
 import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import { keyed } from "lit/directives/keyed";
+import { styleMap } from "lit/directives/style-map";
 import type { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item";
 import { dynamicElement } from "../../common/dom/dynamic-element-directive";
 import type { HASSDomEvent } from "../../common/dom/fire_event";
@@ -35,6 +36,7 @@ import { mainWindow } from "../../common/dom/get_main_window";
 import { stopPropagation } from "../../common/dom/stop_propagation";
 import { consume } from "../../common/decorators/consume";
 import { computeDomain } from "../../common/entity/compute_domain";
+import { stateColorCss } from "../../common/entity/state_color";
 import {
   computeEntityEntryNameParts,
   computeEntityNameParts,
@@ -73,6 +75,7 @@ import type { HaDropdownSelectEvent } from "../../components/ha-dropdown";
 import "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
 import "../../components/ha-icon-button-prev";
+import "../../components/ha-state-icon";
 import "../../components/ha-svg-icon";
 import "../../components/ha-switch";
 import "./ha-more-info-related";
@@ -1022,21 +1025,47 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
         }
         <span slot="headerTitle" @click=${this._enlarge} class="title">
           ${
-            breadcrumb.length > 0
-              ? !__DEMO__ && isAdmin
-                ? html`
-                    <button class="breadcrumb" @click=${this._breadcrumbClick}>
-                      ${breadcrumb.join(isRTL ? " ◂ " : " ▸ ")}
-                    </button>
-                  `
-                : html`
-                    <p class="breadcrumb">
-                      ${breadcrumb.join(isRTL ? " ◂ " : " ▸ ")}
-                    </p>
-                  `
+            isDefaultView && stateObj
+              ? html`<span
+                  class="icon-tile"
+                  style=${styleMap({
+                    "--tile-color": stateColorCss(stateObj) ?? "",
+                  })}
+                  ><ha-state-icon
+                    .hass=${this.hass}
+                    .stateObj=${stateObj}
+                  ></ha-state-icon
+                ></span>`
               : nothing
           }
-          <p class="main">${title}</p>
+          <span class="title-text">
+            ${
+              breadcrumb.length > 0
+                ? !__DEMO__ && isAdmin
+                  ? html`
+                      <button
+                        class="breadcrumb"
+                        @click=${this._breadcrumbClick}
+                      >
+                        ${breadcrumb.join(isRTL ? " ◂ " : " ▸ ")}
+                      </button>
+                    `
+                  : html`
+                      <p class="breadcrumb">
+                        ${breadcrumb.join(isRTL ? " ◂ " : " ▸ ")}
+                      </p>
+                    `
+                : nothing
+            }
+            <p class="main">${title}</p>
+            ${
+              isDefaultView && stateObj
+                ? html`<p class="state-line">
+                    ${this.hass.formatEntityState(stateObj)}
+                  </p>`
+                : nothing
+            }
+          </span>
         </span>
         ${
           isDefaultView
@@ -1264,6 +1293,7 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           class=${classMap({
             "content-wrapper": true,
             "settings-view": this._currView === "settings",
+            "tabs-at-foot": tabsShown,
           })}
         >
           ${this._renderTabs()}
@@ -1521,6 +1551,52 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
           padding: var(--ha-space-1) var(--ha-space-6) var(--ha-space-2);
         }
 
+        /* The tab chips sit at the foot of the dialog, under the controls. */
+        .content-wrapper.tabs-at-foot .tabs {
+          order: 2;
+          border-top: 1px solid var(--divider-color);
+          padding: var(--ha-space-3) var(--ha-space-6)
+            max(var(--safe-area-inset-bottom), var(--ha-space-3));
+        }
+
+        .content-wrapper.tabs-at-foot .content {
+          order: 1;
+        }
+
+        .content-wrapper.tabs-at-foot .fade-bottom {
+          bottom: calc(44px + var(--ha-space-6));
+        }
+
+        .title-text {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          min-width: 0;
+          flex: 1;
+        }
+
+        .icon-tile {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: var(--ha-border-radius-xl);
+          color: var(--tile-color, var(--ha-color-on-primary-container));
+          background: color-mix(
+            in srgb,
+            var(--tile-color, var(--ha-color-primary-container)) 18%,
+            var(--card-background-color)
+          );
+        }
+
+        .title .state-line {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          line-height: var(--ha-line-height-condensed);
+        }
+
         .tab {
           min-height: 44px;
           min-width: 44px;
@@ -1644,9 +1720,11 @@ export class MoreInfoDialog extends DirtyStateProviderMixin<
 
         .title {
           display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          margin: 0 0 calc(var(--ha-space-2) * -1) 0;
+          flex-direction: row;
+          align-items: center;
+          gap: var(--ha-space-3);
+          min-width: 0;
+          margin: 0;
         }
 
         .title p {

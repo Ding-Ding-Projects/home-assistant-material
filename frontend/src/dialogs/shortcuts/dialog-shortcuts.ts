@@ -5,7 +5,9 @@ import { consume } from "../../common/decorators/consume";
 import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import "../../components/ha-alert";
+import "../../components/ha-button";
 import "../../components/ha-dialog";
+import "../../components/ha-dialog-footer";
 import "../../components/ha-svg-icon";
 import { internationalizationContext } from "../../data/context";
 import { DialogMixin } from "../dialog-mixin";
@@ -253,7 +255,7 @@ class DialogShortcuts extends DialogMixin(LitElement) {
           )}
         </div>
 
-        <ha-alert slot="footer">
+        <ha-alert>
           ${this._i18n.localize("ui.dialogs.shortcuts.enable_shortcuts_hint", {
             user_profile: html`<a href="/profile/browser#shortcuts"
               >${this._i18n.localize(
@@ -262,6 +264,12 @@ class DialogShortcuts extends DialogMixin(LitElement) {
             >`,
           })}
         </ha-alert>
+
+        <ha-dialog-footer slot="footer">
+          <ha-button slot="primaryAction" @click=${this.closeDialog}>
+            ${this._i18n.localize("ui.dialogs.shortcuts.done")}
+          </ha-button>
+        </ha-dialog-footer>
       </ha-dialog>
     `;
   }
@@ -283,8 +291,16 @@ class DialogShortcuts extends DialogMixin(LitElement) {
 
       .card h3 {
         margin: 0 0 var(--ha-space-3);
-        font-size: var(--ha-font-size-l);
+        font-size: var(--ha-font-size-s);
         font-weight: var(--ha-font-weight-medium);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+      }
+
+      ha-alert {
+        display: block;
+        margin-top: var(--ha-space-4);
       }
 
       .shortcut {

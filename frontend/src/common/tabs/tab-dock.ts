@@ -3,7 +3,11 @@ import { cleanSurface, surfaceEntries } from "./tab-validate";
 
 /** The edge of the screen a tab strip is docked to. */
 
-export const DOCK_STORAGE_KEY = "pageTabsDock";
+/**
+ * The storage key. It was "pageTabsDock" while earlier builds wrote "top"
+ * there by themselves; a new key means only an edge a person chose is read.
+ */
+export const DOCK_STORAGE_KEY = "pageTabsEdge";
 
 /**
  * The edges a strip can be docked to, and "float": a panel the person drags

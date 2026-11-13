@@ -557,6 +557,21 @@ export class HassTabsSubpage extends LitElement {
         }
         :host([narrow]) .toolbar {
           padding-left: var(--safe-area-inset-left);
+          /* Phone: the page top is the page itself, not a separate bar. */
+          background-color: var(
+            --app-header-background-color,
+            var(--primary-background-color)
+          );
+          border-bottom: none;
+        }
+        :host([narrow]) .main-title h1,
+        :host([narrow]) .main-title .bar-title {
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(
+            --ha-font-weight-title,
+            var(--ha-font-weight-medium)
+          );
+          line-height: var(--ha-line-height-condensed);
         }
         .toolbar-content {
           padding: 8px 12px;

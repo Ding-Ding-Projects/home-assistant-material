@@ -96,6 +96,9 @@ import { showNewAutomationDialog } from "../config/automation/show-dialog-new-au
 import { showAddIntegrationDialog } from "../config/integrations/show-add-integration-dialog";
 import { showDashboardDetailDialog } from "../config/lovelace/dashboards/show-dialog-lovelace-dashboard-detail";
 import { showPersonDetailDialog } from "../config/person/show-dialog-person-detail";
+import { evaluateConditionsLocally } from "../../common/condition/evaluate-locally";
+import { dropInvalidConditions } from "../../common/condition/sanitize";
+import { ConditionEvaluatorController } from "../../common/controllers/condition-evaluator-controller";
 import { swapView } from "./editor/config-util";
 import { showDashboardStrategyEditorDialog } from "./editor/dashboard-strategy-editor/dialogs/show-dialog-dashboard-strategy-editor";
 import { showSaveDialog } from "./editor/show-save-config-dialog";
@@ -223,8 +226,14 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     isComponentLoaded(this.hass.config, "conversation")
   );
 
-  private _renderPageTools(locked: boolean): TemplateResult {
+  private _renderPageTools(locked: boolean): TemplateResult | typeof nothing {
     const mode = dashboardPageToolsMode(this._editMode, locked);
+    // On a phone the tools live in the overflow menu ("Page tools") so the top
+    // shows only search and the menu. A locked page keeps its own button, the
+    // way to unlock it.
+    if (this.narrow && mode === "view") {
+      return nothing;
+    }
     if (usesSharedPageTools(mode)) {
       return html`<ha-page-tools
         .compact=${this.narrow}
@@ -446,6 +455,18 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         overflow: true,
       },
       {
+        // On a phone the page tools grid moves here from the top bar.
+        icon: mdiDotsGrid,
+        key: "ui.page_tools.label",
+        overflowAction: this._openPageTools,
+        visible:
+          this.narrow &&
+          !this._editMode &&
+          !this.embedded &&
+          !this._pageLock.locked,
+        overflow: true,
+      },
+      {
         icon: mdiCommentProcessingOutline,
         key: "ui.panel.lovelace.menu.assist_tooltip",
         buttonAction: this._showVoiceCommandDialog,
@@ -580,19 +601,36 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
       result.push(button);
     });
 
-    // On a narrow screen only the menu shows, so editing gets its own button.
-    if (this.narrow && !overflowCanPromote) {
-      const editItem = items.find(
-        (i) => i.visible && i.key === "ui.panel.lovelace.menu.configure_ui"
+    // On a phone the top shows search and the menu only; Edit and the other
+    // dashboard buttons live in the menu. Search gets its own icon.
+    if (this.narrow && !this._editMode && !this.embedded) {
+      const searchItem = items.find(
+        (i) =>
+          i.visible && i.key === "ui.panel.lovelace.menu.search_home_assistant"
       );
+      if (searchItem?.buttonAction) {
+        result.push(
+          html`<ha-icon-button
+            slot="actionItems"
+            class="narrow-search"
+            .path=${searchItem.icon}
+            .label=${this.hass!.localize(searchItem.key)}
+            hide-title
+            @click=${searchItem.buttonAction}
+          ></ha-icon-button>`
+        );
+      }
+    }
+
+    // On a narrow screen only the menu shows, so an extra action that asks to
+    // be promoted gets its own button. Edit itself stays in the menu.
+    if (this.narrow && !overflowCanPromote) {
       const promoted = this.extraActionItems?.find((i) => i.promoteOnNarrow);
-      const narrowAction = editItem?.buttonAction ?? promoted?.action;
-      const narrowIcon = editItem ? editItem.icon : promoted?.icon;
-      const narrowLabel = editItem
-        ? this.hass!.localize(editItem.key)
-        : promoted
-          ? this.hass!.localize(promoted.labelKey)
-          : undefined;
+      const narrowAction = promoted?.action;
+      const narrowIcon = promoted?.icon;
+      const narrowLabel = promoted
+        ? this.hass!.localize(promoted.labelKey)
+        : undefined;
       if (narrowAction && narrowIcon && narrowLabel) {
         result.push(
           html`<ha-icon-button
@@ -646,10 +684,11 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     const background = curViewConfig?.background || this.config.background;
 
     const _isTabHiddenForUser = (view: LovelaceViewConfig) =>
-      view.visible !== undefined &&
-      ((Array.isArray(view.visible) &&
-        !view.visible.some((e) => e.user === this.hass!.user?.id)) ||
-        view.visible === false);
+      (view.visible !== undefined &&
+        ((Array.isArray(view.visible) &&
+          !view.visible.some((e) => e.user === this.hass!.user?.id)) ||
+          view.visible === false)) ||
+      !this._conditionsMet(view);
 
     const tabs = html`<ha-tab-group
       .active=${typeof this._curView === "number" ? String(this._curView) : ""}
@@ -742,135 +781,157 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     const locked = !this._editMode && this._pageLock.locked;
     const showFooter = !this.narrow && !this.embedded && !this._editMode;
 
+    // Wide windows: breadcrumb, a large title and the views as a segmented
+    // control under it, with the tools at the end of the title row.
+    const wideHeader = !this.narrow && !this.embedded;
+    const wideHeaderTemplate = wideHeader
+      ? this._renderWideHeader({
+          dashboardTitle,
+          viewTitle: curViewConfig?.title,
+          isSubview: Boolean(isSubview),
+          showViews: this._editMode || (hasTabViews && !isSubview),
+          tabs,
+          locked,
+        })
+      : nothing;
+
     return html`
       <div
         class=${classMap({
           "edit-mode": this._editMode,
           narrow: this.narrow,
           embedded: this.embedded,
+          "wide-head": wideHeader,
         })}
       >
-        <div class="header">
-          <slot name="toolbar">
-            <div class="toolbar">
-              ${
-                this._editMode
-                  ? html`
-                      <div class="main-title">
-                        ${
-                          dashboardTitle
-                            ? curViewConfig?.title
-                              ? this.hass!.localize(
-                                  "ui.panel.lovelace.editor.editing_view",
-                                  {
-                                    dashboard: dashboardTitle,
-                                    view: curViewConfig.title,
-                                  }
-                                )
-                              : this.hass!.localize(
-                                  "ui.panel.lovelace.editor.editing",
-                                  { dashboard: dashboardTitle }
-                                )
-                            : this.hass!.localize(
-                                "ui.panel.lovelace.editor.header"
-                              )
-                        }
-                        <ha-icon-button
-                          slot="actionItems"
-                          .label=${this.hass!.localize(
-                            "ui.panel.lovelace.editor.edit_lovelace.edit_title"
-                          )}
-                          .path=${mdiPencil}
-                          class="edit-icon"
-                          @click=${this._editDashboard}
-                        ></ha-icon-button>
-                      </div>
-                      ${this._renderPageTools(locked)}
-                      <div class="action-items">
-                        ${this._renderActionItems()}
-                      </div>
-                    `
-                  : html`
-                      ${
-                        this.embedded && !isSubview
-                          ? nothing
-                          : isSubview || this.backButton
-                            ? html`
-                                <ha-icon-button-arrow-prev
-                                  slot="navigationIcon"
-                                  .href=${
-                                    this.embedded ? undefined : this._backPath
-                                  }
-                                  @click=${this._handleBackClick}
-                                ></ha-icon-button-arrow-prev>
-                              `
-                            : html`
-                                <ha-menu-button
-                                  slot="navigationIcon"
-                                ></ha-menu-button>
-                              `
-                      }
-                      ${
-                        isSubview
-                          ? html`
-                              <div class="main-title">
-                                ${curViewConfig.title}
-                              </div>
-                            `
-                          : hasTabViews
-                            ? tabs
-                            : html`
-                                <div class="main-title">
-                                  ${views[0]?.title ?? dashboardTitle}
-                                </div>
-                              `
-                      }
-                      ${
-                        this.embedded
-                          ? nothing
-                          : html`<div
-                              class=${classMap({
-                                "tool-pill": true,
-                                wide: !this.narrow,
-                              })}
-                            >
-                              ${this._renderPageTools(locked)}
-                              <div class="action-items" ?inert=${locked}>
-                                ${this._renderActionItems()}
-                              </div>
-                            </div>`
-                      }
-                    `
-              }
-            </div>
-            ${
-              locked
-                ? html`<ha-page-lock-banner></ha-page-lock-banner>`
-                : nothing
-            }
-            ${
-              this._editMode
-                ? html`
-                    <div class="tab-bar">
-                      ${tabs}
-                      <ha-icon-button
-                        slot="nav"
-                        id="add-view"
-                        @click=${this._addView}
-                        .label=${this.hass!.localize(
-                          "ui.panel.lovelace.editor.edit_view.add"
-                        )}
-                        .path=${mdiPlus}
-                      ></ha-icon-button>
-                    </div>
-                  `
-                : nothing
-            }
-          </slot>
-        </div>
+        ${
+          wideHeader
+            ? wideHeaderTemplate
+            : html`<div class="header">
+                <slot name="toolbar">
+                  <div class="toolbar">
+                    ${
+                      this._editMode
+                        ? html`
+                            <div class="main-title">
+                              ${
+                                dashboardTitle
+                                  ? curViewConfig?.title
+                                    ? this.hass!.localize(
+                                        "ui.panel.lovelace.editor.editing_view",
+                                        {
+                                          dashboard: dashboardTitle,
+                                          view: curViewConfig.title,
+                                        }
+                                      )
+                                    : this.hass!.localize(
+                                        "ui.panel.lovelace.editor.editing",
+                                        { dashboard: dashboardTitle }
+                                      )
+                                  : this.hass!.localize(
+                                      "ui.panel.lovelace.editor.header"
+                                    )
+                              }
+                              <ha-icon-button
+                                slot="actionItems"
+                                .label=${this.hass!.localize(
+                                  "ui.panel.lovelace.editor.edit_lovelace.edit_title"
+                                )}
+                                .path=${mdiPencil}
+                                class="edit-icon"
+                                @click=${this._editDashboard}
+                              ></ha-icon-button>
+                            </div>
+                            ${this._renderPageTools(locked)}
+                            <div class="action-items">
+                              ${this._renderActionItems()}
+                            </div>
+                          `
+                        : html`
+                            ${
+                              this.embedded && !isSubview
+                                ? nothing
+                                : isSubview || this.backButton
+                                  ? html`
+                                      <ha-icon-button-arrow-prev
+                                        slot="navigationIcon"
+                                        .href=${
+                                          this.embedded
+                                            ? undefined
+                                            : this._backPath
+                                        }
+                                        @click=${this._handleBackClick}
+                                      ></ha-icon-button-arrow-prev>
+                                    `
+                                  : html`
+                                      <ha-menu-button
+                                        slot="navigationIcon"
+                                      ></ha-menu-button>
+                                    `
+                            }
+                            ${
+                              isSubview
+                                ? html`
+                                    <div class="main-title">
+                                      ${curViewConfig.title}
+                                    </div>
+                                  `
+                                : hasTabViews
+                                  ? tabs
+                                  : html`
+                                      <div class="main-title">
+                                        ${views[0]?.title ?? dashboardTitle}
+                                      </div>
+                                    `
+                            }
+                            ${
+                              this.embedded
+                                ? nothing
+                                : html`<div
+                                    class=${classMap({
+                                      "tool-pill": true,
+                                      wide: !this.narrow,
+                                    })}
+                                  >
+                                    ${this._renderPageTools(locked)}
+                                    <div class="action-items" ?inert=${locked}>
+                                      ${this._renderActionItems()}
+                                    </div>
+                                  </div>`
+                            }
+                          `
+                    }
+                  </div>
+                  ${
+                    locked
+                      ? html`<ha-page-lock-banner></ha-page-lock-banner>`
+                      : nothing
+                  }
+                  ${
+                    this._editMode
+                      ? html`
+                          <div class="tab-bar">
+                            ${tabs}
+                            <ha-icon-button
+                              slot="nav"
+                              id="add-view"
+                              @click=${this._addView}
+                              .label=${this.hass!.localize(
+                                "ui.panel.lovelace.editor.edit_view.add"
+                              )}
+                              .path=${mdiPlus}
+                            ></ha-icon-button>
+                          </div>
+                        `
+                      : nothing
+                  }
+                </slot>
+              </div>`
+        }
         <hui-view-container
           class=${classMap({
-            "has-tab-bar": this._editMode,
+            "has-tab-bar": this._editMode && !wideHeader,
+            "under-wide-head": wideHeader,
             "has-footer": showFooter,
             previewing: this._editMode && !!this._previewWidth,
           })}
@@ -894,6 +955,108 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     `;
   }
 
+  private _renderWideHeader(options: {
+    dashboardTitle?: string;
+    viewTitle?: string;
+    isSubview: boolean;
+    showViews: boolean;
+    tabs: TemplateResult;
+    locked: boolean;
+  }): TemplateResult {
+    const { dashboardTitle, viewTitle, isSubview, showViews, tabs, locked } =
+      options;
+    const localize = this.hass.localize;
+    const title =
+      viewTitle ||
+      dashboardTitle ||
+      (this._editMode ? localize("ui.panel.lovelace.editor.header") : "");
+    let breadcrumb: string;
+    if (this._editMode) {
+      breadcrumb = dashboardTitle
+        ? localize("ui.panel.lovelace.editor.editing", {
+            dashboard: dashboardTitle,
+          })
+        : "";
+    } else {
+      const root = localize("ui.panel.config.lovelace.caption");
+      breadcrumb =
+        dashboardTitle && dashboardTitle !== title
+          ? `${root} › ${dashboardTitle}`
+          : root;
+    }
+
+    return html`<div
+      class=${classMap({
+        "wide-header": true,
+        "edit-header": this._editMode,
+      })}
+    >
+      <div class="head-row">
+        ${
+          isSubview || this.backButton
+            ? html`<ha-icon-button-arrow-prev
+                .href=${this._backPath}
+                @click=${this._handleBackClick}
+              ></ha-icon-button-arrow-prev>`
+            : html`<ha-menu-button></ha-menu-button>`
+        }
+        <div class="title-block">
+          ${breadcrumb ? html`<span class="breadcrumb">${breadcrumb}</span>` : nothing}
+          <div class="title-line">
+            <h1 class="page-title">${title}</h1>
+            ${
+              this._editMode
+                ? html`<ha-icon-button
+                    .label=${localize(
+                      "ui.panel.lovelace.editor.edit_lovelace.edit_title"
+                    )}
+                    .path=${mdiPencil}
+                    class="edit-icon"
+                    @click=${this._editDashboard}
+                  ></ha-icon-button>`
+                : nothing
+            }
+          </div>
+        </div>
+        ${
+          this._editMode
+            ? html`<div class="edit-tools">
+                ${this._renderPageTools(locked)}
+                <div class="action-items">${this._renderActionItems()}</div>
+              </div>`
+            : html`<div class="tool-pill wide">
+                ${this._renderPageTools(locked)}
+                <div class="action-items" ?inert=${locked}>
+                  ${this._renderActionItems()}
+                </div>
+              </div>`
+        }
+      </div>
+      ${locked ? html`<ha-page-lock-banner></ha-page-lock-banner>` : nothing}
+      ${
+        showViews
+          ? html`<div class="view-bar">
+              <div class="segmented">
+                ${tabs}
+                ${
+                  this._editMode
+                    ? html`<ha-icon-button
+                        id="add-view"
+                        @click=${this._addView}
+                        .label=${localize(
+                          "ui.panel.lovelace.editor.edit_view.add"
+                        )}
+                        .path=${mdiPlus}
+                      ></ha-icon-button>`
+                    : nothing
+                }
+              </div>
+            </div>`
+          : nothing
+      }
+    </div>`;
+  }
+
   private _handleWindowScroll = () => {
     this.toggleAttribute("scrolled", window.scrollY !== 0);
   };
@@ -907,13 +1070,60 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     this._handleUrlChanged();
   };
 
+  /** The view's own conditions hold (or it has none). */
+  private _conditionsMet = (view: LovelaceViewConfig) => {
+    const conditions =
+      view.visibility && dropInvalidConditions(view.visibility);
+    if (!conditions?.length || !this.hass) {
+      return true;
+    }
+    const result = this._viewEvaluators.get(JSON.stringify(conditions))?.result;
+    if (result && result !== "unknown") {
+      return result === "visible";
+    }
+    // Until core answers, only what can be judged here counts as shown.
+    return evaluateConditionsLocally(conditions, this.hass, {}) === true;
+  };
+
+  /** One evaluator per distinct set of view conditions, keyed by content. */
+  private _viewEvaluators = new Map<string, ConditionEvaluatorController>();
+
+  private _observeViewConditions(): void {
+    const wanted = new Set<string>();
+    for (const view of this.lovelace?.config.views ?? []) {
+      const conditions =
+        view.visibility && dropInvalidConditions(view.visibility);
+      if (!conditions?.length) {
+        continue;
+      }
+      const key = JSON.stringify(conditions);
+      wanted.add(key);
+      let evaluator = this._viewEvaluators.get(key);
+      if (!evaluator) {
+        evaluator = new ConditionEvaluatorController(this, {
+          onResult: () => this.requestUpdate(),
+        });
+        this._viewEvaluators.set(key, evaluator);
+      }
+      evaluator.observe(conditions, this.hass, () => ({}));
+    }
+    for (const [key, evaluator] of this._viewEvaluators) {
+      if (!wanted.has(key)) {
+        evaluator.observe(undefined, this.hass);
+        this.removeController(evaluator);
+        this._viewEvaluators.delete(key);
+      }
+    }
+  }
+
   private _isVisible = (view: LovelaceViewConfig) =>
     Boolean(
       this._editMode ||
-      view.visible === undefined ||
-      view.visible === true ||
-      (Array.isArray(view.visible) &&
-        view.visible.some((show) => show.user === this.hass!.user?.id))
+      ((view.visible === undefined ||
+        view.visible === true ||
+        (Array.isArray(view.visible) &&
+          view.visible.some((show) => show.user === this.hass!.user?.id))) &&
+        this._conditionsMet(view))
     );
 
   private _clearParam(param: string) {
@@ -1011,6 +1221,10 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
 
   protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
+
+    if (changedProperties.has("lovelace") || changedProperties.has("hass")) {
+      this._observeViewConditions();
+    }
 
     const view = this._viewRoot;
     const huiView = view.lastChild as HUIView;
@@ -1130,6 +1344,15 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
       confirmText: this.hass.localize("ui.common.refresh"),
       dismissText: this.hass.localize("ui.common.not_now"),
       confirm: () => location.reload(),
+    });
+  };
+
+  private _openPageTools = () => {
+    fireEvent(this, "hass-page-tool", {
+      tool: "tools",
+      root: this,
+      title: (this.panel && getPanelTitle(this.hass, this.panel)) || "",
+      available: dashboardOverflowTools("view"),
     });
   };
 
@@ -2029,6 +2252,146 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         }
         .child-view-icon {
           opacity: 0.5;
+        }
+        /* Phone: a large title on the page itself, not a bar. */
+        .narrow .main-title {
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(
+            --ha-font-weight-title,
+            var(--ha-font-weight-medium)
+          );
+        }
+        /* Wide windows: breadcrumb, a large title and the views as a
+           segmented control. The header scrolls with the page, except while
+           editing, when it stays in reach. */
+        .wide-head {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          min-height: 100dvh;
+        }
+        .wide-header {
+          position: relative;
+          flex: none;
+          box-sizing: border-box;
+          padding: var(--safe-area-inset-top, 0px)
+            var(--safe-area-inset-right, 0px) 0 0;
+          background-color: var(--app-header-background-color);
+          color: var(--primary-text-color);
+        }
+        .wide-header.edit-header {
+          position: sticky;
+          top: 0;
+          z-index: 4;
+        }
+        .head-row {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-4) var(--ha-space-6) var(--ha-space-2);
+          min-height: var(--header-height);
+          box-sizing: border-box;
+        }
+        .head-row ha-menu-button,
+        .head-row ha-icon-button-arrow-prev {
+          flex-shrink: 0;
+          color: var(--sidebar-icon-color);
+        }
+        .title-block {
+          flex: 1;
+          min-width: 0;
+          margin-inline-start: var(--ha-space-2);
+          line-height: var(--ha-line-height-condensed);
+        }
+        .title-block .breadcrumb {
+          display: block;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .title-line {
+          display: flex;
+          align-items: center;
+          min-width: 0;
+        }
+        .page-title {
+          margin: 0;
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(
+            --ha-font-weight-title,
+            var(--ha-font-weight-medium)
+          );
+          line-height: var(--ha-line-height-condensed);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .edit-tools {
+          display: flex;
+          align-items: center;
+          flex: none;
+          gap: var(--ha-space-1);
+          color: var(--sidebar-icon-color);
+        }
+        .wide-header .exit-edit-mode {
+          --mdc-theme-primary: var(--primary-color);
+          --mdc-button-outline-color: var(--primary-color);
+        }
+        .view-bar {
+          padding: var(--ha-space-2) var(--ha-space-6) var(--ha-space-3);
+          min-width: 0;
+        }
+        .segmented {
+          display: inline-flex;
+          align-items: center;
+          max-width: 100%;
+          box-sizing: border-box;
+          padding: var(--ha-space-1);
+          border-radius: var(--ha-border-radius-pill);
+          background: var(--ha-color-surface-tone-2, var(--divider-color));
+        }
+        .wide-header ha-tab-group,
+        .wide-header.edit-header ha-tab-group {
+          flex: 0 1 auto;
+          min-width: 0;
+          margin-inline-start: 0;
+          color: var(--secondary-text-color);
+          --ha-tab-active-text-color: var(--primary-text-color);
+          --ha-tab-active-on-color: var(--primary-text-color);
+          --ha-tab-active-background-color: var(--card-background-color);
+          --ha-tab-indicator-color: transparent;
+        }
+        .wide-header ha-tab-group::part(scroll-button),
+        .wide-header ha-tab-group::part(scroll-button-end) {
+          background: transparent;
+        }
+        .wide-header ha-tab-group-tab {
+          --ha-tab-group-tab-height: 36px;
+          height: var(--ha-tab-group-tab-height);
+        }
+        .wide-header ha-tab-group-tab::part(base),
+        .wide-header.edit-header
+          ha-tab-group-tab[aria-selected="true"]::part(base) {
+          padding-top: 0;
+          padding-bottom: 0;
+          margin-top: 0;
+          min-height: 36px;
+          align-items: center;
+        }
+        .wide-header ha-tab-group-tab[aria-selected="true"]::part(base) {
+          box-shadow: var(--ha-shadow-card, none);
+        }
+        .wide-header #add-view {
+          --ha-icon-button-size: 36px;
+          color: var(--secondary-text-color);
+          flex: none;
+        }
+        hui-view-container.under-wide-head {
+          flex: 1 0 auto;
+          min-height: 0;
+          padding-top: var(--view-container-padding-top, 0px);
         }
       `,
     ];

@@ -26,15 +26,28 @@ import {
   haStyleDialogFixedTop,
 } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import {
+  getDashboardConditions,
+  saveDashboardConditions,
+} from "../../../../data/dashboard-visibility";
+import type { VisibilityCondition } from "../../../lovelace/common/validate-condition";
+import "../../../lovelace/editor/conditions/ha-card-conditions-editor";
+import "../../../lovelace/editor/conditions/ha-visibility-status";
 import "../../../lovelace/editor/view-editor/hui-view-background-editor";
 import type { LovelaceDashboardDetailsDialogParams } from "./show-dialog-lovelace-dashboard-detail";
 import { pickAvailableDashboardUrlPath } from "./pick-available-dashboard-url-path";
+
+const sameConditions = (
+  a: VisibilityCondition[],
+  b: VisibilityCondition[]
+): boolean => JSON.stringify(a) === JSON.stringify(b);
 
 const TABS = ["tab-settings", "tab-background"] as const;
 
 interface DashboardDetailState {
   dashboard: Partial<LovelaceDashboard>;
   background?: LovelaceConfig["background"];
+  visibility: VisibilityCondition[];
 }
 
 @customElement("dialog-lovelace-dashboard-detail")
@@ -59,8 +72,17 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
 
   @state() private _backgroundConfig?: LovelaceConfig;
 
+  /** The dashboard's "show only when" conditions being edited. */
+  @state() private _visibility: VisibilityCondition[] = [];
+
   public showDialog(params: LovelaceDashboardDetailsDialogParams) {
     this._params = params;
+    this._visibility = params.urlPath
+      ? getDashboardConditions(
+          this.hass.systemData?.dashboard_visibility,
+          params.urlPath
+        )
+      : [];
     this._error = undefined;
     this._urlPathChanged = false;
     this._currTab = TABS[0];
@@ -73,6 +95,7 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
         {
           dashboard: this._params.dashboard,
           background: this._params.lovelaceConfig?.background,
+          visibility: this._visibility,
         }
       );
     } else {
@@ -88,6 +111,7 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
         {
           dashboard: {},
           background: this._params.lovelaceConfig?.background,
+          visibility: this._visibility,
         }
       );
       if (this._params.suggestions?.title) {
@@ -96,6 +120,7 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
       this._updateDirtyState({
         dashboard: this._data,
         background: this._backgroundConfig?.background,
+        visibility: this._visibility,
       });
     }
   }
@@ -273,7 +298,51 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
       ></ha-form>
+      ${this._renderVisibility(params)}
     `;
+  }
+
+  private _renderVisibility(params: LovelaceDashboardDetailsDialogParams) {
+    if (!this.hass.user?.is_admin || params.isDefault) {
+      return nothing;
+    }
+    return html`
+      <section class="visibility">
+        <h3>
+          ${this.hass.localize(
+            "ui.panel.config.lovelace.dashboards.detail.visibility.conditions_title"
+          )}
+        </h3>
+        <p>
+          ${this.hass.localize(
+            "ui.panel.config.lovelace.dashboards.detail.visibility.conditions_text"
+          )}
+        </p>
+        <ha-visibility-status
+          .hass=${this.hass}
+          .conditions=${this._visibility}
+        ></ha-visibility-status>
+        <ha-card-conditions-editor
+          .hass=${this.hass}
+          .conditions=${this._visibility}
+          @value-changed=${this._visibilityChanged}
+        ></ha-card-conditions-editor>
+      </section>
+    `;
+  }
+
+  private _visibilityChanged(
+    ev: CustomEvent<{ value: VisibilityCondition[] }>
+  ) {
+    ev.stopPropagation();
+    this._visibility = ev.detail.value ?? [];
+    if (this._data) {
+      this._updateDirtyState({
+        dashboard: this._data,
+        background: this._backgroundConfig?.background,
+        visibility: this._visibility,
+      });
+    }
   }
 
   private _schema = memoizeOne(
@@ -371,6 +440,7 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
     this._updateDirtyState({
       dashboard: this._data,
       background: this._backgroundConfig?.background,
+      visibility: this._visibility,
     });
   }
 
@@ -382,6 +452,7 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
       this._updateDirtyState({
         dashboard: this._data,
         background: this._backgroundConfig.background,
+        visibility: this._visibility,
       });
     }
   }
@@ -405,6 +476,7 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
     this._updateDirtyState({
       dashboard: this._data,
       background: this._backgroundConfig?.background,
+      visibility: this._visibility,
     });
   }
 
@@ -444,6 +516,25 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
           this._params.lovelaceConfig.background
       ) {
         await this._params.saveConfig(this._backgroundConfig);
+      }
+      const urlPath = this._params.urlPath ?? this._data.url_path;
+      if (
+        urlPath &&
+        this.hass.user?.is_admin &&
+        !this._params.isDefault &&
+        !sameConditions(
+          this._visibility,
+          getDashboardConditions(
+            this.hass.systemData?.dashboard_visibility,
+            urlPath
+          )
+        )
+      ) {
+        await saveDashboardConditions(
+          this.hass.connection,
+          urlPath,
+          this._visibility
+        );
       }
       this._markDirtyStateClean();
       this.closeDialog();
@@ -506,6 +597,21 @@ export class DialogLovelaceDashboardDetail extends DirtyStateProviderMixin<Dashb
           margin: 0;
           font-size: inherit;
           font-weight: inherit;
+        }
+
+        .visibility h3 {
+          margin: var(--ha-space-6) 0 0;
+          font-size: var(--ha-font-size-l);
+          font-weight: var(--ha-font-weight-title, 600);
+        }
+
+        .visibility p {
+          color: var(--secondary-text-color);
+        }
+
+        ha-visibility-status {
+          display: block;
+          margin-bottom: var(--ha-space-3);
         }
 
         ha-tab-group-tab {

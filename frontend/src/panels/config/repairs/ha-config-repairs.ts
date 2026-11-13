@@ -238,34 +238,30 @@ class HaConfigRepairs extends LitElement {
     :host {
       display: block;
     }
+    /* One white card per repair: a tinted icon tile, what is wrong in two
+       lines, and the actions at the end of the row. */
     .issues {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-      gap: var(--ha-space-4);
+      grid-template-columns: 1fr;
+      gap: var(--ha-space-3);
       margin: 0;
       padding: 0;
       list-style: none;
     }
     .issue {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: var(--ha-space-4);
       box-sizing: border-box;
-      padding: var(--ha-space-5);
+      padding: var(--ha-space-4) var(--ha-space-5);
       border-radius: var(--ha-border-radius-3xl);
       color: var(--primary-text-color);
-      background: color-mix(
-        in srgb,
-        var(--warning-color) 45%,
-        var(--primary-background-color)
-      );
+      background: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card, none);
+      --tile-bg: var(--ha-color-warning-container, rgba(255, 170, 0, 0.2));
     }
     .issue.serious {
-      background: color-mix(
-        in srgb,
-        var(--error-color) 30%,
-        var(--primary-background-color)
-      );
+      --tile-bg: var(--ha-color-error-container, rgba(255, 0, 0, 0.15));
     }
     .issue.ignored {
       opacity: var(--light-secondary-opacity);
@@ -273,16 +269,40 @@ class HaConfigRepairs extends LitElement {
     img {
       flex: none;
       box-sizing: border-box;
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
       padding: var(--ha-space-3);
-      border-radius: var(--ha-border-radius-2xl);
-      background: var(--card-background-color);
+      border-radius: var(--ha-border-radius-xl);
+      background: var(--tile-bg);
       object-fit: contain;
     }
     .body {
       flex: 1;
       min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: var(--ha-space-4);
+    }
+    .body h3,
+    .body p {
+      grid-column: 1;
+    }
+    .actions {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+    @media (max-width: 600px) {
+      .issue {
+        align-items: flex-start;
+      }
+      .body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .actions {
+        grid-column: 1;
+        grid-row: auto;
+      }
     }
     h3 {
       margin: 0;
@@ -299,7 +319,11 @@ class HaConfigRepairs extends LitElement {
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: var(--ha-space-2);
-      margin-top: var(--ha-space-3);
+    }
+    @media (max-width: 600px) {
+      .actions {
+        margin-top: var(--ha-space-3);
+      }
     }
   `;
 }

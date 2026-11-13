@@ -2,7 +2,6 @@ import type { ContextType } from "@lit/context";
 import {
   mdiChevronDown,
   mdiChevronUp,
-  mdiDotsGrid,
   mdiExportVariant,
   mdiFormatPaint,
   mdiHelpCircleOutline,
@@ -203,7 +202,7 @@ export class HaPageTools extends LitElement {
         <ha-icon-button
           class=${classMap({ on: this._locked })}
           .label=${localize("ui.page_tools.label")}
-          .path=${this._locked ? mdiLock : mdiDotsGrid}
+          .path=${this._locked ? mdiLock : mdiMagnify}
           @click=${this._openTools}
         ></ha-icon-button>
       `;

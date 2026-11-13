@@ -251,6 +251,65 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
     the automation editor bar; the phone bar over long pages and sticky bars at 390 and
     320 px in both-languages mode; dark theme; right to left.
 
+- Build 348 (batch 45, the shell) was viewed on a throwaway instance at 1440 and 390 px, no
+  page errors. Seen working: the floating tool pill on settings sub-pages and the automation
+  editor; one bar and one Save in the automation editor with the shortcut hint; the floating
+  pill bottom bar on a phone with Settings and its count; tinted settings home.
+  Seen wrong, so the live instance stays on 347: (1) the navigation pane still sits at the
+  top. The one-time reset ran, but the instance sync then brought the old stored "top" back
+  from the server. (2) On the home dashboard the greeting is cut off under the welcome
+  banner. (3) In the tool pill the page's own menu comes first where the board has it last.
+- Batch 46, unit tested only, nothing seen in a browser:
+  - The edge of the navigation pane is stored under a new key (`pageTabsEdge`), and nothing
+    writes "top" by itself any more, so every browser starts with the left side pane and only
+    an edge a person chooses afterwards is kept and synced. An edge chosen earlier (right,
+    bottom, floating, top) has to be chosen once more. This replaces the one-time reset of
+    batch 45.
+  - Time of day defaults to the 24-hour form when a person has not chosen a format.
+  - New tag dialog: a "Scan a tag" button. It listens on this device's reader where the
+    browser has one (Chrome on Android over a secure address) and for a scan with the Home
+    Assistant app. A tag read here fills the ID; a scan with the app is added by Home
+    Assistant itself, and the dialog says so. Safari and Chrome on an iPhone have no reader
+    for web pages; the dialog says that too.
+  - Views: the Visibility tab gains "Show only when", the same condition builder cards use
+    (state, number, time, screen, user, location, with And, Or and Not groups), evaluated by
+    the server-backed evaluator. A view whose conditions fail leaves the navigation, except
+    while editing. It still opens by its address.
+  - Dashboards: the same builder in the dashboard's settings dialog (administrators only).
+    Conditions are kept in the shared frontend settings (`dashboard_visibility`), not in the
+    core dashboard record. A dashboard whose conditions fail leaves the sidebar, the
+    navigation pane, the tab strip, the phone Pages sheet and the New tab catalog; the
+    default dashboard and the one in use are never removed; the settings list always shows
+    it with a "Hidden right now" note. Evaluated in the browser only (conditions only the
+    server can judge are not supported here yet).
+  - Dashboard top on wide windows: breadcrumb, large title, views as a segmented control,
+    edit mode on the same layout; the header scrolls with the page. Phone tops: larger title,
+    page tools and edit moved into the three-dot menu on dashboards, a magnifier in place of
+    the grid elsewhere.
+  - Entity dialog: tinted icon tile, title and a state line; Controls, History and Settings
+    chips at the foot.
+  - Home "Needs you" card (unlocked locks, pending updates); lights, security, energy and
+    climate page headers and a Locks list; six boxes for a one-time code at sign in; Assist
+    bubbles; empty states; first-run buttons.
+  - Lists: a floating bulk action bar on devices and entities; tags as cards with a switch
+    to the list; an integrations "Discovered" hero; a warning when an entity ID in use is
+    renamed; restart choices and repairs with tinted icon tiles.
+  - Accessibility tools as tiles; pattern workbench in three columns on wide windows; New
+    tab catalog filter chips; a "type the word, then hold" confirmation on touch screens;
+    appearance editor tabs; the last two browser alert boxes replaced.
+  - Fixes: two example sentences in the plain-language tool were written with angle
+    brackets, which the message format reads as a broken tag; four new files used plain
+    browser inputs and now use the product's controls (both were test failures that batch 44
+    shipped because its test run was too narrow: the full suite is run before every push
+    from now on).
+  - Checks: full suite 7,153 passed; failing are the 3 known build-script tests and one help
+    bundle test that timed out under load and passes alone. Type check clean apart from the
+    two known gallery errors.
+  - A local production build mounted into a throwaway container stayed on the loading screen
+    with no error, while published build 348 of the same source loads; local builds on this
+    machine are not a usable preview.
+  - Design canvas `31-modern-requests` landed during this batch and is not built yet.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

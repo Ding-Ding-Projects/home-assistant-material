@@ -29,7 +29,7 @@ const MUST_SYNC = [
   "pageTabsSeen",
   "pageTabsGroups",
   "pageTabsDestinations",
-  "pageTabsDock",
+  "pageTabsEdge",
   "pageTabsAppearance",
   "pageTabsGroupAppearance",
   "sectionTabs",

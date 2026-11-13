@@ -2,6 +2,8 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../../components/ha-button";
 import "../../../../components/ha-card";
+import "../../../../components/ha-checkbox";
+import "../../../../components/input/ha-input";
 import type {
   EntitySwap,
   SaveOutcome,
@@ -128,18 +130,22 @@ export class HaAutomationToolSwap extends LitElement {
       <ha-card .header=${this._t("title")}>
         <div class="content">
           <p class="hint">${this._t("description")}</p>
-          <label>
-            <span>${this._t("from")}</span>
-            <input
-              class="mono"
-              .value=${this._from}
-              @input=${this._fromChanged}
-            />
-          </label>
-          <label>
-            <span>${this._t("to")}</span>
-            <input class="mono" .value=${this._to} @input=${this._toChanged} />
-          </label>
+          <ha-input
+            class="mono"
+            .label=${this._t("from")}
+            .value=${this._from}
+            autocomplete="off"
+            .spellcheck=${false}
+            @input=${this._fromChanged}
+          ></ha-input>
+          <ha-input
+            class="mono"
+            .label=${this._t("to")}
+            .value=${this._to}
+            autocomplete="off"
+            .spellcheck=${false}
+            @input=${this._toChanged}
+          ></ha-input>
           <div>
             <ha-button
               .disabled=${!this._valid || this._loading}
@@ -167,14 +173,12 @@ export class HaAutomationToolSwap extends LitElement {
                           ${this._affected.map(({ automation, swap }) => {
                             const outcome = this._outcomes[automation.id];
                             return html`<li>
-                              <label class="head">
-                                <input
-                                  type="checkbox"
-                                  .disabled=${!swap.paths.length}
-                                  .checked=${this._selected.has(automation.id)}
-                                  data-id=${automation.id}
-                                  @change=${this._toggle}
-                                />
+                              <ha-checkbox
+                                .disabled=${!swap.paths.length}
+                                .checked=${this._selected.has(automation.id)}
+                                data-id=${automation.id}
+                                @change=${this._toggle}
+                              >
                                 <b>${automation.name}</b>
                                 ${
                                   outcome
@@ -192,7 +196,7 @@ export class HaAutomationToolSwap extends LitElement {
                                       </span>`
                                     : nothing
                                 }
-                              </label>
+                              </ha-checkbox>
                               ${swap.paths.map(
                                 (path) =>
                                   html`<div class="change mono">
@@ -234,23 +238,6 @@ export class HaAutomationToolSwap extends LitElement {
       padding: var(--ha-space-4);
       display: grid;
       gap: var(--ha-space-3);
-    }
-    label {
-      display: grid;
-      gap: var(--ha-space-1);
-    }
-    label.head {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2);
-    }
-    input:not([type="checkbox"]) {
-      padding: var(--ha-space-2) var(--ha-space-3);
-      border: 1px solid var(--ha-color-outline, var(--divider-color));
-      border-radius: var(--ha-border-radius-md);
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      font: inherit;
     }
     .mono {
       font-family: var(--ha-font-family-code, monospace);

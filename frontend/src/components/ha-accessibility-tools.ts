@@ -176,188 +176,205 @@ export class HaAccessibilityTools extends LitElement {
           <kbd>${isMac ? "⌥ A" : "Alt A"}</kbd>
         </div>
 
-        <div class="row">
-          <span class="lead"
-            ><ha-svg-icon .path=${mdiFormatSize}></ha-svg-icon
-          ></span>
-          <span class="text">
-            <span class="name"
-              >${localize("ui.accessibility_tools.text_size")}</span
-            >
-          </span>
-          <span class="stepper">
-            <button
-              class="round"
-              aria-label=${localize("ui.accessibility_tools.text_smaller")}
-              ?disabled=${stepIndex <= 0}
-              @click=${this._textSmaller}
-            >
-              <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
-            </button>
-            <span class="value" role="status" aria-live="polite"
-              >${Math.round(settings.textScale * 100)}%</span
-            >
-            <button
-              class="round"
-              aria-label=${localize("ui.accessibility_tools.text_larger")}
-              ?disabled=${stepIndex >= TEXT_SCALE_STEPS.length - 1}
-              @click=${this._textLarger}
-            >
-              <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
-            </button>
-          </span>
-        </div>
-
-        <div class="row">
-          <span class="lead"
-            ><ha-svg-icon .path=${mdiContrastCircle}></ha-svg-icon
-          ></span>
-          <span class="text">
-            <span class="name" id="contrast-label"
-              >${localize("ui.accessibility_tools.contrast")}</span
-            >
-          </span>
-          <div
-            class="segments"
-            role="radiogroup"
-            aria-labelledby="contrast-label"
-          >
-            ${CONTRASTS.map(
-              (contrast) => html`
-                <button
-                  role="radio"
-                  aria-checked=${
-                    settings.contrast === contrast ? "true" : "false"
-                  }
-                  .contrast=${contrast}
-                  @click=${this._contrastChanged}
-                >
-                  ${localize(`ui.accessibility_tools.contrast_${contrast}`)}
-                </button>
-              `
-            )}
+        <div class="tiles">
+          <div class="row">
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiFormatSize}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name"
+                >${localize("ui.accessibility_tools.text_size")}</span
+              >
+              <span class="note">${Math.round(settings.textScale * 100)}%</span>
+            </span>
+            <span class="stepper">
+              <button
+                class="round"
+                aria-label=${localize("ui.accessibility_tools.text_smaller")}
+                ?disabled=${stepIndex <= 0}
+                @click=${this._textSmaller}
+              >
+                <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
+              </button>
+              <span class="value" role="status" aria-live="polite"
+                >${Math.round(settings.textScale * 100)}%</span
+              >
+              <button
+                class="round"
+                aria-label=${localize("ui.accessibility_tools.text_larger")}
+                ?disabled=${stepIndex >= TEXT_SCALE_STEPS.length - 1}
+                @click=${this._textLarger}
+              >
+                <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+              </button>
+            </span>
           </div>
-        </div>
 
-        <div class="row">
-          <span class="lead"
-            ><ha-svg-icon .path=${mdiFormatLineSpacing}></ha-svg-icon
-          ></span>
-          <span class="text">
-            <span class="name" id="spacing-label"
-              >${localize("ui.accessibility_tools.line_spacing")}</span
+          <div class="row">
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiContrastCircle}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name" id="contrast-label"
+                >${localize("ui.accessibility_tools.contrast")}</span
+              >
+              <span class="note"
+                >${localize(
+                  `ui.accessibility_tools.contrast_${settings.contrast}`
+                )}</span
+              >
+            </span>
+            <div
+              class="segments"
+              role="radiogroup"
+              aria-labelledby="contrast-label"
             >
-          </span>
-          <div
-            class="segments"
-            role="radiogroup"
-            aria-labelledby="spacing-label"
-          >
-            ${LINE_SPACINGS.map(
-              (spacing) => html`
-                <button
-                  role="radio"
-                  aria-checked=${
-                    this._options.lineSpacing === spacing ? "true" : "false"
-                  }
-                  .spacing=${spacing}
-                  @click=${this._lineSpacingChanged}
-                >
-                  ${localize(`ui.accessibility_tools.line_spacing_${spacing}`)}
-                </button>
-              `
-            )}
-          </div>
-        </div>
-
-        <label class="row">
-          <span class="lead"
-            ><ha-svg-icon .path=${mdiFormatLetterCase}></ha-svg-icon
-          ></span>
-          <span class="text">
-            <span class="name"
-              >${localize("ui.accessibility_tools.wide_spacing")}</span
-            >
-            <span class="note"
-              >${localize("ui.accessibility_tools.wide_spacing_note")}</span
-            >
-          </span>
-          <ha-switch
-            .checked=${this._options.wideSpacing}
-            @change=${this._wideSpacingChanged}
-          ></ha-switch>
-        </label>
-
-        ${this._renderSwitch(
-          "reduceMotion",
-          mdiMotionPauseOutline,
-          settings.reduceMotion
-        )}
-        ${this._renderSwitch("showFocus", mdiFocusField, settings.showFocus)}
-        ${this._renderSwitch(
-          "largerTargets",
-          mdiGestureTapButton,
-          settings.largerTargets
-        )}
-        ${
-          canReadAloud()
-            ? html`
-                <div class="row">
-                  <span class="lead"
-                    ><ha-svg-icon .path=${mdiAccountVoice}></ha-svg-icon
-                  ></span>
-                  <span class="text">
-                    <span class="name"
-                      >${localize("ui.accessibility_tools.read_aloud")}</span
-                    >
-                    <span class="note"
-                      >${localize("ui.accessibility_tools.read_aloud_note")}</span
-                    >
-                  </span>
-                  <button class="tonal" @click=${this._toggleReading}>
-                    <ha-svg-icon
-                      .path=${this._reading ? mdiStop : mdiPlay}
-                    ></ha-svg-icon>
-                    ${localize(
-                      this._reading
-                        ? "ui.accessibility_tools.read_stop"
-                        : "ui.accessibility_tools.read_start"
-                    )}
+              ${CONTRASTS.map(
+                (contrast) => html`
+                  <button
+                    role="radio"
+                    aria-checked=${
+                      settings.contrast === contrast ? "true" : "false"
+                    }
+                    .contrast=${contrast}
+                    @click=${this._contrastChanged}
+                  >
+                    ${localize(`ui.accessibility_tools.contrast_${contrast}`)}
                   </button>
-                </div>
-              `
-            : nothing
-        }
+                `
+              )}
+            </div>
+          </div>
 
-        <button class="row link" @click=${this._openFonts}>
-          <span class="lead"
-            ><ha-svg-icon .path=${mdiFormatFont}></ha-svg-icon
-          ></span>
-          <span class="text">
-            <span class="name"
-              >${localize("ui.accessibility_tools.fonts")}</span
+          <div class="row">
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiFormatLineSpacing}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name" id="spacing-label"
+                >${localize("ui.accessibility_tools.line_spacing")}</span
+              >
+              <span class="note"
+                >${localize(
+                  `ui.accessibility_tools.line_spacing_${this._options.lineSpacing}`
+                )}</span
+              >
+            </span>
+            <div
+              class="segments"
+              role="radiogroup"
+              aria-labelledby="spacing-label"
             >
-            <span class="note"
-              >${localize("ui.accessibility_tools.fonts_note")}</span
-            >
-          </span>
-          <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
-        </button>
+              ${LINE_SPACINGS.map(
+                (spacing) => html`
+                  <button
+                    role="radio"
+                    aria-checked=${
+                      this._options.lineSpacing === spacing ? "true" : "false"
+                    }
+                    .spacing=${spacing}
+                    @click=${this._lineSpacingChanged}
+                  >
+                    ${localize(`ui.accessibility_tools.line_spacing_${spacing}`)}
+                  </button>
+                `
+              )}
+            </div>
+          </div>
 
-        <button class="row link" @click=${this._keyboardHelp}>
-          <span class="lead"
-            ><ha-svg-icon .path=${mdiKeyboard}></ha-svg-icon
-          ></span>
-          <span class="text">
-            <span class="name"
-              >${localize("ui.accessibility_tools.keyboard_help")}</span
-            >
-            <span class="note"
-              >${localize("ui.accessibility_tools.keyboard_help_note")}</span
-            >
-          </span>
-          <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
-        </button>
+          <label class="row">
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiFormatLetterCase}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name"
+                >${localize("ui.accessibility_tools.wide_spacing")}</span
+              >
+              <span class="note"
+                >${localize(
+                  this._options.wideSpacing
+                    ? "ui.accessibility_tools.state_on"
+                    : "ui.accessibility_tools.state_off"
+                )}</span
+              >
+            </span>
+            <ha-switch
+              .checked=${this._options.wideSpacing}
+              @change=${this._wideSpacingChanged}
+            ></ha-switch>
+          </label>
+
+          ${this._renderSwitch(
+            "reduceMotion",
+            mdiMotionPauseOutline,
+            settings.reduceMotion
+          )}
+          ${this._renderSwitch("showFocus", mdiFocusField, settings.showFocus)}
+          ${this._renderSwitch(
+            "largerTargets",
+            mdiGestureTapButton,
+            settings.largerTargets
+          )}
+          ${
+            canReadAloud()
+              ? html`
+                  <div class="row">
+                    <span class="lead"
+                      ><ha-svg-icon .path=${mdiAccountVoice}></ha-svg-icon
+                    ></span>
+                    <span class="text">
+                      <span class="name"
+                        >${localize("ui.accessibility_tools.read_aloud")}</span
+                      >
+                      <span class="note"
+                        >${localize("ui.accessibility_tools.read_aloud_note")}</span
+                      >
+                    </span>
+                    <button class="tonal" @click=${this._toggleReading}>
+                      <ha-svg-icon
+                        .path=${this._reading ? mdiStop : mdiPlay}
+                      ></ha-svg-icon>
+                      ${localize(
+                        this._reading
+                          ? "ui.accessibility_tools.read_stop"
+                          : "ui.accessibility_tools.read_start"
+                      )}
+                    </button>
+                  </div>
+                `
+              : nothing
+          }
+
+          <button class="row link" @click=${this._openFonts}>
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiFormatFont}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name"
+                >${localize("ui.accessibility_tools.fonts")}</span
+              >
+              <span class="note"
+                >${localize("ui.accessibility_tools.fonts_note")}</span
+              >
+            </span>
+            <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
+          </button>
+
+          <button class="row link" @click=${this._keyboardHelp}>
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiKeyboard}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name"
+                >${localize("ui.accessibility_tools.keyboard_help")}</span
+              >
+              <span class="note"
+                >${localize("ui.accessibility_tools.keyboard_help_note")}</span
+              >
+            </span>
+            <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
+          </button>
+        </div>
 
         <div class="footer">
           <button
@@ -408,7 +425,12 @@ export class HaAccessibilityTools extends LitElement {
             >${this.hass.localize(`ui.accessibility_tools.${key}`)}</span
           >
           <span class="note"
-            >${this.hass.localize(`ui.accessibility_tools.${key}_note`)}</span
+            >${this.hass.localize(
+              checked
+                ? "ui.accessibility_tools.state_on"
+                : "ui.accessibility_tools.state_off"
+            )}
+            · ${this.hass.localize(`ui.accessibility_tools.${key}_note`)}</span
           >
         </span>
         <ha-switch
@@ -589,7 +611,7 @@ export class HaAccessibilityTools extends LitElement {
       top: var(--ha-access-panel-top);
       inset-inline-end: calc(var(--ha-pane-gap, 0px) + var(--ha-space-3));
       margin: 0;
-      width: min(440px, calc(100vw - 24px));
+      width: min(540px, calc(100vw - 24px));
       /* Uses the room below the panel's top edge, so the closing note is
          inside it whenever the window is tall enough; the panel scrolls
          when it is not. */
@@ -659,17 +681,50 @@ export class HaAccessibilityTools extends LitElement {
         display: none;
       }
     }
+    /* Every tool is a tile: icon tile, name and state, its control below. */
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--ha-space-2);
+    }
+    @media (max-width: 420px) {
+      .tiles {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
     .row {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-content: start;
       align-items: center;
-      gap: var(--ha-space-3);
+      gap: var(--ha-space-2) var(--ha-space-3);
       min-height: var(--ha-space-14);
-      padding: var(--ha-space-1) var(--ha-space-2);
+      padding: var(--ha-space-3);
       border-radius: var(--ha-border-radius-2xl);
+      background-color: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card, none);
       box-sizing: border-box;
       width: 100%;
       text-align: start;
+    }
+    .row > :not(.lead):not(.text) {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+    .row.link {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .row.link > .chevron {
+      grid-column: auto;
+      justify-self: end;
+    }
+    .row .segments,
+    .row .round {
+      background-color: var(--secondary-background-color);
+    }
+    .row .segments {
+      justify-self: stretch;
+      justify-content: flex-start;
     }
     label.row,
     .row.link {

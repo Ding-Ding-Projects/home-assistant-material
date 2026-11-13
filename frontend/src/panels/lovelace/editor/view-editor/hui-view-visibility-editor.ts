@@ -16,11 +16,17 @@ import type {
 import type { User } from "../../../../data/user";
 import { fetchUsers } from "../../../../data/user";
 import type { HomeAssistant } from "../../../../types";
+import type { VisibilityCondition } from "../../common/validate-condition";
+import "../conditions/ha-card-conditions-editor";
+import "../conditions/ha-visibility-status";
 
 declare global {
   interface HASSDomEvents {
     "view-visibility-changed": {
       visible: ShowViewConfig[];
+    };
+    "view-conditions-changed": {
+      visibility: VisibilityCondition[];
     };
   }
 }
@@ -82,7 +88,33 @@ export class HuiViewVisibilityEditor extends LitElement {
           `
         )}
       </ha-list-base>
+      <h3>
+        ${this.hass.localize(
+          "ui.panel.lovelace.editor.edit_view.visibility.conditions_title"
+        )}
+      </h3>
+      <p>
+        ${this.hass.localize(
+          "ui.panel.lovelace.editor.edit_view.visibility.conditions_text"
+        )}
+      </p>
+      <ha-visibility-status
+        .hass=${this.hass}
+        .conditions=${this._config.visibility ?? []}
+      ></ha-visibility-status>
+      <ha-card-conditions-editor
+        .hass=${this.hass}
+        .conditions=${this._config.visibility ?? []}
+        @value-changed=${this._conditionsChanged}
+      ></ha-card-conditions-editor>
     `;
+  }
+
+  private _conditionsChanged(ev: CustomEvent): void {
+    ev.stopPropagation();
+    fireEvent(this, "view-conditions-changed", {
+      visibility: ev.detail.value as VisibilityCondition[],
+    });
   }
 
   protected checkUser(userId: string): boolean {
@@ -134,6 +166,15 @@ export class HuiViewVisibilityEditor extends LitElement {
   static styles = css`
     :host {
       display: block;
+    }
+    h3 {
+      margin: var(--ha-space-6) 0 0;
+      font-size: var(--ha-font-size-l);
+      font-weight: var(--ha-font-weight-title, 600);
+    }
+    ha-visibility-status {
+      display: block;
+      margin-bottom: var(--ha-space-3);
     }
     ha-list-item-base {
       --ha-row-item-padding-inline: 0;

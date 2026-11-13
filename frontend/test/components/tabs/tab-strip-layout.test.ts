@@ -34,14 +34,14 @@ describe("initialDockDecision", () => {
     ).toBeUndefined();
   });
 
-  it("keeps the top edge for an installation that already had tab state", () => {
+  it("no longer moves an installation with tab state to the top", () => {
     expect(
       initialDockDecision({
         legacyPresent: true,
         seenPresent: false,
         dockChosen: false,
       })
-    ).toBe("top");
+    ).toBeUndefined();
   });
 
   it("never overrides a chosen edge or acts after the first run", () => {
@@ -70,7 +70,7 @@ describe("ensureInitialDock", () => {
       "pageTabsOrder",
       "pageTabsPinned",
       "pageTabsSeen",
-      "pageTabsDock",
+      "pageTabsEdge",
     ].forEach((name) => storage.setValue(name, undefined));
   });
 
@@ -89,15 +89,21 @@ describe("ensureInitialDock", () => {
     expect(readDock("main")).toBe("left");
   });
 
-  it("keeps an existing installation at the top, and stays there after the first run", () => {
+  it("gives an existing installation the left edge and keeps a chosen edge", () => {
     getStorage().setValue("pageTabsClosed", ["map"]);
     ensureInitialDock("main");
-    expect(readDock("main")).toBe("top");
+    expect(readDock("main")).toBe("left");
     writeSeen("main", ["lovelace"]);
-    // The person then picks the default edge: it must not flip back to the top.
-    writeDock("main", "left");
+    writeDock("main", "top");
+    ensureInitialDock("main");
+    expect(readDock("main")).toBe("top");
+  });
+
+  it("does not read an edge stored under the old key", () => {
+    getStorage().setValue("pageTabsDock", { main: "top" });
     ensureInitialDock("main");
     expect(readDock("main")).toBe("left");
+    getStorage().setValue("pageTabsDock", undefined);
   });
 });
 

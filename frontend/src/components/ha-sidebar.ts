@@ -19,6 +19,7 @@ import { fireEvent } from "../common/dom/fire_event";
 import { stringCompare } from "../common/string/compare";
 import { computeRTL } from "../common/util/compute_rtl";
 import { throttle } from "../common/util/throttle";
+import { visiblePanels } from "../data/dashboard-visibility";
 import { subscribeFrontendUserData } from "../data/frontend";
 import type { ActionHandlerEvent } from "../data/lovelace/action_handler";
 import {
@@ -568,7 +569,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     const defaultPanel = getDefaultPanelUrlPath(this.hass);
 
     const [beforeSpacer, afterSpacer] = computePanels(
-      this.hass.panels,
+      visiblePanels(this.hass, defaultPanel),
       defaultPanel,
       this._panelOrder,
       this._hiddenPanels,

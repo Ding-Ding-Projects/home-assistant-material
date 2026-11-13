@@ -3,6 +3,8 @@ import { customElement, property, state } from "lit/decorators";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
 import "../../../../components/ha-button";
 import "../../../../components/ha-card";
+import "../../../../components/ha-checkbox";
+import "../../../../components/input/ha-input";
 import { showToast } from "../../../../util/toast";
 import type { StepSection, StepSelection } from "./automation-blueprint-maker";
 import { buildBlueprint, listSteps } from "./automation-blueprint-maker";
@@ -150,29 +152,25 @@ export class HaAutomationToolBlueprint extends LitElement {
       <ha-card .header=${this._t("title")}>
         <div class="content">
           <p class="hint">${this._t("description")}</p>
-          <label class="field">
-            <span>${this._t("name")}</span>
-            <input
-              .value=${this._name}
-              placeholder=${this._t("default_name")}
-              @input=${this._nameChanged}
-            />
-          </label>
+          <ha-input
+            .label=${this._t("name")}
+            .placeholder=${this._t("default_name")}
+            .value=${this._name}
+            @input=${this._nameChanged}
+          ></ha-input>
           <ul class="steps">
             ${steps.map((entry) => {
               const sel = { section: entry.section, index: entry.index };
               return html`<li>
-                <label>
-                  <input
-                    type="checkbox"
-                    .checked=${this._selected.has(keyOf(sel))}
-                    data-section=${sel.section}
-                    data-index=${sel.index}
-                    @change=${this._toggle}
-                  />
+                <ha-checkbox
+                  .checked=${this._selected.has(keyOf(sel))}
+                  data-section=${sel.section}
+                  data-index=${sel.index}
+                  @change=${this._toggle}
+                >
                   <span class="kind">${this._t(`kind_${entry.section}`)}</span>
                   ${stepLabel(entry.step)}
-                </label>
+                </ha-checkbox>
               </li>`;
             })}
           </ul>
@@ -211,12 +209,11 @@ export class HaAutomationToolBlueprint extends LitElement {
         <div class="content">
           <p class="hint">${this._t("snippets_description")}</p>
           <div class="row">
-            <input
-              aria-label=${this._t("snippet_name")}
-              placeholder=${this._t("snippet_name")}
+            <ha-input
+              .label=${this._t("snippet_name")}
               .value=${this._snippetName}
               @input=${this._snippetNameChanged}
-            />
+            ></ha-input>
             <ha-button
               .disabled=${!oneSection || !this._snippetName.trim()}
               @click=${this._saveSnippet}
@@ -303,23 +300,13 @@ export class HaAutomationToolBlueprint extends LitElement {
       font-size: var(--ha-font-size-s);
       margin: 0;
     }
-    .field {
-      display: grid;
-      gap: var(--ha-space-1);
-    }
     .row {
       display: flex;
       gap: var(--ha-space-2);
       align-items: center;
     }
-    input:not([type="checkbox"]) {
+    .row ha-input {
       flex: 1;
-      padding: var(--ha-space-2) var(--ha-space-3);
-      border: 1px solid var(--ha-color-outline, var(--divider-color));
-      border-radius: var(--ha-border-radius-md);
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      font: inherit;
     }
     pre {
       margin: 0;

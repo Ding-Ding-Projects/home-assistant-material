@@ -98,7 +98,7 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     kind: "json",
     holds: "Settings pages and tools opened as tabs",
   },
-  { exact: "pageTabsDock", kind: "json", holds: "Tab strip edge" },
+  { exact: "pageTabsEdge", kind: "json", holds: "Tab strip edge" },
   {
     exact: "pageTabsFloat",
     kind: "json",

@@ -258,6 +258,13 @@ class HassSubpage extends LitElement {
           );
           line-height: var(--ha-line-height-condensed);
         }
+        :host([narrow]) .title-text {
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(
+            --ha-font-weight-title,
+            var(--ha-font-weight-medium)
+          );
+        }
         .title-text {
           overflow: hidden;
           text-overflow: ellipsis;

@@ -462,6 +462,9 @@ class HaPanelDevStateRenderer extends LitElement {
 
         .entities a {
           color: var(--primary-color);
+          /* Entity IDs read as code, as on the board. */
+          font-family: var(--ha-font-family-code, monospace);
+          font-size: var(--ha-font-size-s);
         }
 
         .entities .id-name-container {

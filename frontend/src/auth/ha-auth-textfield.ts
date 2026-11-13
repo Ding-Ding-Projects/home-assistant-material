@@ -61,6 +61,10 @@ export class HaAuthTextField extends WaInputMixin(LitElement) {
     const invalid = this.invalid || this._invalid;
     const hintId = this.name ? `${this.name}-hint` : undefined;
 
+    if (this.autocomplete === "one-time-code") {
+      return this._renderCode(invalid, hintId);
+    }
+
     // The blank placeholder lets :placeholder-shown raise the label when a
     // password manager fills the field without firing events.
     return html`
@@ -104,6 +108,66 @@ export class HaAuthTextField extends WaInputMixin(LitElement) {
               ></ha-icon-button>`
             : nothing
         }
+      </div>
+      <div
+        id=${ifDefined(hintId)}
+        class=${classMap({ hint: true, error: invalid })}
+        role=${ifDefined(invalid ? "alert" : undefined)}
+        aria-live="polite"
+      >
+        ${
+          invalid
+            ? this.validationMessage || this._input?.validationMessage
+            : this.hint
+        }
+      </div>
+    `;
+  }
+
+  /**
+   * A one-time code: the same single native input, so password managers, SMS
+   * autofill and paste keep working, drawn over a row of boxes that show each
+   * character. The input is invisible and covers the boxes.
+   */
+  private _renderCode(invalid: boolean, hintId?: string): TemplateResult {
+    const value = this.value ?? "";
+    const boxes = Math.max(6, value.length);
+    return html`
+      <style>
+        ${styles.cssText}
+      </style>
+      <div class=${classMap({ code: true, invalid, disabled: this.disabled })}>
+        <div class="boxes" aria-hidden="true">
+          ${Array.from(
+            { length: boxes },
+            (_, index) =>
+              html`<span
+                class=${classMap({
+                  box: true,
+                  active: index === Math.min(value.length, boxes - 1),
+                })}
+                >${value.charAt(index)}</span
+              >`
+          )}
+        </div>
+        <input
+          class="code-input"
+          id=${ifDefined(this.name)}
+          name=${ifDefined(this.name)}
+          type="text"
+          inputmode="numeric"
+          spellcheck="false"
+          autocomplete="one-time-code"
+          aria-label=${this.label ?? ""}
+          aria-describedby=${ifDefined(hintId)}
+          aria-invalid=${ifDefined(invalid ? "true" : undefined)}
+          ?required=${this.required}
+          ?disabled=${this.disabled}
+          .value=${value}
+          @input=${this._handleInput}
+          @change=${this._handleChange}
+          @blur=${this._handleBlur}
+        />
       </div>
       <div
         id=${ifDefined(hintId)}
@@ -233,6 +297,44 @@ const styles = css`
     display: flex;
     align-items: center;
     color: var(--ha-color-text-secondary);
+  }
+  ha-auth-textfield .code {
+    position: relative;
+    height: 64px;
+  }
+  ha-auth-textfield .code .boxes {
+    display: flex;
+    gap: var(--ha-space-2);
+    height: 100%;
+  }
+  ha-auth-textfield .code .box {
+    display: grid;
+    place-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: var(--ha-border-radius-lg);
+    background: var(--secondary-background-color);
+    color: var(--primary-text-color);
+    font-size: var(--ha-font-size-2xl);
+    font-weight: var(--ha-font-weight-semibold, 600);
+  }
+  ha-auth-textfield .code:focus-within .box.active {
+    box-shadow: 0 0 0 2px var(--primary-color);
+  }
+  ha-auth-textfield .code.invalid .box {
+    box-shadow: 0 0 0 2px var(--ha-color-border-danger-normal);
+  }
+  ha-auth-textfield .code.disabled {
+    opacity: 0.5;
+  }
+  ha-auth-textfield .code .code-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    opacity: 0;
+    cursor: text;
   }
   ha-auth-textfield .hint {
     display: flex;

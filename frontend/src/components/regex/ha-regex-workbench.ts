@@ -1062,8 +1062,11 @@ export class HaRegexWorkbench extends LitElement {
   // ---- Build ----
 
   private _renderBuild() {
+    // On a wide window the main view shows build, explain and matches side
+    // by side; a phone keeps one section at a time in the sheet.
+    const three = !this._narrow;
     return html`
-      <div class="columns">
+      <div class=${classMap({ columns: true, three })}>
         <section aria-label=${this._l("build.blocks")}>
           <h3>${this._l("build.blocks")}</h3>
           <p class="note">${this._l("build.blocks_note")}</p>
@@ -1122,6 +1125,15 @@ export class HaRegexWorkbench extends LitElement {
           <h3>${this._l("build.reads_as")}</h3>
           ${this._renderExplanation()} ${this._renderRisk()}
         </section>
+        ${
+          three
+            ? html`<section aria-label=${this._l("build.matches_title")}>
+                <h3>${this._l("build.matches_title")}</h3>
+                ${this._renderSampleField()} ${this._renderSummary()}
+                ${this._renderMarkedSample()} ${this._renderMatchDetail()}
+              </section>`
+            : nothing
+        }
       </div>
     `;
   }
@@ -2963,6 +2975,15 @@ export class HaRegexWorkbench extends LitElement {
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: var(--ha-space-4);
         align-items: start;
+      }
+      .columns.three {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      }
+      /* The match detail sits inside the matches column here. */
+      .columns.three section section {
+        padding: 0;
+        background-color: transparent;
+        border: none;
       }
       section {
         display: flex;

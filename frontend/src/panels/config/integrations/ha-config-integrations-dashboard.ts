@@ -1,4 +1,4 @@
-import { mdiPlus } from "@mdi/js";
+import { mdiMagnify, mdiPlus } from "@mdi/js";
 import type { IFuseOptions } from "fuse.js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
@@ -176,6 +176,9 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
   @query("ha-input-search") private _searchInput!: HaInputSearch;
 
   @query("hass-tabs-subpage") private _tabsSubpage?: HassTabsSubpage;
+
+  @query(".container.discovered ha-config-flow-card")
+  private _firstDiscovered?: HTMLElement;
 
   private _resolveInitialRender?: () => void;
 
@@ -586,11 +589,39 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           </header>
           ${
             configEntriesInProgress.length
-              ? html`<h2 class="section-header">
-                    ${this.hass.localize(
-                      "ui.panel.config.integrations.found_on_network"
-                    )}
-                  </h2>
+              ? html`<section class="hero" aria-labelledby="discovered-title">
+                    <div class="hero-icon">
+                      <ha-svg-icon .path=${mdiMagnify}></ha-svg-icon>
+                    </div>
+                    <div class="hero-text">
+                      <span class="hero-label"
+                        >${this.hass.localize(
+                          "ui.panel.config.integrations.discovered_label"
+                        )}</span
+                      >
+                      <h2 id="discovered-title">
+                        ${this.hass.localize(
+                          "ui.panel.config.integrations.discovered_title",
+                          { count: configEntriesInProgress.length }
+                        )}
+                      </h2>
+                      <p>
+                        ${new Intl.ListFormat(this.hass.locale.language, {
+                          style: "long",
+                          type: "conjunction",
+                        }).format(
+                          configEntriesInProgress
+                            .slice(0, 3)
+                            .map((flow) => flow.localized_title || flow.handler)
+                        )}
+                      </p>
+                    </div>
+                    <ha-button size="s" @click=${this._scrollToDiscovered}>
+                      ${this.hass.localize(
+                        "ui.panel.config.integrations.discovered_review"
+                      )}
+                    </ha-button>
+                  </section>
                   <div class="container discovered">
                     ${configEntriesInProgress.map(
                       (flow: DataEntryFlowProgressExtended) => html`
@@ -750,6 +781,13 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         </ha-button>
       </hass-tabs-subpage>
     `;
+  }
+
+  private _scrollToDiscovered() {
+    this._firstDiscovered?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
   }
 
   private async _scanUSBDevices() {
@@ -1124,6 +1162,63 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
           gap: var(--ha-space-4);
           padding: var(--ha-space-4) 0 0;
           margin: 0;
+        }
+        .hero {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-4);
+          margin-top: var(--ha-space-6);
+          padding: var(--ha-space-5) var(--ha-space-6);
+          border-radius: var(--ha-border-radius-2xl, 28px);
+          background: var(--ha-color-primary-container, rgba(0, 0, 0, 0.06));
+          color: var(
+            --ha-color-on-primary-container,
+            var(--primary-text-color)
+          );
+        }
+        .hero-icon {
+          flex: none;
+          display: grid;
+          place-items: center;
+          width: 56px;
+          height: 56px;
+          border-radius: var(--ha-border-radius-xl);
+          background: color-mix(
+            in srgb,
+            var(--card-background-color) 55%,
+            transparent
+          );
+          --mdc-icon-size: 28px;
+        }
+        .hero-text {
+          flex: 1;
+          min-width: 0;
+        }
+        .hero-label {
+          font-size: var(--ha-font-size-xs, 12px);
+          font-weight: var(--ha-font-weight-semibold);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          opacity: 0.8;
+        }
+        .hero h2 {
+          margin: 0;
+          font-family: var(--ha-font-family-heading);
+          font-size: var(--ha-font-size-2xl);
+          font-weight: var(
+            --ha-font-weight-title,
+            var(--ha-font-weight-normal)
+          );
+          line-height: var(--ha-line-height-condensed);
+        }
+        .hero p {
+          margin: var(--ha-space-1) 0 0;
+          overflow-wrap: anywhere;
+          opacity: 0.85;
+        }
+        :host([narrow]) .hero {
+          flex-wrap: wrap;
+          padding: var(--ha-space-4);
         }
         .container.discovered {
           grid-template-columns: repeat(

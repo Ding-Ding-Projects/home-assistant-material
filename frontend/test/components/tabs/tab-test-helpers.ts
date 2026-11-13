@@ -9,7 +9,7 @@ export const TAB_KEYS = [
   "pageTabsOrder",
   "pageTabsClosed",
   "pageTabsSeen",
-  "pageTabsDock",
+  "pageTabsEdge",
   "pageTabsGroupAppearance",
   "elementLocks",
 ];

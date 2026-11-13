@@ -1,4 +1,4 @@
-import { mdiContentCopy } from "@mdi/js";
+import { mdiContentCopy, mdiTextBoxRemoveOutline } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -9,6 +9,7 @@ import { computeStateDomain } from "../../../common/entity/compute_state_domain"
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-button";
+import "../../../components/ha-empty-state";
 import "../../../components/ha-markdown";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-date-input";
@@ -218,8 +219,11 @@ class HaConfigReleaseNotes extends LitElement {
                 updates.length
                   ? updates.map((entity) => this._renderUpdate(entity))
                   : html`<div class="none">
-                      <strong>${this._l("updates_none")}</strong>
-                      <span>${this._l("updates_none_detail")}</span>
+                      <ha-empty-state
+                        .icon=${mdiTextBoxRemoveOutline}
+                        .heading=${this._l("updates_none")}
+                        .description=${this._l("updates_none_detail")}
+                      ></ha-empty-state>
                     </div>`
               }
             </aside>
@@ -332,8 +336,11 @@ class HaConfigReleaseNotes extends LitElement {
         ${
           !hasNotes && (!canLoad || loaded?.status === "done")
             ? html`<div class="none">
-                <strong>${this._l("no_notes")}</strong>
-                <span>${this._l("no_notes_detail")}</span>
+                <ha-empty-state
+                  .icon=${mdiTextBoxRemoveOutline}
+                  .heading=${this._l("no_notes")}
+                  .description=${this._l("no_notes_detail")}
+                ></ha-empty-state>
               </div>`
             : nothing
         }
@@ -591,17 +598,12 @@ class HaConfigReleaseNotes extends LitElement {
           color: var(--secondary-text-color);
         }
         .none {
-          display: flex;
-          flex-direction: column;
-          gap: var(--ha-space-1);
-          padding: var(--ha-space-5);
+          padding: var(--ha-space-2) var(--ha-space-5);
           border-radius: var(--ha-border-radius-3xl);
           background: var(--card-background-color);
-          text-align: center;
-          color: var(--secondary-text-color);
         }
-        .none strong {
-          color: var(--primary-text-color);
+        .none ha-empty-state {
+          height: auto;
         }
         .rendered {
           overflow-wrap: anywhere;

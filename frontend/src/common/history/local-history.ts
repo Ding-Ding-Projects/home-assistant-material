@@ -30,7 +30,7 @@ export const HISTORY_SUBJECTS = {
   tabPins: { key: "pageTabsPinned", keep: true },
   tabGroups: { key: "pageTabsGroups", keep: false },
   tabDestinations: { key: "pageTabsDestinations", keep: false },
-  tabDock: { key: "pageTabsDock", keep: false },
+  tabDock: { key: "pageTabsEdge", keep: false },
   tabAppearance: { key: "pageTabsAppearance", keep: false },
   // That a lock (including a tab or group lock) changed. Only the fact is
   // listed: the stored text holds credentials, so it is never copied here.

@@ -888,12 +888,14 @@ class HaPanelMy extends LitElement {
           aria-labelledby="my-title"
           aria-describedby="my-description"
         >
-          <div class="icon">
-            <ha-svg-icon .path=${mdiLinkVariant}></ha-svg-icon>
+          <div class="head">
+            <div class="icon">
+              <ha-svg-icon .path=${mdiLinkVariant}></ha-svg-icon>
+            </div>
+            <h1 id="my-title">
+              ${this.hass.localize("ui.panel.my.confirm_title", { destination })}
+            </h1>
           </div>
-          <h1 id="my-title">
-            ${this.hass.localize("ui.panel.my.confirm_title", { destination })}
-          </h1>
           <p id="my-description">
             ${this.hass.localize("ui.panel.my.confirm_description", {
               destination,
@@ -987,8 +989,17 @@ class HaPanelMy extends LitElement {
       background: var(--ha-color-fill-primary-quiet-resting);
       color: var(--primary-color);
     }
+    .head {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-4);
+      margin-bottom: var(--ha-space-4);
+    }
+    .head .icon {
+      flex: none;
+    }
     h1 {
-      margin: var(--ha-space-5, 20px) 0 var(--ha-space-3);
+      margin: 0;
       font-size: var(--ha-font-size-xl, 22px);
       font-weight: var(--ha-font-weight-normal);
       overflow-wrap: anywhere;
@@ -1030,7 +1041,7 @@ class HaPanelMy extends LitElement {
     .actions {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: var(--ha-space-3);
       margin-top: var(--ha-space-4);
     }

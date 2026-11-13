@@ -1,4 +1,4 @@
-import "@home-assistant/webawesome/dist/components/divider/divider";
+import { mdiBackupRestore } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { LitElement, css, html } from "lit";
 import { customElement, state } from "lit/decorators";
@@ -7,9 +7,7 @@ import { consumeLocalize } from "../common/decorators/consume-context-entry";
 import { fireEvent } from "../common/dom/fire_event";
 import type { LocalizeFunc } from "../common/translations/localize";
 import "../components/ha-button";
-import "../components/ha-icon-next";
-import "../components/item/ha-list-item-button";
-import "../components/list/ha-list-base";
+import "../components/ha-svg-icon";
 import { translationsReadyContext } from "../mixins/lit-localize-lite-mixin";
 import { renderSkeleton, skeletonStyles } from "./render-skeleton";
 import { onBoardingStyles } from "./styles";
@@ -42,53 +40,36 @@ class OnboardingWelcome extends LitElement {
         }
       </p>
 
-      <ha-button @click=${this._start} class="start" .disabled=${!ready}>
-        ${
-          ready
-            ? this._localize("ui.panel.page-onboarding.welcome.start")
-            : renderSkeleton("button")
-        }
-      </ha-button>
-
-      <div class="divider">
-        <wa-divider></wa-divider>
-        <div>
-          <span>
-            ${
-              ready
-                ? this._localize("ui.panel.page-onboarding.welcome.or_restore")
-                : renderSkeleton("chip")
-            }
-          </span>
-        </div>
-      </div>
-
-      <ha-list-base>
-        <ha-list-item-button
+      <div class="paths">
+        <ha-button @click=${this._start} class="start" .disabled=${!ready}>
+          ${
+            ready
+              ? this._localize("ui.panel.page-onboarding.welcome.start")
+              : renderSkeleton("button")
+          }
+        </ha-button>
+        <ha-button
+          appearance="outlined"
           @click=${this._restoreBackupUpload}
           .disabled=${!ready}
         >
-          <div slot="headline">
-            ${
-              ready
-                ? this._localize(
-                    "ui.panel.page-onboarding.restore.upload_backup"
-                  )
-                : renderSkeleton("headline")
-            }
-          </div>
-          <div slot="supporting-text">
-            ${
-              ready
-                ? this._localize(
-                    "ui.panel.page-onboarding.restore.options.upload_description"
-                  )
-                : renderSkeleton("line")
-            }
-          </div>
-          <ha-icon-next slot="end"></ha-icon-next>
-        </ha-list-item-button>
-      </ha-list-base>
+          <ha-svg-icon slot="start" .path=${mdiBackupRestore}></ha-svg-icon>
+          ${
+            ready
+              ? this._localize("ui.panel.page-onboarding.restore.upload_backup")
+              : renderSkeleton("chip")
+          }
+        </ha-button>
+      </div>
+      <p class="note">
+        ${
+          ready
+            ? this._localize(
+                "ui.panel.page-onboarding.restore.options.upload_description"
+              )
+            : renderSkeleton("line")
+        }
+      </p>
     `;
   }
 
@@ -124,34 +105,17 @@ class OnboardingWelcome extends LitElement {
           width: 100%;
           margin: 0;
         }
-        .start {
-          margin: var(--ha-space-8) 0;
-          width: 100%;
-        }
-        .divider {
-          width: calc(100% + var(--ha-space-16));
-          position: relative;
-          margin-left: calc(var(--ha-space-8) * -1);
-          margin-right: calc(var(--ha-space-8) * -1);
-        }
-        .divider div {
-          position: absolute;
+        .paths {
           display: flex;
-          justify-content: center;
-          align-items: center;
-          top: 0;
-          bottom: 0;
+          flex-wrap: wrap;
+          gap: var(--ha-space-3);
           width: 100%;
+          margin: var(--ha-space-6) 0 var(--ha-space-3);
         }
-        .divider div span {
-          background-color: var(--card-background-color);
-          padding: 0 var(--ha-space-4);
-        }
-
-        ha-list-base {
-          width: 100%;
-          padding-bottom: 0;
-          --ha-row-item-padding-inline: 0;
+        .note {
+          margin: 0;
+          font-size: var(--ha-font-size-s);
+          color: var(--secondary-text-color);
         }
       `,
       skeletonStyles,

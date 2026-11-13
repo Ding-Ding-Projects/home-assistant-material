@@ -143,6 +143,15 @@ class HaProfileDashboard extends LitElement {
             </ha-card>
 
             <ha-card
+              .header=${this.hass.localize("ui.panel.profile.appearance_header")}
+            >
+              <ha-pick-theme-row
+                .narrow=${this.narrow}
+                .hass=${this.hass}
+              ></ha-pick-theme-row>
+            </ha-card>
+
+            <ha-card
               .header=${this.hass.localize(
                 isExternal
                   ? "ui.panel.profile.mobile_app_settings"
@@ -153,10 +162,6 @@ class HaProfileDashboard extends LitElement {
                 .narrow=${this.narrow}
                 .hass=${this.hass}
               ></ha-pick-dashboard-row>
-              <ha-pick-theme-row
-                .narrow=${this.narrow}
-                .hass=${this.hass}
-              ></ha-pick-theme-row>
               ${
                 !isMobileClient
                   ? html`<ha-enable-shortcuts-row

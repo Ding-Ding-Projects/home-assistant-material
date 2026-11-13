@@ -24,6 +24,7 @@ import type {
 } from "../../../common/translations/localize";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import "../../../components/entity/ha-entity-picker";
+import { findRelated } from "../../../data/search";
 import "../../../components/ha-alert";
 import "../../../components/ha-area-picker";
 import "../../../components/ha-color-picker";
@@ -205,6 +206,11 @@ export class EntityRegistrySettingsEditor extends LitElement {
   @state() private _icon!: string;
 
   @state() private _entityId!: EntitySettingsState["entityId"];
+
+  /** How many automations, scripts, scenes and groups use this entity ID. */
+  @state() private _usageCount?: number;
+
+  private _usageRequested = false;
 
   @state() private _deviceClass?: EntitySettingsState["deviceClass"];
 
@@ -443,6 +449,15 @@ export class EntityRegistrySettingsEditor extends LitElement {
       } else {
         this._sensorDeviceClassConvertibleUnits = [];
       }
+    }
+    if (
+      changedProps.has("_entityId") &&
+      this._entityId !== undefined &&
+      this._entityId !== this._origEntityId &&
+      !this._usageRequested
+    ) {
+      this._usageRequested = true;
+      this._loadUsageCount();
     }
     if (changedProps.has("_entityId")) {
       const domain = computeDomain(this.entry.entity_id);
@@ -1000,6 +1015,16 @@ export class EntityRegistrySettingsEditor extends LitElement {
               )}
             ></ha-icon-button>
           </ha-input>
+          ${
+            this._entityId !== this._origEntityId && this._usageCount
+              ? html`<ha-alert alert-type="warning"
+                  >${this.hass.localize(
+                    "ui.dialogs.entity_registry.editor.entity_id_in_use",
+                    { count: this._usageCount }
+                  )}</ha-alert
+                >`
+              : nothing
+          }
           ${
             !this.entry.device_id
               ? html`<ha-area-picker
@@ -1701,6 +1726,25 @@ export class EntityRegistrySettingsEditor extends LitElement {
     showToast(this, {
       message: this.hass.localize("ui.common.copied_clipboard"),
     });
+  }
+
+  private async _loadUsageCount(): Promise<void> {
+    try {
+      const related = await findRelated(
+        this.hass,
+        "entity",
+        this._origEntityId,
+        true
+      );
+      this._usageCount =
+        (related.automation?.length ?? 0) +
+        (related.script?.length ?? 0) +
+        (related.scene?.length ?? 0) +
+        (related.group?.length ?? 0);
+    } catch (_err: any) {
+      // The related search is not available: show no count rather than guess.
+      this._usageCount = undefined;
+    }
   }
 
   private _entityIdChanged(ev: InputEvent): void {

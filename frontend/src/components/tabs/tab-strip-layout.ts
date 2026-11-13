@@ -21,12 +21,11 @@ export const MAIN_SURFACE = "main";
 /**
  * The edge a strip starts on when nothing was chosen.
  *
- * A new installation starts on the left. An installation that already has
- * stored tab state had its strip at the top, so it keeps the top until the
- * person chooses another edge: an update never moves a strip they know. The
- * decision is made once, while the strip has never been offered any tab
- * (`seenPresent` is false); afterwards the stored choice, or the default for
- * a person who chose the left, is used.
+ * Every installation starts on the left, as the side pane. Earlier builds
+ * put an installation that already had tab state at the top without anyone
+ * choosing it; that is no longer done, and the edge is now stored under a new
+ * key so those automatic values are not read back. Nothing is decided here
+ * any more; the function stays so its callers and their order do not change.
  */
 export const initialDockDecision = (input: {
   /** Any of the old closed, order, pinned or seen keys was already saved. */
@@ -39,7 +38,7 @@ export const initialDockDecision = (input: {
   if (input.dockChosen || input.seenPresent) {
     return undefined;
   }
-  return input.legacyPresent ? "top" : undefined;
+  return undefined;
 };
 
 /** The edge a strip uses when nothing is stored and it is a new installation. */

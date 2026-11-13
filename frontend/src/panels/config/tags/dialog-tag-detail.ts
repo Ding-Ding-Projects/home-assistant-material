@@ -1,8 +1,13 @@
-import { mdiContentCopy } from "@mdi/js";
+import { mdiContentCopy, mdiNfc } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
+import type { NfcListener } from "../../../common/locks/nfc-reader";
+import {
+  listenForNfcTag,
+  webNfcAvailable,
+} from "../../../common/locks/nfc-reader";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
 import { generateUuidV4 } from "../../../common/util/uuid";
 import "../../../components/ha-alert";
@@ -12,6 +17,7 @@ import "../../../components/ha-dialog-footer";
 import "../../../components/ha-expansion-panel";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-qr-code";
+import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input";
 import type { HaInput } from "../../../components/input/ha-input";
 import type { Tag, UpdateTagParams } from "../../../data/tag";
@@ -52,6 +58,11 @@ class DialogTagDetail
 
   @state() private _qrReady = false;
 
+  /** What the scan button is doing: listening, or what it heard. */
+  @state() private _scan?: "listening" | "read" | "known" | "denied" | "failed";
+
+  private _nfc?: NfcListener;
+
   public showDialog(params: TagDetailDialogParams): void {
     this._params = params;
     this._error = undefined;
@@ -80,8 +91,96 @@ class DialogTagDetail
   }
 
   public closeDialog(): boolean {
+    this._stopScan();
     this._open = false;
     return true;
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._stopScan();
+  }
+
+  private _stopScan(): void {
+    this._nfc?.stop();
+    this._nfc = undefined;
+    if (this._scan === "listening") {
+      this._scan = undefined;
+    }
+  }
+
+  private _toggleScan(): void {
+    if (this._nfc) {
+      this._stopScan();
+      return;
+    }
+    this._scan = "listening";
+    this._nfc = listenForNfcTag(
+      (identity) => this._tagHeard(identity),
+      (reason) => {
+        // The app route keeps listening when it can; say so only if it cannot.
+        if (this._nfc?.status !== "both" || !this.hass?.connection) {
+          this._stopScan();
+        }
+        this._scan = reason;
+      }
+    );
+    if (this._nfc.status === "none") {
+      this._stopScan();
+      this._scan = "failed";
+    }
+  }
+
+  private _tagHeard(identity: string): void {
+    const separator = identity.indexOf(":");
+    const source = identity.slice(0, separator);
+    const value = identity.slice(separator + 1);
+    this._stopScan();
+    if (source === "tag") {
+      // A scan with the app: Home Assistant has added this tag by itself.
+      this._scan = "known";
+      return;
+    }
+    this._useCustomId = true;
+    this._id = value;
+    this._error = undefined;
+    this._scan = "read";
+    this._updateDirtyState(this._currentState());
+  }
+
+  private _renderScan() {
+    const here = webNfcAvailable();
+    const text =
+      this._scan === "listening"
+        ? here
+          ? "scan_listening_here"
+          : "scan_listening_app"
+        : this._scan === "read"
+          ? "scan_read"
+          : this._scan === "known"
+            ? "scan_known"
+            : this._scan === "denied"
+              ? "scan_denied"
+              : this._scan === "failed"
+                ? "scan_failed"
+                : here
+                  ? "scan_hint_here"
+                  : "scan_hint_app";
+    return html`
+      <div class="scan">
+        <ha-button appearance="filled" @click=${this._toggleScan}>
+          <ha-svg-icon slot="start" .path=${mdiNfc}></ha-svg-icon>
+          ${this.hass!.localize(
+            this._nfc
+              ? "ui.panel.config.tag.detail.scan_stop"
+              : "ui.panel.config.tag.detail.scan"
+          )}
+        </ha-button>
+        <p class="scan-text" role="status">
+          ${this.hass!.localize(`ui.panel.config.tag.detail.${text}`)}
+        </p>
+      </div>
+    `;
   }
 
   private _dialogClosed() {
@@ -128,6 +227,7 @@ class DialogTagDetail
               this._params.entry
                 ? nothing
                 : html`
+                    ${this._renderScan()}
                     <ha-expansion-panel
                       outlined
                       .header=${this.hass!.localize(
@@ -352,6 +452,22 @@ class DialogTagDetail
         ha-alert {
           display: block;
           margin-top: var(--ha-space-2);
+        }
+        .scan {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-3);
+          flex-wrap: wrap;
+          margin: var(--ha-space-3) 0;
+          padding: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(--ha-color-surface-tone-1);
+        }
+        .scan-text {
+          flex: 1;
+          min-width: 180px;
+          margin: 0;
+          color: var(--secondary-text-color);
         }
         .tag-id {
           display: flex;

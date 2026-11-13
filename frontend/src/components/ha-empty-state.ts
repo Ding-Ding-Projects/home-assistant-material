@@ -22,7 +22,16 @@ export class HaEmptyState extends LitElement {
       <div class="content">
         ${
           this.icon
-            ? html`<ha-svg-icon .path=${this.icon}></ha-svg-icon>`
+            ? html`<span
+                class=${
+                  document.documentElement.hasAttribute(
+                    "data-a11y-reduce-motion"
+                  )
+                    ? "tile"
+                    : "tile float"
+                }
+                ><ha-svg-icon .path=${this.icon}></ha-svg-icon
+              ></span>`
             : nothing
         }
         ${this.heading ? html`<h2>${this.heading}</h2>` : nothing}
@@ -53,9 +62,46 @@ export class HaEmptyState extends LitElement {
       text-align: center;
     }
 
+    .tile {
+      display: grid;
+      place-items: center;
+      width: 88px;
+      height: 88px;
+      border-radius: var(--ha-border-radius-3xl);
+      background: linear-gradient(
+        135deg,
+        color-mix(
+          in srgb,
+          var(--primary-color) 16%,
+          var(--card-background-color)
+        ),
+        color-mix(
+          in srgb,
+          var(--accent-color, var(--primary-color)) 12%,
+          var(--card-background-color)
+        )
+      );
+    }
+
     ha-svg-icon {
-      --mdc-icon-size: var(--ha-empty-state-icon-size, 64px);
-      color: var(--secondary-text-color);
+      --mdc-icon-size: var(--ha-empty-state-icon-size, 40px);
+      color: var(--primary-color);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .tile.float {
+        animation: ha-empty-float 4s ease-in-out infinite;
+      }
+    }
+
+    @keyframes ha-empty-float {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
     }
 
     h2 {

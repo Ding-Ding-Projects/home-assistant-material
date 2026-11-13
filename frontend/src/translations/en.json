@@ -2122,7 +2122,13 @@
         "continue": "Continue",
         "back": "Back",
         "name_label": "Name",
-        "type_name": "Type {name} to confirm"
+        "type_name": "Type {name} to confirm",
+        "phone_word": "DELETE",
+        "phone_type": "Type {word}",
+        "phone_hold": "Hold to confirm",
+        "phone_holding": "Keep holding…",
+        "phone_locked": "Type the word first",
+        "phone_note": "Nothing happens until you type the word and then hold the button until it fills. Let go early and it starts over."
       },
       "vacuum_segment_mapping": {
         "title": "Map vacuum segments to areas",
@@ -2757,6 +2763,7 @@
           "entity_id": "Entity ID",
           "copy_entity_id": "Copy entity ID",
           "restore_entity_id": "Restore entity ID",
+          "entity_id_in_use": "{count, plural, one {# automation, script, scene or group uses} other {# automations, scripts, scenes or groups use}} this entity ID and may need updating after the change.",
           "unit_of_measurement": "Unit of measurement",
           "precipitation_unit": "Precipitation unit",
           "precision": "Display precision",
@@ -3347,6 +3354,7 @@
       },
       "shortcuts": {
         "title": "Shortcuts",
+        "done": "Done",
         "enable_shortcuts_hint": "For keyboard shortcuts to work, make sure you have them enabled in your {user_profile}.",
         "enable_shortcuts_hint_user_profile": "user profile",
         "keys": {
@@ -3772,6 +3780,7 @@
         "literal_label": "Exact text",
         "literal_add": "Add as exact text",
         "reads_as": "Reads as",
+        "matches_title": "Matches",
         "reads_empty": "The explanation appears here as you build.",
         "group": {
           "characters": "Characters",
@@ -4264,6 +4273,11 @@
     },
     "appearance_editor": {
       "title": "Edit appearance",
+      "tabs_label": "Groups of settings",
+      "tab_type": "Type",
+      "tab_fills": "Fills",
+      "tab_colour": "Colour",
+      "tab_shape": "Shape",
       "undo": "Undo",
       "close": "Close",
       "saved_note": "{count, plural,\n  =0 {Nothing is changed yet.}\n  one {# change is saved in this browser and on this instance for your account.}\n  other {# changes are saved in this browser and on this instance for your account.}\n} The instance copy is included in its backups, up to about 0.75 MB. Changes apply as you make them.",
@@ -4458,6 +4472,8 @@
       "group_pages": "Pages",
       "group_settings": "Settings",
       "group_tools": "Tools",
+      "kind_all": "All",
+      "kind_filter_label": "Show",
       "no_match": "No page matches that search.",
       "bulk_close_matching": "{count, plural,\n  =0 {Close matching tabs}\n  one {Close # matching tab}\n  other {Close # matching tabs}\n}",
       "bulk_close_others": "{count, plural,\n  =0 {Close the other tabs}\n  one {Close # other tab}\n  other {Close the # other tabs}\n}",
@@ -5234,6 +5250,8 @@
     },
     "accessibility_tools": {
       "title": "Accessibility tools",
+      "state_on": "On",
+      "state_off": "Off",
       "no_device_voice": "This device has no on-device voice for this language, so nothing was read. Reading never uses an online voice.",
       "text_size": "Text size",
       "text_smaller": "Smaller text",
@@ -6888,6 +6906,10 @@
           "summary": "Scan a sticker or card with your phone to run an automation.",
           "scanned_by": "by {device}",
           "edit": "Edit tag",
+          "count": "{count, plural, =0 {No tags} one {# tag} other {# tags}}",
+          "search": "Search tags",
+          "show_list": "Show as list",
+          "show_cards": "Show as cards",
           "waiting_title": "Waiting for a scan",
           "waiting_text": "Hold a new tag to the back of a phone that has the app. It appears here, ready to name.",
           "learn_more": "Learn more about tags",
@@ -6922,6 +6944,16 @@
           },
           "detail": {
             "new_tag": "New tag",
+            "scan": "Scan a tag",
+            "scan_stop": "Stop scanning",
+            "scan_hint_here": "Hold a tag to the back of this phone to read its ID.",
+            "scan_hint_app": "This browser has no tag reader (it needs Chrome on Android and a secure address). Scan the tag with the Home Assistant app while this is listening.",
+            "scan_listening_here": "Listening. Hold the tag to the back of this phone, or scan it with the Home Assistant app.",
+            "scan_listening_app": "Listening. Scan the tag with the Home Assistant app now.",
+            "scan_read": "Tag read. Its ID is filled in below; give it a name and create it.",
+            "scan_known": "Home Assistant heard that scan and added the tag by itself. Close this and name it in the list.",
+            "scan_denied": "The browser did not allow the tag reader. Allow it in the browser's site settings, or scan with the Home Assistant app.",
+            "scan_failed": "The tag reader could not start here.",
             "tag_details": "Tag details",
             "name": "Name",
             "description": "Description",
@@ -8650,6 +8682,11 @@
               "edit_dashboard": "Edit dashboard",
               "new_dashboard": "Add new dashboard",
               "show_sidebar": "Add to sidebar",
+              "visibility": {
+                "conditions_title": "Show only when",
+                "conditions_text": "Add conditions on an entity's state, a number, the time, the screen and more. All of them must hold; use the And, Or and Not groups to combine several. While they do not hold, the dashboard leaves the sidebar and the navigation. This only tidies navigation and does not restrict access: the dashboard still opens from its address, and the default dashboard and the one you are using are never removed.",
+                "hidden_now": "Hidden right now"
+              },
               "icon": "Icon",
               "title": "Title",
               "title_required": "Title is required.",
@@ -9932,8 +9969,8 @@
                 "copied": "Copied",
                 "empty": "Add a trigger or an action to read it back.",
                 "patterns": "Only these sentences are understood. Everything is worked out on this device.",
-                "pattern_state": "When <entity> turns on, turn off <entity>",
-                "pattern_time": "At 07:30 turn on <entity>",
+                "pattern_state": "When [entity] turns on, turn off [entity]",
+                "pattern_time": "At 07:30 turn on [entity]",
                 "sentence_label": "In your words",
                 "draft": "Draft it",
                 "unknown_entity": "No entity matches \"{text}\". Use an entity id or its exact name.",
@@ -12456,6 +12493,9 @@
           "caption": "Integrations",
           "summary": "The connections between Home Assistant and your devices and services.",
           "found_on_network": "Found on your network",
+          "discovered_label": "Discovered",
+          "discovered_title": "{count, plural, one {# new device was found} other {# new devices were found}}",
+          "discovered_review": "Review",
           "filter_attention": "Needs attention",
           "search_brands_count": "Search {count} brands",
           "description": "Manage integrations with services or devices",
@@ -16199,7 +16239,8 @@
           },
           "climate": {
             "devices": "Devices",
-            "other_devices": "Other devices"
+            "other_devices": "Other devices",
+            "summary": "{count, plural,\n  one {# thermostat}\n  other {# thermostats}\n}"
           },
           "maintenance": {
             "devices": "Devices",
@@ -16261,6 +16302,9 @@
             "not_locked": "{count, plural,\n  one {# door is not locked}\n  other {# doors are not locked}\n}",
             "doors": "{count, plural,\n  one {# lock}\n  other {# locks}\n}",
             "lock_all": "Lock all",
+            "needs_you": "Needs you",
+            "updates_waiting": "{count, plural,\n  one {# update is waiting}\n  other {# updates are waiting}\n}",
+            "review_updates": "Review updates",
             "pause": "Pause",
             "play": "Play",
             "next": "Next"
@@ -16283,12 +16327,17 @@
           },
           "lights_summary": {
             "title": "Lights",
+            "of_on": "{on} of {total} on",
             "are_on": "{count, plural,\n  one {# is on}\n  other {# are on}\n}",
             "all_off": "All off",
             "out_of": "Out of {total}, in {rooms, plural,\n  one {# room}\n  other {# rooms}\n}.",
             "out_of_no_rooms": "Out of {total}.",
             "turn_all_off": "Turn all off",
             "turn_all_on": "Turn all on"
+          },
+          "security_locks": {
+            "title": "Locks",
+            "lock": "Lock"
           },
           "security_alarm": {
             "all_locked": "Every door is locked.",
@@ -16466,6 +16515,11 @@
               "solar": "Solar",
               "battery": "Battery",
               "usage": "Consumption"
+            },
+            "energy_totals": {
+              "used": "Used",
+              "solar": "Solar",
+              "returned": "Returned"
             },
             "energy_compare": {
               "info": "You are comparing the period {start} with the period {end}",
@@ -16733,7 +16787,9 @@
             "tab_background": "Background",
             "tab_visibility": "Visibility",
             "visibility": {
-              "select_users": "Select which users should see this view in the navigation"
+              "select_users": "Select which users should see this view in the navigation",
+              "conditions_title": "Show only when",
+              "conditions_text": "Add conditions on an entity's state, a number, the time, the screen and more. All of them must hold; use the And, Or and Not groups to combine several. While they do not hold, the view leaves the navigation (it still shows while editing)."
             },
             "type": "Layout",
             "convert_view": "Convert",
@@ -18994,6 +19050,7 @@
         "localization_detail": "These settings are tied to your account and control how dates, times, and numbers are displayed.",
         "mobile_app_settings": "This mobile app",
         "browser_settings": "This browser",
+        "appearance_header": "Appearance",
         "browser_description": "Notifications, display, and shortcuts",
         "security_description": "Password, multi-factor authentication, and access tokens",
         "client_settings_detail": "The following settings are local to this client only, and may reset to defaults on logout or when local data is cleared.",
@@ -19477,6 +19534,8 @@
         "help": "Help",
         "load_error": "Something went wrong loading onboarding, try refreshing",
         "refresh": "Refresh",
+        "sign_in_error": "Something went wrong while signing you in. The page will reload.",
+        "finish_error": "Unable to finish onboarding: {error}",
         "step_of": "Step {current} of {total}",
         "steps_label": "Setup steps",
         "steps_state": {
