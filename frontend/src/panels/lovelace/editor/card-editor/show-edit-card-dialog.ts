@@ -5,7 +5,12 @@ import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
 
 export interface EditCardDialogParams {
   lovelaceConfig: LovelaceConfig;
-  saveCardConfig: (config: LovelaceCardConfig) => void;
+  saveCardConfig: (
+    config: LovelaceCardConfig,
+    guarded?: boolean
+  ) => void | Promise<void>;
+  /** Only existing cards with a stable dashboard/path are eligible for drafts. */
+  draftScope?: { urlPath: string | null; path: readonly (string | number)[] };
   cardConfig: LovelaceCardConfig;
   sectionConfig?: LovelaceSectionConfig;
   isNew?: boolean;

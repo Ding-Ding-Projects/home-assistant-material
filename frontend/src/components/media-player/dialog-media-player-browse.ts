@@ -7,6 +7,7 @@ import {
   mdiStarOutline,
   mdiDelete,
 } from "@mdi/js";
+import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, query, state } from "lit/decorators";
@@ -32,7 +33,10 @@ import type {
 import "../ha-bottom-sheet";
 import "../ha-alert";
 import { showToast } from "../../util/toast";
-import { consumeLocalize } from "../../common/decorators/consume-context-entry";
+import {
+  consumeEntityState,
+  consumeLocalize,
+} from "../../common/decorators/consume-context-entry";
 import type {
   HASSDomCurrentTargetEvent,
   HASSDomEvent,
@@ -72,6 +76,10 @@ class DialogMediaPlayerBrowse extends LitElement {
   @state() @consumeLocalize() private _localize!: LocalizeFunc;
 
   @state() private _currentItem?: MediaPlayerItem;
+
+  @state()
+  @consumeEntityState({ entityIdPath: ["_params", "entityId"] })
+  private _destination?: HassEntity;
 
   @state() private _navigateIds?: MediaPlayerItemId[];
 
@@ -226,6 +234,22 @@ class DialogMediaPlayerBrowse extends LitElement {
             data-dialog="close"
             slot="actionItems"
           ></ha-icon-button>
+          <p class="media-mode">
+            ${
+              this._action === "pick"
+                ? this._localize("ui.components.media-browser.selection_mode")
+                : this._localize("ui.components.media-browser.playback_mode", {
+                    player:
+                      this._destination?.attributes.friendly_name ||
+                      (this._params.entityId &&
+                      this._params.entityId !== "browser"
+                        ? this._params.entityId
+                        : this._localize(
+                            "ui.components.media-browser.web-browser"
+                          )),
+                  })
+            }
+          </p>
         </ha-dialog-header>
         <nav
           class="browse-path"
@@ -523,6 +547,15 @@ class DialogMediaPlayerBrowse extends LitElement {
           --dialog-content-padding: 0;
         }
 
+        .media-mode {
+          margin: 0;
+          padding: var(--ha-space-2) var(--ha-space-4);
+          border-top: 1px solid var(--divider-color);
+          color: var(--primary-text-color);
+          background: var(--secondary-background-color);
+          font-size: var(--ha-font-size-s);
+          overflow-wrap: anywhere;
+        }
         .shortcuts {
           padding: var(--ha-space-4);
           max-height: 70vh;
@@ -550,14 +583,14 @@ class DialogMediaPlayerBrowse extends LitElement {
         }
         ha-media-player-browse {
           --media-browser-max-height: calc(
-            100vh - 109px - var(--safe-area-inset-y)
+            100vh - 157px - var(--safe-area-inset-y)
           );
           height: 100vh;
           height: 100dvh;
         }
 
         :host(.opened) ha-media-player-browse {
-          height: calc(100vh - 109px - var(--safe-area-inset-y));
+          height: calc(100vh - 157px - var(--safe-area-inset-y));
         }
 
         @media (min-width: 800px) {
@@ -570,7 +603,7 @@ class DialogMediaPlayerBrowse extends LitElement {
           ha-media-player-browse {
             position: initial;
             --media-browser-max-height: calc(
-              100vh - 189px - var(--safe-area-inset-y)
+              100vh - 237px - var(--safe-area-inset-y)
             );
           }
         }

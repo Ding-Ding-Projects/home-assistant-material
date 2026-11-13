@@ -56,3 +56,22 @@ ESLint and Prettier checks passed; dialog Lit analysis reported no problems. Ful
 is blocked by missing generated gallery/icon/translation metadata. Browser and screen-reader
 interaction checks remain unverified, including narrow-screen star placement and sheet
 focus restoration.
+
+## Selection intent and selected-media details
+
+Media dialogs now keep a mode notice visible above the browser: selection-only dialogs
+explicitly say that choosing media does not start playback; play dialogs name the playback
+destination (the player's current friendly name, its entity ID, or Web browser). This is
+informational: existing callbacks, browse capabilities, and playback behavior are unchanged.
+
+The shared media selector has a collapsed Media details section for an existing selection,
+including read-only copy controls for the exact media content ID and type. It is outside the
+clickable media card, so inspecting or copying does not reopen the browser, change the
+selection, or play media. The original values remain unchanged, including provider-specific
+IDs and types. Details are available for manually entered selections as well as browsed ones.
+No ID is copied until the person presses Copy; no extra media resolution request is made.
+
+Verification: focused ESLint and formatting checks passed. Existing media/navigation/data
+regression suites remain the relevant automated coverage; this slice adds presentation only,
+so no rendering-only tests were added. Browser checks of expanded details, clipboard behavior,
+small-screen header layout, and screen-reader labeling remain outstanding.

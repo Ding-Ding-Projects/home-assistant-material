@@ -14,6 +14,7 @@ import { computeRTLDirection } from "../../../../common/util/compute_rtl";
 import { stripDefaults } from "../../../../common/util/strip-defaults";
 import { withViewTransition } from "../../../../common/util/view-transition";
 import "../../../../components/ha-button";
+import "../../../../components/ha-alert";
 import "../../../../components/ha-dialog";
 import "../../../../components/ha-dialog-footer";
 import "../../../../components/ha-icon-button";
@@ -34,6 +35,7 @@ import {
   haStyleScrollbar,
 } from "../../../../resources/styles";
 import type { HomeAssistant } from "../../../../types";
+import { fileDownload } from "../../../../util/file_download";
 import { showToast } from "../../../../util/toast";
 import { showSaveSuccessToast } from "../../../../util/toast-saved-success";
 import "../../cards/hui-card";
@@ -46,6 +48,13 @@ import type { GUIModeChangedEvent } from "../types";
 import "./hui-card-element-editor";
 import type { HuiCardElementEditor } from "./hui-card-element-editor";
 import type { EditCardDialogParams } from "./show-edit-card-dialog";
+import type { CardDraft, CardDraftScope } from "./card-drafts";
+import {
+  canRecoverCardDraft,
+  readCardDraft,
+  writeCardDraft,
+  clearEditorCardDraft,
+} from "./card-drafts";
 import { KeyboardShortcutMixin } from "../../../../mixins/keyboard-shortcut-mixin";
 
 declare global {
@@ -80,6 +89,16 @@ export class HuiDialogEditCard
 
   @state() private _saving = false;
 
+  @state() private _pendingDraft?: CardDraft;
+
+  @state() private _draftFailed = false;
+
+  private _draftScope?: CardDraftScope;
+
+  private _writtenDraft?: CardDraft;
+
+  private _recoveredDraft = false;
+
   @state() private _error?: string;
 
   @state() private _guiModeAvailable? = true;
@@ -93,6 +112,16 @@ export class HuiDialogEditCard
 
   public async showDialog(params: EditCardDialogParams): Promise<void> {
     this._params = params;
+    this._draftScope =
+      params.draftScope && this.hass.user?.id && !params.isNew
+        ? { ...structuredClone(params.draftScope), userId: this.hass.user.id }
+        : undefined;
+    this._pendingDraft = this._draftScope
+      ? readCardDraft(this._draftScope)
+      : undefined;
+    this._writtenDraft = undefined;
+    this._recoveredDraft = false;
+    this._draftFailed = false;
     this._GUImode = true;
     this._guiModeAvailable = true;
     this._open = true;
@@ -235,6 +264,28 @@ export class HuiDialogEditCard
               `
             : nothing
         }
+        ${
+          this._pendingDraft && this._draftScope?.userId === this.hass.user?.id
+            ? html`
+                <ha-alert alert-type="info">
+                  ${this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_found")}
+                  ${!canRecoverCardDraft(this._pendingDraft, this._params.cardConfig) ? html`<p>${this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_changed")}</p>` : nothing}
+                  <ha-button
+                    .disabled=${!canRecoverCardDraft(this._pendingDraft, this._params.cardConfig)}
+                    @click=${this._recoverDraft}
+                    >${this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_recover")}</ha-button
+                  >
+                  <ha-button appearance="plain" @click=${this._downloadDraft}
+                    >${this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_download")}</ha-button
+                  >
+                  <ha-button appearance="plain" @click=${this._discardDraft}
+                    >${this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_discard")}</ha-button
+                  >
+                </ha-alert>
+              `
+            : nothing
+        }
+        ${this._draftFailed ? html`<ha-alert alert-type="warning">${this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_failed")}</ha-alert>` : nothing}
         <div class="content">
           <div class="element-editor ha-scrollbar">
             <hui-card-element-editor
@@ -338,6 +389,108 @@ export class HuiDialogEditCard
     this._error = ev.detail.error;
     this._guiModeAvailable = ev.detail.guiModeAvailable;
     this._updateDirtyState(config);
+    this._persistDraft();
+  }
+
+  private _persistDraft() {
+    if (
+      !this._draftScope ||
+      this._draftScope.userId !== this.hass.user?.id ||
+      this._pendingDraft ||
+      !this._cardConfig ||
+      !this._params
+    ) {
+      return;
+    }
+    if (!this.isDirtyState) {
+      this._clearDraft();
+      this._draftFailed = false;
+      return;
+    }
+    const draft = writeCardDraft(
+      this._draftScope,
+      this._params.cardConfig,
+      this._cardConfig
+    );
+    this._draftFailed = !draft;
+    if (draft) this._writtenDraft = draft;
+  }
+
+  private async _recoverDraft() {
+    if (
+      !this._pendingDraft ||
+      !this._params ||
+      this._draftScope?.userId !== this.hass.user?.id ||
+      !canRecoverCardDraft(this._pendingDraft, this._params.cardConfig)
+    ) {
+      return;
+    }
+    const draft = this._pendingDraft;
+    const current = this._cardConfig;
+    if (
+      this.isDirtyState &&
+      !(await showConfirmationDialog(this, {
+        title: this.hass.localize(
+          "ui.panel.lovelace.editor.edit_card.draft_recover"
+        ),
+        text: this.hass.localize(
+          "ui.panel.lovelace.editor.edit_card.draft_replace_changes"
+        ),
+        confirmText: this.hass.localize(
+          "ui.panel.lovelace.editor.edit_card.draft_recover"
+        ),
+        dismissText: this.hass.localize("ui.common.cancel"),
+      }))
+    ) {
+      return;
+    }
+    if (
+      !this._open ||
+      this._pendingDraft !== draft ||
+      this._cardConfig !== current ||
+      this._draftScope?.userId !== this.hass.user?.id
+    ) {
+      return;
+    }
+    const config = structuredClone(draft.config);
+    deepFreeze(config);
+    this._cardConfig = config;
+    this._writtenDraft = draft;
+    this._pendingDraft = undefined;
+    this._recoveredDraft = true;
+    this._updateDirtyState(config);
+  }
+
+  private _downloadDraft() {
+    if (
+      !this._pendingDraft ||
+      this._draftScope?.userId !== this.hass.user?.id
+    ) {
+      return;
+    }
+    const blob = new Blob(
+      [JSON.stringify(this._pendingDraft.config, null, 2)],
+      { type: "application/json" }
+    );
+    fileDownload(URL.createObjectURL(blob), "dashboard-card-draft.json");
+  }
+
+  private _clearDraft(discardPending = false) {
+    if (this._draftScope && this._draftScope.userId === this.hass.user?.id) {
+      clearEditorCardDraft(
+        this._draftScope,
+        this._writtenDraft,
+        this._pendingDraft,
+        discardPending
+      );
+    }
+    this._pendingDraft = undefined;
+    this._writtenDraft = undefined;
+  }
+
+  private _discardDraft() {
+    this._clearDraft(true);
+    if (this.isDirtyState) this._persistDraft();
   }
 
   private _handleGUIModeChanged(ev: HASSDomEvent<GUIModeChangedEvent>): void {
@@ -407,6 +560,7 @@ export class HuiDialogEditCard
     if (ev) {
       ev.stopPropagation();
     }
+    this._clearDraft();
     this._discardDirtyStateChanges();
     this.closeDialog();
   }
@@ -416,12 +570,25 @@ export class HuiDialogEditCard
       return;
     }
     if (!this.isDirtyState) {
+      this._clearDraft();
       this.closeDialog();
       return;
     }
     this._saving = true;
     try {
-      await this._params!.saveCardConfig(this._cardConfig!);
+      if (
+        this._recoveredDraft &&
+        this._draftScope?.userId !== this.hass.user?.id
+      ) {
+        throw new Error(
+          this.hass.localize("ui.panel.lovelace.editor.edit_card.draft_changed")
+        );
+      }
+      await this._params!.saveCardConfig(
+        this._cardConfig!,
+        this._recoveredDraft
+      );
+      this._clearDraft();
       this._saving = false;
       this._markDirtyStateClean();
       showSaveSuccessToast(this, this.hass);

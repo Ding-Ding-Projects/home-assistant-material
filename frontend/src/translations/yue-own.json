@@ -2265,7 +2265,17 @@
         "discard": "放棄更改",
         "save_failed": "儲存唔到：{message}"
       },
+      "selectors": {
+        "media": {
+          "details": "媒體詳情",
+          "copy_id": "複製媒體 ID",
+          "copy_type": "複製媒體類型",
+          "details_note": "呢啲係原本揀選嘅值。複製唔會更改選擇或開始播放。"
+        }
+      },
       "media-browser": {
+        "selection_mode": "只揀媒體：喺呢度揀媒體唔會開始播放。",
+        "playback_mode": "播放模式：媒體會喺 {player} 播放。",
         "shortcuts": {
           "title": "最愛同最近揀過嘅媒體",
           "favorites": "最愛",

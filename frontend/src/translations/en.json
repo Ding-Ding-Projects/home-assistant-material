@@ -922,6 +922,10 @@
           }
         },
         "media": {
+          "details": "Media details",
+          "copy_id": "Copy media ID",
+          "copy_type": "Copy media type",
+          "details_note": "These are the original selected values. Copying them does not change the selection or start playback.",
           "pick_media_player": "Select media player",
           "browse_not_supported": "Media player does not support browsing media.",
           "pick_media": "Pick media",
@@ -1956,6 +1960,8 @@
         "volume": "Volume"
       },
       "media-browser": {
+        "selection_mode": "Selection only: choosing media here does not start playback.",
+        "playback_mode": "Play mode: playback goes to {player}.",
         "shortcuts": {
           "title": "Favorites and recent selections",
           "favorites": "Favorites",
@@ -18261,6 +18267,13 @@
             }
           },
           "edit_card": {
+            "draft_found": "An unsaved card draft is available on this browser. Recover it into the editor, then review and save it explicitly. Drafts do not change your dashboard automatically.",
+            "draft_recover": "Recover draft",
+            "draft_download": "Download draft",
+            "draft_replace_changes": "Replace the unsaved changes currently in this editor with the saved draft? Nothing will be saved to the dashboard yet.",
+            "draft_discard": "Discard saved draft",
+            "draft_failed": "This browser could not retain the latest draft. Keep the editor open or save your changes before leaving.",
+            "draft_changed": "The original card or account changed. Reopen the editor and review the current card before recovering this draft.",
             "header": "Card configuration",
             "typed_header": "{type} card configuration",
             "pick_card": "Add to dashboard",
