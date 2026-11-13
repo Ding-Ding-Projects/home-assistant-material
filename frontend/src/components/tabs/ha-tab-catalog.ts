@@ -81,6 +81,7 @@ export class TabCatalogController {
         title=${t("ui.page_tabs.new_tab")}
       >
         <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+        <span class="new-tab-label">${t("ui.page_tabs.new_tab")}</span>
       </button>
       <div
         id="catalog"

@@ -1,18 +1,11 @@
 import type { HassEntity } from "home-assistant-js-websocket";
 import { css, html, nothing, type CSSResultGroup } from "lit";
-import { customElement, property, state } from "lit/decorators";
-import { consume } from "../../../common/decorators/consume";
-import { fireEvent } from "../../../common/dom/fire_event";
-import "../../../components/editor/ha-editor-save-bar";
+import { customElement, property } from "lit/decorators";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-markdown";
 import type { BlueprintAutomationConfig } from "../../../data/automation";
 import { fetchBlueprints } from "../../../data/blueprint";
-import {
-  dirtyStateContext,
-  type DirtyStateContext,
-} from "../../../data/context/dirty-state";
 import { HaBlueprintGenericEditor } from "../blueprint/blueprint-generic-editor";
 
 @customElement("blueprint-automation-editor")
@@ -22,10 +15,6 @@ export class HaBlueprintAutomationEditor extends HaBlueprintGenericEditor {
   @property({ attribute: false }) public stateObj?: HassEntity;
 
   @property({ type: Boolean }) public saving = false;
-
-  @consume({ context: dirtyStateContext, subscribe: true })
-  @state()
-  private _dirtyState?: DirtyStateContext;
 
   protected get _config(): BlueprintAutomationConfig {
     return this.config;
@@ -65,20 +54,7 @@ export class HaBlueprintAutomationEditor extends HaBlueprintGenericEditor {
           : nothing
       }
       ${this.renderCard()}
-
-      <ha-editor-save-bar
-        .hass=${this.hass}
-        .dirty=${!this.disabled && (this._dirtyState?.isDirty ?? false)}
-        .saving=${this.saving}
-        .disabled=${this.disabled}
-        show-shortcut
-        @save-bar-save=${this._saveAutomation}
-      ></ha-editor-save-bar>
     `;
-  }
-
-  private _saveAutomation() {
-    fireEvent(this, "save-automation");
   }
 
   protected async _getBlueprints() {

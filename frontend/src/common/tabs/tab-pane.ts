@@ -1,25 +1,47 @@
 import { getStorage } from "../decorators/storage";
-import { isVerticalDock, normalizeCollapse, withCollapsed } from "./tab-dock";
+import { isVerticalDock } from "./tab-dock";
 import type { DockEdge } from "./tab-dock";
-import { cleanSurface } from "./tab-validate";
+import { cleanSurface, surfaceEntries } from "./tab-validate";
 
 /**
  * The navigation pane: the tab strip that also carries what the side rail
  * carries (settings, developer tools, notifications and the person), so the
- * rail can be hidden. It is a choice, off until chosen, stored per strip.
+ * rail can be hidden. It is on until the person turns it off, stored per
+ * strip. Both answers are kept, so "never chosen" (on) can be told from
+ * "chosen off".
  */
 
 export const MERGE_STORAGE_KEY = "pageTabsMerged";
 
-/** Stored shape: the strips that are merged with the rail. Others are not kept. */
-export const normalizeMerged = normalizeCollapse;
+/** The pane is merged with the rail when the person never chose. */
+export const DEFAULT_MERGED = true;
 
-export const withMerged = withCollapsed;
+/** Stored shape: strip name to the choice made for it. Unchosen strips are absent. */
+export type MergeStore = Record<string, boolean>;
+
+export const normalizeMerged = (raw: unknown): MergeStore => {
+  const store: MergeStore = {};
+  surfaceEntries(raw).forEach(([surface, value]) => {
+    if (typeof value === "boolean") {
+      store[surface] = value;
+    }
+  });
+  return store;
+};
+
+/** The store after choosing on or off for a strip. Both choices are kept. */
+export const withMerged = (
+  store: MergeStore,
+  surface: string | undefined,
+  merged: boolean
+): MergeStore => ({ ...store, [cleanSurface(surface)]: merged });
+
+/** Whether a strip is merged; on unless the person chose off. */
+export const mergedFor = (store: MergeStore, surface?: string): boolean =>
+  store[cleanSurface(surface)] ?? DEFAULT_MERGED;
 
 export const readMerged = (surface?: string): boolean =>
-  normalizeMerged(getStorage().getValue(MERGE_STORAGE_KEY))[
-    cleanSurface(surface)
-  ] === true;
+  mergedFor(normalizeMerged(getStorage().getValue(MERGE_STORAGE_KEY)), surface);
 
 export const writeMerged = (
   surface: string | undefined,
@@ -42,6 +64,10 @@ export interface PaneLayout {
   searchAtTop: boolean;
   /** "Pages" and "System" headings over the two groups of the pane. */
   sectionLabels: boolean;
+  /** The brand tile and the instance name lead the pane. */
+  brand: boolean;
+  /** Assist and the sidebar editor, which the rail carried, are in the pane. */
+  railTools: boolean;
   /** Settings, developer tools and notifications are in the pane. */
   systemEntries: boolean;
   /** The system entries show their names, not only their icons. */
@@ -63,6 +89,8 @@ export const paneLayout = (options: {
     searchField: !vertical || wide,
     searchAtTop: wide,
     sectionLabels: wide,
+    brand: wide,
+    railTools: options.merged,
     systemEntries: options.merged,
     systemNames: wide,
     profileName: wide,

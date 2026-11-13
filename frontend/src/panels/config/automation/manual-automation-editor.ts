@@ -86,6 +86,9 @@ const automationConfigStruct = union([
 export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomationConfig>(
   LitElement
 ) {
+  /** The editor page floats one bar with Save, so this editor has none. */
+  protected override renderSaveBar = false;
+
   @property({ attribute: false }) public stateObj?: HassEntity;
 
   @queryAll("ha-automation-action, ha-automation-condition")

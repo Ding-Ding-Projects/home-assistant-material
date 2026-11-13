@@ -13,6 +13,7 @@ import {
 import type { DockEdge } from "../../common/tabs/tab-dock";
 import {
   COLLAPSE_STORAGE_KEY,
+  DEFAULT_DOCK_EDGE,
   DOCK_STORAGE_KEY,
   FLOAT_STORAGE_KEY,
   readDock,
@@ -71,12 +72,24 @@ const KEYS = [
   LOCKS_STORAGE_KEY,
 ] as const;
 
-/** Whether the saved tab state of an earlier version is already in this browser. */
+/**
+ * Whether the saved tab state of an earlier version is already in this
+ * browser. An empty list is no evidence: a first run writes empty lists
+ * itself, and the settings sync can bring them from the instance before the
+ * strip has offered a tab. Only a list holding tabs (closed, ordered or
+ * pinned by a person) or a memory of offered tabs shows an earlier version.
+ */
 const legacyStatePresent = (): boolean => {
   const storage = getStorage();
-  return [...LEGACY_KEYS, SEEN_TABS_STORAGE_KEY].some(
-    (key) => storage.getValue(key) !== undefined
-  );
+  return [...LEGACY_KEYS, SEEN_TABS_STORAGE_KEY].some((key) => {
+    const value = storage.getValue<unknown>(key);
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    return (
+      !!value && typeof value === "object" && Object.keys(value).length > 0
+    );
+  });
 };
 
 /**
@@ -85,8 +98,31 @@ const legacyStatePresent = (): boolean => {
  * installation uses the default (left). Safe to call again: it acts only
  * while the strip remembers no offered tab and no edge was chosen.
  */
+/** Marks that this browser has moved to the side pane as the default. */
+export const DOCK_RESET_STORAGE_KEY = "pageTabsDockSidePane";
+
+/**
+ * Earlier builds wrote "top" for every existing installation without anyone
+ * choosing it, and a chosen "top" is stored the same way. The side pane is
+ * now the default, so once per browser a stored "top" goes back to the
+ * default (left). Choosing the top edge again afterwards is kept.
+ */
+export const resetAutomaticTopDock = (surface = MAIN_SURFACE): void => {
+  const storage = getStorage();
+  storage.addFromStorage(DOCK_RESET_STORAGE_KEY);
+  if (storage.getValue(DOCK_RESET_STORAGE_KEY) === true) {
+    return;
+  }
+  storage.setValue(DOCK_RESET_STORAGE_KEY, true);
+  const stored = storage.getValue<Record<string, unknown>>(DOCK_STORAGE_KEY);
+  if (stored && stored[surface] === "top") {
+    writeDock(surface, DEFAULT_DOCK_EDGE);
+  }
+};
+
 export const ensureInitialDock = (surface = MAIN_SURFACE): void => {
   const storage = getStorage();
+  resetAutomaticTopDock(surface);
   const stored = storage.getValue<Record<string, unknown>>(DOCK_STORAGE_KEY);
   const decision = initialDockDecision({
     legacyPresent: legacyStatePresent(),

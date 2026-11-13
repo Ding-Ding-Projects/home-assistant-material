@@ -489,7 +489,9 @@ export class HomeAssistantMain extends LitElement {
        every page already has its own header. */
     :host([phone]) {
       --ha-phone-top-height: 0px;
-      --ha-phone-bar-height: 64px;
+      /* The floating bar (64px) and the 12px gap under it. */
+      --ha-phone-bar-height: 76px;
+      --ha-phone-menu-button-display: none;
       --safe-area-inset-top: calc(
         var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
           var(--ha-phone-top-height)
@@ -644,6 +646,40 @@ export class HomeAssistantMain extends LitElement {
     }
     :host(:not([modal])[tabs-merged]) ha-sidebar {
       display: none;
+    }
+    /* The merged pane is wide enough for names and the search field, also on
+       a window narrower than 1100 px, unless the person collapsed it. */
+    :host(:not([modal])[tabs-merged]:not([tabs-collapsed])) {
+      --ha-page-tabs-side-width: calc(248px * var(--ha-font-size-scale, 1));
+    }
+    :host(:not([modal])[tabs-merged][tabs-collapsed]) {
+      --ha-page-tabs-side-width: 72px;
+    }
+    /* Merged and on the left: the pane is a floating card of its own and the
+       page is a second rounded card beside it, a pane gap apart. The page
+       starts after the pane and the gap (padding on the panel, and the
+       frame that rounds the page), and pages are told so through the same
+       properties the other edges use. */
+    :host(:not([modal])[tabs-dock="left"][tabs-merged]) {
+      --ha-page-tabs-inset-start: calc(
+        var(--ha-page-tabs-side-width) + var(--ha-pane-gap)
+      );
+      --safe-area-content-inset-left: var(--ha-page-tabs-inset-start);
+      --ha-top-app-bar-width: calc(
+        100% - var(--ha-sidebar-width) - var(
+            --safe-area-inset-right,
+            0px
+          ) - var(--ha-page-tabs-inset-start)
+      );
+    }
+    :host(:not([modal])[tabs-dock="left"][tabs-merged]) .pane-frame {
+      inset-inline-start: calc(
+        var(--ha-sidebar-width) + var(--ha-page-tabs-inset-start)
+      );
+    }
+    /* Above the frame, whose shadow paints the window colour around the page. */
+    :host([tabs-dock="left"][tabs-merged]) ha-page-tabs {
+      z-index: 7;
     }
     :host([modal]) {
       --ha-sidebar-width: unset;

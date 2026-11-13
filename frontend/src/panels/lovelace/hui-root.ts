@@ -228,6 +228,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
     if (usesSharedPageTools(mode)) {
       return html`<ha-page-tools
         .compact=${this.narrow}
+        .pill=${!this.narrow && !this._editMode}
         .pageTitle=${
           this.panel ? getPanelTitle(this.hass, this.panel) : undefined
         }
@@ -400,7 +401,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         key: "ui.panel.lovelace.menu.add",
         visible:
           !this._editMode && this.hass.user?.is_admin && !this.hass.kioskMode,
-        overflow: this.narrow,
+        // The wide tool pill keeps to the board's set; Add lives in the menu.
+        overflow: true,
         subItems: [
           {
             icon: mdiDevices,
@@ -441,7 +443,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
             ? `(${ctrlOrCmdLabel(this.hass.localize)} + K)`
             : undefined,
         visible: !this._editMode && !this.hass.kioskMode,
-        overflow: this.narrow,
+        overflow: true,
       },
       {
         icon: mdiCommentProcessingOutline,
@@ -452,7 +454,7 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           this.hass.enableShortcuts && !isMobileClient ? "(A)" : undefined,
         visible:
           !this._editMode && this._conversation(this.hass.config.components),
-        overflow: this.narrow,
+        overflow: true,
       },
       {
         icon: mdiDownload,
@@ -503,7 +505,8 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           !this.hass!.config.recovery_mode &&
           !this.hass.kioskMode &&
           !this.noEdit,
-        overflow: true,
+        // On a wide window Edit is the pill's primary action and comes first.
+        overflow: this.narrow,
         overflow_can_promote: true,
       },
     ];
@@ -825,10 +828,17 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
                       ${
                         this.embedded
                           ? nothing
-                          : html`${this._renderPageTools(locked)}
+                          : html`<div
+                              class=${classMap({
+                                "tool-pill": true,
+                                wide: !this.narrow,
+                              })}
+                            >
+                              ${this._renderPageTools(locked)}
                               <div class="action-items" ?inert=${locked}>
                                 ${this._renderActionItems()}
-                              </div>`
+                              </div>
+                            </div>`
                       }
                     `
               }
@@ -1763,6 +1773,35 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
           white-space: nowrap;
           display: flex;
           align-items: center;
+        }
+        /* Wide windows: the page tools and the dashboard's own buttons form
+           one floating pill. Edit comes first, then the shared tools, a
+           divider and help, then the overflow menu. */
+        .tool-pill {
+          display: contents;
+        }
+        .tool-pill.wide {
+          position: relative;
+          display: flex;
+          flex: none;
+          align-items: center;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1) var(--ha-space-2);
+          border-radius: var(--ha-border-radius-pill);
+          background: var(--card-background-color);
+          color: var(--sidebar-icon-color);
+          box-shadow: var(--ha-shadow-card, var(--ha-box-shadow-m));
+        }
+        .tool-pill.wide .action-items {
+          display: contents;
+        }
+        .tool-pill.wide .action-items > * {
+          order: 0;
+        }
+        .tool-pill.wide
+          .action-items
+          > ha-dropdown:last-child:not(:first-child) {
+          order: 4;
         }
         .edit-mode .action-items ha-icon-button[disabled] {
           --ha-color-on-disabled-quiet: color-mix(

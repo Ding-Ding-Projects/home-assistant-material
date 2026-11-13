@@ -1725,7 +1725,7 @@ export class TabStripController implements ReactiveController {
       }
       /* A side strip on a narrow window is icons only; the full names stay as accessible names and tooltips. */
       @media (max-width: 1100px) {
-        :host([vertical]) .label {
+        :host([vertical]:not([merged])) .label {
           position: absolute;
           width: 1px;
           height: 1px;
@@ -1733,18 +1733,18 @@ export class TabStripController implements ReactiveController {
           clip-path: inset(50%);
           white-space: nowrap;
         }
-        :host([vertical]) .tab-button {
+        :host([vertical]:not([merged])) .tab-button {
           justify-content: center;
           padding-inline: var(--ha-space-2);
         }
-        :host([vertical]) .pin,
-        :host([vertical]) .close,
-        :host([vertical]) .pin-mark,
-        :host([vertical]) .group-name,
-        :host([vertical]) .group-count {
+        :host([vertical]:not([merged])) .pin,
+        :host([vertical]:not([merged])) .close,
+        :host([vertical]:not([merged])) .pin-mark,
+        :host([vertical]:not([merged])) .group-name,
+        :host([vertical]:not([merged])) .group-count {
           display: none;
         }
-        :host([vertical]) .group-toggle {
+        :host([vertical]:not([merged])) .group-toggle {
           justify-content: center;
           padding-inline: var(--ha-space-1);
         }

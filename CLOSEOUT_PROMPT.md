@@ -229,6 +229,37 @@ product matching it.
   - The Cantonese source now covers `ui.problems.`; its test accepts a name English uses
     only to choose a plural form as optional in Cantonese.
 
+- Batch 45, the shell brought to the modern boards after the owner's feedback, unit tested
+  only, nothing seen in a browser:
+  - Wide: "One navigation pane" is on unless someone chose off (the stored shape now keeps
+    both answers). The left pane is a floating card (brand and instance name, pill search,
+    Pages rows with a tonal pill on the open page, a New tab row, System with count badges,
+    the person and the Assist microphone, an Edit sidebar button) beside the page as a second
+    rounded card; 248 px wide, 72 px collapsed.
+    A fresh browser landed on the top edge because empty saved lists counted as an earlier
+    version; only real saved tabs count now. Earlier builds also wrote "top" for existing
+    installations without anyone choosing it, so once per browser a stored "top" returns to
+    the default left pane (`pageTabsDockSidePane` marks that it ran); a later choice of the
+    top edge is kept.
+  - Page top on wide windows: one floating tool pill (the page's first action, search,
+    appearance, history, share, lock, a divider, help, the page's menu). "Search this page"
+    is a magnifier that opens the field in a small card with Read aloud. On a dashboard, Add,
+    Search and Assistant moved into the three-dot menu. Larger titles on settings pages.
+    Not built: a large title and breadcrumb on dashboards (that row is the view tabs).
+  - Automation editor: one floating bar and one Save, with the status text and the Ctrl S
+    hint; the older save bar is no longer drawn there or in the blueprint editor. The script
+    editor was not checked for the same doubling.
+  - Phone: a floating pill bottom bar with Home, Search, Pages, Settings, Menu and a tonal
+    pill on the active item; Settings carries the updates plus repairs count; accessibility
+    tools are the first row of the Menu drawer; the extra hamburger at the top of pages is
+    hidden on a phone; the Pages sheet is one rounded card of rows.
+    Not built: the grid and edit icons at the top of phone pages, greeting as the title.
+  - Needs a browser before the live instance moves: fresh and existing browsers both get the
+    left pane; no page under the pane; collapsed pane; the toggle off; top, bottom, right and
+    floating docks; the tool pill on settings, dashboard and table pages; the search card;
+    the automation editor bar; the phone bar over long pages and sticky bars at 390 and
+    320 px in both-languages mode; dark theme; right to left.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

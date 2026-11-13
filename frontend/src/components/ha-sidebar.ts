@@ -3,6 +3,7 @@ import {
   mdiCellphoneCog,
   mdiCog,
   mdiHammer,
+  mdiHuman,
   mdiMenu,
   mdiMenuOpen,
   mdiMicrophone,
@@ -331,6 +332,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     // prettier-ignore
     return html`
       ${this._renderHeader()} ${this._renderAssist()}
+      ${this._renderAccessibility()}
       ${this._renderAllPanels(selectedPanel)}
       ${this._renderProvenance()}`;
   }
@@ -495,6 +497,33 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
       <ha-svg-icon .path=${mdiMicrophone}></ha-svg-icon>
       <span class="assist-text">${label}</span>
     </button>`;
+  }
+
+  /**
+   * The first row of the menu on a phone. The bottom bar has no Access item
+   * (it has Settings), so the accessibility tools open from here instead.
+   */
+  private _renderAccessibility() {
+    if (!this.narrow) {
+      return nothing;
+    }
+    const label = this.hass.localize("ui.phone.accessibility_tools");
+    return html`<ha-list-nav class="accessibility">
+      <ha-list-item-button
+        id="sidebar-accessibility"
+        aria-label=${label}
+        @click=${this._openAccessibility}
+      >
+        <ha-svg-icon slot="start" .path=${mdiHuman}></ha-svg-icon>
+        <span class="item-text" slot="headline">${label}</span>
+      </ha-list-item-button>
+    </ha-list-nav>`;
+  }
+
+  private _openAccessibility() {
+    // The menu closes first so the tools are not left behind it.
+    fireEvent(this, "hass-toggle-menu", { open: false });
+    fireEvent(this, "hass-show-accessibility-tools");
   }
 
   private _openAssist() {

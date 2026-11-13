@@ -1,7 +1,7 @@
 import {
   html,
+  nothing,
   type LitElement,
-  type nothing,
   type PropertyValues,
   type TemplateResult,
 } from "lit";
@@ -120,6 +120,13 @@ export const ManualEditorMixin = <TConfig>(
      */
     protected hideSaveBarWhenClean = false;
 
+    /**
+     * Whether this editor draws its own save bar. An editor whose page already
+     * floats one bar with Save (the automation editor) turns this off, so the
+     * page never shows two bars and two Save buttons.
+     */
+    protected renderSaveBar = true;
+
     private _saveBarSave = (ev: Event) => {
       ev.stopPropagation();
       this.saveConfig();
@@ -152,16 +159,20 @@ export const ManualEditorMixin = <TConfig>(
                 ${this.renderContent()}
               </ha-automation-search-scope>
             </div>
-            <ha-editor-save-bar
-              .hass=${this.hass}
-              .dirty=${this.dirty}
-              .saving=${this.saving}
-              .disabled=${this.disabled}
-              .hideWhenClean=${this.hideSaveBarWhenClean}
-              .showDiscard=${this.hideSaveBarWhenClean}
-              show-shortcut
-              @save-bar-save=${this._saveBarSave}
-            ></ha-editor-save-bar>
+            ${
+              this.renderSaveBar
+                ? html`<ha-editor-save-bar
+                    .hass=${this.hass}
+                    .dirty=${this.dirty}
+                    .saving=${this.saving}
+                    .disabled=${this.disabled}
+                    .hideWhenClean=${this.hideSaveBarWhenClean}
+                    .showDiscard=${this.hideSaveBarWhenClean}
+                    show-shortcut
+                    @save-bar-save=${this._saveBarSave}
+                  ></ha-editor-save-bar>`
+                : nothing
+            }
           </div>
           <div class="sidebar-positioner">
             <ha-automation-sidebar

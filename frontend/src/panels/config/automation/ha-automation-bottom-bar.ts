@@ -14,6 +14,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { ctrlOrCmdLabel } from "../../../common/keyboard/ctrl-or-cmd";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
@@ -25,6 +26,7 @@ import { describeCondition } from "../../../data/automation_i18n";
 import type { Action } from "../../../data/script";
 import { describeAction } from "../../../data/script_i18n";
 import { haStyle } from "../../../resources/styles";
+import { isMac } from "../../../util/is_mac";
 import type { HomeAssistant } from "../../../types";
 import type { AutomationCheckResult } from "./automation-check";
 import { checkAutomation } from "./automation-check";
@@ -161,6 +163,15 @@ export class HaAutomationBottomBar extends LitElement {
         <span class="status" role="status" aria-live="polite">
           ${this._statusText()}
         </span>
+        ${
+          this.readOnly
+            ? nothing
+            : html`<span class="hint"
+                >${t(`${PREFIX}shortcut`, {
+                  keys: `${ctrlOrCmdLabel(t)}${isMac ? "" : " "}S`,
+                })}</span
+              >`
+        }
         <div class="buttons">
           <ha-button
             appearance="plain"
@@ -438,6 +449,12 @@ export class HaAutomationBottomBar extends LitElement {
           font-size: var(--ha-font-size-s, 0.875rem);
           color: var(--secondary-text-color);
         }
+        .hint {
+          flex: none;
+          font-size: var(--ha-font-size-s, 0.875rem);
+          color: var(--secondary-text-color);
+          white-space: nowrap;
+        }
         .buttons {
           display: flex;
           flex-wrap: wrap;
@@ -458,6 +475,9 @@ export class HaAutomationBottomBar extends LitElement {
            the three other buttons under them. Every button keeps its 44 px
            touch target, and the bar stays near 120 px high. */
         @media (max-width: 480px) {
+          .hint {
+            display: none;
+          }
           .bar {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));

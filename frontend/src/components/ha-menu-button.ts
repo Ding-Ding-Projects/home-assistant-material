@@ -139,6 +139,9 @@ class HaMenuButton extends LitElement {
   static styles = css`
     :host {
       position: relative;
+      /* The phone layout sets this to none: its bottom bar has a Menu item,
+         so the same button is not repeated in every page header. */
+      display: var(--ha-phone-menu-button-display, inline);
     }
     .dot {
       pointer-events: none;

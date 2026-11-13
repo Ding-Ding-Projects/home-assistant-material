@@ -12,10 +12,10 @@ import {
   mdiFolderMove,
   mdiFolderRemove,
   mdiFormatPaint,
+  mdiCog,
   mdiHome,
   mdiLock,
   mdiLockOpenVariant,
-  mdiHuman,
   mdiMagnify,
   mdiMenu,
   mdiPin,
@@ -79,6 +79,10 @@ import {
 } from "../../common/tabs/tab-group-search";
 import { mainWindow } from "../../common/dom/get_main_window";
 import { getDefaultPanelUrlPath } from "../../data/panel";
+import { subscribeNotifications } from "../../data/persistent_notification";
+import { subscribeRepairsIssueRegistry } from "../../data/repairs";
+import type { UpdateEntity } from "../../data/update";
+import { updateCanInstall } from "../../data/update";
 import { showQuickBar } from "../../dialogs/quick-bar/show-dialog-quick-bar";
 import type { HomeAssistant } from "../../types";
 import type { PageTab } from "../ha-page-tabs";
@@ -215,13 +219,19 @@ const KEYBOARD_PX = 150;
  * it is hidden. Absent when there is no phone bar.
  */
 const VISIBLE_HEIGHT_PROPERTY = "--ha-phone-bar-visible-height";
+/**
+ * The floating bar rests this far above the bottom edge. The space it takes
+ * from a page is its height plus this gap, so the published height includes
+ * it and the layout reserves the same amount (`--ha-phone-bar-height`).
+ */
+const BAR_GAP_PX = 12;
 
 /**
  * @element ha-phone-bar
  *
  * @summary
  * What replaces the tab bar below 700 px. A bottom bar with Home, Search,
- * Pages, Access and Menu; a slim top bar that shows the current page and
+ * Pages, Settings and Menu, floating as a rounded pill; a slim top bar that shows the current page and
  * switches between open pages by swipe or arrow buttons; and the Pages sheet
  * that lists the open pages as cards, with a search, New tab, bulk close and
  * Undo. The open pages are the same ones the tab bar shows on a wide window.
@@ -299,6 +309,21 @@ export class HaPhoneBar extends LitElement {
 
   /** Said out loud by the sheet's live region. */
   @state() private _live = "";
+
+  /** Updates that can be installed plus repairs: the badge on Settings. */
+  @state() private _settingsCount = 0;
+
+  /** Whether any persistent notification is waiting: the dot on Menu. */
+  @state() private _hasNotifications = false;
+
+  /** Whether the Pages sheet is open, which makes Pages the active item. */
+  @state() private _pagesOpen = false;
+
+  private _issueCount = 0;
+
+  private _statusConnection?: unknown;
+
+  private _statusUnsubscribe: (() => void)[] = [];
 
   @query("#sheet") private _sheet?: HTMLElement;
 
@@ -381,6 +406,9 @@ export class HaPhoneBar extends LitElement {
     super.disconnectedCallback();
     this._unsubscribe.forEach((stop) => stop());
     this._unsubscribe = [];
+    this._statusUnsubscribe.forEach((stop) => stop());
+    this._statusUnsubscribe = [];
+    this._statusConnection = undefined;
     this._lockObserver?.disconnect();
     this._lockObserver = undefined;
     window.removeEventListener("scroll", this._handleScroll);
@@ -401,6 +429,9 @@ export class HaPhoneBar extends LitElement {
     if (changed.has("phone") || changed.has("_barHidden")) {
       this._publishVisibleHeight();
     }
+    if (changed.has("hass") || changed.has("phone")) {
+      this._syncStatus();
+    }
     if (
       !this._barResize &&
       this._bar &&
@@ -412,9 +443,69 @@ export class HaPhoneBar extends LitElement {
   }
 
   /**
-   * Tells the rest of the page how tall the bar is right now: its height while
-   * shown, `0px` while hidden or when this is not a phone. Sheets and sticky
-   * bars read it to stay clear of the bar only while it is there.
+   * Keeps the Settings count and the Menu dot current: the installable updates
+   * and open repairs a settings user has to look at, and the persistent
+   * notifications the Menu opens. The two subscriptions follow the connection.
+   */
+  private _syncStatus() {
+    const hass = this.hass;
+    if (!this.phone || !hass?.states) {
+      return;
+    }
+    let updates = 0;
+    for (const entityId of Object.keys(hass.states)) {
+      if (
+        entityId.startsWith("update.") &&
+        !hass.entities?.[entityId]?.hidden &&
+        updateCanInstall(hass.states[entityId] as UpdateEntity)
+      ) {
+        updates++;
+      }
+    }
+    const total = hass.user?.is_admin ? updates + this._issueCount : 0;
+    if (total !== this._settingsCount) {
+      this._settingsCount = total;
+    }
+    const connection = hass.connection;
+    if (!connection || this._statusConnection === connection) {
+      return;
+    }
+    this._statusUnsubscribe.forEach((stop) => stop());
+    this._statusUnsubscribe = [];
+    this._statusConnection = connection;
+    this._subscribeStatus(connection, hass.user?.is_admin === true);
+  }
+
+  private _subscribeStatus(
+    connection: HomeAssistant["connection"],
+    admin: boolean
+  ) {
+    try {
+      this._statusUnsubscribe.push(
+        subscribeNotifications(connection, (notifications) => {
+          this._hasNotifications = notifications.length > 0;
+        })
+      );
+      if (admin) {
+        this._statusUnsubscribe.push(
+          subscribeRepairsIssueRegistry(connection, (repairs) => {
+            this._issueCount = repairs.issues.filter(
+              (issue) => !issue.ignored
+            ).length;
+            this._syncStatus();
+          })
+        );
+      }
+    } catch (_err) {
+      // The count and the dot are conveniences: the bar works without them.
+    }
+  }
+
+  /**
+   * Tells the rest of the page how tall the bar is right now: its height and
+   * the gap under it while shown, `0px` while hidden or when this is not a
+   * phone. Sheets and sticky bars read it to stay clear of the bar only while
+   * it is there.
    */
   private _publishVisibleHeight() {
     const root = document.documentElement.style;
@@ -422,17 +513,16 @@ export class HaPhoneBar extends LitElement {
       root.removeProperty(VISIBLE_HEIGHT_PROPERTY);
       return;
     }
+    // The layout reserves the bar and the gap under it.
     const declared =
       getComputedStyle(this).getPropertyValue("--ha-phone-bar-height").trim() ||
-      "64px";
+      `${64 + BAR_GAP_PX}px`;
     // The bar can grow past its nominal height (two-line labels, larger
     // text), so the published value is the larger of the two.
     const bar = this._bar;
     let height = declared;
     if (bar) {
-      const padding =
-        parseFloat(getComputedStyle(bar).paddingBottom || "0") || 0;
-      const real = Math.ceil(bar.offsetHeight - padding);
+      const real = Math.ceil(bar.offsetHeight) + BAR_GAP_PX;
       const nominal = parseFloat(declared) || 0;
       if (real > nominal) {
         height = `${real}px`;
@@ -648,10 +738,10 @@ export class HaPhoneBar extends LitElement {
       ["search", mdiMagnify, "ui.phone.search", () => showQuickBar(this, {})],
       ["pages", mdiTab, "ui.phone.pages", () => this._togglePages()],
       [
-        "access",
-        mdiHuman,
-        "ui.phone.access",
-        () => fireEvent(this, "hass-show-accessibility-tools"),
+        "settings",
+        mdiCog,
+        "ui.phone.settings",
+        () => navigate(this.hass.user?.is_admin ? "/config" : "/profile"),
       ],
       [
         "menu",
@@ -738,7 +828,10 @@ export class HaPhoneBar extends LitElement {
         aria-label=${localize("ui.phone.navigation")}
       >
         ${barItems.map(([id, icon, key, run]) => {
-          const text = localize(key);
+          const count = id === "settings" ? this._settingsCount : 0;
+          const text = count
+            ? localize("ui.phone.settings_with_count", { count })
+            : localize(key);
           const lines = spansForMode(
             this._lang.parts(this.hass.localize, key),
             this._lang.mode
@@ -747,10 +840,9 @@ export class HaPhoneBar extends LitElement {
             <button
               class=${classMap({
                 item: true,
-                active:
-                  id === "home" &&
-                  current === getDefaultPanelUrlPath(this.hass),
+                active: this._isActive(id, current),
               })}
+              aria-current=${this._isActive(id, current) ? "page" : nothing}
               data-item=${id}
               aria-label=${text}
               .run=${run}
@@ -763,6 +855,18 @@ export class HaPhoneBar extends LitElement {
                     ? html`<span class="badge" aria-hidden="true"
                         >${open.length}</span
                       >`
+                    : nothing
+                }
+                ${
+                  count
+                    ? html`<span class="badge" aria-hidden="true"
+                        >${count > 99 ? "99+" : count}</span
+                      >`
+                    : nothing
+                }
+                ${
+                  id === "menu" && this._hasNotifications
+                    ? html`<span class="dot-mark" aria-hidden="true"></span>`
                     : nothing
                 }
               </span>
@@ -1349,7 +1453,20 @@ export class HaPhoneBar extends LitElement {
                 : this._renderIcon(tab)
             }</span
           >
-          <span class="card-title">${title}</span>
+          <span class="card-text">
+            <span class="card-title">${title}</span>
+            ${
+              selected || pinned
+                ? html`<span class="note"
+                    >${this._text(
+                      selected
+                        ? "ui.phone.reason_current"
+                        : "ui.page_tabs.group_pinned"
+                    )}</span
+                  >`
+                : nothing
+            }
+          </span>
           ${
             locked
               ? html`<ha-svg-icon
@@ -1474,7 +1591,23 @@ export class HaPhoneBar extends LitElement {
     this._sheet.showPopover();
   }
 
+  /** Whether a bar item is the one in use: Pages while its sheet is open. */
+  private _isActive(id: string, current: string | undefined): boolean {
+    if (this._pagesOpen) {
+      return id === "pages";
+    }
+    if (id === "home") {
+      return current === getDefaultPanelUrlPath(this.hass);
+    }
+    if (id === "settings") {
+      const path = mainWindow.location.pathname;
+      return /^\/(config|profile)(\/|$)/.test(path);
+    }
+    return false;
+  }
+
   private _sheetToggled(ev: ToggleEvent) {
+    this._pagesOpen = ev.newState === "open";
     this._closePanels();
     this._reorder = undefined;
     this._live = "";
@@ -2105,7 +2238,7 @@ export class HaPhoneBar extends LitElement {
       /* The bar's real height: its nominal one, or more when labels take
          more lines. */
       --ha-phone-bar-room: max(
-        var(--ha-phone-bar-height, 64px),
+        var(--ha-phone-bar-height, 76px),
         var(--ha-phone-bar-visible-height, 0px)
       );
       display: none;
@@ -2191,31 +2324,40 @@ export class HaPhoneBar extends LitElement {
     .dot.on {
       background-color: var(--primary-text-color);
     }
+    /* A floating pill, inset from the screen edges: it rests 12px
+       above the bottom edge (the layout reserves that gap in
+       --ha-phone-bar-height) and above the device's bottom safe area. */
     .bar {
       position: fixed;
       z-index: 7;
-      inset-inline: 0;
-      bottom: 0;
-      box-sizing: border-box;
-      min-height: var(--ha-phone-bar-height, 64px);
-      padding-bottom: var(
-        --app-safe-area-inset-bottom,
-        env(safe-area-inset-bottom, 0px)
+      inset-inline: 12px;
+      bottom: calc(
+        12px +
+          var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
       );
+      box-sizing: border-box;
+      min-height: calc(var(--ha-phone-bar-height, 76px) - 12px);
+      padding-inline: var(--ha-space-1);
       display: flex;
       align-items: stretch;
       justify-content: space-around;
-      background-color: var(--primary-background-color);
-      border-top: 1px solid var(--divider-color);
+      background-color: var(--card-background-color);
+      border-radius: var(--ha-border-radius-4xl);
+      box-shadow: var(--ha-shadow-overlay, 0 4px 16px rgba(0, 0, 0, 0.16));
       transition: transform var(--ha-animation-duration-normal) ease;
     }
     .bar.hidden {
-      transform: translateY(100%);
+      transform: translateY(
+        calc(
+          100% + 24px +
+            var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+        )
+      );
     }
     .item {
       flex: 1;
       min-width: 0;
-      min-height: 64px;
+      min-height: calc(var(--ha-phone-bar-height, 76px) - 12px);
       padding-block: var(--ha-space-1);
       box-sizing: border-box;
       display: flex;
@@ -2226,7 +2368,7 @@ export class HaPhoneBar extends LitElement {
       color: var(--secondary-text-color);
     }
     .item.active {
-      color: var(--primary-text-color);
+      color: var(--ha-color-on-primary-container, var(--primary-text-color));
     }
     .glyph {
       position: relative;
@@ -2238,7 +2380,21 @@ export class HaPhoneBar extends LitElement {
       border-radius: var(--ha-border-radius-pill);
     }
     .item.active .glyph {
-      background-color: var(--ha-color-fill-primary-normal-resting);
+      background-color: var(
+        --ha-color-primary-container,
+        var(--ha-color-fill-primary-normal-resting)
+      );
+    }
+    /* The dot on Menu: something is waiting in the notifications. */
+    .dot-mark {
+      position: absolute;
+      top: 2px;
+      inset-inline-end: 14px;
+      width: 10px;
+      height: 10px;
+      border-radius: var(--ha-border-radius-circle);
+      background-color: var(--accent-color, var(--primary-color));
+      border: 2px solid var(--card-background-color);
     }
     .badge {
       position: absolute;
@@ -2309,7 +2465,7 @@ export class HaPhoneBar extends LitElement {
     #sheet {
       position: fixed;
       inset: auto;
-      inset-inline: 0;
+      inset-inline: 12px;
       bottom: calc(
         var(--ha-phone-bar-room) +
           var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
@@ -2328,10 +2484,10 @@ export class HaPhoneBar extends LitElement {
       box-sizing: border-box;
       padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-3);
       border: none;
-      border-radius: var(--ha-border-radius-4xl) var(--ha-border-radius-4xl) 0 0;
+      border-radius: var(--ha-border-radius-4xl);
       background-color: var(--primary-background-color);
       color: var(--primary-text-color);
-      box-shadow: 0 -4px 8px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--ha-shadow-overlay, 0 4px 16px rgba(0, 0, 0, 0.16));
       overflow: hidden;
       flex-direction: column;
       gap: var(--ha-space-2);
@@ -2449,35 +2605,50 @@ export class HaPhoneBar extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-2);
     }
+    /* The open pages are rows of one rounded card, as the design draws them. */
     .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--ha-space-2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: var(--ha-border-radius-3xl);
+      background-color: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card, none);
     }
     .card {
       position: relative;
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-1);
-      padding: var(--ha-space-2);
-      border-radius: var(--tab-radius, var(--ha-border-radius-2xl));
-      background-color: var(--tab-background, var(--card-background-color));
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: var(--tab-radius, 0);
+      background-color: var(--tab-background, transparent);
       color: var(--tab-color, inherit);
       font-weight: var(--tab-weight, inherit);
       font-style: var(--tab-font-style, inherit);
-      border: var(--ha-card-border-width, 1px) solid
-        var(
-          --tab-border-color,
-          var(--ha-card-border-color, var(--divider-color))
-        );
+      border: 1px solid var(--tab-border-color, transparent);
       touch-action: pan-y;
+      min-width: 0;
+    }
+    .card + .card {
+      border-top: 1px solid var(--divider-color);
+    }
+    .card-text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
       min-width: 0;
     }
     .card.grouped {
       border-inline-start: 4px solid var(--group-colour, var(--primary-color));
     }
     .card.selected {
-      border-color: var(--primary-text-color);
+      background-color: var(
+        --tab-background,
+        var(
+          --ha-color-fill-primary-quiet-resting,
+          var(--secondary-background-color)
+        )
+      );
     }
     .lock-mark {
       flex: none;

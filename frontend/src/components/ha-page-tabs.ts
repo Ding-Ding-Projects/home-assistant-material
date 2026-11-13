@@ -10,6 +10,8 @@ import {
   mdiHome,
   mdiHuman,
   mdiMagnify,
+  mdiMicrophone,
+  mdiPlaylistEdit,
   mdiTranslate,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
@@ -21,7 +23,13 @@ import {
   getAccessibilitySettings,
   subscribeAccessibilitySettings,
 } from "../common/accessibility/accessibility-tools";
+import { activityStore } from "../common/activity/activity-store";
 import { fireEvent } from "../common/dom/fire_event";
+import {
+  IDENTITY_CHANGED_EVENT,
+  readIdentity,
+} from "../common/identity/identity";
+import { throttle } from "../common/util/throttle";
 import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import {
   floatFromPixels,
@@ -34,7 +42,13 @@ import {
 } from "../common/tabs/tab-dock";
 import { badgeText, paneLayout, readMerged } from "../common/tabs/tab-pane";
 import { subscribeNotifications } from "../data/persistent_notification";
+import { subscribeRepairsIssueRegistry } from "../data/repairs";
+import type { UpdateEntity } from "../data/update";
+import { updateCanInstall } from "../data/update";
 import { showQuickBar } from "../dialogs/quick-bar/show-dialog-quick-bar";
+import { showEditSidebarDialog } from "../dialogs/sidebar/show-dialog-edit-sidebar";
+import { showVoiceCommandDialog } from "../dialogs/voice-command-dialog/show-ha-voice-command-dialog";
+import "../panels/config/identity/ha-identity-logo";
 import type { HomeAssistant } from "../types";
 import { applyTabOrder, moveTabId } from "./tab-order";
 import "./ha-svg-icon";
@@ -169,6 +183,43 @@ export class HaPageTabs extends LitElement {
 
   private _unsubNotifications?: UnsubscribeFunc;
 
+  /** Installable updates and open repairs: the badge the rail put on Settings. */
+  @state() private _updatesCount = 0;
+
+  @state() private _issuesCount = 0;
+
+  /** Running tasks that need attention, counted with the notifications. */
+  @state() private _activityCount = 0;
+
+  private _unsubIssues?: UnsubscribeFunc;
+
+  private _unsubActivities?: () => void;
+
+  /** The name shown beside the brand tile of the wide pane. */
+  @state() private _identityName?: string;
+
+  private _calculateUpdates = throttle(() => {
+    const states = this.hass?.states;
+    if (!states) {
+      return;
+    }
+    let count = 0;
+    for (const entityId of Object.keys(states)) {
+      if (
+        entityId.startsWith("update.") &&
+        !this.hass.entities?.[entityId]?.hidden &&
+        updateCanInstall(states[entityId] as UpdateEntity)
+      ) {
+        count++;
+      }
+    }
+    this._updatesCount = count;
+  }, 5000);
+
+  private _identityChanged = () => {
+    this._identityName = readIdentity().name;
+  };
+
   /** While the floating strip is being dragged: where the pointer took hold of it. */
   private _drag?: { pointer: number; dx: number; dy: number };
 
@@ -199,6 +250,27 @@ export class HaPageTabs extends LitElement {
       edge === "right" ? mdiChevronDoubleLeft : mdiChevronDoubleRight;
     return html`
       <div class="strip-tools">
+        ${
+          pane.brand
+            ? html`<a
+                class="brand"
+                href="/"
+                aria-label=${this._t("ui.page_tabs.pane.home")}
+                title=${this._t("ui.page_tabs.pane.home")}
+              >
+                <ha-identity-logo
+                  style="--identity-logo-size: 40px; --identity-logo-radius: var(--ha-border-radius-xl)"
+                ></ha-identity-logo>
+                <span class="brand-name"
+                  >${
+                    this._identityName ||
+                    this.hass.config?.location_name ||
+                    "Home Assistant"
+                  }</span
+                >
+              </a>`
+            : nothing
+        }
         ${
           pane.homeButton
             ? html`<a
@@ -327,28 +399,55 @@ export class HaPageTabs extends LitElement {
               </button>`
         }
         ${
-          this.hass.user
-            ? html`<a
-                class="profile"
-                href="/profile"
-                aria-label=${this._t("ui.page_tabs.profile", {
-                  name: this.hass.user.name,
-                })}
-                title=${this._t("ui.page_tabs.profile", {
-                  name: this.hass.user.name,
-                })}
+          pane.railTools
+            ? html`<button
+                class="new-tab"
+                aria-label=${this.hass.localize("ui.sidebar.edit_sidebar")}
+                title=${this.hass.localize("ui.sidebar.edit_sidebar")}
+                @click=${this._editSidebar}
               >
-                <ha-user-badge .user=${this.hass.user}></ha-user-badge>
-                ${
-                  pane.profileName
-                    ? html`<span class="profile-name"
-                        >${this.hass.user.name}</span
-                      >`
-                    : nothing
-                }
-              </a>`
+                <ha-svg-icon .path=${mdiPlaylistEdit}></ha-svg-icon>
+              </button>`
             : nothing
         }
+        <div class="person">
+          ${
+            this.hass.user
+              ? html`<a
+                  class="profile"
+                  href="/profile"
+                  aria-label=${this._t("ui.page_tabs.profile", {
+                    name: this.hass.user.name,
+                  })}
+                  title=${this._t("ui.page_tabs.profile", {
+                    name: this.hass.user.name,
+                  })}
+                >
+                  <ha-user-badge .user=${this.hass.user}></ha-user-badge>
+                  ${
+                    pane.profileName
+                      ? html`<span class="profile-name"
+                          >${this.hass.user.name}</span
+                        >`
+                      : nothing
+                  }
+                </a>`
+              : nothing
+          }
+          ${
+            pane.railTools &&
+            this.hass.config?.components?.includes("conversation")
+              ? html`<button
+                  class="new-tab assist"
+                  aria-label=${this.hass.localize("ui.sidebar.assist")}
+                  title=${this.hass.localize("ui.sidebar.assist")}
+                  @click=${this._openAssist}
+                >
+                  <ha-svg-icon .path=${mdiMicrophone}></ha-svg-icon>
+                </button>`
+              : nothing
+          }
+        </div>
       </div>
       <!-- The menus and the group picker listen for the strip's events on
            their own; they only need the instance and the strip they serve. -->
@@ -383,7 +482,8 @@ export class HaPageTabs extends LitElement {
       label: string,
       selected: boolean,
       href?: string,
-      onClick?: () => void
+      onClick?: () => void,
+      count = 0
     ) => {
       const classes = classMap({
         "system-item": true,
@@ -397,18 +497,18 @@ export class HaPageTabs extends LitElement {
         ? html`<a
             class=${classes}
             href=${href}
-            aria-label=${label}
+            aria-label=${count > 0 ? `${label} (${badgeText(count)})` : label}
             title=${label}
             aria-current=${selected ? "page" : "false"}
-            >${inner}</a
+            >${inner}${this._renderBadge(count)}</a
           >`
         : html`<button
             class=${classes}
-            aria-label=${label}
+            aria-label=${count > 0 ? `${label} (${badgeText(count)})` : label}
             title=${label}
             @click=${onClick}
           >
-            ${inner}${this._renderBadge()}
+            ${inner}${this._renderBadge(count)}
           </button>`;
     };
     return html`
@@ -430,7 +530,9 @@ export class HaPageTabs extends LitElement {
               mdiCog,
               this.hass.localize("panel.config"),
               this.hass.panelUrl === "config" && !onTools,
-              "/config"
+              "/config",
+              undefined,
+              this._updatesCount + this._issuesCount
             )
           : nothing
       }
@@ -440,13 +542,14 @@ export class HaPageTabs extends LitElement {
         this.hass.localize("ui.notification_drawer.title"),
         false,
         undefined,
-        () => fireEvent(this, "hass-show-notifications")
+        () => fireEvent(this, "hass-show-notifications"),
+        this._notificationCount + this._activityCount
       )}
     `;
   }
 
-  private _renderBadge() {
-    const text = badgeText(this._notificationCount);
+  private _renderBadge(count: number) {
+    const text = badgeText(count);
     return text
       ? html`<span class="count" aria-hidden="true">${text}</span>`
       : nothing;
@@ -467,6 +570,46 @@ export class HaPageTabs extends LitElement {
       this._unsubNotifications = undefined;
       this._notificationCount = 0;
     }
+    // Repairs, installable updates and running tasks feed the badges of
+    // Settings and Notifications, as they did on the rail.
+    const admin = Boolean(this.hass?.user?.is_admin);
+    if (wanted && admin && !this._unsubIssues) {
+      this._unsubIssues = subscribeRepairsIssueRegistry(
+        this.hass.connection,
+        (repairs) => {
+          this._issuesCount = repairs.issues.filter(
+            (issue) => !issue.ignored
+          ).length;
+        }
+      );
+    } else if ((!wanted || !admin) && this._unsubIssues) {
+      this._unsubIssues();
+      this._unsubIssues = undefined;
+      this._issuesCount = 0;
+    }
+    if (wanted && !this._unsubActivities) {
+      this._unsubActivities = activityStore.subscribe(() => {
+        this._activityCount = activityStore.attentionCount;
+      });
+      this._activityCount = activityStore.attentionCount;
+    } else if (!wanted && this._unsubActivities) {
+      this._unsubActivities();
+      this._unsubActivities = undefined;
+      this._activityCount = 0;
+    }
+    if (wanted && admin) {
+      this._calculateUpdates();
+    } else if (this._updatesCount) {
+      this._updatesCount = 0;
+    }
+  }
+
+  private _editSidebar() {
+    showEditSidebarDialog(this);
+  }
+
+  private _openAssist() {
+    showVoiceCommandDialog(this, this.hass, { pipeline_id: "last_used" });
   }
 
   // The tab menu asks for the New tab catalog. This shell owns it, so it opens
@@ -623,10 +766,17 @@ export class HaPageTabs extends LitElement {
       this._accessibilityButtonHidden = settings.hideButton;
     });
     window.addEventListener("resize", this._onWindowResize);
+    window.addEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+    this._identityChanged();
   }
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+    this._unsubIssues?.();
+    this._unsubIssues = undefined;
+    this._unsubActivities?.();
+    this._unsubActivities = undefined;
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
     this._unsubNotifications?.();
@@ -761,8 +911,34 @@ export class HaPageTabs extends LitElement {
         flex-direction: column;
       }
       /* A collapsed bar keeps its tabs as icons; the tools at its foot go to the overflow of the rail. */
-      :host([collapsed]) .actions > :not(.profile):not(.search-icon) {
+      :host([collapsed]) .actions > :not(.person):not(.search-icon) {
         display: none;
+      }
+      /* The person and Assist: one row where the pane has room, plain
+         neighbours of the other tools on a bar. */
+      .person {
+        display: contents;
+      }
+      :host([vertical][merged]) .person {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        flex: 1 1 100%;
+        min-width: 0;
+      }
+      :host([vertical][merged]) .person .profile {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      :host([vertical][merged][collapsed]) .person {
+        flex-direction: column;
+        flex: none;
+      }
+      :host([vertical][merged][collapsed]) .person .profile {
+        flex: none;
+      }
+      .assist {
+        color: var(--primary-text-color);
       }
       :host([vertical][collapsed]) {
         padding-inline: var(--ha-space-1);
@@ -858,6 +1034,85 @@ export class HaPageTabs extends LitElement {
       }
       :host([vertical][merged]:not([collapsed])) .actions {
         justify-content: flex-start;
+      }
+      /* The merged pane on the left: a floating card beside the page card, with
+         the brand, a pill search, headings, tonal rows and the person at the foot. */
+      :host([dock="left"][merged]) {
+        --ha-page-tab-height: 44px;
+        gap: var(--ha-space-1);
+        padding: var(--ha-space-3);
+        border: none;
+        border-radius: var(--ha-pane-radius, var(--ha-border-radius-4xl));
+        background-color: var(
+          --ha-card-background,
+          var(--card-background-color, var(--primary-background-color))
+        );
+        box-shadow: var(--ha-shadow-card);
+      }
+      :host([dock="left"][merged][collapsed]) {
+        padding-inline: var(--ha-space-2);
+        align-items: center;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        gap: var(--ha-space-3);
+        min-width: 0;
+        padding-block: var(--ha-space-1);
+        border-radius: var(--ha-border-radius-xl);
+        color: var(--primary-text-color);
+        text-decoration: none;
+      }
+      .brand:focus-visible {
+        outline: 3px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .brand-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--ha-font-size-l);
+        font-weight: var(--ha-font-weight-title, var(--ha-font-weight-medium));
+      }
+      /* The search is a full-width pill; the shortcut stays at its end. */
+      :host([vertical][merged]:not([collapsed])) .top-search {
+        width: 100%;
+        --ha-input-search-height: 44px;
+      }
+      :host([vertical][merged]:not([collapsed])) .top-search kbd {
+        display: inline-block;
+      }
+      /* The open pages are rows, the open one a tonal pill. */
+      :host([vertical][merged]) .tab.selected {
+        background-color: var(
+          --tab-background,
+          var(--ha-color-primary-container)
+        );
+        color: var(--tab-color, var(--ha-color-on-primary-container));
+      }
+      .new-tab-label {
+        display: none;
+      }
+      /* New tab is a row of its own under the open pages. */
+      :host([vertical][merged]:not([collapsed])) button.new-tab[popovertarget] {
+        align-self: stretch;
+        width: auto;
+        height: 44px;
+        justify-content: flex-start;
+        gap: var(--ha-space-3);
+        padding-inline: var(--ha-space-4);
+        border-radius: var(--ha-border-radius-pill);
+        color: var(--primary-color);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      :host([vertical][merged]:not([collapsed])) .new-tab-label {
+        display: inline;
+      }
+      /* A merged pane keeps its names on a window narrower than 1100 px too. */
+      :host([vertical][merged]:not([collapsed])) .system-item {
+        min-height: 44px;
       }
       /* Floating: a card over the page that the person drags by its handle. */
       :host([dock="float"]) {

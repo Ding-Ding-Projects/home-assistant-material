@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { getStorage } from "../../../src/common/decorators/storage";
 import {
   badgeText,
+  normalizeMerged,
   paneLayout,
   readMerged,
   withMerged,
@@ -11,18 +12,28 @@ import {
 describe("merged pane choice", () => {
   beforeEach(() => getStorage().setValue("pageTabsMerged", undefined));
 
-  it("is off until chosen, per strip", () => {
-    expect(readMerged("main")).toBe(false);
-    writeMerged("main", true);
+  it("is on until turned off, per strip", () => {
     expect(readMerged("main")).toBe(true);
-    expect(readMerged("other")).toBe(false);
     writeMerged("main", false);
     expect(readMerged("main")).toBe(false);
+    expect(readMerged("other")).toBe(true);
+    writeMerged("main", true);
+    expect(readMerged("main")).toBe(true);
   });
 
-  it("keeps only the strips that are merged", () => {
-    expect(withMerged({}, "main", false)).toEqual({});
-    expect(withMerged({ main: true }, "main", false)).toEqual({});
+  it("keeps an explicit off, so it is told from never chosen", () => {
+    expect(withMerged({}, "main", false)).toEqual({ main: false });
+    expect(withMerged({ main: true }, "main", false)).toEqual({ main: false });
+    expect(normalizeMerged({ main: false, bad: "x", other: true })).toEqual({
+      main: false,
+      other: true,
+    });
+    expect(normalizeMerged(undefined)).toEqual({});
+  });
+
+  it("honours a stored off after a reload", () => {
+    getStorage().setValue("pageTabsMerged", { main: false });
+    expect(readMerged("main")).toBe(false);
   });
 });
 
@@ -33,6 +44,8 @@ describe("paneLayout", () => {
     expect(left.sectionLabels).toBe(false);
     expect(left.systemEntries).toBe(false);
     expect(left.profileName).toBe(false);
+    expect(left.brand).toBe(false);
+    expect(left.railTools).toBe(false);
     const top = paneLayout({ edge: "top", collapsed: false, merged: false });
     expect(top.searchField).toBe(true);
     expect(top.homeButton).toBe(false);
@@ -49,6 +62,8 @@ describe("paneLayout", () => {
         searchField: true,
         searchAtTop: true,
         sectionLabels: true,
+        brand: true,
+        railTools: true,
         systemEntries: true,
         systemNames: true,
         profileName: true,
@@ -62,6 +77,8 @@ describe("paneLayout", () => {
     expect(layout.systemEntries).toBe(true);
     expect(layout.systemNames).toBe(false);
     expect(layout.sectionLabels).toBe(false);
+    expect(layout.brand).toBe(false);
+    expect(layout.railTools).toBe(true);
     expect(layout.searchField).toBe(false);
     expect(layout.profileName).toBe(false);
   });

@@ -4777,6 +4777,9 @@
       "search": "Search",
       "pages": "Pages",
       "access": "Access",
+      "settings": "Settings",
+      "settings_with_count": "Settings, {count, plural,\n  one {# item needs attention}\n  other {# items need attention}\n}",
+      "accessibility_tools": "Accessibility tools",
       "menu": "Menu",
       "previous_page": "Previous page",
       "next_page": "Next page",
@@ -9739,7 +9742,8 @@
               "saved": "No unsaved changes.",
               "unsaved": "You have unsaved changes.",
               "saving": "Saving",
-              "read_only": "This automation is read-only and cannot be saved here."
+              "read_only": "This automation is read-only and cannot be saved here.",
+              "shortcut": "Shortcut: {keys}"
             },
             "dry_run": {
               "button": "Dry run",

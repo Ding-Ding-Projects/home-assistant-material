@@ -9,12 +9,13 @@ import {
   mdiHistory,
   mdiLock,
   mdiLockOpenVariantOutline,
+  mdiMagnify,
   mdiStop,
   mdiVolumeHigh,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import {
   canReadAloud,
@@ -88,6 +89,15 @@ export class HaPageTools extends LitElement {
   /** Leaves out Search this page, for a page with its own search of the page. */
   @property({ type: Boolean, attribute: "no-find" }) public noFind = false;
 
+  /**
+   * Lays the tools out as part of a floating tool pill. The host then takes no
+   * box of its own, so its buttons join the pill the page layout draws around
+   * it and are ordered with the page's own buttons by CSS `order`: Search this
+   * page behind one icon, appearance, history, export and lock, a divider, then
+   * help. Read aloud sits beside the search field. Ignored when `compact`.
+   */
+  @property({ type: Boolean, reflect: true }) public pill = false;
+
   @consume({ context: internationalizationContext, subscribe: true })
   @state()
   private _i18n!: ContextType<typeof internationalizationContext>;
@@ -107,6 +117,11 @@ export class HaPageTools extends LitElement {
   @state() private _holding = false;
 
   @state() private _hint = false;
+
+  @state() private _findOpen = false;
+
+  @query(".find-card ha-input-search")
+  private _pillFindInput?: HaInputSearch;
 
   private _finder = new PageFinder();
 
@@ -144,6 +159,12 @@ export class HaPageTools extends LitElement {
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("compact") && this.compact && this._query) {
       this._clearFind();
+    }
+    if (
+      (changed.has("compact") || changed.has("pill")) &&
+      (this.compact || !this.pill)
+    ) {
+      this._findOpen = false;
     }
   }
 
@@ -188,39 +209,35 @@ export class HaPageTools extends LitElement {
       `;
     }
     return html`
-      ${this.noFind ? nothing : this._renderFind()}
+      ${
+        this.noFind
+          ? nothing
+          : this.pill
+            ? this._renderPillFind()
+            : this._renderFind()
+      }
       <ha-icon-button
+        class="tool"
         .label=${localize("ui.page_tools.appearance")}
         .path=${mdiFormatPaint}
         @click=${this._editAppearance}
       ></ha-icon-button>
-      ${
-        canReadAloud()
-          ? html`<ha-icon-button
-              class=${classMap({ on: this._reading })}
-              .label=${localize(
-                this._reading
-                  ? "ui.page_tools.stop_reading"
-                  : "ui.page_tools.read_aloud"
-              )}
-              .path=${this._reading ? mdiStop : mdiVolumeHigh}
-              @click=${this._toggleReading}
-            ></ha-icon-button>`
-          : nothing
-      }
+      ${this.pill && !this.noFind ? nothing : this._renderReadAloud()}
       <ha-icon-button
+        class="tool"
         .label=${localize("ui.page_tools.history")}
         .path=${mdiHistory}
         data-tool="history"
         @click=${this._openTool}
       ></ha-icon-button>
       <ha-icon-button
+        class="tool"
         .label=${localize("ui.page_tools.export")}
         .path=${mdiExportVariant}
         data-tool="export"
         @click=${this._openTool}
       ></ha-icon-button>
-      <span class="lock">
+      <span class="lock tool">
         <ha-icon-button
           class=${classMap({ on: this._locked, holding: this._holding })}
           .label=${localize(
@@ -244,13 +261,79 @@ export class HaPageTools extends LitElement {
             : nothing
         }
       </span>
+      ${
+        this.pill
+          ? html`<span class="divider" role="separator"></span>`
+          : nothing
+      }
       <ha-icon-button
+        class="help"
         .label=${localize("ui.page_tools.help")}
         .path=${mdiHelpCircleOutline}
         data-tool="help"
         @click=${this._openTool}
       ></ha-icon-button>
     `;
+  }
+
+  /**
+   * In the tool pill, Search this page is one icon that opens the field and its
+   * match controls in a small card under the pill. The card also holds Read
+   * aloud, so every tool stays one click away.
+   */
+  private _renderPillFind(): TemplateResult {
+    const localize = this._i18n.localize;
+    return html`
+      <span class="find-wrap tool">
+        <ha-icon-button
+          class=${classMap({ on: this._findOpen || !!this._query })}
+          .label=${localize("ui.page_tools.find")}
+          .path=${mdiMagnify}
+          aria-expanded=${this._findOpen ? "true" : "false"}
+          @click=${this._toggleFind}
+        ></ha-icon-button>
+        ${
+          this._findOpen
+            ? html`<div class="find-card" @keydown=${this._findCardKeydown}>
+                ${this._renderFind()}${this._renderReadAloud()}
+              </div>`
+            : nothing
+        }
+      </span>
+    `;
+  }
+
+  private _toggleFind(): void {
+    this._findOpen = !this._findOpen;
+    if (this._findOpen) {
+      this.updateComplete.then(() => {
+        this._pillFindInput?.focus();
+      });
+    }
+  }
+
+  private _findCardKeydown(ev: KeyboardEvent): void {
+    if (ev.key === "Escape" && !this._query) {
+      ev.stopPropagation();
+      this._findOpen = false;
+    }
+  }
+
+  private _renderReadAloud(): TemplateResult | typeof nothing {
+    if (!canReadAloud()) {
+      return nothing;
+    }
+    const localize = this._i18n.localize;
+    return html`<ha-icon-button
+      class=${classMap({ on: this._reading, tool: true })}
+      .label=${localize(
+        this._reading
+          ? "ui.page_tools.stop_reading"
+          : "ui.page_tools.read_aloud"
+      )}
+      .path=${this._reading ? mdiStop : mdiVolumeHigh}
+      @click=${this._toggleReading}
+    ></ha-icon-button>`;
   }
 
   private _renderFind(): TemplateResult {
@@ -487,6 +570,44 @@ export class HaPageTools extends LitElement {
       gap: var(--ha-space-1);
       color: var(--sidebar-icon-color);
       min-width: 0;
+    }
+    /* In a tool pill the host has no box: its buttons are items of the pill
+       and take their place from the order values below. */
+    :host([pill]:not([compact])) {
+      display: contents;
+    }
+    :host([pill]:not([compact])) .tool {
+      order: 1;
+    }
+    :host([pill]:not([compact])) .divider {
+      order: 2;
+      align-self: center;
+      width: 1px;
+      height: 24px;
+      margin-inline: var(--ha-space-1);
+      background: var(--divider-color);
+    }
+    :host([pill]:not([compact])) .help {
+      order: 3;
+    }
+    .find-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+    .find-card {
+      position: absolute;
+      inset-block-start: calc(100% + var(--ha-space-3));
+      inset-inline-end: 0;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-1);
+      padding: var(--ha-space-2) var(--ha-space-3);
+      border-radius: var(--ha-border-radius-2xl, 20px);
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      box-shadow: var(--ha-shadow-overlay, var(--ha-box-shadow-l));
+      max-width: calc(100vw - var(--ha-space-8));
     }
     .find {
       display: inline-flex;

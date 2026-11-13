@@ -79,12 +79,15 @@ class HassSubpage extends LitElement {
               ><slot name="header">${this.header}</slot></span
             >
           </div>
-          <ha-page-tools
-            .compact=${this.narrow}
-            .pageTitle=${this.header}
-          ></ha-page-tools>
-          <div class="toolbar-icons" ?inert=${locked}>
-            <slot name="toolbar-icon"></slot>
+          <div class="tool-pill">
+            <ha-page-tools
+              .compact=${this.narrow}
+              .pill=${!this.narrow}
+              .pageTitle=${this.header}
+            ></ha-page-tools>
+            <div class="toolbar-icons" ?inert=${locked}>
+              <slot name="toolbar-icon"></slot>
+            </div>
           </div>
         </div>
       </div>
@@ -159,6 +162,36 @@ class HassSubpage extends LitElement {
           display: flex;
           align-items: center;
         }
+        :host(:not([narrow])) .toolbar-icons {
+          display: contents;
+        }
+
+        /* Wide windows: the page's tools sit in one floating pill at the end
+           of the title row. The page's own buttons come first (its primary
+           action), then the shared page tools and a divider and help, then the
+           page's last button, normally its overflow menu. */
+        .tool-pill {
+          display: contents;
+        }
+        :host(:not([narrow])) .tool-pill {
+          position: relative;
+          display: flex;
+          flex: none;
+          align-items: center;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1) var(--ha-space-2);
+          border-radius: var(--ha-border-radius-pill);
+          background: var(--card-background-color);
+          box-shadow: var(--ha-shadow-card, var(--ha-box-shadow-m));
+        }
+        :host(:not([narrow])) .tool-pill ::slotted(*) {
+          order: 0;
+        }
+        :host(:not([narrow]))
+          .tool-pill
+          ::slotted(:last-child:not(:first-child)) {
+          order: 4;
+        }
 
         :host([narrow]) {
           width: 100%;
@@ -208,6 +241,22 @@ class HassSubpage extends LitElement {
           display: flex;
           flex-direction: column;
           justify-content: center;
+        }
+        :host(:not([narrow])) .toolbar-content {
+          height: auto;
+          min-height: var(--header-height);
+          padding: var(--ha-space-4) var(--ha-space-6) var(--ha-space-2);
+        }
+        :host(:not([narrow])) .main-title {
+          margin-inline-start: var(--ha-space-2);
+        }
+        :host(:not([narrow])) .title-text {
+          font-size: var(--ha-font-size-3xl);
+          font-weight: var(
+            --ha-font-weight-title,
+            var(--ha-font-weight-medium)
+          );
+          line-height: var(--ha-line-height-condensed);
         }
         .title-text {
           overflow: hidden;

@@ -79,8 +79,18 @@ describe("ensureInitialDock", () => {
     expect(readDock("main")).toBe("left");
   });
 
+  it("does not take empty lists for an earlier version", () => {
+    const storage = getStorage();
+    storage.setValue("pageTabsClosed", []);
+    storage.setValue("pageTabsOrder", []);
+    storage.setValue("pageTabsPinned", []);
+    storage.setValue("pageTabsSeen", {});
+    ensureInitialDock("main");
+    expect(readDock("main")).toBe("left");
+  });
+
   it("keeps an existing installation at the top, and stays there after the first run", () => {
-    getStorage().setValue("pageTabsClosed", []);
+    getStorage().setValue("pageTabsClosed", ["map"]);
     ensureInitialDock("main");
     expect(readDock("main")).toBe("top");
     writeSeen("main", ["lovelace"]);
