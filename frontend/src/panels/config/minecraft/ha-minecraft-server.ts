@@ -322,11 +322,18 @@ class HaMinecraftServer extends LitElement {
     this._wrap = !this._wrap;
   }
 
-  private _confirmInput(ev: Event): void {
-    this._confirmName = (ev.target as HTMLInputElement).value ?? "";
-  }
-
   private async _deleteData(): Promise<void> {
+    // Confirmed with the two keys and the slider; nothing is typed. The
+    // server still wants the name, so it is sent for the person.
+    const confirmed = await showConfirmationDialog(this, {
+      title: this._l("detail.delete_data"),
+      text: this._l("detail.data_info"),
+      destructive: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this._confirmName = this.server.name;
     this._statusGuard.invalidate();
     this._busy = "data";
     this._code = undefined;
@@ -696,21 +703,11 @@ ${
         >
       </div>
       <p class="detail">${this._l("detail.data_info")}</p>
-      <ha-input
-        .label=${this._l("detail.confirm_label")}
-        .hint=${this._l("detail.confirm_hint", { name: this.server.name })}
-        .value=${this._confirmName}
-        @input=${this._confirmInput}
-      ></ha-input>
       <div class="row">
         <ha-button
           appearance="plain"
           variant="danger"
-          .disabled=${
-            busy ||
-            current !== "absent" ||
-            this._confirmName !== this.server.name
-          }
+          .disabled=${busy || current !== "absent"}
           @click=${this._deleteData}
           >${this._l("detail.delete_data")}</ha-button
         >

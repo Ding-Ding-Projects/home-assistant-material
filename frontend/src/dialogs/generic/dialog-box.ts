@@ -117,11 +117,13 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
       !this._params.prompt &&
       !!this._params.destructive;
     const confirmName = this._params.confirmName;
-    const typed = twoStep && this._step === 2 && !!confirmName;
+    // Nothing is ever typed to confirm: the second step is always the two
+    // keys and the slider, also when the caller names the thing.
+    const typed = false as boolean;
     const twoKey =
       confirmPrompt &&
       !!this._params.destructive &&
-      (!twoStep || (this._step === 2 && !confirmName));
+      (!twoStep || this._step === 2);
     const typedMatches = typed && this._typed.trim() === confirmName!.trim();
     const dialogTitle =
       this._params.title ||

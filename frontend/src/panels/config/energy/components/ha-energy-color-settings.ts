@@ -271,8 +271,27 @@ export class EnergyColorSettings extends LitElement {
         .follow {
           cursor: pointer;
         }
+        /* The name gets the room it needs, so a normal name is one or two lines
+           and not squeezed beside the swatches. When the swatches do not fit
+           beside it, they go to their own line under the name. */
+        .items-container .row {
+          height: auto;
+          min-height: 48px;
+          flex-wrap: wrap;
+          column-gap: var(--ha-space-3);
+          row-gap: var(--ha-space-1);
+          padding-block: var(--ha-space-2);
+        }
+        .items-container .row .content {
+          flex: 1 1 12rem;
+          min-width: 0;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
+        }
         .palette {
           display: flex;
+          flex: none;
           align-items: center;
           gap: var(--ha-space-2);
         }

@@ -258,6 +258,31 @@ export const ManualEditorMixin = <TConfig>(
       return !!this.sidebarConfig;
     }
 
+    /** The side pane element, for a page bar that must stay clear of it. */
+    public get sidebarLayoutElement(): HTMLElement | undefined {
+      return this.sidebarElement;
+    }
+
+    /**
+     * The left edge of the open side pane in viewport pixels, or undefined when
+     * no pane sits beside the content (closed, or shown as a bottom sheet).
+     * The pane is fixed and may be sliding in, so the edge is worked out from
+     * its positioner and its width rather than from its own moving box.
+     */
+    public get sidebarStartEdge(): number | undefined {
+      if (!this.sidebarConfig || this.narrow || !this.sidebarElement) {
+        return undefined;
+      }
+      const positioner = this.renderRoot.querySelector(".sidebar-positioner");
+      if (!positioner) {
+        return undefined;
+      }
+      return (
+        positioner.getBoundingClientRect().right -
+        this.sidebarElement.clientWidth
+      );
+    }
+
     public triggerCloseSidebar() {
       if (this.sidebarConfig) {
         if (this.sidebarElement) {

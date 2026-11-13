@@ -92,6 +92,7 @@ import { showAutomationSaveTimeoutDialog } from "./automation-save-timeout-dialo
 import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-element-dialog";
 import "./blueprint-automation-editor";
 import "./ha-automation-bottom-bar";
+import type { HaAutomationBottomBar } from "./ha-automation-bottom-bar";
 import "./tools/ha-automation-tools-panel";
 import { showStepRow } from "./tools/find-step-row";
 import type { EditorDomainHooks } from "./ha-automation-script-editor-mixin";
@@ -155,6 +156,13 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
   private _manualEditor?: HaManualAutomationEditor;
 
   @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
+
+  @query("ha-automation-bottom-bar")
+  private _bottomBar?: HaAutomationBottomBar;
+
+  private _sidebarObserver?: ResizeObserver;
+
+  private _observedSidebar?: HTMLElement;
 
   private _configSubscriptions: Record<
     string,
@@ -811,12 +819,62 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     setEditorLevel(level);
   }
 
+  public connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("resize", this._measureBarReserve);
+  }
+
+  public disconnectedCallback() {
+    window.removeEventListener("resize", this._measureBarReserve);
+    this._sidebarObserver?.disconnect();
+    this._sidebarObserver = undefined;
+    this._observedSidebar = undefined;
+    super.disconnectedCallback();
+  }
+
+  /**
+   * The floating bar is centred across the whole page, but the open side pane
+   * is fixed over the right-hand part of it. The bar is given room so that its
+   * right edge stops where the pane starts, and Save stays in view.
+   */
+  private _measureBarReserve = () => {
+    const bar = this._bottomBar;
+    if (!bar) {
+      return;
+    }
+    const startEdge = this._manualEditor?.sidebarStartEdge;
+    const reserve =
+      startEdge === undefined
+        ? 0
+        : Math.max(0, Math.ceil(bar.getBoundingClientRect().right - startEdge));
+    if (bar.reserve !== reserve) {
+      bar.reserve = reserve;
+    }
+  };
+
+  private _watchSidebar() {
+    const sidebar = this._manualEditor?.sidebarLayoutElement;
+    if (sidebar === this._observedSidebar) {
+      return;
+    }
+    this._sidebarObserver?.disconnect();
+    this._observedSidebar = sidebar;
+    if (!sidebar || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    this._sidebarObserver ??= new ResizeObserver(this._measureBarReserve);
+    this._sidebarObserver.observe(sidebar);
+  }
+
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
 
     if (!this.hass) {
       return;
     }
+
+    this._watchSidebar();
+    this._measureBarReserve();
 
     const shouldResetNewAutomationConfigFromQuery =
       changedProps.has("route") &&
@@ -950,6 +1008,11 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     ev: CustomEvent<{ value: SidebarConfig | undefined }>
   ) => {
     this._triggerController.checkShowIndices(ev.detail.value);
+    // The pane opens or closes after the editor re-renders.
+    requestAnimationFrame(() => {
+      this._watchSidebar();
+      this._measureBarReserve();
+    });
   };
 
   private _updateConfig(config: AutomationConfig) {

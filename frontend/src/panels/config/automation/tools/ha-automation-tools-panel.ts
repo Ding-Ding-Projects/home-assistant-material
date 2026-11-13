@@ -68,14 +68,16 @@ export class HaAutomationToolsPanel extends LitElement {
             </button>`
         )}
       </div>
-      ${
-        active?.descriptionKey
-          ? html`<p class="description">
-              ${this.hass.localize(active.descriptionKey as any)}
-            </p>`
-          : nothing
-      }
-      <div class="content" role="tabpanel">${this._renderTool()}</div>
+      <div class=${classMap({ stage: true, steady: !this.narrow })}>
+        ${
+          active?.descriptionKey
+            ? html`<p class="description">
+                ${this.hass.localize(active.descriptionKey as any)}
+              </p>`
+            : nothing
+        }
+        <div class="content" role="tabpanel">${this._renderTool()}</div>
+      </div>
     `;
     if (this.narrow) {
       return html`<ha-bottom-sheet open flexcontent @closed=${this._closed}>
@@ -161,6 +163,20 @@ export class HaAutomationToolsPanel extends LitElement {
         .description {
           margin: var(--ha-space-1) 0 var(--ha-space-3);
           color: var(--secondary-text-color);
+        }
+        /* In the dialog the body keeps one height, so the dialog's top edge and
+           size do not jump from tab to tab; a tall tool scrolls inside it. */
+        .stage.steady {
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+          block-size: min(70dvh, 640px);
+          min-block-size: 0;
+        }
+        .stage.steady .content {
+          flex: 1 1 auto;
+          min-block-size: 0;
+          overflow: auto;
         }
         .content {
           display: block;

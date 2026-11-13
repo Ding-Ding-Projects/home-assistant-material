@@ -47,6 +47,24 @@ describe("nearestNamedColour", () => {
     expect(white.colour.tone).toBe(300);
   });
 
+  it("names neutrals as greys, never as the nearest tinted family", () => {
+    // Pure black used to be called "Deepest teal" because that was the nearest.
+    expect(nearestNamedColour([0, 0, 0]).nameId).toBe("neutral_black");
+    expect(nearestNamedColour([255, 255, 255]).nameId).toBe("neutral_white");
+    expect(nearestNamedColour([128, 128, 128]).nameId).toBe("neutral_grey");
+    expect(nearestNamedColour([60, 60, 60]).nameId).toBe("neutral_dark_grey");
+    expect(nearestNamedColour([200, 200, 200]).nameId).toBe(
+      "neutral_light_grey"
+    );
+  });
+
+  it("keeps the palette name for tinted colours and exact matches", () => {
+    expect(nearestNamedColour(hex2rgb("#f44337")).nameId).toBe("red_500");
+    NAMED_PALETTE.forEach((colour) => {
+      expect(nearestNamedColour(hex2rgb(colour.hex)).nameId).toBe(colour.id);
+    });
+  });
+
   it("measures in Lab space", () => {
     const lab = rgb2lab(hex2rgb("#4caf50"));
     expect(nearestNamedByLab(lab).colour.id).toBe("green_500");

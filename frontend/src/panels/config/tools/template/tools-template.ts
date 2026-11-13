@@ -37,6 +37,7 @@ import "../../../../components/ha-spinner";
 import "../../../../components/ha-split-panel";
 import type { HaSplitPanel } from "../../../../components/ha-split-panel";
 import "../../../../components/ha-svg-icon";
+import "../../../../components/string-builder/ha-string-builder-button";
 import "../../../../components/ha-tip";
 import "../../../../components/starting-points/ha-starting-points";
 import type { StartingPointSelectedDetail } from "../../../../components/starting-points/ha-starting-points";
@@ -322,6 +323,11 @@ class HaPanelDevTemplate extends LitElement {
           <h2>
             ${this.hass.localize("ui.panel.config.tools.tabs.templates.editor")}
           </h2>
+          <ha-string-builder-button
+            .hass=${this.hass}
+            .value=${this._template}
+            @string-builder-result=${this._builderResult}
+          ></ha-string-builder-button>
           <ha-button
             appearance="plain"
             size="small"
@@ -1062,6 +1068,19 @@ ${
     this._subscribeTemplate();
     this._storeTemplate();
     // The chosen text is in the editor: put the cursor there
+    this.updateComplete.then(() => {
+      this._codeEditor?.focus();
+    });
+  }
+
+  // The text from the string builder goes into the editor, then renders.
+  private _builderResult(ev: CustomEvent<{ value: string }>) {
+    ev.stopPropagation();
+    this._template = ev.detail.value;
+    this._subscribeTemplate();
+    this._storeTemplate();
+    this._debounceDraft();
+    this.requestUpdate();
     this.updateComplete.then(() => {
       this._codeEditor?.focus();
     });

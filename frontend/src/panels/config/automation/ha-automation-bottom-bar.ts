@@ -108,6 +108,12 @@ export class HaAutomationBottomBar extends LitElement {
   /** True while the on-screen keyboard is up. */
   @property({ type: Boolean, reflect: true }) public keyboard = false;
 
+  /**
+   * Room in pixels kept free at the end of the bar, so that it stops before a
+   * side pane that is fixed over that part of the page.
+   */
+  @property({ type: Number }) public reserve = 0;
+
   @state() private _checking = false;
 
   @state() private _dryRunning = false;
@@ -157,6 +163,7 @@ export class HaAutomationBottomBar extends LitElement {
   protected render() {
     const t = this.hass.localize;
     const runDisabled = !this.stateObj || this.dirty;
+    this.style.setProperty("--automation-bar-reserve", `${this.reserve}px`);
     return html`
       ${this._renderDryRun()}
       <div class="bar" role="group" aria-label=${t(`${PREFIX}label`)}>
@@ -414,7 +421,10 @@ export class HaAutomationBottomBar extends LitElement {
           align-items: center;
           gap: var(--ha-space-2);
           padding-top: var(--ha-space-2);
-          padding-inline: var(--ha-space-3);
+          padding-inline-start: var(--ha-space-3);
+          padding-inline-end: calc(
+            var(--ha-space-3) + var(--automation-bar-reserve, 0px)
+          );
           pointer-events: none;
         }
         :host([keyboard]) {

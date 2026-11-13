@@ -61,7 +61,37 @@ export interface NearestNamedColour {
   colour: NamedPaletteColour;
   /** CIE76 distance in Lab, 0 for an exact match. */
   distance: number;
+  /**
+   * The id to build the colour's name from: the palette colour's id, or a
+   * neutral id (`neutral_black` and so on) when the colour is a grey, which no
+   * palette family describes truthfully.
+   */
+  nameId: string;
 }
+
+/** Below this Lab chroma a colour reads as a neutral, not a tinted colour. */
+const NEUTRAL_CHROMA = 8;
+
+/** The neutral name of a Lab colour, or undefined when it is clearly tinted. */
+const neutralNameId = (lab: LabColor): string | undefined => {
+  if (Math.hypot(lab[1], lab[2]) >= NEUTRAL_CHROMA) {
+    return undefined;
+  }
+  const lightness = lab[0];
+  if (lightness < 10) {
+    return "neutral_black";
+  }
+  if (lightness < 35) {
+    return "neutral_dark_grey";
+  }
+  if (lightness < 65) {
+    return "neutral_grey";
+  }
+  if (lightness < 92) {
+    return "neutral_light_grey";
+  }
+  return "neutral_white";
+};
 
 /** The named colour closest to a Lab colour, measured in Lab space. */
 export const nearestNamedByLab = (lab: LabColor): NearestNamedColour => {
@@ -78,7 +108,9 @@ export const nearestNamedByLab = (lab: LabColor): NearestNamedColour => {
       bestDistance = distance;
     }
   });
-  return { colour: NAMED_PALETTE[best], distance: bestDistance };
+  const colour = NAMED_PALETTE[best];
+  const neutral = bestDistance === 0 ? undefined : neutralNameId(lab);
+  return { colour, distance: bestDistance, nameId: neutral ?? colour.id };
 };
 
 /** The named colour closest to an sRGB colour (components 0 to 255). */

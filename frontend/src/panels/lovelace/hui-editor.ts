@@ -254,7 +254,10 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
         }
 
         .content {
-          height: calc(100vh - var(--header-height));
+          /* The page is a card set in from the window edges, so the room is
+             the window less the header and less that inset; without the
+             inset the status bar fell below the window bottom. */
+          height: calc(100vh - var(--header-height) - var(--ha-space-8));
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-2);

@@ -63,7 +63,12 @@
         "name_pink_300": "淺粉紅色",
         "name_pink_500": "粉紅色",
         "name_pink_700": "深粉紅色",
-        "name_pink_900": "極深粉紅色"
+        "name_pink_900": "極深粉紅色",
+        "name_neutral_black": "黑色",
+        "name_neutral_dark_grey": "深灰色",
+        "name_neutral_grey": "灰色",
+        "name_neutral_light_grey": "淺灰色",
+        "name_neutral_white": "白色"
       }
     },
     "panel": {

@@ -96,7 +96,7 @@ class ToolsColour extends LitElement {
     const hasEyeDropper = "EyeDropper" in window;
     const hex = formats.hex.toLowerCase();
     const nearest = nearestNamedColour([r, g, b]);
-    const nearestName = this._p(`name_${nearest.colour.id}`);
+    const nearestName = this._p(`name_${nearest.nameId}`);
     const gamut = gamutOfRgb([Math.round(r), Math.round(g), Math.round(b)]);
     return html`
       <div class="content">
