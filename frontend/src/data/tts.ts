@@ -61,3 +61,20 @@ export const listTTSVoices = (
     engine_id,
     language,
   });
+
+export interface TTSEngineOptions {
+  /** Options the engine declares itself. */
+  supported_options: string[];
+  /** Audio format hints accepted for every engine. */
+  common_options: string[];
+  default_options: Record<string, unknown>;
+}
+
+export const getTTSEngineOptions = (
+  callWS: HomeAssistant["callWS"],
+  engine_id: string
+): Promise<TTSEngineOptions> =>
+  callWS({
+    type: "tts/engine/options",
+    engine_id,
+  });

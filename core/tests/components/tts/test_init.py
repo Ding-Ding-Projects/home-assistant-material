@@ -1848,6 +1848,48 @@ async def test_ws_list_voices(
     }
 
 
+@pytest.mark.parametrize(
+    ("setup", "engine_id"),
+    [
+        ("mock_setup", "test"),
+        ("mock_config_entry_setup", "tts.test"),
+    ],
+    indirect=["setup"],
+)
+async def test_ws_list_engine_options(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, setup: str, engine_id: str
+) -> None:
+    """Test listing the options a tts engine accepts."""
+    client = await hass_ws_client()
+
+    await client.send_json_auto_id(
+        {"type": "tts/engine/options", "engine_id": "smurf_tts"}
+    )
+    msg = await client.receive_json()
+    assert not msg["success"]
+    assert msg["error"] == {
+        "code": "not_found",
+        "message": "tts engine smurf_tts not found",
+    }
+
+    await client.send_json_auto_id(
+        {"type": "tts/engine/options", "engine_id": engine_id}
+    )
+    msg = await client.receive_json()
+    assert msg["success"]
+    assert msg["result"] == {
+        "supported_options": ["voice", "age"],
+        "common_options": [
+            "preferred_bitrate",
+            "preferred_format",
+            "preferred_sample_bytes",
+            "preferred_sample_channels",
+            "preferred_sample_rate",
+        ],
+        "default_options": {},
+    }
+
+
 async def test_async_convert_audio_error(hass: HomeAssistant) -> None:
     """Test that ffmpeg failing during audio conversion will raise an error."""
     assert await async_setup_component(hass, ffmpeg.DOMAIN, {})

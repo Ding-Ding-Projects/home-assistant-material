@@ -656,6 +656,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, websocket_list_engines)
     websocket_api.async_register_command(hass, websocket_get_engine)
     websocket_api.async_register_command(hass, websocket_list_engine_voices)
+    websocket_api.async_register_command(hass, websocket_list_engine_options)
 
     # Legacy config options
     conf = config[DOMAIN][0] if config.get(DOMAIN) else {}
@@ -1899,3 +1900,45 @@ def websocket_list_engine_voices(
     voices = {"voices": engine_instance.async_get_supported_voices(language)}
 
     connection.send_message(websocket_api.result_message(msg["id"], voices))
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "tts/engine/options",
+        probatio.Required("engine_id"): str,
+    }
+)
+@websocket_api.require_admin
+@callback
+def websocket_list_engine_options(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """List the options an engine accepts in the options of a speak call.
+
+    ``supported_options`` are the options the engine declares itself.
+    ``common_options`` are accepted for every engine (audio format hints that
+    are converted when the engine cannot produce them). ``default_options`` are
+    the values used when a call does not set the option.
+    """
+    engine_id = msg["engine_id"]
+
+    engine_instance = get_engine_instance(hass, engine_id)
+
+    if not engine_instance:
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_NOT_FOUND,
+            f"tts engine {engine_id} not found",
+        )
+        return
+
+    connection.send_message(
+        websocket_api.result_message(
+            msg["id"],
+            {
+                "supported_options": list(engine_instance.supported_options or []),
+                "common_options": sorted(_PREFFERED_FORMAT_OPTIONS),
+                "default_options": dict(engine_instance.default_options or {}),
+            },
+        )
+    )
