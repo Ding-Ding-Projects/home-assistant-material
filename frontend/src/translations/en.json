@@ -1183,7 +1183,10 @@
           "new_entity": "Creates a new entity",
           "placeholder": "Select an entity",
           "create_helper": "Create a new {domain, select, \n undefined {} \n other {{domain} }\n }helper",
-          "unknown": "Unknown entity selected"
+          "unknown": "Unknown entity selected",
+          "current_state": "Current state: {state}",
+          "state_disconnected": "Disconnected. Last known state: {state}",
+          "state_missing": "No state available"
         },
         "entity-name-picker": {
           "types": {
@@ -1953,6 +1956,8 @@
         "volume": "Volume"
       },
       "media-browser": {
+        "breadcrumbs": "Media location",
+        "location_level": "Location {level}",
         "tts": {
           "message": "Message",
           "example_message": "Hello {name}, you can play any text on any supported media player!",
@@ -1972,10 +1977,12 @@
         "play-media": "Play media",
         "pick-media": "Pick media",
         "search": {
+          "provider_scope": "Search provided by {name}",
           "search_placeholder": "Search {name}",
           "no_results": "No results found"
         },
         "filter": {
+          "loaded_scope": "Filter loaded items in this folder only",
           "filter_placeholder": "Filter {name}",
           "no_matches": "No items match your filter"
         },
@@ -10465,7 +10472,8 @@
                   "then": "Then",
                   "else": "Else"
                 },
-                "show_step": "Show this step in the editor"
+                "show_step": "Show this step in the editor",
+                "step_not_visible": "This step is not visible. Open the visual editor and expand its parent steps, then try again."
               },
               "trace": {
                 "title": "Last runs",
@@ -10477,6 +10485,7 @@
                 "run_summary": "{steps} steps, {duration}, {state}",
                 "variables": "Variables at the selected step",
                 "pick_step": "Select a step to see the variables it changed.",
+                "step_changed": "This step has changed or been removed since the run. View its recorded details here instead.",
                 "result": {
                   "finished": "finished",
                   "aborted": "stopped by a step",
@@ -10507,6 +10516,7 @@
                 "title": "Simulator",
                 "description": "Enter a situation and see which steps would run. Nothing is run and no service is called.",
                 "situation": "Situation",
+                "trigger_id": "Simulated trigger ID (optional)",
                 "safe": "Nothing really changes. Only the states you enter below are used, on top of the current ones.",
                 "time": "Time of day",
                 "weekday": "Day of the week",
@@ -10522,7 +10532,7 @@
                 "add_state": "Add a state",
                 "remove_state": "Remove this state",
                 "state": "State",
-                "limits": "State, numeric state, time, weekday and zone conditions can be decided here. Conditions of any other kind, such as templates and sun, are shown as unknown. The trigger is taken as given.",
+                "limits": "State, numeric state, time, weekday, zone, and trigger ID conditions can be decided here. Other conditions, such as templates and sun, are shown as unknown. A trigger is assumed to have fired; its ID is only checked when supplied.",
                 "simulate": "Simulate",
                 "result": "Result",
                 "empty": "Choose a situation and select Simulate.",
@@ -20124,6 +20134,13 @@
               "saved": "Saved.",
               "saved_card": "Saved the card.",
               "screens": {
+                "devices": "Preview devices",
+                "custom": "Custom screen",
+                "custom_width": "Custom width (pixels)",
+                "custom_height": "Custom height (pixels)",
+                "custom_invalid": "Enter a whole number from 240 to 3840 for both dimensions.",
+                "rotate": "Rotate",
+                "rotate_device": "Rotate {device}",
                 "intro": "Each frame is this dashboard's own page at that screen width, showing the saved view. Save your changes, then reload the frames to see them.",
                 "show": "Show the screens",
                 "hide": "Hide the screens",
@@ -20693,6 +20710,7 @@
           "primary_color": "Primary color",
           "accent_color": "Accent color",
           "reset": "Reset colors",
+          "restore_colors": "Undo color change",
           "use_default": "Use default theme"
         },
         "dashboard": {

@@ -88,6 +88,9 @@ export const parseStoredCases = (value: unknown): TestCase[] => {
       situation: {
         time: raw.situation.time,
         overrides,
+        ...(typeof raw.situation.triggerId === "string"
+          ? { triggerId: raw.situation.triggerId }
+          : {}),
         ...(typeof weekday === "number" && weekday >= 0 && weekday <= 6
           ? { weekday }
           : {}),

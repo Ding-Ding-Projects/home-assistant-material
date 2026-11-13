@@ -82,3 +82,51 @@ describe("simulation through the dry run", () => {
     expect(unknown.steps[0].detail).toBe("unsupported:template");
   });
 });
+
+describe("simulated trigger conditions", () => {
+  it("uses the supplied trigger ID without executing an action", async () => {
+    const hass = buildSimulationHass(live, {
+      overrides: [],
+      time: "22:00",
+      triggerId: "arrived",
+    });
+    const result = await dryRunAutomation(hass, {
+      conditions: [{ condition: "trigger", id: ["arrived", "manual"] }],
+      actions: [{ action: "light.turn_on" }],
+    });
+    expect(result.conditions).toBe("pass");
+    expect(result.counts.would_run).toBe(1);
+    const other = await dryRunAutomation(hass, {
+      conditions: [{ condition: "trigger", id: "left" }],
+      actions: [{ action: "light.turn_on" }],
+    });
+    expect(other.conditions).toBe("fail");
+    expect(other.counts.would_skip).toBe(1);
+    await expect(hass.callWS({ type: "call_service" })).rejects.toThrow(
+      "not available in a simulation"
+    );
+  });
+
+  it("does not guess which trigger fired when its ID is unset", async () => {
+    const hass = buildSimulationHass(live, { overrides: [], time: "22:00" });
+    const result = await dryRunAutomation(hass, {
+      conditions: [{ condition: "trigger", id: "arrived" }],
+      actions: [],
+    });
+    expect(result.conditions).toBe("unknown");
+    expect(result.steps[0].reason).toBe("needs_trigger");
+  });
+
+  it("accepts explicit seconds in simulated time", () => {
+    expect(
+      evaluateTime(
+        { after: "22:00:30" },
+        {
+          overrides: [],
+          time: "22:00:45",
+        },
+        {}
+      )
+    ).toBe(true);
+  });
+});

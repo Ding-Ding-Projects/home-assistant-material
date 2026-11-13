@@ -44,6 +44,8 @@ export class HaAutomationToolSimulate extends LitElement {
 
   @state() private _weekday = "";
 
+  @state() private _triggerId = "";
+
   @state() private _overrides: { entityId: string; state: string }[] = [];
 
   @state() private _running = false;
@@ -119,6 +121,11 @@ export class HaAutomationToolSimulate extends LitElement {
             ]}
             @selected=${this._weekdayChanged}
           ></ha-select>
+          <ha-input
+            .label=${this._t("trigger_id")}
+            .value=${this._triggerId}
+            @input=${this._triggerChanged}
+          ></ha-input>
           <h4>${this._t("states")}</h4>
           ${this._overrides.map((row, index) => this._renderRow(row, index))}
           <ha-button appearance="plain" @click=${this._addRow}>
@@ -257,6 +264,10 @@ export class HaAutomationToolSimulate extends LitElement {
     </li>`;
   }
 
+  private _triggerChanged(ev: Event) {
+    this._triggerId = (ev.target as HTMLInputElement).value;
+  }
+
   private _timeChanged(ev: Event) {
     this._time = (ev.target as HTMLInputElement).value;
   }
@@ -300,6 +311,7 @@ export class HaAutomationToolSimulate extends LitElement {
     const situation: Situation = {
       overrides: this._overrides.filter((r) => r.entityId),
       time: this._time,
+      triggerId: this._triggerId || undefined,
       weekday: this._weekday === "" ? undefined : Number(this._weekday),
     };
     this._running = true;

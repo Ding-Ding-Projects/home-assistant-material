@@ -9,9 +9,16 @@ import type { CSSResultGroup } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, query, state } from "lit/decorators";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
-import type { HASSDomEvent } from "../../common/dom/fire_event";
+import type {
+  HASSDomCurrentTargetEvent,
+  HASSDomEvent,
+} from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
 import { stopPropagation } from "../../common/dom/stop_propagation";
+import {
+  mediaNavigationKey,
+  mediaNavigationAncestor,
+} from "../../common/media-browser/navigation";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import type {
   MediaPickedEvent,
@@ -21,6 +28,8 @@ import type {
 } from "../../data/media-player";
 import { haStyleDialog, haStyleDialogFixedTop } from "../../resources/styles";
 import "../ha-dialog-header";
+import "../ha-button";
+import type { HaButton } from "../ha-button";
 import "../ha-dropdown";
 import type { HaDropdownSelectEvent } from "../ha-dropdown";
 import "../ha-dropdown-item";
@@ -48,9 +57,12 @@ class DialogMediaPlayerBrowse extends LitElement {
 
   @state() private _open = false;
 
+  private _browseTitles = new Map<string, string>();
+
   @query("ha-media-player-browse") private _browser!: HaMediaPlayerBrowse;
 
   public showDialog(params: MediaPlayerBrowseDialogParams): void {
+    this._browseTitles.clear();
     this._params = params;
     this._navigateIds = params.navigateIds || [
       {
@@ -66,6 +78,7 @@ class DialogMediaPlayerBrowse extends LitElement {
     this._params = undefined;
     this._navigateIds = undefined;
     this._currentItem = undefined;
+    this._browseTitles.clear();
     this._preferredLayout = "auto";
     this.classList.remove("opened");
     fireEvent(this, "dialog-closed", { dialog: this.localName });
@@ -157,6 +170,41 @@ class DialogMediaPlayerBrowse extends LitElement {
             slot="actionItems"
           ></ha-icon-button>
         </ha-dialog-header>
+        <nav
+          class="browse-path"
+          aria-label=${this._localize("ui.components.media-browser.breadcrumbs")}
+        >
+          ${this._navigateIds.map((item, index) =>
+            index < (this._params!.minimumNavigateLevel ?? 1) - 1
+              ? nothing
+              : html`<ha-button
+                  appearance="plain"
+                  size="s"
+                  .value=${String(index)}
+                  .disabled=${index === this._navigateIds!.length - 1}
+                  aria-current=${
+                    index === this._navigateIds!.length - 1
+                      ? "location"
+                      : "false"
+                  }
+                  @click=${this._navigateToBreadcrumb}
+                >
+                  ${
+                    this._browseTitles.get(mediaNavigationKey(item)) ||
+                    (index === 0
+                      ? this._localize(
+                          "ui.components.media-browser.media-player-browser"
+                        )
+                      : this._localize(
+                          "ui.components.media-browser.location_level",
+                          {
+                            level: index + 1,
+                          }
+                        ))
+                  }
+                </ha-button>`
+          )}
+        </nav>
         <ha-media-player-browse
           dialog
           .entityId=${this._params.entityId}
@@ -166,7 +214,7 @@ class DialogMediaPlayerBrowse extends LitElement {
           .accept=${this._params.accept}
           .defaultId=${this._params.defaultId}
           .defaultType=${this._params.defaultType}
-          .hideContentType=${this._params.hideContentType}
+          .hideContentType=${this._params.hideContentType ?? false}
           .contentIdHelper=${this._params.contentIdHelper}
           @close-dialog=${this.closeDialog}
           @media-picked=${this._mediaPicked}
@@ -200,9 +248,27 @@ class DialogMediaPlayerBrowse extends LitElement {
     this._currentItem = undefined;
   }
 
+  private _navigateToBreadcrumb(ev: HASSDomCurrentTargetEvent<HaButton>) {
+    if (!this._navigateIds) return;
+    const next = mediaNavigationAncestor(
+      this._navigateIds,
+      Number(ev.currentTarget.value),
+      this._params?.minimumNavigateLevel ?? 1
+    );
+    if (next === this._navigateIds) return;
+    this._navigateIds = next;
+    this._currentItem = undefined;
+  }
+
   private _mediaBrowsed(ev: { detail: HASSDomEvents["media-browsed"] }) {
     this._navigateIds = ev.detail.ids;
     this._currentItem = ev.detail.current;
+    if (ev.detail.current && ev.detail.ids.length) {
+      this._browseTitles.set(
+        mediaNavigationKey(ev.detail.ids[ev.detail.ids.length - 1]),
+        ev.detail.current.title
+      );
+    }
   }
 
   private _mediaPicked(ev: HASSDomEvent<MediaPickedEvent>): void {
@@ -229,16 +295,27 @@ class DialogMediaPlayerBrowse extends LitElement {
           --dialog-content-padding: 0;
         }
 
+        .browse-path {
+          display: flex;
+          flex: 0 0 auto;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-1) var(--ha-space-4);
+          overflow-x: auto;
+          border-bottom: 1px solid var(--divider-color);
+        }
+        .browse-path ha-button {
+          flex-shrink: 0;
+        }
         ha-media-player-browse {
           --media-browser-max-height: calc(
-            100vh - 65px - var(--safe-area-inset-y)
+            100vh - 109px - var(--safe-area-inset-y)
           );
           height: 100vh;
           height: 100dvh;
         }
 
         :host(.opened) ha-media-player-browse {
-          height: calc(100vh - 65px - var(--safe-area-inset-y));
+          height: calc(100vh - 109px - var(--safe-area-inset-y));
         }
 
         @media (min-width: 800px) {
@@ -251,7 +328,7 @@ class DialogMediaPlayerBrowse extends LitElement {
           ha-media-player-browse {
             position: initial;
             --media-browser-max-height: calc(
-              100vh - 145px - var(--safe-area-inset-y)
+              100vh - 189px - var(--safe-area-inset-y)
             );
           }
         }

@@ -56,6 +56,11 @@ export class HaAutomationSituationForm extends LitElement {
         ]}
         @selected=${this._weekdayChanged}
       ></ha-select>
+      <ha-input
+        .label=${this._t("trigger_id")}
+        .value=${this.situation.triggerId ?? ""}
+        @input=${this._triggerChanged}
+      ></ha-input>
       <h4>${this._t("states")}</h4>
       ${overrides.map(
         (row, index) =>
@@ -89,6 +94,13 @@ export class HaAutomationSituationForm extends LitElement {
 
   private _change(situation: Situation) {
     fireEvent(this, "situation-changed", { situation });
+  }
+
+  private _triggerChanged(ev: Event) {
+    this._change({
+      ...this.situation,
+      triggerId: (ev.target as HTMLInputElement).value || undefined,
+    });
   }
 
   private _timeChanged(ev: Event) {

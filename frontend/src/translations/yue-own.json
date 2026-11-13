@@ -2266,6 +2266,14 @@
         "save_failed": "儲存唔到：{message}"
       },
       "media-browser": {
+        "breadcrumbs": "媒體位置",
+        "location_level": "位置 {level}",
+        "search": {
+          "provider_scope": "由 {name} 提供搜尋"
+        },
+        "filter": {
+          "loaded_scope": "只篩選此資料夾內已載入的項目"
+        },
         "file_management": {
           "title": "媒體管理",
           "manage": "管理",

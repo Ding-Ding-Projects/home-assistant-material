@@ -117,8 +117,13 @@ interface Gate {
   reason?: DryRunReason;
 }
 
+export type DryRunHass = Pick<HomeAssistant, "states" | "callWS"> & {
+  /** Only simulation supplies a trigger ID; live dry runs leave it unset. */
+  simulatedTriggerId?: string;
+};
+
 interface Ctx {
-  hass: Pick<HomeAssistant, "states" | "callWS">;
+  hass: DryRunHass;
   steps: DryRunStep[];
 }
 
@@ -200,6 +205,19 @@ const viaServer = async (
   ctx: Ctx,
   condition: Condition
 ): Promise<Evaluated> => {
+  if (condition.condition === "trigger" && ctx.hass.simulatedTriggerId) {
+    const ids = (condition as { id?: unknown }).id;
+    if (
+      typeof ids === "string" ||
+      (Array.isArray(ids) && ids.every((id) => typeof id === "string"))
+    ) {
+      return {
+        result: toList(ids).includes(ctx.hass.simulatedTriggerId)
+          ? "pass"
+          : "fail",
+      };
+    }
+  }
   if (condition.condition === "trigger" || readsTrigger(condition)) {
     return { result: "unknown", reason: "needs_trigger" };
   }
@@ -1010,7 +1028,7 @@ const walkRepeat = async (
  * taken as given, so a template that reads it cannot be told.
  */
 export const dryRunAutomation = async (
-  hass: Pick<HomeAssistant, "states" | "callWS">,
+  hass: DryRunHass,
   config: Pick<ManualAutomationConfig, "conditions" | "actions">
 ): Promise<DryRunResult> => {
   const ctx: Ctx = { hass, steps: [] };

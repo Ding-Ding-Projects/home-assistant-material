@@ -6,7 +6,7 @@ still a centred dialog, not a side panel or a sheet.
 
 | Tool | What it does |
 | --- | --- |
-| Screens | Four same-origin frames of the saved view side by side |
+| Screens | Select phone, tablet, wall panel, and desktop frames of the saved view; rotate each independently and add a custom 240–3840 pixel viewport |
 | Layout and resize | Grid columns and rows per card in sections views; drag to resize; "Make phone friendly" |
 | Visibility | The existing visibility editor per card |
 | Interactions | Tap, hold and double-tap actions, and tap feedback |
@@ -32,3 +32,9 @@ still a centred dialog, not a side panel or a sheet.
 
 Unit tested (editing functions, scans, library versions). Not seen in a browser. State: built,
 unit tested, not yet seen in a running build.
+
+## Screen comparison controls
+
+Choose only the device frames needed for the current comparison to avoid loading unused dashboards. Each frame has a Rotate action. Enter both custom dimensions to add a bounded custom viewport; invalid dimensions do not load a frame. These controls do not modify dashboard configuration. Frames still show the saved view, not unsaved editor changes.
+
+Dimension validation and rotation are covered by focused unit tests. Browser verification remains required.

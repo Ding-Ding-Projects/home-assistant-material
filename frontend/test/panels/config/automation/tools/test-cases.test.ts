@@ -256,3 +256,21 @@ describe("stored cases", () => {
     });
   });
 });
+
+describe("simulated trigger persistence", () => {
+  it("preserves trigger IDs in imported test situations and ignores invalid values", () => {
+    const saved = {
+      id: "arrival",
+      name: "Arrival branch",
+      situation: { time: "18:00", overrides: [], triggerId: "arrived" },
+      expectRun: [],
+      expectSkip: [],
+    };
+    expect(parseStoredCases([saved])[0].situation.triggerId).toBe("arrived");
+    expect(
+      parseStoredCases([
+        { ...saved, situation: { ...saved.situation, triggerId: 3 } },
+      ])[0].situation.triggerId
+    ).toBeUndefined();
+  });
+});
