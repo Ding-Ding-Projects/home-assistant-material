@@ -56,8 +56,9 @@ gulp.task(
     "translations-enable-merge-backend",
     gulp.parallel("gen-icons-json", "build-translations", "build-locale-data"),
     "copy-static-demo",
-    "rspack-prod-demo-e2e",
-    "gen-pages-demo-prod-e2e"
+    // Public demos need both supported browser targets; the loader selects one.
+    "rspack-prod-demo",
+    "gen-pages-demo-prod"
   )
 );
 
