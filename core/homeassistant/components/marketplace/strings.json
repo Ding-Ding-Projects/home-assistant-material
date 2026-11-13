@@ -304,6 +304,69 @@
     "uninstall_failed": {
       "message": "Could not uninstall {repository}. Check the Home Assistant logs for details."
     },
+    "upload_bad_request": {
+      "message": "The upload is not in the form the Marketplace expects."
+    },
+    "upload_blueprint_invalid": {
+      "message": "The blueprint {name} can not be read: {error}"
+    },
+    "upload_built_in": {
+      "message": "The integration uses the name {domain}, which belongs to an integration that comes with Home Assistant. Replacing a built-in integration from a file is not supported."
+    },
+    "upload_encrypted": {
+      "message": "The archive holds an encrypted file, {path}."
+    },
+    "upload_item_invalid": {
+      "message": "{name} can not be added: {problems}."
+    },
+    "upload_item_not_found": {
+      "message": "What was chosen is not in the archive."
+    },
+    "upload_link_entry": {
+      "message": "The archive holds a link or another special file, {path}. Only plain files and folders are accepted."
+    },
+    "upload_not_supported": {
+      "message": "{name} is an app or an app repository. Apps can not be added from a file here, add the repository of apps in the app store instead."
+    },
+    "upload_not_zip": {
+      "message": "The file is not a ZIP archive."
+    },
+    "upload_path_too_deep": {
+      "message": "The archive holds a path that is nested too deeply: {path}."
+    },
+    "upload_post_install_failed": {
+      "message": "{name} was added, but the steps that make Home Assistant use it failed: {error}"
+    },
+    "upload_ratio": {
+      "message": "The archive holds a file that expands far more than it should, {path}."
+    },
+    "upload_target_exists": {
+      "message": "{path} already exists and was not added from a file, so it is left alone. Remove it first to add this one."
+    },
+    "upload_template_invalid": {
+      "message": "The template {file} can not be used: {error}"
+    },
+    "upload_theme_invalid": {
+      "message": "The theme file {file} can not be used: {error}"
+    },
+    "upload_too_large": {
+      "message": "The archive is larger than {limit} bytes."
+    },
+    "upload_too_large_unpacked": {
+      "message": "The archive expands to more than {limit} bytes."
+    },
+    "upload_too_many_entries": {
+      "message": "The archive holds {count} entries, the limit is {limit}."
+    },
+    "upload_unsafe_path": {
+      "message": "The archive holds a path that is not allowed: {path}."
+    },
+    "upload_unsupported_method": {
+      "message": "The archive holds a file that is packed in a way that is not supported, {path}."
+    },
+    "upload_write_failed": {
+      "message": "Could not write the files: {error}"
+    },
     "validation_failed": {
       "message": "Checking {repository} failed: {error}"
     },

@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type * as ArchiveUploadModule from "../../../src/data/marketplace/archive-upload";
+import type { ArchiveItem } from "../../../src/data/marketplace/archive-detect";
+import type { ArchiveInspection } from "../../../src/data/marketplace/archive-upload";
+import {
+  inspectArchive,
+  uploadArchiveItem,
+} from "../../../src/data/marketplace/archive-upload";
+import { ArchiveReadError } from "../../../src/data/marketplace/archive-zip";
 import type { MarketplaceData } from "../../../src/data/marketplace/marketplace";
+import { showConfirmationDialog } from "../../../src/dialogs/generic/show-dialog-box";
 import type { RepositoryBase } from "../../../src/data/marketplace/repository";
 import "../../../src/panels/marketplace/dialogs/dialog-marketplace-custom-repositories";
 import type { DialogMarketplaceCustomRepositories } from "../../../src/panels/marketplace/dialogs/dialog-marketplace-custom-repositories";
@@ -24,6 +33,24 @@ const stubElement = vi.hoisted(() => (tag: string) => {
 
 vi.mock("../../../src/components/ha-alert", () => stubElement("ha-alert"));
 vi.mock("../../../src/components/ha-button", () => stubElement("ha-button"));
+vi.mock("../../../src/components/ha-button-toggle-group", () =>
+  stubElement("ha-button-toggle-group")
+);
+vi.mock("../../../src/components/ha-file-upload", () =>
+  stubElement("ha-file-upload")
+);
+vi.mock(
+  "../../../src/panels/marketplace/components/ha-marketplace-archive-found",
+  () => stubElement("ha-marketplace-archive-found")
+);
+vi.mock(
+  "../../../src/data/marketplace/archive-upload",
+  async (importOriginal) => ({
+    ...(await importOriginal<typeof ArchiveUploadModule>()),
+    inspectArchive: vi.fn(),
+    uploadArchiveItem: vi.fn(),
+  })
+);
 vi.mock("../../../src/components/ha-dialog", async () => {
   (await import("./dialog-host")).defineClosingDialogStub();
   return {};
@@ -380,5 +407,229 @@ describe("dialog-marketplace-custom-repositories", () => {
     expect(sendMessagePromise).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: "marketplace/repositories/add" })
     );
+  });
+});
+
+const FILE = "ui.panel.marketplace.dialog_custom_repositories.file";
+
+const item = (values: Partial<ArchiveItem>): ArchiveItem => ({
+  id: "integration:a/custom_components/x",
+  kind: "integration",
+  name: "Demo",
+  source: "a/custom_components/x",
+  marker: "a/custom_components/x/manifest.json",
+  rule: "integration_manifest",
+  domain: "x",
+  themes: [],
+  apps: [],
+  problems: [],
+  ...values,
+});
+
+const inspection = (items: ArchiveItem[]): ArchiveInspection => ({
+  fileName: "demo.zip",
+  fileSize: 10,
+  entryCount: 3,
+  items,
+});
+
+const pickedFile = () => new File(["zip"], "demo.zip");
+
+const openFileMode = async (found: ArchiveInspection) => {
+  vi.mocked(inspectArchive).mockResolvedValue(found);
+  const dialog = await openCustomRepositoriesDialog(async () => null, false);
+  getInternals(dialog)._mode = "file";
+  await dialog.updateComplete;
+  await getInternals(dialog)._filePicked({ detail: { files: [pickedFile()] } });
+  await dialog.updateComplete;
+  return dialog;
+};
+
+const title = (dialog: HTMLElement) =>
+  (
+    dialog.shadowRoot!.querySelector("ha-dialog") as HTMLElement & {
+      headerTitle: string;
+    }
+  ).headerTitle;
+
+describe("dialog-marketplace-custom-repositories, adding from a file", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+    vi.clearAllMocks();
+  });
+
+  it("offers a link and a file, and starts with the link", async () => {
+    const dialog = await openCustomRepositoriesDialog(async () => null);
+    const group = dialog.shadowRoot!.querySelector(
+      "ha-button-toggle-group"
+    ) as unknown as { buttons: { value: string }[]; active: string };
+
+    expect(group.buttons.map((button) => button.value)).toEqual([
+      "link",
+      "file",
+    ]);
+    expect(group.active).toBe("link");
+  });
+
+  it("asks for a file, warns about unknown sources and needs no GitHub connection", async () => {
+    const dialog = await openCustomRepositoriesDialog(async () => null, false);
+    getInternals(dialog)._mode = "file";
+    await dialog.updateComplete;
+    const root = dialog.shadowRoot!;
+
+    expect(title(dialog)).toBe(`${FILE}.title`);
+    expect(root.querySelector("ha-file-upload")).not.toBeNull();
+    expect(root.querySelector("ha-form")).toBeNull();
+    expect(root.textContent).toContain(`${FILE}.unknown_source`);
+    expect(root.textContent).not.toContain("github_needed");
+  });
+
+  it("says a repository was found, and selects what can be added", async () => {
+    const dialog = await openFileMode(inspection([item({})]));
+
+    expect(title(dialog)).toBe(`${FILE}.found.title_repository`);
+    expect(getInternals(dialog)._selected).toEqual([
+      "integration:a/custom_components/x",
+    ]);
+    expect(
+      dialog.shadowRoot!.querySelector("ha-marketplace-archive-found")
+    ).not.toBeNull();
+  });
+
+  it("says an app was found when that is all there is, and adds nothing", async () => {
+    const dialog = await openFileMode(
+      inspection([item({ id: "app:x", kind: "app", source: "x" })])
+    );
+
+    expect(title(dialog)).toBe(`${FILE}.found.title_app`);
+    expect(getInternals(dialog)._selected).toEqual([]);
+    expect(getInternals(dialog)._canAddFromFile()).toBe(false);
+  });
+
+  it("says when it found nothing it recognises", async () => {
+    const dialog = await openFileMode(inspection([]));
+
+    expect(title(dialog)).toBe(`${FILE}.found.title_none`);
+    expect(getInternals(dialog)._canAddFromFile()).toBe(false);
+  });
+
+  it("explains an archive it refuses, and asks for another file", async () => {
+    vi.mocked(inspectArchive).mockRejectedValue(
+      new ArchiveReadError("not_zip")
+    );
+    const dialog = await openCustomRepositoriesDialog(async () => null);
+    getInternals(dialog)._mode = "file";
+    await getInternals(dialog)._filePicked({
+      detail: { files: [pickedFile()] },
+    });
+    await dialog.updateComplete;
+
+    expect(dialog.shadowRoot!.textContent).toContain(`${FILE}.errors.not_zip`);
+    expect(dialog.shadowRoot!.querySelector("ha-file-upload")).not.toBeNull();
+    expect(getInternals(dialog)._inspection).toBeUndefined();
+  });
+
+  it("can go back to choose another file", async () => {
+    const dialog = await openFileMode(inspection([item({})]));
+
+    getInternals(dialog)._chooseAnother();
+    await dialog.updateComplete;
+
+    expect(getInternals(dialog)._inspection).toBeUndefined();
+    expect(dialog.shadowRoot!.querySelector("ha-file-upload")).not.toBeNull();
+  });
+
+  it("confirms once more before adding what runs code, and adds nothing when declined", async () => {
+    vi.mocked(showConfirmationDialog).mockResolvedValue(false);
+    const dialog = await openFileMode(inspection([item({})]));
+
+    await getInternals(dialog)._addFromFile();
+
+    expect(showConfirmationDialog).toHaveBeenCalledWith(
+      dialog,
+      expect.objectContaining({ destructive: true })
+    );
+    expect(uploadArchiveItem).not.toHaveBeenCalled();
+  });
+
+  it("sends the chosen item with its kind and place once confirmed", async () => {
+    vi.mocked(showConfirmationDialog).mockResolvedValue(true);
+    vi.mocked(uploadArchiveItem).mockResolvedValue({
+      kind: "integration",
+      name: "Demo",
+      path: "custom_components/x",
+      restart_required: true,
+      resource_url: null,
+      resource_added: false,
+    });
+    const dialog = await openFileMode(inspection([item({})]));
+
+    await getInternals(dialog)._addFromFile();
+    await dialog.updateComplete;
+
+    expect(uploadArchiveItem).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(File),
+      "demo.zip",
+      expect.objectContaining({
+        kind: "integration",
+        source: "a/custom_components/x",
+      })
+    );
+    expect(title(dialog)).toBe(`${FILE}.added.title`);
+    expect(dialog.shadowRoot!.textContent).toContain(`${FILE}.added.restart`);
+  });
+
+  it("adds a theme without the extra confirmation", async () => {
+    vi.mocked(uploadArchiveItem).mockResolvedValue({
+      kind: "theme",
+      name: "Ocean",
+      path: "themes/ocean",
+      restart_required: false,
+      resource_url: null,
+      resource_added: false,
+    });
+    const dialog = await openFileMode(
+      inspection([
+        item({
+          id: "theme:themes",
+          kind: "theme",
+          source: "themes",
+          rule: "theme_folder",
+          themes: ["Ocean"],
+        }),
+      ])
+    );
+
+    await getInternals(dialog)._addFromFile();
+
+    expect(showConfirmationDialog).not.toHaveBeenCalled();
+    expect(uploadArchiveItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows what the server refused, and offers to go back to the selection", async () => {
+    vi.mocked(uploadArchiveItem).mockRejectedValue({
+      status_code: 400,
+      body: {
+        translation_domain: "marketplace",
+        translation_key: "upload_target_exists",
+        message: "It already exists",
+      },
+    });
+    const dialog = await openFileMode(
+      inspection([item({ id: "template:t", kind: "template", source: "t" })])
+    );
+
+    await getInternals(dialog)._addFromFile();
+    await dialog.updateComplete;
+
+    expect(getInternals(dialog)._outcome.failed).toHaveLength(1);
+    expect(dialog.shadowRoot!.textContent).toContain(`${FILE}.added.failed`);
+
+    getInternals(dialog)._backToSelection();
+    await dialog.updateComplete;
+
+    expect(getInternals(dialog)._outcome).toBeUndefined();
+    expect(getInternals(dialog)._selected).toEqual(["template:t"]);
   });
 });

@@ -57,6 +57,7 @@ from .profiles import async_withdraw_profile_suggestions
 from .utils.backup import restore_interrupted_backups
 from .utils.file_system import async_exists
 from .utils.logger import LOGGER
+from .upload import MarketplaceUploadView
 from .utils.storage import STORAGE_CACHE_KEY
 from .websocket import async_register_websocket_commands
 
@@ -108,6 +109,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # The custom integration lived at /hacs, where bookmarks still point
     hass.http.register_redirect("/hacs", "/marketplace")
     hass.http.register_view(LegacyPanelRedirectView)
+    hass.http.register_view(MarketplaceUploadView)
 
     # A disabled entry counts, turning the Marketplace off is the user's call.
     # An entry of the custom integration is only left in safe and recovery

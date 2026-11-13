@@ -1,0 +1,228 @@
+{
+  "cases": [
+    {
+      "id": "integration_in_a_wrapping_folder",
+      "files": {
+        "demo-main/README.md": "",
+        "demo-main/custom_components/demo_x/__init__.py": "",
+        "demo-main/custom_components/demo_x/manifest.json": "{\"domain\": \"demo_x\", \"name\": \"Demo X\", \"version\": \"1.2.0\"}"
+      },
+      "expect": [
+        {
+          "kind": "integration",
+          "source": "demo-main/custom_components/demo_x",
+          "installable": true
+        }
+      ]
+    },
+    {
+      "id": "integration_with_content_in_root",
+      "files": {
+        "hacs.json": "{\"content_in_root\": true}",
+        "manifest.json": "{\"domain\": \"abc\", \"name\": \"Abc\"}",
+        "__init__.py": ""
+      },
+      "expect": [{ "kind": "integration", "source": "", "installable": true }]
+    },
+    {
+      "id": "integration_with_unreadable_manifest",
+      "files": {
+        "x/custom_components/broken/manifest.json": "not json"
+      },
+      "expect": [
+        {
+          "kind": "integration",
+          "source": "x/custom_components/broken",
+          "installable": false
+        }
+      ]
+    },
+    {
+      "id": "card_in_the_dist_folder",
+      "files": {
+        "lovelace-fancy-card-master/hacs.json": "{\"name\": \"fancy-card\"}",
+        "lovelace-fancy-card-master/dist/fancy-card.js": "",
+        "lovelace-fancy-card-master/src/card.ts": ""
+      },
+      "expect": [
+        {
+          "kind": "plugin",
+          "source": "lovelace-fancy-card-master/dist/fancy-card.js",
+          "installable": true
+        }
+      ]
+    },
+    {
+      "id": "card_named_after_the_archive",
+      "archive_name": "lovelace-mushroom-main.zip",
+      "files": {
+        "mushroom.js": "",
+        "webpack.config.js": ""
+      },
+      "expect": [{ "kind": "plugin", "source": "mushroom.js", "installable": true }]
+    },
+    {
+      "id": "card_that_is_the_only_script_in_dist",
+      "files": {
+        "stuff/dist/bundle.js": "",
+        "stuff/webpack.config.js": ""
+      },
+      "expect": [
+        { "kind": "plugin", "source": "stuff/dist/bundle.js", "installable": true }
+      ]
+    },
+    {
+      "id": "theme_folder",
+      "files": {
+        "themes-main/themes/ocean.yaml": "Ocean:\n  primary-color: \"#123456\"\n"
+      },
+      "expect": [
+        { "kind": "theme", "source": "themes-main/themes", "installable": true }
+      ]
+    },
+    {
+      "id": "theme_file_named_by_hacs",
+      "files": {
+        "hacs.json": "{\"name\": \"Solo\", \"filename\": \"solo.yaml\", \"content_in_root\": true}",
+        "solo.yaml": "Solo:\n  primary-color: red\n"
+      },
+      "expect": [{ "kind": "theme", "source": "solo.yaml", "installable": true }]
+    },
+    {
+      "id": "template_named_by_hacs",
+      "files": {
+        "hacs.json": "{\"filename\": \"macros.jinja\"}",
+        "macros.jinja": "{% macro hello() %}hi{% endmacro %}"
+      },
+      "expect": [
+        { "kind": "template", "source": "macros.jinja", "installable": true }
+      ]
+    },
+    {
+      "id": "blueprint_among_other_yaml",
+      "files": {
+        "bp/blueprints/automation/author/motion.yaml": "blueprint:\n  name: Motion light\n  domain: automation\n  input: {}\n",
+        "bp/blueprints/automation/author/notes.yaml": "foo: bar\n"
+      },
+      "expect": [
+        {
+          "kind": "blueprint",
+          "source": "bp/blueprints/automation/author/motion.yaml",
+          "installable": true
+        }
+      ]
+    },
+    {
+      "id": "blueprint_of_an_unknown_kind",
+      "files": {
+        "blueprints/lamp/x.yaml": "blueprint:\n  name: Lamp\n  domain: lamp\n"
+      },
+      "expect": [
+        {
+          "kind": "blueprint",
+          "source": "blueprints/lamp/x.yaml",
+          "installable": false
+        }
+      ]
+    },
+    {
+      "id": "app_repository_with_one_app",
+      "files": {
+        "addons/repository.yaml": "name: My apps\nurl: https://example.com\n",
+        "addons/hello/config.yaml": "name: Hello\nversion: \"1.0\"\nslug: hello\narch:\n  - amd64\n",
+        "addons/hello/Dockerfile": ""
+      },
+      "expect": [
+        { "kind": "app_repository", "source": "addons", "installable": false },
+        { "kind": "app", "source": "addons/hello", "installable": false }
+      ]
+    },
+    {
+      "id": "single_app",
+      "files": {
+        "hello/config.json": "{\"name\": \"Hello\", \"version\": \"1\", \"slug\": \"hello\"}",
+        "hello/Dockerfile": ""
+      },
+      "expect": [{ "kind": "app", "source": "hello", "installable": false }]
+    },
+    {
+      "id": "config_file_that_is_not_an_app",
+      "files": {
+        "tool/config.yaml": "name: Tool\nverbose: true\n"
+      },
+      "expect": []
+    },
+    {
+      "id": "shallowest_folder_wins",
+      "files": {
+        "repo-main/custom_components/a/manifest.json": "{\"domain\": \"a\"}",
+        "other/deeper/custom_components/c/manifest.json": "{\"domain\": \"c\"}"
+      },
+      "expect": [
+        {
+          "kind": "integration",
+          "source": "repo-main/custom_components/a",
+          "installable": true
+        }
+      ]
+    },
+    {
+      "id": "folders_at_the_same_depth_are_all_listed",
+      "files": {
+        "a/custom_components/one/manifest.json": "{\"domain\": \"one\"}",
+        "b/custom_components/two/manifest.json": "{\"domain\": \"two\"}"
+      },
+      "expect": [
+        {
+          "kind": "integration",
+          "source": "a/custom_components/one",
+          "installable": true
+        },
+        {
+          "kind": "integration",
+          "source": "b/custom_components/two",
+          "installable": true
+        }
+      ]
+    },
+    {
+      "id": "several_kinds_in_one_archive",
+      "files": {
+        "custom_components/m/manifest.json": "{\"domain\": \"m\"}",
+        "themes/t.yaml": "Tee:\n  primary-color: blue\n"
+      },
+      "expect": [
+        {
+          "kind": "integration",
+          "source": "custom_components/m",
+          "installable": true
+        },
+        { "kind": "theme", "source": "themes", "installable": true }
+      ]
+    },
+    {
+      "id": "history_folder_and_mac_junk_are_ignored",
+      "files": {
+        "x-main/.git/HEAD": "ref: refs/heads/main\n",
+        "x-main/.git/config": "[remote \"origin\"]\n\turl = https://github.com/o/x.git\n",
+        "__MACOSX/x-main/._manifest.json": "",
+        "x-main/custom_components/z/manifest.json": "{\"domain\": \"z\"}"
+      },
+      "expect": [
+        {
+          "kind": "integration",
+          "source": "x-main/custom_components/z",
+          "installable": true
+        }
+      ]
+    },
+    {
+      "id": "nothing_recognisable",
+      "files": {
+        "notes/readme.txt": "",
+        "src/main.py": ""
+      },
+      "expect": []
+    }
+  ]
+}
