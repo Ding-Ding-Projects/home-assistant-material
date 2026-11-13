@@ -63,8 +63,39 @@ export class HaAutomationSearchBar extends LitElement {
 
   private _lang = new LanguageModeController(this);
 
+  private _resizeObserver?: ResizeObserver;
+
+  private _offsetTarget?: HTMLElement;
+
   private _t(key: string, values?: Record<string, string | number>): string {
     return this._lang.text(this.hass.localize, `${KEY}${key}`, values);
+  }
+
+  public connectedCallback() {
+    super.connectedCallback();
+    // Rows scroll to just below this sticky bar. Its height changes with the
+    // options and the match count, so the rows are told the real height.
+    this._offsetTarget =
+      this.parentElement ??
+      ((this.getRootNode() as ShadowRoot).host as HTMLElement | undefined);
+    this._resizeObserver = new ResizeObserver(() => this._publishOffset());
+    this._resizeObserver.observe(this);
+  }
+
+  public disconnectedCallback() {
+    super.disconnectedCallback();
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    this._offsetTarget?.style.removeProperty("--ha-automation-sticky-offset");
+    this._offsetTarget = undefined;
+  }
+
+  private _publishOffset() {
+    // The bar's own height plus the gap under it and a little room.
+    this._offsetTarget?.style.setProperty(
+      "--ha-automation-sticky-offset",
+      `${this.offsetHeight + 24}px`
+    );
   }
 
   protected render() {

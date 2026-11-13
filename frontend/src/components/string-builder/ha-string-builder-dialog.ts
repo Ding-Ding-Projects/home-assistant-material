@@ -98,7 +98,7 @@ export class HaStringBuilderDialog extends LitElement {
         .headerSubtitle=${this._t("subtitle")}
       >
         ${
-          this._structured
+          this._structured || !this._pieces.some((p) => p.kind === "raw")
             ? nothing
             : html`<ha-alert alert-type="info"
                 >${this._t("kept_as_template")}</ha-alert
@@ -282,6 +282,12 @@ ${template || this._t("template_empty")}</pre>
       ha-adaptive-dialog {
         /* Let the subtitle wrap instead of being cut at a narrow width. */
         --ha-dialog-header-white-space: normal;
+        /* The sheet covers the phone's bottom bar, so it keeps only the
+           device's own inset instead of the room reserved for that bar. */
+        --safe-area-inset-bottom: var(
+          --app-safe-area-inset-bottom,
+          env(safe-area-inset-bottom, 0px)
+        );
       }
       .content {
         display: flex;
