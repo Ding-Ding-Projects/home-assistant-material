@@ -138,7 +138,8 @@
               "list_search_close": "關閉呢個清單嘅搜尋",
               "list_count": "顯示 {shown} 個，共 {total} 個",
               "list_no_matches": "呢個清單入面冇符合嘅項目。"
-            }
+            },
+            "quick_add": "加一步"
           }
         },
         "google_setup": {

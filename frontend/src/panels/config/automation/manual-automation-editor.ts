@@ -1,8 +1,15 @@
+import { mdiPlus } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import { load, YAML11_SCHEMA } from "js-yaml";
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, queryAll, state } from "lit/decorators";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import {
   any,
   array,
@@ -17,6 +24,7 @@ import { ensureArray } from "../../../common/array/ensure-array";
 import { canOverrideAlphanumericInput } from "../../../common/dom/can-override-input";
 import { fireEvent } from "../../../common/dom/fire_event";
 import "../../../components/ha-button";
+import "../../../components/ha-svg-icon";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-markdown";
 import "../../../components/starting-points/ha-starting-points";
@@ -91,6 +99,15 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
 
   @property({ attribute: false }) public stateObj?: HassEntity;
 
+  @query("ha-automation-trigger[root]")
+  private _rootTriggers?: HTMLElement & { openAddDialog(): void };
+
+  @query("ha-automation-condition[root]")
+  private _rootConditions?: HTMLElement & { openAddDialog(): void };
+
+  @query("ha-automation-action[root]")
+  private _rootActions?: HTMLElement & { openAddDialog(): void };
+
   @queryAll("ha-automation-action, ha-automation-condition")
   protected collapsableElements?: NodeListOf<
     HaAutomationAction | HaAutomationCondition
@@ -164,9 +181,49 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           : nothing
       }
       ${
+        this.disabled
+          ? nothing
+          : html`<div
+              class="quick-add"
+              role="toolbar"
+              aria-label=${this.hass.localize(
+                "ui.panel.config.automation.editor.quick_add"
+              )}
+            >
+              <ha-button
+                appearance="filled"
+                size="small"
+                @click=${this._quickAddTrigger}
+                ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
+                >${this.hass.localize(
+                  "ui.panel.config.automation.editor.triggers.add"
+                )}</ha-button
+              >
+              <ha-button
+                appearance="filled"
+                size="small"
+                @click=${this._quickAddCondition}
+                ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
+                >${this.hass.localize(
+                  "ui.panel.config.automation.editor.conditions.add"
+                )}</ha-button
+              >
+              <ha-button
+                appearance="filled"
+                size="small"
+                @click=${this._quickAddAction}
+                ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
+                >${this.hass.localize(
+                  "ui.panel.config.automation.editor.actions.add"
+                )}</ha-button
+              >
+            </div>`
+      }
+      ${
         this._isEmpty()
           ? html`<ha-starting-points
               class="starting-points"
+              .compact=${this.narrow}
               .heading=${this.hass.localize(
                 AUTOMATION_STARTING_POINT_HEADING_KEY as any
               )}
@@ -313,7 +370,20 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         .config=${this.config}
         .dirty=${this.dirty}
       ></ha-automation-status-bar>
+      <div class="save-bar-room" aria-hidden="true"></div>
     `;
+  }
+
+  private _quickAddTrigger(): void {
+    this._rootTriggers?.openAddDialog();
+  }
+
+  private _quickAddCondition(): void {
+    this._rootConditions?.openAddDialog();
+  }
+
+  private _quickAddAction(): void {
+    this._rootActions?.openAddDialog();
   }
 
   protected saveConfig() {
@@ -626,6 +696,15 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         }
         .starting-points {
           margin-bottom: var(--ha-space-4);
+        }
+        .quick-add {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          margin-bottom: var(--ha-space-4);
+        }
+        .save-bar-room {
+          height: 160px;
         }
         .header {
           display: flex;

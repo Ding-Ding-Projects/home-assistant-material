@@ -256,6 +256,11 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
     `;
   }
 
+  /** Opens the add condition dialog, as the Add condition button does. */
+  public openAddDialog(): void {
+    this._addConditionDialog();
+  }
+
   private _addConditionDialog() {
     if (this.narrow) {
       fireEvent(this, "request-close-sidebar");

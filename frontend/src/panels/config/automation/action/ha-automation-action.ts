@@ -221,6 +221,11 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
     });
   }
 
+  /** Opens the add action dialog, as the Add action button does. */
+  public openAddDialog(): void {
+    this._addActionDialog();
+  }
+
   private _addActionDialog() {
     if (this.narrow) {
       fireEvent(this, "request-close-sidebar");
