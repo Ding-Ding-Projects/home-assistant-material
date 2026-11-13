@@ -49,8 +49,12 @@ const fixture = async (value?: string | string[], disabled = false) => {
     context: connectionContext,
     initialValue: {
       connected: true,
-      connection: { subscribeMessage },
-    } as HomeAssistantConnection,
+      connection: {
+        subscribeMessage,
+      } as unknown as HomeAssistantConnection["connection"],
+      debugConnection: false,
+      hassUrl: (path = "") => path,
+    },
   });
   const element = new HaTodoActionItemPicker();
   element.entityIds = ["todo.one"];
@@ -169,9 +173,9 @@ describe("to-do action item picker data lifecycle", () => {
           break;
         case "connection":
           connection.setValue({
+            ...connection.value,
             connected: false,
-            connection: { subscribeMessage },
-          } as HomeAssistantConnection);
+          });
           break;
       }
       const unsubscribe = vi.fn();

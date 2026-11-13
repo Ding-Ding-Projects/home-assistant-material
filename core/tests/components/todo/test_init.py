@@ -13,6 +13,7 @@ from pytest_homeassistant.common import MockUser, async_fire_time_changed
 from pytest_homeassistant.typing import WebSocketGenerator
 from syrupy.assertion import SnapshotAssertion
 
+from homeassistant.auth.models import Group
 from homeassistant.components.todo import (
     ATTR_DESCRIPTION,
     ATTR_DUE_DATE,
@@ -1211,6 +1212,33 @@ async def test_subscribe_new_subscriber_does_not_notify_existing(
     await client1.send_json_auto_id({"type": "ping"})
     msg = await client1.receive_json()
     assert msg["type"] == "pong"
+
+
+async def test_todo_item_subscription_respects_permission_changes(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: MockUser,
+    test_entity: TodoListEntity,
+) -> None:
+    """Check the current read permission when delivering subscription events."""
+    await create_mock_platform(hass, [test_entity])
+    hass_admin_user.groups = [
+        Group(name="To-do reader", policy={"entities": {"all": {"read": True}}})
+    ]
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id(
+        {"type": "todo/item/subscribe", "entity_id": test_entity.entity_id}
+    )
+    assert (await client.receive_json())["success"]
+    assert (await client.receive_json())["type"] == "event"
+
+    hass_admin_user.groups = []
+    test_entity._attr_todo_items = [
+        TodoItem(summary="New item", uid="3", status=TodoItemStatus.NEEDS_ACTION)
+    ]
+    test_entity.async_write_ha_state()
+    await client.send_json_auto_id({"type": "ping"})
+    assert (await client.receive_json())["type"] == "pong"
 
 
 async def test_subscribe_entity_does_not_exist(

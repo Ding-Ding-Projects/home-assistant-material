@@ -123,6 +123,8 @@ async def websocket_handle_subscribe_todo_items(
     @callback
     def todo_item_listener(todo_items: list[TodoItem] | None) -> None:
         """Push updated To-do list items to websocket."""
+        if not connection.user.permissions.check_entity(entity_id, POLICY_READ):
+            return
         items = [serialize_todo_item(item) for item in todo_items or []]
         connection.send_message(
             websocket_api.event_message(
