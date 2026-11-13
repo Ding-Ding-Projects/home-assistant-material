@@ -4,6 +4,7 @@ rem download-dependencies.bat installs when it is missing.
 rem
 rem   build.bat            build the container image home-assistant-material:local
 rem   build.bat --run      build, then start it on http://localhost:8123
+rem   build.bat --demo     build the interactive Pages demo in frontend\demo\dist
 rem   /s, --silent or SILENT=1 run without pausing at the end
 rem
 rem Every phase reports its real result. The script stops at the first failure and
@@ -13,16 +14,19 @@ cd /d "%~dp0"
 
 set "QUIET=0"
 set "RUN=0"
+set "DEMO=0"
 if /i "%SILENT%"=="1" set "QUIET=1"
 :args
 if "%~1"=="" goto args_done
 if /i "%~1"=="/s" set "QUIET=1"
 if /i "%~1"=="--silent" set "QUIET=1"
 if /i "%~1"=="--run" set "RUN=1"
+if /i "%~1"=="--demo" set "DEMO=1"
 shift
 goto args
 :args_done
 set "RC=0"
+if "%DEMO%"=="1" goto demo
 
 echo.
 echo [1/5] Checking for Docker
@@ -103,6 +107,24 @@ set /a TRIES+=1
 if !TRIES! lss 90 goto wait_ha
 set "RC=6"
 echo The container started but did not answer within 3 minutes. See: docker logs home-assistant-material
+goto done
+
+:demo
+where node >nul 2>&1 || (set "RC=3" & echo Node.js is required to build the demo. & goto done)
+where pnpm >nul 2>&1 || (set "RC=3" & echo pnpm is required to build the demo. & goto done)
+if not defined DEMO_BASE_PATH set "DEMO_BASE_PATH=/home-assistant-material/demo"
+if not defined HA_BUILD_WORKERS set "HA_BUILD_WORKERS=2"
+if not defined NODE_OPTIONS set "NODE_OPTIONS=--max_old_space_size=6144"
+set "SKIP_FETCH_NIGHTLY_TRANSLATIONS=1"
+set "HUSKY=0"
+pushd frontend
+if not exist node_modules\.bin\gulp.cmd (
+  call pnpm install --frozen-lockfile
+  if errorlevel 1 (set "RC=!errorlevel!" & popd & goto done)
+)
+call node_modules\.bin\gulp.cmd build-demo-pages
+set "RC=!errorlevel!"
+popd
 
 :done
 echo.

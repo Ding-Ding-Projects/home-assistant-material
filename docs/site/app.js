@@ -48,6 +48,11 @@
     heroText: ['The same home automation, with a calmer interface: a floating pane, a slim rail, large type and fewer, larger cards. Built from one repository, released for Docker, Raspberry Pi and virtual machines.',
       '一樣嘅智能家居，介面平和啲：浮動面板、幼身導航欄、大字、卡片少啲但大啲。全部由一個儲存庫整出嚟，有 Docker、Raspberry Pi 同虛擬機版本。'],
     runDocker: ['Run it in Docker', '用 Docker 開'], releases: ['Releases', '發佈版本'], built: ['What is built', '已經整好嘅嘢'], visit: ['This visit, live', '今次瀏覽，即時'],
+    openDemo: ['Open interactive demo', '打開互動示範'],
+    demoTitle: ['Try the automation editor', '試用自動化編輯器'],
+    demoText: ['Open a sample automation, change its speech options or scene, and save it in this browser. Runs affect sample entities only.', '打開範例自動化，改語音選項或者場景，再儲存喺呢個瀏覽器。執行只會影響範例實體。'],
+    demoSpeech: ['Edit speech options', '改語音選項'],
+    demoScene: ['Edit a scene action', '改場景動作'],
     free: ['Free, with nothing to buy', '免費，冇嘢要買'],
     freeText: ['No paid tier, no adverts, no tracking. This page sends nothing anywhere and keeps your choices only in this browser.', '冇收費版、冇廣告、冇追蹤。呢頁乜都唔會傳出去，你揀嘅嘢只係留喺呢個瀏覽器。'],
     version: ['Version', '版本'], updated: ['updated', '更新於'], page: ['Project page', '項目網頁'],
@@ -234,6 +239,7 @@
     return '<section class="hero" id="top" data-k="hero"><div class="col" style="gap:20px"><span class="status" data-k="status">' + icon('ProgressClock', 's') + L('early') + '</span><h1 data-k="hero-title">' + L('heroTitle') + '</h1>' +
       '<p class="bl mu" data-k="hero-text">' + L('heroText') + '</p><div class="chipline"><button class="btn fill lg" data-go="deploy:top">' + icon('Download', 's') + 'Get the Deploy Assistant</button><button class="btn tonal lg" data-go="run:top">' + L('runDocker') + '</button><a class="btn out lg" href="' + S.repo + '/releases">' + L('releases') + '</a></div></div>' +
       '<div><img class="shot" data-k="hero-shot" src="img/home.webp" width="1440" height="900" alt="The Home page of a running build: a slim rail, pill tabs and rounded cards"></div></section>' +
+      '<section class="section card" id="demo" style="padding:24px">' + h2('demoTitle', 'demo-title') + '<p class="bm mu">' + L('demoText') + '</p><div class="chipline"><a class="btn fill" href="demo/">' + L('openDemo') + '</a><a class="btn tonal" href="demo/#/config/automation/edit/demo_action_options">' + L('demoSpeech') + '</a><a class="btn out" href="demo/#/config/automation/edit/demo_scene_dictionary">' + L('demoScene') + '</a></div></section>' +
       '<section class="section" id="built">' + h2('built', 'built-h') + '<div class="grid3">' + built + '</div><div><button class="btn tonal" data-go="features:top">' + esc(S.features.length) + ' features and their state</button></div></section>' +
       '<section class="section" id="live">' + h2('visit', 'live-h') + '<p class="bm mu">Clicks and key presses on this page, every two seconds. Move over the chart to read a value. Nothing is sent anywhere.</p><canvas class="live" id="livechart" width="1000" height="160" role="img" aria-label="Live chart of activity on this page during this visit"></canvas><p class="bs mu" id="livevalue" aria-live="polite"></p></section>' +
       '<section class="section card" id="free" data-k="free" style="padding:24px"><h2 class="tl">' + L('free') + '</h2><p class="bm">' + L('freeText') + '</p></section>' + foot();

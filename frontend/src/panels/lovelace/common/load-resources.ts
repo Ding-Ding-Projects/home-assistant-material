@@ -1,10 +1,14 @@
 import { loadCSS, loadJS, loadModule } from "../../../common/dom/load_resource";
+import { getSignedPath } from "../../../data/auth";
 import type { LovelaceResource } from "../../../data/lovelace/resource";
 import type { HomeAssistant } from "../../../types";
 
 // CSS and JS should only be imported once. Modules and HTML are safe.
 const CSS_CACHE: Record<string, Promise<unknown>> = {};
 const JS_CACHE: Record<string, Promise<unknown>> = {};
+const UPLOADED_RESOURCES = new Map<string, Promise<unknown>>();
+const UPLOADED_RESOURCE_PATH =
+  /^\/api\/lovelace\/resources\/upload\/[0-9a-f]{32}\.(?:css|m?js)$/;
 
 const _loadLovelaceResource = (
   resource: LovelaceResource,
@@ -22,6 +26,24 @@ const _loadLovelaceResource = (
       err
     );
   };
+
+  if (
+    resource.uploaded &&
+    UPLOADED_RESOURCE_PATH.test(resource.url) &&
+    (resource.type === "css" || resource.type === "module")
+  ) {
+    const active = UPLOADED_RESOURCES.get(normalizedUrl);
+    if (active) return active;
+    const load = resource.type === "css" ? loadCSS : loadModule;
+    const task = getSignedPath(hass, resource.url)
+      .then(({ path }) => load(hass.hassUrl(path)))
+      .catch(() => {
+        UPLOADED_RESOURCES.delete(normalizedUrl);
+        logLoadError("Uploaded resource could not be loaded.");
+      });
+    UPLOADED_RESOURCES.set(normalizedUrl, task);
+    return task;
+  }
 
   switch (resource.type) {
     case "css": {

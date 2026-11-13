@@ -67,14 +67,17 @@ export interface TTSEngineOptions {
   supported_options: string[];
   /** Audio format hints accepted for every engine. */
   common_options: string[];
-  default_options: Record<string, unknown>;
+  /** Exact engine language used by the action, if supported. */
+  effective_language?: string | null;
 }
 
 export const getTTSEngineOptions = (
   callWS: HomeAssistant["callWS"],
-  engine_id: string
+  engine_id: string,
+  language?: string
 ): Promise<TTSEngineOptions> =>
   callWS({
     type: "tts/engine/options",
     engine_id,
+    language,
   });

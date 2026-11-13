@@ -25,6 +25,14 @@ desktop app has its own [folder](deploy-assistant/README.md).
 | Know what changed from upstream | [`docs/material-changes.md`](docs/material-changes.md) |
 | See what is planned | [`ROADMAP.md`](ROADMAP.md) |
 
+## Try the interactive demo
+
+Open the [browser demo](https://ding-ding-projects.github.io/home-assistant-material/demo/) to use the
+Home Assistant Material interface with a sample home. The [speech options example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_action_options)
+and the [scene action example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_scene_dictionary)
+open the real automation editor. Save a change and reopen the example to see it in your browser.
+Actions in the demo affect sample entities only.
+
 ## Run the container
 
 ```

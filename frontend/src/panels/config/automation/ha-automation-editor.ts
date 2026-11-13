@@ -25,6 +25,7 @@ import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { hasInvalidObjectDrafts } from "../../../common/object-editor/object-model";
 import { UndoRedoController } from "../../../common/controllers/undo-redo-controller";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { isNavigationClick } from "../../../common/dom/is-navigation-click";
@@ -1381,7 +1382,43 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     }
   }
 
+  private _invalidDictionaryEditors = new Set<HTMLElement>();
+
+  private _dictionaryValidity = (ev: Event) => {
+    const { editor, valid } = (
+      ev as CustomEvent<{ editor: HTMLElement; valid: boolean }>
+    ).detail;
+    if (valid) this._invalidDictionaryEditors.delete(editor);
+    else this._invalidDictionaryEditors.add(editor);
+  };
+
+  public constructor() {
+    super();
+    this.addEventListener(
+      "object-editor-validity-changed",
+      this._dictionaryValidity
+    );
+  }
+
   private async _saveAutomation(id): Promise<void> {
+    for (const editor of this._invalidDictionaryEditors) {
+      if (
+        !editor.isConnected ||
+        (editor as HTMLElement & { disabled?: boolean }).disabled
+      ) {
+        this._invalidDictionaryEditors.delete(editor);
+      }
+    }
+    if (
+      this._invalidDictionaryEditors.size ||
+      hasInvalidObjectDrafts(this.config)
+    ) {
+      await showAlertDialog(this, {
+        text: this.hass.localize("ui.components.object-editor.invalid_draft"),
+      });
+      return;
+    }
+
     this.saving = true;
     this.validationErrors = undefined;
 

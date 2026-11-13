@@ -49,6 +49,7 @@ import { mockSensor } from "./stubs/sensor";
 import { mockSystemLog } from "./stubs/system_log";
 import { mockTemplate } from "./stubs/template";
 import { mockTodo } from "./stubs/todo";
+import { mockDemoActions } from "./stubs/demo-actions";
 import { mockTranslations } from "./stubs/translations";
 import { mockUsagePrediction } from "./stubs/usage_prediction";
 import { mockWeather } from "./stubs/weather";
@@ -202,6 +203,7 @@ export class HaDemo extends HomeAssistantAppEl {
     mockIcons(hass);
     mockEnergy(hass);
     mockPersistentNotification(hass);
+    mockDemoActions(hass, this);
     // Consumed app-wide via the lazy manifests context, so register eagerly.
     mockIntegration(hass);
     // Config panel mocks are code-split: the loader runs (and the chunk is

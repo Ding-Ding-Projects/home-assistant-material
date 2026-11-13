@@ -16,6 +16,7 @@ from mutagen.id3 import TIT2, TPE1, Encoding
 import pytest
 from pytest_homeassistant.common import (
     MockModule,
+    MockUser,
     async_fire_time_changed,
     async_mock_service,
     load_fixture_bytes,
@@ -1856,8 +1857,16 @@ async def test_ws_list_voices(
     ],
     indirect=["setup"],
 )
+@pytest.mark.parametrize(
+    ("language", "effective_language"),
+    [(None, DEFAULT_LANG), ("de_CH", "de_CH"), ("de-CH", None)],
+)
 async def test_ws_list_engine_options(
-    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, setup: str, engine_id: str
+    hass_ws_client: WebSocketGenerator,
+    setup: str,
+    engine_id: str,
+    language: str | None,
+    effective_language: str | None,
 ) -> None:
     """Test listing the options a tts engine accepts."""
     client = await hass_ws_client()
@@ -1872,9 +1881,10 @@ async def test_ws_list_engine_options(
         "message": "tts engine smurf_tts not found",
     }
 
-    await client.send_json_auto_id(
-        {"type": "tts/engine/options", "engine_id": engine_id}
-    )
+    request = {"type": "tts/engine/options", "engine_id": engine_id}
+    if language is not None:
+        request["language"] = language
+    await client.send_json_auto_id(request)
     msg = await client.receive_json()
     assert msg["success"]
     assert msg["result"] == {
@@ -1886,8 +1896,22 @@ async def test_ws_list_engine_options(
             "preferred_sample_channels",
             "preferred_sample_rate",
         ],
-        "default_options": {},
+        "effective_language": effective_language,
     }
+
+
+@pytest.mark.parametrize("setup", ["mock_config_entry_setup"], indirect=True)
+async def test_ws_list_engine_options_requires_admin(
+    hass_ws_client: WebSocketGenerator, hass_admin_user: MockUser, setup: str
+) -> None:
+    """Engine metadata requires administrator access."""
+    hass_admin_user.groups = []
+    client = await hass_ws_client()
+    await client.send_json_auto_id({"type": "tts/engine/options", "engine_id": "tts.test"})
+
+    msg = await client.receive_json()
+    assert not msg["success"]
+    assert msg["error"]["code"] == "unauthorized"
 
 
 async def test_async_convert_audio_error(hass: HomeAssistant) -> None:

@@ -2,7 +2,7 @@
 
 from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import probatio
 
@@ -20,9 +20,6 @@ from .const import (
     ConfigNotFound,
 )
 from .dashboard import LovelaceConfig
-
-if TYPE_CHECKING:
-    from .resources import ResourceStorageCollection
 
 type AsyncLovelaceWebSocketCommandHandler[_R] = Callable[
     [HomeAssistant, websocket_api.ActiveConnection, dict[str, Any], LovelaceConfig],
@@ -99,18 +96,11 @@ async def websocket_lovelace_resources_impl(
     This function is called by both Storage and YAML mode WS handlers.
     """
     resources = hass.data[LOVELACE_DATA].resources
-    if TYPE_CHECKING:
-        assert isinstance(resources, ResourceStorageCollection)
-
     if hass.config.safe_mode:
         connection.send_result(msg["id"], [])
         return
 
-    if not resources.loaded:
-        await resources.async_load()
-        resources.loaded = True
-
-    connection.send_result(msg["id"], resources.async_items())
+    connection.send_result(msg["id"], await resources.async_get_items())
 
 
 @websocket_api.websocket_command({"type": "lovelace/info"})

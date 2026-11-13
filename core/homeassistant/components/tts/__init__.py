@@ -1906,6 +1906,7 @@ def websocket_list_engine_voices(
     {
         "type": "tts/engine/options",
         probatio.Required("engine_id"): str,
+        probatio.Optional("language"): str,
     }
 )
 @websocket_api.require_admin
@@ -1917,8 +1918,9 @@ def websocket_list_engine_options(
 
     ``supported_options`` are the options the engine declares itself.
     ``common_options`` are accepted for every engine (audio format hints that
-    are converted when the engine cannot produce them). ``default_options`` are
-    the values used when a call does not set the option.
+    are converted when the engine cannot produce them). ``effective_language``
+    is the explicit or engine-default language when supported. Runtime option
+    defaults are intentionally excluded from this metadata.
     """
     engine_id = msg["engine_id"]
 
@@ -1932,13 +1934,33 @@ def websocket_list_engine_options(
         )
         return
 
+    supported_options = engine_instance.supported_options or []
+    if len(supported_options) > 128 or any(
+        not isinstance(key, str) or not 0 < len(key) <= 128 for key in supported_options
+    ):
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_INVALID_FORMAT,
+            "Engine option metadata is unavailable",
+        )
+        return
+
+    language = msg.get("language") or engine_instance.default_language
+    effective_language = (
+        language
+        if isinstance(language, str)
+        and 0 < len(language) <= 128
+        and language in (engine_instance.supported_languages or [])
+        else None
+    )
+
     connection.send_message(
         websocket_api.result_message(
             msg["id"],
             {
-                "supported_options": list(engine_instance.supported_options or []),
+                "supported_options": list(supported_options),
                 "common_options": sorted(_PREFFERED_FORMAT_OPTIONS),
-                "default_options": dict(engine_instance.default_options or {}),
+                "effective_language": effective_language,
             },
         )
     )

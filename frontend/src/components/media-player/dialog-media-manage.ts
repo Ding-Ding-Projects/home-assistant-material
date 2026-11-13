@@ -83,8 +83,10 @@ import {
 import type { HomeAssistantConfig } from "../../types";
 import { fileDownload } from "../../util/file_download";
 import { formatBytes } from "../../common/file-drop/format-bytes";
+import { isTouch } from "../../util/is_touch";
 import { showToast } from "../../util/toast";
 import "../ha-button";
+import "../ha-alert";
 import "../ha-checkbox";
 import "../ha-dialog";
 import "../ha-dialog-header";
@@ -145,6 +147,7 @@ class DialogMediaManage extends LitElement {
   @state() private _uploading = false;
 
   @state() private _working = false;
+  @state() private _readyDownload?: File;
 
   // True while a delete confirmation is open, so nothing else can start under it
   @state() private _confirming = false;
@@ -198,6 +201,7 @@ class DialogMediaManage extends LitElement {
     this._moving = undefined;
     this._uploading = false;
     this._working = false;
+    this._readyDownload = undefined;
     this._confirming = false;
     this._selected = new Set();
     fireEvent(this, "dialog-closed", { dialog: this.localName });
@@ -359,6 +363,7 @@ class DialogMediaManage extends LitElement {
     const folderActions = this._canManageFolders;
 
     return html`
+      ${this._renderReadyDownload()}
       ${
         this._currentItem
           ? this._renderBreadcrumbs(
@@ -504,6 +509,60 @@ class DialogMediaManage extends LitElement {
               </div>`
       }
     `;
+  }
+
+  private _renderReadyDownload() {
+    const file = this._readyDownload;
+    if (!file) return nothing;
+    const strings = "ui.components.media-browser.file_management";
+    const canShare = Boolean(
+      typeof navigator.share === "function" &&
+      navigator.canShare?.({ files: [file] })
+    );
+    return html`
+      <ha-alert alert-type="info">
+        <span role="status"
+          >${this._localize(`${strings}.download_ready`, {
+            name: file.name,
+          })}</span
+        >
+        <div class="download-actions">
+          <ha-button @click=${this._saveReadyDownload}>
+            ${this._localize(`${strings}.save_download`)}
+          </ha-button>
+          ${
+            canShare
+              ? html`<ha-button
+                  appearance="outlined"
+                  @click=${this._shareReadyDownload}
+                >
+                  ${this._localize(`${strings}.share_download`)}
+                </ha-button>`
+              : nothing
+          }
+        </div>
+      </ha-alert>
+    `;
+  }
+
+  private _saveReadyDownload() {
+    const file = this._readyDownload;
+    if (file) fileDownload(URL.createObjectURL(file), file.name);
+  }
+
+  private async _shareReadyDownload() {
+    const file = this._readyDownload;
+    if (!file) return;
+    try {
+      await navigator.share({ files: [file] });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      showAlertDialog(this, {
+        text: this._localize(
+          "ui.components.media-browser.file_management.download_failed"
+        ),
+      });
+    }
   }
 
   private _renderRow(item: MediaPlayerItem): TemplateResult {
@@ -1193,6 +1252,7 @@ class DialogMediaManage extends LitElement {
     }
     const mgmt = "ui.components.media-browser.file_management";
     this._working = true;
+    this._readyDownload = undefined;
     try {
       if (items.length === 1) {
         const file = await fetchItemFile(this._api, items[0]);
@@ -1245,6 +1305,13 @@ class DialogMediaManage extends LitElement {
   }
 
   private _saveFile(file: DownloadFile) {
+    if (!this._open) return;
+    if (isTouch) {
+      this._readyDownload = new File([file.blob], file.name, {
+        type: file.blob.type,
+      });
+      return;
+    }
     fileDownload(URL.createObjectURL(file.blob), file.name);
   }
 
@@ -1355,6 +1422,14 @@ class DialogMediaManage extends LitElement {
 
         ha-tip {
           margin: 16px;
+        }
+
+        .download-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-block-start: 8px;
+          --ha-button-height: 48px;
         }
 
         .refresh {

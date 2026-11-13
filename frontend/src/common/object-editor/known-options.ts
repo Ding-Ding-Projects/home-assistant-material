@@ -11,13 +11,9 @@ import { emptyNode, nodeFromValue, parseNumberText } from "./object-model";
 import type { ObjectNode } from "./object-model";
 
 /** Where a known option comes from. Earlier beats later when merging. */
-export type KnownOptionSource = "declared" | "common" | "elsewhere";
+export type KnownOptionSource = "declared" | "common";
 
-export const KNOWN_OPTION_SOURCES: KnownOptionSource[] = [
-  "declared",
-  "common",
-  "elsewhere",
-];
+export const KNOWN_OPTION_SOURCES: KnownOptionSource[] = ["declared", "common"];
 
 export interface KnownChoice {
   value: string;
@@ -53,14 +49,13 @@ export type ResolvedKnownOption = KnownOption & { kind: KnownOptionKind };
 const SOURCE_RANK: Record<KnownOptionSource, number> = {
   declared: 0,
   common: 1,
-  elsewhere: 2,
 };
 
 /**
  * Combines lists from several sources. For one key the declared entry beats
- * the common one, which beats the one used elsewhere; the winner keeps its
+ * the common one; the winner keeps its
  * source and takes any detail it lacks (description, value kind, default)
- * from the lower sources. The result is ordered declared, common, elsewhere,
+ * from the lower sources. The result is ordered declared, common,
  * and by first appearance within a source.
  */
 export const mergeKnownOptions = (
@@ -216,111 +211,3 @@ export const declaredOptions = (input: DeclaredOptionsInput): KnownOption[] =>
       ...(defaultValue !== undefined ? { default: defaultValue } : {}),
     };
   });
-
-export interface UsageQuery {
-  /** The action, such as "tts.speak". */
-  action: string;
-  /** The field that holds the dictionary, such as "options" or "data". */
-  field: string;
-  /**
-   * Counts only the steps for which this returns true. It receives the
-   * entity ids the step targets (an empty list when it targets none).
-   */
-  stepFilter?: (entityIds: string[]) => boolean;
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const stepEntityIds = (step: Record<string, unknown>): string[] => {
-  const ids: string[] = [];
-  const add = (value: unknown) => {
-    if (typeof value === "string") {
-      ids.push(...value.split(",").map((part) => part.trim()));
-    } else if (Array.isArray(value)) {
-      value.forEach(add);
-    }
-  };
-  add(step.entity_id);
-  if (isRecord(step.target)) {
-    add(step.target.entity_id);
-  }
-  return ids.filter((id) => id !== "");
-};
-
-/** Every action step in a config, however deeply it is nested. */
-const collectSteps = (
-  node: unknown,
-  action: string,
-  out: Record<string, unknown>[],
-  depth = 0
-): void => {
-  if (depth > 40) {
-    return;
-  }
-  if (Array.isArray(node)) {
-    node.forEach((item) => collectSteps(item, action, out, depth + 1));
-    return;
-  }
-  if (!isRecord(node)) {
-    return;
-  }
-  if (
-    (node.action === action || node.service === action) &&
-    isRecord(node.data)
-  ) {
-    out.push(node);
-  }
-  Object.values(node).forEach((value) =>
-    collectSteps(value, action, out, depth + 1)
-  );
-};
-
-/**
- * The keys that other automations and scripts of this home already use for
- * the same action and field, with the commonest kind of value seen for each.
- * Keys come out most used first, ties in the order first seen.
- */
-export const collectUsedElsewhere = (
-  configs: unknown[],
-  query: UsageQuery
-): KnownOption[] => {
-  const steps: Record<string, unknown>[] = [];
-  configs.forEach((config) => collectSteps(config, query.action, steps));
-
-  const stats = new Map<
-    string,
-    { count: number; kinds: Map<string, { kind: KnownOptionKind; n: number }> }
-  >();
-  for (const step of steps) {
-    if (query.stepFilter && !query.stepFilter(stepEntityIds(step))) {
-      continue;
-    }
-    const data = (step.data as Record<string, unknown>)[query.field];
-    if (!isRecord(data)) {
-      continue;
-    }
-    for (const [key, value] of Object.entries(data)) {
-      const entry = stats.get(key) ?? { count: 0, kinds: new Map() };
-      entry.count += 1;
-      const kind = inferKind(value);
-      if (kind) {
-        const seen = entry.kinds.get(kind.type) ?? { kind, n: 0 };
-        seen.n += 1;
-        entry.kinds.set(kind.type, seen);
-      }
-      stats.set(key, entry);
-    }
-  }
-
-  return [...stats.entries()]
-    .sort((a, b) => b[1].count - a[1].count)
-    .map(([key, entry]) => {
-      const commonest = [...entry.kinds.values()].sort((a, b) => b.n - a.n)[0];
-      return {
-        key,
-        source: "elsewhere" as const,
-        ...(commonest ? { kind: commonest.kind } : {}),
-      };
-    });
-};

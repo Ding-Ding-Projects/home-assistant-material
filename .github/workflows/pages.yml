@@ -1,13 +1,14 @@
 name: Project page
 
-# Publishes docs/site/ to GitHub Pages. The page is static: one HTML file, its images and the
-# typeface, with nothing loaded from other sites. Its source is design/source/pages/p_site.py.
+# Publishes the project documentation and the frontend's browser-only demo.
 
 on:
   push:
     branches: [main]
     paths:
       - "docs/site/**"
+      - "frontend/**"
+      - "build.sh"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -33,7 +34,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          sparse-checkout: docs/site
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+
+      - name: Build the interactive demo
+        run: |
+          corepack enable
+          bash build.sh demo
+          mkdir -p docs/site/demo
+          cp -a frontend/demo/dist/. docs/site/demo/
+          printf '{"source":"%s","builtAt":"%s"}\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > docs/site/demo/build.json
 
       - name: Point the download buttons at the newest Deploy Assistant
         env:

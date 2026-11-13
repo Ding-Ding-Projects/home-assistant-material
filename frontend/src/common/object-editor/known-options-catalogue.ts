@@ -42,28 +42,26 @@ const TTS_AUDIO_OPTIONS: CatalogueEntry[] = [
   {
     key: "preferred_sample_channels",
     id: "preferred_sample_channels",
-    kind: { type: "number", min: 1, step: 1 },
+    kind: { type: "number", step: 1 },
   },
   {
     key: "preferred_sample_bytes",
     id: "preferred_sample_bytes",
-    kind: { type: "number", min: 1, step: 1 },
+    kind: { type: "number", step: 1 },
   },
   {
     key: "preferred_bitrate",
     id: "preferred_bitrate",
-    kind: { type: "number", min: 1, step: 1, unit: "kbit/s" },
+    kind: { type: "number", step: 1, unit: "kbit/s" },
   },
 ];
 
 /**
- * Keyed by "domain.service" and field name. The services.yaml of the tts
- * component declares the `options` field of `speak` and `say` as a plain
- * dictionary with no keys of its own.
+ * Keyed by "domain.service" and field name. The TTS service description
+ * declares the `options` field of `speak` as a plain dictionary.
  */
 const CATALOGUE: Record<string, CatalogueEntry[]> = {
   "tts.speak:options": TTS_AUDIO_OPTIONS,
-  "tts.say:options": TTS_AUDIO_OPTIONS,
 };
 
 /** How many entries the catalogue holds, for the record. */

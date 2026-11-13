@@ -53,7 +53,7 @@ export const registerServiceWorker = async (
   rootEl: HTMLElement,
   notifyUpdate = true
 ) => {
-  if (!supportsServiceWorker()) {
+  if (__DEMO__ || !supportsServiceWorker()) {
     return;
   }
 
@@ -80,7 +80,7 @@ export const registerServiceWorker = async (
     markClaimed();
   }
 
-  if (!notifyUpdate || __DEV__ || __DEMO__) {
+  if (!notifyUpdate || __DEV__) {
     // No update toast here, so reload as soon as the page is clean.
     const reloadWhenClean = () => {
       if (reloadPending && !window.isDirtyState) {

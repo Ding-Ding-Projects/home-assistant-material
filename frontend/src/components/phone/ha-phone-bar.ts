@@ -224,6 +224,7 @@ const KEYBOARD_PX = 150;
  * it is hidden. Absent when there is no phone bar.
  */
 const VISIBLE_HEIGHT_PROPERTY = "--ha-phone-bar-visible-height";
+const VIEWPORT_INSET_PROPERTY = "--ha-phone-viewport-inset-bottom";
 /**
  * The floating bar rests this far above the bottom edge. The space it takes
  * from a page is its height plus this gap, so the published height includes
@@ -357,7 +358,7 @@ export class HaPhoneBar extends LitElement {
 
   private _returnFocus: FocusTarget = "pages";
 
-  private _lastScrollY = 0;
+  private _viewportFrame?: number;
 
   private _closedAt = 0;
 
@@ -367,10 +368,17 @@ export class HaPhoneBar extends LitElement {
 
   public connectedCallback() {
     super.connectedCallback();
-    window.addEventListener("scroll", this._handleScroll, { passive: true });
+    window.addEventListener("scroll", this._scheduleViewport, {
+      passive: true,
+    });
+    window.addEventListener("resize", this._scheduleViewport, {
+      passive: true,
+    });
     mainWindow.addEventListener("location-changed", this._locationChanged);
     mainWindow.addEventListener("popstate", this._locationChanged);
-    window.visualViewport?.addEventListener("resize", this._handleViewport);
+    window.visualViewport?.addEventListener("resize", this._scheduleViewport);
+    window.visualViewport?.addEventListener("scroll", this._scheduleViewport);
+    this._scheduleViewport();
     this.addEventListener("focusin", this._handleFocusIn);
     this.addEventListener("focusout", this._handleFocusOut);
     const store = getStorage();
@@ -416,10 +424,22 @@ export class HaPhoneBar extends LitElement {
     this._statusConnection = undefined;
     this._lockObserver?.disconnect();
     this._lockObserver = undefined;
-    window.removeEventListener("scroll", this._handleScroll);
+    window.removeEventListener("scroll", this._scheduleViewport);
+    window.removeEventListener("resize", this._scheduleViewport);
     mainWindow.removeEventListener("location-changed", this._locationChanged);
     mainWindow.removeEventListener("popstate", this._locationChanged);
-    window.visualViewport?.removeEventListener("resize", this._handleViewport);
+    window.visualViewport?.removeEventListener(
+      "resize",
+      this._scheduleViewport
+    );
+    window.visualViewport?.removeEventListener(
+      "scroll",
+      this._scheduleViewport
+    );
+    if (this._viewportFrame !== undefined) {
+      cancelAnimationFrame(this._viewportFrame);
+    }
+    this._viewportFrame = undefined;
     this.removeEventListener("focusin", this._handleFocusIn);
     this.removeEventListener("focusout", this._handleFocusOut);
     window.clearTimeout(this._undoTimer);
@@ -427,6 +447,7 @@ export class HaPhoneBar extends LitElement {
     this._barResize?.disconnect();
     this._barResize = undefined;
     document.documentElement.style.removeProperty(VISIBLE_HEIGHT_PROPERTY);
+    document.documentElement.style.removeProperty(VIEWPORT_INSET_PROPERTY);
   }
 
   protected updated(changed: PropertyValues) {
@@ -541,35 +562,47 @@ export class HaPhoneBar extends LitElement {
     this.requestUpdate();
   };
 
-  // The bar hides while scrolling down and returns on any scroll up.
-  private _handleScroll = () => {
-    const y = window.scrollY;
-    if (y > this._lastScrollY + 4) {
-      this._barHidden = true;
-    } else if (y < this._lastScrollY) {
-      this._barHidden = false;
-    }
-    this._lastScrollY = y;
+  // Scroll changes browser chrome and the visual viewport on mobile browsers.
+  // Navigation itself remains available in either scroll direction.
+  private _scheduleViewport = () => {
+    if (this._viewportFrame !== undefined) return;
+    this._viewportFrame = requestAnimationFrame(() => {
+      this._viewportFrame = undefined;
+      if (this.isConnected) this._handleViewport();
+    });
   };
 
-  // The bar also hides while the on-screen keyboard is up.
   private _handleViewport = () => {
     const viewport = window.visualViewport;
-    if (!viewport) {
-      return;
+    const inset = viewport
+      ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+      : 0;
+    document.documentElement.style.setProperty(
+      VIEWPORT_INSET_PROPERTY,
+      `${inset}px`
+    );
+    // A shorter viewport alone can be browser chrome, not a keyboard. Only
+    // hide navigation while an editable control owns focus and a keyboard-sized
+    // obstruction is present. Look through shadow roots for the real control.
+    let active: Element | null = document.activeElement;
+    while (active?.shadowRoot?.activeElement) {
+      active = active.shadowRoot.activeElement;
     }
-    this._barHidden = window.innerHeight - viewport.height > KEYBOARD_PX;
+    const editing =
+      active instanceof HTMLElement &&
+      (active.matches("input, textarea, [role=textbox]") ||
+        active.isContentEditable);
+    this._barHidden =
+      !!viewport &&
+      editing &&
+      window.innerHeight - viewport.height > KEYBOARD_PX;
   };
 
-  private _handleFocusIn = (ev: FocusEvent) => {
-    if ((ev.target as HTMLElement).localName === "ha-input-search") {
-      // The field in the Pages sheet raises the keyboard.
-      this._barHidden = true;
-    }
+  private _handleFocusIn = () => {
+    this._scheduleViewport();
   };
-
   private _handleFocusOut = () => {
-    this._barHidden = false;
+    this._scheduleViewport();
   };
 
   private _refreshShared() {
@@ -2420,7 +2453,7 @@ export class HaPhoneBar extends LitElement {
       z-index: 7;
       inset-inline: 12px;
       bottom: calc(
-        12px +
+        12px + var(--ha-phone-viewport-inset-bottom, 0px) +
           var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
       );
       box-sizing: border-box;

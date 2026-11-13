@@ -40,7 +40,12 @@ export interface ObjectNode {
   entries: ObjectEntry[];
 }
 
-export type ObjectErrorCode = "empty_key" | "duplicate_key" | "invalid_number";
+export type ObjectErrorCode =
+  | "empty_key"
+  | "duplicate_key"
+  | "invalid_number"
+  | "dictionary_required"
+  | "reserved_key";
 
 export interface ObjectValidation {
   valid: boolean;
@@ -359,4 +364,53 @@ export const outputValue = (value: unknown, required: boolean): unknown => {
     return undefined;
   }
   return value;
+};
+
+/** Unsaved editor text stays in memory, attached to its owning action only. */
+export interface ObjectEditorDraft {
+  mode: "visual" | "yaml";
+  valid: boolean;
+  visual?: ObjectNode;
+  yaml?: string;
+}
+const actionDrafts = new WeakMap<object, Map<string, ObjectEditorDraft>>();
+export const getObjectDraft = (
+  owner: object | undefined,
+  key: string | undefined
+) => (owner && key ? actionDrafts.get(owner)?.get(key) : undefined);
+export const setObjectDraft = (
+  owner: object | undefined,
+  key: string | undefined,
+  draft: ObjectEditorDraft
+) => {
+  if (!owner || !key) return;
+  let drafts = actionDrafts.get(owner);
+  if (!drafts) {
+    drafts = new Map();
+    actionDrafts.set(owner, drafts);
+  }
+  drafts.set(key, draft);
+};
+export const clearObjectDraft = (owner: object | undefined, key: string) => {
+  if (owner) actionDrafts.get(owner)?.delete(key);
+};
+export const transferObjectDrafts = (from: object, to: object) => {
+  const drafts = actionDrafts.get(from);
+  if (drafts) actionDrafts.set(to, drafts);
+};
+/** Removed actions are absent from the traversal and cannot block saving. */
+export const hasInvalidObjectDrafts = (
+  value: unknown,
+  seen = new WeakSet<object>()
+): boolean => {
+  if (!value || typeof value !== "object" || seen.has(value)) return false;
+  seen.add(value);
+  if (
+    [...(actionDrafts.get(value)?.values() || [])].some((draft) => !draft.valid)
+  ) {
+    return true;
+  }
+  return Object.values(value).some((child) =>
+    hasInvalidObjectDrafts(child, seen)
+  );
 };

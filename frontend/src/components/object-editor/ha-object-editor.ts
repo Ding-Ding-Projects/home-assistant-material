@@ -11,6 +11,7 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import { consumeLocalize } from "../../common/decorators/consume-context-entry";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import {
   addEntry,
@@ -29,6 +30,12 @@ import type {
   ObjectNode,
   ObjectNodeType,
 } from "../../common/object-editor/object-model";
+import {
+  nodeForOption,
+  nodeFitsKind,
+  unusedKnownOptions,
+  type ResolvedKnownOption,
+} from "../../common/object-editor/known-options";
 import { deepEqual } from "../../common/util/deep-equal";
 import type { HomeAssistant } from "../../types";
 import "../input/ha-input";
@@ -64,6 +71,13 @@ export class HaObjectEditor extends LitElement {
 
   @property() public label?: string;
 
+  @property({ attribute: false }) public draft?: ObjectNode;
+  @property({ attribute: false }) public dictionaryOnly = false;
+  @property({ attribute: false }) public reservedKeys: string[] = [];
+
+  @property({ attribute: false }) public knownOptions: ResolvedKnownOption[] =
+    [];
+
   @property({ type: Boolean }) public disabled = false;
 
   @property({ type: Boolean }) public required = false;
@@ -83,27 +97,49 @@ export class HaObjectEditor extends LitElement {
       this._root === undefined ||
       (changedProps.has("value") && !deepEqual(this.value, this._lastValue))
     ) {
-      this._root = rootFromValue(this.value);
-      this._errors = new Map();
+      this._root =
+        this._root === undefined && this.draft
+          ? this.draft
+          : rootFromValue(this.value);
+      this._errors = validateNode(this._root).errors;
       this._lastValue = this.value;
     }
   }
 
   private _t(key: string, values?: Record<string, string | number>): string {
     return (
-      (this._localize as (k: string, v?: unknown) => string)(
+      this._lang.text(
+        this._localize,
         `ui.components.object-editor.${key}`,
         values
       ) || key
     );
   }
 
+  private _lang = new LanguageModeController(this);
+
   /** Re-checks the tree and emits the value when it is valid. */
   private _changed() {
     const root = this._root!;
     const result = validateNode(root);
+    if (this.dictionaryOnly && root.type !== "dict") {
+      result.errors.set(root.id, "dictionary_required");
+    }
+    if (root.type === "dict") {
+      for (const entry of root.entries) {
+        if (this.reservedKeys.includes(entry.key || "")) {
+          result.errors.set(entry.id, "reserved_key");
+        }
+      }
+    }
+    result.valid = result.errors.size === 0;
     this._errors = result.errors;
     this._root = { ...root };
+    fireEvent(this, "object-editor-validity-changed", {
+      valid: result.valid,
+      editor: this,
+      draft: this._root,
+    });
     if (!result.valid) {
       return;
     }
@@ -129,6 +165,7 @@ export class HaObjectEditor extends LitElement {
     }
     return html`
       ${this.label ? html`<div class="label">${this.label}</div>` : nothing}
+      ${this._renderError(root.id)}
       ${
         isContainer(root)
           ? this._renderContainer(root, true)
@@ -147,6 +184,7 @@ export class HaObjectEditor extends LitElement {
     const isDict = node.type === "dict";
     return html`
       <div class="container" role="group">
+        ${top && isDict && !this.disabled ? this._renderKnownOptions(node) : nothing}
         ${
           node.entries.length === 0
             ? html`<div class="empty">
@@ -179,6 +217,41 @@ export class HaObjectEditor extends LitElement {
     `;
   }
 
+  private _renderKnownOptions(container: ObjectNode) {
+    const available = unusedKnownOptions(
+      this.knownOptions,
+      container.entries.map((entry) => entry.key || "")
+    );
+    return available.length
+      ? html`<ha-select
+          .label=${this._t("known_options")}
+          .options=${available.map((option) => ({ value: option.key, label: option.label || option.key }))}
+          .value=${""}
+          .container=${container}
+          @selected=${this._knownSelected}
+        ></ha-select>`
+      : nothing;
+  }
+
+  private _knownSelected(ev: CustomEvent<{ value?: string }>) {
+    ev.stopPropagation();
+    const option = this.knownOptions.find(
+      (item) => item.key === ev.detail.value
+    );
+    const container = (ev.currentTarget as Bound).container!;
+    if (
+      !option ||
+      container.entries.some((entry) => entry.key === option.key)
+    ) {
+      return;
+    }
+    addEntry(container);
+    const entry = container.entries[container.entries.length - 1];
+    entry.key = option.key;
+    entry.node = nodeForOption(option);
+    this._changed();
+  }
+
   private _renderEntry(
     container: ObjectNode,
     entry: ObjectEntry,
@@ -186,10 +259,15 @@ export class HaObjectEditor extends LitElement {
   ): TemplateResult {
     const isDict = container.type === "dict";
     const node = entry.node;
+    const known =
+      container === this._root
+        ? this.knownOptions.find((item) => item.key === entry.key)
+        : undefined;
     const collapsed = this._collapsed.has(entry.id);
     const nested = isContainer(node);
     return html`
       <div class="row">
+        ${known?.description ? html`<p>${known.description}</p>` : nothing}
         <div class="row-main">
           ${
             isDict
@@ -224,7 +302,7 @@ export class HaObjectEditor extends LitElement {
                     )}
                   </span>
                 </div>`
-              : this._renderScalar(node)
+              : this._renderScalar(node, known)
           }
           <div class="actions">
             <ha-icon-button
@@ -286,7 +364,40 @@ export class HaObjectEditor extends LitElement {
   }
 
   /** The control for a plain value. Edits change the node in place. */
-  private _renderScalar(node: ObjectNode): TemplateResult | typeof nothing {
+  private _renderScalar(
+    node: ObjectNode,
+    option?: ResolvedKnownOption
+  ): TemplateResult | typeof nothing {
+    if (option?.kind.type === "choice" && nodeFitsKind(node, option.kind)) {
+      const choices = option.kind.choices;
+      return html`<div class="value">
+        <ha-select
+          class="value"
+          .label=${option.label || this._t("value")}
+          .options=${[
+            ...choices.map((choice) => ({
+              value: choice.value,
+              label: choice.label || choice.value,
+            })),
+            ...(!choices.some((choice) => choice.value === node.text) &&
+            node.text
+              ? [{ value: node.text, label: node.text }]
+              : []),
+          ]}
+          .value=${node.text}
+          .disabled=${this.disabled}
+          .node=${node}
+          @selected=${this._choiceSelected}
+        ></ha-select
+        ><ha-input
+          .label=${this._t("value")}
+          .value=${node.text}
+          .disabled=${this.disabled}
+          .node=${node}
+          @input=${this._textInput}
+        ></ha-input>
+      </div>`;
+    }
     switch (node.type) {
       case "text":
         return html`<ha-input
@@ -351,6 +462,12 @@ export class HaObjectEditor extends LitElement {
       default:
         return nothing;
     }
+  }
+
+  private _choiceSelected(ev: CustomEvent<{ value?: string }>) {
+    ev.stopPropagation();
+    (ev.currentTarget as Bound).node!.text = ev.detail.value || "";
+    this._changed();
   }
 
   private _typeSelected(ev: CustomEvent<{ value?: string }>) {
@@ -526,6 +643,13 @@ export class HaObjectEditor extends LitElement {
 }
 
 declare global {
+  interface HASSDomEvents {
+    "object-editor-validity-changed": {
+      valid: boolean;
+      editor: HTMLElement;
+      draft?: ObjectNode;
+    };
+  }
   interface HTMLElementTagNameMap {
     "ha-object-editor": HaObjectEditor;
   }

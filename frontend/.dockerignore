@@ -1,0 +1,12 @@
+.git
+.cache
+.rspack-cache
+.compress-cache
+node_modules
+build
+dist
+demo/dist
+gallery/dist
+hass_frontend
+translations
+**/__pycache__

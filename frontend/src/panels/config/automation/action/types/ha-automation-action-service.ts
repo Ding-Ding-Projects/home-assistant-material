@@ -2,6 +2,7 @@ import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { assert } from "superstruct";
+import { transferObjectDrafts } from "../../../../../common/object-editor/object-model";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import { hasTemplate } from "../../../../../common/string/has-template";
 import "../../../../../components/ha-checkbox";
@@ -153,11 +154,17 @@ export class HaServiceAction extends LitElement implements ActionElement {
   private _actionChanged(ev) {
     if (ev.detail.value === this._action) {
       ev.stopPropagation();
+      return;
     }
     const value = { ...this.action, ...ev.detail.value };
+    transferObjectDrafts(ev.detail.value, value);
+    if (value.action !== this.action.action) {
+      this._responseChecked = false;
+      if (!("data" in ev.detail.value)) delete value.data;
+    }
     if ("response_variable" in this.action) {
-      const [domain, service] = this._action!.action
-        ? this._action!.action.split(".", 2)
+      const [domain, service] = value.action
+        ? value.action.split(".", 2)
         : [undefined, undefined];
       if (
         domain &&
@@ -178,6 +185,7 @@ export class HaServiceAction extends LitElement implements ActionElement {
       ...this.action,
       response_variable: (ev.target as HaInput).value,
     };
+    transferObjectDrafts(this.action, value);
     if (!(ev.target as HaInput).value) {
       delete value.response_variable;
     }
@@ -195,6 +203,7 @@ export class HaServiceAction extends LitElement implements ActionElement {
     this._responseChecked = ev.target.checked;
     if (!this._responseChecked) {
       const value = { ...this.action };
+      transferObjectDrafts(this.action, value);
       delete value.response_variable;
       fireEvent(this, "value-changed", { value });
     }

@@ -46,6 +46,22 @@ gulp.task(
 );
 
 gulp.task(
+  "build-demo-pages",
+  gulp.series(
+    async function setEnv() {
+      process.env.NODE_ENV = "production";
+    },
+    createWorkflowLockTask("build-demo-pages"),
+    "clean-demo",
+    "translations-enable-merge-backend",
+    gulp.parallel("gen-icons-json", "build-translations", "build-locale-data"),
+    "copy-static-demo",
+    "rspack-prod-demo-e2e",
+    "gen-pages-demo-prod-e2e"
+  )
+);
+
+gulp.task(
   "build-demo-e2e",
   gulp.series(
     async function setEnv() {

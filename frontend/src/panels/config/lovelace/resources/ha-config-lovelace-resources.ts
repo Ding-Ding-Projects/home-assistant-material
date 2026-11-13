@@ -33,6 +33,7 @@ import type {
 } from "../../../../data/lovelace/resource";
 import {
   createResource,
+  uploadResource,
   deleteResource,
   fetchLovelaceInfo,
   fetchResources,
@@ -409,9 +410,12 @@ export class HaConfigLovelaceResources extends LitElement {
   private async _openDialog(resource?: LovelaceResource): Promise<void> {
     showResourceDetailDialog(this, {
       resource,
-      createResource: async (values) => {
+      allowUpload: true,
+      createResource: async (values, file) => {
         await consentBeforeResourceSave(this, this.hass!, values);
-        const created = await createResource(this.hass!, values);
+        const created = file
+          ? await uploadResource(this.hass!, file)
+          : await createResource(this.hass!, values);
         recordResourceConsent(this.hass!, created);
         this._resources = this._resources!.concat(created).sort((res1, res2) =>
           stringCompare(res1.url, res2.url, this.hass!.locale.language)

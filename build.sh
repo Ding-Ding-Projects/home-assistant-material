@@ -3,6 +3,7 @@
 #
 #   ./build.sh                 build the container image home-assistant-material:local
 #   ./build.sh --run           build, then start it on http://localhost:8123
+#   ./build.sh demo            build the interactive Pages demo in frontend/demo/dist
 #   ./build.sh os <board>      build an operating system image (rpi5-64, rpi4-64, rpi3-64, ova)
 #
 # Every phase reports its real result and the script stops at the first failure.
@@ -16,6 +17,7 @@ for arg in "$@"; do
   case "${arg}" in
     --run) run=true ;;
     os) target=os ;;
+    demo) target=demo ;;
     container) target=container ;;
     rpi5-64|rpi4-64|rpi3-64|ova) board="${arg}" ;;
     -h|--help) sed -n 2,9p "$0"; exit 0 ;;
@@ -25,6 +27,18 @@ done
 
 phase() { printf '\n[%s] %s\n' "$1" "$2"; }
 value() { sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" versions.json | head -1; }
+
+if [ "$target" = demo ]; then
+  cd frontend
+  export DEMO_BASE_PATH="${DEMO_BASE_PATH:-/home-assistant-material/demo}"
+  export HA_BUILD_WORKERS="${HA_BUILD_WORKERS:-2}"
+  export NODE_OPTIONS="${NODE_OPTIONS:---max_old_space_size=6144}"
+  export SKIP_FETCH_NIGHTLY_TRANSLATIONS=1 HUSKY=0
+  if [ ! -x node_modules/.bin/gulp ]; then
+    pnpm install --frozen-lockfile
+  fi
+  exec ./node_modules/.bin/gulp build-demo-pages
+fi
 
 phase 1 "Checking for Docker"
 if ! command -v docker >/dev/null 2>&1; then

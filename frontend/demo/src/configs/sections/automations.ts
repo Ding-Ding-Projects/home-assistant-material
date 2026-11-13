@@ -2,6 +2,56 @@ import type { DemoAutomation } from "../types";
 
 export const demoAutomationsSections: DemoAutomation[] = [
   {
+    state: "off",
+    config: {
+      id: "demo_action_options",
+      alias: "Demo: door announcement",
+      description:
+        "Edit the speech options, save, reopen, and run the sample automation.",
+      triggers: [
+        {
+          trigger: "state",
+          entity_id: "binary_sensor.kitchen_motion",
+          to: "on",
+        },
+      ],
+      conditions: [],
+      actions: [
+        {
+          action: "tts.speak",
+          target: { entity_id: "tts.demo_voice" },
+          data: {
+            media_player_entity_id: "media_player.kitchen_nest_audio",
+            message: "Someone is at the door.",
+            options: { preferred_format: "mp3" },
+          },
+        },
+      ],
+      mode: "single",
+    },
+  },
+  {
+    state: "off",
+    config: {
+      id: "demo_scene_dictionary",
+      alias: "Demo: reading scene",
+      description: "Set sample entity states in a visual dictionary.",
+      triggers: [],
+      conditions: [],
+      actions: [
+        {
+          action: "scene.apply",
+          data: {
+            entities: {
+              "light.floor_lamp": { state: "on", brightness: 96 },
+            },
+          },
+        },
+      ],
+      mode: "single",
+    },
+  },
+  {
     lastTriggered: 60 * 9,
     state: "off",
     icon: "mdi:auto-mode",

@@ -29,6 +29,7 @@ import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { transferObjectDrafts } from "../../../../common/object-editor/object-model";
 import { consume } from "../../../../common/decorators/consume";
 import "../trigger/ha-automation-trigger-references";
 import { targetExpandGroupContext } from "../../../../components/target-picker/target-expand-group-context";
@@ -1029,6 +1030,7 @@ export default class HaAutomationActionRow extends LitElement {
   private _onDisable = () => {
     const enabled = !(this.action.enabled ?? true);
     const value = { ...this.action, enabled };
+    transferObjectDrafts(this.action, value);
     fireEvent(this, "value-changed", { value });
 
     if (this._selected && this.optionsInSidebar) {
@@ -1042,6 +1044,7 @@ export default class HaAutomationActionRow extends LitElement {
 
   private _continueOnError = () => {
     const value = { ...this.action };
+    transferObjectDrafts(this.action, value);
 
     if ((value as NonConditionAction).continue_on_error) {
       delete (value as NonConditionAction).continue_on_error;
@@ -1228,6 +1231,7 @@ export default class HaAutomationActionRow extends LitElement {
     });
     if (alias !== null) {
       const value = { ...this.action };
+      transferObjectDrafts(this.action, value);
       if (alias === "") {
         delete value.alias;
       } else {
@@ -1260,6 +1264,7 @@ export default class HaAutomationActionRow extends LitElement {
     });
     if (note !== null) {
       const value = { ...this.action };
+      transferObjectDrafts(this.action, value);
       if (note === "") {
         delete value.note;
       } else {

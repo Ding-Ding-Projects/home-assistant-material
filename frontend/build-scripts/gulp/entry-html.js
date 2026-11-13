@@ -58,6 +58,7 @@ const getCommonTemplateVars = () => {
   return {
     modernRegex: compileRegex(browserRegexes.concat(haMacOSRegex)).toString(),
     hassUrl: process.env.HASS_URL || "",
+    staticRoot: "",
     // Single source for the stale-build recovery patterns, shared with the
     // bundled src/util/recover-stale-build.ts and injected into the inline
     // boot guard (_bootstrap_recovery.html.template).
@@ -158,6 +159,12 @@ const genPagesProdTask =
           // Recover from a stale index.html that pins deleted hashed entry
           // bundles (see _bootstrap_recovery.html.template).
           useCacheRecovery: true,
+          ...(inputRoot === paths.demo_dir && process.env.DEMO_BASE_PATH
+            ? {
+                hassUrl: process.env.DEMO_BASE_PATH,
+                staticRoot: process.env.DEMO_BASE_PATH,
+              }
+            : {}),
           latestEntryJS: entries.map((entry) => latestManifest[`${entry}.js`]),
           es5EntryJS: outputES5
             ? entries.map((entry) => es5Manifest[`${entry}.js`])

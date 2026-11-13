@@ -4,6 +4,12 @@ import type { PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { keyed } from "lit/directives/keyed";
+import {
+  clearObjectDraft,
+  transferObjectDrafts,
+} from "../common/object-editor/object-model";
+import "./ha-selector/ha-selector-object";
 import { ensureArray } from "../common/array/ensure-array";
 import {
   fireEvent,
@@ -11,6 +17,7 @@ import {
   type HASSDomEvent,
 } from "../common/dom/fire_event";
 import { computeDomain } from "../common/entity/compute_domain";
+import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { computeObjectId } from "../common/entity/compute_object_id";
 import { supportsFeature } from "../common/entity/supports-feature";
 import { hasTemplate } from "../common/string/has-template";
@@ -82,6 +89,7 @@ interface ExtHassService extends Omit<HassService, "fields"> {
 
 @customElement("ha-service-control")
 export class HaServiceControl extends LitElement {
+  private _lang = new LanguageModeController(this);
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public value?: {
@@ -121,6 +129,22 @@ export class HaServiceControl extends LitElement {
 
   private _stickySelector: Record<string, Selector> = {};
 
+  public constructor() {
+    super();
+    this.addEventListener("value-changed", (ev) => {
+      const next = (ev as CustomEvent<{ value?: { action?: string } }>).detail
+        .value;
+      if (
+        next &&
+        typeof next === "object" &&
+        this.value &&
+        next.action === this.value.action
+      ) {
+        transferObjectDrafts(this.value, next);
+      }
+    });
+  }
+
   protected willUpdate(changedProperties: PropertyValues<this>) {
     if (!this.hasUpdated) {
       this.hass.loadBackendTranslation("services");
@@ -134,6 +158,7 @@ export class HaServiceControl extends LitElement {
 
     if (oldValue?.action !== this.value?.action) {
       this._checkedKeys = new Set();
+      this._stickySelector = {};
     }
 
     const serviceData = this._getServiceInfo(
@@ -274,7 +299,7 @@ export class HaServiceControl extends LitElement {
     }
   );
 
-  private _getTargetedEntities = memoizeOne((target, value) => {
+  private _getTargetedEntities = (target, value) => {
     const targetSelector = target ? { target } : { target: {} };
     if (
       hasTemplate(value?.target) ||
@@ -374,7 +399,7 @@ export class HaServiceControl extends LitElement {
       return targetEntities.filter((entityId) => !excluded.has(entityId));
     }
     return targetEntities;
-  });
+  };
 
   private _filterField(
     filter: ExtHassService["fields"][number]["filter"],
@@ -441,19 +466,19 @@ export class HaServiceControl extends LitElement {
       this.hass.services
     );
 
-    const shouldRenderServiceDataYaml =
-      (serviceData?.fields.length && !serviceData.hasSelector.length) ||
-      (serviceData &&
-        Object.keys(this._value?.data || {}).some(
-          (key) => !serviceData!.hasSelector.includes(key)
-        ));
+    const wholeData = !serviceData?.hasSelector.length;
+    const additionalData = Object.fromEntries(
+      Object.entries(this._value?.data || {}).filter(
+        ([key]) => !serviceData?.hasSelector.includes(key)
+      )
+    );
 
     const entityId =
-      shouldRenderServiceDataYaml &&
+      wholeData &&
       serviceData?.fields.find((field) => field.key === "entity_id");
 
     const hasOptional = Boolean(
-      !shouldRenderServiceDataYaml &&
+      !wholeData &&
       serviceData?.flatFields.some((field) => showOptionalToggle(field))
     );
 
@@ -560,16 +585,8 @@ export class HaServiceControl extends LitElement {
           : ""
     }
     ${
-      shouldRenderServiceDataYaml
-        ? html`<ha-yaml-editor
-            .label=${this.hass.localize(
-              "ui.components.service-control.action_data"
-            )}
-            .name=${"data"}
-            .readOnly=${this.disabled}
-            .defaultValue=${this._value?.data}
-            @value-changed=${this._dataChanged}
-          ></ha-yaml-editor>`
+      wholeData
+        ? this._renderDataDictionary(this._value?.data, false)
         : serviceData?.fields.map((dataField) => {
             if (!dataField.fields) {
               return this._renderField(
@@ -621,7 +638,94 @@ export class HaServiceControl extends LitElement {
                 </ha-expansion-panel>`
               : nothing;
           })
-    } `;
+    }
+    ${!wholeData ? this._renderDataDictionary(additionalData, true) : nothing} `;
+  }
+
+  private _renderDataDictionary(value: unknown, additional: boolean) {
+    const service = this._getServiceInfo(
+      this._value?.action,
+      this.hass.services
+    );
+    const fallbackFields =
+      service?.flatFields.filter((field) => !field.selector) ?? [];
+    const separateEntity =
+      !additional && fallbackFields.some((field) => field.key === "entity_id");
+    const targetEntities = this._getTargetedEntities(
+      service?.target,
+      this._value
+    );
+    const knownFields = fallbackFields.filter(
+      (field) =>
+        (field.key !== "entity_id" || !separateEntity) &&
+        (!field.filter || this._filterField(field.filter, targetEntities))
+    );
+    const manualOptions = knownFields.map((field) => ({
+      key: field.key,
+      label: field.name || field.key,
+      description: field.description,
+      default: field.default,
+      source: "declared" as const,
+    }));
+    const displayValue = separateEntity
+      ? Object.fromEntries(
+          Object.entries((value ?? {}) as Record<string, unknown>).filter(
+            ([key]) => key !== "entity_id"
+          )
+        )
+      : value;
+    return keyed(
+      `${this._value?.action}:${additional}`,
+      html`<div class="field">
+        <ha-selector-object
+          .hass=${this.hass}
+          .selector=${{ object: {} }}
+          .context=${{ draft_owner: this.value, draft_key: additional ? "$additional" : "$data", known_options: { action: this._value?.action, field: "data", target: this._value?.target } }}
+          .dictionaryOnly=${true}
+          .reservedKeys=${additional ? service?.hasSelector || [] : separateEntity ? ["entity_id"] : []}
+          .manualOptions=${manualOptions}
+          .label=${this._lang.text(this.hass.localize, additional ? "ui.components.object-editor.additional_data" : "ui.components.service-control.action_data")}
+          .value=${displayValue}
+          .required=${true}
+          .disabled=${this.disabled}
+          .dataAdditional=${additional}
+          @value-changed=${this._dictionaryDataChanged}
+        ></ha-selector-object>
+      </div>`
+    );
+  }
+
+  private _dictionaryDataChanged(ev: CustomEvent<{ value: unknown }>) {
+    ev.stopPropagation();
+    const value = ev.detail.value;
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return;
+    }
+    const additional = (
+      ev.currentTarget as HTMLElement & { dataAdditional: boolean }
+    ).dataAdditional;
+    const keys =
+      this._getServiceInfo(this._value?.action, this.hass.services)
+        ?.hasSelector || [];
+    const retained = additional
+      ? Object.fromEntries(
+          Object.entries(this._value?.data || {}).filter(([key]) =>
+            keys.includes(key)
+          )
+        )
+      : Object.fromEntries(
+          Object.entries(this._value?.data || {}).filter(
+            ([key]) =>
+              key === "entity_id" &&
+              this._getServiceInfo(
+                this._value?.action,
+                this.hass.services
+              )?.flatFields.some((field) => field.key === "entity_id")
+          )
+        );
+    fireEvent(this, "value-changed", {
+      value: { ...this._value, data: { ...value, ...retained } },
+    });
   }
 
   private _getSectionDescription(
@@ -672,7 +776,7 @@ export class HaServiceControl extends LitElement {
             typeof this._value!.data![dataField.key] === "object"
           ? { object: null }
           : (this._stickySelector[dataField.key] ??
-            dataField?.selector ?? { text: null });
+            dataField?.selector ?? { object: {} });
 
     if (fieldDataHasTemplate) {
       // Hold this selector type until the field is cleared
@@ -691,7 +795,18 @@ export class HaServiceControl extends LitElement {
 
     const inline = isBooleanSelector(selector);
     const selectorTemplate = html`<ha-selector
-      .context=${this._selectorContext(targetEntities, this.stringBuilder)}
+      .context=${{
+        ...this._selectorContext(targetEntities, this.stringBuilder),
+        draft_owner: this.value,
+        draft_key: dataField.key,
+        known_options: {
+          action: this._value?.action,
+          field: dataField.key,
+          target: this._value?.target,
+          entityIds: targetEntities || undefined,
+          language: this._value?.data?.language,
+        },
+      }}
       .disabled=${
         this.disabled ||
         (showOptional &&
@@ -817,7 +932,10 @@ export class HaServiceControl extends LitElement {
       let defaultValue = field?.default;
 
       if (defaultValue == null && field?.selector) {
-        defaultValue = getSelectorFallbackValue(field.selector);
+        defaultValue =
+          "object" in field.selector
+            ? {}
+            : getSelectorFallbackValue(field.selector);
       }
 
       if (defaultValue != null) {
@@ -827,6 +945,7 @@ export class HaServiceControl extends LitElement {
         };
       }
     } else {
+      clearObjectDraft(this.value, key);
       this._checkedKeys.delete(key);
       data = { ...this._value?.data };
       delete data[key];
@@ -951,13 +1070,7 @@ export class HaServiceControl extends LitElement {
 
     const data = { ...this._value?.data, [key]: value };
 
-    if (
-      value === "" ||
-      value === undefined ||
-      (value !== null &&
-        typeof value === "object" &&
-        !Object.keys(value).length)
-    ) {
+    if (value === "" || value === undefined) {
       delete data[key];
       delete this._stickySelector[key];
     }
@@ -966,24 +1079,6 @@ export class HaServiceControl extends LitElement {
       value: {
         ...this._value,
         data,
-      },
-    });
-  }
-
-  private _dataChanged(
-    ev: HASSDomEvent<{
-      value: NonNullable<HaServiceControl["value"]>["data"];
-      isValid?: boolean;
-    }>
-  ) {
-    ev.stopPropagation();
-    if (!ev.detail.isValid) {
-      return;
-    }
-    fireEvent(this, "value-changed", {
-      value: {
-        ...this._value,
-        data: ev.detail.value,
       },
     });
   }

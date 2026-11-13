@@ -6,7 +6,11 @@ import type {
 
 export interface LovelaceResourceDetailsDialogParams {
   resource?: LovelaceResource;
-  createResource: (values: LovelaceResourcesMutableParams) => Promise<unknown>;
+  createResource: (
+    values: LovelaceResourcesMutableParams,
+    file?: File
+  ) => Promise<unknown>;
+  allowUpload?: boolean;
   updateResource: (
     updates: Partial<LovelaceResourcesMutableParams>
   ) => Promise<unknown>;

@@ -1,5 +1,22 @@
 # Closeout prompt
 
+## Latest recovery point, 13 November 2026
+
+The task adds visual dictionary editing to automation and script actions and a working browser demo
+using synthetic speech and scene entities. See `docs/features/automations/visual-action-dictionaries.md`.
+The frontend suite recorded 7,726 passes and the same three Windows build-management failures as
+baseline. The frontend wheel built. The local Core image build stopped on a dependency hash
+mismatch for `multidict==6.9.1`.
+
+This batch also keeps phone navigation in view while scrolling, stacks Accessibility tools at
+narrow widths, adds a touch-friendly save step for media and images, and supports uploading a
+local dashboard resource. The rebuilt preview verified navigation and narrow layout. An
+isolated Core instance with candidate modules verified the resource upload API.
+
+Verify the published demo in a fresh browser profile, then verify the exact released Core image in
+an isolated instance before moving the existing installation. Preserve the existing configuration
+and verify a Core backup first. Current live deployment is build `2026.11.1.425`.
+
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,
 `ROADMAP.md` and `HANDOFF.md`.

@@ -75,6 +75,9 @@ Every file in the Manage dialog, for the media library and the image store, has 
   new server path was needed. Selecting several files shows **Download as zip**: one zip built in the
   browser with `jszip` (stored, not compressed), refused with a message when the files add up to more than
   200 MB. Folders in a selection are left out.
+  On a touch device, the dialog prepares the file and then shows **Save file**. This gives the
+  browser a fresh tap to start the download. When the browser supports sharing files, **Share or
+  save** opens the device's share sheet with the same file.
 - **Edit name**: renames a media file with the existing `media_source/local_source/rename`, or an image
   with the existing `image/update` (its id and serve URL do not change). A name that is taken in the same
   folder is refused, and a changed extension asks for confirmation first.

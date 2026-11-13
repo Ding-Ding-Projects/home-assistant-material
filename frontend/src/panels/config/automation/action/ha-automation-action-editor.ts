@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { transferObjectDrafts } from "../../../../common/object-editor/object-model";
 import { dynamicElement } from "../../../../common/dom/dynamic-element-directive";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import {
@@ -114,6 +115,7 @@ export default class HaAutomationActionEditor extends LitElement {
       ...ev.detail.value,
       ...pickRowConfig(this.action, ACTION_ROW_CONFIG_KEYS),
     };
+    transferObjectDrafts(ev.detail.value, value);
     fireEvent(this, "value-changed", { value });
   }
 

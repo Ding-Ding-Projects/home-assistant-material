@@ -9,10 +9,16 @@ import type { HassEntities } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import type { ObjectNode } from "../../common/object-editor/object-model";
+import {
+  getObjectDraft,
+  setObjectDraft,
+} from "../../common/object-editor/object-model";
 import { ensureArray } from "../../common/array/ensure-array";
 import { consume } from "../../common/decorators/consume";
 import { transform } from "../../common/decorators/transform";
 import { fireEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import {
   formattersContext,
   internationalizationContext,
@@ -40,6 +46,16 @@ import "../ha-yaml-editor";
 import "../item/ha-list-item-base";
 import "../list/ha-list-base";
 import type { HaYamlEditor } from "../ha-yaml-editor";
+import {
+  loadDeclaredOptions,
+  type KnownOptionsContext,
+} from "../../data/known-options";
+import { catalogueOptions } from "../../common/object-editor/known-options-catalogue";
+import {
+  mergeKnownOptions,
+  type KnownOption,
+  type ResolvedKnownOption,
+} from "../../common/object-editor/known-options";
 import { deepEqual } from "../../common/util/deep-equal";
 import {
   safeGetStored,
@@ -61,6 +77,97 @@ export class HaObjectSelector extends LitElement {
   @property({ attribute: false }) public selector!: ObjectSelector;
 
   @property() public value?: any;
+
+  @property({ attribute: false }) public context?: {
+    known_options?: KnownOptionsContext;
+    draft_owner?: object;
+    draft_key?: string;
+  };
+
+  @property({ attribute: false }) public manualOptions: KnownOption[] = [];
+
+  @state() private _knownOptions: ResolvedKnownOption[] = [];
+  private _lang = new LanguageModeController(this);
+  private _optionsKey?: string;
+  private _optionsConnection?: HomeAssistant["connection"];
+  private _optionsRequest = 0;
+  private _visualValid = true;
+  private _restoredYaml?: HaYamlEditor;
+  private _draftOwner?: object;
+  @property({ attribute: false }) public dictionaryOnly = false;
+  @property({ attribute: false }) public reservedKeys: string[] = [];
+
+  protected willUpdate() {
+    if (this._draftOwner !== this.context?.draft_owner) {
+      const previousDraft = getObjectDraft(
+        this._draftOwner,
+        this.context?.draft_key
+      );
+      this._draftOwner = this.context?.draft_owner;
+      const draft = getObjectDraft(this._draftOwner, this.context?.draft_key);
+      // Immutable action updates keep the same draft. Replaying it on every
+      // owner replacement reparses YAML and can cause an update loop.
+      if (previousDraft !== draft) this._restoredYaml = undefined;
+      if (draft) {
+        this._mode = draft.mode;
+        this._visualValid = draft.valid;
+      } else {
+        this._visualValid = true;
+        this._modeError = false;
+      }
+    }
+    const context = this.context?.known_options;
+    const key = JSON.stringify([
+      context,
+      this.hass?.language,
+      this._lang.mode,
+      this.hass?.connected,
+      this.hass?.user?.is_admin,
+    ]);
+    if (
+      key !== this._optionsKey ||
+      this.hass?.connection !== this._optionsConnection
+    ) {
+      this._optionsKey = key;
+      this._optionsConnection = this.hass?.connection;
+      const request = ++this._optionsRequest;
+      const common =
+        context?.action && context.field
+          ? catalogueOptions(context.action, context.field, (translation) =>
+              this._lang.text(this._i18n.localize, translation)
+            )
+          : [];
+      this._knownOptions = mergeKnownOptions(common);
+      if (this.hass && context) {
+        void loadDeclaredOptions(this.hass, context)
+          .then((result) => {
+            if (request === this._optionsRequest) {
+              this._knownOptions = mergeKnownOptions(result?.options, common);
+            }
+          })
+          .catch(() => {
+            /* Keep the common options and existing value. */
+          });
+      }
+    }
+  }
+
+  private _visualValidity(
+    ev: CustomEvent<{ valid: boolean; draft?: ObjectNode }>
+  ) {
+    ev.stopPropagation();
+    this._visualValid = ev.detail.valid;
+    setObjectDraft(this.context?.draft_owner, this.context?.draft_key, {
+      mode: "visual",
+      valid: ev.detail.valid,
+      visual: ev.detail.draft,
+    });
+    this._reportValidity(ev.detail.valid);
+  }
+
+  private _reportValidity(valid: boolean) {
+    fireEvent(this, "object-editor-validity-changed", { valid, editor: this });
+  }
 
   @property() public label?: string;
 
@@ -214,6 +321,7 @@ export class HaObjectSelector extends LitElement {
           .index=${index}
           .label=${this._i18n.localize("ui.common.edit")}
           .path=${mdiPencil}
+          .disabled=${this.disabled}
           @click=${this._editItem}
         ></ha-icon-button>
         <ha-icon-button
@@ -221,6 +329,7 @@ export class HaObjectSelector extends LitElement {
           .index=${index}
           .label=${this._i18n.localize("ui.common.delete")}
           .path=${multiple ? mdiDelete : mdiClose}
+          .disabled=${this.disabled}
           @click=${this._deleteItem}
         ></ha-icon-button>
       </ha-list-item-base>
@@ -243,7 +352,11 @@ export class HaObjectSelector extends LitElement {
                 ${items.map((item, index) => this._renderItem(item, index))}
               </ha-list-base>
             </ha-sortable>
-            <ha-button appearance="filled" @click=${this._addItem}>
+            <ha-button
+              appearance="filled"
+              .disabled=${this.disabled}
+              @click=${this._addItem}
+            >
               ${this._i18n.localize("ui.common.add")}
             </ha-button>
           </div>
@@ -259,7 +372,11 @@ export class HaObjectSelector extends LitElement {
                   ${this._renderItem(this.value, 0)}
                 </ha-list-base>`
               : html`
-                  <ha-button appearance="filled" @click=${this._addItem}>
+                  <ha-button
+                    appearance="filled"
+                    .disabled=${this.disabled}
+                    @click=${this._addItem}
+                  >
                     ${this._i18n.localize("ui.common.add")}
                   </ha-button>
                 `
@@ -275,11 +392,16 @@ export class HaObjectSelector extends LitElement {
             .hass=${this.hass}
             .value=${this.value}
             .disabled=${this.disabled}
-            .required=${this.required}
+            .required=${this.required || !!this.context?.known_options}
+            .draft=${getObjectDraft(this.context?.draft_owner, this.context?.draft_key)?.visual}
+            .knownOptions=${mergeKnownOptions(this._knownOptions, this.manualOptions)}
+            .dictionaryOnly=${this.dictionaryOnly}
+            .reservedKeys=${this.reservedKeys}
+            @object-editor-validity-changed=${this._visualValidity}
             @value-changed=${this._handleVisualChange}
           ></ha-object-editor>`
         : html`<ha-yaml-editor
-            .readonly=${this.disabled}
+            .readOnly=${this.disabled}
             .label=${this.label}
             .required=${this.required}
             .placeholder=${this.placeholder}
@@ -297,11 +419,17 @@ export class HaObjectSelector extends LitElement {
   private _renderModeSwitch() {
     const buttons: ToggleButton[] = [
       {
-        label: this._i18n.localize("ui.components.object-editor.visual"),
+        label: this._lang.text(
+          this._i18n.localize,
+          "ui.components.object-editor.visual"
+        ),
         value: "visual",
       },
       {
-        label: this._i18n.localize("ui.components.object-editor.yaml"),
+        label: this._lang.text(
+          this._i18n.localize,
+          "ui.components.object-editor.yaml"
+        ),
         value: "yaml",
       },
     ];
@@ -321,7 +449,7 @@ export class HaObjectSelector extends LitElement {
       ${
         this._modeError
           ? html`<ha-alert alert-type="warning">
-              ${this._i18n.localize("ui.components.object-editor.yaml_invalid")}
+              ${this._lang.text(this._i18n.localize, "ui.components.object-editor.yaml_invalid")}
             </ha-alert>`
           : nothing
       }`;
@@ -333,15 +461,29 @@ export class HaObjectSelector extends LitElement {
     if (next === this._mode) {
       return;
     }
+    if (next === "yaml" && !this._visualValid) {
+      this._modeError = true;
+      return;
+    }
     // Leaving broken YAML for the visual editor would lose what was typed.
-    if (next === "visual" && this._yamlEditor && !this._yamlEditor.isValid) {
+    if (
+      next === "visual" &&
+      this._yamlEditor &&
+      (!this._yamlEditor.isValid || this._modeError)
+    ) {
       this._modeError = true;
       (ev.currentTarget as HTMLElement & { active?: string }).active =
         this._mode;
       return;
     }
     this._modeError = false;
+    this._visualValid = true;
     this._mode = next;
+    this._restoredYaml = undefined;
+    setObjectDraft(this.context?.draft_owner, this.context?.draft_key, {
+      mode: next,
+      valid: true,
+    });
     safeSetStored(OBJECT_SELECTOR_MODE_KEY, next);
   }
 
@@ -476,6 +618,21 @@ export class HaObjectSelector extends LitElement {
 
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
+    const draft = getObjectDraft(
+      this.context?.draft_owner,
+      this.context?.draft_key
+    );
+    if (this._yamlEditor && this._yamlEditor !== this._restoredYaml) {
+      this._restoredYaml = this._yamlEditor;
+      if (draft?.mode === "yaml" && draft.yaml !== undefined) {
+        const editor = this._yamlEditor;
+        const text = draft.yaml;
+        void editor.updateComplete.then(() => {
+          if (this._yamlEditor === editor) editor.setYaml(text);
+        });
+        return;
+      }
+    }
     if (
       changedProps.has("value") &&
       !this._valueChangedFromChild &&
@@ -491,10 +648,24 @@ export class HaObjectSelector extends LitElement {
     ev.stopPropagation();
     this._valueChangedFromChild = true;
     const value = ev.target.value;
-    if (!ev.target.isValid) {
+    const valid =
+      ev.target.isValid &&
+      (!this.dictionaryOnly ||
+        (value !== null &&
+          typeof value === "object" &&
+          !Array.isArray(value) &&
+          !Object.keys(value).some((key) => this.reservedKeys.includes(key))));
+    this._modeError = !valid;
+    setObjectDraft(this.context?.draft_owner, this.context?.draft_key, {
+      mode: "yaml",
+      valid,
+      yaml: ev.target.yaml,
+    });
+    this._reportValidity(valid);
+    if (!valid) {
       return;
     }
-    if (this.value === value) {
+    if (deepEqual(this.value, value)) {
       return;
     }
     fireEvent(this, "value-changed", { value });

@@ -1,191 +1,190 @@
-import {
-  collectUsedElsewhere,
-  declaredOptions,
-} from "../common/object-editor/known-options";
+import { ensureArray } from "../common/array/ensure-array";
+import { isValidEntityId } from "../common/entity/valid_entity_id";
+import { declaredOptions } from "../common/object-editor/known-options";
 import type {
   KnownChoice,
   KnownOption,
 } from "../common/object-editor/known-options";
+import { hasTemplate } from "../common/string/has-template";
 import type { HomeAssistant } from "../types";
-import { fetchAutomationFileConfig } from "./automation";
-import { fetchScriptFileConfig } from "./script";
-import { getTTSEngine, getTTSEngineOptions, listTTSVoices } from "./tts";
+import { explainTarget, targetEntitiesAfterExclude } from "./target";
+import type { HassServiceTargetWithExclude } from "./target";
+import { getTTSEngineOptions, listTTSVoices } from "./tts";
 
-/** What the editor knows about where it sits. */
+/** The action and target of a dictionary field. */
 export interface KnownOptionsContext {
-  /** The action, such as "tts.speak". */
   action?: string;
-  /** The field that holds the dictionary, such as "options". */
   field?: string;
-  /** The entities the action targets. */
+  target?: HassServiceTargetWithExclude;
+  /** Explicit entity IDs, including a legacy service-data target. */
   entityIds?: string[];
-  /** The language chosen in the same action, if any. */
   language?: string;
 }
 
 export interface DeclaredOptionsResult {
   options: KnownOption[];
-  /** Every key the integration accepts, declared or common to all engines. */
+  /** Option keys accepted by every resolved engine, including common keys. */
   acceptedKeys: string[];
 }
 
 const MAX_ENGINES = 5;
+const MAX_OPTION_KEYS = 128;
 
-const normalizeLanguage = (language: string): string =>
-  language.toLowerCase().replace("_", "-");
-
-/** The engine language that best fits a language such as "en" or "en-US". */
-const pickLanguage = (
-  supported: string[],
-  wanted: string
-): string | undefined => {
-  const target = normalizeLanguage(wanted);
-  const exact = supported.find((item) => normalizeLanguage(item) === target);
-  if (exact) {
-    return exact;
-  }
-  const base = target.split("-")[0];
-  return supported.find(
-    (item) => normalizeLanguage(item).split("-")[0] === base
+const explicitIds = (ids: string | string[]): string[] =>
+  ensureArray(ids).flatMap((value) =>
+    value.split(",").map((id) => id.trim().toLowerCase())
   );
+
+const resolveEngines = async (
+  hass: HomeAssistant,
+  context: KnownOptionsContext
+): Promise<string[]> => {
+  const { target } = context;
+  const rawIds = target?.entity_id ?? context.entityIds;
+  const ids = rawIds === undefined ? [] : explicitIds(rawIds);
+  if (ids.some((id) => !isValidEntityId(id))) {
+    return [];
+  }
+  if (
+    ids.every((id) => id.startsWith("tts.")) &&
+    (!target || Object.keys(target).every((key) => key === "entity_id"))
+  ) {
+    return ids;
+  }
+  if (hasTemplate(target)) {
+    return [];
+  }
+
+  const explanation = await explainTarget(hass.callWS, {
+    ...target,
+    ...(ids.length ? { entity_id: ids } : {}),
+  });
+  if (explanation.includes.some((item) => !item.entities.length)) {
+    return [];
+  }
+  return Object.values(targetEntitiesAfterExclude(explanation))
+    .flat()
+    .filter((id) => id.startsWith("tts."));
 };
+
+const sharedValues = (sets: string[][]): string[] =>
+  [...new Set(sets[0])].filter((value) =>
+    sets.every((values) => values.includes(value))
+  );
+
+const isOptionKeyList = (value: unknown): value is string[] =>
+  Array.isArray(value) &&
+  value.length <= MAX_OPTION_KEYS &&
+  value.every(
+    (key) => typeof key === "string" && key.length > 0 && key.length <= 128
+  );
 
 const loadVoices = async (
   hass: HomeAssistant,
   engineId: string,
-  language: string
-): Promise<KnownChoice[] | undefined> => {
+  language: string | null | undefined
+): Promise<KnownChoice[]> => {
+  if (!language) {
+    return [];
+  }
   try {
-    const { provider } = await getTTSEngine(hass.callWS, engineId);
-    const match = pickLanguage(provider.supported_languages ?? [], language);
-    if (!match) {
-      return undefined;
-    }
-    const { voices } = await listTTSVoices(hass.callWS, engineId, match);
-    return voices?.length
-      ? voices.map((voice) => ({ value: voice.voice_id, label: voice.name }))
-      : undefined;
+    const { voices } = await listTTSVoices(hass.callWS, engineId, language);
+    return (
+      voices?.map((voice) => ({ value: voice.voice_id, label: voice.name })) ??
+      []
+    );
   } catch (_err) {
-    return undefined;
+    return [];
   }
 };
 
-/**
- * What the integration behind the action declares, or undefined when it
- * declares nothing that can be read. Speech engines declare their options.
- */
+/** Loads metadata only for a TTS Options field with a complete target. */
 export const loadDeclaredOptions = async (
   hass: HomeAssistant,
   context: KnownOptionsContext
 ): Promise<DeclaredOptionsResult | undefined> => {
-  if (context.action !== "tts.speak" || context.field !== "options") {
-    return undefined;
-  }
-  const engines = (context.entityIds ?? [])
-    .filter((id) => id.startsWith("tts."))
-    .slice(0, MAX_ENGINES);
-  if (!engines.length) {
+  if (
+    context.action !== "tts.speak" ||
+    context.field !== "options" ||
+    hass.user?.is_admin === false
+  ) {
     return undefined;
   }
 
-  const options: KnownOption[] = [];
-  const accepted = new Set<string>();
-  for (const engineId of engines) {
-    let result;
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      result = await getTTSEngineOptions(hass.callWS, engineId);
-    } catch (_err) {
-      // One engine that cannot answer makes the whole list unreliable.
+  try {
+    const engines = [...new Set(await resolveEngines(hass, context))];
+    if (!engines.length || engines.length > MAX_ENGINES) {
       return undefined;
     }
-    result.common_options.forEach((key) => accepted.add(key));
-    const keys = result.supported_options;
-    keys.forEach((key) => accepted.add(key));
-    const choices: Record<string, KnownChoice[]> = {};
-    if (keys.includes("voice")) {
-      // eslint-disable-next-line no-await-in-loop
-      const voices = await loadVoices(
-        hass,
-        engineId,
-        context.language || hass.language
-      );
-      if (voices) {
-        choices.voice = voices;
-      }
-    }
-    options.push(
-      ...declaredOptions({
-        keys,
-        defaults: result.default_options,
-        choices,
-      })
+    const language = context.language;
+    const isDynamicLanguage = hasTemplate(language);
+    const results = await Promise.all(
+      engines.map((engineId) =>
+        getTTSEngineOptions(
+          hass.callWS,
+          engineId,
+          isDynamicLanguage ? undefined : language
+        )
+      )
     );
-  }
-  return { options, acceptedKeys: [...accepted] };
-};
-
-const USAGE_TTL_MS = 5 * 60 * 1000;
-const MAX_CONFIGS = 300;
-let usageCache: { at: number; promise: Promise<unknown[]> } | undefined;
-
-/** Every stored automation and script config, loaded once and kept briefly. */
-const loadAllConfigs = (hass: HomeAssistant): Promise<unknown[]> => {
-  if (usageCache && Date.now() - usageCache.at < USAGE_TTL_MS) {
-    return usageCache.promise;
-  }
-  const loaders: (() => Promise<unknown>)[] = [];
-  for (const state of Object.values(hass.states)) {
-    if (state.entity_id.startsWith("automation.") && state.attributes.id) {
-      const id = String(state.attributes.id);
-      loaders.push(() => fetchAutomationFileConfig(hass, id));
-    } else if (state.entity_id.startsWith("script.")) {
-      const objectId = state.entity_id.slice("script.".length);
-      loaders.push(() => fetchScriptFileConfig(hass, objectId));
+    if (
+      results.some(
+        (result) =>
+          !isOptionKeyList(result.supported_options) ||
+          !isOptionKeyList(result.common_options)
+      )
+    ) {
+      return undefined;
     }
-  }
-  const queue = loaders.slice(0, MAX_CONFIGS);
-  const configs: unknown[] = [];
-  const worker = async () => {
-    for (let load = queue.shift(); load; load = queue.shift()) {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        configs.push(await load());
-      } catch (_err) {
-        // A config that cannot be read adds nothing.
-      }
-    }
-  };
-  const promise = Promise.all([worker(), worker(), worker(), worker()]).then(
-    () => configs
-  );
-  usageCache = { at: Date.now(), promise };
-  return promise;
-};
 
-/** The keys other automations and scripts use for the same action and field. */
-export const loadUsedElsewhere = async (
-  hass: HomeAssistant,
-  context: KnownOptionsContext
-): Promise<KnownOption[]> => {
-  if (!context.action || !context.field) {
-    return [];
+    const keys = sharedValues(
+      results.map((result) => result.supported_options)
+    );
+    const acceptedKeys = sharedValues(
+      results.map((result) => [
+        ...result.supported_options,
+        ...result.common_options,
+      ])
+    );
+    if (
+      !keys.includes("voice") ||
+      isDynamicLanguage ||
+      results.some(
+        (result) =>
+          !result.effective_language ||
+          (language && language !== result.effective_language)
+      )
+    ) {
+      return { options: declaredOptions({ keys }), acceptedKeys };
+    }
+    const voiceLists = await Promise.all(
+      results.map((result, index) =>
+        loadVoices(hass, engines[index], result.effective_language)
+      )
+    );
+    const voiceIds = new Set(
+      sharedValues(voiceLists.map((list) => list.map((voice) => voice.value)))
+    );
+    const voice = [
+      ...new Map(voiceLists[0].map((item) => [item.value, item])).values(),
+    ]
+      .filter((item) => voiceIds.has(item.value))
+      .map((item) =>
+        voiceLists.every((list) =>
+          list.some(
+            (choice) =>
+              choice.value === item.value && choice.label === item.label
+          )
+        )
+          ? item
+          : { value: item.value }
+      );
+    return {
+      options: declaredOptions({ keys, choices: { voice } }),
+      acceptedKeys,
+    };
+  } catch (_err) {
+    // One missing result leaves support across the target unknown.
+    return undefined;
   }
-  const configs = await loadAllConfigs(hass);
-  const platforms = new Set(
-    (context.entityIds ?? [])
-      .map((id) => hass.entities[id]?.platform)
-      .filter((platform): platform is string => Boolean(platform))
-  );
-  return collectUsedElsewhere(configs, {
-    action: context.action,
-    field: context.field,
-    stepFilter: platforms.size
-      ? (ids) =>
-          ids.some((id) => {
-            const platform = hass.entities[id]?.platform;
-            return platform !== undefined && platforms.has(platform);
-          })
-      : undefined,
-  });
 };

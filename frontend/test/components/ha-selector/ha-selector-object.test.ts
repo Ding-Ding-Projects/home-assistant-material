@@ -1,6 +1,14 @@
 import { ContextProvider } from "@lit/context";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  getObjectDraft,
+  setObjectDraft,
+  transferObjectDrafts,
+  hasInvalidObjectDrafts,
+} from "../../../src/common/object-editor/object-model";
+import { loadDeclaredOptions } from "../../../src/data/known-options";
+import type { HaObjectEditor } from "../../../src/components/object-editor/ha-object-editor";
+import {
   formattersContext,
   internationalizationContext,
   registriesContext,
@@ -18,6 +26,9 @@ import type {
 } from "../../../src/dialogs/form/show-form-dialog";
 import "../../../src/components/ha-selector/ha-selector-object";
 
+vi.mock("../../../src/data/known-options", () => ({
+  loadDeclaredOptions: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("../../../src/components/ha-input-helper-text", () => {
   customElements.define("ha-input-helper-text", class extends HTMLElement {});
   return {};
@@ -65,7 +76,8 @@ interface ItemActionEvent {
 
 const mountSelector = async (
   value: FormDialogData | FormDialogData[] | "",
-  config: ObjectSelector = selectorConfig
+  config: ObjectSelector = selectorConfig,
+  context?: HaObjectSelector["context"]
 ) => {
   const host = document.createElement("div");
   new ContextProvider(host, {
@@ -90,6 +102,7 @@ const mountSelector = async (
     "ha-selector-object"
   ) as HaObjectSelector;
   selector.selector = config;
+  selector.context = context;
   selector.value = value;
   host.append(selector);
   document.body.append(host);
@@ -353,5 +366,156 @@ describe("ha-selector-object form dialog flow", () => {
     await resolveFormDialog(selector, "_editItem", null, first, 0);
 
     expect(valueChanged).not.toHaveBeenCalled();
+  });
+});
+
+describe("object selector action metadata", () => {
+  it("renders the visual dictionary for unstructured action options", async () => {
+    const selector = await mountSelector(
+      { vendor: [0, false, null] },
+      { object: {} }
+    );
+    const editor = selector.shadowRoot!.querySelector(
+      "ha-object-editor"
+    ) as HaObjectEditor;
+    expect(editor.value).toEqual({ vendor: [0, false, null] });
+  });
+
+  it("ignores late choices for an earlier target and retains the saved value", async () => {
+    let resolveFirst!: (value: {
+      options: never[];
+      acceptedKeys: string[];
+    }) => void;
+    vi.mocked(loadDeclaredOptions).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        })
+    );
+    const selector = await mountSelector({ voice: "legacy" }, { object: {} });
+    selector.hass = { language: "en" } as never;
+    selector.context = {
+      known_options: {
+        action: "tts.speak",
+        field: "options",
+        entityIds: ["tts.first"],
+      },
+    };
+    await selector.updateComplete;
+    vi.mocked(loadDeclaredOptions).mockResolvedValueOnce({
+      options: [
+        {
+          key: "voice",
+          source: "declared",
+          kind: { type: "choice", choices: [{ value: "new" }] },
+        },
+      ],
+      acceptedKeys: ["voice"],
+    });
+    selector.context = {
+      known_options: {
+        action: "tts.speak",
+        field: "options",
+        entityIds: ["tts.second"],
+      },
+    };
+    await selector.updateComplete;
+    await Promise.resolve();
+    await selector.updateComplete;
+    resolveFirst({ options: [], acceptedKeys: [] });
+    await Promise.resolve();
+    await selector.updateComplete;
+    const editor = selector.shadowRoot!.querySelector(
+      "ha-object-editor"
+    ) as HaObjectEditor;
+    expect(
+      editor.knownOptions.find((option) => option.key === "voice")?.kind
+    ).toEqual({ type: "choice", choices: [{ value: "new" }] });
+    expect(selector.value).toEqual({ voice: "legacy" });
+  });
+});
+
+describe("object selector invalid drafts", () => {
+  it("retains an invalid visual key when a row is closed and reopened", async () => {
+    const owner = {
+      action: "custom.perform",
+      data: { options: { saved: "value" } },
+    };
+    const context = { draft_owner: owner, draft_key: "options" };
+    const first = await mountSelector(
+      owner.data.options,
+      { object: {} },
+      context
+    );
+    const editor = first.shadowRoot!.querySelector(
+      "ha-object-editor"
+    ) as HaObjectEditor;
+    await editor.updateComplete;
+    const key = editor.shadowRoot!.querySelector(".key") as HTMLElement & {
+      value: string;
+    };
+    key.value = "";
+    key.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    await editor.updateComplete;
+    expect(hasInvalidObjectDrafts({ actions: [owner] })).toBe(true);
+    expect(first.value).toEqual({ saved: "value" });
+    first.remove();
+    const reopened = await mountSelector(
+      owner.data.options,
+      { object: {} },
+      context
+    );
+    const reopenedEditor = reopened.shadowRoot!.querySelector(
+      "ha-object-editor"
+    ) as HaObjectEditor;
+    await reopenedEditor.updateComplete;
+    expect(
+      (
+        reopenedEditor.shadowRoot!.querySelector(".key") as HTMLElement & {
+          value: string;
+        }
+      ).value
+    ).toBe("");
+    expect(reopenedEditor.shadowRoot!.querySelector(".error")).not.toBeNull();
+  });
+});
+
+describe("object selector immutable owner updates", () => {
+  it("does not reset draft restoration when an action clone owns the same draft", async () => {
+    const owner = { action: "custom.perform" };
+    setObjectDraft(owner, "options", { mode: "visual", valid: true });
+    const selector = await mountSelector(
+      { key: "value" },
+      { object: {} },
+      { draft_owner: owner, draft_key: "options" }
+    );
+    const restored = document.createElement("ha-yaml-editor");
+    getInternals(selector)._restoredYaml = restored;
+    const next = { ...owner, alias: "Renamed" };
+    transferObjectDrafts(owner, next);
+    selector.context = { draft_owner: next, draft_key: "options" };
+    await selector.updateComplete;
+    expect(getObjectDraft(owner, "options")).toBe(
+      getObjectDraft(next, "options")
+    );
+    expect(getInternals(selector)._restoredYaml).toBe(restored);
+  });
+
+  it("does not emit unchanged parsed YAML after restoration", async () => {
+    const selector = await mountSelector(
+      { nested: { count: 1 } },
+      { object: {} }
+    );
+    const changes = vi.fn();
+    selector.addEventListener("value-changed", changes);
+    (getInternals(selector)._handleChange as (event: unknown) => void)({
+      stopPropagation: vi.fn(),
+      target: {
+        value: { nested: { count: 1 } },
+        isValid: true,
+        yaml: "nested:\n  count: 1",
+      },
+    });
+    expect(changes).not.toHaveBeenCalled();
   });
 });

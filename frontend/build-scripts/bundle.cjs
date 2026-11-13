@@ -200,7 +200,12 @@ module.exports.babelOptions = ({ latestBuild, isTestBuild, sw, worker }) => ({
           "@formatjs/(?:ecma402-abstract|intl-\\w+)",
           "@webcomponents/scoped-custom-element-registry",
           "element-internals-polyfill",
-        ].map((p) => new RegExp(`[\\\\/]node_modules[\\\\/]${p}[\\\\/]`)),
+        ].map(
+          (p) =>
+            new RegExp(
+              `[\\\\/]node_modules[\\\\/]${p.replaceAll("/", "[\\\\\\\\/]")}[\\\\/]`
+            )
+        ),
       ],
     },
     {
@@ -290,6 +295,7 @@ module.exports.config = {
   },
 
   demo({ isProdBuild, latestBuild, isStatsBuild, isTestBuild }) {
+    const base = process.env.DEMO_BASE_PATH ?? "";
     return {
       name: "demo" + nameSuffix(latestBuild),
       entry: {
@@ -298,12 +304,12 @@ module.exports.config = {
         ...module.exports.mapWorkerEntry(),
       },
       outputPath: outputPath(paths.demo_output_root, latestBuild),
-      publicPath: publicPath(latestBuild),
+      publicPath: publicPath(latestBuild, base),
       defineOverlay: {
         __VERSION__: JSON.stringify(`DEMO-${env.version()}`),
         __DEMO__: true,
         // The embed sets the global to load static files from its own server.
-        __STATIC_PATH__: '(globalThis.__HA_STATIC_PATH__ || "/static/")',
+        __STATIC_PATH__: `(globalThis.__HA_STATIC_PATH__ || ${JSON.stringify(`${base}/static/`)})`,
       },
       isProdBuild,
       latestBuild,

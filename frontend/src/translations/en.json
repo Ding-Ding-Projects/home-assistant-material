@@ -695,7 +695,7 @@
       "object-editor": {
         "visual": "Visual",
         "yaml": "YAML",
-        "yaml_invalid": "Fix the YAML first. The visual editor needs valid YAML.",
+        "yaml_invalid": "Fix the current editor before switching modes.",
         "empty_title": "No options yet",
         "empty_list_title": "No items yet",
         "empty_nested": "No entries",
@@ -729,9 +729,37 @@
         "errors": {
           "empty_key": "Enter a key.",
           "duplicate_key": "This key is already used in this dictionary.",
-          "invalid_number": "Enter a valid number."
+          "invalid_number": "Enter a valid number.",
+          "dictionary_required": "Enter a dictionary for action data.",
+          "reserved_key": "This key already has its own field above."
+        },
+        "additional_data": "Additional data",
+        "known_options": "Add a known option",
+        "invalid_draft": "Finish or remove the invalid dictionary entries before saving.",
+        "catalogue": {
+          "preferred_format": {
+            "label": "Audio format",
+            "description": "Preferred output audio format."
+          },
+          "preferred_sample_rate": {
+            "label": "Sample rate",
+            "description": "Preferred audio sample rate in Hz."
+          },
+          "preferred_sample_channels": {
+            "label": "Audio channels",
+            "description": "Preferred number of audio channels."
+          },
+          "preferred_sample_bytes": {
+            "label": "Sample bytes",
+            "description": "Preferred bytes per audio sample."
+          },
+          "preferred_bitrate": {
+            "label": "Bitrate",
+            "description": "Preferred MP3 bitrate in kbit/s."
+          }
         }
       },
+
       "section_tabs": {
         "label": "Sections",
         "more": "More tabs",
@@ -2001,6 +2029,9 @@
           "confirm_remove_image_folder_contents": "Remove the folder {name}? Its {images, plural, one {# image} other {# images}} and {folders, plural, one {# folder} other {# folders}} move up to the folder above. No image is deleted.",
           "download_surprise": "This download came as a zip file, {name}, with a dim sum picture inside. Your file is in it, unchanged.",
           "download_failed": "The file could not be downloaded.",
+          "download_ready": "Ready to save {name}",
+          "save_download": "Save file",
+          "share_download": "Share or save",
           "download_too_large": "The selected files add up to more than {limit}. Select fewer files, or download them one at a time.",
           "error_too_deep": "Folders cannot be nested this deeply.",
           "upload_failed": "Upload failed: {reason}",
@@ -9232,6 +9263,16 @@
               "edit_resource": "Edit resource",
               "warning_header": "Be cautious!",
               "warning_text": "Adding resources can be dangerous, make sure you know the source of the resource and trust them. Bad resources could seriously harm your system.",
+              "source_url": "URL",
+              "source_upload": "Upload file",
+              "upload_pick": "Choose file",
+              "upload_help": "Choose a JavaScript module (.js or .mjs) or stylesheet (.css), up to 5 MiB. The file is uploaded only after you choose Create and confirm its permissions.",
+              "upload_extension": "Choose a .js, .mjs, or .css file.",
+              "upload_empty": "The selected file is empty.",
+              "upload_too_large": "The file exceeds the 5 MiB limit.",
+              "upload_failed": "The file could not be uploaded. Try again.",
+              "uploaded_readonly": "To replace this file, delete the resource from the list and upload the replacement.",
+              "selected_file": "Selected file: {filename}",
               "url": "URL",
               "url_error_msg": "URL is a required field",
               "type": "Resource type",

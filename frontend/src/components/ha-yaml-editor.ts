@@ -68,6 +68,13 @@ export class HaYamlEditor extends LitElement {
 
   private _focusPending = false;
 
+  /** Restore an unsaved draft without converting or dropping its raw text. */
+  public setYaml(text: string): void {
+    this._onChange(
+      new CustomEvent("draft-restored", { detail: { value: text } })
+    );
+  }
+
   public setValue(value): void {
     try {
       this._yaml = !isEmpty(value)

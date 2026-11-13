@@ -1,5 +1,25 @@
 # Handoff
 
+## Visual dictionaries and browser demo, 13 November 2026
+
+- The automation and script action editors use a visual dictionary for object fields and extra
+  action data. Declared selectors keep their existing controls. Speech options use the selected
+  engines and language, with manual entries available when the engine does not describe an option.
+- The project page links to a browser-only Home Assistant demo with speech and scene automations.
+  The demo uses synthetic entities and stores edits in the current browser.
+- The frontend suite passed 7,726 tests with the same three Windows build-management failures seen
+  at baseline. The local build produced a frontend wheel. The Core image step stopped on an
+  upstream dependency hash mismatch for `multidict==6.9.1`.
+- The phone navigation stays in view during scrolling. Accessibility tools stack at narrow
+  widths, and the media manager offers a tap-to-save step for originals and archives on touch
+  devices. The rebuilt preview kept the navigation at the same height during a 600 px scroll.
+  Accessibility controls fit at 320, 360 and 390 px in the preview.
+- Dashboard resources can accept a local JavaScript module or stylesheet after confirmation.
+  The upload path passed authenticated create, same-file retry, authenticated fetch, and
+  deletion on an isolated Core container with the candidate modules mounted.
+- Release and live deployment verification remain open for this change. Verify the exact published
+  Core image with a separate test instance before updating the existing installation.
+
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 
 ## Batches 34 and 35, 12 November 2026 (late morning): read this first

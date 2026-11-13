@@ -243,6 +243,10 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Automations
 
+- [ ] Verify visual action dictionaries and the speech and scene examples in a published build.
+- [ ] Verify the interactive browser demo on the project page.
+- [ ] Verify dashboard resource upload, media saving and the phone layout on the released build.
+
 - [x] Test buttons on every condition and every Choose option
 - [x] The Choose step tests and runs one option, the default actions or the whole step; Run now
       for automations and scripts asks first. Seen in published build 131 on 12 November

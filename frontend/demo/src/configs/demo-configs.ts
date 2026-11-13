@@ -1,4 +1,8 @@
 import { navigate } from "../../../src/common/navigate";
+import {
+  safeGetStored,
+  safeSetStored,
+} from "../../../src/common/preferences/safe-storage";
 import { slugify } from "../../../src/common/string/slugify";
 import type { LocalizeFunc } from "../../../src/common/translations/localize";
 import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
@@ -47,22 +51,20 @@ export const automationEntity = ({
   },
 });
 
-// Automations saved in the editor during this session, per demo
-// Automations saved in the editor during this session, per demo. A deleted
-// automation is null.
-const savedAutomations: Record<
-  string,
-  Record<string, DemoAutomation | null>
-> = {};
+// Changes belong to this browser and sample home. Null records a deletion.
+const savedAutomations = (demo: string) =>
+  safeGetStored<Record<string, DemoAutomation | null>>(
+    `material-demo:automations:${demo}`
+  ) ?? {};
 
 export const saveDemoAutomation = (
   id: string,
   automation: DemoAutomation | null
 ) => {
-  savedAutomations[selectedDemo] = {
-    ...savedAutomations[selectedDemo],
+  safeSetStored(`material-demo:automations:${selectedDemo}`, {
+    ...savedAutomations(selectedDemo),
     [id]: automation,
-  };
+  });
 };
 
 // The automations of a demo config, with the ones saved in the editor
@@ -70,7 +72,7 @@ export const demoAutomations = (
   demo: string,
   config: DemoConfig
 ): DemoAutomation[] => {
-  const saved = savedAutomations[demo] ?? {};
+  const saved = savedAutomations(demo);
   const configured = config.automations ?? [];
   const ids = new Set(configured.map((automation) => automation.config.id));
   return [

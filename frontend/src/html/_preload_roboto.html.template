@@ -9,7 +9,7 @@
           el.crossOrigin = "anonymous";
           document.head.appendChild(el);
         }
-        _pf("/static/fonts/roboto/Roboto-Regular.woff2");
-        _pf("/static/fonts/roboto/Roboto-Medium.woff2");
+        _pf("<%= typeof staticRoot === "undefined" ? "" : staticRoot %>/static/fonts/roboto/Roboto-Regular.woff2");
+        _pf("<%= typeof staticRoot === "undefined" ? "" : staticRoot %>/static/fonts/roboto/Roboto-Medium.woff2");
       }
     </script>

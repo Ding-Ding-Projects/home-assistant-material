@@ -2,6 +2,16 @@ import type { DemoConfig } from "../types";
 
 export const demoEntitiesSections: DemoConfig["entities"] = (localize) =>
   Object.values({
+    "tts.demo_voice": {
+      entity_id: "tts.demo_voice",
+      state: "unknown",
+      attributes: { friendly_name: "Demo speech engine" },
+    },
+    "tts.demo_voice_secondary": {
+      entity_id: "tts.demo_voice_secondary",
+      state: "unknown",
+      attributes: { friendly_name: "Second demo speech engine" },
+    },
     "cover.living_room_garden_shutter": {
       entity_id: "cover.living_room_garden_shutter",
       state: "open",

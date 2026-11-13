@@ -100,6 +100,32 @@
           "review_updates": "睇吓",
           "fix_repairs": "修理"
         },
+        "lovelace": {
+          "resources": {
+            "detail": {
+              "new_resource": "新增資源",
+              "edit_resource": "編輯資源",
+              "warning_header": "請小心！",
+              "warning_text": "新增資源有風險。請確認資源嘅來源可信，惡意資源可以嚴重影響你嘅系統。",
+              "url": "網址",
+              "url_error_msg": "必須填寫網址",
+              "type": "資源類型",
+              "delete": "刪除",
+              "update": "更新",
+              "create": "建立",
+              "source_url": "網址",
+              "source_upload": "上載檔案",
+              "upload_pick": "選擇檔案",
+              "upload_help": "選擇 JavaScript 模組（.js 或 .mjs）或樣式表（.css），最多 5 MiB。按「建立」並確認權限後，檔案先會上載。",
+              "upload_extension": "請選擇 .js、.mjs 或 .css 檔案。",
+              "upload_empty": "所選檔案係空白嘅。",
+              "upload_too_large": "檔案超過 5 MiB 上限。",
+              "upload_failed": "檔案未能上載。請再試一次。",
+              "uploaded_readonly": "如要更換檔案，請先喺列表刪除此資源，再上載新檔案。",
+              "selected_file": "所選檔案：{filename}"
+            }
+          }
+        },
         "automation": {
           "editor": {
             "search": {
@@ -1955,6 +1981,74 @@
       }
     },
     "components": {
+      "object-editor": {
+        "visual": "圖像編輯",
+        "yaml": "YAML",
+        "empty_title": "未有選項",
+        "empty_list_title": "未有項目",
+        "empty_nested": "未有條目",
+        "empty_list_nested": "未有項目",
+        "add_entry": "新增條目",
+        "add_item": "新增項目",
+        "key": "鍵",
+        "type": "類型",
+        "value": "值",
+        "template": "範本",
+        "item_number": "第 {number} 項",
+        "entries_count": "{count} 個條目",
+        "items_count": "{count} 個項目",
+        "expand": "顯示內容",
+        "collapse": "收起內容",
+        "move_up": "向上移",
+        "move_down": "向下移",
+        "remove": "移除",
+        "yes": "係",
+        "no": "唔係",
+        "empty_value": "空值",
+        "types": {
+          "text": "文字",
+          "number": "數字",
+          "boolean": "係／唔係",
+          "null": "空值",
+          "list": "清單",
+          "dict": "字典",
+          "template": "範本"
+        },
+        "additional_data": "其他資料",
+        "known_options": "加入已知選項",
+        "invalid_draft": "儲存前，請完成或移除無效嘅字典項目。",
+        "yaml_invalid": "切換模式前，請先修正目前編輯內容。",
+        "errors": {
+          "empty_key": "請輸入鍵名。",
+          "duplicate_key": "字典入面已經有呢個鍵。",
+          "invalid_number": "請輸入有效數字。",
+          "dictionary_required": "動作資料必須係字典。",
+          "reserved_key": "呢個名稱已經有獨立欄位。"
+        },
+        "catalogue": {
+          "preferred_format": {
+            "label": "音訊格式",
+            "description": "輸出音訊嘅首選格式。"
+          },
+          "preferred_sample_rate": {
+            "label": "取樣率",
+            "description": "首選音訊取樣率，單位係 Hz。"
+          },
+          "preferred_sample_channels": {
+            "label": "聲道數目",
+            "description": "首選音訊聲道數目。"
+          },
+          "preferred_sample_bytes": {
+            "label": "取樣位元組",
+            "description": "每個音訊樣本嘅首選位元組數目。"
+          },
+          "preferred_bitrate": {
+            "label": "位元率",
+            "description": "首選 MP3 位元率，單位係 kbit/s。"
+          }
+        }
+      },
+
       "section_tabs": {
         "label": "分頁",
         "more": "更多分頁",
@@ -2194,6 +2288,9 @@
           "confirm_remove_image_folder_contents": "要移除資料夾 {name} 嗎？入面 {images} 張圖片同 {folders} 個資料夾會移上一層。唔會刪除任何圖片。",
           "download_surprise": "今次下載係一個壓縮檔 {name}，入面有一張點心相。你嘅檔案原封不動喺入面。",
           "download_failed": "下載唔到呢個檔案。",
+          "download_ready": "可以儲存 {name}",
+          "save_download": "儲存檔案",
+          "share_download": "分享或儲存",
           "download_too_large": "所選檔案加埋超過 {limit}。請揀少啲，或者逐個下載。",
           "error_too_deep": "資料夾嵌套唔可以咁深。",
           "remove_folder": "移除資料夾"

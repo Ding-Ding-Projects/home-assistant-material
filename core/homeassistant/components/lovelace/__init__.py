@@ -44,6 +44,7 @@ from .const import (
     STORAGE_DASHBOARD_CREATE_FIELDS,
     STORAGE_DASHBOARD_UPDATE_FIELDS,
 )
+from .resource_upload import ResourceUploadFileView, ResourceUploadView
 from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -211,6 +212,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     if hass.config.recovery_mode:
         return True
+
+    if resource_mode == MODE_STORAGE:
+        hass.http.register_view(ResourceUploadView)
+        hass.http.register_view(ResourceUploadFileView)
 
     async def storage_dashboard_changed(
         change_type: str, item_id: str, item: dict

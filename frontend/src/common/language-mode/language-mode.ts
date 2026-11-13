@@ -24,6 +24,7 @@ export const YUE_PREFIXES = [
   // Single strings, not whole blocks: the settings home banners and the apps page.
   "ui.panel.config.dashboard.review_updates",
   "ui.panel.config.dashboard.fix_repairs",
+  "ui.panel.config.lovelace.resources.detail.",
   "ui.panel.config.apps.info.needs_os_title",
   "ui.panel.config.apps.info.no_store_text",
   "ui.panel.config.apps.info.compare_methods",
@@ -43,6 +44,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.core.section.core.general_help.",
   "ui.components.split_panels.",
   "ui.components.editor_save_bar.",
+  "ui.components.object-editor.",
   "ui.components.starting_points.",
   "ui.components.collapsible-statistics.",
   "ui.components.draft_recovery.",

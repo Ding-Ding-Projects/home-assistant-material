@@ -234,6 +234,7 @@ export class HaAccessibilityTools extends LitElement {
             <div
               class="segments"
               role="radiogroup"
+              @keydown=${this._segmentKeyDown}
               aria-labelledby="contrast-label"
             >
               ${CONTRASTS.map(
@@ -270,6 +271,7 @@ export class HaAccessibilityTools extends LitElement {
             <div
               class="segments"
               role="radiogroup"
+              @keydown=${this._segmentKeyDown}
               aria-labelledby="spacing-label"
             >
               ${LINE_SPACINGS.map(
@@ -493,6 +495,39 @@ export class HaAccessibilityTools extends LitElement {
     });
   }
 
+  private _segmentKeyDown(ev: KeyboardEvent) {
+    if (
+      ![
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+        "Home",
+        "End",
+      ].includes(ev.key)
+    )
+      {return;}
+    const group = ev.currentTarget as HTMLElement;
+    const buttons = [...group.querySelectorAll<HTMLButtonElement>("button")];
+    const index = buttons.indexOf(ev.target as HTMLButtonElement);
+    if (index < 0) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const rtl = getComputedStyle(group).direction === "rtl";
+    const backwards =
+      ev.key === "ArrowUp" ||
+      (ev.key === "ArrowLeft" && !rtl) ||
+      (ev.key === "ArrowRight" && rtl);
+    const next =
+      ev.key === "Home"
+        ? 0
+        : ev.key === "End"
+          ? buttons.length - 1
+          : (index + (backwards ? -1 : 1) + buttons.length) % buttons.length;
+    buttons[next].focus();
+    buttons[next].click();
+  }
+
   private _contrastChanged(ev: Event) {
     this._update({
       contrast: (
@@ -684,6 +719,8 @@ export class HaAccessibilityTools extends LitElement {
     }
     h2 {
       flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
       margin: 0;
       font-size: var(--ha-font-size-xl);
       font-weight: var(--ha-font-weight-medium);
@@ -708,15 +745,13 @@ export class HaAccessibilityTools extends LitElement {
     /* Every tool is a tile: icon tile, name and state, its control below. */
     .tiles {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--ha-space-2);
     }
-    @media (max-width: 420px) {
-      .tiles {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
     .row {
+      container-type: inline-size;
+      font-size: var(--ha-font-size-m);
+      min-width: 0;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       align-content: start;
@@ -815,25 +850,46 @@ export class HaAccessibilityTools extends LitElement {
       --mdc-icon-size: 20px;
     }
     .segments {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+      box-sizing: border-box;
       flex: 0 1 auto;
       min-width: 0;
       justify-content: flex-end;
       padding: var(--ha-space-1);
       gap: var(--ha-space-1);
-      border-radius: var(--ha-border-radius-pill);
+      border-radius: var(--ha-border-radius-xl);
       background-color: var(--card-background-color);
       border: var(--ha-card-border-width, 0px) solid
         var(--ha-card-border-color, transparent);
     }
     .segments button {
+      min-width: 0;
       min-height: 44px;
-      padding: 0 var(--ha-space-3);
+      overflow-wrap: anywhere;
+      padding: var(--ha-space-2) var(--ha-space-3);
       border-radius: var(--ha-border-radius-pill);
       font-size: var(--ha-font-size-m);
       font-weight: var(--ha-font-weight-medium);
       color: var(--secondary-text-color);
+    }
+    /* em follows the tool's text scale, rather than a device-width guess. */
+    @container (max-width: 25em) {
+      .segments {
+        grid-template-columns: minmax(0, 1fr);
+        border-radius: var(--ha-border-radius-xl);
+      }
+      .segments button {
+        border-radius: var(--ha-border-radius-md);
+      }
+      .stepper {
+        gap: var(--ha-space-1);
+        max-width: 100%;
+      }
+      .value {
+        min-width: 0;
+      }
     }
     .segments button[aria-checked="true"] {
       background-color: var(--primary-text-color);

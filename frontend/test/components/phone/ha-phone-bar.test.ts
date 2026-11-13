@@ -542,3 +542,104 @@ describe("settings pages and tools in the sheet", () => {
     );
   });
 });
+
+describe("persistent bottom navigation", () => {
+  const flushViewport = async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+    await settle(bar);
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps navigation visible after scrolling down or up", async () => {
+    await mount();
+    vi.stubGlobal("scrollY", 500);
+    window.dispatchEvent(new Event("scroll"));
+    await flushViewport();
+    expect(sheet().querySelector("nav.bar")?.classList.contains("hidden")).toBe(
+      false
+    );
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--ha-phone-bar-visible-height"
+      )
+    ).not.toBe("0px");
+    vi.stubGlobal("scrollY", 200);
+    window.dispatchEvent(new Event("scroll"));
+    await flushViewport();
+    expect(sheet().querySelector("nav.bar")?.classList.contains("hidden")).toBe(
+      false
+    );
+  });
+
+  it("tracks visual viewport resize and scroll without mistaking browser chrome for a keyboard", async () => {
+    const viewport = Object.assign(new EventTarget(), {
+      height: 600,
+      offsetTop: 40,
+    });
+    vi.stubGlobal("visualViewport", viewport);
+    vi.stubGlobal("innerHeight", 844);
+    await mount();
+    await flushViewport();
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--ha-phone-viewport-inset-bottom"
+      )
+    ).toBe("204px");
+    expect(sheet().querySelector("nav.bar")?.classList.contains("hidden")).toBe(
+      false
+    );
+    viewport.offsetTop = 70;
+    viewport.dispatchEvent(new Event("scroll"));
+    await flushViewport();
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--ha-phone-viewport-inset-bottom"
+      )
+    ).toBe("174px");
+    viewport.height = 800;
+    viewport.dispatchEvent(new Event("resize"));
+    await flushViewport();
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--ha-phone-viewport-inset-bottom"
+      )
+    ).toBe("0px");
+  });
+
+  it("hides only for an editable control and restores after keyboard dismissal", async () => {
+    const viewport = Object.assign(new EventTarget(), {
+      height: 500,
+      offsetTop: 0,
+    });
+    vi.stubGlobal("visualViewport", viewport);
+    vi.stubGlobal("innerHeight", 844);
+    await mount();
+    const input = document.createElement("input");
+    document.body.append(input);
+    input.focus();
+    viewport.dispatchEvent(new Event("resize"));
+    await flushViewport();
+    expect(sheet().querySelector("nav.bar")?.classList.contains("hidden")).toBe(
+      true
+    );
+    input.blur();
+    viewport.height = 844;
+    viewport.dispatchEvent(new Event("resize"));
+    await flushViewport();
+    expect(sheet().querySelector("nav.bar")?.classList.contains("hidden")).toBe(
+      false
+    );
+    input.remove();
+    bar.remove();
+    expect(
+      document.documentElement.style.getPropertyValue(
+        "--ha-phone-viewport-inset-bottom"
+      )
+    ).toBe("");
+  });
+});

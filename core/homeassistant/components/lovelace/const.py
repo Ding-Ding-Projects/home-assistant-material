@@ -32,6 +32,7 @@ LOVELACE_CONFIG_FILE = "ui-lovelace.yaml"
 CONF_ALLOW_SINGLE_WORD = "allow_single_word"
 CONF_URL_PATH = "url_path"
 CONF_RESOURCE_TYPE_WS = "res_type"
+RESOURCE_UPLOAD_URL = "/api/lovelace/resources/upload"
 
 RESOURCE_TYPES = ["js", "css", "module", "html"]
 
