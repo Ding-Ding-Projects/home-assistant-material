@@ -35,6 +35,9 @@ export class HaStartingPoints extends LitElement {
   /** Set to give the group a name for assistive technology when there is no heading. */
   @property() public label?: string;
 
+  /** One swipeable row instead of a grid, so the editor below stays in reach on a phone. */
+  @property({ type: Boolean, reflect: true }) public compact = false;
+
   protected render() {
     if (!this.items.length) {
       return nothing;
@@ -92,6 +95,23 @@ export class HaStartingPoints extends LitElement {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
       gap: var(--ha-space-3, 12px);
+    }
+    :host([compact]) .cards {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: min(78%, 280px);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-bottom: var(--ha-space-2, 8px);
+    }
+    :host([compact]) [role="listitem"] {
+      scroll-snap-align: start;
+    }
+    :host([compact]) .description {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .card {
       display: flex;

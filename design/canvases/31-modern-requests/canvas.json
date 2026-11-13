@@ -209,8 +209,17 @@
       "expand": "fill",
       "page": "phone"
     },
-    "RAutoFast.dc.html": {
+    "RAutoAdd.dc.html": {
       "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Adding a trigger, condition or action",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "RAutoFast.dc.html": {
+      "x": 3312,
       "y": 0,
       "w": 1536,
       "h": 1060,
@@ -219,7 +228,7 @@
       "page": "automation"
     },
     "RAutoGroups.dc.html": {
-      "x": 3312,
+      "x": 4968,
       "y": 0,
       "w": 1536,
       "h": 1060,
@@ -228,8 +237,8 @@
       "page": "automation"
     },
     "RAutoRelations.dc.html": {
-      "x": 4968,
-      "y": 0,
+      "x": 0,
+      "y": 1260,
       "w": 1536,
       "h": 1060,
       "title": "Relationships between triggers and steps",
@@ -237,7 +246,7 @@
       "page": "automation"
     },
     "RAutoModes.dc.html": {
-      "x": 0,
+      "x": 1656,
       "y": 1260,
       "w": 1536,
       "h": 1060,
@@ -462,6 +471,7 @@
     "RRoomFirst.dc.html",
     "RPhoneWorkflow.dc.html",
     "RPhoneMore.dc.html",
+    "RAutoAdd.dc.html",
     "RAutoFast.dc.html",
     "RAutoGroups.dc.html",
     "RAutoRelations.dc.html",
@@ -501,7 +511,7 @@
     "t-automation": {
       "x": 0,
       "y": -320,
-      "text": "Automation editor. 5 boards, modern.",
+      "text": "Automation editor. 6 boards, modern.",
       "kind": "title1",
       "maxW": 4800,
       "page": "automation"

@@ -157,6 +157,17 @@ fast = (header('Front door routine', '650 lines · fast mode', 'Settings › Aut
                                                      [('SourceBranch', 'Choose: who is home', '42 steps, folded', 'w'), ('Lightbulb', 'Hall lights', '3 steps', 'g'), ('Lock', 'Lock up', '12 steps, folded', 'p'), ('Bell', 'Notify', '2 steps', 'e')]],
                                                  '<span class="sm mu" style="text-align:center">Only what is on screen is drawn. 612 more steps load as you scroll.</span>', gap=8),
                card(stats(('4%', 'CPU while editing', 'g', 'Speedometer'), ('38 ms', 'To open', 'p', 'TimerOutline')), row('<b class="grow">Fold big branches automatically</b>', switch(1)), row('<b class="grow">Fast mode above 200 steps</b>', switch(1)), title='Fast mode')))
+addbar = row(btn('Add trigger', 'fill', 'Plus'), btn('Add condition', 'fill', 'Plus'), btn('Add action', 'fill', 'Plus'), gap=8)
+ins = '<div class="row" style="justify-content:center;margin:-2px 0"><span class="row" style="gap:6px;padding:4px 12px;border-radius:999px;border:1.5px dashed var(--p);color:var(--p);font-size:13px;animation:breathe 2.4s infinite">' + I('Plus', 16) + 'Add a step here</span></div>'
+adds = (header('Arrive home', 'Adding steps', 'Settings › Automations', row(btn('Save', 'fill', 'ContentSave'), tools(), gap=10))
+        + addbar + '<div style="height:14px"></div>'
+        + grid('minmax(0,1.4fr) minmax(0,1fr)', col(card(row(ico('MapMarker', 'p', 32, 10, 16), '<b class="grow">Alex arrives home</b>'), pad=12), ins,
+                                                    card(row(ico('WeatherSunset', 'w', 32, 10, 16), '<b class="grow">Sun is below the horizon</b>'), pad=12), ins,
+                                                    card(row(ico('Lightbulb', 'g', 32, 10, 16), '<b class="grow">Hall lights on</b>'), pad=12), gap=6),
+               card(*[row(f'<span class="kbd">{k}</span>', f'<span class="sm">{d}</span>', gap=10) for k, d in [('T', 'Add a trigger'), ('C', 'Add a condition'), ('A', 'Add an action'), ('Ctrl Shift F', 'Add anything by name')]],
+                    note('Starting points fold into one row on a phone, so the Add buttons are never more than a glance away.', 'p', 'GestureSwipeHorizontal'), title='Also by keyboard', gap=10)))
+page_board('RAutoAdd', 'Adding a trigger, condition or action', AU, adds, caption='Adding steps: Add trigger, condition and action always at the top, a plus between any two steps, and keys T, C and A')
+
 page_board('RAutoFast', 'A fast editor for very large automations', AU, fast, caption='Large automations: big branches fold, only visible steps are drawn, CPU stays low; Simple, Advanced and YAML modes')
 
 grp = (header('Front door routine', 'Triggers in groups', 'Settings › Automations', tools())

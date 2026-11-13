@@ -10878,6 +10878,7 @@
               }
             },
             "generic": "Generic",
+            "quick_add": "Add a step",
             "triggers": {
               "name": "Triggers",
               "header": "When",

@@ -526,6 +526,11 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
     `;
   }
 
+  /** Opens the add trigger dialog, as the Add trigger button does. */
+  public openAddDialog(): void {
+    this._addTriggerDialog();
+  }
+
   private _addTriggerDialog() {
     if (this.narrow) {
       fireEvent(this, "request-close-sidebar");
