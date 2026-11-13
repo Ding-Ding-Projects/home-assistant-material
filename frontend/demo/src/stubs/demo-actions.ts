@@ -1,4 +1,5 @@
 import { ensureArray } from "../../../src/common/array/ensure-array";
+import { encodeWav } from "../../../src/common/converter/audio";
 import type { MediaPlayerItem } from "../../../src/data/media-player";
 import type { Action, ServiceAction } from "../../../src/data/script";
 import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
@@ -23,6 +24,7 @@ const demoEngines = new Map([
 ]);
 
 export const mockDemoActions = (hass: MockHomeAssistant, host: HTMLElement) => {
+  let sampleUrl: string | undefined;
   const sample: MediaPlayerItem = {
     title: "Synthetic sample tone",
     media_content_id: "media-source://demo/sample-tone.wav",
@@ -54,8 +56,21 @@ export const mockDemoActions = (hass: MockHomeAssistant, host: HTMLElement) => {
     if (media_content_id !== sample.media_content_id) {
       throw { code: "not_found", message: "Demo media sample not found." };
     }
+    if (!sampleUrl) {
+      const sampleRate = 8000;
+      const samples = Float32Array.from(
+        { length: sampleRate },
+        (_unused, frame) =>
+          Math.sin((2 * Math.PI * 440 * frame) / sampleRate) *
+          Math.min(0.18, frame / 800, (sampleRate - frame) / 800)
+      );
+      const wav = encodeWav([samples], sampleRate);
+      sampleUrl = URL.createObjectURL(
+        new Blob([wav.slice().buffer], { type: "audio/wav" })
+      );
+    }
     return {
-      url: new URL("assets/sample-tone.wav", document.baseURI).href,
+      url: sampleUrl,
       mime_type: "audio/wav",
     };
   });
