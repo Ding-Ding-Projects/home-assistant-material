@@ -23,6 +23,7 @@ import {
 import { ensureArray } from "../../../common/array/ensure-array";
 import { canOverrideAlphanumericInput } from "../../../common/dom/can-override-input";
 import { fireEvent } from "../../../common/dom/fire_event";
+import { getTopOpenDialogTag } from "../../../dialogs/make-dialog-manager";
 import "../../../components/ha-button";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-icon-button";
@@ -50,6 +51,7 @@ import {
 } from "../../../data/automation";
 import { getActionType, type Action } from "../../../data/script";
 import { showEditorToast } from "./editor-toast";
+import { addKindForKey } from "./tools/add-step-slots";
 import { levelShows } from "./tools/automation-editor-level";
 import {
   EditorPrefsController,
@@ -224,6 +226,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
               <ha-button
                 appearance="filled"
                 size="small"
+                aria-keyshortcuts="T"
                 @click=${this._quickAddTrigger}
                 ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
                 >${this.hass.localize(
@@ -233,6 +236,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
               <ha-button
                 appearance="filled"
                 size="small"
+                aria-keyshortcuts="C"
                 @click=${this._quickAddCondition}
                 ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
                 >${this.hass.localize(
@@ -242,6 +246,7 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
               <ha-button
                 appearance="filled"
                 size="small"
+                aria-keyshortcuts="A"
                 @click=${this._quickAddAction}
                 ><ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon
                 >${this.hass.localize(
@@ -429,6 +434,55 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
       <div class="save-bar-room" aria-hidden="true"></div>
     `;
   }
+
+  public override connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener("keydown", this._addKeydown, true);
+  }
+
+  public override disconnectedCallback(): void {
+    window.removeEventListener("keydown", this._addKeydown, true);
+    super.disconnectedCallback();
+  }
+
+  /**
+   * T adds a trigger, C a condition and A an action. It runs before the
+   * shortcuts of the whole app (C and A are taken there), so it only acts when
+   * it is certain the key was not meant for something else: no field, code
+   * editor or menu has focus, no dialog is open, no modifier is held, the
+   * editor is not read-only and the person has not turned shortcuts off.
+   */
+  private _addKeydown = (ev: KeyboardEvent): void => {
+    const kind = addKindForKey(ev);
+    if (
+      !kind ||
+      ev.defaultPrevented ||
+      this.disabled ||
+      !this.hass?.enableShortcuts ||
+      getTopOpenDialogTag() ||
+      !this.isConnected ||
+      !canOverrideAlphanumericInput(ev.composedPath()) ||
+      window.getSelection()?.toString()
+    ) {
+      return;
+    }
+    const target = ev.composedPath()[0];
+    if (
+      target instanceof HTMLElement &&
+      target.closest("[role='dialog'], [aria-modal='true']")
+    ) {
+      return;
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (kind === "trigger") {
+      this._quickAddTrigger();
+    } else if (kind === "condition") {
+      this._quickAddCondition();
+    } else {
+      this._quickAddAction();
+    }
+  };
 
   private _quickAddTrigger(): void {
     this._rootTriggers?.openAddDialog();

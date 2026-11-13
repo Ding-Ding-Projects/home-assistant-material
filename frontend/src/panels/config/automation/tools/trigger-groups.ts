@@ -56,7 +56,8 @@ export const groupSegments = (triggers: readonly unknown[]): GroupSegment[] => {
 export const hasGroups = (triggers: readonly unknown[]): boolean =>
   triggers.some((trigger) => triggerGroupOf(trigger) !== undefined);
 
-const withGroup = <T>(trigger: T, name: string | undefined): T => {
+/** A copy of a trigger placed in a group, or taken out of it when no name. */
+export const withGroup = <T>(trigger: T, name: string | undefined): T => {
   if (!trigger || typeof trigger !== "object") {
     return trigger;
   }

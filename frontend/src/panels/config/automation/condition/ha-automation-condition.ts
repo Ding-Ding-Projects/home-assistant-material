@@ -24,6 +24,7 @@ import {
 } from "../show-add-automation-element-dialog";
 import { AutomationSortableListMixin } from "../ha-automation-sortable-list-mixin";
 import { automationRowsStyles } from "../styles";
+import { hasGapAfter, insertManyAt } from "../tools/add-step-slots";
 import "./ha-automation-condition-row";
 import type HaAutomationConditionRow from "./ha-automation-condition-row";
 
@@ -122,14 +123,16 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
       this.focusLastItemOnChange ||
       this.focusItemIndexOnChange !== undefined
     ) {
-      const mode = this.focusLastItemOnChange ? "new" : "moved";
+      const mode =
+        this.focusLastItemOnChange || this.focusItemIsNew ? "new" : "moved";
 
       const row = this.shadowRoot!.querySelector<HaAutomationConditionRow>(
-        `ha-automation-condition-row:${mode === "new" ? "last-of-type" : `nth-of-type(${this.focusItemIndexOnChange! + 1})`}`
+        `ha-automation-condition-row:${this.focusLastItemOnChange ? "last-of-type" : `nth-of-type(${this.focusItemIndexOnChange! + 1})`}`
       )!;
 
       this.focusLastItemOnChange = false;
       this.focusItemIndexOnChange = undefined;
+      this.focusItemIsNew = false;
 
       row.updateComplete.then(() => {
         // on new condition open the settings in the sidebar, except for building blocks
@@ -235,6 +238,11 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
                     : nothing
                 }
               </ha-automation-condition-row>
+              ${
+                hasGapAfter(idx, this.conditions.length)
+                  ? this.renderInsertSlot(idx + 1)
+                  : nothing
+              }
             `
           )}
           <div class="buttons">
@@ -261,13 +269,21 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
     this._addConditionDialog();
   }
 
-  private _addConditionDialog() {
+  protected override openAddDialogAt(index: number): void {
+    this._addConditionDialog(index);
+  }
+
+  private _addConditionDialog(index?: number) {
     if (this.narrow) {
       fireEvent(this, "request-close-sidebar");
     }
     showAddAutomationElementDialog(this, {
       type: "condition",
-      add: this._addCondition,
+      add:
+        index === undefined
+          ? this._addCondition
+          : (value: string, target?: HassServiceTarget) =>
+              this._addConditionAt(index, value, target),
       clipboardItem: this._clipboard?.condition?.condition,
       clipboardPasteToastBottomOffset: this.editorDirty
         ? EDITOR_SAVE_FAB_TOAST_BOTTOM_OFFSET
@@ -285,6 +301,24 @@ export default class HaAutomationCondition extends AutomationSortableListMixin<C
       value: this.conditions.concat(condition),
     });
   };
+
+  /** Adds a condition at an index, between two others. */
+  private _addConditionAt(
+    index: number,
+    value: string,
+    target?: HassServiceTarget
+  ) {
+    const added =
+      value === PASTE_VALUE
+        ? deepClone(this._clipboard!.condition!)
+        : createCondition(value, target);
+    const at = Math.min(Math.max(index, 0), this.conditions.length);
+    this.focusItemIndexOnChange = at;
+    this.focusItemIsNew = true;
+    fireEvent(this, "value-changed", {
+      value: insertManyAt(this.conditions, at, [added]),
+    });
+  }
 
   static styles = automationRowsStyles;
 }

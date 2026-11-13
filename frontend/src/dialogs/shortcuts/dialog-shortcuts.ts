@@ -88,6 +88,21 @@ const _SHORTCUTS: Section[] = [
     titleTranslationKey: "ui.dialogs.shortcuts.automation_script.title",
     items: [
       {
+        shortcut: ["T"],
+        descriptionTranslationKey:
+          "ui.dialogs.shortcuts.automation_script.add_trigger",
+      },
+      {
+        shortcut: ["C"],
+        descriptionTranslationKey:
+          "ui.dialogs.shortcuts.automation_script.add_condition",
+      },
+      {
+        shortcut: ["A"],
+        descriptionTranslationKey:
+          "ui.dialogs.shortcuts.automation_script.add_action",
+      },
+      {
         shortcut: [CTRL_CMD, "C"],
         descriptionTranslationKey:
           "ui.dialogs.shortcuts.automation_script.copy",

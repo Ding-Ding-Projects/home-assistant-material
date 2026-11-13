@@ -1,4 +1,4 @@
-import { mdiClose, mdiMagnify } from "@mdi/js";
+import { mdiClose, mdiMagnify, mdiPlus } from "@mdi/js";
 import deepClone from "deep-clone-simple";
 import type { LitElement, PropertyValues, TemplateResult } from "lit";
 import { html, nothing } from "lit";
@@ -11,6 +11,7 @@ import { LanguageModeController } from "../../../common/language-mode/language-m
 import { regexQuery } from "../../../common/regex/filter";
 import { nextRender } from "../../../common/util/render-status";
 import "../../../components/ha-icon-button";
+import "../../../components/ha-svg-icon";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
 import type { AutomationClipboard } from "../../../data/automation";
@@ -132,6 +133,9 @@ export const AutomationSortableListMixin = <T extends object>(
     protected focusLastItemOnChange = false;
 
     protected focusItemIndexOnChange?: number;
+
+    /** With focusItemIndexOnChange: the row at that index was just added. */
+    protected focusItemIsNew = false;
 
     private _knownRowKeys?: Set<string>;
 
@@ -275,6 +279,43 @@ export const AutomationSortableListMixin = <T extends object>(
       </div>`;
     }
 
+    /** Opens the add dialog so the new step is inserted at this index. */
+    protected openAddDialogAt(_index: number): void {
+      throw new Error("Not implemented");
+    }
+
+    /**
+     * A slim control for the gap before the step at this index. It opens the
+     * add dialog and the new step is inserted there. Nothing is drawn while
+     * the list is read-only or a search hides rows.
+     */
+    protected renderInsertSlot(index: number): TemplateResult | typeof nothing {
+      if (this.disabled || this.reorderLocked) {
+        return nothing;
+      }
+      const label = this.hass.localize(
+        "ui.panel.config.automation.editor.quick_add_here" as any
+      );
+      return html`<div class="insert-slot">
+        <button
+          type="button"
+          class="insert-button"
+          aria-label=${label}
+          .insertIndex=${index}
+          @click=${this._insertSlotClicked}
+        >
+          <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+          <span class="insert-text">${label}</span>
+        </button>
+      </div>`;
+    }
+
+    private _insertSlotClicked(ev: Event) {
+      this.openAddDialogAt(
+        (ev.currentTarget as HTMLElement & { insertIndex: number }).insertIndex
+      );
+    }
+
     /** A button for the buttons row that opens the search of the list. */
     protected renderListSearchToggle(): TemplateResult | typeof nothing {
       if (!this.searchContext || this._isRootList || this._listSearchShown) {
@@ -364,7 +405,9 @@ export const AutomationSortableListMixin = <T extends object>(
 
     private _getRows(): HTMLElement[] {
       return Array.from(
-        this.renderRoot.querySelectorAll<HTMLElement>(".rows > *:not(.buttons)")
+        this.renderRoot.querySelectorAll<HTMLElement>(
+          ".rows > *:not(.buttons):not(.insert-slot)"
+        )
       );
     }
 

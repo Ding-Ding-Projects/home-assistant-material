@@ -3624,6 +3624,9 @@
         },
         "automation_script": {
           "title": "Automations / Scripts",
+          "add_trigger": "Add a trigger (in the visual automation editor)",
+          "add_condition": "Add a condition (in the visual automation editor)",
+          "add_action": "Add an action (in the visual automation editor)",
           "copy": "Copy the selected item",
           "cut": "Cut the selected item",
           "delete": "Delete the selected item",
@@ -10879,6 +10882,7 @@
             },
             "generic": "Generic",
             "quick_add": "Add a step",
+            "quick_add_here": "Add a step here",
             "triggers": {
               "name": "Triggers",
               "header": "When",

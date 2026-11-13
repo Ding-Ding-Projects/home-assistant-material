@@ -402,6 +402,66 @@ export const automationRowsStyles = css`
     gap: var(--ha-space-2);
     order: 1;
   }
+  /* The gap between two steps. It takes no room of its own: it sits over the
+     space between the rows and shows on hover and on keyboard focus. */
+  .insert-slot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 24px;
+    margin-block: calc((var(--ha-space-4) + 24px) / -2);
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .insert-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ha-space-1);
+    height: 24px;
+    padding: 0 var(--ha-space-3);
+    border: 1.5px dashed var(--primary-color);
+    border-radius: var(--ha-border-radius-pill, 999px);
+    background: var(--card-background-color);
+    color: var(--primary-color);
+    font: inherit;
+    font-size: var(--ha-font-size-s, 0.875rem);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: auto;
+    transition: opacity var(--ha-animation-duration-fast, 150ms) ease;
+  }
+  .insert-button ha-svg-icon {
+    --mdc-icon-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+  .insert-slot:hover .insert-button,
+  .insert-button:hover,
+  .insert-button:focus-visible {
+    opacity: 1;
+  }
+  .insert-button:focus-visible {
+    outline: var(--wa-focus-ring);
+  }
+  /* Touch screens have no hover: the target is always there, as a thin line. */
+  @media (hover: none) {
+    .insert-button {
+      opacity: 0.7;
+    }
+    .insert-button .insert-text {
+      display: none;
+    }
+    .insert-button {
+      min-width: 56px;
+      justify-content: center;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .insert-button {
+      transition: none;
+    }
+  }
 `;
 
 export const sidebarEditorStyles = css`

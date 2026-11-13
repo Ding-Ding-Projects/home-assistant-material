@@ -47,7 +47,14 @@ import {
   setSegmentGroup,
   suggestGroupName,
   triggerGroupOf,
+  withGroup,
 } from "../tools/trigger-groups";
+import {
+  drawnPositionOfInserted,
+  groupAtGap,
+  hasGapAfter,
+  insertManyAt,
+} from "../tools/add-step-slots";
 import type { GroupSegment } from "../tools/trigger-groups";
 import { stepTitle } from "../tools/step-model";
 import { stripGeneratedTriggerIds } from "./automation-trigger-id";
@@ -159,14 +166,24 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
   }
 
   /** A group header before the first trigger of a group, then its row. */
-  private _renderEntry(trigger: Trigger, idx: number, row: unknown) {
+  private _renderEntry(
+    trigger: Trigger,
+    idx: number,
+    row: unknown,
+    drawn: readonly number[]
+  ) {
     const name = triggerGroupOf(trigger);
     const segment = name
       ? groupSegments(this.triggers).find((seg) => seg.start === idx)
       : undefined;
     const folded = !!name && this._folded.has(name);
+    const position = drawn.indexOf(idx);
     return html`${segment ? this._renderGroupHeader(segment) : nothing}${
       folded ? nothing : row
+    }${
+      !folded && hasGapAfter(position, drawn.length)
+        ? this.renderInsertSlot(idx + 1)
+        : nothing
     }`;
   }
 
@@ -420,6 +437,7 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
   }
 
   protected render() {
+    const drawn = this._drawn;
     return html`
       ${this.renderListSearch()}
       <ha-sortable
@@ -488,7 +506,8 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
                         : nothing
                     }
                   </ha-automation-trigger-row>
-                `
+                `,
+                drawn
               )
           )}
           ${this._groupPanelOpen ? this._renderGroupPanel() : nothing}
@@ -531,13 +550,21 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
     this._addTriggerDialog();
   }
 
-  private _addTriggerDialog() {
+  protected override openAddDialogAt(index: number): void {
+    this._addTriggerDialog(index);
+  }
+
+  private _addTriggerDialog(index?: number) {
     if (this.narrow) {
       fireEvent(this, "request-close-sidebar");
     }
     showAddAutomationElementDialog(this, {
       type: "trigger",
-      add: this._addTrigger,
+      add:
+        index === undefined
+          ? this._addTrigger
+          : (value: string, target?: HassServiceTarget) =>
+              this._addTriggerAt(index, value, target),
       clipboardItem: !this._clipboard?.trigger
         ? undefined
         : isTriggerList(this._clipboard.trigger)
@@ -557,6 +584,27 @@ export default class HaAutomationTrigger extends AutomationSortableListMixin<Tri
     this.focusLastItemOnChange = true;
     fireEvent(this, "value-changed", { value: this.triggers.concat(trigger) });
   };
+
+  /** Adds a trigger at an index. It joins the group both neighbours share. */
+  private _addTriggerAt(
+    index: number,
+    value: string,
+    target?: HassServiceTarget
+  ) {
+    const at = Math.min(Math.max(index, 0), this.triggers.length);
+    const created =
+      value === PASTE_VALUE
+        ? stripGeneratedTriggerIds(deepClone(this._clipboard!.trigger!))
+        : createTrigger(value, target);
+    const group = groupAtGap(this.triggers, at);
+    const added = ensureArray(created).map((item) =>
+      group ? withGroup(item, group) : item
+    );
+    this.focusItemIndexOnChange = drawnPositionOfInserted(this._drawn, at);
+    fireEvent(this, "value-changed", {
+      value: insertManyAt(this.triggers, at, added),
+    });
+  }
 
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);

@@ -39,6 +39,7 @@ import {
 } from "../show-add-automation-element-dialog";
 import { AutomationSortableListMixin } from "../ha-automation-sortable-list-mixin";
 import { automationRowsStyles } from "../styles";
+import { hasGapAfter, insertManyAt } from "../tools/add-step-slots";
 import type HaAutomationActionRow from "./ha-automation-action-row";
 import "./ha-automation-action-row";
 
@@ -156,6 +157,11 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
                     : nothing
                 }
               </ha-automation-action-row>
+              ${
+                hasGapAfter(idx, drawn)
+                  ? this.renderInsertSlot(idx + 1)
+                  : nothing
+              }
             `
           )}
           ${
@@ -260,14 +266,16 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
       changedProps.has("actions") &&
       (this.focusLastItemOnChange || this.focusItemIndexOnChange !== undefined)
     ) {
-      const mode = this.focusLastItemOnChange ? "new" : "moved";
+      const mode =
+        this.focusLastItemOnChange || this.focusItemIsNew ? "new" : "moved";
 
       const row = this.shadowRoot!.querySelector<HaAutomationActionRow>(
-        `ha-automation-action-row:${mode === "new" ? "last-of-type" : `nth-of-type(${this.focusItemIndexOnChange! + 1})`}`
+        `ha-automation-action-row:${this.focusLastItemOnChange ? "last-of-type" : `nth-of-type(${this.focusItemIndexOnChange! + 1})`}`
       )!;
 
       this.focusLastItemOnChange = false;
       this.focusItemIndexOnChange = undefined;
+      this.focusItemIsNew = false;
 
       row.updateComplete.then(() => {
         // on new condition open the settings in the sidebar, except for building blocks
@@ -313,14 +321,22 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
     this._addActionDialog();
   }
 
-  private _addActionDialog() {
+  protected override openAddDialogAt(index: number): void {
+    this._addActionDialog(index);
+  }
+
+  private _addActionDialog(index?: number) {
     if (this.narrow) {
       fireEvent(this, "request-close-sidebar");
     }
 
     showAddAutomationElementDialog(this, {
       type: "action",
-      add: this._addAction,
+      add:
+        index === undefined
+          ? this._addAction
+          : (action: string, target?: HassServiceTarget) =>
+              this._addActionAt(index, action, target),
       clipboardItem: getAutomationActionType(this._clipboard?.action),
       clipboardPasteToastBottomOffset: this.editorDirty
         ? EDITOR_SAVE_FAB_TOAST_BOTTOM_OFFSET
@@ -337,6 +353,27 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
     this._rowLimit = Math.max(this._rowLimit, this.actions.length + 1);
     fireEvent(this, "value-changed", { value: this.actions.concat(newAction) });
   };
+
+  /** Adds an action at an index, between two others. */
+  private _addActionAt(
+    index: number,
+    action: string,
+    target?: HassServiceTarget
+  ) {
+    const added =
+      action === PASTE_VALUE
+        ? deepClone(this._clipboard!.action!)
+        : createAction(action, target);
+    const at = Math.min(Math.max(index, 0), this.actions.length);
+    this.focusItemIndexOnChange = at;
+    this.focusItemIsNew = true;
+    // The new row sits inside what is drawn; one more row must be drawn so a
+    // row of the chunk is not pushed out by it.
+    this._rowLimit += 1;
+    fireEvent(this, "value-changed", {
+      value: insertManyAt(this.actions, at, [added]),
+    });
+  }
 
   static styles = [
     automationRowsStyles,

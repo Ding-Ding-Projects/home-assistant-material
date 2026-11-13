@@ -502,6 +502,24 @@ product matching it.
     apart from the two known gallery errors and a string builder still being written, which
     is not part of this commit.
 
+- Batch 53: a string builder for text fields that accept a template (a "Build text" button
+  on action text fields and on the template editor; pieces for text, entity state and
+  attribute, name or area, date and time, time since or until, numbers, comparisons, counts
+  and raw template; live server preview; round trip). 14 model tests; not seen in a browser.
+  The design lane's "Add trigger, condition and action at the top" was merged with it.
+- Batch 54, the rest of design board RAutoAdd, unit tested, not seen: an "Add a step here"
+  control between any two steps that inserts at that position (root and nested lists; joins
+  a trigger group when placed inside one; respects fast mode and folded groups), and the
+  keys T, C and A in the visual automation editor (not in fields or dialogs, and only when
+  keyboard shortcuts are on). Ctrl Shift F was not rebound; the board's fourth row would not
+  be true. Checks: full suite 7,629 passed with the 3 known build-script failures; type
+  check clean apart from the two known gallery errors.
+- Closeout of 13 November: `main` is the only branch locally and on the remote, there is one
+  checkout and no stash. The release run for the commit that carries batch 54 is the one
+  left to finish completely (container images and operating system images), so it produces
+  the release page; earlier runs of the night were cancelled after their container images
+  were out.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
