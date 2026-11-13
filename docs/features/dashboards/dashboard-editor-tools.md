@@ -38,3 +38,11 @@ unit tested, not yet seen in a running build.
 Choose only the device frames needed for the current comparison to avoid loading unused dashboards. Each frame has a Rotate action. Enter both custom dimensions to add a bounded custom viewport; invalid dimensions do not load a frame. These controls do not modify dashboard configuration. Frames still show the saved view, not unsaved editor changes.
 
 Dimension validation and rotation are covered by focused unit tests. Browser verification remains required.
+
+## Local saved revision journal
+
+Successful saves through the dashboard panel now retain before/after raw configurations in a separate browser-local journal. It is scoped to the signed-in user and dashboard URL, limited to 20 save records and 1 MiB of serialized data per scope, and preserves strategy and unknown custom-card fields. It does not replace or migrate named checkpoints.
+
+In **Checkpoints and diff**, use **Download saved revisions** to export the retained records for manual recovery. Nothing is restored automatically. This is not unsaved-draft recovery or cross-device version history, and does not capture changes made outside this panel's save path. Clearing browser data removes it; concurrent tabs can race, and oversized configurations or exhausted storage may not be retained. Journaling failures never roll back or fail an otherwise successful server save.
+
+Unit coverage verifies successful-save timing, failure isolation, captured identity/configuration, raw-field preservation, account/dashboard isolation, corruption handling, and count/size limits. Browser verification and conflict-aware restore UI remain future work.

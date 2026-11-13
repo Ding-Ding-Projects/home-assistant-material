@@ -33,11 +33,9 @@ import "../../layouts/hass-loading-screen";
 import type { ShowToastParams } from "../../managers/notification-manager";
 import type { HomeAssistant, PanelInfo, Route } from "../../types";
 import { showToast } from "../../util/toast";
-import {
-  finishLoadSample,
-  startLoadSample,
-} from "./common/load-diagnostics";
+import { finishLoadSample, startLoadSample } from "./common/load-diagnostics";
 import { loadLovelaceResources } from "./common/load-resources";
+import { saveWithRevision } from "./editor/tools/saved-revisions";
 import { showSaveDialog } from "./editor/show-save-config-dialog";
 import {
   startWallPanel,
@@ -476,7 +474,14 @@ export class LovelacePanel extends LitElement {
             mode: "storage",
           });
           this._ignoreNextUpdateEvent = true;
-          await saveConfig(this.hass!, urlPath, newConfig);
+          await saveWithRevision(
+            () => saveConfig(this.hass!, urlPath, newConfig),
+            this.hass?.user?.id
+              ? { userId: this.hass.user.id, urlPath }
+              : undefined,
+            previousRawConfig,
+            newConfig
+          );
         } catch (err: any) {
           // eslint-disable-next-line
           console.error(err);

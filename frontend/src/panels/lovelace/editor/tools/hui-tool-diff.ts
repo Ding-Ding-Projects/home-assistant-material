@@ -15,6 +15,8 @@ import {
 } from "./checkpoints";
 import type { CardDiff, ViewDiff } from "./dashboard-diff";
 import { diffDashboards, summarizeDiff } from "./dashboard-diff";
+import { fileDownload } from "../../../../util/file_download";
+import { readSavedRevisions } from "./saved-revisions";
 import { ToolView } from "./tools-base";
 
 const CURRENT = "current";
@@ -67,7 +69,18 @@ export class HuiToolDiff extends ToolView {
     );
     const summary = diff ? summarizeDiff(diff) : undefined;
     const options = this._options();
+    const revisionCount = this._savedRevisions().length;
     return html`
+      <section>
+        <h3>${this._t("diff.revisions_title")}</h3>
+        <p>${this._t("diff.revisions_intro")}</p>
+        <ha-button
+          appearance="outlined"
+          .disabled=${!revisionCount}
+          @click=${this._exportRevisions}
+          >${this._t("diff.revisions_export", { count: revisionCount })}</ha-button
+        >
+      </section>
       <p class="intro">${this._t("diff.intro")}</p>
       ${this._renderMessages()}
       <div class="row">
@@ -202,6 +215,29 @@ export class HuiToolDiff extends ToolView {
         : kind === "changed"
           ? "warning"
           : "";
+  }
+
+  private _savedRevisions() {
+    const userId = this.hass.user?.id;
+    return userId
+      ? readSavedRevisions({ userId, urlPath: this._lovelace?.urlPath ?? null })
+      : [];
+  }
+
+  private _exportRevisions() {
+    const revisions = this._savedRevisions();
+    if (!revisions.length) return;
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          { version: 1, dashboard: this._lovelace?.urlPath ?? null, revisions },
+          null,
+          2
+        ),
+      ],
+      { type: "application/json" }
+    );
+    fileDownload(URL.createObjectURL(blob), "dashboard-saved-revisions.json");
   }
 
   private _nameChanged(ev: Event) {

@@ -1956,6 +1956,17 @@
         "volume": "Volume"
       },
       "media-browser": {
+        "shortcuts": {
+          "title": "Favorites and recent selections",
+          "favorites": "Favorites",
+          "recents": "Recent selections",
+          "add_favorite": "Favorite {name}",
+          "remove_favorite": "Remove {name} from favorites",
+          "clear_recents": "Clear recent selections",
+          "empty": "No saved items for this player and location.",
+          "explanation": "Saved on this device for your account. Shortcuts open the containing folder; they never start playback. Up to 50 favorites and 20 recent selections are kept.",
+          "storage_failed": "Media shortcuts could not be saved. Browser storage may be blocked or full."
+        },
         "breadcrumbs": "Media location",
         "location_level": "Location {level}",
         "tts": {
@@ -20482,6 +20493,9 @@
                 "none": "No cards are drawn on this page."
               },
               "diff": {
+                "revisions_title": "Saved revisions on this browser",
+                "revisions_intro": "Successful saves keep a limited local record for your account and this dashboard. Download the before and after configurations for manual recovery. This does not include unsaved drafts or saves from other browsers, and nothing is restored automatically. Browser cleanup, large configurations, or storage limits can prevent recovery.",
+                "revisions_export": "Download saved revisions ({count})",
                 "title": "Compare checkpoints",
                 "subtitle": "Two named moments of this dashboard, side by side.",
                 "intro": "Dashboards do not keep a version history, so name the moments you want to compare. Checkpoints are kept in this browser only.",

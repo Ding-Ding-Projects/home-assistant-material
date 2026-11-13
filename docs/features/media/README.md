@@ -26,3 +26,33 @@ Verification: focused navigation tests protect multi-level jumps, minimum-level 
 repeated/out-of-range navigation, and media ID/type title-key collisions. Navigation plus
 existing media-management and image-upload suites passed (46 tests); focused ESLint and
 Prettier checks passed. Browser interaction and screen-reader checks have not been run.
+
+## Device-local media favorites and recent selections
+
+Media picker dialogs now offer a star on eligible media items and a Favorites and recent
+selections sheet. Favorites and recents are scoped to the signed-in account and instance
+in browser storage. They do not sync across devices. Up to 50 favorites and 20 recent
+selections are retained; repeated selections move to the front. Clear recent selections
+removes the local history without changing favorites or media files.
+
+A shortcut opens the item's containing folder, not playback. The provider is queried again,
+so cached playback capabilities are never trusted. Shortcuts are limited to the same player
+and the picker's configured source root. Deleted or unavailable content uses the existing
+browse error flow. Clicking a star or closing the shortcut sheet does not select an item or
+close the parent picker.
+
+Only stable IDs/types, titles, player IDs, and navigation paths are retained. Artwork URLs,
+provider payloads, and capability flags are not stored. Network URLs (including RTSP/FTP),
+credential-bearing addresses, query/fragment-bearing IDs, manual-entry items, and generated
+speech are excluded, including percent-encoded variants. Reads and writes share a 524,288-character
+serialized limit; oversized writes leave the previous saved value intact. Unknown storage versions and
+malformed records are ignored; blocked/full browser storage reports a warning without
+preventing media selection.
+
+Verification: 57 focused media/navigation tests passed, including shortcut storage
+validation, bounded/deduplicated history, ID/type and player separation, restricted-root
+navigation, account/instance isolation, and exclusion of signed URLs and speech. Focused
+ESLint and Prettier checks passed; dialog Lit analysis reported no problems. Full typecheck
+is blocked by missing generated gallery/icon/translation metadata. Browser and screen-reader
+interaction checks remain unverified, including narrow-screen star placement and sheet
+focus restoration.
