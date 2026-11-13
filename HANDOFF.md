@@ -62,6 +62,12 @@
   system downloads in [Release run 43509018387](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43509018387).
 - The published demo uses the same source as Core 431. It verified the speech, media, manual
   event, and dashboard editors with sample data. All 120 documentation routes responded.
+- The demo's later browser loader update, `9249faf8fcf5c442502fb47c1caf15f0024a0c05`, includes
+  both supported bundle types. Published WebKit checks opened speech Options and verified fixed
+  bottom navigation through both legacy and modern routes at phone width.
+- A separate exact-image check on Core 431 verified JPEG-to-PNG conversion, preserved and
+  downloaded the original, and cancelled an intercepted stalled upload. A synthetic light action
+  also offered effects from the capable target when a basic light was selected alongside it.
 
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 

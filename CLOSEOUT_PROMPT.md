@@ -35,6 +35,9 @@ feed advertises build 429. Continue [Release run 43509018387](https://github.com
 for Core 431's appliance downloads, and read back the normal release and channel when ready.
 The published demo for source `79d87a41ce2f30f65f1a517d969f0a994753ef5c` was verified in the
 browser, including the optional Calendar offset and the Repairs configuration.
+The browser demo at source `9249faf8fcf5c442502fb47c1caf15f0024a0c05` ships both modern and
+legacy entry files. WebKit exercised both loader routes, opened speech Options, and kept the
+bottom navigation visible during scrolling. The tests used device emulation.
 
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,
