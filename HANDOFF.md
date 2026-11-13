@@ -597,6 +597,53 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   overflow in light and dark, wide and phone, and the live instance moved to it at 08:25
   Toronto time. The four fixes themselves were not looked at one by one in that build.
 
+- Closeout of 13 November, 11:00 Toronto time. READ THIS FIRST.
+  - Live: the instance on the home network runs build 2026.11.1.425 (commit `f7f282a80`, batch
+    60) since 11:00 Toronto time; read back healthy and supported, answering on the LAN.
+    The browser pass on that exact image had no page errors and no sideways overflow in
+    light and dark, wide and phone (92 captures).
+  - Release `v2026.11.1.422` was read back: not a draft, not a prerelease, 25 files,
+    "Updated: 13 November 2026 at 09:54 EST". The release run for build 425 was still
+    building its operating system images at closeout and has NOT been read back. Builds
+    418, 419 and 424 have no release page (their runs were stopped once the container
+    image was out).
+  - Batch 59 (commit `0de76e7bd`): visual faults found by looking at all 88 captures of
+    build 422. Batch 60 (commit `f7f282a80`): automatic updates (new server integration
+    `auto_update`, run for real on a throwaway instance; card and row switches on the
+    Updates page), a "Continue on error for all actions" switch in the automation and
+    script editors, a visual editor for dictionary fields with a Visual / YAML switch, the
+    automation editor bar as a real footer, the automation tools sheet on a phone, the
+    session clock in its own row on a phone, end fades on tab strips.
+  - Seen in build 425 by looking at captures: the "Automatic updates" card with both
+    switches on a phone, the automation bar as a footer with nothing under it, the count
+    badge on the pane's overflow button, the person's name as plain text, the phone storage
+    cards inside the screen. NOT yet looked at in a published build: the row switches of
+    automatic updates and an automatic install through the page, the continue-on-error
+    switch, the visual dictionary editor, the tools sheet on a phone, the empty states of
+    Lights, Climate and Security, the dark theme outlines, the table toolbar wrapping, the
+    clock row on a phone, the four fixes of batch 58. Nobody has yet used the batch 59 and
+    60 features in a browser the way batches 41 to 57 were used.
+  - Batch 61 (commit `86235d86f`) is UNFINISHED and saved so it is not lost: "known
+    options" for dictionary fields. In it: a server command `tts/engine/options` (compiles,
+    test written, never run against a server), a frontend model
+    (`frontend/src/common/object-editor/known-options.ts`), a loader
+    (`frontend/src/data/known-options.ts`) and a catalogue with the five confirmed
+    `tts.speak` option keys. Missing: unit tests; passing the action, field and language
+    from `ha-service-control` through `ha-selector-object` to `ha-object-editor`; the
+    "Known options" chips, specific controls and the "not declared" note; the strings under
+    `ui.components.object-editor`; a real run of the server command on a throwaway instance
+    with the changed file mounted. Nothing in the interface uses it yet. The build of this
+    commit must get its browser pass before the live instance moves to it.
+  - Next steps, in order: read back the build 425 release; give the build of batch 61 its
+    browser pass; use the batch 59 and 60 features for real on a throwaway instance and fix
+    what is wrong; finish batch 61; then the features never seen in any build (history
+    compare, the pop-up tap action, "Save to my cards", checkpoints, breakpoints, "Replay a
+    day", "Make phone friendly", cameras and the energy cost tile, right-to-left,
+    both-languages mode, 320 px width); refresh the README pictures from the final build.
+  - Inventory: `main` is the only branch locally; the remote has `main` and `channel` (the
+    release workflow needs `channel`); one checkout; no stash; no throwaway containers left.
+    Nothing was deleted.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
