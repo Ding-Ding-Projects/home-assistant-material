@@ -46,8 +46,8 @@ export const mockTodo = (hass: MockHomeAssistant) => {
   const snapshot = (entityId: string) => ({
     items: list(entityId).map((item) => ({ ...item })),
   });
-  const publish = (entityId: string) => {
-    hass.mockEntities[entityId]?.update({
+  const publish = (entityId: string, currentHass: MockHomeAssistant) => {
+    currentHass.mockEntities[entityId]?.update({
       state: String(
         list(entityId).filter(
           (item) => item.status !== TodoItemStatus.Completed
@@ -59,6 +59,7 @@ export const mockTodo = (hass: MockHomeAssistant) => {
     }
   };
   const targets = (
+    currentHass: MockHomeAssistant,
     data?: Record<string, unknown>,
     target?: Record<string, unknown>
   ) => {
@@ -68,7 +69,9 @@ export const mockTodo = (hass: MockHomeAssistant) => {
       !ids.length ||
       ids.some(
         (id) =>
-          typeof id !== "string" || !id.startsWith("todo.") || !hass.states[id]
+          typeof id !== "string" ||
+          !id.startsWith("todo.") ||
+          !currentHass.states[id]
       )
     ) {
       throw { code: "invalid_target", message: "Choose a sample to-do list." };
@@ -86,8 +89,8 @@ export const mockTodo = (hass: MockHomeAssistant) => {
     callback(snapshot(entity_id));
     return () => callbacks.delete(callback);
   });
-  hass.mockService("todo", "update_item", (data, target) => {
-    const ids = targets(data, target);
+  hass.mockService("todo", "update_item", (data, target, currentHass) => {
+    const ids = targets(currentHass, data, target);
     const matches = ids.map((id) => ({
       id,
       item: list(id).find(
@@ -112,11 +115,11 @@ export const mockTodo = (hass: MockHomeAssistant) => {
       }
       if (data?.due_datetime !== undefined) item!.due = data.due_datetime;
       else if (data?.due_date !== undefined) item!.due = data.due_date;
-      publish(id);
+      publish(id, currentHass);
     }
   });
-  hass.mockService("todo", "remove_item", (data, target) => {
-    const ids = targets(data, target);
+  hass.mockService("todo", "remove_item", (data, target, currentHass) => {
+    const ids = targets(currentHass, data, target);
     const selected = Array.isArray(data?.item) ? data.item : [data?.item];
     if (!selected.length || selected.some((item) => typeof item !== "string")) {
       throw { code: "invalid_item", message: "Choose a sample to-do item." };
@@ -141,7 +144,7 @@ export const mockTodo = (hass: MockHomeAssistant) => {
             !selected.includes(item.uid) && !selected.includes(item.summary)
         )
       );
-      publish(id);
+      publish(id, currentHass);
     }
   });
 };
