@@ -775,6 +775,38 @@
           "preferred_bitrate": {
             "label": "Bitrate",
             "description": "Preferred MP3 bitrate in kbit/s."
+          },
+          "sensibo_on": {
+            "label": "Power",
+            "description": "Turn the air conditioner on or off."
+          },
+          "sensibo_target_temperature": {
+            "label": "Target temperature",
+            "description": "Temperature to set in the selected unit."
+          },
+          "sensibo_temperature_unit": {
+            "label": "Temperature unit",
+            "description": "Use Celsius (C) or Fahrenheit (F) for the target temperature."
+          },
+          "sensibo_mode": {
+            "label": "Operating mode",
+            "description": "Mode to set on the air conditioner. Available choices depend on the selected units."
+          },
+          "sensibo_fan_level": {
+            "label": "Fan level",
+            "description": "Fan level supported by the air conditioner in the selected mode."
+          },
+          "sensibo_swing": {
+            "label": "Vertical swing",
+            "description": "Vertical swing setting supported by the air conditioner."
+          },
+          "sensibo_horizontal_swing": {
+            "label": "Horizontal swing",
+            "description": "Horizontal swing setting supported by the air conditioner."
+          },
+          "sensibo_light": {
+            "label": "Display light",
+            "description": "Display light setting supported by the air conditioner."
           }
         }
       },

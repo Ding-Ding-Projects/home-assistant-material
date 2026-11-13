@@ -46,7 +46,8 @@ ptz:
       example: "1"
       default: "0"
       selector:
-        text:
+        state:
+          attribute: preset
     move_mode:
       default: "RelativeMove"
       selector:

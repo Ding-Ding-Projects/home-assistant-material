@@ -56,6 +56,7 @@ import {
   type KnownOption,
   type ResolvedKnownOption,
 } from "../../common/object-editor/known-options";
+import { sensiboClimateReactOptions } from "../../common/object-editor/sensibo-climate-react-options";
 import { deepEqual } from "../../common/util/deep-equal";
 import {
   safeGetStored,
@@ -90,6 +91,7 @@ export class HaObjectSelector extends LitElement {
   private _lang = new LanguageModeController(this);
   private _optionsKey?: string;
   private _optionsConnection?: HomeAssistant["connection"];
+  private _optionsLocalize?: HomeAssistant["localize"];
   private _optionsRequest = 0;
   private _visualValid = true;
   private _restoredYaml?: HaYamlEditor;
@@ -117,32 +119,48 @@ export class HaObjectSelector extends LitElement {
       }
     }
     const context = this.context?.known_options;
+    const localize = this._i18n?.localize ?? this.hass?.localize;
+    const localOptions = sensiboClimateReactOptions(
+      context?.action,
+      context?.field,
+      context?.entityIds,
+      this._states ?? this.hass?.states ?? {},
+      this._registries?.entities ?? this.hass?.entities ?? {}
+    );
     const key = JSON.stringify([
       context,
       this.hass?.language,
       this._lang.mode,
       this.hass?.connected,
+      this.hass?.user?.id,
       this.hass?.user?.is_admin,
+      localOptions,
     ]);
     if (
       key !== this._optionsKey ||
-      this.hass?.connection !== this._optionsConnection
+      this.hass?.connection !== this._optionsConnection ||
+      localize !== this._optionsLocalize
     ) {
       this._optionsKey = key;
       this._optionsConnection = this.hass?.connection;
+      this._optionsLocalize = localize;
       const request = ++this._optionsRequest;
       const common =
         context?.action && context.field
           ? catalogueOptions(context.action, context.field, (translation) =>
-              this._lang.text(this._i18n.localize, translation)
+              localize ? this._lang.text(localize, translation) : ""
             )
           : [];
-      this._knownOptions = mergeKnownOptions(common);
+      this._knownOptions = mergeKnownOptions(localOptions, common);
       if (this.hass && context) {
         void loadDeclaredOptions(this.hass, context)
           .then((result) => {
-            if (request === this._optionsRequest) {
-              this._knownOptions = mergeKnownOptions(result?.options, common);
+            if (result && request === this._optionsRequest) {
+              this._knownOptions = mergeKnownOptions(
+                result.options,
+                localOptions,
+                common
+              );
             }
           })
           .catch(() => {

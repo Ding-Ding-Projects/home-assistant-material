@@ -3,8 +3,10 @@
 Open a dashboard, choose **Edit dashboard**, and open an element's editor. If the element
 provides a visual form, it shows controls for that element. Otherwise the shared editor shows
 the values already present in its configuration. It provides switches for booleans, fields
-for numbers and text, an entity picker for the entity field, and expandable controls for
-lists and dictionaries. Custom elements can supply their own more specific editors.
+for numbers and text, pickers for compatible entity, icon, and navigation fields, and
+expandable controls for lists and dictionaries. A list of distinct entity IDs can use
+the entity picker. Lists containing custom rows stay in the structured editor. Custom
+elements can supply their own more specific editors.
 
 On the **Repairs** card, use **Hide when empty** or **Vertical**, and expand **Interactions**
 to set tap, hold, and double-tap actions. In a sections dashboard, set the card's grid size

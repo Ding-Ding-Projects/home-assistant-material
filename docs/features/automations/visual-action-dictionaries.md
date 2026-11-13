@@ -18,6 +18,11 @@ several selected engines, the form suggests shared options and voices. Audio for
 manual entries remain available when the engine cannot supply metadata. The available values
 depend on the integration that runs the action.
 
+For **Sensibo: Enable Climate React**, turn on the high- or low-temperature state. Choose
+**Power**, **Target temperature**, or **Operating mode** to add its control. The operating mode
+uses the modes reported by the selected Sensibo entities. Use the provider's supported values
+for fan level and swing.
+
 Use **Additional data** for keys an action does not give their own controls. The form keeps
 these keys alongside the declared fields. Actions without field selectors use a visual editor
 for the whole action data map. An action with no input fields, such as **Next track**, shows
@@ -26,6 +31,9 @@ its target picker without an empty action data editor.
 **Fire manual event** also uses the visual dictionary for its payload. The event type stays
 editable because integrations and automations can define their own names. **Play media** lets
 you browse for a media item and fills its ID and type together.
+**To-do list: Update item** and **Remove item** offer item names from one selected list you can
+read. **ONVIF: PTZ** offers presets reported by the selected cameras. Manual values remain
+available when the editor has no list for the target.
 
 In a text field, **Build text** opens with the existing text. Place the caret and choose a
 dynamic piece, or drag the piece into the text. The editor keeps the characters on both sides.

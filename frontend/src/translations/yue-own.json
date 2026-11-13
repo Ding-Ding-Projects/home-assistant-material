@@ -2082,6 +2082,38 @@
           "preferred_bitrate": {
             "label": "位元率",
             "description": "首選 MP3 位元率，單位係 kbit/s。"
+          },
+          "sensibo_on": {
+            "label": "電源",
+            "description": "開啟或者關閉冷氣機。"
+          },
+          "sensibo_target_temperature": {
+            "label": "目標溫度",
+            "description": "以所選單位設定溫度。"
+          },
+          "sensibo_temperature_unit": {
+            "label": "溫度單位",
+            "description": "目標溫度可以用攝氏（C）或者華氏（F）。"
+          },
+          "sensibo_mode": {
+            "label": "運作模式",
+            "description": "設定冷氣機嘅運作模式。可選模式視乎所選嘅冷氣機。"
+          },
+          "sensibo_fan_level": {
+            "label": "風速",
+            "description": "冷氣機喺所選模式支援嘅風速。"
+          },
+          "sensibo_swing": {
+            "label": "上下擺風",
+            "description": "冷氣機支援嘅上下擺風設定。"
+          },
+          "sensibo_horizontal_swing": {
+            "label": "左右擺風",
+            "description": "冷氣機支援嘅左右擺風設定。"
+          },
+          "sensibo_light": {
+            "label": "顯示燈",
+            "description": "冷氣機支援嘅顯示燈設定。"
           }
         }
       },

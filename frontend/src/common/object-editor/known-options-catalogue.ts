@@ -57,11 +57,46 @@ const TTS_AUDIO_OPTIONS: CatalogueEntry[] = [
 ];
 
 /**
+ * Sensibo climate-react sends these raw AC-state keys unchanged.
+ * Verified by core/homeassistant/components/sensibo/climate.py
+ * (async_enable_climate_react and async_full_ac_state) and the complete
+ * climate-react payload in core/tests/components/sensibo/test_climate.py.
+ * These are optional suggestions, not an exhaustive schema. In particular,
+ * normalized entity fan/swing labels are not raw provider values.
+ */
+const SENSIBO_CLIMATE_REACT_OPTIONS: CatalogueEntry[] = [
+  { key: "on", id: "sensibo_on", kind: { type: "boolean" } },
+  {
+    key: "targetTemperature",
+    id: "sensibo_target_temperature",
+    kind: { type: "number" },
+  },
+  {
+    key: "temperatureUnit",
+    id: "sensibo_temperature_unit",
+    kind: { type: "choice", choices: [{ value: "C" }, { value: "F" }] },
+  },
+  { key: "mode", id: "sensibo_mode", kind: { type: "text" } },
+  { key: "fanLevel", id: "sensibo_fan_level", kind: { type: "text" } },
+  { key: "swing", id: "sensibo_swing", kind: { type: "text" } },
+  {
+    key: "horizontalSwing",
+    id: "sensibo_horizontal_swing",
+    kind: { type: "text" },
+  },
+  { key: "light", id: "sensibo_light", kind: { type: "text" } },
+];
+
+/**
  * Keyed by "domain.service" and field name. The TTS service description
  * declares the `options` field of `speak` as a plain dictionary.
  */
 const CATALOGUE: Record<string, CatalogueEntry[]> = {
   "tts.speak:options": TTS_AUDIO_OPTIONS,
+  "sensibo.enable_climate_react:high_temperature_state":
+    SENSIBO_CLIMATE_REACT_OPTIONS,
+  "sensibo.enable_climate_react:low_temperature_state":
+    SENSIBO_CLIMATE_REACT_OPTIONS,
 };
 
 /** How many entries the catalogue holds, for the record. */

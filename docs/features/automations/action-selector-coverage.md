@@ -24,17 +24,17 @@ field, regardless of its internal structure.
 | Targeted actions with no declared fields | 176 |
 | Leaf fields of targeted actions | 788 |
 | Leaf fields with a selector | 788 |
-| Leaf fields with a text selector | 190 |
+| Leaf fields with a text selector | 189 |
 | Leaf fields without a selector | 0 |
 
-Selector counts for the 788 leaf fields are shown below. The Calendar and WiLight fields
-have dedicated visual controls in the action form.
+Selector counts for the 788 leaf fields are shown below. The action form also provides
+dedicated controls for Calendar offsets, to-do items, and WiLight triggers.
 
 | Selector | Fields | Selector | Fields |
 | --- | ---: | --- | ---: |
-| Number | 256 | Text | 190 |
+| Number | 256 | Text | 189 |
 | Select | 91 | Boolean | 75 |
-| Object | 69 | State | 24 |
+| Object | 69 | State | 25 |
 | Duration | 19 | Date and time | 17 |
 | Media | 10 | Date | 8 |
 | Constant | 7 | Entity | 6 |
@@ -66,11 +66,15 @@ service data field, and others register descriptions or capabilities at runtime.
 | Media player | Play media uses the media selector. Source and sound mode use the selected player's lists. Browse and search can accept optional container IDs with provider-specific semantics. |
 | Text-to-speech | The speech engine supplies supported options and may supply voices for the action language. For multiple engines, shared choices depend on metadata from each engine. |
 | Calendar | Choose a relative offset in days or weeks for an all-day event. |
+| To-do | For Update item and Remove item, choose existing items from a single selected list you can read. The saved value is the item ID. Names and templates are also accepted where the action supports them. |
+| ONVIF | The PTZ action offers cached presets reported by the selected cameras. Several cameras must share a preset identifier for the picker to suggest it. You can enter a known identifier manually. |
+| Sensibo | Climate React offers known keys for the high- and low-temperature states. Power and temperature have typed controls, and the operating-mode picker uses modes shared by the selected Sensibo entities. Mode-dependent fan and swing values are entered as documented by the provider. |
 | WiLight | Choose weekdays, time, and whether the trigger is active. Watering time, pause time, and trigger index use bounded number controls. |
 
 The recent metadata changes are in the [remote](../../../core/homeassistant/components/remote/services.yaml),
 [MELCloud](../../../core/homeassistant/components/melcloud/services.yaml),
-[siren](../../../core/homeassistant/components/siren/services.yaml), and
+[siren](../../../core/homeassistant/components/siren/services.yaml),
+[ONVIF](../../../core/homeassistant/components/onvif/services.yaml), and
 [WiLight](../../../core/homeassistant/components/wilight/services.yaml) action descriptions.
 The frontend connects state-based selectors to their corresponding
 [entity capability lists](../../../frontend/src/common/entity/get_states.ts). The source
@@ -91,9 +95,7 @@ establish behavior on live devices or on every provider.
    action, and the integration validates the resulting payload when it runs.
 
 The source counts cannot show what an installed integration actually advertises, what a
-particular account can read, or which values a custom integration accepts. Provider-specific
-metadata can also exist internally without being available to the editor. For example, an
-ONVIF camera may have preset tokens without a published action-picker list. An update entity
-can advertise its latest version without publishing every installable version. A to-do list
-has its own item records and access rules. Each of these needs its own data contract before
-the editor can offer reliable choices.
+particular account can read, or which values a custom integration accepts. An update entity
+can advertise its latest version without publishing every installable version. The editor
+needs an integration's declared choices, a supported value list, or a specific data source to
+offer reliable suggestions for such fields.

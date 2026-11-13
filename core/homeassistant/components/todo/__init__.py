@@ -7,12 +7,13 @@ from typing import Any
 
 import probatio
 
+from homeassistant.auth.permissions.const import POLICY_READ
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.websocket_api import ERR_NOT_FOUND, ERR_NOT_SUPPORTED
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryError, HomeAssistantError
+from homeassistant.exceptions import ConfigEntryError, HomeAssistantError, Unauthorized
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
@@ -108,6 +109,8 @@ async def websocket_handle_subscribe_todo_items(
 ) -> None:
     """Subscribe to To-do list item updates."""
     entity_id: str = msg["entity_id"]
+    if not connection.user.permissions.check_entity(entity_id, POLICY_READ):
+        raise Unauthorized(entity_id=entity_id)
 
     if not (entity := hass.data[DATA_COMPONENT].get_entity(entity_id)):
         connection.send_error(
@@ -147,10 +150,13 @@ async def websocket_handle_subscribe_todo_items(
 async def websocket_handle_todo_item_list(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """Handle the list of To-do items in a To-do- list."""
+    """Return the items in a to-do list."""
+    entity_id: str = msg[CONF_ENTITY_ID]
+    if not connection.user.permissions.check_entity(entity_id, POLICY_READ):
+        raise Unauthorized(entity_id=entity_id)
+
     if (
-        not (entity_id := msg[CONF_ENTITY_ID])
-        or not (entity := hass.data[DATA_COMPONENT].get_entity(entity_id))
+        not (entity := hass.data[DATA_COMPONENT].get_entity(entity_id))
         or not isinstance(entity, TodoListEntity)
     ):
         connection.send_error(msg["id"], ERR_NOT_FOUND, "Entity not found")

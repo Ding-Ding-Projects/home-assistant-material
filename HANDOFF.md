@@ -69,6 +69,18 @@
   downloaded the original, and cancelled an intercepted stalled upload. A synthetic light action
   also offered effects from the capable target when a basic light was selected alongside it.
 
+## Additional visual selectors, 13 November 2026
+
+- Update item and Remove item use live item names from one readable to-do list and store
+  the selected item IDs. Both item-read commands check entity read permission. An empty or
+  unresolved target leaves manual entry available.
+- The ONVIF PTZ action reads cached presets from camera state. Sensibo Climate React offers
+  known fields and operating modes common to the selected units. The fallback dashboard
+  editor has icon and navigation pickers and keyboard ordering for compatible entity lists.
+- The browser demo can simulate updates and removals on a sample to-do list. Changes to the
+  automation configuration stay in the browser. Verify the new controls in the built
+  candidate before treating them as delivered.
+
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 
 ## Batches 34 and 35, 12 November 2026 (late morning): read this first

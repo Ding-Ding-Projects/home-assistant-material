@@ -436,6 +436,19 @@ describe("getStates", () => {
   });
 
   describe("Other domain specific attributes", () => {
+    it("returns advertised camera preset identifiers without changing them", () => {
+      const camera = createMockEntity("camera.test", "idle", {
+        preset_list: ["001", "pan-left", "001"],
+      });
+      expect(getStates(mockStates, "en", camera, "preset")).toEqual([
+        "001",
+        "pan-left",
+      ]);
+      expect(
+        getStates(mockStates, "en", createMockEntity("camera.other"), "preset")
+      ).toEqual([]);
+    });
+
     it("should return event types for event attribute", () => {
       const entity = createMockEntity("event.test", "triggered", {
         event_types: ["button_press", "motion", "door_open"],

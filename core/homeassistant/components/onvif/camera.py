@@ -42,12 +42,17 @@ class ONVIFCameraEntity(ONVIFBaseEntity, Camera):
     """Representation of an ONVIF camera."""
 
     _attr_supported_features = CameraEntityFeature.STREAM
+    _unrecorded_attributes = frozenset({"preset_list"})
 
     def __init__(self, device: ONVIFDevice, profile: Profile) -> None:
         """Initialize ONVIF camera entity."""
         ONVIFBaseEntity.__init__(self, device)
         Camera.__init__(self)
         self.profile = profile
+        if profile.ptz and profile.ptz.presets:
+            self._attr_extra_state_attributes = {
+                "preset_list": profile.ptz.presets.copy()
+            }
         self.stream_options[CONF_RTSP_TRANSPORT] = device.config_entry.options.get(
             CONF_RTSP_TRANSPORT, next(iter(RTSP_TRANSPORTS))
         )

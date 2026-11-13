@@ -9,7 +9,7 @@ import zoneinfo
 from freezegun.api import FrozenDateTimeFactory
 import probatio
 import pytest
-from pytest_homeassistant.common import async_fire_time_changed
+from pytest_homeassistant.common import MockUser, async_fire_time_changed
 from pytest_homeassistant.typing import WebSocketGenerator
 from syrupy.assertion import SnapshotAssertion
 
@@ -103,6 +103,25 @@ async def test_list_todo_items(
             ITEM_2,
         ]
     }
+
+
+@pytest.mark.parametrize("command", ["todo/item/list", "todo/item/subscribe"])
+async def test_todo_item_read_requires_permission(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    hass_admin_user: MockUser,
+    test_entity: TodoListEntity,
+    command: str,
+) -> None:
+    """Check that to-do item reads respect per-entity permissions."""
+    await create_mock_platform(hass, [test_entity])
+    hass_admin_user.groups = []
+    hass_admin_user.mock_policy({})
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": command, "entity_id": "todo.entity1"})
+    response = await client.receive_json()
+    assert not response["success"]
+    assert response["error"]["code"] == "unauthorized"
 
 
 @pytest.mark.parametrize(

@@ -53,6 +53,7 @@ import "./ha-service-section-icon";
 import "./ha-svg-icon";
 import "./ha-switch";
 import type { HaSwitch } from "./ha-switch";
+import "./ha-todo-action-item-picker";
 import "./ha-yaml-editor";
 import type { HaYamlEditor } from "./ha-yaml-editor";
 
@@ -909,6 +910,25 @@ export class HaServiceControl extends LitElement {
     }
 
     const inline = isBooleanSelector(selector);
+    const label =
+      this.hass.localize(
+        `component.${domain}.services.${serviceName}.fields.${dataField.key}.name`,
+        descriptionPlaceholders
+      ) ||
+      dataField.name ||
+      dataField.key;
+    const todoItemAction =
+      domain === "todo" &&
+      dataField.key === "item" &&
+      "text" in selector &&
+      (serviceName === "update_item" || serviceName === "remove_item") &&
+      (fieldValue === undefined ||
+        typeof fieldValue === "string" ||
+        (serviceName === "remove_item" &&
+          Array.isArray(fieldValue) &&
+          fieldValue.every((value) => typeof value === "string")))
+        ? serviceName
+        : undefined;
     const disabled =
       this.disabled ||
       (showOptional &&
@@ -924,32 +944,43 @@ export class HaServiceControl extends LitElement {
           .required=${dataField.required}
           @value-changed=${this._serviceDataChanged}
         ></ha-action-field-adapter>`
-      : html`<ha-selector
-          .context=${{
-            ...this._selectorContext(fieldEntities, this.stringBuilder),
-            allow_local_media:
-              this._value?.action === "media_player.play_media" &&
-              dataField.key === "media",
-            draft_owner: this.value,
-            draft_key: dataField.key,
-            known_options: {
-              action: this._value?.action,
-              field: dataField.key,
-              target: this._value?.target,
-              entityIds: fieldEntities || undefined,
-              language: this._value?.data?.language,
-            },
-          }}
-          .disabled=${disabled}
-          .hass=${this.hass}
-          .selector=${selector}
-          .key=${dataField.key}
-          @value-changed=${this._serviceDataChanged}
-          .value=${toneOptions.length && typeof fieldValue === "number" ? String(fieldValue) : fieldValue}
-          .placeholder=${dataField.default}
-          .localizeValue=${this._localizeValueCallback}
-          .required=${dataField.required}
-        ></ha-selector>`;
+      : todoItemAction
+        ? html`<ha-todo-action-item-picker
+            .entityIds=${fieldEntities}
+            .action=${todoItemAction}
+            .value=${fieldValue}
+            .key=${dataField.key}
+            .label=${label}
+            .disabled=${disabled}
+            .required=${dataField.required}
+            @value-changed=${this._serviceDataChanged}
+          ></ha-todo-action-item-picker>`
+        : html`<ha-selector
+            .context=${{
+              ...this._selectorContext(fieldEntities, this.stringBuilder),
+              allow_local_media:
+                this._value?.action === "media_player.play_media" &&
+                dataField.key === "media",
+              draft_owner: this.value,
+              draft_key: dataField.key,
+              known_options: {
+                action: this._value?.action,
+                field: dataField.key,
+                target: this._value?.target,
+                entityIds: fieldEntities || undefined,
+                language: this._value?.data?.language,
+              },
+            }}
+            .disabled=${disabled}
+            .hass=${this.hass}
+            .selector=${selector}
+            .key=${dataField.key}
+            @value-changed=${this._serviceDataChanged}
+            .value=${toneOptions.length && typeof fieldValue === "number" ? String(fieldValue) : fieldValue}
+            .placeholder=${dataField.default}
+            .localizeValue=${this._localizeValueCallback}
+            .required=${dataField.required}
+          ></ha-selector>`;
 
     // `hasOptional` is kept in the signature for callers; the toggle now sits
     // at the end of the row, so no spacer is needed.
@@ -964,14 +995,7 @@ export class HaServiceControl extends LitElement {
           <span
             class="field-heading ${showOptional ? "clickable" : ""}"
             @click=${showOptional ? this._toggleCheckbox : undefined}
-            >${
-              this.hass.localize(
-                `component.${domain}.services.${serviceName}.fields.${dataField.key}.name`,
-                descriptionPlaceholders
-              ) ||
-              dataField.name ||
-              dataField.key
-            }</span
+            >${label}</span
           >
           <span
             class="field-description ${showOptional ? "clickable" : ""}"

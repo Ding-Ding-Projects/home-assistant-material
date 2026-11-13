@@ -252,6 +252,9 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       and apply the exact image through the full-mode Supervisor.
 - [ ] Verify the normal release and stable update feed for Core 431. First-party action metadata
       inventory is in `docs/features/automations/action-selector-coverage.md`.
+- [ ] Verify to-do item picking, ONVIF presets, Sensibo Climate React options, and expanded
+      dashboard fallback controls in a built candidate. The action coverage guide records
+      where provider-supplied metadata is still needed.
 - [ ] Verify dashboard resource upload, media saving and the phone layout on the released build.
 
 - [x] Test buttons on every condition and every Choose option

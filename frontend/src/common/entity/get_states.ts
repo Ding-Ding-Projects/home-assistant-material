@@ -295,6 +295,9 @@ export const DOMAIN_OPTIONS_ATTRIBUTES: Record<
   string,
   Record<string, string>
 > = {
+  camera: {
+    preset: "preset_list",
+  },
   climate: {
     _: "hvac_modes",
     fan_mode: "fan_modes",
