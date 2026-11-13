@@ -131,6 +131,36 @@ describe("service action dictionaries", () => {
     );
   });
 
+  it("keeps the visual calendar controls when an optional offset is enabled", async () => {
+    const element = await mount({});
+    element.hass = {
+      ...element.hass,
+      services: {
+        calendar: {
+          create_event: { fields: { in: { selector: { object: {} } } } },
+        },
+      },
+    } as HomeAssistant;
+    element.value = { action: "calendar.create_event" };
+    await element.updateComplete;
+    element.addEventListener("value-changed", (event) => {
+      element.value = event.detail.value;
+    });
+    const adapter = element.shadowRoot!.querySelector(
+      "ha-action-field-adapter"
+    )!;
+    expect(adapter.disabled).toBe(true);
+    const toggle = Array.from(
+      element.shadowRoot!.querySelectorAll("ha-switch")
+    ).find((candidate) => Reflect.get(candidate, "key") === "in")!;
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event("change"));
+    await element.updateComplete;
+    expect(element.value?.data?.in).toEqual({ days: 0 });
+    expect(adapter.disabled).toBe(false);
+    expect(adapter.kind).toBe("calendar-offset");
+  });
+
   it("keeps declared fields beside additional data instead of replacing them with YAML", async () => {
     const element = await mount({
       options: { voice: "legacy" },

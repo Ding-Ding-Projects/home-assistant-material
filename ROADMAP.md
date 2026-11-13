@@ -246,9 +246,10 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [x] Verify visual action dictionaries in published Core 429 and the speech and scene examples
       in the published browser demo.
 - [x] Verify the interactive browser demo on the project page.
-- [ ] Verify the expanded action fields, media picker, text insertion, and Repairs editor in
-      the next published build. First-party action metadata inventory is in
-      `docs/features/automations/action-selector-coverage.md`.
+- [x] Verify the sample media picker, text insertion, all-actions toggle, and Repairs editor in
+      the published browser demo.
+- [ ] Verify the next published Core image before updating the installation. First-party action
+      metadata inventory is in `docs/features/automations/action-selector-coverage.md`.
 - [ ] Verify dashboard resource upload, media saving and the phone layout on the released build.
 
 - [x] Test buttons on every condition and every Choose option

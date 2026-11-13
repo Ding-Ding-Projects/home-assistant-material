@@ -40,6 +40,12 @@
 - Media transfer and image conversion offer cancellation. Check the destination after a
   cancelled or timed-out transfer. A physical iPhone and arbitrary third-party integrations
   have not been verified.
+- The published demo from `19c542b8f27b86e6bd7075cfca32984e9584c9f0` passed Repairs save and
+  reload at 390 px, media selection and playback simulation, text insertion, and inheritance
+  when adding an action. Build time was 20:54:10 UTC on 13 November 2026.
+- A local Core build from that revision converted a JPEG to PNG, kept the original, saved the
+  converted file, and let the user cancel a stalled media upload at a 390 px browser width.
+  Verify the published Core image separately before applying a follow-up live update.
 
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 

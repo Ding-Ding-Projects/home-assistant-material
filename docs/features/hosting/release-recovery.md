@@ -6,6 +6,10 @@ their build jobs before the publisher runs. New runs retain them for 14 days.
 The **publication-recovery** artifact for the run attempt records the source,
 intended release tag, job status, and release notes and file list when available.
 Download the build files from their respective artifacts.
+The publisher can use a repository or organization release credential configured
+in GitHub Actions. The default workflow credential can publish from the current
+default-branch source. A historical source with different workflow files may need
+a credential with workflow write access.
 
 If the build jobs succeed and automatic publication fails, download the artifacts
 from that run using `gh run download <run-id>`. Verify the board checksums,

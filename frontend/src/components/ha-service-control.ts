@@ -1061,9 +1061,12 @@ export class HaServiceControl extends LitElement {
 
       if (defaultValue == null && field?.selector) {
         defaultValue =
-          "object" in field.selector
-            ? {}
-            : getSelectorFallbackValue(field.selector);
+          actionFieldAdapterKind(this._value?.action, key, undefined) ===
+          "calendar-offset"
+            ? { days: 0 }
+            : "object" in field.selector
+              ? {}
+              : getSelectorFallbackValue(field.selector);
       }
 
       if (defaultValue != null) {

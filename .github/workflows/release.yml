@@ -666,7 +666,6 @@ jobs:
       R_FULL: ${{ needs.full.result }}
       R_OS: ${{ needs.os.result }}
       R_ASSISTANT: ${{ needs.assistant.result }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -694,6 +693,8 @@ jobs:
           merge-multiple: false
 
       - name: Create the release, read it back and move the update feed
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || github.token }}
         run: |
           set -euo pipefail
 
@@ -806,8 +807,8 @@ jobs:
             echo "::error::Tag or release ${TAG} already exists. It is left untouched."
             exit 1
           fi
-          armed=1
           gh release create "${TAG}" "${files[@]}" --target "${GITHUB_SHA}" --title "Home Assistant Material ${CORE}" --notes-file notes.md
+          armed=1
 
           gh release view "${TAG}" --json isDraft,isPrerelease,assets > readback.json
           python3 scripts/ci/check-release.py readback.json file-list.txt

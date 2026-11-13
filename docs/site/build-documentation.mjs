@@ -13,7 +13,10 @@ const sourceRoot = path.join(root, "docs");
 const outputRoot = path.resolve(process.argv[2] || path.join(site, "guides"));
 const sourceUrl = "https://github.com/Ding-Ding-Projects/home-assistant-material/blob/main/";
 const virtualOrigin = "https://documentation.invalid/";
-const bundledImages = new Set(["screenshots/automation-speech-dictionary-demo.png"]);
+const bundledImages = new Set([
+  "screenshots/automation-speech-dictionary-demo.png",
+  "screenshots/published-repairs-editor.png",
+]);
 
 async function markdownFiles(directory) {
   const files = [];

@@ -25,8 +25,13 @@ Supervisor health was read back after the update. The appliance downloads and ch
 
 The follow-up adds action-specific controls, the shared dashboard editor, a dedicated Repairs
 form, and cancellable media transfers. See the automation and dashboard guides in `docs/features/`.
-Verify the expanded browser demo and repeat the isolated exact-image check before the next live
-update. The installed version and the downloadable appliance release have separate readbacks.
+The published demo from `19c542b8f27b86e6bd7075cfca32984e9584c9f0` saved and reloaded a
+Repairs setting and a selected media item. It also passed text insertion, the all-actions
+toggle, and simulated media playback. The local Core image passed JPEG-to-PNG conversion
+and cancellation of a deliberately stalled upload in Chromium at phone width.
+
+Repeat the isolated exact-image check before the next live update. Verify the normal release
+and channel separately. Build 430 was assigned to Release run `43505365344`.
 
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,

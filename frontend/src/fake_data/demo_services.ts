@@ -85,7 +85,10 @@ export const demoServices = {
         },
         start_date: { example: "2022-03-22", selector: { date: null } },
         end_date: { example: "2022-03-23", selector: { date: null } },
-        in: { example: '{"days": 2} or {"weeks": 2}' },
+        in: {
+          example: '{"days": 2} or {"weeks": 2}',
+          selector: { object: {} },
+        },
         location: {
           example: "Conference Room - F123, Bldg. 002",
           selector: { text: null },
