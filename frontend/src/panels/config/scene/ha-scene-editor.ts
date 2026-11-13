@@ -6,6 +6,7 @@ import {
   mdiContentDuplicate,
   mdiDelete,
   mdiDotsVertical,
+  mdiEyeOutline,
   mdiInformationOutline,
   mdiLightbulbOnOutline,
   mdiPencil,
@@ -13,6 +14,7 @@ import {
   mdiPlaylistEdit,
   mdiPlus,
   mdiTag,
+  mdiTimerSand,
 } from "@mdi/js";
 import type { HassEntity, HassEvent } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
@@ -114,6 +116,8 @@ interface SceneRow {
 }
 
 // Domains that can be switched on and off from the editor
+const PREVIEW_SECONDS = 30;
+
 const TOGGLE_DOMAINS = [
   "light",
   "switch",
@@ -208,6 +212,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
 
   private _storedStates: SceneEntities = {};
 
+  @state() private _preview?: { sceneId: string; remaining: number };
+
+  private _previewTimer?: number;
+
   private _unsubscribeEvents?: () => void;
 
   private _deviceEntityLookup: DeviceEntitiesLookup = {};
@@ -287,6 +295,10 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
     // the closed socket.
     if (document.hidden && this.parentNode) {
       return;
+    }
+    // Leaving during a preview puts the devices back right away.
+    if (this._preview && this.hass) {
+      this._restorePreview();
     }
     if (this._mode === "live" && this.hass) {
       this._exitLiveMode();
@@ -475,7 +487,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
                     ${this.hass.localize(
                       live
                         ? "ui.panel.config.scene.editor.live_banner"
-                        : "ui.panel.config.scene.editor.review_mode_detail"
+                        : "ui.panel.config.scene.editor.paper_mode_detail"
                     )}
                   </span>
                   <ha-button
@@ -630,7 +642,9 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
     const domain = computeDomain(entityId);
     const isOn = stateActive(stateObj);
     const unavailable = stateObj.state === "unavailable";
-    const editable = live && !unavailable;
+    // Live edit changes the device itself; otherwise the edit is made on the
+    // scene only and nothing is sent to the device.
+    const editable = !unavailable;
     const isLight = domain === "light";
     const light = stateObj as LightEntity;
     const brightness =
@@ -736,7 +750,7 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
         !live
           ? html`<p class="hint">
               ${this.hass.localize(
-                "ui.panel.config.scene.editor.review_controls_hint"
+                "ui.panel.config.scene.editor.paper_controls_hint"
               )}
             </p>`
           : nothing
@@ -748,7 +762,17 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
     const live = this._mode === "live";
     // Try it stays outside the save bar: the bar hides while nothing is
     // unsaved, and a saved scene must still be possible to try.
-    return html`<div class="try-row">
+    return html`${this._renderPreviewBanner()}
+      <div class="try-row">
+        <ha-button
+          appearance="outlined"
+          variant="neutral"
+          .disabled=${live || !this._entities.length || !!this._preview}
+          @click=${this._previewClicked}
+        >
+          <ha-svg-icon slot="start" .path=${mdiEyeOutline}></ha-svg-icon>
+          ${this.hass.localize("ui.panel.config.scene.editor.preview")}
+        </ha-button>
         <ha-button
           appearance="outlined"
           variant="neutral"
@@ -932,7 +956,41 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
 
   private _addEntity = () => this._startAdding("entity");
 
+  /**
+   * Edits the state the scene stores for one entity without touching the
+   * device. Colour attributes that would compete with a new colour are
+   * dropped, because a light applies only one of them.
+   */
+  private _editOnPaper(
+    entityId: string,
+    patch: Record<string, unknown>,
+    remove: string[] = []
+  ) {
+    if (!this._config) {
+      return;
+    }
+    const current: unknown = this._config.entities[entityId];
+    const base: Record<string, unknown> =
+      typeof current === "object" && current !== null && !Array.isArray(current)
+        ? { ...(current as Record<string, unknown>) }
+        : { state: sceneEntityStateObj(entityId, current)?.state ?? "on" };
+    const next = { ...base, ...patch };
+    remove.forEach((key) => delete next[key]);
+    this._config = {
+      ...this._config,
+      entities: {
+        ...this._config.entities,
+        [entityId]: next as { state: string },
+      },
+    };
+    this._updateDirtyState(++this._sceneRevision);
+  }
+
   private _toggleEntity(entityId: string, on: boolean) {
+    if (this._mode !== "live") {
+      this._editOnPaper(entityId, { state: on ? "on" : "off" });
+      return;
+    }
     this.hass.callService(
       computeDomain(entityId),
       on ? "turn_on" : "turn_off",
@@ -946,6 +1004,13 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
     if (value === undefined) {
       return;
     }
+    if (this._mode !== "live") {
+      this._editOnPaper(entityId, {
+        state: "on",
+        brightness: Math.max(1, Math.round((value / 100) * 255)),
+      });
+      return;
+    }
     this.hass.callService("light", "turn_on", {
       entity_id: entityId,
       brightness_pct: value,
@@ -953,6 +1018,18 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
   }
 
   private _setColour(entityId: string, rgb: readonly number[]) {
+    if (this._mode !== "live") {
+      this._editOnPaper(entityId, { state: "on", rgb_color: [...rgb] }, [
+        "hs_color",
+        "xy_color",
+        "rgbw_color",
+        "rgbww_color",
+        "color_temp",
+        "color_temp_kelvin",
+        "color_mode",
+      ]);
+      return;
+    }
     this.hass.callService("light", "turn_on", {
       entity_id: entityId,
       rgb_color: rgb,
@@ -970,6 +1047,122 @@ export class HaSceneEditor extends DirtyStateProviderMixin<number>()(
       }),
     });
   };
+
+  /**
+   * Preview: remembers how the devices are now with `scene.create` and
+   * `snapshot_entities`, applies the edited states, counts down, then turns
+   * the remembered scene back on and deletes it. Devices are only touched
+   * after the person confirms.
+   */
+  private _previewClicked = async () => {
+    if (!this._config || this._preview) {
+      return;
+    }
+    const confirmed = await showConfirmationDialog(this, {
+      title: this.hass.localize("ui.panel.config.scene.editor.preview_title"),
+      text: this.hass.localize("ui.panel.config.scene.editor.preview_text", {
+        seconds: PREVIEW_SECONDS,
+      }),
+      confirmText: this.hass.localize(
+        "ui.panel.config.scene.editor.preview_confirm"
+      ),
+      dismissText: this.hass.localize("ui.common.cancel"),
+    });
+    if (!confirmed || !this._config) {
+      return;
+    }
+    const entityIds = Object.keys(this._config.entities).filter((id) => {
+      const stateObj = this.hass.states[id];
+      return stateObj && stateObj.state !== "unavailable";
+    });
+    const sceneId = `ha_scene_preview_${Date.now()}`;
+    try {
+      await this.hass.callService("scene", "create", {
+        scene_id: sceneId,
+        snapshot_entities: entityIds,
+      });
+    } catch (err: any) {
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.scene.editor.preview_failed",
+          { error: err?.message ?? String(err) }
+        ),
+      });
+      return;
+    }
+    this._preview = { sceneId, remaining: PREVIEW_SECONDS };
+    try {
+      await applyScene(this.hass, this._config.entities);
+    } catch (err: any) {
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.scene.editor.preview_failed",
+          { error: err?.message ?? String(err) }
+        ),
+      });
+      await this._restorePreview();
+      return;
+    }
+    this._previewTimer = window.setInterval(() => {
+      if (!this._preview) {
+        return;
+      }
+      const remaining = this._preview.remaining - 1;
+      if (remaining <= 0) {
+        this._restorePreview();
+      } else {
+        this._preview = { ...this._preview, remaining };
+      }
+    }, 1000);
+  };
+
+  private _restorePreview = async (): Promise<void> => {
+    const preview = this._preview;
+    if (!preview) {
+      return;
+    }
+    window.clearInterval(this._previewTimer);
+    this._previewTimer = undefined;
+    this._preview = undefined;
+    const entityId = `scene.${preview.sceneId}`;
+    try {
+      await this.hass.callService("scene", "turn_on", { entity_id: entityId });
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.scene.editor.preview_restored"
+        ),
+      });
+    } catch (err: any) {
+      showToast(this, {
+        message: this.hass.localize(
+          "ui.panel.config.scene.editor.preview_restore_failed",
+          { error: err?.message ?? String(err) }
+        ),
+      });
+    }
+    try {
+      await this.hass.callService("scene", "delete", { entity_id: entityId });
+    } catch (_err) {
+      // The remembered scene only exists until Home Assistant restarts.
+    }
+  };
+
+  private _renderPreviewBanner() {
+    if (!this._preview) {
+      return nothing;
+    }
+    return html`<div class="banner preview-banner" role="status">
+      <ha-svg-icon .path=${mdiTimerSand}></ha-svg-icon>
+      <span>
+        ${this.hass.localize("ui.panel.config.scene.editor.preview_running", {
+          seconds: this._preview.remaining,
+        })}
+      </span>
+      <ha-button appearance="plain" size="s" @click=${this._restorePreview}>
+        ${this.hass.localize("ui.panel.config.scene.editor.preview_restore_now")}
+      </ha-button>
+    </div>`;
+  }
 
   private _discard = () => this._backTapped();
 

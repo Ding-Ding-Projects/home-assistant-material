@@ -33,6 +33,7 @@ import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import { capitalizeFirstLetter } from "../../../../common/string/capitalize-first-letter";
 import { handleStructError } from "../../../../common/structs/handle-errors";
 import { copyToClipboard } from "../../../../common/util/copy-clipboard";
+import "../ha-automation-live-state";
 import "../../../../components/automation/ha-automation-condition-live-test";
 import "../../../../components/automation/ha-automation-condition-summary";
 import "../../../../components/automation/ha-automation-row";
@@ -228,6 +229,12 @@ export default class HaAutomationConditionRow extends LitElement {
             : nothing
         }
       </ha-automation-condition-summary>
+      <ha-automation-live-state
+        slot="event"
+        kind="condition"
+        .hass=${this.hass}
+        .config=${this.condition}
+      ></ha-automation-live-state>
       <ha-automation-row-event-chip
         .show=${this.condition.enabled === false && !this._testing}
         slot="event"

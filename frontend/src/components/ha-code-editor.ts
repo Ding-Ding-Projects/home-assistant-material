@@ -7,6 +7,7 @@ import type {
   CompletionResult,
   CompletionSource,
 } from "@codemirror/autocomplete";
+import type * as CmSearch from "@codemirror/search";
 import { redo, redoDepth, undo, undoDepth } from "@codemirror/commands";
 import type { Extension, TransactionSpec } from "@codemirror/state";
 import type { EditorView, KeyBinding, ViewUpdate } from "@codemirror/view";
@@ -19,6 +20,7 @@ import {
   mdiBug,
   mdiBugOutline,
   mdiFindReplace,
+  mdiFormatListNumbered,
   mdiRedo,
   mdiUndo,
 } from "@mdi/js";
@@ -74,8 +76,23 @@ declare global {
   interface HASSDomEvents {
     "editor-save": undefined;
     "test-toggle": undefined;
+    "editor-status": CodeEditorStatus;
   }
 }
+
+/** Cursor position and, while the find bar is open, the match count. */
+export interface CodeEditorStatus {
+  line: number;
+  column: number;
+  /** Number of matches of the find bar query, or undefined if it is closed */
+  matches?: number;
+  /** 1-based index of the selected match, 0 when none is selected */
+  currentMatch?: number;
+}
+
+type SearchModule = typeof CmSearch;
+
+const MAX_COUNTED_MATCHES = 5000;
 
 const saveKeyBinding: KeyBinding = {
   key: "Mod-s",
@@ -275,6 +292,73 @@ export class HaCodeEditor extends ReactiveElement {
       return;
     }
     this._focusPending = true;
+  }
+
+  /** Opens the go to line prompt of the editor. */
+  public openGoToLine(): void {
+    const view = this.codemirror;
+    const binding = this._loadedCodeMirror?.searchKeymap.find(
+      (item) => item.key === "Mod-Alt-g"
+    );
+    if (view && binding?.run) {
+      binding.run(view);
+    }
+  }
+
+  /**
+   * Applies text changes to the document as one undoable edit, without
+   * replacing the whole document.
+   */
+  public applyChanges(
+    changes: { from: number; to: number; insert: string }[]
+  ): void {
+    if (!this.codemirror || !changes.length) {
+      return;
+    }
+    this.codemirror.dispatch({ changes });
+  }
+
+  private _searchModule?: SearchModule;
+
+  private _lastStatus = "";
+
+  private _fireStatus(editorState: EditorView["state"]): void {
+    const head = editorState.selection.main.head;
+    const lineInfo = editorState.doc.lineAt(head);
+    const status: CodeEditorStatus = {
+      line: lineInfo.number,
+      column: head - lineInfo.from + 1,
+    };
+    const search = this._searchModule;
+    if (search?.searchPanelOpen(editorState)) {
+      const query = search.getSearchQuery(editorState);
+      let matches = 0;
+      let currentMatch = 0;
+      if (query.valid) {
+        const selection = editorState.selection.main;
+        const cursor = query.getCursor(editorState);
+        for (
+          let next = cursor.next();
+          !next.done && matches < MAX_COUNTED_MATCHES;
+          next = cursor.next()
+        ) {
+          matches++;
+          if (
+            next.value.from === selection.from &&
+            next.value.to === selection.to
+          ) {
+            currentMatch = matches;
+          }
+        }
+      }
+      status.matches = matches;
+      status.currentMatch = currentMatch;
+    }
+    const key = JSON.stringify(status);
+    if (key !== this._lastStatus) {
+      this._lastStatus = key;
+      fireEvent(this, "editor-status", status);
+    }
   }
 
   public disconnectedCallback() {
@@ -509,6 +593,15 @@ export class HaCodeEditor extends ReactiveElement {
     });
     this._canCopy = this._value?.length > 0;
 
+    // The search helpers are only needed for the match count, so they load
+    // after the editor is visible.
+    import("@codemirror/search").then((module) => {
+      this._searchModule = module;
+      if (this.codemirror) {
+        this._fireStatus(this.codemirror.state);
+      }
+    });
+
     const cmScroller = this.codemirror.dom.querySelector(".cm-scroller");
     if (cmScroller) {
       cmScroller.classList.add("ha-scrollbar");
@@ -625,6 +718,18 @@ export class HaCodeEditor extends ReactiveElement {
           "Find and replace",
         path: mdiFindReplace,
         action: (e: Event) => this._handleFindReplaceClick(e),
+      },
+      {
+        id: "go-to-line",
+        label:
+          this._i18n?.localize("ui.components.yaml-editor.go_to_line.label") ||
+          "Go to line",
+        path: mdiFormatListNumbered,
+        action: (e: Event) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.openGoToLine();
+        },
       },
       {
         id: "fullscreen",
@@ -1857,6 +1962,13 @@ export class HaCodeEditor extends ReactiveElement {
     this._canUndo = !this.readOnly && undoDepth(update.state) > 0;
     this._canRedo = !this.readOnly && redoDepth(update.state) > 0;
     this._syncCompletionInfoPopover();
+    if (
+      update.docChanged ||
+      update.selectionSet ||
+      update.transactions.length
+    ) {
+      this._fireStatus(update.state);
+    }
     if (!update.docChanged) {
       return;
     }

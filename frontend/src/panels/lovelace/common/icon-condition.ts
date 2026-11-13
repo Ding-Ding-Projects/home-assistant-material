@@ -1,5 +1,6 @@
 import {
   mdiAccount,
+  mdiAccountGroup,
   mdiAmpersand,
   mdiCalendarClock,
   mdiCodeBraces,
@@ -26,6 +27,7 @@ export const ICON_CONDITION: Record<string, string> = {
   screen: mdiResponsive,
   time: mdiCalendarClock,
   user: mdiAccount,
+  role: mdiAccountGroup,
   and: mdiAmpersand,
   not: mdiNotEqualVariant,
   or: mdiGateOr,

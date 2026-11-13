@@ -22,6 +22,7 @@ import { isValidEntityId } from "../entity/valid_entity_id";
 const CLIENT_CONDITION_TYPES = new Set([
   "screen",
   "user",
+  "role",
   "view_columns",
   "location",
   "time",

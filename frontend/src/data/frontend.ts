@@ -48,8 +48,24 @@ export interface ESPHomeFrontendUserData {
   setupDeferred?: string[];
 }
 
+export interface PresentationRole {
+  id: string;
+  name: string;
+  /** User ids of the people in the role. */
+  users: string[];
+}
+
 export interface CoreFrontendSystemData {
   default_panel?: string;
+  /** Optional default dashboard per kind of device, decided in the browser. */
+  default_panel_overrides?: Partial<
+    Record<"phone" | "tablet" | "desktop" | "wall_panel", string>
+  >;
+  /**
+   * Named groups of people used to hide dashboards, views and cards in the
+   * interface. This only changes what is shown; it is not access control.
+   */
+  presentation_roles?: PresentationRole[];
   onboarded_version?: string;
   onboarded_date?: string;
   /**

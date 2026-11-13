@@ -8704,6 +8704,26 @@
               "set_default_admin_only_title": "Can't set as default",
               "set_default_admin_only_text": "This dashboard is set to admin-only. Disable this limitation before setting it as default."
             },
+            "default_dialog": {
+              "menu": "Default dashboards",
+              "title": "Default dashboards",
+              "description": "Choose the dashboard that opens for everyone, and optionally a different one for phones, tablets, desktops and wall panels. Each browser decides which kind it is from its own width. A person's own choice in their profile always wins.",
+              "same_as_everyone": "Same as everyone",
+              "fields": {
+                "everyone": "Everyone opens",
+                "phone": "Phones open",
+                "tablet": "Tablets open",
+                "desktop": "Desktops open",
+                "wall_panel": "Wall panels open"
+              },
+              "helpers": {
+                "everyone": "Opens for everyone who has not picked their own dashboard",
+                "phone": "Screens narrower than 768 px",
+                "tablet": "Screens from 768 px to 1023 px wide",
+                "desktop": "Screens 1024 px wide or more",
+                "wall_panel": "Browsers with wall panel settings switched on"
+              }
+            },
             "panel_detail": {
               "edit_panel": "Edit panel",
               "title": "[%key:ui::panel::config::lovelace::dashboards::detail::title%]",
@@ -10607,6 +10627,17 @@
                 }
               }
             },
+            "live_state": {
+              "not_found": "Not found",
+              "more": "+{count}",
+              "pass": "Passes now",
+              "fail": "Does not pass now",
+              "unknown": "Cannot tell",
+              "reason_disabled": "disabled",
+              "reason_needs_trigger": "needs a real trigger",
+              "reason_template_error": "template error",
+              "reason_server_error": "could not be tested"
+            },
             "conditions": {
               "name": "Conditions",
               "header": "And if",
@@ -11645,6 +11676,18 @@
             "all_controls": "Open all controls",
             "saved_in_scene": "Saved in the scene: {state}.",
             "review_controls_hint": "Start live edit to change this device.",
+            "paper_mode_detail": "Changes here only edit the scene. Nothing is sent to your devices until you press Preview or Try it. Live Edit changes the room while you edit.",
+            "paper_controls_hint": "This changes the saved scene only, not the device.",
+            "preview": "Preview",
+            "preview_title": "Preview in the room?",
+            "preview_text": "The devices in this scene will change for {seconds} seconds, then go back to how they are now. Devices that are unavailable right now, anything that moves or plays (for example a cover mid-way or a media position) and changes made by someone else during the preview cannot be restored exactly.",
+            "preview_confirm": "Preview",
+            "preview_running": "Previewing. Going back in {seconds} seconds.",
+            "preview_restore_now": "Go back now",
+            "preview_restoring": "Going back to how things were.",
+            "preview_restored": "Devices went back to how they were before the preview.",
+            "preview_failed": "Could not start the preview: {error}",
+            "preview_restore_failed": "Could not restore the devices: {error}",
             "try_it": "Try it",
             "discard": "Discard",
             "colours": {
@@ -12765,6 +12808,30 @@
             "show_integration": "Show integration",
             "single_config_entry": "{integration_name} supports only one configuration. Adding additional ones is not needed."
           }
+        },
+        "roles": {
+          "caption": "Roles",
+          "summary": "{count, plural,\n  one {# role}\n  other {# roles}\n}",
+          "new_role": "New role",
+          "name": "Role name",
+          "rename": "Rename role",
+          "delete": "Delete role",
+          "empty": "No roles yet. A role is a named group of people that you can hide dashboards, views and cards from.",
+          "honest_notice": "Roles change what the interface shows. They do not stop a person who knows the address or uses the app's developer tools.",
+          "people_count": "{count, plural,\n  one {# person}\n  other {# people}\n}",
+          "people_title": "People in this role",
+          "no_users": "There are no user accounts to add yet.",
+          "dashboards_title": "Dashboards for {role}",
+          "dashboards_text": "Hide a dashboard from this role. It then no longer appears in navigation for these people.",
+          "show": "Show",
+          "hide": "Hide",
+          "custom_rule": "Set by a custom condition",
+          "default_never_hidden": "The default dashboard is never hidden.",
+          "no_dashboards": "There are no custom dashboards yet.",
+          "views_and_cards_hint": "Views and cards are hidden from a role in the dashboard editor, in their Visibility tab, or with Who can see this on a card.",
+          "save_failed": "Could not save the roles",
+          "confirm_delete_title": "Delete {name}?",
+          "confirm_delete_text": "Anything hidden from this role becomes visible to everyone again once the role is gone."
         },
         "users": {
           "caption": "Users",
@@ -15048,6 +15115,19 @@
           "this_machine": "Storage on this machine",
           "figure": "{used} of {total}",
           "the_disk": "The disk",
+          "recorder": {
+            "title": "History database",
+            "recording": "Recording history",
+            "not_recording": "Not recording history",
+            "pending": "{backlog} of {max} writes waiting to be saved",
+            "migrating": "The database is being upgraded",
+            "location": "Database location",
+            "location_default": "Default location",
+            "location_custom": "Custom location",
+            "statistics": "Long-term statistics",
+            "statistics_count": "{count} statistics are stored",
+            "unavailable": "The history database could not be read."
+          },
           "drive_wear": "Drive wear",
           "drive_wear_description": "{lifetime} of the rated lifetime used",
           "move_data": "Move data to another disk",
@@ -16356,7 +16436,9 @@
             "no_entity_toggle": "No entity provided to toggle",
             "no_navigation_path": "No navigation path specified",
             "no_url": "No URL to open specified",
-            "no_action": "No action to run specified"
+            "no_action": "No action to run specified",
+            "no_popup": "This pop-up has no cards to show",
+            "popup_too_deep": "Too many pop-ups are open on top of each other"
           },
           "entities": {
             "never_triggered": "Never triggered"
@@ -16726,7 +16808,26 @@
             "confirm_unsaved_comments": "Your configuration might contain comments, these will not be saved. Do you want to continue?",
             "error_invalid_config": "Your configuration is not valid: {error}",
             "error_save_yaml": "Unable to save YAML: {error}",
-            "resources_moved": "Resources should no longer be added to the dashboard configuration but can be added in the dashboard config panel."
+            "resources_moved": "Resources should no longer be added to the dashboard configuration but can be added in the dashboard config panel.",
+            "status_position": "Line {line}, column {column}",
+            "status_valid": "YAML valid",
+            "status_invalid": "YAML has errors",
+            "status_match_of": "Match {current} of {count}",
+            "status_matches": "{count} matches",
+            "swap_entity": {
+              "open": "Replace entity",
+              "title": "Replace entity everywhere",
+              "intro": "Swap one entity ID for another. Only whole IDs match, and the change is made in the editor only: nothing is saved until you save.",
+              "from": "Entity to replace",
+              "to": "New entity",
+              "invalid": "Enter entity IDs such as light.kitchen.",
+              "preview": "Preview the change",
+              "none": "No whole-ID matches found.",
+              "whole_only": "Whole entity IDs only: {id} is left alone.",
+              "where": "Where",
+              "line": "Line {line}",
+              "replace": "Replace {count}"
+            }
           },
           "edit_lovelace": {
             "header": "Title of your dashboard",
@@ -16877,6 +16978,28 @@
           "edit_badges": {
             "view_no_badges": "Badges are not be supported by the current view type."
           },
+          "who_can_see": {
+            "menu": "Who can see this…",
+            "hide_for": "Hide for {role}",
+            "title": "Who can see {name}",
+            "honest": "This hides things from the interface. It does not stop a person who knows the address or uses the app's developer tools.",
+            "roles": "Roles",
+            "people": "People",
+            "no_roles": "No roles yet. Add roles under Settings > People > Roles.",
+            "depends_hint": "Some answers depend on the time, the screen size or an entity's state, which this list can't know in advance.",
+            "sees": {
+              "yes": "Everyone in the role sees it",
+              "no": "Nobody in the role sees it",
+              "some": "Only some in the role see it",
+              "depends": "Depends on time, screen or states",
+              "empty": "Nobody is in this role yet"
+            },
+            "person": {
+              "yes": "Sees it",
+              "no": "Does not see it",
+              "depends": "Depends on time, screen or states"
+            }
+          },
           "edit_card": {
             "header": "Card configuration",
             "typed_header": "{type} card configuration",
@@ -16913,6 +17036,7 @@
             "tab_config": "Config",
             "tab_visibility": "Visibility",
             "tab_layout": "Layout",
+            "tab_style": "Style",
             "paste_condition": "Paste condition",
             "layout": {
               "recommended_size": "Use recommended size",
@@ -17103,13 +17227,47 @@
             "para_migrate": "Home Assistant can add IDs to all your cards and views automatically for you by pressing the 'Migrate configuration' button.",
             "migrate": "Migrate configuration"
           },
+          "card_style": {
+            "intro": "Change how this card looks without any add-on. Leave a value empty to keep the theme default.",
+            "padding_note": "Inner padding is not offered: the shared cards have no padding setting to change.",
+            "ignored": "None of these values can be applied. Use a theme colour name and a size in pixels.",
+            "reset": "Reset style",
+            "fields": {
+              "font_size": "Text size",
+              "text_color": "Text colour",
+              "icon_color": "Icon colour",
+              "background": "Background",
+              "border_width": "Border width",
+              "border_color": "Border colour",
+              "border_radius": "Corner radius"
+            }
+          },
           "action-editor": {
             "navigation_path": "Navigation path",
             "url_path": "URL path",
             "start_listening": "Start listening",
             "pipeline_id": "Assistant",
+            "popup_title": "Pop-up title",
+            "popup_size": "Size",
+            "popup_dismiss_on_outside": "Close when tapping outside",
+            "popup": {
+              "contents": "Pop-up contents",
+              "empty": "This pop-up has no cards yet.",
+              "add_card": "Add card",
+              "back_to_list": "Back to the list",
+              "move_up": "Move up",
+              "move_down": "Move down",
+              "edit_card": "Edit card",
+              "remove_card": "Remove card",
+              "sizes": {
+                "small": "Small",
+                "medium": "Medium",
+                "large": "Large"
+              }
+            },
             "actions": {
               "default_action": "Default",
+              "popup": "Open a pop-up",
               "perform-action": "Perform action",
               "more-info": "More info",
               "toggle": "Toggle",
@@ -17208,6 +17366,11 @@
               },
               "user": {
                 "label": "User"
+              },
+              "role": {
+                "label": "Role",
+                "helper": "True when the person viewing is in one of the chosen roles. This hides things from the interface. It does not stop a person who knows the address or uses the app's developer tools.",
+                "no_roles": "No roles yet. Add roles under Settings > People > Roles."
               },
               "or": {
                 "label": "Or"

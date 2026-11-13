@@ -9,6 +9,8 @@ import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box
 import { showVoiceCommandDialog } from "../../../dialogs/voice-command-dialog/show-ha-voice-command-dialog";
 import type { HomeAssistant } from "../../../types";
 import { showToast } from "../../../util/toast";
+import { showPopupDialog } from "../popup/show-popup-dialog";
+import { normalizePopupSize, sanitizePopupCards } from "./popup-action";
 import { toggleEntity } from "./entity/toggle-entity";
 
 declare global {
@@ -202,6 +204,24 @@ export const handleAction = async (
         start_listening: actionConfig.start_listening ?? false,
         pipeline_id: actionConfig.pipeline_id ?? "last_used",
       });
+      break;
+    }
+    case "popup": {
+      const cards = sanitizePopupCards(actionConfig.popup_cards);
+      if (cards.length === 0) {
+        showToast(node, {
+          message: hass.localize("ui.panel.lovelace.cards.actions.no_popup"),
+        });
+        forwardHaptic(node, "failure");
+        break;
+      }
+      showPopupDialog(node, {
+        title: actionConfig.popup_title,
+        cards,
+        size: normalizePopupSize(actionConfig.popup_size),
+        dismissOnOutside: actionConfig.popup_dismiss_on_outside !== false,
+      });
+      forwardHaptic(node, "light");
       break;
     }
     case "fire-dom-event": {

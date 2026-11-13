@@ -148,7 +148,7 @@ const STYLE_KEYS_BY_TYPE: Record<string, readonly string[]> = {
   heading: ["heading_style"],
 };
 
-export const STYLE_COMMON_KEYS = ["grid_options"] as const;
+export const STYLE_COMMON_KEYS = ["grid_options", "style"] as const;
 
 /** The style properties that apply to this card type. */
 export const styleKeys = (type: string): string[] => [

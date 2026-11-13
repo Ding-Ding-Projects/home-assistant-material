@@ -1,4 +1,5 @@
 import type { HassServiceTarget } from "home-assistant-js-websocket";
+import type { LovelaceCardConfig } from "./card";
 
 export interface ToggleActionConfig extends BaseActionConfig {
   action: "toggle";
@@ -37,6 +38,18 @@ export interface AssistActionConfig extends BaseActionConfig {
   start_listening?: boolean;
 }
 
+export interface PopupActionConfig extends BaseActionConfig {
+  action: "popup";
+  /** Title shown at the top of the pop-up. */
+  popup_title?: string;
+  /** Cards the pop-up renders, each a normal card configuration. */
+  popup_cards?: LovelaceCardConfig[];
+  /** Width of the pop-up on a large screen; it is a bottom sheet on a phone. */
+  popup_size?: "small" | "medium" | "large";
+  /** Closes the pop-up when tapping outside it. On unless set to false. */
+  popup_dismiss_on_outside?: boolean;
+}
+
 export interface NoActionConfig extends BaseActionConfig {
   action: "none";
 }
@@ -69,5 +82,6 @@ export type ActionConfig =
   | UrlActionConfig
   | MoreInfoActionConfig
   | AssistActionConfig
+  | PopupActionConfig
   | NoActionConfig
   | CustomActionConfig;

@@ -239,6 +239,7 @@ export class HuiDialogEditCard
           <div class="element-editor ha-scrollbar">
             <hui-card-element-editor
               autofocus
+              .showStyleTab=${this._cardConfig.type !== "conditional"}
               .showVisibilityTab=${this._cardConfig.type !== "conditional"}
               .sectionConfig=${this._sectionConfig}
               .hass=${this.hass}

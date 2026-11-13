@@ -1,13 +1,16 @@
 import { mdiClose } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { array, assert, object, optional, string, type } from "superstruct";
 import { deepEqual } from "../../common/util/deep-equal";
 import "../../components/ha-button";
 import "../../components/ha-yaml-editor";
+import type { CodeEditorStatus } from "../../components/ha-code-editor";
 import type { HaYamlEditor } from "../../components/ha-yaml-editor";
+import "./editor/hui-entity-swap-panel";
+import type { EntitySwapRequest } from "./editor/hui-entity-swap-panel";
 import "../../components/ha-icon-button";
 import "../../components/ha-top-app-bar-fixed";
 import type { LovelaceRawConfig } from "../../data/lovelace/config/types";
@@ -50,7 +53,57 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
 
   private _config?: LovelaceRawConfig;
 
-  private _yamlError?: string;
+  @state() private _yamlError?: string;
+
+  @state() private _status?: CodeEditorStatus;
+
+  @state() private _swapOpen = false;
+
+  @state() private _text = "";
+
+  private _statusChanged(ev: CustomEvent<CodeEditorStatus>) {
+    ev.stopPropagation();
+    this._status = ev.detail;
+  }
+
+  private _goToLine() {
+    this.yamlEditor._codeEditor?.openGoToLine();
+  }
+
+  private _toggleSwap() {
+    this._swapOpen = !this._swapOpen;
+  }
+
+  private _closeSwap() {
+    this._swapOpen = false;
+    this.yamlEditor.focus();
+  }
+
+  /** The entity ID at the cursor, used to start a swap. */
+  private _entityUnderCursor(): string {
+    const view = this.yamlEditor?.codemirror;
+    if (!view) {
+      return "";
+    }
+    const line = view.state.doc.lineAt(view.state.selection.main.head);
+    const column = view.state.selection.main.head - line.from;
+    for (const match of line.text.matchAll(/[a-z_]+\.[a-z0-9_]+/g)) {
+      const start = match.index ?? 0;
+      if (column >= start && column <= start + match[0].length) {
+        return match[0];
+      }
+    }
+    return "";
+  }
+
+  private _applySwap(ev: CustomEvent<EntitySwapRequest>) {
+    ev.stopPropagation();
+    const { matches, replacement } = ev.detail;
+    // One transaction: every offset refers to the document before the swap.
+    this.yamlEditor._codeEditor?.applyChanges(
+      matches.map((m) => ({ from: m.from, to: m.to, insert: replacement }))
+    );
+  }
 
   protected render(): TemplateResult | undefined {
     return html`
@@ -88,12 +141,70 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
           )}</ha-button
         >
         <div class="content">
+          ${
+            this._swapOpen
+              ? html`<hui-entity-swap-panel
+                  .hass=${this.hass}
+                  .text=${this._text}
+                  .initialFrom=${this._entityUnderCursor()}
+                  @entity-swap=${this._applySwap}
+                  @entity-swap-close=${this._closeSwap}
+                ></hui-entity-swap-panel>`
+              : nothing
+          }
           <ha-yaml-editor
             @value-changed=${this._yamlChanged}
             @editor-save=${this._handleSave}
+            @editor-status=${this._statusChanged}
             disable-fullscreen
           >
           </ha-yaml-editor>
+          <div class="status-bar">
+            <span class="chip">
+              ${this.hass.localize(
+                "ui.panel.lovelace.editor.raw_editor.status_position",
+                {
+                  line: this._status?.line ?? 1,
+                  column: this._status?.column ?? 1,
+                }
+              )}
+            </span>
+            <span class="chip ${this._yamlError ? "invalid" : "valid"}">
+              ${this.hass.localize(
+                this._yamlError
+                  ? "ui.panel.lovelace.editor.raw_editor.status_invalid"
+                  : "ui.panel.lovelace.editor.raw_editor.status_valid"
+              )}
+            </span>
+            ${
+              this._status?.matches !== undefined
+                ? html`<span class="chip" aria-live="polite">
+                    ${
+                      this._status.currentMatch
+                        ? this.hass.localize(
+                            "ui.panel.lovelace.editor.raw_editor.status_match_of",
+                            {
+                              current: this._status.currentMatch,
+                              count: this._status.matches,
+                            }
+                          )
+                        : this.hass.localize(
+                            "ui.panel.lovelace.editor.raw_editor.status_matches",
+                            { count: this._status.matches }
+                          )
+                    }
+                  </span>`
+                : nothing
+            }
+            <ha-button appearance="plain" size="s" @click=${this._goToLine}>
+              ${this.hass.localize("ui.components.yaml-editor.go_to_line.label")}
+            </ha-button>
+            <ha-button appearance="plain" size="s" @click=${this._toggleSwap}>
+              ${this.hass.localize(
+                "ui.panel.lovelace.editor.raw_editor.swap_entity.open"
+              )}
+            </ha-button>
+          </div>
         </div>
       </ha-top-app-bar-fixed>
     `;
@@ -126,6 +237,7 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
       { type: "custom", compare: (a, b) => a === b },
       this.yamlEditor.yaml
     );
+    this._text = this.yamlEditor.yaml;
   }
 
   static get styles(): CSSResultGroup {
@@ -143,6 +255,53 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
 
         .content {
           height: calc(100vh - var(--header-height));
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-2);
+        }
+
+        hui-entity-swap-panel {
+          flex: none;
+          max-height: 50%;
+          overflow-y: auto;
+        }
+
+        .status-bar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--ha-space-2);
+          padding: var(--ha-space-1) var(--ha-space-3);
+        }
+
+        .status-bar .chip {
+          padding: 2px var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill, 999px);
+          background: var(
+            --ha-color-surface-tone-2,
+            var(--secondary-background-color)
+          );
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+        }
+
+        .status-bar .chip.valid {
+          background: var(
+            --ha-color-success-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-success-container,
+            var(--primary-text-color)
+          );
+        }
+
+        .status-bar .chip.invalid {
+          background: var(
+            --ha-color-error-container,
+            var(--secondary-background-color)
+          );
+          color: var(--ha-color-on-error-container, var(--primary-text-color));
         }
 
         .comments {
@@ -172,6 +331,7 @@ class LovelaceFullConfigEditor extends DirtyStateProviderMixin<string>()(
   private _yamlChanged(ev: CustomEvent) {
     this._config = ev.detail.isValid ? ev.detail.value : undefined;
     this._yamlError = ev.detail.errorMsg;
+    this._text = this.yamlEditor.yaml;
     this._updateDirtyState(this.yamlEditor.yaml);
   }
 

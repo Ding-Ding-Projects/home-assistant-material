@@ -1,10 +1,12 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
+  mdiAccountLock,
   mdiContentCopy,
   mdiContentCut,
   mdiContentPaste,
   mdiDelete,
   mdiDotsVertical,
+  mdiEyeOff,
   mdiFileMoveOutline,
   mdiMinus,
   mdiPlus,
@@ -51,13 +53,24 @@ import {
   getParentPath,
   getViewPath,
   normalizeCardPath,
+  setAtPath,
 } from "../editor/lovelace-path";
+import { showWhoCanSeeDialog } from "../editor/who-can-see/show-dialog-who-can-see";
+import type { VisibilityCondition } from "../common/validate-condition";
+import {
+  normalizeRoles,
+  roleRule,
+  setRoleHidden,
+} from "../../../data/presentation-roles";
 import { showSelectViewDialog } from "../editor/select-view/show-select-view-dialog";
 import type { Lovelace, LovelaceCard } from "../types";
 import { PANEL_VIEW_LAYOUT } from "../views/const";
 import { getViewType } from "../views/get-view-type";
 import type { HaDropdownSelectEvent } from "../../../components/ha-dropdown";
 import { LOVELACE_EDIT_TOAST_ID } from "../types";
+
+const HIDE_ROLE_PREFIX = "hide-role:";
+const MAX_HIDE_ENTRIES = 3;
 
 @customElement("hui-card-options")
 export class HuiCardOptions extends LitElement {
@@ -226,6 +239,14 @@ export class HuiCardOptions extends LitElement {
                   : nothing
               }
               <wa-divider></wa-divider>
+              <ha-dropdown-item value="who-can-see">
+                <ha-svg-icon slot="icon" .path=${mdiAccountLock}></ha-svg-icon>
+                ${this.hass!.localize(
+                  "ui.panel.lovelace.editor.who_can_see.menu"
+                )}
+              </ha-dropdown-item>
+              ${this._roleHideItems()}
+              <wa-divider></wa-divider>
               <ha-dropdown-item value="delete" variant="danger">
                 <ha-svg-icon
                   class="warning"
@@ -338,7 +359,73 @@ export class HuiCardOptions extends LitElement {
       case "delete":
         this._deleteCard();
         break;
+      case "who-can-see":
+        this._whoCanSee();
+        break;
+      default:
+        if (action.startsWith(HIDE_ROLE_PREFIX)) {
+          this._setRoleHidden(action.slice(HIDE_ROLE_PREFIX.length), true);
+        }
     }
+  }
+
+  private get _cardConfig(): LovelaceCardConfig | undefined {
+    return this.lovelace && this.path
+      ? getAtPath<LovelaceCardConfig>(this.lovelace.config, this.path)
+      : undefined;
+  }
+
+  /** One-tap "Hide for <role>" entries for the first few roles not yet hidden. */
+  private _roleHideItems() {
+    const config = this._cardConfig;
+    return normalizeRoles(this.hass?.systemData?.presentation_roles)
+      .filter((role) => roleRule(config?.visibility, role.id) === "none")
+      .slice(0, MAX_HIDE_ENTRIES)
+      .map(
+        (role) => html`
+          <ha-dropdown-item .value=${`${HIDE_ROLE_PREFIX}${role.id}`}>
+            <ha-svg-icon slot="icon" .path=${mdiEyeOff}></ha-svg-icon>
+            ${this.hass!.localize(
+              "ui.panel.lovelace.editor.who_can_see.hide_for",
+              { role: role.name }
+            )}
+          </ha-dropdown-item>
+        `
+      );
+  }
+
+  private _applyVisibility(visibility: VisibilityCondition[]): void {
+    const lovelace = this.lovelace;
+    const config = this._cardConfig;
+    if (!lovelace || !config || !this.path) {
+      return;
+    }
+    const { visibility: _old, ...rest } = config;
+    lovelace.saveConfig(
+      setAtPath(
+        lovelace.config,
+        this.path,
+        visibility.length ? { ...rest, visibility } : rest
+      )
+    );
+  }
+
+  private _setRoleHidden(roleId: string, hidden: boolean): void {
+    this._applyVisibility(
+      setRoleHidden(this._cardConfig?.visibility, roleId, hidden)
+    );
+  }
+
+  private _whoCanSee(): void {
+    const config = this._cardConfig;
+    if (!config) {
+      return;
+    }
+    showWhoCanSeeDialog(this, {
+      title: config.type,
+      conditions: config.visibility ?? [],
+      apply: (conditions) => this._applyVisibility(conditions),
+    });
   }
 
   private _duplicateCard(): void {

@@ -44,6 +44,7 @@ import {
 import type { CoreFrontendUserData } from "../data/frontend";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant, Route } from "../types";
+import { orderToolPillItems } from "./tool-pill-order";
 import { handleBackClick } from "./back-navigation";
 
 const normalizePathname = (pathname: string): string =>
@@ -298,7 +299,7 @@ export class HassTabsSubpage extends LitElement {
                       ? html`<span class="bar-title">${title}</span>`
                       : html`<h1>${title}</h1>`
                 }</slot
-              >
+              >${this._narrow ? nothing : html`<slot name="subtitle"></slot>`}
             </div>
             <div class="tool-pill">
               <ha-page-tools
@@ -307,7 +308,10 @@ export class HassTabsSubpage extends LitElement {
                 .pageTitle=${title}
               ></ha-page-tools>
               <div id="toolbar-icon" ?inert=${locked}>
-                <slot name="toolbar-icon"></slot>
+                <slot
+                  name="toolbar-icon"
+                  @slotchange=${this._toolbarIconsChanged}
+                ></slot>
               </div>
             </div>
           </div>
@@ -472,6 +476,10 @@ export class HassTabsSubpage extends LitElement {
     }
     this._hasCustomToolbar =
       (ev.target as HTMLSlotElement).assignedNodes().length > 0;
+  }
+
+  private _toolbarIconsChanged(ev: Event): void {
+    orderToolPillItems(ev.target as HTMLSlotElement);
   }
 
   private _tabName(
@@ -659,11 +667,6 @@ export class HassTabsSubpage extends LitElement {
         :host(:not([narrow])) .tool-pill ::slotted(*) {
           order: 0;
         }
-        :host(:not([narrow]))
-          .tool-pill
-          ::slotted(:last-child:not(:first-child)) {
-          order: 4;
-        }
         :host(:not([narrow])) .toolbar-content {
           height: auto;
           min-height: var(--header-height);
@@ -685,7 +688,7 @@ export class HassTabsSubpage extends LitElement {
 
         ha-menu-button,
         ha-icon-button-arrow-prev,
-        ::slotted([slot="toolbar-icon"]) {
+        ::slotted([slot="toolbar-icon"]:not(slot)) {
           display: flex;
           flex-shrink: 0;
           pointer-events: auto;

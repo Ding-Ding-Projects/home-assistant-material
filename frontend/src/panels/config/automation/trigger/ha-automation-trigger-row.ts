@@ -114,6 +114,7 @@ import "./types/ha-automation-trigger-state";
 import "./types/ha-automation-trigger-sun";
 import "./types/ha-automation-trigger-tag";
 import "./types/ha-automation-trigger-template";
+import "../ha-automation-live-state";
 import "./types/ha-automation-trigger-time";
 import "./types/ha-automation-trigger-time_pattern";
 import "./types/ha-automation-trigger-webhook";
@@ -364,6 +365,12 @@ export default class HaAutomationTriggerRow extends LitElement {
             : nothing
         }
       </h3>
+      <ha-automation-live-state
+        slot="event"
+        kind="trigger"
+        .hass=${this.hass}
+        .config=${this.trigger}
+      ></ha-automation-live-state>
       <ha-automation-row-event-chip
         .show=${
           "enabled" in this.trigger &&

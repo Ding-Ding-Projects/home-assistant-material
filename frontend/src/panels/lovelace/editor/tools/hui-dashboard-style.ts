@@ -7,6 +7,7 @@ import "../../../../components/ha-button";
 import "../../../../components/ha-form/ha-form";
 import type { HaFormSchema } from "../../../../components/ha-form/types";
 import type { LovelaceCardConfig } from "../../../../data/lovelace/config/card";
+import "../card-editor/hui-card-style-editor";
 import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
 import type { HomeAssistant } from "../../../../types";
 import type { CopiedStyle } from "./dashboard-edit";
@@ -89,6 +90,11 @@ export class HuiDashboardStyle extends LitElement {
                 ${this._t("none", { type: this.card.type })}
               </p>`
         }
+        <hui-card-style-editor
+          .hass=${this.hass}
+          .config=${this.card}
+          @value-changed=${this._cardStyleChanged}
+        ></hui-card-style-editor>
         <div class="actions">
           <ha-button appearance="outlined" size="s" @click=${this._copy}>
             ${this._t("copy")}
@@ -122,6 +128,12 @@ export class HuiDashboardStyle extends LitElement {
   }
 
   private _valueChanged(ev: CustomEvent<{ value: LovelaceCardConfig }>) {
+    ev.stopPropagation();
+    this._message = undefined;
+    fireEvent(this, "dashboard-card-change", { card: ev.detail.value });
+  }
+
+  private _cardStyleChanged(ev: CustomEvent<{ value: LovelaceCardConfig }>) {
     ev.stopPropagation();
     this._message = undefined;
     fireEvent(this, "dashboard-card-change", { card: ev.detail.value });

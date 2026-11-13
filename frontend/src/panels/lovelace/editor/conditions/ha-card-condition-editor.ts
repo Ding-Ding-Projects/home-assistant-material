@@ -127,6 +127,7 @@ const FILTER_CONDITION_TYPES = new Set([
   "numeric_state",
   "screen",
   "user",
+  "role",
   "view_columns",
   "location",
   "time",

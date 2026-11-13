@@ -822,6 +822,10 @@ export class HaPageTabs extends LitElement {
       .profile ha-user-badge {
         width: var(--ha-space-9);
         height: var(--ha-space-9);
+        /* The initial must stay readable in the dark theme, where the
+           default light primary pair is dark on dark. */
+        --light-primary-color: var(--ha-color-primary-container);
+        --text-light-primary-color: var(--ha-color-on-primary-container);
       }
       .profile:focus-visible {
         outline: 3px solid var(--primary-color);

@@ -10,7 +10,10 @@ import {
 } from "@mdi/js";
 import type { LocalizeKeys } from "../common/translations/localize";
 import type { PageNavigation } from "../layouts/hass-tabs-subpage";
+import { readWallPanel } from "../panels/lovelace/editor/tools/wall-panel";
 import type { HomeAssistant, PanelInfo } from "../types";
+import type { DeviceKind } from "./default-panel-overrides";
+import { computeDeviceKind, pickDefaultPanel } from "./default-panel-overrides";
 
 export const APP_PANEL = "app";
 export const HOME_PANEL = "home";
@@ -33,10 +36,33 @@ export const getLegacyDefaultPanelUrlPath = (): string | null => {
   return defaultPanel ? JSON.parse(defaultPanel) : null;
 };
 
+let deviceKind: DeviceKind | undefined;
+
+/**
+ * The kind of this device, decided once per page load from the window width
+ * and the wall panel setting, so the default dashboard does not change while
+ * the window is resized.
+ */
+export const getDeviceKind = (): DeviceKind => {
+  if (!deviceKind) {
+    const wall = readWallPanel();
+    deviceKind = computeDeviceKind(
+      window.innerWidth,
+      wall.screensaver.enabled || wall.rotation.enabled || wall.night.enabled
+    );
+  }
+  return deviceKind;
+};
+
 export const getDefaultPanelUrlPath = (hass: HomeAssistant): string => {
   const defaultPanel =
-    hass.userData?.default_panel ||
-    hass.systemData?.default_panel ||
+    pickDefaultPanel({
+      personal: hass.userData?.default_panel,
+      everyone: hass.systemData?.default_panel,
+      overrides: hass.systemData?.default_panel_overrides,
+      kind: getDeviceKind(),
+      knownPanels: hass.panels,
+    }) ||
     getLegacyDefaultPanelUrlPath() ||
     DEFAULT_PANEL;
   // If default panel is lovelace and no old overview exists, fall back to home

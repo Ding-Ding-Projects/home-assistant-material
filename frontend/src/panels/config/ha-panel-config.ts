@@ -218,6 +218,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-users",
         load: () => import("./users/ha-config-users"),
       },
+      roles: {
+        tag: "ha-config-roles",
+        load: () => import("./roles/ha-config-roles"),
+      },
       zone: {
         tag: "ha-config-zone",
         load: () => import("./zone/ha-config-zone"),

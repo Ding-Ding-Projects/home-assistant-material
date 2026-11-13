@@ -661,40 +661,43 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       <ha-svg-icon slot="icon" .path=${mdiExportVariant}></ha-svg-icon>
     </ha-assist-chip>`;
 
+    // The page title is shown once, in the page header. The count line sits
+    // right under it, in the header's `subtitle` slot.
+    const summaryRow =
+      this._pageTitle && !this.narrow && !(this.empty && !this.loading)
+        ? html`<div class="summary-row" slot="subtitle">
+            <p id="list-summary" ?hidden=${this._summaryHidden}>
+              ${
+                this.summary ??
+                localize("ui.components.subpage-data-table.summary", {
+                  count: this.data.length,
+                })
+              }
+            </p>
+            <button
+              type="button"
+              class="summary-toggle"
+              aria-expanded=${this._summaryHidden ? "false" : "true"}
+              aria-controls="list-summary"
+              aria-label=${localize(
+                "ui.components.subpage-data-table.summary_toggle"
+              )}
+              title=${localize(
+                this._summaryHidden
+                  ? "ui.components.subpage-data-table.show_summary"
+                  : "ui.components.subpage-data-table.hide_summary"
+              )}
+              @click=${this._toggleSummary}
+            >
+              <ha-svg-icon
+                .path=${this._summaryHidden ? mdiChevronDown : mdiChevronUp}
+              ></ha-svg-icon>
+            </button>
+          </div>`
+        : nothing;
+
     const heading = this._pageTitle
       ? html`<div class="page-heading">
-          <div class="page-heading-text">
-            <h1>${this._pageTitle}</h1>
-            <div class="summary-row">
-              <p id="list-summary" ?hidden=${this._summaryHidden}>
-                ${
-                  this.summary ??
-                  localize("ui.components.subpage-data-table.summary", {
-                    count: this.data.length,
-                  })
-                }
-              </p>
-              <button
-                type="button"
-                class="summary-toggle"
-                aria-expanded=${this._summaryHidden ? "false" : "true"}
-                aria-controls="list-summary"
-                aria-label=${localize(
-                  "ui.components.subpage-data-table.summary_toggle"
-                )}
-                title=${localize(
-                  this._summaryHidden
-                    ? "ui.components.subpage-data-table.show_summary"
-                    : "ui.components.subpage-data-table.hide_summary"
-                )}
-                @click=${this._toggleSummary}
-              >
-                <ha-svg-icon
-                  .path=${this._summaryHidden ? mdiChevronDown : mdiChevronUp}
-                ></ha-svg-icon>
-              </button>
-            </div>
-          </div>
           <slot name="heading-action"></slot>
         </div>`
       : nothing;
@@ -756,6 +759,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
         @sorting-changed=${this._sortingChanged}
         @page-title-changed=${this._pageTitleChanged}
       >
+        ${summaryRow}
         ${
           this.showFilters
             ? !showPane
@@ -808,9 +812,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
             ? html`<div class="center">
                 <slot name="empty">${this.noDataText}</slot>
               </div>`
-            : html`<div slot="toolbar-icon">
-                  <slot name="toolbar-icon"></slot>
-                </div>
+            : html`<slot name="toolbar-icon" slot="toolbar-icon"></slot>
                 ${
                   this.narrow
                     ? html`
@@ -1366,29 +1368,19 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       position: relative;
     }
 
+    /* The title and count line live in the page header; this row only holds
+       the page's primary action and takes no height without one. */
     .page-heading {
-      padding: var(--ha-space-6) var(--ha-space-2) var(--ha-space-2);
       display: flex;
       align-items: flex-start;
+      justify-content: flex-end;
       gap: var(--ha-space-4);
-    }
-    .page-heading-text {
-      flex: 1;
-      min-width: 0;
     }
     ::slotted([slot="heading-action"]) {
       flex-shrink: 0;
+      margin: var(--ha-space-4) var(--ha-space-2) 0;
     }
-    .page-heading h1 {
-      margin: 0;
-      font-family: var(--ha-font-family-heading, inherit);
-      font-size: var(--ha-font-size-4xl);
-      /* Follows the heading weight chosen in Fonts and type. */
-      font-weight: var(--ha-font-weight-heading, var(--ha-font-weight-medium));
-      line-height: var(--ha-line-height-condensed);
-      color: var(--primary-text-color);
-    }
-    .page-heading p {
+    .summary-row p {
       margin: var(--ha-space-1) 0 0;
       font-size: var(--ha-font-size-l);
       line-height: var(--ha-line-height-normal);

@@ -1,6 +1,7 @@
 import {
   mdiBackupRestore,
   mdiChevronRight,
+  mdiDatabase,
   mdiFolder,
   mdiHarddisk,
   mdiNas,
@@ -42,6 +43,9 @@ import {
   reloadSupervisorMount,
   supervisorMountDescription,
 } from "../../../data/supervisor/mounts";
+import type { RecorderInfo } from "../../../data/recorder";
+import { getRecorderInfo } from "../../../data/recorder";
+import { getStatisticIds } from "../../../data/recorder_statistic_ids";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-subpage";
 import { panelIsReady } from "../../../layouts/panel-ready";
@@ -77,10 +81,34 @@ class HaConfigSectionStorage extends LitElement {
   // Guards against a slow response from a previous reload landing in a newer one.
   private _mountUsageGeneration = 0;
 
+  // undefined while loading, null when the recorder cannot be read
+  @state() private _recorderInfo?: RecorderInfo | null;
+
+  @state() private _statisticsCount?: number;
+
+  private async _loadRecorder(): Promise<void> {
+    if (!isComponentLoaded(this.hass.config, "recorder")) {
+      this._recorderInfo = null;
+      return;
+    }
+    try {
+      this._recorderInfo = await getRecorderInfo(this.hass.connection);
+    } catch (_err) {
+      this._recorderInfo = null;
+      return;
+    }
+    try {
+      this._statisticsCount = (await getStatisticIds(this.hass)).length;
+    } catch (_err) {
+      this._statisticsCount = undefined;
+    }
+  }
+
   protected async firstUpdated(
     changedProps: PropertyValues<this>
   ): Promise<void> {
     super.firstUpdated(changedProps);
+    this._loadRecorder();
     if (isComponentLoaded(this.hass.config, "hassio")) {
       await this._load();
     } else {
@@ -111,7 +139,7 @@ class HaConfigSectionStorage extends LitElement {
           ${this._hostInfo ? this._renderHero(this._hostInfo) : nothing}
           <div class="cards">
             ${this._hostInfo ? this._renderDiskCard(this._hostInfo) : nothing}
-            ${this._renderMountsCard()}
+            ${this._renderRecorderCard()} ${this._renderMountsCard()}
           </div>
         </div>
       </hass-subpage>
@@ -180,6 +208,60 @@ class HaConfigSectionStorage extends LitElement {
         }
       </section>
     `;
+  }
+
+  /** Only what the recorder itself reports: no sizes or row counts exist. */
+  private _renderRecorderCard(): TemplateResult | typeof nothing {
+    const info = this._recorderInfo;
+    if (info === undefined) {
+      return nothing;
+    }
+    const t = (key: string, values?: Record<string, string | number>) =>
+      this.hass.localize(
+        `ui.panel.config.storage.recorder.${key}` as any,
+        values
+      );
+    if (info === null) {
+      return isComponentLoaded(this.hass.config, "recorder")
+        ? html`<section class="card">
+            <h3>${t("title")}</h3>
+            <ha-alert alert-type="warning">${t("unavailable")}</ha-alert>
+          </section>`
+        : nothing;
+    }
+    const row = (title: string, sub: string) =>
+      html`<div class="row">
+        <span class="tile"
+          ><ha-svg-icon .path=${mdiDatabase}></ha-svg-icon
+        ></span>
+        <div class="text">
+          <span class="title">${title}</span>
+          <span class="sub">${sub}</span>
+        </div>
+      </div>`;
+    return html`<section class="card">
+      <h3>${t("title")}</h3>
+      ${row(
+        info.recording ? t("recording") : t("not_recording"),
+        info.migration_in_progress
+          ? t("migrating")
+          : t("pending", { backlog: info.backlog, max: info.max_backlog })
+      )}
+      ${row(
+        t("location"),
+        info.db_in_default_location
+          ? t("location_default")
+          : t("location_custom")
+      )}
+      ${
+        this._statisticsCount !== undefined
+          ? row(
+              t("statistics"),
+              t("statistics_count", { count: this._statisticsCount })
+            )
+          : nothing
+      }
+    </section>`;
   }
 
   private _renderMountsCard(): TemplateResult {

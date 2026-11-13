@@ -3,10 +3,7 @@ import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { refine } from "superstruct";
 import { fireEvent } from "../../../common/dom/fire_event";
-import type {
-  HaFormSchema,
-  SchemaUnion,
-} from "../../../components/ha-form/types";
+import type { HaFormSchema } from "../../../components/ha-form/types";
 import "../../../components/ha-help-tooltip";
 import "../../../components/ha-navigation-picker";
 import type { HaSelectSelectEvent } from "../../../components/ha-select";
@@ -17,8 +14,12 @@ import type {
   ActionConfig,
   CallServiceActionConfig,
   NavigateActionConfig,
+  PopupActionConfig,
   UrlActionConfig,
 } from "../../../data/lovelace/config/action";
+import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
+import { POPUP_SIZES } from "../common/popup-action";
+import "./hui-popup-cards-editor";
 import type { ServiceAction } from "../../../data/script";
 import type { HomeAssistant } from "../../../types";
 import { canToggleState } from "../../../common/entity/can_toggle_state";
@@ -44,6 +45,7 @@ const DEFAULT_ACTIONS: UiAction[] = [
   "url",
   "perform-action",
   "assist",
+  "popup",
   "none",
 ];
 
@@ -135,6 +137,33 @@ export class HuiActionEditor extends LitElement {
       },
     ]
   );
+
+  private _popupSchema = memoizeOne(
+    (localize: HomeAssistant["localize"]): readonly HaFormSchema[] => [
+      { name: "popup_title", selector: { text: {} } },
+      {
+        name: "popup_size",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: POPUP_SIZES.map((size) => ({
+              value: size,
+              label: localize(
+                `ui.panel.lovelace.editor.action-editor.popup.sizes.${size}`
+              ),
+            })),
+          },
+        },
+      },
+      { name: "popup_dismiss_on_outside", selector: { boolean: {} } },
+    ]
+  );
+
+  private _popupData = memoizeOne((config: PopupActionConfig) => ({
+    popup_size: "medium",
+    popup_dismiss_on_outside: true,
+    ...config,
+  }));
 
   private _filterToggleAction = memoizeOne(
     (actions: UiAction[]): UiAction[] => {
@@ -253,6 +282,30 @@ export class HuiActionEditor extends LitElement {
           : nothing
       }
       ${
+        this.config?.action === "popup"
+          ? html`
+              <ha-form
+                .hass=${this.hass}
+                .schema=${this._popupSchema(this.hass.localize)}
+                .data=${this._popupData(this.config)}
+                .computeLabel=${this._computeFormLabel}
+                @value-changed=${this._formValueChanged}
+              >
+              </ha-form>
+              <p class="popup-heading">
+                ${this.hass.localize(
+                  "ui.panel.lovelace.editor.action-editor.popup.contents"
+                )}
+              </p>
+              <hui-popup-cards-editor
+                .hass=${this.hass}
+                .cards=${this.config.popup_cards ?? []}
+                @popup-cards-changed=${this._popupCardsChanged}
+              ></hui-popup-cards-editor>
+            `
+          : nothing
+      }
+      ${
         this.config?.action === "assist"
           ? html`
               <ha-form
@@ -339,11 +392,22 @@ export class HuiActionEditor extends LitElement {
     });
   }
 
-  private _computeFormLabel(schema: SchemaUnion<typeof ASSIST_SCHEMA>) {
+  private _popupCardsChanged(ev: CustomEvent<{ cards: LovelaceCardConfig[] }>) {
+    ev.stopPropagation();
+    const value = { ...(this.config as PopupActionConfig) };
+    if (ev.detail.cards.length) {
+      value.popup_cards = ev.detail.cards;
+    } else {
+      delete value.popup_cards;
+    }
+    fireEvent(this, "value-changed", { value });
+  }
+
+  private _computeFormLabel = (schema: { name: string }) => {
     return this.hass?.localize(
       `ui.panel.lovelace.editor.action-editor.${schema.name}`
     );
-  }
+  };
 
   private _serviceValueChanged(ev: CustomEvent) {
     ev.stopPropagation();
@@ -397,6 +461,10 @@ export class HuiActionEditor extends LitElement {
     }
     ha-service-control {
       --service-control-padding: 0;
+    }
+    .popup-heading {
+      margin: var(--ha-space-3) 0 var(--ha-space-2);
+      font-weight: var(--ha-font-weight-semibold);
     }
   `;
 }

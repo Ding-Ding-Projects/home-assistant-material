@@ -12,6 +12,7 @@ import {
 } from "../../../common/problems/entity-detector";
 import { configKey } from "../../../common/problems/missing-entities";
 import { clearProblem } from "../../../common/problems/problem-store";
+import { computeCardStyleProperties } from "../common/card-style";
 import { migrateLayoutToGridOptions } from "../common/compute-card-grid-size";
 import { computeCardSize } from "../common/compute-card-size";
 import { getConfigEntityId } from "../common/get-config-entity-id";
@@ -292,6 +293,28 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
     if (changedProps.has("config") || changedProps.has("preview")) {
       this._detectProblems();
     }
+    if (changedProps.has("config")) {
+      this._applyCardStyle();
+    }
+  }
+
+  private _styleProperties: string[] = [];
+
+  /**
+   * Applies the card's `style` block as validated custom properties on this
+   * element, and removes the ones a previous configuration had set.
+   */
+  private _applyCardStyle() {
+    const next = computeCardStyleProperties(this.config?.style);
+    this._styleProperties.forEach((name) => {
+      if (!(name in next)) {
+        this.style.removeProperty(name);
+      }
+    });
+    Object.entries(next).forEach(([name, value]) => {
+      this.style.setProperty(name, value);
+    });
+    this._styleProperties = Object.keys(next);
   }
 
   protected _updateVisibility(conditionsMet?: boolean) {

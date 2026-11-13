@@ -66,6 +66,15 @@ const actionConfigStructMoreInfo = type({
   entity: optional(string()),
 });
 
+const actionConfigStructPopup = type({
+  action: literal("popup"),
+  popup_title: optional(string()),
+  popup_cards: optional(array(object())),
+  popup_size: optional(enums(["small", "medium", "large"])),
+  popup_dismiss_on_outside: optional(boolean()),
+  confirmation: optional(actionConfigStructConfirmation),
+});
+
 export const actionConfigStructType = object({
   action: enums([
     "none",
@@ -76,6 +85,7 @@ export const actionConfigStructType = object({
     "url",
     "navigate",
     "assist",
+    "popup",
   ]),
   confirmation: optional(actionConfigStructConfirmation),
 });
@@ -100,6 +110,9 @@ export const actionConfigStruct = dynamic<any>((value) => {
       }
       case "more-info": {
         return actionConfigStructMoreInfo;
+      }
+      case "popup": {
+        return actionConfigStructPopup;
       }
     }
   }

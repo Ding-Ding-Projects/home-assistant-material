@@ -21,6 +21,7 @@ import type {
 import type { DeviceCondition } from "../../../data/device/device_automation";
 import { UNKNOWN } from "../../../data/entity/entity";
 import { getUserPerson } from "../../../data/person";
+import { isUserInRoles } from "../../../data/presentation-roles";
 import { resolveEntityIDs } from "../../../data/selector";
 import type { HassServiceTargetWithExclude } from "../../../data/target";
 import type { HomeAssistant } from "../../../types";
@@ -33,6 +34,7 @@ export type Condition =
   | ScreenCondition
   | TimeCondition
   | UserCondition
+  | RoleCondition
   | OrCondition
   | AndCondition
   | NotCondition;
@@ -113,6 +115,16 @@ export interface UserCondition extends BaseCondition {
   users?: string[];
 }
 
+/**
+ * True when the person viewing is in one of the named presentation roles.
+ * Roles are kept in the shared frontend settings and only change what the
+ * interface shows; they are not access control.
+ */
+export interface RoleCondition extends BaseCondition {
+  condition: "role";
+  roles?: string[];
+}
+
 export interface OrCondition extends BaseCondition {
   condition: "or";
   conditions?: Condition[];
@@ -138,6 +150,7 @@ export interface NotCondition extends BaseCondition {
 export type VisibilityCondition =
   | ScreenCondition
   | UserCondition
+  | RoleCondition
   | ViewColumnsCondition
   | LocationCondition
   | TimeCondition
@@ -171,7 +184,14 @@ export interface VisibilityLogicalCondition extends BaseCondition {
 /** The parts of `hass` the condition checks read. */
 export type ConditionHass = Pick<
   HomeAssistant,
-  "states" | "user" | "locale" | "config" | "entities" | "devices" | "areas"
+  | "states"
+  | "user"
+  | "locale"
+  | "config"
+  | "entities"
+  | "devices"
+  | "areas"
+  | "systemData"
 >;
 
 function getValueFromEntityId(
@@ -472,6 +492,14 @@ function checkUserCondition(condition: UserCondition, hass: ConditionHass) {
     : false;
 }
 
+function checkRoleCondition(condition: RoleCondition, hass: ConditionHass) {
+  return isUserInRoles(
+    hass.systemData?.presentation_roles,
+    hass.user?.id,
+    condition.roles
+  );
+}
+
 function checkAndCondition(
   condition: AndCondition,
   hass: ConditionHass,
@@ -524,6 +552,8 @@ export function checkConditionsMet(
           return checkScreenCondition(c, hass);
         case "user":
           return checkUserCondition(c, hass);
+        case "role":
+          return checkRoleCondition(c, hass);
         case "location":
           return checkLocationCondition(c, hass);
         case "numeric_state":
@@ -703,6 +733,8 @@ export function validateConditionalConfig(
           return validateTimeCondition(c);
         case "user":
           return validateUserCondition(c);
+        case "role":
+          return c.roles != null;
         case "location":
           return validateLocationCondition(c);
         case "numeric_state":

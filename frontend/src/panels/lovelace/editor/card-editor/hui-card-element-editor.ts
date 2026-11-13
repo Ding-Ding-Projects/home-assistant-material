@@ -10,14 +10,18 @@ import { getCardElementClass } from "../../create-element/create-card-element";
 import type { LovelaceCardEditor, LovelaceConfigForm } from "../../types";
 import { HuiTypedElementEditor } from "../hui-typed-element-editor";
 import "./hui-card-layout-editor";
+import "./hui-card-style-editor";
 import "./hui-card-visibility-editor";
 
-const tabs = ["config", "visibility", "layout"] as const;
+const tabs = ["config", "style", "visibility", "layout"] as const;
 
 @customElement("hui-card-element-editor")
 export class HuiCardElementEditor extends HuiTypedElementEditor<LovelaceCardConfig> {
   @property({ type: Boolean, attribute: "show-visibility-tab" })
   public showVisibilityTab = false;
+
+  @property({ type: Boolean, attribute: "show-style-tab" })
+  public showStyleTab = false;
 
   @property({ attribute: false }) public sectionConfig?: LovelaceSectionConfig;
 
@@ -60,6 +64,7 @@ export class HuiCardElementEditor extends HuiTypedElementEditor<LovelaceCardConf
 
   protected renderConfigElement(): TemplateResult {
     const displayedTabs: string[] = ["config"];
+    if (this.showStyleTab) displayedTabs.push("style");
     if (this.showVisibilityTab) displayedTabs.push("visibility");
     if (this._showLayoutTab) displayedTabs.push("layout");
 
@@ -70,6 +75,15 @@ export class HuiCardElementEditor extends HuiTypedElementEditor<LovelaceCardConf
     switch (this._currTab) {
       case "config":
         content = html`${super.renderConfigElement()}`;
+        break;
+      case "style":
+        content = html`
+          <hui-card-style-editor
+            .hass=${this.hass}
+            .config=${this.value}
+            @value-changed=${this._configChanged}
+          ></hui-card-style-editor>
+        `;
         break;
       case "visibility":
         content = html`

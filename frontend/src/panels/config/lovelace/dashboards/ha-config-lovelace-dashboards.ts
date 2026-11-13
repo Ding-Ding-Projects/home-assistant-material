@@ -99,6 +99,7 @@ import { lovelaceTabs } from "../ha-config-lovelace";
 import { showDashboardConfigureStrategyDialog } from "./show-dialog-lovelace-dashboard-configure-strategy";
 import { showDashboardDetailDialog } from "./show-dialog-lovelace-dashboard-detail";
 import { showPanelDetailDialog } from "./show-dialog-panel-detail";
+import { showDefaultDashboardDialog } from "./show-dialog-default-dashboard";
 import type {
   BulkDashboardRow,
   BulkLocalize,
@@ -586,6 +587,12 @@ export class HaConfigLovelaceDashboards extends LitElement {
               "ui.panel.lovelace.import_export.import_dashboard"
             )}
           </ha-dropdown-item>
+          <ha-dropdown-item value="default">
+            <ha-svg-icon slot="icon" .path=${mdiHomeEdit}></ha-svg-icon>
+            ${this.hass.localize(
+              "ui.panel.config.lovelace.dashboards.default_dialog.menu"
+            )}
+          </ha-dropdown-item>
           <a href="/config/lovelace/resources">
             <ha-dropdown-item>
               ${this.hass.localize(
@@ -724,6 +731,10 @@ export class HaConfigLovelaceDashboards extends LitElement {
   private _handleToolbarSelect = (ev: CustomEvent) => {
     if ((ev.detail as { item?: { value?: string } }).item?.value === "import") {
       this._importInput?.click();
+    } else if (
+      (ev.detail as { item?: { value?: string } }).item?.value === "default"
+    ) {
+      showDefaultDashboardDialog(this);
     }
   };
 

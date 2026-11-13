@@ -18,6 +18,7 @@ import "../components/page/ha-page-tools";
 import { internationalizationContext } from "../data/context";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant } from "../types";
+import { orderToolPillItems } from "./tool-pill-order";
 
 @customElement("hass-subpage")
 class HassSubpage extends LitElement {
@@ -86,7 +87,10 @@ class HassSubpage extends LitElement {
               .pageTitle=${this.header}
             ></ha-page-tools>
             <div class="toolbar-icons" ?inert=${locked}>
-              <slot name="toolbar-icon"></slot>
+              <slot
+                name="toolbar-icon"
+                @slotchange=${this._toolbarIconsChanged}
+              ></slot>
             </div>
           </div>
         </div>
@@ -129,6 +133,10 @@ class HassSubpage extends LitElement {
         : undefined,
     ].filter((part) => part && part !== this.header);
     return parts.length ? parts.join(", ") : undefined;
+  }
+
+  private _toolbarIconsChanged(ev: Event): void {
+    orderToolPillItems(ev.target as HTMLSlotElement);
   }
 
   @eventOptions({ passive: true })
@@ -186,11 +194,6 @@ class HassSubpage extends LitElement {
         }
         :host(:not([narrow])) .tool-pill ::slotted(*) {
           order: 0;
-        }
-        :host(:not([narrow]))
-          .tool-pill
-          ::slotted(:last-child:not(:first-child)) {
-          order: 4;
         }
 
         :host([narrow]) {

@@ -6,5 +6,6 @@ export const baseLovelaceCardConfig = object({
   layout_options: any(),
   grid_options: any(),
   visibility: any(),
+  style: any(),
   disabled: optional(boolean()),
 });

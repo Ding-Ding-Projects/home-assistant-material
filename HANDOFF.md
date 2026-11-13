@@ -310,6 +310,43 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
     machine are not a usable preview.
   - Design canvas `31-modern-requests` landed during this batch and is not built yet.
 
+- Batch 47, unit tested only, nothing seen in a browser. Pushed while the build of batch 46
+  was 20 minutes in, so that build is replaced by one that carries both.
+  - Fixes for build 348: the welcome banner on the home page is part of the page flow on
+    wide windows, so the greeting is no longer covered (a phone keeps the fixed banner); the
+    page's own menu comes last in the tool pill (`src/layouts/tool-pill-order.ts`, tested);
+    one title block on list pages, with the count line under the header title; the avatar in
+    the tab strip is readable in the dark theme. Seen and not fixed: the Tags page shows two
+    help icons.
+  - Canvas 31 (community requests):
+    - Scenes: editing changes the stored states only and calls no service; Preview asks,
+      applies for 30 seconds and restores from a snapshot scene, with "Go back now"; the
+      dialog says what cannot be restored exactly. Live Edit and Try it are unchanged.
+    - Raw configuration editor: Go to line, a status bar (line, column, valid or not, match
+      count) and a Replace entity panel with whole-ID matching and a preview. The find panel
+      is still the code editor's own.
+    - Automation rows: each trigger and condition shows its entity's state; conditions say
+      whether they pass now, using the existing condition test call, throttled.
+    - Storage: a History database card from what the recorder reports. Not built: database
+      size, growth, per-entity size and savings (the recorder has no call for them).
+    - Card styling without an add-on: a Style tab in the card editor (text size and colour,
+      icon colour, background, border, corner radius), validated as lengths and colours and
+      applied as custom properties on the card host. Not built: padding.
+    - "Open a pop-up" as a tap, hold or double-tap action, with a card list editor; three
+      levels deep at most.
+    - History graph: fixed axis limits and a colour per entity already existed; comparing
+      with an earlier period is not built (the chart has no second dashed series).
+    - Default dashboards: one for everyone and optional overrides for phone, tablet, desktop
+      and wall panel (`default_panel_overrides` in the shared frontend settings); a person's
+      own choice still wins.
+    - Presentation roles: a Roles page beside People, a `role` condition evaluated in the
+      browser and never sent to the server, Show or Hide per dashboard, and "Who can see
+      this" on a card in edit mode. The interface says roles change what is shown and are not
+      access control. Not built: a "view only" level, roles on tabs from a menu.
+    - Room-first layouts: the existing areas strategy already does this; nothing added.
+  - Checks: full suite 7,208 passed with the 3 known build-script failures; type check clean
+    apart from the two known gallery errors.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

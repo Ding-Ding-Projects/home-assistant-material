@@ -369,9 +369,12 @@ class PanelHome extends SubscribeMixin(LitElement) {
     }
 
     const huiRootStyle = styleMap({
-      "--view-container-padding-top": this._bannerHeight.value
-        ? `${this._bannerHeight.value}px`
-        : undefined,
+      // Only a fixed banner (phone) overlays the view; on wide windows it
+      // takes its own space above the page.
+      "--view-container-padding-top":
+        this.narrow && this._bannerHeight.value
+          ? `${this._bannerHeight.value}px`
+          : undefined,
     });
 
     return html`
@@ -399,9 +402,10 @@ class PanelHome extends SubscribeMixin(LitElement) {
       <div
         class="banner"
         style=${styleMap({
-          top: this._headerBottom.value
-            ? `${this._headerBottom.value}px`
-            : undefined,
+          top:
+            this.narrow && this._headerBottom.value
+              ? `${this._headerBottom.value}px`
+              : undefined,
         })}
       >
         <div class="banner-content">
@@ -526,12 +530,19 @@ class PanelHome extends SubscribeMixin(LitElement) {
       background-color: var(--primary-color);
       color: var(--text-primary-color);
       gap: var(--ha-space-2);
+      /* Wide windows: the page header scrolls with the page, so the banner
+         is an ordinary block above it and never covers anything. */
+      position: relative;
+      z-index: 5;
+    }
+    /* Phone: the header bar is fixed, so the banner is fixed right under it
+       (below the header, which itself sits below the top inset) and the view
+       is pushed down by the banner's height. */
+    :host([narrow]) .banner {
       position: fixed;
-      /* Below the header, which itself sits below the top inset. */
       top: calc(var(--header-height, 56px) + var(--safe-area-inset-top, 0px));
       left: var(--ha-sidebar-width, 0px);
       right: 0;
-      z-index: 5;
     }
     .banner-content {
       display: flex;
