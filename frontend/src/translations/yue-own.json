@@ -1123,7 +1123,26 @@
       "summary_locks": "鎖",
       "summary_yes": "有",
       "summary_no": "冇",
-      "summary_secret_note": "你設定嘅憑證喺呢個摘要入面永遠唔會顯示。"
+      "summary_secret_note": "你設定嘅憑證喺呢個摘要入面永遠唔會顯示。",
+      "policy_password_nfc": "NFC 標籤，密碼做後備",
+      "policy_password_nfc_desc": "拍一拍標籤就解鎖。要先設定密碼，萬一唔見咗標籤或者部機讀唔到都開到。",
+      "factor_nfc": "NFC 標籤",
+      "factor_nfc_label": "NFC 標籤",
+      "either_join": " 或者 ",
+      "nfc_backup_note": "密碼已經設定好，一直做後備：唔見咗標籤或者讀唔到都可以用佢開鎖。",
+      "nfc_setup_prompt": "拍一拍你想用嘅標籤",
+      "nfc_try_prompt": "拍一拍標籤試下，或者打密碼",
+      "nfc_unlock_prompt": "拍一拍你嘅標籤解鎖",
+      "nfc_read": "讀到標籤",
+      "nfc_scan_again": "換另一個標籤",
+      "nfc_missing": "請先拍一拍標籤。",
+      "nfc_use_password": "改用密碼",
+      "nfc_use_tag": "用返標籤",
+      "nfc_listening_both": "貼住部手機背面，或者用任何一部手機嘅 Home Assistant app 掃描。",
+      "nfc_listening_app": "呢部機喺呢度冇 NFC 讀卡器。用你手機嘅 Home Assistant app 掃描標籤。",
+      "nfc_listening_none": "而家讀唔到標籤，請改用密碼。",
+      "nfc_denied": "呢個瀏覽器唔准用 NFC。用 Home Assistant app 掃描照樣得。",
+      "nfc_device_failed": "呢部機嘅 NFC 讀卡器開唔到。用 Home Assistant app 掃描照樣得。"
     },
     "drop_upload": {
       "overlay_heading": "擺低嚟加入你嘅媒體",
@@ -2142,6 +2161,42 @@
         "language": "語言：{language}",
         "locked": "頁面已鎖定",
         "menu_hint": "喺任何位置撳右鍵，就可以編輯外觀，或者鎖住呢個頁面"
+      }
+    },
+    "problems": {
+      "found": "搵到問題",
+      "not_on_page": "呢頁已經冇咗佢，可能搬咗或者刪咗。",
+      "by_hand": "自己動手點樣整返好",
+      "fix": "整返好",
+      "fix_all": "整得返嘅全部整返好",
+      "ignore": "唔理住先",
+      "teleport": "瞬間轉移",
+      "all_problems": "全部問題",
+      "list_title": "喺 app 入面搵到嘅問題",
+      "count": "{count, plural,\n one {1 個問題}\n other {# 個問題}\n}",
+      "location": {
+        "card": "儀表板 › {card}",
+        "step": "自動化 › {step}"
+      },
+      "missing_entity": {
+        "title": "用咗 {entities}，但係佢唔存在",
+        "why": "Home Assistant 唔認得嘅實體會被跳過，所以整返好之前呢度乜都唔做。",
+        "card_step_device": "睇下部裝置有冇插電、有冇上線，跟住重新載入呢頁。",
+        "card_step_edit": "或者編輯儀表板，打開呢張卡，揀一個存在嘅實體。",
+        "card_step_remove": "或者唔再需要嘅話，就刪咗呢張卡。",
+        "step_step_device": "睇下部裝置有冇插電、有冇上線，跟住重新載入編輯器。",
+        "step_step_pick": "或者打開呢一步，揀一個存在嘅實體。",
+        "step_step_save": "儲存自動化。",
+        "step_fix": "關咗呢一步"
+      },
+      "settings": {
+        "enabled": "問題偵測器",
+        "enabled_description": "有問題嘅嘢會喺原位加框，再加個徽章講清楚係乜同點整返好。",
+        "pulse": "框框閃下閃下",
+        "pulse_description": "輕輕閃下吸引注意。開咗減少動態就一定唔閃。",
+        "ignored": "唔理住先嘅問題",
+        "ignored_description": "揀咗唔理嘅問題，喺呢個瀏覽器會保持安靜。",
+        "show_ignored": "再顯示返"
       }
     }
   }

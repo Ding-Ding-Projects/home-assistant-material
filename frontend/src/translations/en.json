@@ -514,6 +514,42 @@
         }
       }
     },
+    "problems": {
+      "found": "Problem found",
+      "not_on_page": "It isn't on this page any more. It may have moved or been removed.",
+      "by_hand": "How to fix it by hand",
+      "fix": "Fix",
+      "fix_all": "Fix all that can be fixed",
+      "ignore": "Ignore",
+      "teleport": "Teleport",
+      "all_problems": "All problems",
+      "list_title": "Problems found in the app",
+      "count": "{count, plural,\n one {1 problem}\n other {# problems}\n}",
+      "location": {
+        "card": "Dashboard › {card}",
+        "step": "Automation › {step}"
+      },
+      "missing_entity": {
+        "title": "{count, plural,\n one {Uses {entities}, which doesn't exist}\n other {Uses {entities}, which don't exist}\n}",
+        "why": "Home Assistant skips anything aimed at an entity it doesn't know, so this does nothing until it's fixed.",
+        "card_step_device": "Check the device is plugged in and online, then reload the page.",
+        "card_step_edit": "Or edit the dashboard, open this card and pick an entity that exists.",
+        "card_step_remove": "Or remove the card if you don't need it any more.",
+        "step_step_device": "Check the device is plugged in and online, then reload the editor.",
+        "step_step_pick": "Or open this step and pick an entity that exists.",
+        "step_step_save": "Save the automation.",
+        "step_fix": "Turn this step off"
+      },
+      "settings": {
+        "enabled": "Problem detector",
+        "enabled_description": "Outline anything with a problem where it is, with a badge that explains it and how to fix it.",
+        "pulse": "Pulse the outline",
+        "pulse_description": "A gentle pulse draws the eye. Reduce motion always stops it.",
+        "ignored": "Ignored problems",
+        "ignored_description": "Problems you chose to ignore stay quiet in this browser.",
+        "show_ignored": "Show them again"
+      }
+    },
     "common": {
       "color_palette": {
         "title": "Named colours",
@@ -4933,6 +4969,25 @@
       "policy_password_totp_desc": "A password, then a 6-digit code from an authenticator app.",
       "policy_pin_totp_desc": "A PIN, then a 6-digit code from an authenticator app.",
       "policy_password_pin_totp_desc": "A password, a PIN and a code from an authenticator app.",
+      "policy_password_nfc": "NFC tag, with a password as backup",
+      "policy_password_nfc_desc": "Tap a tag to unlock. You set a password first, for a lost tag or a device that can't read one.",
+      "factor_nfc": "NFC tag",
+      "factor_nfc_label": "NFC tag",
+      "either_join": " or ",
+      "nfc_backup_note": "Your password is set and stays the backup: it opens this lock if the tag is lost or can't be read.",
+      "nfc_setup_prompt": "Tap the tag you want to use",
+      "nfc_try_prompt": "Tap the tag to try it, or type the password",
+      "nfc_unlock_prompt": "Tap your tag to unlock",
+      "nfc_read": "Tag read",
+      "nfc_scan_again": "Use a different tag",
+      "nfc_missing": "Tap a tag first.",
+      "nfc_use_password": "Use password instead",
+      "nfc_use_tag": "Use the tag",
+      "nfc_listening_both": "Hold it to the back of this phone, or scan it with the Home Assistant app on any phone.",
+      "nfc_listening_app": "This device has no NFC reader here. Scan the tag with the Home Assistant app on your phone.",
+      "nfc_listening_none": "No way to read a tag right now. Use the password instead.",
+      "nfc_denied": "This browser was not allowed to use NFC. Scanning with the Home Assistant app still works.",
+      "nfc_device_failed": "This device's NFC reader didn't start. Scanning with the Home Assistant app still works.",
       "skip": "Skip",
       "rules_label": "Rules for this credential",
       "rule_met": "met",

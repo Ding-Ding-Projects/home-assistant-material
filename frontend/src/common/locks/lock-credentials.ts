@@ -15,7 +15,7 @@ import { hasNativeCrypto, softHmac, softPbkdf2 } from "./soft-crypto";
  * A lock is a speed bump for a slip of the hand, not security.
  */
 
-export type LockFactor = "pin" | "password" | "totp";
+export type LockFactor = "pin" | "password" | "totp" | "nfc";
 
 export const LOCK_POLICIES = [
   "pin",
@@ -24,6 +24,7 @@ export const LOCK_POLICIES = [
   "password_totp",
   "pin_totp",
   "password_pin_totp",
+  "password_nfc",
 ] as const;
 
 export type LockPolicy = (typeof LOCK_POLICIES)[number];
@@ -36,7 +37,32 @@ export const POLICY_FACTORS: Record<LockPolicy, LockFactor[]> = {
   password_totp: ["password", "totp"],
   pin_totp: ["pin", "totp"],
   password_pin_totp: ["password", "pin", "totp"],
+  // Made in this order: the password first, as the backup.
+  password_nfc: ["password", "nfc"],
 };
+
+/**
+ * Policies where any one of the factors opens the lock, rather than all of
+ * them in turn. An NFC tag opens its lock; the password is the backup for a
+ * lost tag or a device that cannot read one.
+ */
+export const EITHER_POLICIES: ReadonlySet<LockPolicy> = new Set<LockPolicy>([
+  "password_nfc",
+]);
+
+/** The longest tag identity kept (before hashing). */
+export const NFC_TAG_MAX = 300;
+
+/**
+ * A tag's identity as one string: where it was read and what it said. A tag
+ * read by this browser gives its serial number; one scanned with the Home
+ * Assistant app gives its tag id. The two are kept apart because the same
+ * tag may give different values to each.
+ */
+export const nfcTagIdentity = (
+  source: "serial" | "tag",
+  value: string
+): string => `${source}:${value.trim().toLowerCase()}`;
 
 export type LockDuration =
   /** Until another page is opened. */
@@ -86,6 +112,8 @@ export interface LockRecord {
   pin?: HashedSecret;
   password?: HashedSecret;
   totp?: TotpSecret;
+  /** The NFC tag, kept only as a salted hash of its identity. */
+  nfc?: HashedSecret;
   duration: LockDuration;
   /** Wrong tries in a row, shared by every factor of this lock. */
   failures: number;
@@ -322,6 +350,8 @@ export interface NewLockInput {
   password?: string;
   /** The base32 secret the user has set up in an authenticator. */
   totpSecret?: string;
+  /** The identity of the NFC tag, from `nfcTagIdentity`. */
+  nfcTag?: string;
   /** The title of the page the lock is made on. */
   page?: string;
   /** Locked on start. On unless said otherwise. */
@@ -349,6 +379,16 @@ export const validateNewLock = (input: NewLockInput): string | undefined => {
     !(input.totpSecret && base32Decode(input.totpSecret))
   ) {
     return "totp";
+  }
+  if (
+    factors.includes("nfc") &&
+    !(
+      input.nfcTag &&
+      input.nfcTag.length <= NFC_TAG_MAX &&
+      /^(serial|tag):\S+$/.test(input.nfcTag)
+    )
+  ) {
+    return "nfc";
   }
   if (
     input.duration.kind === "minutes" &&
@@ -398,6 +438,9 @@ export const createLockRecord = async (
       secret: input.totpSecret!.replace(/[\s-]/g, "").toUpperCase(),
     };
   }
+  if (factors.includes("nfc")) {
+    record.nfc = await hashSecret(input.nfcTag!);
+  }
   return record;
 };
 
@@ -438,6 +481,8 @@ export const checkFactor = async (
       ok = await secretMatches(record.password, value);
     } else if (factor === "totp" && record.totp) {
       ok = await totpMatches(record.totp.secret, value, now);
+    } else if (factor === "nfc" && record.nfc && value.length <= NFC_TAG_MAX) {
+      ok = await secretMatches(record.nfc, value);
     }
   }
   if (ok) {
@@ -459,12 +504,28 @@ export const finishAttempt = (record: LockRecord): LockRecord => ({
   blockedUntil: 0,
 });
 
-/** Checks every factor in order, as one attempt. Stops at the first miss. */
+/**
+ * Checks every factor in order, as one attempt. Stops at the first miss. For
+ * a policy where any one factor opens the lock, the first factor given is
+ * checked on its own.
+ */
 export const checkAll = async (
   record: LockRecord,
   values: Partial<Record<LockFactor, string>>,
   now: number
 ): Promise<FactorResult> => {
+  if (EITHER_POLICIES.has(record.policy)) {
+    const factor = POLICY_FACTORS[record.policy].find((item) => values[item]);
+    const result = await checkFactor(
+      record,
+      factor ?? POLICY_FACTORS[record.policy][0],
+      factor ? values[factor]! : "",
+      now
+    );
+    return result.outcome === "ok"
+      ? { outcome: "ok", record: finishAttempt(result.record), waitMs: 0 }
+      : result;
+  }
   let current = record;
   for (const factor of POLICY_FACTORS[record.policy]) {
     const result = await checkFactor(
@@ -571,6 +632,12 @@ export const normalizeLockRecord = (raw: unknown): LockRecord | undefined => {
       return undefined;
     }
     record.totp = { secret: secret.replace(/[\s-]/g, "").toUpperCase() };
+  }
+  if (factors.includes("nfc")) {
+    record.nfc = normalizeSecret(value.nfc);
+    if (!record.nfc) {
+      return undefined;
+    }
   }
   return record;
 };

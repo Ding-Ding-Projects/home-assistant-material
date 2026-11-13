@@ -44,6 +44,7 @@ import { narrowViewportContext } from "../data/context";
 import { showNotificationDrawer } from "../dialogs/notifications/show-notification-drawer";
 import type { HomeAssistant, Route } from "../types";
 import "./partial-panel-resolver";
+import { trackTeleportOrigin } from "../common/dom/teleport-effect";
 
 declare global {
   // for fire event
@@ -178,6 +179,7 @@ export class HomeAssistantMain extends LitElement {
         .pageRoot=${this._pageRoot}
       ></ha-accessibility-tools>
       <ha-dim-sum-surprise .hass=${this.hass}></ha-dim-sum-surprise>
+      <ha-problem-overlay .hass=${this.hass}></ha-problem-overlay>
       ${
         this._debugSafeAreaTool
           ? html`<ha-debug-safe-area-tool></ha-debug-safe-area-tool>`
@@ -191,6 +193,8 @@ export class HomeAssistantMain extends LitElement {
     import("../components/ha-snowflakes");
     // Loaded after the shell is up, so it never delays the first render.
     import("../components/dim-sum/ha-dim-sum-surprise");
+    import("../components/problems/ha-problem-overlay");
+    trackTeleportOrigin();
 
     if (this.hass.auth.external) {
       this._externalSidebar =

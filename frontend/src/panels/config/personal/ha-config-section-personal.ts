@@ -137,6 +137,7 @@ import type { HomeAssistant } from "../../../types";
 import { dimSumSwitchOutcome } from "../../../common/dim-sum/dim-sum-switch";
 import { pickCurrentGroup } from "./current-group";
 import { showToast } from "../../../util/toast";
+import { playTeleport } from "../../../common/dom/teleport-effect";
 
 type GroupId = "language" | "modes" | "sound" | "attention" | "narrator";
 
@@ -384,7 +385,8 @@ export class HaConfigSectionPersonal extends LitElement {
     if (!row) {
       return;
     }
-    row.scrollIntoView({ behavior: this._scrollBehavior(), block: "center" });
+    row.scrollIntoView({ behavior: "auto", block: "center" });
+    playTeleport(row);
     (row.querySelector(".row-label") as HTMLElement | null)?.focus({
       preventScroll: true,
     });

@@ -1,0 +1,389 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Editors",
+  "launch": {
+    "view": "canvas",
+    "page": "automation"
+  },
+  "pages": [
+    {
+      "id": "automation",
+      "name": "Automation editor: 12 new features"
+    },
+    {
+      "id": "dashboard",
+      "name": "Dashboard editor: 12 new features"
+    },
+    {
+      "id": "phone",
+      "name": "Both editors on a phone"
+    },
+    {
+      "id": "problems",
+      "name": "Problem detector everywhere, with Repairs and Teleport"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Flow view of an automation",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoTrace.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Live trace overlay",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoSim.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Time-travel simulator",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoConflicts.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Conflict and loop detector",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoLanguage.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Plain language both ways",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoBreak.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Breakpoints and step-through",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoVariables.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Variable and template inspector",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoBlueprint.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Blueprint maker and snippet library",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoHealth.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Health score",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoCoverage.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Coverage map for test cases",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoWeek.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Week ahead calendar",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EAutoNotes.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Notes, locks and bulk edits on steps",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "EDashScreens.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Every screen side by side",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashLayout.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Free layout tools",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashVisibility.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Visibility rule builder",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashInteractions.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Interaction editor",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashStyle.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Style per card and per view",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashSimulate.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "State simulator",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashEntities.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Entity inspector",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashA11y.dc.html": {
+      "x": 1656,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Accessibility checker",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashWall.dc.html": {
+      "x": 3312,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Wall panel builder",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashLibrary.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "My cards library",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashPerf.dc.html": {
+      "x": 1656,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Performance meter",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EDashDiff.dc.html": {
+      "x": 3312,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Visual diff between checkpoints",
+      "expand": "fill",
+      "page": "dashboard"
+    },
+    "EPhoneEditors.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Both editors on a phone",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "EPGAutomation.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Problem detector on an automation step",
+      "expand": "fill",
+      "page": "problems"
+    },
+    "EPGDashboard.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Problem detector on a dashboard card, manual fix",
+      "expand": "fill",
+      "page": "problems"
+    },
+    "EPGSettings.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Problem detector on a settings field",
+      "expand": "fill",
+      "page": "problems"
+    },
+    "EPGRepairs.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Repairs with Teleport",
+      "expand": "fill",
+      "page": "problems"
+    },
+    "EPGTeleport.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Teleport to the exact element",
+      "expand": "fill",
+      "page": "problems"
+    },
+    "EPGConfig.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Problem detector settings",
+      "expand": "fill",
+      "page": "problems"
+    },
+    "EPGPhone.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1440,
+      "h": 1000,
+      "title": "Problem detector on a phone",
+      "expand": "fill",
+      "page": "problems"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "EAutoTrace.dc.html",
+    "EAutoSim.dc.html",
+    "EAutoConflicts.dc.html",
+    "EAutoLanguage.dc.html",
+    "EAutoBreak.dc.html",
+    "EAutoVariables.dc.html",
+    "EAutoBlueprint.dc.html",
+    "EAutoHealth.dc.html",
+    "EAutoCoverage.dc.html",
+    "EAutoWeek.dc.html",
+    "EAutoNotes.dc.html",
+    "EDashScreens.dc.html",
+    "EDashLayout.dc.html",
+    "EDashVisibility.dc.html",
+    "EDashInteractions.dc.html",
+    "EDashStyle.dc.html",
+    "EDashSimulate.dc.html",
+    "EDashEntities.dc.html",
+    "EDashA11y.dc.html",
+    "EDashWall.dc.html",
+    "EDashLibrary.dc.html",
+    "EDashPerf.dc.html",
+    "EDashDiff.dc.html",
+    "EPhoneEditors.dc.html",
+    "EPGAutomation.dc.html",
+    "EPGDashboard.dc.html",
+    "EPGSettings.dc.html",
+    "EPGRepairs.dc.html",
+    "EPGTeleport.dc.html",
+    "EPGConfig.dc.html",
+    "EPGPhone.dc.html"
+  ],
+  "notes": {
+    "t-automation": {
+      "x": 0,
+      "y": -320,
+      "text": "Automation editor: 12 new features. 12 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "automation"
+    },
+    "t-dashboard": {
+      "x": 0,
+      "y": -320,
+      "text": "Dashboard editor: 12 new features. 12 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "dashboard"
+    },
+    "t-phone": {
+      "x": 0,
+      "y": -320,
+      "text": "Both editors on a phone. 1 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "phone"
+    },
+    "t-problems": {
+      "x": 0,
+      "y": -320,
+      "text": "Problem detector everywhere, with Repairs and Teleport. 7 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "problems"
+    }
+  },
+  "designSystems": []
+}

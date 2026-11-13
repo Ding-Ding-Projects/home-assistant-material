@@ -32,6 +32,7 @@ import {
   newTotpSecret,
   PASSWORD_MAX,
   PASSWORD_MIN,
+  EITHER_POLICIES,
   POLICY_FACTORS,
   totpMatches,
   totpUri,
@@ -45,6 +46,7 @@ import "../radio/ha-radio-group";
 import type { HaRadioGroup } from "../radio/ha-radio-group";
 import "../radio/ha-radio-option";
 import type { HaInput } from "../input/ha-input";
+import "./ha-lock-nfc-listen";
 import "./ha-lock-pin-entry";
 import type { HaLockPinEntry } from "./ha-lock-pin-entry";
 import { lockPanelStyles, raiseToTopLayer } from "./lock-panel-styles";
@@ -148,6 +150,12 @@ export class HaLockWizard extends LitElement {
   @state() private _totpSecret = newTotpSecret();
 
   @state() private _totpChecked = false;
+
+  /** The identity of the NFC tag read during set-up; never shown. */
+  @state() private _nfcTag = "";
+
+  /** The identity read on the try step, used once and dropped. */
+  private _tryNfc = "";
 
   @state() private _copied = false;
 
@@ -354,13 +362,15 @@ export class HaLockWizard extends LitElement {
     const last = this._step === CONFIRM;
     const pinStage = this._step === CREATE && this._factor === "pin";
     const passwordStage = this._step === CREATE && this._factor === "password";
+    const nfcStage = this._step === CREATE && this._factor === "nfc";
     const blocked =
       this._busy ||
       this._trying ||
       (last && !this._ack) ||
       (this._step === DISCLOSURE && !this._ack) ||
       (pinStage && !this._pinValid) ||
-      (passwordStage && !this._rules.ok);
+      (passwordStage && !this._rules.ok) ||
+      (nfcStage && !this._nfcTag);
     // The try step is optional: without a good try the button says Skip.
     const skipping = this._step === TRY && this._tryResult !== "ok";
     return html`<div class="buttons">
@@ -452,7 +462,11 @@ export class HaLockWizard extends LitElement {
         <dd>${this.target.label}</dd>
         <dt>${lockText("unlocks_with")}</dt>
         <dd>
-          ${summary.factors.map((f) => lockText(`factor_${f}`)).join(", ")}
+          ${summary.factors
+            .map((f) => lockText(`factor_${f}`))
+            .join(
+              EITHER_POLICIES.has(this._policy) ? lockText("either_join") : ", "
+            )}
         </dd>
         <dt>${lockText("unlock_lasts")}</dt>
         <dd>${this._durationText()}</dd>
@@ -475,6 +489,13 @@ export class HaLockWizard extends LitElement {
   private _renderTry(): TemplateResult {
     return html`<p class="note">${lockText("try_intro")}</p>
       ${this._factors.map((factor) => {
+        if (factor === "nfc") {
+          return html`<ha-lock-nfc-listen
+            .prompt=${lockText("nfc_try_prompt")}
+            .disabled=${this._trying}
+            @lock-nfc-tag=${this._nfcTry}
+          ></ha-lock-nfc-listen>`;
+        }
         if (factor === "totp") {
           return html`<ha-input
             name="try_totp"
@@ -550,14 +571,18 @@ export class HaLockWizard extends LitElement {
           totpSecret: this._factors.includes("totp")
             ? this._totpSecret
             : undefined,
+          nfcTag: this._factors.includes("nfc") ? this._nfcTag : undefined,
         },
         {
           pin: read("try_pin"),
-          password: read("try_password"),
+          // With a tag just read, the tag is tried; otherwise what was typed.
+          password: this._tryNfc ? "" : read("try_password"),
           totp: read("try_totp"),
+          nfc: this._tryNfc,
         },
         Date.now()
       );
+      this._tryNfc = "";
       // A result for credentials the person has since changed or left behind
       // must not mark the new ones as tried.
       if (generation === this._tryGeneration) {
@@ -637,6 +662,26 @@ export class HaLockWizard extends LitElement {
         <p class="visually-hidden" role="status">
           ${rules.ok ? lockText("rules_all_met") : ""}
         </p>`;
+    }
+    if (factor === "nfc") {
+      return html`${header}
+        <p class="note">${lockText("nfc_backup_note")}</p>
+        <ha-lock-nfc-listen
+          .prompt=${lockText("nfc_setup_prompt")}
+          .done=${Boolean(this._nfcTag)}
+          @lock-nfc-tag=${this._nfcHeard}
+        ></ha-lock-nfc-listen>
+        ${
+          this._nfcTag
+            ? html`<button
+                type="button"
+                class="linkbutton"
+                @click=${this._nfcAgain}
+              >
+                ${lockText("nfc_scan_again")}
+              </button>`
+            : nothing
+        }`;
     }
     const uri = totpUri(this._totpSecret, this.target.label);
     return html`${header}
@@ -808,6 +853,8 @@ export class HaLockWizard extends LitElement {
     this._tryResult = undefined;
     this._totpChecked = false;
     this._totpSecret = newTotpSecret();
+    this._nfcTag = "";
+    this._tryNfc = "";
     this._credIndex = 0;
     this._pinRepeat = false;
     this._pinValid = false;
@@ -841,6 +888,23 @@ export class HaLockWizard extends LitElement {
     } catch (_err) {
       this._copied = false;
     }
+  }
+
+  private _nfcHeard(ev: CustomEvent<{ identity: string }>): void {
+    this._nfcTag = ev.detail.identity;
+    this._error = "";
+  }
+
+  private _nfcAgain(): void {
+    this._nfcTag = "";
+    this.renderRoot
+      .querySelector<HTMLElement & { restart(): void }>("ha-lock-nfc-listen")
+      ?.restart();
+  }
+
+  private _nfcTry(ev: CustomEvent<{ identity: string }>): void {
+    this._tryNfc = ev.detail.identity;
+    void this._runTry();
   }
 
   private _pinChanged(ev: CustomEvent<{ valid: boolean }>): void {
@@ -973,6 +1037,11 @@ export class HaLockWizard extends LitElement {
         this._error = lockText("password_mismatch");
         return;
       }
+    } else if (factor === "nfc") {
+      if (!this._nfcTag) {
+        this._error = lockText("nfc_missing");
+        return;
+      }
     } else {
       const code =
         this.renderRoot.querySelector<HaInput>("ha-input[name='totp_check']")
@@ -1007,6 +1076,7 @@ export class HaLockWizard extends LitElement {
           pin: has("pin") ? this._pin : undefined,
           password: has("password") ? this._password : undefined,
           totpSecret: has("totp") ? this._totpSecret : undefined,
+          nfcTag: has("nfc") ? this._nfcTag : undefined,
         },
         Date.now()
       );
@@ -1016,6 +1086,7 @@ export class HaLockWizard extends LitElement {
       this._password = "";
       this._passwordRepeat = "";
       this._totpSecret = "";
+      this._nfcTag = "";
       const done = this.target.onCreated;
       this._close();
       done?.();

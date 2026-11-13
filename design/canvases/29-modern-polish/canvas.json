@@ -1,0 +1,409 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Polish, decisions and dashboard tools",
+  "launch": {
+    "view": "canvas",
+    "page": "polish"
+  },
+  "pages": [
+    {
+      "id": "polish",
+      "name": "Polish: workbench, element tools, locks"
+    },
+    {
+      "id": "setup",
+      "name": "Polish: personal, guided setup, guidance, rail, media"
+    },
+    {
+      "id": "decisions",
+      "name": "Decisions: phone reach, blocking boxes, locks and workbench gaps"
+    },
+    {
+      "id": "dashtools",
+      "name": "Dashboard tools"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Pattern workbench on a phone",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PWorkbenchWide.dc.html": {
+      "x": 1560,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Pattern workbench in a wide window",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PElementPhone.dc.html": {
+      "x": 3216,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Element tools on a phone, opened by touch and hold",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PElementWide.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Element tools in a wide window",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PLockWizardPhone.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1440,
+      "h": 1000,
+      "title": "Lock wizard on a phone",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PLockWizardWide.dc.html": {
+      "x": 3216,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Lock wizard in a wide window",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PUnlockPhone.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1440,
+      "h": 1000,
+      "title": "Unlock prompt and PIN keypad on a phone",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PUnlockWide.dc.html": {
+      "x": 1560,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Unlock prompt in a wide window",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PLockListPhone.dc.html": {
+      "x": 3216,
+      "y": 2520,
+      "w": 1440,
+      "h": 1000,
+      "title": "List of locks on a phone",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PLockListWide.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "List of locks in a wide window",
+      "expand": "fill",
+      "page": "polish"
+    },
+    "PPersonalPhone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Personal settings on a phone",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PPersonalWide.dc.html": {
+      "x": 1560,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Personal settings in a wide window",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PSetupListPhone.dc.html": {
+      "x": 3216,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Guided setup list on a phone",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PSetupListWide.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided setup list in a wide window",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PSetupWizardPhone.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1440,
+      "h": 1000,
+      "title": "Guided setup wizard on a phone",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PSetupWizardWide.dc.html": {
+      "x": 3216,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guided setup wizard in a wide window",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PGuidancePhone.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1440,
+      "h": 1000,
+      "title": "Guidance note in setup dialogs, on a phone",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PGuidanceWide.dc.html": {
+      "x": 1560,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Guidance note in setup dialogs, wide",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PRailDev.dc.html": {
+      "x": 3216,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "Developer tools on the rail",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PMediaPhone.dc.html": {
+      "x": 0,
+      "y": 3780,
+      "w": 1440,
+      "h": 1000,
+      "title": "Media search with the workbench, on a phone",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PMediaWide.dc.html": {
+      "x": 1560,
+      "y": 3780,
+      "w": 1536,
+      "h": 1060,
+      "title": "Media search with the workbench, wide",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "PDPhoneReach.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Search, accessibility and New tab on a phone",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDPhoneTabs.dc.html": {
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Open pages on a phone, with one hand",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDPickTouch.dc.html": {
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Choosing an element by touch",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDAlerts.dc.html": {
+      "x": 0,
+      "y": 1200,
+      "w": 1536,
+      "h": 1060,
+      "title": "Replacing the browser's blocking boxes",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDTwoStep.dc.html": {
+      "x": 1656,
+      "y": 1200,
+      "w": 1440,
+      "h": 1000,
+      "title": "Two-step confirmation on a phone",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDLocks1.dc.html": {
+      "x": 3216,
+      "y": 1200,
+      "w": 1536,
+      "h": 1060,
+      "title": "Locks still to build, part 1",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDLocks2.dc.html": {
+      "x": 0,
+      "y": 2460,
+      "w": 1536,
+      "h": 1060,
+      "title": "Locks still to build, part 2",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDWorkbench.dc.html": {
+      "x": 1656,
+      "y": 2460,
+      "w": 1536,
+      "h": 1060,
+      "title": "Pattern workbench, gaps against the reference tool",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDSettings.dc.html": {
+      "x": 3312,
+      "y": 2460,
+      "w": 1536,
+      "h": 1060,
+      "title": "Settings controls still to build",
+      "expand": "fill",
+      "page": "decisions"
+    },
+    "PDashOutline.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dashboard tools: outline and bulk actions",
+      "expand": "fill",
+      "page": "dashtools"
+    },
+    "PDashReplace.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dashboard tools: find and replace, and the check",
+      "expand": "fill",
+      "page": "dashtools"
+    },
+    "PDashTemplates.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dashboard tools: templates, statistics and the preview width",
+      "expand": "fill",
+      "page": "dashtools"
+    },
+    "PDashPhone.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1440,
+      "h": 1000,
+      "title": "Dashboard tools on a phone",
+      "expand": "fill",
+      "page": "dashtools"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "PWorkbenchWide.dc.html",
+    "PElementPhone.dc.html",
+    "PElementWide.dc.html",
+    "PLockWizardPhone.dc.html",
+    "PLockWizardWide.dc.html",
+    "PUnlockPhone.dc.html",
+    "PUnlockWide.dc.html",
+    "PLockListPhone.dc.html",
+    "PLockListWide.dc.html",
+    "PPersonalPhone.dc.html",
+    "PPersonalWide.dc.html",
+    "PSetupListPhone.dc.html",
+    "PSetupListWide.dc.html",
+    "PSetupWizardPhone.dc.html",
+    "PSetupWizardWide.dc.html",
+    "PGuidancePhone.dc.html",
+    "PGuidanceWide.dc.html",
+    "PRailDev.dc.html",
+    "PMediaPhone.dc.html",
+    "PMediaWide.dc.html",
+    "PDPhoneReach.dc.html",
+    "PDPhoneTabs.dc.html",
+    "PDPickTouch.dc.html",
+    "PDAlerts.dc.html",
+    "PDTwoStep.dc.html",
+    "PDLocks1.dc.html",
+    "PDLocks2.dc.html",
+    "PDWorkbench.dc.html",
+    "PDSettings.dc.html",
+    "PDashOutline.dc.html",
+    "PDashReplace.dc.html",
+    "PDashTemplates.dc.html",
+    "PDashPhone.dc.html"
+  ],
+  "notes": {
+    "t-polish": {
+      "x": 0,
+      "y": -320,
+      "text": "Polish: workbench, element tools, locks. 10 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "polish"
+    },
+    "t-setup": {
+      "x": 0,
+      "y": -320,
+      "text": "Polish: personal, guided setup, guidance, rail, media. 11 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "setup"
+    },
+    "t-decisions": {
+      "x": 0,
+      "y": -320,
+      "text": "Decisions: phone reach, blocking boxes, locks and workbench gaps. 9 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "decisions"
+    },
+    "t-dashtools": {
+      "x": 0,
+      "y": -320,
+      "text": "Dashboard tools. 4 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "dashtools"
+    }
+  },
+  "designSystems": []
+}

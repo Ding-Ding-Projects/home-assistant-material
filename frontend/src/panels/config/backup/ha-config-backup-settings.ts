@@ -38,6 +38,7 @@ import {
   agentsBlockedWithoutKey,
   dropAgentsRequiringEncryption,
 } from "./helper/backup-encryption";
+import { playTeleport } from "../../../common/dom/teleport-effect";
 
 @customElement("ha-config-backup-settings")
 class HaConfigBackupSettings extends LitElement {
@@ -117,7 +118,10 @@ class HaConfigBackupSettings extends LitElement {
     const hash = window.location.hash.substring(1);
     if (hash) {
       const element = this.shadowRoot!.getElementById(hash);
-      element?.scrollIntoView();
+      element?.scrollIntoView({ block: "center" });
+      if (element) {
+        playTeleport(element);
+      }
       this._clearHash();
     }
   }

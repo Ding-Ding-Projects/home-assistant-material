@@ -1,6 +1,9 @@
+import { playTeleportArrival } from "./teleport-effect";
+
 const HIGHLIGHT_DURATION = 1500;
 
 export const highlightElement = (element: HTMLElement): void => {
+  playTeleportArrival(element);
   const style = getComputedStyle(element);
   const outline = `${style.getPropertyValue("--ha-border-width-md") || "2px"} solid`;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;

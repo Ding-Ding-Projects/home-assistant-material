@@ -6,6 +6,7 @@ import "../../../layouts/hass-subpage";
 import "./ai-task-pref";
 import "./mcp-pref";
 import type { HomeAssistant } from "../../../types";
+import { playTeleport } from "../../../common/dom/teleport-effect";
 
 @customElement("ha-config-section-ai")
 class HaConfigSectionAI extends LitElement {
@@ -29,7 +30,8 @@ class HaConfigSectionAI extends LitElement {
     if (!section) {
       return;
     }
-    section.scrollIntoView();
+    section.scrollIntoView({ block: "center" });
+    playTeleport(section);
     replaceCurrentUrl(window.location.pathname);
   }
 

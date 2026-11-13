@@ -1,3 +1,4 @@
+import "../../../components/problems/ha-problem-list";
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import { mdiDotsVertical, mdiHeartPulse, mdiShieldCheck } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
@@ -184,6 +185,7 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
             <h2>${localize("ui.panel.config.repairs.caption")}</h2>
             <p>${localize("ui.panel.config.repairs.summary")}</p>
           </div>
+          <ha-problem-list .hass=${this.hass}></ha-problem-list>
           <ha-config-repairs
             .hass=${this.hass}
             .narrow=${this.narrow}

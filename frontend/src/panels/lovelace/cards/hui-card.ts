@@ -6,6 +6,12 @@ import "../../../components/ha-svg-icon";
 import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
 import type { HomeAssistant } from "../../../types";
 import { ConditionalListenerMixin } from "../../../mixins/conditional-listener-mixin";
+import {
+  detectMissingEntities,
+  releaseTarget,
+} from "../../../common/problems/entity-detector";
+import { configKey } from "../../../common/problems/missing-entities";
+import { clearProblem } from "../../../common/problems/problem-store";
 import { migrateLayoutToGridOptions } from "../common/compute-card-grid-size";
 import { computeCardSize } from "../common/compute-card-size";
 import { getConfigEntityId } from "../common/get-config-entity-id";
@@ -50,6 +56,39 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
     }
     this.setupConditionalListeners();
     this._updateVisibility();
+    this._detectProblems();
+  }
+
+  private _problemId?: string;
+
+  /** Tells the problem detector when this card names entities that are gone. */
+  private _detectProblems() {
+    if (!this.hass || !this.config || this.preview) {
+      releaseTarget(this._problemId, this);
+      return;
+    }
+    const id = `dashboard-card:${window.location.pathname}:${configKey(this.config)}`;
+    if (this._problemId && this._problemId !== id) {
+      releaseTarget(this._problemId, this);
+      clearProblem(this._problemId);
+    }
+    this._problemId = id;
+    const localize = this.hass.localize;
+    detectMissingEntities({
+      id,
+      element: this,
+      config: this.config,
+      hass: this.hass,
+      source: "dashboard-card",
+      location: localize("ui.problems.location.card", {
+        card: this.config.title || this.config.name || this.config.type,
+      }),
+      manualSteps: [
+        localize("ui.problems.missing_entity.card_step_device"),
+        localize("ui.problems.missing_entity.card_step_edit"),
+        localize("ui.problems.missing_entity.card_step_remove"),
+      ],
+    });
   }
 
   private _elementConfig?: LovelaceCardConfig;
@@ -69,11 +108,13 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
 
   public disconnectedCallback() {
     super.disconnectedCallback();
+    releaseTarget(this._problemId, this);
   }
 
   public connectedCallback() {
     super.connectedCallback();
     this._updateVisibility();
+    this._detectProblems();
   }
 
   public getCardSize(): number | Promise<number> {
@@ -247,6 +288,9 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
 
     if (changedProps.has("preview")) {
       this._updateVisibility();
+    }
+    if (changedProps.has("config") || changedProps.has("preview")) {
+      this._detectProblems();
     }
   }
 

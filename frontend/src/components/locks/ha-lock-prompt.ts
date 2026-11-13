@@ -26,6 +26,7 @@ import type {
 import { waitForFailures } from "../../common/locks/lock-wait";
 import {
   checkFactor,
+  EITHER_POLICIES,
   finishAttempt,
   POLICY_FACTORS,
 } from "../../common/locks/lock-credentials";
@@ -33,6 +34,7 @@ import "../ha-svg-icon";
 import "../input/ha-input";
 import type { HaInput } from "../input/ha-input";
 import { openSupportDesk } from "../support/ha-support-desk";
+import "./ha-lock-nfc-listen";
 import "./ha-lock-pin-entry";
 import type { HaLockPinEntry } from "./ha-lock-pin-entry";
 import { lockPanelStyles, raiseToTopLayer } from "./lock-panel-styles";
@@ -67,6 +69,9 @@ export class HaLockPrompt extends LitElement {
   @property({ attribute: false }) public options: LockPromptOptions = {};
 
   @state() private _step = 0;
+
+  /** For a lock any one factor opens: the one being offered. The tag first. */
+  @state() private _eitherFactor: LockFactor = "nfc";
 
   @state() private _message = "";
 
@@ -338,10 +343,13 @@ export class HaLockPrompt extends LitElement {
   }
 
   private _renderSteps(record: LockRecord): TemplateResult {
-    const factors = POLICY_FACTORS[record.policy];
-    const factor = factors[this._step];
+    const either = EITHER_POLICIES.has(record.policy);
+    const factors = either ? [] : POLICY_FACTORS[record.policy];
+    const factor = either
+      ? this._eitherFactor
+      : POLICY_FACTORS[record.policy][this._step];
     const wait = this._waitSeconds;
-    const last = this._step === factors.length - 1;
+    const last = either || this._step === factors.length - 1;
     const nextWait = waitForFailures(record.failures + 1);
     return html`
       ${
@@ -381,50 +389,80 @@ export class HaLockPrompt extends LitElement {
             : nothing
       }
       ${
-        factor === "pin"
-          ? html`<ha-lock-pin-entry
-              .submitLabel=${last ? lockText("unlock") : lockText("next")}
-              .disabled=${this._busy || wait > 0}
-              @lock-pin-submit=${this._pinSubmitted}
-              @lock-pin-cancel=${this._close}
-            ></ha-lock-pin-entry>`
-          : html`<form @submit=${this._textSubmitted} novalidate>
-              <p>${lockText(`factor_${factor}_label`)}</p>
-              <ha-input
-                name="value"
-                type=${factor === "password" ? "password" : "text"}
-                inputmode=${factor === "totp" ? "numeric" : "text"}
-                autocomplete="off"
-                maxlength=${factor === "totp" ? 6 : 200}
-                .label=${
-                  factor === "totp"
-                    ? lockText("factor_totp_field")
-                    : lockText(`factor_${factor}_label`)
-                }
-                ?disabled=${this._busy || wait > 0}
-              ></ha-input>
-              ${
-                factor === "totp"
-                  ? html`<p class="note">${lockText("totp_code_hint")}</p>`
-                  : nothing
-              }
+        factor === "nfc"
+          ? html`<ha-lock-nfc-listen
+                .prompt=${lockText("nfc_unlock_prompt")}
+                .disabled=${this._busy || wait > 0}
+                @lock-nfc-tag=${this._nfcTag}
+              ></ha-lock-nfc-listen>
               <div class="buttons">
+                <button type="button" class="text" @click=${this._close}>
+                  ${lockText("cancel")}
+                </button>
                 <button
                   type="button"
-                  class="text"
-                  @click=${this._step > 0 ? this._back : this._close}
-                >
-                  ${this._step > 0 ? lockText("back") : lockText("cancel")}
-                </button>
-                <button
-                  type="submit"
                   class="primary"
-                  ?disabled=${this._busy || wait > 0}
+                  @click=${this._usePassword}
                 >
-                  ${last ? lockText("submit") : lockText("next")}
+                  ${lockText("nfc_use_password")}
                 </button>
-              </div>
-            </form>`
+              </div>`
+          : factor === "pin"
+            ? html`<ha-lock-pin-entry
+                .submitLabel=${last ? lockText("unlock") : lockText("next")}
+                .disabled=${this._busy || wait > 0}
+                @lock-pin-submit=${this._pinSubmitted}
+                @lock-pin-cancel=${this._close}
+              ></ha-lock-pin-entry>`
+            : html`<form @submit=${this._textSubmitted} novalidate>
+                <p>${lockText(`factor_${factor}_label`)}</p>
+                <ha-input
+                  name="value"
+                  type=${factor === "password" ? "password" : "text"}
+                  inputmode=${factor === "totp" ? "numeric" : "text"}
+                  autocomplete="off"
+                  maxlength=${factor === "totp" ? 6 : 200}
+                  .label=${
+                    factor === "totp"
+                      ? lockText("factor_totp_field")
+                      : lockText(`factor_${factor}_label`)
+                  }
+                  ?disabled=${this._busy || wait > 0}
+                ></ha-input>
+                ${
+                  factor === "totp"
+                    ? html`<p class="note">${lockText("totp_code_hint")}</p>`
+                    : nothing
+                }
+                <div class="buttons">
+                  <button
+                    type="button"
+                    class="text"
+                    @click=${
+                      either
+                        ? this._useTag
+                        : this._step > 0
+                          ? this._back
+                          : this._close
+                    }
+                  >
+                    ${
+                      either
+                        ? lockText("nfc_use_tag")
+                        : this._step > 0
+                          ? lockText("back")
+                          : lockText("cancel")
+                    }
+                  </button>
+                  <button
+                    type="submit"
+                    class="primary"
+                    ?disabled=${this._busy || wait > 0}
+                  >
+                    ${last ? lockText("submit") : lockText("next")}
+                  </button>
+                </div>
+              </form>`
       }
       ${
         record.failures > 0
@@ -439,6 +477,21 @@ export class HaLockPrompt extends LitElement {
           : nothing
       }
     `;
+  }
+
+  private _nfcTag(ev: CustomEvent<{ identity: string }>): void {
+    void this._submit("nfc", ev.detail.identity);
+  }
+
+  private _usePassword(): void {
+    this._message = "";
+    this._eitherFactor = "password";
+    this._focusFirst();
+  }
+
+  private _useTag(): void {
+    this._message = "";
+    this._eitherFactor = "nfc";
   }
 
   private _back(): void {
@@ -464,7 +517,12 @@ export class HaLockPrompt extends LitElement {
     if (!record) {
       return;
     }
-    void this._submit(POLICY_FACTORS[record.policy][this._step], value);
+    void this._submit(
+      EITHER_POLICIES.has(record.policy)
+        ? this._eitherFactor
+        : POLICY_FACTORS[record.policy][this._step],
+      value
+    );
   }
 
   private async _submit(factor: LockFactor, value: string): Promise<void> {
@@ -477,7 +535,9 @@ export class HaLockPrompt extends LitElement {
       const result = await checkFactor(record, factor, value, Date.now());
       let saved = result.record;
       if (result.outcome === "ok") {
-        const last = this._step >= POLICY_FACTORS[record.policy].length - 1;
+        const last =
+          EITHER_POLICIES.has(record.policy) ||
+          this._step >= POLICY_FACTORS[record.policy].length - 1;
         if (!last) {
           this._message = "";
           this._step += 1;

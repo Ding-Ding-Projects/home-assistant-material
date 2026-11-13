@@ -13,6 +13,7 @@ import "./ha-force-narrow-row";
 import "./ha-push-notifications-row";
 import "./ha-set-suspend-row";
 import "./ha-set-vibrate-row";
+import "./ha-problem-detector-row";
 import "./ha-tab-dock-row";
 
 @customElement("ha-profile-section-browser")
@@ -72,6 +73,9 @@ class HaProfileSectionBrowser extends LitElement {
                 : ""
             }
             <ha-tab-dock-row .hass=${this.hass}></ha-tab-dock-row>
+            <ha-problem-detector-row
+              .hass=${this.hass}
+            ></ha-problem-detector-row>
             <ha-set-suspend-row .hass=${this.hass}></ha-set-suspend-row>
             ${
               !isMobileClient
