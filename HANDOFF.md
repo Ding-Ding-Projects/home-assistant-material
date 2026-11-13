@@ -8,8 +8,8 @@
 - The project page links to a browser-only Home Assistant demo with speech and scene automations.
   The demo uses synthetic entities and stores edits in the current browser.
 - The frontend suite passed 7,726 tests with the same three Windows build-management failures seen
-  at baseline. The local build produced a frontend wheel. The Core image step stopped on an
-  upstream dependency hash mismatch for `multidict==6.9.1`.
+  at baseline. The final local build produced a complete Core image. An earlier dependency hash
+  mismatch for `multidict==6.9.1` cleared on the final build.
 - The phone navigation stays in view during scrolling. Accessibility tools stack at narrow
   widths, and the media manager offers a tap-to-save step for originals and archives on touch
   devices. The rebuilt preview kept the navigation at the same height during a 600 px scroll.
@@ -17,6 +17,11 @@
 - Dashboard resources can accept a local JavaScript module or stylesheet after confirmation.
   The upload path passed authenticated create, same-file retry, authenticated fetch, and
   deletion on an isolated Core container with the candidate modules mounted.
+- In the complete local image, the resource dialog uploaded a stylesheet that took effect in
+  the browser. At an emulated phone width, the media manager saved an original PNG and a WAV
+  byte-for-byte. A physical iPhone was not used.
+- The published project page demo saved and restored a speech option and applied the sample
+  reading scene. The full guides and wiki generated 117 routes, all read back on GitHub Pages.
 - Release and live deployment verification remain open for this change. Verify the exact published
   Core image with a separate test instance before updating the existing installation.
 

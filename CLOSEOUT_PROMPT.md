@@ -5,17 +5,24 @@
 The task adds visual dictionary editing to automation and script actions and a working browser demo
 using synthetic speech and scene entities. See `docs/features/automations/visual-action-dictionaries.md`.
 The frontend suite recorded 7,726 passes and the same three Windows build-management failures as
-baseline. The frontend wheel built. The local Core image build stopped on a dependency hash
-mismatch for `multidict==6.9.1`.
+baseline. The full local build succeeded from `716b7274596ba0f7f0e1677b4bcf5de9fa0236d2`
+after a transient dependency hash mismatch on an earlier run.
 
 This batch also keeps phone navigation in view while scrolling, stacks Accessibility tools at
 narrow widths, adds a touch-friendly save step for media and images, and supports uploading a
-local dashboard resource. The rebuilt preview verified navigation and narrow layout. An
-isolated Core instance with candidate modules verified the resource upload API.
+local dashboard resource. The rebuilt preview verified navigation and narrow layout. The local
+Core image passed the browser dictionary and stylesheet upload flows. The media manager saved a
+sample WAV and an original PNG byte-for-byte at an emulated phone width.
 
-Verify the published demo in a fresh browser profile, then verify the exact released Core image in
-an isolated instance before moving the existing installation. Preserve the existing configuration
-and verify a Core backup first. Current live deployment is build `2026.11.1.425`.
+GitHub Pages published the browser demo, the complete guides and the wiki from the same source.
+The speech example retained a saved edit after reload. Running the scene example changed its
+sample light. The 117 published article routes matched their generated source content.
+
+The live installation is still build `2026.11.1.425`, with a verified Core backup. Candidate
+build `2026.11.1.429` is queued in
+[Release run 43488530533](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43488530533).
+Verify its exact published Core image in an isolated browser session before using the Supervisor
+to update. Read back the live version and health, then verify the normal release and update feed.
 
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,
