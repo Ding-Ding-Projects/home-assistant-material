@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import type { DemoConfig } from "../types";
 
 export const demoEntitiesSections: DemoConfig["entities"] = (localize) =>
@@ -194,7 +195,9 @@ export const demoEntitiesSections: DemoConfig["entities"] = (localize) =>
         friendly_name: localize(
           "ui.panel.page-demo.config.sections.entities.media_player.living_room_nest_mini"
         ),
-        entity_picture: "/assets/sections/images/media_player_family_room.jpg",
+        entity_picture: demoAssetUrl(
+          "sections/images/media_player_family_room.jpg"
+        ),
         supported_features: 64063,
       },
     },
@@ -273,7 +276,9 @@ export const demoEntitiesSections: DemoConfig["entities"] = (localize) =>
         friendly_name: localize(
           "ui.panel.page-demo.config.sections.entities.media_player.kitchen_nest_audio"
         ),
-        entity_picture: "/assets/sections/images/media_player_family_room.jpg",
+        entity_picture: demoAssetUrl(
+          "sections/images/media_player_family_room.jpg"
+        ),
         supported_features: 64063,
       },
     },
@@ -458,7 +463,9 @@ export const demoEntitiesSections: DemoConfig["entities"] = (localize) =>
         friendly_name: localize(
           "ui.panel.page-demo.config.sections.entities.media_player.study_nest_hub"
         ),
-        entity_picture: "/assets/sections/images/media_player_family_room.jpg",
+        entity_picture: demoAssetUrl(
+          "sections/images/media_player_family_room.jpg"
+        ),
         supported_features: 64063,
       },
     },

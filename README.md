@@ -263,6 +263,7 @@ in this file's history.
 ![Animation and transitions: profiles, a switch per kind of element, a curve editor and a live preview](docs/screenshots/motion-editor.png)
 ![Home on a phone, with the floating bottom bar](docs/screenshots/phone-home.png)
 ![The automation editor: add a trigger, condition or action at the top, and the Simple, Advanced and YAML switch](docs/screenshots/automation-editor.png)
+![The published speech demo with a known audio format and a saved custom speed option](docs/screenshots/automation-speech-dictionary-demo.png)
 ![Storage: a ring for the recorder database and the entities that use the most](docs/screenshots/storage-page.png)
 ![Performance: how a dashboard loads, and the offline cache](docs/screenshots/performance-page.png)
 ![The Devices list: breadcrumb, large title with a summary line, rows as cards](docs/screenshots/list-page-devices.png)

@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import type { DemoConfig } from "../types";
 
 export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
@@ -41,7 +42,7 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
 
         {
           type: "picture-elements",
-          image: "/assets/arsaboo/floorplans/main.png",
+          image: demoAssetUrl("arsaboo/floorplans/main.png"),
           elements: [
             {
               type: "image",
@@ -50,8 +51,8 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
                 action: "toggle",
               },
               state_image: {
-                on: "/assets/arsaboo/icons/abode_enabled.png",
-                off: "/assets/arsaboo/icons/abode_disabled.png",
+                on: demoAssetUrl("arsaboo/icons/abode_enabled.png"),
+                off: demoAssetUrl("arsaboo/icons/abode_disabled.png"),
               },
               style: {
                 top: "4%",
@@ -66,8 +67,8 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
                 action: "toggle",
               },
               state_image: {
-                on: "/assets/arsaboo/icons/tv_enabled.png",
-                off: "/assets/arsaboo/icons/tv_disabled.png",
+                on: demoAssetUrl("arsaboo/icons/tv_enabled.png"),
+                off: demoAssetUrl("arsaboo/icons/tv_disabled.png"),
               },
               style: {
                 top: "4%",
@@ -82,8 +83,8 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
                 action: "toggle",
               },
               state_image: {
-                on: "/assets/arsaboo/icons/security_armed_red.png",
-                off: "/assets/arsaboo/icons/security_disarmed.png",
+                on: demoAssetUrl("arsaboo/icons/security_armed_red.png"),
+                off: demoAssetUrl("arsaboo/icons/security_disarmed.png"),
               },
               style: {
                 top: "4%",
@@ -98,8 +99,8 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
                 action: "toggle",
               },
               state_image: {
-                on: "/assets/arsaboo/icons/automation_enabled.png",
-                off: "/assets/arsaboo/icons/automation_disabled.png",
+                on: demoAssetUrl("arsaboo/icons/automation_enabled.png"),
+                off: demoAssetUrl("arsaboo/icons/automation_disabled.png"),
               },
               style: {
                 top: "4%",
@@ -113,9 +114,9 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               tap_action: {
                 action: "toggle",
               },
-              image: "/assets/arsaboo/icons/light_bulb_off.png",
+              image: demoAssetUrl("arsaboo/icons/light_bulb_off.png"),
               state_image: {
-                on: "/assets/arsaboo/icons/light_bulb_on.png",
+                on: demoAssetUrl("arsaboo/icons/light_bulb_on.png"),
               },
               state_filter: {
                 on: "brightness(130%) saturate(1.5) drop-shadow(0px 0px 10px gold)",
@@ -131,9 +132,11 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
             {
               type: "image",
               entity: "camera.porch",
-              image: "/assets/arsaboo/icons/camera_porch_streaming.png",
+              image: demoAssetUrl("arsaboo/icons/camera_porch_streaming.png"),
               state_image: {
-                recording: "/assets/arsaboo/icons/camera_porch_recording.png",
+                recording: demoAssetUrl(
+                  "arsaboo/icons/camera_porch_recording.png"
+                ),
               },
               style: {
                 top: "90%",
@@ -145,9 +148,11 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
             {
               type: "image",
               entity: "camera.patio",
-              image: "/assets/arsaboo/icons/camera_patio_streaming.png",
+              image: demoAssetUrl("arsaboo/icons/camera_patio_streaming.png"),
               state_image: {
-                recording: "/assets/arsaboo/icons/camera_patio_recording.png",
+                recording: demoAssetUrl(
+                  "arsaboo/icons/camera_patio_recording.png"
+                ),
               },
               style: {
                 top: "12%",
@@ -159,10 +164,13 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
             {
               type: "image",
               entity: "camera.backyard",
-              image: "/assets/arsaboo/icons/camera_backyard_streaming.png",
+              image: demoAssetUrl(
+                "arsaboo/icons/camera_backyard_streaming.png"
+              ),
               state_image: {
-                recording:
-                  "/assets/arsaboo/icons/camera_backyard_recording.png",
+                recording: demoAssetUrl(
+                  "arsaboo/icons/camera_backyard_recording.png"
+                ),
               },
               style: {
                 top: "12%",
@@ -174,10 +182,13 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
             {
               type: "image",
               entity: "camera.driveway",
-              image: "/assets/arsaboo/icons/camera_driveway_streaming.png",
+              image: demoAssetUrl(
+                "arsaboo/icons/camera_driveway_streaming.png"
+              ),
               state_image: {
-                recording:
-                  "/assets/arsaboo/icons/camera_driveway_recording.png",
+                recording: demoAssetUrl(
+                  "arsaboo/icons/camera_driveway_recording.png"
+                ),
               },
               style: {
                 top: "81.5%",
@@ -195,9 +206,9 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               hold_action: {
                 action: "more-info",
               },
-              image: "/assets/arsaboo/icons/light_bulb_off.png",
+              image: demoAssetUrl("arsaboo/icons/light_bulb_off.png"),
               state_image: {
-                on: "/assets/arsaboo/icons/light_bulb_on.png",
+                on: demoAssetUrl("arsaboo/icons/light_bulb_on.png"),
               },
               state_filter: {
                 on: "brightness(130%) saturate(1.5) drop-shadow(0px 0px 10px gold)",
@@ -216,8 +227,7 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               style: {
                 top: "43%",
                 left: "50%",
-                background:
-                  'center / contain no-repeat url("/assets/arsaboo/icons/ecobee_blank.png")',
+                background: `center / contain no-repeat url("${demoAssetUrl("arsaboo/icons/ecobee_blank.png")}")`,
                 "text-align": "center",
                 "font-size": "12px",
                 color: "white",
@@ -246,9 +256,9 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               tap_action: {
                 action: "toggle",
               },
-              image: "/assets/arsaboo/icons/tv_off2.png",
+              image: demoAssetUrl("arsaboo/icons/tv_off2.png"),
               state_image: {
-                on: "/assets/arsaboo/icons/tv_on2.png",
+                on: demoAssetUrl("arsaboo/icons/tv_on2.png"),
               },
               state_filter: {
                 on: "drop-shadow(-5px 0 10px gold)",
@@ -275,9 +285,9 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               tap_action: {
                 action: "toggle",
               },
-              image: "/assets/arsaboo/icons/light_bulb_off.png",
+              image: demoAssetUrl("arsaboo/icons/light_bulb_off.png"),
               state_image: {
-                on: "/assets/arsaboo/icons/light_bulb_on.png",
+                on: demoAssetUrl("arsaboo/icons/light_bulb_on.png"),
               },
               state_filter: {
                 on: "brightness(130%) saturate(1.5) drop-shadow(0px 0px 10px gold)",
@@ -312,9 +322,9 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               tap_action: {
                 action: "toggle",
               },
-              image: "/assets/arsaboo/icons/light_bulb_off.png",
+              image: demoAssetUrl("arsaboo/icons/light_bulb_off.png"),
               state_image: {
-                on: "/assets/arsaboo/icons/light_bulb_on.png",
+                on: demoAssetUrl("arsaboo/icons/light_bulb_on.png"),
               },
               state_filter: {
                 on: "brightness(130%) saturate(1.5) drop-shadow(0px 0px 10px gold)",
@@ -333,9 +343,9 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               tap_action: {
                 action: "toggle",
               },
-              image: "/assets/arsaboo/icons/light_off.png",
+              image: demoAssetUrl("arsaboo/icons/light_off.png"),
               state_image: {
-                on: "/assets/arsaboo/icons/light_on.png",
+                on: demoAssetUrl("arsaboo/icons/light_on.png"),
               },
               state_filter: {
                 on: "drop-shadow(-5px -5px 10px gold)",
@@ -354,10 +364,10 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
               tap_action: {
                 action: "toggle",
               },
-              image: "/assets/arsaboo/icons/garage_door_closed.png",
+              image: demoAssetUrl("arsaboo/icons/garage_door_closed.png"),
               state_image: {
-                open: "/assets/arsaboo/icons/garage_door_open.png",
-                closed: "/assets/arsaboo/icons/garage_door_closed.png",
+                open: demoAssetUrl("arsaboo/icons/garage_door_open.png"),
+                closed: demoAssetUrl("arsaboo/icons/garage_door_closed.png"),
               },
               style: {
                 top: "71%",
@@ -373,8 +383,7 @@ export const demoLovelaceArsaboo: DemoConfig["lovelace"] = (localize) => ({
                 top: "80%",
                 left: "49%",
                 "background-color": "gray",
-                background:
-                  'center / contain no-repeat url("/assets/arsaboo/icons/ecobee_blank.png")',
+                background: `center / contain no-repeat url("${demoAssetUrl("arsaboo/icons/ecobee_blank.png")}")`,
                 "text-align": "center",
                 "font-size": "12px",
                 color: "white",

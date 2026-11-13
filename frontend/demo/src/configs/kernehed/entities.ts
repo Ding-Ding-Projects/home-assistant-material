@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import type { DemoConfig } from "../types";
 
 export const demoEntitiesKernehed: DemoConfig["entities"] = () =>
@@ -121,7 +122,7 @@ export const demoEntitiesKernehed: DemoConfig["entities"] = () =>
       state: "Home",
       attributes: {
         friendly_name: "Oskar",
-        entity_picture: "/assets/kernehed/oscar.jpg",
+        entity_picture: demoAssetUrl("kernehed/oscar.jpg"),
       },
     },
     "sensor.bella_devices": {
@@ -129,7 +130,7 @@ export const demoEntitiesKernehed: DemoConfig["entities"] = () =>
       state: "Home",
       attributes: {
         friendly_name: "Bella",
-        entity_picture: "/assets/kernehed/bella.jpg",
+        entity_picture: demoAssetUrl("kernehed/bella.jpg"),
       },
     },
     "sensor.oskar_bluetooth": {
@@ -137,7 +138,7 @@ export const demoEntitiesKernehed: DemoConfig["entities"] = () =>
       state: "Eve's room",
       attributes: {
         friendly_name: "Oskar",
-        entity_picture: "/assets/kernehed/oscar.jpg",
+        entity_picture: demoAssetUrl("kernehed/oscar.jpg"),
       },
     },
     "sensor.battery_oskar": {

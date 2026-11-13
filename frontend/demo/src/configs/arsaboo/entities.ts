@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import type { DemoConfig } from "../types";
 
 export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
@@ -43,7 +44,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
         friendly_name: "Arsaboo",
         latitude: 52.3579946,
         longitude: 4.8664597,
-        entity_picture: "/assets/arsaboo/images/arsaboo.jpg",
+        entity_picture: demoAssetUrl("arsaboo/images/arsaboo.jpg"),
       },
     },
     "person.melody": {
@@ -54,7 +55,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
         friendly_name: "Melody",
         latitude: 52.3408927,
         longitude: 4.8711073,
-        entity_picture: "/assets/arsaboo/images/melody.jpg",
+        entity_picture: demoAssetUrl("arsaboo/images/melody.jpg"),
       },
     },
     "sensor.livingroom_temp_rounded": {
@@ -80,7 +81,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
       state: "YouTube",
       attributes: {
         friendly_name: "Harmony",
-        entity_picture: "/assets/arsaboo/icons/Harmony.png",
+        entity_picture: demoAssetUrl("arsaboo/icons/Harmony.png"),
       },
     },
     "sensor.total_tv_time": {
@@ -334,7 +335,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
           "cbd8dfac9efb441f19168e271cb8629b0372d0c1f721353394b23ed0202013b0",
         motion_detection: true,
         friendly_name: "Patio",
-        entity_picture: "/assets/arsaboo/images/camera.patio.jpg",
+        entity_picture: demoAssetUrl("arsaboo/images/camera.patio.jpg"),
         supported_features: 0,
       },
     },
@@ -346,7 +347,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
           "479b332e0a7cad4c58e0fb98a1ecb7942e3b225190adb93a1341edfa7daf45b0",
         motion_detection: true,
         friendly_name: "Porch",
-        entity_picture: "/assets/arsaboo/images/camera.porch.jpg",
+        entity_picture: demoAssetUrl("arsaboo/images/camera.porch.jpg"),
         supported_features: 0,
       },
     },
@@ -358,7 +359,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
           "9381b2e4edd1bb21e868e2193f5d132a5fae153ce4f458451d979a02712b4642",
         motion_detection: true,
         friendly_name: "Backyard",
-        entity_picture: "/assets/arsaboo/images/camera.backyard.jpg",
+        entity_picture: demoAssetUrl("arsaboo/images/camera.backyard.jpg"),
         supported_features: 0,
       },
     },
@@ -370,7 +371,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
           "ac38bf88c2c5896eed66ae15739a3e726677f92d79e0d57f83f726ac28bda746",
         motion_detection: true,
         friendly_name: "Driveway",
-        entity_picture: "/assets/arsaboo/images/camera.driveway.jpg",
+        entity_picture: demoAssetUrl("arsaboo/images/camera.driveway.jpg"),
         supported_features: 0,
       },
     },
@@ -386,7 +387,7 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
         cellular_backup: false,
         friendly_name: "Abode Alarm",
         icon: "hademo:security",
-        entity_picture: "/assets/arsaboo/icons/Abode.jpg",
+        entity_picture: demoAssetUrl("arsaboo/icons/Abode.jpg"),
       },
     },
     "binary_sensor.ring_front_door_motion": {
@@ -494,7 +495,9 @@ export const demoEntitiesArsaboo: DemoConfig["entities"] = (localize) =>
         friendly_name: localize(
           "ui.panel.page-demo.config.arsaboo.names.family_room"
         ),
-        entity_picture: "/assets/arsaboo/images/media_player_family_room.jpg",
+        entity_picture: demoAssetUrl(
+          "arsaboo/images/media_player_family_room.jpg"
+        ),
         supported_features: 64063,
       },
     },

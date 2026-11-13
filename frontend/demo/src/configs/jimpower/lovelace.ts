@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import "../../custom-cards/card-modder";
 import type { DemoConfig } from "../types";
 
@@ -21,7 +22,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
                   },
                   type: "custom:card-modder",
                   card: {
-                    image: "/assets/jimpower/home/james_10.jpg",
+                    image: demoAssetUrl("jimpower/home/james_10.jpg"),
                     elements: [
                       {
                         prefix: "James -- ",
@@ -110,7 +111,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
                   },
                   type: "custom:card-modder",
                   card: {
-                    image: "/assets/jimpower/home/tina_4.jpg",
+                    image: demoAssetUrl("jimpower/home/tina_4.jpg"),
                     elements: [
                       {
                         prefix: "Tina -- ",
@@ -183,7 +184,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/home/house_4.png",
+                image: demoAssetUrl("jimpower/home/house_4.png"),
                 elements: [
                   {
                     style: {
@@ -336,7 +337,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
           },
           type: "custom:card-modder",
           card: {
-            image: "/assets/jimpower/home/git.png",
+            image: demoAssetUrl("jimpower/home/git.png"),
             elements: [
               {
                 style: {
@@ -570,7 +571,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/home/bus_10.jpg",
+                image: demoAssetUrl("jimpower/home/bus_10.jpg"),
                 elements: [
                   {
                     style: {
@@ -601,8 +602,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
       path: "home",
       icon: "mdi:castle",
       name: "Home",
-      background:
-        'center / cover no-repeat url("/assets/jimpower/background-15.jpg") fixed',
+      background: `center / cover no-repeat url("${demoAssetUrl("jimpower/background-15.jpg")}") fixed`,
     },
     {
       cards: [
@@ -610,7 +610,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
           cards: [
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -621,7 +621,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/alarm_3.jpg",
+                image: demoAssetUrl("jimpower/security/alarm_3.jpg"),
                 elements: [
                   {
                     style: {
@@ -648,7 +648,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
             },
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -659,7 +659,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/smoke_4.jpg",
+                image: demoAssetUrl("jimpower/security/smoke_4.jpg"),
                 elements: [
                   {
                     style: {
@@ -705,7 +705,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
             },
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -716,7 +716,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/air_8.jpg",
+                image: demoAssetUrl("jimpower/security/air_8.jpg"),
                 elements: [
                   {
                     style: {
@@ -772,7 +772,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
           cards: [
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -783,7 +783,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/door_3.png",
+                image: demoAssetUrl("jimpower/security/door_3.png"),
                 elements: [
                   {
                     style: {
@@ -867,7 +867,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
             },
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -878,7 +878,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/window_2.jpg",
+                image: demoAssetUrl("jimpower/security/window_2.jpg"),
                 elements: [
                   {
                     style: {
@@ -986,7 +986,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
           cards: [
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -997,7 +997,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/motion_3.jpg",
+                image: demoAssetUrl("jimpower/security/motion_3.jpg"),
                 elements: [
                   {
                     style: {
@@ -1176,7 +1176,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
             },
             {
               style: {
-                "background-image": 'url("/assets/jimpower/cardbackK.png")',
+                "background-image": `url("${demoAssetUrl("jimpower/cardbackK.png")}")`,
                 "background-size": "100% 68px",
                 "box-shadow": "3px 3px rgba(0,0,0,0.4)",
                 "background-repeat": "no-repeat",
@@ -1187,7 +1187,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
               },
               type: "custom:card-modder",
               card: {
-                image: "/assets/jimpower/security/leak_2.png",
+                image: demoAssetUrl("jimpower/security/leak_2.png"),
                 elements: [
                   {
                     style: {
@@ -1238,8 +1238,7 @@ export const demoLovelaceJimpower: DemoConfig["lovelace"] = () => ({
       path: "security",
       icon: "mdi:shield-home",
       name: "Security",
-      background:
-        'center / cover no-repeat url("/assets/jimpower/background-15.jpg") fixed',
+      background: `center / cover no-repeat url("${demoAssetUrl("jimpower/background-15.jpg")}") fixed`,
     },
   ],
 });

@@ -32,3 +32,8 @@ for the whole action data map.
 
 The demo stores automation edits in the browser. Speech is simulated, and the scene changes
 sample entities. The demo uses its own data and requires no Home Assistant account.
+
+The [speech editor screenshot](../../screenshots/automation-speech-dictionary-demo.png) was
+captured from the published browser demo for source `bb55f1bb6aac29b380bf6ddc1dcfad5cbcb63d8f`
+(built 13 November 2026 at 18:51 UTC). It shows the speech example after saving and reopening
+it at 1440 × 1000 in the light theme. It contains only the demo's synthetic data.

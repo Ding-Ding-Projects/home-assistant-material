@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import type { DemoConfig } from "../types";
 
 export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
@@ -11,7 +12,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
           columns: 4,
           cards: [
             {
-              image: "/assets/teachingbirds/isa_square.jpg",
+              image: demoAssetUrl("teachingbirds/isa_square.jpg"),
               type: "picture-entity",
               show_name: false,
               tap_action: {
@@ -20,7 +21,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               entity: "sensor.presence_isa",
             },
             {
-              image: "/assets/teachingbirds/Stefan_square.jpg",
+              image: demoAssetUrl("teachingbirds/Stefan_square.jpg"),
               type: "picture-entity",
               show_name: false,
               tap_action: {
@@ -29,12 +30,12 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               entity: "sensor.presence_stefan",
             },
             {
-              image: "/assets/teachingbirds/background_square.png",
+              image: demoAssetUrl("teachingbirds/background_square.png"),
               elements: [
                 {
                   state_image: {
-                    on: "/assets/teachingbirds/radiator_on.jpg",
-                    off: "/assets/teachingbirds/radiator_off.jpg",
+                    on: demoAssetUrl("teachingbirds/radiator_on.jpg"),
+                    off: demoAssetUrl("teachingbirds/radiator_off.jpg"),
                   },
                   type: "image",
                   style: {
@@ -59,7 +60,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               type: "picture-elements",
             },
             {
-              image: "/assets/teachingbirds/background_square.png",
+              image: demoAssetUrl("teachingbirds/background_square.png"),
               elements: [
                 {
                   style: {
@@ -82,16 +83,16 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               show_name: false,
               type: "picture-entity",
               name: "Alarm",
-              image: "/assets/teachingbirds/House_square.jpg",
+              image: demoAssetUrl("teachingbirds/House_square.jpg"),
               entity: "alarm_control_panel.house",
             },
             {
               name: "Roomba",
-              image: "/assets/teachingbirds/roomba_square.jpg",
+              image: demoAssetUrl("teachingbirds/roomba_square.jpg"),
               show_name: false,
               type: "picture-entity",
               state_image: {
-                "Not Today": "/assets/teachingbirds/roomba_bw_square.jpg",
+                "Not Today": demoAssetUrl("teachingbirds/roomba_bw_square.jpg"),
               },
               entity: "input_select.roomba_mode",
             },
@@ -99,29 +100,33 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               show_name: false,
               type: "picture-entity",
               state_image: {
-                Mail: "/assets/teachingbirds/mailbox_square.jpg",
-                "Package and mail": "/assets/teachingbirds/mailbox_square.jpg",
-                Empty: "/assets/teachingbirds/mailbox_bw_square.jpg",
-                Package: "/assets/teachingbirds/mailbox_square.jpg",
+                Mail: demoAssetUrl("teachingbirds/mailbox_square.jpg"),
+                "Package and mail": demoAssetUrl(
+                  "teachingbirds/mailbox_square.jpg"
+                ),
+                Empty: demoAssetUrl("teachingbirds/mailbox_bw_square.jpg"),
+                Package: demoAssetUrl("teachingbirds/mailbox_square.jpg"),
               },
               entity: "sensor.mailbox",
             },
             {
               show_name: false,
               state_image: {
-                "Put out": "/assets/teachingbirds/trash_square.jpg",
-                "Take in": "/assets/teachingbirds/trash_square.jpg",
+                "Put out": demoAssetUrl("teachingbirds/trash_square.jpg"),
+                "Take in": demoAssetUrl("teachingbirds/trash_square.jpg"),
               },
               type: "picture-entity",
-              image: "/assets/teachingbirds/trash_bear_bw_square.jpg",
+              image: demoAssetUrl("teachingbirds/trash_bear_bw_square.jpg"),
               entity: "sensor.trash_status",
             },
 
             {
               state_image: {
-                Idle: "/assets/teachingbirds/washer_square.jpg",
-                Running: "/assets/teachingbirds/laundry_running_square.jpg",
-                Clean: "/assets/teachingbirds/laundry_clean_2_square.jpg",
+                Idle: demoAssetUrl("teachingbirds/washer_square.jpg"),
+                Running: demoAssetUrl(
+                  "teachingbirds/laundry_running_square.jpg"
+                ),
+                Clean: demoAssetUrl("teachingbirds/laundry_clean_2_square.jpg"),
               },
               entity: "input_select.washing_machine_status",
               type: "picture-entity",
@@ -130,9 +135,11 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
             },
             {
               state_image: {
-                Idle: "/assets/teachingbirds/dryer_square.jpg",
-                Running: "/assets/teachingbirds/clothes_drying_square.jpg",
-                Clean: "/assets/teachingbirds/folded_clothes_square.jpg",
+                Idle: demoAssetUrl("teachingbirds/dryer_square.jpg"),
+                Running: demoAssetUrl(
+                  "teachingbirds/clothes_drying_square.jpg"
+                ),
+                Clean: demoAssetUrl("teachingbirds/folded_clothes_square.jpg"),
               },
               entity: "input_select.dryer_status",
               type: "picture-entity",
@@ -140,7 +147,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               name: "Dryer",
             },
             {
-              image: "/assets/teachingbirds/guests_square.jpg",
+              image: demoAssetUrl("teachingbirds/guests_square.jpg"),
               type: "picture-entity",
               show_name: false,
               tap_action: {
@@ -149,7 +156,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
               entity: "input_boolean.guest_mode",
             },
             {
-              image: "/assets/teachingbirds/cleaning_square.jpg",
+              image: demoAssetUrl("teachingbirds/cleaning_square.jpg"),
               type: "picture-entity",
               show_name: false,
               tap_action: {
@@ -280,7 +287,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
         },
 
         {
-          image: "/assets/teachingbirds/plants.png",
+          image: demoAssetUrl("teachingbirds/plants.png"),
           elements: [
             {
               style: {
@@ -330,7 +337,7 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
           // type: "picture-entity",
           // show_state: false,
           type: "picture",
-          image: "/assets/teachingbirds/meteogram.png",
+          image: demoAssetUrl("teachingbirds/meteogram.png"),
         },
         {
           cards: [

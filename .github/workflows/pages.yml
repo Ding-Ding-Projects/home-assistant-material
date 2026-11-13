@@ -7,6 +7,11 @@ on:
     branches: [main]
     paths:
       - "docs/site/**"
+      - "docs/features/**"
+      - "docs/wiki/**"
+      - "docs/automation-repositories.md"
+      - "docs/feature-status.md"
+      - "docs/material-changes.md"
       - "frontend/**"
       - "build.sh"
       - ".github/workflows/pages.yml"
@@ -47,6 +52,9 @@ jobs:
           mkdir -p docs/site/demo
           cp -a frontend/demo/dist/. docs/site/demo/
           printf '{"source":"%s","builtAt":"%s"}\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > docs/site/demo/build.json
+
+      - name: Build complete documentation
+        run: node docs/site/build-documentation.mjs
 
       - name: Point the download buttons at the newest Deploy Assistant
         env:

@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../../util/demo-asset-url";
 import type { DemoConfig } from "../types";
 
 export const demoLovelaceKernehed: DemoConfig["lovelace"] = () => ({
@@ -12,7 +13,7 @@ export const demoLovelaceKernehed: DemoConfig["lovelace"] = () => ({
             {
               cards: [
                 {
-                  image: "/assets/kernehed/oscar.jpg",
+                  image: demoAssetUrl("kernehed/oscar.jpg"),
                   elements: [
                     {
                       style: {
@@ -45,7 +46,7 @@ export const demoLovelaceKernehed: DemoConfig["lovelace"] = () => ({
                   type: "picture-elements",
                 },
                 {
-                  image: "/assets/kernehed/bella.jpg",
+                  image: demoAssetUrl("kernehed/bella.jpg"),
                   elements: [
                     {
                       style: {
@@ -103,7 +104,7 @@ export const demoLovelaceKernehed: DemoConfig["lovelace"] = () => ({
                 "binary_sensor.unifi_camera",
                 "binary_sensor.back_door_sensor",
               ],
-              image: "/assets/kernehed/camera.entre.jpg",
+              image: demoAssetUrl("kernehed/camera.entre.jpg"),
               type: "picture-glance",
               title: "Entrance camera",
             },

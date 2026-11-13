@@ -1,3 +1,4 @@
+import { demoAssetUrl } from "../util/demo-asset-url";
 import type { EntityRegistryEntry } from "../../../src/data/entity/entity_registry";
 import type { EntityHistoryState } from "../../../src/data/history";
 import type { Zone } from "../../../src/data/zone";
@@ -73,7 +74,7 @@ const PEOPLE: DemoPerson[] = [
   {
     id: "arsaboo",
     name: "Arsaboo",
-    picture: "/assets/arsaboo/images/arsaboo.jpg",
+    picture: demoAssetUrl("arsaboo/images/arsaboo.jpg"),
     latitude: 52.3732,
     longitude: 4.8904,
     timeline: [
@@ -91,7 +92,7 @@ const PEOPLE: DemoPerson[] = [
   {
     id: "melody",
     name: "Melody",
-    picture: "/assets/arsaboo/images/melody.jpg",
+    picture: demoAssetUrl("arsaboo/images/melody.jpg"),
     latitude: 52.373,
     longitude: 4.8901,
     timeline: [
@@ -105,7 +106,7 @@ const PEOPLE: DemoPerson[] = [
   {
     id: "oscar",
     name: "Oscar",
-    picture: "/assets/kernehed/oscar.jpg",
+    picture: demoAssetUrl("kernehed/oscar.jpg"),
     latitude: 52.391,
     longitude: 4.8532,
     timeline: [
@@ -121,7 +122,7 @@ const PEOPLE: DemoPerson[] = [
   {
     id: "bella",
     name: "Bella",
-    picture: "/assets/kernehed/bella.jpg",
+    picture: demoAssetUrl("kernehed/bella.jpg"),
     latitude: 52.365,
     longitude: 4.8795,
     timeline: [
