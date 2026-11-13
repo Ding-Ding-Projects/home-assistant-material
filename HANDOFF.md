@@ -511,6 +511,34 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   the release page; earlier runs of the night were cancelled after their container images
   were out.
 
+- Build 2026.11.1.413 (commit `9a36a2146`, batches 43 to 54) was looked at in a browser on
+  13 November as the published image run as it is: 100 captures over 29 pages, light and
+  dark, wide and phone, with no sideways overflow. Seen right: add a trigger, condition or
+  action at the top of the automation editor with the Simple, Advanced and YAML switch, the
+  single floating save bar, the performance page, the home greeting with its "Needs you"
+  card, the navigation pane with the Owner line, the storage ring, and the 24-hour build
+  stamp. The live instance was moved to it at 02:46 Toronto time and read back as core
+  2026.11.1.413, healthy and supported, answering on the LAN address.
+- Open faults seen on build 413, not fixed: a page error on the built-in overview page in
+  three of four passes, `this._layoutElement.setConfig is not a function` (the reuse path in
+  `frontend/src/panels/lovelace/sections/hui-section.ts` and `views/hui-view.ts` calls
+  `setConfig` on an element that may not be upgraded yet; a guard that waits for the element
+  definition is the likely fix); the welcome banner is cut at the top edge on the wide home
+  page; "Notifications" sits off-centre in the navigation pane.
+- README pictures: seven are from build 413 (home, settings home, System, home on a phone,
+  the automation editor, storage, performance). The animation page keeps its build 371
+  picture because the newer capture had a food toast over it.
+
+- Release `v2026.11.1.413` was read back on 13 November: the workflow run for commit
+  `9a36a2146` ended in success, the release is not a draft and not a prerelease, it targets
+  that commit, it carries 25 files (operating system images for ova, rpi3-64, rpi4-64 and
+  rpi5-64 with their checksum files, the frontend wheel, the Deploy Assistant packages and
+  `stable.json`), and its notes carry the line "Updated: 13 November 2026 at 04:03 EST,
+  which is 2026-11-13 09:03 UTC." Nothing from it was downloaded or installed here; the
+  operating system images of this build have not been booted.
+- Final inventory of 13 November: `main` is the only branch locally and on the remote, there
+  is one checkout and no stash, so the closeout had nothing to delete.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
