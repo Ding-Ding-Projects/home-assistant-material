@@ -26,3 +26,11 @@ reloaded the dashboard, and read the saved configuration back. The screenshot SH
 If the editor reports a duplicate key or invalid value, fix the draft before saving. Use
 **Show code editor** to edit YAML directly. Keep the component's documentation handy when
 adding settings that the component does not describe to Home Assistant.
+
+![The local dashboard fallback editor at 360 pixels with icon, navigation, and entity ordering controls](../../screenshots/dashboard-visual-fallback-360.png)
+
+The local demo built from `b288cdb27626caea30dcaf1914fb81fc3f8d9b42` was captured at
+23:23:49 UTC on 13 November 2026 in isolated Chromium at 360 × 800 and device pixel ratio 1.
+Keyboard ordering retained focus. The selected icon, navigation path, entity order, and
+custom fields survived save, reload, and reopening. The image contains sample data only.
+Its SHA-256 is `6cd39642a34b2511e69f751b9bc4adb20a1d0ece813a6364d32de1d9ef9b1265`.

@@ -30,9 +30,8 @@ Repairs setting and a selected media item. It also passed text insertion, the al
 toggle, and simulated media playback. The local Core image passed JPEG-to-PNG conversion
 and cancellation of a deliberately stalled upload in Chromium at phone width.
 
-Build 429 is available as a normal release with 25 verified downloads. The stable update
-feed advertises build 429. Continue [Release run 43509018387](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43509018387)
-for Core 431's appliance downloads, and read back the normal release and channel when ready.
+Build 431 is available as a normal release with 25 verified downloads. Stable channel revision
+`eeb6c3fdd909339eeb4b907d736db270e36faa47` advertises Core and appliance build 431.
 The published demo for source `79d87a41ce2f30f65f1a517d969f0a994753ef5c` was verified in the
 browser, including the optional Calendar offset and the Repairs configuration.
 The browser demo at source `9249faf8fcf5c442502fb47c1caf15f0024a0c05` ships both modern and
@@ -42,9 +41,10 @@ bottom navigation visible during scrolling. The tests used device emulation.
 The next candidate adds capability-backed to-do, ONVIF, and Sensibo controls and dashboard
 fallback pickers. An isolated browser saved and reopened all three action values and the
 dashboard controls from source `aa645e962a08adc2408f1a0759ff54f70baa09b1`. The later
-to-do permission check passed synthetic revocation and restoration cases. The new to-do
-demo now dispatches sample item updates. Confirm the demo on the final build and verify the
-exact published Core image before applying a live update.
+to-do permission check passed synthetic revocation and restoration cases. The local demo built
+from `b288cdb27626caea30dcaf1914fb81fc3f8d9b42` completed the sample to-do action and retained
+dashboard configuration after reopening. Verify the deployed demo and exact published Core
+image before applying a live update.
 
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,

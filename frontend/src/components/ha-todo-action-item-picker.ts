@@ -1,6 +1,7 @@
 import type { HassEntities } from "home-assistant-js-websocket";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import memoizeOne from "memoize-one";
 import { consume } from "../common/decorators/consume";
 import { fireEvent } from "../common/dom/fire_event";
 import {
@@ -129,6 +130,7 @@ export class HaTodoActionItemPicker extends LitElement {
     return html`<ha-selector-select
       .selector=${selector}
       .value=${this.value}
+      .valueRenderer=${this._renderValue(this._options)}
       .label=${this.label}
       .helper=${this.helper}
       .disabled=${this.disabled}
@@ -136,6 +138,13 @@ export class HaTodoActionItemPicker extends LitElement {
       @value-changed=${this._valueChanged}
     ></ha-selector-select>`;
   }
+
+  private _renderValue = memoizeOne(
+    (options: SelectOption[]) => (value: string) =>
+      html`<span slot="headline"
+        >${options.find((option) => option.value === value)?.label ?? value}</span
+      >`
+  );
 
   private _valueChanged(ev: ValueChangedEvent<string | string[] | undefined>) {
     ev.stopPropagation();

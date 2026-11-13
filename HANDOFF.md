@@ -58,8 +58,9 @@
   and read the value back from Core. It also verified a scene dictionary and a local stylesheet.
 - Build 429 was manually published after its workflow received HTTP 403. The normal release
   has 25 verified downloads. Channel revision `c21f89e338de9467c8950462aa37a9d62b6cc133`
-  advertises Core and operating system build 429. Build 431 is still assembling its operating
-  system downloads in [Release run 43509018387](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43509018387).
+  advertised Core and operating system build 429. The normal [build 431 release](https://github.com/Ding-Ding-Projects/home-assistant-material/releases/tag/v2026.11.1.431)
+  was published at 23:06:58 UTC. All 25 downloads matched the build output by size and SHA-256.
+  Channel revision `eeb6c3fdd909339eeb4b907d736db270e36faa47` advertises build 431.
 - The published demo uses the same source as Core 431. It verified the speech, media, manual
   event, and dashboard editors with sample data. All 120 documentation routes responded.
 - The demo's later browser loader update, `9249faf8fcf5c442502fb47c1caf15f0024a0c05`, includes
@@ -78,8 +79,12 @@
   known fields and operating modes common to the selected units. The fallback dashboard
   editor has icon and navigation pickers and keyboard ordering for compatible entity lists.
 - The browser demo can simulate updates and removals on a sample to-do list. Changes to the
-  automation configuration stay in the browser. Verify the new controls in the built
-  candidate before treating them as delivered.
+  automation configuration stay in the browser. The local build from `b288cdb27626caea30dcaf1914fb81fc3f8d9b42`
+  saved and ran the sample action, completed Milk, and reduced the list count from three to
+  two. The 360 px dashboard check saved and reopened the exact values and retained keyboard
+  focus when moving an entity. The full frontend suite recorded 7,858 passes and the same
+  three Windows build-management failures. Two existing gallery imports still fail the type
+  check. Deployed demo and exact published Core acceptance remain separate.
 
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 

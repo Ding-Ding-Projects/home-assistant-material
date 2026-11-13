@@ -250,11 +250,13 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       the published browser demo.
 - [x] Verify the published Core 431 image in an isolated browser, back up the existing Core,
       and apply the exact image through the full-mode Supervisor.
-- [ ] Verify the normal release and stable update feed for Core 431. First-party action metadata
+- [x] Verify the normal release and stable update feed for Core 431. First-party action metadata
       inventory is in `docs/features/automations/action-selector-coverage.md`.
-- [ ] Verify to-do item picking, ONVIF presets, Sensibo Climate React options, and expanded
-      dashboard fallback controls in a built candidate. The action coverage guide records
-      where provider-supplied metadata is still needed.
+- [x] Verify to-do item selection and execution and expanded dashboard fallback controls in
+      the local browser build. The test data is synthetic.
+- [ ] Verify camera and climate providers on representative hardware. Built demo checks
+      selected an ONVIF preset and a shared Sensibo mode with synthetic metadata. The action
+      coverage guide records where provider-supplied metadata is still needed.
 - [ ] Verify dashboard resource upload, media saving and the phone layout on the released build.
 
 - [x] Test buttons on every condition and every Choose option

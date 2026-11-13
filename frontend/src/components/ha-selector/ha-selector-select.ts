@@ -18,6 +18,7 @@ import "../ha-checkbox";
 import "../ha-dropdown-item";
 import "../ha-generic-picker";
 import type { HaGenericPicker } from "../ha-generic-picker";
+import type { PickerValueRenderer } from "../ha-picker-field";
 import "../ha-button";
 import "../ha-input-helper-text";
 import "../ha-select";
@@ -48,6 +49,9 @@ export class HaSelectSelector extends LitElement {
 
   @property({ attribute: false })
   public localizeValue?: (key: string) => string;
+
+  @property({ attribute: false })
+  public valueRenderer?: PickerValueRenderer;
 
   @property({ type: Boolean }) public disabled = false;
 
@@ -261,6 +265,7 @@ export class HaSelectSelector extends LitElement {
           .required=${this.required}
           .getItems=${this._getItems(options)}
           .value=${typeof this.value === "string" ? this.value : undefined}
+          .valueRenderer=${this.valueRenderer}
           @value-changed=${this._comboBoxValueChanged}
           allow-custom-value
         ></ha-generic-picker>

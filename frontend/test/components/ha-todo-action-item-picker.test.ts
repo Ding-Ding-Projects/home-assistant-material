@@ -1,4 +1,5 @@
 import { ContextProvider } from "@lit/context";
+import { render } from "lit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HaTodoActionItemPicker } from "../../src/components/ha-todo-action-item-picker";
 import {
@@ -75,6 +76,10 @@ const options = (element: HaTodoActionItemPicker) =>
 describe("to-do action item picker data lifecycle", () => {
   it("updates a same-count rename without resubscribing on state updates", async () => {
     const { element, subscribeMessage, changes, states } = await fixture("001");
+    const picker = element.shadowRoot!.querySelector("ha-selector-select")!;
+    const display = document.createElement("div");
+    render(picker.valueRenderer!("001"), display);
+    expect(display.textContent?.trim()).toBe("Milk");
     subscribeMessage.mock.calls[0][0]({
       items: [{ uid: "001", summary: "Bread" }],
     });
@@ -83,6 +88,10 @@ describe("to-do action item picker data lifecycle", () => {
     });
     await element.updateComplete;
     expect(options(element)).toEqual([{ value: "001", label: "Bread" }]);
+    render(picker.valueRenderer!("001"), display);
+    expect(display.textContent?.trim()).toBe("Bread");
+    render(picker.valueRenderer!("manual"), display);
+    expect(display.textContent?.trim()).toBe("manual");
     expect(subscribeMessage).toHaveBeenCalledTimes(1);
     expect(changes).not.toHaveBeenCalled();
     expect(element.value).toBe("001");

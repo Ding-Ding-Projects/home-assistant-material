@@ -15,6 +15,7 @@ const sourceUrl = "https://github.com/Ding-Ding-Projects/home-assistant-material
 const virtualOrigin = "https://documentation.invalid/";
 const bundledImages = new Set([
   "screenshots/automation-speech-dictionary-demo.png",
+  "screenshots/dashboard-visual-fallback-360.png",
   "screenshots/published-repairs-editor.png",
 ]);
 

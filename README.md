@@ -268,6 +268,7 @@ in this file's history.
 ![The automation editor: add a trigger, condition or action at the top, and the Simple, Advanced and YAML switch](docs/screenshots/automation-editor.png)
 ![The published speech demo with a known audio format and a saved custom speed option](docs/screenshots/automation-speech-dictionary-demo.png)
 ![The published Repairs editor at phone width with the Vertical setting enabled](docs/screenshots/published-repairs-editor.png)
+![The local dashboard fallback editor at 360 pixels with icon, navigation, and entity ordering controls](docs/screenshots/dashboard-visual-fallback-360.png)
 ![Storage: a ring for the recorder database and the entities that use the most](docs/screenshots/storage-page.png)
 ![Performance: how a dashboard loads, and the offline cache](docs/screenshots/performance-page.png)
 ![The Devices list: breadcrumb, large title with a summary line, rows as cards](docs/screenshots/list-page-devices.png)
