@@ -3,6 +3,7 @@ import {
   dayAsText,
   entryKey,
   filterNoteDays,
+  filterNoteDaysByRange,
   newKeys,
   notePage,
   toNoteDays,
@@ -65,5 +66,25 @@ describe("dayAsText", () => {
     expect(dayAsText("10 November 2026", days[0].entries)).toBe(
       "10 November 2026\n- Fixed: the rail no longer jumps.\n- Dashboards can be exported."
     );
+  });
+});
+
+describe("filterNoteDaysByRange", () => {
+  const range = [
+    { date: "2026-11-10", entries: [] },
+    { date: "2026-11-05", entries: [] },
+    { date: "2026-11-01", entries: [] },
+  ];
+  it("keeps both ends and leaves an open end open", () => {
+    expect(
+      filterNoteDaysByRange(range, "2026-11-01", "2026-11-05").map(
+        (d) => d.date
+      )
+    ).toEqual(["2026-11-05", "2026-11-01"]);
+    expect(filterNoteDaysByRange(range, "2026-11-06")).toHaveLength(1);
+    expect(filterNoteDaysByRange(range, undefined, "2026-11-04")).toHaveLength(
+      1
+    );
+    expect(filterNoteDaysByRange(range)).toHaveLength(3);
   });
 });

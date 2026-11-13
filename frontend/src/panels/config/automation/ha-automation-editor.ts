@@ -16,13 +16,14 @@ import {
   mdiRobotConfused,
   mdiStopCircleOutline,
   mdiTag,
+  mdiToolboxOutline,
   mdiTransitConnection,
   mdiUndo,
 } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property, query } from "lit/decorators";
+import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { UndoRedoController } from "../../../common/controllers/undo-redo-controller";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -83,6 +84,7 @@ import { showAutomationSaveTimeoutDialog } from "./automation-save-timeout-dialo
 import { ADD_AUTOMATION_ELEMENT_QUERY_PARAM } from "./show-add-automation-element-dialog";
 import "./blueprint-automation-editor";
 import "./ha-automation-bottom-bar";
+import "./tools/ha-automation-tools-panel";
 import type { EditorDomainHooks } from "./ha-automation-script-editor-mixin";
 import {
   AutomationScriptEditorMixin,
@@ -129,6 +131,8 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
   @property({ attribute: false }) public automationId: string | null = null;
 
   @property({ attribute: false }) public automations!: AutomationEntity[];
+
+  @state() private _toolsOpen = false;
 
   @query("manual-automation-editor")
   private _manualEditor?: HaManualAutomationEditor;
@@ -394,6 +398,20 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                     "ui.panel.config.automation.editor.show_history"
                   )}
                   <ha-svg-icon slot="icon" .path=${mdiHistory}></ha-svg-icon>
+                </ha-dropdown-item>`
+              : nothing
+          }
+
+          ${
+            !useBlueprint
+              ? html`<ha-dropdown-item value="tools">
+                  ${this.hass.localize(
+                    "ui.panel.config.automation.editor.tools.title" as any
+                  )}
+                  <ha-svg-icon
+                    slot="icon"
+                    .path=${mdiToolboxOutline}
+                  ></ha-svg-icon>
                 </ha-dropdown-item>`
               : nothing
           }
@@ -691,6 +709,19 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
             @automation-bar-run=${this._runActions}
           ></ha-automation-bottom-bar>
         </div>
+        ${
+          this._toolsOpen && !useBlueprint
+            ? html`<ha-automation-tools-panel
+                .hass=${this.hass}
+                .config=${this.config}
+                .automationId=${this.automationId ?? undefined}
+                .entityId=${stateObj?.entity_id}
+                .narrow=${this.narrow}
+                .applyConfig=${this._applyToolConfig}
+                @closed=${this._closeTools}
+              ></ha-automation-tools-panel>`
+            : nothing
+        }
       </hass-subpage>
     `;
   }
@@ -1405,8 +1436,19 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       case "history":
         this._showHistory();
         break;
+      case "tools":
+        this._toolsOpen = true;
+        break;
     }
   }
+
+  private _closeTools = () => {
+    this._toolsOpen = false;
+  };
+
+  private _applyToolConfig = (config: AutomationConfig) => {
+    this._updateConfig(config);
+  };
 
   private async _showHistory() {
     if (this.config?.id) {

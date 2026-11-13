@@ -2691,9 +2691,11 @@ export class HaRegexWorkbench extends LitElement {
         border-radius: var(--ha-border-radius-4xl);
         background-color: var(--primary-background-color);
         color: var(--primary-text-color);
-        box-shadow:
+        box-shadow: var(
+          --ha-shadow-overlay,
           0 8px 12px 6px rgba(0, 0, 0, 0.12),
-          0 4px 4px rgba(0, 0, 0, 0.2);
+          0 4px 4px rgba(0, 0, 0, 0.2)
+        );
         overflow: hidden;
         flex-direction: column;
         text-align: start;

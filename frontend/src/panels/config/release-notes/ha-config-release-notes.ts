@@ -11,6 +11,7 @@ import { searchMatcher } from "../../../common/regex/filter";
 import "../../../components/ha-button";
 import "../../../components/ha-markdown";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-date-input";
 import { rewriteArticleLinks } from "../../../components/help/help-article-path";
 import "../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../components/input/ha-input-search";
@@ -24,6 +25,7 @@ import type { NoteDay, NoteFilter } from "./release-notes-data";
 import {
   dayAsText,
   filterNoteDays,
+  filterNoteDaysByRange,
   newKeys,
   readSeen,
   toNoteDays,
@@ -59,6 +61,10 @@ class HaConfigReleaseNotes extends LitElement {
   @state() private _filter = "";
 
   @state() private _chip: NoteFilter = "all";
+
+  @state() private _from?: string;
+
+  @state() private _to?: string;
 
   @state() private _notes: Record<string, NotesState> = {};
 
@@ -102,7 +108,8 @@ class HaConfigReleaseNotes extends LitElement {
   protected render(): TemplateResult {
     const all = this._days ?? [];
     const matches = searchMatcher(this._filter);
-    const days = filterNoteDays(all, this._chip, this._new, matches);
+    const inRange = filterNoteDaysByRange(all, this._from, this._to);
+    const days = filterNoteDays(inRange, this._chip, this._new, matches);
     const total = all.reduce((sum, day) => sum + day.entries.length, 0);
     const shown = days.reduce((sum, day) => sum + day.entries.length, 0);
     const search = this._l("search");
@@ -132,6 +139,34 @@ class HaConfigReleaseNotes extends LitElement {
                   )}
                   @input=${this._filterChanged}
                 ></ha-input-search>
+                <div class="range">
+                  <ha-date-input
+                    .locale=${this.hass.locale}
+                    .label=${this._l("from")}
+                    .value=${this._from}
+                    .max=${this._to}
+                    can-clear
+                    @value-changed=${this._fromChanged}
+                  ></ha-date-input>
+                  <ha-date-input
+                    .locale=${this.hass.locale}
+                    .label=${this._l("to")}
+                    .value=${this._to}
+                    .min=${this._from}
+                    can-clear
+                    @value-changed=${this._toChanged}
+                  ></ha-date-input>
+                  ${
+                    this._from || this._to
+                      ? html`<ha-button
+                          size="s"
+                          appearance="plain"
+                          @click=${this._clearDates}
+                          >${this._l("clear_dates")}</ha-button
+                        >`
+                      : nothing
+                  }
+                </div>
                 <div class="chips" role="group" aria-label=${this._l("show")}>
                   ${FILTERS.map(
                     (chip) =>
@@ -330,6 +365,19 @@ class HaConfigReleaseNotes extends LitElement {
     this._filter = (ev.target as HaInputSearch).value ?? "";
   }
 
+  private _fromChanged(ev: CustomEvent<{ value?: string }>): void {
+    this._from = ev.detail.value || undefined;
+  }
+
+  private _toChanged(ev: CustomEvent<{ value?: string }>): void {
+    this._to = ev.detail.value || undefined;
+  }
+
+  private _clearDates(): void {
+    this._from = undefined;
+    this._to = undefined;
+  }
+
   private _pickChip(ev: Event): void {
     this._chip = (ev.currentTarget as HTMLElement).dataset.chip as NoteFilter;
   }
@@ -407,11 +455,17 @@ class HaConfigReleaseNotes extends LitElement {
           min-width: 0;
         }
         .filters,
+        .range,
         .chips {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-2);
+        }
+        ha-date-input {
+          flex: 1 1 160px;
+          min-width: 140px;
+          max-width: 220px;
         }
         ha-input-search {
           flex: 1 1 240px;

@@ -424,7 +424,37 @@ class HaConfigGuidedSetup extends LitElement {
       .content:not(.narrow) .grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        column-gap: var(--ha-space-4);
+        gap: var(--ha-space-3);
+      }
+      /* Wide: each integration is a rounded card. */
+      .content:not(.narrow) .grid .pick {
+        height: 100%;
+        min-height: 72px;
+        border: 1px solid var(--ha-color-outline, var(--divider-color));
+        border-radius: var(--ha-border-radius-xl, 20px);
+        background: var(--card-background-color);
+        box-shadow: var(--ha-shadow-card, none);
+        padding: var(--ha-space-4);
+      }
+      .content:not(.narrow) .grid .pick:hover {
+        background: var(
+          --ha-color-surface-tone-2,
+          var(--secondary-background-color)
+        );
+      }
+      /* Narrow: the list is one rounded group of rows. */
+      .content.narrow ul.rows {
+        border: 1px solid var(--ha-color-outline, var(--divider-color));
+        border-radius: var(--ha-border-radius-xl, 20px);
+        background: var(--card-background-color);
+        overflow: hidden;
+        margin-bottom: var(--ha-space-4);
+      }
+      .content.narrow ul.rows .row {
+        min-height: 56px;
+      }
+      .content.narrow ul.rows li:last-child .row {
+        border-bottom: 0;
       }
       .content:not(.narrow) {
         max-width: 1100px;

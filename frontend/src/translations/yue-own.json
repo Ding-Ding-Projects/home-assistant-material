@@ -398,6 +398,8 @@
           "reset_all_note": "將呢頁所有設定還原做預設值。",
           "more": "更多",
           "groups_label": "分組",
+          "overview_label": "你嘅設定一覽",
+          "overview_open": "去「{name}」",
           "row_details": "顯示「{name}」嘅詳情",
           "preview_only": "只係預覽",
           "reset_all_title": "還原所有個人設定？",
@@ -2173,7 +2175,7 @@
       "teleport": "瞬間轉移",
       "all_problems": "全部問題",
       "list_title": "喺 app 入面搵到嘅問題",
-      "count": "{count, plural,\n one {1 個問題}\n other {# 個問題}\n}",
+      "count": "{count} 個問題",
       "location": {
         "card": "儀表板 › {card}",
         "step": "自動化 › {step}"

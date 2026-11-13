@@ -165,7 +165,12 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
           ></ha-activity-tray>
           ${
             notifications.length
-              ? html`<div class="list-container">
+              ? html`<p class="summary" role="status">
+                    ${this.hass.localize("ui.notification_drawer.count", {
+                      count: notifications.length,
+                    })}
+                  </p>
+                  <div class="list-container">
                     <lit-virtualizer
                       .items=${notifications}
                       .renderItem=${this._renderItem}
@@ -262,11 +267,19 @@ export class HuiNotificationDrawer extends KeyboardShortcutMixin(LitElement) {
         var(--safe-area-inset-right, 0px) 0 var(--safe-area-inset-left, 0px);
     }
 
+    .summary {
+      flex: 0 0 auto;
+      margin: 0;
+      padding: var(--ha-space-3) var(--ha-space-4) 0;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+
     .list-container {
       flex: 1 1 auto;
       min-height: 0;
       overflow: auto;
-      padding-top: var(--ha-space-4);
+      padding-top: var(--ha-space-3);
     }
 
     .notifications {

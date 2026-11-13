@@ -8,7 +8,7 @@ import {
   state,
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
-import { mdiCheckCircle, mdiDotsVertical } from "@mdi/js";
+import { mdiCheckCircle, mdiChevronRight, mdiDotsVertical } from "@mdi/js";
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import {
   ACCESSIBILITY_STORAGE_KEY,
@@ -1159,6 +1159,7 @@ export class HaConfigSectionPersonal extends LitElement {
                 </p>`
               : nothing
           }
+          ${searching ? nothing : this._renderOverview(rows)}
           <div class="layout">
             <div class="pin">
               ${
@@ -1264,6 +1265,46 @@ export class HaConfigSectionPersonal extends LitElement {
     `;
   }
 
+  /** The main settings with their current value; each opens its row. */
+  private _renderOverview(rows: Row[]): TemplateResult | symbol {
+    const shown = rows.filter((row) => row.id in ROW_FIELD);
+    if (!shown.length) {
+      return nothing;
+    }
+    return html`
+      <nav class="overview" aria-label=${this._t("overview_label")}>
+        ${shown.map(
+          (row) => html`
+            <button
+              type="button"
+              class="overview-item"
+              data-row=${row.id}
+              aria-label=${this._t("overview_open", { name: row.label })}
+              @click=${this._goToRow}
+            >
+              <span class="overview-label">${row.label}</span>
+              <span class="overview-value">${row.valueText}</span>
+              <ha-svg-icon
+                class="overview-chevron"
+                .path=${mdiChevronRight}
+              ></ha-svg-icon>
+            </button>
+          `
+        )}
+      </nav>
+    `;
+  }
+
+  private _goToRow = (ev: Event) => {
+    const id = (ev.currentTarget as HTMLElement).dataset.row as string;
+    const target = this.shadowRoot?.getElementById(id);
+    target?.scrollIntoView({
+      behavior: this._scrollBehavior(),
+      block: "center",
+    });
+    target?.querySelector<HTMLElement>(".row-label, button, input")?.focus();
+  };
+
   private _renderGroup(
     group: GroupId,
     rows: Row[],
@@ -1285,7 +1326,9 @@ export class HaConfigSectionPersonal extends LitElement {
               ? html`<p class="group-note">${this._bl("playfulness_note")}</p>`
               : nothing
           }
-          ${inGroup.map((row) => this._renderRow(row, searching))}
+          <div class=${`rows rows-${group}`}>
+            ${inGroup.map((row) => this._renderRow(row, searching))}
+          </div>
           ${
             group === "modes"
               ? html`<div class="info" role="note">
@@ -2027,6 +2070,71 @@ export class HaConfigSectionPersonal extends LitElement {
       margin: 0;
       color: var(--secondary-text-color);
     }
+    .overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--ha-space-3);
+    }
+    .overview-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "label chevron" "value chevron";
+      align-items: center;
+      gap: var(--ha-space-1) var(--ha-space-2);
+      min-height: 64px;
+      padding: var(--ha-space-3) var(--ha-space-4);
+      border: 1px solid var(--ha-color-outline, var(--divider-color));
+      border-radius: var(--ha-border-radius-xl, 20px);
+      background: var(--card-background-color);
+      box-shadow: var(--ha-shadow-card, none);
+      color: var(--primary-text-color);
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
+    }
+    .overview-item:hover {
+      background: var(
+        --ha-color-surface-tone-2,
+        var(--secondary-background-color)
+      );
+    }
+    .overview-item:focus-visible {
+      outline: 2px solid var(--primary-color);
+    }
+    .overview-label {
+      grid-area: label;
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+      overflow-wrap: anywhere;
+    }
+    .overview-value {
+      grid-area: value;
+      font-weight: var(--ha-font-weight-semibold, 600);
+      font-size: var(--ha-font-size-l);
+      overflow-wrap: anywhere;
+    }
+    .overview-chevron {
+      grid-area: chevron;
+      color: var(--secondary-text-color);
+    }
+    .narrow .overview {
+      grid-template-columns: 1fr;
+      gap: 0;
+      border-radius: var(--ha-border-radius-xl, 20px);
+      overflow: hidden;
+      border: 1px solid var(--ha-color-outline, var(--divider-color));
+      background: var(--card-background-color);
+    }
+    .narrow .overview-item {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      border-top: 1px solid var(--divider-color);
+      min-height: 56px;
+    }
+    .narrow .overview-item:first-child {
+      border-top: 0;
+    }
     .layout {
       display: grid;
       grid-template-columns: 200px minmax(0, 1fr) 320px;
@@ -2134,6 +2242,20 @@ export class HaConfigSectionPersonal extends LitElement {
       gap: var(--ha-space-1);
       padding: var(--ha-space-3) 0;
       border-top: 1px solid var(--divider-color);
+    }
+    /* Focus modes sit side by side as cards, each with its own state. */
+    .rows-modes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: var(--ha-space-3);
+      padding-top: var(--ha-space-3);
+    }
+    .rows-modes > .row {
+      border: 1px solid var(--ha-color-outline, var(--divider-color));
+      border-radius: 20px;
+      padding: var(--ha-space-4);
+      background: var(--ha-color-surface-tone-1, var(--card-background-color));
+      min-width: 0;
     }
     .row-main {
       display: flex;

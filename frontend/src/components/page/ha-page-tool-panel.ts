@@ -1682,13 +1682,43 @@ export class HaPageToolPanel extends LitElement {
       flex-direction: column;
       gap: var(--ha-space-2);
     }
+    /* A timeline: a rail down the list and a dot at each change. */
+    .entries {
+      position: relative;
+      padding-inline-start: var(--ha-space-5);
+    }
+    .entries::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: var(--ha-space-2);
+      top: var(--ha-space-3);
+      bottom: var(--ha-space-3);
+      width: 2px;
+      border-radius: 1px;
+      background: var(--ha-color-outline, var(--divider-color));
+    }
     .entries li {
+      position: relative;
       padding: var(--ha-space-3);
       border-radius: var(--ha-border-radius-lg);
       background: var(--primary-background-color);
       display: flex;
       flex-direction: column;
       gap: var(--ha-space-2);
+    }
+    .entries li::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: calc(
+        -1 * var(--ha-space-5) + var(--ha-space-2) - 4px
+      );
+      top: var(--ha-space-4);
+      width: 10px;
+      height: 10px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      background: var(--primary-color);
+      border: 2px solid var(--card-background-color);
     }
     .entry-text {
       display: flex;

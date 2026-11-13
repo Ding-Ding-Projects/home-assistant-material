@@ -128,12 +128,27 @@ describe("the Cantonese source", () => {
     yueKeys().forEach((key) => expect(english[key], key).toBeTypeOf("string"));
   });
 
+  // A name English uses only to choose a plural form ("{count, plural, ...}")
+  // is optional in Cantonese, which has no plural forms. Every other name
+  // must appear, and no name English lacks may appear.
+  const plainPlaceholders = (text: string) =>
+    [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]);
+
   it("uses the same placeholders as English", () => {
-    yueKeys().forEach((key) =>
-      expect(placeholders(yueString(key)!), key).toEqual(
-        [...new Set(placeholders(resolve(english[key])))].sort()
-      )
-    );
+    yueKeys().forEach((key) => {
+      const source = resolve(english[key]);
+      const all = new Set(placeholders(source));
+      const required = new Set(plainPlaceholders(source));
+      const used = new Set(placeholders(yueString(key)!));
+      expect(
+        [...used].filter((name) => !all.has(name)),
+        `${key}: unknown`
+      ).toEqual([]);
+      expect(
+        [...required].filter((name) => !used.has(name)),
+        `${key}: missing`
+      ).toEqual([]);
+    });
   });
 
   it("uses no plural or select rules", () => {

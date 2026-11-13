@@ -393,21 +393,48 @@ export class HaLockPinEntry extends LitElement {
       gap: var(--ha-space-2);
       min-height: 12px;
     }
+    .dots {
+      gap: var(--ha-space-3);
+      min-height: 16px;
+      margin-block: var(--ha-space-2);
+    }
     .dots span {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       box-sizing: border-box;
       border-radius: 50%;
-      border: 2px solid var(--secondary-text-color);
+      border: 0;
+      background: var(--ha-color-surface-tone-3, var(--divider-color));
     }
     .dots span.filled {
       background: var(--primary-color);
-      border-color: var(--primary-color);
+      animation: pin-dot-pop var(--ha-animation-duration-enter, 200ms)
+        var(--ha-motion-spring, ease-out);
+    }
+    @keyframes pin-dot-pop {
+      from {
+        transform: scale(0.6);
+      }
     }
     .pad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: var(--ha-space-2);
+      gap: var(--ha-space-3);
+    }
+    button.key.digit {
+      font-weight: 500;
+      font-size: var(--ha-font-size-2xl, 1.5rem);
+      background: var(
+        --ha-color-surface-tone-2,
+        var(--secondary-background-color)
+      );
+    }
+    button.key.digit:active {
+      background: var(
+        --ha-color-primary-container,
+        var(--secondary-background-color)
+      );
+      color: var(--ha-color-on-primary-container, var(--primary-text-color));
     }
     button {
       border: 1px solid var(--divider-color);
@@ -476,6 +503,9 @@ export class HaLockPinEntry extends LitElement {
     @media (prefers-reduced-motion: reduce) {
       button {
         transition: none;
+      }
+      .dots span.filled {
+        animation: none;
       }
     }
   `;

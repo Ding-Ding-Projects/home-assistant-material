@@ -625,12 +625,20 @@ export class HaLockList extends LitElement {
       background: none;
     }
     button.chip.on {
-      background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+      background: var(
+        --ha-color-primary-container,
+        color-mix(in srgb, var(--primary-color) 18%, transparent)
+      );
+      color: var(--ha-color-on-primary-container, var(--primary-text-color));
       border-color: transparent;
     }
     button.tonal {
       border-color: transparent;
-      background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+      background: var(
+        --ha-color-primary-container,
+        color-mix(in srgb, var(--primary-color) 16%, transparent)
+      );
+      color: var(--ha-color-on-primary-container, var(--primary-text-color));
     }
     button.text {
       border-color: transparent;
@@ -678,8 +686,11 @@ export class HaLockList extends LitElement {
       align-items: center;
       gap: var(--ha-space-3);
       padding: var(--ha-space-2) var(--ha-space-3);
-      border-radius: var(--ha-border-radius-lg);
-      background: var(--secondary-background-color);
+      border-radius: var(--ha-border-radius-xl, 18px);
+      background: var(
+        --ha-color-surface-tone-1,
+        var(--secondary-background-color)
+      );
     }
     .pick {
       min-width: 0;
@@ -722,7 +733,11 @@ export class HaLockList extends LitElement {
       font-size: var(--ha-font-size-s, 0.85rem);
     }
     .state.open {
-      background: color-mix(in srgb, var(--success-color) 28%, transparent);
+      background: var(
+        --ha-color-success-container,
+        color-mix(in srgb, var(--success-color) 28%, transparent)
+      );
+      color: var(--ha-color-on-success-container, inherit);
     }
     .actions {
       display: flex;
@@ -801,6 +816,15 @@ export class HaLockList extends LitElement {
       padding: var(--ha-space-4);
       border-radius: var(--ha-border-radius-3xl) var(--ha-border-radius-3xl) 0 0;
       background: var(--card-background-color, #fff);
+      box-shadow: var(--ha-shadow-overlay, none);
+    }
+    .sheet::before {
+      content: "";
+      justify-self: center;
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--ha-color-outline, var(--divider-color));
     }
     .sheet h4 {
       margin: 0;

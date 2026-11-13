@@ -63,6 +63,17 @@ import "../ha-switch";
 
 type FontRole = "heading" | "body" | "code";
 
+const COLOR_TOKENS = [
+  { key: "primary", token: "--primary-color" },
+  { key: "primary_container", token: "--ha-color-primary-container" },
+  { key: "tertiary_container", token: "--ha-color-tertiary-container" },
+  { key: "error", token: "--error-color" },
+  { key: "surface", token: "--card-background-color" },
+  { key: "surface_high", token: "--ha-color-surface-tone-2" },
+  { key: "outline", token: "--ha-color-outline" },
+  { key: "warning", token: "--warning-color" },
+];
+
 const ROLES: { role: FontRole; field: keyof ReadingOptions }[] = [
   { role: "heading", field: "headingFont" },
   { role: "body", field: "bodyFont" },
@@ -132,6 +143,29 @@ export class HaAppearanceFonts extends LitElement {
 
   private _l(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(`ui.accessibility_tools.${key}` as any, values);
+  }
+
+  /** The theme colours in use, each shown as a swatch with its token name. */
+  private _renderTokens(): TemplateResult {
+    return html`
+      <div class="tokens" role="group" aria-label=${this._l("tokens_title")}>
+        <span class="eyebrow">${this._l("tokens_title")}</span>
+        <div class="token-grid">
+          ${COLOR_TOKENS.map(
+            ({ key, token }) => html`
+              <div class="token">
+                <span
+                  class="token-swatch"
+                  style=${styleMap({ background: `var(${token})` })}
+                ></span>
+                <span class="token-name">${this._l(`tokens_${key}`)}</span>
+                <code class="token-var">${token}</code>
+              </div>
+            `
+          )}
+        </div>
+      </div>
+    `;
   }
 
   protected render(): TemplateResult {
@@ -214,7 +248,7 @@ export class HaAppearanceFonts extends LitElement {
             <h4>${this._l("fonts_preview_room")}</h4>
             <p>${this._l("fonts_preview_text")}</p>
             <code>${this._l("fonts_preview_code")}</code>
-            ${this._renderScalePreview()}
+            ${this._renderScalePreview()} ${this._renderTokens()}
             ${
               this._contrast === undefined
                 ? nothing
@@ -618,6 +652,38 @@ export class HaAppearanceFonts extends LitElement {
     .text-button.small {
       justify-self: start;
       min-height: 44px;
+    }
+    .tokens {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-2);
+      padding-top: var(--ha-space-2);
+      border-top: 1px solid var(--divider-color);
+    }
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: var(--ha-space-2);
+    }
+    .token {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-1);
+      min-width: 0;
+    }
+    .token-swatch {
+      height: 48px;
+      border-radius: var(--ha-border-radius-lg, 12px);
+      border: 1px solid var(--divider-color);
+    }
+    .token-name {
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .token-var {
+      font-size: var(--ha-font-size-xs, 12px);
+      color: var(--secondary-text-color);
+      overflow-wrap: anywhere;
     }
     .scale-preview {
       display: flex;

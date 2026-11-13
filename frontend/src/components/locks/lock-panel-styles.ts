@@ -51,7 +51,7 @@ export const lockPanelStyles = css`
     border-radius: var(--ha-border-radius-3xl);
     background: var(--card-background-color, #fff);
     color: var(--primary-text-color);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--ha-shadow-overlay, 0 8px 24px rgba(0, 0, 0, 0.28));
     border: 1px solid var(--divider-color);
     display: grid;
     gap: var(--ha-space-3);
@@ -136,6 +136,16 @@ export const lockPanelStyles = css`
   .error {
     color: var(--error-color);
   }
+  .callout.error {
+    background: var(
+      --ha-color-error-container,
+      var(--secondary-background-color)
+    );
+    color: var(--ha-color-on-error-container, var(--error-color));
+  }
+  .callout.error ha-svg-icon {
+    color: inherit;
+  }
   .ok {
     color: var(--success-color);
   }
@@ -158,8 +168,11 @@ export const lockPanelStyles = css`
     font-size: var(--ha-font-size-s, 0.85rem);
   }
   .chips li[aria-current="step"] {
-    background: color-mix(in srgb, var(--primary-color) 18%, transparent);
-    color: var(--primary-text-color);
+    background: var(
+      --ha-color-primary-container,
+      color-mix(in srgb, var(--primary-color) 18%, transparent)
+    );
+    color: var(--ha-color-on-primary-container, var(--primary-text-color));
     font-weight: 600;
   }
   .chips li.done {

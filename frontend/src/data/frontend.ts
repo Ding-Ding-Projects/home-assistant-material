@@ -13,6 +13,22 @@ export interface CoreFrontendUserData {
   dashboard_favorite_card_types?: string[];
   /** Cards saved from the dashboard editor tools to insert again later. */
   dashboard_card_templates?: DashboardCardTemplate[];
+  /** The user's own card library, with versions. */
+  dashboard_card_library?: CardLibraryEntry[];
+}
+
+/** One saved version of a card in the user's own card library. */
+export interface CardLibraryVersion {
+  at: number;
+  card: Record<string, unknown>;
+}
+
+/** A card kept in the user's own library, with every saved version, newest last. */
+export interface CardLibraryEntry {
+  id: string;
+  name: string;
+  created: number;
+  versions: CardLibraryVersion[];
 }
 
 export interface DashboardCardTemplate {

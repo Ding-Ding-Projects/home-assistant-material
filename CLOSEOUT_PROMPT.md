@@ -175,6 +175,60 @@ product matching it.
   Next: one pass per canvas for the page-specific layouts (24 everyday, 25 settings,
   26 system and tools, 27 protocols and entity dialogs).
 
+- Build 347 (batches 41 and 42 plus the problem detector and NFC unlock from another lane)
+  was viewed on a throwaway instance in light and dark at 1440, 390 and 320 px: 14 pages, no
+  page errors, no sideways overflow, colours and cards read well in both themes. The live
+  full-mode instance was moved to it at about 7:49 pm Toronto time on 12 November: core
+  2026.11.1.347, Supervisor 2026.11.0.347, healthy, supported.
+  Defect seen: on a wide window the automation editor shows the new floating action bar
+  over the older status bar and its own Save button, so Save appears twice. Not fixed yet.
+  Owner feedback the same evening: the running interface still does not look like the
+  boards. The gap is the shell: the boards show one side pane (brand, search, Pages, System,
+  the person) as a floating card, the page in a second card with a breadcrumb, a large title,
+  one summary line and a single floating tool pill; the build shows a rail, a top tab strip
+  and a row of ten tool icons, and on a phone a square bottom bar with Access where the
+  board has Settings. "One navigation pane" exists but is off by default.
+- Batch 43: media browser header and the embedded page as cards (canvas 24).
+- Batch 44, canvases 28, 29 and 30, unit tested only, nothing seen in a browser:
+  - Automation editor, a new Tools entry in the editor menu (dialog on wide, bottom sheet on
+    a phone) built from `frontend/src/panels/config/automation/tools/registry.ts`: flow view
+    with minimap; trace list for stored runs; simulator on the existing dry run (time,
+    weekday, zone, state and numeric conditions; others reported as "cannot tell"; never
+    calls a service); conflict and loop detector (static, worded as possibilities); plain
+    language (configuration to sentences; two sentence patterns to a draft); steps on and
+    off; variable and template inspector with live previews; blueprint maker (copy YAML) and
+    a snippet library kept per browser; health score with its formula on screen; week ahead
+    for time and time pattern triggers; entity swap across automations with review and one
+    save per automation.
+    Not built: breakpoints that pause a live run (the server has no such mechanism), replay
+    of a recorded day, coverage of test cases (no saved test cases exist), locks on steps.
+  - Dashboard editor, new entries in the dashboard tools dialog
+    (`dashboard-tools-dialog/registry.ts`, `editor/tools/`): four same-origin frames of the
+    saved view side by side; grid columns and rows per card in sections views; the existing
+    visibility editor per card; tap, hold and double tap actions; style properties cards
+    really read, copy and paste of them, a theme per view; state simulator on a copy of the
+    states in inert previews; entity inspector with swap; accessibility scan (contrast,
+    target size, missing names, with "not judged" where it cannot tell; no Fix); wall panel
+    (clock screensaver, view rotation, night dimming; per browser, off by default; started
+    from `ha-panel-lovelace.ts`); card library with versions in frontend user data
+    (`dashboard_card_library`); per-card redraw time; named checkpoints and a structural
+    diff. The tools dialog itself was restyled; it is still a centred dialog, not a side
+    panel or a sheet.
+    Not built: free pixel layout, per-gesture animation, radius and shadow overrides,
+    "phone friendly" warnings, share as an extension, first-draw and subscription counts.
+  - Canvas 28 and 29 polish: PIN keypad, lock wizard cards, lock list and two-key control on
+    container tokens; personal settings "at a glance" tiles; guided setup cards; a count
+    line in the notification drawer; date range on release notes; a timeline rail in page
+    history and in personal schedules; focus modes as cards; a token swatch grid in the fonts
+    dialog; the wording drop zone outline.
+    Not built or not compared: three-column pattern workbench, New tab filter chips, the
+    typed-word-then-hold confirmation, the accessibility tools as tiles, the appearance
+    editor as a tabbed page, a floating bulk action bar (needs the shared table layout),
+    Ollama, Minecraft, editor and forge pages, the motion editor, guidance notes, the
+    decisions boards of canvas 29.
+  - The Cantonese source now covers `ui.problems.`; its test accepts a name English uses
+    only to choose a plural form as optional in Cantonese.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

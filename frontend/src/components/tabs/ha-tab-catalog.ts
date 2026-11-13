@@ -168,9 +168,11 @@ export class TabCatalogController {
       border-radius: var(--ha-border-radius-4xl);
       background-color: var(--primary-background-color);
       color: var(--primary-text-color);
-      box-shadow:
+      box-shadow: var(
+        --ha-shadow-overlay,
         0 4px 8px 3px rgba(0, 0, 0, 0.1),
-        0 1px 3px rgba(0, 0, 0, 0.2);
+        0 1px 3px rgba(0, 0, 0, 0.2)
+      );
       overflow: hidden;
       flex-direction: column;
       gap: var(--ha-space-2);
@@ -187,7 +189,7 @@ export class TabCatalogController {
     .catalog-title {
       flex: 1;
       font-size: var(--ha-font-size-l);
-      font-weight: var(--ha-font-weight-medium);
+      font-weight: var(--ha-font-weight-title, var(--ha-font-weight-medium));
     }
     #catalog-search {
       --ha-input-search-height: var(--ha-space-12);

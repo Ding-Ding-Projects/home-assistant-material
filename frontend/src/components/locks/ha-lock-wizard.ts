@@ -1191,8 +1191,11 @@ export class HaLockWizard extends LitElement {
         display: flex;
       }
       .callout.bad {
-        background: color-mix(in srgb, var(--error-color) 18%, transparent);
-        color: var(--primary-text-color);
+        background: var(
+          --ha-color-error-container,
+          color-mix(in srgb, var(--error-color) 18%, transparent)
+        );
+        color: var(--ha-color-on-error-container, var(--primary-text-color));
       }
       .segments {
         display: grid;
@@ -1254,7 +1257,10 @@ export class HaLockWizard extends LitElement {
         color: var(--text-primary-color, #fff);
       }
       .current .mark {
-        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+        background: var(
+          --ha-color-primary-container,
+          color-mix(in srgb, var(--primary-color) 18%, transparent)
+        );
         border-color: transparent;
         font-weight: 600;
       }
@@ -1345,7 +1351,26 @@ export class HaLockWizard extends LitElement {
         cursor: pointer;
       }
       .choice.selected {
-        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+        background: var(
+          --ha-color-primary-container,
+          color-mix(in srgb, var(--primary-color) 18%, transparent)
+        );
+        color: var(--ha-color-on-primary-container, inherit);
+      }
+      /* The method cards: one big card per way to unlock, the chosen one outlined. */
+      .choice.card {
+        border: 1.5px solid var(--ha-color-outline, var(--divider-color));
+        border-radius: var(--ha-border-radius-2xl, 20px);
+        padding: var(--ha-space-4);
+        min-height: 72px;
+      }
+      .choice.card.selected {
+        border: 2px solid var(--primary-color);
+        padding: calc(var(--ha-space-4) - 0.5px);
+      }
+      .choice.card .card-desc {
+        color: inherit;
+        opacity: 0.8;
       }
       .check {
         display: flex;
@@ -1374,8 +1399,11 @@ export class HaLockWizard extends LitElement {
         text-align: end;
       }
       .callout.ok {
-        background: color-mix(in srgb, var(--success-color) 22%, transparent);
-        color: var(--primary-text-color);
+        background: var(
+          --ha-color-success-container,
+          color-mix(in srgb, var(--success-color) 22%, transparent)
+        );
+        color: var(--ha-color-on-success-container, var(--primary-text-color));
       }
     `,
   ];

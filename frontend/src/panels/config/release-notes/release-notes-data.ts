@@ -102,6 +102,14 @@ export const filterNoteDays = (
     }))
     .filter((day) => day.entries.length);
 
+/** The days between two ISO dates, both included; either end may be open. */
+export const filterNoteDaysByRange = (
+  days: NoteDay[],
+  from?: string,
+  to?: string
+): NoteDay[] =>
+  days.filter((day) => (!from || day.date >= from) && (!to || day.date <= to));
+
 /** A day's notes as plain text, ready to paste. */
 export const dayAsText = (heading: string, entries: NoteEntry[]): string =>
   [heading, ...entries.map((entry) => `- ${entry.text}`)].join("\n");

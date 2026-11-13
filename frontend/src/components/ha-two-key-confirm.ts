@@ -290,8 +290,8 @@ export class HaTwoKeyConfirm extends LitElement {
       align-items: center;
       gap: var(--ha-space-1);
       padding: var(--ha-space-4) var(--ha-space-3);
-      border: 2px solid var(--outline-color);
-      border-radius: var(--ha-border-radius-xl);
+      border: 2px solid var(--ha-color-outline, var(--outline-color));
+      border-radius: var(--ha-border-radius-2xl, var(--ha-border-radius-xl));
       background: var(--primary-background-color);
       color: var(--primary-text-color);
       font: inherit;
@@ -308,11 +308,18 @@ export class HaTwoKeyConfirm extends LitElement {
     }
     .key.turned {
       border-color: transparent;
-      background: color-mix(
-        in srgb,
-        var(--success-color) 30%,
-        var(--primary-background-color)
+      background: var(
+        --ha-color-success-container,
+        color-mix(
+          in srgb,
+          var(--success-color) 30%,
+          var(--primary-background-color)
+        )
       );
+      color: var(--ha-color-on-success-container, var(--primary-text-color));
+    }
+    .key.turned span {
+      color: inherit;
     }
     .key:focus-visible {
       outline: 3px solid var(--primary-color);

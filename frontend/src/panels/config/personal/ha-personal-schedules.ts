@@ -1309,6 +1309,37 @@ export class HaPersonalSchedules extends LitElement {
       border-radius: 16px;
       background: var(--secondary-background-color);
     }
+    /* A timeline: a rail runs down the list and each rule hangs a dot on it. */
+    .rules {
+      position: relative;
+      padding-inline-start: var(--ha-space-6, 24px);
+    }
+    .rules::before {
+      content: "";
+      position: absolute;
+      inset-block: var(--ha-space-4);
+      inset-inline-start: 6px;
+      width: 2px;
+      border-radius: 1px;
+      background: var(--ha-color-outline, var(--divider-color));
+    }
+    .rule {
+      position: relative;
+    }
+    .rule::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: calc(-1 * var(--ha-space-6, 24px) + 1px);
+      inset-block-start: 50%;
+      width: 12px;
+      height: 12px;
+      margin-top: -6px;
+      border-radius: 50%;
+      background: var(--primary-color);
+    }
+    .rule.off::before {
+      background: var(--ha-color-outline, var(--divider-color));
+    }
     .rule.editing {
       outline: 2px solid var(--primary-color);
     }

@@ -34,6 +34,10 @@ import type { HomeAssistant, PanelInfo, Route } from "../../types";
 import { showToast } from "../../util/toast";
 import { loadLovelaceResources } from "./common/load-resources";
 import { showSaveDialog } from "./editor/show-save-config-dialog";
+import {
+  startWallPanel,
+  stopWallPanel,
+} from "./editor/tools/wall-panel-runtime";
 import "./hui-root";
 import {
   checkStrategyShouldRegenerate,
@@ -99,10 +103,16 @@ export class LovelacePanel extends LitElement {
       this._fetchConfig(false);
     }
     window.addEventListener("connection-status", this._handleConnectionStatus);
+    startWallPanel(() =>
+      this.lovelace
+        ? { urlPath: this.urlPath, editMode: this.lovelace.editMode }
+        : undefined
+    );
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    stopWallPanel();
     // On the main dashboard we want to stay subscribed as that one is cached.
     if (this.urlPath !== null && this._unsubUpdates) {
       this._unsubUpdates.then((unsub) => unsub());

@@ -269,11 +269,21 @@ export class HaPersonalWordingCard extends LitElement {
         background: var(--ha-color-fill-primary-quiet-resting);
         color: var(--ha-color-on-primary-quiet);
         text-align: center;
-        outline: 2px dashed transparent;
+        outline: 2px dashed var(--ha-color-outline, var(--divider-color));
         outline-offset: -6px;
+        transition: outline-color var(--ha-animation-duration-enter, 0.2s);
       }
       .drop.dragging {
         outline-color: var(--primary-color);
+        background: var(
+          --ha-color-primary-container,
+          var(--secondary-background-color)
+        );
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .drop {
+          transition: none;
+        }
       }
       .drop > ha-svg-icon {
         --mdc-icon-size: 32px;

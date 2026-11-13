@@ -48,6 +48,7 @@ export const YUE_PREFIXES = [
   "ui.notification_toast.more_waiting",
   "ui.instance_sync.",
   "ui.activity.",
+  "ui.problems.",
   "ui.app_job.",
   "ui.panel.config.identity.",
   "ui.panel.profile.authenticator.",

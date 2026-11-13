@@ -13,6 +13,7 @@ import "../../../../components/ha-button-toggle-group";
 import "../../../../components/ha-checkbox";
 import "../../../../components/ha-dialog";
 import "../../../../components/ha-select";
+import "../../../../components/ha-svg-icon";
 import "../../../../components/input/ha-input";
 import "../../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../../components/input/ha-input-search";
@@ -34,6 +35,7 @@ import {
   outline,
   replaceEntity,
 } from "../dashboard-tools";
+import { DASHBOARD_TOOLS } from "./registry";
 import type {
   DashboardToolsDialogParams,
   PreviewWidth,
@@ -165,6 +167,20 @@ export class HuiDialogDashboardTools extends LitElement {
         header-subtitle=${this._t("subtitle")}
         @closed=${this._dialogClosed}
       >
+        <div class="registry" role="group" aria-label=${this._t("more_tools")}>
+          ${DASHBOARD_TOOLS.map(
+            (tool) =>
+              html`<ha-button
+                size="s"
+                appearance="tonal"
+                .tool=${tool}
+                @click=${this._openTool}
+              >
+                <ha-svg-icon slot="start" .path=${tool.icon}></ha-svg-icon>
+                ${this.hass.localize(tool.labelKey)}
+              </ha-button>`
+          )}
+        </div>
         <div class="top">
           <ha-button-toggle-group
             variant="neutral"
@@ -575,6 +591,17 @@ export class HuiDialogDashboardTools extends LitElement {
     this._error = undefined;
   }
 
+  private _openTool(ev: Event) {
+    const tool = (
+      ev.currentTarget as HTMLElement & {
+        tool: (typeof DASHBOARD_TOOLS)[number];
+      }
+    ).tool;
+    const params = this._params!;
+    this.closeDialog();
+    tool.open(this, params);
+  }
+
   private _setPreview(ev: Event) {
     const width = (ev.currentTarget as HTMLElement & { width: PreviewWidth })
       .width;
@@ -810,11 +837,46 @@ export class HuiDialogDashboardTools extends LitElement {
     return [
       haStyleDialog,
       css`
+        ha-dialog {
+          --ha-dialog-width-lg: 720px;
+        }
         .top {
           display: flex;
           flex-direction: column;
           gap: var(--ha-space-3);
           margin-bottom: var(--ha-space-3);
+        }
+        .registry {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--ha-space-2);
+          margin-bottom: var(--ha-space-3);
+          padding: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(
+            --ha-color-surface-tone-1,
+            var(--secondary-background-color)
+          );
+        }
+        .bulk {
+          position: sticky;
+          bottom: 0;
+          z-index: 1;
+          padding: var(--ha-space-2) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-pill);
+          background: var(
+            --ha-color-primary-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-primary-container,
+            var(--primary-text-color)
+          );
+          box-shadow: var(--ha-shadow-card);
+        }
+        .bulk .count {
+          color: inherit;
+          font-weight: var(--ha-font-weight-semibold);
         }
         .preview,
         .bulk,
@@ -848,8 +910,13 @@ export class HuiDialogDashboardTools extends LitElement {
           padding: 0;
         }
         .tree > li {
-          border-top: 1px solid var(--divider-color);
-          padding: var(--ha-space-2) 0;
+          margin-bottom: var(--ha-space-3);
+          padding: var(--ha-space-3);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(
+            --ha-color-surface-tone-1,
+            var(--secondary-background-color)
+          );
         }
         .view {
           display: flex;
@@ -907,8 +974,13 @@ export class HuiDialogDashboardTools extends LitElement {
           flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-2);
-          padding: var(--ha-space-2) 0;
-          border-top: 1px solid var(--divider-color);
+          margin-bottom: var(--ha-space-2);
+          padding: var(--ha-space-2) var(--ha-space-3);
+          border-radius: var(--ha-border-radius-lg);
+          background: var(
+            --ha-color-surface-tone-1,
+            var(--secondary-background-color)
+          );
         }
         .kind {
           font-weight: var(--ha-font-weight-medium);
@@ -925,8 +997,15 @@ export class HuiDialogDashboardTools extends LitElement {
           display: flex;
           flex-direction: column;
           padding: var(--ha-space-3);
-          border-radius: var(--ha-border-radius-lg);
-          background: var(--secondary-background-color);
+          border-radius: var(--ha-border-radius-xl);
+          background: var(
+            --ha-color-primary-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-primary-container,
+            var(--primary-text-color)
+          );
         }
         .fact strong {
           font-size: var(--ha-font-size-2xl);
