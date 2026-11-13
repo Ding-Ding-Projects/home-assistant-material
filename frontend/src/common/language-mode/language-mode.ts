@@ -27,6 +27,7 @@ export const YUE_PREFIXES = [
   "ui.panel.config.apps.info.needs_os_title",
   "ui.panel.config.apps.info.no_store_text",
   "ui.panel.config.apps.info.compare_methods",
+  "ui.panel.config.automation.editor.quick_add",
   "ui.dim_sum.",
   "ui.phone.",
   "ui.locks.",

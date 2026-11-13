@@ -1,9 +1,11 @@
+import type { TemplateResult } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { ensureArray } from "../../common/array/ensure-array";
 import { fireEvent } from "../../common/dom/fire_event";
 import type { StringSelector } from "../../data/selector";
-import type { ValueChangedEvent } from "../../types";
+import type { HomeAssistant, ValueChangedEvent } from "../../types";
+import "../string-builder/ha-string-builder-button";
 import "../ha-textarea";
 import "../input/ha-input";
 import "../input/ha-input-multi";
@@ -20,7 +22,12 @@ export class HaTextSelector extends LitElement {
 
   @property() public helper?: string;
 
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
   @property({ attribute: false }) public selector!: StringSelector;
+
+  /** `string_builder: true` offers the "Build text" button on this field. */
+  @property({ attribute: false }) public context?: Record<string, any>;
 
   @property({ type: Boolean }) public disabled = false;
 
@@ -44,6 +51,30 @@ export class HaTextSelector extends LitElement {
     return this._input?.reportValidity() ?? true;
   }
 
+  private get _showBuilder(): boolean {
+    const type = this.selector.text?.type;
+    return (
+      this.context?.string_builder === true &&
+      !!this.hass &&
+      !this.disabled &&
+      !this.selector.text?.multiple &&
+      (type === undefined || type === "text")
+    );
+  }
+
+  private _renderBuilder() {
+    return html`<ha-string-builder-button
+      .hass=${this.hass}
+      .value=${typeof this.value === "string" ? this.value : ""}
+      @string-builder-result=${this._builderResult}
+    ></ha-string-builder-button>`;
+  }
+
+  private _builderResult(ev: CustomEvent<{ value: string }>) {
+    ev.stopPropagation();
+    fireEvent(this, "value-changed", { value: ev.detail.value });
+  }
+
   protected render() {
     if (this.selector.text?.multiple) {
       return html`
@@ -64,7 +95,7 @@ export class HaTextSelector extends LitElement {
       `;
     }
     if (this.selector.text?.multiline) {
-      return html`<ha-textarea
+      const textarea = html`<ha-textarea
         .name=${this.name}
         .label=${this.label}
         .placeholder=${this.placeholder}
@@ -78,8 +109,9 @@ export class HaTextSelector extends LitElement {
         .required=${this.required}
         resize="auto"
       ></ha-textarea>`;
+      return this._withBuilder(textarea);
     }
-    return html`<ha-input
+    const input = html`<ha-input
       .name=${this.name}
       .value=${this.value || ""}
       .placeholder=${this.placeholder || this.selector.text?.placeholder || ""}
@@ -107,6 +139,14 @@ export class HaTextSelector extends LitElement {
           : nothing
       }
     </ha-input>`;
+    return this._withBuilder(input);
+  }
+
+  /** Puts the "Build text" button beside the field when it is offered. */
+  private _withBuilder(field: TemplateResult) {
+    return this._showBuilder
+      ? html`<div class="with-builder">${field}${this._renderBuilder()}</div>`
+      : field;
   }
 
   private _handleChange(ev: ValueChangedEvent<string> | InputEvent) {
@@ -135,6 +175,21 @@ export class HaTextSelector extends LitElement {
     ha-textarea,
     ha-input {
       width: 100%;
+    }
+    .with-builder {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--ha-space-1);
+    }
+    .with-builder ha-input,
+    .with-builder ha-textarea {
+      flex: 1;
+      min-width: 0;
+      width: auto;
+    }
+    .with-builder ha-string-builder-button {
+      flex: none;
+      margin-block-start: var(--ha-space-2);
     }
   `;
 }
