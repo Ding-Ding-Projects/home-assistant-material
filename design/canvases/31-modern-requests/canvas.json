@@ -7,20 +7,48 @@
   "title": "Home Assistant Material, modern: Community requests",
   "launch": {
     "view": "canvas",
-    "page": "workflow"
+    "page": "scenes"
   },
   "pages": [
     {
-      "id": "workflow",
-      "name": "Editor and workflow: scenes, raw editor, live states, storage"
+      "id": "scenes",
+      "name": "Scenes and the raw configuration editor"
     },
     {
-      "id": "styling",
-      "name": "Styling: card styling, pop-ups, history graphs"
+      "id": "automation",
+      "name": "Automation editor"
     },
     {
-      "id": "people",
-      "name": "Dashboards and people: defaults, roles, room-first"
+      "id": "performance",
+      "name": "Performance and storage"
+    },
+    {
+      "id": "dashedit",
+      "name": "Dashboard editing"
+    },
+    {
+      "id": "cards",
+      "name": "Cards"
+    },
+    {
+      "id": "everyone",
+      "name": "Dashboards for everyone"
+    },
+    {
+      "id": "walltablet",
+      "name": "Wall tablets and the phone app"
+    },
+    {
+      "id": "setup",
+      "name": "Setup forms"
+    },
+    {
+      "id": "entities",
+      "name": "Entities, devices and accessibility"
+    },
+    {
+      "id": "custom",
+      "name": "Customisation"
     },
     {
       "id": "phone",
@@ -35,7 +63,7 @@
       "h": 1060,
       "title": "Non-destructive scene editing",
       "expand": "fill",
-      "page": "workflow"
+      "page": "scenes"
     },
     "RScenePreview.dc.html": {
       "x": 1656,
@@ -44,7 +72,7 @@
       "h": 1060,
       "title": "Scene preview with automatic restore",
       "expand": "fill",
-      "page": "workflow"
+      "page": "scenes"
     },
     "RRawSearch.dc.html": {
       "x": 3312,
@@ -53,43 +81,43 @@
       "h": 1060,
       "title": "Search and replace in the raw configuration editor",
       "expand": "fill",
-      "page": "workflow"
+      "page": "scenes"
     },
     "RRawEntity.dc.html": {
-      "x": 0,
-      "y": 1260,
+      "x": 4968,
+      "y": 0,
       "w": 1536,
       "h": 1060,
       "title": "Swap an entity id safely",
       "expand": "fill",
-      "page": "workflow"
+      "page": "scenes"
     },
     "RLiveStates.dc.html": {
-      "x": 1656,
-      "y": 1260,
+      "x": 0,
+      "y": 0,
       "w": 1536,
       "h": 1060,
       "title": "Live entity states in the automation editor",
       "expand": "fill",
-      "page": "workflow"
+      "page": "automation"
     },
     "RStorage.dc.html": {
-      "x": 3312,
-      "y": 1260,
+      "x": 0,
+      "y": 0,
       "w": 1536,
       "h": 1060,
       "title": "Database and storage breakdown",
       "expand": "fill",
-      "page": "workflow"
+      "page": "performance"
     },
     "RStorageEntity.dc.html": {
-      "x": 0,
-      "y": 2520,
+      "x": 1656,
+      "y": 0,
       "w": 1536,
       "h": 1060,
       "title": "One entity: why it is big and how to shrink it",
       "expand": "fill",
-      "page": "workflow"
+      "page": "performance"
     },
     "RCardStyle.dc.html": {
       "x": 0,
@@ -98,7 +126,7 @@
       "h": 1060,
       "title": "Native card styling in the visual editor",
       "expand": "fill",
-      "page": "styling"
+      "page": "cards"
     },
     "RPopup.dc.html": {
       "x": 1656,
@@ -107,7 +135,7 @@
       "h": 1060,
       "title": "Interactive pop-up cards",
       "expand": "fill",
-      "page": "styling"
+      "page": "cards"
     },
     "RPopupConfig.dc.html": {
       "x": 3312,
@@ -116,16 +144,16 @@
       "h": 1060,
       "title": "Building a pop-up",
       "expand": "fill",
-      "page": "styling"
+      "page": "cards"
     },
     "RHistory.dc.html": {
-      "x": 0,
-      "y": 1260,
+      "x": 4968,
+      "y": 0,
       "w": 1536,
       "h": 1060,
       "title": "Custom history graph controls",
       "expand": "fill",
-      "page": "styling"
+      "page": "cards"
     },
     "RDefault.dc.html": {
       "x": 0,
@@ -134,7 +162,7 @@
       "h": 1060,
       "title": "System-wide default dashboards",
       "expand": "fill",
-      "page": "people"
+      "page": "everyone"
     },
     "RRoles.dc.html": {
       "x": 1656,
@@ -143,7 +171,7 @@
       "h": 1060,
       "title": "Granular role-based access",
       "expand": "fill",
-      "page": "people"
+      "page": "everyone"
     },
     "RRolesInline.dc.html": {
       "x": 3312,
@@ -152,16 +180,16 @@
       "h": 1060,
       "title": "Who can see this, from any card",
       "expand": "fill",
-      "page": "people"
+      "page": "everyone"
     },
     "RRoomFirst.dc.html": {
-      "x": 0,
-      "y": 1260,
+      "x": 4968,
+      "y": 0,
       "w": 1536,
       "h": 1060,
       "title": "Room-first layouts",
       "expand": "fill",
-      "page": "people"
+      "page": "everyone"
     },
     "RPhoneWorkflow.dc.html": {
       "x": 0,
@@ -178,6 +206,231 @@
       "w": 1440,
       "h": 1000,
       "title": "Pop-ups, storage and roles on a phone",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "RAutoFast.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "A fast editor for very large automations",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "RAutoGroups.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Trigger groups",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "RAutoRelations.dc.html": {
+      "x": 4968,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Relationships between triggers and steps",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "RAutoModes.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Simple and advanced modes",
+      "expand": "fill",
+      "page": "automation"
+    },
+    "RPerfLoad.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Dashboard load diagnostics",
+      "expand": "fill",
+      "page": "performance"
+    },
+    "RPerfWorker.dc.html": {
+      "x": 4968,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Offline cache health and repair",
+      "expand": "fill",
+      "page": "performance"
+    },
+    "RMultiSelect.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Select many cards at once",
+      "expand": "fill",
+      "page": "dashedit"
+    },
+    "RClipboard.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "A clipboard shared between tabs",
+      "expand": "fill",
+      "page": "dashedit"
+    },
+    "RDuplicate.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Duplicate views and dashboards",
+      "expand": "fill",
+      "page": "dashedit"
+    },
+    "RDashList.dc.html": {
+      "x": 4968,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "An automatic list of dashboards, and swiping between them",
+      "expand": "fill",
+      "page": "dashedit"
+    },
+    "RLightSlider.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "A brightness slider on the light card",
+      "expand": "fill",
+      "page": "cards"
+    },
+    "REnergyColours.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Energy colours from the theme, or per device",
+      "expand": "fill",
+      "page": "cards"
+    },
+    "RColourPicker.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "The rainbow opens the infinite colour picker",
+      "expand": "fill",
+      "page": "cards"
+    },
+    "RKiosk.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Built-in wall tablet mode",
+      "expand": "fill",
+      "page": "walltablet"
+    },
+    "RKioskRemote.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Wake, sleep and reload tablets from anywhere",
+      "expand": "fill",
+      "page": "walltablet"
+    },
+    "RWidgets.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Widgets, the car and offline",
+      "expand": "fill",
+      "page": "walltablet"
+    },
+    "RSetupColumns.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Setup forms with two columns and folding sections",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "RSetupConditional.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Fields that show only when they apply",
+      "expand": "fill",
+      "page": "setup"
+    },
+    "RPicker.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "An accessible entity picker",
+      "expand": "fill",
+      "page": "entities"
+    },
+    "RDeviceNotes.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Notes on devices and entities",
+      "expand": "fill",
+      "page": "entities"
+    },
+    "RShortcuts.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Keyboard shortcuts in the YAML editor",
+      "expand": "fill",
+      "page": "entities"
+    },
+    "RSidebar.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Sidebar labels and defaults",
+      "expand": "fill",
+      "page": "custom"
+    },
+    "RLinks.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Outside links in a new tab, and a quick bar that remembers",
+      "expand": "fill",
+      "page": "custom"
+    },
+    "RDarkCheck.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "A dark mode readability check",
+      "expand": "fill",
+      "page": "custom"
+    },
+    "RPhoneEditing.dc.html": {
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Dashboards, notes and setup on a phone",
       "expand": "fill",
       "page": "phone"
     }
@@ -199,37 +452,118 @@
     "RRolesInline.dc.html",
     "RRoomFirst.dc.html",
     "RPhoneWorkflow.dc.html",
-    "RPhoneMore.dc.html"
+    "RPhoneMore.dc.html",
+    "RAutoFast.dc.html",
+    "RAutoGroups.dc.html",
+    "RAutoRelations.dc.html",
+    "RAutoModes.dc.html",
+    "RPerfLoad.dc.html",
+    "RPerfWorker.dc.html",
+    "RMultiSelect.dc.html",
+    "RClipboard.dc.html",
+    "RDuplicate.dc.html",
+    "RDashList.dc.html",
+    "RLightSlider.dc.html",
+    "REnergyColours.dc.html",
+    "RColourPicker.dc.html",
+    "RKiosk.dc.html",
+    "RKioskRemote.dc.html",
+    "RWidgets.dc.html",
+    "RSetupColumns.dc.html",
+    "RSetupConditional.dc.html",
+    "RPicker.dc.html",
+    "RDeviceNotes.dc.html",
+    "RShortcuts.dc.html",
+    "RSidebar.dc.html",
+    "RLinks.dc.html",
+    "RDarkCheck.dc.html",
+    "RPhoneEditing.dc.html"
   ],
   "notes": {
-    "t-workflow": {
+    "t-scenes": {
       "x": 0,
       "y": -320,
-      "text": "Editor and workflow: scenes, raw editor, live states, storage. 7 boards, modern.",
+      "text": "Scenes and the raw configuration editor. 4 boards, modern.",
       "kind": "title1",
       "maxW": 4800,
-      "page": "workflow"
+      "page": "scenes"
     },
-    "t-styling": {
+    "t-automation": {
       "x": 0,
       "y": -320,
-      "text": "Styling: card styling, pop-ups, history graphs. 4 boards, modern.",
+      "text": "Automation editor. 5 boards, modern.",
       "kind": "title1",
       "maxW": 4800,
-      "page": "styling"
+      "page": "automation"
     },
-    "t-people": {
+    "t-performance": {
       "x": 0,
       "y": -320,
-      "text": "Dashboards and people: defaults, roles, room-first. 4 boards, modern.",
+      "text": "Performance and storage. 4 boards, modern.",
       "kind": "title1",
       "maxW": 4800,
-      "page": "people"
+      "page": "performance"
+    },
+    "t-dashedit": {
+      "x": 0,
+      "y": -320,
+      "text": "Dashboard editing. 4 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "dashedit"
+    },
+    "t-cards": {
+      "x": 0,
+      "y": -320,
+      "text": "Cards. 7 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "cards"
+    },
+    "t-everyone": {
+      "x": 0,
+      "y": -320,
+      "text": "Dashboards for everyone. 4 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "everyone"
+    },
+    "t-walltablet": {
+      "x": 0,
+      "y": -320,
+      "text": "Wall tablets and the phone app. 3 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "walltablet"
+    },
+    "t-setup": {
+      "x": 0,
+      "y": -320,
+      "text": "Setup forms. 2 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "setup"
+    },
+    "t-entities": {
+      "x": 0,
+      "y": -320,
+      "text": "Entities, devices and accessibility. 3 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "entities"
+    },
+    "t-custom": {
+      "x": 0,
+      "y": -320,
+      "text": "Customisation. 3 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "custom"
     },
     "t-phone": {
       "x": 0,
       "y": -320,
-      "text": "On a phone. 2 boards, modern.",
+      "text": "On a phone. 3 boards, modern.",
       "kind": "title1",
       "maxW": 4800,
       "page": "phone"

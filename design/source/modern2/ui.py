@@ -436,7 +436,7 @@ def write_index(title, pages, first):
         if name == first:
             os.replace(os.path.join(OUT, name + '.dc.html'), os.path.join(OUT, fn))
         x, y, rowh, c = pos.get(pg, (0, 0, 0, 0))
-        if c == 3:
+        if c == 4:
             x, y, rowh, c = 0, y + rowh + 200, 0, 0
         idx['boards'][fn] = {'x': x, 'y': y, 'w': w, 'h': h, 'title': t, 'expand': 'fill', 'page': pg}
         idx['order'].append(fn)
