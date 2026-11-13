@@ -1016,11 +1016,10 @@ export class HaDataTable extends LitElement {
           }
           const templated =
             column.template && !column.main ? column.template(row) : undefined;
-          // On a phone an icon cell with nothing in it still took its width
-          // and showed as an empty box at the end of the row.
+          // On a phone a cell with nothing in it still took its width
+          // and showed as an empty box (or a lone dash) at the end of the row.
           if (
             narrow &&
-            column.type === "icon" &&
             column.template &&
             !column.main &&
             !this._hasCellValue(templated)

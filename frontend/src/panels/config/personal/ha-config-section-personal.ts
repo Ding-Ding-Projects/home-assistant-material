@@ -2216,6 +2216,7 @@ export class HaConfigSectionPersonal extends LitElement {
       grid-area: label;
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
+      line-height: var(--ha-line-height-normal);
       overflow-wrap: anywhere;
     }
     .overview-value {
@@ -2717,8 +2718,16 @@ export class HaConfigSectionPersonal extends LitElement {
     .sample-dialog + .group-note {
       margin-top: var(--ha-space-4);
     }
+    .group-note {
+      line-height: var(--ha-line-height-normal);
+    }
     .group-note + .group-note {
-      margin-top: var(--ha-space-2);
+      margin-top: var(--ha-space-3);
+    }
+    /* Air between the notes and the first row, so the divider does not touch
+       the last line of text. */
+    .group-note + div[class^="rows"] {
+      margin-top: var(--ha-space-3);
     }
     /* Three columns need about 960 px of page; below that the group list goes
        and the preview stays beside the settings, and below 720 px the preview

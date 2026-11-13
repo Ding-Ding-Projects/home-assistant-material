@@ -1111,9 +1111,15 @@ export class HaPageTabs extends LitElement {
       .system-item:hover {
         background: var(--secondary-background-color);
       }
+      /* The current area is a quiet state (coloured, medium weight): the open
+         page tab above carries the one full highlight. */
       .system-item.selected {
-        background: var(--secondary-background-color);
+        background: none;
         color: var(--primary-color);
+        font-weight: var(--ha-font-weight-medium);
+      }
+      .system-item.selected:hover {
+        background: var(--secondary-background-color);
       }
       .system-item:focus-visible {
         outline: 3px solid var(--primary-color);
@@ -1148,6 +1154,17 @@ export class HaPageTabs extends LitElement {
         padding: var(--ha-space-1) var(--ha-space-3);
         border-radius: var(--ha-border-radius-pill);
       }
+      /* The profile is a link, but it reads as pane text, not as a default
+         hyperlink: underlined only while it has keyboard focus. */
+      .profile {
+        color: var(--primary-text-color);
+        text-decoration: none;
+      }
+      .profile:focus-visible {
+        outline: 3px solid var(--primary-color);
+        outline-offset: 2px;
+        text-decoration: underline;
+      }
       .profile-text {
         display: flex;
         flex-direction: column;
@@ -1167,6 +1184,7 @@ export class HaPageTabs extends LitElement {
       .profile-role {
         font-size: var(--ha-font-size-s);
         color: var(--secondary-text-color);
+        text-decoration: none;
       }
       .person-menu {
         display: contents;
@@ -1235,7 +1253,8 @@ export class HaPageTabs extends LitElement {
         display: none;
       }
       /* New tab is a row of its own under the open pages. */
-      :host([vertical][merged]:not([collapsed])) button.new-tab[popovertarget] {
+      :host([vertical][merged]:not([collapsed]))
+        button.new-tab[popovertarget]:not(.overflow-button) {
         align-self: stretch;
         width: auto;
         height: 44px;

@@ -366,8 +366,10 @@ export class HaConfigPerson extends LitElement {
   static styles = [
     haStyle,
     css`
+      /* Fills the page area so the footer sits at the bottom, not under the content. */
       :host {
         display: block;
+        height: 100%;
       }
       .page {
         box-sizing: border-box;
@@ -383,7 +385,7 @@ export class HaConfigPerson extends LitElement {
       header {
         display: flex;
         flex-wrap: wrap;
-        align-items: flex-start;
+        align-items: center;
         gap: var(--ha-space-3);
         margin-bottom: var(--ha-space-5);
       }

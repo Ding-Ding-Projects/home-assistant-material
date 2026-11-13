@@ -426,6 +426,31 @@ export class HaAutomationBottomBar extends LitElement {
             var(--ha-space-3) + var(--automation-bar-reserve, 0px)
           );
           pointer-events: none;
+          /* A fade of the page colour keeps the page text from showing
+             through the room around the card, so no line is cut behind it. */
+          background: linear-gradient(
+            to bottom,
+            transparent,
+            var(--primary-background-color) var(--ha-space-3)
+          );
+        }
+        @media (max-width: 700px) {
+          /* A small gap above the phone navigation bar */
+          :host {
+            padding-bottom: calc(
+              var(
+                  --ha-automation-bottom-bar-padding-bottom,
+                  max(
+                    0px,
+                    var(--safe-area-inset-bottom, 0px) - var(
+                        --ha-phone-bar-height,
+                        0px
+                      ) - var(--ha-page-tabs-bottom-inset, 0px)
+                  )
+                ) +
+                var(--ha-space-2)
+            );
+          }
         }
         :host([keyboard]) {
           padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -450,6 +475,17 @@ export class HaAutomationBottomBar extends LitElement {
           max-width: 100%;
           padding: var(--ha-space-2) var(--ha-space-3);
           border-radius: var(--ha-border-radius-3xl, 32px);
+        }
+        /* With room, the status, the hint and the buttons stay on one row. */
+        @media (min-width: 701px) {
+          .bar {
+            flex-wrap: nowrap;
+            width: min(100%, 880px);
+          }
+          .buttons {
+            flex-wrap: nowrap;
+            flex: none;
+          }
         }
         .status {
           flex: 1 1 200px;

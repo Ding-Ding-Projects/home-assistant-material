@@ -21,6 +21,7 @@ import type {
   RoomLightsCardConfig,
 } from "../../lovelace/cards/types";
 import type { ButtonHeadingBadgeConfig } from "../../lovelace/heading-badges/types";
+import { generateEmptyPanelView } from "../../lovelace/strategies/helpers/empty-panel-view";
 
 export interface LightViewStrategyConfig {
   type: "light";
@@ -295,6 +296,15 @@ export class LightViewStrategy extends ReactiveElement {
         ],
       };
       sections.push(section);
+    }
+
+    if (sections.length === 0) {
+      return generateEmptyPanelView(
+        hass,
+        "mdi:lightbulb-off-outline",
+        hass.localize("ui.panel.lovelace.strategy.light.empty_title"),
+        hass.localize("ui.panel.lovelace.strategy.light.empty_content")
+      );
     }
 
     return {

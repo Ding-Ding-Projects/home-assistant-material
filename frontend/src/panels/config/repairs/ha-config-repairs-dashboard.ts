@@ -149,6 +149,7 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
         .hass=${this.hass}
         .narrow=${this.narrow}
         .header=${localize("ui.panel.config.repairs.caption")}
+        .summary=${localize("ui.panel.config.repairs.summary")}
       >
         <div slot="toolbar-icon">
           <ha-dropdown @wa-select=${this._handleDropdownSelect}>
@@ -181,10 +182,6 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
           </ha-dropdown>
         </div>
         <div class="page">
-          <div class="intro">
-            <h2>${localize("ui.panel.config.repairs.caption")}</h2>
-            <p>${localize("ui.panel.config.repairs.summary")}</p>
-          </div>
           <ha-problem-list .hass=${this.hass}></ha-problem-list>
           <ha-config-repairs
             .hass=${this.hass}
@@ -430,18 +427,6 @@ class HaConfigRepairsDashboard extends SubscribeMixin(LitElement) {
       }
       :host([narrow]) .page {
         padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-6);
-      }
-      .intro h2 {
-        margin: 0;
-        font-family: var(--ha-font-family-heading, inherit);
-        font-size: var(--ha-font-size-3xl);
-        font-weight: var(--ha-font-weight-medium);
-        line-height: var(--ha-line-height-condensed);
-      }
-      .intro p {
-        margin: var(--ha-space-1) 0 0;
-        color: var(--secondary-text-color);
-        line-height: var(--ha-line-height-normal);
       }
       .status {
         display: flex;

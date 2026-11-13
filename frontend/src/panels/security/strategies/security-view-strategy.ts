@@ -27,6 +27,7 @@ import type {
 } from "../../lovelace/cards/types";
 import { computeAreaTileCardConfig } from "../../lovelace/strategies/areas/helpers/areas-strategy-helper";
 import { computeFavoriteCardConfig } from "../../lovelace/strategies/helpers/favorite-cards";
+import { generateEmptyPanelView } from "../../lovelace/strategies/helpers/empty-panel-view";
 import { computeSecurityAlertCardConfig } from "./security-alerts";
 
 export interface SecurityViewStrategyConfig {
@@ -380,6 +381,16 @@ export class SecurityViewStrategy extends ReactiveElement {
           alertEntity
         )
       );
+
+    // Nothing to show: one centred message instead of a lone activity card.
+    if (sections.length === 0 && !alertCards?.length) {
+      return generateEmptyPanelView(
+        hass,
+        "mdi:shield-off-outline",
+        hass.localize("ui.panel.lovelace.strategy.security.empty_title"),
+        hass.localize("ui.panel.lovelace.strategy.security.empty_content")
+      );
+    }
 
     if (alertCards?.length) {
       sidebarSections.push({

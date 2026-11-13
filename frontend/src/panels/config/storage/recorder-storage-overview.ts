@@ -304,13 +304,16 @@ export class HaRecorderStorageOverview extends LitElement {
         }
         .top {
           display: grid;
-          grid-template-columns: minmax(260px, 340px) 1fr;
+          grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
           gap: var(--ha-space-4);
           align-items: start;
           margin-bottom: var(--ha-space-4);
         }
         :host([narrow]) .top {
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .top > .card {
+          min-width: 0;
         }
         .card {
           box-sizing: border-box;
@@ -374,10 +377,13 @@ export class HaRecorderStorageOverview extends LitElement {
         }
         .facts {
           display: grid;
-          grid-template-columns: auto 1fr;
+          grid-template-columns: auto minmax(0, 1fr);
           gap: var(--ha-space-2) var(--ha-space-4);
           align-self: stretch;
           margin: var(--ha-space-4) 0 0;
+        }
+        .facts dd {
+          overflow-wrap: anywhere;
         }
         .facts dt {
           color: var(--secondary-text-color);

@@ -13,6 +13,7 @@ import type { LovelaceSectionRawConfig } from "../../../data/lovelace/config/sec
 import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
 import type { HomeAssistant } from "../../../types";
 import { computeAreaTileCardConfig } from "../../lovelace/strategies/areas/helpers/areas-strategy-helper";
+import { generateEmptyPanelView } from "../../lovelace/strategies/helpers/empty-panel-view";
 
 export interface ClimateViewStrategyConfig {
   type: "climate";
@@ -298,46 +299,36 @@ export class ClimateViewStrategy extends ReactiveElement {
     // The first thermostat is drawn large at the top of the page.
     const thermostat = featuredClimate(hass.states, hass.entities);
 
-    const thermostats = allEntities.filter(
-      (entityId) =>
-        entityId.startsWith("climate.") && !hass.entities[entityId]?.hidden
-    ).length;
+    if (sections.length === 0 && !thermostat) {
+      return generateEmptyPanelView(
+        hass,
+        "mdi:thermostat",
+        hass.localize("ui.panel.lovelace.strategy.climate.empty_title"),
+        hass.localize("ui.panel.lovelace.strategy.climate.empty_content")
+      );
+    }
 
-    const heading = {
-      type: "page-heading",
-      heading: hass.localize("panel.climate"),
-      ...(thermostats > 0 && {
-        summary: hass.localize("ui.panel.lovelace.strategy.climate.summary", {
-          count: thermostats,
-        }),
-      }),
-    } satisfies LovelaceCardConfig;
-
+    // The page title is the one in the panel's header bar, so the page does
+    // not repeat it.
     return {
       type: "sections",
       max_columns: 2,
       sections: sections,
-      header: {
-        layout: "responsive",
-        card: thermostat
-          ? ({
-              type: "vertical-stack",
-              cards: [
-                heading,
-                {
-                  type: "thermostat",
-                  entity: thermostat,
-                  features: [
-                    {
-                      type: "climate-hvac-modes",
-                      style: "icons",
-                    },
-                  ],
-                },
-              ],
-            } satisfies LovelaceCardConfig)
-          : heading,
-      },
+      ...(thermostat && {
+        header: {
+          layout: "responsive" as const,
+          card: {
+            type: "thermostat",
+            entity: thermostat,
+            features: [
+              {
+                type: "climate-hvac-modes",
+                style: "icons",
+              },
+            ],
+          } satisfies LovelaceCardConfig,
+        },
+      }),
     };
   }
 }

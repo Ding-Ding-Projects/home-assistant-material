@@ -123,13 +123,21 @@ export class HaConfigRoles extends LitElement {
         })}
       >
         <div class="page">
-          <header>
-            <div class="titles"></div>
-            <ha-button size="l" @click=${this._newRole} .disabled=${this._busy}>
-              <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
-              ${this.hass.localize("ui.panel.config.roles.new_role")}
-            </ha-button>
-          </header>
+          ${
+            roles.length > 0
+              ? html`<header>
+                  <div class="titles"></div>
+                  <ha-button
+                    size="l"
+                    @click=${this._newRole}
+                    .disabled=${this._busy}
+                  >
+                    <ha-svg-icon slot="start" .path=${mdiPlus}></ha-svg-icon>
+                    ${this.hass.localize("ui.panel.config.roles.new_role")}
+                  </ha-button>
+                </header>`
+              : nothing
+          }
           <ha-alert alert-type="info">
             ${this.hass.localize("ui.panel.config.roles.honest_notice")}
           </ha-alert>
@@ -460,8 +468,10 @@ export class HaConfigRoles extends LitElement {
   static styles = [
     haStyle,
     css`
+      /* Fills the page area so the footer sits at the bottom, not under the content. */
       :host {
         display: block;
+        height: 100%;
       }
       .page {
         box-sizing: border-box;

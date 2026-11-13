@@ -1988,6 +1988,8 @@ export class HaMediaPlayerBrowse extends LitElement {
         .child ha-card .title {
           margin-bottom: 16px;
           padding-left: 16px;
+          /* The same room at the end, so a long name never touches the edge. */
+          padding-inline-end: 16px;
         }
 
         ha-list-item .graphic {

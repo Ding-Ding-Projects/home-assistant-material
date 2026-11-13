@@ -1573,7 +1573,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
     }
     .table-header.with-chips ha-input-search {
       flex: 0 1 320px;
-      min-width: 160px;
+      min-width: 220px;
     }
     .chips-spacer {
       flex: 1;
@@ -1631,22 +1631,26 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       display: flex;
       align-items: center;
       --mdc-shape-small: 0;
-      height: 56px;
+      min-height: 56px;
       width: 100%;
       justify-content: space-between;
-      padding-left: var(--data-table-inset-left, 0px);
-      padding-right: var(--data-table-inset-right, 0px);
+      /* On a wide page the toolbar wraps onto a second line instead of
+         running off the edge, and keeps a margin at the inline end. */
+      flex-wrap: wrap;
+      padding-block: var(--ha-space-1);
+      padding-inline-start: var(--data-table-inset-left, 0px);
+      padding-inline-end: calc(var(--data-table-inset-right, 0px) + 4px);
       gap: var(--ha-space-2);
       box-sizing: border-box;
       background: var(
         --ha-panel-toolbar-background,
         var(--primary-background-color)
       );
-      overflow-x: auto;
-      scrollbar-width: none;
     }
     ha-input-search {
-      flex: 1;
+      flex: 1 1 240px;
+      /* Wide enough for the icon, the placeholder and the pattern button */
+      min-width: 220px;
     }
     @media (min-width: 871px) {
       ha-input-search {

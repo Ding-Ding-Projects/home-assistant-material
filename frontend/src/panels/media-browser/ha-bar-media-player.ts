@@ -776,8 +776,9 @@ export class BarMediaPlayer extends SubscribeMixin(LitElement) {
     :host([narrow]) ha-slider {
       position: absolute;
       top: -6px;
-      left: 0;
-      right: 0;
+      left: var(--ha-space-3);
+      right: var(--ha-space-3);
+      width: auto;
     }
   `;
 }

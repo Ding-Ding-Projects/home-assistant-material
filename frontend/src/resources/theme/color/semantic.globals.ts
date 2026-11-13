@@ -318,8 +318,10 @@ export const darkSemanticColorStyles = css`
     --ha-color-on-warning-loud: var(--white-color);
 
     /* on success */
-    --ha-color-on-success-quiet: var(--ha-color-green-70);
-    --ha-color-on-success-normal: var(--ha-color-green-60);
+    /* Light green text so a "Working" chip reads on its dark green fill
+       (4.5:1 or more). */
+    --ha-color-on-success-quiet: #a8e6bf;
+    --ha-color-on-success-normal: #a8e6bf;
     --ha-color-on-success-loud: var(--white-color);
 
     /* Surfaces */

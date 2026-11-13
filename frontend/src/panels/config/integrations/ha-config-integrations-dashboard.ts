@@ -557,6 +557,7 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         back-path="/config"
         .route=${this.route}
         .tabs=${configSections.devices}
+        .summary=${this.hass.localize("ui.panel.config.integrations.summary")}
         has-fab
       >
         ${
@@ -575,10 +576,6 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         }
         <div class="page">
           <header class="page-head">
-            <h1>
-              ${this.hass.localize("ui.panel.config.integrations.caption")}
-            </h1>
-            <p>${this.hass.localize("ui.panel.config.integrations.summary")}</p>
             <p>
               <a href="/config/google-setup"
                 >${this.hass.localize(
@@ -1138,13 +1135,6 @@ class HaConfigIntegrationsDashboard extends KeyboardShortcutMixin(
         }
         :host([narrow]) .page {
           padding: var(--ha-space-2) var(--ha-space-3) var(--ha-space-20);
-        }
-        .page-head h1 {
-          margin: 0;
-          font-family: var(--ha-font-family-heading, inherit);
-          font-size: var(--ha-font-size-4xl);
-          font-weight: var(--ha-font-weight-normal);
-          line-height: var(--ha-line-height-condensed);
         }
         .page-head p {
           margin: var(--ha-space-2) 0 0;

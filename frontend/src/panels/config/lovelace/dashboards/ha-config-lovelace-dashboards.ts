@@ -525,6 +525,20 @@ export class HaConfigLovelaceDashboards extends LitElement {
 
     const defaultPanel = this.hass.systemData?.default_panel || DEFAULT_PANEL;
 
+    const items = this._loading
+      ? []
+      : this._getItems(
+          this._dashboards,
+          defaultPanel,
+          this.hass.panels,
+          hiddenDashboardPaths(
+            this.hass.systemData?.dashboard_visibility,
+            this.hass,
+            [defaultPanel]
+          ).join("\n"),
+          this.hass.localize
+        );
+
     return html`
       <hass-tabs-subpage-data-table
         .hass=${this.hass}
@@ -539,21 +553,11 @@ export class HaConfigLovelaceDashboards extends LitElement {
           this.hass.localize
         )}
         .loading=${this._loading}
-        .data=${
-          this._loading
-            ? []
-            : this._getItems(
-                this._dashboards,
-                defaultPanel,
-                this.hass.panels,
-                hiddenDashboardPaths(
-                  this.hass.systemData?.dashboard_visibility,
-                  this.hass,
-                  [defaultPanel]
-                ).join("\n"),
-                this.hass.localize
-              )
-        }
+        .data=${items}
+        .footerText=${this.hass.localize(
+          "ui.panel.config.lovelace.dashboards.picker.footer",
+          { shown: items.length, total: items.length }
+        )}
         .initialGroupColumn=${this._tableSettings.grouping}
         .initialCollapsedGroups=${this._activeCollapsed}
         .initialSorting=${this._tableSettings.sorting}

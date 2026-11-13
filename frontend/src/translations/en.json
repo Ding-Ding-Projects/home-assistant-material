@@ -9027,6 +9027,7 @@
               "edit": "Edit",
               "delete": "Delete",
               "add_dashboard": "Add dashboard",
+              "footer": "Showing {shown} of {total}.",
               "set_as_default": "Set as default",
               "history": "History",
               "type": {
@@ -17343,7 +17344,12 @@
             "no_criteria": "Pick at least one type and one target.",
             "no_entities": "No entities match this section."
           },
+          "empty_panel": {
+            "add_button": "Add devices and services"
+          },
           "light": {
+            "empty_title": "No lights yet",
+            "empty_content": "Lights you add to Home Assistant will appear here. Add an integration that provides lights, such as Hue or Zigbee, to get started.",
             "lights": "Lights",
             "other_lights": "Other lights",
             "on": "On",
@@ -17352,6 +17358,8 @@
             "turn_off_area": "On, turn off all lights in {area}"
           },
           "security": {
+            "empty_title": "No security devices yet",
+            "empty_content": "Alarm panels, locks, cameras and door or window sensors will appear here. Add an integration that provides them to get started.",
             "devices": "Devices",
             "other_devices": "Other devices",
             "active_alerts": "Active alerts",
@@ -17360,6 +17368,8 @@
             "cameras": "Cameras"
           },
           "climate": {
+            "empty_title": "No climate devices yet",
+            "empty_content": "Thermostats, fans, humidifiers, blinds and temperature sensors will appear here. Add an integration that provides them to get started.",
             "devices": "Devices",
             "other_devices": "Other devices",
             "summary": "{count, plural,\n  one {# thermostat}\n  other {# thermostats}\n}"

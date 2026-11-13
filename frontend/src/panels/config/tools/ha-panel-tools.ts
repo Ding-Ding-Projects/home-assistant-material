@@ -1,7 +1,7 @@
 import { mdiDotsVertical } from "@mdi/js";
 import type { CSSResultGroup, TemplateResult, PropertyValues } from "lit";
 import { css, html, LitElement } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, query } from "lit/decorators";
 import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import { navigate } from "../../../common/navigate";
 import "../../../components/ha-dropdown";
@@ -82,6 +82,8 @@ class PanelTools extends LitElement {
 
   @property({ type: Boolean, reflect: true }) public narrow = false;
 
+  @query("ha-tab-group") private _tabGroup?: HTMLElement;
+
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
     this.hass.loadBackendTranslation("title");
@@ -136,6 +138,18 @@ class PanelTools extends LitElement {
         ></tools-router>
       </ha-top-app-bar-fixed>
     `;
+  }
+
+  protected updated(changedProps: PropertyValues<this>) {
+    super.updated(changedProps);
+    if (changedProps.has("route")) {
+      // Keep the selected tab fully inside the scrolling tab strip.
+      this.updateComplete.then(() => {
+        this._tabGroup
+          ?.querySelector(`ha-tab-group-tab[panel="${this._page}"]`)
+          ?.scrollIntoView({ inline: "center", block: "nearest" });
+      });
+    }
   }
 
   private _handleTabAnchorClick(ev: MouseEvent) {

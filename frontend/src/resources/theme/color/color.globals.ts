@@ -417,6 +417,16 @@ export const darkColorStyles = css`
     --ha-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
     --ha-shadow-overlay: 0 24px 48px rgba(0, 0, 0, 0.55);
 
+    /* Dark on dark needs an edge: cards get a subtle outline. */
+    --ha-card-border-width: 1px;
+    --ha-card-border-color: #3d4554;
+
+    /* Off switches: a visible track outline and thumb (3:1 or more against
+       the surface). */
+    --ha-switch-border-color: #8a91a1;
+    --ha-switch-thumb-background-color: #bcc2cf;
+    --ha-switch-thumb-border-color: #bcc2cf;
+
     --scrollbar-thumb-color: rgb(80, 86, 98);
 
     --mdc-ripple-color: #aaaaaa;

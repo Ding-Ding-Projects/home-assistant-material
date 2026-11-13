@@ -793,7 +793,10 @@ export class HaConfigDeviceDashboard extends LitElement {
                   .batteryChargingStateObj=${batteryCharging}
                 ></ha-battery-icon>
               `
-            : "—";
+            : // On a phone an empty battery cell is left out of the row.
+              this.narrow
+              ? nothing
+              : "—";
         },
       },
       offline: {

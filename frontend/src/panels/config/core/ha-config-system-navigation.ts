@@ -323,6 +323,14 @@ class HaConfigSystemNavigation extends LitElement {
           font-size: var(--ha-font-size-3xl);
           font-weight: var(--ha-font-weight-medium);
           line-height: var(--ha-line-height-condensed);
+          /* Long product names and versions wrap instead of being cut. */
+          overflow: visible;
+          text-overflow: clip;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        :host([narrow]) h2 {
+          font-size: var(--ha-font-size-2xl);
         }
         .hero p {
           margin: 0;

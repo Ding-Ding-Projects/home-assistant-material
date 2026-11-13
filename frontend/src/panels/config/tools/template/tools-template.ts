@@ -609,6 +609,14 @@ ${
           --ha-split-panel-divider-hit-area: var(--ha-space-4);
         }
 
+        /* On a phone the stacked panes keep a height of their own, so the editor
+           shows well over a few lines (the page scrolls instead). */
+        :host([narrow]) .panes {
+          flex: 1 0 auto;
+          min-height: 100vh;
+          min-height: 100dvh;
+        }
+
         /* On wide viewports we slot our own handle (the orientation toggle)
            into the divider, so hide the default grip. On narrow there is no
            toggle, so keep the default grip as the resize affordance. */
