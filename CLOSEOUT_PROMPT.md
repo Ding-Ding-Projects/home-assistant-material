@@ -18,10 +18,10 @@ GitHub Pages published the browser demo, the complete guides and the wiki from t
 The speech example retained a saved edit after reload. Running the scene example changed its
 sample light. The 117 published article routes matched their generated source content.
 
-The live installation is build `2026.11.1.429`, applied at 19:56:38 UTC on 13 November 2026
-after a verified Core backup and a separate browser pass on the exact published image.
-Supervisor health was read back after the update. The appliance downloads and channel are in
-[Release run 43488530533](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43488530533).
+The live installation is Core `2026.11.1.431`, started at 21:45:08 UTC on 13 November 2026.
+The exact published image passed an isolated browser check before the Supervisor update.
+A Core 429 backup was created and read back. The live endpoint returned HTTP 200 and the
+Supervisor reported healthy after the update.
 
 The follow-up adds action-specific controls, the shared dashboard editor, a dedicated Repairs
 form, and cancellable media transfers. See the automation and dashboard guides in `docs/features/`.
@@ -30,8 +30,11 @@ Repairs setting and a selected media item. It also passed text insertion, the al
 toggle, and simulated media playback. The local Core image passed JPEG-to-PNG conversion
 and cancellation of a deliberately stalled upload in Chromium at phone width.
 
-Repeat the isolated exact-image check before the next live update. Verify the normal release
-and channel separately. Build 430 was assigned to Release run `43505365344`.
+Build 429 is available as a normal release with 25 verified downloads. The stable update
+feed advertises build 429. Continue [Release run 43509018387](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43509018387)
+for Core 431's appliance downloads, and read back the normal release and channel when ready.
+The published demo for source `79d87a41ce2f30f65f1a517d969f0a994753ef5c` was verified in the
+browser, including the optional Calendar offset and the Repairs configuration.
 
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,

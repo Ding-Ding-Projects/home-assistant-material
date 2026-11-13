@@ -248,8 +248,10 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [x] Verify the interactive browser demo on the project page.
 - [x] Verify the sample media picker, text insertion, all-actions toggle, and Repairs editor in
       the published browser demo.
-- [ ] Verify the next published Core image before updating the installation. First-party action
-      metadata inventory is in `docs/features/automations/action-selector-coverage.md`.
+- [x] Verify the published Core 431 image in an isolated browser, back up the existing Core,
+      and apply the exact image through the full-mode Supervisor.
+- [ ] Verify the normal release and stable update feed for Core 431. First-party action metadata
+      inventory is in `docs/features/automations/action-selector-coverage.md`.
 - [ ] Verify dashboard resource upload, media saving and the phone layout on the released build.
 
 - [x] Test buttons on every condition and every Choose option

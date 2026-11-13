@@ -47,6 +47,22 @@
   converted file, and let the user cancel a stalled media upload at a 390 px browser width.
   Verify the published Core image separately before applying a follow-up live update.
 
+## Core 431 deployment and release recovery, 13 November 2026
+
+- Core `2026.11.1.431` is live on the existing full-mode installation. Its start time was
+  21:45:08 UTC. The LAN endpoint returned HTTP 200 and the Supervisor reported healthy.
+- The running image matches published digest
+  `sha256:f2303f8f2b43400e140fe8c71fbc70de354e8cd74d550d18827306cdea1aa546`
+  from source `79d87a41ce2f30f65f1a517d969f0a994753ef5c`. Before deployment, an isolated
+  browser verified Google text-to-speech Options, selected `wav`, saved and reloaded it,
+  and read the value back from Core. It also verified a scene dictionary and a local stylesheet.
+- Build 429 was manually published after its workflow received HTTP 403. The normal release
+  has 25 verified downloads. Channel revision `c21f89e338de9467c8950462aa37a9d62b6cc133`
+  advertises Core and operating system build 429. Build 431 is still assembling its operating
+  system downloads in [Release run 43509018387](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43509018387).
+- The published demo uses the same source as Core 431. It verified the speech, media, manual
+  event, and dashboard editors with sample data. All 120 documentation routes responded.
+
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 
 ## Batches 34 and 35, 12 November 2026 (late morning): read this first
