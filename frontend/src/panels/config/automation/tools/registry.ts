@@ -11,6 +11,7 @@ import {
   mdiTextBoxOutline,
   mdiToggleSwitchOutline,
   mdiFlaskOutline,
+  mdiGraphOutline,
 } from "@mdi/js";
 import type { ManualAutomationConfig } from "../../../../data/automation";
 import type { HomeAssistant } from "../../../../types";
@@ -121,16 +122,14 @@ export const AUTOMATION_TOOLS: AutomationToolEntry[] = [
     ["conflicts", mdiAlertOutline],
     ["language", mdiTextBoxOutline],
     ["steps", mdiToggleSwitchOutline],
-  ].map(
-    ([id, icon]): AutomationToolEntry => ({
-      id,
-      icon,
-      labelKey: `ui.panel.config.automation.editor.tools.${id}.title`,
-      descriptionKey: `ui.panel.config.automation.editor.tools.${id}.description`,
-      element: `ha-automation-tool-${id}`,
-      open: () => TOOL_MODULES[id](),
-    })
-  ),
+  ].map(([id, icon]): AutomationToolEntry => ({
+    id,
+    icon,
+    labelKey: `ui.panel.config.automation.editor.tools.${id}.title`,
+    descriptionKey: `ui.panel.config.automation.editor.tools.${id}.description`,
+    element: `ha-automation-tool-${id}`,
+    open: () => TOOL_MODULES[id](),
+  })),
   {
     id: "tests",
     icon: mdiFlaskOutline,
@@ -138,5 +137,14 @@ export const AUTOMATION_TOOLS: AutomationToolEntry[] = [
     descriptionKey: "ui.panel.config.automation.editor.tools.tests.description",
     element: "ha-automation-tool-tests",
     open: () => import("./ha-automation-tool-tests"),
+  },
+  {
+    id: "relations",
+    icon: mdiGraphOutline,
+    labelKey: "ui.panel.config.automation.editor.tools.relations.title",
+    descriptionKey:
+      "ui.panel.config.automation.editor.tools.relations.description",
+    element: "ha-automation-tool-relations",
+    open: () => import("./ha-automation-tool-relations"),
   },
 ];

@@ -2,7 +2,7 @@ import { fireEvent } from "../../../../common/dom/fire_event";
 import type { DashboardToolsDialogParams } from "../dashboard-tools-dialog/show-dashboard-tools-dialog";
 
 export type MoreTool =
-  "entities" | "a11y" | "wall" | "library" | "perf" | "diff";
+  "entities" | "a11y" | "wall" | "tablets" | "library" | "perf" | "diff";
 
 export interface MoreToolsDialogParams extends DashboardToolsDialogParams {
   tool: MoreTool;

@@ -3,6 +3,7 @@ import { promiseTimeout } from "../common/util/promise-timeout";
 import { fireExternalBusMessage } from "../external_app/external_messaging";
 import * as staleBuildPatterns from "./stale-build-patterns.json";
 import { showToast } from "./toast";
+import { recordStall } from "./worker-health";
 
 // Patterns live in a JSON single source (stale-build-patterns.json) so the
 // build can inject the exact same ones into the inline boot-time guard
@@ -218,6 +219,7 @@ export const reloadFresh = (): boolean => {
   if (now - last <= RELOAD_COOLDOWN) {
     // Already reloaded within the cooldown and it still failed: stop, to avoid
     // a reload loop on a genuinely broken (not merely stale) deploy.
+    recordStall("gave-up");
     return false;
   }
   try {
@@ -231,6 +233,7 @@ export const reloadFresh = (): boolean => {
     return false;
   }
   reloading = true;
+  recordStall("reload");
 
   // `frontend/reload_and_clear_cache` is a WKWebView (iOS/macOS companion)
   // command; the Android bridges (externalApp/externalAppV2) don't handle it.
@@ -344,6 +347,7 @@ export const recoverFromStaleBuild = (
   if (pending) {
     return pending;
   }
+  recordStall("import");
   const probe = probeChunk(url)
     .then((verdict) => {
       if (verdict !== "gone") {

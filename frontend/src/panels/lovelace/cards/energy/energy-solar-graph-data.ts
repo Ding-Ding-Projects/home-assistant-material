@@ -261,7 +261,8 @@ function processDataSet(
           false,
           compare,
           "--energy-solar-color",
-          idx
+          idx,
+          source.stat_energy_from
         ),
       },
       color: getEnergyColor(
@@ -270,7 +271,8 @@ function processDataSet(
         true,
         compare,
         "--energy-solar-color",
-        idx
+        idx,
+        source.stat_energy_from
       ),
       data: solarProductionData,
       stack: compare ? "compare" : "solar",

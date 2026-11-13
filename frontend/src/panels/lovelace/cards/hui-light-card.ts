@@ -5,6 +5,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import memoizeOne from "memoize-one";
 import { consume } from "../../../common/decorators/consume";
 import {
   consumeEntityRegistryEntry,
@@ -14,9 +15,14 @@ import { transform } from "../../../common/decorators/transform";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
 import type { HASSDomEvent } from "../../../common/dom/fire_event";
 import { fireEvent } from "../../../common/dom/fire_event";
+import {
+  DEFAULT_MAX_KELVIN,
+  DEFAULT_MIN_KELVIN,
+} from "../../../common/color/convert-light-color";
 import { stateColorBrightness } from "../../../common/entity/state_color";
 import "../../../components/ha-card";
 import "../../../components/ha-control-circular-slider";
+import "../../../components/ha-control-slider";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-state-icon";
 import {
@@ -29,7 +35,13 @@ import {
 import { UNAVAILABLE, UNKNOWN } from "../../../data/entity/entity";
 import type { EntityRegistryDisplayEntry } from "../../../data/entity/entity_registry";
 import type { LightEntity } from "../../../data/light";
-import { lightSupportsBrightness } from "../../../data/light";
+import { DOMAIN_ATTRIBUTES_UNITS } from "../../../data/entity/entity_attributes";
+import {
+  LightColorMode,
+  lightSupportsBrightness,
+  lightSupportsColorMode,
+} from "../../../data/light";
+import { generateColorTemperatureGradient } from "../../../dialogs/more-info/components/lights/light-color-temp-picker";
 import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
 import type { Themes } from "../../../data/ws-themes";
 import type {
@@ -109,8 +121,16 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
 
   private _brightnessTimout?: number;
 
+  private _temperatureGradient = memoizeOne((min: number, max: number) =>
+    generateColorTemperatureGradient(min, max)
+  );
+
   public getCardSize(): number {
-    return 5;
+    return (
+      5 +
+      (this._config?.show_brightness_slider ? 1 : 0) +
+      (this._config?.show_color_temp_slider ? 1 : 0)
+    );
   }
 
   public setConfig(config: LightCardConfig): void {
@@ -213,9 +233,102 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
             }
             ${name}
           </div>
+          ${this._renderSliders(stateObj)}
         </div>
       </ha-card>
     `;
+  }
+
+  private _renderSliders(stateObj: LightEntity) {
+    const config = this._config!;
+    const showBrightness =
+      !!config.show_brightness_slider && lightSupportsBrightness(stateObj);
+    const showTemperature =
+      !!config.show_color_temp_slider &&
+      lightSupportsColorMode(stateObj, LightColorMode.COLOR_TEMP);
+    if (!showBrightness && !showTemperature) {
+      return nothing;
+    }
+    const disabled = stateObj.state === UNAVAILABLE;
+    const active = stateObj.state === "on";
+    const locale = this._i18n.locale;
+
+    const brightness =
+      stateObj.attributes.brightness != null
+        ? Math.max(Math.round((stateObj.attributes.brightness * 100) / 255), 1)
+        : undefined;
+
+    const minKelvin =
+      stateObj.attributes.min_color_temp_kelvin ?? DEFAULT_MIN_KELVIN;
+    const maxKelvin =
+      stateObj.attributes.max_color_temp_kelvin ?? DEFAULT_MAX_KELVIN;
+
+    return html`
+      <div class="sliders">
+        ${
+          showBrightness
+            ? html`
+                <ha-control-slider
+                  class="brightness-slider"
+                  .value=${brightness}
+                  min="1"
+                  max="100"
+                  unit="%"
+                  .showHandle=${active}
+                  .disabled=${disabled}
+                  .locale=${locale}
+                  .label=${this._i18n.localize("ui.card.light.brightness")}
+                  prevent-interaction-on-scroll
+                  @value-changed=${this._setBrightness}
+                ></ha-control-slider>
+              `
+            : nothing
+        }
+        ${
+          showTemperature
+            ? html`
+                <ha-control-slider
+                  class=${classMap({
+                    "temperature-slider": true,
+                    inactive: !active && !disabled,
+                  })}
+                  mode="cursor"
+                  .value=${stateObj.attributes.color_temp_kelvin ?? undefined}
+                  .min=${minKelvin}
+                  .max=${maxKelvin}
+                  .unit=${DOMAIN_ATTRIBUTES_UNITS.light.color_temp_kelvin}
+                  .showHandle=${active}
+                  .disabled=${disabled}
+                  .locale=${locale}
+                  .label=${this._i18n.localize(
+                    "ui.card.light.color_temperature"
+                  )}
+                  style=${styleMap({
+                    "--gradient": this._temperatureGradient(
+                      minKelvin,
+                      maxKelvin
+                    ),
+                  })}
+                  prevent-interaction-on-scroll
+                  @value-changed=${this._setColorTemperature}
+                ></ha-control-slider>
+              `
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  private _setColorTemperature(
+    ev: HASSDomEvent<HASSDomEvents["value-changed"]>
+  ): void {
+    ev.stopPropagation();
+    const { value } = ev.detail;
+    if (typeof value !== "number" || isNaN(value)) return;
+    this._api.callService("light", "turn_on", {
+      entity_id: this._config!.entity,
+      color_temp_kelvin: value,
+    });
   }
 
   protected updated(changedProps: PropertyValues): void {
@@ -375,6 +488,36 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
 
     .light-button.state-unavailable {
       color: var(--state-unavailable-color);
+    }
+
+    .sliders {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ha-space-3);
+      padding: 0 var(--ha-space-4) var(--ha-space-4);
+    }
+
+    .sliders ha-control-slider {
+      --control-slider-thickness: 36px;
+      --control-slider-border-radius: var(--ha-border-radius-lg);
+      --control-slider-color: var(
+        --state-light-active-color,
+        var(--primary-color)
+      );
+    }
+
+    .temperature-slider {
+      --control-slider-background: linear-gradient(to right, var(--gradient));
+      --control-slider-background-opacity: 1;
+    }
+
+    .temperature-slider.inactive {
+      filter: saturate(0.5);
+      --control-slider-background-opacity: 0.4;
+    }
+
+    .temperature-slider:dir(rtl) {
+      --control-slider-background: linear-gradient(to left, var(--gradient));
     }
 
     #info {

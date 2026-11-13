@@ -36,6 +36,12 @@ export class HaPickerField extends PickerMixin(LitElement) {
   @property({ type: String, attribute: "aria-label" })
   public ariaLabel: string | null = null;
 
+  /** Kind of popup the field opens (for example "dialog"); sets aria-haspopup. */
+  @property({ attribute: "haspopup" }) public haspopup?: string;
+
+  /** Whether the popup the field opens is showing; sets aria-expanded. */
+  @property({ type: Boolean }) public expanded = false;
+
   @query("#trigger", true) private _trigger?: HTMLButtonElement;
 
   @state()
@@ -89,6 +95,10 @@ export class HaPickerField extends PickerMixin(LitElement) {
           type="button"
           aria-labelledby=${ifDefined(
             hiddenLabel ? "hidden-label trigger" : undefined
+          )}
+          aria-haspopup=${ifDefined(this.haspopup)}
+          aria-expanded=${ifDefined(
+            this.haspopup ? (this.expanded ? "true" : "false") : undefined
           )}
           ?disabled=${this.disabled}
         >

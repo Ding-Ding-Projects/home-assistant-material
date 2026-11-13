@@ -13,6 +13,7 @@ from homeassistant.components import recorder, websocket_api
 from homeassistant.components.recorder.statistics import StatisticsRow
 from homeassistant.const import UnitOfEnergy
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.integration_platform import (
     async_process_integration_platforms,
 )
@@ -127,6 +128,7 @@ def ws_get_prefs(
         probatio.Optional("energy_sources"): ENERGY_SOURCE_SCHEMA,
         probatio.Optional("device_consumption"): [DEVICE_CONSUMPTION_SCHEMA],
         probatio.Optional("device_consumption_water"): [DEVICE_CONSUMPTION_SCHEMA],
+        probatio.Optional("colors"): {cv.string: cv.color_hex},
     }
 )
 @websocket_api.async_response

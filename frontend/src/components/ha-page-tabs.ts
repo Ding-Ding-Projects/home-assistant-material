@@ -43,6 +43,12 @@ import {
   writeFloat,
 } from "../common/tabs/tab-dock";
 import { badgeText, paneLayout, readMerged } from "../common/tabs/tab-pane";
+import type { SidebarDefaults } from "../common/tabs/tab-entry-defaults";
+import {
+  entryRoute,
+  readSidebarDefaults,
+  subscribeSidebarDefaults,
+} from "../common/tabs/tab-entry-defaults";
 import { subscribeNotifications } from "../data/persistent_notification";
 import { subscribeRepairsIssueRegistry } from "../data/repairs";
 import type { UpdateEntity } from "../data/update";
@@ -183,6 +189,11 @@ export class HaPageTabs extends LitElement {
   private _unsubAccessibility?: UnsubscribeFunc;
 
   /** New notifications, counted only while the pane carries the system entries. */
+  /** Developer tools shown or not, and the page Settings opens on. */
+  @state() private _sidebarDefaults: SidebarDefaults = readSidebarDefaults();
+
+  private _unsubSidebarDefaults?: () => void;
+
   @state() private _notificationCount = 0;
 
   private _unsubNotifications?: UnsubscribeFunc;
@@ -598,15 +609,20 @@ export class HaPageTabs extends LitElement {
             ${inner}${this._renderBadge(count)}
           </button>`;
     };
+    // A name the person gave the entry in Settings, Sidebar; the original name
+    // stays the fallback.
+    const looks = this._store.appearance[this._store.surface] ?? {};
+    const named = (id: string, original: string) =>
+      looks[id]?.label || original;
     return html`
       ${
-        admin
+        admin && this._sidebarDefaults.showDeveloperTools
           ? entry(
               "tools",
               mdiHammer,
-              this.hass.localize("ui.sidebar.developer_tools"),
+              named("tools", this.hass.localize("ui.sidebar.developer_tools")),
               onTools,
-              "/config/tools"
+              entryRoute("tools")
             )
           : nothing
       }
@@ -615,9 +631,9 @@ export class HaPageTabs extends LitElement {
           ? entry(
               "settings",
               mdiCog,
-              this.hass.localize("panel.config"),
+              named("config", this.hass.localize("panel.config")),
               this.hass.panelUrl === "config" && !onTools,
-              "/config",
+              entryRoute("config"),
               undefined,
               this._updatesCount + this._issuesCount
             )
@@ -626,7 +642,10 @@ export class HaPageTabs extends LitElement {
       ${entry(
         "notifications",
         mdiBell,
-        this.hass.localize("ui.notification_drawer.title"),
+        named(
+          "notifications",
+          this.hass.localize("ui.notification_drawer.title")
+        ),
         false,
         undefined,
         () => fireEvent(this, "hass-show-notifications"),
@@ -854,6 +873,10 @@ export class HaPageTabs extends LitElement {
     });
     window.addEventListener("resize", this._onWindowResize);
     window.addEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
+    this._sidebarDefaults = readSidebarDefaults();
+    this._unsubSidebarDefaults = subscribeSidebarDefaults((value) => {
+      this._sidebarDefaults = value;
+    });
     this._identityChanged();
   }
 
@@ -866,6 +889,8 @@ export class HaPageTabs extends LitElement {
     this._unsubActivities = undefined;
     this._unsubAccessibility?.();
     this._unsubAccessibility = undefined;
+    this._unsubSidebarDefaults?.();
+    this._unsubSidebarDefaults = undefined;
     this._unsubNotifications?.();
     this._unsubNotifications = undefined;
     window.removeEventListener("resize", this._onWindowResize);

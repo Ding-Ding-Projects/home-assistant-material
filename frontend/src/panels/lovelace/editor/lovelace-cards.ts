@@ -18,6 +18,10 @@ export const coreCards: Card[] = [
     showElement: true,
   },
   {
+    type: "dashboards-list",
+    showElement: true,
+  },
+  {
     type: "date",
     showElement: true,
   },

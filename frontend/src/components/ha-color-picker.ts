@@ -1,6 +1,7 @@
 import type { ContextType } from "@lit/context";
 import { mdiInvertColorsOff, mdiPalette } from "@mdi/js";
-import { html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
@@ -11,6 +12,7 @@ import type { LocalizeKeys } from "../common/translations/localize";
 import { internationalizationContext } from "../data/context";
 import type { UiColorExtraOption } from "../data/selector";
 import type { ValueChangedEvent } from "../types";
+import "./ha-color-rainbow-button";
 import "./ha-combo-box-item";
 import "./ha-generic-picker";
 import "./ha-icon";
@@ -80,6 +82,11 @@ export class HaColorPicker extends LitElement {
         .getAdditionalItems=${this._getAdditionalItems}
       >
       </ha-generic-picker>
+      <ha-color-rainbow-button
+        .value=${effectiveValue}
+        .disabled=${this.disabled}
+        @value-changed=${this._valueChanged}
+      ></ha-color-rainbow-button>
     `;
   }
 
@@ -283,6 +290,18 @@ export class HaColorPicker extends LitElement {
       ></span>
     `;
   }
+
+  static styles: CSSResultGroup = css`
+    :host {
+      display: flex;
+      align-items: center;
+      gap: var(--ha-space-2);
+    }
+    ha-generic-picker {
+      flex: 1;
+      min-width: 0;
+    }
+  `;
 
   private _valueChanged(ev: ValueChangedEvent<string | undefined>) {
     ev.stopPropagation();

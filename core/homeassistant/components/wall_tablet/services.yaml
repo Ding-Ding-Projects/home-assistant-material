@@ -1,0 +1,33 @@
+wake:
+  fields:
+    tablet_id:
+      required: false
+      example: "hall_ipad"
+      selector:
+        text:
+sleep:
+  fields:
+    tablet_id:
+      required: false
+      example: "hall_ipad"
+      selector:
+        text:
+reload:
+  fields:
+    tablet_id:
+      required: false
+      example: "hall_ipad"
+      selector:
+        text:
+navigate:
+  fields:
+    tablet_id:
+      required: false
+      example: "hall_ipad"
+      selector:
+        text:
+    path:
+      required: true
+      example: "/lovelace/kitchen"
+      selector:
+        text:

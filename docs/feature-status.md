@@ -110,6 +110,54 @@ the Models section said no server is answering, and listed models again once it 
 "Page not showing?" button showed its explanation on a page that refuses framing, Dismiss and
 Reload cleared it, and the toolbar fitted at 390 px wide.
 
+## Batches 41 to 51, 12 and 13 November 2026
+
+Published build 371 (batches 47 to 49) was viewed in a headless browser: 80 pictures (24 pages,
+light and dark, wide and phone), no sideways overflow, and the live instance moved to it at 01:02
+Toronto time on 13 November. Build 368 (batch 46) was viewed wide in the light theme. Build 348
+(batch 45) was viewed at 1440 and 390 px. Batches 50 and 51 had not been built and viewed when
+this was written. Only the parts named as seen below were seen; everything else in these batches is
+unit tested and not seen in a browser.
+
+Seen in published build 371: the greeting and the "Needs you" card on the home page, the pane's role
+line and tools menu, the page menu last in the tool pill, one title block with a summary on
+Devices, the motion editor page, the floating phone bar, and card rows with round select marks.
+Seen in build 348: the tool pill on settings sub-pages and the automation editor, one bar and one
+Save in the automation editor, and the floating pill bottom bar with Settings and its count.
+Seen wrong in published build 371 and still open: "Notifications" in the pane sits off centre,
+the welcome banner is cut at the top edge on a wide home page, and one page error (`this._layoutElement.setConfig is not a function`) once in 80 page loads on a
+built-in overview page, not reproduced on other passes.
+
+| Feature | State | Evidence and where |
+| --- | --- | --- |
+| Design foundation: kit colours, tertiary tone, container pairs, soft shadows, motion tokens, 28 px cards (batch 42) | Built, not yet seen in a running build | Viewed in light and dark at 1440, 390 and 320 px in build 347: 14 pages, no page errors, no sideways overflow. Not done: per-row entrance animation, hover lift on cards. Dark contrast of the new tones, custom themes, high contrast and right to left still need a browser. |
+| Navigation pane as the default shell (batches 41, 45, 46) | Built, partly seen in published build 371 | The floating pane with role line and tools menu was seen. Docks other than left, collapsed pane, toggle off, right to left and both-languages mode were not seen. The edge is stored as `pageTabsEdge`. `docs/features/interface/navigation-pane-and-tool-pill.md`. |
+| Floating tool pill, page menu last, one title block with a summary line (batches 45 to 47) | Built and seen in published build 371 | On Devices and settings sub-pages. Not built: large title and breadcrumb on dashboards beyond the segmented views row. |
+| Phone shell: floating bar, quick tools, pages as cards, tools folding into More (batches 45, 48, 49) | Partly built | The floating bar and card rows with round select marks were seen in published build 371. The More sheet, quick tools, touch picking and bottom sheets are not seen. Not built: the grid and edit icons at the top of phone pages, the three discovery browsers as one page. `docs/features/interface/phone-shell.md`. |
+| 24-hour time by default, 24-hour build stamp (batches 46, 50) | Built, seen in part | The 24-hour default was live in build 368. The build stamp still used the 12-hour clock in 371 and was fixed in batch 50, not seen. |
+| Visibility conditions for views and dashboards (batch 46) | Built, not yet seen in a running build | Conditions are kept in `dashboard_visibility`, evaluated in the browser. `docs/features/dashboards/visibility-roles-and-default-dashboards.md`. |
+| Presentation roles, "Who can see this", view-only level (batches 47, 48) | Built, not yet seen in a running build | Roles change what is shown and are not access control. Same article. |
+| Default dashboards per kind of device (batch 47) | Built, not yet seen in a running build | `default_panel_overrides` in the shared frontend settings. Same article. |
+| Automation tools: flow, trace, simulator, replay of a recorded day, conflicts, plain language, steps and locks, variables, blueprint maker, health, week ahead, entity swap, breakpoints, test cases with coverage (batches 44, 48) | Built, not yet seen in a running build | `docs/features/automations/automation-tools.md`. |
+| Lock on automation steps (`editor_locked`) | Built, server call run for real on a throwaway instance | Steps carrying `editor_locked` validate. The pytest files could not run on this machine. `core/homeassistant/helpers/config_validation.py`. |
+| Live states on automation rows (batch 47) | Built, not yet seen in a running build | Each trigger and condition shows its entity's state; a condition says whether it passes now, throttled. |
+| Dashboard editor tools: screens, layout and resize, visibility, interactions and tap feedback, style, state simulator, entity inspector, accessibility scan, wall panel, card library and card files, performance, checkpoints and diff (batches 44, 48) | Built, not yet seen in a running build | `docs/features/dashboards/dashboard-editor-tools.md`. Not built: free pixel layout, per-gesture animation, share as an extension. |
+| Pop-up cards, card styling tab, history compare (batches 47, 48) | Built, not yet seen in a running build | `docs/features/dashboards/popups-styling-and-history-compare.md`. |
+| Scenes edited on paper with Preview; raw editor Go to line, status bar and Replace entity (batch 47) | Built, not yet seen in a running build | `docs/features/interface/scenes-and-raw-editor.md`. |
+| Storage usage: measured size, growth, biggest entities, per-entity view (batch 48) | Built, server calls run for real on a throwaway instance | `recorder/storage/overview` and `recorder/storage/entity` returned real figures and refused a limit of 9999. The page said it could not be read in build 371 (fixed in batch 50, not seen). |
+| Recording rules per entity (batch 49) | Built, server call run for real on a throwaway instance | Switching an entity off and on, a minimum interval and the 3601 second refusal were driven with two test sensors. pytest has not run on this machine. `docs/features/interface/storage-usage-and-recording-rules.md`. |
+| Motion editor under Personal settings (batch 48) | Built and seen in published build 371 | `docs/features/interface/motion-editor.md`. |
+| Help page and guidance notes (batch 48) | Built, not yet seen in a running build | `docs/features/help-and-privacy/help-page-and-guidance-notes.md`. |
+| Progress with the failed step, Start again and Copy details for app jobs; Extensions page with recorded consent (batch 48) | Built, not yet seen in a running build | Not built: resuming an app job part way (the Supervisor cannot), enabling or disabling a resource. `docs/features/interface/extensions-and-job-progress.md`. |
+| Select by rule in every settings list (batch 50) | Built, not yet seen in a running build | `docs/features/interface/select-by-rule.md`. |
+| Add from a file (ZIP) in the Marketplace (batch 51) | Built, server endpoint run for real on a throwaway instance | An archive without `.git` was placed, a repeat replaced it, and a wrong path, a `../` entry, a built-in domain and a non-archive were each refused. Dialog not seen. `docs/features/marketplace/add-from-a-file.md`. |
+| Scan a tag (batch 46) | Built, not yet seen in a running build | Not tried with a real tag; iPhone browsers have no reader. `docs/features/interface/scan-a-tag.md`. |
+| "Needs you" card; lights, security, energy and climate page tops; number tiles on protocol pages (batches 46, 48) | "Needs you" seen in published build 371; the rest built, not yet seen | `docs/features/interface/everyday-page-tops-and-needs-you.md`. Analytics switches are not built (analytics is deliberately a no-op). |
+| Pattern workbench: step trace, Python and PCRE import, search in files, encodings (batches 46, 48) | Built, not yet seen in a running build | Searching the instance's own files is not built (needs a server call that reads files; the owner decides). `docs/features/tools/pattern-workbench-additions.md`. |
+| A lock on one appearance value; several pages locked at once (batch 48) | Built, not yet seen in a running build | `docs/features/access/appearance-value-lock.md`. |
+| Roles on tabs from a menu; the three discovery browsers as one page; resuming an app job; a pytest run for the new server code | Not built | Roles on tabs are not built. Discovery is still three addresses behind one tab strip. The Supervisor cannot resume a job. The Python on this machine lacks the product's packages, so the new server tests have not run here. |
+| Local production builds | Not working | A local production build mounted into a container stays on the loading screen with no error (the application chunk loads and stops at an asynchronous locale data chunk), while published builds of the same source load. Not solved; local builds are not a usable preview. |
+
 ## What was checked for batches 20 to 23 (commits `d68fda3b1`, `88b36b5d8`, `ba7a6a431`, `e0f2d7235`, `5fbf6d91b`)
 
 Checked, and how:
@@ -285,7 +333,7 @@ the section above.
 | Context menus with working shortcuts | Partly built | Seen (`docs/screenshots/element-menu.png`, `element-menu-page-tools.png`): filter, arrow keys, edit appearance, reset, read aloud, copy, search, commands, plus export, history and lock for the page. Since then not seen: Open and Open in a new tab on a link, and the phone sheet. Not built: entries specific to what was clicked (turn off, rename, hide). |
 | Guided forms and per-control information buttons | Partly built | The information buttons are built and not seen (`frontend/src/components/setting-info/ha-setting-info.ts`). Not built: the board's worked example and the practise control. Board `GuidedForm`. |
 | Settings that explain themselves | Partly built | Personal settings says what each control reaches and has a reset (not seen); information buttons beside settings are built as a shared component (`frontend/src/components/setting-info/ha-setting-info.ts`, not seen). The board for other pages is not built. |
-| Extension support | Designed | Board `Extensions`; built only in the Deploy Assistant. |
+| Extension support | Partly built | Board `Extensions`. Built in batch 48 and not yet seen: an Extensions page for dashboard resources and custom panels with recorded consent (`docs/features/interface/extensions-and-job-progress.md`). Not built: enabling or disabling a resource, and a store of sandboxed extensions. Also built in the Deploy Assistant. |
 | Starting points for blank editors | Partly built | Built, not yet seen in a running build: starting points offered in an empty template editor and in an empty dashboard sections view (`frontend/src/components/starting-points/`, `frontend/src/panels/config/tools/template/tools-template.ts`, `frontend/src/panels/lovelace/views/hui-sections-view.ts`; a unit test of the template list). Starting points for an empty automation and script are in their own row. Board `BlankEditor`. |
 | Starting points for an empty automation and script | Built, not yet seen in a running build | Six starting points for each (for example at sunset notify, every day at a time, delay then notify, choose, repeat until), no entity named, every one checked against the editors' own structures by a unit test; shown only while the editor is empty (`frontend/src/components/starting-points/automation-starting-points.ts`, `docs/features/interface/starting-points-automations.md`). |
 | Named test cases and a simulated run | Built, not yet seen in a running build | A Test cases card in the history manager keeps named cases per automation in this browser (name, fake states, variables, expected outcome) and decides conditions against the fake states only, reporting unknown with a reason where it cannot decide; no service is called (`frontend/src/panels/config/automation-history/test-cases.ts`, `simulated-run.ts`, `docs/features/automations/named-test-cases.md`). |

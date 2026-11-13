@@ -1,4 +1,5 @@
 import {
+  mdiContentCopy,
   mdiDelete,
   mdiDotsVertical,
   mdiDownload,
@@ -98,6 +99,7 @@ import { showNewDashboardDialog } from "../../dashboard/show-dialog-new-dashboar
 import { lovelaceTabs } from "../ha-config-lovelace";
 import { showDashboardConfigureStrategyDialog } from "./show-dialog-lovelace-dashboard-configure-strategy";
 import { showDashboardDetailDialog } from "./show-dialog-lovelace-dashboard-detail";
+import { showDuplicateDashboardDialog } from "./show-dialog-duplicate-dashboard";
 import { showPanelDetailDialog } from "./show-dialog-panel-detail";
 import { showDefaultDashboardDialog } from "./show-dialog-default-dashboard";
 import type {
@@ -389,6 +391,17 @@ export class HaConfigLovelaceDashboards extends LitElement {
                         "ui.panel.lovelace.import_export.export_dashboard"
                       ),
                       action: () => this._handleExport(dashboard),
+                    },
+                  ]
+                : []),
+              ...(dashboard.type === "user_created"
+                ? [
+                    {
+                      path: mdiContentCopy,
+                      label: this.hass.localize(
+                        "ui.panel.config.lovelace.dashboards.duplicate.menu"
+                      ),
+                      action: () => this._handleDuplicate(dashboard),
                     },
                   ]
                 : []),
@@ -756,6 +769,29 @@ export class HaConfigLovelaceDashboards extends LitElement {
     );
     void exportDashboard({ hass: this.hass, element: this }, item.url_path, {
       dashboard,
+    });
+  }
+
+  private _handleDuplicate(item: DataTableItem) {
+    showDuplicateDashboardDialog(this, {
+      dashboard: {
+        title: item.title,
+        url_path: item.url_path,
+        icon: item.icon,
+        require_admin: item.require_admin,
+        show_in_sidebar: item.show_in_sidebar,
+      },
+      takenUrlPaths: this._collectTakenDashboardUrlPaths(),
+      created: (created) => {
+        this._dashboards = this._dashboards!.concat(created).sort(
+          (res1, res2) =>
+            stringCompare(
+              res1.url_path,
+              res2.url_path,
+              this.hass.locale.language
+            )
+        );
+      },
     });
   }
 

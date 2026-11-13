@@ -78,8 +78,12 @@ export class HaTwoKeyConfirm extends LitElement {
 
   private _tick?: number;
 
+  // The owner's decision (13 November 2026): the confirmation is the two keys
+  // and the slider on every device, with nothing to type. The keys are
+  // buttons, so two fingers turn them on a touch screen. The typed-word form
+  // below is kept out of use.
   private _touchChanged = (): void => {
-    this._touch = this._touchQuery?.matches ?? false;
+    this._touch = false;
   };
 
   public connectedCallback(): void {
@@ -88,8 +92,7 @@ export class HaTwoKeyConfirm extends LitElement {
       this._touchQuery = window.matchMedia(
         "(pointer: coarse) and (hover: none)"
       );
-      this._touch = this._touchQuery.matches;
-      this._touchQuery.addEventListener?.("change", this._touchChanged);
+      this._touch = false;
     }
     window.addEventListener("keydown", this._keydown, true);
     window.addEventListener("keyup", this._keyup, true);

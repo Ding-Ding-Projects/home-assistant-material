@@ -67,9 +67,11 @@ export const clockText = (
   requestedLocale?: string
 ): string => {
   const locale = validLocale(requestedLocale);
+  // 24-hour form, the product's default for a time of day.
   const time = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   }).format(now);
   const minutes = elapsedMinutes(startedAt, now.getTime());
   const hours = Math.floor(minutes / 60);

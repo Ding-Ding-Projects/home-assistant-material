@@ -219,3 +219,35 @@ export const addBadges = (
   const existingBadges = Array.isArray(badges) ? badges : [];
   return setAtPath(config, badgesPath, [...existingBadges, ...badgeConfigs]);
 };
+
+/**
+ * Puts a copy of a view right after the original. The copy has its own title
+ * (the original's with a suffix) and a path nobody else uses, so both can be
+ * opened by their address.
+ */
+export const duplicateView = (
+  config: LovelaceConfig,
+  viewIndex: number,
+  copySuffix: string
+): { config: LovelaceConfig; index: number } => {
+  const original = config.views[viewIndex];
+  if (!original) {
+    throw new Error("The view to copy is not there.");
+  }
+  const copy = structuredClone(original) as LovelaceViewConfig;
+  const taken = new Set(config.views.map((view) => view.path));
+  if (copy.path) {
+    const base = `${copy.path}-copy`;
+    let candidate = base;
+    for (let n = 2; taken.has(candidate); n++) {
+      candidate = `${base}-${n}`;
+    }
+    copy.path = candidate;
+  }
+  if (copy.title) {
+    copy.title = `${copy.title} (${copySuffix})`;
+  }
+  const views = config.views.slice();
+  views.splice(viewIndex + 1, 0, copy);
+  return { config: { ...config, views }, index: viewIndex + 1 };
+};

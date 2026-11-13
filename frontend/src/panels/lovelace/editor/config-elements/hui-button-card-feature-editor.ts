@@ -96,6 +96,7 @@ export class HuiButtonCardFeatureEditor
                 hide-picker
                 hide-description
                 .hass=${this.hass}
+                .stringBuilder=${false}
                 .value=${scriptData}
                 .narrow=${false}
                 @value-changed=${this._scriptFieldVariablesChanged}

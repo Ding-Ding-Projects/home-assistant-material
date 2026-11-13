@@ -124,6 +124,21 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
   },
   { exact: "sectionTabs", kind: "json", holds: "Settings section tabs" },
   {
+    exact: "sidebarDefaults",
+    kind: "json",
+    holds: "Sidebar defaults: Developer tools shown, default page of an entry",
+  },
+  {
+    exact: "externalLinkMode",
+    kind: "json",
+    holds: "Where links to outside addresses open",
+  },
+  {
+    exact: "quickBarMemory",
+    kind: "json",
+    holds: "Quick bar pinned results and recent results",
+  },
+  {
     exact: "localHistory",
     kind: "json",
     bulky: true,
@@ -255,6 +270,21 @@ export const SYNCED_KEY_RULES: SyncedKeyRule[] = [
     exact: "automation-sidebar-width",
     kind: "json",
     holds: "Automation editor sidebar width",
+  },
+  {
+    exact: "automation-editor-level",
+    kind: "json",
+    holds: "Automation editor level: simple, advanced or YAML",
+  },
+  {
+    exact: "automation-fast-mode",
+    kind: "json",
+    holds: "Automation editor fast mode choices",
+  },
+  {
+    exact: "dashboardSwipe",
+    kind: "json",
+    holds: "Swiping between dashboards on a phone, on or off",
   },
   // Page choices
   {

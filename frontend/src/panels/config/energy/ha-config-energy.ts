@@ -24,6 +24,7 @@ import type { HomeAssistant, Route } from "../../../types";
 import "../../../components/ha-button";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
+import "./components/ha-energy-color-settings";
 import "./components/ha-energy-device-settings";
 import "./components/ha-energy-device-settings-water";
 import "./components/ha-energy-grid-settings";
@@ -209,6 +210,13 @@ class HaConfigEnergy extends LitElement {
               .validationResult=${this._validationResult}
               @value-changed=${this._prefsChanged}
             ></ha-energy-device-settings-water>
+            <ha-energy-color-settings
+              page
+              .hass=${this.hass}
+              .preferences=${this._preferences!}
+              .statsMetadata=${this._statsMetadata}
+              @value-changed=${this._prefsChanged}
+            ></ha-energy-color-settings>
           </div>
           <div class="footer">
             <p>

@@ -72,6 +72,19 @@ export class HaFormExpandable extends LitElement implements HaFormElement {
     });
   };
 
+  // How many options are folded away, so a closed section says what is in it.
+  private _renderCount() {
+    const count = this.schema.schema.filter(
+      (item) => item.type !== "constant" && item.type !== "divider"
+    ).length;
+    const text = count
+      ? this.hass?.localize("ui.components.form-expandable.options_count", {
+          count,
+        })
+      : "";
+    return text ? html`<span class="count">${text}</span>` : nothing;
+  }
+
   protected render() {
     return html`
       <ha-expansion-panel outlined .expanded=${Boolean(this.schema.expanded)}>
@@ -98,6 +111,7 @@ export class HaFormExpandable extends LitElement implements HaFormElement {
           aria-level=${this.schema.headingLevel?.toString() ?? "3"}
         >
           ${this.schema.title || this.computeLabel?.(this.schema)}
+          ${this._renderCount()}
         </div>
         <div class="content">
           ${this._renderDescription()}
@@ -137,6 +151,12 @@ export class HaFormExpandable extends LitElement implements HaFormElement {
     }
     ha-svg-icon,
     ha-icon {
+      color: var(--secondary-text-color);
+    }
+    .count {
+      margin-inline-start: var(--ha-space-2);
+      font-size: var(--ha-font-size-s);
+      font-weight: var(--ha-font-weight-normal);
       color: var(--secondary-text-color);
     }
   `;

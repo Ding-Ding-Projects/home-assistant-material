@@ -236,7 +236,8 @@ export class HuiEnergySourcesTableCard
               false,
               false,
               colorPropertyMap[type],
-              idx
+              idx,
+              statId
             ),
             backgroundColor: getEnergyColor(
               computedStyles,
@@ -244,7 +245,8 @@ export class HuiEnergySourcesTableCard
               true,
               false,
               colorPropertyMap[type],
-              idx
+              idx,
+              statId
             ),
           })}
         ></div>

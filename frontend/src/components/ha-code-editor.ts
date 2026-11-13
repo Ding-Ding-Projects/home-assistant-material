@@ -21,6 +21,7 @@ import {
   mdiBugOutline,
   mdiFindReplace,
   mdiFormatListNumbered,
+  mdiKeyboard,
   mdiRedo,
   mdiUndo,
 } from "@mdi/js";
@@ -63,7 +64,11 @@ import {
   formattersContext,
 } from "../data/context";
 import type { LabelRegistryEntry } from "../data/label/label_registry";
+import { buildShortcutList } from "../common/codemirror/shortcut-list";
+import { isMac } from "../util/is_mac";
+import { showAlertDialog } from "../dialogs/generic/show-dialog-box";
 import "./ha-code-editor-completion-items";
+import "./ha-code-editor-shortcuts";
 import type { CompletionItem } from "./ha-code-editor-completion-items";
 import "./ha-icon";
 import "./ha-icon-button-toolbar";
@@ -494,6 +499,96 @@ export class HaCodeEditor extends ReactiveElement {
       : [];
   }
 
+  /**
+   * The key bindings of the editor. The shortcut list is built from this same
+   * array, so it can never describe a key the editor does not have.
+   */
+  private _keyBindings(): KeyBinding[] {
+    const cm = this._loadedCodeMirror!;
+    // "?" is also a character to type, so on its own it only opens the list
+    // when there is nothing to type into: an empty or read-only editor. With
+    // the primary modifier it always opens.
+    const helpBinding: KeyBinding = {
+      key: "?",
+      run: (view: EditorView) => {
+        if (this.readOnly || view.state.doc.length === 0) {
+          this.showShortcuts();
+          return true;
+        }
+        return false;
+      },
+    };
+    const helpModBinding: KeyBinding = {
+      key: "Mod-?",
+      run: () => {
+        this.showShortcuts();
+        return true;
+      },
+    };
+    return [
+      // closeBracketsKeymap must come before defaultKeymap so its Backspace
+      // handler runs before the default delete-character binding.
+      ...(!this.readOnly ? cm.closeBracketsKeymap : []),
+      ...cm.defaultKeymap,
+      ...cm.searchKeymap,
+      ...cm.historyKeymap,
+      ...cm.tabKeyBindings,
+      ...cm.lintKeymap,
+      saveKeyBinding,
+      helpBinding,
+      helpModBinding,
+    ];
+  }
+
+  /** Opens the list of this editor's keyboard shortcuts. */
+  public showShortcuts(): void {
+    if (!this._loadedCodeMirror) {
+      return;
+    }
+    const t = (key: string, fallback: string) =>
+      this._i18n?.localize(
+        `ui.components.yaml-editor.shortcuts.${key}` as "ui.components.yaml-editor.shortcuts.title"
+      ) || fallback;
+    const platform = isMac ? "mac" : "win";
+    const { entries, unlabelled } = buildShortcutList(
+      this._keyBindings(),
+      platform
+    );
+    const groupTitles: Record<string, string> = {
+      find: t("groups.find", "Find and go to"),
+      history: t("groups.history", "Undo and redo"),
+      lines: t("groups.lines", "Lines"),
+      edit: t("groups.edit", "Editing"),
+      help: t("groups.help", "Help"),
+    };
+    const groups = Object.keys(groupTitles)
+      .map((group) => ({
+        title: groupTitles[group],
+        rows: entries
+          .filter((entry) => entry.group === group)
+          .map((entry) => ({
+            label: t(`labels.${entry.label}`, entry.label.replace(/_/g, " ")),
+            combos: entry.combos,
+          })),
+      }))
+      .filter((group) => group.rows.length > 0);
+    const note =
+      unlabelled > 0
+        ? this._i18n
+            ?.localize("ui.components.yaml-editor.shortcuts.more", {
+              count: unlabelled,
+            })
+            .toString() || `${unlabelled} more cursor and selection keys`
+        : undefined;
+    showAlertDialog(this, {
+      title: t("title", "Keyboard shortcuts"),
+      text: html`<ha-code-editor-shortcuts
+        .groups=${groups}
+        .note=${note}
+      ></ha-code-editor-shortcuts>`,
+    });
+  }
+
   private _createCodeMirror() {
     if (!this._loadedCodeMirror) {
       throw new Error("Cannot create editor before CodeMirror is loaded");
@@ -518,17 +613,7 @@ export class HaCodeEditor extends ReactiveElement {
           activeDark: "var(--secondary-text-color)",
         },
       }),
-      this._loadedCodeMirror.keymap.of([
-        // closeBracketsKeymap must come before defaultKeymap so its Backspace
-        // handler runs before the default delete-character binding.
-        ...(!this.readOnly ? this._loadedCodeMirror.closeBracketsKeymap : []),
-        ...this._loadedCodeMirror.defaultKeymap,
-        ...this._loadedCodeMirror.searchKeymap,
-        ...this._loadedCodeMirror.historyKeymap,
-        ...this._loadedCodeMirror.tabKeyBindings,
-        ...this._loadedCodeMirror.lintKeymap,
-        saveKeyBinding,
-      ]),
+      this._loadedCodeMirror.keymap.of(this._keyBindings()),
       this._loadedCodeMirror.search({ top: true }),
       this._loadedCodeMirror.phrasesCompartment.of(this._phrases),
       this._loadedCodeMirror.langCompartment.of(this._mode),
@@ -729,6 +814,18 @@ export class HaCodeEditor extends ReactiveElement {
           e.preventDefault();
           e.stopPropagation();
           this.openGoToLine();
+        },
+      },
+      {
+        id: "shortcuts",
+        label:
+          this._i18n?.localize("ui.components.yaml-editor.shortcuts.title") ||
+          "Keyboard shortcuts",
+        path: mdiKeyboard,
+        action: (e: Event) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.showShortcuts();
         },
       },
       {

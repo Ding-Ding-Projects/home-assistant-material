@@ -48,7 +48,10 @@ export const getDeviceKind = (): DeviceKind => {
     const wall = readWallPanel();
     deviceKind = computeDeviceKind(
       window.innerWidth,
-      wall.screensaver.enabled || wall.rotation.enabled || wall.night.enabled
+      wall.screensaver.enabled ||
+        wall.rotation.enabled ||
+        wall.night.enabled ||
+        wall.kiosk.enabled
     );
   }
   return deviceKind;

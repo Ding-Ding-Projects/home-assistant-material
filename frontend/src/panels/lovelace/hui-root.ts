@@ -1,5 +1,8 @@
 import {
   mdiAccount,
+  mdiArrowLeft,
+  mdiArrowRight,
+  mdiClipboardTextClockOutline,
   mdiCodeBraces,
   mdiCommentProcessingOutline,
   mdiDevices,
@@ -10,12 +13,14 @@ import {
   mdiFileMultiple,
   mdiFormatListBulletedTriangle,
   mdiFormatPaint,
+  mdiGestureSwipeHorizontal,
   mdiLock,
   mdiHelpCircleOutline,
   mdiHistory,
   mdiMagnify,
   mdiPencil,
   mdiPlus,
+  mdiPlusCircleMultipleOutline,
   mdiRedo,
   mdiRefresh,
   mdiRobot,
@@ -36,7 +41,10 @@ import { UndoRedoController } from "../../common/controllers/undo-redo-controlle
 import type { HASSDomEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
 import { ctrlOrCmdLabel } from "../../common/keyboard/ctrl-or-cmd";
+import { storage } from "../../common/decorators/storage";
 import { goBack, navigate, replaceCurrentUrl } from "../../common/navigate";
+import { listDashboards, neighbourDashboard } from "../../data/dashboard-list";
+import { DashboardSwipeController } from "./common/dashboard-swipe";
 import type { LocalizeKeys } from "../../common/translations/localize";
 import { constructUrlCurrentPath } from "../../common/url/construct-url";
 import { sanitizeNavigationPath } from "../../common/url/sanitize-navigation-path";
@@ -66,13 +74,14 @@ import type {
 } from "../../data/lovelace/config/types";
 import { isStrategyDashboard } from "../../data/lovelace/config/types";
 import type { LovelaceViewConfig } from "../../data/lovelace/config/view";
+import { isStrategyView } from "../../data/lovelace/config/view";
 import {
   deleteDashboard,
   fetchDashboards,
   updateDashboard,
 } from "../../data/lovelace/dashboard";
 import { fetchLovelaceInfo } from "../../data/lovelace/resource";
-import { getPanelTitle } from "../../data/panel";
+import { getDefaultPanelUrlPath, getPanelTitle } from "../../data/panel";
 import { createPerson } from "../../data/person";
 import { showListItemsDialog } from "../../dialogs/dialog-list-items/show-list-items-dialog";
 import {
@@ -99,7 +108,8 @@ import { showPersonDetailDialog } from "../config/person/show-dialog-person-deta
 import { evaluateConditionsLocally } from "../../common/condition/evaluate-locally";
 import { dropInvalidConditions } from "../../common/condition/sanitize";
 import { ConditionEvaluatorController } from "../../common/controllers/condition-evaluator-controller";
-import { swapView } from "./editor/config-util";
+import { duplicateView, swapView } from "./editor/config-util";
+import { showCardTargetsDialog } from "./editor/card-targets-dialog/show-dialog-card-targets";
 import { showDashboardStrategyEditorDialog } from "./editor/dashboard-strategy-editor/dialogs/show-dialog-dashboard-strategy-editor";
 import { showSaveDialog } from "./editor/show-save-config-dialog";
 import {
@@ -211,6 +221,55 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
   private _restoreScroll = false;
 
   private _pageLock = new PageLockController(this);
+
+  /** Whether a swipe on a phone changes the dashboard; on unless switched off. */
+  @storage({
+    key: "dashboardSwipe",
+    state: true,
+    subscribe: true,
+  })
+  private _swipeEnabled?: boolean;
+
+  protected _swipe = new DashboardSwipeController(
+    this,
+    (direction) => this._switchDashboard(direction),
+    () => this._swipeActive()
+  );
+
+  private _swipeActive(): boolean {
+    return (
+      this.narrow &&
+      !this._editMode &&
+      !this.embedded &&
+      this._swipeEnabled !== false &&
+      !this._pageLock.locked &&
+      Boolean(this._neighbour("next") || this._neighbour("previous"))
+    );
+  }
+
+  /** The dashboard next to this one in the list of dashboards, if any. */
+  private _neighbour(direction: "previous" | "next"): string | undefined {
+    const current = this.route?.prefix.replace(/^\//, "");
+    if (!this.hass || !current) {
+      return undefined;
+    }
+    return neighbourDashboard(
+      listDashboards(this.hass, getDefaultPanelUrlPath(this.hass), current),
+      current,
+      direction
+    );
+  }
+
+  private _switchDashboard(direction: "previous" | "next"): void {
+    const target = this._neighbour(direction);
+    if (target) {
+      navigate(`/${target}`);
+    }
+  }
+
+  private _setSwipe(enabled: boolean) {
+    this._swipeEnabled = enabled;
+  }
 
   private _childPanelReady?: ChildPanelReady;
 
@@ -360,6 +419,72 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         key: "ui.panel.lovelace.history.view",
         overflowAction: this._handleViewHistory,
         visible: canShowHistory && this._editMode,
+        overflow: true,
+      },
+      {
+        icon: mdiArrowLeft,
+        key: "ui.panel.lovelace.menu.previous_dashboard",
+        overflowAction: () => this._switchDashboard("previous"),
+        visible:
+          this.narrow &&
+          !this._editMode &&
+          !this.embedded &&
+          Boolean(this._neighbour("previous")),
+        overflow: true,
+      },
+      {
+        icon: mdiArrowRight,
+        key: "ui.panel.lovelace.menu.next_dashboard",
+        overflowAction: () => this._switchDashboard("next"),
+        visible:
+          this.narrow &&
+          !this._editMode &&
+          !this.embedded &&
+          Boolean(this._neighbour("next")),
+        overflow: true,
+      },
+      {
+        icon: mdiGestureSwipeHorizontal,
+        key: "ui.panel.lovelace.menu.swipe_off",
+        overflowAction: () => this._setSwipe(false),
+        visible:
+          this.narrow &&
+          !this._editMode &&
+          !this.embedded &&
+          this._swipeEnabled !== false &&
+          Boolean(this._neighbour("next") || this._neighbour("previous")),
+        overflow: true,
+      },
+      {
+        icon: mdiGestureSwipeHorizontal,
+        key: "ui.panel.lovelace.menu.swipe_on",
+        overflowAction: () => this._setSwipe(true),
+        visible:
+          this.narrow &&
+          !this._editMode &&
+          !this.embedded &&
+          this._swipeEnabled === false &&
+          Boolean(this._neighbour("next") || this._neighbour("previous")),
+        overflow: true,
+      },
+      {
+        icon: mdiPlusCircleMultipleOutline,
+        key: "ui.panel.lovelace.editor.menu.duplicate_view",
+        overflowAction: this._handleDuplicateView,
+        visible:
+          this._editMode &&
+          typeof this._curView === "number" &&
+          !isStrategyView(this.config.views[this._curView]),
+        overflow: true,
+      },
+      {
+        icon: mdiClipboardTextClockOutline,
+        key: "ui.panel.lovelace.editor.menu.paste_cards",
+        overflowAction: this._handlePasteCards,
+        visible:
+          this._editMode &&
+          typeof this._curView === "number" &&
+          !isStrategyView(this.config.views[this._curView]),
         overflow: true,
       },
       {
@@ -1630,6 +1755,38 @@ class HUIRoot extends KeyboardShortcutMixin(LitElement) {
         path && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(path) ? path : undefined
       )
     );
+  };
+
+  /** Puts a copy of this view next to it and opens the copy. */
+  private _handleDuplicateView = async () => {
+    if (typeof this._curView !== "number" || !this.lovelace) {
+      return;
+    }
+    const lovelace = this.lovelace;
+    try {
+      const copy = duplicateView(
+        lovelace.config,
+        this._curView,
+        this.hass.localize("ui.panel.lovelace.editor.menu.view_copy_suffix")
+      );
+      await lovelace.saveConfig(copy.config);
+      const view = copy.config.views[copy.index];
+      this._navigateToView(view.path || copy.index);
+    } catch (_err: unknown) {
+      lovelace.showToast({
+        message: this.hass.localize(
+          "ui.panel.lovelace.editor.menu.duplicate_view_error"
+        ),
+      });
+    }
+  };
+
+  private _handlePasteCards = () => {
+    showCardTargetsDialog(this, {
+      mode: "paste",
+      lovelace: () => this.lovelace,
+      viewIndex: typeof this._curView === "number" ? this._curView : 0,
+    });
   };
 
   private _handleHelp = () => {

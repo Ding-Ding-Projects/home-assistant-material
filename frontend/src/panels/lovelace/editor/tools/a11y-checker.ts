@@ -57,7 +57,7 @@ const CONTROLS =
 const NAMED_CONTROLS =
   "button, a[href], [role='button'], ha-icon-button, ha-button";
 
-const isVisible = (element: Element): DOMRect | undefined => {
+export const isVisible = (element: Element): DOMRect | undefined => {
   const rect = element.getBoundingClientRect();
   if (!rect.width || !rect.height) {
     return undefined;
@@ -74,7 +74,7 @@ const isVisible = (element: Element): DOMRect | undefined => {
 };
 
 /** The colour actually behind an element, or undefined when it cannot be known. */
-const backgroundOf = (element: Element): Rgba | undefined => {
+export const backgroundOf = (element: Element): Rgba | undefined => {
   const layers: Rgba[] = [];
   let node: Element | null = element;
   while (node) {
@@ -102,7 +102,7 @@ const backgroundOf = (element: Element): Rgba | undefined => {
   return result;
 };
 
-const hasOwnText = (element: Element): string => {
+export const hasOwnText = (element: Element): string => {
   let text = "";
   element.childNodes.forEach((child) => {
     if (child.nodeType === Node.TEXT_NODE) {

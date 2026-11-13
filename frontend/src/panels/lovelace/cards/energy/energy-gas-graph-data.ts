@@ -236,7 +236,8 @@ function processDataSet(
           false,
           compare,
           "--energy-gas-color",
-          idx
+          idx,
+          statId
         ),
       },
       color: getEnergyColor(
@@ -245,7 +246,8 @@ function processDataSet(
         true,
         compare,
         "--energy-gas-color",
-        idx
+        idx,
+        statId
       ),
       data: gasConsumptionData,
       stack: compare ? "compare-gas" : "gas",

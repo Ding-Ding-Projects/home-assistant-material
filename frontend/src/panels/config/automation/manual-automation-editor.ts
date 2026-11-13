@@ -1,6 +1,6 @@
 import type { HassEntity } from "home-assistant-js-websocket";
 import { load, YAML11_SCHEMA } from "js-yaml";
-import type { CSSResultGroup } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, queryAll, state } from "lit/decorators";
 import {
@@ -42,6 +42,18 @@ import {
 } from "../../../data/automation";
 import { getActionType, type Action } from "../../../data/script";
 import { showEditorToast } from "./editor-toast";
+import { levelShows } from "./tools/automation-editor-level";
+import {
+  EditorPrefsController,
+  getEditorLevel,
+  getFastModePreferences,
+  isFastActive,
+  setConfigRowCount,
+  setFastModePreferences,
+} from "./tools/automation-editor-prefs";
+import { planFastRender } from "./tools/automation-fast";
+import { publishRelationChips } from "./tools/relation-chips";
+import type { FastPlan } from "./tools/automation-fast";
 import "./ha-automation-status-bar";
 import "./search/ha-automation-search-bar";
 import "./action/ha-automation-action";
@@ -62,6 +74,9 @@ import {
   isGeneratedTriggerId,
   stripGeneratedTriggerIds,
 } from "./trigger/automation-trigger-id";
+
+/** Rows from which the fast mode card shows. */
+const FAST_CARD_MIN_ROWS = 50;
 
 const baseConfigStruct = object({
   alias: optional(string()),
@@ -97,6 +112,22 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
   >;
 
   @state() private _toggleError?: string;
+
+  protected _editorPrefs = new EditorPrefsController(this);
+
+  /** Simple level keeps the conditions behind "More" until asked for. */
+  @state() private _showMoreConditions = false;
+
+  private _plan?: FastPlan;
+
+  protected override willUpdate(changedProps: PropertyValues<this>) {
+    super.willUpdate(changedProps);
+    if (changedProps.has("config") || !this._plan) {
+      this._plan = planFastRender(this.config);
+      setConfigRowCount(this._plan.total);
+      publishRelationChips(this.config);
+    }
+  }
 
   @state() private _toggling = false;
 
@@ -175,7 +206,14 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
             ></ha-starting-points>`
           : nothing
       }
-      <ha-automation-search-bar .hass=${this.hass}></ha-automation-search-bar>
+      ${this._renderFastCard()}
+      ${
+        levelShows(getEditorLevel(), "search")
+          ? html`<ha-automation-search-bar
+              .hass=${this.hass}
+            ></ha-automation-search-bar>`
+          : nothing
+      }
       <section class="section">
         <div class="header">
           <h2 id="triggers-heading" class="name">
@@ -219,52 +257,66 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
         ></ha-automation-trigger>
       </section>
 
-      <section class="section">
-        <div class="header">
-          <h2 id="conditions-heading" class="name">
-            <span class="chip chip-if"
-              >${this.hass.localize(
-                "ui.panel.config.automation.editor.conditions.header"
-              )}</span
-            >
-            <span class="section-title"
-              >${this.hass.localize(
-                "ui.panel.config.automation.editor.conditions.section_title"
-              )}</span
-            >
-            <span class="small"
-              >(${this.hass.localize("ui.common.optional")})</span
-            >
-          </h2>
-        </div>
-        ${
-          !ensureArray(this.config.conditions)?.length
-            ? html`<p>
+      ${
+        this._conditionsHidden()
+          ? html`<div class="more-options">
+              <ha-button
+                appearance="plain"
+                size="s"
+                @click=${this._showConditions}
+              >
                 ${this.hass.localize(
-                  "ui.panel.config.automation.editor.conditions.description",
-                  { user: this.hass.user?.name || "Alice" }
+                  "ui.panel.config.automation.editor.level.more" as any
                 )}
-              </p>`
-            : nothing
-        }
+              </ha-button>
+            </div>`
+          : html`<section class="section">
+              <div class="header">
+                <h2 id="conditions-heading" class="name">
+                  <span class="chip chip-if"
+                    >${this.hass.localize(
+                      "ui.panel.config.automation.editor.conditions.header"
+                    )}</span
+                  >
+                  <span class="section-title"
+                    >${this.hass.localize(
+                      "ui.panel.config.automation.editor.conditions.section_title"
+                    )}</span
+                  >
+                  <span class="small"
+                    >(${this.hass.localize("ui.common.optional")})</span
+                  >
+                </h2>
+              </div>
+              ${
+                !ensureArray(this.config.conditions)?.length
+                  ? html`<p>
+                      ${this.hass.localize(
+                        "ui.panel.config.automation.editor.conditions.description",
+                        { user: this.hass.user?.name || "Alice" }
+                      )}
+                    </p>`
+                  : nothing
+              }
 
-        <ha-automation-condition
-          role="region"
-          aria-labelledby="conditions-heading"
-          .conditions=${this.config.conditions || []}
-          .highlightedConditions=${this.pastedConfig?.conditions}
-          @value-changed=${this._conditionChanged}
-          .hass=${this.hass}
-          .editorDirty=${this.dirty}
-          .disabled=${this.disabled || this.saving}
-          .narrow=${this.narrow}
-          @open-sidebar=${this.openSidebar}
-          @request-close-sidebar=${this.triggerCloseSidebar}
-          @close-sidebar=${this.handleCloseSidebar}
-          root
-          sidebar
-        ></ha-automation-condition>
-      </section>
+              <ha-automation-condition
+                role="region"
+                aria-labelledby="conditions-heading"
+                .conditions=${this.config.conditions || []}
+                .highlightedConditions=${this.pastedConfig?.conditions}
+                @value-changed=${this._conditionChanged}
+                .hass=${this.hass}
+                .editorDirty=${this.dirty}
+                .disabled=${this.disabled || this.saving}
+                .narrow=${this.narrow}
+                @open-sidebar=${this.openSidebar}
+                @request-close-sidebar=${this.triggerCloseSidebar}
+                @close-sidebar=${this.handleCloseSidebar}
+                root
+                sidebar
+              ></ha-automation-condition>
+            </section>`
+      }
 
       <section class="section">
         <div class="header">
@@ -308,12 +360,88 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           sidebar
         ></ha-automation-action>
       </section>
-      <ha-automation-status-bar
-        .hass=${this.hass}
-        .config=${this.config}
-        .dirty=${this.dirty}
-      ></ha-automation-status-bar>
+      ${
+        levelShows(getEditorLevel(), "status_bar")
+          ? html`<ha-automation-status-bar
+              .hass=${this.hass}
+              .config=${this.config}
+              .dirty=${this.dirty}
+            ></ha-automation-status-bar>`
+          : nothing
+      }
     `;
+  }
+
+  private _conditionsHidden(): boolean {
+    return (
+      !levelShows(getEditorLevel(), "empty_conditions") &&
+      !this._showMoreConditions &&
+      !ensureArray(this.config.conditions)?.length
+    );
+  }
+
+  private _showConditions() {
+    this._showMoreConditions = true;
+  }
+
+  private _foldToggled(ev: Event) {
+    setFastModePreferences({ foldBranches: (ev.target as HaSwitch).checked });
+  }
+
+  private _fastToggled(ev: Event) {
+    setFastModePreferences({ enabled: (ev.target as HaSwitch).checked });
+  }
+
+  private _renderFastCard() {
+    const plan = this._plan;
+    if (!plan || plan.total < FAST_CARD_MIN_ROWS) {
+      return nothing;
+    }
+    const prefs = getFastModePreferences();
+    const active = isFastActive();
+    const t = (key: string, values?: Record<string, string | number>) =>
+      this.hass.localize(
+        `ui.panel.config.automation.editor.fast.${key}` as any,
+        values as any
+      );
+    return html`<section class="fast-card" aria-labelledby="fast-title">
+      <h2 id="fast-title">${t("title")}</h2>
+      <p class="fast-note">
+        ${
+          active
+            ? t("on_note", { count: prefs.threshold })
+            : t("off_note", { count: prefs.threshold })
+        }
+      </p>
+      <div class="fast-stats">
+        <div class="fast-stat">
+          <span>${t("rows_total")}</span>
+          <strong>${plan.total}</strong>
+        </div>
+        <div class="fast-stat">
+          <span>${t("rows_now")}</span>
+          <strong>${active ? plan.drawnFast : plan.drawnToday}</strong>
+        </div>
+        <div class="fast-stat">
+          <span>${t("folded")}</span>
+          <strong>${plan.folded.length}</strong>
+        </div>
+      </div>
+      <label class="fast-toggle">
+        <span>${t("fold_toggle")}</span>
+        <ha-switch
+          .checked=${prefs.foldBranches}
+          @change=${this._foldToggled}
+        ></ha-switch>
+      </label>
+      <label class="fast-toggle">
+        <span>${t("fast_toggle", { count: prefs.threshold })}</span>
+        <ha-switch
+          .checked=${prefs.enabled}
+          @change=${this._fastToggled}
+        ></ha-switch>
+      </label>
+    </section>`;
   }
 
   protected saveConfig() {
@@ -714,6 +842,67 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
 
         .description {
           margin-top: 16px;
+        }
+        .more-options {
+          display: flex;
+          justify-content: center;
+          margin-bottom: var(--ha-space-4);
+        }
+        .fast-card {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-3);
+          padding: var(--ha-space-4);
+          margin-bottom: var(--ha-space-4);
+          border-radius: var(--ha-border-radius-3xl, 28px);
+          background: var(
+            --ha-color-surface-container,
+            var(--card-background-color)
+          );
+        }
+        .fast-card h2 {
+          margin: 0;
+          font-size: var(--ha-font-size-l, 1.125rem);
+          font-weight: var(--ha-font-weight-semibold);
+        }
+        .fast-note {
+          margin: 0;
+          color: var(--secondary-text-color);
+        }
+        .fast-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: var(--ha-space-3);
+        }
+        .fast-stat {
+          display: flex;
+          flex-direction: column;
+          gap: var(--ha-space-1);
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-xl, 16px);
+          background: var(
+            --ha-color-primary-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-primary-container,
+            var(--primary-text-color)
+          );
+        }
+        .fast-stat span {
+          font-size: var(--ha-font-size-s, 0.875rem);
+        }
+        .fast-stat strong {
+          font-size: var(--ha-font-size-2xl, 1.5rem);
+          font-weight: var(--ha-font-weight-semibold);
+        }
+        .fast-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-3);
+          min-height: 44px;
+          font-weight: var(--ha-font-weight-semibold);
         }
       `,
     ];

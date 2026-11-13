@@ -1,6 +1,6 @@
 import type { HassEntity } from "home-assistant-js-websocket";
 import type { CSSResultGroup, PropertyValues } from "lit";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { consume } from "../../../common/decorators/consume";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -9,6 +9,7 @@ import { computeEntityEntryName } from "../../../common/entity/compute_entity_na
 import { getEntityEntryContext } from "../../../common/entity/context/get_entity_context";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-registry-notes-card";
 import type { ConfigEntry } from "../../../data/config_entries";
 import {
   deleteConfigEntry,
@@ -149,6 +150,15 @@ export class EntityRegistrySettings extends SubscribeMixin(LitElement) {
           .helperConfigEntry=${this._helperConfigEntry}
           .disabled=${!!this._submitting}
         ></entity-registry-settings-editor>
+        ${
+          this.entry.id
+            ? html`<ha-registry-notes-card
+                .hass=${this.hass}
+                kind="entities"
+                .targetId=${this.entry.id}
+              ></ha-registry-notes-card>`
+            : nothing
+        }
       </div>
       <div class="buttons">
         <ha-button
@@ -307,6 +317,9 @@ export class EntityRegistrySettings extends SubscribeMixin(LitElement) {
         .container {
           padding: var(--ha-space-2) var(--ha-space-6) var(--ha-space-5)
             var(--ha-space-6);
+        }
+        ha-registry-notes-card {
+          margin-top: var(--ha-space-4);
         }
         .buttons {
           box-sizing: border-box;

@@ -115,6 +115,7 @@ import "../../logbook/ha-logbook";
 import "./device-detail/ha-device-child-devices-card";
 import "./device-detail/ha-device-entities-card";
 import "./device-detail/ha-device-info-card";
+import "../../../components/ha-registry-notes-card";
 import type { ESPHomeSetupController } from "./device-detail/integration-elements/esphome/esphome-setup-controller";
 import "./device-detail/ha-device-linked-devices-card";
 import "./device-detail/ha-device-via-devices-card";
@@ -832,6 +833,11 @@ export class HaConfigDevicePage extends LitElement {
             : ""
         }
       </ha-device-info-card>
+      <ha-registry-notes-card
+        .hass=${this.hass}
+        kind="devices"
+        .targetId=${this.deviceId}
+      ></ha-registry-notes-card>
       ${this._esphomeSetup?.renderReminder() ?? nothing}
       <ha-device-child-devices-card
         .hass=${this.hass}

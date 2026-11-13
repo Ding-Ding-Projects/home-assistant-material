@@ -16,6 +16,8 @@ import type { RenderTemplateResult } from "../../data/ws-templates";
 import { subscribeRenderTemplate } from "../../data/ws-templates";
 import { debounce } from "../../common/util/debounce";
 import type { TemplateSelector } from "../../data/selector";
+import type { HomeAssistant } from "../../types";
+import "../string-builder/ha-string-builder-button";
 
 const WARNING_STRINGS = ["template:", "sensor:", "state:", "trigger: template"];
 
@@ -29,6 +31,8 @@ export class HaTemplateSelector extends LitElement {
 
   @consume({ context: connectionContext, subscribe: true })
   private _connection!: ContextType<typeof connectionContext>;
+
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
   @property({ attribute: false }) public selector!: TemplateSelector;
 
@@ -109,11 +113,22 @@ export class HaTemplateSelector extends LitElement {
             >`
           : nothing
       }
-      ${
-        this.label
-          ? html`<p>${this.label}${this.required ? "*" : ""}</p>`
-          : nothing
-      }
+      <div class="label-row">
+        ${
+          this.label
+            ? html`<p>${this.label}${this.required ? "*" : ""}</p>`
+            : nothing
+        }
+        ${
+          this.hass && !this.disabled
+            ? html`<ha-string-builder-button
+                .hass=${this.hass}
+                .value=${this.value ?? ""}
+                @string-builder-result=${this._builderResult}
+              ></ha-string-builder-button>`
+            : nothing
+        }
+      </div>
       <ha-code-editor
         mode="jinja2"
         .value=${this.value}
@@ -212,6 +227,13 @@ ${
     }
   }
 
+  private _builderResult(ev: CustomEvent<{ value: string }>) {
+    ev.stopPropagation();
+    const value = ev.detail.value;
+    this.warn = WARNING_STRINGS.find((str) => value.includes(str));
+    fireEvent(this, "value-changed", { value });
+  }
+
   private _handleChange(ev) {
     ev.stopPropagation();
     let value = ev.target.value;
@@ -228,6 +250,20 @@ ${
   static styles = css`
     p {
       margin-top: 0;
+    }
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ha-space-2);
+    }
+    .label-row p {
+      margin-block: 0;
+      flex: 1;
+      min-width: 0;
+    }
+    .label-row ha-string-builder-button {
+      margin-inline-start: auto;
     }
     .rendered {
       font-family: var(--ha-font-family-code);

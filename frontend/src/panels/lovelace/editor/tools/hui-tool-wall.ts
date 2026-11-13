@@ -1,10 +1,17 @@
 import type { TemplateResult } from "lit";
-import { css, html } from "lit";
+import { css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-button";
 import "../../../../components/ha-checkbox";
 import "../../../../components/ha-switch";
+import "../../../../components/entity/ha-entity-picker";
+import {
+  PIN_PATTERN,
+  readLocks,
+  withPin,
+  writeLocks,
+} from "../../../../common/locks/element-locks";
 import "../../../../components/input/ha-input";
 import { isStrategyView } from "../../../../data/lovelace/config/view";
 import { ToolView } from "./tools-base";
@@ -18,6 +25,10 @@ type Part = "screensaver" | "rotation" | "night";
 export class HuiToolWall extends ToolView {
   @state() private _settings: WallPanelSettings = readWallPanel();
 
+  @state() private _pin = "";
+
+  @state() private _hasPin = Boolean(readLocks().pin);
+
   protected render(): TemplateResult {
     const s = this._settings;
     const views = (this._config?.views ?? []).map((view, index) => ({
@@ -27,7 +38,7 @@ export class HuiToolWall extends ToolView {
     }));
     return html`
       <p class="intro">${this._t("wall.intro")}</p>
-      ${this._renderMessages()}
+      ${this._renderMessages()} ${this._renderKiosk(s)}
       <div class="cards">
         <section class="panel">
           <div class="head">
@@ -46,6 +57,13 @@ export class HuiToolWall extends ToolView {
             .section=${"screensaver"}
             @change=${this._number}
           ></ha-input>
+          <label class="inline">
+            <ha-switch
+              .checked=${s.screensaver.shift}
+              @change=${this._shift}
+            ></ha-switch>
+            ${this._t("wall.shift")}
+          </label>
           <p class="hint">${this._t("wall.screensaver_hint")}</p>
           <ha-button appearance="plain" @click=${this._preview}>
             ${this._t("wall.preview")}
@@ -127,6 +145,172 @@ export class HuiToolWall extends ToolView {
         </ha-button>
       </div>
     `;
+  }
+
+  private _renderKiosk(s: WallPanelSettings): TemplateResult {
+    const wakeLockSupported = "wakeLock" in navigator;
+    return html`
+      <section class="panel mode">
+        <div class="head">
+          <h3>${this._t("wall.kiosk")}</h3>
+          <ha-switch
+            .checked=${s.kiosk.enabled}
+            aria-label=${this._t("wall.kiosk")}
+            @change=${this._kioskToggle}
+          ></ha-switch>
+        </div>
+        <p class="hint">${this._t("wall.kiosk_hint")}</p>
+        <ha-input
+          .label=${this._t("wall.tablet_name")}
+          .value=${s.kiosk.name}
+          .maxLength=${60}
+          @change=${this._kioskName}
+        ></ha-input>
+        <p class="hint">${this._t("wall.tablet_name_hint")}</p>
+      </section>
+      <div class="cards">
+        <section class="panel">
+          <div class="head">
+            <h3>${this._t("wall.lockdown")}</h3>
+            <ha-switch
+              .checked=${s.kiosk.lockdown}
+              aria-label=${this._t("wall.lockdown")}
+              @change=${this._lockdownToggle}
+            ></ha-switch>
+          </div>
+          <p class="hint">${this._t("wall.lockdown_hint")}</p>
+          <ha-input
+            type="password"
+            inputmode="numeric"
+            .label=${this._t("wall.pin")}
+            .value=${this._pin}
+            @input=${this._pinInput}
+          ></ha-input>
+          <div class="row">
+            <ha-button
+              appearance="plain"
+              .disabled=${!PIN_PATTERN.test(this._pin)}
+              @click=${this._setPin}
+            >
+              ${this._t("wall.pin_set")}
+            </ha-button>
+            ${
+              this._hasPin
+                ? html`<ha-button
+                    variant="danger"
+                    appearance="plain"
+                    @click=${this._removePin}
+                  >
+                    ${this._t("wall.pin_remove")}
+                  </ha-button>`
+                : nothing
+            }
+          </div>
+          <p class="hint">
+            ${
+              this._hasPin
+                ? this._t("wall.pin_is_set")
+                : this._t("wall.pin_not_set")
+            }
+          </p>
+        </section>
+        <section class="panel">
+          <h3>${this._t("wall.wake")}</h3>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .label=${this._t("wall.motion")}
+            .value=${s.kiosk.motionEntity}
+            .includeDomains=${["binary_sensor"]}
+            @value-changed=${this._motionChanged}
+          ></ha-entity-picker>
+          <p class="hint">${this._t("wall.motion_hint")}</p>
+          <label class="inline">
+            <ha-switch
+              .checked=${s.kiosk.keepAwake}
+              .disabled=${!wakeLockSupported}
+              @change=${this._keepAwakeToggle}
+            ></ha-switch>
+            ${this._t("wall.keep_awake")}
+          </label>
+          <p class="hint">
+            ${
+              wakeLockSupported
+                ? this._t("wall.keep_awake_hint")
+                : this._t("wall.keep_awake_unsupported")
+            }
+          </p>
+        </section>
+      </div>
+    `;
+  }
+
+  private _kioskPatch(patch: Partial<WallPanelSettings["kiosk"]>) {
+    const s = this._settings;
+    this._write({ ...s, kiosk: { ...s.kiosk, ...patch } });
+    this._settings = readWallPanel();
+  }
+
+  private _kioskToggle(ev: Event) {
+    this._kioskPatch({
+      enabled: (ev.currentTarget as HTMLInputElement).checked,
+    });
+  }
+
+  private _lockdownToggle(ev: Event) {
+    this._kioskPatch({
+      lockdown: (ev.currentTarget as HTMLInputElement).checked,
+    });
+  }
+
+  private _keepAwakeToggle(ev: Event) {
+    this._kioskPatch({
+      keepAwake: (ev.currentTarget as HTMLInputElement).checked,
+    });
+  }
+
+  private _kioskName(ev: Event) {
+    this._kioskPatch({ name: (ev.currentTarget as HTMLInputElement).value });
+  }
+
+  private _motionChanged(ev: CustomEvent<{ value?: string }>) {
+    this._kioskPatch({ motionEntity: ev.detail.value ?? "" });
+  }
+
+  private _shift(ev: Event) {
+    const s = this._settings;
+    this._write({
+      ...s,
+      screensaver: {
+        ...s.screensaver,
+        shift: (ev.currentTarget as HTMLInputElement).checked,
+      },
+    });
+  }
+
+  private _pinInput(ev: Event) {
+    this._pin = (ev.currentTarget as HTMLInputElement).value;
+  }
+
+  private _setPin() {
+    try {
+      writeLocks(withPin(readLocks(), this._pin));
+      this._pin = "";
+      this._hasPin = true;
+      this._error = undefined;
+      this._notice = this._t("wall.pin_saved");
+    } catch (err: unknown) {
+      this._fail(err);
+    }
+  }
+
+  private _removePin() {
+    try {
+      writeLocks(withPin(readLocks(), undefined));
+      this._hasPin = false;
+      this._notice = this._t("wall.pin_removed");
+    } catch (err: unknown) {
+      this._fail(err);
+    }
   }
 
   private _write(next: WallPanelSettings) {
@@ -231,6 +415,17 @@ export class HuiToolWall extends ToolView {
           margin: 0;
           font-size: var(--ha-font-size-l);
           font-weight: var(--ha-font-weight-title, 600);
+        }
+        .mode {
+          margin-bottom: var(--ha-space-3);
+        }
+        .inline {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+        }
+        .cards {
+          margin-bottom: var(--ha-space-3);
         }
         .views label {
           display: flex;

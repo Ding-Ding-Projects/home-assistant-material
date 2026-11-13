@@ -396,6 +396,10 @@ export interface LightCardConfig extends LovelaceCardConfig {
   name?: string | EntityNameItem | EntityNameItem[];
   theme?: string;
   icon?: string;
+  /** Show a brightness slider on the card (only for lights that dim). */
+  show_brightness_slider?: boolean;
+  /** Show a color temperature slider on the card (only for lights that support it). */
+  show_color_temp_slider?: boolean;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;

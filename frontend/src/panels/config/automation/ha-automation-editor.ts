@@ -31,6 +31,14 @@ import { isNavigationClick } from "../../../common/dom/is-navigation-click";
 import { goBack, navigate } from "../../../common/navigate";
 import { promiseTimeout } from "../../../common/util/promise-timeout";
 import "../../../components/ha-button";
+import "../../../components/ha-button-toggle-group";
+import {
+  EditorPrefsController,
+  getEditorLevel,
+  setEditorLevel,
+} from "./tools/automation-editor-prefs";
+import { levelForView } from "./tools/automation-editor-level";
+import type { EditorLevel } from "./tools/automation-editor-level";
 import "../../../components/ha-dropdown";
 import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon";
@@ -71,7 +79,7 @@ import "../../../layouts/hass-subpage";
 import { KeyboardShortcutMixin } from "../../../mixins/keyboard-shortcut-mixin";
 import { PreventUnsavedMixin } from "../../../mixins/prevent-unsaved-mixin";
 import { haStyle } from "../../../resources/styles";
-import type { Entries, ValueChangedEvent } from "../../../types";
+import type { Entries, ToggleButton, ValueChangedEvent } from "../../../types";
 import { isMac } from "../../../util/is_mac";
 import { repositoryUrl } from "../automation-history/automation-history-query-params";
 import { showEditorToast } from "./editor-toast";
@@ -135,6 +143,14 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
 
   @state() private _toolsOpen = false;
 
+  protected _editorPrefs = new EditorPrefsController(this);
+
+  /** The person's choice is applied once, when the first configuration loads. */
+  private _levelApplied = false;
+
+  /** The level to go back to when the person leaves the YAML view. */
+  private _guiLevel: EditorLevel = "advanced";
+
   @query("manual-automation-editor")
   private _manualEditor?: HaManualAutomationEditor;
 
@@ -181,6 +197,26 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
 
   protected willUpdate(changedProps: PropertyValues<this>) {
     super.willUpdate(changedProps);
+
+    if (this.config && !this._levelApplied) {
+      this._levelApplied = true;
+      const stored = getEditorLevel();
+      if (stored !== "yaml") {
+        this._guiLevel = stored;
+      } else if (!("use_blueprint" in this.config)) {
+        this.switchYamlMode();
+      }
+    }
+    const modeChange = changedProps as PropertyValues;
+    if (modeChange.has("mode") && modeChange.get("mode") !== undefined) {
+      if (this.mode === "yaml") {
+        const current = getEditorLevel();
+        this._guiLevel = current === "yaml" ? this._guiLevel : current;
+        setEditorLevel("yaml");
+      } else {
+        setEditorLevel(this._guiLevel);
+      }
+    }
 
     if (
       this.entityRegCreated &&
@@ -402,7 +438,6 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
                 </ha-dropdown-item>`
               : nothing
           }
-
           ${
             !useBlueprint
               ? html`<ha-dropdown-item value="tools">
@@ -524,6 +559,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
           @subscribe-automation-config=${this._subscribeAutomationConfig}
           @automation-navigate=${this._navigateConfirmed}
         >
+          ${!useBlueprint ? this._renderLevelBar() : nothing}
           ${
             this.mode === "gui"
               ? html`
@@ -726,6 +762,53 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         }
       </hass-subpage>
     `;
+  }
+
+  private _renderLevelBar() {
+    const buttons: ToggleButton[] = (
+      ["simple", "advanced", "yaml"] as EditorLevel[]
+    ).map((value) => ({
+      value,
+      label: this.hass.localize(
+        `ui.panel.config.automation.editor.level.${value}` as any
+      ),
+    }));
+    return html`<div class="level-bar">
+      <span class="level-label" id="level-label"
+        >${this.hass.localize(
+          "ui.panel.config.automation.editor.level.label" as any
+        )}</span
+      >
+      <ha-button-toggle-group
+        role="group"
+        aria-labelledby="level-label"
+        .buttons=${buttons}
+        .active=${levelForView(this.mode, getEditorLevel())}
+        size="s"
+        no-wrap
+        .disabled=${this.readOnly && this.mode === "yaml"}
+        @value-changed=${this._levelChanged}
+      ></ha-button-toggle-group>
+    </div>`;
+  }
+
+  private async _levelChanged(ev: CustomEvent<{ value: EditorLevel }>) {
+    ev.stopPropagation();
+    const level = ev.detail.value;
+    if (level === "yaml") {
+      if (this.mode !== "yaml") {
+        this._guiLevel = levelForView("gui", getEditorLevel());
+        this.switchYamlMode();
+      }
+      return;
+    }
+    this._guiLevel = level;
+    if (this.mode === "yaml") {
+      // The new mode stores the level once the switch goes through.
+      await this.switchUiMode();
+      return;
+    }
+    setEditorLevel(level);
   }
 
   protected updated(changedProps: PropertyValues): void {
@@ -1476,6 +1559,19 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       motionAlertStyles,
       automationScriptEditorStyles,
       css`
+        .level-bar {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: var(--ha-space-3);
+          margin: 0 auto;
+          max-width: 1040px;
+          padding: var(--ha-space-3) 20px 0;
+        }
+        .level-label {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s, 0.875rem);
+        }
         manual-automation-editor,
         blueprint-automation-editor {
           margin: 0 auto;

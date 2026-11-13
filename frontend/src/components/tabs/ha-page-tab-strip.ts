@@ -22,6 +22,7 @@ import {
   parseDestinationId,
   tabRoute,
 } from "../../common/tabs/tab-destinations";
+import { tabEntryRoute } from "../../common/tabs/tab-entry-defaults";
 import {
   groupOf,
   toggleGroupCollapsed,
@@ -800,7 +801,7 @@ export class TabStripController implements ReactiveController {
       this._askUnlock(key, id, anchor, () => this.activate(id, anchor));
       return;
     }
-    navigate(tabRoute(id));
+    navigate(tabEntryRoute(id, tabRoute(id)));
   }
 
   private _askUnlock(

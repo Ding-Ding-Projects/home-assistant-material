@@ -42,6 +42,7 @@ declare global {
   interface HASSDomEvents {
     "appearance-color-changed": { value: string };
     "appearance-color-committed": undefined;
+    "appearance-color-closed": undefined;
   }
 }
 
@@ -98,6 +99,13 @@ export class HaAppearanceColorPicker extends LitElement {
   /** Words for what it sits on, such as "the background". */
   @property({ attribute: "contrast-name" }) public contrastName = "";
 
+  /**
+   * Show only the picker panel, always open, without the swatch trigger. Used
+   * when a host such as a dialog supplies its own way to open it. Done then
+   * fires `appearance-color-closed` instead of collapsing.
+   */
+  @property({ type: Boolean }) public inline = false;
+
   @query(".trigger") private _trigger?: HTMLElement;
 
   @state() private _open = false;
@@ -147,7 +155,7 @@ export class HaAppearanceColorPicker extends LitElement {
         this._hsv = rgbToHsv(color.r, color.g, color.b);
       }
     }
-    if (this._open) {
+    if (this._open || this.inline) {
       const reading = this.contrastWith
         ? contrastReading(this._currentHex(), this.contrastWith)
         : undefined;
@@ -175,6 +183,9 @@ export class HaAppearanceColorPicker extends LitElement {
     const [r, g, b] = hsvToRgb(this._hsv);
     const hex = toHex({ r, g, b, a: 1 }).toLowerCase();
     const shown = this.value ? hex : this._l("picker_not_set");
+    if (this.inline) {
+      return this._renderPicker(r, g, b, hex);
+    }
     return html`
       <button
         class="trigger"
@@ -434,6 +445,10 @@ export class HaAppearanceColorPicker extends LitElement {
   }
 
   private _close() {
+    if (this.inline) {
+      fireEvent(this, "appearance-color-closed");
+      return;
+    }
     this._open = false;
     this.updateComplete.then(() => this._trigger?.focus());
   }

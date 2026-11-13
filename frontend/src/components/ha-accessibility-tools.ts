@@ -53,6 +53,7 @@ import { startTypeScale } from "../common/appearance/type-scale";
 import { storage } from "../common/decorators/storage";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
 import { showShortcutsDialog } from "../dialogs/shortcuts/show-shortcuts-dialog";
+import { showDarkCheckDialog } from "../dialogs/dark-check/show-dialog-dark-check";
 import type { HomeAssistant } from "../types";
 import { isMac } from "../util/is_mac";
 import { showToast } from "../util/toast";
@@ -380,6 +381,17 @@ export class HaAccessibilityTools extends LitElement {
             </span>
             <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
           </button>
+
+          <button class="row link" @click=${this._darkCheck}>
+            <span class="lead"
+              ><ha-svg-icon .path=${mdiContrastCircle}></ha-svg-icon
+            ></span>
+            <span class="text">
+              <span class="name">${localize("ui.dark_check.link_title")}</span>
+              <span class="note">${localize("ui.dark_check.link_note")}</span>
+            </span>
+            <ha-svg-icon class="chevron" .path=${mdiChevronRight}></ha-svg-icon>
+          </button>
         </div>
 
         <div class="footer">
@@ -559,6 +571,12 @@ export class HaAccessibilityTools extends LitElement {
   private _keyboardHelp() {
     this._panel?.hidePopover();
     showShortcutsDialog(this);
+  }
+
+  // The check measures the page behind the panel, so the panel closes first.
+  private _darkCheck() {
+    this._panel?.hidePopover();
+    showDarkCheckDialog(this);
   }
 
   private _reset() {

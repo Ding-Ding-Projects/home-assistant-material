@@ -62,6 +62,8 @@ import "../../../components/ha-filter-labels";
 import "../../../components/ha-filter-states";
 import "../../../components/ha-icon-button";
 import { createAreaRegistryEntry } from "../../../data/area/area_registry";
+import type { RegistryNotes } from "../../../data/registry-notes";
+import { fetchRegistryNotes } from "../../../data/registry-notes";
 import type { ConfigEntry, SubEntry } from "../../../data/config_entries";
 import { getSubEntries, sortConfigEntries } from "../../../data/config_entries";
 import { fullEntitiesContext, labelsContext } from "../../../data/context";
@@ -166,6 +168,11 @@ export class HaConfigDeviceDashboard extends LitElement {
 
   @state() private _selected: string[] = [];
 
+  // Notes written on devices, so the list can be searched by them.
+  @state() private _notes?: RegistryNotes;
+
+  private _notesRequested = false;
+
   private _selectedCanDelete: string[] = [];
 
   @query("hass-tabs-subpage-data-table", true)
@@ -243,6 +250,16 @@ export class HaConfigDeviceDashboard extends LitElement {
     if (!this.hasUpdated) {
       this._filters = this._storageFilters;
       this._applyLink();
+    }
+    if (!this._notesRequested && this.hass) {
+      this._notesRequested = true;
+      fetchRegistryNotes(this.hass.connection)
+        .then((notes) => {
+          this._notes = notes;
+        })
+        .catch(() => {
+          // Notes are optional; the list works without them.
+        });
     }
     if (changedProps.has("_selected") || changedProps.has("entries")) {
       this._selectedCanDelete = this._selected.filter((d) => {
@@ -349,7 +366,8 @@ export class HaConfigDeviceDashboard extends LitElement {
       manifests: IntegrationManifest[],
       filters: DataTableFilters,
       localize: LocalizeFunc,
-      labelReg?: LabelRegistryEntry[]
+      labelReg?: LabelRegistryEntry[],
+      notes?: RegistryNotes
     ) => {
       // Some older installations might have devices pointing at invalid entryIDs
       // So we guard for that.
@@ -593,6 +611,7 @@ export class HaConfigDeviceDashboard extends LitElement {
               this._batteryEntity(device.id, deviceEntityLookup) || ""
             ]?.state,
           label_entries: labelsEntries,
+          notes: notes?.devices[device.id]?.text ?? "",
           offline: this._isOffline(device.id, deviceEntityLookup),
           low_battery: this._isLowBattery(
             this.hass.states[
@@ -788,6 +807,13 @@ export class HaConfigDeviceDashboard extends LitElement {
                 >${localize("ui.panel.config.devices.data_table.offline")}</span
               >`
             : "",
+      },
+      notes: {
+        title: localize("ui.panel.config.registry_notes.title"),
+        defaultHidden: true,
+        filterable: true,
+        minWidth: "160px",
+        template: (device) => device.notes || "—",
       },
       created_at: getCreatedAtTableColumn(localize, this.hass),
       modified_at: getModifiedAtTableColumn(localize, this.hass),
@@ -1065,7 +1091,8 @@ export class HaConfigDeviceDashboard extends LitElement {
       this.manifests,
       this._filters,
       this.hass.localize,
-      this._labels
+      this._labels,
+      this._notes
     );
 
     const devicesOutput = this._applyQuickFilters(allDevices, this._quick);
@@ -1453,7 +1480,8 @@ export class HaConfigDeviceDashboard extends LitElement {
         this.manifests,
         this._filters,
         this.hass.localize,
-        this._labels
+        this._labels,
+        this._notes
       );
 
     if (

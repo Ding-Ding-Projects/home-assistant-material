@@ -108,6 +108,8 @@ import {
 } from "../../../data/integration";
 import type { LabelRegistryEntry } from "../../../data/label/label_registry";
 import { createLabelRegistryEntry } from "../../../data/label/label_registry";
+import type { RegistryNotes } from "../../../data/registry-notes";
+import { fetchRegistryNotes } from "../../../data/registry-notes";
 import { regenerateEntityIds } from "../../../data/regenerate_entity_ids";
 import {
   showAlertDialog,
@@ -168,6 +170,8 @@ export interface EntityRow extends StateEntity {
   enabled: string;
   visible: string;
   available: string;
+  /** The note written on the entity, searchable from the list. */
+  notes?: string;
 }
 
 // Local variant of data/expose/getExposedEntityVoiceAssistantIds, which works
@@ -233,6 +237,11 @@ export class HaConfigEntities extends LitElement {
   @state() private _filteredItems: DataTableFiltersItems = {};
 
   @state() private _selected: string[] = [];
+
+  // Notes written on entities, so the list can be searched by them.
+  @state() private _notes?: RegistryNotes;
+
+  private _notesRequested = false;
 
   @state() private _expandedFilter?: string;
 
@@ -447,6 +456,12 @@ export class HaConfigEntities extends LitElement {
                 `config_entry.disabled_by.${entry.disabled_by}`
               ),
       },
+      notes: {
+        title: localize("ui.panel.config.registry_notes.title"),
+        hidden: true,
+        filterable: true,
+        template: (entry) => entry.notes || "",
+      },
       created_at: getCreatedAtTableColumn(localize, this.hass),
       modified_at: getModifiedAtTableColumn(localize, this.hass),
       available: {
@@ -491,7 +506,8 @@ export class HaConfigEntities extends LitElement {
       filteredItems: DataTableFiltersItems,
       exposedEntities?: Record<string, ExposeEntitySettings>,
       entries?: ConfigEntry[],
-      labelReg?: LabelRegistryEntry[]
+      labelReg?: LabelRegistryEntry[],
+      notes?: RegistryNotes
     ) => {
       const result: EntityRow[] = [];
 
@@ -723,6 +739,7 @@ export class HaConfigEntities extends LitElement {
                         "ui.panel.config.entities.picker.status.available"
                       ),
           label_entries: labelsEntries,
+          notes: (entry.id && notes?.entities[entry.id]?.text) || "",
           available: unavailable
             ? localize("ui.panel.config.entities.picker.status.unavailable")
             : localize("ui.panel.config.entities.picker.status.available"),
@@ -926,7 +943,8 @@ export class HaConfigEntities extends LitElement {
         this._filteredItems,
         this._exposedEntities,
         this._entries,
-        this._labels
+        this._labels,
+        this._notes
       );
 
     const exposableAssistants = this._exposableAssistants(
@@ -1388,6 +1406,17 @@ export class HaConfigEntities extends LitElement {
       this._applyLink();
     }
 
+    if (!this._notesRequested && this.hass) {
+      this._notesRequested = true;
+      fetchRegistryNotes(this.hass.connection)
+        .then((notes) => {
+          this._notes = notes;
+        })
+        .catch(() => {
+          // Notes are optional; the list works without them.
+        });
+    }
+
     const oldHass = changedProps.get("hass");
     let changed = false;
     if (!this.hass || !this._entities) {
@@ -1757,7 +1786,8 @@ ${rejected
         this._filteredItems,
         this._exposedEntities,
         this._entries,
-        this._labels
+        this._labels,
+        this._notes
       );
     if (
       filteredDomains.size === 1 &&

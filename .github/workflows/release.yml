@@ -739,6 +739,9 @@ jobs:
             echo
             echo "Source: ${GITHUB_SHA}"
             echo
+            # When this build was published, in 24-hour form: Toronto time first, then UTC.
+            echo "Updated: $(TZ=America/Toronto date '+%-d %B %Y at %H:%M %Z'), which is $(date --utc '+%Y-%m-%d %H:%M') UTC."
+            echo
             echo "This release was published after every build job of its run had succeeded, so every file listed below is attached."
             echo
             echo "| Part | Version | Where |"

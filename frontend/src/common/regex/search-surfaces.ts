@@ -197,6 +197,10 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     searches: "The personal settings on the personal settings page",
   },
   {
+    file: "panels/config/personal/ha-config-section-sidebar.ts",
+    searches: "The entries of the navigation on the sidebar labels page",
+  },
+  {
     file: "panels/config/support/ha-config-support.ts",
     searches:
       "Support tickets, by number, title, details, page, bundle file and notes",

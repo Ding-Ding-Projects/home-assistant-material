@@ -8,6 +8,7 @@ import { LOVELACE_EDIT_TOAST_ID } from "../types";
 import { performDeleteBadge } from "./delete-badge";
 import { performDeleteCard } from "./delete-card";
 import { clearCardHighlight, setCardHighlight } from "./card-highlight";
+import { pushClipboardHistory } from "./card-clipboard-history";
 import type { LovelacePath } from "./lovelace-path";
 import { getParentPath, insertAtPath, setAtPath } from "./lovelace-path";
 
@@ -29,6 +30,16 @@ const DELETE_FUNCTIONS: Record<ClipboardItemType, DeleteFunction> = {
   badge: performDeleteBadge,
 };
 
+/** Copied cards also go to the shared history that every tab can paste from. */
+const rememberCopiedCard = (
+  type: ClipboardItemType,
+  config: ClipboardItemConfigs[ClipboardItemType]
+): void => {
+  if (type === "card") {
+    pushClipboardHistory([config as LovelaceCardConfig]);
+  }
+};
+
 // Stops a slow cut from overwriting a newer copy or cut.
 let lastVersion = 0;
 const clipboardVersions = { card: 0, badge: 0 };
@@ -47,6 +58,7 @@ export function performCopy<K extends ClipboardItemType>(
 ): void {
   clipboardVersions[type] = ++lastVersion;
   setClipboard(deepClone(config));
+  rememberCopiedCard(type, config);
   lovelace.showToast({
     id: LOVELACE_EDIT_TOAST_ID,
     message: localize(
@@ -122,6 +134,7 @@ export async function performCut<K extends ClipboardItemType>(
   }
   clipboardVersions[type] = version;
   setClipboard(deepClone(config));
+  rememberCopiedCard(type, config);
   if (lastVersion !== version) {
     return;
   }

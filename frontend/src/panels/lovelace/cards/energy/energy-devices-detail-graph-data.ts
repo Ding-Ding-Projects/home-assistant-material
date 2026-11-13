@@ -1,6 +1,7 @@
 import type { BarSeriesOption } from "echarts/charts";
 import type { HassEntities } from "home-assistant-js-websocket";
 import { getGraphColorByIndex } from "../../../../common/color/colors";
+import { resolveEnergyColor } from "../../../../data/energy-colors";
 import type { LocalizeFunc } from "../../../../common/translations/localize";
 import { computeYAxisFractionDigits } from "../../../../components/chart/y-axis-fraction-digits";
 import type { CustomLegendOption } from "../../../../components/chart/ha-chart-base";
@@ -130,7 +131,10 @@ function processDataSet(
       );
       return;
     }
-    const color = getGraphColorByIndex(idx, computedStyle);
+    const color = resolveEnergyColor(
+      source.stat_consumption,
+      getGraphColorByIndex(idx, computedStyle)
+    );
 
     let prevStart: number | null = null;
 

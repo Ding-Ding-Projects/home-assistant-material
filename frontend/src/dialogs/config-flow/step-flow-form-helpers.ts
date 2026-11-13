@@ -298,3 +298,168 @@ export const changedFieldNames = (
   ]);
   return [...names].filter((name) => previous?.[name] !== next?.[name]);
 };
+
+const SHORT_SELECTORS = [
+  "text",
+  "number",
+  "select",
+  "entity",
+  "device",
+  "area",
+  "floor",
+  "label",
+  "icon",
+  "time",
+  "date",
+  "datetime",
+  "duration",
+  "country",
+  "language",
+  "theme",
+];
+
+/**
+ * Whether a field is short enough to share a row with another one: a single
+ * line text, a number box, a dropdown or a picker. Multi-line text, sliders,
+ * lists of options, switches, sections and anything that takes the whole row
+ * stay full width.
+ */
+export const isShortField = (field: HaFormSchema): boolean => {
+  if (
+    field.type === "string" ||
+    field.type === "integer" ||
+    field.type === "float" ||
+    field.type === "select"
+  ) {
+    return true;
+  }
+  if (field.type) {
+    // Grids, expandables, constants, booleans, multi selects and so on.
+    return false;
+  }
+  const selector = selectorOf(field);
+  const kind = selector ? Object.keys(selector)[0] : undefined;
+  if (!kind || !SHORT_SELECTORS.includes(kind)) {
+    return false;
+  }
+  const config = selector?.[kind] ?? {};
+  if (kind === "text" && config.multiline) {
+    return false;
+  }
+  if (kind === "number" && config.mode === "slider") {
+    return false;
+  }
+  if (kind === "select" && (config.multiple || config.mode === "list")) {
+    return false;
+  }
+  if (
+    ["entity", "device", "area", "floor", "label"].includes(kind) &&
+    config.multiple
+  ) {
+    return false;
+  }
+  return true;
+};
+
+export interface FormSegment {
+  /** "columns": short fields side by side. "full": one form, full width. */
+  kind: "columns" | "full";
+  fields: HaFormSchema[];
+}
+
+/**
+ * Splits a schema into runs: two or more neighbouring short fields go side by
+ * side, everything else keeps the full width and its place in the order.
+ */
+export const splitFormSegments = (
+  schema: readonly HaFormSchema[] | undefined,
+  hidden: ReadonlySet<string> = new Set()
+): FormSegment[] => {
+  const segments: FormSegment[] = [];
+  let run: HaFormSchema[] = [];
+
+  const pushFull = (fields: HaFormSchema[]) => {
+    const last = segments[segments.length - 1];
+    if (last && last.kind === "full") {
+      last.fields.push(...fields);
+    } else {
+      segments.push({ kind: "full", fields: [...fields] });
+    }
+  };
+
+  const flushRun = () => {
+    if (run.length >= 2) {
+      segments.push({ kind: "columns", fields: run });
+    } else if (run.length === 1) {
+      pushFull(run);
+    }
+    run = [];
+  };
+
+  (schema ?? []).forEach((field) => {
+    if (hidden.has(field.name)) {
+      // Hidden fields are not drawn, so they do not take a place in a row.
+      return;
+    }
+    if (isShortField(field)) {
+      run.push(field);
+      return;
+    }
+    flushRun();
+    pushFull([field]);
+  });
+  flushRun();
+  return segments;
+};
+
+/**
+ * How many top level fields are hidden because of what was chosen: fields
+ * with a "visible" condition that currently evaluates to hidden. Fields that
+ * are always hidden are not counted.
+ */
+export const countConditionallyHidden = (
+  schema: readonly HaFormSchema[] | undefined,
+  hidden: ReadonlySet<string>
+): number =>
+  (schema ?? []).filter(
+    (field) =>
+      hidden.has(field.name) &&
+      field.visible !== undefined &&
+      typeof field.visible !== "boolean"
+  ).length;
+
+export interface StepChip {
+  kind: "earlier" | "done" | "current" | "final" | "more";
+  number?: number;
+}
+
+const MAX_DONE_CHIPS = 3;
+
+/**
+ * Chips for the step indicator, from what the flow really reports: the steps
+ * already taken, the current one, and, only when the flow says so, a final
+ * marker or a "more follow" marker. No total is ever invented.
+ */
+export const buildStepChips = (
+  stepNumber: number | undefined,
+  lastStep: boolean | null | undefined
+): StepChip[] => {
+  if (!stepNumber || stepNumber < 1) {
+    return [];
+  }
+  const chips: StepChip[] = [];
+  const firstDone = Math.max(1, stepNumber - MAX_DONE_CHIPS);
+  if (firstDone > 1) {
+    chips.push({ kind: "earlier" });
+  }
+  for (let n = firstDone; n < stepNumber; n++) {
+    chips.push({ kind: "done", number: n });
+  }
+  chips.push({ kind: "current", number: stepNumber });
+  if (lastStep === true) {
+    chips.push({ kind: "final" });
+  } else if (lastStep === false) {
+    chips.push({ kind: "more" });
+  }
+  return chips;
+};

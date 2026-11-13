@@ -121,6 +121,7 @@ class MoreInfoScript extends LitElement {
                   hide-picker
                   hide-description
                   .hass=${this.hass}
+                  .stringBuilder=${false}
                   .value=${{
                     ...(this.data ? { data: this.data } : {}),
                     ...this._scriptData,

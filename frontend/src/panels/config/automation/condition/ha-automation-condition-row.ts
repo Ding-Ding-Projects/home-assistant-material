@@ -79,6 +79,10 @@ import {
 } from "../automation-element-config";
 import { showEditorToast, showReplacedToast } from "../editor-toast";
 import "../ha-automation-editor-warning";
+import {
+  EditorPrefsController,
+  isFastActive,
+} from "../tools/automation-editor-prefs";
 import { overflowStyles, rowStyles } from "../styles";
 import { showAddAutomationElementDialog } from "../show-add-automation-element-dialog";
 import { getUiSupportWarnings, isConfigObject } from "../ui-support";
@@ -106,6 +110,8 @@ export interface ConditionElement extends LitElement {
 
 @customElement("ha-automation-condition-row")
 export default class HaAutomationConditionRow extends LitElement {
+  protected _editorPrefs = new EditorPrefsController(this);
+
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public condition!: Condition;
@@ -548,6 +554,8 @@ export default class HaAutomationConditionRow extends LitElement {
 
       ${
         this.optionsInSidebar &&
+        // In fast mode a closed branch does not build its inner rows.
+        (!this._collapsed || !isFastActive()) &&
         CONDITION_BUILDING_BLOCKS.includes(this.condition.condition)
           ? html`<ha-automation-condition-editor
               class=${this._collapsed ? "hidden" : ""}
@@ -953,9 +961,11 @@ export default class HaAutomationConditionRow extends LitElement {
     return !!this.shadowRoot!.querySelector("ha-expansion-panel")?.expanded;
   }
 
-  public expandAll() {
+  public async expandAll() {
     this.expand();
-
+    // A closed branch in fast mode builds its editor only once it opens.
+    await this.updateComplete;
+    await this.conditionEditor?.updateComplete;
     this.conditionEditor?.expandAll();
   }
 

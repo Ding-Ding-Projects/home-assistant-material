@@ -3,6 +3,7 @@ import { DEFAULT_ENTITY_NAME } from "../common/entity/entity_name_config";
 import type { HaDurationData } from "../components/ha-duration-input";
 import type { HomeAssistant } from "../types";
 import { firstWeekday } from "../common/datetime/first_weekday";
+import { timeRequest } from "./request-timing";
 
 export interface RecorderInfo {
   backlog: number;
@@ -293,15 +294,24 @@ export const fetchStatistics = (
   units?: StatisticsUnitConfiguration,
   types?: StatisticsTypes
 ) =>
-  callWS<Statistics>({
-    type: "recorder/statistics_during_period",
-    start_time: startTime.toISOString(),
-    end_time: endTime?.toISOString(),
-    statistic_ids,
-    period,
-    units,
-    types,
-  });
+  timeRequest(
+    {
+      kind: "statistics",
+      entityIds: statistic_ids,
+      startTime,
+      endTime,
+    },
+    () =>
+      callWS<Statistics>({
+        type: "recorder/statistics_during_period",
+        start_time: startTime.toISOString(),
+        end_time: endTime?.toISOString(),
+        statistic_ids,
+        period,
+        units,
+        types,
+      })
+  );
 
 export const fetchStatistic = (
   hass: HomeAssistant,

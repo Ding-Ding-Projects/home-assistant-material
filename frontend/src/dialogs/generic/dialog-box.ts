@@ -434,6 +434,10 @@ class DialogBox extends DirtyStateProviderMixin<DialogBoxDirtyState>()(
       pointer-events: initial !important;
       cursor: initial !important;
     }
+    /* A question must be readable in full: its title wraps instead of being cut. */
+    ha-dialog {
+      --ha-dialog-header-white-space: normal;
+    }
     a {
       color: var(--primary-color);
     }

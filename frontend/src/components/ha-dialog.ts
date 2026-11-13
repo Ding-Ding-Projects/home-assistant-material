@@ -522,7 +522,7 @@ export class HaDialog extends ScrollableFadeMixin(LitElement) {
           );
           overflow: hidden;
           text-overflow: ellipsis;
-          white-space: nowrap;
+          white-space: var(--ha-dialog-header-white-space, nowrap);
           margin-right: var(--ha-space-3);
         }
 

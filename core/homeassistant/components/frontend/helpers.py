@@ -163,6 +163,15 @@ MANIFEST_JSON = Manifest(
         "start_url": "/?homescreen=1",
         "id": "/?homescreen=1",
         "theme_color": DEFAULT_THEME_COLOR,
+        "shortcuts": [
+            {"name": name, "short_name": name, "url": url}
+            for name, url in (
+                ("Overview", "/"),
+                ("History", "/history"),
+                ("Energy", "/energy"),
+                ("Settings", "/config"),
+            )
+        ],
         "prefer_related_applications": True,
         "related_applications": [
             {"platform": "play", "id": "io.homeassistant.companion.android"}

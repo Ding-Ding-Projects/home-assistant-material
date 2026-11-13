@@ -1042,6 +1042,19 @@ async def test_manifest_json(hass: HomeAssistant, mock_http_client: TestClient) 
     assert json["theme_color"] != DEFAULT_THEME_COLOR
 
 
+async def test_manifest_json_shortcuts(mock_http_client: TestClient) -> None:
+    """The installed web app offers quick actions that stay inside the app."""
+    resp = await mock_http_client.get("/manifest.json")
+    json = await resp.json()
+
+    assert [shortcut["url"] for shortcut in json["shortcuts"]] == [
+        "/",
+        "/history",
+        "/energy",
+        "/config",
+    ]
+
+
 async def test_manifest_json_cors(mock_http_client: TestClient) -> None:
     """Test manifest.json is readable cross-origin.
 

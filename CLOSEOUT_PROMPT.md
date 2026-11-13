@@ -462,6 +462,46 @@ product matching it.
   overview loads on its first update instead of on connect; build stamps in 24-hour form;
   five README pictures from build 371.
 
+- Build 401 (batch 50) was viewed (wide light and phone dark, no page errors): the storage
+  page now draws its ring, facts and biggest entities, and the build stamp is in 24-hour
+  form. Live at 01:42 Toronto time, 13 November: core 2026.11.1.401, healthy, supported.
+- Batch 52, the second half of design canvas 31 and the owner's requests of the night. Unit
+  tested; the server parts run for real on a throwaway instance; the interface not seen.
+  - Owner's correction: the two-key confirmation is the two keys and the slider on every
+    device, with nothing to type; the typed-word form from batch 48 is out of use. Titles of
+    confirmation dialogs wrap. The session clock chip is in 24-hour form. Release notes now
+    carry an "Updated:" line with the Toronto time and UTC.
+  - Automation editor: fast mode (a collapsed branch no longer builds its children; long
+    lists draw 40 rows at a time; a synthetic 530-row configuration builds 5 rows with its
+    branches closed), trigger groups (`editor_group`, accepted and dropped by the server),
+    a Relationships tool and "From …" chips, and Simple, Advanced and YAML levels.
+  - Performance: Settings, System, Performance with real timings and a Fix where a stored
+    dashboard can change; an offline cache page with counted stalls and a reset.
+  - Dashboard editing: select many cards (sections views), a clipboard shared between tabs,
+    duplicate a view or a dashboard, a Dashboards card, swiping between dashboards on a phone.
+  - Cards: sliders on the light card, energy colours per source and device (`colors` in the
+    energy preferences), the rainbow that opens the full colour picker.
+  - Wall tablets: a wall tablet mode (burn-in drift, lockdown with a PIN exit, wake on
+    motion, an opt-in wake lock) and a new server integration `wall_tablet` (announce, list,
+    command, forget; services wake, sleep, reload, navigate) in the default set.
+    Not built: home-screen widgets and car actions (the native phone apps are not here).
+  - Setup forms in two columns with step chips; an accessible entity picker (six defects);
+    notes on devices and entities (shared frontend settings, key `registry_notes`); the list
+    of an editor's own key bindings.
+  - Customisation: rename sidebar entries and default pages, how outside links open, a quick
+    bar with pins and recents, a dark mode readability check.
+  - Run for real on build 401 with the changed server files mounted: the instance starts
+    with `wall_tablet` loaded and its four services; list, command and forget answer; a path
+    starting with two slashes is refused; energy colours save, read back and clear, and a
+    value that is not a colour is refused; a trigger carrying `editor_group` validates; the
+    web app manifest lists four shortcuts.
+    Found by that run and fixed before the push: the navigate service was registered
+    without its first argument, so the integration's set-up failed and none of its websocket
+    commands existed. `py_compile` had passed.
+  - Checks: full suite 7,614 passed with the 3 known build-script failures; type check clean
+    apart from the two known gallery errors and a string builder still being written, which
+    is not part of this commit.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

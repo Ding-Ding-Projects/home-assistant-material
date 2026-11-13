@@ -4,6 +4,7 @@ import { html } from "lit";
 import { customElement, state } from "lit/decorators";
 import { storage } from "../common/decorators/storage";
 import { isNavigationClick } from "../common/dom/is-navigation-click";
+import { installExternalLinkHandling } from "../common/links/external-link-handler";
 import { handleHistoryPop, navigate } from "../common/navigate";
 import type { LocalizeFunc } from "../common/translations/localize";
 import { decodeMoreInfoUrl } from "../common/url/more-info-query-params";
@@ -198,6 +199,9 @@ export class HomeAssistantAppEl extends QuickBarMixin(HassElement) {
         navigate(href);
       }
     });
+
+    // Links to outside addresses open where the person chose
+    installExternalLinkHandling(this);
 
     // Render launch screen info box (loading data / error message)
     // if Home Assistant is not loaded yet.

@@ -103,6 +103,14 @@ export class HaServiceControl extends LitElement {
   @property({ attribute: "hide-description", type: Boolean })
   public hideDescription = false;
 
+  /**
+   * Offer the "Build text" button on text fields. Only actions that the
+   * server renders as templates when they run (automations and scripts) can
+   * use it, so callers that send the data as it is turn it off.
+   */
+  @property({ attribute: "string-builder", type: Boolean })
+  public stringBuilder = true;
+
   @state() private _value!: this["value"];
 
   @state() private _checkedKeys = new Set();
@@ -683,7 +691,7 @@ export class HaServiceControl extends LitElement {
 
     const inline = isBooleanSelector(selector);
     const selectorTemplate = html`<ha-selector
-      .context=${this._selectorContext(targetEntities)}
+      .context=${this._selectorContext(targetEntities, this.stringBuilder)}
       .disabled=${
         this.disabled ||
         (showOptional &&
@@ -761,9 +769,12 @@ export class HaServiceControl extends LitElement {
     </div>`;
   };
 
-  private _selectorContext = memoizeOne((targetEntities: string[] | null) => ({
-    filter_entity: targetEntities || undefined,
-  }));
+  private _selectorContext = memoizeOne(
+    (targetEntities: string[] | null, stringBuilder: boolean) => ({
+      filter_entity: targetEntities || undefined,
+      string_builder: stringBuilder,
+    })
+  );
 
   private _localizeValueCallback = (
     key: string,

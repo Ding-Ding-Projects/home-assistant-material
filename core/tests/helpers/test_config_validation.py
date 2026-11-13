@@ -2464,6 +2464,20 @@ def test_base_schemas_accept_editor_locked(
     assert "editor_locked" not in validated
 
 
+@pytest.mark.usefixtures("hass")
+def test_trigger_base_schema_accepts_editor_group() -> None:
+    """Test that the trigger group name is accepted and stripped from the output."""
+    validated = cv.TRIGGER_BASE_SCHEMA({"platform": "event", "editor_group": "Arriving"})
+    assert "editor_group" not in validated
+
+
+@pytest.mark.usefixtures("hass")
+def test_trigger_base_schema_rejects_invalid_editor_group() -> None:
+    """Test that the trigger group name must be a string."""
+    with pytest.raises(probatio.Invalid):
+        cv.TRIGGER_BASE_SCHEMA({"platform": "event", "editor_group": [1]})
+
+
 @pytest.mark.parametrize(("validator", "base_config"), _NOTE_SCHEMA_PARAMS)
 @pytest.mark.usefixtures("hass")
 def test_base_schemas_reject_invalid_editor_locked(

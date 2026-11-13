@@ -98,6 +98,10 @@ import {
   tabRoute,
 } from "../../common/tabs/tab-destinations";
 import {
+  entryRoute,
+  tabEntryRoute,
+} from "../../common/tabs/tab-entry-defaults";
+import {
   chooseDestination,
   computeStripTabs,
   currentTabId,
@@ -742,7 +746,10 @@ export class HaPhoneBar extends LitElement {
         "settings",
         mdiCog,
         "ui.phone.settings",
-        () => navigate(this.hass.user?.is_admin ? "/config" : "/profile"),
+        () =>
+          navigate(
+            this.hass.user?.is_admin ? entryRoute("config") : "/profile"
+          ),
       ],
       [
         "menu",
@@ -1714,7 +1721,7 @@ export class HaPhoneBar extends LitElement {
     }
     this._closed = this._closed.filter((closed) => closed !== urlPath);
     this._hideSheet();
-    navigate(tabRoute(urlPath));
+    navigate(tabEntryRoute(urlPath, tabRoute(urlPath)));
   }
 
   /** The Pages button of the bottom bar: it stays when the sheet closes. */

@@ -15,6 +15,10 @@ import { repeat } from "lit/directives/repeat";
 import memoizeOne from "memoize-one";
 import { tinykeys } from "tinykeys";
 import { findSectionTitle } from "./list/find-section-title";
+import {
+  describeComboOption,
+  optionPosition,
+} from "../common/a11y/combobox-announcement";
 import { consume } from "../common/decorators/consume";
 import {
   fireEvent,
@@ -212,6 +216,11 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
 
   @state() private _selectedSection?: string;
 
+  // Spoken by a polite live region: the result count and the active option.
+  @state() private _announcement = "";
+
+  private _announceTimer?: number;
+
   public setFieldValue(value: string) {
     if (this._searchFieldElement) {
       this._searchFieldElement.value = value;
@@ -248,6 +257,14 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
 
   protected firstUpdated() {
     this._registerKeyboardShortcuts();
+    // The search field is the combobox: it keeps focus while the arrow keys
+    // move through the list.
+    this._searchFieldElement?.setNativeAria({
+      role: "combobox",
+      "aria-expanded": "true",
+      "aria-haspopup": "listbox",
+      "aria-autocomplete": "list",
+    });
     if (this.initialSearch && this._searchFieldElement) {
       this._searchFieldElement.value = this.initialSearch;
       this._filterChanged({
@@ -275,7 +292,61 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
     // rows change: typing, a section chip, or refreshed items.
     if (changedProps.has("_items") && this._search) {
       this._highlightTopMatch();
+      this._announceResultCount();
     }
+  }
+
+  private _announce(message: string, delay = 0) {
+    window.clearTimeout(this._announceTimer);
+    this._announceTimer = window.setTimeout(() => {
+      // An identical message is not spoken again, so clear it first.
+      this._announcement = "";
+      this.updateComplete.then(() => {
+        this._announcement = message;
+      });
+    }, delay);
+  }
+
+  // Typing filters the list, so tell how many options are left, once typing
+  // pauses.
+  private _announceResultCount() {
+    const count = this._items.filter(this._isOption).length;
+    this._announce(
+      count === 0
+        ? this.i18n?.localize?.("ui.components.combo-box.no_match") ||
+            "No matching items found"
+        : this.i18n?.localize?.("ui.components.combo-box.results_count", {
+            count,
+          }) || `${count} results`,
+      400
+    );
+  }
+
+  // Says the active option with its position, as a screen reader would for a
+  // focused option.
+  private async _announceActiveItem() {
+    await this._list?.updateComplete;
+    const index = this._list?.getActiveItemIndex() ?? -1;
+    const item = this._items[index];
+    if (index < 0 || !item || !this._isOption(item)) {
+      return;
+    }
+    const position = optionPosition(this._items, index, this._isOption);
+    if (!position) {
+      return;
+    }
+    const name = describeComboOption([
+      item.primary,
+      item.secondary,
+      (item as { domain_name?: string }).domain_name,
+    ]);
+    this._announce(
+      this.i18n?.localize?.("ui.components.combo-box.option_position", {
+        option: name,
+        position: position.position,
+        total: position.total,
+      }) || `${name}, ${position.position} of ${position.total}`
+    );
   }
 
   // Scroll before the surface animates in, so the list does not jump at the
@@ -311,6 +382,7 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.clearTimeout(this._announceTimer);
     this._removeKeyboardShortcuts?.();
   }
 
@@ -371,7 +443,16 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
       >
         ${this._plainList ? this._renderPlainList() : this._renderVirtualList()}
         ${this.renderScrollableFades()}
+      </div>
+      <div class="live" role="status" aria-live="polite" aria-atomic="true">
+        ${this._announcement}
       </div>`;
+  }
+
+  private _listLabel() {
+    return (
+      this.i18n?.localize?.("ui.components.combo-box.options") || "Options"
+    );
   }
 
   private _renderPlainList() {
@@ -385,6 +466,7 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
         virtual-focus
         controlled
         tabindex="0"
+        aria-label=${this._listLabel()}
         @mousedown=${this._preventBlur}
         @focus=${this._focusList}
         @blur=${this._resetSelectedItem}
@@ -416,6 +498,7 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
           this.value
         )}
         .pinIndex=${this.value ? this._getInitialSelectedIndex() : undefined}
+        aria-label=${this._listLabel()}
         @mousedown=${this._preventBlur}
         @focus=${this._focusList}
         @blur=${this._resetSelectedItem}
@@ -796,38 +879,45 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
       this._list.getActiveItemIndex() === -1 &&
       this._initializeSelectedIndex()
     ) {
+      this._announceActiveItem();
       return;
     }
 
     this._list.moveActiveItem("next");
+    this._announceActiveItem();
   };
 
   private _selectPreviousItem = (ev: KeyboardEvent) => {
     ev.stopPropagation();
     ev.preventDefault();
     this._list?.moveActiveItem("previous");
+    this._announceActiveItem();
   };
 
   private _selectFirstItem = (ev: KeyboardEvent) => {
     ev.stopPropagation();
     this._list?.moveActiveItem("first");
+    this._announceActiveItem();
   };
 
   private _selectLastItem = (ev: KeyboardEvent) => {
     ev.stopPropagation();
     this._list?.moveActiveItem("last");
+    this._announceActiveItem();
   };
 
   private _selectNextPage = (ev: KeyboardEvent) => {
     ev.stopPropagation();
     ev.preventDefault();
     this._list?.moveActiveItem("next-page");
+    this._announceActiveItem();
   };
 
   private _selectPreviousPage = (ev: KeyboardEvent) => {
     ev.stopPropagation();
     ev.preventDefault();
     this._list?.moveActiveItem("previous-page");
+    this._announceActiveItem();
   };
 
   private _pickSelectedItem = (ev: KeyboardEvent) => {
@@ -921,6 +1011,17 @@ export class HaPickerComboBox extends ScrollableFadeMixin(LitElement) {
 
         :host([mode="dialog"]) ha-input-search {
           padding: 0 var(--ha-space-4) var(--ha-space-3);
+        }
+
+        .live {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          margin: -1px;
+          padding: 0;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
         }
 
         .list-wrapper {

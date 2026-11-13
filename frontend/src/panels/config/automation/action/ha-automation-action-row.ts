@@ -135,6 +135,13 @@ import "./types/ha-automation-action-wait_for_trigger";
 import "./types/ha-automation-action-wait_template";
 import { renderCtrlOrCmd } from "../../../../common/keyboard/ctrl-or-cmd";
 import { scrollRowIntoView } from "../scroll-row-into-view";
+import {
+  EditorPrefsController,
+  getFastModePreferences,
+  isFastActive,
+} from "../tools/automation-editor-prefs";
+import { BRANCH_FOLD_MIN, countNestedRows } from "../tools/automation-fast";
+import { CHIP_NAMES_MAX, relationChipNames } from "../tools/relation-chips";
 import { isLocked } from "../tools/step-toggle";
 
 export interface ActionElement extends LitElement {
@@ -175,6 +182,8 @@ const getWaitTemplateCondition = (template: unknown): Condition | undefined =>
 
 @customElement("ha-automation-action-row")
 export default class HaAutomationActionRow extends LitElement {
+  protected _editorPrefs = new EditorPrefsController(this);
+
   // Conditions don't expand the groups their targets name; other actions do.
   @provide({ context: targetExpandGroupContext })
   @state()
@@ -259,7 +268,14 @@ export default class HaAutomationActionRow extends LitElement {
   protected firstUpdated(changedProperties: PropertyValues<this>): void {
     super.firstUpdated(changedProperties);
 
-    if (this.root) {
+    // A big branch at the top starts folded, with its step count showing.
+    if (
+      this.root &&
+      !(
+        getFastModePreferences().foldBranches &&
+        countNestedRows(this.action) >= BRANCH_FOLD_MIN
+      )
+    ) {
       this._collapsed = false;
     }
   }
@@ -381,6 +397,33 @@ export default class HaAutomationActionRow extends LitElement {
     `;
   }
 
+  /** Which triggers can reach this step, when a trigger id condition limits them. */
+  private _renderRelationChip() {
+    const names = this.optionsInSidebar
+      ? relationChipNames(this.action)
+      : undefined;
+    if (!names?.length) {
+      return nothing;
+    }
+    const shown = names.slice(0, CHIP_NAMES_MAX).join(", ");
+    const rest = names.length - CHIP_NAMES_MAX;
+    const prefix = "ui.panel.config.automation.editor.relations.";
+    return html`<span
+      class="relation-chip"
+      title=${this.hass.localize(`${prefix}chip_title` as any, {
+        names: names.join(", "),
+      })}
+      >${
+        rest > 0
+          ? this.hass.localize(`${prefix}chip_more` as any, {
+              names: shown,
+              count: rest,
+            })
+          : this.hass.localize(`${prefix}chip` as any, { names: shown })
+      }</span
+    >`;
+  }
+
   private _renderRow() {
     const type = getAutomationActionType(this.action);
 
@@ -480,6 +523,19 @@ export default class HaAutomationActionRow extends LitElement {
               )
             : nothing
         }
+        ${
+          this.optionsInSidebar &&
+          this._collapsed &&
+          countNestedRows(this.action) >= BRANCH_FOLD_MIN
+            ? html`<span class="branch-count"
+                >${this.hass.localize(
+                  "ui.panel.config.automation.editor.fast.step_count" as any,
+                  { count: countNestedRows(this.action) }
+                )}</span
+              >`
+            : nothing
+        }
+        ${this._renderRelationChip()}
         ${
           type === "wait_template" || type === "wait_for_trigger"
             ? html`<ha-automation-row-options
@@ -875,6 +931,8 @@ export default class HaAutomationActionRow extends LitElement {
 
       ${
         this.optionsInSidebar &&
+        // In fast mode a closed branch does not build its inner rows.
+        (!this._collapsed || !isFastActive()) &&
         ([...ACTION_BUILDING_BLOCKS, ...ACTION_COMBINED_BLOCKS].includes(
           blockType!
         ) ||
@@ -1409,9 +1467,11 @@ export default class HaAutomationActionRow extends LitElement {
     return !!this.shadowRoot!.querySelector("ha-expansion-panel")?.expanded;
   }
 
-  public expandAll() {
+  public async expandAll() {
     this.expand();
-
+    // A closed branch in fast mode builds its editor only once it opens.
+    await this.updateComplete;
+    await this._actionEditor?.updateComplete;
     this._actionEditor?.expandAll();
   }
 

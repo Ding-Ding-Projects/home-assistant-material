@@ -2,14 +2,29 @@ import { mdiDragHorizontalVariant, mdiPlus } from "@mdi/js";
 import deepClone from "deep-clone-simple";
 import type { HassServiceTarget } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
-import { html, LitElement, nothing } from "lit";
-import { customElement, property, queryAll } from "lit/decorators";
+import { css, html, LitElement, nothing } from "lit";
+import {
+  customElement,
+  property,
+  query,
+  queryAll,
+  state,
+} from "lit/decorators";
 import { repeat } from "lit/directives/repeat";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { stopPropagation } from "../../../../common/dom/stop_propagation";
 import "../../../../components/ha-button";
 import "../../../../components/ha-sortable";
 import "../../../../components/ha-svg-icon";
+import {
+  EditorPrefsController,
+  isFastActive,
+} from "../tools/automation-editor-prefs";
+import {
+  nextRowLimit,
+  ROOT_CHUNK,
+  visibleRowCount,
+} from "../tools/automation-fast";
 import {
   ACTION_BUILDING_BLOCKS,
   getAutomationActionType,
@@ -44,6 +59,17 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
 
   private _openedAddDialogFromQuery = false;
 
+  protected _editorPrefs = new EditorPrefsController(this);
+
+  /** How many rows of a long top level list are drawn in fast mode. */
+  @state() private _rowLimit = ROOT_CHUNK;
+
+  private _moreObserver?: IntersectionObserver;
+
+  private _observedMore?: Element | null;
+
+  @query(".more-rows") private _moreRows?: HTMLElement;
+
   protected get items(): Action[] {
     return this.actions;
   }
@@ -56,7 +82,14 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
     this.highlightedActions = items;
   }
 
+  /** How many rows to draw: all unless fast mode limits a long root list. */
+  private get _drawnCount(): number {
+    const limited = this.root && isFastActive() && !this.searchContext?.active;
+    return visibleRowCount(this.actions.length, limited, this._rowLimit);
+  }
+
   protected render() {
+    const drawn = this._drawnCount;
     return html`
       ${this.renderListSearch()}
       <ha-sortable
@@ -71,7 +104,9 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
       >
         <div class="rows ${!this.optionsInSidebar ? "no-sidebar" : ""}">
           ${repeat(
-            this.actions,
+            drawn < this.actions.length
+              ? this.actions.slice(0, drawn)
+              : this.actions,
             (action) => this.getKey(action),
             (action, idx) => html`
               <ha-automation-action-row
@@ -123,6 +158,23 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
               </ha-automation-action-row>
             `
           )}
+          ${
+            drawn < this.actions.length
+              ? html`<div class="more-rows" role="status">
+                  <span
+                    >${this.hass.localize(
+                      "ui.panel.config.automation.editor.fast.more_steps" as any,
+                      { count: this.actions.length - drawn }
+                    )}</span
+                  >
+                  <ha-button size="s" @click=${this._showMoreRows}>
+                    ${this.hass.localize(
+                      "ui.panel.config.automation.editor.fast.show_more" as any
+                    )}
+                  </ha-button>
+                </div>`
+              : nothing
+          }
           <div class="buttons">
             <ha-button
               .disabled=${this.disabled}
@@ -142,8 +194,39 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
     `;
   }
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._moreObserver?.disconnect();
+    this._moreObserver = undefined;
+    this._observedMore = undefined;
+  }
+
+  private _showMoreRows = () => {
+    this._rowLimit = nextRowLimit(this._rowLimit, this.actions.length);
+  };
+
+  /** Draws the next chunk when the end of the drawn rows scrolls into view. */
+  private _observeMoreRows() {
+    const more = this._moreRows;
+    if (more === this._observedMore) {
+      return;
+    }
+    this._moreObserver?.disconnect();
+    this._observedMore = more;
+    if (!more || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    this._moreObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        this._showMoreRows();
+      }
+    });
+    this._moreObserver.observe(more);
+  }
+
   protected updated(changedProps: PropertyValues<this>) {
     super.updated(changedProps);
+    this._observeMoreRows();
 
     if (!this.hass) {
       return;
@@ -209,7 +292,11 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
     }
   }
 
-  public expandAll() {
+  public async expandAll() {
+    if (this._drawnCount < this.actions.length) {
+      this._rowLimit = this.actions.length;
+      await this.updateComplete;
+    }
     this._actionRowElements?.forEach((row) => {
       row.expandAll();
     });
@@ -242,10 +329,23 @@ export default class HaAutomationAction extends AutomationSortableListMixin<Acti
         ? deepClone(this._clipboard!.action!)
         : createAction(action, target);
     this.focusLastItemOnChange = true;
+    this._rowLimit = Math.max(this._rowLimit, this.actions.length + 1);
     fireEvent(this, "value-changed", { value: this.actions.concat(newAction) });
   };
 
-  static styles = automationRowsStyles;
+  static styles = [
+    automationRowsStyles,
+    css`
+      .more-rows {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--ha-space-3);
+        padding: var(--ha-space-3);
+        color: var(--secondary-text-color);
+      }
+    `,
+  ];
 }
 
 declare global {

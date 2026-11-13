@@ -17,3 +17,12 @@
 | [`media-folder-management.md`](media-folder-management.md) | Create, open, rename, move and delete media folders in the Manage dialog | Built, not yet seen in a running build |
 | [`screens-and-pages.md`](screens-and-pages.md) | Status screens, not-found screen, maintenance, name and logo, release notes, backups encryption default | Built, not yet seen in a running build |
 | [`problem-detector.md`](problem-detector.md) | Problem detector: outline and badge on the exact element, Fix, steps by hand, Repairs list with Teleport | Built, not yet seen in a running build |
+| [`navigation-pane-and-tool-pill.md`](navigation-pane-and-tool-pill.md) | The side pane as the default shell, the floating tool pill, one title block | Partly seen in published build 371 |
+| [`phone-shell.md`](phone-shell.md) | Floating phone bar, quick tools, pages as cards, tools folding into More | Partly seen in published build 371 |
+| [`scenes-and-raw-editor.md`](scenes-and-raw-editor.md) | Scenes edited on paper with Preview; the raw editor's Replace entity | Built, not yet seen in a running build |
+| [`storage-usage-and-recording-rules.md`](storage-usage-and-recording-rules.md) | Storage usage numbers and per-entity recording rules | Server calls run on a throwaway instance; page not yet seen |
+| [`motion-editor.md`](motion-editor.md) | Animation and transitions page | Page seen in published build 371 |
+| [`extensions-and-job-progress.md`](extensions-and-job-progress.md) | Extensions with recorded consent; progress and recovery for app jobs | Built, not yet seen in a running build |
+| [`select-by-rule.md`](select-by-rule.md) | Select rows by rule in settings lists | Built, not yet seen in a running build |
+| [`scan-a-tag.md`](scan-a-tag.md) | Scan a tag in the New tag dialog | Built, not yet seen in a running build |
+| [`everyday-page-tops-and-needs-you.md`](everyday-page-tops-and-needs-you.md) | "Needs you" card, page tops, number tiles on protocol pages | "Needs you" seen in published build 371; the rest not yet seen |

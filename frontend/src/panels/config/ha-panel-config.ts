@@ -204,6 +204,10 @@ class HaPanelConfig extends HassRouterPage {
         tag: "ha-config-helpers",
         load: () => import("./helpers/ha-config-helpers"),
       },
+      performance: {
+        tag: "ha-config-section-performance",
+        load: () => import("./performance/ha-config-section-performance"),
+      },
       storage: {
         tag: "ha-config-section-storage",
         load: () => import("./storage/ha-config-section-storage"),
@@ -241,6 +245,14 @@ class HaPanelConfig extends HassRouterPage {
       personal: {
         tag: "ha-config-section-personal",
         load: () => import("./personal/ha-config-section-personal"),
+      },
+      "personal-sidebar": {
+        tag: "ha-config-section-sidebar",
+        load: () => import("./personal/ha-config-section-sidebar"),
+      },
+      "personal-links": {
+        tag: "ha-config-section-links",
+        load: () => import("./personal/ha-config-section-links"),
       },
       "personal-motion": {
         tag: "ha-config-section-motion",

@@ -1482,6 +1482,7 @@ def script_action(value: Any) -> dict:
 
 
 CONF_EDITOR_LOCKED = "editor_locked"
+CONF_EDITOR_GROUP = "editor_group"
 
 SCRIPT_SCHEMA = probatio.All(ensure_list, [script_action])
 
@@ -1923,6 +1924,7 @@ TRIGGER_BASE_SCHEMA = probatio.Schema(
         probatio.Optional(CONF_ENABLED): probatio.Any(boolean, template),
         probatio.Remove(CONF_NOTE): str,  # Is only used in frontend
         probatio.Remove(CONF_EDITOR_LOCKED): boolean,  # Is only used in frontend
+        probatio.Remove(CONF_EDITOR_GROUP): str,  # Is only used in frontend
     }
 )
 

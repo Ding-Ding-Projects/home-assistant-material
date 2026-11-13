@@ -5,6 +5,7 @@ import {
   rgb2lab,
   theme2hex,
 } from "../../../../../common/color/convert-color";
+import { getEnergyColorOverride } from "../../../../../data/energy-colors";
 import { labBrighten, labDarken } from "../../../../../common/color/lab";
 
 export function getEnergyColor(
@@ -13,8 +14,16 @@ export function getEnergyColor(
   background: boolean,
   compare: boolean,
   propertyName: string,
-  idx?: number
+  idx?: number,
+  statId?: string
 ): string {
+  // A color chosen for this source or device in the energy settings wins over
+  // the theme palette and is used as is (no brightening by position).
+  const chosen = getEnergyColorOverride(statId);
+  if (chosen) {
+    return withAlpha(chosen, background, compare);
+  }
+
   const themeIdxColor = computedStyles
     .getPropertyValue(propertyName + "-" + idx)
     .trim();
@@ -39,14 +48,16 @@ export function getEnergyColor(
     );
   }
 
+  return withAlpha(hexColor, background, compare);
+}
+
+function withAlpha(
+  hexColor: string,
+  background: boolean,
+  compare: boolean
+): string {
   if (compare) {
-    if (background) {
-      hexColor += "32";
-    } else {
-      hexColor += "7F";
-    }
-  } else if (background) {
-    hexColor += "7F";
+    return hexColor + (background ? "32" : "7F");
   }
-  return hexColor;
+  return background ? hexColor + "7F" : hexColor;
 }

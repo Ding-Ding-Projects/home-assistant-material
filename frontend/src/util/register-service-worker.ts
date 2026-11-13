@@ -1,4 +1,5 @@
 import { showToast } from "./toast";
+import { recordWorkerCheck } from "./worker-health";
 
 const UPDATE_DELAY = 60_000;
 const UPDATE_TOAST_ID = "frontend-update-available";
@@ -72,6 +73,8 @@ export const registerServiceWorker = async (
   });
 
   const reg = await navigator.serviceWorker.register(`/sw-${__BUILD__}.js`);
+  // The browser looks for a newer worker whenever one is registered.
+  recordWorkerCheck(__VERSION__);
 
   if (reg?.active) {
     markClaimed();

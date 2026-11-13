@@ -17,6 +17,8 @@ import { dropInvalidConditions } from "../../../common/condition/sanitize";
 import { playCardFeedback } from "../common/card-feedback";
 import { trackFirstDraw } from "../common/card-first-draw";
 import { computeCardStyleProperties } from "../common/card-style";
+import { describeCard } from "../common/load-diagnostics";
+import { cardEntities } from "../editor/dashboard-tools";
 import type { VisibilityCondition } from "../common/validate-condition";
 import { migrateLayoutToGridOptions } from "../common/compute-card-grid-size";
 import { computeCardSize } from "../common/compute-card-size";
@@ -198,7 +200,11 @@ export class HuiCard extends ConditionalListenerMixin<LovelaceCardConfig>(
       });
     }
     this._elementConfig = config;
-    trackFirstDraw(this, this._element);
+    trackFirstDraw(
+      this,
+      this._element,
+      describeCard(config, cardEntities(config))
+    );
     if (this.hass) {
       this._element.hass = this.hass;
     }

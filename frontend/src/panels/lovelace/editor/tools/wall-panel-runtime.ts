@@ -1,10 +1,12 @@
 import { navigate } from "../../../../common/navigate";
+import type { HomeAssistant } from "../../../../types";
 import {
   inNightWindow,
   nextViewKey,
   readWallPanel,
   WALL_PANEL_KEY,
 } from "./wall-panel";
+import { WallTabletMode } from "./wall-tablet-mode";
 
 /**
  * Runs the wall panel settings while a dashboard is open: draws the
@@ -16,10 +18,14 @@ import {
 export interface WallPanelContext {
   urlPath: string | null;
   editMode: boolean;
+  hass?: HomeAssistant;
 }
 
 /** How long after the last touch or key press rotation waits, in milliseconds. */
 const ROTATION_GRACE_MS = 15000;
+
+/** How often the screensaver content moves to a new place, in milliseconds. */
+const SHIFT_EVERY_MS = 30000;
 
 class WallPanelRuntime {
   private _context?: () => WallPanelContext | undefined;
@@ -37,6 +43,20 @@ class WallPanelRuntime {
   private _dim?: HTMLElement;
 
   private _previewUntil = 0;
+
+  /** Set when a command or the person asked for the screensaver; it then shows until touched. */
+  private _forceSaver = false;
+
+  private _lastShift = 0;
+
+  private _tablet = new WallTabletMode({
+    wake: () => this._activity(),
+    sleep: () => {
+      this._forceSaver = true;
+      this._showSaver();
+    },
+    screen: () => (this._saver ? "screensaver" : "on"),
+  });
 
   public start(context: () => WallPanelContext | undefined): void {
     this._context = context;
@@ -67,6 +87,8 @@ class WallPanelRuntime {
     this._hideSaver();
     this._dim?.remove();
     this._dim = undefined;
+    this._forceSaver = false;
+    this._tablet.stop();
   }
 
   /** Shows the screensaver for a few seconds so it can be seen. */
@@ -89,6 +111,7 @@ class WallPanelRuntime {
     this._lastRotation = Math.max(this._lastRotation, Date.now() - 1000);
     if (this._saver) {
       this._previewUntil = 0;
+      this._forceSaver = false;
       this._hideSaver();
     }
   };
@@ -134,7 +157,11 @@ class WallPanelRuntime {
         this._previewUntil = 0;
         this._lastActivity = now;
         this._hideSaver();
-      } else if (!this._previewUntil && !settings.screensaver.enabled) {
+      } else if (
+        !this._previewUntil &&
+        !this._forceSaver &&
+        !settings.screensaver.enabled
+      ) {
         this._hideSaver();
       }
     } else if (
@@ -144,6 +171,8 @@ class WallPanelRuntime {
     ) {
       this._showSaver();
     }
+
+    this._tablet.update(settings, context?.hass);
 
     // Rotation between views.
     if (
@@ -197,6 +226,7 @@ class WallPanelRuntime {
     clock.append(time, day);
     saver.append(clock);
     this._clock = clock;
+    this._lastShift = 0;
     this._saver = saver;
     document.body.append(saver);
     this._updateClock();
@@ -207,6 +237,17 @@ class WallPanelRuntime {
       return;
     }
     const date = new Date();
+    if (
+      readWallPanel().screensaver.shift &&
+      date.getTime() - this._lastShift >= SHIFT_EVERY_MS
+    ) {
+      // Move the content slowly to a new place so no pixel stays lit.
+      this._lastShift = date.getTime();
+      Object.assign(this._clock.style, {
+        transition: `transform ${SHIFT_EVERY_MS}ms linear`,
+        transform: `translate(${Math.round((Math.random() - 0.5) * 24)}vw, ${Math.round((Math.random() - 0.5) * 24)}vh)`,
+      });
+    }
     const [time, day] = Array.from(this._clock.children) as HTMLElement[];
     time.textContent = date.toLocaleTimeString(undefined, {
       hour: "2-digit",

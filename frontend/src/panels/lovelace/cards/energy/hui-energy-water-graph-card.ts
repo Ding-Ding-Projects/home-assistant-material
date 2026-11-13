@@ -393,7 +393,8 @@ export class HuiEnergyWaterGraphCard
             false,
             compare,
             "--energy-water-color",
-            idx
+            idx,
+            source.stat_energy_from
           ),
         },
         color: getEnergyColor(
@@ -402,7 +403,8 @@ export class HuiEnergyWaterGraphCard
           true,
           compare,
           "--energy-water-color",
-          idx
+          idx,
+          source.stat_energy_from
         ),
         data: waterConsumptionData,
         stack: compare ? "compare" : "water",

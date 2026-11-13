@@ -32,6 +32,7 @@ import type { EntityNameItem } from "../common/entity/entity_name_config";
 import { formatNumberWithUnit } from "../common/number/format_number";
 import { normalizeValueBySIPrefix } from "../common/number/normalize-by-si-prefix";
 import { groupBy } from "../common/util/group-by";
+import { setEnergyColorOverrides } from "./energy-colors";
 import type { HomeAssistant, HomeAssistantRegistries } from "../types";
 import { fileDownload } from "../util/file_download";
 import type {
@@ -252,6 +253,8 @@ export interface EnergyPreferences {
   energy_sources: EnergySource[];
   device_consumption: DeviceConsumptionEnergyPreference[];
   device_consumption_water: DeviceConsumptionEnergyPreference[];
+  /** Optional display colors (#rrggbb) by statistic id; absent means the theme. */
+  colors?: Record<string, string>;
 }
 
 export const EMPTY_PREFERENCES: EnergyPreferences = {
@@ -1212,6 +1215,8 @@ export const getEnergyDataCollection = (
           prefsNotFound = true;
         }
       }
+
+      setEnergyColorOverrides(prefs.colors);
 
       if (!prefsNotFound && requestRevision === revision) {
         scheduleHourlyRefresh(collection);

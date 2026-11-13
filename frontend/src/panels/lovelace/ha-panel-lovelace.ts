@@ -4,6 +4,7 @@ import type { PropertyValues, TemplateResult } from "lit";
 import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { startOfflineBanner } from "../../common/offline-banner";
 import { navigate, replaceCurrentUrl } from "../../common/navigate";
 import type { LocalizeFunc } from "../../common/translations/localize";
 import { constructUrlCurrentPath } from "../../common/url/construct-url";
@@ -32,6 +33,10 @@ import "../../layouts/hass-loading-screen";
 import type { ShowToastParams } from "../../managers/notification-manager";
 import type { HomeAssistant, PanelInfo, Route } from "../../types";
 import { showToast } from "../../util/toast";
+import {
+  finishLoadSample,
+  startLoadSample,
+} from "./common/load-diagnostics";
 import { loadLovelaceResources } from "./common/load-resources";
 import { showSaveDialog } from "./editor/show-save-config-dialog";
 import {
@@ -103,15 +108,21 @@ export class LovelacePanel extends LitElement {
       this._fetchConfig(false);
     }
     window.addEventListener("connection-status", this._handleConnectionStatus);
+    startOfflineBanner(() => this.hass);
     startWallPanel(() =>
       this.lovelace
-        ? { urlPath: this.urlPath, editMode: this.lovelace.editMode }
+        ? {
+            urlPath: this.urlPath,
+            editMode: this.lovelace.editMode,
+            hass: this.hass,
+          }
         : undefined
     );
   }
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    finishLoadSample();
     stopWallPanel();
     // On the main dashboard we want to stay subscribed as that one is cached.
     if (this.urlPath !== null && this._unsubUpdates) {
@@ -178,6 +189,7 @@ export class LovelacePanel extends LitElement {
   protected willUpdate(changedProps: PropertyValues<this>) {
     super.willUpdate(changedProps);
     if (!this.lovelace && this._panelState !== "error" && !this._loading) {
+      startLoadSample(this.panel?.url_path ?? null, this.panel?.config?.mode);
       this._fetchConfig(false);
     }
   }

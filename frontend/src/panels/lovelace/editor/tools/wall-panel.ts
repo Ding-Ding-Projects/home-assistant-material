@@ -3,22 +3,58 @@
  * on a timer, and dimming at night. Everything is stored in this browser
  * only and is off until switched on. It works by drawing over the page and
  * by navigating between views; it never keeps the screen awake and never
- * touches the device it runs on.
+ * touches the device it runs on. The only exception is the optional screen
+ * wake lock of wall tablet mode, which asks the browser to keep the screen on.
  */
 
 export const WALL_PANEL_KEY = "wallPanelSettings";
 
 export interface WallPanelSettings {
-  screensaver: { enabled: boolean; minutes: number };
+  /** `shift` moves the screensaver content slowly so no pixel stays lit. */
+  screensaver: { enabled: boolean; minutes: number; shift: boolean };
   rotation: { enabled: boolean; seconds: number; views: string[] };
   night: { enabled: boolean; from: string; to: string; darkness: number };
+  /**
+   * Wall tablet mode: hides the navigation until a PIN or hold, wakes when a
+   * motion entity turns on, keeps the screen on where the browser allows it
+   * and listens for commands sent from elsewhere in the home.
+   */
+  kiosk: {
+    enabled: boolean;
+    /** The name shown in the tablets list; the tablet is reachable when set. */
+    name: string;
+    lockdown: boolean;
+    /** Entity id of a motion or occupancy entity; empty for none. */
+    motionEntity: string;
+    keepAwake: boolean;
+  };
 }
 
 export const DEFAULT_WALL_PANEL: WallPanelSettings = {
-  screensaver: { enabled: false, minutes: 2 },
+  screensaver: { enabled: false, minutes: 2, shift: true },
   rotation: { enabled: false, seconds: 30, views: [] },
   night: { enabled: false, from: "22:00", to: "07:00", darkness: 60 },
+  kiosk: {
+    enabled: false,
+    name: "",
+    lockdown: false,
+    motionEntity: "",
+    keepAwake: false,
+  },
 };
+
+const ENTITY_ID = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+
+/** A tablet identifier made of the name: lower case letters, digits and dashes. */
+export const tabletIdFromName = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 
 const clampNumber = (
   value: unknown,
@@ -46,6 +82,7 @@ export const normalizeWallPanel = (raw: unknown): WallPanelSettings => {
         120,
         d.screensaver.minutes
       ),
+      shift: r.screensaver?.shift !== false,
     },
     rotation: {
       enabled: r.rotation?.enabled === true,
@@ -61,6 +98,20 @@ export const normalizeWallPanel = (raw: unknown): WallPanelSettings => {
       from: TIME.test(r.night?.from) ? r.night.from : d.night.from,
       to: TIME.test(r.night?.to) ? r.night.to : d.night.to,
       darkness: clampNumber(r.night?.darkness, 0, 90, d.night.darkness),
+    },
+    kiosk: {
+      enabled: r.kiosk?.enabled === true,
+      name:
+        typeof r.kiosk?.name === "string"
+          ? r.kiosk.name.trim().slice(0, 60)
+          : "",
+      lockdown: r.kiosk?.lockdown === true,
+      motionEntity:
+        typeof r.kiosk?.motionEntity === "string" &&
+        ENTITY_ID.test(r.kiosk.motionEntity)
+          ? r.kiosk.motionEntity
+          : "",
+      keepAwake: r.kiosk?.keepAwake === true,
     },
   };
 };

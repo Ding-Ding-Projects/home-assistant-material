@@ -1,5 +1,6 @@
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import { getGraphColorByIndex } from "../../../../../common/color/colors";
+import { resolveEnergyColor } from "../../../../../data/energy-colors";
 import { getEntityContext } from "../../../../../common/entity/context/get_entity_context";
 import type {
   Link,
@@ -302,7 +303,7 @@ export const buildSankeyDeviceNodes = (
       id,
       label: getLabel(id, device.name),
       value,
-      color: getGraphColorByIndex(idx, computedStyle),
+      color: resolveEnergyColor(id, getGraphColorByIndex(idx, computedStyle)),
       index: 4,
       parent: effectiveParent,
       entityId: getEntityId(id),
@@ -348,7 +349,10 @@ export const buildSankeyDeviceNodes = (
         id: consumer.id,
         label: getLabel(consumer.id, consumer.name),
         value: consumer.value,
-        color: getGraphColorByIndex(consumer.idx, computedStyle),
+        color: resolveEnergyColor(
+          consumer.id,
+          getGraphColorByIndex(consumer.idx, computedStyle)
+        ),
         index: 4,
         parent: consumer.effectiveParent,
         entityId: getEntityId(consumer.id),

@@ -1,3 +1,4 @@
+import { mdiCheck, mdiEyeOffOutline } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
@@ -16,6 +17,7 @@ import type {
   HaFormSelector,
 } from "../../components/ha-form/types";
 import "../../components/ha-markdown";
+import "../../components/ha-svg-icon";
 import "./step-flow-description-note";
 import "../../components/ha-spinner";
 import { autocompleteLoginFields } from "../../data/auth";
@@ -30,12 +32,14 @@ import type { HomeAssistant, ValueChangedEvent } from "../../types";
 import type { FlowConfig } from "./show-dialog-data-entry-flow";
 import {
   MULTI_FIELD_THRESHOLD,
+  buildStepChips,
   buildSummary,
   changedFieldNames,
+  countConditionallyHidden,
   countSummaryFields,
-  describeStepProgress,
   flattenFields,
   parseLiveErrorId,
+  splitFormSegments,
   toLiveErrorId,
   validateTouchedFields,
 } from "./step-flow-form-helpers";
@@ -137,35 +141,13 @@ class StepFlowForm extends LitElement {
 
     return html`
       <div class="content" @click=${this._clickHandler}>
-        ${this._renderStepIndicator()}
-        ${this._renderDescription()}
+        ${this._renderStepIndicator()} ${this._renderDescription()}
         ${
           this._errorMsg
             ? html`<ha-alert alert-type="error">${this._errorMsg}</ha-alert>`
             : nothing
         }
-        ${
-          step.data_schema.length || this._errors
-            ? html`<ha-form
-                ${ref(this._formRef)}
-                ?autofocus=${this.autoFocus}
-                .hass=${this.hass}
-                .narrow=${this.narrow}
-                .data=${stepData}
-                .disabled=${this._loading}
-                @value-changed=${this._stepDataChanged}
-                .schema=${autocompleteLoginFields(
-                  this.handleReadOnlyFields(step.data_schema)
-                )}
-                .error=${this._errors}
-                .computeLabel=${this._labelCallback}
-                .computeHelper=${this._helperCallback}
-                .computeError=${this._errorCallback}
-                .localizeValue=${this._localizeValueCallback}
-                .context=${{ handler: step.handler, domain: this.domain }}
-              ></ha-form>`
-            : nothing
-        }
+        ${this._renderForm(step, stepData)} ${this._renderHiddenNote(stepData)}
         <div class="visually-hidden" role="status" aria-live="polite">
           ${this._liveAnnouncement()}
         </div>
@@ -194,27 +176,133 @@ class StepFlowForm extends LitElement {
     `;
   }
 
+  // The schema as the form draws it: read-only fields disabled and the login
+  // fields marked for password managers.
+  private _processedSchema = memoizeOne((schema: HaFormSchema[]) =>
+    autocompleteLoginFields(this.handleReadOnlyFields(schema))
+  );
+
+  private _renderForm(
+    step: DataEntryFlowStepForm,
+    stepData: Record<string, any> | undefined
+  ) {
+    if (!step.data_schema.length && !this._errors) {
+      return nothing;
+    }
+    const schema = this._processedSchema(step.data_schema);
+    const hidden = getHiddenSchemaFields(schema, stepData ?? {});
+    const segments = splitFormSegments(schema, hidden);
+    // Without a row of short fields the form is drawn as one, as it always was.
+    if (!segments.some((segment) => segment.kind === "columns")) {
+      return this._renderFormPart(schema, stepData, true);
+    }
+    // A part only sees the fields that are shown, so a condition inside it is
+    // judged without the values of fields that are hidden.
+    const visibleData = stepData
+      ? Object.fromEntries(
+          Object.entries(stepData).filter(([name]) => !hidden.has(name))
+        )
+      : stepData;
+    return segments.map((segment, index) =>
+      segment.kind === "columns"
+        ? html`<div class="columns">
+            ${segment.fields.map((field, fieldIndex) =>
+              this._renderFormPart(
+                [field],
+                visibleData,
+                index === 0 && fieldIndex === 0
+              )
+            )}
+          </div>`
+        : this._renderFormPart(segment.fields, visibleData, index === 0)
+    );
+  }
+
+  private _renderFormPart(
+    schema: readonly HaFormSchema[],
+    data: Record<string, any> | undefined,
+    first: boolean
+  ) {
+    return html`<ha-form
+      ${first ? ref(this._formRef) : nothing}
+      ?autofocus=${first && this.autoFocus}
+      .hass=${this.hass}
+      .narrow=${this.narrow}
+      .data=${data}
+      .disabled=${this._loading}
+      @value-changed=${this._stepDataChanged}
+      .schema=${schema}
+      .error=${this._errors}
+      .computeLabel=${this._labelCallback}
+      .computeHelper=${this._helperCallback}
+      .computeError=${this._errorCallback}
+      .localizeValue=${this._localizeValueCallback}
+      .context=${{ handler: this.step.handler, domain: this.domain }}
+    ></ha-form>`;
+  }
+
+  // Tells that some fields are not shown because of what was chosen, so a
+  // missing field is never a mystery.
+  private _renderHiddenNote(stepData: Record<string, any> | undefined) {
+    const schema = this.step.data_schema ?? [];
+    const count = countConditionallyHidden(
+      schema,
+      getHiddenSchemaFields(schema, stepData ?? {})
+    );
+    if (!count) {
+      return nothing;
+    }
+    return html`<p class="hidden-note" role="status">
+      <ha-svg-icon .path=${mdiEyeOffOutline}></ha-svg-icon>
+      ${this.hass.localize(
+        "ui.panel.config.integrations.config_flow.fields_hidden",
+        { count }
+      )}
+    </p>`;
+  }
+
   private _renderStepIndicator() {
-    const progress = describeStepProgress(this.stepNumber, this.step.last_step);
-    if (!progress) {
+    const chips = buildStepChips(this.stepNumber, this.step.last_step);
+    if (!chips.length) {
       return nothing;
     }
     const localize = this.hass.localize;
     const base = "ui.panel.config.integrations.config_flow";
-    return html`<div class="step-indicator">
-      <span class="step-number">
-        ${localize(`${base}.step_number`, { number: progress.number })}
-      </span>
-      ${
-        progress.final === undefined
-          ? nothing
-          : html`<span class="step-hint">
+    return html`<ol
+      class="step-chips"
+      aria-label=${localize(`${base}.steps_label`)}
+    >
+      ${chips.map((chip) => {
+        switch (chip.kind) {
+          case "earlier":
+            return html`<li class="chip earlier" aria-hidden="true">…</li>`;
+          case "done":
+            return html`<li class="chip done">
+              <span class="badge"
+                ><ha-svg-icon .path=${mdiCheck}></ha-svg-icon
+              ></span>
+              <span
+                >${localize(`${base}.step_done`, { number: chip.number })}</span
+              >
+            </li>`;
+          case "current":
+            return html`<li class="chip current" aria-current="step">
+              <span class="badge">${chip.number}</span>
+              <span
+                >${localize(`${base}.step_number`, {
+                  number: chip.number,
+                })}</span
+              >
+            </li>`;
+          default:
+            return html`<li class="chip ${chip.kind}">
               ${localize(
-                `${base}.${progress.final ? "step_final" : "step_more_follow"}`
+                `${base}.${chip.kind === "final" ? "step_final" : "step_more_follow"}`
               )}
-            </span>`
-      }
-    </div>`;
+            </li>`;
+        }
+      })}
+    </ol>`;
   }
 
   // Short polite announcement of how many fields need attention. The
@@ -482,7 +570,8 @@ class StepFlowForm extends LitElement {
     changedFieldNames(this._stepData, ev.detail.value).forEach((name) =>
       this._touched.add(name)
     );
-    this._stepData = ev.detail.value;
+    // A part of the form only reports the fields it shows, so keep the rest.
+    this._stepData = { ...this._stepData, ...ev.detail.value };
     this._updateLiveErrors(this._stepData);
     this._dirtyState?.setState(this._stepData, "form");
   }
@@ -552,18 +641,90 @@ class StepFlowForm extends LitElement {
           white-space: nowrap;
         }
 
-        .step-indicator {
+        .step-chips {
           display: flex;
           flex-wrap: wrap;
-          align-items: baseline;
           gap: var(--ha-space-2);
-          margin-top: var(--ha-space-2);
-          color: var(--secondary-text-color);
+          margin: var(--ha-space-2) 0 0;
+          padding: 0;
+          list-style: none;
           font-size: var(--ha-font-size-s);
         }
-        .step-number {
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          min-height: 32px;
+          padding: 0 var(--ha-space-3);
+          border-radius: 999px;
+          background: var(
+            --ha-color-surface-tone-2,
+            var(--secondary-background-color)
+          );
+          color: var(--secondary-text-color);
+        }
+        .chip .badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          font-size: var(--ha-font-size-xs);
+          font-weight: var(--ha-font-weight-semibold);
+          background: var(--card-background-color);
+          --mdc-icon-size: 14px;
+        }
+        .chip.done {
+          background: var(
+            --ha-color-success-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-success-container,
+            var(--primary-text-color)
+          );
+        }
+        .chip.current {
+          background: var(
+            --ha-color-primary-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-primary-container,
+            var(--primary-text-color)
+          );
           font-weight: var(--ha-font-weight-medium);
-          color: var(--primary-text-color);
+        }
+        .chip.current .badge {
+          background: var(--primary-color);
+          color: var(--text-primary-color, #fff);
+        }
+
+        .columns {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 220px), 1fr)
+          );
+          column-gap: var(--ha-space-4);
+        }
+        .hidden-note {
+          display: flex;
+          align-items: center;
+          gap: var(--ha-space-2);
+          margin: var(--ha-space-4) 0 0;
+          padding: var(--ha-space-3) var(--ha-space-4);
+          border-radius: var(--ha-border-radius-lg);
+          background: var(
+            --ha-color-primary-container,
+            var(--secondary-background-color)
+          );
+          color: var(
+            --ha-color-on-primary-container,
+            var(--primary-text-color)
+          );
+          font-size: var(--ha-font-size-s);
         }
 
         .summary {

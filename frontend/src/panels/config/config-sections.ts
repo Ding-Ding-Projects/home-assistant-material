@@ -43,6 +43,7 @@ import {
   mdiScriptText,
   mdiShape,
   mdiSofa,
+  mdiSpeedometer,
   mdiStarFourPoints,
   mdiStore,
   mdiTextBoxOutline,
@@ -716,6 +717,14 @@ export const configSections: Record<string, PageNavigation[]> = {
       translationKey: "network",
       iconPath: mdiNetwork,
       iconColor: "#B1345C",
+      adminOnly: true,
+    },
+    {
+      path: "/config/performance",
+      translationKey: "performance",
+      iconPath: mdiSpeedometer,
+      iconColor: "#2F8F83",
+      core: true,
       adminOnly: true,
     },
     {

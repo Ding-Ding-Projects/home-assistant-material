@@ -22,6 +22,7 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`hosting/`](hosting/README.md) | The full hosting mode: one container with its own Docker engine, so apps, the app store, backups with apps and real updates work |
 | [`apps/`](apps/README.md) | Install progress and the log terminal for apps from the app store |
 | [`media/`](media/README.md) | Dropping a picture, video or audio file on any page to add it to Media or Images |
+| [`marketplace/`](marketplace/README.md) | Adding an item from a ZIP archive, detected without a history folder |
 | [`activity-record/`](activity-record/README.md) | Permanent record of the Activity page in a Git repository: what is kept, what can still be lost, size and the Permanent record page |
 
 Other documents: [`../automation-repositories.md`](../automation-repositories.md) for the Git
@@ -37,9 +38,11 @@ listed in the file for that feature.
 Boards that exist in `design/` and are not built. The state of each is in
 [`../feature-status.md`](../feature-status.md).
 
-- **Extensions.** Needs a server part that does not exist: a store of installed extensions, a
-  sandboxed process for each, a permission record per version and a log. The interface must go
-  through the marketplace's trust flow, never around it.
+- **Extensions (the sandboxed store).** An Extensions page with recorded consent exists (see
+  [`interface/extensions-and-job-progress.md`](interface/extensions-and-job-progress.md)). The
+  rest needs a server part that does not exist: a store of installed extensions, a sandboxed
+  process for each, a permission record per version and a log. The interface must go through the
+  marketplace's trust flow, never around it.
 - **Handoff (editor and forge).** Opening in an editor needs a way to detect an installed editor
   add-on; publishing sends the configuration out of the instance, so it needs a server part with
   credential storage and a preview of exactly what is sent.

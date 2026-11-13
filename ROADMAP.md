@@ -298,6 +298,71 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       longer shows an enabled Save). Built, with hide-when-clean, Discard and live announcements; not yet seen. The blank strip when the phone's bottom
       bar hides on scroll is fixed in source (batch 21) and not seen
 
+## Modern redesign, batches 41 to 51 (12 and 13 November 2026)
+
+Design canvases 23 to 31. Details and the state of each feature are in
+`docs/feature-status.md` and `docs/features/`.
+
+- [~] Design foundation (kit colours, tertiary tone, container pairs, shadows, motion tokens,
+      28 px cards). Viewed in published build 347 in light and dark at three widths with no page
+      errors; dark contrast of the new tones, custom themes, high contrast and right to left
+      still need a browser
+- [~] Navigation pane as the default shell. Seen in published build 371 (role line, tools menu);
+      docks other than left, collapsed pane, toggle off, right to left and both-languages mode are
+      not seen
+- [x] Floating tool pill with the page menu last, and one title block with a summary line on list
+      pages. Seen in published build 371
+- [ ] Large title and breadcrumb on dashboards beyond the segmented views row. Not built
+- [ ] "Notifications" in the navigation pane sits off centre. Seen wrong in build 371, open
+- [ ] The welcome banner is cut at the top edge on a wide home page. Seen wrong in build 371, open
+- [ ] One page error (`this._layoutElement.setConfig is not a function`) once in 80 page loads
+      on a built-in overview page. Not reproduced
+- [ ] The Tags page shows two help icons. Seen, not fixed
+- [x] Home greeting and the "Needs you" card. Seen in published build 371
+- [ ] Lights, security, energy and climate page tops and number tiles on protocol pages. Built in
+      batches 46 and 48; not yet seen
+- [~] Phone shell: floating bar and card rows with round select marks seen in build 371; the More
+      sheet, quick tools, touch picking and bottom sheets built in batches 48 and 49, not seen
+- [ ] Phone pages: the grid and edit icons at the top and the greeting as the title. Not built
+- [ ] The three discovery browsers as one page. Partly built: one tab strip, still three addresses
+- [ ] Visibility conditions for views and dashboards, presentation roles, "Who can see this", a
+      view-only level and default dashboards per kind of device. Built in batches 46 to 48; not
+      yet seen
+- [ ] Roles on tabs from a menu. Not built
+- [ ] Automation tools (flow, trace, simulator, replay, conflicts, plain language, steps and locks,
+      variables, blueprint maker, health, week ahead, entity swap, breakpoints, test cases with
+      coverage). Built in batches 44 and 48; not yet seen. Step locks validate on the server
+      (run on a throwaway instance)
+- [ ] Dashboard editor tools (screens, layout and resize, visibility, interactions, style,
+      simulator, inspector, accessibility scan, wall panel, card library, performance,
+      checkpoints). Built in batches 44 and 48; not yet seen
+- [ ] Free pixel layout, per-gesture animation and share as an extension for dashboards. Not built
+- [ ] Pop-up cards, card styling, history compare, scenes edited on paper with Preview, raw editor
+      Replace entity. Built in batches 47 and 48; not yet seen
+- [~] Storage usage and per-entity recording. The server calls were run for real on a throwaway
+      instance (batches 48, 49); the page said it could not be read in build 371 (fixed in
+      batch 50, not seen). pytest for the new server code has not run on this machine
+- [~] Motion editor. The page was seen in build 371; the effect on the seven components is built
+      and not watched
+- [ ] Help page, guidance notes, progress with recovery for app jobs, Extensions page with
+      consent. Built in batch 48; not yet seen
+- [ ] Resuming an app job part way. Not built (the Supervisor cannot)
+- [ ] Enabling or disabling a dashboard resource from the Extensions page. Not built (no such field)
+- [ ] Select by rule in every settings list. Built in batch 50; not yet seen
+- [~] Add from a file (ZIP) in the Marketplace. The server endpoint was run for real on a
+      throwaway instance (batch 51); the dialog is not seen and the refusal before the
+      Marketplace warning is accepted is not confirmed
+- [ ] Scan a tag. Built in batch 46; not yet seen and not tried with a real tag
+- [ ] Pattern workbench additions (trace, dialect import, search in files, encodings). Built in
+      batches 46 and 48; not yet seen
+- [ ] Searching the instance's own configuration files from the pattern workbench. Not built: it
+      needs a server call that reads files, an owner decision
+- [ ] A lock on one appearance value and several pages locked at once. Built in batch 48; not yet seen
+- [ ] A local production build that starts (it stays on the loading screen with no error, while
+      published builds load). Not solved
+- [ ] Observe the Docker engine restarting with the new proxy lookup setting (confirmed only by
+      restarting the proxy)
+
 ## Pages redrawn to their boards
 
 Shared by every list page under Settings (27 pages) and seen side by side with the Devices,

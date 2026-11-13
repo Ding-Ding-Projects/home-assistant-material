@@ -129,6 +129,18 @@ observer images are unchanged upstream images.
 | `.github/workflows/release.yml`, `scripts/ci/check-release.py` (new) | No release exists until every build job of the run has succeeded. Jobs stage their files as workflow artifacts; a final `publish` job creates one normal release, reads it back, checks every file and size, and only then moves the update feed; any failure removes the release and its tag. The release waits for the operating system images. Runs are queued one at a time (workflow-level concurrency, no cancelling of a started run). Container images are still pushed by their own jobs, so an image tag can exist for a build that never becomes a release. |
 | `deploy-assistant/` (new), `.github/workflows/deploy-assistant.yml` (new) | The Deploy Assistant and its release workflow; see `deploy-assistant/README.md` and `deploy-assistant/FEATURES.md`. |
 
+## Added on 12 and 13 November 2026
+
+| File | Change |
+| --- | --- |
+| `core/homeassistant/components/recorder/storage_usage.py` (new), `core/homeassistant/components/recorder/websocket_api.py` | Two administrator-only websocket commands, `recorder/storage/overview` and `recorder/storage/entity`: database size, table size, growth, the biggest entities and rows per day, run in the recorder executor with bounded limits. |
+| `core/homeassistant/components/recorder/entity_options.py` (new), `entity_rules.py` (new), `__init__.py` | Per-entity recording rules: `recorder/entity_options/get` and `set` (administrators only) with `recording_disabled`, `min_interval` (0 to 3600 seconds) and `always_on_change`, kept in `.storage/recorder.entity_options` and applied at once. The recorder consults an in-memory rule set beside the YAML filter, which stays authoritative. A change to a different value is recorded at once unless `always_on_change` is off. |
+| `core/homeassistant/helpers/config_validation.py` | `editor_locked` is accepted and dropped on automation steps, so a step locked in the editor still validates and runs. |
+| `core/homeassistant/components/marketplace/upload.py` (new), `upload_archive.py` (new), `strings.json`, `__init__.py` | An administrator-only endpoint, `POST /api/marketplace/upload`, that places an item from an uploaded ZIP archive: size, entry-count, unpacked-size and ratio limits, no `..`, absolute or drive paths, symlinks, encrypted entries or ZIP64, built-in integration domains refused, and nothing it did not create is overwritten. |
+| `frontend/src/data/marketplace/` (`archive-zip.ts`, `archive-detect.ts`, `archive-upload.ts`), `frontend/src/panels/marketplace/` | The browser side of Add from a file: reads the archive's directory, detects the item by marker files and shows the "Repository found" dialog. |
+| `frontend/src/data/dashboard-visibility.ts`, `data/presentation-roles.ts`, `data/frontend.ts` | Visibility conditions and presentation roles kept in the shared frontend settings (`dashboard_visibility`, `default_panel_overrides`); roles are evaluated in the browser only. No core dashboard record is changed. |
+| `frontend/src/panels/config/automation/tools/`, `frontend/src/panels/lovelace/editor/tools/`, `frontend/src/panels/config/storage/`, `frontend/src/panels/config/core/`, `frontend/src/panels/config/dashboard/`, `frontend/src/layouts/tool-pill-order.ts` (new), `frontend/landing-page/` | Automation and dashboard tools, the Storage page, the navigation pane and tool pill, the "preparing" page. |
+
 ## Build-time stamping (not committed)
 
 `scripts/ci/set-versions.py` writes the build number into `core/homeassistant/const.py`,

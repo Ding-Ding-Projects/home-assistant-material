@@ -10,6 +10,7 @@ import { PieChart } from "echarts/charts";
 import type { ECElementEvent } from "echarts/types/dist/shared";
 import type { PieDataItemOption } from "echarts/types/src/chart/pie/PieSeries";
 import { getGraphColorByIndex } from "../../../../common/color/colors";
+import { resolveEnergyColor } from "../../../../data/energy-colors";
 import { consume } from "../../../../common/decorators/consume";
 import { formatNumberWithUnit } from "../../../../common/number/format_number";
 import "../../../../components/chart/ha-chart-base";
@@ -456,7 +457,10 @@ export class HuiEnergyDevicesGraphCard
       } else if (this._compoundStats.includes(device.stat_consumption)) {
         return;
       }
-      const color = getGraphColorByIndex(idx, computedStyle);
+      const color = resolveEnergyColor(
+        device.stat_consumption,
+        getGraphColorByIndex(idx, computedStyle)
+      );
 
       chartData.push({
         id: device.stat_consumption,

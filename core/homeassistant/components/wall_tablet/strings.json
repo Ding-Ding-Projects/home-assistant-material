@@ -1,0 +1,48 @@
+{
+  "services": {
+    "wake": {
+      "name": "Wake",
+      "description": "Wakes the screen of a wall tablet that is showing its screensaver.",
+      "fields": {
+        "tablet_id": {
+          "name": "Tablet",
+          "description": "The identifier of one tablet. Leave empty to reach every tablet."
+        }
+      }
+    },
+    "sleep": {
+      "name": "Sleep",
+      "description": "Shows the screensaver on a wall tablet.",
+      "fields": {
+        "tablet_id": {
+          "name": "Tablet",
+          "description": "The identifier of one tablet. Leave empty to reach every tablet."
+        }
+      }
+    },
+    "reload": {
+      "name": "Reload",
+      "description": "Reloads the page on a wall tablet.",
+      "fields": {
+        "tablet_id": {
+          "name": "Tablet",
+          "description": "The identifier of one tablet. Leave empty to reach every tablet."
+        }
+      }
+    },
+    "navigate": {
+      "name": "Go to a page",
+      "description": "Opens a page of the interface on a wall tablet.",
+      "fields": {
+        "tablet_id": {
+          "name": "Tablet",
+          "description": "The identifier of one tablet. Leave empty to reach every tablet."
+        },
+        "path": {
+          "name": "Path",
+          "description": "The path to open, for example /lovelace/kitchen."
+        }
+      }
+    }
+  }
+}

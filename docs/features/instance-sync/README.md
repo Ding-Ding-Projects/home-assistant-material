@@ -133,7 +133,7 @@ Synced (56 rules; some cover many keys, for example every table):
 | `automation-trace-left-view`, `automation-trace-split-position`, `script-trace-split-position` | Trace page layout | Yes |
 | `devToolsShow*`, `assist_debug_language` | Developer tool last choices | Yes |
 | `TtsMessage`, `ttsTryMessages`, `cloudTtsTryMessage`, `cloudTtsTryTarget`, `AssistPipelineId` | Voice tool drafts and picks | Yes |
-| `automation-recent-targets`, `automation-recent-elements`, `automation-sidebar-width` | Automation editor memory | Yes |
+| `automation-recent-targets`, `automation-recent-elements`, `automation-sidebar-width`, `automation-editor-level`, `automation-fast-mode` | Automation editor memory | Yes |
 | `deSelectedCalendars`, `historyPickedValue`, `historySourceFilters`, `logbookPickedValue`, `logbookSourceFilters`, `energy-devices-*`, `dashboardSectionPreviewMode`, `mediaBrowserPreferredLayout`, `mediaBrowseEntityId`, `selectedTodoEntity` | Page choices | Yes |
 
 Not synced in the bundle (27 rules), with the reason:

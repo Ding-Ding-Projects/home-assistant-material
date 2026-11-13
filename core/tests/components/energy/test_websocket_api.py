@@ -1445,3 +1445,46 @@ async def test_save_home_source_invalid(
     assert msg["id"] == 5
     assert not msg["success"]
     assert msg["error"]["code"] == "invalid_format"
+
+
+async def test_save_preferences_colors(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+    mock_energy_platform,
+) -> None:
+    """Test per-statistic display colors are stored and validated."""
+    await hass.async_block_till_done()
+    client = await hass_ws_client(hass)
+
+    await client.send_json(
+        {
+            "id": 1,
+            "type": "energy/save_prefs",
+            "colors": {"sensor.solar_energy": "#e0a32a"},
+        }
+    )
+    msg = await client.receive_json()
+    assert msg["success"]
+    assert msg["result"]["colors"] == {"sensor.solar_energy": "#e0a32a"}
+
+    await client.send_json({"id": 2, "type": "energy/get_prefs"})
+    msg = await client.receive_json()
+    assert msg["result"]["colors"] == {"sensor.solar_energy": "#e0a32a"}
+
+    # Clearing every color is a plain empty mapping.
+    await client.send_json({"id": 3, "type": "energy/save_prefs", "colors": {}})
+    msg = await client.receive_json()
+    assert msg["success"]
+    assert msg["result"]["colors"] == {}
+
+    # Only #rrggbb values are accepted.
+    await client.send_json(
+        {
+            "id": 4,
+            "type": "energy/save_prefs",
+            "colors": {"sensor.solar_energy": "red"},
+        }
+    )
+    msg = await client.receive_json()
+    assert not msg["success"]
+    assert msg["error"]["code"] == "invalid_format"

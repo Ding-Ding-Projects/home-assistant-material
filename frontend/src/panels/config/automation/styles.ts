@@ -123,6 +123,27 @@ export const rowStyles = css`
   .note-indicator {
     color: var(--ha-color-on-neutral-normal);
   }
+  .branch-count,
+  .relation-chip {
+    flex: none;
+    padding: 0 var(--ha-space-2);
+    border-radius: var(--ha-border-radius-pill, 999px);
+    font-size: var(--ha-font-size-s, 0.875rem);
+    line-height: 1.5rem;
+    white-space: nowrap;
+    background: var(
+      --ha-color-surface-tone-2,
+      var(--secondary-background-color)
+    );
+    color: var(--secondary-text-color);
+  }
+  .relation-chip {
+    background: var(
+      --ha-color-primary-container,
+      var(--secondary-background-color)
+    );
+    color: var(--ha-color-on-primary-container, var(--primary-text-color));
+  }
   .note-indicator + ha-tooltip::part(body) {
     cursor: default;
     max-width: 300px;

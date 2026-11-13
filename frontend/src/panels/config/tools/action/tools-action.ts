@@ -216,6 +216,7 @@ class HaPanelDevAction extends MatchMinHeightMixin(
                 : html`
                     <ha-service-control
                       .hass=${this.hass}
+                      .stringBuilder=${false}
                       .value=${this._serviceData}
                       .narrow=${this.narrow}
                       show-service-id

@@ -273,6 +273,10 @@ class EnergyPreferences(TypedDict):
     device_consumption: list[DeviceConsumption]
     device_consumption_water: NotRequired[list[DeviceConsumption]]
 
+    # Optional display colors (#rrggbb) keyed by statistic id. A statistic
+    # without an entry follows the theme colors.
+    colors: NotRequired[dict[str, str]]
+
 
 class EnergyPreferencesUpdate(EnergyPreferences, total=False):
     """all types optional."""
@@ -852,6 +856,7 @@ class EnergyManager:
             "energy_sources",
             "device_consumption",
             "device_consumption_water",
+            "colors",
         ):
             if key in update:
                 data[key] = update[key]

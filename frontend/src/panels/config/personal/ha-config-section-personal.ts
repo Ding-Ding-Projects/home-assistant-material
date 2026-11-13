@@ -133,6 +133,7 @@ import {
   showConfirmationDialog,
   showPromptDialog,
 } from "../../../dialogs/generic/show-dialog-box";
+import { showDarkCheckDialog } from "../../../dialogs/dark-check/show-dialog-dark-check";
 import "../../../layouts/hass-subpage";
 import type { HomeAssistant } from "../../../types";
 import { dimSumSwitchOutcome } from "../../../common/dim-sum/dim-sum-switch";
@@ -1111,6 +1112,64 @@ export class HaConfigSectionPersonal extends LitElement {
     navigate("/config/personal-motion");
   }
 
+  /** The pages for the sidebar and for links, each a link to its own page. */
+  private _linkRows(matches: (...values: string[]) => boolean) {
+    const text = (block: string, key: string) =>
+      this.hass.localize(`${block}.${key}` as any) as string;
+    return [
+      {
+        page: "sidebar_defaults",
+        block: "ui.panel.config.sidebar_defaults",
+        path: "/config/personal-sidebar",
+      },
+      {
+        page: "links_quick_bar",
+        block: "ui.panel.config.links_quick_bar",
+        path: "/config/personal-links",
+      },
+      {
+        page: "dark_check",
+        block: "ui.dark_check",
+        path: undefined as string | undefined,
+      },
+    ]
+      .map((row) => ({
+        ...row,
+        title: text(row.block, "link_title"),
+        note: text(row.block, "link_note"),
+      }))
+      .filter((row) => matches(row.title, row.note));
+  }
+
+  private _openLinkRow(ev: Event) {
+    const { path } = (ev.currentTarget as HTMLElement).dataset;
+    if (path) {
+      navigate(path);
+    } else {
+      showDarkCheckDialog(this);
+    }
+  }
+
+  private _renderLinkRows(matches: (...values: string[]) => boolean) {
+    return this._linkRows(matches).map(
+      (row) =>
+        html`<div id=${`group-${row.page}`}>
+          <button
+            type="button"
+            class="motion-link"
+            data-path=${row.path ?? ""}
+            @click=${this._openLinkRow}
+          >
+            <span class="text">
+              <span class="title">${row.title}</span>
+              <span class="note">${row.note}</span>
+            </span>
+            <ha-svg-icon .path=${mdiChevronRight}></ha-svg-icon>
+          </button>
+        </div>`
+    );
+  }
+
   protected willUpdate() {
     this._scheduleNow = currentScheduleEvaluation(
       schoolHeldFields(this._prefs)
@@ -1241,7 +1300,11 @@ export class HaConfigSectionPersonal extends LitElement {
             </div>
             <div class="groups-list">
               ${
-                rows.length || showSchedules || showShared || showMotion
+                rows.length ||
+                showSchedules ||
+                showShared ||
+                showMotion ||
+                this._linkRows(matches).length
                   ? html`${GROUPS.map((group) =>
                       this._renderGroup(group, rows, searching)
                     )}
@@ -1287,7 +1350,8 @@ export class HaConfigSectionPersonal extends LitElement {
                             </button>
                           </div>`
                         : nothing
-                    }`
+                    }
+                    ${this._renderLinkRows(matches)}`
                   : html`<p class="empty" role="status">
                       ${this._play(
                         "ui.personal_prefs.playful.personal_search_empty",

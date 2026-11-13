@@ -49,6 +49,27 @@
     const RELOAD_COOLDOWN = 60000;
     const probing = {};
     let recovering = false;
+    // Counted in this browser's own storage and shown on the offline cache
+    // page (Settings, System, Performance). Nothing is sent anywhere.
+    const STALL_KEY = "haWorkerStalls";
+
+    function recordStall(kind) {
+      try {
+        let list = [];
+        try {
+          list = JSON.parse(localStorage.getItem(STALL_KEY) || "[]");
+        } catch (_err) {
+          list = [];
+        }
+        if (!Array.isArray(list)) {
+          list = [];
+        }
+        list.push({ t: Date.now(), k: kind });
+        localStorage.setItem(STALL_KEY, JSON.stringify(list.slice(-50)));
+      } catch (_err) {
+        // Storage is blocked or full; the stall is just not counted.
+      }
+    }
 
     function booted() {
       // The launch screen is only removed once the app has taken over the
@@ -59,6 +80,7 @@
     }
 
     function showFatal() {
+      recordStall("gave-up");
       const box = document.getElementById("ha-launch-screen-info-box");
       if (box) {
         box.textContent =
@@ -114,6 +136,7 @@
         return;
       }
       recovering = true;
+      recordStall("reload");
       const target =
         location.pathname +
         location.search +
@@ -229,6 +252,7 @@
         return;
       }
       probing[target] = true;
+      recordStall("import");
       probeGone(target).then((gone) => {
         delete probing[target];
         if (gone) {

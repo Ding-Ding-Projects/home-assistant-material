@@ -179,7 +179,12 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
     return html`<div class="container">
         ${
           this.useTopLabel && this.label
-            ? html`<label ?disabled=${this.disabled}>${this.label}</label>`
+            ? html`<label
+                ?disabled=${this.disabled}
+                aria-hidden="true"
+                @click=${this.open}
+                >${this.label}</label
+              >`
             : nothing
         }
         <div id="picker">
@@ -205,6 +210,8 @@ export class HaGenericPicker extends PickerMixin(LitElement) {
                     .unknown=${this._unknownValue}
                     .unknownItemText=${this.unknownItemText}
                     aria-label=${ifDefined(this.ariaLabel || this.label)}
+                    haspopup="dialog"
+                    .expanded=${this._pickerWrapperOpen || this._opened}
                     @click=${this.open}
                     @clear=${this._clear}
                     .icon=${this.icon}

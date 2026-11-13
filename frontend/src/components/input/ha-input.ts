@@ -421,6 +421,27 @@ export class HaInput extends WaInputMixin(LitElement) {
     this.passwordVisible = !this.passwordVisible;
   }
 
+  /**
+   * Sets ARIA attributes on the native input, for widgets that build on the
+   * field, such as a combobox. A null value removes the attribute.
+   */
+  public async setNativeAria(
+    attributes: Record<string, string | null>
+  ): Promise<void> {
+    await this._input?.updateComplete;
+    const native = this._getNativeInput();
+    if (!native) {
+      return;
+    }
+    Object.entries(attributes).forEach(([name, value]) => {
+      if (value === null) {
+        native.removeAttribute(name);
+      } else {
+        native.setAttribute(name, value);
+      }
+    });
+  }
+
   private _getNativeInput(): HTMLInputElement | undefined {
     return this._input?.input ?? undefined;
   }

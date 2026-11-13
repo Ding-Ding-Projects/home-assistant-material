@@ -57,6 +57,18 @@ import {
   isDeveloperToolsHidden,
   subscribePersonalPreferences,
 } from "../common/preferences/personal-preferences";
+import type { TabAppearanceStore } from "../common/tabs/tab-appearance-store";
+import {
+  readTabAppearance,
+  TAB_APPEARANCE_STORAGE_KEY,
+} from "../common/tabs/tab-appearance-store";
+import type { SidebarDefaults } from "../common/tabs/tab-entry-defaults";
+import {
+  entryRoute,
+  readSidebarDefaults,
+  subscribeSidebarDefaults,
+} from "../common/tabs/tab-entry-defaults";
+import { getStorage } from "../common/decorators/storage";
 import "../panels/config/identity/ha-identity-logo";
 import { actionHandler } from "../panels/lovelace/common/directives/action-handler-directive";
 import { haStyleScrollbar } from "../resources/styles";
@@ -221,6 +233,15 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   private _unsubPreferences?: () => void;
 
+  // Names the person gave entries and the defaults chosen in Settings, Sidebar.
+  @state() private _entryLooks: TabAppearanceStore = readTabAppearance();
+
+  @state() private _sidebarDefaults: SidebarDefaults = readSidebarDefaults();
+
+  private _unsubEntryLooks?: () => void;
+
+  private _unsubSidebarDefaults?: () => void;
+
   private _unsubPersistentNotifications: UnsubscribeFunc | undefined;
 
   @query(".before-spacer") private _scrollableList?: HTMLDivElement;
@@ -298,8 +319,24 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     this._unsubPreferences = subscribePersonalPreferences((preferences) => {
       this._hideDeveloperTools = isDeveloperToolsHidden(preferences);
     });
+    this._entryLooks = readTabAppearance();
+    this._unsubEntryLooks = getStorage().subscribeChanges(
+      TAB_APPEARANCE_STORAGE_KEY,
+      () => {
+        this._entryLooks = readTabAppearance();
+      }
+    );
+    this._sidebarDefaults = readSidebarDefaults();
+    this._unsubSidebarDefaults = subscribeSidebarDefaults((value) => {
+      this._sidebarDefaults = value;
+    });
     this._identityChanged();
     this._pathChanged();
+  }
+
+  // The name the person gave an entry, or its own name.
+  private _entryName(id: string, original: string): string {
+    return this._entryLooks.main?.[id]?.label || original;
   }
 
   private _identityChanged = () => {
@@ -310,6 +347,10 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     super.disconnectedCallback();
     this._unsubPreferences?.();
     this._unsubPreferences = undefined;
+    this._unsubEntryLooks?.();
+    this._unsubEntryLooks = undefined;
+    this._unsubSidebarDefaults?.();
+    this._unsubSidebarDefaults = undefined;
     this._unsubActivities?.();
     this._unsubActivities = undefined;
     window.removeEventListener(IDENTITY_CHANGED_EVENT, this._identityChanged);
@@ -619,8 +660,11 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
   }
 
   private _renderPanel(panel: PanelInfo, isSelected: boolean) {
-    const title = getPanelTitle(this.hass, panel);
     const urlPath = panel.url_path;
+    const title = this._entryName(
+      urlPath,
+      getPanelTitle(this.hass, panel) ?? ""
+    );
     const icon = getPanelIcon(panel);
     const iconPath = getPanelIconPath(panel);
 
@@ -651,20 +695,30 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
 
   private _renderDeveloperTools() {
     // School mode only leaves the entry out; the page itself stays reachable.
-    if (!this.hass.user?.is_admin || this._hideDeveloperTools) {
+    if (
+      !this.hass.user?.is_admin ||
+      this._hideDeveloperTools ||
+      !this._sidebarDefaults.showDeveloperTools
+    ) {
       return nothing;
     }
-    const title = this.hass.localize("ui.sidebar.developer_tools");
+    const title = this._entryName(
+      "tools",
+      this.hass.localize("ui.sidebar.developer_tools")
+    );
     return html`
       <ha-list-item-button
         class=${classMap({ selected: this._inTools })}
-        href="/config/tools"
+        href=${entryRoute("tools")}
         id="sidebar-developer-tools"
         aria-label=${title}
       >
         <ha-svg-icon slot="start" .path=${mdiHammer}></ha-svg-icon>
         <span class="item-text item-short" slot="headline"
-          >${this.hass.localize("ui.sidebar.developer_tools_short")}</span
+          >${this._entryName(
+            "tools",
+            this.hass.localize("ui.sidebar.developer_tools_short")
+          )}</span
         >
         <span class="item-text item-full" slot="headline">${title}</span>
       </ha-list-item-button>
@@ -684,7 +738,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
     return html`
       <ha-list-item-button
         class="configuration ${classMap({ selected: isSelected })}"
-        href="/config"
+        href=${entryRoute("config")}
         id="sidebar-config"
       >
         <ha-svg-icon slot="start" .path=${mdiCog}></ha-svg-icon>
@@ -698,7 +752,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
             : nothing
         }
         <span class="item-text" slot="headline"
-          >${this.hass.localize("panel.config")}</span
+          >${this._entryName("config", this.hass.localize("panel.config"))}</span
         >
         ${
           this._updatesCount > 0 || this._issuesCount > 0
@@ -714,7 +768,7 @@ class HaSidebar extends SubscribeMixin(ScrollableFadeMixin(LitElement)) {
         !this.alwaysExpand
           ? this._renderToolTip(
               "sidebar-config",
-              this.hass.localize("panel.config")
+              this._entryName("config", this.hass.localize("panel.config"))
             )
           : nothing
       }

@@ -11,6 +11,7 @@ import { computeStateNameFromEntityAttributes } from "../common/entity/compute_s
 import type { LocalizeFunc } from "../common/translations/localize";
 import { computeRTL } from "../common/util/compute_rtl";
 import type { HomeAssistant } from "../types";
+import { startTimedRequest, timeRequest } from "./request-timing";
 import { isNumericSensorDeviceClass } from "./sensor";
 import type { FrontendLocaleData } from "./translation";
 import {
@@ -124,10 +125,13 @@ export const fetchDateWS = (
       entityIdHistoryNeedsAttributes(hass, entityId)
     ),
   };
-  if (entityIds.length !== 0) {
-    return hass.callWS<HistoryStates>({ ...params, entity_ids: entityIds });
-  }
-  return hass.callWS<HistoryStates>(params);
+  return timeRequest(
+    { kind: "history", entityIds, startTime, endTime },
+    () =>
+      entityIds.length !== 0
+        ? hass.callWS<HistoryStates>({ ...params, entity_ids: entityIds })
+        : hass.callWS<HistoryStates>(params)
+  );
 };
 
 // Rebuilding the charts for this many states takes tens of milliseconds
@@ -322,11 +326,30 @@ const subscribeHistoryStream = async (
 
   const doSubscribe = async () => {
     const stream = new HistoryStream(hoursToShow);
-    const unsub = await hass.connection.subscribeMessage<HistoryStreamMessage>(
-      (message) => callbackFunction(stream.processMessage(message)),
-      buildParams(),
-      { resubscribe: false }
-    );
+    const params = buildParams() as MessageBase & {
+      entity_ids?: string[];
+      start_time?: string;
+      end_time?: string;
+    };
+    const finishTiming = startTimedRequest({
+      kind: "history",
+      entityIds: params.entity_ids,
+      startTime: params.start_time,
+      endTime: params.end_time,
+    });
+    const unsub = await hass.connection
+      .subscribeMessage<HistoryStreamMessage>(
+        (message) => {
+          finishTiming();
+          callbackFunction(stream.processMessage(message));
+        },
+        params,
+        { resubscribe: false }
+      )
+      .catch((err: unknown) => {
+        finishTiming(true);
+        throw err;
+      });
     if (disposed) {
       unsub().catch(() => undefined);
       return;

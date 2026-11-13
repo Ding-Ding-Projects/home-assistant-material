@@ -3,6 +3,7 @@ import {
   mdiCompareHorizontal,
   mdiFormatListBulleted,
   mdiSpeedometer,
+  mdiTabletCellphone,
   mdiTabletDashboard,
   mdiWheelchairAccessibility,
 } from "@mdi/js";
@@ -24,6 +25,7 @@ export const MORE_TOOLS: DashboardToolEntry[] = [
   more("entities", mdiFormatListBulleted),
   more("a11y", mdiWheelchairAccessibility),
   more("wall", mdiTabletDashboard),
+  more("tablets", mdiTabletCellphone),
   more("library", mdiCardsOutline),
   more("perf", mdiSpeedometer),
   more("diff", mdiCompareHorizontal),

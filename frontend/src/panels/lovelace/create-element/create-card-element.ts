@@ -82,6 +82,7 @@ const LAZY_LOAD_TYPES = {
   "home-hero": () => import("../cards/hui-home-hero-card"),
   "lights-summary": () => import("../cards/hui-lights-summary-card"),
   "room-lights": () => import("../cards/hui-room-lights-card"),
+  "dashboards-list": () => import("../cards/hui-dashboards-list-card"),
   "page-heading": () => import("../cards/hui-page-heading-card"),
   "security-alarm": () => import("../cards/hui-security-alarm-card"),
   "security-locks": () => import("../cards/hui-security-locks-card"),

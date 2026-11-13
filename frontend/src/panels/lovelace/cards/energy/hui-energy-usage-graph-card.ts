@@ -722,7 +722,8 @@ export class HuiEnergyUsageGraphCard
               false,
               compare,
               colorPropertyMap[type],
-              colorIndices[type]?.[statId]
+              colorIndices[type]?.[statId],
+              statId
             ),
           },
           color: getEnergyColor(
@@ -731,7 +732,8 @@ export class HuiEnergyUsageGraphCard
             true,
             compare,
             colorPropertyMap[type],
-            colorIndices[type]?.[statId]
+            colorIndices[type]?.[statId],
+            statId
           ),
           stack: compare ? "compare" : "usage",
           data: points,

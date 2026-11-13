@@ -2,7 +2,7 @@ import { mdiGestureTap } from "@mdi/js";
 import type { CSSResultGroup } from "lit";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { assert, assign, object, optional, string } from "superstruct";
+import { assert, assign, boolean, object, optional, string } from "superstruct";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-form/ha-form";
 import type { SchemaUnion } from "../../../../components/ha-form/types";
@@ -22,6 +22,8 @@ const cardConfigStruct = assign(
     entity: optional(string()),
     theme: optional(string()),
     icon: optional(string()),
+    show_brightness_slider: optional(boolean()),
+    show_color_temp_slider: optional(boolean()),
     tap_action: optional(actionConfigStruct),
     hold_action: optional(actionConfigStruct),
     double_tap_action: optional(actionConfigStruct),
@@ -54,6 +56,14 @@ const SCHEMA = [
           icon_entity: "entity",
         },
       },
+    ],
+  },
+  {
+    type: "grid",
+    name: "",
+    schema: [
+      { name: "show_brightness_slider", selector: { boolean: {} } },
+      { name: "show_color_temp_slider", selector: { boolean: {} } },
     ],
   },
   { name: "theme", selector: { theme: {} } },

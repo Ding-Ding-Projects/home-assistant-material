@@ -1,4 +1,9 @@
-import { mdiCommentProcessingOutline, mdiDevices } from "@mdi/js";
+import {
+  mdiCommentProcessingOutline,
+  mdiDevices,
+  mdiPin,
+  mdiPinOutline,
+} from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
 import Fuse from "fuse.js";
 import type { CSSResultGroup, PropertyValues } from "lit";
@@ -30,6 +35,7 @@ import "../../components/ha-app-icon";
 import "../../components/ha-combo-box-item";
 import "../../components/ha-domain-icon";
 import "../../components/ha-icon";
+import "../../components/ha-icon-button";
 import "../../components/ha-picker-combo-box";
 import type {
   HaPickerComboBox,
@@ -105,6 +111,18 @@ import {
   type MoveDirection,
   type PlaceComboBoxItem,
 } from "./quick-bar-navigation";
+
+import {
+  isPinned,
+  leadingResults,
+  quickBarResultKey,
+  readQuickBarMemory,
+  recordRecent,
+  subscribeQuickBarMemory,
+  togglePinned,
+  writeQuickBarMemory,
+  type QuickBarMemory,
+} from "./quick-bar-memory";
 
 const SEPARATOR = "________";
 
@@ -192,6 +210,12 @@ export class QuickBar extends LitElement {
 
   private _unsubPrefs?: () => void;
 
+  // Pinned and recent results of this person, and the listener that keeps
+  // them current while the quick bar is open.
+  @state() private _memory: QuickBarMemory = readQuickBarMemory();
+
+  private _unsubMemory?: () => void;
+
   // The rows as the list shows them, and which one is active. The list marks
   // its active row with a background only, so the quick bar also draws a ring
   // and says the row aloud.
@@ -217,6 +241,12 @@ export class QuickBar extends LitElement {
     this._unsubPrefs?.();
     this._unsubPrefs = subscribePersonalPreferences(() => {
       this._prefsVersion++;
+    });
+
+    this._memory = readQuickBarMemory();
+    this._unsubMemory?.();
+    this._unsubMemory = subscribeQuickBarMemory((memory) => {
+      this._memory = memory;
     });
 
     this._open = true;
@@ -305,6 +335,8 @@ export class QuickBar extends LitElement {
     this._lastItems = [];
     this._unsubPrefs?.();
     this._unsubPrefs = undefined;
+    this._unsubMemory?.();
+    this._unsubMemory = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   };
 
@@ -384,7 +416,8 @@ export class QuickBar extends LitElement {
                   this._runningCommandId,
                   this.hass.states,
                   this._prefsVersion,
-                  this._activeId
+                  this._activeId,
+                  this._memory
                 )}
                 mode="dialog"
                 .sections=${sections}
@@ -420,6 +453,10 @@ export class QuickBar extends LitElement {
             >+<kbd>${this._t("ui.dialogs.quick-bar.key_enter")}</kbd>${this._t("ui.dialogs.quick-bar.hint_new_tab")}</span
           >
           <span class="hint"
+            ><kbd>Alt</kbd
+            >+<kbd>P</kbd>${this._t("ui.dialogs.quick-bar.hint_pin")}</span
+          >
+          <span class="hint"
             ><kbd>${this._t("ui.dialogs.quick-bar.key_click")}</kbd
             >${this._t("ui.dialogs.quick-bar.hint_use_here")}</span
           >
@@ -450,7 +487,8 @@ export class QuickBar extends LitElement {
       runningCommandId?: string,
       _states?: HomeAssistant["states"],
       _prefsVersion?: number,
-      activeId?: string
+      activeId?: string,
+      _memory?: QuickBarMemory
     ) =>
       (item: QuickBarComboBoxItem) =>
         this._renderRow(
@@ -511,6 +549,63 @@ export class QuickBar extends LitElement {
       "homeassistant",
       target.checked ? "turn_on" : "turn_off",
       { entity_id: target.entityId }
+    );
+  }
+
+  // A pin on every result that can be found again. Only a click or the Alt+P
+  // key changes the pin; Enter and Space on the row still use the result.
+  private _renderPinButton(item: QuickBarComboBoxItem) {
+    const key = quickBarResultKey(item);
+    if (!key) {
+      return nothing;
+    }
+    const pinned = isPinned(this._memory, key);
+    const label = this._t(
+      pinned ? "ui.dialogs.quick-bar.unpin" : "ui.dialogs.quick-bar.pin",
+      { label: item.primary ?? "" }
+    );
+    return html`<ha-icon-button
+      slot="end"
+      class=${pinned ? "pin pinned" : "pin"}
+      .path=${pinned ? mdiPin : mdiPinOutline}
+      .label=${label}
+      .title=${label}
+      aria-pressed=${pinned ? "true" : "false"}
+      .item=${item}
+      @click=${this._pinClicked}
+      @keydown=${this._switchKeydown}
+    ></ha-icon-button>`;
+  }
+
+  private _pinClicked(ev: Event) {
+    ev.stopPropagation();
+    const { item } = ev.currentTarget as HTMLElement & {
+      item: QuickBarComboBoxItem;
+    };
+    this._togglePin(item);
+  }
+
+  private _togglePin(item: QuickBarComboBoxItem) {
+    const key = quickBarResultKey(item);
+    if (!key) {
+      return;
+    }
+    const next = togglePinned(this._memory, {
+      key,
+      title: item.primary ?? key,
+    });
+    if (!writeQuickBarMemory(next)) {
+      showToast(this, {
+        message: this._t("ui.dialogs.quick-bar.pin_not_saved"),
+      });
+      return;
+    }
+    this._memory = next;
+    this._status = this._t(
+      isPinned(next, key)
+        ? "ui.dialogs.quick-bar.status_pinned"
+        : "ui.dialogs.quick-bar.status_unpinned",
+      { label: item.primary ?? "" }
     );
   }
 
@@ -691,6 +786,7 @@ export class QuickBar extends LitElement {
               `
             : nothing
         }
+        ${this._renderPinButton(item)}
         ${
           running
             ? html`<ha-spinner slot="end" size="small"></ha-spinner>`
@@ -717,7 +813,8 @@ export class QuickBar extends LitElement {
       this._relatedIdSets,
       searchString,
       this._selectedSection,
-      this._lang.mode
+      this._lang.mode,
+      this._memory
     );
     return this._lastItems;
   };
@@ -728,7 +825,8 @@ export class QuickBar extends LitElement {
       relatedIdSets: RelatedIdSets | undefined,
       filter?: string,
       section?: QuickBarSection,
-      _mode?: string
+      _mode?: string,
+      memory: QuickBarMemory = { pinned: [], recent: [] }
     ) => {
       const items: (string | QuickBarComboBoxItem)[] = [];
       const prompt = filter?.trim();
@@ -921,9 +1019,65 @@ export class QuickBar extends LitElement {
         items.push(...areaItems);
       }
 
-      return items;
+      return this._withLeadingResults(items, memory, filter, section);
     }
   );
+
+  // The empty search starts with the pinned results and then the recent ones.
+  // A result that leads is taken out of its own group, so no row appears twice.
+  private _withLeadingResults(
+    items: (string | QuickBarComboBoxItem)[],
+    memory: QuickBarMemory,
+    filter?: string,
+    section?: QuickBarSection
+  ): (string | QuickBarComboBoxItem)[] {
+    if (filter?.trim() || section) {
+      return items;
+    }
+    const byKey = new Map<string, QuickBarComboBoxItem>();
+    items.forEach((item) => {
+      if (typeof item === "string") {
+        return;
+      }
+      const key = quickBarResultKey(item);
+      if (key && !byKey.has(key)) {
+        byKey.set(key, item);
+      }
+    });
+    const lead = leadingResults(memory, (key) => byKey.get(key));
+    if (!lead.pinned.length && !lead.recent.length) {
+      return items;
+    }
+    const promoted = new Set<QuickBarComboBoxItem>([
+      ...lead.pinned,
+      ...lead.recent,
+    ]);
+    const rest: (string | QuickBarComboBoxItem)[] = [];
+    items.forEach((item, index) => {
+      if (typeof item !== "string") {
+        if (!promoted.has(item)) {
+          rest.push(item);
+        }
+        return;
+      }
+      // Keep a group title only when a result of that group is left.
+      const next = items.slice(index + 1).find((entry) => {
+        return typeof entry === "string" || !promoted.has(entry);
+      });
+      if (next !== undefined && typeof next !== "string") {
+        rest.push(item);
+      }
+    });
+    return [
+      ...(lead.pinned.length
+        ? [this._t("ui.dialogs.quick-bar.pinned_title"), ...lead.pinned]
+        : []),
+      ...(lead.recent.length
+        ? [this._t("ui.dialogs.quick-bar.recent_title"), ...lead.recent]
+        : []),
+      ...rest,
+    ];
+  }
 
   private _getEntitiesMemoized = memoizeOne((hass: HomeAssistant) =>
     getEntities(hass, { idPrefix: `entity${SEPARATOR}` })
@@ -1045,6 +1199,10 @@ export class QuickBar extends LitElement {
       const item = ev.detail.item as QuickBarComboBoxItem;
 
       this._itemSelected = true;
+
+      if (item) {
+        this._rememberUsed(item);
+      }
 
       if (item && "assistPrompt" in item) {
         this.closeDialog();
@@ -1172,6 +1330,19 @@ export class QuickBar extends LitElement {
     }
   }
 
+  // The last ten results that were used lead the empty search next time.
+  private _rememberUsed(item: QuickBarComboBoxItem) {
+    const key = quickBarResultKey(item);
+    if (!key) {
+      return;
+    }
+    const next = recordRecent(readQuickBarMemory(), {
+      key,
+      title: item.primary ?? key,
+    });
+    writeQuickBarMemory(next);
+  }
+
   private _toggleSettingInPlace(item: SettingComboBoxItem) {
     const key = settingKeys[item.settingId];
     if (this._settingHeld(key)) {
@@ -1253,6 +1424,16 @@ export class QuickBar extends LitElement {
         ev.preventDefault();
         ev.stopPropagation();
         this._toggleLive(item);
+      }
+      return;
+    }
+
+    if (ev.altKey && ev.code === "KeyP") {
+      const entry = this._lastItems[current];
+      if (entry && typeof entry !== "string" && isNavigableEntry(entry)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this._togglePin(entry);
       }
       return;
     }

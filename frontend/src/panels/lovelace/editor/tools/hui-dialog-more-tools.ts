@@ -12,6 +12,7 @@ import "./hui-tool-diff";
 import "./hui-tool-entities";
 import "./hui-tool-library";
 import "./hui-tool-perf";
+import "./hui-tool-tablets";
 import "./hui-tool-wall";
 import type { MoreToolsDialogParams } from "./show-more-tools-dialog";
 
@@ -59,6 +60,12 @@ export class HuiDialogMoreTools extends LitElement {
           .params=${params}
           @close-tool=${this.closeDialog}
         ></hui-tool-wall>`;
+      case "tablets":
+        return html`<hui-tool-tablets
+          .hass=${common.hass}
+          .params=${params}
+          @close-tool=${this.closeDialog}
+        ></hui-tool-tablets>`;
       case "library":
         return html`<hui-tool-library
           .hass=${common.hass}

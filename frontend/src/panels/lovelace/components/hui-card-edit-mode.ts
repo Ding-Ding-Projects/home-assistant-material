@@ -1,5 +1,7 @@
 import "@home-assistant/webawesome/dist/components/divider/divider";
 import {
+  mdiCheckboxMarkedCircleOutline,
+  mdiClipboardTextClockOutline,
   mdiContentCopy,
   mdiContentCut,
   mdiContentPaste,
@@ -33,6 +35,11 @@ import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
 import { haStyle } from "../../../resources/styles";
 import type { HuiCard } from "../cards/hui-card";
 import { takeCardHighlight } from "../editor/card-highlight";
+import {
+  cardSelection,
+  SELECTION_CHANGED_EVENT,
+} from "../editor/card-selection";
+import { showCardTargetsDialog } from "../editor/card-targets-dialog/show-dialog-card-targets";
 import type { LovelacePath } from "../editor/lovelace-path";
 import type { Lovelace } from "../types";
 
@@ -80,7 +87,47 @@ export class HuiCardEditMode extends LitElement {
 
   private _touchStarted = false;
 
+  /** Used by the selection to read the card's text and to show dialogs. */
+  public get localize(): LocalizeFunc {
+    return this._localize;
+  }
+
+  private get _selected(): boolean {
+    return Boolean(this.path) && cardSelection.has(this.path);
+  }
+
+  private _selectionChanged = () => this.requestUpdate();
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    cardSelection.register(this);
+    cardSelection.addEventListener(
+      SELECTION_CHANGED_EVENT,
+      this._selectionChanged
+    );
+  }
+
+  protected willUpdate(changedProperties: PropertyValues<this>): void {
+    if (changedProperties.has("lovelace") && this.lovelace) {
+      cardSelection.checkConfig(this.lovelace.config);
+    }
+  }
+
   protected firstUpdated(): void {
+    // Ctrl or Command and click adds the card to the selection (or removes it)
+    // instead of opening the editor.
+    this.addEventListener(
+      "click",
+      (ev: MouseEvent) => {
+        if (!ev.ctrlKey && !ev.metaKey) {
+          return;
+        }
+        ev.preventDefault();
+        ev.stopPropagation();
+        cardSelection.toggle(this);
+      },
+      true
+    );
     this.addEventListener("focus", () => {
       this._focused = true;
     });
@@ -114,6 +161,11 @@ export class HuiCardEditMode extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     document.removeEventListener("click", this._documentClicked);
+    cardSelection.removeEventListener(
+      SELECTION_CHANGED_EVENT,
+      this._selectionChanged
+    );
+    cardSelection.unregister(this);
   }
 
   private _documentClicked = (ev) => {
@@ -135,6 +187,15 @@ export class HuiCardEditMode extends LitElement {
 
     return html`
       <div class="card-wrapper" inert><slot></slot></div>
+      ${
+        this._selected
+          ? html`<div class="selection-ring" aria-hidden="true">
+              <ha-svg-icon
+                .path=${mdiCheckboxMarkedCircleOutline}
+              ></ha-svg-icon>
+            </div>`
+          : nothing
+      }
       <div class="card-overlay ${classMap({ visible: showOverlay })}">
         ${
           this.noEdit
@@ -196,6 +257,17 @@ export class HuiCardEditMode extends LitElement {
             this.noMove
               ? nothing
               : html`
+                  <ha-dropdown-item value="select">
+                    <ha-svg-icon
+                      slot="icon"
+                      .path=${mdiCheckboxMarkedCircleOutline}
+                    ></ha-svg-icon>
+                    ${this._localize(
+                      this._selected
+                        ? "ui.panel.lovelace.editor.multi_select.deselect"
+                        : "ui.panel.lovelace.editor.multi_select.select"
+                    )}
+                  </ha-dropdown-item>
                   <ha-dropdown-item value="copy">
                     <ha-svg-icon
                       slot="icon"
@@ -224,6 +296,21 @@ export class HuiCardEditMode extends LitElement {
                           </ha-dropdown-item>
                         `
                       : nothing
+                  }
+                  ${
+                    this.noDuplicate
+                      ? nothing
+                      : html`
+                          <ha-dropdown-item value="history">
+                            <ha-svg-icon
+                              slot="icon"
+                              .path=${mdiClipboardTextClockOutline}
+                            ></ha-svg-icon>
+                            ${this._localize(
+                              "ui.panel.lovelace.editor.clipboard.paste_from_history"
+                            )}
+                          </ha-dropdown-item>
+                        `
                   }
                 `
           }
@@ -279,6 +366,16 @@ export class HuiCardEditMode extends LitElement {
         break;
       case "paste":
         this._pasteCard();
+        break;
+      case "select":
+        cardSelection.toggle(this);
+        break;
+      case "history":
+        showCardTargetsDialog(this, {
+          mode: "paste",
+          lovelace: () => this.lovelace,
+          viewIndex: typeof this.path[1] === "number" ? this.path[1] : 0,
+        });
         break;
       case "delete":
         this._deleteCard();
@@ -340,6 +437,27 @@ export class HuiCardEditMode extends LitElement {
           );
         }
 
+        .selection-ring {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          border: 3px solid var(--primary-color);
+          border-radius: var(
+            --ha-card-border-radius,
+            var(--ha-border-radius-lg)
+          );
+          background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+        }
+        .selection-ring ha-svg-icon {
+          position: absolute;
+          inset-block-start: 6px;
+          inset-inline-start: 6px;
+          color: var(--primary-color);
+          background: var(--card-background-color);
+          border-radius: var(--ha-border-radius-circle);
+          --mdc-icon-size: 22px;
+        }
         .control {
           outline: none !important;
           cursor: pointer;
