@@ -551,6 +551,50 @@ product matching it.
   channel file (`stable.json`) to it and reads the last build number from it, so it must
   stay.
 
+- Batches 55 to 57 (13 November), builds 2026.11.1.418, 419 and 420. Four passes used the
+  published images for real on throwaway instances (generated test accounts, sample helpers,
+  automations, scenes, dashboards, labels), feature by feature, with a capture looked at for
+  every verdict. The live instance moved to 418 at 04:50, 419 at 05:34 and 420 at 06:30
+  Toronto time, each after a browser pass on that exact image with no page errors.
+  - Seen working in a published build: the navigation pane and its docks, the tool pill, the
+    automation editor bar, keys T, C and A (and ignored while typing), "Add a step here",
+    the string builder (wide, phone, the template page of the tools; live preview and round
+    trip), select by rule with text rules and label rules, add from a ZIP (also a theme name
+    with spaces), visibility by state for views (Or and Not groups, real state flips) and
+    for dashboards (two And conditions), "Scan a tag" with its honest message, storage
+    (overview, per entity, keep history off surviving a reload, purge queued), performance,
+    wall tablets (announce and list), energy colours saved on the server, roles hiding a
+    dashboard, scene preview and its return, the automation tools (flow, health, last runs,
+    simulator run, a test added and passed, steps turned off surviving a reload, week
+    ahead), the dashboard tools, dark theme on six surfaces, and a phone pass with no
+    sideways overflow.
+  - Confirmations: storage purge, deleting an automation, a scene, a label, a dashboard and a
+    helper all ask for the two keys and the slider and have no field to type in. A slide
+    without the keys does nothing. Batch 57 removed the typed-name step the dialog still had.
+  - Faults found by those passes and fixed, each seen right afterwards in build 419 or 420:
+    the overview page error, the welcome banner cut on wide windows, "Notifications"
+    off-centre, the blank "Week ahead" tool, doubled titles on People, Roles and Tags, the
+    empty type column on the dashboards list, two help icons, the stray breadcrumb
+    separator, the selection pill over the bulk bar, the string builder subtitle on a
+    phone, the empty block in the wall tablet card, two colour names, black named as a
+    teal, the raw editor status bar below the window, the save bar under the open side
+    pane, names wrapping in the energy colours card, the tools dialog jumping between tabs.
+  - Still open, seen and not fixed: in the string builder the note "kept as one template
+    piece" stays after the template piece is removed; on a phone the builder sheet leaves an
+    empty strip under its buttons; with the automation side pane open the sticky search card
+    covers the first action row when scrolled; the list of pages in the pane changed order
+    between two runs (not traced); the save bar's room beside the side pane is measured
+    left-to-right only. A time trigger at 22:00 reads 17:00 in the row when the instance is
+    in UTC and the browser five hours behind; that is the time-zone display of the original
+    project.
+  - Still not seen in any published build: history compare, "Open a pop-up" tap action,
+    "Save to my cards", checkpoints, breakpoints, "Replay a day", "Make phone friendly",
+    cameras and the energy cost tile, right-to-left, both-languages mode, 320 px width, the
+    offline cache counters (no service worker in the test browser), a real tag reader, and
+    the update line in release notes inside the app (no update was on offer).
+  - Runs for builds 418 and 419 were stopped once their container images were out, so they
+    have no release page; build 420 is the one left to finish.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
