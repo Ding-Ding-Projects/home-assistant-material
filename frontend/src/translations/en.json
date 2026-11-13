@@ -18310,6 +18310,7 @@
         "reload_lovelace": "Reload UI"
       },
       "media-browser": {
+        "summary": "Browse your media and play it on a speaker or screen",
         "error": {
           "player_not_exist": "Media player {name} does not exist"
         }

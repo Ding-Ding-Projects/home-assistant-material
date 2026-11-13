@@ -290,6 +290,9 @@ class HaPanelIframe extends LitElement {
       flex-direction: column;
       height: 100%;
       min-height: 0;
+      box-sizing: border-box;
+      gap: var(--ha-space-3, 12px);
+      padding: var(--ha-space-3, 12px);
     }
     /* Fill hass-subpage's content box, which already excludes the safe-area
        insets (see hass-subpage .content), instead of positioning absolutely
@@ -301,6 +304,8 @@ class HaPanelIframe extends LitElement {
       flex: 1 1 auto;
       min-height: 0;
       background-color: var(--primary-background-color);
+      border-radius: var(--ha-border-radius-2xl, 20px);
+      box-shadow: var(--ha-shadow-card, none);
     }
     .address-row {
       display: flex;
@@ -309,6 +314,7 @@ class HaPanelIframe extends LitElement {
       gap: var(--ha-space-2, 8px);
       padding: var(--ha-space-2, 8px) var(--ha-space-4, 16px);
       background: var(--secondary-background-color);
+      border-radius: var(--ha-border-radius-xl, 16px);
     }
     .address-label {
       color: var(--secondary-text-color);
@@ -329,6 +335,7 @@ class HaPanelIframe extends LitElement {
       gap: var(--ha-space-3, 12px);
       padding: var(--ha-space-3, 12px) var(--ha-space-4, 16px);
       background: var(--secondary-background-color);
+      border-radius: var(--ha-border-radius-xl, 16px);
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
     }

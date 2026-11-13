@@ -19,6 +19,7 @@ import "../../components/ha-dropdown-item";
 import "../../components/ha-icon-button";
 import "../../components/ha-icon-button-arrow-prev";
 import "../../components/ha-top-app-bar-fixed";
+import "../home/components/ha-panel-heading";
 import "../../components/media-player/ha-media-manage-button";
 import "../../components/media-player/ha-media-player-browse";
 import type {
@@ -181,7 +182,17 @@ class PanelMediaBrowser extends LitElement {
             <ha-svg-icon slot="icon" .path=${mdiListBoxOutline}></ha-svg-icon>
           </ha-dropdown-item>
         </ha-dropdown>
+        ${
+          this._currentItem
+            ? nothing
+            : html`<ha-panel-heading
+                .heading=${this.hass.localize("panel.media_browser")}
+                .summary=${this.hass.localize("ui.panel.media-browser.summary")}
+                .narrow=${this.narrow}
+              ></ha-panel-heading>`
+        }
         <ha-media-player-browse
+          class=${this._currentItem ? "" : "under-heading"}
           .entityId=${this._entityId}
           .navigateIds=${this._navigateIds}
           .preferredLayout=${this._preferredLayout}
@@ -373,6 +384,28 @@ class PanelMediaBrowser extends LitElement {
             100vh -
               (
                 100px + var(--header-height, 0px) +
+                  var(--safe-area-inset-top, 0px) +
+                  var(--safe-area-inset-bottom, 0px)
+              )
+          );
+        }
+
+        ha-media-player-browse.under-heading {
+          height: calc(
+            100vh -
+              (
+                176px + var(--header-height, 0px) +
+                  var(--safe-area-inset-top, 0px) +
+                  var(--safe-area-inset-bottom, 0px)
+              )
+          );
+        }
+
+        :host([narrow]) ha-media-player-browse.under-heading {
+          height: calc(
+            100vh -
+              (
+                124px + var(--header-height, 0px) +
                   var(--safe-area-inset-top, 0px) +
                   var(--safe-area-inset-bottom, 0px)
               )
