@@ -536,8 +536,11 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   `stable.json`), and its notes carry the line "Updated: 13 November 2026 at 04:03 EST,
   which is 2026-11-13 09:03 UTC." Nothing from it was downloaded or installed here; the
   operating system images of this build have not been booted.
-- Final inventory of 13 November: `main` is the only branch locally and on the remote, there
-  is one checkout and no stash, so the closeout had nothing to delete.
+- Final inventory of 13 November: `main` is the only branch locally, there is one checkout
+  and no stash, so the closeout had nothing to delete. Correction to the earlier closeout
+  line: the remote has a second branch, `channel`. The release workflow writes the update
+  channel file (`stable.json`) to it and reads the last build number from it, so it must
+  stay.
 
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
