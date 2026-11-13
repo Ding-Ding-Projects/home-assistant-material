@@ -232,6 +232,7 @@ export class HaAutomationToolSwap extends LitElement {
   static styles = css`
     :host {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--ha-space-4);
     }
     .content {

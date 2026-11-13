@@ -13,6 +13,7 @@ import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-svg-icon";
 import { haStyle } from "../../../../resources/styles";
+import { fitScale, stepZoom } from "./flow-fit";
 import type { FlowGraph, FlowNode } from "./flow-graph";
 import { buildFlowGraph } from "./flow-graph";
 import type { AutomationToolContext } from "./registry";
@@ -23,7 +24,6 @@ const NODE_H = 68;
 const GAP_X = 64;
 const GAP_Y = 24;
 const PAD = 24;
-const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5];
 
 const nodeX = (node: FlowNode) => PAD + node.col * (NODE_W + GAP_X);
 const nodeY = (node: FlowNode) => PAD + node.row * (NODE_H + GAP_Y);
@@ -32,7 +32,14 @@ const nodeY = (node: FlowNode) => PAD + node.row * (NODE_H + GAP_Y);
 export class HaAutomationToolFlow extends LitElement {
   @property({ attribute: false }) public context!: AutomationToolContext;
 
-  @state() private _zoom = 2;
+  @state() private _scale = 1;
+
+  /** Follows the canvas width until the person zooms by hand. */
+  private _autoFit = true;
+
+  private _resizeObserver?: ResizeObserver;
+
+  private _observed?: HTMLElement;
 
   @state() private _view = { x: 0, y: 0, w: 1, h: 1 };
 
@@ -52,6 +59,38 @@ export class HaAutomationToolFlow extends LitElement {
 
   protected firstUpdated(_changed: PropertyValues): void {
     this._updateView();
+  }
+
+  protected updated(_changed: PropertyValues): void {
+    const canvas = this._canvas;
+    if (canvas && canvas !== this._observed) {
+      this._resizeObserver?.disconnect();
+      this._observed = canvas;
+      this._resizeObserver ??= new ResizeObserver(this._canvasResized);
+      this._resizeObserver.observe(canvas);
+    }
+    // Also follows a changed graph; assigning the same scale does not re-render.
+    this._applyAutoFit();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._resizeObserver?.disconnect();
+    this._observed = undefined;
+  }
+
+  private _canvasResized = () => {
+    this._applyAutoFit();
+    this._updateView();
+  };
+
+  private _applyAutoFit() {
+    const el = this._canvas;
+    if (!this._autoFit || !el || !el.clientWidth) {
+      return;
+    }
+    const { w, h } = this._size;
+    this._scale = fitScale(el.clientWidth, el.clientHeight, w, h, "width");
   }
 
   private _t(key: string, vars?: Record<string, string | number>) {
@@ -78,21 +117,21 @@ export class HaAutomationToolFlow extends LitElement {
       return html`<div class="empty">${this._t("empty")}</div>`;
     }
     const { w, h } = this._size;
-    const zoom = ZOOMS[this._zoom];
+    const zoom = this._scale;
     const byId = new Map(graph.nodes.map((n) => [n.id, n]));
     return html`
       <div class="toolbar">
         <ha-icon-button
           .label=${this._t("zoom_out")}
           .path=${mdiMinus}
-          .disabled=${this._zoom === 0}
+          .disabled=${this._scale <= stepZoom(this._scale, -1)}
           @click=${this._zoomOut}
         ></ha-icon-button>
         <span class="zoom">${Math.round(zoom * 100)}%</span>
         <ha-icon-button
           .label=${this._t("zoom_in")}
           .path=${mdiPlus}
-          .disabled=${this._zoom === ZOOMS.length - 1}
+          .disabled=${this._scale >= stepZoom(this._scale, 1)}
           @click=${this._zoomIn}
         ></ha-icon-button>
         <ha-icon-button
@@ -103,7 +142,12 @@ export class HaAutomationToolFlow extends LitElement {
         <span class="note">${this._t("derived")}</span>
       </div>
       <div class="stage">
-        <div class="canvas" tabindex="0" @scroll=${this._updateView}>
+        <div
+          class="canvas"
+          tabindex="0"
+          @scroll=${this._updateView}
+          @touchstart=${this._keepTouch}
+        >
           <div
             class="surface"
             style=${styleMap({
@@ -245,13 +289,20 @@ export class HaAutomationToolFlow extends LitElement {
     };
   };
 
+  /** A touch on the canvas pans it, so it must not start the swipe to close of the sheet. */
+  private _keepTouch(ev: Event) {
+    ev.stopPropagation();
+  }
+
   private _zoomIn() {
-    this._zoom = Math.min(ZOOMS.length - 1, this._zoom + 1);
+    this._autoFit = false;
+    this._scale = stepZoom(this._scale, 1);
     this.updateComplete.then(this._updateView);
   }
 
   private _zoomOut() {
-    this._zoom = Math.max(0, this._zoom - 1);
+    this._autoFit = false;
+    this._scale = stepZoom(this._scale, -1);
     this.updateComplete.then(this._updateView);
   }
 
@@ -261,14 +312,8 @@ export class HaAutomationToolFlow extends LitElement {
       return;
     }
     const { w, h } = this._size;
-    const ratio = Math.min(el.clientWidth / w, el.clientHeight / h);
-    let best = 0;
-    ZOOMS.forEach((z, i) => {
-      if (z <= ratio) {
-        best = i;
-      }
-    });
-    this._zoom = best;
+    this._autoFit = true;
+    this._scale = fitScale(el.clientWidth, el.clientHeight, w, h, "both");
     el.scrollTo({ left: 0, top: 0 });
     this.updateComplete.then(this._updateView);
   }
@@ -285,6 +330,8 @@ export class HaAutomationToolFlow extends LitElement {
         }
         .toolbar {
           display: flex;
+          flex: none;
+          flex-wrap: wrap;
           align-items: center;
           gap: var(--ha-space-1);
         }
@@ -297,11 +344,18 @@ export class HaAutomationToolFlow extends LitElement {
           margin-inline-start: auto;
           color: var(--secondary-text-color);
           font-size: var(--ha-font-size-s);
+          min-width: 0;
+        }
+        @media (max-width: 600px) {
+          .note {
+            flex: 1 0 100%;
+            margin-inline-start: 0;
+          }
         }
         .stage {
           position: relative;
-          min-height: 280px;
-          height: 60vh;
+          flex: 1 1 auto;
+          min-height: 240px;
           border-radius: var(--ha-border-radius-2xl);
           background-color: var(
             --ha-color-surface-tone-1,
@@ -318,6 +372,8 @@ export class HaAutomationToolFlow extends LitElement {
           position: absolute;
           inset: 0;
           overflow: auto;
+          touch-action: pan-x pan-y;
+          overscroll-behavior: contain;
         }
         .scaled {
           position: relative;
@@ -409,6 +465,7 @@ export class HaAutomationToolFlow extends LitElement {
           );
         }
         .text {
+          flex: 1 1 auto;
           display: flex;
           flex-direction: column;
           min-width: 0;

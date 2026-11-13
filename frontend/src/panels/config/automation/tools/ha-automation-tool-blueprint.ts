@@ -269,6 +269,7 @@ export class HaAutomationToolBlueprint extends LitElement {
   static styles = css`
     :host {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--ha-space-4);
     }
     .content {
@@ -290,6 +291,8 @@ export class HaAutomationToolBlueprint extends LitElement {
     }
     .grow {
       flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .kind {
       color: var(--secondary-text-color);
@@ -305,8 +308,12 @@ export class HaAutomationToolBlueprint extends LitElement {
       gap: var(--ha-space-2);
       align-items: center;
     }
+    .row {
+      flex-wrap: wrap;
+    }
     .row ha-input {
-      flex: 1;
+      flex: 1 1 160px;
+      min-width: 0;
     }
     pre {
       margin: 0;

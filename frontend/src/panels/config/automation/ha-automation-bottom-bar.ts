@@ -394,66 +394,20 @@ export class HaAutomationBottomBar extends LitElement {
       haStyle,
       css`
         :host {
-          display: block;
-          position: sticky;
-          /* With the tab strip docked to the bottom, the bar sits in the room
-             the page keeps for the strip, so it rests on the page footer. */
-          bottom: calc(-1 * var(--ha-page-tabs-bottom-inset, 0px));
-          z-index: 2;
-          box-sizing: border-box;
-          /* The page already ends above the phone bottom navigation, so only
-             the device's own inset is added here. The layout's inset counts
-             the navigation, which would double its height again. */
-          padding-bottom: var(
-            --ha-automation-bottom-bar-padding-bottom,
-            max(
-              0px,
-              var(--safe-area-inset-bottom, 0px) - var(
-                  --ha-phone-bar-height,
-                  0px
-                ) - var(--ha-page-tabs-bottom-inset, 0px)
-            )
-          );
-          /* The bar floats over the page as one rounded card, centred, so it
-             never reads as a second footer; the page shows around it. */
+          /* A footer of the editor: the page keeps its own scrolling area
+             above it, so nothing scrolls under the bar. */
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: var(--ha-space-2);
-          padding-top: var(--ha-space-2);
+          box-sizing: border-box;
+          padding-block: var(--ha-space-2);
           padding-inline-start: var(--ha-space-3);
+          /* Stops before a side pane that sits over the end of the page. */
           padding-inline-end: calc(
             var(--ha-space-3) + var(--automation-bar-reserve, 0px)
           );
-          pointer-events: none;
-          /* A fade of the page colour keeps the page text from showing
-             through the room around the card, so no line is cut behind it. */
-          background: linear-gradient(
-            to bottom,
-            transparent,
-            var(--primary-background-color) var(--ha-space-3)
-          );
-        }
-        @media (max-width: 700px) {
-          /* A small gap above the phone navigation bar */
-          :host {
-            padding-bottom: calc(
-              var(
-                  --ha-automation-bottom-bar-padding-bottom,
-                  max(
-                    0px,
-                    var(--safe-area-inset-bottom, 0px) - var(
-                        --ha-phone-bar-height,
-                        0px
-                      ) - var(--ha-page-tabs-bottom-inset, 0px)
-                  )
-                ) +
-                var(--ha-space-2)
-            );
-          }
-        }
-        :host([keyboard]) {
-          padding-bottom: env(safe-area-inset-bottom, 0px);
+          background: var(--primary-background-color);
         }
         .bar,
         .dry {

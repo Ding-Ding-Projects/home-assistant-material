@@ -143,6 +143,7 @@ export class HaAutomationToolWeek extends LitElement {
   static styles = css`
     :host {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--ha-space-4);
     }
     .content {
@@ -152,11 +153,14 @@ export class HaAutomationToolWeek extends LitElement {
     }
     .grid {
       display: grid;
-      grid-template-columns: 56px repeat(7, minmax(0, 1fr));
+      grid-template-columns: 44px repeat(7, minmax(0, 1fr));
       gap: var(--ha-space-1);
       align-items: center;
     }
     .day {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
       text-align: center;
       font-size: var(--ha-font-size-s);
       color: var(--secondary-text-color);

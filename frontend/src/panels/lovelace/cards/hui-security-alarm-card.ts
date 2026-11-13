@@ -7,7 +7,6 @@ import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-svg-icon";
-import "../../home/components/ha-panel-heading";
 import type {
   AlarmControlPanelEntity,
   AlarmMode,
@@ -90,17 +89,12 @@ export class HuiSecurityAlarmCard extends LitElement implements LovelaceCard {
     }
     const alarms = this._alarms(this.hass.states);
     const lines = this._lines();
-    const summary = [
-      alarms.length ? this.hass.formatEntityState(alarms[0]) : "",
-      lines,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    return html`<ha-panel-heading
-        .heading=${this.hass.localize("panel.security")}
-        .summary=${summary}
-      ></ha-panel-heading>
-      ${alarms.map((alarm) => this._renderAlarm(alarm, lines))}`;
+    // The page already shows its own title, so the card draws no heading. With
+    // no alarm panel, the lock summary is still worth a line.
+    return html`${
+      !alarms.length && lines ? html`<p class="lines">${lines}</p>` : nothing
+    }
+    ${alarms.map((alarm) => this._renderAlarm(alarm, lines))}`;
   }
 
   private _renderAlarm(alarm: HassEntity, lines: string) {
@@ -221,6 +215,11 @@ export class HuiSecurityAlarmCard extends LitElement implements LovelaceCard {
       line-height: 1.1;
     }
     .caption {
+      font-size: var(--ha-font-size-l);
+    }
+    .lines {
+      margin: 0;
+      color: var(--secondary-text-color);
       font-size: var(--ha-font-size-l);
     }
     .actions {

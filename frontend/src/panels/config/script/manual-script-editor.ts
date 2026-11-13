@@ -48,6 +48,7 @@ import {
 import { documentationUrl } from "../../../util/documentation-url";
 import { showEditorToast } from "../automation/editor-toast";
 import "../automation/action/ha-automation-action";
+import "../automation/action/ha-automation-continue-on-error-all";
 import "../automation/search/ha-automation-search-bar";
 import type HaAutomationAction from "../automation/action/ha-automation-action";
 import {
@@ -256,6 +257,12 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
             )}
           </h2>
         </div>
+        <ha-automation-continue-on-error-all
+          .hass=${this.hass}
+          .actions=${this.config.sequence || []}
+          .disabled=${this.disabled || this.saving}
+          @value-changed=${this._sequenceChanged}
+        ></ha-automation-continue-on-error-all>
         <ha-automation-action
           .actions=${this.config.sequence || []}
           .highlightedActions=${this.pastedConfig?.sequence}

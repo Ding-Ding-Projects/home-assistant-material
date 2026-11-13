@@ -69,9 +69,9 @@ const parseClock = (text: string): string | undefined => {
 
 const parseWeekdays = (value: unknown): WeekDay[] => {
   // A trigger without `weekday` (the usual case) gives no array at all.
-  const names = (
-    ensureArray(value as string | string[] | undefined) ?? []
-  ).map((d) => String(d).toLowerCase());
+  const names = (ensureArray(value as string | string[] | undefined) ?? []).map(
+    (d) => String(d).toLowerCase()
+  );
   if (!names.length) {
     return [0, 1, 2, 3, 4, 5, 6];
   }

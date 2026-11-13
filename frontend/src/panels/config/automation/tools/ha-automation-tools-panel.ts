@@ -129,11 +129,23 @@ export class HaAutomationToolsPanel extends LitElement {
     return [
       haStyle,
       css`
+        /* The tab row never shrinks: in a flex column an overflow container
+           may shrink to nothing, which sliced the chips in half on a phone.
+           It stays in place while the tool below it scrolls. */
         .tabs {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          flex: none;
           display: flex;
           gap: var(--ha-space-2);
           overflow-x: auto;
-          padding-bottom: var(--ha-space-2);
+          padding: var(--ha-space-1) 0 var(--ha-space-2);
+          background: var(--ha-bottom-sheet-surface-background, inherit);
+          scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar {
+          display: none;
         }
         .tab {
           flex: none;
@@ -166,31 +178,48 @@ export class HaAutomationToolsPanel extends LitElement {
         }
         /* In the dialog the body keeps one height, so the dialog's top edge and
            size do not jump from tab to tab; a tall tool scrolls inside it. */
-        .stage.steady {
+        .stage {
           display: flex;
           flex-direction: column;
-          box-sizing: border-box;
-          block-size: min(70dvh, 640px);
+          flex: 1 1 auto;
+          min-width: 0;
           min-block-size: 0;
         }
-        .stage.steady .content {
+        .stage.steady {
+          box-sizing: border-box;
+          block-size: min(70dvh, 640px);
+          flex: none;
+        }
+        .content {
+          display: flex;
+          flex-direction: column;
           flex: 1 1 auto;
+          min-width: 0;
           min-block-size: 0;
           overflow: auto;
         }
-        .content {
-          display: block;
-          min-width: 0;
-        }
+        /* On a phone the sheet has a height of its own, so a tool can take the
+           space that is left. The handle sits over the top 16px. */
         .sheet {
           display: flex;
           flex-direction: column;
-          padding: var(--ha-space-4);
+          box-sizing: border-box;
+          block-size: min(85dvh, 760px);
+          max-block-size: 100%;
+          padding: var(--ha-space-6) var(--ha-space-4) var(--ha-space-4);
           min-height: 0;
-          overflow: auto;
+          min-width: 0;
         }
         .content > * {
           display: block;
+          flex: 0 0 auto;
+          min-width: 0;
+          max-width: 100%;
+        }
+        /* The flow view fills the room that is left under its toolbar. */
+        .content > ha-automation-tool-flow {
+          display: flex;
+          flex: 1 1 auto;
         }
       `,
     ];

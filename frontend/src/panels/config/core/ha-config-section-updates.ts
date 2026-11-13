@@ -15,6 +15,7 @@ import type {
 import type { TemplateResult, PropertyValues } from "lit";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { ifDefined } from "lit/directives/if-defined";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -31,6 +32,17 @@ import "../../../components/ha-dropdown-item";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-spinner";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-switch";
+import type { HaSwitch } from "../../../components/ha-switch";
+import type { AutoUpdateInfo } from "../../../data/auto-update";
+import {
+  autoUpdateRowState,
+  formatAutoUpdateTime,
+  setAutoUpdateAll,
+  setAutoUpdateBackup,
+  setAutoUpdateEntity,
+  subscribeAutoUpdate,
+} from "../../../data/auto-update";
 import type { ManagerState } from "../../../data/backup_manager";
 import { subscribeBackupEvents } from "../../../data/backup_manager";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
@@ -80,6 +92,8 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
 
   @state() private _supervisorInfo?: HassioSupervisorInfo;
 
+  @state() private _autoInfo?: AutoUpdateInfo;
+
   protected firstUpdated(changedProps: PropertyValues<this>) {
     super.firstUpdated(changedProps);
 
@@ -89,11 +103,26 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
   }
 
   protected hassSubscribe(): Promise<UnsubscribeFunc>[] {
-    if (!this._watchesBackups()) {
-      return [];
+    const subscriptions: Promise<UnsubscribeFunc>[] = [];
+
+    if (this.hass.user?.is_admin) {
+      subscriptions.push(
+        subscribeAutoUpdate(this.hass, (info) => {
+          this._autoInfo = info;
+        }).catch(() => {
+          // An older server has no automatic updates; the page works without.
+          this._autoInfo = undefined;
+
+          return () => undefined;
+        })
+      );
     }
 
-    return [
+    if (!this._watchesBackups()) {
+      return subscriptions;
+    }
+
+    subscriptions.push(
       subscribeBackupEvents(this.hass, (event) => {
         this._backupState = event.manager_state;
       }).catch(() => {
@@ -101,8 +130,9 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         this._backupState = "idle";
 
         return () => undefined;
-      }),
-    ];
+      })
+    );
+    return subscriptions;
   }
 
   // The Supervisor only holds back the updates it manages.
@@ -240,6 +270,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
                       : nothing
                   }
                   ${this._renderHero(installableUpdates, readyCount)}
+                  ${this._renderAutomatic()}
                   ${
                     installableUpdates.length
                       ? html`<div class="rows">
@@ -387,6 +418,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
           <span class="text">
             <span class="name">${name}</span>
             ${sub ? html`<span class="sub">${sub}</span>` : nothing}
+            ${this._renderAutoResult(entity)}
           </span>
           ${
             variant === "current"
@@ -417,6 +449,7 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
               : nothing
           }
         </button>
+        ${variant === "manual" ? nothing : this._renderAutoSwitch(entity)}
         ${
           variant === "current"
             ? html`<span class="chip current"
@@ -472,6 +505,160 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
         }
       </div>
     `;
+  }
+
+  private _renderAutomatic(): TemplateResult | typeof nothing {
+    const info = this._autoInfo;
+    if (!info) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    return html`
+      <section class="card auto-card" aria-labelledby="auto-title">
+        <h2 id="auto-title">
+          ${localize("ui.panel.config.updates.auto_title")}
+        </h2>
+        <div class="auto-row">
+          <span class="text">
+            <span class="name"
+              >${localize("ui.panel.config.updates.auto_all")}</span
+            >
+            <span class="sub"
+              >${localize("ui.panel.config.updates.auto_all_help")}</span
+            >
+          </span>
+          <ha-switch
+            .checked=${info.all}
+            haptic
+            @change=${this._toggleAll}
+            aria-label=${localize("ui.panel.config.updates.auto_all")}
+          ></ha-switch>
+        </div>
+        <div class="auto-row">
+          <span class="text">
+            <span class="name"
+              >${localize("ui.panel.config.updates.auto_backup")}</span
+            >
+          </span>
+          <ha-switch
+            .checked=${info.backup}
+            haptic
+            @change=${this._toggleBackup}
+            aria-label=${localize("ui.panel.config.updates.auto_backup")}
+          ></ha-switch>
+        </div>
+      </section>
+    `;
+  }
+
+  private _renderAutoSwitch(
+    entity: UpdateEntity
+  ): TemplateResult | typeof nothing {
+    if (!this._autoInfo) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    const rowState = autoUpdateRowState(this._autoInfo, entity.entity_id);
+    if (rowState.reason === "unknown") {
+      return nothing;
+    }
+    const name = this.hass.formatEntityName(entity) || entity.entity_id;
+    const hint =
+      rowState.reason === "restarts_system"
+        ? localize("ui.panel.config.updates.auto_protected")
+        : undefined;
+    return html`
+      <div
+        class="auto-switch"
+        role="group"
+        aria-label=${localize("ui.panel.config.updates.auto_row_label", {
+          name,
+        })}
+        title=${ifDefined(hint)}
+      >
+        <ha-switch
+          .entityId=${entity.entity_id}
+          .checked=${rowState.checked}
+          .disabled=${rowState.disabled}
+          @change=${this._toggleOne}
+          aria-describedby=${ifDefined(
+            hint ? `auto-hint-${entity.entity_id}` : undefined
+          )}
+          >${localize("ui.panel.config.updates.auto_row")}</ha-switch
+        >
+        ${
+          hint
+            ? html`<span
+                class="visually-hidden"
+                id="auto-hint-${entity.entity_id}"
+                >${hint}</span
+              >`
+            : nothing
+        }
+      </div>
+    `;
+  }
+
+  private _renderAutoResult(
+    entity: UpdateEntity
+  ): TemplateResult | typeof nothing {
+    const result = this._autoInfo?.entities.find(
+      (item) => item.entity_id === entity.entity_id
+    )?.last_result;
+    if (!result) {
+      return nothing;
+    }
+    const localize = this.hass.localize;
+    return html`<span class="sub auto-result ${result.ok ? "ok" : "failed"}"
+      >${
+        result.ok
+          ? localize("ui.panel.config.updates.auto_ok", {
+              time: formatAutoUpdateTime(
+                result.time,
+                this.hass.locale?.language
+              ),
+            })
+          : localize("ui.panel.config.updates.auto_failed", {
+              error: result.error ?? "",
+            })
+      }</span
+    >`;
+  }
+
+  private async _toggleAll(ev: Event): Promise<void> {
+    await this._saveAuto(() =>
+      setAutoUpdateAll(this.hass, (ev.currentTarget as HaSwitch).checked)
+    );
+  }
+
+  private async _toggleBackup(ev: Event): Promise<void> {
+    await this._saveAuto(() =>
+      setAutoUpdateBackup(this.hass, (ev.currentTarget as HaSwitch).checked)
+    );
+  }
+
+  private async _toggleOne(ev: Event): Promise<void> {
+    const target = ev.currentTarget as HaSwitch & { entityId: string };
+    const enabled = target.checked;
+    // Following the switch for everything is stored as no choice at all.
+    const choice = enabled === this._autoInfo?.all ? null : enabled;
+    await this._saveAuto(() =>
+      setAutoUpdateEntity(this.hass, target.entityId, choice)
+    );
+  }
+
+  private async _saveAuto(save: () => Promise<void>): Promise<void> {
+    try {
+      await save();
+    } catch (err: any) {
+      // Put the switches back to what the server holds.
+      this._autoInfo = this._autoInfo ? { ...this._autoInfo } : undefined;
+      showToast(this, {
+        message: extractApiErrorMessage(err),
+        duration: 10000,
+        dismissable: true,
+      });
+    }
   }
 
   private _renderBeforeUpdating(): TemplateResult | typeof nothing {
@@ -917,6 +1104,31 @@ class HaConfigSectionUpdates extends SubscribeMixin(LitElement) {
       }
       :host([narrow]) .action-spacer {
         display: none;
+      }
+      .auto-card h2 {
+        margin-bottom: var(--ha-space-2);
+      }
+      .auto-row {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-4);
+        padding: var(--ha-space-2) 0;
+      }
+      .auto-switch {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .auto-result.failed {
+        color: var(--error-color);
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
       .installing {
         display: inline-flex;

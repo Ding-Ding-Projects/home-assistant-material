@@ -493,6 +493,7 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   }
 
   protected updated(changedProperties: PropertyValues) {
+    this._watchChipRow();
     const typed = this.filter === this._typedSearch;
     this._typedSearch = undefined;
     if (!this.syncUrl || !this._urlRead) {
@@ -1272,7 +1273,59 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._groupActionsObserver.disconnect();
+    this._chipRowObserver?.disconnect();
+    this._chipRow?.removeEventListener("scroll", this._updateChipRowFade);
+    this._chipRow = undefined;
   }
+
+  @query(".narrow-header-row") private _narrowHeaderRow?: HTMLElement | null;
+
+  private _chipRow?: HTMLElement;
+
+  private _chipRowObserver?: ResizeObserver;
+
+  /**
+   * Follows the phone chip row, which scrolls sideways, so that it fades
+   * where more chips wait beyond its edge and none is sliced hard at the edge.
+   * The row is replaced when the layout switches between narrow and wide.
+   */
+  private _watchChipRow() {
+    const row = this._narrowHeaderRow ?? undefined;
+    if (row === this._chipRow) {
+      return;
+    }
+    this._chipRow?.removeEventListener("scroll", this._updateChipRowFade);
+    this._chipRowObserver?.disconnect();
+    this._chipRow = row;
+    if (!row) {
+      return;
+    }
+    row.addEventListener("scroll", this._updateChipRowFade, { passive: true });
+    if (typeof ResizeObserver !== "undefined") {
+      this._chipRowObserver ??= new ResizeObserver(this._updateChipRowFade);
+      this._chipRowObserver.observe(row);
+      for (const child of Array.from(row.children)) {
+        this._chipRowObserver.observe(child);
+      }
+    }
+    this._updateChipRowFade();
+  }
+
+  private _updateChipRowFade = () => {
+    const row = this._chipRow;
+    if (!row) {
+      return;
+    }
+    const overflows = row.scrollWidth > row.clientWidth + 1;
+    const rtl = getComputedStyle(row).direction === "rtl";
+    const fromStart = Math.abs(row.scrollLeft);
+    const hasStart = overflows && fromStart > 1;
+    const hasEnd =
+      overflows && fromStart + row.clientWidth < row.scrollWidth - 1;
+    // The mask is drawn in physical directions.
+    row.toggleAttribute("fade-left", rtl ? hasEnd : hasStart);
+    row.toggleAttribute("fade-right", rtl ? hasStart : hasEnd);
+  };
 
   private _updateGroupActionsSlots() {
     const slots = [
@@ -1724,6 +1777,33 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       box-sizing: border-box;
       overflow-x: scroll;
       scrollbar-width: none;
+    }
+
+    /* The row fades where more chips wait beyond its edge. */
+    .narrow-header-row[fade-left],
+    .narrow-header-row[fade-right] {
+      --_fade-left: 0px;
+      --_fade-right: 0px;
+      -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0,
+        #000 var(--_fade-left),
+        #000 calc(100% - var(--_fade-right)),
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        transparent 0,
+        #000 var(--_fade-left),
+        #000 calc(100% - var(--_fade-right)),
+        transparent 100%
+      );
+    }
+    .narrow-header-row[fade-left] {
+      --_fade-left: 28px;
+    }
+    .narrow-header-row[fade-right] {
+      --_fade-right: 28px;
     }
 
     .narrow-header-row .flex {

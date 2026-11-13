@@ -264,12 +264,14 @@ export const ManualEditorMixin = <TConfig>(
     }
 
     /**
-     * The left edge of the open side pane in viewport pixels, or undefined when
-     * no pane sits beside the content (closed, or shown as a bottom sheet).
-     * The pane is fixed and may be sliding in, so the edge is worked out from
-     * its positioner and its width rather than from its own moving box.
+     * The horizontal range, in viewport pixels, that the open side pane takes
+     * at the end of the page (the right in a left-to-right layout, the left in
+     * a right-to-left one), or undefined when no pane sits beside the content
+     * (closed, or shown as a bottom sheet). The pane is fixed and may be
+     * sliding in, so the range is worked out from its positioner and its
+     * width rather than from its own moving box.
      */
-    public get sidebarStartEdge(): number | undefined {
+    public get sidebarRange(): { left: number; right: number } | undefined {
       if (!this.sidebarConfig || this.narrow || !this.sidebarElement) {
         return undefined;
       }
@@ -277,10 +279,11 @@ export const ManualEditorMixin = <TConfig>(
       if (!positioner) {
         return undefined;
       }
-      return (
-        positioner.getBoundingClientRect().right -
-        this.sidebarElement.clientWidth
-      );
+      const rect = positioner.getBoundingClientRect();
+      const width = this.sidebarElement.clientWidth;
+      return getComputedStyle(positioner).direction === "rtl"
+        ? { left: rect.left, right: rect.left + width }
+        : { left: rect.right - width, right: rect.right };
     }
 
     public triggerCloseSidebar() {

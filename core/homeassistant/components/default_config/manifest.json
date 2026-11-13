@@ -6,6 +6,7 @@
   ],
   "dependencies": [
     "assist_pipeline",
+    "auto_update",
     "automation_repos",
     "bluetooth",
     "cloud",

@@ -78,7 +78,7 @@ import {
 import "../../../layouts/hass-subpage";
 import { KeyboardShortcutMixin } from "../../../mixins/keyboard-shortcut-mixin";
 import { PreventUnsavedMixin } from "../../../mixins/prevent-unsaved-mixin";
-import { haStyle } from "../../../resources/styles";
+import { haStyle, haStyleScrollbar } from "../../../resources/styles";
 import type { Entries, ToggleButton, ValueChangedEvent } from "../../../types";
 import { isMac } from "../../../util/is_mac";
 import { repositoryUrl } from "../automation-history/automation-history-query-params";
@@ -286,6 +286,7 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
         .hass=${this.hass}
         .narrow=${this.narrow}
         .route=${this.route}
+        .scrollable=${false}
         .backCallback=${this.backTapped}
         .header=${
           this.mode === "gui" && !useBlueprint
@@ -563,186 +564,191 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
           </ha-dropdown-item>
         </ha-dropdown>
         <div
-          class=${this.mode === "yaml" ? "yaml-mode" : ""}
+          class="page"
           @subscribe-automation-config=${this._subscribeAutomationConfig}
           @automation-navigate=${this._navigateConfirmed}
         >
-          ${!useBlueprint ? this._renderLevelBar() : nothing}
-          ${
-            this.mode === "gui"
-              ? html`
-                  <div>
-                    ${
-                      useBlueprint
-                        ? html`
-                            <blueprint-automation-editor
-                              .hass=${this.hass}
-                              .narrow=${this.narrow}
-                              .isWide=${this.isWide}
-                              .stateObj=${stateObj}
-                              .config=${this.config}
-                              .disabled=${this.readOnly}
-                              .saving=${this.saving}
-                              @value-changed=${this._valueChanged}
-                              @save-automation=${this._handleSaveAutomation}
-                            >
-                              ${
-                                this.errors
-                                  ? html`<ha-alert
-                                      alert-type="error"
-                                      slot="alerts"
-                                    >
-                                      ${this.errors}
-                                    </ha-alert>`
-                                  : nothing
-                              }
-                            </blueprint-automation-editor>
-                          `
-                        : html`
-                            <manual-automation-editor
-                              .hass=${this.hass}
-                              .narrow=${this.narrow}
-                              .isWide=${this.isWide}
-                              .stateObj=${stateObj}
-                              .config=${this.config}
-                              .disabled=${this.readOnly}
-                              .saving=${this.saving}
-                              @value-changed=${this._valueChanged}
-                              @save-automation=${this._handleSaveAutomation}
-                              @editor-save=${this._handleSaveAutomation}
-                              @sidebar-config-changed=${this._sidebarConfigChanged}
-                            >
-                              <div class="alert-wrapper" slot="alerts">
-                                ${this._renderDeprecatedMigratedAlert()}
+          <div
+            class="page-scroll ${this.mode === "yaml" ? "yaml-mode" : ""} ha-scrollbar"
+          >
+            ${!useBlueprint ? this._renderLevelBar() : nothing}
+            ${
+              this.mode === "gui"
+                ? html`
+                    <div>
+                      ${
+                        useBlueprint
+                          ? html`
+                              <blueprint-automation-editor
+                                .hass=${this.hass}
+                                .narrow=${this.narrow}
+                                .isWide=${this.isWide}
+                                .stateObj=${stateObj}
+                                .config=${this.config}
+                                .disabled=${this.readOnly}
+                                .saving=${this.saving}
+                                @value-changed=${this._valueChanged}
+                                @save-automation=${this._handleSaveAutomation}
+                              >
                                 ${
-                                  this.errors || stateObj?.state === UNAVAILABLE
+                                  this.errors
                                     ? html`<ha-alert
                                         alert-type="error"
-                                        .title=${
-                                          stateObj?.state === UNAVAILABLE
-                                            ? this.hass.localize(
-                                                "ui.panel.config.automation.editor.unavailable"
-                                              )
-                                            : undefined
-                                        }
+                                        slot="alerts"
                                       >
-                                        ${this.errors || this.validationErrors}
-                                        ${
-                                          stateObj?.state === UNAVAILABLE
-                                            ? html`<ha-svg-icon
-                                                slot="icon"
-                                                .path=${mdiRobotConfused}
-                                              ></ha-svg-icon>`
-                                            : nothing
-                                        }
+                                        ${this.errors}
                                       </ha-alert>`
                                     : nothing
                                 }
-                                ${
-                                  this.blueprintConfig
-                                    ? html`<ha-alert alert-type="info">
-                                        ${this.hass.localize(
-                                          "ui.panel.config.automation.editor.confirm_take_control"
-                                        )}
-                                        <div
-                                          slot="action"
-                                          style="display: flex;"
-                                        >
-                                          <ha-button
-                                            appearance="plain"
-                                            @click=${this.takeControlSave}
-                                            >${this.hass.localize(
-                                              "ui.common.yes"
-                                            )}</ha-button
-                                          >
-                                          <ha-button
-                                            appearance="plain"
-                                            @click=${this.revertBlueprint}
-                                            >${this.hass.localize(
-                                              "ui.common.no"
-                                            )}</ha-button
-                                          >
-                                        </div>
-                                      </ha-alert>`
-                                    : this.readOnly
+                              </blueprint-automation-editor>
+                            `
+                          : html`
+                              <manual-automation-editor
+                                .hass=${this.hass}
+                                .narrow=${this.narrow}
+                                .isWide=${this.isWide}
+                                .stateObj=${stateObj}
+                                .config=${this.config}
+                                .disabled=${this.readOnly}
+                                .saving=${this.saving}
+                                @value-changed=${this._valueChanged}
+                                @save-automation=${this._handleSaveAutomation}
+                                @editor-save=${this._handleSaveAutomation}
+                                @sidebar-config-changed=${this._sidebarConfigChanged}
+                              >
+                                <div class="alert-wrapper" slot="alerts">
+                                  ${this._renderDeprecatedMigratedAlert()}
+                                  ${
+                                    this.errors ||
+                                    stateObj?.state === UNAVAILABLE
                                       ? html`<ha-alert
-                                          alert-type="warning"
-                                          dismissable
-                                          >${this.hass.localize(
-                                            "ui.panel.config.automation.editor.read_only"
-                                          )}
-                                          <ha-button
-                                            appearance="filled"
-                                            size="s"
-                                            variant="warning"
-                                            slot="action"
-                                            @click=${this._duplicate}
-                                          >
-                                            ${this.hass.localize(
-                                              "ui.panel.config.automation.editor.migrate"
-                                            )}
-                                          </ha-button>
+                                          alert-type="error"
+                                          .title=${
+                                            stateObj?.state === UNAVAILABLE
+                                              ? this.hass.localize(
+                                                  "ui.panel.config.automation.editor.unavailable"
+                                                )
+                                              : undefined
+                                          }
+                                        >
+                                          ${this.errors || this.validationErrors}
+                                          ${
+                                            stateObj?.state === UNAVAILABLE
+                                              ? html`<ha-svg-icon
+                                                  slot="icon"
+                                                  .path=${mdiRobotConfused}
+                                                ></ha-svg-icon>`
+                                              : nothing
+                                          }
                                         </ha-alert>`
                                       : nothing
-                                }
-                                ${
-                                  stateObj?.state === "off"
-                                    ? html`
-                                        <ha-alert alert-type="info">
+                                  }
+                                  ${
+                                    this.blueprintConfig
+                                      ? html`<ha-alert alert-type="info">
                                           ${this.hass.localize(
-                                            "ui.panel.config.automation.editor.disabled"
+                                            "ui.panel.config.automation.editor.confirm_take_control"
                                           )}
-                                          <ha-button
-                                            size="s"
+                                          <div
                                             slot="action"
-                                            @click=${this._toggle}
+                                            style="display: flex;"
                                           >
-                                            ${this.hass.localize(
-                                              "ui.panel.config.automation.editor.enable"
+                                            <ha-button
+                                              appearance="plain"
+                                              @click=${this.takeControlSave}
+                                              >${this.hass.localize(
+                                                "ui.common.yes"
+                                              )}</ha-button
+                                            >
+                                            <ha-button
+                                              appearance="plain"
+                                              @click=${this.revertBlueprint}
+                                              >${this.hass.localize(
+                                                "ui.common.no"
+                                              )}</ha-button
+                                            >
+                                          </div>
+                                        </ha-alert>`
+                                      : this.readOnly
+                                        ? html`<ha-alert
+                                            alert-type="warning"
+                                            dismissable
+                                            >${this.hass.localize(
+                                              "ui.panel.config.automation.editor.read_only"
                                             )}
-                                          </ha-button>
-                                        </ha-alert>
-                                      `
-                                    : nothing
-                                }
-                              </div>
-                            </manual-automation-editor>
-                          `
-                    }
-                  </div>
-                `
-              : this.mode === "yaml"
-                ? html`${this._renderDeprecatedMigratedAlert()}
-                    ${
-                      stateObj?.state === "off"
-                        ? html`
-                            <ha-alert alert-type="info">
-                              ${this.hass.localize(
-                                "ui.panel.config.automation.editor.disabled"
-                              )}
-                              <ha-button
-                                appearance="filled"
-                                size="s"
-                                slot="action"
-                                @click=${this._toggle}
-                              >
+                                            <ha-button
+                                              appearance="filled"
+                                              size="s"
+                                              variant="warning"
+                                              slot="action"
+                                              @click=${this._duplicate}
+                                            >
+                                              ${this.hass.localize(
+                                                "ui.panel.config.automation.editor.migrate"
+                                              )}
+                                            </ha-button>
+                                          </ha-alert>`
+                                        : nothing
+                                  }
+                                  ${
+                                    stateObj?.state === "off"
+                                      ? html`
+                                          <ha-alert alert-type="info">
+                                            ${this.hass.localize(
+                                              "ui.panel.config.automation.editor.disabled"
+                                            )}
+                                            <ha-button
+                                              size="s"
+                                              slot="action"
+                                              @click=${this._toggle}
+                                            >
+                                              ${this.hass.localize(
+                                                "ui.panel.config.automation.editor.enable"
+                                              )}
+                                            </ha-button>
+                                          </ha-alert>
+                                        `
+                                      : nothing
+                                  }
+                                </div>
+                              </manual-automation-editor>
+                            `
+                      }
+                    </div>
+                  `
+                : this.mode === "yaml"
+                  ? html`${this._renderDeprecatedMigratedAlert()}
+                      ${
+                        stateObj?.state === "off"
+                          ? html`
+                              <ha-alert alert-type="info">
                                 ${this.hass.localize(
-                                  "ui.panel.config.automation.editor.enable"
+                                  "ui.panel.config.automation.editor.disabled"
                                 )}
-                              </ha-button>
-                            </ha-alert>
-                          `
-                        : nothing
-                    }
-                    <ha-yaml-editor
-                      .defaultValue=${this._preprocessYaml()}
-                      .readOnly=${this.readOnly}
-                      @value-changed=${this._yamlChanged}
-                      @editor-save=${this._handleSaveAutomation}
-                      disable-fullscreen
-                    ></ha-yaml-editor> `
-                : nothing
-          }
+                                <ha-button
+                                  appearance="filled"
+                                  size="s"
+                                  slot="action"
+                                  @click=${this._toggle}
+                                >
+                                  ${this.hass.localize(
+                                    "ui.panel.config.automation.editor.enable"
+                                  )}
+                                </ha-button>
+                              </ha-alert>
+                            `
+                          : nothing
+                      }
+                      <ha-yaml-editor
+                        .defaultValue=${this._preprocessYaml()}
+                        .readOnly=${this.readOnly}
+                        @value-changed=${this._yamlChanged}
+                        @editor-save=${this._handleSaveAutomation}
+                        disable-fullscreen
+                      ></ha-yaml-editor> `
+                  : nothing
+            }
+          </div>
           <ha-automation-bottom-bar
             .hass=${this.hass}
             .config=${useBlueprint ? undefined : this.config}
@@ -842,11 +848,17 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     if (!bar) {
       return;
     }
-    const startEdge = this._manualEditor?.sidebarStartEdge;
-    const reserve =
-      startEdge === undefined
-        ? 0
-        : Math.max(0, Math.ceil(bar.getBoundingClientRect().right - startEdge));
+    const pane = this._manualEditor?.sidebarRange;
+    const rect = bar.getBoundingClientRect();
+    const rtl = getComputedStyle(bar).direction === "rtl";
+    // The pane sits at the end of the page: on the right in a left-to-right
+    // layout and on the left in a right-to-left one.
+    const reserve = !pane
+      ? 0
+      : Math.max(
+          0,
+          Math.ceil(rtl ? pane.right - rect.left : rect.right - pane.left)
+        );
     if (bar.reserve !== reserve) {
       bar.reserve = reserve;
     }
@@ -1621,7 +1633,30 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
       haStyle,
       motionAlertStyles,
       automationScriptEditorStyles,
+      haStyleScrollbar,
       css`
+        /* The page is a column: the editor scrolls in the area above, and the
+           bar below it is a footer that nothing scrolls under. */
+        .page {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+        }
+        .page-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+        .page-scroll.yaml-mode {
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        ha-automation-bottom-bar {
+          flex: none;
+        }
         .level-bar {
           display: flex;
           align-items: center;

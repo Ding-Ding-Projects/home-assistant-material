@@ -265,6 +265,7 @@ export class HaAutomationToolTrace extends LitElement {
           display: flex;
           flex-direction: column;
           min-width: 0;
+          overflow-wrap: anywhere;
         }
         .error {
           color: var(--error-color);

@@ -275,6 +275,7 @@ export class HaAutomationReplayDay extends LitElement {
           gap: var(--ha-space-4);
         }
         .card {
+          min-width: 0;
           padding: var(--ha-space-4);
           border-radius: var(--ha-border-radius-xl);
           background: var(

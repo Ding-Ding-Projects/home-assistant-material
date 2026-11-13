@@ -1,0 +1,9 @@
+{
+  "domain": "auto_update",
+  "name": "Automatic updates",
+  "codeowners": [],
+  "dependencies": ["update", "websocket_api"],
+  "documentation": "https://github.com/Ding-Ding-Projects/home-assistant-material",
+  "integration_type": "system",
+  "quality_scale": "internal"
+}

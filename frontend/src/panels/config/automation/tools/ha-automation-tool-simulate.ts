@@ -359,6 +359,7 @@ export class HaAutomationToolSimulate extends LitElement {
           gap: var(--ha-space-4);
         }
         .card {
+          min-width: 0;
           padding: var(--ha-space-4);
           border-radius: var(--ha-border-radius-xl);
           background: var(
@@ -380,6 +381,11 @@ export class HaAutomationToolSimulate extends LitElement {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
           gap: var(--ha-space-2);
           align-items: center;
+        }
+        @media (max-width: 480px) {
+          .row {
+            grid-template-columns: minmax(0, 1fr);
+          }
         }
         ha-select {
           display: block;
@@ -410,6 +416,7 @@ export class HaAutomationToolSimulate extends LitElement {
         }
         .step .text {
           flex: 1;
+          overflow-wrap: anywhere;
           display: flex;
           flex-direction: column;
           min-width: 0;

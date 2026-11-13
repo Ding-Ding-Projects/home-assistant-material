@@ -124,6 +124,12 @@ const ensureStyle = () => {
   border-radius: 16px;
   pointer-events: none;
 }
+#${CLOCK_ID}[data-phone] {
+  inset-block-end: calc(4px + var(--ha-phone-bar-height, 0px));
+  padding: 2px 12px;
+  font-size: 0.75rem;
+  line-height: 20px;
+}
 #${MOMENTUM_ID} {
   inset-inline: 12px;
   inset-block-end: calc(56px + var(--ha-phone-bar-height, 0px));
@@ -226,6 +232,26 @@ const placeAbovePhoneBar = (el: HTMLElement) => {
   el.style.setProperty("--ha-phone-bar-height", phoneBarHeight());
 };
 
+/** Room the clock takes above the phone bar, in px (its height plus gaps). */
+export const CLOCK_RESERVED_HEIGHT = 32;
+
+export const RESERVED_PROPERTY = "--ha-time-awareness-height";
+
+/**
+ * On a phone the clock sits in its own row just above the bottom bar, and the
+ * layout adds that row to the space pages keep free, so it never covers a card.
+ * Elsewhere it stays in the corner and takes no room.
+ */
+const placeClock = (clock: HTMLElement) => {
+  placeAbovePhoneBar(clock);
+  const onPhone = phoneBarHeight() !== "0px";
+  clock.toggleAttribute("data-phone", onPhone);
+  document.documentElement.style.setProperty(
+    RESERVED_PROPERTY,
+    onPhone ? `${CLOCK_RESERVED_HEIGHT}px` : "0px"
+  );
+};
+
 class AttentionModes {
   constructor() {
     if (typeof window !== "undefined") {
@@ -236,7 +262,7 @@ class AttentionModes {
 
   private _reposition = () => {
     if (this._clock) {
-      placeAbovePhoneBar(this._clock);
+      placeClock(this._clock);
     }
     if (this._bar) {
       placeAbovePhoneBar(this._bar);
@@ -274,6 +300,7 @@ class AttentionModes {
       hidePopover(this._clock);
       this._clock?.remove();
       this._clock = undefined;
+      document.documentElement.style.removeProperty(RESERVED_PROPERTY);
       return;
     }
     if (this._clock) {
@@ -286,7 +313,7 @@ class AttentionModes {
     document.body.appendChild(clock);
     this._clock = clock;
     const tick = () => {
-      placeAbovePhoneBar(clock);
+      placeClock(clock);
       clock.textContent = clockText(
         new Date(),
         this._startedAt,

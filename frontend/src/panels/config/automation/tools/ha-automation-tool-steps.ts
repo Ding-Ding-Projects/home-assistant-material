@@ -548,6 +548,12 @@ export class HaAutomationToolSteps extends LitElement {
           display: flex;
           flex-direction: column;
           min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        @media (max-width: 480px) {
+          .step {
+            margin-inline-start: calc(var(--depth, 0) * var(--ha-space-3));
+          }
         }
         .label {
           font-weight: var(--ha-font-weight-semibold);

@@ -226,6 +226,8 @@ export class HaAutomationToolConflicts extends LitElement {
           margin: var(--ha-space-3) 0;
         }
         .card {
+          min-width: 0;
+          overflow-wrap: anywhere;
           padding: var(--ha-space-4);
           border-radius: var(--ha-border-radius-xl);
           background: var(

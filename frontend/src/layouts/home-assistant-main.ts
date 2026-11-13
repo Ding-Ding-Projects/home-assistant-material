@@ -496,9 +496,10 @@ export class HomeAssistantMain extends LitElement {
         var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
           var(--ha-phone-top-height)
       );
+      /* The bar, plus the row of the session clock when it is shown. */
       --safe-area-inset-bottom: calc(
         var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
-          var(--ha-phone-bar-height)
+          var(--ha-phone-bar-height) + var(--ha-time-awareness-height, 0px)
       );
     }
     /* The strip's edge. The top edge is the default above. On the other

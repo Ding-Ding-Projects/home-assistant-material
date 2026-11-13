@@ -29,6 +29,8 @@ import type {
   HomeAssistantFormatters,
   HomeAssistantInternationalization,
   HomeAssistantRegistries,
+  HomeAssistant,
+  ToggleButton,
 } from "../../types";
 import { computeInitialHaFormData } from "../ha-form/compute-initial-ha-form-data";
 import type { HaFormSchema } from "../ha-form/types";
@@ -39,9 +41,23 @@ import "../item/ha-list-item-base";
 import "../list/ha-list-base";
 import type { HaYamlEditor } from "../ha-yaml-editor";
 import { deepEqual } from "../../common/util/deep-equal";
+import {
+  safeGetStored,
+  safeSetStored,
+} from "../../common/preferences/safe-storage";
+import "../ha-button-toggle-group";
+import "../ha-alert";
+import "../object-editor/ha-object-editor";
+
+/** Where the last choice between the visual and YAML editor is kept. */
+export const OBJECT_SELECTOR_MODE_KEY = "objectSelectorMode";
+
+type ObjectEditorMode = "visual" | "yaml";
 
 @customElement("ha-selector-object")
 export class HaObjectSelector extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
   @property({ attribute: false }) public selector!: ObjectSelector;
 
   @property() public value?: any;
@@ -83,7 +99,14 @@ export class HaObjectSelector extends LitElement {
   })
   private _formatEntityName!: HomeAssistantFormatters["formatEntityName"];
 
-  @query("ha-yaml-editor", true) private _yamlEditor?: HaYamlEditor;
+  @state() private _mode: ObjectEditorMode =
+    safeGetStored<ObjectEditorMode>(OBJECT_SELECTOR_MODE_KEY) === "yaml"
+      ? "yaml"
+      : "visual";
+
+  @state() private _modeError = false;
+
+  @query("ha-yaml-editor") private _yamlEditor?: HaYamlEditor;
 
   private _valueChangedFromChild = false;
 
@@ -245,19 +268,86 @@ export class HaObjectSelector extends LitElement {
       `;
     }
 
-    return html`<ha-yaml-editor
-        .readonly=${this.disabled}
-        .label=${this.label}
-        .required=${this.required}
-        .placeholder=${this.placeholder}
-        .defaultValue=${this.value}
-        @value-changed=${this._handleChange}
-      ></ha-yaml-editor>
+    return html`${this._renderModeSwitch()}
+    ${
+      this._mode === "visual"
+        ? html`<ha-object-editor
+            .hass=${this.hass}
+            .value=${this.value}
+            .disabled=${this.disabled}
+            .required=${this.required}
+            @value-changed=${this._handleVisualChange}
+          ></ha-object-editor>`
+        : html`<ha-yaml-editor
+            .readonly=${this.disabled}
+            .label=${this.label}
+            .required=${this.required}
+            .placeholder=${this.placeholder}
+            .defaultValue=${this.value}
+            @value-changed=${this._handleChange}
+          ></ha-yaml-editor>`
+    }
+    ${
+      this.helper
+        ? html`<ha-input-helper-text>${this.helper}</ha-input-helper-text>`
+        : nothing
+    } `;
+  }
+
+  private _renderModeSwitch() {
+    const buttons: ToggleButton[] = [
+      {
+        label: this._i18n.localize("ui.components.object-editor.visual"),
+        value: "visual",
+      },
+      {
+        label: this._i18n.localize("ui.components.object-editor.yaml"),
+        value: "yaml",
+      },
+    ];
+    return html`<div class="mode-row">
+        ${
+          this._mode === "visual" && this.label
+            ? html`<label>${this.label}</label>`
+            : nothing
+        }
+        <ha-button-toggle-group
+          size="s"
+          .buttons=${buttons}
+          .active=${this._mode}
+          @value-changed=${this._modeChanged}
+        ></ha-button-toggle-group>
+      </div>
       ${
-        this.helper
-          ? html`<ha-input-helper-text>${this.helper}</ha-input-helper-text>`
-          : ""
-      } `;
+        this._modeError
+          ? html`<ha-alert alert-type="warning">
+              ${this._i18n.localize("ui.components.object-editor.yaml_invalid")}
+            </ha-alert>`
+          : nothing
+      }`;
+  }
+
+  private _modeChanged(ev: CustomEvent<{ value: ObjectEditorMode }>) {
+    ev.stopPropagation();
+    const next = ev.detail.value;
+    if (next === this._mode) {
+      return;
+    }
+    // Leaving broken YAML for the visual editor would lose what was typed.
+    if (next === "visual" && this._yamlEditor && !this._yamlEditor.isValid) {
+      this._modeError = true;
+      (ev.currentTarget as HTMLElement & { active?: string }).active =
+        this._mode;
+      return;
+    }
+    this._modeError = false;
+    this._mode = next;
+    safeSetStored(OBJECT_SELECTOR_MODE_KEY, next);
+  }
+
+  private _handleVisualChange(ev: CustomEvent<{ value: unknown }>) {
+    ev.stopPropagation();
+    fireEvent(this, "value-changed", { value: ev.detail.value });
   }
 
   private _formatOptions = memoizeOne(
@@ -436,6 +526,25 @@ export class HaObjectSelector extends LitElement {
         label {
           margin-bottom: 8px;
           display: block;
+        }
+        .mode-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-2);
+          margin-bottom: var(--ha-space-2);
+        }
+        .mode-row label {
+          margin-bottom: 0;
+          flex: 1;
+          min-width: 0;
+        }
+        .mode-row ha-button-toggle-group {
+          margin-inline-start: auto;
+        }
+        ha-alert {
+          display: block;
+          margin-bottom: var(--ha-space-2);
         }
         ha-list-item-base .label,
         ha-list-item-base .description {

@@ -105,39 +105,41 @@ export class HaAutomationToolVariables extends LitElement {
           <p class="hint">${localize(`${base}description`)}</p>
           ${
             variables.length
-              ? html`<table>
-                  <thead>
-                    <tr>
-                      <th>${localize(`${base}variable`)}</th>
-                      <th>${localize(`${base}set_at`)}</th>
-                      <th>${localize(`${base}used_at`)}</th>
-                      <th>${localize(`${base}value`)}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${variables.map(
-                      (info) =>
-                        html`<tr>
-                          <td class="mono">${info.name}</td>
-                          <td>
-                            ${
-                              info.builtin && !info.setAt.length
-                                ? localize(`${base}provided`)
-                                : this._list(info.setAt)
-                            }
-                          </td>
-                          <td>${this._list(info.usedAt)}</td>
-                          <td class="mono">
-                            ${
-                              info.literal !== undefined
-                                ? JSON.stringify(info.literal)
-                                : localize(`${base}known_when_run`)
-                            }
-                          </td>
-                        </tr>`
-                    )}
-                  </tbody>
-                </table>`
+              ? html`<div class="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>${localize(`${base}variable`)}</th>
+                        <th>${localize(`${base}set_at`)}</th>
+                        <th>${localize(`${base}used_at`)}</th>
+                        <th>${localize(`${base}value`)}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${variables.map(
+                        (info) =>
+                          html`<tr>
+                            <td class="mono">${info.name}</td>
+                            <td>
+                              ${
+                                info.builtin && !info.setAt.length
+                                  ? localize(`${base}provided`)
+                                  : this._list(info.setAt)
+                              }
+                            </td>
+                            <td>${this._list(info.usedAt)}</td>
+                            <td class="mono">
+                              ${
+                                info.literal !== undefined
+                                  ? JSON.stringify(info.literal)
+                                  : localize(`${base}known_when_run`)
+                              }
+                            </td>
+                          </tr>`
+                      )}
+                    </tbody>
+                  </table>
+                </div>`
               : html`<p>${localize(`${base}no_variables`)}</p>`
           }
         </div>
@@ -173,6 +175,7 @@ export class HaAutomationToolVariables extends LitElement {
   static styles = css`
     :host {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--ha-space-4);
     }
     .content {
@@ -182,6 +185,10 @@ export class HaAutomationToolVariables extends LitElement {
     .meta {
       color: var(--secondary-text-color);
       font-size: var(--ha-font-size-s);
+    }
+    .table-scroll {
+      max-width: 100%;
+      overflow-x: auto;
     }
     table {
       width: 100%;

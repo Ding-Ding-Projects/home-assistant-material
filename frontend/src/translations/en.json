@@ -692,6 +692,46 @@
       "last": "Last"
     },
     "components": {
+      "object-editor": {
+        "visual": "Visual",
+        "yaml": "YAML",
+        "yaml_invalid": "Fix the YAML first. The visual editor needs valid YAML.",
+        "empty_title": "No options yet",
+        "empty_list_title": "No items yet",
+        "empty_nested": "No entries",
+        "empty_list_nested": "No items",
+        "add_entry": "Add entry",
+        "add_item": "Add item",
+        "key": "Key",
+        "type": "Type",
+        "value": "Value",
+        "template": "Template",
+        "item_number": "Item {number}",
+        "entries_count": "{count, plural,\n  one {# entry}\n  other {# entries}\n}",
+        "items_count": "{count, plural,\n  one {# item}\n  other {# items}\n}",
+        "expand": "Show contents",
+        "collapse": "Hide contents",
+        "move_up": "Move up",
+        "move_down": "Move down",
+        "remove": "Remove",
+        "yes": "Yes",
+        "no": "No",
+        "empty_value": "Empty",
+        "types": {
+          "text": "Text",
+          "number": "Number",
+          "boolean": "Yes/No",
+          "null": "Empty",
+          "list": "List",
+          "dict": "Dictionary",
+          "template": "Template"
+        },
+        "errors": {
+          "empty_key": "Enter a key.",
+          "duplicate_key": "This key is already used in this dictionary.",
+          "invalid_number": "Enter a valid number."
+        }
+      },
       "section_tabs": {
         "label": "Sections",
         "more": "More tabs",
@@ -4706,7 +4746,6 @@
       "picker_screen": "Pick from screen",
       "picker_screen_failed": "The screen colour picker could not be used.",
       "picker_contrast_unknown": "Contrast against {against} cannot be measured for this surface.",
-      "picker_named": "Nearest named colour: {name}, {hex}.",
       "picker_notation_hex": "HEX",
       "picker_notation_rgb": "RGB",
       "picker_notation_hsl": "HSL",
@@ -6100,6 +6139,15 @@
           "skipped_note": "Skipped updates stay hidden unless you choose Show skipped updates in the menu.",
           "beta_off": "Beta versions are off.",
           "beta_on": "You are on the {channel} channel.",
+          "auto_title": "Automatic updates",
+          "auto_all": "Update everything automatically",
+          "auto_all_help": "Apps and integrations are updated as soon as an update is ready. Home Assistant itself, the Supervisor and the operating system are never updated automatically; use their own row.",
+          "auto_backup": "Make a backup first when the update supports it",
+          "auto_row": "Automatic",
+          "auto_row_label": "Update {name} automatically",
+          "auto_protected": "Never automatic: this update restarts the system.",
+          "auto_ok": "Updated automatically at {time}",
+          "auto_failed": "Automatic update failed: {error}",
           "backup_in_progress": {
             "title": {
               "create_backup": "[%key:ui::panel::config::backup::overview::progress::heading::create_backup%]",
@@ -11458,6 +11506,9 @@
               "type_select": "Action type",
               "continue_on_error": "Continue on error",
               "continue_on_error_description": "If this action fails, the next action will still run.",
+              "continue_on_error_all": "Continue on error for all actions",
+              "continue_on_error_all_help": "When an action fails, the next ones still run. This sets the option on every action, including nested ones.",
+              "continue_on_error_all_mixed": "Some actions",
               "action": "Action",
               "copied_to_clipboard": "Action copied to clipboard",
               "cut_to_clipboard": "Action cut to clipboard",
@@ -17371,8 +17422,7 @@
             "empty_title": "No climate devices yet",
             "empty_content": "Thermostats, fans, humidifiers, blinds and temperature sensors will appear here. Add an integration that provides them to get started.",
             "devices": "Devices",
-            "other_devices": "Other devices",
-            "summary": "{count, plural,\n  one {# thermostat}\n  other {# thermostats}\n}"
+            "other_devices": "Other devices"
           },
           "maintenance": {
             "devices": "Devices",

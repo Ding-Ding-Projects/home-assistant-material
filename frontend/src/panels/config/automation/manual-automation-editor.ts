@@ -67,6 +67,7 @@ import type { FastPlan } from "./tools/automation-fast";
 import "./ha-automation-status-bar";
 import "./search/ha-automation-search-bar";
 import "./action/ha-automation-action";
+import "./action/ha-automation-continue-on-error-all";
 import type HaAutomationAction from "./action/ha-automation-action";
 import "./condition/ha-automation-condition";
 import type HaAutomationCondition from "./condition/ha-automation-condition";
@@ -404,6 +405,12 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
               </p>`
             : nothing
         }
+        <ha-automation-continue-on-error-all
+          .hass=${this.hass}
+          .actions=${this.config.actions || []}
+          .disabled=${this.disabled || this.saving}
+          @value-changed=${this._actionChanged}
+        ></ha-automation-continue-on-error-all>
 
         <ha-automation-action
           role="region"
@@ -431,7 +438,6 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
             ></ha-automation-status-bar>`
           : nothing
       }
-      <div class="save-bar-room" aria-hidden="true"></div>
     `;
   }
 
@@ -884,9 +890,6 @@ export class HaManualAutomationEditor extends ManualEditorMixin<ManualAutomation
           flex-wrap: wrap;
           gap: var(--ha-space-2);
           margin-bottom: var(--ha-space-4);
-        }
-        .save-bar-room {
-          height: 160px;
         }
         .header {
           display: flex;
