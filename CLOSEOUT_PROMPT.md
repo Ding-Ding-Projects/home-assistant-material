@@ -407,6 +407,33 @@ product matching it.
     test that times out under load and passes alone (42 of 42). Type check clean apart from
     the two known gallery errors.
 
+- Batch 49, the last two pieces of "build all". Unit tested; the server part was run for
+  real, the interface was not seen in a browser.
+  - Recording per entity: `recorder/entity_options/set` (administrators only) with
+    `recording_disabled`, `min_interval` (0 to 3600 seconds) and `always_on_change`, kept in
+    `.storage/recorder.entity_options` and applied at once. The recorder consults an
+    in-memory rule set (`components/recorder/entity_rules.py`) beside the YAML filter, which
+    stays authoritative. With an interval, a repeat of the same value inside the interval is
+    dropped; a change to a different value is recorded at once unless `always_on_change` is
+    off. The storage entity view has a "Keep history" switch and "Record at most once
+    every…" with the estimated saving shown first.
+    Run for real: the changed recorder files were mounted into a throwaway container of
+    build 348 and driven with two test sensors. Switched off, a sensor stopped gaining rows
+    while the other kept gaining; switched on, it gained again; with a 60 second interval two
+    repeats of the same value added no row and a new value added one; 3601 seconds was
+    refused; the storage file was written. (The recorder commits every 5 seconds: a probe has
+    to wait longer than that before counting rows.) pytest still cannot run on this machine.
+  - Phone: the page tools fold into one "More" sheet on pages without a menu of their own,
+    with a lock icon kept visible on a locked page; the selection bar on a phone is a light
+    sheet above the phone bar; round select marks on card rows (tables already drew rows as
+    cards on a phone); the three discovery browsers share one tab strip and
+    `/config/discovery` leads to the first of them.
+    Partly: the three discovery browsers are still three addresses, not one page.
+  - Checks: full suite 7,372 passed with the 3 known build-script failures; type check clean
+    apart from the two known gallery errors.
+  - Open, for the owner's decision: searching the instance's own configuration files from
+    the pattern workbench needs a server call that reads files; not added.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

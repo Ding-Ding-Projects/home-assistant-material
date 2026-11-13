@@ -2427,6 +2427,11 @@ export class HaDataTable extends LitElement {
           background: var(--primary-background-color);
         }
 
+        /* On a phone a row is a card, and its select mark is round. */
+        :host([row-cards][narrow]) .mdc-data-table__row-checkbox {
+          --ha-checkbox-border-radius: var(--ha-border-radius-circle, 50%);
+        }
+
         .mdc-data-table__table.auto-height .scroller {
           overflow-y: hidden !important;
         }

@@ -5156,6 +5156,8 @@
     },
     "page_tools": {
       "label": "Page tools",
+      "more": "More",
+      "more_heading": "More on this page",
       "find": "Search this page",
       "find_count": "{current} of {total}",
       "find_count_limit": "{current} of the first {total}",
@@ -15502,7 +15504,23 @@
               "confirm_text": "This permanently removes the stored history rows of this entity that are older than the chosen period. Long-term statistics are not affected. This cannot be undone.",
               "confirm_action": "Purge",
               "purge_queued": "The purge was queued. The figures update in a moment.",
-              "purge_failed": "The purge could not be started."
+              "purge_failed": "The purge could not be started.",
+              "keep_history": "Keep history",
+              "keep_history_off_text": "New changes of this entity are not saved. Rows already recorded stay until they are purged.",
+              "keep_history_saves": "Turning it off would save about {rows, plural, one {# row} other {# rows}} a day, about {size} (estimated).",
+              "keep_history_saves_rows": "Turning it off would save about {rows, plural, one {# row} other {# rows}} a day.",
+              "excluded_by_configuration": "Set in configuration",
+              "interval_label": "Record at most once every",
+              "interval_off": "Off",
+              "interval_seconds": "{value} s",
+              "interval_minutes": "{value} min",
+              "interval_saves": "At most {rows, plural, one {# row} other {# rows}} a day fewer, about {size} (estimated). A change to a different value is still recorded at once.",
+              "interval_saves_rows": "At most {rows, plural, one {# row} other {# rows}} a day fewer. A change to a different value is still recorded at once.",
+              "interval_saves_none": "This entity already changes less often than this, so nothing would be saved.",
+              "options_note": "These settings apply to new changes only. Rows already recorded stay until they are purged.",
+              "options_not_available": "Changing what is recorded is not available on this server.",
+              "options_failed": "The recording setting could not be saved.",
+              "options_saved": "The recording setting was saved."
             }
           },
           "drive_wear": "Drive wear",

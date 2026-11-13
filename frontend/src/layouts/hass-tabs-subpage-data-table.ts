@@ -1750,6 +1750,21 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
           var(--safe-area-inset-bottom, 0px)
       );
       justify-content: space-between;
+      /* On a phone the bar is a light bottom sheet above the phone bar, with
+         its actions wrapping onto a second line instead of running past 320 px. */
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      border-radius: var(--ha-border-radius-3xl, 28px);
+      --ha-button-outlined-text-color: var(--primary-text-color);
+      --wa-color-on-normal: inherit;
+      --wa-color-on-quiet: inherit;
+      --primary-text-color: inherit;
+      --secondary-text-color: inherit;
+    }
+    :host([narrow]) .selection-bar .center-vertical {
+      flex-wrap: wrap;
+      min-width: 0;
+      max-width: 100%;
     }
     :host([floating-selection]) ha-data-table {
       --data-table-empty-row-height: calc(

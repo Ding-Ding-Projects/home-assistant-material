@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { RecorderStorageEntity } from "../../../../src/data/recorder";
 import {
   averageRowsPerDay,
+  bytesForRows,
   estimatedSaving,
+  intervalRowsSavedPerDay,
   recordingInterval,
   rowsKept,
   shareOf,
@@ -82,5 +84,21 @@ describe("estimatedSaving and rowsKept", () => {
     expect(
       estimatedSaving(detail({ average_row_bytes: null }), 1)
     ).toBeUndefined();
+  });
+});
+
+describe("minimum interval saving", () => {
+  it("is zero when the interval is off", () => {
+    expect(intervalRowsSavedPerDay(86400, 0)).toBe(0);
+  });
+  it("limits an every second entity to one row a minute", () => {
+    expect(intervalRowsSavedPerDay(86400, 60)).toBe(86400 - 1440);
+  });
+  it("never saves less than nothing", () => {
+    expect(intervalRowsSavedPerDay(100, 60)).toBe(0);
+  });
+  it("estimates bytes only with a row size", () => {
+    expect(bytesForRows(10, 50)).toBe(500);
+    expect(bytesForRows(10, null)).toBeUndefined();
   });
 });

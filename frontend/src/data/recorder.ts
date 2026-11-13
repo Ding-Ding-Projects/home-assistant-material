@@ -167,7 +167,29 @@ export type EntityRecordingDisabler = "user";
 
 export interface RecorderEntityOptions {
   recording_disabled_by: EntityRecordingDisabler | null;
+  /** True when the YAML configuration excludes the entity. Cannot be changed here. */
+  excluded_by_configuration?: boolean;
+  /** Seconds, 0 records every change. Missing on servers without the setting. */
+  min_interval?: number;
+  always_on_change?: boolean;
 }
+
+export interface RecorderEntityOptionsChange {
+  recording_disabled?: boolean;
+  min_interval?: number;
+  always_on_change?: boolean;
+}
+
+export const setRecorderEntityOptions = (
+  hass: Pick<HomeAssistant, "callWS">,
+  entity_id: string,
+  change: RecorderEntityOptionsChange
+) =>
+  hass.callWS<RecorderEntityOptions>({
+    type: "recorder/entity_options/set",
+    entity_id,
+    ...change,
+  });
 
 export const getRecorderEntityOptions = (
   hass: Pick<HomeAssistant, "callWS">,

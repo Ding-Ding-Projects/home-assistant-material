@@ -1,7 +1,13 @@
 import type { CSSResultGroup, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
 import type { ContextType } from "@lit/context";
-import { customElement, eventOptions, property, state } from "lit/decorators";
+import {
+  customElement,
+  eventOptions,
+  property,
+  query,
+  state,
+} from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { consume } from "../common/decorators/consume";
 import { restoreScroll } from "../common/decorators/restore-scroll";
@@ -18,7 +24,12 @@ import "../components/page/ha-page-tools";
 import { internationalizationContext } from "../data/context";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant } from "../types";
-import { orderToolPillItems } from "./tool-pill-order";
+import type { FoldedToolbarAction } from "./tool-pill-order";
+import {
+  inspectToolbarSlot,
+  orderToolPillItems,
+  setToolbarFolded,
+} from "./tool-pill-order";
 
 @customElement("hass-subpage")
 class HassSubpage extends LitElement {
@@ -53,6 +64,24 @@ class HassSubpage extends LitElement {
   @restoreScroll(".content") private _savedScrollPos?: number;
 
   private _pageLock = new PageLockController(this);
+
+  // On a phone, a page without a menu of its own folds its tools into a More sheet
+  @state() private _foldTools = false;
+
+  @query('slot[name="toolbar-icon"]')
+  private _toolbarSlot?: HTMLSlotElement;
+
+  private _foldedActions = (): FoldedToolbarAction[] =>
+    inspectToolbarSlot(this._toolbarSlot ?? null).actions;
+
+  protected firstUpdated(): void {
+    // A page with nothing in its toolbar never fires a slot change.
+    this._foldTools = inspectToolbarSlot(this._toolbarSlot ?? null).foldable;
+  }
+
+  protected updated(): void {
+    setToolbarFolded(this._toolbarSlot ?? null, this.narrow && this._foldTools);
+  }
 
   protected render(): TemplateResult {
     const backPath = sanitizeNavigationPath(this.backPath);
@@ -91,6 +120,8 @@ class HassSubpage extends LitElement {
           <div class="tool-pill">
             <ha-page-tools
               .compact=${this.narrow}
+              .fold=${this.narrow && this._foldTools}
+              .foldedActions=${this._foldedActions}
               .pill=${!this.narrow}
               .pageTitle=${this.header}
             ></ha-page-tools>
@@ -144,7 +175,9 @@ class HassSubpage extends LitElement {
   }
 
   private _toolbarIconsChanged(ev: Event): void {
-    orderToolPillItems(ev.target as HTMLSlotElement);
+    const slot = ev.target as HTMLSlotElement;
+    orderToolPillItems(slot);
+    this._foldTools = inspectToolbarSlot(slot).foldable;
   }
 
   @eventOptions({ passive: true })

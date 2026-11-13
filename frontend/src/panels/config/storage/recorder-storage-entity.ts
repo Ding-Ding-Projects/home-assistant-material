@@ -10,15 +10,23 @@ import "../../../components/chart/ha-chart-base";
 import "../../../components/ha-alert";
 import "../../../components/ha-button";
 import "../../../components/ha-button-toggle-group";
+import "../../../components/ha-select";
+import type { HaSelectSelectEvent } from "../../../components/ha-select";
 import "../../../components/ha-spinner";
+import "../../../components/ha-switch";
+import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/ha-svg-icon";
 import type {
+  RecorderEntityOptions,
+  RecorderEntityOptionsChange,
   RecorderStorageDay,
   RecorderStorageEntity,
 } from "../../../data/recorder";
 import {
+  getRecorderEntityOptions,
   getRecorderStorageEntity,
   purgeRecorderEntity,
+  setRecorderEntityOptions,
 } from "../../../data/recorder";
 import { ERR_UNKNOWN_COMMAND } from "../../../data/websocket_api";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
@@ -29,8 +37,11 @@ import { showToast } from "../../../util/toast";
 import { bytesToString } from "../../../util/bytes-to-string";
 import {
   KEEP_DAY_CHOICES,
+  MIN_INTERVAL_CHOICES,
   averageRowsPerDay,
+  bytesForRows,
   estimatedSaving,
+  intervalRowsSavedPerDay,
   recordingInterval,
   rowsKept,
   shareOf,
@@ -61,10 +72,16 @@ export class HaRecorderStorageEntity extends LitElement {
 
   @state() private _purging = false;
 
+  /** Undefined while loading, null when the server has no such setting. */
+  @state() private _options?: RecorderEntityOptions | null;
+
+  @state() private _savingOptions = false;
+
   protected willUpdate(changed: PropertyValues<this>): void {
     if (changed.has("entityId")) {
       this._detail = undefined;
       this._error = undefined;
+      this._options = undefined;
       this._load();
     }
   }
@@ -87,6 +104,7 @@ export class HaRecorderStorageEntity extends LitElement {
 
   private async _load(): Promise<void> {
     const entityId = this.entityId;
+    this._loadOptions();
     try {
       const detail = await getRecorderStorageEntity(
         this.hass,
@@ -101,6 +119,20 @@ export class HaRecorderStorageEntity extends LitElement {
         this._detail = null;
         this._error =
           err?.code === ERR_UNKNOWN_COMMAND ? "unavailable" : "failed";
+      }
+    }
+  }
+
+  private async _loadOptions(): Promise<void> {
+    const entityId = this.entityId;
+    try {
+      const options = await getRecorderEntityOptions(this.hass, entityId);
+      if (entityId === this.entityId) {
+        this._options = options;
+      }
+    } catch (_err) {
+      if (entityId === this.entityId) {
+        this._options = null;
       }
     }
   }
@@ -239,6 +271,7 @@ export class HaRecorderStorageEntity extends LitElement {
     const nothingToRemove = removed <= 0;
     return html`<section class="card">
       <h3>${this._t("smaller_title")}</h3>
+      ${this._renderOptions(detail)}
       <span class="label" id="keep-label">${this._t("keep_label")}</span>
       <ha-button-toggle-group
         aria-labelledby="keep-label"
@@ -267,6 +300,136 @@ export class HaRecorderStorageEntity extends LitElement {
         ${this._t("apply")}
       </ha-button>
     </section>`;
+  }
+
+  private _renderOptions(
+    detail: RecorderStorageEntity
+  ): TemplateResult | typeof nothing {
+    const options = this._options;
+    if (options === undefined) {
+      return nothing;
+    }
+    if (options === null || options.min_interval === undefined) {
+      return html`<p class="note options-note">
+        ${this._t("options_not_available")}
+      </p>`;
+    }
+    const byConfiguration =
+      options.excluded_by_configuration ?? detail.recording_excluded;
+    const keeping = options.recording_disabled_by == null;
+    const perDay = averageRowsPerDay(detail.per_day, detail.first);
+    const interval = options.min_interval;
+    const disabled = byConfiguration || this._savingOptions;
+    const savedRows = keeping ? intervalRowsSavedPerDay(perDay, interval) : 0;
+    const rowsOff = Math.round(perDay);
+    return html`<div class="option-row">
+        <label id="history-label" class="option-title">
+          ${this._t("keep_history")}
+        </label>
+        <ha-switch
+          aria-labelledby="history-label"
+          .checked=${keeping}
+          .disabled=${disabled}
+          @change=${this._historyToggled}
+        ></ha-switch>
+      </div>
+      ${
+        byConfiguration
+          ? html`<p class="note">${this._t("excluded_by_configuration")}</p>`
+          : keeping
+            ? nothing
+            : html`<p class="note">${this._t("keep_history_off_text")}</p>`
+      }
+      ${
+        keeping && !byConfiguration && rowsOff > 0
+          ? html`<p class="note">
+              ${this._savingText("keep_history_saves", rowsOff, detail)}
+            </p>`
+          : nothing
+      }
+      <ha-select
+        .label=${this._t("interval_label")}
+        .value=${String(interval)}
+        .options=${this._intervalOptions()}
+        .disabled=${disabled || !keeping}
+        @selected=${this._intervalChanged}
+      ></ha-select>
+      <div class="saving ${savedRows <= 0 ? "none" : ""}" aria-live="polite">
+        <ha-svg-icon .path=${mdiLeaf}></ha-svg-icon>
+        <span>
+          ${
+            interval <= 0 || !keeping
+              ? this._t("options_note")
+              : savedRows <= 0
+                ? this._t("interval_saves_none")
+                : this._savingText("interval_saves", savedRows, detail)
+          }
+        </span>
+      </div>`;
+  }
+
+  /** A saving text of `rows` a day, with the size when it can be estimated. */
+  private _savingText(
+    key: string,
+    rows: number,
+    detail: RecorderStorageEntity
+  ): string {
+    const bytes = bytesForRows(rows, detail.average_row_bytes);
+    return bytes === undefined
+      ? this._t(`${key}_rows`, { rows })
+      : this._t(key, { rows, size: bytesToString(bytes, 1) });
+  }
+
+  private _intervalOptions = memoizeOne(() =>
+    MIN_INTERVAL_CHOICES.map((seconds) => ({
+      value: String(seconds),
+      label:
+        seconds === 0
+          ? this._t("interval_off")
+          : seconds < 60
+            ? this._t("interval_seconds", { value: seconds })
+            : this._t("interval_minutes", { value: seconds / 60 }),
+    }))
+  );
+
+  private _historyToggled(ev: Event): void {
+    this._saveOptions({ recording_disabled: !(ev.target as HaSwitch).checked });
+  }
+
+  private _intervalChanged(ev: HaSelectSelectEvent): void {
+    const seconds = Number(ev.detail.value);
+    if (!Number.isNaN(seconds) && seconds !== this._options?.min_interval) {
+      this._saveOptions({ min_interval: seconds });
+    }
+  }
+
+  private async _saveOptions(change: RecorderEntityOptionsChange) {
+    const entityId = this.entityId;
+    this._savingOptions = true;
+    try {
+      const options = await setRecorderEntityOptions(
+        this.hass,
+        entityId,
+        change
+      );
+      if (entityId === this.entityId) {
+        this._options = options;
+      }
+      showToast(this, { message: this._t("options_saved") });
+    } catch (err: any) {
+      if (entityId === this.entityId) {
+        // Re-read so the controls show what the server really has.
+        await this._loadOptions();
+      }
+      showToast(this, {
+        message: this._t(
+          err?.code === ERR_UNKNOWN_COMMAND
+            ? "options_not_available"
+            : "options_failed"
+        ),
+      });
+    }
+    this._savingOptions = false;
   }
 
   private _keepChanged(ev: CustomEvent<{ value: string }>): void {
@@ -368,6 +531,22 @@ export class HaRecorderStorageEntity extends LitElement {
         ha-alert {
           display: block;
           margin-bottom: var(--ha-space-3);
+        }
+        .option-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--ha-space-3);
+        }
+        .option-title {
+          font-weight: var(--ha-font-weight-semibold);
+        }
+        .options-note {
+          margin: 0 0 var(--ha-space-4);
+        }
+        ha-select {
+          display: block;
+          margin-top: var(--ha-space-3);
         }
         .label {
           display: block;

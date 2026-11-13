@@ -310,6 +310,11 @@ class HaPanelConfig extends HassRouterPage {
           import("./integrations/integration-panels/modbus/modbus-config-dashboard"),
         waitForReady: true,
       },
+      discovery: {
+        tag: "discovery-config-panel",
+        load: () =>
+          import("./integrations/integration-panels/discovery-config-panel"),
+      },
       dhcp: {
         tag: "dhcp-config-panel",
         load: () =>

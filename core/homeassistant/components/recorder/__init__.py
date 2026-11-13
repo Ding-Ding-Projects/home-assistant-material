@@ -171,6 +171,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     get_instance.cache_clear()
     entity_registry.async_setup(hass)
     entity_options.async_setup(hass)
+    await entity_options.async_load_rules(hass)
     instance.async_initialize()
     instance.async_register()
     instance.start()

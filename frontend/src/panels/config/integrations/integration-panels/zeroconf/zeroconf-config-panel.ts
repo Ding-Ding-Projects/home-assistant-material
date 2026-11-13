@@ -19,6 +19,7 @@ import { SubscribeMixin } from "../../../../../mixins/subscribe-mixin";
 import type { DiscoveryCounts } from "../discovery-counts";
 import {
   discoveryStatistics,
+  discoveryTabs,
   subscribeOtherDiscoveryCounts,
 } from "../discovery-counts";
 import { storage } from "../../../../../common/decorators/storage";
@@ -122,6 +123,7 @@ export class ZeroconfConfigPanel extends SubscribeMixin(LitElement) {
         .hass=${this.hass}
         .narrow=${this.narrow}
         .route=${this.route}
+        .tabs=${discoveryTabs()}
         back-path="/config/integrations/integration/zeroconf"
         .columns=${this._columns(this.hass.localize)}
         .initialGroupColumn=${this._tableSettings.grouping}

@@ -76,6 +76,7 @@ from .db_schema import (
     Statistics,
     StatisticsShortTerm,
 )
+from .entity_rules import EntityRecordingRules
 from .executor import DBInterruptibleThreadPoolExecutor
 from .models import DatabaseEngine, StatisticData, StatisticMetaData, UnsupportedDialect
 from .pool import POOL_SIZE, MutexPool, RecorderPool
@@ -194,6 +195,11 @@ class Recorder(threading.Thread):
         # it can be used to see if an entity is being recorded and is called
         # by is_entity_recorder and the sensor recorder.
         self.entity_filter = entity_filter
+        # Per-entity rules chosen by the user; the YAML filter stays authoritative.
+        self.entity_rules = EntityRecordingRules()
+        # The state change event the rules dropped, so the queued states
+        # listener skips the same event.
+        self._rules_dropped_event: Event | None = None
         self.exclude_event_types = exclude_event_types
 
         self.schema_version = 0
@@ -290,6 +296,7 @@ class Recorder(threading.Thread):
     def async_initialize(self) -> None:
         """Initialize the recorder."""
         entity_filter = self.entity_filter
+        entity_rules = self.entity_rules
         exclude_event_types = self.exclude_event_types
         queue_put = self._queue.put_nowait
 
@@ -302,11 +309,29 @@ class Recorder(threading.Thread):
             if entity_filter is None or not (
                 entity_id := event.data.get(ATTR_ENTITY_ID)
             ):
+                if (
+                    entity_rules.active
+                    and event.event_type == EVENT_STATE_CHANGED
+                    and not entity_rules.should_record(
+                        event.data["entity_id"], event.data["new_state"]
+                    )
+                ):
+                    self._rules_dropped_event = event
+                    return
                 queue_put(event)
                 return
 
             if isinstance(entity_id, str):
                 if entity_filter(entity_id):
+                    if (
+                        entity_rules.active
+                        and event.event_type == EVENT_STATE_CHANGED
+                        and not entity_rules.should_record(
+                            entity_id, event.data["new_state"]
+                        )
+                    ):
+                        self._rules_dropped_event = event
+                        return
                     queue_put(event)
                 return
 
@@ -332,6 +357,9 @@ class Recorder(threading.Thread):
             @callback
             def _queued_state_listener(event: Event[EventStateChangedData]) -> None:
                 """Index the state changes the event listener queued."""
+                if event is self._rules_dropped_event:
+                    self._rules_dropped_event = None
+                    return
                 entity_id = event.data["entity_id"]
                 if entity_filter is None or entity_filter(entity_id):
                     queued_states.setdefault(entity_id, []).append(

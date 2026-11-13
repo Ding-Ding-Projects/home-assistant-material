@@ -44,7 +44,12 @@ import {
 import type { CoreFrontendUserData } from "../data/frontend";
 import { haStyleScrollbar } from "../resources/styles";
 import type { HomeAssistant, Route } from "../types";
-import { orderToolPillItems } from "./tool-pill-order";
+import type { FoldedToolbarAction } from "./tool-pill-order";
+import {
+  inspectToolbarSlot,
+  orderToolPillItems,
+  setToolbarFolded,
+} from "./tool-pill-order";
 import { handleBackClick } from "./back-navigation";
 
 const normalizePathname = (pathname: string): string =>
@@ -124,6 +129,15 @@ export class HassTabsSubpage extends LitElement {
   @property({ attribute: false }) public route!: Route;
 
   @property({ attribute: false }) public tabs!: PageNavigation[];
+
+  // On a phone, a page without a menu of its own folds its tools into a More sheet
+  @state() private _foldTools = false;
+
+  @query('slot[name="toolbar-icon"]')
+  private _toolbarSlot?: HTMLSlotElement;
+
+  private _foldedActions = (): FoldedToolbarAction[] =>
+    inspectToolbarSlot(this._toolbarSlot ?? null).actions;
 
   @state()
   @consume({ context: narrowViewportContext, subscribe: true })
@@ -316,6 +330,8 @@ export class HassTabsSubpage extends LitElement {
             <div class="tool-pill">
               <ha-page-tools
                 .compact=${this._narrow}
+                .fold=${this._narrow && this._foldTools}
+                .foldedActions=${this._foldedActions}
                 .pill=${!this._narrow}
                 .pageTitle=${title}
               ></ha-page-tools>
@@ -439,8 +455,17 @@ export class HassTabsSubpage extends LitElement {
         : "";
   }
 
+  protected firstUpdated(): void {
+    // A page with nothing in its toolbar never fires a slot change.
+    this._foldTools = inspectToolbarSlot(this._toolbarSlot ?? null).foldable;
+  }
+
   protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
+    setToolbarFolded(
+      this._toolbarSlot ?? null,
+      this._narrow && this._foldTools
+    );
     const title = this._title();
     if (title !== this._announcedTitle) {
       this._announcedTitle = title;
@@ -509,7 +534,9 @@ export class HassTabsSubpage extends LitElement {
   }
 
   private _toolbarIconsChanged(ev: Event): void {
-    orderToolPillItems(ev.target as HTMLSlotElement);
+    const slot = ev.target as HTMLSlotElement;
+    orderToolPillItems(slot);
+    this._foldTools = inspectToolbarSlot(slot).foldable;
   }
 
   private _tabName(

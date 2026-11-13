@@ -17,6 +17,7 @@ import { SubscribeMixin } from "../../../../../mixins/subscribe-mixin";
 import type { DiscoveryCounts } from "../discovery-counts";
 import {
   discoveryStatistics,
+  discoveryTabs,
   subscribeOtherDiscoveryCounts,
 } from "../discovery-counts";
 
@@ -107,6 +108,7 @@ export class DHCPConfigPanel extends SubscribeMixin(LitElement) {
         .hass=${this.hass}
         .narrow=${this.narrow}
         .route=${this.route}
+        .tabs=${discoveryTabs()}
         back-path="/config/integrations/integration/dhcp"
         .columns=${this._columns(this.hass.localize)}
         .data=${this._dataWithIds(this._data)}

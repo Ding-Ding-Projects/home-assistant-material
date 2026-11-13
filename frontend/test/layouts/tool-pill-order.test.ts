@@ -1,8 +1,10 @@
 import { mdiDotsVertical, mdiUndo } from "@mdi/js";
 import { describe, expect, it } from "vitest";
 import {
+  inspectToolbarItems,
   isToolPillMenu,
   orderToolPillItems,
+  setToolbarFolded,
   TOOL_PILL_MENU_ORDER,
 } from "../../src/layouts/tool-pill-order";
 
@@ -54,6 +56,64 @@ describe("orderToolPillItems", () => {
     expect(menu.style.order).toBe(TOOL_PILL_MENU_ORDER);
     expect(undo.style.order).toBe("");
     expect(redo.style.order).toBe("");
+    host.remove();
+  });
+});
+
+describe("inspectToolbarItems", () => {
+  const named = (path: string, label?: string) => {
+    const el = iconButton(path) as HTMLElement & {
+      label?: string;
+      disabled?: boolean;
+    };
+    el.label = label;
+    return el;
+  };
+
+  it("folds a page without a menu and lists its icon buttons", () => {
+    const undo = named(mdiUndo, "Undo");
+    const result = inspectToolbarItems([undo]);
+    expect(result.hasMenu).toBe(false);
+    expect(result.foldable).toBe(true);
+    expect(result.actions.map((a) => a.label)).toEqual(["Undo"]);
+  });
+
+  it("does not fold a page with its own menu", () => {
+    const result = inspectToolbarItems([
+      named(mdiUndo, "Undo"),
+      document.createElement("ha-dropdown"),
+    ]);
+    expect(result.hasMenu).toBe(true);
+    expect(result.foldable).toBe(false);
+    expect(result.actions).toEqual([]);
+  });
+
+  it("does not fold when a button has no name to list", () => {
+    const result = inspectToolbarItems([named(mdiUndo)]);
+    expect(result.foldable).toBe(false);
+    expect(result.actions).toEqual([]);
+  });
+
+  it("folds a page with an empty toolbar", () => {
+    expect(inspectToolbarItems([]).foldable).toBe(true);
+  });
+});
+
+describe("setToolbarFolded", () => {
+  it("hides the listed buttons and shows them again", () => {
+    const host = document.createElement("div");
+    const undo = iconButton(mdiUndo) as HTMLElement & { label?: string };
+    undo.label = "Undo";
+    undo.slot = "toolbar-icon";
+    host.attachShadow({ mode: "open" }).innerHTML =
+      '<slot name="toolbar-icon"></slot>';
+    host.append(undo);
+    document.body.append(host);
+    const slot = host.shadowRoot!.querySelector("slot")!;
+    setToolbarFolded(slot, true);
+    expect(undo.style.display).toBe("none");
+    setToolbarFolded(slot, false);
+    expect(undo.style.display).toBe("");
     host.remove();
   });
 });

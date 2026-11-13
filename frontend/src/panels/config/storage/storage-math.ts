@@ -90,3 +90,27 @@ export const rowsKept = (
         detail.rows,
         detail.per_day.slice(-keepDays).reduce((sum, day) => sum + day.rows, 0)
       );
+
+/** Record-at-most-once-every choices in seconds, 0 meaning every change. */
+export const MIN_INTERVAL_CHOICES = [0, 10, 60, 300, 900] as const;
+
+/**
+ * Rows a day that a minimum interval removes at most. An entity cannot record
+ * more than one row per interval, so the remaining rows are at most
+ * 86400 / interval. Changes to a different value are always recorded, so the
+ * real saving can be smaller. Zero when the interval is off.
+ */
+export const intervalRowsSavedPerDay = (
+  rowsPerDay: number,
+  intervalSeconds: number
+): number =>
+  intervalSeconds <= 0
+    ? 0
+    : Math.max(0, Math.round(rowsPerDay - 86400 / intervalSeconds));
+
+/** Estimated bytes a day for a number of rows, undefined without a row size. */
+export const bytesForRows = (
+  rows: number,
+  averageRowBytes: number | null
+): number | undefined =>
+  averageRowBytes == null ? undefined : Math.round(rows * averageRowBytes);

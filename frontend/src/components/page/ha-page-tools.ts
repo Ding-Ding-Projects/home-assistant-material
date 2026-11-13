@@ -2,6 +2,7 @@ import type { ContextType } from "@lit/context";
 import {
   mdiChevronDown,
   mdiChevronUp,
+  mdiDotsVertical,
   mdiExportVariant,
   mdiFormatPaint,
   mdiHelpCircleOutline,
@@ -36,7 +37,10 @@ import {
 } from "../../common/locks/element-locks";
 import { FIND_LIMIT, PageFinder } from "../../common/page/find-in-page";
 import { internationalizationContext } from "../../data/context";
+import type { FoldedToolbarAction } from "../../layouts/tool-pill-order";
 import "../ha-icon-button";
+import "../phone/ha-phone-tab-actions";
+import type { PhoneActionItem } from "../phone/ha-phone-tab-actions";
 import "../input/ha-input-search";
 import type { HaInputSearch } from "../input/ha-input-search";
 
@@ -97,6 +101,21 @@ export class HaPageTools extends LitElement {
    */
   @property({ type: Boolean, reflect: true }) public pill = false;
 
+  /**
+   * On a phone, folds the page tools into one More button that opens a sheet,
+   * for a page that has no menu of its own. Only used with `compact`. The
+   * layout says whether to fold; left off, `compact` is the single button that
+   * opens the tools panel.
+   */
+  @property({ type: Boolean }) public fold = false;
+
+  /**
+   * The page's own toolbar buttons, listed in the More sheet. Read when the
+   * sheet opens, so buttons that changed since the page was drawn are current.
+   */
+  @property({ attribute: false })
+  public foldedActions?: () => FoldedToolbarAction[];
+
   @consume({ context: internationalizationContext, subscribe: true })
   @state()
   private _i18n!: ContextType<typeof internationalizationContext>;
@@ -118,6 +137,12 @@ export class HaPageTools extends LitElement {
   @state() private _hint = false;
 
   @state() private _findOpen = false;
+
+  @state() private _moreOpen = false;
+
+  @state() private _moreActions: FoldedToolbarAction[] = [];
+
+  @query(".more-button") private _moreButton?: HTMLElement;
 
   @query(".find-card ha-input-search")
   private _pillFindInput?: HaInputSearch;
@@ -159,6 +184,9 @@ export class HaPageTools extends LitElement {
     if (changed.has("compact") && this.compact && this._query) {
       this._clearFind();
     }
+    if (!this.compact || !this.fold) {
+      this._moreOpen = false;
+    }
     if (
       (changed.has("compact") || changed.has("pill")) &&
       (this.compact || !this.pill)
@@ -197,6 +225,9 @@ export class HaPageTools extends LitElement {
       return nothing;
     }
     const localize = this._i18n.localize;
+    if (this.compact && this.fold) {
+      return this._renderMore();
+    }
     if (this.compact) {
       return html`
         <ha-icon-button
@@ -273,6 +304,131 @@ export class HaPageTools extends LitElement {
         @click=${this._openTool}
       ></ha-icon-button>
     `;
+  }
+
+  /**
+   * The phone header of a page without a menu of its own: one three-dot
+   * button, and the lock icon beside it while the page is locked so the state
+   * stays visible. The button opens the More sheet.
+   */
+  private _renderMore(): TemplateResult {
+    const localize = this._i18n.localize;
+    return html`
+      ${
+        this._locked
+          ? html`<ha-icon-button
+              class="on"
+              .label=${localize("ui.page_tools.unlock_hold")}
+              .path=${mdiLock}
+              @click=${this._openTools}
+            ></ha-icon-button>`
+          : nothing
+      }
+      <ha-icon-button
+        class="more-button"
+        .label=${localize("ui.page_tools.more")}
+        .path=${mdiDotsVertical}
+        aria-haspopup="dialog"
+        aria-expanded=${this._moreOpen ? "true" : "false"}
+        @click=${this._openMore}
+      ></ha-icon-button>
+      ${
+        this._moreOpen
+          ? html`<div class="more-layer">
+              <ha-phone-tab-actions
+                .heading=${localize("ui.page_tools.more_heading")}
+                .closeLabel=${localize("ui.page_tools.close")}
+                .items=${this._moreItems()}
+                @phone-action-select=${this._moreSelected}
+                @phone-actions-dismiss=${this._closeMore}
+              ></ha-phone-tab-actions>
+            </div>`
+          : nothing
+      }
+    `;
+  }
+
+  /** The rows of the More sheet: the page's own buttons, then every page tool. */
+  private _moreItems(): PhoneActionItem[] {
+    const localize = this._i18n.localize;
+    const row = (
+      id: string,
+      label: string,
+      iconPath: string,
+      enabled = true
+    ): PhoneActionItem => ({ id, label, iconPath, enabled });
+    return [
+      ...this._moreActions.map((action, index) =>
+        row(`page:${index}`, action.label, action.path, !action.disabled)
+      ),
+      row("find", localize("ui.page_tools.find"), mdiMagnify),
+      row("appearance", localize("ui.page_tools.appearance"), mdiFormatPaint),
+      ...(canReadAloud()
+        ? [
+            row(
+              "read",
+              localize(
+                this._reading
+                  ? "ui.page_tools.stop_reading"
+                  : "ui.page_tools.read_aloud"
+              ),
+              this._reading ? mdiStop : mdiVolumeHigh
+            ),
+          ]
+        : []),
+      row("history", localize("ui.page_tools.history"), mdiHistory),
+      row("export", localize("ui.page_tools.export"), mdiExportVariant),
+      row(
+        "lock",
+        localize(
+          this._locked ? "ui.page_tools.unlock_hold" : "ui.page_tools.lock"
+        ),
+        this._locked ? mdiLock : mdiLockOpenVariantOutline
+      ),
+      row("help", localize("ui.page_tools.help"), mdiHelpCircleOutline),
+    ];
+  }
+
+  private _openMore(): void {
+    this._moreActions = this.foldedActions?.() ?? [];
+    this._moreOpen = !this._moreOpen;
+  }
+
+  private _closeMore(): void {
+    this._moreOpen = false;
+    this.updateComplete.then(() => this._moreButton?.focus());
+  }
+
+  private _moreSelected(ev: CustomEvent<{ id: string }>): void {
+    const id = ev.detail.id;
+    this._closeMore();
+    if (id.startsWith("page:")) {
+      this._moreActions[Number(id.slice("page:".length))]?.element.click();
+      return;
+    }
+    switch (id) {
+      case "find":
+        this._request("tools");
+        break;
+      case "appearance":
+        this._editAppearance();
+        break;
+      case "read":
+        this._toggleReading();
+        break;
+      case "lock":
+        if (this._locked) {
+          // Unlocking takes a hold, or the PIN when one is set.
+          this._request("lock");
+        } else {
+          writeLocks(
+            withLock(readLocks(), pageLockKey(window.location.pathname), true)
+          );
+        }
+        break;
+      default:
+        this._request(id as PageTool);
+    }
   }
 
   /**
@@ -588,6 +744,12 @@ export class HaPageTools extends LitElement {
     }
     :host([pill]:not([compact])) .help {
       order: 3;
+    }
+    /* The More sheet covers the page; its own panel sits at the bottom. */
+    .more-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
     }
     .find-wrap {
       position: relative;
