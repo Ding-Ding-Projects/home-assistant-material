@@ -17,6 +17,12 @@ Live Edit and Try it are unchanged.
 
 The find panel is still the code editor's own.
 
+## Confirmation
+
+Destructive actions in these pages use the two-key confirmation: two keys and a slider on every
+device, with nothing to type. An earlier typed-word form (batch 48) is out of use by the owner's
+decision (batch 52). Titles of confirmation dialogs wrap instead of being cut.
+
 ## Limits and failure modes
 
 - A restore from the snapshot scene is not guaranteed to be exact; the dialog says what cannot

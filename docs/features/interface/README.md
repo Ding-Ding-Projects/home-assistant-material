@@ -25,4 +25,9 @@
 | [`extensions-and-job-progress.md`](extensions-and-job-progress.md) | Extensions with recorded consent; progress and recovery for app jobs | Built, not yet seen in a running build |
 | [`select-by-rule.md`](select-by-rule.md) | Select rows by rule in settings lists | Built, not yet seen in a running build |
 | [`scan-a-tag.md`](scan-a-tag.md) | Scan a tag in the New tag dialog | Built, not yet seen in a running build |
+| [`string-builder.md`](string-builder.md) | Build text for template fields from pieces | Built, not yet seen in a running build |
+| [`performance-and-offline-cache.md`](performance-and-offline-cache.md) | Performance diagnostics and offline cache health | Built, not yet seen in a running build |
+| [`wall-tablets.md`](wall-tablets.md) | Wall tablet mode and the `wall_tablet` integration | Server run on a throwaway instance; interface not yet seen |
+| [`device-and-entity-notes.md`](device-and-entity-notes.md) | Notes on devices and entities | Built, not yet seen in a running build |
+| [`sidebar-links-and-quick-bar.md`](sidebar-links-and-quick-bar.md) | Sidebar names and default pages, outside links, quick bar pins and recents | Built, not yet seen in a running build |
 | [`everyday-page-tops-and-needs-you.md`](everyday-page-tops-and-needs-you.md) | "Needs you" card, page tops, number tiles on protocol pages | "Needs you" seen in published build 371; the rest not yet seen |

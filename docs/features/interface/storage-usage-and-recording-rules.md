@@ -6,7 +6,7 @@ rules that change how often one entity is recorded.
 ## Storage page
 
 A ring with the measured database size, a growth chart, the biggest entities, and a per-entity
-view with an estimated saving before a purge (the purge needs a typed confirmation). The
+view with an estimated saving before a purge (the purge uses the two-key confirmation, with nothing to type). The
 overview loads on the page's first update (batch 50 fixed a defect where it asked before the
 connection existed and reported that it could not be read).
 
@@ -36,7 +36,7 @@ shown first.
 
 - The file size is read for SQLite; for other database types the numbers are whatever the server's own queries report.
 - Rules apply to new rows only; existing rows change only through the purge.
-- A purge deletes data and cannot be undone; it asks for typed confirmation.
+- A purge deletes data and cannot be undone; it asks for the two-key confirmation (the typed-word form from batch 48 is out of use by the owner's decision).
 - The recorder commits every 5 seconds, so a count taken right after a change lags.
 
 ## Privacy
@@ -53,5 +53,5 @@ test sensors, switching one off stopped its rows while the other kept gaining, s
 resumed it, with a 60 second interval two repeats of one value added no row and a new value added
 one, 3601 seconds was refused, and the storage file was written. pytest for these files has not
 been run: this machine's Python lacks the product's packages. The page itself: the overview said
-it could not be read in published build 371 (fixed in batch 50, not seen again). The Keep history
+it could not be read in published build 371; in build 401 it draws its ring, facts and biggest entities. The Keep history
 switch and interval field are unit tested, not seen.

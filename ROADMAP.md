@@ -298,7 +298,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
       longer shows an enabled Save). Built, with hide-when-clean, Discard and live announcements; not yet seen. The blank strip when the phone's bottom
       bar hides on scroll is fixed in source (batch 21) and not seen
 
-## Modern redesign, batches 41 to 51 (12 and 13 November 2026)
+## Modern redesign, batches 41 to 54 (12 and 13 November 2026)
 
 Design canvases 23 to 31. Details and the state of each feature are in
 `docs/feature-status.md` and `docs/features/`.
@@ -339,9 +339,11 @@ Design canvases 23 to 31. Details and the state of each feature are in
 - [ ] Free pixel layout, per-gesture animation and share as an extension for dashboards. Not built
 - [ ] Pop-up cards, card styling, history compare, scenes edited on paper with Preview, raw editor
       Replace entity. Built in batches 47 and 48; not yet seen
-- [~] Storage usage and per-entity recording. The server calls were run for real on a throwaway
-      instance (batches 48, 49); the page said it could not be read in build 371 (fixed in
-      batch 50, not seen). pytest for the new server code has not run on this machine
+- [x] Storage page with its ring, facts and biggest entities, and the 24-hour build stamp. Seen
+      in build 401 (batch 50 fixes)
+- [~] Per-entity storage view and recording rules. The server calls were run for real on a
+      throwaway instance (batches 48, 49); the per-entity view and rules are not seen in the
+      page. pytest for the new server code has not run on this machine
 - [~] Motion editor. The page was seen in build 371; the effect on the seven components is built
       and not watched
 - [ ] Help page, guidance notes, progress with recovery for app jobs, Extensions page with
@@ -358,6 +360,36 @@ Design canvases 23 to 31. Details and the state of each feature are in
 - [ ] Searching the instance's own configuration files from the pattern workbench. Not built: it
       needs a server call that reads files, an owner decision
 - [ ] A lock on one appearance value and several pages locked at once. Built in batch 48; not yet seen
+- [ ] Two-key confirmation with nothing to type on any device, wrapping confirmation titles,
+      release notes with the update time, the session clock in 24-hour form (batch 52). Built,
+      unit tested; not seen
+- [ ] Automation editor fast mode, trigger groups (`editor_group`), Relationships, Simple,
+      Advanced and YAML levels (batch 52). Built, unit tested; trigger group validation run on a
+      throwaway instance; interface not seen
+- [ ] "Add a step here" and the keys T, C and A in the automation editor (batch 54). Built, unit
+      tested; not seen
+- [ ] String builder for template text fields (batch 53). Built, 14 model tests; not seen
+- [ ] Performance diagnostics and offline cache health (batch 52). Built, unit tested; not seen
+- [ ] Select many cards, shared clipboard, duplicate, Dashboards card, swiping between
+      dashboards (batch 52). Built, unit tested; not seen
+- [ ] Light card sliders, energy colours, rainbow colour picker (batch 52). Energy colours run
+      on a throwaway instance; cards not seen
+- [ ] Wall tablet mode and the `wall_tablet` integration (batch 52). Server commands and
+      services run on a throwaway instance; interface not seen
+- [ ] Two-column setup forms with step chips, accessible entity picker, notes on devices and
+      entities, the editor's shortcut list (batch 52). Built, unit tested; not seen
+- [ ] Sidebar names and default pages, outside link choice, quick bar pins and recents, dark mode
+      readability check (batch 52). Built, unit tested; not seen
+- [ ] Web app manifest shortcuts (batch 52). Run for real: four shortcuts listed
+- [ ] Phone home-screen widgets and car actions. Not built: they need the native phone apps,
+      which are not in this repository
+- [ ] A step total in setup forms, a per-field connection check, lazy loading switches. Not built
+- [ ] The board's Ctrl Shift F row. Not built: the key was not rebound, so the row would not be
+      true
+- [ ] Multi-select in masonry views (sections views only so far). Open
+- [ ] A Cantonese version of the string builder's text. Open
+- [ ] The dark mode readability check on pages it can report but cannot fix. Open
+- [ ] Wall tablet settings as their own page. Open
 - [ ] A local production build that starts (it stays on the loading screen with no error, while
       published builds load). Not solved
 - [ ] Observe the Docker engine restarting with the new proxy lookup setting (confirmed only by

@@ -141,6 +141,15 @@ observer images are unchanged upstream images.
 | `frontend/src/data/dashboard-visibility.ts`, `data/presentation-roles.ts`, `data/frontend.ts` | Visibility conditions and presentation roles kept in the shared frontend settings (`dashboard_visibility`, `default_panel_overrides`); roles are evaluated in the browser only. No core dashboard record is changed. |
 | `frontend/src/panels/config/automation/tools/`, `frontend/src/panels/lovelace/editor/tools/`, `frontend/src/panels/config/storage/`, `frontend/src/panels/config/core/`, `frontend/src/panels/config/dashboard/`, `frontend/src/layouts/tool-pill-order.ts` (new), `frontend/landing-page/` | Automation and dashboard tools, the Storage page, the navigation pane and tool pill, the "preparing" page. |
 
+## Added on 13 November 2026 (batches 52 to 54)
+
+| File | Change |
+| --- | --- |
+| `core/homeassistant/components/wall_tablet/` (new: `__init__.py`, `manifest.json`, `services.yaml`, `strings.json`), `core/homeassistant/components/default_config/manifest.json` | A system integration for wall tablets, in the default set: websocket commands to announce, list, command and forget a tablet, and the services `wake`, `sleep`, `reload` and `navigate` (a path starting with two slashes is refused). Run for real on a throwaway instance. |
+| `core/homeassistant/components/energy/data.py`, `websocket_api.py` (`colors`) | A colour per energy source and device, stored with the preferences; a value that is not a colour is refused. Saved, read back and cleared on a throwaway instance. |
+| `core/homeassistant/helpers/config_validation.py` | `editor_group` is accepted and dropped on triggers, so a trigger placed in a group in the editor still validates and runs. |
+| `core/homeassistant/components/frontend/helpers.py` (web app manifest) | Four shortcuts are listed in the web app manifest. |
+
 ## Build-time stamping (not committed)
 
 `scripts/ci/set-versions.py` writes the build number into `core/homeassistant/const.py`,

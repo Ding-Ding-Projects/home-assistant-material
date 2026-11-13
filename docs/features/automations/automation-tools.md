@@ -24,6 +24,25 @@ Built in batches 44 and 48.
 Also in the editor: each trigger and condition row shows its entity's current state, and a
 condition says whether it passes now, using the existing condition test call, throttled.
 
+## Fast mode, groups, relationships and levels (batch 52)
+
+- **Fast mode:** a collapsed branch no longer builds its children, and long lists draw 40 rows at
+  a time. A synthetic 530-row configuration builds 5 rows with its branches closed (unit test).
+- **Trigger groups:** triggers can carry `editor_group`. The server accepts and drops it, like
+  `editor_locked`; this was run for real on a throwaway instance.
+- **Relationships:** a tool that shows what an automation connects to, and "From ..." chips on
+  rows that came from somewhere.
+- **Levels:** Simple, Advanced and YAML.
+
+## Add a step here and keys (batch 54)
+
+An "Add a step here" control sits between any two steps and inserts at that position, in the
+root list and in nested lists. Placed inside a trigger group it joins that group. It respects
+fast mode and folded groups. In the visual editor the keys T, C and A add a trigger, a condition
+and an action. They do nothing in fields or dialogs, and only work when keyboard shortcuts are
+on. Ctrl Shift F was not rebound. Unit tested, not seen in a browser. The string builder
+(`../interface/string-builder.md`) is reached from action text fields.
+
 ## Locks on steps
 
 A locked step carries `editor_locked: true`. The server accepts and drops this field on
