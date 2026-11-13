@@ -434,6 +434,34 @@ product matching it.
   - Open, for the owner's decision: searching the instance's own configuration files from
     the pattern workbench needs a server call that reads files; not added.
 
+- 13 November, live moves. A release run publishes the container images about 25 minutes
+  after it starts; the Raspberry Pi and virtual machine images take the rest of the two
+  hours. A browser pass can therefore start as soon as the "Publish the container image" job
+  ends (the tag is the newest one on the container package). Two runs were cancelled after
+  their container images were out so the next run could start; builds 368 and 371 therefore
+  have container images but no operating system images and no release page.
+  - Build 368 (batch 46): wide light pass, then live at 00:27 Toronto time. A fresh browser
+    gets the left navigation pane; 24-hour time is the default.
+  - Build 371 (batches 47 to 49): 80 pictures (24 pages, light and dark, wide and phone), no
+    sideways overflow; live at 01:02 Toronto time. Seen right: the greeting and the "Needs
+    you" card, the pane's role line and tools menu, the page menu last in the tool pill, one
+    title block with a summary on Devices, the motion editor, the floating phone bar, card
+    rows with round select marks.
+    Seen wrong: the storage overview said it could not be read (fixed in batch 50); the build
+    stamp still used the 12-hour clock (fixed in batch 50); "Notifications" in the pane sits
+    off-centre; the welcome banner is cut at the top edge on a wide home page; one page error
+    (`this._layoutElement.setConfig is not a function`) once in 80 page loads on a built-in
+    overview page, not reproduced on the other passes.
+  - The owner's phone showed the detector badge in plain English: the wording in that
+    browser was an older import. The wording file itself is maintained outside this
+    repository and has to be imported again.
+  - Local production builds mounted into the container still stay on the loading screen
+    (the application chunk loads, defines 31 elements and stops at an asynchronous locale
+    data chunk, with no error). Published builds of the same source load. Not solved.
+- Batch 50: "Select by rule" in every settings list (unit tested, not seen); the storage
+  overview loads on its first update instead of on connect; build stamps in 24-hour form;
+  five README pictures from build 371.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to

@@ -243,9 +243,15 @@ Taken from a running instance with a small sample home: three lights, two locks,
 and three scenes. The last one is the published container image run as it is; the others are
 that container with the frontend of this repository mounted into it.
 
-![Home in a running instance: a greeting, one sentence about the home and scene buttons](docs/screenshots/home-greeting.png)
+The first five are from published build 2026.11.1.371 on 13 November 2026, run as it is with
+a small test home: the side navigation pane, the page as its own card and the floating tool
+pill. Earlier versions of the replaced pictures are in this file's history.
+
+![Home: the navigation pane, a greeting, and a card for what needs attention](docs/screenshots/home-greeting.png)
 ![Settings home: a large title, a search and a grid of sections with live counts](docs/screenshots/settings-home.png)
 ![The System page](docs/screenshots/system-page.png)
+![Animation and transitions: profiles, a switch per kind of element, a curve editor and a live preview](docs/screenshots/motion-editor.png)
+![Home on a phone, with the floating bottom bar](docs/screenshots/phone-home.png)
 ![The Devices list: breadcrumb, large title with a summary line, rows as cards](docs/screenshots/list-page-devices.png)
 ![Search this page, with the matches highlighted](docs/screenshots/page-tools-find.png)
 ![Export this page](docs/screenshots/page-tools-export.png)

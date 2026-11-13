@@ -67,6 +67,7 @@ export class HaPageFooter extends LitElement {
                   hour: "2-digit",
                   minute: "2-digit",
                   second: "2-digit",
+                  hourCycle: "h23",
                   timeZoneName: "short",
                 }),
               })

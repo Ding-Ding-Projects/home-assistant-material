@@ -49,11 +49,11 @@ export class HaRecorderStorageOverview extends LitElement {
 
   @state() private _error?: "unavailable" | "failed";
 
-  public connectedCallback(): void {
-    super.connectedCallback();
-    if (this._overview === undefined && !this._error) {
-      this._load();
-    }
+  // Not in connectedCallback: this element is loaded after the page first
+  // draws it, and an element upgraded in place connects before the
+  // properties set on it (hass) are applied.
+  protected firstUpdated(): void {
+    this._load();
   }
 
   /** Reads the figures again, for example after a purge. */

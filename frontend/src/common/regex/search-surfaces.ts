@@ -46,6 +46,12 @@ export const SEARCH_SURFACES: SearchSurface[] = [
     matcher: TABLE_WORKER,
   },
   {
+    file: "components/data-table/ha-data-table-select-rules.ts",
+    searches:
+      "The text of a rule in the Select by rule dialog of a settings list",
+    matcher: "common/select-by-rule/select-by-rule.ts",
+  },
+  {
     file: "components/ha-filter-devices.ts",
     searches: "Devices in the filter pane of a list",
   },

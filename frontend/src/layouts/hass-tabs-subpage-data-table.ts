@@ -40,7 +40,9 @@ import type {
   HaDataTable,
   SortingDirection,
 } from "../components/data-table/ha-data-table";
+import "../components/data-table/ha-data-table-select-rules";
 import { showDataTableSettingsDialog } from "../components/data-table/show-dialog-data-table-settings";
+import type { SelectRuleField } from "../common/select-by-rule/select-by-rule";
 import "../components/ha-adaptive-dialog";
 import "../components/ha-button";
 import "../components/ha-dialog-footer";
@@ -341,6 +343,19 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   @property({ attribute: false }) public columnOrder?: string[];
 
   @property({ attribute: false }) public hiddenColumns?: string[];
+
+  /**
+   * Extra fields "Select by rule" can use, besides what the columns and the
+   * rows already offer (text columns, labels, area, integration, domain and
+   * the enabled, hidden and unavailable states).
+   */
+  @property({ attribute: false }) public selectFields?: SelectRuleField[];
+
+  @state() private _ruleOpen = false;
+
+  @state() private _ruleRows: DataTableRowData[] = [];
+
+  @state() private _ruleCurrent: string[] = [];
 
   /**
    * Keep search, sorting and grouping in the URL (`search`, `sort`,
@@ -949,6 +964,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                   <ha-dropdown-item value="none">
                     ${localize("ui.components.subpage-data-table.select_none")}
                   </ha-dropdown-item>
+                  <ha-dropdown-item value="rule">
+                    ${localize("ui.components.subpage-data-table.select_by_rule")}
+                  </ha-dropdown-item>
                   <wa-divider></wa-divider>
                   <ha-dropdown-item value="disable_select_mode">
                     ${localize(
@@ -961,6 +979,23 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
                 <slot name="selection-bar"></slot>
               </div>
             </div>`
+          : nothing
+      }
+      ${
+        this._ruleOpen
+          ? html`<ha-data-table-select-rules
+              open
+              .localize=${localize}
+              .rows=${this._ruleRows}
+              .columns=${this.columns}
+              .hiddenColumns=${this.hiddenColumns}
+              .selectFields=${this.selectFields}
+              .idKey=${this.id}
+              .current=${this._ruleCurrent}
+              storage-key=${this.route?.prefix || "default"}
+              @select-by-rule-apply=${this._ruleApplied}
+              @select-by-rule-closed=${this._ruleClosed}
+            ></ha-data-table-select-rules>`
           : nothing
       }
       ${
@@ -1313,6 +1348,9 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
       case "none":
         this._selectNone();
         break;
+      case "rule":
+        this._openRuleDialog();
+        break;
       case "disable_select_mode":
         this._disableSelectMode();
         break;
@@ -1331,6 +1369,23 @@ export class HaTabsSubpageDataTable extends KeyboardShortcutMixin(LitElement) {
   private _selectNone = () => {
     this._dataTable.clearSelection();
   };
+
+  private _openRuleDialog() {
+    // Only the rows the list shows now are offered to the rules.
+    const shown = new Set(this._dataTable.getFilteredRowIds());
+    this._ruleRows = this.data.filter((row) => shown.has(String(row[this.id])));
+    this._ruleCurrent = this._dataTable.getCheckedRowIds();
+    this._ruleOpen = true;
+  }
+
+  private _ruleApplied(ev: CustomEvent<{ ids: string[] }>) {
+    this._dataTable.setCheckedRowIds(ev.detail.ids);
+    this._ruleOpen = false;
+  }
+
+  private _ruleClosed() {
+    this._ruleOpen = false;
+  }
 
   private _patternSamples = memoizeOne(tablePatternSamples);
 
