@@ -45,4 +45,13 @@ Successful saves through the dashboard panel now retain before/after raw configu
 
 In **Checkpoints and diff**, use **Download saved revisions** to export the retained records for manual recovery. Nothing is restored automatically. This is not unsaved-draft recovery or cross-device version history, and does not capture changes made outside this panel's save path. Clearing browser data removes it; concurrent tabs can race, and oversized configurations or exhausted storage may not be retained. Journaling failures never roll back or fail an otherwise successful server save.
 
-Unit coverage verifies successful-save timing, failure isolation, captured identity/configuration, raw-field preservation, account/dashboard isolation, corruption handling, and count/size limits. Browser verification and conflict-aware restore UI remain future work.
+Unit coverage verifies successful-save timing, failure isolation, captured identity/configuration, raw-field preservation, account/dashboard isolation, corruption handling, and count/size limits. Browser verification remains required.
+
+
+## Guarded revision restore
+
+The saved-revision section now lets you select a before/after configuration, fetch and review the current server configuration, and explicitly confirm a whole-dashboard restore. The frontend sends the reviewed configuration as `expected_config`; it never falls back to an unguarded retry. A stale review or unsupported server rejects the operation. A failed response is treated as unconfirmed, so review the server again before retrying.
+
+The fork's Lovelace storage implementation serializes reads, saves, guarded comparison/save, and deletion using a per-dashboard lock. Normal save callers keep their existing API. The guard prevents two concurrent restores from accepting the same outdated base in memory; it is not a disk-durability guarantee because the underlying Store can log write errors internally. Unsaved card drafts, remote revision history, and automatic merging remain out of scope.
+
+Frontend contract and journal tests pass. Core API/concurrency/failure regression tests are added but require the Core test environment to run. A focused smoke check of the production storage methods passed concurrency, raised-storage-error, and legacy-save cases; it does not replace the Core integration tests.

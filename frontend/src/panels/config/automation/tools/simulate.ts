@@ -22,6 +22,8 @@ export interface Situation {
   weekday?: number;
   /** The trigger ID assumed to have started this simulated run. */
   triggerId?: string;
+  /** False makes the simulation independent of current entity states. */
+  useLiveStates?: boolean;
 }
 
 export const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -132,7 +134,8 @@ export const overlayStates = (
   live: HassEntities,
   situation: Situation
 ): HassEntities => {
-  const states: HassEntities = { ...live };
+  const states: HassEntities =
+    situation.useLiveStates === false ? {} : { ...live };
   for (const { entityId, state } of situation.overrides) {
     if (!entityId) {
       continue;
@@ -176,5 +179,10 @@ export const buildSimulationHass = (
         throw unsupported(String(cond.condition ?? "unknown"));
     }
   }) as unknown as HomeAssistant["callWS"];
-  return { states, callWS, simulatedTriggerId: situation.triggerId };
+  return {
+    states,
+    callWS,
+    simulatedTriggerId: situation.triggerId,
+    isolatedSimulation: situation.useLiveStates === false,
+  };
 };

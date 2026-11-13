@@ -450,7 +450,10 @@ export class LovelacePanel extends LitElement {
 
         this._updateLovelace({ editMode });
       },
-      saveConfig: async (newConfig: LovelaceRawConfig): Promise<void> => {
+      saveConfig: async (
+        newConfig: LovelaceRawConfig,
+        expectedConfig?: LovelaceRawConfig
+      ): Promise<void> => {
         const {
           config: previousConfig,
           rawConfig: previousRawConfig,
@@ -475,16 +478,17 @@ export class LovelacePanel extends LitElement {
           });
           this._ignoreNextUpdateEvent = true;
           await saveWithRevision(
-            () => saveConfig(this.hass!, urlPath, newConfig),
+            () => saveConfig(this.hass!, urlPath, newConfig, expectedConfig),
             this.hass?.user?.id
               ? { userId: this.hass.user.id, urlPath }
               : undefined,
-            previousRawConfig,
+            expectedConfig ?? previousRawConfig,
             newConfig
           );
         } catch (err: any) {
           // eslint-disable-next-line
           console.error(err);
+          this._ignoreNextUpdateEvent = false;
           // Rollback the optimistic update
           this._updateLovelace({
             config: previousConfig,

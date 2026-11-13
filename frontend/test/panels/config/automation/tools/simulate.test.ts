@@ -130,3 +130,138 @@ describe("simulated trigger conditions", () => {
     ).toBe(true);
   });
 });
+
+describe("isolated simulation states", () => {
+  it("keeps default live fallback but can exclude all unprovided states", async () => {
+    const situation = { overrides: [], time: "22:00" };
+    const fallback = buildSimulationHass(live, situation);
+    expect(fallback.states["person.alex"].state).toBe("home");
+    const isolated = buildSimulationHass(live, {
+      ...situation,
+      useLiveStates: false,
+    });
+    expect(isolated.states).toEqual({});
+    const result = await dryRunAutomation(isolated, {
+      conditions: [
+        { condition: "state", entity_id: "person.alex", state: "home" },
+      ],
+      actions: [{ action: "light.turn_on" }],
+    });
+    expect(result.conditions).toBe("unknown");
+    expect(result.steps[0].reason).toBe("entity_not_found");
+  });
+
+  it("uses only explicit overrides without inheriting live attributes", async () => {
+    const isolated = buildSimulationHass(
+      {
+        ...live,
+        "person.alex": { ...live["person.alex"], attributes: { latitude: 43 } },
+      },
+      {
+        overrides: [{ entityId: "person.alex", state: "not_home" }],
+        time: "22:00",
+        useLiveStates: false,
+      }
+    );
+    expect(isolated.states["person.alex"].attributes).toEqual({});
+    expect(live["person.alex"].state).toBe("home");
+    const result = await dryRunAutomation(isolated, {
+      conditions: [
+        { condition: "state", entity_id: "person.alex", state: "not_home" },
+      ],
+      actions: [],
+    });
+    expect(result.conditions).toBe("pass");
+  });
+});
+
+describe("incomplete isolated state conditions", () => {
+  const isolated = () =>
+    buildSimulationHass(live, {
+      overrides: [{ entityId: "person.alex", state: "home" }],
+      time: "22:00",
+      useLiveStates: false,
+    });
+  it("reports missing attributes as unknown rather than comparing undefined", async () => {
+    const result = await dryRunAutomation(isolated(), {
+      conditions: [
+        {
+          condition: "state",
+          entity_id: "person.alex",
+          attribute: "latitude",
+          state: "undefined",
+        },
+      ],
+      actions: [],
+    });
+    expect(result.conditions).toBe("unknown");
+    expect(result.steps[0].reason).toBe("attribute_not_found");
+  });
+  it("reports missing helper state references as unknown", async () => {
+    const hass = isolated();
+    hass.states["person.alex"].state = "input_select.location";
+    const result = await dryRunAutomation(hass, {
+      conditions: [
+        {
+          condition: "state",
+          entity_id: "person.alex",
+          state: "input_select.location",
+        },
+      ],
+      actions: [],
+    });
+    expect(result.conditions).toBe("unknown");
+    expect(result.steps[0].detail).toBe("input_select.location");
+  });
+  it("preserves dotted literal states that are not helper references", async () => {
+    const hass = isolated();
+    hass.states["person.alex"].state = "some.location";
+    const result = await dryRunAutomation(hass, {
+      conditions: [
+        {
+          condition: "state",
+          entity_id: "person.alex",
+          state: "some.location",
+        },
+      ],
+      actions: [],
+    });
+    expect(result.conditions).toBe("pass");
+  });
+});
+
+describe("ordered simulated expected states", () => {
+  const hass = () =>
+    buildSimulationHass(live, {
+      overrides: [{ entityId: "person.alex", state: "home" }],
+      time: "22:00",
+      useLiveStates: false,
+    });
+  it("keeps a match before a missing helper reference", async () => {
+    const result = await dryRunAutomation(hass(), {
+      conditions: [
+        {
+          condition: "state",
+          entity_id: "person.alex",
+          state: ["home", "input_select.missing"],
+        },
+      ],
+      actions: [],
+    });
+    expect(result.conditions).toBe("pass");
+  });
+  it("cannot decide when a missing helper precedes the matching value", async () => {
+    const result = await dryRunAutomation(hass(), {
+      conditions: [
+        {
+          condition: "state",
+          entity_id: "person.alex",
+          state: ["input_select.missing", "home"],
+        },
+      ],
+      actions: [],
+    });
+    expect(result.conditions).toBe("unknown");
+    expect(result.steps[0].detail).toBe("input_select.missing");
+  });
+});

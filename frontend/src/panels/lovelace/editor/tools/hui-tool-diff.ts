@@ -1,11 +1,15 @@
-import type { TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
 import { css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import "../../../../components/ha-button";
 import "../../../../components/ha-select";
 import "../../../../components/input/ha-input";
-import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
+import { fetchConfig } from "../../../../data/lovelace/config/types";
+import type {
+  LovelaceRawConfig,
+  LovelaceConfig,
+} from "../../../../data/lovelace/config/types";
 import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
 import type { Checkpoint } from "./checkpoints";
 import {
@@ -16,6 +20,7 @@ import {
 import type { CardDiff, ViewDiff } from "./dashboard-diff";
 import { diffDashboards, summarizeDiff } from "./dashboard-diff";
 import { fileDownload } from "../../../../util/file_download";
+import type { SavedRevision } from "./saved-revisions";
 import { readSavedRevisions } from "./saved-revisions";
 import { ToolView } from "./tools-base";
 
@@ -26,6 +31,19 @@ export class HuiToolDiff extends ToolView {
   @state() private _checkpoints: Checkpoint[] = [];
 
   @state() private _name = "";
+
+  @state() private _revisionChoice = "";
+
+  @state() private _revisionEntries: SavedRevision[] = [];
+
+  private _revisionScope = "";
+
+  @state() private _review?: {
+    userId: string;
+    urlPath: string | null;
+    current: LovelaceRawConfig;
+    target: LovelaceRawConfig;
+  };
 
   @state() private _left = "";
 
@@ -39,6 +57,17 @@ export class HuiToolDiff extends ToolView {
       this.params.lovelace()?.urlPath ?? null
     );
     this._left = this._checkpoints[this._checkpoints.length - 1]?.id ?? "";
+  }
+
+  protected willUpdate(changed: PropertyValues) {
+    super.willUpdate(changed);
+    const scope = JSON.stringify([this.hass.user?.id, this._lovelace?.urlPath]);
+    if (scope !== this._revisionScope) {
+      this._revisionScope = scope;
+      this._review = undefined;
+      this._revisionChoice = "";
+      this._revisionEntries = this._savedRevisions();
+    }
   }
 
   private _configOf(id: string): LovelaceConfig | undefined {
@@ -69,7 +98,18 @@ export class HuiToolDiff extends ToolView {
     );
     const summary = diff ? summarizeDiff(diff) : undefined;
     const options = this._options();
-    const revisionCount = this._savedRevisions().length;
+    const revisions = this._revisionEntries;
+    const revisionCount = revisions.length;
+    const revisionOptions = revisions.flatMap((revision, index) =>
+      ["before", "after"].map((side) => ({
+        value: `${index}:${side}`,
+        label: this._t(`diff.revisions_${side}`, {
+          date: new Date(revision.at).toLocaleString(
+            this.hass.locale?.language
+          ),
+        }),
+      }))
+    );
     return html`
       <section>
         <h3>${this._t("diff.revisions_title")}</h3>
@@ -80,6 +120,46 @@ export class HuiToolDiff extends ToolView {
           @click=${this._exportRevisions}
           >${this._t("diff.revisions_export", { count: revisionCount })}</ha-button
         >
+        <div class="row">
+          <ha-select
+            .label=${this._t("diff.revisions_choose")}
+            .value=${this._revisionChoice}
+            .options=${revisionOptions}
+            .disabled=${this._busy}
+            @selected=${this._revisionChanged}
+          ></ha-select>
+          <ha-button
+            .disabled=${this._busy || !this._revisionChoice || this._lovelace?.mode !== "storage"}
+            @click=${this._prepareRevision}
+            >${this._t("diff.revisions_review")}</ha-button
+          >
+        </div>
+        ${
+          this._review
+            ? html`
+                <p>${this._t("diff.revisions_review_note")}</p>
+                <details>
+                  <summary>${this._t("diff.revisions_current")}</summary>
+                  <pre>${JSON.stringify(this._review.current, null, 2)}</pre>
+                </details>
+                <details>
+                  <summary>${this._t("diff.revisions_target")}</summary>
+                  <pre>${JSON.stringify(this._review.target, null, 2)}</pre>
+                </details>
+                <ha-button
+                  .disabled=${this._busy}
+                  @click=${this._restoreRevision}
+                  >${this._t("diff.revisions_restore")}</ha-button
+                >
+                <ha-button
+                  appearance="plain"
+                  .disabled=${this._busy}
+                  @click=${this._cancelRevision}
+                  >${this.hass.localize("ui.common.cancel")}</ha-button
+                >
+              `
+            : nothing
+        }
       </section>
       <p class="intro">${this._t("diff.intro")}</p>
       ${this._renderMessages()}
@@ -217,6 +297,95 @@ export class HuiToolDiff extends ToolView {
           : "";
   }
 
+  private _revisionChanged(ev: CustomEvent<{ value?: string }>) {
+    this._revisionChoice = ev.detail.value ?? "";
+    this._review = undefined;
+  }
+
+  private _cancelRevision() {
+    this._review = undefined;
+  }
+
+  private async _prepareRevision() {
+    if (this._busy) return;
+    const lovelace = this._lovelace;
+    const userId = this.hass.user?.id;
+    const [index, side] = this._revisionChoice.split(":");
+    const entry = this._revisionEntries[Number(index)];
+    if (
+      !entry ||
+      !userId ||
+      !lovelace ||
+      lovelace.mode !== "storage" ||
+      (side !== "before" && side !== "after")
+    ) {
+      return;
+    }
+    const urlPath = lovelace.urlPath;
+    const target = structuredClone(entry[side]);
+    this._busy = true;
+    this._review = undefined;
+    this._error = undefined;
+    try {
+      const current = await fetchConfig(this.hass.connection, urlPath, true);
+      if (
+        !this.isConnected ||
+        this.hass.user?.id !== userId ||
+        this._lovelace?.urlPath !== urlPath
+      ) {
+        return;
+      }
+      this._review = {
+        userId,
+        urlPath,
+        current: structuredClone(current),
+        target,
+      };
+    } catch (err: unknown) {
+      this._fail(err);
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  private async _restoreRevision() {
+    const review = this._review;
+    if (!review || this._busy) return;
+    this._busy = true;
+    this._error = undefined;
+    try {
+      const confirmed = await showConfirmationDialog(this, {
+        title: this._t("diff.revisions_restore"),
+        text: this._t("diff.revisions_confirm"),
+        confirmText: this._t("diff.revisions_restore"),
+        dismissText: this.hass.localize("ui.common.cancel"),
+      });
+      const lovelace = this._lovelace;
+      if (
+        !confirmed ||
+        !this.isConnected ||
+        this._review !== review ||
+        this.hass.user?.id !== review.userId ||
+        !lovelace ||
+        lovelace.urlPath !== review.urlPath ||
+        lovelace.mode !== "storage"
+      ) {
+        return;
+      }
+      // The server rejects stale reviews atomically. Never retry without the guard.
+      await lovelace.saveConfig(structuredClone(review.target), review.current);
+      this._review = undefined;
+      this._revisionChoice = "";
+      this._revisionEntries = this._savedRevisions();
+      this._notice = this._t("diff.revisions_restored");
+    } catch {
+      this._error = this._t("diff.revisions_restore_failed");
+      this._review = undefined;
+    } finally {
+      this._busy = false;
+    }
+  }
+
   private _savedRevisions() {
     const userId = this.hass.user?.id;
     return userId
@@ -331,6 +500,12 @@ export class HuiToolDiff extends ToolView {
           gap: var(--ha-space-2);
           margin: var(--ha-space-4) 0 var(--ha-space-2);
           font-size: var(--ha-font-size-l);
+        }
+        pre {
+          max-height: 320px;
+          overflow: auto;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
         }
         .pair {
           display: grid;

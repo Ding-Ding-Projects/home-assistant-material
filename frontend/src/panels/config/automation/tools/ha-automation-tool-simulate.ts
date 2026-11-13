@@ -8,6 +8,9 @@ import "../../../../components/ha-svg-icon";
 import "../../../../components/entity/ha-entity-picker";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
+import type { HaCheckbox } from "../../../../components/ha-checkbox";
+import "../../../../components/ha-checkbox";
+import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-icon-button";
 import type { HaSelectSelectEvent } from "../../../../components/ha-select";
 import "../../../../components/ha-select";
@@ -45,6 +48,8 @@ export class HaAutomationToolSimulate extends LitElement {
   @state() private _weekday = "";
 
   @state() private _triggerId = "";
+
+  @state() private _useLiveStates = true;
 
   @state() private _overrides: { entityId: string; state: string }[] = [];
 
@@ -126,6 +131,12 @@ export class HaAutomationToolSimulate extends LitElement {
             .value=${this._triggerId}
             @input=${this._triggerChanged}
           ></ha-input>
+          <ha-checkbox
+            .checked=${this._useLiveStates}
+            @change=${this._liveStatesChanged}
+            >${this._t("use_live_states")}</ha-checkbox
+          >
+          <p class="hint">${this._t("isolated_hint")}</p>
           <h4>${this._t("states")}</h4>
           ${this._overrides.map((row, index) => this._renderRow(row, index))}
           <ha-button appearance="plain" @click=${this._addRow}>
@@ -264,6 +275,11 @@ export class HaAutomationToolSimulate extends LitElement {
     </li>`;
   }
 
+  private _liveStatesChanged(ev: HASSDomCurrentTargetEvent<HaCheckbox>) {
+    this._useLiveStates = ev.currentTarget.checked;
+    this._result = undefined;
+  }
+
   private _triggerChanged(ev: Event) {
     this._triggerId = (ev.target as HTMLInputElement).value;
   }
@@ -312,6 +328,7 @@ export class HaAutomationToolSimulate extends LitElement {
       overrides: this._overrides.filter((r) => r.entityId),
       time: this._time,
       triggerId: this._triggerId || undefined,
+      useLiveStates: this._useLiveStates,
       weekday: this._weekday === "" ? undefined : Number(this._weekday),
     };
     this._running = true;

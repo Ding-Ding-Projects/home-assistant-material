@@ -83,3 +83,7 @@ is still required.
 The Simulator and editor test-case situation form accept an optional simulated trigger ID. This lets a test follow `trigger` conditions inside branches without firing a real trigger. The ID is retained when editor test cases are saved or exported. An unset ID leaves trigger conditions undecided; it does not assume the first configured trigger. Templates that read trigger variables remain undecided. Simulation never calls a service or writes entity state.
 
 Verified with focused simulation, saved-case, and dry-run unit tests. Running-UI verification remains pending.
+
+### Isolated situations
+
+The Simulator and editor test-case situation form can disable current-state fallback. With **Use current states for entities without overrides** off, only explicitly supplied states exist in the simulated run. No live attributes are inherited for those entities. Missing entities produce an unknown result, not a guessed pass or failure. The setting is saved with test cases; older cases keep their previous live-fallback behavior. This makes scenarios repeatable when the real household state changes. No device actions are executed in either mode.
