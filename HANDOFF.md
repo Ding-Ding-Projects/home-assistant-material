@@ -586,6 +586,17 @@ Written 9 November 2026 and brought up to date on 11 November 2026 (after batche
   - Runs for builds 418 and 419 were stopped once their container images were out, so they
     have no release page; build 420 is the one left to finish.
 
+- Release `v2026.11.1.420` was read back on 13 November: its workflow run ended in success,
+  it is not a draft and not a prerelease, it targets commit `d26f8c47a`, it carries 25
+  files, and its notes say "Updated: 13 November 2026 at 07:45 EST, which is 2026-11-13
+  12:45 UTC."
+- Batch 58, build 2026.11.1.422: the four small faults listed as open above are fixed in
+  source (the string builder note, the strip under the phone builder's buttons, a step
+  landing under the sticky search card, and the unstable default order of pages in the
+  pane). The browser pass on the published image had no page errors and no sideways
+  overflow in light and dark, wide and phone, and the live instance moved to it at 08:25
+  Toronto time. The four fixes themselves were not looked at one by one in that build.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
