@@ -215,7 +215,8 @@ page_board('RDuplicate', 'Duplicate views and dashboards', DE, dup, caption='Dup
 dl = (header('All my dashboards', 'A section that lists itself', 'Dashboards', tools())
       + grid(4, *[card(f'<div class="thumb" style="height:100px">{I(i, 34)}</div>', f'<b>{n}</b>', f'<span class="sm mu">{v}</span>', pad=14) for i, n, v in
                   [('Home', 'Home', '5 views'), ('LightningBolt', 'Energy', '2 views'), ('Cctv', 'Cameras', '1 view'), ('HumanChild', 'Kids room', '1 view')]])
-      + '<div style="height:14px"></div>' + note('New dashboards appear here by themselves. On a phone, swipe left or right to move between them.', 'p', 'GestureSwipeHorizontal'))
+      + '<div style="height:14px"></div>' + grid(2, note('New dashboards appear here by themselves.', 'p', 'AutoFix'),
+                                                 card(row(ico('GestureSwipeHorizontal', 'p', 36, 12, 18), col('<b>Swipe left or right to change dashboard</b>', '<span class="sm mu">On phones and tablets. Turn it off if it gets in the way of sliders or maps.</span>', gap=2, style='flex:1'), switch(1)), pad=14), gap=12))
 page_board('RDashList', 'An automatic list of dashboards, and swiping between them', DE, dl, active='Overview', caption='Dashboards section: lists every dashboard by itself; swipe to switch on a phone')
 
 # ---------------- Cards (more) ----------------
@@ -294,7 +295,7 @@ page_board('RShortcuts', 'Keyboard shortcuts in the YAML editor', EA, kb, active
 # ---------------- Customisation ----------------
 sb = (header('Sidebar', 'Your own labels', 'Settings › Personal', tools())
       + grid(2, table(['Item', 'Label'], [[row(I(i, 18), n, gap=8), f'<b>{l}</b>'] for i, n, l in [('Home', 'Overview', 'Home'), ('LightningBolt', 'Energy', 'Power'), ('HammerWrench', 'Developer tools', 'Dev')]], ['1fr', '1fr']),
-             card(row('<b class="grow">Show Developer tools in the sidebar</b>', switch(1)), field('Default history tab', 'By entity'), title='Defaults')))
+             card(row('<b class="grow">Show Developer tools in the sidebar</b>', switch(1)), row('<b class="grow">Swipe left or right to change dashboard</b>', switch(1)), field('Default history tab', 'By entity'), title='Defaults')))
 page_board('RSidebar', 'Sidebar labels and defaults', CU, sb, caption='Sidebar: rename any item, keep Developer tools on it, and pick default tabs')
 
 lq = (header('Links and the quick bar', '', 'Settings › Personal', tools())
@@ -307,9 +308,12 @@ dk = (header('Dark mode check', '2 problems', 'Settings › Appearance', tools()
 page_board('RDarkCheck', 'A dark mode readability check', CU, dk, dark=True, caption='Dark mode check: finds text that is hard to read in dark mode and fixes it')
 
 ph7 = phone(grid(2, card(ico('Home', 'p'), '<b>Home</b>', pad=12), card(ico('LightningBolt', 'g'), '<b>Energy</b>', pad=12), gap=10) + note('Swipe left or right to change dashboard.', 'p', 'GestureSwipeHorizontal'), 'Dashboards', 'Home')
+ph7b = phone(card(row(ico('GestureSwipeHorizontal', 'p', 32, 10, 16), col('<b>Swipe between dashboards</b>', '<span class="xs mu">Off: only the Dashboards list changes dashboard</span>', gap=0, style='flex:1'), switch(0)), pad=14)
+             + note('Swiping is off. Sliders, maps and charts get every swipe.', 'w', 'GestureSwipeHorizontal'), 'Personal settings', 'Settings', back=True)
 ph8 = phone(card(kv([('Battery', 'CR2450'), ('Added', '3 March')]), pad=14) + card('<div style="line-height:1.6">Mounted above the coat rack.<br>Battery changed 12 Oct.</div>', pad=14), 'Hall motion', 'Settings', back=True)
 ph9 = phone(card(field('Host', '192.168.1.40'), field('Port', '8080'), pad=14) + '<div class="row" style="gap:8px">' + I('ChevronRight', 20) + '<b>Advanced</b></div>', 'Add Weather station', 'Settings', back=True)
-phone_board('RPhoneEditing', 'Dashboards, notes and setup on a phone', PH, [ph7, ph8, ph9], caption='On a phone: swipe between dashboards, device notes, and setup forms that stack to one column')
+phone_board('RPhoneSwipe', 'Swiping between dashboards, and turning it off', PH, [ph7, ph7b], caption='On a phone: swipe between dashboards, or turn swiping off in Personal settings so sliders and maps get every swipe')
+phone_board('RPhoneEditing', 'Device notes and setup on a phone', PH, [ph8, ph9], caption='On a phone: device notes, and setup forms that stack to one column')
 
 phone_name = WORDS.get('phone_page', 'On a phone')
 write_index('Home Assistant Material, modern: Community requests', [
