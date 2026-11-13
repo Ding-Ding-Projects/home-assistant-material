@@ -51,9 +51,13 @@ setting, including actions you insert into a nested sequence.
 - [Play media](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_play_media):
   browse the synthetic sample, save, and reopen it. The Next track action has a target and
   needs no input values.
+- [Complete a to-do item](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_todo_item):
+  open **Update item**, choose an item from the sample **Shopping List**, and save. Use
+  **Run now** to mark the selected sample item complete, then open the sample list to see it.
 
 The demo stores automation edits in the browser. Speech is simulated, and the scene changes
-sample entities. The demo uses its own data and requires no Home Assistant account.
+sample entities. The sample list starts fresh on reload. The demo uses its own data and
+requires no Home Assistant account.
 
 The [speech editor screenshot](../../screenshots/automation-speech-dictionary-demo.png) was
 captured from the published browser demo for source `bb55f1bb6aac29b380bf6ddc1dcfad5cbcb63d8f`

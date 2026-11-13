@@ -4,6 +4,25 @@ export const demoAutomationsSections: DemoAutomation[] = [
   {
     state: "off",
     config: {
+      id: "demo_todo_item",
+      alias: "Demo: complete a shopping item",
+      description:
+        "Pick Milk from the sample Shopping List, save, and run to mark it completed. Change the action to remove an item when you want to try removal. No real list is changed.",
+      triggers: [],
+      conditions: [],
+      actions: [
+        {
+          action: "todo.update_item",
+          target: { entity_id: "todo.shopping_list" },
+          data: { item: "12", status: "completed" },
+        },
+      ],
+      mode: "single",
+    },
+  },
+  {
+    state: "off",
+    config: {
       id: "demo_play_media",
       alias: "Demo: sample media",
       description:

@@ -3,6 +3,15 @@ import type { DemoConfig } from "../types";
 
 export const demoEntitiesSections: DemoConfig["entities"] = (localize) =>
   Object.values({
+    "todo.shopping_list": {
+      entity_id: "todo.shopping_list",
+      state: "3",
+      attributes: {
+        friendly_name: "Shopping List",
+        supported_features: 15,
+        icon: "mdi:cart",
+      },
+    },
     "tts.demo_voice": {
       entity_id: "tts.demo_voice",
       state: "unknown",

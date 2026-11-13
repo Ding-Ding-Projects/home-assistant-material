@@ -32,7 +32,9 @@ Home Assistant Material interface with a sample home. The [speech options exampl
 and the [media picker example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_play_media)
 open the real automation editor. The [sample dashboard](https://ding-ding-projects.github.io/home-assistant-material/demo/#/lovelace/home)
 includes an editable Repairs card. Save a change and reopen an example to see it in your browser.
-Actions in the demo affect sample entities only.
+The [to-do item example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_todo_item)
+lets you pick an existing shopping item and mark it complete. Actions in the demo affect sample
+entities only.
 
 ## Run the container
 

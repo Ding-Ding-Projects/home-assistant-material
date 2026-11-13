@@ -182,6 +182,18 @@ export const mockDemoActions = (hass: MockHomeAssistant, host: HTMLElement) => {
             service.data,
             service.target
           );
+        } else if (
+          service.action === "todo.update_item" ||
+          service.action === "todo.remove_item"
+        ) {
+          // Only the registered synthetic list actions are allowed here.
+          // eslint-disable-next-line no-await-in-loop
+          await current.callService(
+            "todo",
+            service.action.split(".")[1],
+            service.data,
+            service.target
+          );
         } else if (service.action === "tts.speak") {
           // Each action must finish before the next simulated action starts.
           // eslint-disable-next-line no-await-in-loop
