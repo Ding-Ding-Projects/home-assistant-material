@@ -35,6 +35,7 @@ read back from here alone. 295 boards on 23 canvases, at most 15 boards on each.
 | `canvases/28-modern-features` | 45 | Features (canvases 09 to 11) in the modern look, plus the animation and transition editor and phone boards showing every feature moved, never removed; drawn by `source/modern2/g_features.py` |
 | `canvases/29-modern-polish` | 34 | Polish, decisions and dashboard tools (canvases 12 to 14 and 21) in the modern look; drawn by `source/modern2/g_polish.py` |
 | `canvases/30-modern-editors` | 32 | New automation and dashboard editor features (flow view, trace, simulator, conflicts, breakpoints, screens, visibility, interactions and more) and the problem detector everywhere, with Repairs and Teleport; drawn by `source/modern2/g_editors.py`. A personal wording file passed as `WORDING_FILE` renames the detector's words |
+| `canvases/31-modern-requests` | 17 | The most requested community features: non-destructive scene editing with a timed preview, search and replace with line numbers in the raw configuration editor, live entity states in the automation editor, the recorder database breakdown, native card styling, pop-up cards, history graph controls, default dashboards for everyone, roles, and room-first layouts, with phone boards; drawn by `source/modern2/g_requests.py` |
 
 In each canvas folder, `canvas.json` is the index (one entry per board with its frame and title)
 and every `*.dc.html` is one board, a self-contained page.

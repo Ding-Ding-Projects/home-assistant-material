@@ -1,0 +1,239 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-12T21:00:00Z"
+  },
+  "title": "Home Assistant Material, modern: Community requests",
+  "launch": {
+    "view": "canvas",
+    "page": "workflow"
+  },
+  "pages": [
+    {
+      "id": "workflow",
+      "name": "Editor and workflow: scenes, raw editor, live states, storage"
+    },
+    {
+      "id": "styling",
+      "name": "Styling: card styling, pop-ups, history graphs"
+    },
+    {
+      "id": "people",
+      "name": "Dashboards and people: defaults, roles, room-first"
+    },
+    {
+      "id": "phone",
+      "name": "On a phone"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Non-destructive scene editing",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RScenePreview.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Scene preview with automatic restore",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RRawSearch.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Search and replace in the raw configuration editor",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RRawEntity.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Swap an entity id safely",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RLiveStates.dc.html": {
+      "x": 1656,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Live entity states in the automation editor",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RStorage.dc.html": {
+      "x": 3312,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Database and storage breakdown",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RStorageEntity.dc.html": {
+      "x": 0,
+      "y": 2520,
+      "w": 1536,
+      "h": 1060,
+      "title": "One entity: why it is big and how to shrink it",
+      "expand": "fill",
+      "page": "workflow"
+    },
+    "RCardStyle.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Native card styling in the visual editor",
+      "expand": "fill",
+      "page": "styling"
+    },
+    "RPopup.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Interactive pop-up cards",
+      "expand": "fill",
+      "page": "styling"
+    },
+    "RPopupConfig.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Building a pop-up",
+      "expand": "fill",
+      "page": "styling"
+    },
+    "RHistory.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Custom history graph controls",
+      "expand": "fill",
+      "page": "styling"
+    },
+    "RDefault.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "System-wide default dashboards",
+      "expand": "fill",
+      "page": "people"
+    },
+    "RRoles.dc.html": {
+      "x": 1656,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Granular role-based access",
+      "expand": "fill",
+      "page": "people"
+    },
+    "RRolesInline.dc.html": {
+      "x": 3312,
+      "y": 0,
+      "w": 1536,
+      "h": 1060,
+      "title": "Who can see this, from any card",
+      "expand": "fill",
+      "page": "people"
+    },
+    "RRoomFirst.dc.html": {
+      "x": 0,
+      "y": 1260,
+      "w": 1536,
+      "h": 1060,
+      "title": "Room-first layouts",
+      "expand": "fill",
+      "page": "people"
+    },
+    "RPhoneWorkflow.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Scenes, raw editor and live states on a phone",
+      "expand": "fill",
+      "page": "phone"
+    },
+    "RPhoneMore.dc.html": {
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "Pop-ups, storage and roles on a phone",
+      "expand": "fill",
+      "page": "phone"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "RScenePreview.dc.html",
+    "RRawSearch.dc.html",
+    "RRawEntity.dc.html",
+    "RLiveStates.dc.html",
+    "RStorage.dc.html",
+    "RStorageEntity.dc.html",
+    "RCardStyle.dc.html",
+    "RPopup.dc.html",
+    "RPopupConfig.dc.html",
+    "RHistory.dc.html",
+    "RDefault.dc.html",
+    "RRoles.dc.html",
+    "RRolesInline.dc.html",
+    "RRoomFirst.dc.html",
+    "RPhoneWorkflow.dc.html",
+    "RPhoneMore.dc.html"
+  ],
+  "notes": {
+    "t-workflow": {
+      "x": 0,
+      "y": -320,
+      "text": "Editor and workflow: scenes, raw editor, live states, storage. 7 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "workflow"
+    },
+    "t-styling": {
+      "x": 0,
+      "y": -320,
+      "text": "Styling: card styling, pop-ups, history graphs. 4 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "styling"
+    },
+    "t-people": {
+      "x": 0,
+      "y": -320,
+      "text": "Dashboards and people: defaults, roles, room-first. 4 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "people"
+    },
+    "t-phone": {
+      "x": 0,
+      "y": -320,
+      "text": "On a phone. 2 boards, modern.",
+      "kind": "title1",
+      "maxW": 4800,
+      "page": "phone"
+    }
+  },
+  "designSystems": []
+}
