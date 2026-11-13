@@ -535,6 +535,13 @@ class PanelHome extends SubscribeMixin(LitElement) {
       position: relative;
       z-index: 5;
     }
+    /* Wide windows: the page is a card with rounded corners that clips what
+       touches its edge, so the banner is a rounded card of its own, set in
+       from the top and the sides. */
+    :host(:not([narrow])) .banner {
+      margin: var(--ha-space-4) var(--ha-space-6) 0;
+      border-radius: var(--ha-border-radius-xl);
+    }
     /* Phone: the header bar is fixed, so the banner is fixed right under it
        (below the header, which itself sits below the top inset) and the view
        is pushed down by the banner's height. */

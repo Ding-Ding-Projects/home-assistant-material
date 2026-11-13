@@ -601,8 +601,13 @@ export class HUIView extends ReactiveElement {
     if (!this._layoutElement || this._layoutElementType !== viewConfig.type) {
       addLayoutElement = true;
       this._createLayoutElement(viewConfig);
-    } else {
+    } else if (typeof this._layoutElement.setConfig === "function") {
       this._layoutElement.setConfig(viewConfig);
+    } else {
+      // The element's definition is still loading, so it has no methods yet.
+      // Make a fresh one, which is given its configuration once it is defined.
+      addLayoutElement = true;
+      this._createLayoutElement(viewConfig);
     }
     this._createBadges(viewConfig);
     this._createCards(viewConfig);

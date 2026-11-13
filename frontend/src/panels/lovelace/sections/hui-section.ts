@@ -319,8 +319,13 @@ export class HuiSection extends ConditionalListenerMixin<LovelaceSectionConfig>(
     ) {
       addLayoutElement = true;
       this._createLayoutElement(this._config);
-    } else {
+    } else if (typeof this._layoutElement.setConfig === "function") {
       this._layoutElement.setConfig(sectionConfig);
+    } else {
+      // The element's definition is still loading, so it has no methods yet.
+      // Make a fresh one, which is given its configuration once it is defined.
+      addLayoutElement = true;
+      this._createLayoutElement(this._config);
     }
 
     const fromStrategy = isStrategy || this.insideStrategy;
