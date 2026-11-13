@@ -4,6 +4,32 @@ export const demoAutomationsSections: DemoAutomation[] = [
   {
     state: "off",
     config: {
+      id: "demo_play_media",
+      alias: "Demo: sample media",
+      description:
+        "Choose a bundled sample, save and reopen the legacy media fields, then simulate playback and next track without real devices.",
+      triggers: [],
+      conditions: [],
+      actions: [
+        {
+          action: "media_player.play_media",
+          target: { entity_id: "media_player.kitchen_nest_audio" },
+          data: {
+            media_content_id: "media-source://demo/sample-tone.wav",
+            media_content_type: "music",
+          },
+        },
+        {
+          action: "media_player.media_next_track",
+          target: { entity_id: "media_player.kitchen_nest_audio" },
+        },
+      ],
+      mode: "single",
+    },
+  },
+  {
+    state: "off",
+    config: {
       id: "demo_action_options",
       alias: "Demo: door announcement",
       description:

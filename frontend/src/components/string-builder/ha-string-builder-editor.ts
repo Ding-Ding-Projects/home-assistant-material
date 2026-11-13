@@ -1,8 +1,12 @@
 import { css, html, LitElement } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, queryAll } from "lit/decorators";
 import { repeat } from "lit/directives/repeat";
 import { fireEvent } from "../../common/dom/fire_event";
+import { LanguageModeController } from "../../common/language-mode/language-mode-controller";
 import { createPiece } from "../../common/string-builder/create-piece";
+import { BUILDER_PIECE_DRAG_TYPE } from "../../common/string-builder/drag";
+import type { TextInsertion } from "../../common/string-builder/insert-piece";
+import { insertPiece } from "../../common/string-builder/insert-piece";
 import { PIECE_KINDS } from "../../common/string-builder/presets";
 import type { Piece, PieceKind } from "../../common/string-builder/types";
 import { MAX_CONDITION_DEPTH } from "../../common/string-builder/types";
@@ -16,6 +20,8 @@ import { PIECE_ICONS } from "./piece-icons";
 declare global {
   interface HASSDomEvents {
     "pieces-changed": { pieces: Piece[] };
+    "builder-text-caret": TextInsertion;
+    "builder-text-drop": TextInsertion;
   }
 }
 
@@ -24,6 +30,7 @@ const KEY = "ui.components.string_builder";
 /** An ordered list of pieces with a row of chips that add more. */
 @customElement("ha-string-builder-editor")
 export class HaStringBuilderEditor extends LitElement {
+  private _languageMode = new LanguageModeController(this);
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public pieces: Piece[] = [];
@@ -32,6 +39,13 @@ export class HaStringBuilderEditor extends LitElement {
   @property({ type: Number }) public depth = 0;
 
   @property({ type: Boolean }) public disabled = false;
+
+  private _insertion?: TextInsertion;
+  private _draggedKind?: PieceKind;
+  @queryAll("ha-string-builder-piece")
+  private _pieceElements!: NodeListOf<
+    HTMLElementTagNameMap["ha-string-builder-piece"]
+  >;
 
   protected render() {
     const kinds = PIECE_KINDS.filter(
@@ -61,6 +75,8 @@ export class HaStringBuilderEditor extends LitElement {
                       @piece-changed=${this._pieceChanged(index)}
                       @piece-remove=${this._pieceRemoved(index)}
                       @piece-move=${this._pieceMoved(index)}
+                      @builder-text-caret=${this._rememberCaret}
+                      @builder-text-drop=${this._dropPiece}
                     ></ha-string-builder-piece>
                   `
                 )}
@@ -70,6 +86,9 @@ export class HaStringBuilderEditor extends LitElement {
               ${this.hass.localize(`${KEY}.empty` as any)}
             </p>`
       }
+      <p class="placement-help">
+        ${this._languageMode.text(this.hass.localize, `${KEY}.insert_help`)}
+      </p>
       <div
         class="chips"
         role="group"
@@ -80,7 +99,10 @@ export class HaStringBuilderEditor extends LitElement {
             <ha-assist-chip
               .label=${this.hass.localize(`${KEY}.kinds.${kind}` as any)}
               ?disabled=${this.disabled}
+              draggable=${String(!this.disabled)}
               data-kind=${kind}
+              @dragstart=${this._dragStart}
+              @dragend=${this._dragEnd}
               @click=${this._addClicked}
             >
               <ha-svg-icon slot="icon" .path=${PIECE_ICONS[kind]}></ha-svg-icon>
@@ -97,7 +119,44 @@ export class HaStringBuilderEditor extends LitElement {
 
   private _addClicked(ev: Event) {
     const kind = (ev.currentTarget as HTMLElement).dataset.kind as PieceKind;
-    this._emit([...this.pieces, createPiece(kind)]);
+    if (!this.disabled) this._insert(kind);
+  }
+
+  private _rememberCaret(ev: CustomEvent<TextInsertion>) {
+    ev.stopPropagation();
+    this._insertion = ev.detail;
+  }
+
+  private _dragStart(ev: DragEvent) {
+    ev.stopPropagation();
+    if (this.disabled || !ev.dataTransfer) return;
+    this._draggedKind = (ev.currentTarget as HTMLElement).dataset
+      .kind as PieceKind;
+    ev.dataTransfer.setData(BUILDER_PIECE_DRAG_TYPE, "");
+    ev.dataTransfer.effectAllowed = "copy";
+  }
+
+  private _dragEnd() {
+    this._draggedKind = undefined;
+  }
+
+  private _dropPiece(ev: CustomEvent<TextInsertion>) {
+    ev.stopPropagation();
+    const kind = this._draggedKind;
+    this._draggedKind = undefined;
+    if (!this.disabled && kind) this._insert(kind, ev.detail);
+  }
+
+  private _insert(kind: PieceKind, position = this._insertion) {
+    this._insertion = undefined;
+    const piece = createPiece(kind);
+    this._emit(insertPiece(this.pieces, piece, position));
+    void this.updateComplete.then(() => {
+      const inserted = Array.from(this._pieceElements).find(
+        (item) => item.piece.id === piece.id
+      );
+      inserted?.focusEditor();
+    });
   }
 
   private _pieceChanged = (index: number) => (ev: CustomEvent) => {
@@ -144,6 +203,10 @@ export class HaStringBuilderEditor extends LitElement {
     }
     .empty {
       margin: 0 0 var(--ha-space-3);
+      color: var(--secondary-text-color);
+    }
+    .placement-help {
+      margin: 0 0 var(--ha-space-2);
       color: var(--secondary-text-color);
     }
     .chips {

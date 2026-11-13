@@ -1,5 +1,10 @@
 import type { LocalizeFunc } from "../../../src/common/translations/localize";
+import {
+  safeGetStored,
+  safeSetStored,
+} from "../../../src/common/preferences/safe-storage";
 import type { LovelaceDashboard } from "../../../src/data/lovelace/dashboard";
+import type { LovelaceConfig } from "../../../src/data/lovelace/config/types";
 import type { LovelaceInfo } from "../../../src/data/lovelace/resource";
 import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
 import {
@@ -13,6 +18,8 @@ import "../custom-cards/ha-demo-next-card";
 import { mockMap } from "./map";
 
 let dashboards: LovelaceDashboard[] = [];
+const dashboardKey = (path?: string | null) =>
+  `material-demo:dashboard:${selectedDemo}:${path || "default"}`;
 
 export const mockLovelace = (
   hass: MockHomeAssistant,
@@ -29,6 +36,8 @@ export const mockLovelace = (
         },
       };
     }
+    const saved = safeGetStored<LovelaceConfig>(dashboardKey(url_path));
+    if (saved) return saved;
     return Promise.all([selectedDemoConfig, localizePromise]).then(
       ([config, localize]) => config.lovelace(localize)
     );
@@ -37,7 +46,9 @@ export const mockLovelace = (
   hass.mockWS("lovelace/info", () =>
     Promise.resolve({ resource_mode: "storage" } as LovelaceInfo)
   );
-  hass.mockWS("lovelace/config/save", () => Promise.resolve());
+  hass.mockWS("lovelace/config/save", ({ url_path, config }) => {
+    safeSetStored(dashboardKey(url_path), config);
+  });
   hass.mockWS("lovelace/resources", () => Promise.resolve([]));
   hass.mockWS("lovelace/dashboards/list", () =>
     dashboards.map((dashboard) => ({ ...dashboard }))

@@ -3,15 +3,32 @@ set_watering_time:
   fields:
     watering_time:
       example: 30
+      selector:
+        number:
+          min: 1
+          max: 1800
+          mode: box
 set_pause_time:
   target:
   fields:
     pause_time:
       example: 24
+      selector:
+        number:
+          min: 1
+          max: 24
+          mode: box
 set_trigger:
   target:
   fields:
     trigger_index:
-      example: "1"
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 4
+          mode: box
     trigger:
       example: "'12707001'"
+      selector:
+        text:

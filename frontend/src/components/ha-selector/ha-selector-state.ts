@@ -31,6 +31,7 @@ export class HaSelectorState extends SubscribeMixin(LitElement) {
   @property({ type: Boolean }) public required = true;
 
   @property({ attribute: false }) public context?: {
+    common_options_only?: boolean;
     filter_attribute?: string;
     filter_entity?: string | string[];
     filter_target?: HassServiceTarget;
@@ -38,6 +39,8 @@ export class HaSelectorState extends SubscribeMixin(LitElement) {
   };
 
   @state() private _entityIds?: string | string[];
+
+  private _resolutionGeneration = 0;
 
   private _convertExtraOptions = memoizeOne(
     (
@@ -55,15 +58,48 @@ export class HaSelectorState extends SubscribeMixin(LitElement) {
   );
 
   willUpdate(changedProps: PropertyValues<this>) {
-    if (changedProps.has("selector") || changedProps.has("context")) {
+    const previousHass = changedProps.get("hass");
+    if (
+      changedProps.has("selector") ||
+      changedProps.has("context") ||
+      (changedProps.has("hass") &&
+        (!previousHass ||
+          previousHass.connection !== this.hass.connection ||
+          previousHass.entities !== this.hass.entities ||
+          previousHass.devices !== this.hass.devices ||
+          previousHass.areas !== this.hass.areas ||
+          previousHass.floors !== this.hass.floors))
+    ) {
+      const generation = ++this._resolutionGeneration;
+      const connection = this.hass.connection;
+      const context = this.context;
+      const selector = this.selector;
+      // Never show the previous target's suggestions while resolving a new one.
+      this._entityIds = undefined;
       this._resolveEntityIds(
-        this.selector.state?.entity_id,
-        this.context?.filter_entity,
-        this.context?.filter_target,
-        this.context?.target_selector
-      ).then((entityIds) => {
-        this._entityIds = entityIds;
-      });
+        selector.state?.entity_id,
+        context?.filter_entity,
+        context?.filter_target,
+        context?.target_selector
+      ).then(
+        (entityIds) => {
+          if (
+            generation !== this._resolutionGeneration ||
+            connection !== this.hass.connection ||
+            context !== this.context ||
+            selector !== this.selector
+          ) {
+            return;
+          }
+          this._entityIds = Array.isArray(entityIds)
+            ? [...new Set(entityIds)]
+            : entityIds;
+        },
+        () => {
+          // Resolution failure leaves custom values intact, without suggesting
+          // options from a stale target or connection.
+        }
+      );
     }
   }
 
@@ -75,6 +111,7 @@ export class HaSelectorState extends SubscribeMixin(LitElement) {
       return html`
         <ha-entity-states-picker
           .entityId=${this._entityIds}
+          .commonOptionsOnly=${this.context?.common_options_only ?? false}
           .attribute=${
             this.selector.state?.attribute || this.context?.filter_attribute
           }
@@ -92,6 +129,7 @@ export class HaSelectorState extends SubscribeMixin(LitElement) {
     return html`
       <ha-entity-state-picker
         .entityId=${this._entityIds}
+        .commonOptionsOnly=${this.context?.common_options_only ?? false}
         .attribute=${
           this.selector.state?.attribute || this.context?.filter_attribute
         }

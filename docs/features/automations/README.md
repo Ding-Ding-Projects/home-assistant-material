@@ -6,6 +6,7 @@
 | [`editor-and-script-editor.md`](editor-and-script-editor.md) | Automation editor motion, status bar, enable switch; the script editor | Built, not yet seen in a running build |
 | [`editor-search.md`](editor-search.md) | Search the editor, search each nested list, filter by entities | Built, see the page for what was seen |
 | [`visual-action-dictionaries.md`](visual-action-dictionaries.md) | Edit action options and additional data in Visual or YAML mode | See the examples and verification record |
+| [`action-selector-coverage.md`](action-selector-coverage.md) | First-party action selector coverage and provider metadata limits | Source inventory |
 | [`automation-tools.md`](automation-tools.md) | The Tools entry of the editor: flow, trace, simulator, replay, conflicts, plain language, steps and locks, variables, blueprint maker, health, week ahead, entity swap, breakpoints, test cases | Built, not yet seen in a running build; step validation run on a throwaway instance |
 | (same file) | Fast mode, trigger groups, Relationships, editor levels, "Add a step here", keys T, C and A (batches 52, 54) | Built, not yet seen in a running build; trigger group validation run on a throwaway instance |
 

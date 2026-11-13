@@ -3,6 +3,7 @@ import {
   createPiece,
   createTextPiece,
 } from "../../../src/common/string-builder/create-piece";
+import { insertPiece } from "../../../src/common/string-builder/insert-piece";
 import { parseTemplate } from "../../../src/common/string-builder/parse";
 import { escapeText, quote } from "../../../src/common/string-builder/quote";
 import { serializePieces } from "../../../src/common/string-builder/serialize";
@@ -24,6 +25,34 @@ const roundTrip = (pieces: Piece[]) => {
   expect(serializePieces(parsed.pieces)).toBe(template);
   return template;
 };
+
+describe("inserting a visual piece", () => {
+  it("splits existing text at the caret and preserves both sides", () => {
+    const text = createTextPiece("for the  action");
+    const state = make("state", { entity: "sensor.example" });
+    const result = insertPiece([text], state, {
+      pieceId: text.id,
+      offset: 8,
+    });
+    expect(serializePieces(result)).toBe(
+      "for the {{ states('sensor.example') }} action"
+    );
+    expect(result[0].id).toBe(text.id);
+    expect(result[1]).toBe(state);
+    expect(result[2].id).not.toBe(text.id);
+  });
+
+  it("inserts at either end and never splits a surrogate pair", () => {
+    const text = createTextPiece("a😀z");
+    const time = createPiece("datetime");
+    const positions = (offset: number) =>
+      insertPiece([text], time, { pieceId: text.id, offset });
+    expect(positions(0)[0]).toBe(time);
+    expect(positions(5)[1]).toBe(time);
+    expect(positions(2)[0]).toMatchObject({ text: "a😀" });
+    expect(positions(2)[2]).toMatchObject({ text: "z" });
+  });
+});
 
 describe("string builder text escaping", () => {
   it("quotes backslashes and single quotes", () => {

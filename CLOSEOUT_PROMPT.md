@@ -18,11 +18,15 @@ GitHub Pages published the browser demo, the complete guides and the wiki from t
 The speech example retained a saved edit after reload. Running the scene example changed its
 sample light. The 117 published article routes matched their generated source content.
 
-The live installation is still build `2026.11.1.425`, with a verified Core backup. Candidate
-build `2026.11.1.429` is queued in
+The live installation is build `2026.11.1.429`, applied at 19:56:38 UTC on 13 November 2026
+after a verified Core backup and a separate browser pass on the exact published image.
+Supervisor health was read back after the update. The appliance downloads and channel are in
 [Release run 43488530533](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43488530533).
-Verify its exact published Core image in an isolated browser session before using the Supervisor
-to update. Read back the live version and health, then verify the normal release and update feed.
+
+The follow-up adds action-specific controls, the shared dashboard editor, a dedicated Repairs
+form, and cancellable media transfers. See the automation and dashboard guides in `docs/features/`.
+Verify the expanded browser demo and repeat the isolated exact-image check before the next live
+update. The installed version and the downloadable appliance release have separate readbacks.
 
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,

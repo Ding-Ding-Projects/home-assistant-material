@@ -43,6 +43,7 @@ declare global {
 export interface UIConfigChangedEvent<T extends object = object> extends Event {
   detail: {
     config: T;
+    error?: string;
   };
 }
 
@@ -83,6 +84,10 @@ export abstract class HuiElementEditor<
 
   private _loadCount = 0;
 
+  private _editorGeneration = 0;
+
+  private _visualError?: string;
+
   public get value(): T | undefined {
     return this._config;
   }
@@ -112,7 +117,11 @@ export abstract class HuiElementEditor<
     this.updateComplete.then(() => {
       fireEvent(this, "config-changed", {
         config: this.value!,
-        error: this._errors?.join(", "),
+        error:
+          this._visualError ||
+          (this._yamlError
+            ? this.hass.localize("ui.errors.config.configuration_error")
+            : this._errors?.join(", ")),
         guiModeAvailable: !(
           this.hasWarning ||
           this.hasError ||
@@ -128,7 +137,9 @@ export abstract class HuiElementEditor<
 
   public get hasError(): boolean {
     return (
-      this._yamlError || (this._errors !== undefined && this._errors.length > 0)
+      Boolean(this._visualError) ||
+      this._yamlError ||
+      (this._errors !== undefined && this._errors.length > 0)
     );
   }
 
@@ -151,6 +162,7 @@ export abstract class HuiElementEditor<
   }
 
   public async toggleMode() {
+    if (this.GUImode && this._visualError) return;
     if (!this.GUImode) {
       this._yamlEditor?.disableCodeEditorFullscreen();
     }
@@ -341,7 +353,21 @@ export abstract class HuiElementEditor<
   private _handleUIConfigChanged(ev: UIConfigChangedEvent<T>) {
     ev.stopPropagation();
     if (!this.GUImode) return;
+    this._visualError = ev.detail.error;
+    if (this._visualError) {
+      fireEvent(this, "config-changed", {
+        config: this.value!,
+        error: this._visualError,
+        guiModeAvailable: false,
+      });
+      return;
+    }
     const config = ev.detail.config;
+    if (!config || typeof config !== "object" || Array.isArray(config)) return;
+    if (config === this.value) {
+      this._setConfig();
+      return;
+    }
     Object.keys(config).forEach((key) => {
       if (config[key] === undefined) {
         delete config[key];
@@ -352,10 +378,16 @@ export abstract class HuiElementEditor<
 
   private _handleYAMLChanged(ev: CustomEvent) {
     ev.stopPropagation();
-    if (ev.detail.isValid) {
+    if (
+      ev.detail.isValid &&
+      ev.detail.value !== null &&
+      typeof ev.detail.value === "object" &&
+      !Array.isArray(ev.detail.value)
+    ) {
       this._config = ev.detail.value;
       this._errors = undefined;
       this._yamlError = false;
+      this._visualError = undefined;
     } else {
       this._yamlError = true;
     }
@@ -363,13 +395,16 @@ export abstract class HuiElementEditor<
   }
 
   protected async unloadConfigElement(): Promise<void> {
+    this._editorGeneration += 1;
     this._configElement = undefined;
+    this._visualError = undefined;
     this._guiSupported = undefined;
   }
 
   protected async loadConfigElement(): Promise<void> {
     if (this._configElement) return;
 
+    const generation = ++this._editorGeneration;
     let configElement = await this.getConfigElement();
 
     if (!configElement) {
@@ -391,15 +426,26 @@ export abstract class HuiElementEditor<
       }
     }
 
+    if (!configElement) {
+      const { isConfigRecord } =
+        await import("./config-elements/hui-structured-config-editor");
+      if (isConfigRecord(this.value)) {
+        configElement = document.createElement("hui-structured-config-editor");
+      }
+    }
+
+    if (generation !== this._editorGeneration) return;
+
     if (configElement) {
       configElement.hass = this.hass;
       if ("lovelace" in configElement) {
         configElement.lovelace = this.lovelace;
       }
       configElement.context = this.context;
-      configElement.addEventListener("config-changed", (ev) =>
-        this._handleUIConfigChanged(ev as UIConfigChangedEvent<T>)
-      );
+      configElement.addEventListener("config-changed", (ev) => {
+        if (this._configElement !== configElement) return;
+        this._handleUIConfigChanged(ev as UIConfigChangedEvent<T>);
+      });
       this._guiSupported = true;
     } else {
       this._guiSupported = false;
@@ -418,6 +464,7 @@ export abstract class HuiElementEditor<
       this._warnings = undefined;
 
       await this.loadConfigElement();
+      if (loadNum !== this._loadCount) return;
 
       if (this._configElement) {
         // Setup GUI editor and check that it can handle the current config
@@ -447,7 +494,22 @@ export abstract class HuiElementEditor<
       }
       this.GUImode = false;
     } finally {
-      this._loading = false;
+      if (loadNum === this._loadCount) {
+        this._loading = false;
+        fireEvent(this, "config-changed", {
+          config: this.value!,
+          error:
+            this._visualError ||
+            (this._yamlError
+              ? this.hass.localize("ui.errors.config.configuration_error")
+              : this._errors?.join(", ")),
+          guiModeAvailable: !(
+            this.hasWarning ||
+            this.hasError ||
+            this._guiSupported === false
+          ),
+        });
+      }
     }
   }
 

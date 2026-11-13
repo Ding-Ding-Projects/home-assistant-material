@@ -19,12 +19,25 @@ import type { RepairsIssue } from "../../../data/repairs";
 import { subscribeRepairsIssueRegistry } from "../../../data/repairs";
 import type { CurrentUser, HomeAssistantConfig } from "../../../types";
 import { hasAction } from "../common/has-action";
-import type { LovelaceCard, LovelaceGridOptions } from "../types";
+import type {
+  LovelaceCard,
+  LovelaceCardEditor,
+  LovelaceGridOptions,
+} from "../types";
 import { tileCardStyle } from "./tile/tile-card-style";
 import type { RepairsCardConfig } from "./types";
 
 @customElement("hui-repairs-card")
 export class HuiRepairsCard extends LitElement implements LovelaceCard {
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    await import("../editor/config-elements/hui-repairs-card-editor");
+    return document.createElement("hui-repairs-card-editor");
+  }
+
+  public static getStubConfig(): RepairsCardConfig {
+    return { type: "repairs" };
+  }
+
   public connectedWhileHidden = true;
 
   @state() private _config?: RepairsCardConfig;

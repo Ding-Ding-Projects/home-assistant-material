@@ -22,8 +22,24 @@
   byte-for-byte. A physical iPhone was not used.
 - The published project page demo saved and restored a speech option and applied the sample
   reading scene. The full guides and wiki generated 117 routes, all read back on GitHub Pages.
-- Release and live deployment verification remain open for this change. Verify the exact published
-  Core image with a separate test instance before updating the existing installation.
+- The published Core 429 image from `716b7274596ba0f7f0e1677b4bcf5de9fa0236d2` passed an isolated
+  browser check of the dictionary and stylesheet upload. The live update completed at 19:56:38 UTC
+  on 13 November 2026 and the Supervisor reported healthy. The appliance release and update feed
+  have their own publication status in Release run `43488530533`.
+
+## Follow-up editor and media changes, 13 November 2026
+
+- The action form uses capability lists for compatible targets, includes a media picker for
+  existing split playback fields, and gives calendar offsets and WiLight triggers dedicated
+  controls. Manual event data uses the visual dictionary. Text pieces can be inserted at the
+  caret, and the all-actions continue-on-error setting applies when adding steps.
+- Repairs has a native visual form. Dashboard elements without a supplied editor or form use
+  the existing configuration as the basis for a structured editor. The browser demo includes
+  an editable Repairs card and synthetic media. Custom integrations can provide additional
+  control metadata and may still need manual input.
+- Media transfer and image conversion offer cancellation. Check the destination after a
+  cancelled or timed-out transfer. A physical iPhone and arbitrary third-party integrations
+  have not been verified.
 
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 

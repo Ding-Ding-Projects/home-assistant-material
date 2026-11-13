@@ -492,20 +492,22 @@ export const migrateAutomationAction = (
     "action" in action &&
     action.action === "media_player.play_media" &&
     "data" in action &&
-    ((action.data as any)?.media_content_id ||
-      (action.data as any)?.media_content_type)
+    action.data &&
+    typeof action.data === "object" &&
+    !("media" in action.data) &&
+    (("media_content_id" in action.data && action.data.media_content_id) ||
+      ("media_content_type" in action.data && action.data.media_content_type))
   ) {
-    const oldData = { ...(action.data as any) };
+    const { media_content_id, media_content_type, ...otherData } =
+      action.data as Record<string, unknown>;
     const media = {
-      media_content_id: oldData.media_content_id,
-      media_content_type: oldData.media_content_type,
+      media_content_id,
+      media_content_type,
       metadata: { ...(action.metadata || {}) },
     };
     delete action.metadata;
-    delete oldData.media_content_id;
-    delete oldData.media_content_type;
     action.data = {
-      ...oldData,
+      ...otherData,
       media,
     };
   }

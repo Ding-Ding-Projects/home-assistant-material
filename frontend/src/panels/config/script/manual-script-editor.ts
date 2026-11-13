@@ -49,6 +49,7 @@ import { documentationUrl } from "../../../util/documentation-url";
 import { showEditorToast } from "../automation/editor-toast";
 import "../automation/action/ha-automation-action";
 import "../automation/action/ha-automation-continue-on-error-all";
+import { inheritContinueOnError } from "../automation/action/continue-on-error-all";
 import "../automation/search/ha-automation-search-bar";
 import type HaAutomationAction from "../automation/action/ha-automation-action";
 import {
@@ -409,8 +410,12 @@ export class HaManualScriptEditor extends ManualEditorMixin<ScriptConfig>(
   private _sequenceChanged(ev: CustomEvent): void {
     ev.stopPropagation();
     this.resetPastedConfig();
+    const sequence = inheritContinueOnError(
+      this.config.sequence,
+      ev.detail.value as Action[]
+    );
     fireEvent(this, "value-changed", {
-      value: { ...this.config!, sequence: ev.detail.value as Action[] },
+      value: { ...this.config!, sequence },
     });
   }
 

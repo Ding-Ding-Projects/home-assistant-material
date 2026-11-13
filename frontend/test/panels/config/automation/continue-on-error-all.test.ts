@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   continueOnErrorState,
   countContinueOnErrorActions,
+  inheritContinueOnError,
   setContinueOnErrorAll,
 } from "../../../../src/panels/config/automation/action/continue-on-error-all";
 
@@ -28,6 +29,24 @@ const nested = () => [
 ];
 
 describe("continue on error for all actions", () => {
+  it("inherits the setting for added nested actions and keeps explicit edits", () => {
+    const previous = setContinueOnErrorAll(
+      [{ sequence: [{ action: "light.turn_on" }] }],
+      true
+    );
+    const next = [
+      {
+        ...previous[0],
+        sequence: [...previous[0].sequence, { action: "light.turn_off" }],
+      },
+    ];
+    expect(continueOnErrorState(inheritContinueOnError(previous, next))).toBe(
+      "all"
+    );
+    const explicitlyOff = [{ ...previous[0], continue_on_error: false }];
+    expect(inheritContinueOnError(previous, explicitlyOff)).toBe(explicitlyOff);
+  });
+
   it("reads none, all and mixed", () => {
     expect(continueOnErrorState([])).toBe("none");
     expect(continueOnErrorState([{ action: "a.b" }])).toBe("none");

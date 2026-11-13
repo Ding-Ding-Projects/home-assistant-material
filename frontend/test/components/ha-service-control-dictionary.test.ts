@@ -55,6 +55,82 @@ afterEach(() => {
 });
 
 describe("service action dictionaries", () => {
+  it("gives a filtered action field only the targets that support it", async () => {
+    const element = await mount({});
+    element.hass = {
+      ...element.hass,
+      services: {
+        light: {
+          turn_on: {
+            fields: {
+              effect: {
+                selector: { state: { attribute: "effect" } },
+                filter: { supported_features: [4] },
+              },
+            },
+            target: { entity: { domain: "light" } },
+          },
+        },
+      },
+      states: {
+        "light.effect": {
+          attributes: { supported_features: 4, effect_list: ["rainbow"] },
+        },
+        "light.basic": { attributes: { supported_features: 0 } },
+      },
+    } as unknown as HomeAssistant;
+    element.value = {
+      action: "light.turn_on",
+      target: { entity_id: ["light.effect", "light.basic"] },
+      data: { effect: "rainbow" },
+    };
+    await element.updateComplete;
+    const effect = Array.from(
+      element.shadowRoot!.querySelectorAll("ha-selector")
+    ).find((item) => Reflect.get(item, "key") === "effect");
+    expect(effect?.context).toMatchObject({
+      filter_entity: ["light.effect"],
+      common_options_only: true,
+    });
+    expect(effect?.value).toBe("rainbow");
+  });
+
+  it("emits the calendar offset in its original service field", async () => {
+    const element = await mount({});
+    element.hass = {
+      ...element.hass,
+      services: {
+        calendar: {
+          create_event: { fields: { in: { selector: { object: {} } } } },
+        },
+      },
+    } as HomeAssistant;
+    element.value = {
+      action: "calendar.create_event",
+      data: { in: { days: 1 } },
+    };
+    await element.updateComplete;
+    const adapter = element.shadowRoot!.querySelector(
+      "ha-action-field-adapter"
+    )!;
+    expect(adapter.kind).toBe("calendar-offset");
+    const changed = vi.fn();
+    element.addEventListener("value-changed", changed);
+    adapter.dispatchEvent(
+      new CustomEvent("value-changed", { detail: { value: { weeks: 2 } } })
+    );
+    expect(changed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: {
+          value: {
+            action: "calendar.create_event",
+            data: { in: { weeks: 2 } },
+          },
+        },
+      })
+    );
+  });
+
   it("keeps declared fields beside additional data instead of replacing them with YAML", async () => {
     const element = await mount({
       options: { voice: "legacy" },
@@ -92,6 +168,36 @@ describe("service action dictionaries", () => {
       "ha-selector-object"
     ) as HTMLElement & { value: unknown };
     expect(dictionary.value).toEqual({ vendor: [0, false, null] });
+  });
+  it("shows only the target picker for an action with no declared settings", async () => {
+    const element = await mount({}, {} as never);
+    element.hass = {
+      ...element.hass,
+      services: {
+        media_player: {
+          media_next_track: {
+            fields: {},
+            target: {
+              entity: { domain: "media_player", supported_features: [32] },
+            },
+          },
+        },
+      },
+    } as unknown as HomeAssistant;
+    element.value = { action: "media_player.media_next_track", data: {} };
+    await element.updateComplete;
+    expect(
+      element.shadowRoot!.querySelector(".target-selector")
+    ).not.toBeNull();
+    expect(element.shadowRoot!.querySelector("ha-selector-object")).toBeNull();
+    element.value = {
+      action: "media_player.media_next_track",
+      data: { legacy: 1 },
+    };
+    await element.updateComplete;
+    expect(
+      element.shadowRoot!.querySelector("ha-selector-object")
+    ).not.toBeNull();
   });
   it("persists an empty dictionary when enabling an optional object field", async () => {
     const element = await mount({});
@@ -178,5 +284,140 @@ describe("fallback dictionary ownership", () => {
     expect(dictionary.manualOptions.map((option) => option.key)).toContain(
       "advanced_options"
     );
+  });
+});
+
+describe("legacy play media selection", () => {
+  const mountMedia = async (
+    data: Record<string, unknown>,
+    action = "play_media",
+    fields: Record<string, unknown> = {
+      media: { required: true, selector: { media: {} } },
+    }
+  ) => {
+    const element = await mount({});
+    element.hass = {
+      ...element.hass,
+      services: {
+        media_player: {
+          [action]: { fields, target: { entity: { domain: "media_player" } } },
+        },
+      },
+    } as never;
+    element.value = {
+      action: `media_player.${action}`,
+      target: { entity_id: ["media_player.room"] },
+      data,
+    };
+    await element.updateComplete;
+    return element;
+  };
+  const field = (element: HaServiceControl, key: string) =>
+    [...element.shadowRoot!.querySelectorAll("ha-selector")].find(
+      (node) => (node as unknown as { key?: string }).key === key
+    ) as HTMLElement & { value: unknown; selector: unknown; context: unknown };
+  const change = (element: HTMLElement, value: unknown) =>
+    element.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: { value },
+        bubbles: true,
+        composed: true,
+      })
+    );
+
+  it("uses the existing media control once without rewriting legacy values on render", async () => {
+    const data = {
+      media_content_id: "https://example.test/music.mp3",
+      media_content_type: "music",
+      extra: { unchanged: true },
+    };
+    const element = await mountMedia(data);
+    expect(field(element, "media").selector).toEqual({ media: {} });
+    expect(field(element, "media").value).toEqual({
+      media_content_id: data.media_content_id,
+      media_content_type: "music",
+    });
+    expect(field(element, "media").context).toMatchObject({
+      filter_entity: ["media_player.room"],
+    });
+    expect(element.value!.data).toEqual(data);
+    const additional = element.shadowRoot!.querySelector(
+      "ha-selector-object"
+    ) as HTMLElement & { value: unknown; reservedKeys: string[] };
+    expect(additional.value).toEqual({ extra: { unchanged: true } });
+    expect(additional.reservedKeys).toContain("media_content_id");
+  });
+
+  it("updates both split fields atomically while retaining target and unrelated data", async () => {
+    const element = await mountMedia({
+      media_content_id: "old",
+      media_content_type: "music",
+      volume: 0.5,
+    });
+    let next: unknown;
+    element.addEventListener("value-changed", (event) => {
+      next = (event as CustomEvent).detail.value;
+    });
+    change(field(element, "media"), {
+      media_content_id: "media-source://music/new",
+      media_content_type: "audio/mpeg",
+      metadata: { title: "New", browse_entity_id: "media_player.room" },
+    });
+    expect(next).toEqual({
+      action: "media_player.play_media",
+      target: { entity_id: ["media_player.room"] },
+      data: {
+        media_content_id: "media-source://music/new",
+        media_content_type: "audio/mpeg",
+        volume: 0.5,
+      },
+    });
+  });
+
+  it("does not clear saved media when changing only the browse player", async () => {
+    const element = await mountMedia({
+      media_content_id: "old",
+      media_content_type: "music",
+    });
+    const changes = vi.fn();
+    element.addEventListener("value-changed", changes);
+    change(field(element, "media"), {
+      media_content_id: "",
+      media_content_type: "",
+      metadata: { browse_entity_id: "media_player.room" },
+    });
+    expect(changes).not.toHaveBeenCalled();
+    expect(element.value!.data).toEqual({
+      media_content_id: "old",
+      media_content_type: "music",
+    });
+  });
+
+  it("keeps existing nested media intact and does not treat container fields as playable media", async () => {
+    const nested = { media_content_id: "nested", media_content_type: "music" };
+    const element = await mountMedia({
+      media: nested,
+      media_content_id: "passthrough",
+    });
+    expect(field(element, "media").value).toBe(nested);
+    const browse = await mountMedia({}, "browse_media", {
+      media_content_id: { selector: { text: {} } },
+      media_content_type: { selector: { text: {} } },
+    });
+    expect(field(browse, "media_content_id").selector).toEqual({ text: {} });
+    expect(field(browse, "media")).toBeUndefined();
+  });
+
+  it("leaves template and unsupported legacy values in the dictionary route", async () => {
+    const data = {
+      media_content_id: "{{ media }}",
+      media_content_type: "music",
+    };
+    const element = await mountMedia(data);
+    const additional = element.shadowRoot!.querySelector(
+      "ha-selector-object"
+    ) as HTMLElement & { value: unknown };
+    expect(additional.value).toEqual(data);
+    expect(element.value!.data).toEqual(data);
   });
 });
