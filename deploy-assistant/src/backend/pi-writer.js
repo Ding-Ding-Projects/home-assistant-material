@@ -6,7 +6,8 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { run, waitForHttp } = require('./util');
+const { run } = require('./util');
+const readiness = require('./pi-readiness');
 
 const GB = 1024 ** 3;
 
@@ -73,15 +74,21 @@ async function write({ image, drive, onProgress, log }) {
   return p;
 }
 
-async function waitForPi(log, minutes = 30) {
-  const urls = ['http://homeassistant.local/', 'http://homeassistant.local:8123/'];
-  const end = Date.now() + minutes * 60000;
-  while (Date.now() < end) {
-    for (const u of urls) { if (await waitForHttp(u, { timeoutMs: 1, everyMs: 1 })) return u.replace(/\/$/, ''); }
-    log('The Pi is not answering yet at homeassistant.local; the first start takes several minutes.');
-    await new Promise((r) => setTimeout(r, 15000));
-  }
-  return null;
+async function waitForPi(log, minutes = 30, options = {}) {
+  const urls = options.url ? [readiness.localAddress(options.url)] : readiness.DEFAULT_URLS;
+  const probe = options.probe || readiness.probeCore;
+  const now = options.now || Date.now;
+  const pause = options.pause || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const end = now() + minutes * 60000;
+  do {
+    const found = await readiness.candidates(urls, probe);
+    const result = readiness.assessCandidates(found, options.baseline || [], !!options.url);
+    if (result.status !== 'unreachable') return result;
+    if (now() >= end) return result;
+    log('Waiting for the appliance service. Owner-account setup is not required for startup.');
+    await pause(Math.min(15000, Math.max(0, end - now())));
+  } while (now() < end);
+  return { status: 'unreachable', ownerSetup: 'unknown', piIdentity: 'unverified' };
 }
 
-module.exports = { listDrives, write, waitForPi };
+module.exports = { listDrives, write, waitForPi, baseline: readiness.candidates };

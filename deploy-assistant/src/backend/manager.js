@@ -11,13 +11,15 @@ const LABEL = { docker: 'Docker on this computer', ssh: 'SSH host', virtualbox: 
 const { KINDS } = require('./images');
 
 class Manager extends EventEmitter {
-  constructor(dataDir, { encrypt = (s) => s, decrypt = (s) => s, portCheck } = {}) {
+  constructor(dataDir, { encrypt = (s) => s, decrypt = (s) => s, portCheck, piWriter, imageFetcher } = {}) {
     super();
     this.dir = dataDir;
     this.file = path.join(dataDir, 'instances.json');
     this.encrypt = encrypt;
     this.decrypt = decrypt;
     this.portCheck = portCheck;
+    this.piWriter = piWriter;
+    this.imageFetcher = imageFetcher;
     fs.mkdirSync(dataDir, { recursive: true });
     this.db = { version: 1, instances: [], hosts: [], schedule: { on: false, time: '03:00', keep: 7, consistent: true }, autoDownload: true };
     try { Object.assign(this.db, JSON.parse(fs.readFileSync(this.file, 'utf8'))); } catch { /* first start */ }
@@ -111,8 +113,8 @@ class Manager extends EventEmitter {
     const kind = KINDS[model];
     if (!kind || !/^rpi/.test(model)) throw new Error('Choose a Raspberry Pi model.');
     if (!drive || !drive.id) throw new Error('Choose the card or drive to write.');
-    const pw = require('./pi-writer');
-    const inst = { id: 'i' + Date.now().toString(36), name: String(name || kind.label).slice(0, 60), slug: uniqueSlug(name || model, this.db.instances.map((i) => i.slug)), target: 'pi', model, port: 0, created: new Date().toISOString(), state: 'deploying', url: '', backups: [], backupsOn: false, dir: '' };
+    const pw = this.piWriter || require('./pi-writer');
+    const inst = { id: 'i' + Date.now().toString(36), name: String(name || kind.label).slice(0, 60), slug: uniqueSlug(name || model, this.db.instances.map((i) => i.slug)), target: 'pi', model, imagingVerified: false, piPhase: 'image', ownerSetup: 'unknown', piIdentity: 'unverified', port: 0, created: new Date().toISOString(), state: 'deploying', url: '', backups: [], backupsOn: false, dir: '' };
     this.db.instances.push(inst);
     this.save();
     const id = inst.id;
@@ -122,22 +124,61 @@ class Manager extends EventEmitter {
     (async () => {
       try {
         step('image', 'Getting the ' + kind.label + ' image');
-        const img = await require('./images').fetchImage(kind.re, this.cacheDir(), log, (f) => step('image', 'Downloading the ' + kind.label + ' image', f));
+        inst.piBaseline = await pw.baseline();
+        this.save();
+        const img = await (this.imageFetcher || require('./images').fetchImage)(kind.re, this.cacheDir(), log, (f) => step('image', 'Downloading the ' + kind.label + ' image', f));
         step('write', 'Writing to ' + drive.name + ' (your system asks for permission)');
-        await pw.write({ image: img.file, drive, log, onProgress: (p) => step(p.state === 'verifying' ? 'verify' : 'write', p.state === 'verifying' ? 'Checking what was written' : 'Writing to ' + drive.name, p.fraction) });
-        step('insert', 'Done writing. Put the card in the Pi, connect the network cable, and power it on');
-        log('Written and checked. Waiting for the Pi at http://homeassistant.local');
-        const url = await pw.waitForPi(log, 40);
-        if (!url) throw new Error('The card is written and checked, but no Pi answered at homeassistant.local within 40 minutes. Check its network cable; you can add its address by hand later.');
-        Object.assign(inst, { state: 'running', url, deployed: new Date().toISOString() });
-        step('done', 'Ready');
-        this.emit('done', { id, action: 'deploy', ok: true });
+        inst.piPhase = 'write';
+        const receipt = await pw.write({ image: img.file, drive, log, onProgress: (p) => {
+          inst.piPhase = p.state === 'verifying' ? 'verify' : 'write';
+          step(inst.piPhase, p.state === 'verifying' ? 'Checking what was written' : 'Writing to ' + drive.name, p.fraction);
+        } });
+        if (!receipt || receipt.state !== 'done' || !/^[a-f0-9]{64}$/i.test(receipt.sha256 || '') || !Number.isSafeInteger(receipt.written) || receipt.written <= 0) {
+          throw new Error('The writer did not return a complete read-back verification receipt.');
+        }
+        Object.assign(inst, { imagingVerified: true, imagingVerification: { written: receipt.written, sha256: receipt.sha256, verifiedAt: new Date().toISOString() }, piPhase: 'insert', state: 'awaiting-device' });
+        // This durable boundary is independent of discovery or owner setup.
+        this.save('Raspberry Pi image written and verified');
+        step('insert', 'Image verified. Insert the card, connect Ethernet and power on the Pi');
+        const result = await this.checkPi(inst, log, step, { minutes: 40 });
+        this.emit('done', { id, action: 'deploy', ok: result.status === 'ready', result, imagingVerified: true, piPhase: inst.piPhase, ownerSetup: inst.ownerSetup, piIdentity: inst.piIdentity, error: inst.lastError });
       } catch (e) {
-        inst.state = 'failed'; inst.lastError = e.message;
-        this.emit('done', { id, action: 'deploy', ok: false, error: e.message });
+        inst.state = inst.imagingVerified ? 'awaiting-device' : 'failed';
+        inst.piPhase = inst.imagingVerified ? 'unreachable' : inst.piPhase;
+        inst.lastError = e.message;
+        this.emit('done', { id, action: 'deploy', ok: false, error: e.message, imagingVerified: inst.imagingVerified, piPhase: inst.piPhase });
       } finally { delete this.busy[id]; this.save(); }
     })();
     return id;
+  }
+
+  async checkPi(inst, log, step, { minutes = 2, url } = {}) {
+    const pw = this.piWriter || require('./pi-writer');
+    // Validate explicit input before persisting it or starting a request.
+    const requested = url || (inst.piIdentity === 'address-selected' ? inst.url : undefined);
+    const selected = requested ? require('./pi-readiness').localAddress(requested) : undefined;
+    inst.piPhase = 'wait';
+    this.save();
+    step('wait', 'Waiting for the appliance service; browser owner setup can happen later');
+    const result = await pw.waitForPi(log, minutes, { baseline: inst.piBaseline || [], url: selected });
+    inst.piPhase = result.status;
+    inst.ownerSetup = result.ownerSetup || 'unknown';
+    inst.piIdentity = result.piIdentity || 'unverified';
+    inst.piCheckedAt = new Date().toISOString();
+    if (result.status === 'ready') {
+      inst.state = 'running'; inst.url = result.url; inst.deployed = inst.piCheckedAt;
+      delete inst.lastError; delete inst.piCandidateUrl;
+      step('ready', inst.ownerSetup === 'required' ? 'Appliance service ready. Create the owner account when you open it.' : 'Appliance service ready.');
+    } else {
+      inst.state = 'awaiting-device';
+      inst.piCandidateUrl = result.candidateUrl || '';
+      inst.lastError = result.status === 'ambiguous'
+        ? 'An appliance answered, but it cannot be linked to this written card. Confirm the Pi address and check that address; the verified image is kept.'
+        : 'The image is written and verified. No ready appliance was found. Check power and Ethernet, then retry discovery or enter its confirmed LAN address.';
+      step(result.status, inst.lastError);
+    }
+    this.save();
+    return result;
   }
 
   target(id) { const t = TARGETS[id]; if (!t) throw new Error('Unknown target ' + id); return t; }
@@ -209,7 +250,12 @@ class Manager extends EventEmitter {
     try {
       const full = this.withSecrets(inst);
       let res;
-      if (action === 'deploy') {
+      if (inst.target === 'pi' && (action === 'check' || (action === 'deploy' && inst.imagingVerified))) {
+        res = await this.checkPi(inst, log, step, { url: arg && typeof arg === 'object' ? arg.url : undefined });
+        this.emit('done', { id, action, ok: res.status === 'ready', result: res, imagingVerified: !!inst.imagingVerified, piPhase: inst.piPhase, ownerSetup: inst.ownerSetup, piIdentity: inst.piIdentity, error: inst.lastError });
+        return res;
+      } else if (action === 'deploy') {
+        if (inst.target === 'pi') throw new Error('Use the confirmed Write card flow to create a new image.');
         res = await t.deploy(full, log, step, { cacheDir: path.join(this.dir, 'images') });
         Object.assign(inst, { state: 'running', url: res.url, lanUrl: res.lanUrl || '', ip: full.ip || inst.ip, deployed: new Date().toISOString() });
         step('done', 'Ready');
@@ -239,7 +285,7 @@ class Manager extends EventEmitter {
       this.emit('done', { id, action, ok: true, result: res });
       return res;
     } catch (e) {
-      if (action === 'deploy') inst.state = 'failed';
+      if (action === 'deploy') inst.state = inst.target === 'pi' && inst.imagingVerified ? 'awaiting-device' : 'failed';
       inst.lastError = e.message;
       this.emit('done', { id, action, ok: false, error: e.message });
       throw e;

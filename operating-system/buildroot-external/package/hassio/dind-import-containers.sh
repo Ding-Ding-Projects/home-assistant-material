@@ -7,7 +7,7 @@ while ! docker version 2> /dev/null > /dev/null; do
 	sleep 1
 done
 
-# Install Supervisor, plug-ins and landing page
+# Install Supervisor, plug-ins and the bundled Core images.
 echo "Loading container images..."
 
 # Make sure to order images by size (largest first)

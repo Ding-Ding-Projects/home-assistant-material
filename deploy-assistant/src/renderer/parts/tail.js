@@ -2,7 +2,8 @@
   // ---------- What the computer reports ----------
   var D = { instances: [], hosts: [], schedule: { on: false, time: '03:00', keep: 7, consistent: true } };
   var checks = {}; // target -> result of its check
-  var progress = {}; // instance id -> { steps: [], fraction, log: [] , done, ok, error }
+  var progress = {};
+  var piChecks = {}; // instance id -> { steps: [], fraction, log: [] , done, ok, error }
   var activity = []; // every log line and action, newest last
   var stats = {}; // instance id -> recent CPU values
   var about = {};
@@ -20,7 +21,7 @@
   };
   var dls = [];
   var PIM = [['rpi5', 'Raspberry Pi 5'], ['rpi4', 'Raspberry Pi 4 and 400'], ['rpi3', 'Raspberry Pi 3']];
-  function stateTag(s) { var tone = { running: 'g', starting: 'p', deploying: 'p', stopped: '', failed: 'err', missing: 'a', unreachable: 'a' }[s] || ''; return '<span class="tag ' + tone + '"' + (tone === 'err' ? ' style="background:var(--errc);color:var(--on-errc)"' : '') + '>' + L(s || 'stopped') + '</span>'; }
+  function stateTag(s) { var tone = { running: 'g', starting: 'p', deploying: 'p', stopped: '', failed: 'err', missing: 'a', unreachable: 'a', 'awaiting-device': 'a' }[s] || ''; return '<span class="tag ' + tone + '"' + (tone === 'err' ? ' style="background:var(--errc);color:var(--on-errc)"' : '') + '>' + L(s || 'stopped') + '</span>'; }
   function addActivity(id, line, kind) { activity.push({ t: Date.now(), id: id, line: line, kind: kind || 'log' }); if (activity.length > 3000) activity.splice(0, 500); }
   function instName(id) { var i = D.instances.filter(function (x) { return x.id === id; })[0]; return i ? i.name : id; }
   function fmtSize(n) { return n > 1e9 ? (n / 1e9).toFixed(1) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.round((n || 0) / 1e3) + ' KB'; }
@@ -54,7 +55,8 @@
     var c = checks[t], ready = t === 'pi' || (c && c.ok);
     var stage = latest && latest.p.done && latest.p.ok ? 4 : latest && !latest.p.done ? 3 : ready ? 3 : 2;
     var names = ['Choose where', 'Check', 'Deploy', 'Open'];
-    var stepper = '<ol class="stepper" aria-label="Steps" data-k="stepper">' + names.map(function (n, i) { var k = i + 1, cls = k < stage || (k === 4 && stage === 4) ? 'ok' : k === stage ? 'cur' : ''; return '<li class="' + cls + '"' + (k === stage ? ' aria-current="step"' : '') + '><span class="sq ' + (cls === 'ok' ? 'ok' : cls === 'cur' ? 'now' : 'todo') + '">' + (cls === 'ok' ? icon('Check', 's') : k) + '</span><span class="ll ell">' + n + '</span></li>'; }).join('') + '</ol>';
+    if (t === 'pi') { var piLatest = latest ? latest.inst : D.instances.filter(function (item) { return item.target === 'pi'; }).slice(-1)[0]; names = ['piVerifyStage', 'piConnectStage', 'piBootStage', 'piOwnerStage']; stage = !piLatest || !piLatest.imagingVerified ? 1 : piReady(piLatest) ? 4 : piLatest.piPhase === 'insert' ? 2 : 3; }
+    var stepper = '<ol class="stepper" aria-label="Steps" data-k="stepper">' + names.map(function (n, i) { var k = i + 1, cls = k < stage || (k === 4 && stage === 4 && (t !== 'pi' || piLatest.ownerSetup === 'complete')) ? 'ok' : k === stage ? 'cur' : ''; return '<li class="' + cls + '"' + (k === stage ? ' aria-current="step"' : '') + '><span class="sq ' + (cls === 'ok' ? 'ok' : cls === 'cur' ? 'now' : 'todo') + '">' + (cls === 'ok' ? icon('Check', 's') : k) + '</span><span class="ll ell">' + (t === 'pi' ? L(n) : esc(n)) + '</span></li>'; }).join('') + '</ol>';
     var list = '<div class="tlist" role="listbox" aria-label="Where it runs" data-k="places">' + PLACES.map(function (p) {
       var cc = checks[p], dot = p === 'pi' ? 'g' : !cc ? '' : cc.ok ? 'g' : 'a', sub = p === 'pi' ? 'SD card or USB drive' : !cc ? 'Checking…' : cc.ok ? 'Ready' : 'Needs setup';
       var n = D.instances.filter(function (i) { return i.target === p; }).length;
@@ -62,9 +64,9 @@
     }).join('') + '</div>';
     var panel;
     if (t === 'pi') {
-      panel = '<p class="bm mu">' + esc(TDESC.pi) + '</p><div class="plan"><label><span class="ll">Model</span><select class="select" id="pimodel" aria-label="Raspberry Pi model">' + PIM.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('') + '</select></label></div>' +
-        '<div class="flow" aria-label="What happens">' + STEPS.pi.map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + esc(STEPNAME[k]) + '</span>'; }).join('') + '</div>' +
-        '<div class="wfoot"><button class="btn fill lg" data-act="pi" id="wizgo">' + icon('Harddisk', 's') + 'Choose the card and write</button><span class="bs mu">Asks which drive, then asks you to type ERASE before anything is written.</span></div>';
+      panel = '<p class="bm mu">' + L('piDescription') + '</p><div class="plan"><label><span class="ll">Model</span><select class="select" id="pimodel" aria-label="Raspberry Pi model">' + PIM.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + '</option>'; }).join('') + '</select></label></div>' +
+        '<div class="flow" aria-label="What happens">' + ['piImageStage', 'piWriteStage', 'piVerifyStage', 'piConnectStage', 'piBootStage', 'piOwnerStage'].map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + L(k) + '</span>'; }).join('') + '</div>' +
+        '<div class="wfoot"><button class="btn fill lg" data-act="pi" id="wizgo">' + icon('Harddisk', 's') + L('piChooseWrite') + '</button><span class="bs mu">' + L('piEraseHint') + '</span></div>';
     } else {
       var vm = t === 'virtualbox' || t === 'vmware', v = wiz.vals[t];
       var note = c && !c.ok ? '<div class="note"><span>' + icon('InformationOutline') + '</span><span class="bm">' + esc(c.detail) + ' ' + esc(c.fix || '') + (c.link ? ' <a href="' + esc(c.link) + '" data-ext="' + esc(c.link) + '">How to install</a>' : '') + (CHOCO_FOR[t] ? ' ' + chocoButton(CHOCO_FOR[t]) : '') + '</span></div>' : '';
@@ -79,7 +81,8 @@
         '<div class="flow" aria-label="What happens">' + STEPS[t].map(function (k, i) { return '<span class="tag">' + (i + 1) + ' · ' + esc(STEPNAME[k]) + '</span>'; }).join('') + '</div>' +
         '<div class="wfoot"><button class="btn fill lg" id="wizgo" data-act="wizgo"' + (v ? '' : ' disabled') + '>' + icon('RocketLaunch', 's') + L('deploy') + '</button><span class="kbd">Ctrl Enter</span><span class="grow"></span><button class="btn text sm" data-act="wizreset">' + icon('Restore', 's') + 'Fresh defaults</button></div>';
     }
-    var head = '<div class="row" style="gap:12px"><span class="sq big">' + icon(TICON[t]) + '</span><div class="col grow" style="gap:4px;min-width:0"><h2 class="tl">' + L(t) + '</h2>' + (t === 'pi' ? '<span class="tag g">' + icon('Check', 's') + ' Ready</span>' : !c ? '<span class="tag">Checking…</span>' : c.ok ? '<span class="tag g">' + icon('Check', 's') + ' ' + esc(c.detail) + '</span>' : '<span class="tag a">' + icon('Alert', 's') + ' Needs setup</span>') + '</div>' + (t === 'pi' ? '' : '<button class="ib" data-recheck="' + t + '" aria-label="Check ' + esc(w(t)) + ' again">' + icon('Refresh', 's') + '</button>') + '</div>';
+    if (t === 'pi' && piLatest && !progress[piLatest.id]) panel += piStatusPanel(piLatest);
+    var head = '<div class="row" style="gap:12px"><span class="sq big">' + icon(TICON[t]) + '</span><div class="col grow" style="gap:4px;min-width:0"><h2 class="tl">' + L(t) + '</h2>' + (t === 'pi' ? '<span class="tag">' + L('piPrepare') + '</span>' : !c ? '<span class="tag">Checking…</span>' : c.ok ? '<span class="tag g">' + icon('Check', 's') + ' ' + esc(c.detail) + '</span>' : '<span class="tag a">' + icon('Alert', 's') + ' Needs setup</span>') + '</div>' + (t === 'pi' ? '' : '<button class="ib" data-recheck="' + t + '" aria-label="Check ' + esc(w(t)) + ' again">' + icon('Refresh', 's') + '</button>') + '</div>';
     var running = Object.keys(progress).filter(function (id) { return D.instances.some(function (i) { return i.id === id; }) || !progress[id].done; });
     var recent = D.instances.slice().sort(function (a2, b2) { return String(b2.created).localeCompare(a2.created); }).slice(0, 5);
     return pageHead('RocketLaunch', 'New instance', 'Choose where it runs on the left; the right side already holds a free name and port. Deploy is one click.', null, '<div class="pacts">' + provenance() + (DEMO ? '<span class="tag a">Demo: nothing is deployed</span>' : '') + '</div>').replace('data-k="phead"', 'data-k="deploy-title"') + stepper +
@@ -98,8 +101,54 @@
     oneClick(t, o);
   }
 
+  function piReady(inst) { return inst.piPhase === 'ready' && !!inst.url; }
+  function piStatusPanel(inst) {
+    var verified = inst.imagingVerified === true, ready = piReady(inst), busy = !!piChecks[inst.id];
+    var heading = !verified && inst.state === 'deploying' ? 'piImaging' : ready ? 'piNetworkReady' : inst.piPhase === 'ambiguous' ? 'piAmbiguous' : busy || inst.piPhase === 'wait' ? 'piChecking' : verified ? 'piNotReady' : 'piWriteStopped';
+    var owner = inst.ownerSetup === 'complete' ? 'piOwnerComplete' : inst.ownerSetup === 'required' ? 'piOwnerHelp' : 'piOwnerUnknown';
+    return '<section class="col" style="gap:12px" aria-label="' + esc(w('piBootStage')) + '">' +
+      (DEMO ? '<p class="bs mu">' + L('piDemo') + '</p>' : '') +
+      '<p class="ll" role="status">' + L(heading) + '</p>' +
+      (verified ? '<p class="bm">' + icon('Check', 's') + ' ' + L('piImageVerified') + '</p><p class="bm mu">' + L('piConnectHelp') + '</p>' : '') +
+      (verified ? '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn tonal" data-pi-check="' + esc(inst.id) + '"' + (busy ? ' disabled' : '') + '>' + icon('Refresh', 's') + L('piRetry') + '</button><button class="btn tonal" data-pi-address="' + esc(inst.id) + '"' + (busy ? ' disabled' : '') + '>' + L('piManualAddress') + '</button></div><p class="bs mu">' + L('piNoRewrite') + '</p>' : '') +
+      (ready ? '<a class="mono bm brk" href="' + esc(inst.url) + '" data-ext="' + esc(inst.url) + '">' + esc(inst.url) + '</a>' : '') +
+      '<h4 class="tm">' + L('piOwnerStage') + '</h4><p class="bm mu">' + L(ready ? owner : 'piOwnerPending') + '</p>' +
+      '<p class="bs mu">' + L('piIdentityNote') + '</p>' +
+      (ready ? '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn fill" data-ext="' + esc(inst.url) + '">' + L('piOpenSetup') + '</button><button class="btn text" data-copy="' + esc(inst.url) + '">' + L('copy') + '</button></div>' : '') + '</section>';
+  }
+  function piProgressCard(inst, p) {
+    var keys = ['image', 'write', 'verify', 'insert', 'wait', 'owner'];
+    var labels = ['piImageStage', 'piWriteStage', 'piVerifyStage', 'piConnectStage', 'piBootStage', 'piOwnerStage'];
+    var current = keys.indexOf(inst.piPhase || p.step), verified = inst.imagingVerified === true, ready = piReady(inst);
+    var rows = keys.map(function (key, index) {
+      var done = index < 3 ? verified || index < current : index < 5 ? ready : ready && inst.ownerSetup === 'complete';
+      var active = !done && (index === current || (key === 'wait' && ['unreachable', 'ambiguous'].indexOf(inst.piPhase) >= 0));
+      var mark = done ? icon('Check', 's') : String(index + 1);
+      return '<li class="row" style="gap:12px"' + (active ? ' aria-current="step"' : '') + '><span class="sq ' + (done ? 'ok' : active ? 'now' : 'todo') + '">' + mark + '</span><span class="ll">' + L(labels[index]) + '</span></li>';
+    }).join('');
+    return '<article class="pcard" data-k="progress-' + esc(inst.id) + '"><h3 class="tm">' + esc(inst.name) + ' · ' + L('pi') + '</h3><ol class="col steps" style="gap:10px;padding:0;list-style:none">' + rows + '</ol>' + piStatusPanel(inst) +
+      (p.error ? '<p class="field-err" role="alert">' + esc(p.error) + '</p>' : '') + '<details><summary>' + L('logs') + '</summary>' + termHtml('deploy-' + inst.id, inst.name, p.log || [], { running: !p.done, prompt: 'ham ›' }) + '</details></article>';
+  }
+  async function piCheck(id, url) {
+    var inst = D.instances.filter(function (item) { return item.id === id && item.target === 'pi'; })[0];
+    if (!inst || !inst.imagingVerified || piChecks[id]) return;
+    piChecks[id] = true; render();
+    try { await API.action(id, 'check', url ? { url: url } : {}); await reload(); }
+    catch (error) { toast(error.message); }
+    finally { delete piChecks[id]; render(); }
+  }
+  function piAddressDialog(id) {
+    var inst = D.instances.filter(function (item) { return item.id === id && item.target === 'pi'; })[0];
+    if (!inst || !inst.imagingVerified) return;
+    dialog(w('piManualAddress'), '<p class="bm">' + L('piAddressHelp') + '</p><p class="bs mu">' + L('piIdentityNote') + '</p><label class="col" style="gap:4px"><span class="ll">' + L('piAddress') + '</span><input class="input mono" id="pi-address" autocomplete="off" spellcheck="false" value="' + esc(inst.url || inst.piCandidateUrl || '') + '" placeholder="http://homeassistant.local"></label><span id="pi-address-error" class="field-err" role="alert"></span><div class="row" style="gap:8px"><span class="grow"></span><button class="btn text" data-act="dlg-close">' + L('cancel') + '</button><button class="btn fill" id="pi-address-check">' + L('piCheck') + '</button></div>');
+    $('#pi-address').focus();
+    function submit() { var value = $('#pi-address').value.trim(); if (!value) { $('#pi-address-error').textContent = w('piAddressMissing'); return; } closeDialog(); piCheck(id, value); }
+    $('#pi-address-check').onclick = submit;
+    $('#pi-address').addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); submit(); } });
+  }
   function progressCard(id) {
     var p = progress[id]; var inst = D.instances.filter(function (x) { return x.id === id; })[0] || { name: id, target: 'docker' };
+    if (inst.target === 'pi') return piProgressCard(inst, p);
     var list = STEPS[inst.target] || STEPS.docker; var idx = list.indexOf(p.step);
     var rows = list.map(function (k, i) {
       var state = p.done && p.ok ? 'done' : i < idx ? 'done' : i === idx ? (p.done && !p.ok ? 'bad' : 'now') : 'todo';
@@ -148,6 +197,7 @@
       (run && i.stats ? '<div class="row" style="gap:12px"><span class="bs mu">CPU ' + i.stats.cpu.toFixed(1) + '% · memory ' + esc(i.stats.mem) + '</span><span class="grow"></span>' + spark(i.id) + '</div>' : '') +
       '<div class="row" style="gap:6px;flex-wrap:wrap">' + (i.target === 'pi' && i.state !== 'deploying' ? (i.url ? '<button class="btn fill sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button>' : '') + '<span class="bs mu">Backups and updates: inside Home Assistant on the Pi, under Settings, System.</span>' : i.state === 'deploying' ? '<button class="btn tonal sm" data-go="deploy:top">' + icon('ProgressClock', 's') + 'Show the progress</button>' : run ? '<button class="btn fill sm" data-ext="' + esc(i.url) + '">' + icon('OpenInNew', 's') + L('open') + '</button><button class="btn tonal sm" data-a="stop" data-id="' + i.id + '"' + (busy ? ' disabled' : '') + '>' + L('stop') + '</button>' : i.state === 'failed' ? '<button class="btn fill sm" data-retry="' + i.id + '">Try again</button>' : '<button class="btn fill sm" data-a="start" data-id="' + i.id + '"' + (busy ? ' disabled' : '') + '>' + L('start') + '</button>') +
       (i.target === 'pi' ? '' : '<button class="btn tonal sm" data-a="backup" data-id="' + i.id + '"' + (busy ? ' disabled' : '') + '>' + icon('BackupRestore', 's') + L('backupNow') + '</button>') + '</div>' +
+      (i.target === 'pi' ? piStatusPanel(i) : '') +
       '<details' + (view.open[i.id] ? ' open' : '') + ' data-iopen="' + i.id + '"><summary class="ll" style="cursor:pointer;min-height:40px">' + (i.backups || []).length + ((i.backups || []).length === 1 ? ' backup' : ' backups') + ' · details</summary>' +
       '<dl class="kv bs"><dt>Created</dt><dd>' + esc(when(i.created)) + '</dd><dt>Port</dt><dd>' + (i.port || 'set by VMware') + '</dd><dt>Data</dt><dd class="mono brk">' + brkPath(i.dir) + '</dd>' + (i.lanUrl ? '<dt>Other devices</dt><dd class="mono brk">' + brkPath(i.lanUrl) + '</dd>' : '') + '</dl>' +
       ((i.backups || []).slice(0, 5).map(function (b) { return '<div class="row" style="gap:8px"><span class="bs grow">' + esc(when(b.at)) + (b.note ? ' · ' + esc(b.note) : '') + (b.size ? ' · ' + fmtSize(b.size) : b.kind === 'snapshot' ? ' · snapshot' : '') + '</span><button class="btn text sm" data-restore="' + i.id + ':' + b.id + '">' + L('restore') + '</button></div>'; }).join('') || '<p class="bs mu">No backups yet.</p>') + '</details></article>';
@@ -665,6 +715,8 @@
       if (ch === 'step') { var g = progress[p.id] = progress[p.id] || { log: [], done: false }; if (p.key === 'done') return; if (g.step !== p.key) g.log.push('ham › ' + (STEPNAME[p.key] || p.key)); g.step = p.key; g.text = p.text; g.fraction = p.fraction || 0; soon(); }
       if (ch === 'busy') { addActivity(p.id, 'Working: ' + p.action, 'action'); }
       if (ch === 'done') {
+        var piInst = D.instances.filter(function (item) { return item.id === p.id && item.target === 'pi'; })[0];
+        if (piInst && (p.action === 'deploy' || p.action === 'check')) { var piProgress = progress[p.id] = progress[p.id] || { log: [] }; piProgress.done = true; piProgress.ok = p.ok; piProgress.error = p.error; piProgress.t1 = Date.now(); delete piChecks[p.id]; reload().then(function () { soon(); }); return; }
         var name = instName(p.id);
         addActivity(p.id, p.action + (p.ok ? ' finished' : ' failed: ' + p.error), 'action');
         if (p.action === 'deploy') { var pr = progress[p.id] = progress[p.id] || { log: [] }; pr.done = true; pr.ok = p.ok; pr.error = p.error; pr.t1 = Date.now(); if (p.ok) { finishedOne(); narrate('deploy', name + ' is ready to open.', name + ' 已經準備好，可以打開。'); } else narrate('deployfail', name + ' did not deploy: ' + p.error, name + ' 部署唔到：' + p.error, true); if (p.ok) { beep('on'); toast(name + ': ' + msg('deployed'), { emoji: '🎉' }); reload().then(function () { var i = D.instances.filter(function (x) { return x.id === p.id; })[0]; if (st.openAfter && i && i.url) openUrl(i.url); render(); }); } else { beep('bad'); toast(name + ': ' + msg('failedMsg') + ' ' + p.error); } }
@@ -720,7 +772,9 @@
       if ((b = t.closest('[data-options]'))) { optionsDialog(b.dataset.options); return; }
       if ((b = t.closest('[data-recheck]'))) { var tg = b.dataset.recheck; checks[tg] = null; render(); API.check(tg, tg === 'ssh' ? ($('#sshhost') || {}).value : '').then(function (r) { checks[tg] = r; render(); }); return; }
       if ((b = t.closest('[data-dismiss]'))) { delete progress[b.dataset.dismiss]; render(); return; }
-      if ((b = t.closest('[data-retry]'))) { var ri = D.instances.filter(function (x) { return x.id === b.dataset.retry; })[0]; if (ri) { delete progress[ri.id]; API.action(ri.id, 'remove', true).then(function () { oneClick(ri.target, { name: ri.name, port: ri.port, tag: ri.tag, hostId: ri.hostId }); }); } return; }
+      if ((b = t.closest('[data-pi-check]'))) { piCheck(b.dataset.piCheck); return; }
+      if ((b = t.closest('[data-pi-address]'))) { piAddressDialog(b.dataset.piAddress); return; }
+      if ((b = t.closest('[data-retry]'))) { var ri = D.instances.filter(function (x) { return x.id === b.dataset.retry; })[0]; if (ri && ri.target === 'pi') { piCheck(ri.id); return; } if (ri) { delete progress[ri.id]; API.action(ri.id, 'remove', true).then(function () { oneClick(ri.target, { name: ri.name, port: ri.port, tag: ri.tag, hostId: ri.hostId }); }); } return; }
       if ((b = t.closest('[data-a]'))) { doAction(b.dataset.id, b.dataset.a, b.dataset.a === 'backup' ? 'Manual' : undefined); return; }
       if ((b = t.closest('[data-imenu]'))) { var r = b.getBoundingClientRect(); instMenu(b.dataset.imenu, r.left - 200, r.bottom); return; }
       if ((b = t.closest('[data-restore]'))) { var pr2 = b.dataset.restore.split(':'), inst = D.instances.filter(function (x) { return x.id === pr2[0]; })[0], bk = inst && inst.backups.filter(function (x) { return x.id === pr2[1]; })[0]; if (!bk) return; superConfirm('Restore ' + inst.name, ['It goes back to ' + when(bk.at) + '.', inst.target === 'docker' || inst.target === 'ssh' ? 'The current config is kept beside it as config.before-restore.' : 'The machine is powered off and returned to the snapshot; changes since then are lost.', 'It restarts afterwards.'], 'RESTORE', function () { doAction(inst.id, 'restore', bk.id); }); return; }

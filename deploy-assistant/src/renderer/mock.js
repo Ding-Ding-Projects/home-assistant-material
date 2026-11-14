@@ -57,6 +57,17 @@
     },
     action: async function (id, a, arg) {
       var inst = db.instances.filter(function (i) { return i.id === id; })[0]; if (!inst) throw new Error('No such instance.');
+      if (inst.target === 'pi' && a === 'check') {
+        if (!inst.imagingVerified) throw new Error('The image has not been verified.');
+        if (arg && arg.url) { var checkedUrl = new URL(arg.url); if (!/^https?:$/.test(checkedUrl.protocol) || checkedUrl.username || checkedUrl.password) throw new Error('Use an HTTP or HTTPS address without credentials.'); }
+        inst.piPhase = 'wait'; emit('changed', snap());
+        later(900, function () {
+          if (arg && arg.url) { inst.url = arg.url; inst.piPhase = 'ready'; inst.state = 'running'; inst.piIdentity = 'address-selected'; inst.ownerSetup = 'required'; }
+          else { inst.piPhase = 'ambiguous'; inst.state = 'awaiting-device'; inst.piCandidateUrl = 'http://homeassistant.local'; inst.url = ''; }
+          emit('changed', snap()); emit('done', { id: id, action: 'check', ok: inst.piPhase === 'ready' });
+        });
+        return true;
+      }
       emit('busy', { id: id, action: a });
       later(900, function () {
         if (a === 'start' || a === 'restart' || a === 'update') { inst.state = 'running'; inst.stats = { cpu: 2.5, mem: '300MiB' }; }
@@ -81,10 +92,10 @@
     autoDownload: async function (on) { db.autoDownload = on; emit('changed', snap()); return on; },
     drives: async function () { await new Promise(function (r) { setTimeout(r, 500); }); return [{ id: '/dev/sdb', name: 'SanDisk Extreme microSD', size: 63864569856, bus: 'usb' }, { id: '/dev/sdc', name: 'Samsung USB Drive', size: 128043712512, bus: 'usb' }]; },
     writePi: async function (o) {
-      var inst = { id: 'i' + Date.now().toString(36), name: o.name || 'Raspberry Pi', slug: 'raspberry-pi', target: 'pi', model: o.model, port: 0, created: new Date().toISOString(), state: 'deploying', url: '', backups: [], dir: '' };
+      var inst = { id: 'i' + Date.now().toString(36), name: o.name || 'Raspberry Pi', slug: 'raspberry-pi', target: 'pi', model: o.model, imagingVerified: false, piPhase: 'image', ownerSetup: 'unknown', piIdentity: 'unverified', port: 0, created: new Date().toISOString(), state: 'deploying', url: '', backups: [], dir: '' };
       db.instances.push(inst); emit('changed', snap()); var t = 300;
-      [['image', 'Using the downloaded and checked image', 2], ['write', 'Writing to ' + o.drive.name, 12], ['verify', 'Checking what was written', 6], ['insert', 'Put the card in the Pi and power it on', 4]].forEach(function (s) { for (var i = 0; i <= s[2]; i++) (function (i) { later(t, function () { emit('step', { id: inst.id, key: s[0], text: s[1], fraction: s[2] > 4 ? i / s[2] : 0 }); }); t += 400; })(i); });
-      later(t + 200, function () { inst.state = 'running'; inst.url = 'http://homeassistant.local'; emit('done', { id: inst.id, action: 'deploy', ok: true }); emit('changed', snap()); });
+      [['image', 'Using the downloaded and checked image', 2], ['write', 'Writing to ' + o.drive.name, 12], ['verify', 'Checking what was written', 6], ['insert', 'Put the card in the Pi and power it on', 4]].forEach(function (s) { for (var i = 0; i <= s[2]; i++) (function (i) { later(t, function () { inst.piPhase = s[0]; if (s[0] === 'insert') { inst.imagingVerified = true; inst.state = 'awaiting-device'; emit('changed', snap()); } emit('step', { id: inst.id, key: s[0], text: s[1], fraction: s[2] > 4 ? i / s[2] : 0 }); }); t += 400; })(i); });
+      later(t + 200, function () { inst.state = 'awaiting-device'; inst.piPhase = 'insert'; inst.imagingVerified = true; inst.url = ''; emit('done', { id: inst.id, action: 'deploy', ok: true }); emit('changed', snap()); });
       return inst.id;
     },
     open: async function () {}, openFolder: async function () { throw new Error('The demo has no folder to open.'); }, pickKey: async function () { return ''; }, saveFile: async function () { return ''; }, win: async function () { return false; }
