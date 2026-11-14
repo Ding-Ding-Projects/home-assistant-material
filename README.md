@@ -27,6 +27,8 @@ desktop app has its own [folder](deploy-assistant/README.md).
 
 ## Try the interactive demo
 
+The [screenshot gallery](https://ding-ding-projects.github.io/home-assistant-material-gallery/) shows two reviewed automation editor workflows from synthetic browser sessions, with source revisions and capture evidence.
+
 Open the [browser demo](https://ding-ding-projects.github.io/home-assistant-material/demo/) to use the
 Home Assistant Material interface with a sample home. The [speech options example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_action_options)
 and the [media picker example](https://ding-ding-projects.github.io/home-assistant-material/demo/#/config/automation/edit/demo_play_media)

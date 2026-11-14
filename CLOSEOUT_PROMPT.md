@@ -1,5 +1,28 @@
 # Closeout prompt
 
+## Release and recovery status, 13 November 2026
+
+- The active release source remains the verified visual-editor baseline. The unfinished
+  Raspberry Pi first-boot source and the backup progress implementation notes are preserved
+  on [`recovery/raspberry-pi-first-boot-20261113`](https://github.com/Ding-Ding-Projects/home-assistant-material/tree/recovery/raspberry-pi-first-boot-20261113)
+  at `a07ea120a945597bbd57aca8442ee1e6c7bcad22`. Start with that branch's
+  `CLOSEOUT_PROMPT.md` and `HANDOFF.md`. The branch has 29 passing Deploy Assistant tests
+  and a full frontend run with 7,925 passes and the three known Windows failures.
+- The [public demo](https://ding-ding-projects.github.io/home-assistant-material/demo/) is
+  built from `69f0bbfc3c4f3b0ac14f8faefd9c6b6293fe331d`. The
+  [screenshot gallery](https://ding-ding-projects.github.io/home-assistant-material-gallery/)
+  was deployed from `664bf057c8b5c6574ef5acdad952d9061f0651d8`. The public home and
+  both original synthetic images were read back with matching hashes. The gallery has
+  a basic text filter. Full regex, display preferences, and browser interaction checks
+  are pending. Older images without verified individual provenance were withheld.
+- Build 434 published normally with 25 attachments and 12 workflow artifact groups.
+  Registry and attachment metadata were read back; matching all attachment bytes to
+  their producer output remains pending for 434. Build 436 was running at closeout.
+  The last verified live Core is `2026.11.1.431`, updated at 21:45:08 UTC on 13 November
+  2026. Before moving it, test the exact published candidate on an isolated instance and
+  verify a fresh backup through the existing Supervisor route. Keep the release channel
+  and the unfinished recovery work intact.
+
 ## Latest recovery point, 13 November 2026
 
 The task adds visual dictionary editing to automation and script actions and a working browser demo
