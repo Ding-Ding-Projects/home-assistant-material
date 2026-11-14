@@ -41,6 +41,7 @@ import type { PickerComboBoxSearchFn } from "../ha-picker-combo-box";
 import type { PickerValueRenderer } from "../ha-picker-field";
 import "../ha-svg-icon";
 import "./state-badge";
+import "./ha-entity-picker-state";
 
 const CREATE_ID = "___create-new-entity___";
 
@@ -231,6 +232,14 @@ export class HaEntityPicker extends LitElement {
         ${this._renderExtraOptionStart(extraOption)}
         <span slot="headline">${extraOption.primary}</span>
         ${
+          extraOption.entity_id
+            ? html`<ha-entity-picker-state
+                slot="supporting-text"
+                .entityId=${extraOption.entity_id}
+              ></ha-entity-picker-state>`
+            : nothing
+        }
+        ${
           extraOption.secondary
             ? html`<span slot="supporting-text">${extraOption.secondary}</span>`
             : nothing
@@ -248,6 +257,10 @@ export class HaEntityPicker extends LitElement {
           style="margin: 0 4px"
         ></ha-svg-icon>
         <span slot="headline">${entityId}</span>
+        <ha-entity-picker-state
+          slot="supporting-text"
+          .entityId=${entityId}
+        ></ha-entity-picker-state>
       `;
     }
 
@@ -267,6 +280,10 @@ export class HaEntityPicker extends LitElement {
       <state-badge .stateObj=${stateObj} slot="start"></state-badge>
       <span slot="headline">${primary}</span>
       <span slot="supporting-text">${secondary}</span>
+      <ha-entity-picker-state
+        slot="supporting-text"
+        .entityId=${entityId}
+      ></ha-entity-picker-state>
     `;
   };
 
@@ -299,6 +316,14 @@ export class HaEntityPicker extends LitElement {
               `
         }
         <span slot="headline">${item.primary}</span>
+        ${
+          item.stateObj
+            ? html`<ha-entity-picker-state
+                slot="supporting-text"
+                .entityId=${item.stateObj.entity_id}
+              ></ha-entity-picker-state>`
+            : nothing
+        }
         ${
           item.secondary
             ? html`<span slot="supporting-text">${item.secondary}</span>`

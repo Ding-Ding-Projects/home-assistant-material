@@ -1,14 +1,19 @@
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
+import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_event";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import type { LocalizeKeys } from "../../../../common/translations/localize";
 import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
+import "../../../../components/input/ha-input";
+import type { HaInput } from "../../../../components/input/ha-input";
 import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
 import type { HomeAssistant } from "../../../../types";
 import {
   capCardWidths,
+  customScreen,
+  rotateScreen,
   findWideCards,
   PHONE_GRID_COLUMNS,
   SCREENS,
@@ -34,6 +39,14 @@ export class HuiDashboardScreens extends LitElement {
   @state() private _nonce = 0;
 
   @state() private _previewing = false;
+
+  @state() private _hiddenScreens: string[] = [];
+
+  @state() private _rotatedScreens: string[] = [];
+
+  @state() private _customWidth = "";
+
+  @state() private _customHeight = "";
 
   private _t(key: string, values?: Record<string, string | number>): string {
     return this.hass.localize(
@@ -113,9 +126,53 @@ export class HuiDashboardScreens extends LitElement {
   protected render() {
     const view = this.config.views[this.view];
     const src = viewAddress(window.location.pathname, view?.path, this.view);
+    const custom = customScreen(this._customWidth, this._customHeight);
+    const screens = [...SCREENS, ...(custom ? [custom] : [])];
     return html`
       <p class="hint">${this._t("intro")}</p>
       ${this._renderWideWarning()}
+      <div class="actions" role="group" aria-label=${this._t("devices")}>
+        ${SCREENS.map(
+          (screen) => html`
+            <ha-button
+              size="s"
+              appearance=${this._hiddenScreens.includes(screen.id) ? "outlined" : "filled"}
+              aria-pressed=${this._hiddenScreens.includes(screen.id) ? "false" : "true"}
+              data-screen-id=${screen.id}
+              @click=${this._toggleScreen}
+              >${this._t(screen.id)}</ha-button
+            >
+          `
+        )}
+      </div>
+      <div class="actions custom-size">
+        <ha-input
+          type="number"
+          min="240"
+          max="3840"
+          step="1"
+          .label=${this._t("custom_width")}
+          .value=${this._customWidth}
+          @input=${this._widthChanged}
+        ></ha-input>
+        <ha-input
+          type="number"
+          min="240"
+          max="3840"
+          step="1"
+          .label=${this._t("custom_height")}
+          .value=${this._customHeight}
+          @input=${this._heightChanged}
+        ></ha-input>
+      </div>
+      ${
+        !custom && (this._customWidth || this._customHeight)
+          ? html`<ha-alert alert-type="info"
+              >${this._t("custom_invalid")}</ha-alert
+            >`
+          : nothing
+      }
+
       <div class="actions">
         <ha-button @click=${this._toggle}>
           ${this._t(this._shown ? "hide" : "show")}
@@ -131,9 +188,13 @@ export class HuiDashboardScreens extends LitElement {
       ${
         this._shown
           ? html`<div class="screens">
-              ${SCREENS.map(
-                (screen) =>
-                  html`<figure>
+              ${screens
+                .filter((screen) => !this._hiddenScreens.includes(screen.id))
+                .map((preset) => {
+                  const screen = this._rotatedScreens.includes(preset.id)
+                    ? rotateScreen(preset)
+                    : preset;
+                  return html`<figure>
                     <div
                       class="frame"
                       style=${styleMap({
@@ -157,13 +218,45 @@ export class HuiDashboardScreens extends LitElement {
                       <span class="size"
                         >${screen.width} × ${screen.height}</span
                       >
+                      <ha-button
+                        size="s"
+                        appearance="plain"
+                        aria-label=${this._t("rotate_device", { device: this._t(screen.id) })}
+                        data-screen-id=${screen.id}
+                        @click=${this._rotate}
+                        >${this._t("rotate")}</ha-button
+                      >
                     </figcaption>
-                  </figure>`
-              )}
+                  </figure>`;
+                })}
             </div>`
           : ""
       }
     `;
+  }
+
+  private _toggleScreen(ev: HASSDomCurrentTargetEvent<HTMLElement>) {
+    const id = ev.currentTarget.dataset.screenId;
+    if (!id) return;
+    this._hiddenScreens = this._hiddenScreens.includes(id)
+      ? this._hiddenScreens.filter((item) => item !== id)
+      : [...this._hiddenScreens, id];
+  }
+
+  private _rotate(ev: HASSDomCurrentTargetEvent<HTMLElement>) {
+    const id = ev.currentTarget.dataset.screenId;
+    if (!id) return;
+    this._rotatedScreens = this._rotatedScreens.includes(id)
+      ? this._rotatedScreens.filter((item) => item !== id)
+      : [...this._rotatedScreens, id];
+  }
+
+  private _widthChanged(ev: HASSDomCurrentTargetEvent<HaInput>) {
+    this._customWidth = ev.currentTarget.value ?? "";
+  }
+
+  private _heightChanged(ev: HASSDomCurrentTargetEvent<HaInput>) {
+    this._customHeight = ev.currentTarget.value ?? "";
   }
 
   private _toggle() {
@@ -181,8 +274,12 @@ export class HuiDashboardScreens extends LitElement {
     }
     .actions {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--ha-space-2);
       margin-bottom: var(--ha-space-3);
+    }
+    .custom-size ha-input {
+      flex: 1 1 160px;
     }
     ha-alert {
       display: block;

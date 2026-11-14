@@ -1,6 +1,7 @@
 """Lovelace dashboard support."""
 
 from abc import ABC, abstractmethod
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -74,6 +75,12 @@ class LovelaceConfig(ABC):
         """Save config."""
         raise HomeAssistantError("Not supported")
 
+    async def async_save_if_unchanged(
+        self, config: dict[str, Any], expected_config: dict[str, Any]
+    ) -> None:
+        """Save only if the dashboard still matches the reviewed configuration."""
+        raise HomeAssistantError("Conditional saving not supported")
+
     async def async_delete(self) -> None:
         """Delete config."""
         raise HomeAssistantError("Not supported")
@@ -107,6 +114,7 @@ class LovelaceStorage(LovelaceConfig):
         )
         self._data: dict[str, Any] | None = None
         self._json_config: json_fragment | None = None
+        self._mutation_lock = asyncio.Lock()
 
     @property
     @override
@@ -117,10 +125,11 @@ class LovelaceStorage(LovelaceConfig):
     @override
     async def async_get_info(self) -> dict[str, Any]:
         """Return the Lovelace storage info."""
-        data = self._data or await self._load()
-        if data["config"] is None:
-            return {"mode": "auto-gen"}
-        return _config_info(self.mode, data["config"])
+        async with self._mutation_lock:
+            data = self._data or await self._load()
+            if data["config"] is None:
+                return {"mode": "auto-gen"}
+            return _config_info(self.mode, data["config"])
 
     @override
     async def async_load(self, force: bool) -> dict[str, Any]:
@@ -128,24 +137,42 @@ class LovelaceStorage(LovelaceConfig):
         if self.hass.config.recovery_mode:
             raise ConfigNotFound
 
-        data = self._data or await self._load()
-        if (config := data["config"]) is None:
-            raise ConfigNotFound
+        async with self._mutation_lock:
+            data = self._data or await self._load()
+            if (config := data["config"]) is None:
+                raise ConfigNotFound
 
-        return config  # type: ignore[no-any-return]
+            return config  # type: ignore[no-any-return]
 
     @override
     async def async_json(self, force: bool) -> json_fragment:
         """Return JSON representation of the config."""
         if self.hass.config.recovery_mode:
             raise ConfigNotFound
-        if self._data is None:
-            await self._load()
-        return self._json_config or self._async_build_json()
+        async with self._mutation_lock:
+            if self._data is None:
+                await self._load()
+            return self._json_config or self._async_build_json()
 
     @override
     async def async_save(self, config: dict[str, Any]) -> None:
         """Save config."""
+        async with self._mutation_lock:
+            await self._async_save(config)
+
+    @override
+    async def async_save_if_unchanged(
+        self, config: dict[str, Any], expected_config: dict[str, Any]
+    ) -> None:
+        """Check and save under the same lock as ordinary saves and deletion."""
+        async with self._mutation_lock:
+            data = self._data or await self._load()
+            if data["config"] != expected_config:
+                raise HomeAssistantError("Dashboard changed since it was reviewed")
+            await self._async_save(config)
+
+    async def _async_save(self, config: dict[str, Any]) -> None:
+        """Save while holding the mutation lock."""
         if self.hass.config.recovery_mode:
             raise HomeAssistantError("Saving not supported in recovery mode")
 
@@ -153,21 +180,23 @@ class LovelaceStorage(LovelaceConfig):
             await self._load()
             if TYPE_CHECKING:
                 assert self._data is not None
-        self._data["config"] = config
+        data = {**self._data, "config": config}
+        await self._store.async_save(data)
+        self._data = data
         self._json_config = None
         self._config_updated()
-        await self._store.async_save(self._data)
 
     @override
     async def async_delete(self) -> None:
         """Delete config."""
-        if self.hass.config.recovery_mode:
-            raise HomeAssistantError("Deleting not supported in recovery mode")
+        async with self._mutation_lock:
+            if self.hass.config.recovery_mode:
+                raise HomeAssistantError("Deleting not supported in recovery mode")
 
-        await self._store.async_remove()
-        self._data = None
-        self._json_config = None
-        self._config_updated()
+            await self._store.async_remove()
+            self._data = None
+            self._json_config = None
+            self._config_updated()
 
     async def _load(self) -> dict[str, Any]:
         """Load the config."""

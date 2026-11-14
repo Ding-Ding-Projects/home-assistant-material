@@ -38,6 +38,7 @@ export type DryRunReason =
   | "earlier_unknown"
   | "needs_trigger"
   | "entity_not_found"
+  | "attribute_not_found"
   | "not_numeric"
   | "template_value"
   | "template_error"
@@ -117,8 +118,15 @@ interface Gate {
   reason?: DryRunReason;
 }
 
+export type DryRunHass = Pick<HomeAssistant, "states" | "callWS"> & {
+  /** Only simulation supplies a trigger ID; live dry runs leave it unset. */
+  simulatedTriggerId?: string;
+  /** Isolated snapshots omit attributes rather than observing their absence. */
+  isolatedSimulation?: boolean;
+};
+
 interface Ctx {
-  hass: Pick<HomeAssistant, "states" | "callWS">;
+  hass: DryRunHass;
   steps: DryRunStep[];
 }
 
@@ -200,6 +208,19 @@ const viaServer = async (
   ctx: Ctx,
   condition: Condition
 ): Promise<Evaluated> => {
+  if (condition.condition === "trigger" && ctx.hass.simulatedTriggerId) {
+    const ids = (condition as { id?: unknown }).id;
+    if (
+      typeof ids === "string" ||
+      (Array.isArray(ids) && ids.every((id) => typeof id === "string"))
+    ) {
+      return {
+        result: toList(ids).includes(ctx.hass.simulatedTriggerId)
+          ? "pass"
+          : "fail",
+      };
+    }
+  }
   if (condition.condition === "trigger" || readsTrigger(condition)) {
     return { result: "unknown", reason: "needs_trigger" };
   }
@@ -259,22 +280,48 @@ const evaluateState = (
   if (wanted.some((item) => hasTemplate(item))) {
     return undefined;
   }
-  // A wanted state may be the id of another entity, whose state is compared.
-  const wantedStates = wanted.map((item) => {
-    const text = String(item);
-    const other = ctx.hass.states[text];
-    return other && /^[a-z_]+\.\w+$/.test(text) ? other.state : text;
-  });
   const results: boolean[] = [];
   for (const id of ids) {
     if (!ctx.hass.states[id]) {
       return { result: "unknown", reason: "entity_not_found", detail: id };
     }
     const value = readValue(ctx, id, cond.attribute as string | undefined);
+    if (
+      ctx.hass.isolatedSimulation &&
+      cond.attribute !== undefined &&
+      value === undefined
+    ) {
+      return {
+        result: "unknown",
+        reason: "attribute_not_found",
+        detail: `${id}: ${String(cond.attribute)}`,
+      };
+    }
     if (isRecord(value) || Array.isArray(value)) {
       return undefined;
     }
-    results.push(wantedStates.includes(String(value)));
+    let matches = false;
+    // Core checks expected states in order and stops at the first match. A
+    // later missing helper must not invalidate a match already established.
+    for (const item of wanted) {
+      const text = String(item);
+      const other = ctx.hass.states[text];
+      if (
+        /^input_(?:select|text|number|boolean|datetime)\.(?!.+__)(?!_)[\da-z_]+(?<!_)$/.test(
+          text
+        ) &&
+        !other
+      ) {
+        return { result: "unknown", reason: "entity_not_found", detail: text };
+      }
+      const expected =
+        other && /^[a-z_]+\.\w+$/.test(text) ? other.state : text;
+      if (String(value) === expected) {
+        matches = true;
+        break;
+      }
+    }
+    results.push(matches);
   }
   const matched =
     cond.match === "any" ? results.some(Boolean) : results.every(Boolean);
@@ -1010,7 +1057,7 @@ const walkRepeat = async (
  * taken as given, so a template that reads it cannot be told.
  */
 export const dryRunAutomation = async (
-  hass: Pick<HomeAssistant, "states" | "callWS">,
+  hass: DryRunHass,
   config: Pick<ManualAutomationConfig, "conditions" | "actions">
 ): Promise<DryRunResult> => {
   const ctx: Ctx = { hass, steps: [] };

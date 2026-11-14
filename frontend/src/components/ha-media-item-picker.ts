@@ -19,6 +19,7 @@ import "./media-player/ha-media-browser-thumbnail";
 import { showMediaBrowserDialog } from "./media-player/show-media-browser-dialog";
 import { ensureArray } from "../common/array/ensure-array";
 import "./ha-picture-upload";
+import "./input/ha-input-copy";
 
 const MANUAL_SCHEMA = [
   { name: "media_content_id", required: false, selector: { text: {} } },
@@ -133,7 +134,7 @@ export class HaMediaItemPicker extends LitElement {
                 outlined
                 tabindex=${canOpenBrowser ? 0 : -1}
                 role="button"
-                aria-disabled=${String(!canOpenBrowser)}
+                aria-disabled=${canOpenBrowser ? "false" : "true"}
                 aria-label=${
                   !this.value?.media_content_id
                     ? this.hass.localize(
@@ -229,6 +230,44 @@ export class HaMediaItemPicker extends LitElement {
                     </div>`
                   : nothing
               }`
+      }
+      ${
+        this.value?.media_content_id
+          ? html`<details class="media-details">
+              <summary>
+                ${this.hass.localize("ui.components.selectors.media.details")}
+              </summary>
+              <div class="media-details-fields">
+                <fieldset>
+                  <legend>
+                    ${this.hass.localize("ui.components.selectors.media.media_content_id")}
+                  </legend>
+                  <ha-input-copy
+                    readonly
+                    .value=${this.value.media_content_id}
+                    .label=${this.hass.localize("ui.components.selectors.media.copy_id")}
+                  ></ha-input-copy>
+                </fieldset>
+                ${
+                  this.value.media_content_type
+                    ? html`<fieldset>
+                        <legend>
+                          ${this.hass.localize("ui.components.selectors.media.media_content_type")}
+                        </legend>
+                        <ha-input-copy
+                          readonly
+                          .value=${this.value.media_content_type}
+                          .label=${this.hass.localize("ui.components.selectors.media.copy_type")}
+                        ></ha-input-copy>
+                      </fieldset>`
+                    : nothing
+                }
+                <p>
+                  ${this.hass.localize("ui.components.selectors.media.details_note")}
+                </p>
+              </div>
+            </details>`
+          : nothing
       }
       ${
         hideEntityPicker && this.helper
@@ -366,6 +405,36 @@ export class HaMediaItemPicker extends LitElement {
   }
 
   static styles = css`
+    .media-details {
+      margin-block: var(--ha-space-2);
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-md);
+    }
+    .media-details summary {
+      cursor: pointer;
+      padding: var(--ha-space-3) var(--ha-space-4);
+      color: var(--primary-text-color);
+    }
+    .media-details summary:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .media-details-fields {
+      padding: 0 var(--ha-space-4) var(--ha-space-3);
+    }
+    .media-details-fields p {
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
+    }
+    .media-details-fields fieldset {
+      min-width: 0;
+      border: 0;
+      margin: var(--ha-space-2) 0 0;
+      padding: 0;
+    }
+    .media-details-fields legend {
+      padding: 0;
+    }
     ha-entity-picker {
       display: block;
       margin-bottom: 16px;

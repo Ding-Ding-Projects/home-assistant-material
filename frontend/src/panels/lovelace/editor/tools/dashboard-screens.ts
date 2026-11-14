@@ -10,7 +10,7 @@ import {
 } from "./dashboard-edit";
 
 export interface ScreenSize {
-  id: "phone" | "tablet" | "wall" | "desktop";
+  id: "phone" | "tablet" | "wall" | "desktop" | "custom";
   width: number;
   height: number;
   /** How much the frame is shrunk to fit beside the others. */
@@ -24,6 +24,38 @@ export const SCREENS: ScreenSize[] = [
   { id: "wall", width: 1280, height: 800, scale: 0.3 },
   { id: "desktop", width: 1440, height: 800, scale: 0.28 },
 ];
+
+/** Keep custom frames useful and bounded, without accepting partial numbers. */
+export const customScreen = (
+  width: string,
+  height: string
+): ScreenSize | undefined => {
+  const w = Number(width);
+  const h = Number(height);
+  if (
+    !Number.isInteger(w) ||
+    !Number.isInteger(h) ||
+    w < 240 ||
+    h < 240 ||
+    w > 3840 ||
+    h > 3840
+  ) {
+    return undefined;
+  }
+  return {
+    id: "custom",
+    width: w,
+    height: h,
+    scale: Math.min(0.5, 400 / w, 400 / h),
+  };
+};
+
+/** Rotate a copy so the shared presets and other frames remain untouched. */
+export const rotateScreen = (screen: ScreenSize): ScreenSize => ({
+  ...screen,
+  width: screen.height,
+  height: screen.width,
+});
 
 /**
  * Columns across the screen of a phone in a sections view: a phone shows one

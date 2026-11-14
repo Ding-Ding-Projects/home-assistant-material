@@ -10,6 +10,8 @@ import {
   mdiMenuDown,
   mdiPlay,
   mdiPlus,
+  mdiStar,
+  mdiStarOutline,
 } from "@mdi/js";
 import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
 import { css, html, LitElement, nothing } from "lit";
@@ -22,10 +24,15 @@ import {
 } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import {
+  createMediaShortcut,
+  mediaShortcutKey,
+} from "../../common/media-browser/shortcuts";
 import { filterByRegexQuery } from "../../common/regex/filter";
 import { consume } from "../../common/decorators/consume";
 import { transform } from "../../common/decorators/transform";
 import { fireEvent } from "../../common/dom/fire_event";
+import type { HASSDomCurrentTargetEvent } from "../../common/dom/fire_event";
 import { getShadowRootHost } from "../../common/dom/get-shadow-root-host";
 import { caseInsensitiveStringCompare } from "../../common/string/compare";
 import { slugify } from "../../common/string/slugify";
@@ -94,6 +101,7 @@ import type { TtsMediaPickedEvent } from "./ha-browse-media-tts";
 declare global {
   interface HASSDomEvents {
     "media-picked": MediaPickedEvent;
+    "media-favorite-toggle": MediaPickedEvent;
     "media-browsed": {
       // Items of the new browse stack
       ids: MediaPlayerItemId[];
@@ -137,6 +145,8 @@ const MANUAL_ITEM_BASE: Omit<MediaPlayerItem, "title"> = {
 @customElement("ha-media-player-browse")
 export class HaMediaPlayerBrowse extends LitElement {
   @property({ attribute: false }) public entityId?: string;
+
+  @property({ attribute: false }) public favoriteKeys?: string[];
 
   @property() public action: MediaPlayerBrowseAction = "play";
 
@@ -203,6 +213,8 @@ export class HaMediaPlayerBrowse extends LitElement {
 
   private _searchRequestId = 0;
 
+  private _browseRequestId = 0;
+
   @query(".header") private _header?: HTMLDivElement;
 
   @query(".content") private _content?: HTMLDivElement;
@@ -224,6 +236,8 @@ export class HaMediaPlayerBrowse extends LitElement {
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._browseRequestId++;
+    this._abortSearch();
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
     }
@@ -231,19 +245,22 @@ export class HaMediaPlayerBrowse extends LitElement {
 
   public async refresh() {
     const currentId = this.navigateIds[this.navigateIds.length - 1];
+    const requestId = ++this._browseRequestId;
     try {
-      this._currentItem = await this._fetchData(
+      const item = await this._fetchData(
         this.entityId,
         currentId.media_content_id,
         currentId.media_content_type
       );
+      if (requestId !== this._browseRequestId) return;
+      this._currentItem = item;
       // Update the parent with latest item.
       fireEvent(this, "media-browsed", {
         ids: this.navigateIds,
         current: this._currentItem,
       });
     } catch (err) {
-      this._setError(err);
+      if (requestId === this._browseRequestId) this._setError(err);
     }
   }
 
@@ -273,6 +290,8 @@ export class HaMediaPlayerBrowse extends LitElement {
       this["navigateIds"] | undefined;
     const navigateIds = this.navigateIds;
 
+    const requestId = ++this._browseRequestId;
+
     // We're navigating. Reset the shizzle.
     this._content?.scrollTo(0, 0);
     this.scrolled = false;
@@ -295,6 +314,7 @@ export class HaMediaPlayerBrowse extends LitElement {
     if (!changedProps.has("entityId")) {
       if (
         // Check if we navigated to a child
+        oldCurrentItem &&
         oldNavigateIds &&
         navigateIds.length === oldNavigateIds.length + 1 &&
         oldNavigateIds.every((oldVal, idx) => {
@@ -308,6 +328,7 @@ export class HaMediaPlayerBrowse extends LitElement {
         parentProm = Promise.resolve(oldCurrentItem!);
       } else if (
         // Check if we navigated to a parent
+        oldParentItem &&
         oldNavigateIds &&
         navigateIds.length === oldNavigateIds.length - 1 &&
         navigateIds.every((curVal, idx) => {
@@ -342,6 +363,7 @@ export class HaMediaPlayerBrowse extends LitElement {
       }
       currentProm.then(
         (item) => {
+          if (requestId !== this._browseRequestId) return;
           this._currentItem = item;
           fireEvent(this, "media-browsed", {
             ids: navigateIds,
@@ -350,6 +372,7 @@ export class HaMediaPlayerBrowse extends LitElement {
           this._signalInitialReady();
         },
         (err) => {
+          if (requestId !== this._browseRequestId) return;
           // When we change entity ID, we will first try to see if the new entity is
           // able to resolve the new path. If that results in an error, browse the root.
           const isNewEntityWithSamePath =
@@ -398,9 +421,14 @@ export class HaMediaPlayerBrowse extends LitElement {
       );
     }
     if (parentProm) {
-      parentProm.then((parent) => {
-        this._parentItem = parent;
-      });
+      parentProm.then(
+        (parent) => {
+          if (requestId === this._browseRequestId) this._parentItem = parent;
+        },
+        () => {
+          // A missing parent must not replace a successfully loaded current folder.
+        }
+      );
     }
   }
 
@@ -811,6 +839,9 @@ export class HaMediaPlayerBrowse extends LitElement {
     const hasKinds = mediaClassFilterOptions.length > 0;
     return html`
       <div class="search-block">
+        <div class="search-scope">
+          ${this._i18n.localize("ui.components.media-browser.search.provider_scope", { name: currentItem.title })}
+        </div>
         <div class="search-row">
           <ha-input-search
             class="search-input"
@@ -1025,17 +1056,22 @@ export class HaMediaPlayerBrowse extends LitElement {
 
   private _renderFilterRow(currentItem: MediaPlayerItem): TemplateResult {
     return html`
-      <div class="search-row">
-        <ha-input-search
-          class="search-input"
-          appearance="outlined"
-          .value=${this._filterQuery}
-          .placeholder=${this._i18n.localize(
-            "ui.components.media-browser.filter.filter_placeholder",
-            { name: currentItem.title }
-          )}
-          @input=${this._handleFilterInput}
-        ></ha-input-search>
+      <div class="search-block">
+        <div class="search-scope">
+          ${this._i18n.localize("ui.components.media-browser.filter.loaded_scope")}
+        </div>
+        <div class="search-row">
+          <ha-input-search
+            class="search-input"
+            appearance="outlined"
+            .value=${this._filterQuery}
+            .placeholder=${this._i18n.localize(
+              "ui.components.media-browser.filter.filter_placeholder",
+              { name: currentItem.title }
+            )}
+            @input=${this._handleFilterInput}
+          ></ha-input-search>
+        </div>
       </div>
     `;
   }
@@ -1223,6 +1259,7 @@ export class HaMediaPlayerBrowse extends LitElement {
       <div class="child" .item=${child} @click=${this._childClicked}>
         <ha-card outlined>
           <div class="thumbnail">
+            ${this._renderFavorite(child)}
             ${
               child.thumbnail
                 ? html`
@@ -1339,9 +1376,44 @@ export class HaMediaPlayerBrowse extends LitElement {
               </div>`
         }
         <span class="title">${child.title}</span>
+        ${this._renderFavorite(child, "meta")}
       </ha-list-item>
     `;
   };
+
+  private _renderFavorite(
+    item: MediaPlayerItem,
+    slot = ""
+  ): TemplateResult | typeof nothing {
+    if (!this.favoriteKeys) return nothing;
+    const entry = createMediaShortcut(item, this.navigateIds, this.entityId);
+    if (!entry) return nothing;
+    const selected = this.favoriteKeys.includes(mediaShortcutKey(entry));
+    return html`<ha-icon-button
+      class="favorite-star"
+      slot=${slot}
+      .path=${selected ? mdiStar : mdiStarOutline}
+      .label=${this._i18n.localize(
+        selected
+          ? "ui.components.media-browser.shortcuts.remove_favorite"
+          : "ui.components.media-browser.shortcuts.add_favorite",
+        { name: item.title }
+      )}
+      aria-pressed=${String(selected)}
+      .item=${item}
+      @click=${this._favoriteClicked}
+    ></ha-icon-button>`;
+  }
+
+  private _favoriteClicked(
+    ev: HASSDomCurrentTargetEvent<HTMLElement & { item: MediaPlayerItem }>
+  ) {
+    ev.stopPropagation();
+    fireEvent(this, "media-favorite-toggle", {
+      item: ev.currentTarget.item,
+      navigateIds: this.navigateIds,
+    });
+  }
 
   private _actionClicked = (ev: MouseEvent): void => {
     ev.stopPropagation();
@@ -1618,6 +1690,11 @@ export class HaMediaPlayerBrowse extends LitElement {
           flex-direction: column;
           gap: var(--ha-space-2);
           min-width: 0;
+        }
+        .search-scope {
+          color: var(--secondary-text-color);
+          font-size: var(--ha-font-size-s);
+          padding-bottom: var(--ha-space-1);
         }
         .search-row {
           display: flex;
@@ -1932,6 +2009,16 @@ export class HaMediaPlayerBrowse extends LitElement {
         .child .icon {
           color: #00a9f7; /* Match the png color from brands repo */
           --mdc-icon-size: calc(var(--media-browse-item-size, 175px) * 0.4);
+        }
+
+        .child .favorite-star {
+          position: absolute;
+          inset-block-start: var(--ha-space-1);
+          inset-inline-start: var(--ha-space-1);
+          z-index: 1;
+          border-radius: var(--ha-border-radius-circle);
+          color: var(--primary-text-color);
+          background: var(--card-background-color);
         }
 
         .child .play {

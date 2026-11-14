@@ -4,11 +4,16 @@ import { customElement, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { searchMatcher } from "../../../../common/regex/filter";
 import "../../../../components/ha-button";
-import "../../../../components/input/ha-input";
+import "../../../../components/entity/ha-entity-picker";
+import { showConfirmationDialog } from "../../../../dialogs/generic/show-dialog-box";
+import type { ValueChangedEvent } from "../../../../types";
 import "../../../../components/input/ha-input-search";
 import type { HaInputSearch } from "../../../../components/input/ha-input-search";
 import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
-import { replaceEntity } from "../dashboard-tools";
+import {
+  applyEntityReplacementReview,
+  reviewEntityReplacement,
+} from "./entity-replacement";
 import type { EntityRow } from "./entity-inspector";
 import { inspectEntities } from "./entity-inspector";
 import { ToolView } from "./tools-base";
@@ -20,6 +25,8 @@ export class HuiToolEntities extends ToolView {
   @state() private _selected?: string;
 
   @state() private _replacement = "";
+
+  @state() private _reviewing = false;
 
   private _rows = memoizeOne(
     (config: LovelaceConfig, states: ToolView["hass"]["states"]) =>
@@ -73,14 +80,16 @@ export class HuiToolEntities extends ToolView {
               aria-label=${this._t("entities.swap")}
             >
               <span class="mono">${this._selected}</span>
-              <ha-input
+              <ha-entity-picker
                 class="grow"
+                .allowCustomEntity=${true}
+                .disabled=${this._busy || this._reviewing}
                 .label=${this._t("entities.replacement")}
                 .value=${this._replacement}
-                @input=${this._replacementChanged}
-              ></ha-input>
+                @value-changed=${this._replacementChanged}
+              ></ha-entity-picker>
               <ha-button
-                .disabled=${!this._replacement.trim() || this._busy}
+                .disabled=${!this._replacement.trim() || this._replacement === this._selected || this._busy || this._reviewing}
                 @click=${this._swap}
               >
                 ${this._t("entities.swap")}
@@ -146,10 +155,9 @@ export class HuiToolEntities extends ToolView {
     this._filter = (ev.target as HaInputSearch).value ?? "";
   }
 
-  private _replacementChanged(ev: Event) {
-    this._replacement = (
-      (ev.target as HTMLElement & { value?: string }).value ?? ""
-    ).trim();
+  private _replacementChanged(ev: ValueChangedEvent<string | undefined>) {
+    ev.stopPropagation();
+    this._replacement = ev.detail.value?.trim() ?? "";
   }
 
   private _select(ev: Event) {
@@ -166,13 +174,44 @@ export class HuiToolEntities extends ToolView {
   private async _swap() {
     const from = this._selected;
     const to = this._replacement;
-    if (!from || !to) {
+    const lovelace = this._lovelace;
+    if (
+      !from ||
+      !to ||
+      from === to ||
+      !lovelace ||
+      this._busy ||
+      this._reviewing
+    ) {
       return;
     }
+    const userId = this.hass.user?.id;
+    this._reviewing = true;
     try {
-      const count = replaceEntity(this._config!, from, to).count;
+      const review = reviewEntityReplacement(lovelace.config, from, to);
+      const count = review.count;
+      if (!count) {
+        return;
+      }
+      const confirmed = await showConfirmationDialog(this, {
+        title: this._t("entities.swap"),
+        text: this._t("entities.confirm_swap", { from, to, count }),
+        confirmText: this._t("entities.swap"),
+      });
+      if (!confirmed) {
+        return;
+      }
       const ok = await this._save(
-        (config) => replaceEntity(config, from, to).config,
+        (config) => {
+          if (this._lovelace !== lovelace || this.hass.user?.id !== userId) {
+            throw new Error(this._t("entities.changed_since_review"));
+          }
+          const replacement = applyEntityReplacementReview(config, review);
+          if (!replacement) {
+            throw new Error(this._t("entities.changed_since_review"));
+          }
+          return replacement;
+        },
         this._t("entities.swapped", { from, to, count })
       );
       if (ok) {
@@ -181,6 +220,8 @@ export class HuiToolEntities extends ToolView {
       }
     } catch (err: unknown) {
       this._fail(err);
+    } finally {
+      this._reviewing = false;
     }
   }
 }

@@ -25,7 +25,6 @@ import { ifDefined } from "lit/directives/if-defined";
 import { live } from "lit/directives/live";
 import memoizeOne from "memoize-one";
 import { consume } from "../../common/decorators/consume";
-import { transform } from "../../common/decorators/transform";
 import type { HASSDomTargetEvent } from "../../common/dom/fire_event";
 import { fireEvent } from "../../common/dom/fire_event";
 import { stopPropagation } from "../../common/dom/stop_propagation";
@@ -43,7 +42,6 @@ import { getConfigEntry } from "../../data/config_entries";
 import {
   apiContext,
   configContext,
-  formattersContext,
   internationalizationContext,
   labelsContext,
   registriesContext,
@@ -72,13 +70,11 @@ import {
   type TargetType,
 } from "../../data/target";
 import { showMoreInfoDialog } from "../../dialogs/more-info/show-ha-more-info-dialog";
-import type {
-  HomeAssistantFormatters,
-  HomeAssistantRegistries,
-} from "../../types";
+import type { HomeAssistantRegistries } from "../../types";
 import { brandsUrl } from "../../util/brands-url";
 import type { HaDevicePickerDeviceFilterFunc } from "../device/ha-device-picker";
 import "../entity/state-badge";
+import "../entity/ha-entity-picker-state";
 import { floorDefaultIconPath } from "../ha-floor-icon";
 import "../ha-button";
 import "../ha-checkbox";
@@ -205,16 +201,6 @@ export class HaTargetPickerItemRow extends LitElement {
   @state()
   @consume({ context: internationalizationContext, subscribe: true })
   private _i18n!: ContextType<typeof internationalizationContext>;
-
-  @state()
-  @consume({ context: formattersContext, subscribe: true })
-  @transform<
-    HomeAssistantFormatters,
-    HomeAssistantFormatters["formatEntityState"]
-  >({
-    transformer: (formatters) => formatters?.formatEntityState,
-  })
-  private _formatEntityState!: HomeAssistantFormatters["formatEntityState"];
 
   @consume({ context: apiContext, subscribe: true })
   private _api!: ContextType<typeof apiContext>;
@@ -395,11 +381,15 @@ export class HaTargetPickerItemRow extends LitElement {
               ${this._i18n.localize("ui.components.target-picker.excluded_by")}
               ${excludedBy.map((item) => this._renderExcludedBy(item))}
             </span>`
-          : stateObject && this.subEntry
-            ? html`<span slot="supporting-text" class="state"
-                >${this._formatEntityState(stateObject)}</span
-              >`
-            : nothing
+          : nothing
+      }
+      ${
+        this.type === "entity"
+          ? html`<ha-entity-picker-state
+              slot="supporting-text"
+              .entityId=${this.itemId}
+            ></ha-entity-picker-state>`
+          : nothing
       }
       ${
         !this.subEntry && entries && showEntities

@@ -2297,7 +2297,36 @@
         "discard": "放棄更改",
         "save_failed": "儲存唔到：{message}"
       },
+      "selectors": {
+        "media": {
+          "details": "媒體詳情",
+          "copy_id": "複製媒體 ID",
+          "copy_type": "複製媒體類型",
+          "details_note": "呢啲係原本揀選嘅值。複製唔會更改選擇或開始播放。"
+        }
+      },
       "media-browser": {
+        "selection_mode": "只揀媒體：喺呢度揀媒體唔會開始播放。",
+        "playback_mode": "播放模式：媒體會喺 {player} 播放。",
+        "shortcuts": {
+          "title": "最愛同最近揀過嘅媒體",
+          "favorites": "最愛",
+          "recents": "最近揀過",
+          "add_favorite": "將 {name} 加入最愛",
+          "remove_favorite": "由最愛移除 {name}",
+          "clear_recents": "清除最近揀過嘅記錄",
+          "empty": "呢個播放器同位置冇已儲存項目。",
+          "explanation": "為你嘅帳戶儲存喺呢部裝置。捷徑只會開啟所在資料夾，唔會開始播放。最多保留 50 個最愛同 20 個最近揀過嘅項目。",
+          "storage_failed": "儲存唔到媒體捷徑。瀏覽器儲存空間可能被封鎖或已滿。"
+        },
+        "breadcrumbs": "媒體位置",
+        "location_level": "位置 {level}",
+        "search": {
+          "provider_scope": "由 {name} 提供搜尋"
+        },
+        "filter": {
+          "loaded_scope": "只篩選此資料夾內已載入的項目"
+        },
         "file_management": {
           "title": "媒體管理",
           "manage": "管理",

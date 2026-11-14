@@ -45,12 +45,16 @@ export const fetchConfig = (
 export const saveConfig = (
   hass: HomeAssistant,
   urlPath: string | null,
-  config: LovelaceRawConfig
+  config: LovelaceRawConfig,
+  expectedConfig?: LovelaceRawConfig
 ): Promise<void> =>
   hass.callWS({
     type: "lovelace/config/save",
     url_path: urlPath,
     config,
+    ...(expectedConfig === undefined
+      ? {}
+      : { expected_config: expectedConfig }),
   });
 
 export const deleteConfig = (

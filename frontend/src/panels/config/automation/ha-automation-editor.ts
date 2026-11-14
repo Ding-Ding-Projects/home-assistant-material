@@ -1648,7 +1648,13 @@ export class HaAutomationEditor extends AutomationScriptEditorMixin<AutomationCo
     this._toolsOpen = false;
     await this.updateComplete;
     if (this.shadowRoot && this.config) {
-      showStepRow(this.shadowRoot, this.config, ev.detail.path);
+      if (!showStepRow(this.shadowRoot, this.config, ev.detail.path)) {
+        showEditorToast(this, {
+          message: this.hass.localize(
+            "ui.panel.config.automation.editor.tools.flow.step_not_visible"
+          ),
+        });
+      }
     }
   };
 
