@@ -256,11 +256,12 @@ Taken from a running instance with a small sample home: three lights, two locks,
 and three scenes. The last one is the published container image run as it is; the others are
 that container with the frontend of this repository mounted into it.
 
-The first eight are from a published build on 13 November 2026, run as it is with a small
-test home: the side navigation pane, the page as its own card and the floating tool pill.
-Seven are from build 2026.11.1.413; the animation page is from build 2026.11.1.371, because
-a food toast covered part of the newer capture. Earlier versions of the replaced pictures are
-in this file's history.
+The first nine are from a published build, run as it is with a small test home: the side
+navigation pane, the page as its own card and the floating tool pill. Home, settings home,
+the System page, home on a phone, the automation editor and the Updates page are from build
+2026.11.1.437 (13 November 2026); storage and performance are from build 2026.11.1.413; the
+animation page is from build 2026.11.1.371. Earlier versions of the replaced pictures are in
+this file's history.
 
 ![Home: the navigation pane, a greeting, and a card for what needs attention](docs/screenshots/home-greeting.png)
 ![Settings home: a large title, a search and a grid of sections with live counts](docs/screenshots/settings-home.png)
@@ -273,6 +274,7 @@ in this file's history.
 ![The local dashboard fallback editor at 360 pixels with icon, navigation, and entity ordering controls](docs/screenshots/dashboard-visual-fallback-360.png)
 ![Storage: a ring for the recorder database and the entities that use the most](docs/screenshots/storage-page.png)
 ![Performance: how a dashboard loads, and the offline cache](docs/screenshots/performance-page.png)
+![Updates: automatic updates for everything, with a backup first](docs/screenshots/updates-page.png)
 ![The Devices list: breadcrumb, large title with a summary line, rows as cards](docs/screenshots/list-page-devices.png)
 ![Search this page, with the matches highlighted](docs/screenshots/page-tools-find.png)
 ![Export this page](docs/screenshots/page-tools-export.png)

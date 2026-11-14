@@ -730,6 +730,32 @@ product matching it.
     release workflow needs `channel`); one checkout; no stash; no throwaway containers left.
     Nothing was deleted.
 
+- Build 2026.11.1.437, 13 and 14 November. The container engine on the host had stopped;
+  it was started again, the browser pass on the published image had no page errors (84
+  captures), and the live instance moved to 437 at 23:51 Toronto time on 13 November.
+  Release `v2026.11.1.437` was read back as a normal release.
+  - Used for real on a throwaway instance of that image and seen working: automatic updates
+    (a row switched on installed by itself and read "Updated automatically at 23:55";
+    "update everything" installed the rest; kept over a reload; no overflow on a phone),
+    "Continue on error for all actions" (saved YAML carries it on all seven actions including
+    nested ones; "Some actions" when they differ; removed from all when switched off), the
+    visual dictionary editor (all entry types, Visual and YAML in step, invalid YAML refused,
+    rows stack on a phone), the automation bar as a footer clear of the side pane, dark theme
+    edges, table toolbars and phone device rows. The protected rows of automatic updates
+    could not be seen there (no such update entities in the demo set).
+  - Seen wrong in 437, not fixed: the automation tools sheet on a phone stops its content
+    about 168 px above the bottom of the sheet, so the flow view cuts its fourth node and
+    other tools have a card or button cut (`ha-automation-tools-panel.ts`, the stage's block
+    size against the dialog's); the session clock on a phone is right on the Devices page
+    but sits on the bottom bar on the home page and over a card on Settings
+    (`attention-modes.ts`, `home-assistant-main.ts`); the storage page shows "NaN rows" for
+    an entity and in the growth line; the Lights page shows its title three times; the
+    label of the continue-on-error switch does not toggle it; the bar's status text wraps to
+    three lines with the side pane open. History has no "compare with an earlier period"
+    control.
+  - README pictures: six are from build 437 (the Updates page is new). A first set taken by
+    a helper was thrown away unused because its test home carried an unsuitable name.
+
 The Docker engine restarted again at about 10:29 am Toronto time. This time the full-mode
 container came back by itself, but the address did not answer for about ten minutes. Cause: the
 local front proxy (a small nginx container outside this repository that forwards port 8123 to
