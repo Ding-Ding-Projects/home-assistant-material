@@ -55,6 +55,85 @@ afterEach(() => {
 });
 
 describe("service action dictionaries", () => {
+  it("presents a saved Number value with shared bounds without rewriting it", async () => {
+    const element = await mount({});
+    element.hass = {
+      ...element.hass,
+      services: {
+        number: {
+          set_value: {
+            fields: { value: { required: true, selector: { text: {} } } },
+            target: { entity: { domain: "number" } },
+          },
+        },
+      },
+      states: {
+        "number.first": { attributes: { min: 0, max: 20, step: 1 } },
+        "number.second": { attributes: { min: 5, max: 15, step: 0.5 } },
+      },
+    } as unknown as HomeAssistant;
+    const target = { entity_id: ["number.first", "number.second"] };
+    element.value = {
+      action: "number.set_value",
+      target,
+      data: { value: "08.0" },
+    };
+    await element.updateComplete;
+    const selector = Array.from(
+      element.shadowRoot!.querySelectorAll("ha-selector")
+    ).find((field) => Reflect.get(field, "key") === "value")!;
+    expect(selector.selector).toEqual({
+      number: { min: 5, max: 15, mode: "box", step: "any" },
+    });
+    expect(selector.value).toBe(8);
+    expect(element.value!.data!.value).toBe("08.0");
+    const edits = vi.fn();
+    element.addEventListener("value-changed", edits);
+    selector.dispatchEvent(
+      new CustomEvent("value-changed", { detail: { value: 9 } })
+    );
+    expect(edits.mock.calls[0][0].detail.value).toEqual({
+      action: "number.set_value",
+      target,
+      data: { value: 9 },
+    });
+  });
+
+  it("keeps legacy date text and templates beside native dates", async () => {
+    const element = await mount({});
+    element.hass = {
+      ...element.hass,
+      services: {
+        google: {
+          create_event: {
+            fields: {
+              start_date: { selector: { text: {} } },
+              end_date: { selector: { text: {} } },
+              end_date_time: { selector: { text: {} } },
+            },
+            target: { entity: { domain: "calendar" } },
+          },
+        },
+      },
+    } as unknown as HomeAssistant;
+    const data = {
+      start_date: "2026-11-13",
+      end_date: "2026-11-4",
+      end_date_time: "{{ end }}",
+    };
+    element.value = { action: "google.create_event", data };
+    await element.updateComplete;
+    const fields = new Map(
+      Array.from(element.shadowRoot!.querySelectorAll("ha-selector")).map(
+        (field) => [Reflect.get(field, "key"), field.selector]
+      )
+    );
+    expect(fields.get("start_date")).toEqual({ date: {} });
+    expect(fields.get("end_date")).toEqual({ text: {} });
+    expect(fields.get("end_date_time")).toEqual({ template: null });
+    expect(element.value!.data).toEqual(data);
+  });
+
   it("gives a filtered action field only the targets that support it", async () => {
     const element = await mount({});
     element.hass = {

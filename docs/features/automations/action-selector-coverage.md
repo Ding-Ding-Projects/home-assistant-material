@@ -24,16 +24,17 @@ field, regardless of its internal structure.
 | Targeted actions with no declared fields | 176 |
 | Leaf fields of targeted actions | 788 |
 | Leaf fields with a selector | 788 |
-| Leaf fields with a text selector | 189 |
+| Leaf fields with a text selector | 188 |
 | Leaf fields without a selector | 0 |
 
 Selector counts for the 788 leaf fields are shown below. The action form also provides
-dedicated controls for Calendar offsets, to-do items, and WiLight triggers.
+dedicated controls for Calendar offsets, to-do items, WiLight triggers, Number values,
+and compatible date and time fields.
 
 | Selector | Fields | Selector | Fields |
 | --- | ---: | --- | ---: |
-| Number | 256 | Text | 189 |
-| Select | 91 | Boolean | 75 |
+| Number | 256 | Text | 188 |
+| Select | 92 | Boolean | 75 |
 | Object | 69 | State | 25 |
 | Duration | 19 | Date and time | 17 |
 | Media | 10 | Date | 8 |
@@ -60,21 +61,24 @@ service data field, and others register descriptions or capabilities at runtime.
 | Lock and alarm | Codes are manually entered. Entity metadata can describe a code requirement or format without providing the code itself. |
 | Vacuum | Fan speed uses the entity's speed list. Raw commands are integration-specific, and the vacuum domain exposes no shared command catalogue. |
 | Notify | Message and title are free-form. A notification entity can advertise whether it supports a title. |
-| Input helpers | Select values come from the selected entity's options. Input text remains free-form. Replacing an input select's options takes new values supplied by the user. |
+| Input helpers | Select values come from the selected entity's options. Input text remains free-form. Compatible date and datetime values use native controls. |
+| Number | The action uses a numeric input and the common range reported by selected entities. The range and unit are omitted when they cannot be determined from the targets. |
 | Remote | Activity names come from the published activity list. Harmony activity IDs and Android TV app IDs or links can still be entered manually. Remote commands and device identifiers do not have a portable list across providers. |
 | Siren | Tone choices come from the entity's published tones and preserve numeric or string values. Duration uses a numeric input in seconds. |
 | Media player | Play media uses the media selector. Source and sound mode use the selected player's lists. Browse and search can accept optional container IDs with provider-specific semantics. |
 | Text-to-speech | The speech engine supplies supported options and may supply voices for the action language. For multiple engines, shared choices depend on metadata from each engine. |
-| Calendar | Choose a relative offset in days or weeks for an all-day event. |
+| Calendar | Choose a relative offset in days or weeks for an all-day event. Google Calendar offers pickers for compatible dates and local datetimes. Saved timezone-bearing or legacy formats remain editable as text. |
 | To-do | For Update item and Remove item, choose existing items from a single selected list you can read. The saved value is the item ID. Names and templates are also accepted where the action supports them. |
 | ONVIF | The PTZ action offers cached presets reported by the selected cameras. Several cameras must share a preset identifier for the picker to suggest it. You can enter a known identifier manually. |
 | Sensibo | Climate React offers known keys for the high- and low-temperature states. Power and temperature have typed controls, and the operating-mode picker uses modes shared by the selected Sensibo entities. Mode-dependent fan and swing values are entered as documented by the provider. |
 | WiLight | Choose weekdays, time, and whether the trigger is active. Watering time, pause time, and trigger index use bounded number controls. |
+| Yamaha | Choose one of the six menu cursor commands accepted by the receiver action. |
 
 The recent metadata changes are in the [remote](../../../core/homeassistant/components/remote/services.yaml),
 [MELCloud](../../../core/homeassistant/components/melcloud/services.yaml),
 [siren](../../../core/homeassistant/components/siren/services.yaml),
-[ONVIF](../../../core/homeassistant/components/onvif/services.yaml), and
+[ONVIF](../../../core/homeassistant/components/onvif/services.yaml),
+[Yamaha](../../../core/homeassistant/components/yamaha/services.yaml), and
 [WiLight](../../../core/homeassistant/components/wilight/services.yaml) action descriptions.
 The frontend connects state-based selectors to their corresponding
 [entity capability lists](../../../frontend/src/common/entity/get_states.ts). The source

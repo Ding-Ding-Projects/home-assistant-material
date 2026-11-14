@@ -20,9 +20,14 @@ import {
 import { computeDomain } from "../common/entity/compute_domain";
 import { LanguageModeController } from "../common/language-mode/language-mode-controller";
 import { computeObjectId } from "../common/entity/compute_object_id";
+import {
+  numberActionInputValue,
+  numberActionValueSelector,
+} from "../common/entity/number-action-value";
 import { supportsFeature } from "../common/entity/supports-feature";
 import { hasTemplate } from "../common/string/has-template";
 import { actionFieldAdapterKind } from "../data/action-field-adapters";
+import { getActionDateSelector } from "../data/action-date-selectors";
 import {
   fetchIntegrationManifest,
   type IntegrationManifest,
@@ -884,6 +889,30 @@ export class HaServiceControl extends LitElement {
       this._value?.action === "siren.turn_on" && dataField.key === "tone"
         ? sirenToneChoices(this.hass, fieldEntities)
         : [];
+    const usesNumberValue =
+      this._value?.action === "number.set_value" &&
+      dataField.key === "value" &&
+      dataField.selector &&
+      "text" in dataField.selector;
+    const numberValue = usesNumberValue
+      ? numberActionInputValue(fieldValue)
+      : undefined;
+    const numberSelector =
+      usesNumberValue &&
+      !fieldDataHasTemplate &&
+      (fieldValue === undefined || numberValue !== undefined)
+        ? numberActionValueSelector(
+            fieldEntities,
+            this.hass.states,
+            numberValue
+          )
+        : undefined;
+    const declaredSelector = getActionDateSelector(
+      this._value?.action,
+      dataField.key,
+      dataField.selector,
+      fieldValue
+    );
     const selector: Selector =
       fieldDataHasTemplate && typeof fieldValue === "string"
         ? { template: null }
@@ -892,7 +921,7 @@ export class HaServiceControl extends LitElement {
           : (this._stickySelector[dataField.key] ??
             (toneOptions.length
               ? { select: { options: toneOptions, custom_value: true } }
-              : (dataField?.selector ?? { object: {} })));
+              : (numberSelector ?? declaredSelector ?? { object: {} })));
 
     if (fieldDataHasTemplate) {
       // Hold this selector type until the field is cleared
@@ -910,6 +939,12 @@ export class HaServiceControl extends LitElement {
     }
 
     const inline = isBooleanSelector(selector);
+    const selectorValue =
+      numberSelector && selector === numberSelector
+        ? numberValue
+        : toneOptions.length && typeof fieldValue === "number"
+          ? String(fieldValue)
+          : fieldValue;
     const label =
       this.hass.localize(
         `component.${domain}.services.${serviceName}.fields.${dataField.key}.name`,
@@ -976,7 +1011,7 @@ export class HaServiceControl extends LitElement {
             .selector=${selector}
             .key=${dataField.key}
             @value-changed=${this._serviceDataChanged}
-            .value=${toneOptions.length && typeof fieldValue === "number" ? String(fieldValue) : fieldValue}
+            .value=${selectorValue}
             .placeholder=${dataField.default}
             .localizeValue=${this._localizeValueCallback}
             .required=${dataField.required}

@@ -257,6 +257,8 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Verify camera and climate providers on representative hardware. Built demo checks
       selected an ONVIF preset and a shared Sensibo mode with synthetic metadata. The action
       coverage guide records where provider-supplied metadata is still needed.
+- [ ] Verify the Number action range, compatible date fields, and Yamaha cursor picker
+      in a built candidate.
 - [ ] Verify dashboard resource upload, media saving and the phone layout on the released build.
 
 - [x] Test buttons on every condition and every Choose option

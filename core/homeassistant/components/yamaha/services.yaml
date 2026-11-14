@@ -22,7 +22,14 @@ menu_cursor:
     cursor:
       example: down
       selector:
-        text:
+        select:
+          options:
+            - down
+            - left
+            - return
+            - right
+            - select
+            - up
 select_scene:
   target:
     entity:

@@ -46,6 +46,14 @@ from `b288cdb27626caea30dcaf1914fb81fc3f8d9b42` completed the sample to-do actio
 dashboard configuration after reopening. Verify the deployed demo and exact published Core
 image before applying a live update.
 
+The published demo from `dc71e1cf9bf5d300a5fbea9ac70eb2fae34129f9` completed the sample
+to-do action, retained WAV after reload, and served all 120 guides. A WebKit emulation
+check saved a to-do selection and kept the bottom navigation visible during scrolling.
+The associated Core release run is
+[43529200649](https://github.com/Ding-Ding-Projects/home-assistant-material/actions/runs/43529200649).
+Additional Number, date, and Yamaha controls preserve compatible saved values and have
+focused coverage. Build and verify the exact candidate before deployment.
+
 A continuation note for whoever picks this project up next. It records state up to the commits
 named below and claims nothing beyond them. The authoritative lists are `docs/feature-status.md`,
 `ROADMAP.md` and `HANDOFF.md`.

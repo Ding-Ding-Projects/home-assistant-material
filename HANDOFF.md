@@ -86,6 +86,11 @@
   three Windows build-management failures. Two existing gallery imports still fail the type
   check. Deployed demo and exact published Core acceptance remain separate.
 
+The later action-field changes add range-aware Number inputs, calendar controls for values
+the native pickers can represent, and the six Yamaha menu commands. Existing numeric strings
+stay in the saved action until edited. Noncanonical date strings and timezone-bearing values
+retain text editing. Browser verification for this batch is recorded separately.
+
 Written 9 November 2026 and brought up to date on 11 November 2026 (after batches 18 to 23, the last of them commit `5fbf6d91b`) for whoever picks this up next.
 
 ## Batches 34 and 35, 12 November 2026 (late morning): read this first
