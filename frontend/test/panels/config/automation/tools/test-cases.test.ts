@@ -256,3 +256,38 @@ describe("stored cases", () => {
     });
   });
 });
+
+describe("simulated trigger persistence", () => {
+  it("preserves trigger IDs in imported test situations and ignores invalid values", () => {
+    const saved = {
+      id: "arrival",
+      name: "Arrival branch",
+      situation: { time: "18:00", overrides: [], triggerId: "arrived" },
+      expectRun: [],
+      expectSkip: [],
+    };
+    expect(parseStoredCases([saved])[0].situation.triggerId).toBe("arrived");
+    expect(
+      parseStoredCases([
+        { ...saved, situation: { ...saved.situation, triggerId: 3 } },
+      ])[0].situation.triggerId
+    ).toBeUndefined();
+  });
+});
+
+describe("isolated situation persistence", () => {
+  it("retains explicit isolation and preserves defaults for older cases", () => {
+    const saved = {
+      id: "isolated",
+      name: "Only supplied states",
+      situation: { time: "18:00", overrides: [], useLiveStates: false },
+      expectRun: [],
+      expectSkip: [],
+    };
+    expect(parseStoredCases([saved])[0].situation.useLiveStates).toBe(false);
+    const older = { ...saved, situation: { time: "18:00", overrides: [] } };
+    expect(
+      parseStoredCases([older])[0].situation.useLiveStates
+    ).toBeUndefined();
+  });
+});

@@ -1,5 +1,6 @@
 """Test the Lovelace initialization."""
 
+import asyncio
 from collections.abc import Generator
 import time
 from typing import Any
@@ -12,6 +13,7 @@ from pytest_homeassistant.typing import WebSocketGenerator
 from homeassistant.components import frontend
 from homeassistant.components.lovelace import DOMAIN, const, dashboard
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
 
@@ -847,3 +849,78 @@ async def test_lovelace_info_yaml_mode_fallback(
     response = await client.receive_json()
     assert response["success"]
     assert response["result"] == {"resource_mode": "yaml"}
+
+
+async def test_guarded_dashboard_save(
+    hass: HomeAssistant,
+    hass_ws_client: WebSocketGenerator,
+) -> None:
+    """A stale restore cannot overwrite a newer dashboard through the API."""
+    assert await async_setup_component(hass, DOMAIN, {})
+    client = await hass_ws_client(hass)
+    original = {"views": [], "custom": {"keep": True}}
+    newer = {"views": [{"title": "Newer"}]}
+    restored = {"strategy": {"type": "custom:test", "opaque": {"keep": True}}}
+    await client.send_json(
+        {"id": 1, "type": "lovelace/config/save", "config": original}
+    )
+    assert (await client.receive_json())["success"]
+    await client.send_json({"id": 2, "type": "lovelace/config/save", "config": newer})
+    assert (await client.receive_json())["success"]
+    await client.send_json(
+        {
+            "id": 3,
+            "type": "lovelace/config/save",
+            "config": restored,
+            "expected_config": original,
+        }
+    )
+    response = await client.receive_json()
+    assert not response["success"]
+    assert "changed" in response["error"]["message"]
+    await client.send_json({"id": 4, "type": "lovelace/config"})
+    assert (await client.receive_json())["result"] == newer
+    await client.send_json(
+        {
+            "id": 5,
+            "type": "lovelace/config/save",
+            "config": restored,
+            "expected_config": newer,
+        }
+    )
+    assert (await client.receive_json())["success"]
+    await client.send_json({"id": 6, "type": "lovelace/config"})
+    assert (await client.receive_json())["result"] == restored
+
+
+async def test_concurrent_guarded_dashboard_saves(hass: HomeAssistant) -> None:
+    """Only one restore with the same expected base may succeed."""
+    storage = dashboard.LovelaceStorage(hass, None)
+    original = {"views": []}
+    first = {"views": [{"title": "First"}]}
+    second = {"views": [{"title": "Second"}]}
+    await storage.async_save(original)
+    results = await asyncio.gather(
+        storage.async_save_if_unchanged(first, original),
+        storage.async_save_if_unchanged(second, original),
+        return_exceptions=True,
+    )
+    assert results[0] is None
+    assert isinstance(results[1], HomeAssistantError)
+    assert await storage.async_load(False) == first
+
+
+async def test_guarded_dashboard_storage_failure(hass: HomeAssistant) -> None:
+    """A failed guarded save leaves the old config and publishes no update."""
+    storage = dashboard.LovelaceStorage(hass, None)
+    original = {"views": []}
+    await storage.async_save(original)
+    events = async_capture_events(hass, const.EVENT_LOVELACE_UPDATED)
+    with (
+        patch.object(storage._store, "async_save", side_effect=OSError("disk full")),
+        pytest.raises(OSError, match="disk full"),
+    ):
+        await storage.async_save_if_unchanged({"views": [{"title": "New"}]}, original)
+    assert await storage.async_load(False) == original
+    await hass.async_block_till_done()
+    assert not events

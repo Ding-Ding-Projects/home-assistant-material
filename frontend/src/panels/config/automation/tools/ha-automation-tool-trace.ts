@@ -3,7 +3,9 @@ import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
+import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-alert";
+import "../../../../components/ha-button";
 import "../../../../components/ha-spinner";
 import "../../../../components/ha-svg-icon";
 import type {
@@ -15,6 +17,7 @@ import { haStyle } from "../../../../resources/styles";
 import { getErrorMessage } from "../run-helpers";
 import type { AutomationToolContext } from "./registry";
 import { stepKindIcon } from "./step-icons";
+import { canShowTraceStep } from "./trace-editor";
 import type { TraceFact, TraceRow } from "./trace-overlay";
 import { buildTraceRows, formatDuration } from "./trace-overlay";
 
@@ -35,6 +38,8 @@ export class HaAutomationToolTrace extends LitElement {
   @state() private _error?: string;
 
   @state() private _selected?: number;
+
+  private _requestId = 0;
 
   private _t(key: string, vars?: Record<string, string | number>) {
     return this.context.hass.localize(
@@ -71,12 +76,23 @@ export class HaAutomationToolTrace extends LitElement {
 
   private async _select(runId: string) {
     const { hass, automationId } = this.context;
+    const requestId = ++this._requestId;
     this._runId = runId;
     this._selected = undefined;
+    this._trace = undefined;
+    this._error = undefined;
     try {
-      this._trace = await loadTrace(hass, "automation", automationId!, runId);
+      const trace = await loadTrace(hass, "automation", automationId!, runId);
+      // A slower request must not overwrite a more recently selected run.
+      if (this._requestId !== requestId) {
+        return;
+      }
+      this._trace = trace;
       this._error = undefined;
     } catch (err) {
+      if (this._requestId !== requestId) {
+        return;
+      }
       this._trace = undefined;
       this._error = getErrorMessage(err);
     }
@@ -92,6 +108,19 @@ export class HaAutomationToolTrace extends LitElement {
     ).index;
   }
 
+  private _showSelectedStep() {
+    if (!this._trace || this._selected === undefined) {
+      return;
+    }
+    const row = buildTraceRows(this._trace)[this._selected];
+    if (
+      row &&
+      canShowTraceStep(this._trace.config, this.context.config, row.path)
+    ) {
+      fireEvent(this, "tool-show-step", { path: row.path });
+    }
+  }
+
   private _fact(fact: TraceFact): string {
     return this._t(`fact.${fact.key}` as any, fact.values);
   }
@@ -105,7 +134,7 @@ export class HaAutomationToolTrace extends LitElement {
     if (this._loading) {
       return html`<ha-spinner size="small"></ha-spinner>`;
     }
-    if (this._error && !this._trace) {
+    if (this._error && !this._runs?.length) {
       return html`<ha-alert alert-type="error">${this._error}</ha-alert>`;
     }
     if (!this._runs?.length) {
@@ -115,6 +144,10 @@ export class HaAutomationToolTrace extends LitElement {
     const total = rows.reduce((sum, r) => sum + (r.durationMs ?? 0), 0);
     const selected =
       this._selected === undefined ? undefined : rows[this._selected];
+    const canShowSelected =
+      selected &&
+      this._trace &&
+      canShowTraceStep(this._trace.config, this.context.config, selected.path);
     return html`
       <p class="hint">${this._t("note")}</p>
       <div class="runs" role="listbox" aria-label=${this._t("runs")}>
@@ -146,11 +179,31 @@ export class HaAutomationToolTrace extends LitElement {
             </p>`
           : nothing
       }
+      ${!this._trace && !this._error ? html`<ha-spinner size="small"></ha-spinner>` : nothing}
+      ${
+        this._error
+          ? html`<ha-alert alert-type="error">${this._error}</ha-alert>`
+          : nothing
+      }
       <div class="grid">
         <ul class="rows">
           ${rows.map((row, index) => this._renderRow(row, index, total))}
         </ul>
         <section class="vars">
+          ${
+            selected
+              ? html`
+                  <ha-button
+                    appearance="outlined"
+                    ?disabled=${!canShowSelected}
+                    @click=${this._showSelectedStep}
+                  >
+                    ${this.context.hass.localize("ui.panel.config.automation.editor.tools.flow.show_step")}
+                  </ha-button>
+                  ${!canShowSelected ? html`<p class="hint">${this._t("step_changed")}</p>` : nothing}
+                `
+              : nothing
+          }
           <h3>${this._t("variables")}</h3>
           ${
             selected?.variables

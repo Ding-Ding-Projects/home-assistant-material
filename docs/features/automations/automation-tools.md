@@ -8,7 +8,7 @@ Built in batches 44 and 48.
 | --- | --- |
 | Flow | The automation as a flow with a minimap; a node jumps to its step |
 | Trace | Lists stored runs |
-| Simulator | Dry run on the existing check: time, weekday, zone, state and numeric conditions; anything else is reported as "cannot tell"; never calls a service |
+| Simulator | Dry run on the existing check: time, weekday, zone, state, numeric, and explicit trigger-ID conditions; anything else is reported as "cannot tell"; never calls a service |
 | Replay | Replays a recorded day from real history |
 | Conflicts | Static detection of possible conflicts and loops, worded as possibilities |
 | Plain language | The configuration as sentences; two sentence patterns turn into a draft (more patterns in batch 48) |
@@ -63,3 +63,27 @@ Unit tested. The step validation was run for real on a throwaway instance (steps
 `editor_locked` validate). Nothing in the tool dialogs has been seen in a browser except that the
 editor shows one floating action bar and one Save in published build 348. State: built, unit
 tested, not yet seen in a running build.
+
+## Trace-to-editor navigation
+
+Selecting a recorded trace step now offers **Show this step in the editor**.
+Navigation is available only when the step at that path still matches the recorded
+configuration, so a historical run cannot silently point to a different edited or
+reordered step. Changed or removed steps retain their recorded details in the
+trace tool. Hidden rows produce guidance to expand their parents or use the visual
+editor; they are not automatically unfolded.
+
+Rapid run selection discards older responses, clears obsolete details while loading,
+and leaves the run picker available after a failed request. No automation is executed
+by this navigation. The matching logic has focused unit coverage; browser verification
+is still required.
+
+### Simulated trigger conditions
+
+The Simulator and editor test-case situation form accept an optional simulated trigger ID. This lets a test follow `trigger` conditions inside branches without firing a real trigger. The ID is retained when editor test cases are saved or exported. An unset ID leaves trigger conditions undecided; it does not assume the first configured trigger. Templates that read trigger variables remain undecided. Simulation never calls a service or writes entity state.
+
+Verified with focused simulation, saved-case, and dry-run unit tests. Running-UI verification remains pending.
+
+### Isolated situations
+
+The Simulator and editor test-case situation form can disable current-state fallback. With **Use current states for entities without overrides** off, only explicitly supplied states exist in the simulated run. No live attributes are inherited for those entities. Missing entities produce an unknown result, not a guessed pass or failure. The setting is saved with test cases; older cases keep their previous live-fallback behavior. This makes scenarios repeatable when the real household state changes. No device actions are executed in either mode.

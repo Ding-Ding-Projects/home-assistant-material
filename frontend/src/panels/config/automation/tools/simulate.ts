@@ -1,5 +1,6 @@
 import type { HassEntities } from "home-assistant-js-websocket";
 import type { HomeAssistant } from "../../../../types";
+import type { DryRunHass } from "../automation-dry-run";
 import { asList, isRec } from "./step-model";
 import type { Rec } from "./step-model";
 
@@ -19,6 +20,10 @@ export interface Situation {
   time: string;
   /** 0 is Sunday, as in a JavaScript date. Undefined when not set. */
   weekday?: number;
+  /** The trigger ID assumed to have started this simulated run. */
+  triggerId?: string;
+  /** False makes the simulation independent of current entity states. */
+  useLiveStates?: boolean;
 }
 
 export const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -65,7 +70,7 @@ export const evaluateTime = (
   situation: Situation,
   states: HassEntities
 ): boolean => {
-  const now = parseClock(`${situation.time}:00`);
+  const now = parseClock(situation.time);
   if (now === undefined) {
     throw unsupported("time");
   }
@@ -129,7 +134,8 @@ export const overlayStates = (
   live: HassEntities,
   situation: Situation
 ): HassEntities => {
-  const states: HassEntities = { ...live };
+  const states: HassEntities =
+    situation.useLiveStates === false ? {} : { ...live };
   for (const { entityId, state } of situation.overrides) {
     if (!entityId) {
       continue;
@@ -157,7 +163,7 @@ export const overlayStates = (
 export const buildSimulationHass = (
   live: HassEntities,
   situation: Situation
-): Pick<HomeAssistant, "states" | "callWS"> => {
+): DryRunHass => {
   const states = overlayStates(live, situation);
   const callWS = (async (msg: { type: string; condition?: unknown }) => {
     if (msg.type !== "test_condition" || !isRec(msg.condition)) {
@@ -173,5 +179,10 @@ export const buildSimulationHass = (
         throw unsupported(String(cond.condition ?? "unknown"));
     }
   }) as unknown as HomeAssistant["callWS"];
-  return { states, callWS };
+  return {
+    states,
+    callWS,
+    simulatedTriggerId: situation.triggerId,
+    isolatedSimulation: situation.useLiveStates === false,
+  };
 };

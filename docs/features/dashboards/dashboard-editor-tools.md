@@ -6,7 +6,7 @@ still a centred dialog, not a side panel or a sheet.
 
 | Tool | What it does |
 | --- | --- |
-| Screens | Four same-origin frames of the saved view side by side |
+| Screens | Select phone, tablet, wall panel, and desktop frames of the saved view; rotate each independently and add a custom 240–3840 pixel viewport |
 | Layout and resize | Grid columns and rows per card in sections views; drag to resize; "Make phone friendly" |
 | Visibility | The existing visibility editor per card |
 | Interactions | Tap, hold and double-tap actions, and tap feedback |
@@ -32,3 +32,40 @@ still a centred dialog, not a side panel or a sheet.
 
 Unit tested (editing functions, scans, library versions). Not seen in a browser. State: built,
 unit tested, not yet seen in a running build.
+
+## Screen comparison controls
+
+Choose only the device frames needed for the current comparison to avoid loading unused dashboards. Each frame has a Rotate action. Enter both custom dimensions to add a bounded custom viewport; invalid dimensions do not load a frame. These controls do not modify dashboard configuration. Frames still show the saved view, not unsaved editor changes.
+
+Dimension validation and rotation are covered by focused unit tests. Browser verification remains required.
+
+## Local saved revision journal
+
+Successful saves through the dashboard panel now retain before/after raw configurations in a separate browser-local journal. It is scoped to the signed-in user and dashboard URL, limited to 20 save records and 1 MiB of serialized data per scope, and preserves strategy and unknown custom-card fields. It does not replace or migrate named checkpoints.
+
+In **Checkpoints and diff**, use **Download saved revisions** to export the retained records for manual recovery. Nothing is restored automatically. This is not unsaved-draft recovery or cross-device version history, and does not capture changes made outside this panel's save path. Clearing browser data removes it; concurrent tabs can race, and oversized configurations or exhausted storage may not be retained. Journaling failures never roll back or fail an otherwise successful server save.
+
+Unit coverage verifies successful-save timing, failure isolation, captured identity/configuration, raw-field preservation, account/dashboard isolation, corruption handling, and count/size limits. Browser verification remains required.
+
+
+## Guarded revision restore
+
+The saved-revision section now lets you select a before/after configuration, fetch and review the current server configuration, and explicitly confirm a whole-dashboard restore. The frontend sends the reviewed configuration as `expected_config`; it never falls back to an unguarded retry. A stale review or unsupported server rejects the operation. A failed response is treated as unconfirmed, so review the server again before retrying.
+
+The fork's Lovelace storage implementation serializes reads, saves, guarded comparison/save, and deletion using a per-dashboard lock. Normal save callers keep their existing API. The guard prevents two concurrent restores from accepting the same outdated base in memory; it is not a disk-durability guarantee because the underlying Store can log write errors internally. Unsaved card drafts, remote revision history, and automatic merging remain out of scope.
+
+Frontend contract and journal tests pass. Core API/concurrency/failure regression tests are added but require the Core test environment to run. A focused smoke check of the production storage methods passed concurrency, raised-storage-error, and legacy-save cases; it does not replace the Core integration tests.
+
+## Existing-card draft recovery
+
+Editing an existing card through the dashboard's standard Edit card action now retains the last valid configuration locally. Drafts are separated by signed-in account, dashboard URL, and card path. The journal keeps at most ten cards and 1 MiB per account/dashboard, with a 256 KiB limit per draft. Browser storage failures are visible and never prevent ordinary editing.
+
+Reopening that card offers **Recover draft**, **Download draft**, and **Discard saved draft**. Recovery only enters the editor and never saves automatically. If the original card changed, direct recovery is disabled but download remains available. If you already edited the open card, recovery asks before replacing those unsaved changes. Saving a recovered draft uses guarded server saving and will fail rather than overwrite a changed card or fall back on an unsupported server. Ordinary card saves retain their existing behavior.
+
+A successful save or explicit editor discard clears only the matching draft owned by the current editing session, so it cannot erase a newer draft from another tab. Closing without recovering an older pending draft preserves it, including drafts whose original card no longer matches; only Discard saved draft removes that pending recovery. Invalid intermediate editor configurations never replace a retained valid draft. A failed save keeps recovery data. New cards, duplicated cards, view headers, raw invalid YAML text, cross-device recovery, and merging concurrent drafts are not covered; concurrent edits of the same card still use the most recently written draft. Clearing browser data removes local drafts. Browser workflow verification remains required.
+
+## Entity replacement review
+
+The Entity inspector replacement field now uses the shared entity picker, including live state previews and custom entity IDs. Swapping shows the exact-reference count and asks for confirmation before changing the dashboard. The existing replacement rules remain unchanged: exact string values are replaced throughout the dashboard, including badges and actions, while names and templates that only contain the ID are not rewritten.
+
+An unchanged source/target selection is a no-op. If the local dashboard configuration, account, or dashboard changes during the confirmation, the replacement is refused and must be reviewed again. This is a local stale-review safeguard, not a server compare-and-save contract for concurrent external edits. Focused tests cover reference counting, preservation of unrelated text, immutable/in-place stale changes, and equivalent reloads. Browser workflow verification remains outstanding.

@@ -5,6 +5,9 @@ import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/entity/ha-entity-picker";
 import "../../../../components/ha-button";
+import type { HaCheckbox } from "../../../../components/ha-checkbox";
+import "../../../../components/ha-checkbox";
+import type { HASSDomCurrentTargetEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-icon-button";
 import type { HaSelectSelectEvent } from "../../../../components/ha-select";
 import "../../../../components/ha-select";
@@ -56,6 +59,17 @@ export class HaAutomationSituationForm extends LitElement {
         ]}
         @selected=${this._weekdayChanged}
       ></ha-select>
+      <ha-input
+        .label=${this._t("trigger_id")}
+        .value=${this.situation.triggerId ?? ""}
+        @input=${this._triggerChanged}
+      ></ha-input>
+      <ha-checkbox
+        .checked=${this.situation.useLiveStates !== false}
+        @change=${this._liveStatesChanged}
+        >${this._t("use_live_states")}</ha-checkbox
+      >
+      <p>${this._t("isolated_hint")}</p>
       <h4>${this._t("states")}</h4>
       ${overrides.map(
         (row, index) =>
@@ -89,6 +103,20 @@ export class HaAutomationSituationForm extends LitElement {
 
   private _change(situation: Situation) {
     fireEvent(this, "situation-changed", { situation });
+  }
+
+  private _liveStatesChanged(ev: HASSDomCurrentTargetEvent<HaCheckbox>) {
+    this._change({
+      ...this.situation,
+      useLiveStates: ev.currentTarget.checked,
+    });
+  }
+
+  private _triggerChanged(ev: Event) {
+    this._change({
+      ...this.situation,
+      triggerId: (ev.target as HTMLInputElement).value || undefined,
+    });
   }
 
   private _timeChanged(ev: Event) {

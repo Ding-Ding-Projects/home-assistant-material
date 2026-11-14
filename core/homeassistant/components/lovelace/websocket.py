@@ -141,6 +141,7 @@ async def websocket_lovelace_config(
     {
         "type": "lovelace/config/save",
         "config": probatio.Any(str, dict),
+        probatio.Optional("expected_config"): dict,
         probatio.Optional(CONF_URL_PATH): probatio.Any(None, cv.string),
     }
 )
@@ -153,7 +154,10 @@ async def websocket_lovelace_save_config(
     config: LovelaceConfig,
 ) -> None:
     """Save Lovelace UI configuration."""
-    await config.async_save(msg["config"])
+    if "expected_config" in msg:
+        await config.async_save_if_unchanged(msg["config"], msg["expected_config"])
+    else:
+        await config.async_save(msg["config"])
 
 
 @websocket_api.require_admin

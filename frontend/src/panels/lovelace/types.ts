@@ -40,7 +40,10 @@ export interface Lovelace {
   locale: FrontendLocaleData;
   enableFullEditMode: () => void;
   setEditMode: (editMode: boolean) => void;
-  saveConfig: (newConfig: LovelaceRawConfig) => Promise<void>;
+  saveConfig: (
+    newConfig: LovelaceRawConfig,
+    expectedConfig?: LovelaceRawConfig
+  ) => Promise<void>;
   deleteConfig: () => Promise<void>;
   showToast: (params: ShowToastParams) => void;
   /**

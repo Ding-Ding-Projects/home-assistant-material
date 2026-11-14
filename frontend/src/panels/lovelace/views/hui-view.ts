@@ -193,13 +193,24 @@ export class HUIView extends ReactiveElement {
         }
         showEditCardDialog(this, {
           lovelaceConfig: this.lovelace.config,
-          saveCardConfig: async (newCardConfig) => {
+          draftScope: { urlPath: this.lovelace.urlPath, path },
+          saveCardConfig: async (newCardConfig, guarded) => {
+            if (guarded && !deepEqual(this._getCardConfig(path), cardConfig)) {
+              throw new Error(
+                this.hass.localize(
+                  "ui.panel.lovelace.editor.edit_card.draft_changed"
+                )
+              );
+            }
             const newConfig = setAtPath(
               this.lovelace.config,
               path,
               newCardConfig
             );
-            await this.lovelace.saveConfig(newConfig);
+            await this.lovelace.saveConfig(
+              newConfig,
+              guarded ? this.lovelace.rawConfig : undefined
+            );
           },
           sectionConfig: getCardSectionConfig(this.lovelace.config, path),
           cardConfig,

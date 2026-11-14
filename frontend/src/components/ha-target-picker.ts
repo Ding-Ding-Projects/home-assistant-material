@@ -65,6 +65,7 @@ import type { PickerComboBoxItem } from "./ha-picker-combo-box";
 import "./ha-svg-icon";
 import "./ha-tree-indicator";
 import "./list/ha-list-base";
+import "./entity/ha-entity-picker-state";
 import "./target-picker/ha-target-picker-item-group";
 import "./target-picker/ha-target-picker-item-row";
 import { showTargetDetailsDialog } from "./target-picker/dialog/show-dialog-target-details";
@@ -1367,6 +1368,14 @@ export class HaTargetPicker extends SubscribeMixin(LitElement) {
                       : nothing
         }
         <span slot="headline">${item.primary}</span>
+        ${
+          type === "entity"
+            ? html`<ha-entity-picker-state
+                slot="supporting-text"
+                .entityId=${(item as EntityComboBoxItem).stateObj?.entity_id}
+              ></ha-entity-picker-state>`
+            : nothing
+        }
         ${
           item.secondary
             ? html`<span slot="supporting-text">${item.secondary}</span>`

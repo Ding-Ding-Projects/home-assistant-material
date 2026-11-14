@@ -5,7 +5,7 @@ import { customElement, property, state } from "lit/decorators";
 import { normalizeLuminance } from "../common/color/palette";
 import { consume } from "../common/decorators/consume";
 import { fireEvent } from "../common/dom/fire_event";
-import { uiContext } from "../data/context";
+import { internationalizationContext, uiContext } from "../data/context";
 import {
   DefaultAccentColor,
   DefaultPrimaryColor,
@@ -40,6 +40,16 @@ export class HaThemeSettings extends LitElement {
   @state()
   @consume({ context: uiContext, subscribe: true })
   private _ui!: ContextType<typeof uiContext>;
+
+  @state()
+  @consume({ context: internationalizationContext, subscribe: true })
+  private _i18n!: ContextType<typeof internationalizationContext>;
+
+  // Kept only for this settings session, never persisted or applied implicitly.
+  @state() private _previousColors?: Pick<
+    ThemeSettings,
+    "primaryColor" | "accentColor"
+  >;
 
   @property({ attribute: false }) public selectedTheme?: ThemeSettings | null;
 
@@ -166,12 +176,26 @@ export class HaThemeSettings extends LitElement {
                   </div>
                 </ha-list-item-base>
                 ${
-                  themeSettings?.primaryColor || themeSettings?.accentColor
+                  themeSettings?.primaryColor ||
+                  themeSettings?.accentColor ||
+                  this._previousColors
                     ? html`
                         <div class="reset-row">
+                          ${
+                            this._previousColors
+                              ? html`<ha-button
+                                  appearance="plain"
+                                  size="s"
+                                  @click=${this._restoreColors}
+                                >
+                                  ${this._i18n.localize("ui.panel.profile.themes.restore_colors")}
+                                </ha-button>`
+                              : nothing
+                          }
                           <ha-button
                             appearance="plain"
                             size="s"
+                            .disabled=${!themeSettings?.primaryColor && !themeSettings?.accentColor}
                             @click=${this._resetColors}
                           >
                             ${this.labels?.reset ?? "Reset"}
@@ -195,12 +219,39 @@ export class HaThemeSettings extends LitElement {
         : target.value;
 
     target.value = value;
+    const settings = this.selectedTheme ?? this._ui.selectedTheme;
+    const currentValue =
+      target.name === "primaryColor"
+        ? settings?.primaryColor || DefaultPrimaryColor
+        : settings?.accentColor || DefaultAccentColor;
+    if (value === currentValue) {
+      return;
+    }
+    this._rememberColors();
     fireEvent(this, "theme-settings-changed", {
       [target.name]: value,
     } as Partial<ThemeSettings>);
   }
 
+  private _rememberColors() {
+    const settings = this.selectedTheme ?? this._ui.selectedTheme;
+    this._previousColors = {
+      primaryColor: settings?.primaryColor,
+      accentColor: settings?.accentColor,
+    };
+  }
+
+  private _restoreColors() {
+    if (!this._previousColors) {
+      return;
+    }
+    const colors = this._previousColors;
+    this._previousColors = undefined;
+    fireEvent(this, "theme-settings-changed", colors);
+  }
+
   private _resetColors() {
+    this._rememberColors();
     fireEvent(this, "theme-settings-changed", {
       primaryColor: undefined,
       accentColor: undefined,
@@ -234,6 +285,7 @@ export class HaThemeSettings extends LitElement {
   ): void {
     ev.stopPropagation();
     const theme = ev.detail.value;
+    this._previousColors = undefined;
 
     if (theme === undefined) {
       if (this.selectedTheme?.theme || this._ui.selectedTheme?.theme) {
@@ -269,10 +321,11 @@ export class HaThemeSettings extends LitElement {
     }
     .color-pickers {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--ha-space-2);
     }
     .color-pickers ha-input {
-      min-width: 150px;
+      min-width: min(150px, 100%);
       flex: 1;
     }
     :host([narrow]) ha-list-item-base::part(base) {
@@ -288,6 +341,8 @@ export class HaThemeSettings extends LitElement {
     .reset-row {
       display: flex;
       justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: var(--ha-space-2);
       padding-inline-end: var(--ha-space-4);
       padding-bottom: var(--ha-space-4);
     }
