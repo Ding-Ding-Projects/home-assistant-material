@@ -60,6 +60,9 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Hosting
 
+- [ ] Build and boot the release-pinned Raspberry Pi 3, 4, and 5 appliance images with
+      Core preloaded. Source and mocked platform selection are in the recovery branch.
+      Verify the actual packaged size, unattended service startup, and normal owner setup.
 - [x] `compose.yaml` that runs the published image, with the port and storage mapped
 - [~] `host.sh` and `host.bat`: pull, start, wait for health, print the address; a detached mode
       and a live log view. `host.sh` was run for real on Linux; `host.bat --detached` was run on
@@ -179,6 +182,9 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Setup and first run
 
+- [ ] Show measured backup upload progress and actual restore phases in onboarding and
+      Settings. The transport and restore event audit is complete. Implementation and
+      synthetic upload, interruption, and restart verification are pending.
 - [~] First-run setup: three steps, password strength, a preview of dates and units, a review
       step, no cloud restore or outside links, no outside map lookup without a button. Built; not
       yet seen in a running build (the Welcome screen was seen with the old items; the fix is
@@ -506,6 +512,9 @@ matches its board, checked side by side.
 
 ## Deploy Assistant
 
+- [ ] Verify the packaged Raspberry Pi writer and readiness flow. Source and simulated
+      checks preserve the verified write and allow read-only network retries. A physical
+      card, the installed desktop package, and a rendered walkthrough are still pending.
 - [~] One-click deploys, instances, backups, automatic downloads, Raspberry Pi cards. Docker on
       this computer was run end to end (two instances, backup, restore, removal) and the card
       writer wrote and read back a test image. Not seen on Windows or macOS hardware; SSH hosts,

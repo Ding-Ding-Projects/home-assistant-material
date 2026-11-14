@@ -1,5 +1,33 @@
 # Handoff
 
+## Raspberry Pi first boot and backup progress recovery, 13 November 2026
+
+- This recovery branch preserves the Raspberry Pi source changes ahead of a complete
+  appliance build. It is separate from the release branch while verification is pending.
+- Release-pinned Raspberry Pi 3, 4, and 5 images select the matching ARM64 Core image and
+  retain the preparation image as a fallback. The staging filesystem grows for these
+  builds and is shrunk before packaging. Other boards and unpinned builds keep the
+  previous image selection. Mocked registry and image staging checks covered the three Pi
+  pins, the fallback, and platform validation. A full build, packaged image size, and a
+  physical boot remain unverified.
+- Deploy Assistant records the verified write before checking the network. It checks for
+  the Core onboarding response or Core manifest and can recheck a confirmed address
+  without rewriting media. A reachable Core may still need its owner account. Discovery
+  does not establish hardware identity. All 29 Deploy Assistant tests passed with mock
+  transport and synthetic writer results. The desktop package and rendered flow still
+  need verification.
+- Backup upload and restore progress was investigated in onboarding and Settings. No
+  implementation is present in this recovery branch. Use browser request byte progress
+  during upload, then wait for server confirmation. Show the actual restore stage and
+  reconnect state, with an indeterminate indicator when no measured total is available.
+  Treat an explicit completion result as evidence of success. The Core adapter also
+  needs tests for the Supervisor's five renamed restore stages on both live and resumed
+  jobs. Verify the two flows using synthetic backups and restart cases.
+- The deployed project demo from `69f0bbfc3c4f3b0ac14f8faefd9c6b6293fe331d` and
+  normal release `v2026.11.1.431` are the latest verified baselines for this recovery.
+  Preserve the release channel branch. Verify an exact published successor on an
+  isolated browser instance and confirm a recoverable backup before updating live Core.
+
 ## Visual dictionaries and browser demo, 13 November 2026
 
 - The automation and script action editors use a visual dictionary for object fields and extra

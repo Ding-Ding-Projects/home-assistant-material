@@ -1,5 +1,36 @@
 # Closeout prompt
 
+## Recovery snapshot, 13 November 2026
+
+The latest request adds detailed progress to backup upload and restore in first-run setup
+and Settings. The backup work is at source audit only. Start with `HANDOFF.md`, including
+the measured upload bytes, server confirmation boundary, restore stages, reconnect
+behavior, and the five Supervisor-to-Core stage names that need regression coverage.
+
+Commit `d25b21b1de60f35f6da79b18baa4025bdad19ea6` on
+`recovery/raspberry-pi-first-boot-20261113` carries the Raspberry Pi first-boot source.
+Release-pinned Pi 3, 4, and 5 builds select their ARM64 Core image and retain the preparation
+image as a fallback.
+Deploy Assistant saves the card read-back result before LAN discovery. A new check can
+reuse that result without rewriting the card. The source and mocked checks passed. The
+full appliance build, packaged desktop flow, and physical Pi startup are pending. Keep
+owner-account creation or restore in the normal onboarding flow.
+
+The full frontend suite ran against tree `7ef9b9d59dad858404dabb639609600623434846`.
+It passed 7,925 tests and reproduced the same three Windows build-management failures.
+The recovery branch contains no frontend source changes. The 29 Deploy Assistant tests passed.
+
+The recovery branch is based on `69f0bbfc3c4f3b0ac14f8faefd9c6b6293fe331d`. That revision
+published the demo with 120 verified guide and wiki routes. Isolated browser checks passed
+for the to-do item picker, speech options, typed number and date inputs, and receiver
+choices. Manual controls remain where an integration provides no usable choices.
+
+The last verified live Core is `2026.11.1.431`, started on 13 November 2026 at 21:45:08
+UTC. Its normal release has 25 checked downloads. Builds 434 and 436 had not completed
+release verification at this snapshot. Leave the release channel in place. Build first,
+test the exact published image on an isolated instance, and verify a fresh backup before
+updating the live instance. The tunnel and successor rollout remain pending.
+
 ## Latest recovery point, 13 November 2026
 
 The task adds visual dictionary editing to automation and script actions and a working browser demo
