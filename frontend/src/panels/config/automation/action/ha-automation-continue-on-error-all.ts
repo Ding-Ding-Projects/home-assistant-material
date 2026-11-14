@@ -1,6 +1,6 @@
 import type { CSSResultGroup } from "lit";
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-switch";
 import type { HaSwitch } from "../../../../components/ha-switch";
@@ -25,6 +25,8 @@ export class HaAutomationContinueOnErrorAll extends LitElement {
 
   @property({ type: Boolean }) public disabled = false;
 
+  @query("ha-switch") private _switch?: HaSwitch;
+
   protected render() {
     if (!countContinueOnErrorActions(this.actions)) {
       return nothing;
@@ -35,9 +37,9 @@ export class HaAutomationContinueOnErrorAll extends LitElement {
         `ui.panel.config.automation.editor.actions.${key}` as any
       );
     return html`
-      <label class="row">
-        <span class="text">
-          <span class="label">
+      <div class="row">
+        <span class="text" @click=${this._labelClicked}>
+          <span class="label" id="label">
             ${t("continue_on_error_all")}
             ${
               state === "mixed"
@@ -47,16 +49,26 @@ export class HaAutomationContinueOnErrorAll extends LitElement {
                 : nothing
             }
           </span>
-          <span class="help">${t("continue_on_error_all_help")}</span>
+          <span class="help" id="help">${t("continue_on_error_all_help")}</span>
         </span>
         <ha-switch
           .checked=${state === "all"}
           .disabled=${this.disabled}
-          aria-label=${t("continue_on_error_all")}
+          aria-labelledby="label"
+          aria-describedby="help"
           @change=${this._toggled}
         ></ha-switch>
-      </label>
+      </div>
     `;
+  }
+
+  /** The text is the label of the switch: clicking it flips the switch. */
+  private _labelClicked() {
+    if (this.disabled || !this._switch) {
+      return;
+    }
+    this._switch.checked = !this._switch.checked;
+    this._switch.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   private _toggled(ev: Event) {
@@ -79,6 +91,8 @@ export class HaAutomationContinueOnErrorAll extends LitElement {
       margin-bottom: var(--ha-space-3);
     }
     .text {
+      cursor: pointer;
+      flex: 1 1 auto;
       display: flex;
       flex-direction: column;
       min-width: 0;

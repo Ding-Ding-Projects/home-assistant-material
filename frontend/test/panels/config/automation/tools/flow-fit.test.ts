@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FLOW_MIN_FIT,
   fitScale,
+  pickOrientation,
   stepZoom,
 } from "../../../../../src/panels/config/automation/tools/flow-fit";
 
@@ -38,5 +39,21 @@ describe("stepZoom", () => {
   it("stops at both ends", () => {
     expect(stepZoom(1.5, 1)).toBe(1.5);
     expect(stepZoom(0.5, -1)).toBe(0.5);
+  });
+});
+
+describe("pickOrientation", () => {
+  it("keeps left to right while it fits comfortably", () => {
+    expect(pickOrientation(358, 552, 244)).toBe("horizontal");
+  });
+
+  it("lays out top to bottom when left to right would be too small", () => {
+    // four nodes in a row (1120 wide) on a 358 wide canvas
+    expect(pickOrientation(358, 1120, 268)).toBe("vertical");
+  });
+
+  it("stays left to right when top to bottom is no narrower", () => {
+    expect(pickOrientation(358, 1120, 1400)).toBe("horizontal");
+    expect(pickOrientation(0, 1120, 268)).toBe("horizontal");
   });
 });

@@ -13,7 +13,8 @@ import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-icon-button";
 import "../../../../components/ha-svg-icon";
 import { haStyle } from "../../../../resources/styles";
-import { fitScale, stepZoom } from "./flow-fit";
+import type { FlowOrientation } from "./flow-fit";
+import { fitScale, pickOrientation, stepZoom } from "./flow-fit";
 import type { FlowGraph, FlowNode } from "./flow-graph";
 import { buildFlowGraph } from "./flow-graph";
 import type { AutomationToolContext } from "./registry";
@@ -25,8 +26,20 @@ const GAP_X = 64;
 const GAP_Y = 24;
 const PAD = 24;
 
-const nodeX = (node: FlowNode) => PAD + node.col * (NODE_W + GAP_X);
-const nodeY = (node: FlowNode) => PAD + node.row * (NODE_H + GAP_Y);
+/** Gaps of the top-to-bottom layout used when a left-to-right graph would not fit a narrow canvas. */
+const V_GAP_X = 24;
+const V_GAP_Y = 40;
+
+const graphSize = (graph: FlowGraph, orientation: FlowOrientation) =>
+  orientation === "vertical"
+    ? {
+        w: PAD * 2 + graph.rows * NODE_W + (graph.rows - 1) * V_GAP_X,
+        h: PAD * 2 + graph.cols * NODE_H + (graph.cols - 1) * V_GAP_Y,
+      }
+    : {
+        w: PAD * 2 + graph.cols * NODE_W + (graph.cols - 1) * GAP_X,
+        h: PAD * 2 + graph.rows * NODE_H + (graph.rows - 1) * GAP_Y,
+      };
 
 @customElement("ha-automation-tool-flow")
 export class HaAutomationToolFlow extends LitElement {
@@ -41,6 +54,8 @@ export class HaAutomationToolFlow extends LitElement {
 
   private _observed?: HTMLElement;
 
+  @state() private _orientation: FlowOrientation = "horizontal";
+
   @state() private _view = { x: 0, y: 0, w: 1, h: 1 };
 
   @query(".canvas") private _canvas?: HTMLElement;
@@ -50,11 +65,19 @@ export class HaAutomationToolFlow extends LitElement {
   }
 
   private get _size() {
-    const graph = this._graph;
-    return {
-      w: PAD * 2 + graph.cols * NODE_W + (graph.cols - 1) * GAP_X,
-      h: PAD * 2 + graph.rows * NODE_H + (graph.rows - 1) * GAP_Y,
-    };
+    return graphSize(this._graph, this._orientation);
+  }
+
+  private _nodeX(node: FlowNode) {
+    return this._orientation === "vertical"
+      ? PAD + node.row * (NODE_W + V_GAP_X)
+      : PAD + node.col * (NODE_W + GAP_X);
+  }
+
+  private _nodeY(node: FlowNode) {
+    return this._orientation === "vertical"
+      ? PAD + node.col * (NODE_H + V_GAP_Y)
+      : PAD + node.row * (NODE_H + GAP_Y);
   }
 
   protected firstUpdated(_changed: PropertyValues): void {
@@ -89,6 +112,16 @@ export class HaAutomationToolFlow extends LitElement {
     if (!this._autoFit || !el || !el.clientWidth) {
       return;
     }
+    // A graph too wide for the canvas is laid out top to bottom instead of
+    // being shrunk until it cannot be read or panned to.
+    const graph = this._graph;
+    const horizontal = graphSize(graph, "horizontal");
+    const vertical = graphSize(graph, "vertical");
+    this._orientation = pickOrientation(
+      el.clientWidth,
+      horizontal.w,
+      vertical.w
+    );
     const { w, h } = this._size;
     this._scale = fitScale(el.clientWidth, el.clientHeight, w, h, "width");
   }
@@ -173,17 +206,24 @@ export class HaAutomationToolFlow extends LitElement {
                 ${graph.edges.map((edge) => {
                   const from = byId.get(edge.from)!;
                   const to = byId.get(edge.to)!;
-                  const x1 = nodeX(from) + NODE_W;
-                  const y1 = nodeY(from) + NODE_H / 2;
-                  const x2 = nodeX(to);
-                  const y2 = nodeY(to) + NODE_H / 2;
-                  const mid = (x1 + x2) / 2;
+                  const vertical = this._orientation === "vertical";
+                  const x1 =
+                    this._nodeX(from) + (vertical ? NODE_W / 2 : NODE_W);
+                  const y1 =
+                    this._nodeY(from) + (vertical ? NODE_H : NODE_H / 2);
+                  const x2 = this._nodeX(to) + (vertical ? NODE_W / 2 : 0);
+                  const y2 = this._nodeY(to) + (vertical ? 0 : NODE_H / 2);
+                  const mx = (x1 + x2) / 2;
+                  const my = (y1 + y2) / 2;
+                  const curve = vertical
+                    ? `C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`
+                    : `C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
                   return svg`<path
                     class=${classMap({
                       wire: true,
                       alternative: edge.tone === "alternative",
                     })}
-                    d="M${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}"
+                    d="M${x1} ${y1} ${curve}"
                   />`;
                 })}
               </svg>
@@ -206,8 +246,8 @@ export class HaAutomationToolFlow extends LitElement {
         disabled: node.disabled,
       })}
       style=${styleMap({
-        left: `${nodeX(node)}px`,
-        top: `${nodeY(node)}px`,
+        left: `${this._nodeX(node)}px`,
+        top: `${this._nodeY(node)}px`,
         width: `${NODE_W}px`,
         height: `${NODE_H}px`,
       })}
@@ -254,7 +294,7 @@ export class HaAutomationToolFlow extends LitElement {
       <svg width=${w * vs} height=${h * vs} viewBox="0 0 ${w} ${h}">
         ${graph.nodes.map(
           (n) =>
-            svg`<rect class="mini-node" x=${nodeX(n)} y=${nodeY(n)} width=${NODE_W} height=${NODE_H} rx="10"></rect>`
+            svg`<rect class="mini-node" x=${this._nodeX(n)} y=${this._nodeY(n)} width=${NODE_W} height=${NODE_H} rx="10"></rect>`
         )}
         <rect
           class="mini-view"
@@ -311,8 +351,9 @@ export class HaAutomationToolFlow extends LitElement {
     if (!el) {
       return;
     }
-    const { w, h } = this._size;
     this._autoFit = true;
+    this._applyAutoFit();
+    const { w, h } = this._size;
     this._scale = fitScale(el.clientWidth, el.clientHeight, w, h, "both");
     el.scrollTo({ left: 0, top: 0 });
     this.updateComplete.then(this._updateView);

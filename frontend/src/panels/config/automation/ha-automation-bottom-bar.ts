@@ -167,7 +167,12 @@ export class HaAutomationBottomBar extends LitElement {
     return html`
       ${this._renderDryRun()}
       <div class="bar" role="group" aria-label=${t(`${PREFIX}label`)}>
-        <span class="status" role="status" aria-live="polite">
+        <span
+          class=${this._checkResult ? "status" : "status short"}
+          role="status"
+          aria-live="polite"
+          title=${this._statusText()}
+        >
           ${this._statusText()}
         </span>
         ${
@@ -448,6 +453,15 @@ export class HaAutomationBottomBar extends LitElement {
           padding-inline: var(--ha-space-2);
           font-size: var(--ha-font-size-s, 0.875rem);
           color: var(--secondary-text-color);
+        }
+        /* The plain saved or unsaved text stays on one line and shortens
+           with an ellipsis when there is no room, instead of breaking into
+           words. The full text is in its title. */
+        .status.short {
+          overflow: hidden;
+          overflow-wrap: normal;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .hint {
           flex: none;

@@ -7,7 +7,9 @@ import {
   intervalRowsSavedPerDay,
   recordingInterval,
   rowsKept,
+  hasRowCounts,
   shareOf,
+  toCount,
 } from "../../../../src/panels/config/storage/storage-math";
 
 const detail = (
@@ -100,5 +102,38 @@ describe("minimum interval saving", () => {
   it("estimates bytes only with a row size", () => {
     expect(bytesForRows(10, 50)).toBe(500);
     expect(bytesForRows(10, null)).toBeUndefined();
+  });
+});
+
+describe("row counts that are missing or not numbers", () => {
+  it("reads only usable counts", () => {
+    expect(toCount(12)).toBe(12);
+    expect(toCount("12")).toBe(12);
+    expect(toCount(undefined)).toBeUndefined();
+    expect(toCount(null)).toBeUndefined();
+    expect(toCount(Number.NaN)).toBeUndefined();
+    expect(toCount("abc")).toBeUndefined();
+    expect(toCount(-1)).toBeUndefined();
+  });
+
+  it("never averages to NaN", () => {
+    const days = [
+      { start: 0, rows: 10 },
+      { start: 86400 },
+      { start: 172800, rows: Number.NaN },
+    ] as any;
+    expect(averageRowsPerDay(days, null)).toBe(10);
+    expect(averageRowsPerDay([{ start: 0 } as any], null)).toBe(0);
+    expect(hasRowCounts([{ start: 0 } as any])).toBe(false);
+    expect(hasRowCounts(days)).toBe(true);
+  });
+
+  it("gives no saving when the entity row count is unknown", () => {
+    expect(estimatedSaving(detail({ rows: undefined as any }), 3)).toBe(
+      undefined
+    );
+    expect(Number.isNaN(rowsKept(detail({ rows: undefined as any }), 3))).toBe(
+      false
+    );
   });
 });

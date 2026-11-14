@@ -118,14 +118,26 @@ const ensureStyle = () => {
   box-sizing: border-box;
 }
 #${CLOCK_ID} {
-  inset-inline-start: 12px;
-  inset-block-end: calc(12px + var(--ha-phone-bar-height, 0px));
+  /* Inside the page area: after the navigation pane and the page tab strip
+     when it is docked on that side, never over the pane's edge. */
+  inset-inline-start: calc(var(--ha-clock-start, 0px) + 12px);
+  inset-block-end: 12px;
   padding: 4px 12px;
   border-radius: 16px;
   pointer-events: none;
 }
 #${CLOCK_ID}[data-phone] {
-  inset-block-end: calc(4px + var(--ha-phone-bar-height, 0px));
+  inset-inline-start: 12px;
+  /* The bar's own top edge: the same offsets the bar rests on, with the
+     bar's real height, so the row never overlaps it. */
+  inset-block-end: calc(
+    4px + var(--ha-phone-viewport-inset-bottom, 0px) +
+      var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+      max(
+        var(--ha-phone-bar-height, 76px),
+        var(--ha-phone-bar-visible-height, 0px)
+      )
+  );
   padding: 2px 12px;
   font-size: 0.75rem;
   line-height: 20px;
@@ -232,6 +244,25 @@ const placeAbovePhoneBar = (el: HTMLElement) => {
   el.style.setProperty("--ha-phone-bar-height", phoneBarHeight());
 };
 
+/** A length the main layout defines, read the same way as the bar height. */
+const layoutLength = (name: string): string => {
+  try {
+    const main = document
+      .querySelector("home-assistant")
+      ?.shadowRoot?.querySelector("home-assistant-main");
+    const value = main
+      ? getComputedStyle(main).getPropertyValue(name).trim()
+      : "";
+    return isUsableLength(value) ? value : "0px";
+  } catch (_err) {
+    return "0px";
+  }
+};
+
+/** Where the page area starts on a wide window: past the pane and a docked strip. */
+export const paneStart = (): string =>
+  `calc(${layoutLength("--ha-sidebar-width")} + ${layoutLength("--ha-page-tabs-inset-start")})`;
+
 /** Room the clock takes above the phone bar, in px (its height plus gaps). */
 export const CLOCK_RESERVED_HEIGHT = 32;
 
@@ -244,7 +275,12 @@ export const RESERVED_PROPERTY = "--ha-time-awareness-height";
  */
 const placeClock = (clock: HTMLElement) => {
   placeAbovePhoneBar(clock);
-  const onPhone = phoneBarHeight() !== "0px";
+  clock.style.setProperty("--ha-clock-start", paneStart());
+  const onPhone =
+    phoneBarHeight() !== "0px" ||
+    !!document.documentElement.style.getPropertyValue(
+      "--ha-phone-bar-visible-height"
+    );
   clock.toggleAttribute("data-phone", onPhone);
   document.documentElement.style.setProperty(
     RESERVED_PROPERTY,

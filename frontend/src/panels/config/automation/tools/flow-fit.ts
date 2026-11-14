@@ -35,3 +35,27 @@ export const stepZoom = (scale: number, direction: 1 | -1): number => {
   const lower = FLOW_ZOOMS.filter((z) => z < scale - 0.001);
   return lower.length ? lower[lower.length - 1] : scale;
 };
+
+export type FlowOrientation = "horizontal" | "vertical";
+
+/** A left-to-right graph is kept while its width fits at about this scale. */
+export const FLOW_COMFORT_FIT = 0.6;
+
+/**
+ * Chooses the layout direction: left to right unless that would need a scale
+ * below the comfortable one and the top-to-bottom layout fits better.
+ */
+export const pickOrientation = (
+  canvasWidth: number,
+  horizontalWidth: number,
+  verticalWidth: number
+): FlowOrientation => {
+  if (canvasWidth <= 0) {
+    return "horizontal";
+  }
+  const horizontal = canvasWidth / horizontalWidth;
+  if (horizontal >= FLOW_COMFORT_FIT) {
+    return "horizontal";
+  }
+  return canvasWidth / verticalWidth > horizontal ? "vertical" : "horizontal";
+};

@@ -48,9 +48,9 @@ export class HuiLightsSummaryCard extends LitElement implements LovelaceCard {
     const anyOn = summary.on.length > 0;
     return html`
       <section class=${anyOn ? "hero on" : "hero"}>
+        <!-- The page title is in the panel header, so the card leads with the count. -->
         <ha-panel-heading
-          .heading=${localize("ui.panel.lovelace.cards.lights_summary.title")}
-          .summary=${localize("ui.panel.lovelace.cards.lights_summary.of_on", {
+          .heading=${localize("ui.panel.lovelace.cards.lights_summary.of_on", {
             on: summary.on.length,
             total: summary.total,
           })}

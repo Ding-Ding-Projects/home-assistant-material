@@ -3,6 +3,25 @@ import type {
   RecorderStorageEntity,
 } from "../../../data/recorder";
 
+/**
+ * A row count the server reported, or undefined when it is missing or not a
+ * usable number, so a page can say it is unknown instead of showing NaN.
+ */
+export const toCount = (value: unknown): number | undefined => {
+  const number =
+    typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return typeof number === "number" && Number.isFinite(number) && number >= 0
+    ? number
+    : undefined;
+};
+
+/** True when at least one of the days carries a usable row count. */
+export const hasRowCounts = (days: RecorderStorageDay[]): boolean =>
+  days.some((day) => toCount(day?.rows) !== undefined);
+
+/** The usable row count of one day, 0 when it is missing. */
+const dayRows = (day: RecorderStorageDay): number => toCount(day?.rows) ?? 0;
+
 /** Share of one number in another, 0 to 1, or undefined when it is unknown. */
 export const shareOf = (
   part: number | null | undefined,
@@ -20,11 +39,12 @@ export const averageRowsPerDay = (
   first: number | null
 ): number => {
   const covered =
-    first == null ? days : days.filter((day) => day.start + 86400 > first);
-  if (!covered.length) {
+    first == null ? days : days.filter((day) => !(day.start + 86400 <= first));
+  const counted = covered.filter((day) => toCount(day?.rows) !== undefined);
+  if (!counted.length) {
     return 0;
   }
-  return covered.reduce((sum, day) => sum + day.rows, 0) / covered.length;
+  return counted.reduce((sum, day) => sum + dayRows(day), 0) / counted.length;
 };
 
 export interface Interval {
@@ -69,14 +89,17 @@ export const estimatedSaving = (
   if (detail.average_row_bytes == null) {
     return undefined;
   }
+  const rows = toCount(detail.rows);
+  if (rows === undefined) {
+    return undefined;
+  }
   const kept =
     keepDays <= 0
       ? 0
-      : detail.per_day.slice(-keepDays).reduce((sum, day) => sum + day.rows, 0);
-  return Math.max(
-    0,
-    Math.round((detail.rows - kept) * detail.average_row_bytes)
-  );
+      : detail.per_day
+          .slice(-keepDays)
+          .reduce((sum, day) => sum + dayRows(day), 0);
+  return Math.max(0, Math.round((rows - kept) * detail.average_row_bytes));
 };
 
 /** Rows that stay after keeping only the last `keepDays` days. */
@@ -87,8 +110,10 @@ export const rowsKept = (
   keepDays <= 0
     ? 0
     : Math.min(
-        detail.rows,
-        detail.per_day.slice(-keepDays).reduce((sum, day) => sum + day.rows, 0)
+        toCount(detail.rows) ?? 0,
+        detail.per_day
+          .slice(-keepDays)
+          .reduce((sum, day) => sum + dayRows(day), 0)
       );
 
 /** Record-at-most-once-every choices in seconds, 0 meaning every change. */

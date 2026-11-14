@@ -22,7 +22,12 @@ import type { ECOption } from "../../../resources/echarts/echarts";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { bytesToString } from "../../../util/bytes-to-string";
-import { averageRowsPerDay, shareOf } from "./storage-math";
+import {
+  averageRowsPerDay,
+  hasRowCounts,
+  shareOf,
+  toCount,
+} from "./storage-math";
 
 const RING_RADIUS = 52;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
@@ -79,8 +84,11 @@ export class HaRecorderStorageOverview extends LitElement {
     );
   }
 
-  private _rows(count: number): string {
-    return formatNumber(count, this.hass.locale);
+  private _rows(count: unknown): string {
+    const rows = toCount(count);
+    return rows === undefined
+      ? this._t("rows_unknown")
+      : formatNumber(rows, this.hass.locale);
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -157,10 +165,14 @@ export class HaRecorderStorageOverview extends LitElement {
         }
         <dt>${this._t("growing")}</dt>
         <dd>
-          ${this._t("growing_value", {
-            rows: this._rows(Math.round(perDay)),
-            days: growth.length,
-          })}
+          ${
+            hasRowCounts(growth)
+              ? this._t("growing_value", {
+                  rows: Math.round(perDay),
+                  days: growth.length,
+                })
+              : this._t("growing_unknown")
+          }
         </dd>
       </dl>
       <p class="note">
@@ -181,7 +193,7 @@ export class HaRecorderStorageOverview extends LitElement {
   private _renderBiggest(overview: RecorderStorageOverview): TemplateResult {
     const { entities, states } = overview;
     const max = entities.reduce(
-      (peak, entity) => Math.max(peak, entity.rows),
+      (peak, entity) => Math.max(peak, toCount(entity.rows) ?? 0),
       0
     );
     return html`<section class="card biggest">
@@ -207,18 +219,19 @@ export class HaRecorderStorageOverview extends LitElement {
                         <span
                           class="fill"
                           style=${styleMap({
-                            width: `${max ? Math.max(2, (entity.rows / max) * 100) : 0}%`,
+                            width: `${max ? Math.max(2, ((toCount(entity.rows) ?? 0) / max) * 100) : 0}%`,
                           })}
                         ></span>
                       </span>
                       <span class="sub"
                         >${
-                          entity.estimated_bytes == null
+                          entity.estimated_bytes == null ||
+                          toCount(entity.rows) === undefined
                             ? this._t("entity_figure_rows", {
-                                rows: this._rows(entity.rows),
+                                rows: toCount(entity.rows) ?? 0,
                               })
                             : this._t("entity_figure", {
-                                rows: this._rows(entity.rows),
+                                rows: toCount(entity.rows) ?? 0,
                                 size: bytesToString(entity.estimated_bytes, 1),
                               })
                         }</span
@@ -266,7 +279,7 @@ export class HaRecorderStorageOverview extends LitElement {
       id: "rows",
       type: "bar" as const,
       name: this._t("growth_series"),
-      data: growth.map((day) => day.rows),
+      data: growth.map((day) => toCount(day?.rows) ?? 0),
       itemStyle: { borderRadius: [4, 4, 0, 0] },
     },
   ]);

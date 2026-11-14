@@ -246,6 +246,7 @@ export class UserDataSync<T> {
     this._conn = conn;
     this._starts = 1;
     window.addEventListener("pagehide", this._flush);
+    document.addEventListener("visibilitychange", this._flushWhenHidden);
     // After a reconnect the subscription delivers the instance copy again and
     // the merge decides what to do with a save that failed; nothing is sent
     // on reconnect alone.
@@ -281,6 +282,7 @@ export class UserDataSync<T> {
     clearTimeout(this._timer);
     this._timer = undefined;
     window.removeEventListener("pagehide", this._flush);
+    document.removeEventListener("visibilitychange", this._flushWhenHidden);
     this._unsub?.then((unsub) => unsub()).catch(() => undefined);
     this._unsub = undefined;
     this._conn = undefined;
@@ -307,6 +309,7 @@ export class UserDataSync<T> {
     clearTimeout(this._timer);
     this._timer = undefined;
     window.removeEventListener("pagehide", this._flush);
+    document.removeEventListener("visibilitychange", this._flushWhenHidden);
     this._unsub?.then((unsub) => unsub()).catch(() => undefined);
     this._unsub = undefined;
     this._conn = undefined;
@@ -378,6 +381,13 @@ export class UserDataSync<T> {
     clearTimeout(this._timer);
     this._timer = undefined;
     void this._send();
+  };
+
+  /** A closing tab does not always fire pagehide, but it does become hidden. */
+  private _flushWhenHidden = () => {
+    if (document.visibilityState === "hidden") {
+      this._flush();
+    }
   };
 
   private _readMeta(): number | undefined {

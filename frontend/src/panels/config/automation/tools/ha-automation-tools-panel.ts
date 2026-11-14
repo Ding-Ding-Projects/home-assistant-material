@@ -87,6 +87,7 @@ export class HaAutomationToolsPanel extends LitElement {
     return html`<ha-dialog
       open
       width="full"
+      flexcontent
       header-title=${this._t("title")}
       @closed=${this._closed}
     >
@@ -172,6 +173,9 @@ export class HaAutomationToolsPanel extends LitElement {
           outline: 2px solid var(--primary-color);
           outline-offset: 2px;
         }
+        ha-bottom-sheet {
+          --ha-bottom-sheet-height: min(85dvh, 760px);
+        }
         .description {
           margin: var(--ha-space-1) 0 var(--ha-space-3);
           color: var(--secondary-text-color);
@@ -185,10 +189,19 @@ export class HaAutomationToolsPanel extends LitElement {
           min-width: 0;
           min-block-size: 0;
         }
+        /* On a phone the dialog fills the screen, so the tool takes all the
+           room that is left and scrolls inside it; a fixed height would leave
+           blank space below it or cut the tool. */
         .stage.steady {
           box-sizing: border-box;
-          block-size: min(70dvh, 640px);
-          flex: none;
+          min-block-size: 50dvh;
+        }
+        @media (min-width: 601px) and (min-height: 600px) {
+          .stage.steady {
+            block-size: min(70dvh, 640px);
+            min-block-size: 0;
+            flex: none;
+          }
         }
         .content {
           display: flex;
@@ -205,8 +218,8 @@ export class HaAutomationToolsPanel extends LitElement {
           flex-direction: column;
           box-sizing: border-box;
           block-size: min(85dvh, 760px);
-          max-block-size: 100%;
-          padding: var(--ha-space-6) var(--ha-space-4) var(--ha-space-4);
+          padding: var(--ha-space-6) var(--ha-space-4)
+            calc(var(--ha-space-4) + var(--safe-area-inset-bottom, 0px));
           min-height: 0;
           min-width: 0;
         }

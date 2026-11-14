@@ -281,17 +281,22 @@ export class LightViewStrategy extends ReactiveElement {
     // Process unassigned lights
     const unassignedCards = processUnassignedLights(hass, entities);
     if (unassignedCards.length > 0) {
+      // Without other sections the lights are the whole page, so a heading
+      // would only repeat the page title.
       const section: LovelaceSectionRawConfig = {
         type: "grid",
         column_span: 2,
         cards: [
-          {
-            type: "heading",
-            heading:
-              sections.length > 0
-                ? hass.localize("ui.panel.lovelace.strategy.light.other_lights")
-                : hass.localize("ui.panel.lovelace.strategy.light.lights"),
-          },
+          ...(sections.length > 0
+            ? [
+                {
+                  type: "heading",
+                  heading: hass.localize(
+                    "ui.panel.lovelace.strategy.light.other_lights"
+                  ),
+                },
+              ]
+            : []),
           ...unassignedCards,
         ],
       };

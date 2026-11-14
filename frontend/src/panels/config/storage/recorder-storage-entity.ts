@@ -44,6 +44,7 @@ import {
   intervalRowsSavedPerDay,
   recordingInterval,
   rowsKept,
+  toCount,
   shareOf,
 } from "./storage-math";
 
@@ -93,10 +94,14 @@ export class HaRecorderStorageEntity extends LitElement {
       this.hass.locale,
       { style: "percent", maximumFractionDigits: 1 }
     );
+    const rows = toCount(detail.rows);
+    if (rows === undefined) {
+      return this._t("summary_entity_unknown", { share });
+    }
     return detail.estimated_bytes == null
-      ? this._t("summary_entity", { rows: detail.rows, share })
+      ? this._t("summary_entity", { rows, share })
       : this._t("summary_entity_size", {
-          rows: detail.rows,
+          rows,
           size: bytesToString(detail.estimated_bytes, 1),
           share,
         });
@@ -235,7 +240,7 @@ export class HaRecorderStorageEntity extends LitElement {
       id: "rows",
       type: "bar" as const,
       name: this._t("growth_series"),
-      data: days.map((day) => day.rows),
+      data: days.map((day) => toCount(day?.rows) ?? 0),
       itemStyle: { borderRadius: [4, 4, 0, 0] },
     },
   ]);
@@ -267,7 +272,8 @@ export class HaRecorderStorageEntity extends LitElement {
 
   private _renderSmaller(detail: RecorderStorageEntity): TemplateResult {
     const saving = estimatedSaving(detail, this._keepDays);
-    const removed = detail.rows - rowsKept(detail, this._keepDays);
+    const removed =
+      (toCount(detail.rows) ?? 0) - rowsKept(detail, this._keepDays);
     const nothingToRemove = removed <= 0;
     return html`<section class="card">
       <h3>${this._t("smaller_title")}</h3>
