@@ -29,7 +29,10 @@
     bhHardware: ['Waiting for hardware', '等候硬件'], bhRestart: ['Waiting for restart', '等候重新啟動'],
     bhRestore: ['Restoring the backup', '正在還原備份'], bhVerify: ['Verifying reachability', '正在驗證連線'],
     bhAccepted: ['Restore accepted; verification pending', '已接受還原，等候驗證'],
-    bhSelected: ['Selected backup', '已選備份']
+    bhSelected: ['Selected backup', '已選備份'],
+    bhAuth: ['Sign-in required to verify the restored instance', '需要登入以驗證已還原實例'],
+    bhSignIn: ['Open sign-in to verify', '開啟登入頁以進行驗證'],
+    bhSignInPending: ['The LAN address answered. Sign in to continue verification; this job is not complete.', '區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。']
   });
   function backupHostNeedsKey(j) { return j.state === 'needs_attention' && j.error_code === 'incorrect_password'; }
   function backupHostBlocksStart(j) { return backupHostActive(j) && !(backupHostNeedsKey(j) && j.request_id === backupHost.requestId); }
@@ -38,15 +41,20 @@
     if (j.state !== 'ready' || !j.lan_url) return '';
     try { var u = new URL(j.lan_url); return /^(https?:)$/.test(u.protocol) && !u.username && !u.password ? u.href : ''; } catch (_) { return ''; }
   }
+  function backupHostSignInUrl(j) {
+    if (j.state !== 'authentication_needed' || j.lan_url_verified !== true || typeof j.lan_url_verified_at !== 'string' || j.lan_url_verified_at.length > 64 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(j.lan_url_verified_at) || !Number.isFinite(Date.parse(j.lan_url_verified_at))) return '';
+    try { var u = new URL(j.lan_url); return /^(https?:)$/.test(u.protocol) && !u.username && !u.password ? u.href : ''; } catch (_) { return ''; }
+  }
   function backupHostState(j) {
-    return L(({ queued: 'bhQueued', running: 'bhRunning', ready: 'bhReady', failed: 'bhFailed', cancelled: 'bhCancelled', needs_key: 'bhNeedsKey', setup_required: 'bhSetupRequired', pending_native_approval: 'bhNative', waiting_hardware: 'bhHardware', waiting_restart: 'bhRestart', waiting_for_restart: 'bhRestart', restoring: 'bhRestore', needs_resume: 'bhSetupRequired', needs_attention: 'bhSetupRequired', waiting_for_hardware: 'bhHardware', writing_card: 'bhHardware', waiting_for_boot: 'bhHardware', authentication_needed: 'bhNative', restore_accepted: 'bhAccepted' })[j.state] || 'bhRunning');
+    return L(({ queued: 'bhQueued', running: 'bhRunning', ready: 'bhReady', failed: 'bhFailed', cancelled: 'bhCancelled', needs_key: 'bhNeedsKey', setup_required: 'bhSetupRequired', pending_native_approval: 'bhNative', waiting_hardware: 'bhHardware', waiting_restart: 'bhRestart', waiting_for_restart: 'bhRestart', restoring: 'bhRestore', needs_resume: 'bhSetupRequired', needs_attention: 'bhSetupRequired', waiting_for_hardware: 'bhHardware', writing_card: 'bhHardware', waiting_for_boot: 'bhHardware', authentication_needed: 'bhAuth', restore_accepted: 'bhAccepted' })[j.state] || 'bhRunning');
   }
   function backupHostCards() {
     return '<section class="section backup-host-jobs" aria-live="polite">' + backupHost.jobs.map(function (j) {
-      var url = backupHostUrl(j);
+      var url = backupHostUrl(j), signInUrl = backupHostSignInUrl(j);
       return '<article class="pcard"><h3 class="tm">' + L(j.target) + ': ' + backupHostState(j) + '</h3><p class="bm">' +
-        L(({ restore: 'bhRestore', verify: 'bhVerify', restore_accepted: 'bhAccepted', restore_submitted: 'bhRestore', restore_rejected: 'bhNeedsKey', restart: 'bhRestart', waiting_for_boot: 'bhHardware', verified: 'bhReady' })[j.phase] || (j.state === 'ready' ? 'bhReady' : 'bhPending')) + '</p>' +
+        L(({ restore: 'bhRestore', verify: 'bhVerify', restore_accepted: 'bhAccepted', restore_submitted: 'bhRestore', restore_rejected: 'bhNeedsKey', restart: 'bhRestart', waiting_for_boot: 'bhHardware' })[j.phase] || (j.state === 'ready' ? 'bhReady' : 'bhPending')) + '</p>' +
         (j.error_code ? '<p role="alert"><code>' + esc(j.error_code) + '</code></p>' : '') +
+        (signInUrl ? '<p class="bm">' + L('bhSignInPending') + '</p><a class="btn tonal" href="' + esc(signInUrl) + '" data-ext="' + esc(signInUrl) + '">' + L('bhSignIn') + '</a>' : '') +
         (url ? '<a class="btn tonal" href="' + esc(url) + '" data-ext="' + esc(url) + '">' + esc(url) + '</a>' : '') +
         (backupHostActive(j) ? '<button class="btn text" data-bh-cancel="' + esc(j.id) + '">' + L('bhCancel') + '</button>' : '') + '</article>';
     }).join('') + '</section>';

@@ -7511,7 +7511,9 @@
               "waiting_for_boot": "Waiting for verified device startup",
               "card_write_started": "Writing the selected card",
               "verified": "LAN reachability verified"
-            }
+            },
+            "sign_in_verify": "Open sign-in to verify",
+            "sign_in_pending": "The LAN address answered. Sign in to continue verification; this job is not complete."
           }
         },
         "tag": {

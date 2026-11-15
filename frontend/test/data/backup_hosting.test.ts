@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   availableHostingTargets,
+  canAutoStartHosting,
   hostingJobNeedsKey,
   readyHostingUrl,
+  signInHostingUrl,
 } from "../../src/data/backup_hosting";
 import type {
   BackupHostingBridge,
@@ -23,6 +25,65 @@ const job = (
 });
 
 describe("backup hosting safety boundaries", () => {
+  it("offers sign-in only for an independently verified authentication step", () => {
+    const pending = {
+      ...job("authentication_needed"),
+      lan_url_verified: true,
+      lan_url_verified_at: "2026-11-15T00:00:00Z",
+    };
+    expect(signInHostingUrl(pending)).toBe("http://192.168.1.20:8123/");
+    expect(readyHostingUrl(pending)).toBeUndefined();
+    expect(
+      signInHostingUrl({ ...pending, lan_url_verified: false })
+    ).toBeUndefined();
+    for (const timestamp of [undefined, "", "invalid", "2026-11-15T00:00:00"]) {
+      expect(
+        signInHostingUrl({ ...pending, lan_url_verified_at: timestamp })
+      ).toBeUndefined();
+    }
+    for (const state of ["running", "ready", "failed", "cancelled"]) {
+      expect(signInHostingUrl({ ...pending, state })).toBeUndefined();
+    }
+    expect(
+      signInHostingUrl({ ...pending, lan_url: "javascript:alert(1)" })
+    ).toBeUndefined();
+  });
+  it("auto-starts an explicit action with one eligible saved computer target", () => {
+    const action = {
+      explicitAction: true,
+      savedBridge: true,
+      targets: ["docker"] as const,
+      protectedBackup: false,
+    };
+    expect(
+      canAutoStartHosting({ ...action, targets: [...action.targets] })
+    ).toBe(true);
+    for (const change of [
+      { explicitAction: false },
+      { savedBridge: false },
+      { protectedBackup: true },
+      { targets: [] },
+      { existingJob: job("ready") },
+    ]) {
+      expect(
+        canAutoStartHosting({
+          ...action,
+          targets: [...action.targets],
+          ...change,
+        })
+      ).toBe(false);
+    }
+    expect(
+      canAutoStartHosting({ ...action, targets: ["virtualbox", "vmware"] })
+    ).toBe(false);
+    expect(
+      canAutoStartHosting({
+        ...action,
+        targets: ["virtualbox", "vmware"],
+        savedTarget: "vmware",
+      })
+    ).toBe(true);
+  });
   it("withholds a stale URL until the restored instance is ready", () => {
     for (const state of [
       "queued",

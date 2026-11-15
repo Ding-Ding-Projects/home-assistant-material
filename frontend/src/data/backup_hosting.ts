@@ -11,6 +11,8 @@ export interface BackupHostingJob {
   target: BackupHostingTarget;
   instance_id?: string;
   lan_url?: string | null;
+  lan_url_verified?: boolean;
+  lan_url_verified_at?: string | null;
   error_code?: string | null;
   updated_at: string;
 }
@@ -92,11 +94,10 @@ export const availableHostingTargets = (
       bridge?.capabilities.target_status?.[target]?.available === true
   );
 
-// A stale URL on a failed or restarting job must never become an Open action.
-export const readyHostingUrl = (job?: BackupHostingJob): string | undefined => {
-  if (job?.state !== "ready" || !job.lan_url) return undefined;
+const safeHostingUrl = (value?: string | null): string | undefined => {
+  if (!value) return undefined;
   try {
-    const url = new URL(job.lan_url);
+    const url = new URL(value);
     if (
       !["http:", "https:"].includes(url.protocol) ||
       url.username ||
@@ -108,3 +109,41 @@ export const readyHostingUrl = (job?: BackupHostingJob): string | undefined => {
     return undefined;
   }
 };
+
+// A stale URL on a failed or restarting job must never become an Open action.
+export const readyHostingUrl = (job?: BackupHostingJob): string | undefined =>
+  job?.state === "ready" ? safeHostingUrl(job.lan_url) : undefined;
+
+// A sign-in link is an incomplete verification step, never a ready result.
+export const signInHostingUrl = (
+  job?: BackupHostingJob
+): string | undefined => {
+  if (
+    job?.state !== "authentication_needed" ||
+    job.lan_url_verified !== true ||
+    !job.lan_url_verified_at ||
+    job.lan_url_verified_at.length > 64 ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+      job.lan_url_verified_at
+    ) ||
+    !Number.isFinite(Date.parse(job.lan_url_verified_at))
+  )
+    return undefined;
+  return safeHostingUrl(job.lan_url);
+};
+
+export const canAutoStartHosting = (options: {
+  explicitAction: boolean;
+  savedBridge: boolean;
+  targets: BackupHostingTarget[];
+  savedTarget?: BackupHostingTarget;
+  protectedBackup: boolean;
+  existingJob?: BackupHostingJob;
+}) =>
+  options.explicitAction &&
+  options.savedBridge &&
+  !options.protectedBackup &&
+  !options.existingJob &&
+  (options.targets.length === 1 ||
+    (options.savedTarget !== undefined &&
+      options.targets.includes(options.savedTarget)));

@@ -43,6 +43,11 @@ explicitly; it does not silently pause or rewrite automations.
 Progress comes from the coordinator. Restore acceptance, restart waiting,
 authentication, hardware waiting, and verified readiness remain distinct. The
 Open link appears only when the backend reports `ready` with a verified LAN URL.
+When the job needs authentication, a separate **Open sign-in to verify** action
+appears only after the backend reports an independently verified LAN address and
+a timezone-qualified verification timestamp. This is an incomplete verification
+step, not the ready link or a successful restore verdict.
+
 An interrupted connection reconnects to the existing job instead of creating a
 second instance. An explicit incorrect-key result can retry the same request and
 instance with a new transient key. Cancellation is a separate action.

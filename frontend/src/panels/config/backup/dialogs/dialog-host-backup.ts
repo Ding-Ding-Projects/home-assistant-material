@@ -9,6 +9,7 @@ import "../../../../components/ha-dialog-footer";
 import { getPreferredAgentForDownload } from "../../../../data/backup";
 import {
   availableHostingTargets,
+  canAutoStartHosting,
   backupHostingStatus,
   backupHostingJobs,
   cancelBackupHosting,
@@ -16,6 +17,7 @@ import {
   hostingJobNeedsKey,
   pairBackupHosting,
   readyHostingUrl,
+  signInHostingUrl,
   startBackupHosting,
 } from "../../../../data/backup_hosting";
 import type {
@@ -139,10 +141,14 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
       if (!this.isConnected) return;
       if (this._job) this._poll();
       else if (
-        autoStart &&
-        this._bridgeId &&
-        this._targets.includes(this._target) &&
-        !this._protected
+        canAutoStartHosting({
+          explicitAction: autoStart,
+          savedBridge: Boolean(this._bridgeId),
+          targets: this._targets,
+          savedTarget: saved.target,
+          protectedBackup: this._protected,
+          existingJob: this._job,
+        })
       )
         await this._start();
     } catch {
@@ -246,6 +252,7 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
   protected render() {
     if (!this.params) return nothing;
     const link = readyHostingUrl(this._job);
+    const signInLink = signInHostingUrl(this._job);
     const active = this._job && hostingJobActive(this._job);
     return html`<ha-dialog
       open
@@ -253,6 +260,16 @@ class HostBackupDialog extends DialogMixin<HostBackupDialogParams>(LitElement) {
       .headerTitle=${this._text("title")}
     >
       <div class="content">
+        ${
+          signInLink
+            ? html`<ha-alert alert-type="info">
+                <p>${this._text("sign_in_pending")}</p>
+                <a href=${signInLink} target="_blank" rel="noopener noreferrer"
+                  >${this._text("sign_in_verify")}</a
+                >
+              </ha-alert>`
+            : nothing
+        }
         <p>${this.params.backup.name}</p>
         <ha-alert alert-type="info">${this._text("original")}</ha-alert>
         ${this._message ? html`<ha-alert>${this._text(this._message)}</ha-alert>` : nothing}
