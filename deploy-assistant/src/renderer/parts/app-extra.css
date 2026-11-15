@@ -1,4 +1,15 @@
 /* Deploy Assistant only. */
+/* A real viewport boundary keeps scrolled content and fixed overlays out of
+   native caption controls. The measured caption geometry is set at runtime. */
+html.native-caption-viewport,html.native-caption-viewport body{height:100%;overflow:hidden}
+html.native-caption-viewport{background:var(--native-caption-surface)}
+html.native-caption-viewport::before{content:'';position:fixed;top:0;left:var(--native-caption-left);width:var(--native-caption-width);height:var(--native-caption-bottom);-webkit-app-region:drag}
+.native-caption-viewport #app{position:fixed;inset:var(--native-caption-bottom) 0 0;min-height:0;overflow:hidden;contain:layout paint}
+.native-caption-viewport #app>.shell{height:100%;min-height:0;overflow:auto;overscroll-behavior:contain}
+.native-caption-viewport .wcospace{display:none}
+.native-caption-viewport #app>.popover{max-height:calc(100% - 16px);max-width:min(360px,calc(100% - 16px));box-sizing:border-box}
+.native-caption-viewport #app>.overlay{box-sizing:border-box;padding:min(6vh,24px) 12px 12px}
+.native-caption-viewport #app>.overlay>.dialog{max-height:100%;box-sizing:border-box}
 .drag{-webkit-app-region:drag}.drag button,.drag input,.drag a,.nodrag{-webkit-app-region:no-drag}
 .winctl{display:flex;gap:2px;margin-left:8px}.winctl .ib{width:40px;height:40px}.winctl .wclose:hover{background:var(--err);color:var(--on-err,#fff)}
 .dhero{padding:8px 0 20px}

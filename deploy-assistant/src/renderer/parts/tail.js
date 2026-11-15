@@ -438,7 +438,7 @@
       '<button class="ib nodrag opt" data-act="theme" aria-label="' + esc(w('theme')) + '">' + icon('ThemeLightDark') + '</button>' + (st.axHidden ? '' : '<button class="ib nodrag" data-act="access" aria-label="' + esc(w('access')) + '">' + icon('HumanHandsup') + '</button>') + '' +
       '<button class="ib nodrag" data-act="bell" aria-label="' + esc(w('notifications')) + '" style="position:relative">' + icon('Bell') + '<span class="badge" id="bellcount" hidden>0</span></button>' + winBtns + '</header>' +
       '<div id="updslot"></div><nav class="tabstrip" role="tablist" aria-label="Pages" data-k="tabs"></nav><main class="main" id="main">' + TABS.map(function (t) { return '<section class="pane" role="tabpanel" id="p-' + t + '" aria-labelledby="t-' + t + '" hidden></section>'; }).join('') + '</main></div><div class="toasts" aria-live="polite"></div>';
-    tabstrip(); bell();
+    nativeViewportInit(); tabstrip(); bell();
   }
   function tabstrip() {
     var nav = $('.tabstrip'); var order = st.tabs.open.slice().sort(function (a, b) { return (st.tabs.pinned.indexOf(b) >= 0) - (st.tabs.pinned.indexOf(a) >= 0); });
@@ -462,14 +462,14 @@
   function render() {
     if (st.tabs.open.indexOf(st.active) < 0) st.active = st.tabs.open[0] || 'deploy';
     if (!st.tabs.open.length) { st.tabs.open = ['deploy']; st.active = 'deploy'; }
-    var a = document.activeElement, fid = a && a.id, pos = a && a.selectionStart, scroll = window.scrollY;
+    var a = document.activeElement, fid = a && a.id, pos = a && a.selectionStart, scroll = nativeContentScrollTop();
     var openDetails = $$('#p-' + st.active + ' details[open]').map(function (d) { return d.closest('[data-k]') ? d.closest('[data-k]').dataset.k : ''; });
     tabstrip(); var us = $('#updslot'); if (us) us.innerHTML = updBar() + adhdBar(); $('#app').classList.toggle('adhd-focus', adhd('focus'));
     TABS.forEach(function (t) { var p = $('#p-' + t); p.hidden = t !== st.active; p.innerHTML = t === st.active ? R[t]() : ''; });
     openDetails.forEach(function (k) { var d = $('[data-k="' + k + '"] details'); if (d) d.open = true; });
     decorate(); applyVocab($('#app'));
     if (fid && $('#' + fid)) { var n = $('#' + fid); n.focus({ preventScroll: true }); try { if (pos != null) n.setSelectionRange(pos, pos); } catch (e) { /* not a text field */ } }
-    window.scrollTo(0, scroll);
+    nativeContentScrollTo(scroll);
     $$('.logbox').forEach(function (l) { l.scrollTop = l.scrollHeight; });
     if (st.active === 'tools') { otpDraw(); colour(); }
     if (st.active === 'instances') lcFrame();
@@ -478,6 +478,7 @@
     if (st.active === 'minecraft' && mcv.sub === 'generate') mgDraw();
     if (st.active === 'minecraft' && mcv.sub === 'console') { var mcb = $('#mccon'); if (mcb) mcb.scrollTop = mcb.scrollHeight; }
     if (API.overlay && API.platform === 'win32') API.overlay(isDark());
+    nativeViewportSync();
     if (st.active === 'activity') historyPanel();
     document.title = st.name + ' · ' + w(st.active);
   }
@@ -714,7 +715,7 @@
       if ((b = t.closest('[data-axshow]'))) { setVal('axHidden', !st.axHidden, 'Accessibility button'); shell(); render(); return; }
       if ((b = t.closest('[data-fst]'))) { fview.state = b.dataset.fst; render(); return; }
       if ((b = t.closest('[data-fgr]'))) { fview.group = b.dataset.fgr; render(); return; }
-      if ((b = t.closest('[data-article]'))) { fview.article = b.dataset.article || null; if (st.active !== 'articles') go('articles:top'); else { render(); window.scrollTo(0, 0); } return; }
+      if ((b = t.closest('[data-article]'))) { fview.article = b.dataset.article || null; if (st.active !== 'articles') go('articles:top'); else { render(); nativeContentScrollTo(0); } return; }
       if ((b = t.closest('[data-board]'))) { boardDialog(b.dataset.board, b.dataset.btitle); return; }
       if ((b = t.closest('[data-pick]'))) { st.wizTarget = b.dataset.pick; save(); render(); var f = $('#place-' + st.wizTarget); if (f) f.focus(); return; }
       if ((b = t.closest('[data-oneclick]'))) { oneClick(b.dataset.oneclick); return; }
