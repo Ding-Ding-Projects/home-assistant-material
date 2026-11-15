@@ -20,6 +20,7 @@ desktop app has its own [folder](deploy-assistant/README.md).
 | Flash a Raspberry Pi or start a VirtualBox VM | [Operating system images](#operating-system-images) |
 | Build it myself | [Build](#build) |
 | Deploy in one click (Docker, SSH host, VirtualBox, VMware, Raspberry Pi card) | [`deploy-assistant/`](deploy-assistant/README.md), downloads on the project page |
+| Host a separate copy from a backup (candidate workflow) | [Backup hosting](docs/features/backups/host-workflow.md), local verification in progress, not yet released |
 | See the project page | [ding-ding-projects.github.io/home-assistant-material](https://ding-ding-projects.github.io/home-assistant-material/) |
 | See the design | [`design/README.md`](design/README.md) |
 | Know what changed from upstream | [`docs/material-changes.md`](docs/material-changes.md) |
@@ -27,7 +28,9 @@ desktop app has its own [folder](deploy-assistant/README.md).
 
 ## Try the interactive demo
 
-The [History comparison guide](docs/features/history/README.md) describes the new earlier-period selector and its limits. Source implementation is available; final tests and verification in the published runtime are pending. The current screenshots below remain evidence of their stated build, not proof of these changes.
+The [History comparison guide](docs/features/history/README.md) describes the earlier-period selector and its limits. Focused tests pass, and published build 441 was exercised with a truthful empty earlier period. Populated-series acceptance remains pending. The script mode/condition layout repair was inspected in the same published build. Existing screenshots below remain evidence of their stated builds.
+
+Selected-backup hosting and the desktop **Host a backup** upload workflow are under local verification. Core and Supervisor 444 and a native 1.6.0 candidate build, but this workflow has not been released or installed. The rebuilt web dialog passes 24 language/width/action combinations. The native synthetic restore uses one retained instance and remains incomplete at upload; see [the workflow limits](docs/features/backups/host-workflow.md), [roadmap](ROADMAP.md) and [handoff](HANDOFF.md). Current delivery remains the verified 441 release.
 
 The [screenshot gallery](https://ding-ding-projects.github.io/home-assistant-material-gallery/) shows two reviewed automation editor workflows from synthetic browser sessions, with source revisions and capture evidence.
 

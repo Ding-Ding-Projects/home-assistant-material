@@ -18,6 +18,26 @@ The owner requested both hosted-copy actions on every backup, plus **Host a back
 
 Native admission, job ownership, SSH identity, protected restoration, Core pairing and both archive exclusions, frontend actions, native upload controls, explicit SSH approval and bounded Pi addresses are integrated source. Independent source review closed the six earlier transport/admission/cancellation findings for their observed conditions. The new workflow is not in live build 441. Bootstrap composition, immutable helper publication, new Core/Supervisor delivery, native packaging, final tests and actual restore/link verification remain pending. A source-only or fail-closed result is not usable target proof.
 
+### Current local verification
+
+Core hosting tests pass 57 cases and Supervisor archive exclusion passes 29 selected cases. The latest native selection passes 99 cases under Node 22.14.0. Frontend hosting helpers and real dialog-manager lifecycle checks pass nine cases; native renderer checks pass 12 cases. These are focused selections, not a complete-project green verdict.
+
+The rebuilt Core 444 dialog from `70cada969a2130d7d09999c09a5ebeafa1ced5e2` renders correctly in all 24 list/details, container/appliance, width and language combinations. Earlier empty-dialog captures remain preserved separately. Actual Core owner and nonadministrator access checks also passed in a fresh fixture.
+
+The native caption boundary is verified with actual narrow/wide native views, including scrolling, a menu and a tall dialog. Official `./backup.json` and effective PAX sizes now pass the importer while unsafe paths and canonical duplicate names remain rejected. A tiny PAX reproduction and the real unchanged synthetic ZIP both pass intake.
+
+One synthetic job, `1285e5e4-76be-484e-b34f-57eddaf4ef33`, created one full-mode Docker instance using the selected wrapper `2026.11.1.439` and port `18137`. The original fixture automation was on before backup. The same job successfully resumed after a controlled cold start and waited for first-run readiness. Upload then received an unrecorded non-2xx response, with no backup identifier or restore submission. The destination remains idle with zero backups. Its container and both volumes are retained; do not recreate it or replay an uncertain restore.
+
+The latest diagnostic candidate preserves only validated numeric HTTP status and a fixed operation stage, requires the receiving backup manager to be idle, and does not add automatic POST retries. Its historical rejection cause remains unknown. A single controlled same-job diagnostic resume is pending.
+
+### Delivery blockers and retained boundaries
+
+The complete publication scan at `0185886eba7dab95154f208bdfd49d68a2f4469e` traversed the tree but returned 8,731 findings: 7,328 source-language matches, 477 path matches and 926 unsupported encodings. Independent current-change review found no confirmed new language leak; the one added-line match was a literal filesystem-tool command. This does not clear the remaining baseline or authorize blanket exceptions. The owner has been asked whether to expand that separate review or retain this feature scope with publication blocked.
+
+No new Core/Supervisor/native release or accepted installation update has been performed. The helper is built locally but its immutable registry descriptor remains unpublished, so appliance availability is deliberately false. VirtualBox, VMware and Pi runtime, complete restored automation state and the new instance's LAN acceptance remain unverified. Keep the original active automations; never substitute a hidden pause.
+
+Private runtime evidence retains exact source, image/ASAR, process/profile and pixel bindings. Native images exposing the profile footer stay private. The browser's exact page plus causally related worker is documented, while the strict one-entry website-promotion check remains unverified. A proposed task-owned Lowlevel HTTP-service launch was automatically rejected; it was not retried through another route. Existing supported hidden-desktop native operations remain separately evidenced.
+
 ## Visual dictionaries and browser demo, 13 November 2026
 
 - The automation and script action editors use a visual dictionary for object fields and extra

@@ -19,20 +19,22 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Script mode controls remain reachable while scrolling; persistent condition results wrap below the summary. Published build 441 has zero measured summary/result overlaps in 60 script views. Native display-scale, keyboard and full condition-state evidence remain pending.
 - [x] Apply the accepted candidate through the supported normal updater, as authorized on 15 November. Core 2026.11.1.441, exact image/source and healthy Supervisor verified at 05:25 UTC. This does not claim an in-interface button click.
 - [ ] Independently exercise the update button, its progress view and recovery state.
-- [ ] Final workflow pass: setup resume, account settings persistence, backup restore with automation and dashboard histories, keyboard and narrow layouts. Existing implementations are retained.
+- [ ] Final workflow pass: real guided setup Save and close/reload/Resume and account language/theme persistence passed in the isolated 441 fixture. Backup extraction verified 344/344 files and three histories; a booted restored instance, populated comparison and broader keyboard/native display-scale acceptance remain pending.
 
 ## Backup hosting follow-up, 15 November 2026
 
-- [ ] Host a selected backup as a separate web application or appliance from the Backups interface. Source integrated; new runtime not yet delivered.
-- [ ] Desktop **Host a backup** accepts an uploaded native archive or ZIP and offers Docker, SSH, VirtualBox, VMware and Raspberry Pi. Source integrated; final packaging and target verification pending.
+- [ ] Host a selected backup as a separate web application or appliance from the Backups interface. The rebuilt dialog passes 24 actual action/width/language combinations. Pairing and selected-backup transfer remain unverified; new runtime not yet delivered.
+- [ ] Desktop **Host a backup** accepts an uploaded native archive or ZIP and offers Docker, SSH, VirtualBox, VMware and Raspberry Pi. Native 1.6.0 packages through the root entrypoint; real ZIP import and one owned Docker provisioning job are verified. Upload/restore and non-Docker runtime acceptance remain incomplete.
 - [ ] Automatically restore after first-use setup, preserving original automation activity. Return a checked destination link only with truthful readiness or incomplete sign-in status.
 - [ ] Publish the immutable offline preparation helper and bind its digest into the native build. Pinned local helper builds; six synthetic partition checks and four JavaScript bootstrap checks pass.
 - [ ] Deliver matching Core and Supervisor backup-authority exclusions before enabling the new pairing workflow on the existing installation.
+- [ ] Complete the single retained synthetic restore without duplicating its job or instance. Same-job resume and cold-start waiting are verified; the first upload received an unrecorded non-2xx response. A diagnostic candidate retains bounded status/stage and requires an idle receiver. No restore POST has been submitted.
+- [ ] Refresh current public evidence from accepted captures. Native private footer paths are withheld; browser strict one-entry promotion remains incomplete despite genuine private runtime evidence.
 
 ## Foundation
 
 - [x] Vendor the upstream sources at pinned releases
-- [x] Release workflow: one tagged release per push
+- [x] ~~Release workflow: one tagged release per push.~~ Historical policy replaced by explicit scoped publication on 15 November 2026. Source pushes retain build outputs; a source build is not a release.
 - [ ] Release workflow compares a push with the last build that published images, so a
       documentation-only push on top of unbuilt code still builds that code. Built; builds 64 and
       65 went out without images before the fix, and no push since has shown the fix working
