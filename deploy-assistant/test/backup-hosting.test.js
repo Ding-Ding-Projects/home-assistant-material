@@ -72,7 +72,7 @@ test('native-approved pairing is once-only and credentials bind both identities'
 });
 
 test('job retry reuses its durable identity and rejects changed upload ownership', (t) => {
-  const dir = directory(t); const uploads = { resolve: () => ({}) }; const manager = { dir, db: { hosts: [] } };
+  const dir = directory(t); const uploads = { resolve: () => ({ owner: 'native' }), resolveBound: () => ({ owner: 'native' }) }; const manager = { dir, db: { hosts: [] } };
   const jobs = new BackupJobs(manager, uploads); jobs.launch = () => {};
   const input = { request_id: 'stable-request', upload_handle: 'one', target: 'docker' };
   const first = jobs.start(input); assert.equal(jobs.start(input).id, first.id);

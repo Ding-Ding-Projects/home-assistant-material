@@ -47,7 +47,7 @@ test('ordinary deployments share atomic local port allocation', async (t) => {
 });
 
 test('job owner and queue bounds are enforced before launch', (t) => {
-  const uploads = { resolve: () => ({}), handles: new Map() }; const manager = { dir: directory(t), db: { hosts: [] } };
+  const uploads = { resolve: () => ({ owner: 'source-a' }), resolveBound: () => ({ owner: 'source-a' }), handles: new Map() }; const manager = { dir: directory(t), db: { hosts: [] } };
   const jobs = new BackupJobs(manager, uploads); jobs.launch = () => {};
   const input = { request_id: 'request-000', upload_handle: 'upload-000', target: 'docker' };
   const first = jobs.start(input, { owner: 'source-a' }); assert.equal(jobs.jobs[0].owner, 'source-a');
@@ -64,7 +64,7 @@ test('cancellation while status is pending cannot begin provisioning later', asy
   const status = new Promise((resolve) => { resolveStatus = resolve; });
   let provisions = 0; const instances = [];
   const manager = { dir: directory(t), db: { hosts: [], instances }, check: async () => ({ ok: true }), target: () => ({ status: () => { statusEntered(); return status; }, deploy: () => { provisions++; } }), allocate: async (options, meta) => { instances.push({ id: meta.id, hostingJobId: meta.hostingJobId }); }, get: (id) => instances.find((instance) => instance.id === id), withSecrets: (instance) => instance };
-  const jobs = new BackupJobs(manager, { resolve: () => ({}), handles: new Map([['upload', { file: 'unused' }]]) });
+  const jobs = new BackupJobs(manager, { resolve: () => ({ owner: 'native' }), resolveBound: () => ({ owner: 'native' }), handles: new Map([['upload', { file: 'unused' }]]) });
   const job = jobs.start({ request_id: 'cancel-request', upload_handle: 'upload', target: 'docker' }); await entered;
   assert.equal(jobs.cancel(job.id).state, 'cancelling');
   const changed = once(jobs, 'changed'); resolveStatus('missing'); await changed;

@@ -82,10 +82,7 @@ class HostBridge {
       return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/jobs') {
-      const input = await jsonBody(req); const upload = this.uploads.resolve(input.upload_handle);
-      if (upload.owner !== owner) throw fail('unauthorized');
-      const existing = this.jobs.jobs.find((j) => j.request_id === input.request_id);
-      if (existing && existing.owner !== owner) throw fail('unauthorized');
+      const input = await jsonBody(req);
       const job = this.jobs.start(input, { owner }); this.reply(res, 202, job); return;
     }
     if (req.method === 'GET' && url.pathname === '/v1/jobs') { this.reply(res, 200, { jobs: this.jobs.jobs.filter((j) => j.owner === owner).map((j) => this.jobs.public(j)) }); return; }
