@@ -1,5 +1,23 @@
 # Recover a release from build artifacts
 
+## A scoped manual Core update
+
+An update to the running Core can be delivered separately from appliance images.
+Build an immutable source export through `build.bat /s`, with a reserved numeric
+`HA_BUILD_NUMBER` and the exact `HA_BUILD_SOURCE` revision. The entrypoint stamps
+the Core version and image revision, and its image marker contains no workstation
+identity. The default local build remains unnumbered.
+
+For that update, publish only the verified machine image and ready frontend wheel,
+with a normal release, source revision, file hashes and an explicit machine/language
+inventory. Preserve Supervisor, other-machine and appliance feed entries that were
+not built. Advance only the intended machine's Core entry after release readback.
+Do not imply that an x86-64 update builds or verifies ARM or appliance images.
+
+Automatic source pushes retain build outputs; the full workflow publishes only
+when explicitly dispatched. Coordinate tags before either manual route so an
+update has one immutable release. Never overwrite an existing tag or image.
+
 Open the exact **Release** workflow run and find **Artifacts**. The frontend wheel,
 operating system images and checksums, and Deploy Assistant files are uploaded by
 their build jobs before the publisher runs. New runs retain them for 14 days.

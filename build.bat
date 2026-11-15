@@ -53,9 +53,25 @@ set "RC=3"
 echo Docker did not start within 3 minutes.
 goto done
 :docker_ready
+rem An explicit release number stamps only this source copy. The release caller
+rem supplies an immutable source revision when building an exported checkout.
+if defined HA_BUILD_NUMBER (
+  powershell -NoProfile -Command "if ($env:HA_BUILD_NUMBER -notmatch '^[0-9]+$') { exit 1 }"
+  if errorlevel 1 (set "RC=4" & echo HA_BUILD_NUMBER must contain digits only. & goto done)
+  docker run --rm -v "%CD%:/src" -w /src python:3.14.0-slim python scripts/ci/set-versions.py "%HA_BUILD_NUMBER%"
+  if errorlevel 1 (set "RC=4" & echo Version stamping did not finish. & goto done)
+)
+set "SOURCE_REVISION=local"
+if defined HA_BUILD_SOURCE (
+  powershell -NoProfile -Command "if ($env:HA_BUILD_SOURCE -notmatch '^[a-f0-9]{40}$') { exit 1 }"
+  if errorlevel 1 (set "RC=4" & echo HA_BUILD_SOURCE must be a full source revision. & goto done)
+  set "SOURCE_REVISION=%HA_BUILD_SOURCE%"
+)
 for /f "usebackq delims=" %%V in (`powershell -NoProfile -Command "(Get-Content versions.json -Raw | ConvertFrom-Json).core"`) do set "CORE_BASE=%%V"
 for /f "usebackq delims=" %%V in (`powershell -NoProfile -Command "(Get-Content versions.json -Raw | ConvertFrom-Json).core_base_image"`) do set "BASE_IMAGE=%%V"
 if "%CORE_BASE%"=="" ( set "RC=4" & echo Could not read versions.json. & goto done )
+set "CORE_VERSION=%CORE_BASE%"
+if defined HA_BUILD_NUMBER set "CORE_VERSION=%CORE_BASE%.%HA_BUILD_NUMBER%"
 set "ARCH=amd64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "ARCH=aarch64"
 echo Docker is ready. Core %CORE_BASE%, processor %ARCH%.
@@ -78,8 +94,8 @@ rmdir /s /q "%TDIR%" >nul 2>&1
 
 echo.
 echo [4/5] Building the container image home-assistant-material:local
-> core\rootfs\OFFICIAL_IMAGE echo local;build.bat;%USERNAME%
-docker build core --build-arg BUILD_FROM=ghcr.io/home-assistant/%ARCH%-homeassistant-base:%BASE_IMAGE% --label io.hass.arch=%ARCH% --label io.hass.version=%CORE_BASE% --tag home-assistant-material:local
+> core\rootfs\OFFICIAL_IMAGE echo %SOURCE_REVISION%;manual;build.bat
+docker build core --build-arg BUILD_FROM=ghcr.io/home-assistant/%ARCH%-homeassistant-base:%BASE_IMAGE% --label io.hass.arch=%ARCH% --label io.hass.version=%CORE_VERSION% --label org.opencontainers.image.revision=%SOURCE_REVISION% --tag home-assistant-material:local
 set "BUILD_RC=!errorlevel!"
 del /q core\rootfs\OFFICIAL_IMAGE >nul 2>&1
 if not "%BUILD_RC%"=="0" ( set "RC=%BUILD_RC%" & echo The container image build failed. & goto done )

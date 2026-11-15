@@ -1,7 +1,7 @@
 name: Release
 
-# Every push to main that changes the product publishes one new tagged release,
-# but only after the whole run has succeeded.
+# Source pushes retain build outputs. Explicit workflow dispatch publishes one
+# new tagged full release, but only after the whole run has succeeded.
 # This workflow runs no tests and no lint. It builds, packages and publishes.
 #
 # No GitHub release exists while the build jobs run. The build jobs upload their
@@ -641,7 +641,9 @@ jobs:
   publish:
     name: Publish the release
     needs: [prepare, frontend, translations, core, supervisor, container, full, os, assistant]
-    if: needs.prepare.outputs.heavy == 'true'
+    # Source pushes retain build outputs. Publication is an explicit delivery
+    # action, so an automatic publisher cannot race a manually delivered update.
+    if: needs.prepare.outputs.heavy == 'true' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     permissions:
       contents: write

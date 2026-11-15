@@ -12,8 +12,6 @@ been seen working and where.
 
 Nothing is deleted from this list. An item that is dropped is struck through with the reason.
 
-## Foundation
-
 ## Everyday workflow follow-up, 15 November 2026
 
 - [ ] History page comparison: off, previous window, one day and one week earlier. Source implemented and reviewed in `8300184d2`; final tests and published runtime verification pending.
@@ -22,7 +20,7 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 - [ ] Apply the accepted candidate using Settings, System, Updates in the running interface; verify progress, reconnect, version and health.
 - [ ] Final workflow pass: setup resume, account settings persistence, backup restore with automation and dashboard histories, keyboard and narrow layouts. Existing implementations are retained.
 
-## Foundation checklist
+## Foundation
 
 - [x] Vendor the upstream sources at pinned releases
 - [x] Release workflow: one tagged release per push
