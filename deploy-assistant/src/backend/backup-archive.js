@@ -6,12 +6,38 @@ const { pipeline } = require('node:stream/promises');
 const { Transform } = require('node:stream');
 const tar = require('tar');
 const yauzl = require('yauzl');
+const { createGunzip } = require('node:zlib');
 const { UploadCapacity } = require('./backup-capacity');
 
 const MAX_BYTES = 64 * 1024 ** 3;
 function fail(code) { return Object.assign(new Error(code), { code }); }
 function safeName(name) {
-  return typeof name === 'string' && name.length <= 1024 && !name.includes('\\') && !/[\x00-\x1f]/.test(name) && !name.startsWith('/') && !/^[A-Za-z]:/.test(name) && !name.split('/').some((p) => p === '..' || p === '.');
+  return typeof name === 'string' && name.length > 0 && name.length <= 1024 && !name.includes('\\') && !/[\x00-\x1f]/.test(name) && !name.startsWith('/') && !/^[A-Za-z]:/.test(name) && !name.split('/').some((p) => p === '..' || p === '.');
+}
+
+// Check wire headers before node-tar normalizes Windows paths and legacy directory types.
+function rawTarHeaders(maximum) {
+  let header = Buffer.alloc(0); let remaining = 0; let bytes = 0;
+  return new Transform({ transform(chunk, encoding, done) {
+    try {
+      bytes += chunk.length; if (bytes > maximum) throw fail('backup_too_large');
+      let offset = 0;
+      while (offset < chunk.length) {
+        if (remaining) { const take = Math.min(remaining, chunk.length - offset); remaining -= take; offset += take; continue; }
+        const take = Math.min(512 - header.length, chunk.length - offset);
+        header = Buffer.concat([header, chunk.subarray(offset, offset + take)]); offset += take;
+        if (header.length !== 512) continue;
+        const decoded = new tar.Header(header);
+        if (!decoded.nullBlock) {
+          if (decoded.path.includes('\\') || decoded.path === './' && header[156] !== 0x35) throw fail('unsafe_backup_archive');
+          if (!Number.isSafeInteger(decoded.size) || decoded.size < 0 || decoded.size > MAX_BYTES) throw fail('backup_too_large');
+          remaining = Math.ceil(decoded.size / 512) * 512;
+        }
+        header = Buffer.alloc(0);
+      }
+      done(null, chunk);
+    } catch (error) { done(error); }
+  } });
 }
 
 async function inspectTar(file) {
@@ -19,14 +45,23 @@ async function inspectTar(file) {
   const names = new Set();
   const parser = new tar.Parser({ strict: true, maxMetaEntrySize: 1024 * 1024, maxDecompressionRatio: 200 });
   parser.on('entry', (entry) => {
-    if (++count > 10000 || !safeName(entry.path) || names.has(entry.path) || !['File', 'Directory'].includes(entry.type)) { parser.abort(fail('unsafe_backup_archive')); return; }
-    names.add(entry.path); bytes += entry.size;
+    if (++count > 10000) { parser.abort(fail('unsafe_backup_archive')); return; }
+    if (entry.path === './' && entry.type === 'Directory' && entry.size === 0) { entry.resume(); return; }
+    const rawName = entry.header.path;
+    const name = rawName.startsWith('./') ? rawName.slice(2) : rawName;
+    if (!safeName(name) || names.has(name) || !['File', 'Directory'].includes(entry.type)) { parser.abort(fail('unsafe_backup_archive')); return; }
+    names.add(name); bytes += entry.size;
     if (bytes > MAX_BYTES) { parser.abort(fail('backup_too_large')); return; }
-    if (entry.path === 'backup.json') { if (entry.size > 1024 * 1024) { parser.abort(fail('unsafe_backup_archive')); return; } metadata = true; }
-    if (/^homeassistant\.tar(?:\.gz)?$/.test(entry.path)) core = true;
+    if (name === 'backup.json') { if (entry.size > 1024 * 1024) { parser.abort(fail('unsafe_backup_archive')); return; } metadata = true; }
+    if (/^homeassistant\.tar(?:\.gz)?$/.test(name)) core = true;
     entry.resume();
   });
-  await pipeline(fs.createReadStream(file), parser);
+  const size = fs.statSync(file).size;
+  const prefix = Buffer.alloc(2); const descriptor = await fs.promises.open(file, 'r');
+  try { await descriptor.read(prefix, 0, 2, 0); } finally { await descriptor.close(); }
+  const guard = rawTarHeaders(Math.min(MAX_BYTES + 10000 * 512 + 1024, Math.max(1024 * 1024, size * 200)));
+  if (prefix[0] === 0x1f && prefix[1] === 0x8b) await pipeline(fs.createReadStream(file), createGunzip(), guard, parser);
+  else await pipeline(fs.createReadStream(file), guard, parser);
   if (!metadata || !core) throw fail('backup_no_core_archive');
   return { entries: count, bytes };
 }
