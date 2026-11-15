@@ -58,3 +58,27 @@ macOS hardware unless it says so.
 | Action sounds | Built | |
 | Drawing and annotation | Partly built | Draw tab: seven pens with their own dynamics, an area eraser, Shift for straight lines, a toolbar that changes shape, undo and redo, SVG and PNG at 1x to 3x, saved strokes, drawing on a picture. Missing: drawing over every screenshot and preview in place, docking and dragging the toolbar. |
 | Design boards | Built | In the Design tab and on canvases 16 to 18 of the design folder. |
+
+## Checked against the full required feature list, 15 November 2026
+
+The project's required-feature list was compared with the rows above. These items are not yet
+covered, or are covered only in part. Items that need a running Windows machine, or that apply to
+other kinds of project, are listed so nothing is silently skipped.
+
+| Required feature | State | What is missing |
+| --- | --- | --- |
+| Type generator and JSON editor (quicktype Studio, required from 15 November 2026) | Missing | The whole feature: a Generate tab turning JSON, JSON Schema, TypeScript and GraphQL into typed models for every quicktype language, live, off the interface thread, with every option as a control; and the JSON editor with Tree, Code, Split and Table views, undo history, regex find, JSONPath, schema validation, transforms and a hand-off to Generate. The reference is quicktype Studio in `Ding-Ding-Projects/quicktype` (`studio/`); its engine wrapper, document model and pages are to be reused. |
+| Context menu on every element, with a filter field | Partly built | Only instances have a menu. Every element needs a target-specific menu with Edit appearance and Lock this element, a filter field with the pattern workbench, and keyboard and touch equivalents. |
+| Shortcuts shown in context menus | Partly built | Shown where a menu exists; needs every menu, from the same source that registers the shortcut. |
+| Per-element appearance editor | Missing | Already noted under Main colour above. |
+| Infinite colour picker and translator | Not checked | The main colour control has not been compared with the picker contract (spectrum, every colour space, gamut warnings, contrast, animated rainbow). |
+| Overlays and panels | Not checked | Every panel resizable from edges and corners, floating panels draggable, size and position kept per surface with a reset. |
+| Rendered release notes and provider text | Partly built | Markdown is rendered in tools; release notes and changelog entries need the shared isolated renderer and the empty state. |
+| Renaming the app | Partly built | The name setting changes the title bar. Missing: notifications and About using the name, and each rename recorded in history. |
+| Recorded walkthrough in the README | Missing | A recording of the built app driven through the headless route, kept small. |
+| Rich controls wherever a value is shown | Not checked | |
+| Guided forms with a wizard above each element | Not checked | |
+| Presets for editors that open empty | Partly built | Presets exist for some editors; not checked for every empty editor. |
+| Job Experience Document wording | Not applicable | The app has no job-related workflows. |
+| Download hand-off, Status Hub bridges, Tidbyt, panic webhooks | Not applicable | These belong to the browser extension and the Status Hub. |
+| Evidence duties (completeness parity, provenance, product evidence, design reference parity, clipping matrix, vendored fonts) | Not checked | Project-level evidence, kept outside this table. |
