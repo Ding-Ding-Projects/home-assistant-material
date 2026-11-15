@@ -4,7 +4,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { freePort, uniqueSlug, stamp, namePrefix } = require('./util');
+const { randomUUID } = require('node:crypto');
+const { freePort, portFree, uniqueSlug, stamp, namePrefix } = require('./util');
 
 const TARGETS = { docker: require('./docker-local'), ssh: require('./ssh'), virtualbox: require('./virtualbox'), vmware: require('./vmware'), pi: require('./pi') };
 const LABEL = { docker: 'Docker on this computer', ssh: 'SSH host', virtualbox: 'VirtualBox', vmware: 'VMware', pi: 'Raspberry Pi' };
@@ -22,6 +23,7 @@ class Manager extends EventEmitter {
     this.db = { version: 1, instances: [], hosts: [], schedule: { on: false, time: '03:00', keep: 7, consistent: true }, autoDownload: true };
     try { Object.assign(this.db, JSON.parse(fs.readFileSync(this.file, 'utf8'))); } catch { /* first start */ }
     this.busy = {};
+    this.allocationTail = Promise.resolve();
   }
 
   save(label) {
@@ -95,7 +97,7 @@ class Manager extends EventEmitter {
 
   snapshot() {
     return {
-      instances: this.db.instances.map((i) => ({ ...i, host: i.host ? { ...i.host, password: undefined, passphrase: undefined } : undefined })),
+      instances: this.db.instances.map((i) => ({ ...i, restoreTransport: undefined, host: i.host ? { ...i.host, password: undefined, passphrase: undefined } : undefined })),
       hosts: this.db.hosts.map((h) => ({ ...h, password: h.password ? '(saved)' : '', passphrase: h.passphrase ? '(saved)' : '' })),
       schedule: this.db.schedule,
       autoDownload: this.db.autoDownload !== false
@@ -151,7 +153,7 @@ class Manager extends EventEmitter {
 
   async check(targetId, hostId) {
     const host = hostId ? this.withSecrets({ hostId }).host : undefined;
-    try { return await this.target(targetId).check(host); } catch (e) { return { ok: false, detail: e.message }; }
+    try { return await this.target(targetId).check(host); } catch (e) { return { ok: false, detail: e.message, code: /^[a-z_]{1,80}$/.test(e.code || '') ? e.code : undefined }; }
   }
 
   saveHost(h) {
@@ -161,6 +163,8 @@ class Manager extends EventEmitter {
     if (!rec.address || !rec.user) throw new Error('A host needs an address and a user name.');
     rec.password = h.password === '(saved)' && old ? old.password : h.password ? this.encrypt(h.password) : '';
     rec.passphrase = h.passphrase === '(saved)' && old ? old.passphrase : h.passphrase ? this.encrypt(h.passphrase) : '';
+    if (old && old.address === rec.address && old.port === rec.port && old.hostKeyPin) { rec.hostKeyPin = old.hostKeyPin; rec.hostKeyPinHost = old.hostKeyPinHost; }
+    else { rec.hostKeyPin = ''; rec.hostKeyPinHost = ''; }
     if (old) Object.assign(old, rec); else list.push(rec);
     this.save();
     return rec.id;
@@ -168,6 +172,12 @@ class Manager extends EventEmitter {
   removeHost(id) {
     if (this.db.instances.some((i) => i.hostId === id)) throw new Error('Instances still run on this host. Remove them first.');
     this.db.hosts = this.db.hosts.filter((h) => h.id !== id); this.save();
+  }
+
+  approveHostKey(id, fingerprint) {
+    const host = this.db.hosts.find((entry) => entry.id === id);
+    if (!host || !/^[a-f0-9]{64}$/.test(fingerprint)) throw new Error('Invalid SSH host key approval.');
+    host.hostKeyPin = fingerprint; host.hostKeyPinHost = host.address.toLowerCase() + ':' + host.port; this.save();
   }
 
   // Everything one click needs, filled in: a free name, a free port, the latest image.
@@ -180,20 +190,46 @@ class Manager extends EventEmitter {
     return { target: targetId, hostId: hostId || '', name, port, tag: 'latest', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', memoryMb: 4096, cpus: 2, diskGb: 0, memoryLimit: '', backupsOn: true };
   }
 
-  async deploy(opts) {
+  async allocate(opts, { id, hostingJobId, signal } = {}) {
+    const before = this.allocationTail;
+    let release;
+    this.allocationTail = new Promise((resolve) => { release = resolve; });
+    await before;
+    try {
+    if (signal?.aborted) throw Object.assign(new Error('cancelled'), { code: 'cancelled' });
+    if (id) {
+      const existing = this.db.instances.find((instance) => instance.id === id);
+      if (existing) { if (existing.hostingJobId !== hostingJobId) throw Object.assign(new Error('resource_ownership_mismatch'), { code: 'resource_ownership_mismatch' }); return existing; }
+    }
     const d = await this.defaults(opts.target, opts.hostId);
+    if (signal?.aborted) throw Object.assign(new Error('cancelled'), { code: 'cancelled' });
     const o = { ...d, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== '' && v != null)) };
     if (o.target === 'ssh' && !o.hostId) throw new Error('Choose an SSH host first.');
+    const selectedPort = Number(o.port);
+    if (o.target !== 'vmware' && o.target !== 'pi') {
+      if (!Number.isInteger(selectedPort) || selectedPort < 1 || selectedPort > 65535) throw new Error('Choose a port from 1 to 65535.');
+      const sameHost = (instance) => o.target === 'ssh' ? instance.target === 'ssh' && instance.hostId === o.hostId : instance.target !== 'ssh';
+      if (this.db.instances.some((instance) => sameHost(instance) && instance.port === selectedPort)) throw Object.assign(new Error('port_in_use'), { code: 'port_in_use' });
+      if (o.target !== 'ssh' && !(await (this.portCheck || portFree)(selectedPort))) throw Object.assign(new Error('port_in_use'), { code: 'port_in_use' });
+      if (signal?.aborted) throw Object.assign(new Error('cancelled'), { code: 'cancelled' });
+    }
     const slugs = this.db.instances.map((i) => i.slug);
     const inst = {
-      id: 'i' + Date.now().toString(36), name: String(o.name).slice(0, 60), slug: uniqueSlug(o.slug || o.name, slugs), target: o.target, hostId: o.hostId || undefined, prefix: namePrefix(o.namePrefix) || undefined,
+      id: id || 'i' + randomUUID(), name: String(o.name).slice(0, 60), slug: uniqueSlug(id || o.slug || o.name, slugs), target: o.target, hostId: o.hostId || undefined, prefix: namePrefix(o.namePrefix) || undefined,
       port: Number(o.port) || 0, tag: o.tag, timezone: o.timezone, memoryMb: Number(o.memoryMb), cpus: Number(o.cpus), diskGb: Number(o.diskGb) || 0, memoryLimit: o.memoryLimit,
       created: new Date().toISOString(), state: 'deploying', url: '', lanUrl: '', backups: [], backupsOn: o.backupsOn !== false, notes: ''
     };
+    if (hostingJobId) Object.assign(inst, { hostingJobId, backupHostingFull: ['docker', 'ssh'].includes(o.target), prefix: 'ham' });
     inst.dir = path.join(this.dir, 'instances', inst.slug);
     this.db.instances.push(inst);
     this.save();
-    this.run(inst.id, 'deploy');
+    return inst;
+    } finally { release(); }
+  }
+
+  async deploy(opts) {
+    const inst = await this.allocate(opts);
+    this.run(inst.id, 'deploy').catch(() => {});
     return inst.id;
   }
 

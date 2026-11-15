@@ -108,7 +108,7 @@ app.whenReady().then(() => {
       if (choice.response !== 1) throw new Error('drive_write_cancelled');
       backupDrives.delete(input.options.drive_handle); backupJobs.piApprovals.set(input.request_id, current);
     }
-    const result = backupJobs.start(input); const job = backupJobs.jobs.find((j) => j.id === result.id); job.owner = 'native'; backupJobs.save(); return result;
+    return backupJobs.start(input, { owner: 'native' });
   });
   backupIpc('backupHostJobs', () => ({ jobs: backupJobs.jobs.filter((job) => job.owner === 'native').map((job) => backupJobs.public(job)) }));
   backupIpc('backupHostCancel', (id) => { if (!backupJobs.jobs.some((job) => job.id === id && job.owner === 'native')) throw new Error('unauthorized'); return backupJobs.cancel(id); });
@@ -123,6 +123,17 @@ app.whenReady().then(() => {
   backupIpc('hostBridgePairApprove', async (id) => {
     const pending = hostBridge.authority.approval(id);
     return hostBridge.authority.approve(id, await nativePairing(pending));
+  });
+  backupIpc('sshHostKeyApprove', async (hostId) => {
+    const saved = mgr.db.hosts.find((host) => host.id === hostId);
+    if (!saved) throw Object.assign(new Error('invalid_host'), { code: 'invalid_host' });
+    const descriptor = { address: saved.address, port: saved.port || 22, user: saved.user };
+    const key = await require('./backend/ssh').probeHostKey(descriptor);
+    const result = await dialog.showMessageBox(win, { type: 'warning', title: 'Approve SSH host key', message: 'Trust this exact SSH host key before sending authentication?', detail: 'Host: ' + key.address + ':' + key.port + '\nSHA-256 fingerprint (hex): ' + key.fingerprint + '\nCompare this fingerprint with the host through an independent trusted channel. A changed key can indicate a different computer.', buttons: ['Cancel', 'Trust this exact key'], defaultId: 0, cancelId: 0, noLink: true });
+    const current = mgr.db.hosts.find((host) => host.id === hostId);
+    if (!current || current.address !== descriptor.address || (current.port || 22) !== descriptor.port) throw Object.assign(new Error('host_changed'), { code: 'host_changed' });
+    if (result.response === 1) mgr.approveHostKey(hostId, key.fingerprint);
+    return { host_id: hostId, approved: result.response === 1, host_key_fingerprint: key.fingerprint };
   });
   h('snapshot', () => mgr.snapshot());
   h('labels', () => LABEL);

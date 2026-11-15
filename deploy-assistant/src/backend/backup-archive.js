@@ -6,6 +6,7 @@ const { pipeline } = require('node:stream/promises');
 const { Transform } = require('node:stream');
 const tar = require('tar');
 const yauzl = require('yauzl');
+const { UploadCapacity } = require('./backup-capacity');
 
 const MAX_BYTES = 64 * 1024 ** 3;
 function fail(code) { return Object.assign(new Error(code), { code }); }
@@ -72,7 +73,7 @@ async function unwrapZip(file, destination) {
 
 class BackupUploads {
   constructor(dir, { now = Date.now } = {}) {
-    this.dir = dir; this.now = now; this.handles = new Map(); fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    this.dir = dir; this.now = now; this.handles = new Map(); this.references = () => new Set(); fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); this.capacity = new UploadCapacity(dir);
     for (const handle of fs.readdirSync(dir)) {
       if (!/^[a-f0-9-]{36}$/.test(handle)) continue;
       try {
@@ -87,10 +88,24 @@ class BackupUploads {
     const { file, original, ...metadata } = item;
     fs.writeFileSync(path.join(this.dir, item.upload_handle, 'metadata.json'), JSON.stringify({ ...metadata, payload: path.basename(file) }), { mode: 0o600 });
   }
-  async pick(file) {
+  cleanupExpired() {
+    const referenced = this.references();
+    for (const [handle, item] of this.handles) {
+      if (referenced.has(handle) || Date.parse(item.expires_at) > this.now()) continue;
+      const directory = path.resolve(this.dir, handle);
+      if (!/^[a-f0-9-]{36}$/.test(handle) || path.dirname(directory) !== path.resolve(this.dir)) throw fail('invalid_upload_storage');
+      fs.rmSync(directory, { recursive: true, force: true }); this.handles.delete(handle);
+    }
+  }
+  async pick(file, { owner = 'native', reservation } = {}) {
+    this.cleanupExpired();
     const stat = await fs.promises.lstat(file);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_BYTES) throw fail('unsafe_backup_archive');
+    const lease = reservation || this.capacity.reserve(owner, stat.size);
+    if (lease.owner !== owner || lease.released) throw fail('invalid_upload_reservation');
     const handle = crypto.randomUUID(); const folder = path.join(this.dir, handle);
+    let complete = false;
+    try {
     await fs.promises.mkdir(folder, { mode: 0o700 });
     const original = path.join(folder, 'original');
     const free = fs.statfsSync(this.dir); if (free.bavail * free.bsize < stat.size * 2 + 1024 ** 3) throw fail('insufficient_storage');
@@ -102,10 +117,19 @@ class BackupUploads {
     const payload = head.readUInt32LE(0) === 0x04034b50 ? path.join(folder, 'backup.tar') : original;
     if (payload !== original) await unwrapZip(original, payload);
     const inventory = await inspectTar(payload);
-    const item = { file: payload, original, upload_handle: handle, name: path.basename(file), size: stat.size, expires_at: new Date(this.now() + 3600000).toISOString(), inventory };
+    const item = { file: payload, original, owner, upload_handle: handle, name: path.basename(file), size: stat.size, expires_at: new Date(this.now() + 3600000).toISOString(), inventory };
     this.handles.set(handle, item);
     this.persist(item);
+    complete = true;
     return this.metadata(item);
+    } finally {
+      try {
+      if (!complete) {
+        if (path.dirname(path.resolve(folder)) !== path.resolve(this.dir)) throw fail('invalid_upload_storage');
+        await fs.promises.rm(folder, { recursive: true, force: true }); this.handles.delete(handle);
+      }
+      } finally { if (!reservation) lease.release(); }
+    }
   }
   metadata(item) { return { upload_handle: item.upload_handle, name: item.name, size: item.size, expires_at: item.expires_at }; }
   resolve(handle) { const item = this.handles.get(handle); if (!item || Date.parse(item.expires_at) <= this.now()) throw fail('upload_expired'); return item; }

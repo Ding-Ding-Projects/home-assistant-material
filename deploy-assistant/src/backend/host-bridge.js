@@ -68,16 +68,16 @@ class HostBridge {
       if (!Number.isSafeInteger(size) || size <= 0 || size > MAX_BYTES || !['application/x-tar', 'application/zip', 'application/octet-stream'].includes(req.headers['content-type'])) throw fail('invalid_upload');
       const filename = req.headers['x-upload-name'] || 'backup.tar';
       if (typeof filename !== 'string' || !/^[A-Za-z0-9 _().-]{1,150}$/.test(filename)) throw fail('invalid_upload');
-      const free = fs.statfsSync(this.uploads.dir);
-      if (free.bavail * free.bsize < size * 3 + 1024 ** 3) throw fail('insufficient_storage');
+      this.uploads.cleanupExpired();
+      const reservation = this.uploads.capacity.reserve(owner, size);
       const staging = path.join(this.uploads.dir, 'incoming-' + crypto.randomUUID());
       let bytes = 0;
       try {
         await pipeline(req, new Transform({ transform(chunk, enc, cb) { bytes += chunk.length; cb(bytes > size ? fail('invalid_upload') : null, chunk); } }), fs.createWriteStream(staging, { flags: 'wx', mode: 0o600 }));
         if (bytes !== size) throw fail('invalid_upload');
-        const metadata = await this.uploads.pick(staging); const item = this.uploads.resolve(metadata.upload_handle); item.owner = owner; item.name = filename; metadata.name = filename; this.uploads.persist(item);
+        const metadata = await this.uploads.pick(staging, { owner, reservation }); const item = this.uploads.resolve(metadata.upload_handle); item.name = filename; metadata.name = filename; this.uploads.persist(item);
         this.reply(res, 201, metadata);
-      } finally { await fs.promises.unlink(staging).catch(() => {}); }
+      } finally { await fs.promises.unlink(staging).catch(() => {}); reservation.release(); }
       return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/jobs') {
@@ -85,7 +85,7 @@ class HostBridge {
       if (upload.owner !== owner) throw fail('unauthorized');
       const existing = this.jobs.jobs.find((j) => j.request_id === input.request_id);
       if (existing && existing.owner !== owner) throw fail('unauthorized');
-      const job = this.jobs.start(input); const stored = this.jobs.jobs.find((j) => j.id === job.id); stored.owner = owner; this.jobs.save(); this.reply(res, 202, job); return;
+      const job = this.jobs.start(input, { owner }); this.reply(res, 202, job); return;
     }
     if (req.method === 'GET' && url.pathname === '/v1/jobs') { this.reply(res, 200, { jobs: this.jobs.jobs.filter((j) => j.owner === owner).map((j) => this.jobs.public(j)) }); return; }
     const match = /^\/v1\/jobs\/([a-f0-9-]{36})(\/cancel)?$/.exec(url.pathname);

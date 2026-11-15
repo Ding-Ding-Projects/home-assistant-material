@@ -10,6 +10,10 @@ The native file picker returns an opaque, expiring upload handle and display met
 
 Limits are 64 GiB of uploaded bytes, 10,000 tar entries, 1,000 ZIP entries and a maximum ZIP expansion ratio of 200 (with a 1 MiB small-file allowance). Backup metadata is limited to 1 MiB. These are application limits, not proof that every backup format or destination has been exercised.
 
+Upload admission reserves capacity synchronously before streaming: at most two imports globally and one per client. Each reservation accounts for staging, an original copy and bounded extraction, with an aggregate 256 GiB reservation ceiling and 1 GiB free-space reserve. Capacity is released in `finally`. Failed imports remove only their application-owned partial copies. Expired imports without unfinished job references are reclaimed; the originally selected user file is never deleted. Active and incomplete jobs retain their import data for recovery.
+
+Hosting work is limited to two active jobs globally and one per client, with at most 16 unfinished jobs globally and four per client. A client cannot create several unfinished jobs from the same upload using different request IDs. The journal retains at most 256 entries and refuses further admission rather than silently deleting recovery history. Queue passwords exist only in transient process memory; restarting requires entering them again.
+
 ## Native interface
 
 All native calls return the existing `{ok,value}` or `{ok:false,error}` IPC envelope. The preload wrapper unwraps it for the renderer.
@@ -24,10 +28,13 @@ All native calls return the existing `{ok,value}` or `{ok:false,error}` IPC enve
 | `hostBridgeStatus` | None | Bridge state, fingerprint, capabilities and available private bind addresses |
 | `hostBridgeEnable` | `{address,port?}` | HTTPS bridge state, default port `48321` |
 | `hostBridgePairApprove` | Pairing ID | Native approval dialog, then pairing summary |
+| `sshHostKeyApprove` | Saved host ID | Unauthenticated key discovery, then native approval of that exact host, port and public-key fingerprint |
 
 Options accept `name`, a saved `hostId`, `memoryMb` (2048–65536), `cpus` (1–32), `diskGb` (0–2048), and Pi `model` (`rpi3`, `rpi4`, `rpi5`). Native Pi requests may additionally carry the opaque `drive_handle`; it is resolved only in the main process and never accepted as a device path. Passwords remain transient and do not enter the job journal.
 
 Jobs expose `id`, `request_id`, `state`, `phase`, `target`, `instance_id`, `lan_url`, `error_code` and `updated_at`. Unknown readiness, unavailable setup, missing hardware and authentication requirements remain explicit states. A visible URL alone is not a completed restore.
+
+A sign-in link is exposed separately when `lan_url_verified` is true and `lan_url_verified_at` records a successful bounded check of the actual private IPv4 endpoint and Home Assistant manifest. `authentication_needed` remains incomplete even when that link is verified. Cancellation during provisioning stays `cancelling` until the current operation settles and its owned resource is reconciled; it does not claim terminal cancellation while a later provisioning action can still begin.
 
 ## Core-to-host HTTPS bridge
 
@@ -56,8 +63,12 @@ The coordinator checks `GET /api/onboarding/backup/info`, streams a multipart up
 
 The private job journal records resource ownership before provisioning, the uploaded backup ID before restore and `restore_submitted` before transmission. Retrying an existing request reuses its identity. A restart marks unfinished work as needing resume; known owned resources are reconciled rather than created again. An uncertain provisioning or restore boundary stops for reconciliation instead of duplicating a destructive action. Original backup copies and provisioned data are retained on cancellation.
 
+Ordinary deployments and backup jobs share one allocation mutex. Port selection, collision checks and persistence are serialized before provisioning begins, including local Docker and VirtualBox ports on the same computer. An explicitly chosen conflicting port produces `port_in_use`; it is not silently replaced. Abort state is checked after each asynchronous prerequisite and immediately before provisioning.
+
+SSH hosts require approval of their exact host/port/public-key binding before authentication. Discovery offers no password, private key or agent. Every later connection verifies the saved SHA-256 pin, and a missing or changed key pauses the job for explicit native approval. SSH backup restoration uses a host-key-verified tunnel to the owned instance's loopback-published port. Archive bytes and restore passwords never travel over plaintext LAN HTTP. VirtualBox backup instances provide a loopback forward for restoration and a separate private-LAN forward for access. Other non-loopback restore endpoints require HTTPS with an explicitly verified certificate fingerprint and normal TLS chain/identity validation; there is no certificate-verification bypass or plaintext fallback.
+
 Typed destination outcomes include `incorrect_password`, `backup_version_too_new`, `backup_no_core_archive`, `restore_failed` and `authentication_needed`. Readiness requires restore completion evidence plus a successful check of the actual LAN endpoint. If restored authentication closes the first-run API before completion can be observed, the job returns `authentication_needed` and the checked LAN URL, not `ready`.
 
 ## Verification state
 
-Meaningful unit tests cover path validation, original-byte preservation, unsupported archives, official restore request shape, uncertain-submission replay prevention, password handling, protected-storage availability, durable idempotency and full-mode isolation. They were authored with this change but have not yet been run. No container, virtual machine or physical drive was created by the implementation session. Native pairing, all target provisioning, actual encrypted restores, restart reconciliation and LAN readiness require built-runtime acceptance before delivery can be claimed.
+Meaningful unit tests cover path validation, original-byte preservation, unsupported archives, official restore request shape, uncertain-submission replay prevention, password handling, protected-storage availability, durable idempotency, full-mode isolation, aggregate capacity, incomplete-upload retention, shared allocation, cancellation races, SSH key verification and truthful sign-in link metadata. They were authored with this change but have not yet been run. No container, virtual machine or physical drive was created by the implementation session. Native pairing, all target provisioning, actual encrypted restores, restart reconciliation and LAN readiness require built-runtime acceptance before delivery can be claimed.

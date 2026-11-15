@@ -20,7 +20,7 @@ async function check() {
   return r.code === 0 ? { ok: true, detail: 'VirtualBox ' + r.out.trim() } : { ok: false, detail: 'VirtualBox did not answer: ' + r.err.trim() };
 }
 
-function urls(inst) { const lan = inst.hostingJobId && inst.bindAddress ? 'http://' + inst.bindAddress + ':' + inst.port + '/' : null; return { url: lan || 'http://localhost:' + inst.port, lanUrl: lan }; }
+function urls(inst) { const lan = inst.hostingJobId && inst.bindAddress ? 'http://' + inst.bindAddress + ':' + inst.port + '/' : null; return { url: 'http://127.0.0.1:' + inst.port + '/', lanUrl: lan }; }
 
 async function must(p, what) { const r = await p; if (r.code !== 0) throw new Error(what + ' failed. ' + (r.err || r.out).trim().split('\n').pop()); return r; }
 
@@ -37,7 +37,7 @@ async function deploy(inst, log, step, ctx) {
   await must(V(['internalcommands', 'sethduuid', vdi]), 'Giving the disk its own id');
   await must(V(['createvm', '--name', vm(inst), '--ostype', 'Linux_64', '--register', '--basefolder', inst.dir]), 'Creating the virtual machine');
   if (inst.hostingJobId) { inst.bindAddress = lanAddress(); if (!inst.bindAddress) throw new Error('No private LAN address is available for this instance.'); }
-  await must(V(['modifyvm', vm(inst), '--firmware', 'efi', '--memory', String(inst.memoryMb || 4096), '--cpus', String(inst.cpus || 2), '--nic1', 'nat', '--natpf1', 'http,tcp,' + (inst.bindAddress || '127.0.0.1') + ',' + inst.port + ',,80', '--audio-enabled', 'off', '--graphicscontroller', 'vmsvga']), 'Setting up the virtual machine');
+  await must(V(['modifyvm', vm(inst), '--firmware', 'efi', '--memory', String(inst.memoryMb || 4096), '--cpus', String(inst.cpus || 2), '--nic1', 'nat', '--natpf1', 'http,tcp,127.0.0.1,' + inst.port + ',,80', ...(inst.hostingJobId ? ['--natpf1', 'http-lan,tcp,' + inst.bindAddress + ',' + inst.port + ',,80'] : []), '--audio-enabled', 'off', '--graphicscontroller', 'vmsvga']), 'Setting up the virtual machine');
   await must(V(['storagectl', vm(inst), '--name', 'SATA', '--add', 'sata', '--controller', 'IntelAhci', '--portcount', '1']), 'Adding a disk controller');
   await must(V(['storageattach', vm(inst), '--storagectl', 'SATA', '--port', '0', '--device', '0', '--type', 'hdd', '--medium', vdi]), 'Attaching the disk');
   if (inst.diskGb) await V(['modifymedium', 'disk', vdi, '--resize', String(inst.diskGb * 1024)]);
