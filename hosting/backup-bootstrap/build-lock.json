@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "baseImage": "docker.io/library/alpine@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2",
+  "pythonVersion": "3.12.16-r0",
+  "qemuVersion": "10.1.5-r0",
+  "e2fsprogsVersion": "1.47.3-r0"
+}
