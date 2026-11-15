@@ -1,5 +1,11 @@
 # Closeout prompt
 
+## Current continuation, 15 November 2026
+
+Finish everyday workflows, preserving unrelated work and recovery branches. Prioritize implementation, integration into main, publication and a live update through Settings, System, Updates; run tests at the end. History implementation `8300184d2` is on main. Photo layout implementation `ea0ef484b` is preserved on `ai/fix/20261115-automation-phone-layout`, pending final review/integration. Both are source-reviewed or awaiting final source review, not runtime verified.
+
+Live Core is 2026.11.1.439 and Supervisor 2026.11.0.439, healthy and supported. Partial configuration backup d491cebb completed at 2026-11-15 04:24:39 UTC, 36.37 MB. Do not update by direct API: the owner wants the actual interface update button exercised. A browser authentication handoff is pending. Final tests, runtime layout checks, setup/account persistence and isolated backup restore remain open. Preserve pre-existing frontend/zz-seen-f-*.cjs scripts and the Raspberry Pi recovery branch. Deploy Assistant, appliance work and unrelated tools remain excluded.
+
 ## Release and recovery status, 13 November 2026
 
 - The active release source remains the verified visual-editor baseline. The unfinished

@@ -1,5 +1,17 @@
 # Handoff
 
+## Everyday workflows, 15 November 2026
+
+History comparison and request lifecycle changes are preserved in `8300184d2` and integrated into `main`. They add a bounded earlier-period selector to History and invalidate old chart requests after selection, configuration or lifecycle changes. Source review found no blocking correctness or accessibility finding. Tests and published runtime verification remain pending by the owner's chosen implementation-first order.
+
+The photo-reported script/condition layout follow-up is preserved in `ea0ef484b`: persistent condition results use normal flow below the summary; script mode controls stay sticky and publish their measured height to search. The photo alone does not establish whether the mode row was ordinarily scrolled off or had a wrong toolbar offset. This change deliberately keeps it reachable. Built verification remains pending.
+
+Core and Supervisor are currently `2026.11.1.439` and `2026.11.0.439`. Supervisor reports healthy and supported. Fresh configuration backup `d491cebb` completed on 15 November 2026 at 04:24:39 UTC, with reported size 36.37 MB. It is a partial backup containing Home Assistant, not installed add-ons. Its restore has not yet been verified.
+
+The next live update must use the update button inside Settings, System, Updates, rather than calling the update endpoint directly. There is no connected authenticated browser tab in the current session; a sign-in handoff or owner-operated click is pending. Do not claim that the live update occurred from release publication alone.
+
+Existing guided setup drafts, account-owned settings synchronization and backup inclusion of automation/dashboard history folders are implemented. Verify them instead of reconstructing them from older unchecked roadmap entries. Retain the unfinished Raspberry Pi recovery branch and pre-existing untracked browser scripts.
+
 ## Visual dictionaries and browser demo, 13 November 2026
 
 - The automation and script action editors use a visual dictionary for object fields and extra

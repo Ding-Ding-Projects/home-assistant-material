@@ -14,6 +14,7 @@ in [`../feature-status.md`](../feature-status.md); a file here never claims more
 | [`backups/`](backups/README.md) | Restoring official Home Assistant backups and the version rule |
 | [`tools/`](tools/README.md) | File converter and drawing board |
 | [`automations/`](automations/README.md) | Testing and running a Choose step, the automation and script editors |
+| [`history/`](history/README.md) | Bounded comparison with earlier numeric history, missing data and export behavior |
 | [`dashboards/`](dashboards/README.md) | Editing built-in pages, export, import; history is in `dashboard-history/` |
 | [`interface/`](interface/README.md) | Notifications, export, selection bar, entity dialogs, accessibility spacing and fonts, status screens, activity tray and recovery, split panes, information buttons, starting points |
 | [`dashboard-history/`](dashboard-history/README.md) | Git history for every dashboard and every tab, with remote and push |

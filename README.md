@@ -27,6 +27,8 @@ desktop app has its own [folder](deploy-assistant/README.md).
 
 ## Try the interactive demo
 
+The [History comparison guide](docs/features/history/README.md) describes the new earlier-period selector and its limits. Source implementation is available; final tests and verification in the published runtime are pending. The current screenshots below remain evidence of their stated build, not proof of these changes.
+
 The [screenshot gallery](https://ding-ding-projects.github.io/home-assistant-material-gallery/) shows two reviewed automation editor workflows from synthetic browser sessions, with source revisions and capture evidence.
 
 Open the [browser demo](https://ding-ding-projects.github.io/home-assistant-material/demo/) to use the

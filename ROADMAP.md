@@ -14,6 +14,16 @@ Nothing is deleted from this list. An item that is dropped is struck through wit
 
 ## Foundation
 
+## Everyday workflow follow-up, 15 November 2026
+
+- [ ] History page comparison: off, previous window, one day and one week earlier. Source implemented and reviewed in `8300184d2`; final tests and published runtime verification pending.
+- [ ] History chart request ownership: ignore stale statistics, subscriptions and comparison responses after reconfiguration or disconnect. Implemented in `8300184d2`; final regression run pending.
+- [ ] Script mode controls remain reachable while scrolling; persistent condition results wrap below the summary. Source prepared in `ea0ef484b`; published narrow-layout verification pending.
+- [ ] Apply the accepted candidate using Settings, System, Updates in the running interface; verify progress, reconnect, version and health.
+- [ ] Final workflow pass: setup resume, account settings persistence, backup restore with automation and dashboard histories, keyboard and narrow layouts. Existing implementations are retained.
+
+## Foundation checklist
+
 - [x] Vendor the upstream sources at pinned releases
 - [x] Release workflow: one tagged release per push
 - [ ] Release workflow compares a push with the last build that published images, so a
