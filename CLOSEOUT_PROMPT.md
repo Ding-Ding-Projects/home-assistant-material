@@ -20,7 +20,7 @@ The backup feature contains bounded archive intake, upload/job admission, pairin
 
 Core and Supervisor 444 candidates build. The repaired Core dialog from 70cada969a2130d7d09999c09a5ebeafa1ced5e2 passed 24 real list/details, container/appliance, width and language cases. The native 1.6.0 candidate packages through the root Squirrel entrypoint. Native caption protection, real ZIP intake, selected image/port preservation and same-job cold-start waiting have actual runtime evidence.
 
-Focused results: Core hosting 57 passed; Supervisor exclusion 29 passed with 10 deselected; frontend helpers/lifecycle nine passed; native renderer 12 passed. Latest native diagnostic/readiness selection passes 99 tests on Node 22.14.0. A retained-upload expiry repair has 110 passing focused tests and awaits its final source review/integration/runtime check. These selections are not an entire-project green verdict.
+Focused results: Core hosting 57 passed; Supervisor exclusion 29 passed with 10 deselected; frontend helpers/lifecycle nine passed; native renderer 12 passed. Latest native diagnostic/readiness selection passes 99 tests on Node 22.14.0. The retained-upload expiry repair has 110 passing focused tests and independent source approval. It is integrated as an explicitly incomplete local recovery checkpoint; its rebuilt runtime check remains unrun. These selections are not an entire-project green verdict.
 
 ## Existing synthetic restore, incomplete
 
@@ -42,8 +42,12 @@ Private native images displaying a storage path are withheld. The browser runtim
 
 Preserve the six pre-existing frontend/zz-seen-f-*.cjs files, the Raspberry Pi recovery branch, unrelated worktrees and every ignored announcement variant. No cleanup authorization has been exercised and no completed-and-pushed ancestry proof exists for the new feature.
 
-1. Finish review/integration of the retained-upload expiry repair, build its native package and perform one controlled same-job diagnostic Resume while allowance permits.
+1. On a supported resumed allowance, build the retained-upload expiry repair and perform one controlled same-job diagnostic Resume. At the verified 10% remaining boundary, no new build or target request is authorized by this handoff.
 2. If upload is rejected, retain safe HTTP status/stage and stop before another POST; diagnose from actual evidence. If accepted, observe the existing automatic restore once and independently verify automation state and the intended LAN URL.
 3. Verify native/Core pairing on synthetic fixtures without creating an unintended second host. Appliance helper publication and non-Docker runtime acceptance remain separate.
 4. Resolve the pending publication scope, then complete source checks, main remote proof, immutable registry/release delivery, matching Core/Supervisor update and current documentation/evidence.
 5. Preserve all unfinished state before stopping. Only after the actual task and required remote proofs finish may exact task-owned cleanup proceed. Report missing hardware, consent, authentication or evidence explicitly.
+
+## Allowance-boundary state
+
+The account reported 90% used, 10% remaining during preservation. The goal remains unfinished and active; no unsupported pause, completion or fabricated blocked-turn count is claimed. The native expiry repair is source-verified but not packaged or exercised. The structured publication-scope choice remains pending. Keep every unfinished branch and working tree; no deletion pass is appropriate.
