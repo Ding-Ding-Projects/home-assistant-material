@@ -34,7 +34,7 @@ test('non-Home Assistant archive never becomes an upload handle', async (t) => {
 
 test('restore sends the official onboarding protocol without changing automations', async () => {
   const calls = []; const job = { phase: 'provisioned', update(patch) { Object.assign(this, patch); } };
-  await restoreHomeAssistantBackup({ base: 'http://127.0.0.1:8124/', file: 'private', password: 'transient', journal: job, uploadFile: async () => ({ backup_id: 'official-id' }), api: async (base, route, options) => { calls.push({ route, options }); return { backups: [] }; } });
+  await restoreHomeAssistantBackup({ base: 'http://127.0.0.1:8124/', file: 'private', password: 'transient', journal: job, uploadFile: async () => ({ backup_id: 'official-id' }), api: async (base, route, options) => { calls.push({ route, options }); return { backups: [], state: 'idle' }; } });
   assert.equal(job.phase, 'restore_accepted');
   assert.deepEqual(JSON.parse(calls[1].options.body), { backup_id: 'official-id', agent_id: 'hassio.local', password: 'transient', restore_database: true });
   assert.equal(JSON.stringify(job).includes('transient'), false);
@@ -48,7 +48,7 @@ test('uncertain restore submission is never transmitted twice', async () => {
 
 test('typed password rejection remains retryable and never persists the password', async () => {
   const job = { phase: 'uploaded', backup_id: 'id', update(patch) { Object.assign(this, patch); } };
-  await assert.rejects(restoreHomeAssistantBackup({ base: 'http://127.0.0.1:8124/', password: 'transient', journal: job, api: async (base, route) => { if (route.endsWith('/restore')) throw Object.assign(new Error('rejected'), { code: 'incorrect_password' }); return { backups: [] }; } }), { code: 'incorrect_password' });
+  await assert.rejects(restoreHomeAssistantBackup({ base: 'http://127.0.0.1:8124/', password: 'transient', journal: job, api: async (base, route) => { if (route.endsWith('/restore')) throw Object.assign(new Error('rejected'), { code: 'incorrect_password' }); return { backups: [], state: 'idle' }; } }), { code: 'incorrect_password' });
   assert.equal(job.phase, 'restore_rejected'); assert.equal(JSON.stringify(job).includes('transient'), false);
 });
 

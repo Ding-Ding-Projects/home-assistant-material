@@ -15,7 +15,7 @@ test('real HTTP 401 then 404 then valid 200 stays GET-only until upload is safe'
   const server = http.createServer((req, res) => {
     calls.push({ method: req.method, route: req.url });
     const send = (status, value) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(value)); };
-    if (req.method === 'GET' && req.url === '/api/onboarding/backup/info') { infoCalls++; send(infoCalls === 1 ? 401 : infoCalls === 2 ? 404 : 200, infoCalls < 3 ? {} : { backups: [] }); return; }
+    if (req.method === 'GET' && req.url === '/api/onboarding/backup/info') { infoCalls++; send(infoCalls === 1 ? 401 : infoCalls === 2 ? 404 : 200, infoCalls < 3 ? {} : { backups: [], state: 'idle' }); return; }
     if (req.method === 'POST') { posts++; assert.equal(infoCalls, 3); req.resume(); send(200, {}); return; }
     send(404, {});
   });
@@ -33,7 +33,7 @@ test('malformed preparation responses and startup network failures can warm up',
   const info = await waitForFreshOnboarding({ base, ...timing(), api: async (origin, route, options) => {
     methods.push(options.method);
     if (route !== '/api/onboarding/backup/info') throw failure('target_request_failed', 404);
-    attempts++; if (attempts === 1) throw failure('ECONNREFUSED'); if (attempts === 2) throw failure('invalid_target_response'); if (attempts === 3) return { preparation: true }; return { backups: [] };
+    attempts++; if (attempts === 1) throw failure('ECONNREFUSED'); if (attempts === 2) throw failure('invalid_target_response'); if (attempts === 3) return { preparation: true }; return { backups: [], state: 'idle' };
   } });
   assert.deepEqual(info.backups, []); assert.equal(attempts, 4); assert.equal(methods.every((method) => method === 'GET'), true);
 });
@@ -51,7 +51,7 @@ test('configured target with removed onboarding routes is rejected by its Core m
 
 test('known unfinished user setup does not become configured merely because its manifest works', async () => {
   let attempts = 0;
-  await waitForFreshOnboarding({ base, ...timing(), api: async (origin, route) => { if (route === '/api/onboarding') return [{ step: 'user', done: false }]; assert.notEqual(route, '/manifest.json'); if (++attempts === 1) throw failure('authentication_needed', 401); return { backups: [] }; } });
+  await waitForFreshOnboarding({ base, ...timing(), api: async (origin, route) => { if (route === '/api/onboarding') return [{ step: 'user', done: false }]; assert.notEqual(route, '/manifest.json'); if (++attempts === 1) throw failure('authentication_needed', 401); return { backups: [], state: 'idle' }; } });
   assert.equal(attempts, 2);
 });
 
@@ -63,7 +63,7 @@ test('deadline expires truthfully without upload or restore', async () => {
 
 test('late successful response cannot cross the overall deadline', async () => {
   let time = 0;
-  await assert.rejects(waitForFreshOnboarding({ base, timeoutMs: 5, now: () => time, api: async () => { time = 6; return { backups: [] }; } }), { code: 'onboarding_not_ready' });
+  await assert.rejects(waitForFreshOnboarding({ base, timeoutMs: 5, now: () => time, api: async () => { time = 6; return { backups: [], state: 'idle' }; } }), { code: 'onboarding_not_ready' });
 });
 
 test('cancellation while waiting prevents further reads and all uploads', async () => {
@@ -91,7 +91,7 @@ test('the same transport identity stays pinned through waiting, upload and resto
     assert.equal(options.transport.certificate_fingerprint, 'a'.repeat(64)); assert.equal(options.transport.ca, 'original public certificate');
     if (options.method === 'POST') return {};
     if (route !== '/api/onboarding/backup/info') throw failure('target_request_failed', 404);
-    if (++attempts === 1) throw failure('target_request_failed', 503); return { backups: [] };
+    if (++attempts === 1) throw failure('target_request_failed', 503); return { backups: [], state: 'idle' };
   } }); assert.equal(attempts, 2);
 });
 
@@ -105,7 +105,7 @@ test('forbidden and unexpected server errors are not startup retries', async () 
 
 test('cancellation after the ready GET still prevents upload', async () => {
   const controller = new AbortController(); let uploads = 0;
-  await assert.rejects(restoreHomeAssistantBackup({ base, journal: journal(), signal: controller.signal, readiness: timing(), api: async () => { controller.abort(); return { backups: [] }; }, uploadFile: async () => { uploads++; } }), { code: 'cancelled' });
+  await assert.rejects(restoreHomeAssistantBackup({ base, journal: journal(), signal: controller.signal, readiness: timing(), api: async () => { controller.abort(); return { backups: [], state: 'idle' }; }, uploadFile: async () => { uploads++; } }), { code: 'cancelled' });
   assert.equal(uploads, 0);
 });
 
@@ -117,9 +117,9 @@ for (const phase of ['restore_submitted', 'restore_accepted']) {
 
 test('uncertain upload and restore POST failures are not retried by warmup', async () => {
   let uploads = 0;
-  await assert.rejects(restoreHomeAssistantBackup({ base, journal: journal(), api: async () => ({ backups: [] }), uploadFile: async () => { uploads++; throw failure('ECONNRESET'); } }), { code: 'ECONNRESET' }); assert.equal(uploads, 1);
+  await assert.rejects(restoreHomeAssistantBackup({ base, journal: journal(), api: async () => ({ backups: [], state: 'idle' }), uploadFile: async () => { uploads++; throw failure('ECONNRESET'); } }), { code: 'ECONNRESET' }); assert.equal(uploads, 1);
   let posts = 0; const log = journal();
-  await assert.rejects(restoreHomeAssistantBackup({ base, journal: log, uploadFile: async () => ({ backup_id: 'owned' }), api: async (origin, route, options) => { if (options.method === 'GET') return { backups: [] }; posts++; throw failure('ECONNRESET'); } }), { code: 'ECONNRESET' });
+  await assert.rejects(restoreHomeAssistantBackup({ base, journal: log, uploadFile: async () => ({ backup_id: 'owned' }), api: async (origin, route, options) => { if (options.method === 'GET') return { backups: [], state: 'idle' }; posts++; throw failure('ECONNRESET'); } }), { code: 'ECONNRESET' });
   assert.equal(posts, 1); assert.equal(log.phase, 'restore_submitted');
 });
 

@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const { fail } = require('./backup-archive');
-const { restoreHomeAssistantBackup, request, lanOrigin, coreManifest } = require('./backup-restore');
+const { restoreHomeAssistantBackup, request, lanOrigin, coreManifest, safeHttpStatus, safeErrorStage } = require('./backup-restore');
 const { lanAddress } = require('./util');
 const { discoverPi, validateAddresses } = require('./backup-appliance-discovery');
 
@@ -18,13 +18,20 @@ class BackupJobs extends EventEmitter {
     try { const db = JSON.parse(fs.readFileSync(this.file, 'utf8')); if (db.version !== 1 || !Array.isArray(db.jobs)) throw fail('invalid_job_journal'); this.jobs = db.jobs; }
     catch (e) { if (e.code !== 'ENOENT') throw e; }
     for (const job of this.jobs) if (!TERMINAL.has(job.state)) { job.state = 'needs_resume'; job.error_code = 'application_restarted'; }
+    for (const job of this.jobs) { job.error_http_status = safeHttpStatus(job.error_http_status); job.error_stage = safeErrorStage(job.error_stage); }
     this.save();
     uploads.references = () => new Set(this.jobs.filter((job) => !TERMINAL.has(job.state)).map((job) => job.upload_handle));
   }
   save() { const temp = this.file + '.tmp'; fs.writeFileSync(temp, JSON.stringify({ version: 1, jobs: this.jobs }), { mode: 0o600 }); fs.renameSync(temp, this.file); }
-  public(job) { const { id, request_id, upload_handle, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at } = job; return { id, request_id, upload_handle, host_id: job.options?.hostId, can_resume: job.owner === 'native' && ['needs_resume', 'needs_attention'].includes(state), state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at }; }
+  public(job) { const { id, request_id, upload_handle, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at } = job; return { id, request_id, upload_handle, host_id: job.options?.hostId, can_resume: job.owner === 'native' && ['needs_resume', 'needs_attention'].includes(state), state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, error_http_status: safeHttpStatus(job.error_http_status), error_stage: safeErrorStage(job.error_stage), updated_at }; }
   list() { return { jobs: this.jobs.map((j) => this.public(j)) }; }
-  update(job, patch) { Object.assign(job, patch, { updated_at: new Date().toISOString() }); this.save(); this.emit('changed', this.public(job)); }
+  update(job, patch) {
+    const clean = { ...patch };
+    if ('error_http_status' in clean) clean.error_http_status = safeHttpStatus(clean.error_http_status);
+    if ('error_stage' in clean) clean.error_stage = safeErrorStage(clean.error_stage);
+    if (clean.state === 'ready' || clean.phase === 'verified' || clean.phase === 'restore_accepted') { clean.error_http_status = undefined; clean.error_stage = undefined; }
+    Object.assign(job, clean, { updated_at: new Date().toISOString() }); this.save(); this.emit('changed', this.public(job));
+  }
   start(input, { owner = 'native' } = {}) {
     if (!input || !/^[A-Za-z0-9_-]{8,100}$/.test(input.request_id || '') || !['docker', 'ssh', 'virtualbox', 'vmware', 'pi'].includes(input.target)) throw fail('invalid_request');
     if (input.password !== undefined && (typeof input.password !== 'string' || input.password.length > 16384)) throw fail('invalid_password');
@@ -61,7 +68,7 @@ class BackupJobs extends EventEmitter {
     const job = { id: crypto.randomUUID(), owner, request_id: input.request_id, target: input.target, upload_handle: input.upload_handle, options, state: 'queued', phase: 'pending', created_at: new Date().toISOString() };
     this.jobs.push(job); this.update(job, {}); this.enqueue(job, input.password); return this.public(job);
   }
-  enqueue(job, password) { this.queue.set(job.id, password); this.update(job, { state: 'queued' }); this.drain(); }
+  enqueue(job, password) { this.queue.set(job.id, password); this.update(job, { state: 'queued', error_code: undefined, error_http_status: undefined, error_stage: undefined }); this.drain(); }
   drain() {
     for (const [id, password] of this.queue) {
       if (this.running.size >= JOB_LIMITS.active) return;
@@ -73,7 +80,7 @@ class BackupJobs extends EventEmitter {
   }
   launch(job, password) {
     const controller = new AbortController(); this.running.set(job.id, controller);
-    this.execute(job, password, controller.signal).catch((e) => this.update(job, { state: controller.signal.aborted ? 'cancelled' : 'needs_attention', error_code: typeof e.code === 'string' && /^[a-z0-9_]{1,80}$/.test(e.code) ? e.code : 'hosting_failed' })).finally(() => {
+    this.execute(job, password, controller.signal).catch((e) => this.update(job, { state: controller.signal.aborted ? 'cancelled' : 'needs_attention', error_code: typeof e.code === 'string' && /^[a-z0-9_]{1,80}$/.test(e.code) ? e.code : 'hosting_failed', error_http_status: safeHttpStatus(e.statusCode), error_stage: safeErrorStage(e.stage) })).finally(() => {
       if (controller.signal.aborted && job.state === 'cancelling') this.update(job, { state: 'cancelled', error_code: 'cancelled' });
       this.running.delete(job.id); this.drain();
     });
@@ -169,7 +176,7 @@ class BackupJobs extends EventEmitter {
     const end = Date.now() + 30 * 60000;
     while (Date.now() < end && !signal.aborted) {
       try {
-        const info = await this.probe(base, '/api/onboarding/backup/info', { signal, transport });
+        const info = await this.probe(base, '/api/onboarding/backup/info', { signal, transport, stage: 'restore' });
         const event = info.last_action_event;
         if (event && event.manager_state === 'restore_backup' && event.state === 'failed') throw fail('restore_failed');
         if (event && event.manager_state === 'restore_backup' && event.state === 'completed') this.update(job, { restore_completed: true });
