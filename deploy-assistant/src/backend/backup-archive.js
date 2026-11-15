@@ -212,6 +212,24 @@ class BackupUploads {
     }
   }
   metadata(item) { return { upload_handle: item.upload_handle, name: item.name, size: item.size, expires_at: item.expires_at }; }
-  resolve(handle) { const item = this.handles.get(handle); if (!item || Date.parse(item.expires_at) <= this.now()) throw fail('upload_expired'); return item; }
+  retained(handle) {
+    const item = this.handles.get(handle);
+    if (!item || !/^[a-f0-9-]{36}$/.test(handle)) throw fail('upload_expired');
+    const root = path.resolve(this.dir, handle);
+    try {
+      if (item.upload_handle !== handle || !Number.isFinite(Date.parse(item.expires_at)) || !fs.lstatSync(root).isDirectory() || fs.lstatSync(root).isSymbolicLink() || path.dirname(fs.realpathSync(root)) !== fs.realpathSync(this.dir)) throw fail('upload_unavailable');
+      for (const file of new Set([item.file, item.original])) {
+        if (typeof file !== 'string' || path.dirname(path.resolve(file)) !== root || !['original', 'backup.tar'].includes(path.basename(file))) throw fail('upload_unavailable');
+        const stat = fs.lstatSync(file); if (!stat.isFile() || stat.isSymbolicLink() || path.dirname(fs.realpathSync(file)) !== fs.realpathSync(root)) throw fail('upload_unavailable');
+      }
+    } catch { throw fail('upload_unavailable'); }
+    return item;
+  }
+  resolve(handle) { const item = this.retained(handle); if (Date.parse(item.expires_at) <= this.now()) throw fail('upload_expired'); return item; }
+  resolveBound(handle, { job, owner, request_id, target }) {
+    // Only the server-owned journal binding may extend access, never a request flag.
+    if (!job || job.owner !== owner || job.request_id !== request_id || job.upload_handle !== handle || job.target !== target || ['ready', 'cancelled'].includes(job.state)) throw fail('unauthorized');
+    const item = this.retained(handle); if (item.owner !== owner) throw fail('unauthorized'); return item;
+  }
 }
 module.exports = { BackupUploads, inspectTar, unwrapZip, safeName, MAX_BYTES, fail };

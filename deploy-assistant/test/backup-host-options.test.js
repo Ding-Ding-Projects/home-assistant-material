@@ -8,7 +8,7 @@ const { BackupJobs } = require('../src/backend/backup-jobs');
 const { Manager } = require('../src/backend/manager');
 
 function directory(t) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ham-backup-options-')); t.after(() => fs.rmSync(dir, { recursive: true, force: true })); return dir; }
-function uploads() { return { resolve: () => ({}), handles: new Map([['upload', { file: 'unused' }]]) }; }
+function uploads() { return { resolve: () => ({ owner: 'native' }), resolveBound: () => ({ owner: 'native' }), handles: new Map([['upload', { file: 'unused' }]]) }; }
 function finish(jobs) { return new Promise((resolve) => jobs.on('changed', (job) => { if (job.state === 'needs_attention') resolve(job); })); }
 
 for (const target of ['docker', 'ssh', 'virtualbox']) {

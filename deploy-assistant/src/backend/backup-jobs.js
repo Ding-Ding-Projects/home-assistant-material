@@ -32,7 +32,7 @@ class BackupJobs extends EventEmitter {
     if (clean.state === 'ready' || clean.phase === 'verified' || clean.phase === 'restore_accepted') { clean.error_http_status = undefined; clean.error_stage = undefined; }
     Object.assign(job, clean, { updated_at: new Date().toISOString() }); this.save(); this.emit('changed', this.public(job));
   }
-  start(input, { owner = 'native' } = {}) {
+  validateStartBinding(input, { owner = 'native' } = {}) {
     if (!input || !/^[A-Za-z0-9_-]{8,100}$/.test(input.request_id || '') || !['docker', 'ssh', 'virtualbox', 'vmware', 'pi'].includes(input.target)) throw fail('invalid_request');
     if (input.password !== undefined && (typeof input.password !== 'string' || input.password.length > 16384)) throw fail('invalid_password');
     if (input.options !== undefined && (!input.options || typeof input.options !== 'object' || Array.isArray(input.options))) throw fail('invalid_options');
@@ -50,14 +50,22 @@ class BackupJobs extends EventEmitter {
       if (previous.target !== input.target || previous.upload_handle !== input.upload_handle || ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model', 'port', 'tag'].some((key) => input.options && key in input.options && input.options[key] !== previous.options[key])) throw fail('idempotency_conflict');
       if (input.options?.pi_addresses !== undefined) {
         if (previous.target !== 'pi' || !['waiting_for_boot', 'pending'].includes(previous.phase)) throw fail('idempotency_conflict');
-        previous.options.pi_addresses = validateAddresses(input.options.pi_addresses); this.save();
+        validateAddresses(input.options.pi_addresses);
       }
+    }
+    const upload = previous && !TERMINAL.has(previous.state) ? this.uploads.resolveBound(input.upload_handle, { job: previous, owner, request_id: input.request_id, target: input.target }) : this.uploads.resolve(input.upload_handle);
+    if (upload.owner !== owner) throw fail('unauthorized');
+    return { previous, upload };
+  }
+  start(input, { owner = 'native' } = {}) {
+    const { previous } = this.validateStartBinding(input, { owner });
+    if (previous) {
+      if (input.options?.pi_addresses !== undefined) { previous.options.pi_addresses = validateAddresses(input.options.pi_addresses); this.save(); }
       if (!TERMINAL.has(previous.state) && !this.running.has(previous.id)) this.enqueue(previous, input.password); return this.public(previous);
     }
     const outstanding = this.jobs.filter((job) => !TERMINAL.has(job.state));
     if (this.jobs.length >= JOB_LIMITS.history || outstanding.length >= JOB_LIMITS.outstanding || outstanding.filter((job) => job.owner === owner).length >= JOB_LIMITS.outstandingPerOwner) throw fail('job_capacity');
     if (outstanding.some((job) => job.owner === owner && job.upload_handle === input.upload_handle)) throw fail('upload_job_exists');
-    this.uploads.resolve(input.upload_handle);
     const allowed = ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model', 'pi_addresses', 'port', 'tag'];
     const options = Object.fromEntries(allowed.filter((k) => input.options && k in input.options).map((k) => [k, input.options[k]]));
     if ('name' in options && (typeof options.name !== 'string' || options.name.length > 60 || /[\x00-\x1f]/.test(options.name))) throw fail('invalid_options');

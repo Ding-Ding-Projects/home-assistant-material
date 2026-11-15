@@ -96,11 +96,7 @@ app.whenReady().then(() => {
     return (await pi.listDrives()).map((drive) => { const drive_handle = require('node:crypto').randomUUID(); backupDrives.set(drive_handle, { drive, expires: Date.now() + 600000 }); return { drive_handle, name: drive.name, size: drive.size, bus: drive.bus }; });
   });
   backupIpc('backupHostStart', async (input) => {
-    const upload = backupUploads.resolve(input.upload_handle);
-    if (upload.owner && upload.owner !== 'native') throw new Error('unauthorized');
-    upload.owner = 'native'; backupUploads.persist(upload);
-    const existing = backupJobs.jobs.find((job) => job.request_id === input.request_id);
-    if (existing && existing.owner !== 'native') throw new Error('unauthorized');
+    const { previous: existing } = backupJobs.validateStartBinding(input, { owner: 'native' });
     if (input.target === 'pi' && input.options && input.options.drive_handle && !existing?.instance_id) {
       const selected = backupDrives.get(input.options.drive_handle);
       if (!selected || selected.expires <= Date.now()) throw new Error('drive_selection_expired');
