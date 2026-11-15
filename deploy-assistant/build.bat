@@ -110,9 +110,8 @@ if not exist "%SETUP%" (
   echo The build finished but %SETUP% is missing.
   goto :failed
 )
-powershell -NoProfile -Command "$s = Get-AuthenticodeSignature -FilePath '%SETUP%'; if ($s.Status -ne 'NotSigned') { Write-Host ('The installer is ' + $s.Status + ', but it must not be signed.'); exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0verify-installer.ps1" -Setup "%SETUP%"
 if errorlevel 1 goto :failed
-powershell -NoProfile -Command "Get-FileHash -Algorithm SHA256 -Path '%SETUP%' | ForEach-Object { 'SHA-256 ' + $_.Hash.ToLower() }"
 
 echo.
 echo Done. The installer is %CD%\%SETUP%
