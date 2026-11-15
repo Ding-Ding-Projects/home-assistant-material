@@ -27,21 +27,27 @@ async function guestIp(inst, waitSec = 600) {
   const ip = r.out.trim();
   return /^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip : null;
 }
-function urls(inst) { const url = inst.hostingJobId ? (inst.url || null) : (inst.ip ? 'http://' + inst.ip + '/' : null); return { url, lanUrl: inst.hostingJobId ? url : null }; }
+function urls(inst) { const url = inst.hostingJobId ? (inst.url || (inst.restoreTransport && inst.ip ? 'https://' + inst.ip + ':8123/' : null)) : (inst.ip ? 'http://' + inst.ip + '/' : null); return { url, lanUrl: inst.hostingJobId ? url : null }; }
+async function address(inst) { return guestIp(inst, 30); }
 
 async function deploy(inst, log, step, ctx) {
+  const checkCancelled = () => { if (ctx.signal?.aborted) throw Object.assign(new Error('Appliance deployment was cancelled.'), { code: 'hosting_cancelled' }); };
+  checkCancelled();
   step('image', 'Downloading the operating system image');
   const img = await fetchImage(/^haos_ova-.*\.ova$/, ctx.cacheDir, log, (f) => step('image', 'Downloading the operating system image', f));
+  checkCancelled();
   let bootstrap;
   if (inst.hostingJobId) {
     if (typeof ctx.prepareBootstrap !== 'function') throw new Error('Secure appliance preparation is unavailable. No backup was transmitted.');
     step('bootstrap', 'Preparing a private, certificate-bound appliance image');
     bootstrap = await ctx.prepareBootstrap({ jobId: inst.hostingJobId, image: img, format: 'vmdk' });
+    checkCancelled();
     inst.restoreTransport = bootstrap.transport;
   }
   step('config', 'Creating the virtual machine');
   fs.mkdirSync(inst.dir, { recursive: true });
   await must(run(ovftool(), ['--acceptAllEulas', '--skipManifestCheck', '--name=' + unitName(inst), '--allowExtraConfig', img.file, inst.dir], { onLine: log, timeout: 30 * 60000 }), 'Importing the image');
+  checkCancelled();
   let text = fs.readFileSync(vmx(inst), 'utf8');
   const set = (k, v) => { const re = new RegExp('^' + k.replace(/\./g, '\\.') + '\\s*=.*$', 'm'); text = re.test(text) ? text.replace(re, k + ' = "' + v + '"') : text + '\n' + k + ' = "' + v + '"'; };
   set('memsize', String(inst.memoryMb || 4096));
@@ -57,16 +63,21 @@ async function deploy(inst, log, step, ctx) {
   }
   fs.writeFileSync(vmx(inst), text);
   step('start', 'Starting the virtual machine');
+  checkCancelled();
   await must(R(['start', vmx(inst), 'nogui']), 'Starting the virtual machine');
+  checkCancelled();
   step('wait', 'Waiting for the virtual machine to get an address');
   inst.ip = await guestIp(inst, 900);
+  checkCancelled();
   if (!inst.ip) throw new Error('The virtual machine started but did not report an address within 15 minutes. Open it in VMware to see its console.');
   log('The virtual machine has the address ' + inst.ip);
   if (bootstrap) {
     step('wait', 'Waiting for this appliance to present its own TLS certificate');
     const end = Date.now() + 25 * 60000;
     while (Date.now() < end) {
+      checkCancelled();
       const verified = await verifyCandidate(inst.ip, inst.restoreTransport);
+      checkCancelled();
       if (verified) { inst.url = verified; inst.lanUrl = verified; return urls(inst); }
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
@@ -97,4 +108,4 @@ async function remove(inst, { keepData = false } = {}) {
   if (!keepData) { await R(['deleteVM', vmx(inst)]); fs.rmSync(inst.dir, { recursive: true, force: true }); }
 }
 
-module.exports = { id: 'vmware', check, deploy, status, stats, start, stop, restart, update, logs, backup, restore, deleteBackup, remove, urls };
+module.exports = { id: 'vmware', check, deploy, status, stats, start, stop, restart, update, logs, backup, restore, deleteBackup, remove, urls, address };
