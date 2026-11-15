@@ -177,7 +177,7 @@ async def marketplace_repository_ignore(
 )
 @websocket_api.require_admin
 @websocket_api.async_response
-@marketplace_command(requires_accepted_warning=True)
+@marketplace_command()
 async def marketplace_repository_version(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -220,7 +220,7 @@ async def marketplace_repository_version(
 )
 @websocket_api.require_admin
 @websocket_api.async_response
-@marketplace_command(requires_accepted_warning=True)
+@marketplace_command()
 async def marketplace_repository_beta(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -261,7 +261,7 @@ async def marketplace_repository_beta(
 )
 @websocket_api.require_admin
 @websocket_api.async_response
-@marketplace_command(requires_accepted_warning=True)
+@marketplace_command()
 async def marketplace_repository_install(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,

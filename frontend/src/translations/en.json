@@ -21602,26 +21602,6 @@
         "title": "Marketplace",
         "not_loaded": "The Marketplace is not available. It does not load in recovery mode or when it failed to start, check the Home Assistant logs for more information.",
         "load_failed": "The Marketplace could not load its data: {error}",
-        "warning": {
-          "title": "Before you install from the Marketplace",
-          "intro": "Marketplace items are made by community contributors and are not reviewed by the Home\u00a0Assistant project. Treat them like plugins for any other software.",
-          "risks_title": "Anything you install can",
-          "risks": {
-            "access": "Access and control everything in Home\u00a0Assistant",
-            "internet": "Connect to the internet",
-            "data": "Share your data with others",
-            "stability": "Slow down or crash Home\u00a0Assistant"
-          },
-          "mindful_title": "So be mindful",
-          "mindful": {
-            "read": "Read the documentation and understand what the item changes.",
-            "monitor": "Keep an eye on your system after installing.",
-            "uninstall": "If something goes wrong, uninstall it right away."
-          },
-          "understand": "I understand the risks and agree",
-          "go_back": "Go back",
-          "continue": "Continue"
-        },
         "common": {
           "install": "Install",
           "learn_more": "Learn more",

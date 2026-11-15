@@ -118,8 +118,6 @@ class RepositoryUpdateEntity(RepositoryEntity, UpdateEntity):
                     translation_placeholders={"version": version},
                 ) from exception
 
-        # Updating what is installed already needs no visit to the Marketplace
-        # panel: its warning is about choosing what to install.
         to_install = version or self.latest_version
         if to_install == self.installed_version:
             raise HomeAssistantError(

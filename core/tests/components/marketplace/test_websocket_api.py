@@ -1899,30 +1899,13 @@ async def test_repository_uninstall_without_github(
 @pytest.mark.parametrize("config_entry_source", [SOURCE_SYSTEM])
 @pytest.mark.parametrize("warning_accepted", [None])
 @pytest.mark.usefixtures("init_integration")
-async def test_commands_need_accepted_warning(
+async def test_install_commands_without_accepted_warning(
     hass: HomeAssistant,
     hass_ws_client: WebSocketGenerator,
-    aioclient_mock: AiohttpClientMocker,
     message: dict[str, Any],
 ) -> None:
-    """Test the commands that install are refused until the warning is accepted."""
+    """Test installing and adding work when nobody accepted the warning."""
     client = await hass_ws_client(hass)
-    calls_before = len(github_api_calls(aioclient_mock))
-
-    await client.send_json_auto_id(message)
-    response = await client.receive_json()
-
-    assert not response["success"]
-    assert response["error"] == translated_error(
-        "warning_not_accepted",
-        "warning_not_accepted",
-        "Open the Marketplace and read the warning first, installing and updating"
-        " work once it is accepted",
-    )
-    assert len(github_api_calls(aioclient_mock)) == calls_before
-
-    await client.send_json_auto_id({"type": "marketplace/warning/accept"})
-    assert (await client.receive_json())["success"]
 
     await client.send_json_auto_id(message)
     response = await client.receive_json()
@@ -2016,11 +1999,6 @@ async def test_newer_warning_needs_accepting_again(
         await client.send_json_auto_id({"type": "marketplace/info"})
         assert (await client.receive_json())["result"]["warning_accepted"] is False
 
-        await client.send_json_auto_id(WARNING_COMMANDS[0])
-        response = await client.receive_json()
-
-        assert response["error"]["code"] == "warning_not_accepted"
-
         await client.send_json_auto_id({"type": "marketplace/warning/accept"})
         assert (await client.receive_json())["success"]
 
@@ -2074,10 +2052,6 @@ async def test_warning_is_accepted_per_user(
     assert (await second_admin_client.receive_json())["result"][
         "warning_accepted"
     ] is False
-
-    await second_admin_client.send_json_auto_id(WARNING_COMMANDS[0])
-    response = await second_admin_client.receive_json()
-    assert response["error"]["code"] == "warning_not_accepted"
 
     await admin_client.send_json_auto_id(WARNING_COMMANDS[0])
     assert (await admin_client.receive_json())["success"]

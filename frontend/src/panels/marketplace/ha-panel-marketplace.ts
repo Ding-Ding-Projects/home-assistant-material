@@ -1,8 +1,7 @@
 import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import type { PropertyValues } from "lit";
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { keyed } from "lit/directives/keyed";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import "../../components/ha-button";
@@ -26,7 +25,6 @@ import {
   subscribeMarketplaceChanges,
 } from "../../data/marketplace/websocket";
 import { fetchMarketplaceRepositories } from "../../data/marketplace/repository";
-import "./components/ha-marketplace-warning";
 import "./ha-marketplace-router";
 import { haStyle } from "../../resources/styles";
 
@@ -72,12 +70,6 @@ class HaPanelMarketplace extends SubscribeMixin(LitElement) {
   private _repositoriesOutdated = false;
 
   protected hassSubscribeRequiredHostProps = ["_integrationLoaded"];
-
-  // The catalog, whatever the route is
-  private _behindWarning = memoizeOne((route: Route): Route => ({
-    prefix: route.prefix,
-    path: "/browse",
-  }));
 
   private _marketplace = memoizeOne(
     (
@@ -222,28 +214,13 @@ class HaPanelMarketplace extends SubscribeMixin(LitElement) {
       `;
     }
 
-    const accepted = this._info.warning_accepted;
-
-    // The Marketplace shows behind the warning, which keeps it from being
-    // used. Until it is accepted only the catalog shows there, a link that
-    // adds a repository or opens a dialog waits for the acceptance, when the
-    // Marketplace starts over on the route it was opened on.
     return html`
-      ${keyed(
-        accepted,
-        html`<ha-marketplace-router
-          .hass=${this.hass}
-          .marketplace=${this._marketplace(this._repositories, this._info)}
-          .route=${accepted ? this.route : this._behindWarning(this.route)}
-          .narrow=${this.narrow}
-          ?inert=${!accepted}
-        ></ha-marketplace-router>`
-      )}
-      ${
-        accepted
-          ? nothing
-          : html`<ha-marketplace-warning></ha-marketplace-warning>`
-      }
+      <ha-marketplace-router
+        .hass=${this.hass}
+        .marketplace=${this._marketplace(this._repositories, this._info)}
+        .route=${this.route}
+        .narrow=${this.narrow}
+      ></ha-marketplace-router>
     `;
   }
 

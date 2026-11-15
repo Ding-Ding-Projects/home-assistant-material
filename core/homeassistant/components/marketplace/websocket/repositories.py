@@ -157,7 +157,7 @@ async def marketplace_repositories_removed(
 )
 @websocket_api.require_admin
 @websocket_api.async_response
-@marketplace_command(requires_accepted_warning=True, requires_github=True)
+@marketplace_command(requires_github=True)
 async def marketplace_repositories_detect(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -217,7 +217,7 @@ async def marketplace_repositories_detect(
 )
 @websocket_api.require_admin
 @websocket_api.async_response
-@marketplace_command(requires_accepted_warning=True, requires_github=True)
+@marketplace_command(requires_github=True)
 async def marketplace_repositories_add(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,

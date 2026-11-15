@@ -8,10 +8,10 @@ day can hold several releases. The interface shows this list under Settings, Abo
 
 ## 2026-11-15
 
-- Fixed: updates of Marketplace integrations, themes and plugins no longer ask anyone to open the
-  Marketplace and accept its warning first. Every update from Settings, the update dialog, an
-  automation or a script installs straight away. The warning still shows in the Marketplace panel
-  before something new is installed from there.
+- Fixed: nothing in the Marketplace asks anyone to open it and accept its warning first any more.
+  Updates from Settings, the update dialog, an automation or a script install straight away, and
+  installing, adding a repository and uploading work without the warning. The Marketplace panel
+  opens directly on what was asked for, without the warning screen.
 - Fixed: an update that was refused before it started said Home Assistant "did not report the new
   version". It now says the update did not start, nothing was installed, and why.
 - New: Camera recording. Cameras are recorded around the clock in short MP4 files to a disk or

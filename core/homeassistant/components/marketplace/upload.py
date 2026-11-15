@@ -33,12 +33,7 @@ from homeassistant.components.frontend import (
     DATA_EXTRA_MODULE_URL,
     DOMAIN as FRONTEND_DOMAIN,
 )
-from homeassistant.components.http import (
-    KEY_HASS,
-    KEY_HASS_USER,
-    HomeAssistantView,
-    require_admin,
-)
+from homeassistant.components.http import KEY_HASS, HomeAssistantView, require_admin
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
@@ -76,7 +71,6 @@ READ_CHUNK = 64 * 1024
 _STATUS_BY_KEY = {
     "upload_too_large": HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
     "not_loaded": HTTPStatus.SERVICE_UNAVAILABLE,
-    "warning_not_accepted": HTTPStatus.FORBIDDEN,
 }
 
 
@@ -139,7 +133,7 @@ class MarketplaceUploadView(HomeAssistantView):
         """
         hass = request.app[KEY_HASS]
         try:
-            marketplace = _loaded_marketplace(hass, request[KEY_HASS_USER].id)
+            marketplace = _loaded_marketplace(hass)
             lock = hass.data.setdefault(UPLOAD_LOCK, asyncio.Lock())
             async with lock:
                 result = await _receive_and_install(hass, marketplace, request)
@@ -159,14 +153,12 @@ class MarketplaceUploadView(HomeAssistantView):
         )
 
 
-def _loaded_marketplace(hass: HomeAssistant, user_id: str) -> MarketplaceManager:
-    """Return the Marketplace of a user who accepted its warning."""
+def _loaded_marketplace(hass: HomeAssistant) -> MarketplaceManager:
+    """Return the loaded Marketplace."""
     if not (entries := hass.config_entries.async_loaded_entries(DOMAIN)):
         raise UploadError("not_loaded")
 
     marketplace: MarketplaceManager = entries[0].runtime_data
-    if not marketplace.warning_accepted(user_id):
-        raise UploadError("warning_not_accepted")
     return marketplace
 
 
@@ -338,9 +330,7 @@ def _stage(
             item,
             staged,
             target,
-            _existing_target(
-                target, f"custom_components/{domain}", directory=True
-            ),
+            _existing_target(target, f"custom_components/{domain}", directory=True),
         )
 
     elif item.kind == "plugin":

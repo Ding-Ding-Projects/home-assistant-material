@@ -73,9 +73,7 @@ async def _upload(
     form = FormData()
     form.add_field("kind", kind)
     form.add_field("source", source)
-    form.add_field(
-        "file", data, filename=filename, content_type="application/zip"
-    )
+    form.add_field("file", data, filename=filename, content_type="application/zip")
     response = await client.post(URL, data=form)
     return response.status, await response.json()
 
@@ -203,9 +201,7 @@ async def test_a_broken_theme_is_not_added(
     """Test that a theme the frontend can not load never reaches the folder."""
     files = {"themes/bad.yaml": b"Bad: [unclosed\n"}
 
-    status, body = await _upload(
-        hass, hass_client, _zip(files), "theme", "themes"
-    )
+    status, body = await _upload(hass, hass_client, _zip(files), "theme", "themes")
 
     assert status == HTTPStatus.BAD_REQUEST
     assert body["code"] == "upload_theme_invalid"
@@ -265,7 +261,9 @@ async def test_adds_a_dashboard_card(
 
     assert status == HTTPStatus.CREATED
     assert body["path"] == "www/community/fancy-card"
-    assert body["resource_url"].startswith("/local/community/fancy-card/fancy-card.js?v=upload-")
+    assert body["resource_url"].startswith(
+        "/local/community/fancy-card/fancy-card.js?v=upload-"
+    )
     assert (config_dir / "www" / "community" / "fancy-card" / "fancy-card.js").is_file()
 
 
@@ -402,14 +400,13 @@ async def test_requires_an_admin(
 
 @pytest.mark.parametrize("warning_accepted", [None])
 @pytest.mark.usefixtures("init_integration")
-async def test_the_warning_has_to_be_accepted(
+async def test_adds_without_accepted_warning(
     hass: HomeAssistant, hass_client: ClientSessionGenerator, config_dir: Path
 ) -> None:
-    """Test that nothing is added before the first-run warning is accepted."""
-    status, body = await _upload(
+    """Test an upload is added when nobody accepted the first-run warning."""
+    status, _body = await _upload(
         hass, hass_client, _zip(INTEGRATION_FILES), "integration", INTEGRATION_SOURCE
     )
 
-    assert status == HTTPStatus.FORBIDDEN
-    assert body["code"] == "warning_not_accepted"
-    assert not (config_dir / "custom_components").exists()
+    assert status == HTTPStatus.CREATED
+    assert (config_dir / "custom_components").exists()

@@ -15,7 +15,6 @@ from ..exceptions import MarketplaceError
 ERR_GITHUB_NOT_CONNECTED = "github_not_connected"
 ERR_GITHUB_RATE_LIMITED = "github_rate_limited"
 ERR_NOT_LOADED = "not_loaded"
-ERR_WARNING_NOT_ACCEPTED = "warning_not_accepted"
 ERR_REPOSITORY_NOT_FOUND = "repository_not_found"
 
 
@@ -100,7 +99,7 @@ type CommandHandler = Callable[
 
 
 def marketplace_command(
-    *, requires_accepted_warning: bool = False, requires_github: bool = False
+    *, requires_github: bool = False
 ) -> Callable[[MarketplaceCommandHandler], CommandHandler]:
     """Hand the command the loaded Marketplace, or answer why there is none.
 
@@ -123,17 +122,6 @@ def marketplace_command(
 
             entry: MarketplaceConfigEntry = entries[0]
             marketplace = entry.runtime_data
-
-            if requires_accepted_warning and not marketplace.warning_accepted(
-                connection.user.id
-            ):
-                send_translated_error(
-                    connection,
-                    msg["id"],
-                    ERR_WARNING_NOT_ACCEPTED,
-                    "warning_not_accepted",
-                )
-                return
 
             if requires_github and not marketplace.github_connected:
                 send_translated_error(
