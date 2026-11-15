@@ -15,26 +15,67 @@ function safeName(name) {
   return typeof name === 'string' && name.length > 0 && name.length <= 1024 && !name.includes('\\') && !/[\x00-\x1f]/.test(name) && !name.startsWith('/') && !/^[A-Za-z]:/.test(name) && !name.split('/').some((p) => p === '..' || p === '.');
 }
 
-// Check wire headers before node-tar normalizes Windows paths and legacy directory types.
+function checkedPax(body, previous, global) {
+  let offset = 0;
+  while (offset < body.length) {
+    const space = body.indexOf(0x20, offset);
+    if (space < 0 || !/^[1-9][0-9]{0,7}$/.test(body.subarray(offset, space).toString('utf8'))) throw fail('unsafe_backup_archive');
+    const length = Number(body.subarray(offset, space).toString('utf8')); const end = offset + length;
+    if (end > body.length || end <= space + 2 || body[end - 1] !== 0x0a) throw fail('unsafe_backup_archive');
+    const field = body.subarray(space + 1, end - 1); const equals = field.indexOf(0x3d);
+    if (equals <= 0) throw fail('unsafe_backup_archive');
+    if (field.subarray(0, equals).toString('utf8') === 'size') {
+      const value = field.subarray(equals + 1).toString('utf8');
+      if (!/^[0-9]*$/.test(value)) throw fail('unsafe_backup_archive');
+      if (!Number.isSafeInteger(Number(value)) || Number(value) > MAX_BYTES) throw fail('backup_too_large');
+    }
+    offset = end;
+  }
+  return tar.Pax.parse(body.toString('utf8'), previous, global);
+}
+
+// Reuse node-tar's effective Header/Pax semantics while retaining physical wire checks.
 function rawTarHeaders(maximum) {
-  let header = Buffer.alloc(0); let remaining = 0; let bytes = 0;
+  let header = Buffer.alloc(0); let remaining = 0; let bytes = 0; let headers = 0; let metaBytes = 0;
+  let extended; let globalExtended; let meta;
+  const finishMeta = () => {
+    const body = Buffer.concat(meta.chunks);
+    switch (meta.type) {
+      case 'ExtendedHeader': case 'OldExtendedHeader': extended = checkedPax(body, extended, false); break;
+      case 'GlobalExtendedHeader': globalExtended = checkedPax(body, globalExtended, true); break;
+      case 'NextFileHasLongPath': case 'OldGnuLongPath': extended = { ...extended, path: body.toString('utf8').replace(/\0.*/, '') }; break;
+      case 'NextFileHasLongLinkpath': extended = { ...extended, linkpath: body.toString('utf8').replace(/\0.*/, '') }; break;
+    }
+    meta = undefined;
+  };
+  const metaTypes = new Set(['ExtendedHeader', 'OldExtendedHeader', 'GlobalExtendedHeader', 'NextFileHasLongPath', 'OldGnuLongPath', 'NextFileHasLongLinkpath']);
   return new Transform({ transform(chunk, encoding, done) {
     try {
       bytes += chunk.length; if (bytes > maximum) throw fail('backup_too_large');
       let offset = 0;
       while (offset < chunk.length) {
-        if (remaining) { const take = Math.min(remaining, chunk.length - offset); remaining -= take; offset += take; continue; }
+        if (remaining) {
+          const take = Math.min(remaining, chunk.length - offset);
+          if (meta?.left) { const actual = Math.min(take, meta.left); meta.chunks.push(chunk.subarray(offset, offset + actual)); meta.left -= actual; }
+          remaining -= take; offset += take; if (!remaining && meta) finishMeta(); continue;
+        }
         const take = Math.min(512 - header.length, chunk.length - offset);
         header = Buffer.concat([header, chunk.subarray(offset, offset + take)]); offset += take;
         if (header.length !== 512) continue;
-        const decoded = new tar.Header(header);
+        if (++headers > 10000) throw fail('unsafe_backup_archive');
+        const physical = new tar.Header(header); const decoded = new tar.Header(header, 0, extended, globalExtended);
         if (!decoded.nullBlock) {
-          if (decoded.path.includes('\\')) throw fail('unsafe_backup_archive');
+          if (!decoded.cksumValid || physical.path.includes('\\') || decoded.path.includes('\\')) throw fail('unsafe_backup_archive');
           if (decoded.path === './') {
             const raw = Buffer.from(header); raw[156] = 0x37;
             if (header[156] !== 0x35 || new tar.Header(raw).size !== 0) throw fail('unsafe_backup_archive');
           }
           if (!Number.isSafeInteger(decoded.size) || decoded.size < 0 || decoded.size > MAX_BYTES) throw fail('backup_too_large');
+          if (metaTypes.has(decoded.type)) {
+            metaBytes += decoded.size;
+            if (decoded.size > 1024 * 1024 || metaBytes > 8 * 1024 * 1024) throw fail('unsafe_backup_archive');
+            if (decoded.size) meta = { type: decoded.type, left: decoded.size, chunks: [] };
+          } else extended = undefined;
           remaining = Math.ceil(decoded.size / 512) * 512;
         }
         header = Buffer.alloc(0);
@@ -54,9 +95,9 @@ async function inspectTar(file) {
     const rawName = entry.header.path;
     const name = rawName.startsWith('./') ? rawName.slice(2) : rawName;
     if (!safeName(name) || names.has(name) || !['File', 'Directory'].includes(entry.type)) { parser.abort(fail('unsafe_backup_archive')); return; }
-    names.add(name); bytes += entry.size;
+    names.add(name); bytes += entry.header.size;
     if (bytes > MAX_BYTES) { parser.abort(fail('backup_too_large')); return; }
-    if (name === 'backup.json') { if (entry.size > 1024 * 1024) { parser.abort(fail('unsafe_backup_archive')); return; } metadata = true; }
+    if (name === 'backup.json') { if (entry.header.size > 1024 * 1024) { parser.abort(fail('unsafe_backup_archive')); return; } metadata = true; }
     if (/^homeassistant\.tar(?:\.gz)?$/.test(name)) core = true;
     entry.resume();
   });
