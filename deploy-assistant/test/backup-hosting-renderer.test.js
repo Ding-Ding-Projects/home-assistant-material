@@ -17,15 +17,16 @@ function view(approval = { approved: true, host_id: 'saved-host-1' }) {
   const context = {
     W: {}, R: { deploy() {}, backups() {} }, render() {},
     document: { addEventListener() {} }, window: { addEventListener() {} },
-    DEMO: false, st: { active: 'none' }, soon() {},
+    DEMO: false, st: { active: 'none' }, soon() {}, $() { return null; }, wiz: { vals: {} },
     clearTimeout() {}, setTimeout() { return 1; },
     API: {
       async sshHostKeyApprove(hostId) { calls.push(['approve', hostId]); return approval; },
-      async backupHostStart(request) { calls.push(['start', JSON.parse(JSON.stringify(request))]); },
+      async backupHostStart(request) { calls.push(['start', JSON.parse(JSON.stringify(request))]); return { ...request, id: 'new-job', state: 'queued' }; },
       async backupHostJobs() { return { jobs: [] }; },
     },
   };
   context.L = (key) => context.W[key]?.[0] || key;
+  context.wizTarget = () => context.st.wizTarget;
   vm.createContext(context);
   vm.runInContext(source, context);
   return { context, calls };
@@ -39,6 +40,49 @@ test('SSH approval requires the exact host-key state and job-owned handles', () 
   for (const overrides of [{ target: 'docker' }, { state: 'running' },
     { error_code: 'incorrect_password' }, { host_id: '' }, { upload_handle: '' }]) {
     assert.equal(context.backupHostCanApproveSsh(pending(overrides)), false);
+  }
+});
+
+test('visible image and port choices reach the backup hosting API', async () => {
+  for (const target of ['docker', 'ssh', 'virtualbox']) {
+    const { context, calls } = view();
+    context.st.wizTarget = target;
+    context.wiz.vals[target] = { name: 'restored-home', port: '18123', tag: '2026.11.1.442' };
+    context.backupHost.file = { upload_handle: 'picked-archive' };
+    context.backupHost.requestId = 'selected-backup-request';
+    await context.backupHostStart();
+    assert.equal(calls.length, 1);
+    const request = calls[0][1];
+    assert.equal(request.target, target);
+    assert.equal(request.options.port, 18123);
+    assert.equal(typeof request.options.port, 'number');
+    assert.equal(request.options.tag, target === 'virtualbox' ? undefined : '2026.11.1.442');
+  }
+});
+
+test('absent form defaults and hidden VMware choices are not invented', async () => {
+  for (const [target, values] of [['docker', {}], ['ssh', { port: '', tag: '' }],
+    ['vmware', { port: '18123', tag: '2026.11.1.442' }]]) {
+    const { context, calls } = view();
+    context.st.wizTarget = target;
+    context.wiz.vals[target] = values;
+    context.backupHost.file = { upload_handle: 'picked-archive' };
+    context.backupHost.requestId = 'selected-backup-request';
+    await context.backupHostStart();
+    assert.equal(calls.length, 1);
+    assert.equal(Object.hasOwn(calls[0][1].options, 'port'), false);
+    assert.equal(Object.hasOwn(calls[0][1].options, 'tag'), false);
+  }
+});
+
+test('invalid visible ports do not become null or a different default in IPC', async () => {
+  for (const port of ['not-a-port', '8123.5', '0', '65536']) {
+    const { context, calls } = view();
+    context.st.wizTarget = 'docker';
+    context.wiz.vals.docker = { port };
+    context.backupHost.file = { upload_handle: 'picked-archive' };
+    await context.backupHostStart();
+    assert.deepEqual(calls, []);
   }
 });
 
