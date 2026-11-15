@@ -30,11 +30,17 @@
     bhRestore: ['Restoring the backup', '正在還原備份'], bhVerify: ['Verifying reachability', '正在驗證連線'],
     bhAccepted: ['Restore accepted; verification pending', '已接受還原，等候驗證'],
     bhSelected: ['Selected backup', '已選備份'],
+    bhCancelling: ['Cancelling: waiting for the current operation to settle', '取消中：等候目前操作安全完成'],
+    bhHostKey: ['Review SSH host key and resume', '核對 SSH 主機金鑰並繼續'],
+    bhHostKeyPending: ['Review the exact host and fingerprint in the native confirmation. Nothing is approved automatically.', '請喺原生確認視窗核對指定主機同指紋，程式唔會自動批准。'],
+    bhHostKeyUnavailable: ['Reopen this job in an updated Deploy Assistant to retrieve its saved host and retry handle.', '請喺更新後嘅 Deploy Assistant 重新開啟工作，以取得已儲存主機同重試憑證。'],
     bhAuth: ['Sign-in required to verify the restored instance', '需要登入以驗證已還原實例'],
     bhSignIn: ['Open sign-in to verify', '開啟登入頁以進行驗證'],
     bhSignInPending: ['The LAN address answered. Sign in to continue verification; this job is not complete.', '區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。']
   });
   function backupHostNeedsKey(j) { return j.state === 'needs_attention' && j.error_code === 'incorrect_password'; }
+  function backupHostNeedsSshApproval(j) { return j.target === 'ssh' && ['needs_attention', 'needs_resume'].indexOf(j.state) >= 0 && ['host_key_approval_required', 'host_key_changed'].indexOf(j.error_code) >= 0; }
+  function backupHostCanApproveSsh(j) { return backupHostNeedsSshApproval(j) && typeof j.host_id === 'string' && !!j.host_id && typeof j.upload_handle === 'string' && !!j.upload_handle; }
   function backupHostBlocksStart(j) { return backupHostActive(j) && !(backupHostNeedsKey(j) && j.request_id === backupHost.requestId); }
   function backupHostActive(j) { return ['ready', 'failed', 'cancelled'].indexOf(j.state) < 0; }
   function backupHostUrl(j) {
@@ -46,7 +52,7 @@
     try { var u = new URL(j.lan_url); return /^(https?:)$/.test(u.protocol) && !u.username && !u.password ? u.href : ''; } catch (_) { return ''; }
   }
   function backupHostState(j) {
-    return L(({ queued: 'bhQueued', running: 'bhRunning', ready: 'bhReady', failed: 'bhFailed', cancelled: 'bhCancelled', needs_key: 'bhNeedsKey', setup_required: 'bhSetupRequired', pending_native_approval: 'bhNative', waiting_hardware: 'bhHardware', waiting_restart: 'bhRestart', waiting_for_restart: 'bhRestart', restoring: 'bhRestore', needs_resume: 'bhSetupRequired', needs_attention: 'bhSetupRequired', waiting_for_hardware: 'bhHardware', writing_card: 'bhHardware', waiting_for_boot: 'bhHardware', authentication_needed: 'bhAuth', restore_accepted: 'bhAccepted' })[j.state] || 'bhRunning');
+    return L(({ queued: 'bhQueued', running: 'bhRunning', ready: 'bhReady', failed: 'bhFailed', cancelled: 'bhCancelled', cancelling: 'bhCancelling', needs_key: 'bhNeedsKey', setup_required: 'bhSetupRequired', pending_native_approval: 'bhNative', waiting_hardware: 'bhHardware', waiting_restart: 'bhRestart', waiting_for_restart: 'bhRestart', restoring: 'bhRestore', needs_resume: 'bhSetupRequired', needs_attention: 'bhSetupRequired', waiting_for_hardware: 'bhHardware', writing_card: 'bhHardware', waiting_for_boot: 'bhHardware', authentication_needed: 'bhAuth', restore_accepted: 'bhAccepted' })[j.state] || 'bhRunning');
   }
   function backupHostCards() {
     return '<section class="section backup-host-jobs" aria-live="polite">' + backupHost.jobs.map(function (j) {
@@ -54,9 +60,10 @@
       return '<article class="pcard"><h3 class="tm">' + L(j.target) + ': ' + backupHostState(j) + '</h3><p class="bm">' +
         L(({ restore: 'bhRestore', verify: 'bhVerify', restore_accepted: 'bhAccepted', restore_submitted: 'bhRestore', restore_rejected: 'bhNeedsKey', restart: 'bhRestart', waiting_for_boot: 'bhHardware' })[j.phase] || (j.state === 'ready' ? 'bhReady' : 'bhPending')) + '</p>' +
         (j.error_code ? '<p role="alert"><code>' + esc(j.error_code) + '</code></p>' : '') +
+        (backupHostNeedsSshApproval(j) ? '<p class="bm">' + L(backupHostCanApproveSsh(j) ? 'bhHostKeyPending' : 'bhHostKeyUnavailable') + '</p>' + (backupHostCanApproveSsh(j) ? '<button class="btn tonal" data-bh-ssh-approve="' + esc(j.id) + '"' + (backupHost.busy ? ' disabled' : '') + '>' + L('bhHostKey') + '</button>' : '') : '') +
         (signInUrl ? '<p class="bm">' + L('bhSignInPending') + '</p><a class="btn tonal" href="' + esc(signInUrl) + '" data-ext="' + esc(signInUrl) + '">' + L('bhSignIn') + '</a>' : '') +
         (url ? '<a class="btn tonal" href="' + esc(url) + '" data-ext="' + esc(url) + '">' + esc(url) + '</a>' : '') +
-        (backupHostActive(j) ? '<button class="btn text" data-bh-cancel="' + esc(j.id) + '">' + L('bhCancel') + '</button>' : '') + '</article>';
+        (backupHostActive(j) && j.state !== 'cancelling' ? '<button class="btn text" data-bh-cancel="' + esc(j.id) + '">' + L('bhCancel') + '</button>' : '') + '</article>';
     }).join('') + '</section>';
   }
   function backupHostPanel() {
@@ -124,6 +131,22 @@
     } catch (_) { backupHost.error = 'bhError'; }
     finally { password = ''; backupHost.busy = false; soon(); }
   }
+  async function backupHostApproveSsh(jobId) {
+    if (backupHost.busy || DEMO || typeof API.sshHostKeyApprove !== 'function') return;
+    var job = backupHost.jobs.find(function (item) { return item.id === jobId; });
+    if (!job || !backupHostCanApproveSsh(job)) return;
+    backupHost.busy = true; backupHost.error = ''; soon();
+    try {
+      // The native dialog owns consent. Never send an approval flag or derive
+      // the host from whichever target happens to be selected in the form.
+      var result = await API.sshHostKeyApprove(job.host_id);
+      if (result && result.approved === true && result.host_id === job.host_id) {
+        await API.backupHostStart({ request_id: job.request_id, upload_handle: job.upload_handle, target: job.target });
+        await backupHostRefresh();
+      }
+    } catch (_) { backupHost.error = 'bhError'; }
+    finally { backupHost.busy = false; soon(); }
+  }
   async function backupHostSetup() {
     if (DEMO || !API.hostBridgeStatus) { toast(w('bhUnavailable')); return; }
     try {
@@ -141,7 +164,7 @@
     } catch (_) { toast(w('bhError')); }
   }
   document.addEventListener('click', async function (event) {
-    var button = event.target.closest('[data-act^="bh-"], [data-bh-cancel]');
+    var button = event.target.closest('[data-act^="bh-"], [data-bh-cancel], [data-bh-ssh-approve]');
     if (!button || button.disabled) return;
     if (DEMO || !API.backupPick) { toast(w('bhUnavailable')); return; }
     try {
@@ -156,6 +179,7 @@
       else if (action === 'bh-clear') { if (backupHost.jobs.some(backupHostActive)) return; backupHost.file = null; backupHost.requestId = ''; soon(); }
       else if (action === 'bh-setup') await backupHostSetup();
       else if (action === 'bh-drives') { backupHost.drives = await API.backupPiDrives(); soon(); }
+      else if (button.dataset.bhSshApprove) await backupHostApproveSsh(button.dataset.bhSshApprove);
       else if (button.dataset.bhCancel) { await API.backupHostCancel(button.dataset.bhCancel); await backupHostRefresh(); }
     } catch (_) { backupHost.error = 'bhError'; soon(); }
   });
