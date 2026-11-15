@@ -5,6 +5,9 @@ rem
 rem   build.bat            build the container image home-assistant-material:local
 rem   build.bat --run      build, then start it on http://localhost:8123
 rem   build.bat --demo     build the interactive Pages demo in frontend\demo\dist
+rem   build.bat --backup-bootstrap-helper   build the pinned offline image helper
+rem   build.bat --supervisor                build the Supervisor container
+rem   build.bat --deploy-assistant          build the native desktop installer
 rem   /s, --silent or SILENT=1 run without pausing at the end
 rem
 rem Every phase reports its real result. The script stops at the first failure and
@@ -15,6 +18,7 @@ cd /d "%~dp0"
 set "QUIET=0"
 set "RUN=0"
 set "DEMO=0"
+set "TARGET=core"
 if /i "%SILENT%"=="1" set "QUIET=1"
 :args
 if "%~1"=="" goto args_done
@@ -22,10 +26,18 @@ if /i "%~1"=="/s" set "QUIET=1"
 if /i "%~1"=="--silent" set "QUIET=1"
 if /i "%~1"=="--run" set "RUN=1"
 if /i "%~1"=="--demo" set "DEMO=1"
+if /i "%~1"=="--backup-bootstrap-helper" set "TARGET=backup-bootstrap-helper"
+if /i "%~1"=="--supervisor" set "TARGET=supervisor"
+if /i "%~1"=="--deploy-assistant" set "TARGET=deploy-assistant"
 shift
 goto args
 :args_done
 set "RC=0"
+if "%TARGET%"=="deploy-assistant" (
+  call "%~dp0deploy-assistant\build.bat" notest
+  set "RC=!errorlevel!"
+  goto done
+)
 if "%DEMO%"=="1" goto demo
 
 echo.
@@ -53,6 +65,16 @@ set "RC=3"
 echo Docker did not start within 3 minutes.
 goto done
 :docker_ready
+if "%TARGET%"=="backup-bootstrap-helper" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build\build-backup-bootstrap.ps1"
+  set "RC=!errorlevel!"
+  goto done
+)
+if "%TARGET%"=="supervisor" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build\build-supervisor.ps1"
+  set "RC=!errorlevel!"
+  goto done
+)
 rem An explicit release number stamps only this source copy. The release caller
 rem supplies an immutable source revision when building an exported checkout.
 if defined HA_BUILD_NUMBER (

@@ -21,6 +21,19 @@ Automatic source pushes retain build outputs; the full workflow publishes only
 when explicitly dispatched. Coordinate tags before either manual route so an
 update has one immutable release. Never overwrite an existing tag or image.
 
+The root entrypoint also accepts `--supervisor`, `--backup-bootstrap-helper` and
+`--deploy-assistant`. Supervisor uses the same explicit source/build-number inputs
+and produces `home-assistant-material:supervisor-local`. The offline backup helper
+uses the reviewed immutable base and exact package versions from
+`hosting/backup-bootstrap/build-lock.json`; it never includes a user's appliance
+image, backup or cryptographic keys in its build context. Its published immutable
+digest must be supplied to the desktop runtime before appliance hosting is enabled.
+These targets do not imply publication, deployment or completed runtime verification.
+`build-installer.bat --deploy-assistant /s` selects the native Squirrel installer
+instead of starting the unrelated operating-system build. Native tests remain a
+separate final verification step. The desktop publisher, like the main publisher,
+publishes only on explicit workflow dispatch; push builds retain their outputs.
+
 Open the exact **Release** workflow run and find **Artifacts**. The frontend wheel,
 operating system images and checksums, and Deploy Assistant files are uploaded by
 their build jobs before the publisher runs. New runs retain them for 14 days.

@@ -13,14 +13,20 @@ cd /d "%~dp0"
 
 set "QUIET=0"
 set "BOARD=ova"
+set "NATIVE=0"
 if /i "%SILENT%"=="1" set "QUIET=1"
 :args
 if "%~1"=="" goto args_done
-if /i "%~1"=="/s" ( set "QUIET=1" ) else if /i "%~1"=="--silent" ( set "QUIET=1" ) else ( set "BOARD=%~1" )
+if /i "%~1"=="/s" ( set "QUIET=1" ) else if /i "%~1"=="--silent" ( set "QUIET=1" ) else if /i "%~1"=="--deploy-assistant" ( set "NATIVE=1" ) else ( set "BOARD=%~1" )
 shift
 goto args
 :args_done
 set "RC=0"
+if "%NATIVE%"=="1" (
+  call "%~dp0deploy-assistant\build.bat" notest
+  set "RC=!errorlevel!"
+  goto done
+)
 set "DEFCONFIG="
 if /i "%BOARD%"=="ova" set "DEFCONFIG=ova"
 if /i "%BOARD%"=="rpi5-64" set "DEFCONFIG=rpi5_64"

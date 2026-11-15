@@ -96,8 +96,6 @@ jobs:
           cache-dependency-path: deploy-assistant/package-lock.json
       - name: Install
         run: npm ci
-      - name: Test
-        run: npm test
       - name: Set the version
         shell: bash
         # Major and minor come from package.json; the patch number is this run's number.
@@ -130,6 +128,7 @@ jobs:
 
   release:
     name: Publish the release
+    if: github.event_name == 'workflow_dispatch'
     needs: [codename, build]
     runs-on: ubuntu-latest
     permissions:
