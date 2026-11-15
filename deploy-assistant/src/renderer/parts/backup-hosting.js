@@ -1,7 +1,7 @@
   // ---------- Host an uploaded backup ----------
   // Only native-issued opaque handles enter the renderer. Archive bytes and
   // local paths never pass through this view or the settings/history store.
-  var backupHost = { file: null, jobs: [], busy: false, requestId: '', error: '', bridge: null, drives: [], drive: '', submittedTarget: '', submittedOptions: null };
+  var backupHost = { file: null, jobs: [], busy: false, requestId: '', error: '', bridge: null, drives: [], drive: '', submittedTarget: '', submittedOptions: null, piAddresses: '', piAddressByJob: {} };
   Object.assign(W, {
     bhTitle: ['Host a backup', '託管備份'],
     bhPick: ['Choose ZIP or native backup archive', '選擇 ZIP 或原生備份封存檔'],
@@ -19,6 +19,10 @@
     bhEnable: ['Enable backup hosting', '啟用備份託管'],
     bhAddress: ['Private LAN address', '私人區域網絡地址'],
     bhFingerprint: ['Certificate fingerprint', '憑證指紋'],
+    bhPiAddresses: ['Local addresses for the newly written Raspberry Pi (optional)', '新寫入 Raspberry Pi 嘅區域網絡地址（可選）'],
+    bhPiAddressHelp: ['Enter up to 16 private IPv4 addresses, separated by commas or spaces. Only the supplied addresses are tried; a blank field permits a bounded local-name lookup. No network scan is performed. The device must present this job’s exact certificate.', '最多輸入 16 個私人 IPv4 地址，以逗號或空格分隔。只會嘗試指定地址；留空就只會進行有限嘅本機名稱查詢，唔會掃描網絡。裝置必須出示呢個工作指定嘅憑證。'],
+    bhPiRetry: ['Try these addresses for this device', '用呢啲地址尋找呢部裝置'],
+    bhPiInvalid: ['Enter at most 16 private IPv4 addresses. Ranges, public addresses, URLs, and host names are not accepted.', '請輸入最多 16 個私人 IPv4 地址，唔接受地址範圍、公網地址、網址或主機名稱。'],
     bhDrive: ['SD card or USB drive, erased only after native confirmation', 'SD 卡或 USB 儲存裝置，原生確認後先會清除'],
     bhDrives: ['Find removable drives', '尋找可移除儲存裝置'],
     bhNoDrive: ['Select a removable drive', '選擇可移除儲存裝置'],
@@ -38,6 +42,17 @@
     bhSignIn: ['Open sign-in to verify', '開啟登入頁以進行驗證'],
     bhSignInPending: ['The LAN address answered. Sign in to continue verification; this job is not complete.', '區域網絡地址已有回應。請登入以繼續驗證，呢個工作尚未完成。']
   });
+  function backupHostPiAddresses(value) {
+    if (typeof value !== 'string' || value.length > 512) throw new Error('bhPiInvalid');
+    var values = value.trim() ? value.trim().split(/[\s,;]+/) : [];
+    if (values.length > 16) throw new Error('bhPiInvalid');
+    values.forEach(function (address) {
+      if (!/^(?:0|[1-9]\d{0,2})(?:\.(?:0|[1-9]\d{0,2})){3}$/.test(address)) throw new Error('bhPiInvalid');
+      var octets = address.split('.').map(Number);
+      if (octets.some(function (n) { return n > 255; }) || !(octets[0] === 10 || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || (octets[0] === 192 && octets[1] === 168))) throw new Error('bhPiInvalid');
+    });
+    return Array.from(new Set(values));
+  }
   function backupHostNeedsKey(j) { return j.state === 'needs_attention' && j.error_code === 'incorrect_password'; }
   function backupHostNeedsSshApproval(j) { return j.target === 'ssh' && ['needs_attention', 'needs_resume'].indexOf(j.state) >= 0 && ['host_key_approval_required', 'host_key_changed'].indexOf(j.error_code) >= 0; }
   function backupHostCanApproveSsh(j) { return backupHostNeedsSshApproval(j) && typeof j.host_id === 'string' && !!j.host_id && typeof j.upload_handle === 'string' && !!j.upload_handle; }
@@ -55,11 +70,12 @@
     return L(({ queued: 'bhQueued', running: 'bhRunning', ready: 'bhReady', failed: 'bhFailed', cancelled: 'bhCancelled', cancelling: 'bhCancelling', needs_key: 'bhNeedsKey', setup_required: 'bhSetupRequired', pending_native_approval: 'bhNative', waiting_hardware: 'bhHardware', waiting_restart: 'bhRestart', waiting_for_restart: 'bhRestart', restoring: 'bhRestore', needs_resume: 'bhSetupRequired', needs_attention: 'bhSetupRequired', waiting_for_hardware: 'bhHardware', writing_card: 'bhHardware', waiting_for_boot: 'bhHardware', authentication_needed: 'bhAuth', restore_accepted: 'bhAccepted' })[j.state] || 'bhRunning');
   }
   function backupHostCards() {
-    return '<section class="section backup-host-jobs" aria-live="polite">' + backupHost.jobs.map(function (j) {
+    return '<section class="section backup-host-jobs" aria-live="polite">' + (backupHost.error ? '<p role="alert">' + L(backupHost.error) + '</p>' : '') + backupHost.jobs.map(function (j) {
       var url = backupHostUrl(j), signInUrl = backupHostSignInUrl(j);
       return '<article class="pcard"><h3 class="tm">' + L(j.target) + ': ' + backupHostState(j) + '</h3><p class="bm">' +
         L(({ restore: 'bhRestore', verify: 'bhVerify', restore_accepted: 'bhAccepted', restore_submitted: 'bhRestore', restore_rejected: 'bhNeedsKey', restart: 'bhRestart', waiting_for_boot: 'bhHardware' })[j.phase] || (j.state === 'ready' ? 'bhReady' : 'bhPending')) + '</p>' +
         (j.error_code ? '<p role="alert"><code>' + esc(j.error_code) + '</code></p>' : '') +
+        (j.target === 'pi' && j.state === 'waiting_for_boot' && j.upload_handle ? '<label class="col"><span class="ll">' + L('bhPiAddresses') + '</span><textarea class="input" rows="3" maxlength="512" autocomplete="off" data-bh-pi-address="' + esc(j.id) + '" id="bh-pi-address-' + esc(j.id) + '">' + esc(backupHost.piAddressByJob[j.id] || '') + '</textarea><span class="bs mu">' + L('bhPiAddressHelp') + '</span></label><button class="btn tonal" data-bh-pi-retry="' + esc(j.id) + '"' + (backupHost.busy ? ' disabled' : '') + '>' + L('bhPiRetry') + '</button>' : '') +
         (backupHostNeedsSshApproval(j) ? '<p class="bm">' + L(backupHostCanApproveSsh(j) ? 'bhHostKeyPending' : 'bhHostKeyUnavailable') + '</p>' + (backupHostCanApproveSsh(j) ? '<button class="btn tonal" data-bh-ssh-approve="' + esc(j.id) + '"' + (backupHost.busy ? ' disabled' : '') + '>' + L('bhHostKey') + '</button>' : '') : '') +
         (signInUrl ? '<p class="bm">' + L('bhSignInPending') + '</p><a class="btn tonal" href="' + esc(signInUrl) + '" data-ext="' + esc(signInUrl) + '">' + L('bhSignIn') + '</a>' : '') +
         (url ? '<a class="btn tonal" href="' + esc(url) + '" data-ext="' + esc(url) + '">' + esc(url) + '</a>' : '') +
@@ -72,7 +88,7 @@
       '<p class="bm">' + L('bhOriginal') + '</p><div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn tonal" data-act="bh-pick"' + (backupHost.busy || backupHost.jobs.some(backupHostActive) ? ' disabled' : '') + '>' + L('bhPick') + '</button>' +
       '<button class="btn text" data-act="bh-refresh">' + L('bhRefresh') + '</button><button class="btn text" data-act="bh-setup">' + L('bhSetup') + '</button></div>' +
       (file ? '<p class="bm">' + L('bhSelected') + ': <b>' + esc(file.name) + '</b> · ' + fmtSize(file.size) + '</p><label class="col"><span class="ll">' + L('bhKey') + '</span><input class="input" type="password" id="bh-password" autocomplete="off"></label><button class="btn text" data-act="bh-clear">' + L('bhFresh') + '</button>' : '') +
-      (backupHost.error ? '<p role="alert">' + L(backupHost.error) + '</p>' : '') + '</section>';
+      '</section>';
   }
   var renderDeployWithoutBackup = R.deploy;
   R.deploy = function () {
@@ -83,7 +99,7 @@
       // goes through the backup coordinator rather than the empty-instance path.
       body = body.replace(/(<button[^>]*data-act="bh-start"[^>]*>)[\s\S]*?(<\/button>)/g, '$1' + L('bhStart') + '$2');
       body = body.replace(/(<button[^>]*data-act="bh-start")/g, '$1' + (backupHost.busy || backupHost.jobs.some(backupHostBlocksStart) ? ' disabled' : ''));
-      if (wizTarget() === 'pi') body = body.replace('<div class="wfoot">', '<div class="plan"><label><span class="ll">' + L('bhDrive') + '</span><select class="select" id="bh-drive"><option value="">' + L('bhNoDrive') + '</option>' + backupHost.drives.map(function (d) { return '<option value="' + esc(d.drive_handle) + '"' + (d.drive_handle === backupHost.drive ? ' selected' : '') + '>' + esc(d.name) + ' · ' + fmtSize(d.size) + '</option>'; }).join('') + '</select></label><button class="btn tonal" data-act="bh-drives">' + L('bhDrives') + '</button></div><div class="wfoot">');
+      if (wizTarget() === 'pi') body = body.replace('<div class="wfoot">', '<div class="plan"><label><span class="ll">' + L('bhDrive') + '</span><select class="select" id="bh-drive"><option value="">' + L('bhNoDrive') + '</option>' + backupHost.drives.map(function (d) { return '<option value="' + esc(d.drive_handle) + '"' + (d.drive_handle === backupHost.drive ? ' selected' : '') + '>' + esc(d.name) + ' · ' + fmtSize(d.size) + '</option>'; }).join('') + '</select></label><button class="btn tonal" data-act="bh-drives">' + L('bhDrives') + '</button><label><span class="ll">' + L('bhPiAddresses') + '</span><textarea class="input" id="bh-pi-addresses" rows="3" maxlength="512" autocomplete="off" aria-describedby="bh-pi-address-help">' + esc(backupHost.piAddresses) + '</textarea><span class="bs mu" id="bh-pi-address-help">' + L('bhPiAddressHelp') + '</span></label></div><div class="wfoot">');
     }
     return backupHostPanel() + backupHostCards() + body;
   };
@@ -117,6 +133,7 @@
     ['name', 'hostId'].forEach(function (key) { if (v[key]) options[key] = v[key]; });
     ['memoryMb', 'cpus', 'diskGb'].forEach(function (key) { if (v[key] !== '' && v[key] != null) options[key] = Number(v[key]); });
     if (target === 'pi' && !retry) {
+      try { options.pi_addresses = backupHostPiAddresses(backupHost.piAddresses); } catch (_) { backupHost.error = 'bhPiInvalid'; soon(); return; }
       options.model = ($('#pimodel') || {}).value || 'rpi5';
       options.drive_handle = ($('#bh-drive') || {}).value || '';
       if (!options.drive_handle) { backupHost.error = 'bhNoDrive'; soon(); return; }
@@ -130,6 +147,20 @@
       await backupHostRefresh();
     } catch (_) { backupHost.error = 'bhError'; }
     finally { password = ''; backupHost.busy = false; soon(); }
+  }
+  async function backupHostRetryPi(jobId) {
+    if (backupHost.busy || DEMO) return;
+    var job = backupHost.jobs.find(function (item) { return item.id === jobId; });
+    if (!job || job.target !== 'pi' || job.state !== 'waiting_for_boot' || !job.upload_handle) return;
+    var addresses;
+    try { addresses = backupHostPiAddresses(backupHost.piAddressByJob[jobId] || ''); }
+    catch (_) { backupHost.error = 'bhPiInvalid'; soon(); return; }
+    backupHost.busy = true; backupHost.error = ''; soon();
+    try {
+      await API.backupHostStart({ request_id: job.request_id, upload_handle: job.upload_handle, target: 'pi', options: { pi_addresses: addresses } });
+      await backupHostRefresh();
+    } catch (_) { backupHost.error = 'bhError'; }
+    finally { backupHost.busy = false; soon(); }
   }
   async function backupHostApproveSsh(jobId) {
     if (backupHost.busy || DEMO || typeof API.sshHostKeyApprove !== 'function') return;
@@ -164,7 +195,7 @@
     } catch (_) { toast(w('bhError')); }
   }
   document.addEventListener('click', async function (event) {
-    var button = event.target.closest('[data-act^="bh-"], [data-bh-cancel], [data-bh-ssh-approve]');
+    var button = event.target.closest('[data-act^="bh-"], [data-bh-cancel], [data-bh-ssh-approve], [data-bh-pi-retry]');
     if (!button || button.disabled) return;
     if (DEMO || !API.backupPick) { toast(w('bhUnavailable')); return; }
     try {
@@ -176,12 +207,14 @@
         finally { backupHost.busy = false; soon(); }
       } else if (action === 'bh-start') await backupHostStart();
       else if (action === 'bh-refresh') await backupHostRefresh();
-      else if (action === 'bh-clear') { if (backupHost.jobs.some(backupHostActive)) return; backupHost.file = null; backupHost.requestId = ''; soon(); }
+      else if (action === 'bh-clear') { if (backupHost.jobs.some(backupHostActive)) return; backupHost.file = null; backupHost.requestId = ''; backupHost.piAddresses = ''; soon(); }
       else if (action === 'bh-setup') await backupHostSetup();
       else if (action === 'bh-drives') { backupHost.drives = await API.backupPiDrives(); soon(); }
+      else if (button.dataset.bhPiRetry) await backupHostRetryPi(button.dataset.bhPiRetry);
       else if (button.dataset.bhSshApprove) await backupHostApproveSsh(button.dataset.bhSshApprove);
       else if (button.dataset.bhCancel) { await API.backupHostCancel(button.dataset.bhCancel); await backupHostRefresh(); }
     } catch (_) { backupHost.error = 'bhError'; soon(); }
   });
+  document.addEventListener('input', function (event) { if (event.target.id === 'bh-pi-addresses') backupHost.piAddresses = event.target.value; if (event.target.dataset.bhPiAddress) backupHost.piAddressByJob[event.target.dataset.bhPiAddress] = event.target.value; });
   document.addEventListener('change', function (event) { if (event.target.id === 'bh-drive') backupHost.drive = event.target.value; });
-  window.addEventListener('beforeunload', function () { clearTimeout(backupHostTimer); var input = $('#bh-password'); if (input) input.value = ''; });
+  window.addEventListener('beforeunload', function () { clearTimeout(backupHostTimer); backupHost.piAddresses = ''; backupHost.piAddressByJob = {}; var input = $('#bh-password'); if (input) input.value = ''; });

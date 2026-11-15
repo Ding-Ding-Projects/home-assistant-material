@@ -69,3 +69,33 @@ test('cancelling remains active and explicitly describes settling work', () => {
   assert.match(context.backupHostState(pending({ state: 'cancelling' })), /waiting for the current operation to settle/);
   assert.equal(context.backupHostActive(pending({ state: 'cancelled' })), false);
 });
+
+test('Pi addresses accept only a bounded explicit private IPv4 list', () => {
+  const { context } = view();
+  const parse = (value) => Array.from(context.backupHostPiAddresses(value));
+  assert.deepEqual(parse(''), []);
+  assert.deepEqual(parse('10.0.0.2, 172.16.0.3\n192.168.1.4 10.0.0.2'),
+    ['10.0.0.2', '172.16.0.3', '192.168.1.4']);
+  assert.equal(parse(Array.from({ length: 16 }, (_, i) => `192.168.1.${i + 1}`).join(',')).length, 16);
+  for (const value of ['8.8.8.8', '127.0.0.1', '169.254.1.2', '172.15.0.2',
+    '172.32.0.2', '192.168.1.256', '192.168.01.2', 'homeassistant.local',
+    'http://192.168.1.2', '192.168.1.0/24', '192.168.1.*', '10.0.0.1-10',
+    Array.from({ length: 17 }, (_, i) => `10.0.0.${i + 1}`).join(' ')]) {
+    assert.throws(() => parse(value), /bhPiInvalid/);
+  }
+});
+
+test('Pi address correction resumes only the waiting job with its opaque handle', async () => {
+  const { context, calls } = view();
+  context.backupHost.jobs = [pending({ target: 'pi', state: 'waiting_for_boot', error_code: null })];
+  context.backupHost.piAddressByJob['job-1'] = '192.168.1.2';
+  await context.backupHostRetryPi('job-1');
+  assert.deepEqual(calls, [['start', { request_id: 'request-1', upload_handle: 'opaque-upload-1',
+    target: 'pi', options: { pi_addresses: ['192.168.1.2'] } }]]);
+  for (const overrides of [{ target: 'ssh' }, { state: 'ready' }, { upload_handle: '' }]) {
+    const denied = view();
+    denied.context.backupHost.jobs = [pending({ target: 'pi', state: 'waiting_for_boot', ...overrides })];
+    await denied.context.backupHostRetryPi('job-1');
+    assert.deepEqual(denied.calls, []);
+  }
+});
