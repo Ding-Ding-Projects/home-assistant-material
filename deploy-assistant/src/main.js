@@ -62,11 +62,79 @@ app.whenReady().then(() => {
   // Only the camera (for scanning a QR code in Tools) and writing to the clipboard are allowed.
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb, details) => cb((perm === 'media' && !((details && details.mediaTypes) || []).includes('audio')) || perm === 'clipboard-sanitized-write'));
   mgr = new Manager(path.join(app.getPath('userData'), 'data'), { encrypt: enc, decrypt: dec });
+  const { BackupUploads } = require('./backend/backup-archive');
+  const { BackupJobs } = require('./backend/backup-jobs');
+  const { HostBridge } = require('./backend/host-bridge');
+  const backupUploads = new BackupUploads(path.join(mgr.dir, 'backup-uploads'));
+  const backupJobs = new BackupJobs(mgr, backupUploads);
+  const backupDrives = new Map();
+  const nativePairing = async (pending) => {
+    if (!win || win.isDestroyed()) return false;
+    const result = await dialog.showMessageBox(win, { type: 'question', title: 'Approve Home Assistant connection', message: 'Allow this Home Assistant instance to create independent hosts from backups?', detail: 'Instance: ' + pending.core_instance_id + '\nClient: ' + pending.client_id + '\nCertificate SHA-256: ' + pending.certificate_fingerprint + '\nExpires: ' + pending.expires_at, buttons: ['Cancel', 'Approve this connection'], defaultId: 0, cancelId: 0, noLink: true });
+    return result.response === 1;
+  };
+  const hostBridge = new HostBridge(mgr, backupUploads, backupJobs, safeStorage, { nativePairing });
+  backupJobs.on('changed', (job) => send('backup-host-job', job));
+  app.on('before-quit', () => { hostBridge.close().catch(() => {}); });
   ['changed', 'log', 'step', 'busy', 'done', 'downloads'].forEach((ev) => mgr.on(ev, (p) => send(ev, p)));
   const dl = new Downloads(mgr);
   const ext = new Extensions(mgr, path.join(__dirname, 'extensions'));
   const upd = updates.start({ app, autoUpdater, send, dir: mgr.dir });
   const h = (name, fn) => ipcMain.handle(name, async (_e, ...a) => { try { return { ok: true, value: await fn(...a) }; } catch (e) { return { ok: false, error: e.message }; } });
+  const backupIpc = (name, fn) => ipcMain.handle(name, async (event, ...args) => {
+    if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame) return { ok: false, error: 'unauthorized' };
+    try { return { ok: true, value: await fn(...args) }; } catch (e) { return { ok: false, error: e.code || 'hosting_failed' }; }
+  });
+  backupIpc('backupPick', async () => {
+    const result = await dialog.showOpenDialog(win, { title: 'Choose a Home Assistant backup', properties: ['openFile'], filters: [{ name: 'Home Assistant backup', extensions: ['tar', 'gz', 'zip'] }] });
+    return result.canceled ? null : backupUploads.pick(result.filePaths[0]);
+  });
+  backupIpc('backupPiDrives', async () => {
+    backupDrives.clear();
+    return (await pi.listDrives()).map((drive) => { const drive_handle = require('node:crypto').randomUUID(); backupDrives.set(drive_handle, { drive, expires: Date.now() + 600000 }); return { drive_handle, name: drive.name, size: drive.size, bus: drive.bus }; });
+  });
+  backupIpc('backupHostStart', async (input) => {
+    const upload = backupUploads.resolve(input.upload_handle);
+    if (upload.owner && upload.owner !== 'native') throw new Error('unauthorized');
+    upload.owner = 'native'; backupUploads.persist(upload);
+    const existing = backupJobs.jobs.find((job) => job.request_id === input.request_id);
+    if (existing && existing.owner !== 'native') throw new Error('unauthorized');
+    if (input.target === 'pi' && input.options && input.options.drive_handle && !existing?.instance_id) {
+      const selected = backupDrives.get(input.options.drive_handle);
+      if (!selected || selected.expires <= Date.now()) throw new Error('drive_selection_expired');
+      const current = (await pi.listDrives()).find((drive) => drive.id === selected.drive.id && drive.size === selected.drive.size && drive.name === selected.drive.name);
+      if (!current) throw new Error('drive_changed');
+      const choice = await dialog.showMessageBox(win, { type: 'warning', title: 'Erase removable drive', message: 'Erase all data on ' + current.name + '?', detail: 'Size: ' + current.size + ' bytes. This writes the operating system image. Existing data cannot be recovered. The computer itself will not restart.', buttons: ['Cancel', 'Erase selected removable drive'], defaultId: 0, cancelId: 0, noLink: true });
+      if (choice.response !== 1) throw new Error('drive_write_cancelled');
+      backupDrives.delete(input.options.drive_handle); backupJobs.piApprovals.set(input.request_id, current);
+    }
+    return backupJobs.start(input, { owner: 'native' });
+  });
+  backupIpc('backupHostJobs', () => ({ jobs: backupJobs.jobs.filter((job) => job.owner === 'native').map((job) => backupJobs.public(job)) }));
+  backupIpc('backupHostCancel', (id) => { if (!backupJobs.jobs.some((job) => job.id === id && job.owner === 'native')) throw new Error('unauthorized'); return backupJobs.cancel(id); });
+  backupIpc('hostBridgeStatus', async () => {
+    const target_status = {};
+    await Promise.all(['docker', 'virtualbox', 'vmware'].map(async (target) => { const check = await mgr.check(target); target_status[target] = check.ok ? { available: true } : { available: false, reason: 'setup_required' }; }));
+    target_status.ssh = { available: false, reason: 'saved_host_required' };
+    target_status.pi = { available: false, reason: 'hardware_required' };
+    return { ...hostBridge.status(), target_status, bind_addresses: Object.values(require('node:os').networkInterfaces()).flat().filter((address) => address && address.family === 'IPv4' && !address.internal && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(address.address)).map((address) => address.address) };
+  });
+  backupIpc('hostBridgeEnable', (options) => hostBridge.enable(options));
+  backupIpc('hostBridgePairApprove', async (id) => {
+    const pending = hostBridge.authority.approval(id);
+    return hostBridge.authority.approve(id, await nativePairing(pending));
+  });
+  backupIpc('sshHostKeyApprove', async (hostId) => {
+    const saved = mgr.db.hosts.find((host) => host.id === hostId);
+    if (!saved) throw Object.assign(new Error('invalid_host'), { code: 'invalid_host' });
+    const descriptor = { address: saved.address, port: saved.port || 22, user: saved.user };
+    const key = await require('./backend/ssh').probeHostKey(descriptor);
+    const result = await dialog.showMessageBox(win, { type: 'warning', title: 'Approve SSH host key', message: 'Trust this exact SSH host key before sending authentication?', detail: 'Host: ' + key.address + ':' + key.port + '\nSHA-256 fingerprint (hex): ' + key.fingerprint + '\nCompare this fingerprint with the host through an independent trusted channel. A changed key can indicate a different computer.', buttons: ['Cancel', 'Trust this exact key'], defaultId: 0, cancelId: 0, noLink: true });
+    const current = mgr.db.hosts.find((host) => host.id === hostId);
+    if (!current || current.address !== descriptor.address || (current.port || 22) !== descriptor.port) throw Object.assign(new Error('host_changed'), { code: 'host_changed' });
+    if (result.response === 1) mgr.approveHostKey(hostId, key.fingerprint);
+    return { host_id: hostId, approved: result.response === 1, host_key_fingerprint: key.fingerprint };
+  });
   h('snapshot', () => mgr.snapshot());
   h('labels', () => LABEL);
   h('defaults', (t, hId) => mgr.defaults(t, hId));

@@ -23,7 +23,7 @@ const compose = (inst, args, opts = {}) => run(DOCKER, ['compose', '-f', path.jo
 
 function write(inst) {
   fs.mkdirSync(path.join(inst.dir, 'config'), { recursive: true });
-  fs.writeFileSync(path.join(inst.dir, 'compose.yaml'), composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit }));
+  fs.writeFileSync(path.join(inst.dir, 'compose.yaml'), inst.backupHostingFull ? require('./backup-compose').backupCompose(inst) : composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit }));
 }
 
 function urls(inst) {

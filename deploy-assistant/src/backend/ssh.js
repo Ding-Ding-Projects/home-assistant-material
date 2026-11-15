@@ -6,18 +6,46 @@ const path = require('node:path');
 const { Client } = require('ssh2');
 const { composeYaml } = require('./compose');
 const { waitForHttp, stamp, unitName } = require('./util');
+const crypto = require('node:crypto');
+const net = require('node:net');
+const sshError = (code) => Object.assign(new Error(code), { code });
+const hostIdentity = (host) => host.address.toLowerCase() + ':' + (host.port || 22);
 
-function connect(host) {
+function probeHostKey(host, { ClientType = Client } = {}) {
   return new Promise((resolve, reject) => {
-    const c = new Client();
-    const cfg = { host: host.address, port: host.port || 22, username: host.user, readyTimeout: 20000, keepaliveInterval: 15000 };
+    const client = new ClientType(); let fingerprint; let finished = false;
+    const finish = (error) => { if (finished) return; finished = true; client.end(); if (fingerprint) resolve({ fingerprint, address: host.address, port: host.port || 22 }); else reject(error || sshError('ssh_host_unavailable')); };
+    client.on('error', () => finish(sshError('ssh_host_unavailable'))).on('close', () => finish());
+    client.connect({ host: host.address, port: host.port || 22, username: host.user, readyTimeout: 10000, hostHash: 'sha256', hostVerifier: (key) => { fingerprint = key; queueMicrotask(() => finish()); return false; } });
+  });
+}
+
+function connect(host, { ClientType = Client } = {}) {
+  if (!/^[a-f0-9]{64}$/.test(host.hostKeyPin || '') || host.hostKeyPinHost !== hostIdentity(host)) return Promise.reject(sshError('host_key_approval_required'));
+  return new Promise((resolve, reject) => {
+    const c = new ClientType();
+    let keyChanged = false;
+    const cfg = { host: host.address, port: host.port || 22, username: host.user, readyTimeout: 20000, keepaliveInterval: 15000, hostHash: 'sha256', hostVerifier: (key) => { const valid = /^[a-f0-9]{64}$/.test(key) && crypto.timingSafeEqual(Buffer.from(key, 'hex'), Buffer.from(host.hostKeyPin, 'hex')); keyChanged = !valid; return valid; } };
     if (host.keyFile) cfg.privateKey = fs.readFileSync(host.keyFile);
     if (host.passphrase) cfg.passphrase = host.passphrase;
     if (host.password) cfg.password = host.password;
     if (!host.keyFile && !host.password && process.env.SSH_AUTH_SOCK) cfg.agent = process.env.SSH_AUTH_SOCK;
     if (!host.keyFile && !host.password && process.platform === 'win32') cfg.agent = '\\\\.\\pipe\\openssh-ssh-agent';
-    c.on('ready', () => resolve(c)).on('error', (e) => reject(new Error('Could not connect to ' + host.address + ': ' + e.message))).connect(cfg);
+    c.on('ready', () => resolve(c)).on('error', () => reject(sshError(keyChanged ? 'host_key_changed' : 'ssh_connection_failed'))).connect(cfg);
   });
+}
+
+async function restoreTunnel(inst) {
+  if (!inst.hostingJobId || !/^[a-z0-9-]{1,63}$/.test(inst.slug) || !Number.isInteger(inst.port) || inst.port < 1 || inst.port > 65535) throw sshError('resource_ownership_mismatch');
+  const connection = await connect(inst.host);
+  const sockets = new Set();
+  const server = net.createServer((socket) => {
+    sockets.add(socket); socket.on('close', () => sockets.delete(socket));
+    connection.forwardOut('127.0.0.1', 0, '127.0.0.1', inst.port, (error, channel) => { if (error) { socket.destroy(); return; } socket.pipe(channel).pipe(socket); socket.on('error', () => channel.destroy()); channel.on('error', () => socket.destroy()); });
+  });
+  try { await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); }); }
+  catch (error) { connection.end(); throw error; }
+  return { base: 'http://127.0.0.1:' + server.address().port + '/', close: async () => { for (const socket of sockets) socket.destroy(); await new Promise((resolve) => server.close(resolve)); connection.end(); } };
 }
 
 function exec(c, cmd, { onLine, input } = {}) {
@@ -56,7 +84,7 @@ function urls(inst) { return { url: 'http://' + inst.host.address + ':' + inst.p
 async function deploy(inst, log, step) {
   return withHost(inst, async (c) => {
     step('config', 'Writing the configuration on ' + inst.host.address);
-    const yaml = composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit });
+    const yaml = inst.backupHostingFull ? require('./backup-compose').backupCompose(inst) : composeYaml({ slug: inst.slug, prefix: inst.prefix || 'ham', port: inst.port, tag: inst.tag, timezone: inst.timezone, memoryLimit: inst.memoryLimit });
     const mk = await exec(c, 'mkdir -p ' + remoteDir(inst) + '/config && cat > ' + remoteDir(inst) + '/compose.yaml', { input: require('node:stream').Readable.from([yaml]) });
     if (mk.code !== 0) throw new Error('Could not write the configuration on the host. ' + mk.err.trim());
     const used = await exec(c, '(ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -E ":' + inst.port + '\\b" | head -1');
@@ -114,4 +142,4 @@ async function remove(inst, { keepData = false } = {}) {
   await withHost(inst, (c) => exec(c, 'cd ' + remoteDir(inst) + ' && docker compose down' + (keepData ? '' : ' && cd .. && rm -rf ' + q(inst.slug))));
 }
 
-module.exports = { exec, withHost, connect, id: 'ssh', check, deploy, status, stats, start, stop, restart, update, logs, backup, restore, deleteBackup, remove, urls, connect, exec };
+module.exports = { exec, withHost, connect, probeHostKey, restoreTunnel, id: 'ssh', check, deploy, status, stats, start, stop, restart, update, logs, backup, restore, deleteBackup, remove, urls };
