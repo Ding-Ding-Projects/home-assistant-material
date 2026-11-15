@@ -7490,7 +7490,8 @@
               "waiting_for_hardware": "Waiting for hardware",
               "writing_card": "Writing the selected card",
               "waiting_for_boot": "Waiting for verified device startup",
-              "authentication_needed": "Authentication required"
+              "authentication_needed": "Authentication required",
+              "cancelling": "Cancelling: waiting for the current operation to settle"
             },
             "phases": {
               "queued": "Queued",

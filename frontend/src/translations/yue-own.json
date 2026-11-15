@@ -830,7 +830,8 @@
               "waiting_for_hardware": "等候硬件",
               "writing_card": "正在寫入所選儲存卡",
               "waiting_for_boot": "等候驗證裝置啟動",
-              "authentication_needed": "需要驗證身分"
+              "authentication_needed": "需要驗證身分",
+              "cancelling": "取消中：等候目前操作安全完成"
             },
             "phases": {
               "queued": "已排程",
