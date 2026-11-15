@@ -22,7 +22,7 @@ class BackupJobs extends EventEmitter {
     uploads.references = () => new Set(this.jobs.filter((job) => !TERMINAL.has(job.state)).map((job) => job.upload_handle));
   }
   save() { const temp = this.file + '.tmp'; fs.writeFileSync(temp, JSON.stringify({ version: 1, jobs: this.jobs }), { mode: 0o600 }); fs.renameSync(temp, this.file); }
-  public(job) { const { id, request_id, upload_handle, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at } = job; return { id, request_id, upload_handle, host_id: job.options?.hostId, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at }; }
+  public(job) { const { id, request_id, upload_handle, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at } = job; return { id, request_id, upload_handle, host_id: job.options?.hostId, can_resume: job.owner === 'native' && ['needs_resume', 'needs_attention'].includes(state), state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at }; }
   list() { return { jobs: this.jobs.map((j) => this.public(j)) }; }
   update(job, patch) { Object.assign(job, patch, { updated_at: new Date().toISOString() }); this.save(); this.emit('changed', this.public(job)); }
   start(input, { owner = 'native' } = {}) {
