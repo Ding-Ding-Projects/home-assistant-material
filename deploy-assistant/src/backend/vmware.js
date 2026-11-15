@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { run, findProgram, waitForHttp, stamp, unitName } = require('./util');
 const { fetchImage } = require('./images');
+const { verifyCandidate } = require('./backup-bootstrap');
 
 const DIRS = ['C:\\Program Files (x86)\\VMware\\VMware Workstation', 'C:\\Program Files\\VMware\\VMware Workstation', 'C:\\Program Files (x86)\\VMware\\VMware Workstation\\OVFTool', 'C:\\Program Files\\VMware\\VMware Workstation\\OVFTool', '/usr/bin', '/usr/lib/vmware-ovftool', '/Applications/VMware Fusion.app/Contents/Library', '/Applications/VMware Fusion.app/Contents/Library/VMware OVF Tool'];
 const vmrun = () => findProgram(['vmrun'], DIRS);
@@ -26,11 +27,18 @@ async function guestIp(inst, waitSec = 600) {
   const ip = r.out.trim();
   return /^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip : null;
 }
-function urls(inst) { const url = inst.ip ? 'http://' + inst.ip + '/' : null; return { url, lanUrl: inst.hostingJobId ? url : null }; }
+function urls(inst) { const url = inst.hostingJobId ? (inst.url || null) : (inst.ip ? 'http://' + inst.ip + '/' : null); return { url, lanUrl: inst.hostingJobId ? url : null }; }
 
 async function deploy(inst, log, step, ctx) {
   step('image', 'Downloading the operating system image');
   const img = await fetchImage(/^haos_ova-.*\.ova$/, ctx.cacheDir, log, (f) => step('image', 'Downloading the operating system image', f));
+  let bootstrap;
+  if (inst.hostingJobId) {
+    if (typeof ctx.prepareBootstrap !== 'function') throw new Error('Secure appliance preparation is unavailable. No backup was transmitted.');
+    step('bootstrap', 'Preparing a private, certificate-bound appliance image');
+    bootstrap = await ctx.prepareBootstrap({ jobId: inst.hostingJobId, image: img, format: 'vmdk' });
+    inst.restoreTransport = bootstrap.transport;
+  }
   step('config', 'Creating the virtual machine');
   fs.mkdirSync(inst.dir, { recursive: true });
   await must(run(ovftool(), ['--acceptAllEulas', '--skipManifestCheck', '--name=' + unitName(inst), '--allowExtraConfig', img.file, inst.dir], { onLine: log, timeout: 30 * 60000 }), 'Importing the image');
@@ -40,6 +48,13 @@ async function deploy(inst, log, step, ctx) {
   set('numvcpus', String(inst.cpus || 2));
   set('ethernet0.connectionType', inst.hostingJobId ? 'bridged' : 'nat');
   set('firmware', 'efi');
+  if (bootstrap) {
+    const disks = [...text.matchAll(/^((?:scsi|sata|ide|nvme)\d+:\d+\.fileName)\s*=\s*"[^"\r\n]+\.vmdk"\s*$/gm)];
+    if (disks.length !== 1) throw new Error('The appliance must contain exactly one boot disk.');
+    const disk = path.resolve(bootstrap.image.file).replace(/\\/g, '/');
+    if (/["\r\n]/.test(disk)) throw new Error('Invalid prepared appliance path.');
+    set(disks[0][1], disk);
+  }
   fs.writeFileSync(vmx(inst), text);
   step('start', 'Starting the virtual machine');
   await must(R(['start', vmx(inst), 'nogui']), 'Starting the virtual machine');
@@ -47,6 +62,16 @@ async function deploy(inst, log, step, ctx) {
   inst.ip = await guestIp(inst, 900);
   if (!inst.ip) throw new Error('The virtual machine started but did not report an address within 15 minutes. Open it in VMware to see its console.');
   log('The virtual machine has the address ' + inst.ip);
+  if (bootstrap) {
+    step('wait', 'Waiting for this appliance to present its own TLS certificate');
+    const end = Date.now() + 25 * 60000;
+    while (Date.now() < end) {
+      const verified = await verifyCandidate(inst.ip, inst.restoreTransport);
+      if (verified) { inst.url = verified; inst.lanUrl = verified; return urls(inst); }
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+    throw new Error('The appliance did not present its expected TLS identity. No backup was transmitted.');
+  }
   step('wait', 'Waiting for Home Assistant to answer (the first start takes several minutes)');
   const ok = await waitForHttp(urls(inst).url, { timeoutMs: 25 * 60000, everyMs: 5000, onTick: (s) => log('Not answering yet; waiting up to ' + s + ' more seconds.') });
   if (!ok) throw new Error('Home Assistant did not answer at ' + urls(inst).url + ' within 25 minutes.');

@@ -14,6 +14,7 @@ function run(cmd, args, opts = {}) {
   return new Promise((resolve) => {
     let out = '';
     let err = '';
+    let inputError = false;
     let child;
     try {
       child = spawn(cmd, args, { cwd: opts.cwd, env: { ...process.env, ...(opts.env || {}) }, windowsHide: true });
@@ -24,9 +25,10 @@ function run(cmd, args, opts = {}) {
     const timer = opts.timeout ? setTimeout(() => { child.kill(); err += '\nStopped after ' + Math.round(opts.timeout / 1000) + ' seconds.'; }, opts.timeout) : null;
     child.stdout.on('data', (d) => { out += d; if (opts.onLine) String(d).split(/\r?\n/).filter(Boolean).forEach(opts.onLine); });
     child.stderr.on('data', (d) => { err += d; if (opts.onLine) String(d).split(/\r?\n/).filter(Boolean).forEach(opts.onLine); });
-    if (opts.input) { child.stdin.end(opts.input); }
+    child.stdin.on('error', () => { inputError = true; err += '\nThe child process did not accept its input.'; });
+    if (opts.input !== undefined) { child.stdin.end(opts.input); }
     child.on('error', (e) => { if (timer) clearTimeout(timer); resolve({ code: -1, out, err: err + String(e.message || e) }); });
-    child.on('close', (code) => { if (timer) clearTimeout(timer); resolve({ code, out, err }); });
+    child.on('close', (code) => { if (timer) clearTimeout(timer); resolve({ code: inputError && code === 0 ? 1 : code, out, err }); });
   });
 }
 

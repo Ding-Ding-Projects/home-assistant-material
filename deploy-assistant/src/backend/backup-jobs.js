@@ -6,6 +6,7 @@ const { EventEmitter } = require('node:events');
 const { fail } = require('./backup-archive');
 const { restoreHomeAssistantBackup, request, lanOrigin, coreManifest } = require('./backup-restore');
 const { lanAddress } = require('./util');
+const { discoverPi, validateAddresses } = require('./backup-appliance-discovery');
 
 const TERMINAL = new Set(['ready', 'cancelled']);
 const JOB_LIMITS = { active: 2, activePerOwner: 1, outstanding: 16, outstandingPerOwner: 4, history: 256 };
@@ -21,7 +22,7 @@ class BackupJobs extends EventEmitter {
     uploads.references = () => new Set(this.jobs.filter((job) => !TERMINAL.has(job.state)).map((job) => job.upload_handle));
   }
   save() { const temp = this.file + '.tmp'; fs.writeFileSync(temp, JSON.stringify({ version: 1, jobs: this.jobs }), { mode: 0o600 }); fs.renameSync(temp, this.file); }
-  public(job) { const { id, request_id, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at } = job; return { id, request_id, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at }; }
+  public(job) { const { id, request_id, upload_handle, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at } = job; return { id, request_id, upload_handle, host_id: job.options?.hostId, state, phase, target, instance_id, lan_url, lan_url_verified, lan_url_verified_at, error_code, updated_at }; }
   list() { return { jobs: this.jobs.map((j) => this.public(j)) }; }
   update(job, patch) { Object.assign(job, patch, { updated_at: new Date().toISOString() }); this.save(); this.emit('changed', this.public(job)); }
   start(input, { owner = 'native' } = {}) {
@@ -31,18 +32,23 @@ class BackupJobs extends EventEmitter {
     if (previous) {
       if (previous.owner !== owner) throw fail('unauthorized');
       if (previous.target !== input.target || previous.upload_handle !== input.upload_handle || ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model'].some((key) => input.options && key in input.options && input.options[key] !== previous.options[key])) throw fail('idempotency_conflict');
+      if (input.options?.pi_addresses !== undefined) {
+        if (previous.target !== 'pi' || !['waiting_for_boot', 'pending'].includes(previous.phase)) throw fail('idempotency_conflict');
+        previous.options.pi_addresses = validateAddresses(input.options.pi_addresses); this.save();
+      }
       if (!TERMINAL.has(previous.state) && !this.running.has(previous.id)) this.enqueue(previous, input.password); return this.public(previous);
     }
     const outstanding = this.jobs.filter((job) => !TERMINAL.has(job.state));
     if (this.jobs.length >= JOB_LIMITS.history || outstanding.length >= JOB_LIMITS.outstanding || outstanding.filter((job) => job.owner === owner).length >= JOB_LIMITS.outstandingPerOwner) throw fail('job_capacity');
     if (outstanding.some((job) => job.owner === owner && job.upload_handle === input.upload_handle)) throw fail('upload_job_exists');
     this.uploads.resolve(input.upload_handle);
-    const allowed = ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model'];
+    const allowed = ['name', 'hostId', 'memoryMb', 'cpus', 'diskGb', 'model', 'pi_addresses'];
     const options = Object.fromEntries(allowed.filter((k) => input.options && k in input.options).map((k) => [k, input.options[k]]));
     if ('name' in options && (typeof options.name !== 'string' || options.name.length > 60 || /[\x00-\x1f]/.test(options.name))) throw fail('invalid_options');
     if ('hostId' in options && (typeof options.hostId !== 'string' || !this.manager.db.hosts.some((host) => host.id === options.hostId))) throw fail('invalid_host');
     for (const [key, minimum, maximum] of [['memoryMb', 2048, 65536], ['cpus', 1, 32], ['diskGb', 0, 2048]]) if (key in options && (!Number.isInteger(options[key]) || options[key] < minimum || options[key] > maximum)) throw fail('invalid_options');
     if ('model' in options && !['rpi3', 'rpi4', 'rpi5'].includes(options.model)) throw fail('invalid_pi_model');
+    if ('pi_addresses' in options) options.pi_addresses = validateAddresses(options.pi_addresses);
     const job = { id: crypto.randomUUID(), owner, request_id: input.request_id, target: input.target, upload_handle: input.upload_handle, options, state: 'queued', phase: 'pending', created_at: new Date().toISOString() };
     this.jobs.push(job); this.update(job, {}); this.enqueue(job, input.password); return this.public(job);
   }
@@ -72,26 +78,37 @@ class BackupJobs extends EventEmitter {
     if (job.target === 'pi') {
       const writer = require('./pi-writer');
       if (!job.instance_id) {
+        const recovered = manager.db.instances.find((instance) => instance.id === 'backup-' + job.id && instance.hostingJobId === job.id && instance.state === 'waiting_for_boot');
+        if (recovered) this.update(job, { instance_id: recovered.id, phase: 'waiting_for_boot', state: 'waiting_for_boot' });
+      }
+      if (!job.instance_id) {
+        if (job.phase === 'card_write_started') throw fail('card_write_reconciliation_required');
         const approval = this.piApprovals.get(job.request_id);
         if (!approval) { this.update(job, { state: 'waiting_for_hardware', error_code: 'native_drive_confirmation_required' }); return; }
         this.piApprovals.delete(job.request_id);
         const kind = require('./images').KINDS[job.options.model];
         if (!kind || !/^rpi/.test(job.options.model)) throw fail('invalid_pi_model');
-        if (job.phase === 'card_write_started') throw fail('card_write_reconciliation_required');
         const image = await require('./images').fetchImage(kind.re, manager.cacheDir(), () => {}, () => {});
         if (!fs.existsSync(image.file + '.verified')) throw fail('image_verification_required');
         const recordedHash = fs.readFileSync(image.file + '.verified', 'utf8').trim();
         if (!/^[a-f0-9]{64}$/.test(recordedHash) || await require('./util').sha256File(image.file) !== recordedHash) throw fail('image_verification_failed');
         if (signal.aborted) throw fail('cancelled');
-        this.update(job, { phase: 'card_write_started', state: 'writing_card' });
-        await writer.write({ image: image.file, drive: approval, onProgress: (p) => this.emit('progress', { id: job.id, phase: p.state }), log: () => {} });
+        if (!this.prepareBootstrap) throw fail('bootstrap_helper_unavailable');
+        this.update(job, { phase: 'preparing_image', state: 'running' });
+        const prepared = await this.prepareBootstrap({ jobId: job.id, image, format: 'raw' });
+        this.update(job, { bootstrap_transport: prepared.transport, prepared_image: prepared.image, phase: 'image_prepared' });
+        if (signal.aborted) throw fail('cancelled');
+        await writer.write({ image: image.file, drive: approval, prepareImage: async () => { if (signal.aborted) throw fail('cancelled'); this.update(job, { phase: 'card_write_started', state: 'writing_card' }); return prepared; }, onProgress: (p) => this.emit('progress', { id: job.id, phase: p.state }), log: () => {} });
         const id = 'backup-' + job.id;
-        manager.db.instances.push({ id, slug: id, name: job.options.name || 'Restored Home Assistant', target: 'pi', hostingJobId: job.id, port: 80, backups: [], backupsOn: false, state: 'waiting_for_boot', dir: path.join(manager.dir, 'instances', id), url: '' }); manager.save();
+        manager.db.instances.push({ id, slug: id, name: job.options.name || 'Restored Home Assistant', target: 'pi', hostingJobId: job.id, port: 8123, restoreTransport: prepared.transport, backups: [], backupsOn: false, state: 'waiting_for_boot', dir: path.join(manager.dir, 'instances', id), url: '' }); manager.save();
         this.update(job, { instance_id: id, phase: 'waiting_for_boot', state: 'waiting_for_boot' });
       }
       if (job.phase === 'waiting_for_boot') {
-        // A generic discovery hostname can belong to the source or another device.
-        this.update(job, { state: 'waiting_for_boot', error_code: 'verified_hardware_identity_required' }); return;
+        const instance = manager.get(job.instance_id);
+        const found = await discoverPi({ addresses: job.options.pi_addresses || [], transport: instance.restoreTransport || job.bootstrap_transport, signal, onWaiting: () => this.update(job, { state: 'waiting_for_boot', error_code: 'verified_hardware_identity_required' }) });
+        if (signal.aborted) throw fail('cancelled');
+        if (!found) { this.update(job, { state: 'waiting_for_boot', error_code: 'verified_hardware_identity_required' }); return; }
+        Object.assign(instance, { url: found.url, lanUrl: found.url, restoreTransport: found.transport, state: 'running' }); manager.save(); this.update(job, { phase: 'provisioned', state: 'running', error_code: undefined });
       }
     }
     if (!job.instance_id) {
@@ -113,10 +130,17 @@ class BackupJobs extends EventEmitter {
       if (job.phase === 'provision_started' && state === 'missing') throw fail('provision_reconciliation_required');
       if (state === 'missing') {
         this.update(job, { state: 'running', phase: 'provision_started' });
-        const result = await adapter.deploy(full, () => {}, (key) => this.emit('progress', { id: job.id, phase: key }), { cacheDir: manager.cacheDir(), prepareBootstrap: this.prepareBootstrap, signal });
+        const prepareBootstrap = this.prepareBootstrap ? async (input) => { const prepared = await this.prepareBootstrap(input); inst.restoreTransport = prepared.transport; manager.save(); this.update(job, { bootstrap_transport: prepared.transport }); return prepared; } : undefined;
+        let savedRuntime = JSON.stringify([inst.ip, inst.bindAddress, inst.restoreTransport]);
+        const persistRuntime = () => {
+          const current = JSON.stringify([full.ip, full.bindAddress, full.restoreTransport]);
+          if (current !== savedRuntime) { Object.assign(inst, { ip: full.ip, bindAddress: full.bindAddress, restoreTransport: full.restoreTransport }); manager.save(); savedRuntime = current; }
+        };
+        const result = await adapter.deploy(full, persistRuntime, (key) => { persistRuntime(); this.emit('progress', { id: job.id, phase: key }); }, { cacheDir: manager.cacheDir(), prepareBootstrap, signal });
         Object.assign(inst, result, { state: 'running', ip: full.ip || inst.ip }); manager.save();
         if (signal.aborted) throw fail('cancelled');
       } else if (state !== 'running') throw fail('target_not_running');
+      if (job.target === 'vmware' && inst.restoreTransport && !inst.ip && typeof adapter.address === 'function') { inst.ip = await adapter.address(full); manager.save(); if (signal.aborted) throw fail('cancelled'); }
       Object.assign(inst, adapter.urls(full), { state: 'running' }); manager.save(); this.update(job, { phase: 'provisioned' });
     }
     let tunnel;

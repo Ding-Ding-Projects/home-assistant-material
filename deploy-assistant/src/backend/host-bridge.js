@@ -23,6 +23,7 @@ class HostBridge {
   async authenticatedStatus() {
     if (!this.capabilityCache || Date.now() - this.capabilityCache.at > 30000) {
       this.capabilityCache = { at: Date.now(), promise: Promise.all(['docker', 'virtualbox', 'vmware'].map(async (target) => {
+        if (target !== 'docker' && this.manager.backupBootstrap && !this.manager.backupBootstrap.available) return [target, { available: false, reason: this.manager.backupBootstrap.reason }];
         let timeout;
         const check = await Promise.race([this.manager.check(target), new Promise((resolve) => { timeout = setTimeout(() => resolve({ ok: false }), 5000); })]).finally(() => clearTimeout(timeout));
         return [target, check.ok ? { available: true } : { available: false, reason: 'setup_required' }];
