@@ -151,3 +151,28 @@ h2#history,h2#notifications,h2#records{margin:32px 0 8px}
 /* Page header: the description uses the free width and wraps evenly, so no single word is left beside the tags. */
 .phead>.col.grow{flex:1 1 320px}
 .phead .bm.mu{text-wrap:balance}
+
+/* Polish pass, 1.7 */
+/* Plan fields line up: a field with a clear button no longer stretches to the height of a neighbour that has a hint line. */
+.plan label>.clrwrap{flex:0 0 auto}
+/* The wizard steps: the current step is a rounded pill inside the bar, and no divider runs beside it. */
+.stepper{padding:4px;gap:4px;border-radius:24px}
+.stepper li{border-radius:20px;padding:10px 14px;transition:background-color .2s}
+.stepper li+li::before{left:-2.5px}
+.stepper li.cur::before,.stepper li.cur+li::before{display:none}
+@media (prefers-reduced-motion:reduce){.stepper li{transition:none}}
+/* Drop-down lists match the text fields: same shape, one chevron drawn by the app instead of the system arrow. */
+.m3 select.select{-webkit-appearance:none;appearance:none;padding-right:42px;cursor:pointer;min-width:120px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2379747E' d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:20px}
+.m3 select.select:hover{background-color:var(--sl3)}
+/* Long status tags in the deploy panel wrap inside the card instead of running past its edge. */
+.wpanel .tag{white-space:normal;height:auto;min-height:24px;padding-block:3px;overflow-wrap:anywhere}
+@media (max-width:760px){
+  .stepper li.cur span.ll{display:inline}
+  .stepper li.cur{flex:3}.stepper li:not(.cur){flex:0 0 auto}
+}
+@media (max-width:640px){
+  /* On a phone the page actions sit under the title, left aligned, instead of floating at the right. */
+  .phead .pacts{margin-inline-start:0;width:100%}
+}
+/* The current step's number stands out from its pill. */
+.stepper li.cur .sq{background:var(--p);color:var(--on-p)}
