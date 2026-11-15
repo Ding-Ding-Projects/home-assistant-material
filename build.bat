@@ -13,7 +13,8 @@ rem
 rem Every phase reports its real result. The script stops at the first failure and
 rem returns that failure's exit code.
 setlocal EnableExtensions EnableDelayedExpansion
-cd /d "%~dp0"
+set "BUILD_ROOT=%~dp0"
+cd /d "%BUILD_ROOT%"
 
 set "QUIET=0"
 set "RUN=0"
@@ -34,7 +35,7 @@ goto args
 :args_done
 set "RC=0"
 if "%TARGET%"=="deploy-assistant" (
-  call "%~dp0deploy-assistant\build.bat" notest
+  call "%BUILD_ROOT%deploy-assistant\build.bat" notest
   set "RC=!errorlevel!"
   goto done
 )
@@ -45,7 +46,7 @@ echo [1/5] Checking for Docker
 where docker >nul 2>&1
 if errorlevel 1 (
   echo Docker is not installed. Starting the dependency installer.
-  if "%QUIET%"=="1" (call "%~dp0download-dependencies.bat" /s) else (call "%~dp0download-dependencies.bat")
+  if "%QUIET%"=="1" (call "%BUILD_ROOT%download-dependencies.bat" /s) else (call "%BUILD_ROOT%download-dependencies.bat")
   if errorlevel 1 ( set "RC=3" & echo The dependency installer did not finish. & goto done )
   where docker >nul 2>&1
   if errorlevel 1 ( set "RC=3" & echo Docker was installed but is not on PATH yet. Sign out and in, then run build.bat again. & goto done )
@@ -66,12 +67,12 @@ echo Docker did not start within 3 minutes.
 goto done
 :docker_ready
 if "%TARGET%"=="backup-bootstrap-helper" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build\build-backup-bootstrap.ps1"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%BUILD_ROOT%build\build-backup-bootstrap.ps1"
   set "RC=!errorlevel!"
   goto done
 )
 if "%TARGET%"=="supervisor" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build\build-supervisor.ps1"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%BUILD_ROOT%build\build-supervisor.ps1"
   set "RC=!errorlevel!"
   goto done
 )

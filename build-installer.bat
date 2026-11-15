@@ -9,7 +9,8 @@ rem The build runs inside a Docker container volume because it needs symbolic li
 rem and a case-sensitive file system. It builds the committed source: commit first.
 rem The first build takes several hours. Results land in dist\os with their SHA-256.
 setlocal EnableExtensions EnableDelayedExpansion
-cd /d "%~dp0"
+set "BUILD_ROOT=%~dp0"
+cd /d "%BUILD_ROOT%"
 
 set "QUIET=0"
 set "BOARD=ova"
@@ -23,7 +24,7 @@ goto args
 :args_done
 set "RC=0"
 if "%NATIVE%"=="1" (
-  call "%~dp0deploy-assistant\build.bat" notest
+  call "%BUILD_ROOT%deploy-assistant\build.bat" notest
   set "RC=!errorlevel!"
   goto done
 )
