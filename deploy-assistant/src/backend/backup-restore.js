@@ -10,6 +10,13 @@ const { performance } = require('node:perf_hooks');
 const { once } = require('node:events');
 const { fail } = require('./backup-archive');
 const privateAddress = (address) => net.isIPv4(address) && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(address);
+const ERROR_STAGES = new Set(['startup', 'upload', 'restore']);
+const safeHttpStatus = (value) => Number.isInteger(value) && value >= 100 && value <= 599 ? value : undefined;
+const safeErrorStage = (value) => ERROR_STAGES.has(value) ? value : undefined;
+function atStage(error, stage) {
+  const result = error instanceof Error ? error : fail('target_request_failed');
+  result.statusCode = safeHttpStatus(error?.statusCode); result.stage = safeErrorStage(stage); return result;
+}
 
 async function lanOrigin(value, { lookup = dns.lookup } = {}) {
   const url = new URL(value);
@@ -36,7 +43,7 @@ function targetUrl(base, { certificate_fingerprint, fingerprint256, allowLanProb
   if (u.hostname === 'localhost') u.hostname = '127.0.0.1';
   return u;
 }
-function request(base, route, { method = 'GET', headers = {}, body, file, prefix, suffix, signal, transport = {}, allowLanProbe = false } = {}) {
+function request(base, route, { method = 'GET', headers = {}, body, file, prefix, suffix, signal, transport = {}, allowLanProbe = false, stage } = {}) {
   const probe = allowLanProbe && method === 'GET' && route === '/manifest.json' && !body && !file && Object.keys(headers).length === 0;
   const url = new URL(route, targetUrl(base, { ...transport, allowLanProbe: probe }));
   return new Promise((resolve, reject) => {
@@ -52,14 +59,14 @@ function request(base, route, { method = 'GET', headers = {}, body, file, prefix
       res.on('data', (chunk) => { text += chunk; if (text.length > 1024 * 1024) res.destroy(fail('response_too_large')); });
       res.on('error', reject);
       res.on('end', () => {
-        const responseError = (code) => Object.assign(fail(code), { statusCode: res.statusCode });
+        const responseError = (code) => atStage(Object.assign(fail(code), { statusCode: res.statusCode }), stage);
         let value = {}; try { if (text) value = JSON.parse(text); } catch { if (res.statusCode < 400) { reject(responseError('invalid_target_response')); return; } }
         if (res.statusCode === 401 || res.statusCode === 403) { reject(responseError('authentication_needed')); return; }
         if (res.statusCode < 200 || res.statusCode >= 300) { reject(responseError(['incorrect_password', 'backup_version_too_new', 'backup_no_core_archive', 'restore_failed'].includes(value.code) ? value.code : 'target_request_failed')); return; }
         resolve(value);
       });
     });
-    req.on('timeout', () => req.destroy(fail('target_timeout'))); req.on('error', reject);
+    req.on('timeout', () => req.destroy(fail('target_timeout'))); req.on('error', (error) => reject(atStage(error, stage)));
     if (file) {
       (async () => {
         req.write(prefix);
@@ -74,7 +81,7 @@ async function upload(base, file, agentId, signal, transport) {
   const boundary = 'ham-' + crypto.randomBytes(24).toString('hex');
   const prefix = Buffer.from('--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="backup.tar"\r\nContent-Type: application/x-tar\r\n\r\n');
   const suffix = Buffer.from('\r\n--' + boundary + '--\r\n');
-  return request(base, '/api/onboarding/backup/upload?agent_id=' + encodeURIComponent(agentId), { method: 'POST', signal, transport, file, prefix, suffix, headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary, 'Content-Length': prefix.length + fs.statSync(file).size + suffix.length } });
+  return request(base, '/api/onboarding/backup/upload?agent_id=' + encodeURIComponent(agentId), { method: 'POST', signal, transport, stage: 'upload', file, prefix, suffix, headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary, 'Content-Length': prefix.length + fs.statSync(file).size + suffix.length } });
 }
 
 function delay(ms, signal) {
@@ -96,7 +103,7 @@ async function waitForFreshOnboarding({ base, transport = {}, signal, api = requ
     const controller = new AbortController(); const abort = () => controller.abort(); signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(() => controller.abort(), Math.min(15000, left));
     try {
-      const result = await api(origin, route, { method: 'GET', signal: controller.signal, transport: identity });
+      const result = await api(origin, route, { method: 'GET', signal: controller.signal, transport: identity, stage: 'startup' });
       if (signal?.aborted) throw fail('cancelled');
       if (now() >= end) throw fail('onboarding_not_ready');
       return result;
@@ -112,8 +119,8 @@ async function waitForFreshOnboarding({ base, transport = {}, signal, api = requ
     onWaiting();
     try {
       const info = await get('/api/onboarding/backup/info');
-      if (info && Array.isArray(info.backups)) return info;
-      throw fail('invalid_target_response');
+      if (!info || !Array.isArray(info.backups)) throw fail('invalid_target_response');
+      if (info.state === 'idle') return info;
     } catch (error) {
       if (!startupError(error)) throw error;
       // A configured Core also closes the first-run API. Never treat it as a fresh target.
@@ -138,19 +145,25 @@ async function waitForFreshOnboarding({ base, transport = {}, signal, api = requ
 async function restoreHomeAssistantBackup({ base, file, password, journal, signal, transport = {}, agentId = 'hassio.local', api = request, uploadFile = upload, readiness = {} }) {
   // The caller supplies an independently provisioned, job-owned target, never the source.
   if (journal.phase === 'restore_submitted' || journal.phase === 'restore_accepted') return { reconciling: true };
-  const identity = Object.freeze({ ...transport }); const origin = targetUrl(base, identity).href;
-  await waitForFreshOnboarding({ ...readiness, base: origin, signal, transport: identity, api, onWaiting: () => journal.update({ state: 'running', phase: 'waiting_for_onboarding' }) });
+  const identity = Object.freeze({ ...transport }); let origin;
+  try { origin = targetUrl(base, identity).href; } catch (error) { throw atStage(error, 'startup'); }
+  journal.update({ error_http_status: undefined, error_stage: undefined });
+  try { await waitForFreshOnboarding({ ...readiness, base: origin, signal, transport: identity, api, onWaiting: () => journal.update({ state: 'running', phase: 'waiting_for_onboarding' }) }); }
+  catch (error) { throw atStage(error, 'startup'); }
   if (signal?.aborted) throw fail('cancelled');
   journal.update({ state: 'restoring', phase: journal.backup_id ? 'uploaded' : 'provisioned' });
   let backupId = journal.backup_id;
-  if (!backupId) { const result = await uploadFile(origin, file, agentId, signal, identity); backupId = result.backup_id; if (typeof backupId !== 'string') throw fail('invalid_target_response'); journal.update({ backup_id: backupId, phase: 'uploaded' }); }
+  if (!backupId) {
+    try { const result = await uploadFile(origin, file, agentId, signal, identity); backupId = result.backup_id; if (typeof backupId !== 'string') throw fail('invalid_target_response'); journal.update({ backup_id: backupId, phase: 'uploaded' }); }
+    catch (error) { throw atStage(error, 'upload'); }
+  }
   if (signal?.aborted) throw fail('cancelled');
   const body = JSON.stringify({ backup_id: backupId, agent_id: agentId, ...(password ? { password } : {}), restore_database: true });
   // Persist before transmission. An uncertain response must be reconciled, never replayed.
   journal.update({ phase: 'restore_submitted' });
-  try { await api(origin, '/api/onboarding/backup/restore', { method: 'POST', signal, transport: identity, headers: { 'Content-Type': 'application/json' }, body }); }
-  catch (e) { if (['incorrect_password', 'backup_version_too_new', 'backup_no_core_archive', 'restore_failed', 'authentication_needed'].includes(e.code)) journal.update({ phase: 'restore_rejected', error_code: e.code }); throw e; }
+  try { await api(origin, '/api/onboarding/backup/restore', { method: 'POST', signal, transport: identity, stage: 'restore', headers: { 'Content-Type': 'application/json' }, body }); }
+  catch (e) { if (['incorrect_password', 'backup_version_too_new', 'backup_no_core_archive', 'restore_failed', 'authentication_needed'].includes(e.code)) journal.update({ phase: 'restore_rejected', error_code: e.code }); throw atStage(e, 'restore'); }
   journal.update({ phase: 'restore_accepted', restore_accepted_at: new Date().toISOString() });
   return { accepted: true };
 }
-module.exports = { targetUrl, request, upload, restoreHomeAssistantBackup, lanOrigin, coreManifest, waitForFreshOnboarding };
+module.exports = { targetUrl, request, upload, restoreHomeAssistantBackup, lanOrigin, coreManifest, waitForFreshOnboarding, safeHttpStatus, safeErrorStage };
